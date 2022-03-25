@@ -30,7 +30,7 @@ log = resotolib.logging.getLogger("resoto." + __name__)
 
 
 @dataclass(eq=False)
-class DigitalOceanResource(BaseResource):
+class DigitalOceanResource(BaseResource):  # type: ignore
     """A class that implements the abstract method delete() as well as update_tag()
     and delete_tag().
 
@@ -51,24 +51,30 @@ class DigitalOceanResource(BaseResource):
 
     def delete(self, graph: Graph) -> bool:
         """Delete a resource in the cloud"""
-        if self.delete_uri_path():
+        delete_uri_path = self.delete_uri_path()
+        if delete_uri_path:
             log.debug(
                 f"Deleting resource {self.id} in account {self.account(graph).id} region {self.region(graph).id}"
             )
             team = self.account(graph)
             credentials = get_team_credentials(team.id)
+            if credentials is None:
+                raise RuntimeError(
+                    f"Cannot delete resource {self.id}, credentials not found for team {team.id}"
+                )
             client = StreamingWrapper(
                 credentials.api_token,
                 credentials.spaces_access_key,
                 credentials.spaces_secret_key,
             )
-            return client.delete(self.delete_uri_path(), self.id)
+            return client.delete(delete_uri_path, self.id)
 
         raise NotImplementedError
 
-    def update_tag(self, key, value) -> bool:
+    def update_tag(self, key: str, value: str) -> bool:
 
-        if self.tag_resource_name():
+        tag_resource_name = self.tag_resource_name()
+        if tag_resource_name:
             log.debug(f"Updating tag {key} on resource {self.id}")
             if value:
                 log.warning(
@@ -76,6 +82,10 @@ class DigitalOceanResource(BaseResource):
                 )
             team = self._account
             credentials = get_team_credentials(team.id)
+            if credentials is None:
+                raise RuntimeError(
+                    f"Cannot update tag on resource {self.id}, credentials not found for team {team.id}"
+                )
             client = StreamingWrapper(
                 credentials.api_token,
                 credentials.spaces_access_key,
@@ -92,23 +102,26 @@ class DigitalOceanResource(BaseResource):
             if tag_count is None:
                 tag_ready = client.create_tag(key)
 
-            return tag_ready and client.tag_resource(
-                key, self.tag_resource_name(), self.id
-            )
+            return tag_ready and client.tag_resource(key, tag_resource_name, self.id)
         else:
             raise NotImplementedError(f"resource {self.kind} does not support tagging")
 
-    def delete_tag(self, key) -> bool:
-        if self.tag_resource_name():
+    def delete_tag(self, key: str) -> bool:
+        tag_resource_name = self.tag_resource_name()
+        if tag_resource_name:
             log.debug(f"Deleting tag {key} on resource {self.id}")
             team = self._account
             credentials = get_team_credentials(team.id)
+            if credentials is None:
+                raise RuntimeError(
+                    f"Cannot update tag on resource {self.id}, credentials not found for team {team.id}"
+                )
             client = StreamingWrapper(
                 credentials.api_token,
                 credentials.spaces_access_key,
                 credentials.spaces_secret_key,
             )
-            untagged = client.untag_resource(key, self.tag_resource_name(), self.id)
+            untagged = client.untag_resource(key, tag_resource_name, self.id)
             if not untagged:
                 return False
             tag_count = client.get_tag_count(key)
@@ -120,14 +133,14 @@ class DigitalOceanResource(BaseResource):
 
 
 @dataclass(eq=False)
-class DigitalOceanTeam(DigitalOceanResource, BaseAccount):
+class DigitalOceanTeam(DigitalOceanResource, BaseAccount):  # type: ignore
     """DigitalOcean Team"""
 
     kind: ClassVar[str] = "digitalocean_team"
 
 
 @dataclass(eq=False)
-class DigitalOceanRegion(DigitalOceanResource, BaseRegion):
+class DigitalOceanRegion(DigitalOceanResource, BaseRegion):  # type: ignore
     """DigitalOcean region"""
 
     kind: ClassVar[str] = "digitalocean_region"
@@ -139,7 +152,7 @@ class DigitalOceanRegion(DigitalOceanResource, BaseRegion):
 
 
 @dataclass(eq=False)
-class DigitalOceanProject(DigitalOceanResource, BaseResource):
+class DigitalOceanProject(DigitalOceanResource, BaseResource):  # type: ignore
     """DigitalOcean project"""
 
     kind: ClassVar[str] = "digitalocean_project"
@@ -150,12 +163,12 @@ class DigitalOceanProject(DigitalOceanResource, BaseResource):
     environment: Optional[str] = None
     is_default: Optional[bool] = None
 
-    def delete_uri_path(self):
+    def delete_uri_path(self) -> Optional[str]:
         return "/projects"
 
 
 @dataclass(eq=False)
-class DigitalOceanDroplet(DigitalOceanResource, BaseInstance):
+class DigitalOceanDroplet(DigitalOceanResource, BaseInstance):  # type: ignore
     """A DigitalOcean Droplet Resource
 
     Droplet have a class variable `instance_status_map` which contains
@@ -203,7 +216,7 @@ DigitalOceanDroplet.instance_status = property(
 
 
 @dataclass(eq=False)
-class DigitalOceanKubernetesCluster(DigitalOceanResource, BaseResource):
+class DigitalOceanKubernetesCluster(DigitalOceanResource, BaseResource):  # type: ignore
     """DigitalOcean Kubernetes Cluster"""
 
     kind: ClassVar[str] = "digitalocean_kubernetes_cluster"
@@ -224,7 +237,7 @@ class DigitalOceanKubernetesCluster(DigitalOceanResource, BaseResource):
 
 
 @dataclass(eq=False)
-class DigitalOceanVolume(DigitalOceanResource, BaseVolume):
+class DigitalOceanVolume(DigitalOceanResource, BaseVolume):  # type: ignore
     kind: ClassVar[str] = "digitalocean_volume"
 
     volume_status_map: ClassVar[Dict[str, VolumeStatus]] = {
@@ -257,7 +270,7 @@ DigitalOceanVolume.volume_status = property(
 
 
 @dataclass(eq=False)
-class DigitalOceanDatabase(DigitalOceanResource, BaseDatabase):
+class DigitalOceanDatabase(DigitalOceanResource, BaseDatabase):  # type: ignore
     kind: ClassVar[str] = "digitalocean_database"
 
     def delete_uri_path(self) -> Optional[str]:
@@ -268,7 +281,7 @@ class DigitalOceanDatabase(DigitalOceanResource, BaseDatabase):
 
 
 @dataclass(eq=False)
-class DigitalOceanNetwork(DigitalOceanResource, BaseNetwork):
+class DigitalOceanNetwork(DigitalOceanResource, BaseNetwork):  # type: ignore
     """DigitalOcean network
 
     This is what instances and other networking related resources might reside in.
@@ -285,7 +298,7 @@ class DigitalOceanNetwork(DigitalOceanResource, BaseNetwork):
 
 
 @dataclass(eq=False)
-class DigitalOceanSnapshot(DigitalOceanResource, BaseSnapshot):
+class DigitalOceanSnapshot(DigitalOceanResource, BaseSnapshot):  # type: ignore
     """DigitalOcean snapshot"""
 
     kind: ClassVar[str] = "digitalocean_snapshot"
@@ -301,7 +314,7 @@ class DigitalOceanSnapshot(DigitalOceanResource, BaseSnapshot):
 
 
 @dataclass(eq=False)
-class DigitalOceanLoadBalancer(DigitalOceanResource, BaseLoadBalancer):
+class DigitalOceanLoadBalancer(DigitalOceanResource, BaseLoadBalancer):  # type: ignore
     """DigitalOcean load balancer"""
 
     kind: ClassVar[str] = "digitalocean_load_balancer"
@@ -318,7 +331,7 @@ class DigitalOceanLoadBalancer(DigitalOceanResource, BaseLoadBalancer):
 
 
 @dataclass(eq=False)
-class DigitalOceanFloatingIP(DigitalOceanResource, BaseIPAddress):
+class DigitalOceanFloatingIP(DigitalOceanResource, BaseIPAddress):  # type: ignore
     """DigitalOcean floating IP"""
 
     kind: ClassVar[str] = "digitalocean_floating_ip"
@@ -331,6 +344,10 @@ class DigitalOceanFloatingIP(DigitalOceanResource, BaseIPAddress):
         )
         team = self.account(graph)
         credentials = get_team_credentials(team.id)
+        if credentials is None:
+            raise RuntimeError(
+                f"Cannot delete resource {self.id}, credentials not found for team {team.id}"
+            )
         client = StreamingWrapper(
             credentials.api_token,
             credentials.spaces_access_key,
@@ -342,7 +359,7 @@ class DigitalOceanFloatingIP(DigitalOceanResource, BaseIPAddress):
 
 
 @dataclass(eq=False)
-class DigitalOceanImage(DigitalOceanResource, BaseResource):
+class DigitalOceanImage(DigitalOceanResource, BaseResource):  # type: ignore
     """DigitalOcean image"""
 
     kind: ClassVar[str] = "digitalocean_image"
@@ -364,7 +381,7 @@ class DigitalOceanImage(DigitalOceanResource, BaseResource):
 
 
 @dataclass(eq=False)
-class DigitalOceanSpace(DigitalOceanResource, BaseBucket):
+class DigitalOceanSpace(DigitalOceanResource, BaseBucket):  # type: ignore
     """DigitalOcean space"""
 
     kind: ClassVar[str] = "digitalocean_space"
@@ -375,6 +392,10 @@ class DigitalOceanSpace(DigitalOceanResource, BaseBucket):
         )
         team = self.account(graph)
         credentials = get_team_credentials(team.id)
+        if credentials is None:
+            raise RuntimeError(
+                f"Cannot delete resource {self.id}, credentials not found for team {team.id}"
+            )
         client = StreamingWrapper(
             credentials.api_token,
             credentials.spaces_access_key,
@@ -384,7 +405,7 @@ class DigitalOceanSpace(DigitalOceanResource, BaseBucket):
 
 
 @dataclass(eq=False)
-class DigitalOceanApp(DigitalOceanResource, BaseResource):
+class DigitalOceanApp(DigitalOceanResource, BaseResource):  # type: ignore
     """DigitalOcean app"""
 
     kind: ClassVar[str] = "digitalocean_app"
@@ -395,12 +416,12 @@ class DigitalOceanApp(DigitalOceanResource, BaseResource):
     live_url_base: Optional[str] = None
     live_domain: Optional[str] = None
 
-    def delete_uri_path(self):
+    def delete_uri_path(self) -> Optional[str]:
         return "/apps"
 
 
 @dataclass(eq=False)
-class DigitalOceanCdnEndpoint(DigitalOceanResource, BaseEndpoint):
+class DigitalOceanCdnEndpoint(DigitalOceanResource, BaseEndpoint):  # type: ignore
     """DigitalOcean CDN endpoint"""
 
     kind = "digitalocean_cdn_endpoint"
@@ -416,7 +437,7 @@ class DigitalOceanCdnEndpoint(DigitalOceanResource, BaseEndpoint):
 
 
 @dataclass(eq=False)
-class DigitalOceanCertificate(DigitalOceanResource, BaseCertificate):
+class DigitalOceanCertificate(DigitalOceanResource, BaseCertificate):  # type: ignore
     """DigitalOcean certificate"""
 
     kind = "digitalocean_certificate"
@@ -429,7 +450,7 @@ class DigitalOceanCertificate(DigitalOceanResource, BaseCertificate):
 
 
 @dataclass(eq=False)
-class DigitalOceanContainerRegistry(DigitalOceanResource, BaseResource):
+class DigitalOceanContainerRegistry(DigitalOceanResource, BaseResource):  # type: ignore
     """DigitalOcean container registry"""
 
     kind = "digitalocean_container_registry"
@@ -444,6 +465,10 @@ class DigitalOceanContainerRegistry(DigitalOceanResource, BaseResource):
         )
         team = self.account(graph)
         credentials = get_team_credentials(team.id)
+        if credentials is None:
+            raise RuntimeError(
+                f"Cannot delete resource {self.id}, credentials not found for team {team.id}"
+            )
         client = StreamingWrapper(
             credentials.api_token,
             credentials.spaces_access_key,
@@ -453,7 +478,7 @@ class DigitalOceanContainerRegistry(DigitalOceanResource, BaseResource):
 
 
 @dataclass(eq=False)
-class DigitalOceanContainerRegistryRepository(DigitalOceanResource, BaseResource):
+class DigitalOceanContainerRegistryRepository(DigitalOceanResource, BaseResource):  # type: ignore
     """DigitalOcean container registry repository"""
 
     kind = "digitalocean_container_registry_repository"
@@ -463,7 +488,7 @@ class DigitalOceanContainerRegistryRepository(DigitalOceanResource, BaseResource
 
 
 @dataclass(eq=False)
-class DigitalOceanContainerRegistryRepositoryTag(DigitalOceanResource, BaseResource):
+class DigitalOceanContainerRegistryRepositoryTag(DigitalOceanResource, BaseResource):  # type: ignore
     """DigitalOcean container registry repository tag"""
 
     kind = "digitalocean_container_registry_repository_tag"
@@ -480,7 +505,7 @@ class DigitalOceanContainerRegistryRepositoryTag(DigitalOceanResource, BaseResou
 
 
 @dataclass(eq=False)
-class DigitalOceanSSHKey(DigitalOceanResource, BaseKeyPair):
+class DigitalOceanSSHKey(DigitalOceanResource, BaseKeyPair):  # type: ignore
     """DigitalOcean ssh key"""
 
     kind = "digitalocean_ssh_key"
@@ -492,7 +517,7 @@ class DigitalOceanSSHKey(DigitalOceanResource, BaseKeyPair):
 
 
 @dataclass(eq=False)
-class DigitalOceanTag(DigitalOceanResource, BaseResource):
+class DigitalOceanTag(DigitalOceanResource, BaseResource):  # type: ignore
     """DigitalOcean tag"""
 
     kind = "digitalocean_tag"
@@ -502,7 +527,7 @@ class DigitalOceanTag(DigitalOceanResource, BaseResource):
 
 
 @dataclass(eq=False)
-class DigitalOceanDomain(DigitalOceanResource, BaseDomain):
+class DigitalOceanDomain(DigitalOceanResource, BaseDomain):  # type: ignore
     """DigitalOcean domain"""
 
     kind = "digitalocean_domain"
@@ -512,7 +537,7 @@ class DigitalOceanDomain(DigitalOceanResource, BaseDomain):
 
 
 @dataclass(eq=False)
-class DigitalOceanDomainRecord(DigitalOceanResource, BaseDomainRecord):
+class DigitalOceanDomainRecord(DigitalOceanResource, BaseDomainRecord):  # type: ignore
     """DigitalOcean domain record"""
 
     kind = "digitalocean_domain_record"
@@ -523,7 +548,7 @@ class DigitalOceanDomainRecord(DigitalOceanResource, BaseDomainRecord):
 
 
 @dataclass(eq=False)
-class DigitalOceanFirewall(DigitalOceanResource, BaseResource):
+class DigitalOceanFirewall(DigitalOceanResource, BaseResource):  # type: ignore
     """DigitalOcean firewall"""
 
     kind = "digitalocean_firewall"
@@ -534,7 +559,7 @@ class DigitalOceanFirewall(DigitalOceanResource, BaseResource):
 
 
 @dataclass(eq=False)
-class DigitalOceanAlertPolicy(DigitalOceanResource, BaseResource):
+class DigitalOceanAlertPolicy(DigitalOceanResource, BaseResource):  # type: ignore
     """DigitalOcean alert policy"""
 
     kind = "digitalocean_alert_policy"

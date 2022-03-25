@@ -6,7 +6,9 @@ import resotolib.logging
 log = resotolib.logging.getLogger("resoto." + __name__)
 
 
-def get_result_data(result: Dict, value: Union[str, Callable]) -> Any:
+def get_result_data(
+    result: Dict[str, Any], value: Union[str, Callable[..., Any]]
+) -> Any:
     """Returns data from a DO API call result dict.
 
     Args:
@@ -30,7 +32,7 @@ class RetryableHttpError(Exception):
     pass
 
 
-def retry_on_error(e):
+def retry_on_error(e: Any) -> bool:
     if isinstance(e, RetryableHttpError):
         log.info(f"Got a retryable error {e}  - retrying")
         return True
@@ -39,7 +41,7 @@ def retry_on_error(e):
 
 def iso2datetime(ts: Optional[str]) -> Optional[datetime]:
     if ts is None:
-        return
+        return None
     if ts.endswith("Z"):
         ts = ts[:-1] + "+00:00"
     if ts is not None:

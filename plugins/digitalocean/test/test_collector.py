@@ -1,5 +1,6 @@
 from resoto_plugin_digitalocean.collector import DigitalOceanTeamCollector
 from resoto_plugin_digitalocean.resources import DigitalOceanTeam
+from resoto_plugin_digitalocean.client import StreamingWrapper
 from fixtures import (
     droplets,
     regions,
@@ -30,20 +31,23 @@ from resotolib.graph import sanitize
 from resotolib.baseresources import Cloud, EdgeType
 from resotolib.graph import Graph, GraphRoot
 import datetime
+from typing import Dict, Any, List
 
 
-class ClientMock(object):
-    def __init__(self, responses):
+class ClientMock(StreamingWrapper, object):
+    def __init__(self, responses: Dict[str, Any]) -> None:
         self.responses = responses
 
-    def __getattr__(self, name):
-        def wrapper(*args, **kwargs):
-            return self.responses.get(name, [])
+    def __getattribute__(self, name):  # type: ignore
+        responses = super().__getattribute__("responses")
+
+        def wrapper(*args, **kwargs) -> Any:  # type: ignore
+            return responses.get(name, [])
 
         return wrapper
 
 
-def prepare_graph(do_client) -> Graph:
+def prepare_graph(do_client: StreamingWrapper) -> Graph:
     cloud = Cloud("do")
     team = DigitalOceanTeam(id="test_team", urn="do:team:test_team")
     plugin_instance = DigitalOceanTeamCollector(team, do_client)
@@ -69,7 +73,7 @@ def check_edges(graph: Graph, from_id: str, to_id: str, delete: bool = False) ->
     assert False, f"Edge {from_id} -> {to_id} not found"
 
 
-def test_collect_teams():
+def test_collect_teams() -> None:
 
     do_client = ClientMock({})
     graph = prepare_graph(do_client)
@@ -80,7 +84,7 @@ def test_collect_teams():
     assert team_node.id == "test_team"
 
 
-def test_collect_regions():
+def test_collect_regions() -> None:
 
     do_client = ClientMock({"list_regions": regions, "list_droplets": droplets})
 
@@ -105,11 +109,12 @@ def test_collect_regions():
         "storage",
         "image_transfer",
     ]
-    assert set(region.do_region_droplet_sizes) == set(regions[1]["sizes"])
+    droplet_sizes: List[str] = regions[1]["sizes"]  # type: ignore
+    assert set(region.do_region_droplet_sizes) == set(droplet_sizes)
     assert region.is_available is True
 
 
-def test_collect_vpcs():
+def test_collect_vpcs() -> None:
     do_client = ClientMock(
         {
             "list_regions": regions,
@@ -127,7 +132,7 @@ def test_collect_vpcs():
     assert vpc.is_default is True
 
 
-def test_collect_droplets():
+def test_collect_droplets() -> None:
     do_client = ClientMock(
         {
             "list_regions": regions,
@@ -179,7 +184,7 @@ def test_collect_droplets():
     assert droplet.tags == {"droplet_tag": ""}
 
 
-def test_collect_volumes():
+def test_collect_volumes() -> None:
     do_client = ClientMock(
         {
             "list_regions": regions,
@@ -206,7 +211,7 @@ def test_collect_volumes():
     assert volume.volume_status == "in-use"
 
 
-def test_collect_database():
+def test_collect_database() -> None:
     do_client = ClientMock(
         {
             "list_regions": regions,
@@ -244,7 +249,7 @@ def test_collect_database():
     assert database.instance_type == "db-s-1vcpu-1gb"
 
 
-def test_collect_k8s_clusters():
+def test_collect_k8s_clusters() -> None:
     do_client = ClientMock(
         {
             "list_regions": regions,
@@ -293,7 +298,7 @@ def test_collect_k8s_clusters():
     assert cluster.ha_enabled is False
 
 
-def test_collect_snapshots():
+def test_collect_snapshots() -> None:
     do_client = ClientMock(
         {
             "list_regions": regions,
@@ -314,7 +319,7 @@ def test_collect_snapshots():
     assert snapshot.resource_type == "droplet"
 
 
-def test_collect_loadbalancers():
+def test_collect_loadbalancers() -> None:
     do_client = ClientMock(
         {
             "list_regions": regions,
@@ -355,7 +360,7 @@ def test_collect_loadbalancers():
     assert lb.disable_lets_encrypt_dns_records is False
 
 
-def test_collect_floating_ips():
+def test_collect_floating_ips() -> None:
     do_client = ClientMock(
         {
             "list_regions": regions,
@@ -372,7 +377,7 @@ def test_collect_floating_ips():
     assert floating_ip.is_locked is False
 
 
-def test_collect_projects():
+def test_collect_projects() -> None:
     do_client = ClientMock(
         {
             "list_regions": regions,
@@ -438,7 +443,7 @@ def test_collect_projects():
     )
 
 
-def test_collect_space():
+def test_collect_space() -> None:
     do_client = ClientMock(
         {
             "list_regions": regions,
@@ -455,7 +460,7 @@ def test_collect_space():
     )
 
 
-def test_collect_apps():
+def test_collect_apps() -> None:
     do_client = ClientMock(
         {
             "list_regions": regions,
@@ -478,7 +483,7 @@ def test_collect_apps():
     assert app.live_domain == "resoto_test_apps.ondigitalocean.app"
 
 
-def test_cdn_endpoints():
+def test_cdn_endpoints() -> None:
     do_client = ClientMock(
         {
             "list_regions": regions,
@@ -505,7 +510,7 @@ def test_cdn_endpoints():
     assert endpoint.ttl == 3600
 
 
-def test_collect_certificates():
+def test_collect_certificates() -> None:
     do_client = ClientMock({"list_regions": regions, "list_certificates": certificates})
     graph = prepare_graph(do_client)
     check_edges(
@@ -524,7 +529,7 @@ def test_collect_certificates():
     assert cert.certificate_type == "custom"
 
 
-def test_collect_container_registries():
+def test_collect_container_registries() -> None:
     do_client = ClientMock(
         {
             "list_regions": regions,
@@ -572,7 +577,7 @@ def test_collect_container_registries():
     )
 
 
-def test_collect_ssh_keys():
+def test_collect_ssh_keys() -> None:
     do_client = ClientMock(
         {
             "list_regions": regions,
@@ -588,7 +593,7 @@ def test_collect_ssh_keys():
     assert ssh_key.public_key == "ssh-rsa publickey keycomment"
 
 
-def test_collect_tags():
+def test_collect_tags() -> None:
     do_client = ClientMock(
         {
             "list_regions": regions,
@@ -600,7 +605,7 @@ def test_collect_tags():
     assert tag.urn == "do:tag:droplet_tag"
 
 
-def test_collect_domains():
+def test_collect_domains() -> None:
     do_client = ClientMock(
         {
             "list_regions": regions,
@@ -632,7 +637,7 @@ def test_collect_domains():
     assert domain_record.record_tag is None
 
 
-def test_collect_firewalls():
+def test_collect_firewalls() -> None:
     do_client = ClientMock(
         {
             "list_regions": regions,
@@ -659,7 +664,7 @@ def test_collect_firewalls():
     )
 
 
-def test_alert_policies():
+def test_alert_policies() -> None:
     do_client = ClientMock(
         {
             "list_regions": regions,

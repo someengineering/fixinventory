@@ -1,16 +1,31 @@
-from typing import Dict, List, Any, Optional, Union
+from typing import Dict, List, Any, Optional, Union, TypeVar, Callable, cast
 from dataclasses import dataclass
 from functools import lru_cache
 import requests
 import boto3
 from botocore.exceptions import EndpointConnectionError, HTTPClientError
-from retrying import retry
+from retrying import retry as retry_decorator
 from resotolib.args import ArgumentParser
 from resoto_plugin_digitalocean.utils import retry_on_error
 from resoto_plugin_digitalocean.utils import RetryableHttpError
-
-
 import resotolib.logging
+
+
+F = TypeVar("F", bound=Callable[..., Any])
+
+
+def retry(func: F) -> F:
+    def wrapper(*args, **kwds):  # type: ignore
+
+        return retry_decorator(
+            stop_max_attempt_number=10,
+            wait_exponential_multiplier=3000,
+            wait_exponential_max=300000,
+            retry_on_exception=retry_on_error,
+        )(func(*args, **kwds))
+
+    return cast(F, wrapper)
+
 
 log = resotolib.logging.getLogger("resoto." + __name__)
 
@@ -67,14 +82,9 @@ class StreamingWrapper:
         )
         return False
 
-    @retry(
-        stop_max_attempt_number=10,
-        wait_exponential_multiplier=3000,
-        wait_exponential_max=300000,
-        retry_on_exception=retry_on_error,
-    )
+    @retry
     def _fetch(self, path: str, payload_object_name: str) -> List[Json]:
-        result = []
+        result: List[Json] = []
 
         url = f"{self.do_api_endpoint}{path}?page=1&per_page=200"
         log.debug(f"fetching {url}")
@@ -110,12 +120,7 @@ class StreamingWrapper:
         log.debug(f"DO request {path} returned {len(result)} items")
         return result
 
-    @retry(
-        stop_max_attempt_number=10,
-        wait_exponential_multiplier=3000,
-        wait_exponential_max=300000,
-        retry_on_exception=retry_on_error,
-    )
+    @retry
     def delete(self, path: str, resource_id: Optional[str]) -> bool:
         resource_id_path = f"/{resource_id}" if resource_id else ""
         url = f"{self.do_api_endpoint}{path}{resource_id_path}"
@@ -186,12 +191,7 @@ class StreamingWrapper:
     def list_floating_ips(self) -> List[Json]:
         return self._fetch("/floating_ips", "floating_ips")
 
-    @retry(
-        stop_max_attempt_number=10,
-        wait_exponential_multiplier=3000,
-        wait_exponential_max=300000,
-        retry_on_exception=retry_on_error,
-    )
+    @retry
     def unassign_floating_ip(self, floating_ip_id: str) -> bool:
         payload = '{"type":"unassign"}'
         url = f"{self.do_api_endpoint}/floating_ips/{floating_ip_id}/actions"
@@ -204,12 +204,7 @@ class StreamingWrapper:
 
         return self.check_status_code(response)
 
-    @retry(
-        stop_max_attempt_number=10,
-        wait_exponential_multiplier=3000,
-        wait_exponential_max=300000,
-        retry_on_exception=retry_on_error,
-    )
+    @retry
     def list_spaces(self, region_slug: str) -> List[Json]:
         if self.session is not None:
             try:
@@ -221,7 +216,10 @@ class StreamingWrapper:
                     aws_secret_access_key=self.spaces_secret_key,
                 )
 
-                return resource.meta.client.list_buckets().get("Buckets", [])
+                buckets: List[Json] = resource.meta.client.list_buckets().get(
+                    "Buckets", []
+                )
+                return buckets
             except HTTPClientError:
                 raise RetryableHttpError("DO Spaces: Too many requests")
             except EndpointConnectionError:
@@ -234,12 +232,7 @@ class StreamingWrapper:
         else:
             return []
 
-    @retry(
-        stop_max_attempt_number=10,
-        wait_exponential_multiplier=3000,
-        wait_exponential_max=300000,
-        retry_on_exception=retry_on_error,
-    )
+    @retry
     def delete_space(self, region_slug: str, bucket_name: str) -> bool:
         if self.session is not None:
             try:
@@ -251,7 +244,7 @@ class StreamingWrapper:
                     aws_secret_access_key=self.spaces_secret_key,
                 )
 
-                def handle_response_code(result):
+                def handle_response_code(result: Any) -> bool:
                     if not isinstance(result, list):
                         result = [result]
                     for message in result:
@@ -325,47 +318,33 @@ class StreamingWrapper:
     def list_tags(self) -> List[Json]:
         return self._fetch("/tags", "tags")
 
-    @retry(
-        stop_max_attempt_number=10,
-        wait_exponential_multiplier=3000,
-        wait_exponential_max=300000,
-        retry_on_exception=retry_on_error,
-    )
+    @retry
     def get_tag_count(self, tag_name: str) -> Union[Failure, None, int]:
         url = f"{self.do_api_endpoint}/tags/{tag_name}"
         response = requests.get(url, headers=self.headers, allow_redirects=True)
         if response.status_code == 404:
             return None
         if self.check_status_code(response):
-            return (
+            count: int = (
                 response.json()
                 .get("tag", {})
                 .get("tag", {})
                 .get("resources", {})
                 .get("count", 0)
             )
+            return count
         return (
             f"get_tag_count call failed: status {response.status_code}, "
             f"reason: {response.reason}, payload: {response.text}"
         )
 
-    @retry(
-        stop_max_attempt_number=10,
-        wait_exponential_multiplier=3000,
-        wait_exponential_max=300000,
-        retry_on_exception=retry_on_error,
-    )
+    @retry
     def create_tag(self, tag_name: str) -> bool:
         url = f"{self.do_api_endpoint}/tags"
         response = requests.post(url, headers=self.headers, json={"name": tag_name})
         return self.check_status_code(response)
 
-    @retry(
-        stop_max_attempt_number=10,
-        wait_exponential_multiplier=3000,
-        wait_exponential_max=300000,
-        retry_on_exception=retry_on_error,
-    )
+    @retry
     def tag_resource(self, tag_name: str, resource_type: str, resource_id: str) -> bool:
         url = f"{self.do_api_endpoint}/tags/{tag_name}/resources"
         payload = {
@@ -377,12 +356,7 @@ class StreamingWrapper:
 
         return self.check_status_code(response)
 
-    @retry(
-        stop_max_attempt_number=10,
-        wait_exponential_multiplier=3000,
-        wait_exponential_max=300000,
-        retry_on_exception=retry_on_error,
-    )
+    @retry
     def untag_resource(
         self, tag_name: str, resource_type: str, resource_id: str
     ) -> bool:
