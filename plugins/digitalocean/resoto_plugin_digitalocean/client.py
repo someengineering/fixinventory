@@ -1,4 +1,4 @@
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, Union
 from dataclasses import dataclass
 from functools import lru_cache
 import requests
@@ -15,6 +15,8 @@ import resotolib.logging
 log = resotolib.logging.getLogger("resoto." + __name__)
 
 Json = Dict[str, Any]
+
+Failure = str
 
 
 # todo: make it async
@@ -329,11 +331,11 @@ class StreamingWrapper:
         wait_exponential_max=300000,
         retry_on_exception=retry_on_error,
     )
-    def get_tag_count(self, tag_name: str) -> Optional[int]:
+    def get_tag_count(self, tag_name: str) -> Union[Failure, None, int]:
         url = f"{self.do_api_endpoint}/tags/{tag_name}"
         response = requests.get(url, headers=self.headers, allow_redirects=True)
         if response.status_code == 404:
-            return -1
+            return None
         if self.check_status_code(response):
             return (
                 response.json()
@@ -342,7 +344,7 @@ class StreamingWrapper:
                 .get("resources", {})
                 .get("count", 0)
             )
-        return None
+        return f"get_tag_count call failed: status {response.status_code}, reason: {response.reason}, payload: {response.text}"
 
     @retry(
         stop_max_attempt_number=10,
@@ -390,6 +392,10 @@ class StreamingWrapper:
             url, headers=self.headers, json=payload, allow_redirects=True
         )
 
+        if response.status_code == 404:
+            raise RuntimeError(
+                f"Tag {tag_name} or {resource_type} {resource_id} not found."
+            )
         return self.check_status_code(response)
 
     def list_domains(self) -> List[Json]:

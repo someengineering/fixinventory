@@ -44,6 +44,9 @@ class DigitalOceanResource(BaseResource):
         return None
 
     def tag_resource_name(self) -> Optional[str]:
+        """Resource name in case tagging is supported by digitalocean.
+        Not all resources support tagging.
+        """
         return None
 
     def delete(self, graph: Graph) -> bool:
@@ -82,18 +85,18 @@ class DigitalOceanResource(BaseResource):
             tag_ready: bool = True
 
             tag_count = client.get_tag_count(key)
-            # tag count call failed unrecoverably, we can't continue
-            if tag_count is None:
-                return False
+            # tag count call failed irrecoverably, we can't continue
+            if isinstance(tag_count, str):
+                raise RuntimeError(f"Tag update failed. Reason: {tag_count}")
             # tag does not exist, create it
-            if tag_count == -1:
+            if tag_count is None:
                 tag_ready = client.create_tag(key)
 
             return tag_ready and client.tag_resource(
                 key, self.tag_resource_name(), self.id
             )
-
-        raise NotImplementedError
+        else:
+            raise NotImplementedError(f"resource {self.kind} does not support tagging")
 
     def delete_tag(self, key) -> bool:
         if self.tag_resource_name():
@@ -112,7 +115,8 @@ class DigitalOceanResource(BaseResource):
             if tag_count == 0:
                 return client.delete("/tags", key)
             return True
-        raise NotImplementedError
+        else:
+            raise NotImplementedError(f"resource {self.kind} does not support tagging")
 
 
 @dataclass(eq=False)
