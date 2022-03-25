@@ -6,6 +6,7 @@ import logging
 import os
 from asyncio import Task
 from contextlib import suppress
+from copy import copy
 from dataclasses import replace
 from datetime import timedelta
 from itertools import takewhile
@@ -441,7 +442,7 @@ class CLI:
         def expand_aliases(line: ParsedCommands) -> ParsedCommands:
             def expand_alias(alias_cmd: ParsedCommand) -> List[ParsedCommand]:
                 alias: AliasTemplate = self.alias_templates[alias_cmd.cmd]
-                props: Dict[str, JsonElement] = replacements.copy()  # type: ignore
+                props: Dict[str, JsonElement] = copy(replacements)  # type: ignore
                 for p in alias.parameters:
                     props[p.name] = p.default
                 props.update(key_values_parser.parse(alias_cmd.args or ""))
