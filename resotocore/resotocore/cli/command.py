@@ -30,7 +30,6 @@ from aiostream import stream, pipe
 from aiostream.aiter_utils import is_async_iterable
 from aiostream.core import Stream
 from parsy import Parser, string
-from yaml import BaseLoader
 
 from resotocore.async_extensions import run_async
 from resotocore.cli import (
