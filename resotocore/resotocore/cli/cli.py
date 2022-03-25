@@ -6,13 +6,12 @@ import logging
 import os
 from asyncio import Task
 from contextlib import suppress
-from copy import copy
 from dataclasses import replace
 from datetime import timedelta
 from itertools import takewhile
 from operator import attrgetter
 from textwrap import dedent
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Mapping
 from typing import Optional, Any
 
 from aiostream import stream
@@ -216,6 +215,9 @@ class CIKeyDict(Dict[str, Any]):
     def __setitem__(self, key: str, value: Any) -> Any:
         return super().__setitem__(key.lower(), value)
 
+    def update(self, m: Mapping[str, Any], **kwargs) -> None:  # type: ignore
+        return super().update({k.lower(): v for k, v in m.items()}, **kwargs)
+
 
 class CLI:
     """
@@ -408,9 +410,6 @@ class CLI:
     async def evaluate_cli_command(
         self, cli_input: str, context: CLIContext = EmptyContext, replace_place_holder: bool = True
     ) -> List[ParsedCommandLine]:
-        # create them once for the evaluation phase
-        replacements = CLI.replacements()
-
         async def combine_query_parts(
             commands: List[ExecutableCommand], ctx: CLIContext
         ) -> Tuple[CLIContext, List[ExecutableCommand]]:
@@ -442,7 +441,7 @@ class CLI:
         def expand_aliases(line: ParsedCommands) -> ParsedCommands:
             def expand_alias(alias_cmd: ParsedCommand) -> List[ParsedCommand]:
                 alias: AliasTemplate = self.alias_templates[alias_cmd.cmd]
-                props: Dict[str, JsonElement] = copy(replacements)  # type: ignore
+                props: Dict[str, JsonElement] = self.replacements(**{**self.cli_env, **context.env})  # type: ignore
                 for p in alias.parameters:
                     props[p.name] = p.default
                 props.update(key_values_parser.parse(alias_cmd.args or ""))

@@ -304,5 +304,6 @@ def test_ci_dict() -> None:
     assert d.keys() == {"a", "b"}
     d["c"] = 3
     d["C"] = 4
-    assert d["c"] == 4
-    assert d.keys() == {"a", "b", "c"}
+    assert d == dict(a=1, b=2, c=4)
+    d.update({"a": 2, "c": 5})
+    assert d == dict(a=2, b=2, c=5)
