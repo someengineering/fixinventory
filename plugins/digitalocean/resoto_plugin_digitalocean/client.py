@@ -344,7 +344,10 @@ class StreamingWrapper:
                 .get("resources", {})
                 .get("count", 0)
             )
-        return f"get_tag_count call failed: status {response.status_code}, reason: {response.reason}, payload: {response.text}"
+        return (
+            f"get_tag_count call failed: status {response.status_code}, "
+            f"reason: {response.reason}, payload: {response.text}"
+        )
 
     @retry(
         stop_max_attempt_number=10,
