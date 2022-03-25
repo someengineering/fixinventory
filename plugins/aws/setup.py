@@ -13,16 +13,12 @@ def read(fname):
 setup(
     name="resoto-plugin-aws",
     version="2.0.0a22",
-    description="Resoto AWS Plugin",
+    description="Resoto AWS Collector Plugin",
     license="Apache 2.0",
     packages=find_packages(),
     long_description=read("README.md"),
     entry_points={
-        "resoto.plugins": ["aws = resoto_plugin_aws:AWSPlugin"],
-        "console_scripts": [
-            "resoto-aws-org-list = resoto_plugin_aws.cmd.org_list:main",
-            "resoto-aws-s3 = resoto_plugin_aws.cmd.s3:main",
-        ],
+        "resoto.plugins": ["aws = resoto_plugin_aws:AWSCollectorPlugin"],
     },
     include_package_data=True,
     zip_safe=False,
