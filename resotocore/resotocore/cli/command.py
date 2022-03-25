@@ -2440,7 +2440,8 @@ class TagCommand(SendWorkerTaskCommand):
     ```
 
     This command can be used to update or delete a specific tag.
-    Tags have a name and value - both name and value are strings.
+    Tags have a name and value - both name and value are strings. In some cases cloud providers may
+    not support values in tags, and only allow names. In that case the value can be omitted.
 
     When this command is issued, the change is done on the cloud resource via the cloud specific provider.
     The change in the graph data itself is reflected with this operation.
