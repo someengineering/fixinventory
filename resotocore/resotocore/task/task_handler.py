@@ -118,7 +118,7 @@ class TaskHandlerService(TaskHandler):
         def evaluate(step: Step) -> Step:
             if isinstance(step.action, ExecuteCommand):
                 update = copy(step)
-                update.action = ExecuteCommand(self.cli.replace_placeholder(step.action.command, None, **env))
+                update.action = ExecuteCommand(self.cli.replace_placeholder(step.action.command, **env))
                 return update
             else:
                 return step

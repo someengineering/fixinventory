@@ -530,6 +530,5 @@ class CLI:
         )
 
     @staticmethod
-    def replace_placeholder(cli_input: str, replacements: Optional[Dict[str, Any]] = None, **env: str) -> str:
-        repls = replacements or CLI.replacements(**env)
-        return render_template(cli_input, repls, tags=("@", "@"))
+    def replace_placeholder(cli_input: str, **env: str) -> str:
+        return render_template(cli_input, CLI.replacements(**env), tags=("@", "@"))
