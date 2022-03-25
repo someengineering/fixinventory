@@ -120,7 +120,7 @@ class ConfigHandlerService(ConfigHandler):
                         yaml_str += "\n"
                     yaml_str += key + ":" + part
                 else:
-                    yaml_str += yaml.dump({key: value})
+                    yaml_str += yaml.dump({key: value}, sort_keys=False)
 
             # mix the revision into the yaml document
             if revision and config.revision:
