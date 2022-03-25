@@ -3482,7 +3482,7 @@ class ConfigsCommand(CLICommand):
                 content = ""
                 async with aiofiles.open(ctx.uploaded_files["config.yaml"], "r") as f:
                     content = await f.read()
-                    updated: Json = yaml.load(content, BaseLoader)
+                    updated: Json = dict(yaml.safe_load(content))
                     revision = updated.pop("_revision", None)
                 await self.dependencies.config_handler.put_config(ConfigEntity(cfg_id, updated, revision))
             except Exception as ex:

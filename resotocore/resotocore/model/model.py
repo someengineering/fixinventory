@@ -809,6 +809,9 @@ class ComplexKind(Kind):
             raise AttributeError("Kind:{self.fqn} expected a complex type but got this: {obj}")
 
     def create_yaml(self, elem: JsonElement, initial_level: int = 0) -> str:
+        def safe_string(s: str) -> str:
+            return remove_suffix(yaml.dump(s, allow_unicode=True, width=sys.maxsize), "\n...\n").strip()
+
         def walk_element(e: JsonElement, kind: Kind, indent: int, cr_on_object: bool = True) -> str:
             if isinstance(e, dict):
                 result = "\n" if cr_on_object else ""
@@ -828,7 +831,8 @@ class ComplexKind(Kind):
                         for line in description.splitlines():
                             result += f"{prepend}# {line}\n"
                     maybe_space = "" if str_value.startswith("\n") else " "
-                    result += f"{prepend}{prop}:{maybe_space}{str_value}\n"
+                    safe_prop = safe_string(prop)
+                    result += f"{prepend}{safe_prop}:{maybe_space}{str_value}\n"
                 return result.rstrip()
             elif isinstance(e, list) and e:
                 prepend = "  " * indent + "-"
@@ -841,7 +845,7 @@ class ComplexKind(Kind):
             elif isinstance(e, list):
                 return "[]"
             elif isinstance(e, str):
-                return remove_suffix(yaml.dump(e, allow_unicode=True, width=sys.maxsize), "\n...\n").strip()
+                return safe_string(e)
             elif e is None:
                 return "null"
             elif e is True:
