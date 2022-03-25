@@ -466,51 +466,51 @@ def test_yaml(person_model: Model) -> None:
     }
     assert person_kind.create_yaml(person) == dedent(
         """
+        # The name of the person.
+        name: batman
         # The address of the person.
         address:
+          # The zip code.
+          zip: '134'
           # The name of the city.
           # And another line.
           city: gotham
-          float: 1.2345
           number: 123
-          # The zip code.
-          zip: '134'
+          float: 1.2345
         # The list of addresses.
         addresses:
-          - # The name of the city.
+          - # The zip code.
+            zip: '134'
+            # The name of the city.
             # And another line.
             city: gotham
-            float: 1.2345
             number: 123
-            # The zip code.
+            float: 1.2345
+          - # The zip code.
             zip: '134'
-          - # The name of the city.
+            # The name of the city.
             # And another line.
             city: gotham
-            float: 1.2345
             number: 123
-            # The zip code.
-            zip: '134'
-        # The name of the person.
-        name: batman
+            float: 1.2345
         # Other addresses.
         other_addresses:
           home:
+            # The zip code.
+            zip: '134'
             # The name of the city.
             # And another line.
             city: gotham
-            float: 1.2345
             number: 123
-            # The zip code.
-            zip: '134'
+            float: 1.2345
           work:
+            # The zip code.
+            zip: '134'
             # The name of the city.
             # And another line.
             city: gotham
-            float: 1.2345
             number: 123
-            # The zip code.
-            zip: '134'
+            float: 1.2345
         simple:
           - 1
           - 2

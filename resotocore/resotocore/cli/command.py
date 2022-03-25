@@ -30,6 +30,7 @@ from aiostream import stream, pipe
 from aiostream.aiter_utils import is_async_iterable
 from aiostream.core import Stream
 from parsy import Parser, string
+from yaml import BaseLoader
 
 from resotocore.async_extensions import run_async
 from resotocore.cli import (
@@ -3481,7 +3482,7 @@ class ConfigsCommand(CLICommand):
                 content = ""
                 async with aiofiles.open(ctx.uploaded_files["config.yaml"], "r") as f:
                     content = await f.read()
-                    updated: Json = yaml.safe_load(content)
+                    updated: Json = yaml.load(content, BaseLoader)
                     revision = updated.pop("_revision", None)
                 await self.dependencies.config_handler.put_config(ConfigEntity(cfg_id, updated, revision))
             except Exception as ex:

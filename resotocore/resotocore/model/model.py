@@ -813,7 +813,7 @@ class ComplexKind(Kind):
             if isinstance(e, dict):
                 result = "\n" if cr_on_object else ""
                 prepend = "  " * indent
-                for prop, value in sorted(e.items()):
+                for prop, value in e.items():
                     description = None
                     sub: Kind = AnyKind()
                     if isinstance(kind, ComplexKind):
@@ -841,7 +841,7 @@ class ComplexKind(Kind):
             elif isinstance(e, list):
                 return "[]"
             elif isinstance(e, str):
-                return remove_suffix(yaml.dump(e, allow_unicode=True, width=sys.maxsize), "\n...\n")
+                return remove_suffix(yaml.dump(e, allow_unicode=True, width=sys.maxsize), "\n...\n").strip()
             elif e is None:
                 return "null"
             elif e is True:
