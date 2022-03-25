@@ -1,8 +1,9 @@
+import logging
 from datetime import timedelta
 from typing import AsyncGenerator, List
 
 import pytest
-from pytest import fixture
+from pytest import fixture, LogCaptureFixture
 
 from resotocore.analytics import AnalyticsEventSender
 from resotocore.cli.cli import CLI
@@ -24,6 +25,7 @@ from resotocore.task.task_description import (
     TimeTrigger,
     Job,
     TaskSurpassBehaviour,
+    ExecuteCommand,
 )
 from resotocore.task.task_handler import TaskHandlerService
 
@@ -233,3 +235,23 @@ async def test_wait_for_running_job(
     assert len(running_after) == 1
     t_before, t_after = running_before[0], running_after[0]
     assert t_before.descriptor.id == t_after.descriptor.id and t_before.id != t_after.id
+
+
+@pytest.mark.asyncio
+async def test_handle_failing_task_command(task_handler: TaskHandlerService, caplog: LogCaptureFixture) -> None:
+    caplog.set_level(logging.WARN)
+    # This job will fail. Take a very long timeout - to avoid a timeout
+    job = Job("fail", ExecuteCommand("non_existing_command"), timedelta(hours=4))
+    task_handler.task_descriptions = [job]
+    assert len(await task_handler.running_tasks()) == 0
+    await task_handler.start_task(job, "test fail")
+    assert len(await task_handler.running_tasks()) == 1
+    # The task is executed async - let's wait here directly
+    update_task = (next(iter(task_handler.tasks.values()))).update_task
+    assert update_task
+    await update_task
+    await task_handler.check_overdue_tasks()
+    assert len(await task_handler.running_tasks()) == 0
+    # One warning has been emitted
+    assert len(caplog.records) == 1
+    assert "Command non_existing_command failed with error" in caplog.records[0].message

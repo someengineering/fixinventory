@@ -530,7 +530,11 @@ class ExecuteCommandState(StepState):
     def handle_command_results(self, results: Dict[TaskCommand, Any]) -> None:
         found = first(lambda r: isinstance(r, ExecuteOnCLI) and r.command == self.execute.command, results.keys())
         if found:
-            log.info(f"Result of command {self.execute.command} is {results[found]}")
+            result = results[found]
+            if isinstance(result, Exception):
+                log.warning(f"Command {self.execute.command} failed with error: {result}")
+            else:
+                log.info(f"Result of command {self.execute.command} is {result}")
             self.execution_done = True
 
     def current_step_done(self) -> bool:
