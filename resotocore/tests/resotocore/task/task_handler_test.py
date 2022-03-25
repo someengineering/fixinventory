@@ -247,7 +247,9 @@ async def test_handle_failing_task_command(task_handler: TaskHandlerService, cap
     await task_handler.start_task(job, "test fail")
     assert len(await task_handler.running_tasks()) == 1
     # The task is executed async - let's wait here directly
-    await (next(iter(task_handler.tasks.values()))).update_task
+    update_task = (next(iter(task_handler.tasks.values()))).update_task
+    assert update_task
+    await update_task
     await task_handler.check_overdue_tasks()
     assert len(await task_handler.running_tasks()) == 0
     # One warning has been emitted
