@@ -773,7 +773,8 @@ class ComplexKind(Kind):
         if isinstance(obj, dict):
             result: Json = {}
             has_coerced = False
-            for name, value in obj.items():
+            for prop_name, value in obj.items():
+                name = str(prop_name)  # make sure the property name is a string
                 known = self.__resolved_kinds.get(name, None)
                 if known:
                     prop, kind = known
