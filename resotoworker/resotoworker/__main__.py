@@ -202,8 +202,8 @@ def force_shutdown(delay: int = 10) -> None:
 def add_args(arg_parser: ArgumentParser) -> None:
     arg_parser.add_argument(
         "--subscriber-id",
-        help="Unique subscriber ID (default: resotoworker)",
-        default="resotoworker",
+        help="Unique subscriber ID (default: resoto.worker)",
+        default="resoto.worker",
         dest="subscriber_id",
         type=str,
     )

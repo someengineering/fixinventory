@@ -176,8 +176,8 @@ def update_metrics(metrics: Metrics, query_uri: str) -> None:
 def add_args(arg_parser: ArgumentParser) -> None:
     arg_parser.add_argument(
         "--subscriber-id",
-        help="Unique subscriber ID (default: resotometrics)",
-        default="resotometrics",
+        help="Unique subscriber ID (default: resoto.metrics)",
+        default="resoto.metrics",
         dest="subscriber_id",
         type=str,
     )

@@ -30,7 +30,7 @@ metrics_unhandled_account_exceptions = Counter(
 )
 
 
-class AWSPlugin(BaseCollectorPlugin):
+class AWSCollectorPlugin(BaseCollectorPlugin):
     cloud = "aws"
 
     def __init__(self) -> None:
