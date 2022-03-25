@@ -1235,13 +1235,13 @@ class UniqCommand(CLICommand):
 
 class JqCommand(CLICommand, OutputTransformer):
     """
-     ```
-     jq [--no-rewrite] <filter>
-     ```
+    ```
+    jq [--no-rewrite] <filter>
+    ```
 
-     Use the well known jq JSON processor to manipulate incoming json.
-     Every element from the incoming stream is passed to jq.
-     See: https://stedolan.github.io/jq/ for a list of possible jq filter definitions.
+    Use the well known jq JSON processor to manipulate incoming json.
+    Every element from the incoming stream is passed to jq.
+    See: https://stedolan.github.io/jq/ for a list of possible jq filter definitions.
 
     Resoto will rewrite attribute paths to match the defined section.
     Example:
@@ -1254,32 +1254,32 @@ class JqCommand(CLICommand, OutputTransformer):
 
     If you find yourself fighting with this rewrite mechanism, you can turn it off with the `--no-rewrite` option.
 
-     ## Options
-     - `--no-rewrite` When this option is enabled, the jq filter is not preprocessed by Resoto and given as is to Jq.
+    ## Options
+    - `--no-rewrite` When this option is enabled, the jq filter is not preprocessed by Resoto and given as is to Jq.
 
-     ## Parameters
-     - `filter` the filter definition to create a jq program.
+    ## Parameters
+    - `filter` the filter definition to create a jq program.
 
-     ## Examples
+    ## Examples
 
-     ```shell
-     # Search ec2 instances and extract only the name property
-     > search is(aws_ec2_instance) limit 2| jq .name
-     build-node-1
-     prod-23
+    ```shell
+    # Search ec2 instances and extract only the name property
+    > search is(aws_ec2_instance) limit 2| jq .name
+    build-node-1
+    prod-23
 
-     # Search ec2 instances and create a new json object for each entry with name and owner.
-     > search is(aws_ec2_instance) limit 2 | jq {name: .name, owner: .tags.owner}
-     name: build-node-1
-     owner: frosty
-     ---
-     name: prod-23
-     owner: bog-team
-     ```
+    # Search ec2 instances and create a new json object for each entry with name and owner.
+    > search is(aws_ec2_instance) limit 2 | jq {name: .name, owner: .tags.owner}
+    name: build-node-1
+    owner: frosty
+    ---
+    name: prod-23
+    owner: bog-team
+    ```
 
-     ## Related
-     - `format` - to format incoming objects to a defined string.
-     - `list` - create list output for every element.
+    ## Related
+    - `format` - to format incoming objects to a defined string.
+    - `list` - create list output for every element.
     """
 
     @property
