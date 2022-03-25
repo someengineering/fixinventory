@@ -669,7 +669,7 @@ class DictionaryKind(Kind):
 
     def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
         if isinstance(obj, dict):
-            coerced = obj.copy()
+            coerced = {}
             has_coerced = False
             for prop, value in obj.items():
                 part = "key"
@@ -677,9 +677,9 @@ class DictionaryKind(Kind):
                     ck = self.key_kind.check_valid(prop)
                     part = "value"
                     cv = self.value_kind.check_valid(value)
+                    coerced[ck or prop] = cv or value
                     if ck is not None or cv is not None:
                         has_coerced = True
-                        coerced[ck or prop] = cv or value
                 except Exception as at:
                     raise AttributeError(f"{part} of {self.fqn} is not valid: {at}") from at
             return coerced if has_coerced else None
@@ -773,8 +773,7 @@ class ComplexKind(Kind):
         if isinstance(obj, dict):
             result: Json = {}
             has_coerced = False
-            for prop_name, value in obj.items():
-                name = str(prop_name)  # make sure the property name is a string
+            for name, value in obj.items():
                 known = self.__resolved_kinds.get(name, None)
                 if known:
                     prop, kind = known
