@@ -8,11 +8,10 @@ from asyncio import Task
 from contextlib import suppress
 from dataclasses import replace
 from datetime import timedelta
-from functools import reduce
 from itertools import takewhile
 from operator import attrgetter
 from textwrap import dedent
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Mapping
 from typing import Optional, Any
 
 from aiostream import stream
@@ -74,6 +73,8 @@ from resotocore.query.model import (
     Sort,
 )
 from resotocore.query.query_parser import aggregate_parameter_parser
+from resotocore.query.template_expander import render_template
+from resotocore.types import JsonElement
 from resotocore.util import utc_str, utc, from_utc
 
 log = logging.getLogger(__name__)
@@ -195,6 +196,27 @@ class HelpCommand(CLICommand):
 CLIArg = Tuple[CLICommand, Optional[str]]
 # If no sort is defined in the part, we use this default sort order
 DefaultSort = [Sort("/reported.kind"), Sort("/reported.name"), Sort("/reported.id")]
+
+
+class CIKeyDict(Dict[str, Any]):
+    """
+    Special purpose dict used to lookup replacement values:
+    - the dict should be case-insensitive: so now and NOW does not matter
+    - if no replacement value is found, the key is returned.
+    """
+
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__({k.lower(): v for k, v in kwargs.items()})
+
+    def __getitem__(self, item: str) -> Any:
+        key = item.lower()
+        return super().__getitem__(key) if key in self else item
+
+    def __setitem__(self, key: str, value: Any) -> Any:
+        return super().__setitem__(key.lower(), value)
+
+    def update(self, m: Mapping[str, Any], **kwargs) -> None:  # type: ignore
+        return super().update({k.lower(): v for k, v in m.items()}, **kwargs)
 
 
 class CLI:
@@ -419,12 +441,13 @@ class CLI:
         def expand_aliases(line: ParsedCommands) -> ParsedCommands:
             def expand_alias(alias_cmd: ParsedCommand) -> List[ParsedCommand]:
                 alias: AliasTemplate = self.alias_templates[alias_cmd.cmd]
-                props = {p.name: p.default for p in alias.parameters}
+                props: Dict[str, JsonElement] = self.replacements(**{**self.cli_env, **context.env})  # type: ignore
+                for p in alias.parameters:
+                    props[p.name] = p.default
                 props.update(key_values_parser.parse(alias_cmd.args or ""))
                 undefined = [k for k, v in props.items() if v is None]
                 if undefined:
                     raise AttributeError(f"Alias {alias_cmd.cmd} missing attributes: {', '.join(undefined)}")
-
                 rendered = alias.render(props)
                 log.debug(f"The rendered alias template is: {rendered}")
                 return single_commands.parse(rendered)  # type: ignore
@@ -438,22 +461,35 @@ class CLI:
 
             return ParsedCommands(result, line.env)
 
-        async def send_analytics(parsed: List[ParsedCommands]) -> None:
+        async def send_analytics(parsed: List[ParsedCommands], raw: List[ParsedCommands]) -> None:
             command_names = [cmd.cmd for line in parsed for cmd in line.commands]
+            used_aliases = [cmd.cmd for line in raw for cmd in line.commands if cmd.cmd in self.alias_templates]
             resoto_session_id = context.env.get("resoto_session_id")
             await self.dependencies.event_sender.core_event(
                 CoreEvent.CLICommand,
-                {"command_names": command_names, "session_id": resoto_session_id},
+                {"command_names": command_names, "used_aliases": used_aliases, "session_id": resoto_session_id},
                 command_lines=len(parsed),
                 commands=len(command_names),
             )
 
-        replaced = self.replace_placeholder(cli_input, **context.env)
-        command_lines: List[ParsedCommands] = multi_command_parser.parse(replaced)
+        def replace_placeholders(parsed: ParsedCommands) -> ParsedCommands:
+            cmd_env = {**self.cli_env, **context.env, **parsed.env}
+
+            def replace_command(cmd: ParsedCommand) -> ParsedCommand:
+                args = cmd.args if cmd.args is None else self.replace_placeholder(cmd.args, **cmd_env)
+                return ParsedCommand(cmd.cmd, args)
+
+            return ParsedCommands([replace_command(cmd) for cmd in parsed.commands], parsed.env)
+
+        # parse command lines (raw)
+        raw_parsed: List[ParsedCommands] = multi_command_parser.parse(cli_input)
+        # expand aliases
+        command_lines = [expand_aliases(cmd_line) for cmd_line in raw_parsed]
+        # send analytics
+        await send_analytics(command_lines, raw_parsed)
+        # decide, if placeholders should be replaced
         keep_raw = not replace_place_holder or JobsCommand.is_jobs_update(command_lines[0].commands[0])
-        command_lines = multi_command_parser.parse(cli_input) if keep_raw else command_lines
-        await send_analytics(command_lines)  # send before the alias commands get expanded
-        command_lines = [expand_aliases(cmd_line) for cmd_line in command_lines]
+        command_lines = command_lines if keep_raw else [replace_placeholders(cmd_line) for cmd_line in command_lines]
         res = [await parse_line(cmd_line) for cmd_line in command_lines]
         return res
 
@@ -469,30 +505,30 @@ class CLI:
             n = ut.astimezone(get_localzone())
         except Exception:
             n = ut
-        return {
-            "UTC": utc_str(ut),
-            "NOW": utc_str(n),
-            "TODAY": t.strftime("%Y-%m-%d"),
-            "TOMORROW": (t + timedelta(days=1)).isoformat(),
-            "YESTERDAY": (t + timedelta(days=-1)).isoformat(),
-            "YEAR": t.strftime("%Y"),
-            "MONTH": t.strftime("%m"),
-            "DAY": t.strftime("%d"),
-            "TIME": n.strftime("%H:%M:%S"),
-            "HOUR": n.strftime("%H"),
-            "MINUTE": n.strftime("%M"),
-            "SECOND": n.strftime("%S"),
-            "TZ_OFFSET": n.strftime("%z"),
-            "TZ": n.strftime("%Z"),
-            "MONDAY": (t + timedelta((calendar.MONDAY - t.weekday()) % 7)).isoformat(),
-            "TUESDAY": (t + timedelta((calendar.TUESDAY - t.weekday()) % 7)).isoformat(),
-            "WEDNESDAY": (t + timedelta((calendar.WEDNESDAY - t.weekday()) % 7)).isoformat(),
-            "THURSDAY": (t + timedelta((calendar.THURSDAY - t.weekday()) % 7)).isoformat(),
-            "FRIDAY": (t + timedelta((calendar.FRIDAY - t.weekday()) % 7)).isoformat(),
-            "SATURDAY": (t + timedelta((calendar.SATURDAY - t.weekday()) % 7)).isoformat(),
-            "SUNDAY": (t + timedelta((calendar.SUNDAY - t.weekday()) % 7)).isoformat(),
-        }
+        return CIKeyDict(
+            UTC=utc_str(ut),
+            NOW=n.strftime("%Y-%m-%dT%H:%M:%S%z"),
+            TODAY=t.strftime("%Y-%m-%d"),
+            TOMORROW=(t + timedelta(days=1)).isoformat(),
+            YESTERDAY=(t + timedelta(days=-1)).isoformat(),
+            YEAR=t.strftime("%Y"),
+            MONTH=t.strftime("%m"),
+            DAY=t.strftime("%d"),
+            TIME=n.strftime("%H:%M:%S"),
+            HOUR=n.strftime("%H"),
+            MINUTE=n.strftime("%M"),
+            SECOND=n.strftime("%S"),
+            TZ_OFFSET=n.strftime("%z"),
+            TZ=n.strftime("%Z"),
+            MONDAY=(t + timedelta((calendar.MONDAY - t.weekday()) % 7)).isoformat(),
+            TUESDAY=(t + timedelta((calendar.TUESDAY - t.weekday()) % 7)).isoformat(),
+            WEDNESDAY=(t + timedelta((calendar.WEDNESDAY - t.weekday()) % 7)).isoformat(),
+            THURSDAY=(t + timedelta((calendar.THURSDAY - t.weekday()) % 7)).isoformat(),
+            FRIDAY=(t + timedelta((calendar.FRIDAY - t.weekday()) % 7)).isoformat(),
+            SATURDAY=(t + timedelta((calendar.SATURDAY - t.weekday()) % 7)).isoformat(),
+            SUNDAY=(t + timedelta((calendar.SUNDAY - t.weekday()) % 7)).isoformat(),
+        )
 
     @staticmethod
     def replace_placeholder(cli_input: str, **env: str) -> str:
-        return reduce(lambda res, kv: res.replace(f"@{kv[0]}@", kv[1]), CLI.replacements(**env).items(), cli_input)
+        return render_template(cli_input, CLI.replacements(**env), tags=("@", "@"))

@@ -554,11 +554,11 @@ class TaskHandlerService(TaskHandler):
                 raise ValueError(f"Invalid job {stripped}")
             wait: Optional[Tuple[EventTrigger, timedelta]] = None
             trigger = TimeTrigger(" ".join(parts[0:5]))
-            command = strip_quotes(parts[5], "'")
+            command = strip_quotes(parts[5])
             # check if we also need to wait for an event: name_of_event : command
             if self.event_re.match(command):
                 event, command = re.split("\\s*:\\s*", command, 1)
-                command = strip_quotes(command, "'")
+                command = strip_quotes(command)
                 wait = EventTrigger(event), wait_timeout
             await self.cli.evaluate_cli_command(command, ctx, replace_place_holder=False)
             uid = uuid_str(f"{command}{trigger}{wait}")[0:8]
@@ -566,7 +566,7 @@ class TaskHandlerService(TaskHandler):
 
         async def parse_event() -> Job:
             event, command = re.split("\\s*:\\s*", stripped, 1)
-            command = strip_quotes(command, "'")
+            command = strip_quotes(command)
             await self.cli.evaluate_cli_command(command, ctx, replace_place_holder=False)
             uid = uuid_str(f"{command}{event}")[0:8]
             return Job(uid, ExecuteCommand(command), timeout, EventTrigger(event), None, ctx.env, mutable)

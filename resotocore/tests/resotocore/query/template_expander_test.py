@@ -1,3 +1,4 @@
+from datetime import timedelta
 from typing import Dict, Optional, List
 
 import pytest
@@ -7,6 +8,7 @@ from resotocore.error import NoSuchTemplateError
 from resotocore.query.model import Template
 from resotocore.query.template_expander import render_template, TemplateExpanderBase, TemplateExpander
 from resotocore.types import Json
+from resotocore.util import utc, from_utc
 
 
 class InMemoryTemplateExpander(TemplateExpanderBase):
@@ -93,6 +95,12 @@ def test_render_list() -> None:
     assert res == "query is(alb) or is(elb)"
 
 
+def test_from_now() -> None:
+    res = render_template("{{delta.from_now}}", {"delta": "4h"})
+    in_4_hours = utc() + timedelta(hours=4)
+    assert abs((in_4_hours - from_utc(res)).total_seconds()) < 1
+
+
 def test_render_filter() -> None:
     attrs = {"foo": "123", "filter": 32}
     template = "query foo={{foo.parens}}{{#filter}} and some.other.prop == {{filter}}{{/filter}}"
@@ -101,3 +109,8 @@ def test_render_filter() -> None:
     attrs2 = {"foo": "123"}
     res = render_template(template, attrs2)
     assert res == 'query foo="123"'
+
+
+def test_custom_tags() -> None:
+    res = render_template("@test@ and @rest@", dict(test="work", rest="play"), tags=("@", "@"))
+    assert res == "work and play"
