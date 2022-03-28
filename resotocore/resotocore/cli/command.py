@@ -2435,8 +2435,8 @@ class SendWorkerTaskCommand(CLICommand, ABC):
 class TagCommand(SendWorkerTaskCommand):
     """
     ```
-    tag update [--nowait] [tag_name new_value]
-    tag delete [--nowait] [tag_name]
+    tag update [--nowait] <tag_name> [new_value]
+    tag delete [--nowait] <tag_name>
     ```
 
     This command can be used to update or delete a specific tag.
@@ -2466,7 +2466,8 @@ class TagCommand(SendWorkerTaskCommand):
 
     ## Parameters
     - `tag_name` [mandatory]: the name of the tag to change
-    - `tag_value` [optional]: in case of update: the new value of the tag_name.
+    - `tag_value` [optional, default: null]: in case of update: the new value of the tag_name.
+       If the cloud provider does not support tag values, it can be omitted.
        The tag_value can use format templates (`help format`) to define the value with backreferences from the object.
        Example: test_{name}_{kind} -> test_pvc-123_disk
 
