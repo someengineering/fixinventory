@@ -2435,12 +2435,13 @@ class SendWorkerTaskCommand(CLICommand, ABC):
 class TagCommand(SendWorkerTaskCommand):
     """
     ```
-    tag update [--nowait] [tag_name new_value]
-    tag delete [--nowait] [tag_name]
+    tag update [--nowait] <tag_name> [new_value]
+    tag delete [--nowait] <tag_name>
     ```
 
     This command can be used to update or delete a specific tag.
-    Tags have a name and value - both name and value are strings.
+    Tags have a name and value - both name and value are strings. In some cases cloud providers may
+    not support values in tags, and only allow names. In that case the value can be omitted.
 
     When this command is issued, the change is done on the cloud resource via the cloud specific provider.
     The change in the graph data itself is reflected with this operation.
@@ -2465,7 +2466,8 @@ class TagCommand(SendWorkerTaskCommand):
 
     ## Parameters
     - `tag_name` [mandatory]: the name of the tag to change
-    - `tag_value` [mandatory]: in case of update: the new value of the tag_name.
+    - `tag_value` [optional, default: null]: in case of update: the new value of the tag_name.
+       If the cloud provider does not support tag values, it can be omitted.
        The tag_value can use format templates (`help format`) to define the value with backreferences from the object.
        Example: test_{name}_{kind} -> test_pvc-123_disk
 
@@ -2562,6 +2564,12 @@ class TagCommand(SendWorkerTaskCommand):
                 WorkerTaskName.tag,
                 self.carz_from_node(item),
                 {"update": {tag: formatter(item)}, "node": item},
+            )
+        elif arg_tokens[0] == "update" and len(rest) == 2:
+            fn = lambda item: (  # noqa: E731
+                WorkerTaskName.tag,
+                self.carz_from_node(item),
+                {"update": {rest[1]: None}, "node": item},
             )
         else:
             raise AttributeError("Expect update tag_key tag_value or delete tag_key")

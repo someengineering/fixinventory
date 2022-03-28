@@ -479,6 +479,9 @@ async def test_tag_command(
     res2 = await cli.execute_cli_command('search is("foo") | tag update foo bla', stream.list)
     assert nr_of_performed() == 11
     assert len(res2[0]) == 11
+    res2_tag_no_val = await cli.execute_cli_command('search is("foo") | tag update foobar', stream.list)
+    assert nr_of_performed() == 11
+    assert len(res2_tag_no_val[0]) == 11
     res3 = await cli.execute_cli_command('search is("foo") | tag delete foo', stream.list)
     assert nr_of_performed() == 11
     assert len(res3[0]) == 11
