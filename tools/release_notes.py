@@ -71,7 +71,9 @@ def show_log(from_tag: str, to_tag: str):
         ],
     )
 
-    print(f"# v{to_tag}")
+    print("---\ntags: [release notes]\n---")
+
+    print(f"\n# v{to_tag}")
 
     print("\n## What's Changed")
     for group, commits in grouped.items():
