@@ -398,7 +398,7 @@ jobs:
         with:
           path: resoto.com
           commit-message: "feat: v${{ steps.release_notes.outputs.tag }} release notes"
-          title: "feat: v${{ steps.release_notes.outputs.tag }} release notes"
+          title: "feat(news): v${{ steps.release_notes.outputs.tag }} release notes"
           body: |
             Adds automatically generated release notes for [v${{ steps.release_notes.outputs.tag }}](https://github.com/someengineering/resoto/releases/tag/${{ steps.release_notes.outputs.tag }}).
           labels: |
