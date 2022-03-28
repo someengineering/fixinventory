@@ -12,13 +12,13 @@ class CleanupVolumesConfig:
     )
     min_age: str = field(
         default="14 days",
-        metadata={"description": "Minimum age of unused volumes to cleanup"},
+        metadata={
+            "description": "Minimum age of unused volumes to cleanup",
+            "type_hint": "duration",
+        },
     )
 
     @staticmethod
     def validate(config: "CleanupVolumesConfig") -> bool:
-        try:
-            parse_delta(config.min_age)
-        except ValueError:
-            return False
+        parse_delta(config.min_age)
         return True

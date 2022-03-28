@@ -12,13 +12,13 @@ class CleanupAWSLoadbalancersConfig:
     )
     min_age: str = field(
         default="7 days",
-        metadata={"description": "Minimum age of unused load balancers to cleanup"},
+        metadata={
+            "description": "Minimum age of unused load balancers to cleanup",
+            "type_hint": "duration",
+        },
     )
 
     @staticmethod
     def validate(config: "CleanupAWSLoadbalancersConfig") -> bool:
-        try:
-            parse_delta(config.min_age)
-        except ValueError:
-            return False
+        parse_delta(config.min_age)
         return True
