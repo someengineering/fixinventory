@@ -6,10 +6,10 @@ from typing import ClassVar, Optional
 class SlackConfig:
     kind: ClassVar[str] = "slack"
     bot_token: Optional[str] = field(
-        default=None, metadata={"description": "Slack bot token"}
+        default=None, metadata={"description": "Bot token"}
     )
     include_archived: bool = field(
-        default=False, metadata={"description": "Include archived Slack channels"}
+        default=False, metadata={"description": "Include archived channels"}
     )
     do_not_verify_ssl: bool = field(
         default=False,

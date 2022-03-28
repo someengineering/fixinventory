@@ -41,5 +41,8 @@ class WebApp:
 class WebAppConfig:
     kind: ClassVar[str] = "webapp"
     web_path: Optional[str] = field(
-        default="/", metadata={"description": "Web root in browser"}
+        default="/",
+        metadata={
+            "description": "Web root in browser (change if running behind an ingress proxy)"
+        },
     )

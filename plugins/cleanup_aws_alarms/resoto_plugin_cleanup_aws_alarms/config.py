@@ -11,7 +11,10 @@ class CleanupAWSAlarmsConfig:
     config: Optional[Dict[str, List[str]]] = field(
         default_factory=lambda: {"aws": ["1234567", "567890"]},
         metadata={
-            "description": "Dictionary of key cloud, value list of account IDs for which the plugin should be active"
+            "description": (
+                "Dictionary of key cloud with list of account IDs"
+                " for which the plugin should be active as value"
+            )
         },
     )
 

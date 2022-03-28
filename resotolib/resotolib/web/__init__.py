@@ -70,6 +70,8 @@ class WebServer(threading.Thread):
 class WebServerConfig:
     kind: ClassVar[str] = "webserver"
     web_host: Optional[str] = field(
-        default="::", metadata={"description": "IP to bind to"}
+        default="::", metadata={"description": "IP address to bind the web server to"}
     )
-    web_port: Optional[int] = field(default=9955, metadata={"description": "Web Port"})
+    web_port: Optional[int] = field(
+        default=9955, metadata={"description": "Web server tcp port to listen on"}
+    )

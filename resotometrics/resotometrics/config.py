@@ -14,7 +14,7 @@ class Metric:
     kind: ClassVar[str] = "metric"
     help: str = field(metadata={"description": "Metric help text"})
     search: str = field(metadata={"description": "Aggregation search to run"})
-    type: str = field(metadata={"description": "Type of metric"})
+    type: str = field(metadata={"description": "Type of metric (gauge or counter)"})
 
 
 def _load_default_metrics() -> Dict[str, Metric]:
@@ -37,12 +37,18 @@ def _load_default_metrics() -> Dict[str, Metric]:
 class ResotoMetricsConfig:
     kind: ClassVar[str] = "resotometrics"
     graph: Optional[str] = field(
-        default="resoto", metadata={"description": "Name of the graph to use"}
+        default="resoto",
+        metadata={"description": "Name of the graph to run aggregation searches on"},
     )
     timeout: Optional[int] = field(
         default=300, metadata={"description": "Metrics generation timeout in seconds"}
     )
     metrics: Optional[Dict[str, Metric]] = field(
         default_factory=_load_default_metrics,
-        metadata={"description": "Metrics config"},
+        metadata={
+            "description": (
+                "Metrics config\n"
+                "See https://resoto.com/docs/reference/cli/aggregate for syntax details"
+            )
+        },
     )

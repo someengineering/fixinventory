@@ -5,16 +5,12 @@ from typing import ClassVar, Optional
 @dataclass
 class VSphereConfig:
     kind: ClassVar[str] = "vsphere"
-    user: Optional[str] = field(
-        default=None, metadata={"description": "vSphere user name"}
-    )
-    password: Optional[str] = field(
-        default=None, metadata={"description": "vSphere user password"}
-    )
+    user: Optional[str] = field(default=None, metadata={"description": "User name"})
+    password: Optional[str] = field(default=None, metadata={"description": "Password"})
     host: Optional[str] = field(
-        default=None, metadata={"description": "vSphere host name/address"}
+        default=None, metadata={"description": "Host name/address"}
     )
-    port: int = field(default=443, metadata={"description": "vSphere port"})
+    port: int = field(default=443, metadata={"description": "TCP port"})
     insecure: bool = field(
         default=True,
         metadata={
