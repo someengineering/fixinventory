@@ -49,12 +49,6 @@ class DigitalOceanResource(BaseResource):  # type: ignore
         """
         return None
 
-    def tag_resource_name(self) -> Optional[str]:
-        """Resource name in case tagging is supported by digitalocean.
-        Not all resources support tagging.
-        """
-        return None
-
     def delete(self, graph: Graph) -> bool:
         """Delete a resource in the cloud"""
         delete_uri_path = self.delete_uri_path()
