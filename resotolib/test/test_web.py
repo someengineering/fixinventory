@@ -1,7 +1,6 @@
 import socket
 import requests
 import time
-from resotolib.config import Config
 from resotolib.web import WebServer
 from resotolib.web.metrics import WebApp
 

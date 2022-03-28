@@ -1,5 +1,7 @@
-from resotolib.args import get_arg_parser, ArgumentParser
+from resotolib.args import get_arg_parser
 from resoto_plugin_example_collector import ExampleCollectorPlugin
+
+# from resotolib.args import ArgumentParser
 
 
 def test_args():
