@@ -11,4 +11,4 @@ def test_args():
     assert len(Config.gcp.collect) == 0
     assert len(Config.gcp.no_collect) == 0
     assert Config.gcp.project_pool_size == 5
-    assert Config.gcp.fork is False
+    assert Config.gcp.fork is True
