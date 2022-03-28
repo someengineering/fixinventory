@@ -40,7 +40,12 @@ class TagValidatorConfig:
     )
     config: Dict[str, Union[Dict, List]] = field(
         default_factory=lambda: default_config,
-        metadata={"description": "Configuration for the plugin"},
+        metadata={
+            "description": (
+                "Configuration for the plugin\n"
+                "See https://github.com/someengineering/resoto/tree/main/plugins/tagvalidator for syntax details"
+            )
+        },
     )
 
     @staticmethod

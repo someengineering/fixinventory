@@ -43,7 +43,12 @@ class CleanupUntaggedConfig:
     )
     config: Dict[str, Union[Dict, List]] = field(
         default_factory=lambda: default_config,
-        metadata={"description": "Configuration for the plugin"},
+        metadata={
+            "description": (
+                "Configuration for the plugin\n"
+                "See https://github.com/someengineering/resoto/tree/main/plugins/cleanup_untagged for syntax details"
+            )
+        },
     )
 
     @staticmethod

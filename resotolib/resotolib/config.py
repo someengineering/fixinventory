@@ -115,7 +115,7 @@ class Config(metaclass=MetaConfig):
             except ConfigNotFoundError:
                 pass
             else:
-                log.debug(
+                log.info(
                     f"Loaded config {self.config_name} revision {new_config_revision}"
                 )
                 new_config = {}

@@ -20,7 +20,12 @@ class ProtectSnowflakesConfig:
     )
     config: Dict[str, Dict[str, Dict[str, Dict[str, List[str]]]]] = field(
         default_factory=lambda: default_config,
-        metadata={"description": "Configuration for the plugin"},
+        metadata={
+            "description": (
+                "Configuration for the plugin\n"
+                "See https://github.com/someengineering/resoto/tree/main/plugins/protect_snowflakes for syntax details"
+            )
+        },
     )
 
     @staticmethod
