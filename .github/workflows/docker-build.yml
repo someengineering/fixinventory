@@ -388,7 +388,7 @@ jobs:
       - name: Format
         working-directory: ./resoto.com
         env:
-          HUSKY_SKIP_INSTALL: 1
+          HUSKY: 0
         run: |
           yarn install --frozen-lockfile
           yarn format
