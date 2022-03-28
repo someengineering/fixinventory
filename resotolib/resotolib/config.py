@@ -20,7 +20,7 @@ class RunningConfig:
         """Initialize the global config."""
         self.data: Dict[str, Any] = {}
         self.revision: str = ""
-        self.classes: Dict[str, object] = {}
+        self.classes: Dict[str, type] = {}
         self.types: Dict[str, Dict[str, type]] = {}
 
     def apply(self, other: "RunningConfig") -> None:
