@@ -2,7 +2,7 @@ from resotolib.config import Config
 from resoto_plugin_digitalocean import DigitalOceanCollectorPlugin
 
 
-def test_config():
+def test_config() -> None:
     config = Config("dummy", "dummy")
     DigitalOceanCollectorPlugin.add_config(config)
     Config.init_default_config()

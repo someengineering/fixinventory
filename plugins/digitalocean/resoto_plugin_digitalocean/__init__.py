@@ -23,9 +23,7 @@ class DigitalOceanCollectorPlugin(BaseCollectorPlugin):  # type: ignore
         A region can contain arbitrary resources.
         """
         tokens = Config.digitalocean.api_tokens
-        spaces_access_keys: List[
-            str
-        ] = Config.digitalocean.spaces_access_keys
+        spaces_access_keys: List[str] = Config.digitalocean.spaces_access_keys
         spaces_keys: List[Tuple[Optional[str], Optional[str]]] = []
 
         def spaces_keys_valid(keys: List[str]) -> bool:
