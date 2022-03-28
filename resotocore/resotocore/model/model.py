@@ -669,7 +669,7 @@ class DictionaryKind(Kind):
 
     def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
         if isinstance(obj, dict):
-            coerced = obj.copy()
+            coerced = {}
             has_coerced = False
             for prop, value in obj.items():
                 part = "key"
@@ -677,9 +677,9 @@ class DictionaryKind(Kind):
                     ck = self.key_kind.check_valid(prop)
                     part = "value"
                     cv = self.value_kind.check_valid(value)
+                    coerced[ck or prop] = cv or value
                     if ck is not None or cv is not None:
                         has_coerced = True
-                        coerced[ck or prop] = cv or value
                 except Exception as at:
                     raise AttributeError(f"{part} of {self.fqn} is not valid: {at}") from at
             return coerced if has_coerced else None
@@ -809,11 +809,14 @@ class ComplexKind(Kind):
             raise AttributeError("Kind:{self.fqn} expected a complex type but got this: {obj}")
 
     def create_yaml(self, elem: JsonElement, initial_level: int = 0) -> str:
+        def safe_string(s: str) -> str:
+            return remove_suffix(yaml.dump(s, allow_unicode=True, width=sys.maxsize), "\n...\n").strip()
+
         def walk_element(e: JsonElement, kind: Kind, indent: int, cr_on_object: bool = True) -> str:
             if isinstance(e, dict):
                 result = "\n" if cr_on_object else ""
                 prepend = "  " * indent
-                for prop, value in sorted(e.items()):
+                for prop, value in e.items():
                     description = None
                     sub: Kind = AnyKind()
                     if isinstance(kind, ComplexKind):
@@ -828,7 +831,8 @@ class ComplexKind(Kind):
                         for line in description.splitlines():
                             result += f"{prepend}# {line}\n"
                     maybe_space = "" if str_value.startswith("\n") else " "
-                    result += f"{prepend}{prop}:{maybe_space}{str_value}\n"
+                    safe_prop = safe_string(prop)
+                    result += f"{prepend}{safe_prop}:{maybe_space}{str_value}\n"
                 return result.rstrip()
             elif isinstance(e, list) and e:
                 prepend = "  " * indent + "-"
@@ -841,7 +845,7 @@ class ComplexKind(Kind):
             elif isinstance(e, list):
                 return "[]"
             elif isinstance(e, str):
-                return remove_suffix(yaml.dump(e, allow_unicode=True, width=sys.maxsize), "\n...\n")
+                return safe_string(e)
             elif e is None:
                 return "null"
             elif e is True:

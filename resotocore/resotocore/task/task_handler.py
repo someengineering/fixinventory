@@ -277,7 +277,8 @@ class TaskHandlerService(TaskHandler):
         # wait for all running commands to complete
         for task in list(self.tasks.values()):
             if task.update_task:
-                await task.update_task
+                with suppress(Exception):
+                    await task.update_task
                 del self.tasks[task.id]
 
         # in case the task is not done
@@ -417,17 +418,20 @@ class TaskHandlerService(TaskHandler):
             # execute and collect all task commands
             results: Dict[TaskCommand, Any] = {}
             for command in commands:
-                if isinstance(command, SendMessage):
-                    await self.message_bus.emit(command.message)
-                    results[command] = None
-                elif isinstance(command, ExecuteOnCLI):
-                    # TODO: instead of executing it in process, we should do an http call here to a worker core.
-                    ctx = CLIContext({**command.env, **wi.descriptor.environment})
-                    result = await self.cli.execute_cli_command(command.command, stream.list, ctx)
-                    results[command] = result
-                else:
-                    raise AttributeError(f"Does not understand this command: {wi.descriptor.name}:  {command}")
-            # The descriptor might be removed in the mean time. If this is the case stop execution.
+                try:
+                    if isinstance(command, SendMessage):
+                        await self.message_bus.emit(command.message)
+                        results[command] = None
+                    elif isinstance(command, ExecuteOnCLI):
+                        ctx = CLIContext({**command.env, **wi.descriptor.environment})
+                        result = await self.cli.execute_cli_command(command.command, stream.list, ctx)
+                        results[command] = result
+                    else:
+                        raise AttributeError(f"Does not understand this command: {wi.descriptor.name}:  {command}")
+                except Exception as ex:
+                    results[command] = ex
+
+            # The descriptor might be removed in the meantime. If this is the case stop execution.
             if wi.descriptor_alive:
                 active_before_result = wi.is_active
                 # before we move on, we need to store the current state of the task (or delete if it is done)
@@ -490,7 +494,8 @@ class TaskHandlerService(TaskHandler):
             # check again for active (might have changed for overdue tasks)
             if not task.is_active:
                 if task.update_task:
-                    await task.update_task
+                    with suppress(Exception):
+                        await task.update_task
                 await self.delete_running_task(task)
             # if the task is finished, check if there is already the next run to start
             if task.id not in self.tasks and task.descriptor.id in self.start_when_done:
@@ -549,11 +554,11 @@ class TaskHandlerService(TaskHandler):
                 raise ValueError(f"Invalid job {stripped}")
             wait: Optional[Tuple[EventTrigger, timedelta]] = None
             trigger = TimeTrigger(" ".join(parts[0:5]))
-            command = strip_quotes(parts[5], "'")
+            command = strip_quotes(parts[5])
             # check if we also need to wait for an event: name_of_event : command
             if self.event_re.match(command):
                 event, command = re.split("\\s*:\\s*", command, 1)
-                command = strip_quotes(command, "'")
+                command = strip_quotes(command)
                 wait = EventTrigger(event), wait_timeout
             await self.cli.evaluate_cli_command(command, ctx, replace_place_holder=False)
             uid = uuid_str(f"{command}{trigger}{wait}")[0:8]
@@ -561,7 +566,7 @@ class TaskHandlerService(TaskHandler):
 
         async def parse_event() -> Job:
             event, command = re.split("\\s*:\\s*", stripped, 1)
-            command = strip_quotes(command, "'")
+            command = strip_quotes(command)
             await self.cli.evaluate_cli_command(command, ctx, replace_place_holder=False)
             uid = uuid_str(f"{command}{event}")[0:8]
             return Job(uid, ExecuteCommand(command), timeout, EventTrigger(event), None, ctx.env, mutable)

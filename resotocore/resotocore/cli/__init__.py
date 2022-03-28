@@ -65,10 +65,13 @@ args_parts_parser = (
 ).sep_by(space_dp, min=1)
 
 
-def strip_quotes(string: str, strip: str = '"') -> str:
-    s = string.strip()
-    ls = len(strip)
-    return s[ls : len(s) - ls] if s.startswith(strip) and s.endswith(strip) else s  # noqa: E203
+def strip_quotes(string: str) -> str:
+    res = string.strip()
+    if res:
+        first = res[0]
+        if first in "'\"":
+            res = res[1 : len(res) - 1] if res.startswith(first) and res.endswith(first) else res  # noqa: E203
+    return res
 
 
 # check if a is a json node element

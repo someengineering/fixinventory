@@ -1236,15 +1236,28 @@ class UniqCommand(CLICommand):
 class JqCommand(CLICommand, OutputTransformer):
     """
     ```
-    jq <filter>
+    jq [--no-rewrite] <filter>
     ```
 
     Use the well known jq JSON processor to manipulate incoming json.
     Every element from the incoming stream is passed to jq.
     See: https://stedolan.github.io/jq/ for a list of possible jq filter definitions.
 
-    ## Parameter
+    Resoto will rewrite attribute paths to match the defined section.
+    Example:
+    ```bash
+    # the accessed path is rewritten to jq .reported.name
+    > search ... | jq .name
+    # the accessed path is rewritten to jq .reported.name
+    > search is(volume) | jq ./reported.name
+    ```
 
+    If you find yourself fighting with this rewrite mechanism, you can turn it off with the `--no-rewrite` option.
+
+    ## Options
+    - `--no-rewrite` When this option is enabled, the jq filter is not preprocessed by Resoto and given as is to Jq.
+
+    ## Parameters
     - `filter` the filter definition to create a jq program.
 
     ## Examples
@@ -1276,7 +1289,7 @@ class JqCommand(CLICommand, OutputTransformer):
     def info(self) -> str:
         return "Filter and process json."
 
-    path_re = re.compile("[.](?:(/?[A-Za-z]+)|(\\[]))[A-Za-z0-9\\[\\].]*")
+    path_re = re.compile("[.](/?[A-Za-z]+)[A-Za-z0-9\\[\\].]*")
 
     @staticmethod
     def rewrite_props(arg: str, ctx: CLIContext) -> str:
@@ -1301,7 +1314,10 @@ class JqCommand(CLICommand, OutputTransformer):
         if not arg:
             raise AttributeError("jq requires an argument to be parsed")
 
-        compiled = jq.compile(self.rewrite_props(strip_quotes(arg), ctx))
+        arg = strip_quotes(arg)
+        args = arg.split(maxsplit=1)
+        in_arg = args[1] if len(args) == 2 and args[0] == "--no-rewrite" else self.rewrite_props(strip_quotes(arg), ctx)
+        compiled = jq.compile(strip_quotes(in_arg))
 
         def process(in_json: Json) -> Json:
             out = compiled.input(in_json).all()
@@ -3154,7 +3170,7 @@ class HttpCommand(CLICommand):
 
         async def perform_request(e: JsonElement) -> int:
             nonlocal retries_left
-            data = None if template.no_body else (JsonPayload(e) if isinstance(e, dict) else e)
+            data = None if template.no_body else (JsonPayload(e) if isinstance(e, (dict, list)) else e)
             log.debug(f"Perform request with this template={template} and data={data}")
             try:
                 async with self.dependencies.http_session.request(

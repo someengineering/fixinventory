@@ -1,4 +1,5 @@
 from asyncio import Queue
+from datetime import timedelta
 from typing import Tuple, List, AsyncIterator
 
 import pytest
@@ -6,7 +7,8 @@ from aiostream import stream
 from pytest import fixture
 
 from resotocore.analytics import InMemoryEventSender
-from resotocore.cli.cli import CLI, multi_command_parser
+from resotocore.cli import strip_quotes
+from resotocore.cli.cli import CLI, multi_command_parser, CIKeyDict
 from resotocore.cli.command import (
     ExecuteSearchCommand,
     ChunkCommand,
@@ -30,6 +32,7 @@ from resotocore.model.adjust_node import NoAdjust
 from resotocore.model.graph_access import EdgeType
 from resotocore.model.model import Model
 from resotocore.query.template_expander import TemplateExpander
+from resotocore.util import utc, from_utc
 from resotocore.worker_task_queue import WorkerTaskQueue, WorkerTaskDescription
 
 # noinspection PyUnresolvedReferences
@@ -93,6 +96,11 @@ async def cli_deps(
 def cli(cli_deps: CLIDependencies) -> CLI:
     env = {"graph": "ns", "section": "reported"}
     return CLI(cli_deps, all_commands(cli_deps), env, alias_names())
+
+
+def test_strip() -> None:
+    assert strip_quotes("'test'") == "test"
+    assert strip_quotes('"test"') == "test"
 
 
 def test_command_line_parser() -> None:
@@ -270,3 +278,32 @@ async def test_create_query_parts(cli: CLI) -> None:
     assert commands[0].executable_commands[0].arg == 'is("volume") sort reported.name desc limit 5, 5 reversed '
     commands = await cli.evaluate_cli_command("search is(volume) sort name | tail -10 | head 5 | head 3 | tail 2")
     assert commands[0].executable_commands[0].arg == 'is("volume") sort reported.name desc limit 7, 2 reversed '
+
+
+@pytest.mark.asyncio
+async def test_replacements(cli: CLI) -> None:
+    async def execute(template: str, replace_place_holder: bool = True) -> str:
+        result = await cli.evaluate_cli_command(f"echo {template}", replace_place_holder=replace_place_holder)
+        return result[0].parsed_commands.commands[0].args  # type: ignore
+
+    # lookup keys are not case-sensitive
+    today = utc().date().strftime("%Y-%m-%d")
+    assert await execute("@today@ and @TODAY@") == f"{today} and {today}"
+
+    # if the value is not provided, but a function is called
+    in_3_days = utc() + timedelta(days=3)
+    assert abs(from_utc(await execute("@3d.from_now@")) - in_3_days) < timedelta(seconds=1)
+
+    # replacement is not touched if flag is set
+    assert await execute("@today@", False) == "@today@"
+
+
+def test_ci_dict() -> None:
+    d = CIKeyDict(A=1, B=2)
+    # keys are lower case
+    assert d.keys() == {"a", "b"}
+    d["c"] = 3
+    d["C"] = 4
+    assert d == dict(a=1, b=2, c=4)
+    d.update({"a": 2, "c": 5})
+    assert d == dict(a=2, b=2, c=5)
