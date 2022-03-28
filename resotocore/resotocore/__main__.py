@@ -1,14 +1,12 @@
 import asyncio
 import logging
 import platform
-import ssl
 import sys
 from argparse import Namespace
 from asyncio import Queue
 from contextlib import suppress
 from datetime import timedelta
-from ssl import SSLContext
-from typing import AsyncIterator, Optional, List
+from typing import AsyncIterator, List
 
 from aiohttp.web_app import Application
 from arango.database import StandardDatabase
@@ -97,7 +95,7 @@ def with_config(created: bool, system_data: SystemData, sdb: StandardDatabase, c
     info = system_info()
     event_sender = NoEventSender() if config.runtime.analytics_opt_out else PostHogEventSender(system_data)
     db = db_access(config, sdb, event_sender)
-    cert_handler = CertificateHandler.lookup(config, sdb)
+    cert_handler = CertificateHandler.lookup(config, sdb, config.args.tls_password)
     message_bus = MessageBus()
     scheduler = Scheduler()
     worker_task_queue = WorkerTaskQueue()
@@ -210,11 +208,7 @@ def with_config(created: bool, system_data: SystemData, sdb: StandardDatabase, c
         api.app.cleanup_ctx.append(on_start_stop)
         return api.app
 
-    tls_context: Optional[SSLContext] = None
-    if config.args.tls_cert:
-        tls_context = SSLContext(ssl.PROTOCOL_TLS)
-        tls_context.load_cert_chain(config.args.tls_cert, config.args.tls_key, config.args.tls_password)
-
+    tls_context = cert_handler.host_context()
     runner.run_app(async_initializer(), api.stop, host=config.api.hosts, port=config.api.port, ssl_context=tls_context)
 
 

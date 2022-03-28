@@ -155,7 +155,13 @@ def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None
         dest="graphdb_request_timeout",
         help="Request timeout in seconds (default: 900)",
     )
-    # TODO: TLS handling via config file (separate change)
+    parser.add_argument("--no-tls", default=False, action="store_true", help="Disable TLS and use plain HTTP.")
+    parser.add_argument(
+        "--tls-cert",
+        type=is_file("can not parse --tls-cert"),
+        help="Path to a single file in PEM format containing the certificate as well as any number "
+        "of CA certificates needed to establish the certificate’s authenticity.",
+    )
     parser.add_argument(
         "--tls-key",
         type=is_file("can not parse --tls-key"),
@@ -194,7 +200,6 @@ def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None
     parser.add_argument("--analytics-opt-out", default=None, action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--ui-path", type=is_dir("can not parse --ui-dir"), help=argparse.SUPPRESS)
     parser.add_argument("--tsdb-proxy-url", type=is_url("can not parse --tsdb-proxy-url"), help=argparse.SUPPRESS)
-    parser.add_argument("--tls-cert", type=is_file("can not parse --tls-cert"), help=argparse.SUPPRESS)
     parser.add_argument("--cli-default-graph", type=str, dest="cli_default_graph", help=argparse.SUPPRESS)
     parser.add_argument("--cli-default-section", type=str, dest="cli_default_section", help=argparse.SUPPRESS)
     parser.add_argument("--jobs", nargs="*", type=argparse.FileType("r"), help=argparse.SUPPRESS)
