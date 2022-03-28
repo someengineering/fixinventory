@@ -358,9 +358,9 @@ class DigitalOceanTeamCollector:
         resources: List[Json],
         resource_class: Type[BaseResource],
         attr_map: Dict[str, Any],
-        search_map: Dict[str, Any],
-        successors: Dict[EdgeType, List[str]],
-        predecessors: Dict[EdgeType, List[str]],
+        search_map: Optional[Dict[str, Any]] = None,
+        successors: Optional[Dict[EdgeType, List[str]]] = None,
+        predecessors: Optional[Dict[EdgeType, List[str]]] = None,
         dump_resource: bool = False,
     ) -> None:
 
@@ -368,6 +368,8 @@ class DigitalOceanTeamCollector:
             successors = {}
         if predecessors is None:
             predecessors = {}
+        if search_map is None:
+            search_map = {}
         parent_map = {True: predecessors, False: successors}
 
         for resource_json in resources:
@@ -386,7 +388,10 @@ class DigitalOceanTeamCollector:
             self.graph.add_resource(pr, resource_instance, edge_type=EdgeType.default)
 
             def add_deferred_connection(
-                search_map_key: str, is_parent: bool, edge_type: EdgeType
+                search_map: Dict[str, Any],
+                search_map_key: str,
+                is_parent: bool,
+                edge_type: EdgeType,
             ) -> None:
                 graph_search = search_map[search_map_key]
                 attr = graph_search[0]
@@ -433,7 +438,7 @@ class DigitalOceanTeamCollector:
                         else:
                             if search_result_name in search_map:
                                 add_deferred_connection(
-                                    search_result_name, is_parent, edge_type
+                                    search_map, search_result_name, is_parent, edge_type
                                 )
                             else:
                                 log.error(
@@ -490,7 +495,6 @@ class DigitalOceanTeamCollector:
             predecessors={
                 EdgeType.default: ["__tags"],
             },
-            successors={},
         )
         self.collect_resource(
             instances,
@@ -524,7 +528,6 @@ class DigitalOceanTeamCollector:
                 EdgeType.default: ["__vpcs", "__images", "__tags"],
                 EdgeType.delete: ["__vpcs"],
             },
-            successors={},
         )
 
     @metrics_collect_regions.time()  # type: ignore
@@ -542,9 +545,6 @@ class DigitalOceanTeamCollector:
                 "is_available": "available",
                 "do_region_droplet_sizes": "sizes",
             },
-            search_map={},
-            successors={},
-            predecessors={},
         )
 
     @metrics_collect_volumes.time()  # type: ignore
@@ -638,7 +638,6 @@ class DigitalOceanTeamCollector:
                 EdgeType.default: ["__vpcs", "__tags"],
                 EdgeType.delete: ["__vpcs"],
             },
-            successors={},
         )
 
     @metrics_collect_vpcs.time()  # type: ignore
@@ -657,8 +656,6 @@ class DigitalOceanTeamCollector:
             search_map={
                 "_region": ["urn", lambda vpc: region_id(vpc["region"])],
             },
-            successors={},
-            predecessors={},
         )
 
     @metrics_collect_projects.time()  # type: ignore
@@ -695,7 +692,6 @@ class DigitalOceanTeamCollector:
                 EdgeType.default: ["__resources"],
                 EdgeType.delete: ["__resources"],
             },
-            predecessors={},
         )
 
     @metrics_collect_k8s_clusters.time()  # type: ignore
@@ -769,7 +765,6 @@ class DigitalOceanTeamCollector:
                     ),
                 ],
             },
-            successors={},
             predecessors={EdgeType.default: ["__resource", "__tags"]},
         )
 
@@ -836,7 +831,6 @@ class DigitalOceanTeamCollector:
                     lambda ip: droplet_id(ip.get("droplet", {}).get("id", "")),
                 ],
             },
-            successors={},
             predecessors={EdgeType.default: ["__droplet"]},
         )
 
@@ -858,8 +852,6 @@ class DigitalOceanTeamCollector:
                     lambda space: region_id(region.do_region_slug or ""),
                 ],
             },
-            successors={},
-            predecessors={},
         )
 
     @metrics_collect_apps.time()  # type: ignore
@@ -896,7 +888,6 @@ class DigitalOceanTeamCollector:
                 "__databases": ["name", extract_databases],
             },
             predecessors={EdgeType.default: ["__databases"]},
-            successors={},
         )
 
     @metrics_collect_cdn_endpoints.time()  # type: ignore
@@ -914,9 +905,6 @@ class DigitalOceanTeamCollector:
                 "custom_domain": "custom_domain",
                 "ttl": "ttl",
             },
-            search_map={},
-            successors={},
-            predecessors={},
         )
 
     @metrics_collect_certificates.time()  # type: ignore
@@ -934,9 +922,6 @@ class DigitalOceanTeamCollector:
                 "certificate_state": "state",
                 "certificate_type": "type",
             },
-            search_map={},
-            successors={},
-            predecessors={},
         )
 
     @metrics_collect_container_registry.time()  # type: ignore
@@ -956,8 +941,6 @@ class DigitalOceanTeamCollector:
                 search_map={
                     "_region": ["urn", lambda registry: region_id(registry["region"])],
                 },
-                successors={},
-                predecessors={},
             )
             repositories = self.client.list_registry_repositories(registry["name"])
             self.collect_resource(
@@ -978,7 +961,6 @@ class DigitalOceanTeamCollector:
                         lambda r: container_registry_id(r["registry_name"]),
                     ],
                 },
-                successors={},
                 predecessors={EdgeType.default: ["__registry"]},
             )
 
@@ -1017,7 +999,6 @@ class DigitalOceanTeamCollector:
                         lambda t: container_registry_id(t["registry_name"]),
                     ],
                 },
-                successors={},
                 predecessors={EdgeType.default: ["__repository", "__registry"]},
             )
 
@@ -1033,9 +1014,6 @@ class DigitalOceanTeamCollector:
                 "public_key": "public_key",
                 "fingerprint": "fingerprint",
             },
-            search_map={},
-            successors={},
-            predecessors={},
         )
 
     @metrics_collect_tags.time()  # type: ignore
@@ -1048,9 +1026,6 @@ class DigitalOceanTeamCollector:
                 "id": "name",
                 "urn": lambda t: tag_id(t["name"]),
             },
-            search_map={},
-            successors={},
-            predecessors={},
         )
 
     @metrics_collect_domains.time()  # type: ignore
@@ -1065,9 +1040,6 @@ class DigitalOceanTeamCollector:
                 "ttl": "ttl",
                 "zone_file": "zone_file",
             },
-            predecessors={},
-            successors={},
-            search_map={},
         )
 
         def update_record(record: Json, domain: Json) -> Json:
@@ -1099,7 +1071,6 @@ class DigitalOceanTeamCollector:
             search_map={
                 "__domain": ["urn", lambda r: domain_id(r["domain_name"])],
             },
-            successors={},
             predecessors={EdgeType.default: ["__domain"]},
         )
 
@@ -1147,7 +1118,4 @@ class DigitalOceanTeamCollector:
                 "policy_type": "type",
                 "is_enabled": "enabled",
             },
-            search_map={},
-            successors={},
-            predecessors={},
         )
