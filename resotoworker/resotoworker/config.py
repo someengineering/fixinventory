@@ -6,7 +6,6 @@ from typing import ClassVar, Optional, List
 
 def add_config(config: Config) -> None:
     config.add_config(ResotoWorkerConfig)
-    config.add_config(WebServerConfig)
 
 
 @dataclass
@@ -54,14 +53,15 @@ class ResotoWorkerConfig:
             "description": "Do not actually cleanup resources, just create log messages"
         },
     )
-
-
-@dataclass
-class WebServerConfig:
-    kind: ClassVar[str] = "webserver"
     web_host: Optional[str] = field(
         default="::", metadata={"description": "IP address to bind the web server to"}
     )
     web_port: Optional[int] = field(
         default=9956, metadata={"description": "Web server tcp port to listen on"}
+    )
+    web_path: Optional[str] = field(
+        default="/",
+        metadata={
+            "description": "Web root in browser (change if running behind an ingress proxy)"
+        },
     )

@@ -54,8 +54,6 @@ def main() -> None:
     config = Config(
         ArgumentParser.args.subscriber_id, resotocore_uri=resotocore.http_uri
     )
-    WebServer.add_config(config)
-    WebApp.add_config(config)
     config.add_config(ResotoMetricsConfig)
     config.load_config()
 
@@ -80,7 +78,11 @@ def main() -> None:
         },
         message_processor=message_processor,
     )
-    web_server = WebServer(WebApp())
+    web_server = WebServer(
+        WebApp(mountpoint=Config.resotometrics.web_path),
+        web_host=Config.resotometrics.web_host,
+        web_port=Config.resotometrics.web_port,
+    )
     web_server.daemon = True
     web_server.start()
     core_actions.start()

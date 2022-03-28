@@ -52,3 +52,15 @@ class ResotoMetricsConfig:
             )
         },
     )
+    web_host: Optional[str] = field(
+        default="::", metadata={"description": "IP address to bind the web server to"}
+    )
+    web_port: Optional[int] = field(
+        default=9955, metadata={"description": "Web server tcp port to listen on"}
+    )
+    web_path: Optional[str] = field(
+        default="/",
+        metadata={
+            "description": "Web root in browser (change if running behind an ingress proxy)"
+        },
+    )

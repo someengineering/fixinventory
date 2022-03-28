@@ -65,7 +65,6 @@ def main() -> None:
         ArgumentParser.args.subscriber_id, resotocore_uri=resotocore.http_uri
     )
     add_config(config)
-    WebApp.add_config(config)
     plugin_loader.add_plugin_config(config)
     config.load_config()
 
@@ -76,7 +75,11 @@ def main() -> None:
     # Try to increase nofile and nproc limits
     increase_limits()
 
-    web_server = WebServer(WebApp())
+    web_server = WebServer(
+        WebApp(mountpoint=Config.resotoworker.web_path),
+        web_host=Config.resotoworker.web_host,
+        web_port=Config.resotoworker.web_port,
+    )
     web_server.daemon = True
     web_server.start()
 
