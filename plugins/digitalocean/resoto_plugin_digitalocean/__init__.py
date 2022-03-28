@@ -1,4 +1,4 @@
-from typing import Dict, Optional, List, Tuple
+from typing import Optional, List, Tuple
 
 from resoto_plugin_digitalocean.client import StreamingWrapper
 from resoto_plugin_digitalocean.collector import DigitalOceanTeamCollector
@@ -6,9 +6,10 @@ from resoto_plugin_digitalocean.resources import DigitalOceanTeam
 from resotolib.args import ArgumentParser
 from resotolib.baseplugin import BaseCollectorPlugin
 from resotolib.logging import log
+from resotolib.graph import Graph
 
 
-class DigitalOceanCollectorPlugin(BaseCollectorPlugin):
+class DigitalOceanCollectorPlugin(BaseCollectorPlugin):  # type: ignore
     cloud = "do"
 
     def collect(self) -> None:
@@ -55,7 +56,7 @@ class DigitalOceanCollectorPlugin(BaseCollectorPlugin):
             team_graph = self.collect_team(client)
             self.graph.merge(team_graph)
 
-    def collect_team(self, client: StreamingWrapper) -> Optional[Dict]:
+    def collect_team(self, client: StreamingWrapper) -> Optional[Graph]:
         """Collects an individual team."""
         team_id = client.get_team_id()
         team = DigitalOceanTeam(id=team_id, tags={}, urn=f"do:team:{team_id}")
@@ -67,6 +68,7 @@ class DigitalOceanCollectorPlugin(BaseCollectorPlugin):
             log.exception(
                 f"An unhandled error occurred while collecting team {team_id}"
             )
+            return None
         else:
             return dopc.graph
 

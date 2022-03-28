@@ -1,6 +1,6 @@
 import math
 from pprint import pformat
-from typing import Tuple, Type, List, Dict, Union, Callable, Any, Optional
+from typing import Tuple, Type, List, Dict, Callable, Any, Optional, cast
 
 from prometheus_client import Summary
 
@@ -172,14 +172,14 @@ class DigitalOceanTeamCollector:
 
         # Mandatory collectors are always collected regardless of whether
         # they were included by --do-collect or excluded by --do-no-collect
-        self.mandatory_collectors: List[Tuple[str, Callable]] = [
+        self.mandatory_collectors: List[Tuple[str, Callable[..., None]]] = [
             ("regions", self.collect_regions)
         ]
         # Global collectors are resources that are either specified on a global level
         # as opposed to a per zone or per region level or they are zone/region
         # resources that provide a aggregatedList() function returning all resources
         # for all zones/regions.
-        self.global_collectors: List[Tuple[str, Callable]] = [
+        self.global_collectors: List[Tuple[str, Callable[..., None]]] = [
             ("tags", self.collect_tags),
             ("vpcs", self.collect_vpcs),
             ("instances", self.collect_instances),
@@ -200,7 +200,7 @@ class DigitalOceanTeamCollector:
             ("alert_policies", self.collect_alert_policies),
         ]
 
-        self.region_collectors = [
+        self.region_collectors: List[Tuple[str, Callable[..., None]]] = [
             ("spaces", self.collect_spaces),
         ]
 
@@ -251,7 +251,7 @@ class DigitalOceanTeamCollector:
 
         remove_nodes = set()
 
-        def rmnodes(cls) -> None:
+        def rmnodes(cls: Any) -> None:
             for node in self.graph.nodes:
                 if isinstance(node, cls) and not any(
                     True for _ in self.graph.successors(node)
@@ -267,12 +267,15 @@ class DigitalOceanTeamCollector:
         rmnodes(DigitalOceanRegion)
 
     def default_attributes(
-        self, result: Dict, attr_map: Dict = None, search_map: Dict = None
-    ) -> Dict:
+        self,
+        result: Dict[str, Any],
+        attr_map: Dict[str, Any],
+        search_map: Dict[str, Any],
+    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         """See a similar method in the GCPCollectorPlugin"""
         # The following are default attributes that are passed to every
         # BaseResource() if found in `result`
-        def extract_tags(result: Dict) -> Dict[str, str]:
+        def extract_tags(result: Dict[str, Any]) -> Dict[str, str]:
             raw_tags = result.get("tags", [])
             raw_tags = raw_tags if raw_tags else []
             tags = [(tag, "") for tag in raw_tags if tag]
@@ -297,8 +300,8 @@ class DigitalOceanTeamCollector:
                 kwargs[map_to] = data
 
         # By default we search for a resources region and/or zone
-        default_search_map = {}
-        search_results = {}
+        default_search_map: Dict[str, Any] = {}
+        search_results: Dict[str, Any] = {}
         if search_map is None:
             search_map = dict(default_search_map)
         else:
@@ -352,21 +355,21 @@ class DigitalOceanTeamCollector:
 
     def collect_resource(
         self,
-        resources: List[Dict[str, Any]],
+        resources: List[Json],
         resource_class: Type[BaseResource],
-        parent_resource: Union[BaseResource, str] = None,
-        attr_map: Dict = None,
-        search_map: Dict = None,
-        successors: Dict[EdgeType, List[str]] = None,
-        predecessors: Dict[EdgeType, List[str]] = None,
-        post_process: Callable = None,
+        attr_map: Dict[str, Any],
+        search_map: Optional[Dict[str, Any]] = None,
+        successors: Optional[Dict[EdgeType, List[str]]] = None,
+        predecessors: Optional[Dict[EdgeType, List[str]]] = None,
         dump_resource: bool = False,
-    ) -> List:
+    ) -> None:
 
         if successors is None:
             successors = {}
         if predecessors is None:
             predecessors = {}
+        if search_map is None:
+            search_map = {}
         parent_map = {True: predecessors, False: successors}
 
         for resource_json in resources:
@@ -374,26 +377,21 @@ class DigitalOceanTeamCollector:
                 resource_json, attr_map=attr_map, search_map=search_map
             )
             resource_instance = resource_class(**kwargs)
-            pr = parent_resource
             log.debug(f"Adding {resource_instance.rtdname} to the graph")
             if dump_resource:
                 log.debug(f"Resource Dump: {pformat(resource_json)}")
 
-            if isinstance(pr, str) and pr in search_results:
-                pr = search_results[parent_resource][0]
-                log.debug(
-                    f"Parent resource for {resource_instance.rtdname} set to {pr.rtdname}"
-                )
-
-            if not isinstance(pr, BaseResource):
-                pr = kwargs.get("_zone", kwargs.get("_region", self.graph.root))
-                log.debug(
-                    f"Parent resource for {resource_instance.rtdname} automatically set to {pr.rtdname}"
-                )
+            pr = kwargs.get("_region", self.graph.root)
+            log.debug(
+                f"Parent resource for {resource_instance.rtdname} automatically set to {pr.rtdname}"
+            )
             self.graph.add_resource(pr, resource_instance, edge_type=EdgeType.default)
 
             def add_deferred_connection(
-                search_map_key: str, is_parent: bool, edge_type: EdgeType
+                search_map: Dict[str, Any],
+                search_map_key: str,
+                is_parent: bool,
+                edge_type: EdgeType,
             ) -> None:
                 graph_search = search_map[search_map_key]
                 attr = graph_search[0]
@@ -421,7 +419,7 @@ class DigitalOceanTeamCollector:
                             )
                         )
 
-            def add_edge(search_map_key: str, is_parent) -> None:
+            def add_edge(search_map_key: str, is_parent: bool) -> None:
                 srs = search_results[search_map_key]
                 for sr in srs:
                     if is_parent:
@@ -440,25 +438,23 @@ class DigitalOceanTeamCollector:
                         else:
                             if search_result_name in search_map:
                                 add_deferred_connection(
-                                    search_result_name, is_parent, edge_type
+                                    search_map, search_result_name, is_parent, edge_type
                                 )
                             else:
                                 log.error(
                                     f"Key {search_result_name} is missing in search_map"
                                 )
-            if callable(post_process):
-                post_process(resource_instance, self.graph)
 
-    @metrics_collect_intances.time()
+    @metrics_collect_intances.time()  # type: ignore
     def collect_instances(self) -> None:
         instances = self.client.list_droplets()
 
         def get_image(droplet: Json) -> Json:
             image = droplet["image"]
             image["region"] = droplet["region"]["slug"]
-            return image
+            return cast(Json, image)
 
-        def remove_duplicates(images):
+        def remove_duplicates(images: List[Json]) -> List[Json]:
             seen_ids = set()
             unique_images = []
             for image in images:
@@ -534,7 +530,7 @@ class DigitalOceanTeamCollector:
             },
         )
 
-    @metrics_collect_regions.time()
+    @metrics_collect_regions.time()  # type: ignore
     def collect_regions(self) -> None:
         regions = self.client.list_regions()
         self.collect_resource(
@@ -549,14 +545,13 @@ class DigitalOceanTeamCollector:
                 "is_available": "available",
                 "do_region_droplet_sizes": "sizes",
             },
-            search_map={},
         )
 
-    @metrics_collect_volumes.time()
+    @metrics_collect_volumes.time()  # type: ignore
     def collect_volumes(self) -> None:
         volumes = self.client.list_volumes()
 
-        def extract_volume_status(volume):
+        def extract_volume_status(volume: Json) -> str:
             in_use = len(volume.get("droplet_ids", []) or []) > 0
             return "in-use" if in_use else "available"
 
@@ -588,7 +583,7 @@ class DigitalOceanTeamCollector:
             successors={EdgeType.delete: ["__users"]},
         )
 
-    @metrics_collect_databases.time()
+    @metrics_collect_databases.time()  # type: ignore
     def collect_databases(self) -> None:
 
         # this mapping was taken from the digitalocean web console.
@@ -645,7 +640,7 @@ class DigitalOceanTeamCollector:
             },
         )
 
-    @metrics_collect_vpcs.time()
+    @metrics_collect_vpcs.time()  # type: ignore
     def collect_vpcs(self) -> None:
         vpcs = self.client.list_vpcs()
         self.collect_resource(
@@ -663,10 +658,10 @@ class DigitalOceanTeamCollector:
             },
         )
 
-    @metrics_collect_projects.time()
+    @metrics_collect_projects.time()  # type: ignore
     def collect_projects(self) -> None:
-        def get_resource_id(resource):
-            return resource["urn"]
+        def get_resource_id(resource: Json) -> str:
+            return cast(str, resource["urn"])
 
         projects = self.client.list_projects()
         project_resources = [
@@ -699,7 +694,7 @@ class DigitalOceanTeamCollector:
             },
         )
 
-    @metrics_collect_k8s_clusters.time()
+    @metrics_collect_k8s_clusters.time()  # type: ignore
     def collect_k8s_clusters(self) -> None:
         clusters = self.client.list_kubernetes_clusters()
         self.collect_resource(
@@ -735,9 +730,9 @@ class DigitalOceanTeamCollector:
             predecessors={EdgeType.default: ["__vpcs"], EdgeType.delete: ["__vpcs"]},
         )
 
-    @metrics_collect_snapshots.time()
+    @metrics_collect_snapshots.time()  # type: ignore
     def collect_snapshots(self) -> None:
-        def get_resource_id(snapshot):
+        def get_resource_id(snapshot: Json) -> str:
             if snapshot["resource_type"] == "droplet":
                 return droplet_id(snapshot["resource_id"])
             else:
@@ -773,18 +768,18 @@ class DigitalOceanTeamCollector:
             predecessors={EdgeType.default: ["__resource", "__tags"]},
         )
 
-    @metrics_collect_load_balancers.time()
+    @metrics_collect_load_balancers.time()  # type: ignore
     def collect_load_balancers(self) -> None:
         loadbalancers = self.client.list_load_balancers()
 
-        def get_nr_nodes(lb):
+        def get_nr_nodes(lb: Json) -> int:
             size_to_nr_nodes = {
                 "lb-small": 1,
                 "lb-medium": 3,
                 "lb-large": 3,
             }
             if lb["size_unit"]:
-                return lb["size_unit"]
+                return cast(int, lb["size_unit"])
             else:
                 return size_to_nr_nodes.get(lb["size"], 1)
 
@@ -816,7 +811,7 @@ class DigitalOceanTeamCollector:
             successors={EdgeType.default: ["__droplets"]},
         )
 
-    @metrics_collect_floating_ips.time()
+    @metrics_collect_floating_ips.time()  # type: ignore
     def collect_floating_ips(self) -> None:
         floating_ips = self.client.list_floating_ips()
         self.collect_resource(
@@ -839,9 +834,9 @@ class DigitalOceanTeamCollector:
             predecessors={EdgeType.default: ["__droplet"]},
         )
 
-    @metrics_collect_spaces.time()
+    @metrics_collect_spaces.time()  # type: ignore
     def collect_spaces(self, region: DigitalOceanRegion) -> None:
-        spaces = self.client.list_spaces(region.do_region_slug)
+        spaces = self.client.list_spaces(region.do_region_slug or "")
         self.collect_resource(
             spaces,
             resource_class=DigitalOceanSpace,
@@ -852,15 +847,18 @@ class DigitalOceanTeamCollector:
                 "ctime": "CreationDate",
             },
             search_map={
-                "_region": ["urn", lambda space: region_id(region.do_region_slug)],
+                "_region": [
+                    "urn",
+                    lambda space: region_id(region.do_region_slug or ""),
+                ],
             },
         )
 
-    @metrics_collect_apps.time()
+    @metrics_collect_apps.time()  # type: ignore
     def collect_apps(self) -> None:
         apps = self.client.list_apps()
 
-        def extract_region(app: Dict) -> Optional[str]:
+        def extract_region(app: Json) -> Optional[str]:
             region_slug = next(
                 iter(app.get("region", {}).get("data_centers", [])), None
             )
@@ -868,7 +866,7 @@ class DigitalOceanTeamCollector:
                 return None
             return region_id(region_slug)
 
-        def extract_databases(app: Dict) -> List[str]:
+        def extract_databases(app: Json) -> List[str]:
             databases = app.get("spec", {}).get("databases", [])
             names = [database_id(database["name"]) for database in databases]
             return names
@@ -892,7 +890,7 @@ class DigitalOceanTeamCollector:
             predecessors={EdgeType.default: ["__databases"]},
         )
 
-    @metrics_collect_cdn_endpoints.time()
+    @metrics_collect_cdn_endpoints.time()  # type: ignore
     def collect_cdn_endpoints(self) -> None:
         endpoints = self.client.list_cdn_endpoints()
         self.collect_resource(
@@ -909,7 +907,7 @@ class DigitalOceanTeamCollector:
             },
         )
 
-    @metrics_collect_certificates.time()
+    @metrics_collect_certificates.time()  # type: ignore
     def collect_certificates(self) -> None:
         certificates = self.client.list_certificates()
         self.collect_resource(
@@ -926,7 +924,7 @@ class DigitalOceanTeamCollector:
             },
         )
 
-    @metrics_collect_container_registry.time()
+    @metrics_collect_container_registry.time()  # type: ignore
     def collect_container_registry(self) -> None:
         registries = self.client.get_registry_info()
         for registry in registries:
@@ -1004,7 +1002,7 @@ class DigitalOceanTeamCollector:
                 predecessors={EdgeType.default: ["__repository", "__registry"]},
             )
 
-    @metrics_collect_ssh_keys.time()
+    @metrics_collect_ssh_keys.time()  # type: ignore
     def collect_ssh_keys(self) -> None:
         ssh_keys = self.client.list_ssh_keys()
         self.collect_resource(
@@ -1018,7 +1016,7 @@ class DigitalOceanTeamCollector:
             },
         )
 
-    @metrics_collect_tags.time()
+    @metrics_collect_tags.time()  # type: ignore
     def collect_tags(self) -> None:
         tags = self.client.list_tags()
         self.collect_resource(
@@ -1030,7 +1028,7 @@ class DigitalOceanTeamCollector:
             },
         )
 
-    @metrics_collect_domains.time()
+    @metrics_collect_domains.time()  # type: ignore
     def collect_domains(self) -> None:
         domains = self.client.list_domains()
         self.collect_resource(
@@ -1044,7 +1042,7 @@ class DigitalOceanTeamCollector:
             },
         )
 
-        def update_record(record, domain):
+        def update_record(record: Json, domain: Json) -> Json:
             record["domain_name"] = domain["name"]
             return record
 
@@ -1076,7 +1074,7 @@ class DigitalOceanTeamCollector:
             predecessors={EdgeType.default: ["__domain"]},
         )
 
-    @metrics_collect_firewalls.time()
+    @metrics_collect_firewalls.time()  # type: ignore
     def collect_firewalls(self) -> None:
         firewalls = self.client.list_firewalls()
         self.collect_resource(
@@ -1107,7 +1105,7 @@ class DigitalOceanTeamCollector:
             },
         )
 
-    @metrics_collect_alert_policies.time()
+    @metrics_collect_alert_policies.time()  # type: ignore
     def collect_alert_policies(self) -> None:
         alert_policies = self.client.list_alert_policies()
         self.collect_resource(
