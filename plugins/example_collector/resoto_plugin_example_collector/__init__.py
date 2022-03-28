@@ -109,14 +109,15 @@ class ExampleCollectorPlugin(BaseCollectorPlugin):
         Note: almost all plugin config should be done via add_config()
         so it can be changed centrally and at runtime.
         """
-        arg_parser.add_argument(
-            "--example-arg",
-            help="Example Argument",
-            dest="example_arg",
-            type=str,
-            default=None,
-            nargs="+",
-        )
+        #        arg_parser.add_argument(
+        #            "--example-arg",
+        #            help="Example Argument",
+        #            dest="example_arg",
+        #            type=str,
+        #            default=None,
+        #            nargs="+",
+        #        )
+        pass
 
     @staticmethod
     def add_config(config: Config) -> None:
@@ -125,7 +126,8 @@ class ExampleCollectorPlugin(BaseCollectorPlugin):
         Method called by the PluginLoader upon plugin initialization.
         Can be used to introduce plugin config arguments to the global config store.
         """
-        config.add_config(ExampleConfig)
+        #        config.add_config(ExampleConfig)
+        pass
 
 
 @dataclass
