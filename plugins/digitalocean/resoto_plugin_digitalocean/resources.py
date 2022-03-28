@@ -43,6 +43,12 @@ class DigitalOceanResource(BaseResource):
     def delete_uri_path(self) -> Optional[str]:
         return None
 
+    def tag_resource_name(self) -> Optional[str]:
+        """Resource name in case tagging is supported by digitalocean.
+        Not all resources support tagging.
+        """
+        return None
+
     def delete(self, graph: Graph) -> bool:
         """Delete a resource in the cloud"""
         if self.delete_uri_path():
@@ -61,14 +67,56 @@ class DigitalOceanResource(BaseResource):
         raise NotImplementedError
 
     def update_tag(self, key, value) -> bool:
-        """Update a resource tag in the cloud"""
-        log.debug(f"Updating or setting tag {key}: {value} on resource {self.id}")
-        return True
+
+        if self.tag_resource_name():
+            log.debug(f"Updating tag {key} on resource {self.id}")
+            if value:
+                log.warning(
+                    "DigitalOcean does not support tag values. It will be ignored."
+                )
+            team = self._account
+            credentials = get_team_credentials(team.id)
+            client = StreamingWrapper(
+                credentials.api_token,
+                credentials.spaces_access_key,
+                credentials.spaces_secret_key,
+            )
+
+            tag_ready: bool = True
+
+            tag_count = client.get_tag_count(key)
+            # tag count call failed irrecoverably, we can't continue
+            if isinstance(tag_count, str):
+                raise RuntimeError(f"Tag update failed. Reason: {tag_count}")
+            # tag does not exist, create it
+            if tag_count is None:
+                tag_ready = client.create_tag(key)
+
+            return tag_ready and client.tag_resource(
+                key, self.tag_resource_name(), self.id
+            )
+        else:
+            raise NotImplementedError(f"resource {self.kind} does not support tagging")
 
     def delete_tag(self, key) -> bool:
-        """Delete a resource tag in the cloud"""
-        log.debug(f"Deleting tag {key} on resource {self.id}")
-        return True
+        if self.tag_resource_name():
+            log.debug(f"Deleting tag {key} on resource {self.id}")
+            team = self._account
+            credentials = get_team_credentials(team.id)
+            client = StreamingWrapper(
+                credentials.api_token,
+                credentials.spaces_access_key,
+                credentials.spaces_secret_key,
+            )
+            untagged = client.untag_resource(key, self.tag_resource_name(), self.id)
+            if not untagged:
+                return False
+            tag_count = client.get_tag_count(key)
+            if tag_count == 0:
+                return client.delete("/tags", key)
+            return True
+        else:
+            raise NotImplementedError(f"resource {self.kind} does not support tagging")
 
 
 @dataclass(eq=False)
@@ -141,6 +189,9 @@ class DigitalOceanDroplet(DigitalOceanResource, BaseInstance):
             value, InstanceStatus.UNKNOWN
         )
 
+    def tag_resource_name(self) -> Optional[str]:
+        return "droplet"
+
 
 # Because we are using dataclasses and allow to supply the `instance_status`
 # string to the constructor we can not use the normal @property decorator.
@@ -196,6 +247,9 @@ class DigitalOceanVolume(DigitalOceanResource, BaseVolume):
     def _volume_status_setter(self, value: str) -> None:
         self._volume_status = self.volume_status_map.get(value, VolumeStatus.UNKNOWN)
 
+    def tag_resource_name(self) -> Optional[str]:
+        return "volume"
+
 
 DigitalOceanVolume.volume_status = property(
     DigitalOceanVolume._volume_status_getter, DigitalOceanVolume._volume_status_setter
@@ -208,6 +262,9 @@ class DigitalOceanDatabase(DigitalOceanResource, BaseDatabase):
 
     def delete_uri_path(self) -> Optional[str]:
         return "/databases"
+
+    def tag_resource_name(self) -> Optional[str]:
+        return "database"
 
 
 @dataclass(eq=False)
@@ -238,6 +295,9 @@ class DigitalOceanSnapshot(DigitalOceanResource, BaseSnapshot):
 
     def delete_uri_path(self) -> Optional[str]:
         return "/snapshots"
+
+    def tag_resource_name(self) -> Optional[str]:
+        return "volume_snapshot"
 
 
 @dataclass(eq=False)
@@ -298,6 +358,9 @@ class DigitalOceanImage(DigitalOceanResource, BaseResource):
 
     def delete_uri_path(self) -> Optional[str]:
         return "/images"
+
+    def tag_resource_name(self) -> Optional[str]:
+        return "image"
 
 
 @dataclass(eq=False)
@@ -468,3 +531,17 @@ class DigitalOceanFirewall(DigitalOceanResource, BaseResource):
 
     def delete_uri_path(self) -> Optional[str]:
         return "/firewalls"
+
+
+@dataclass(eq=False)
+class DigitalOceanAlertPolicy(DigitalOceanResource, BaseResource):
+    """DigitalOcean alert policy"""
+
+    kind = "digitalocean_alert_policy"
+
+    policy_type: Optional[str] = None
+    description: Optional[str] = None
+    is_enabled: Optional[bool] = None
+
+    def delete_uri_path(self) -> Optional[str]:
+        return "/monitoring/alerts"

@@ -33,6 +33,7 @@ from .resources import (
     DigitalOceanDomain,
     DigitalOceanDomainRecord,
     DigitalOceanFirewall,
+    DigitalOceanAlertPolicy,
 )
 from .utils import (
     iso2datetime,
@@ -60,6 +61,7 @@ from .utils import (
     domain_id,
     domain_record_id,
     firewall_id,
+    alert_policy_id,
 )
 
 Json = Dict[str, Any]
@@ -146,6 +148,10 @@ metrics_collect_firewalls = Summary(
     "resoto_plugin_digitalocean_collect_firewalls_seconds",
     "Time it took the collect_firewalls() method",
 )
+metrics_collect_alert_policies = Summary(
+    "resoto_plugin_digitalocean_collect_alert_policies_seconds",
+    "Time it took the collect_alert_policies() method",
+)
 
 
 class DigitalOceanTeamCollector:
@@ -191,6 +197,7 @@ class DigitalOceanTeamCollector:
             ("ssh_keys", self.collect_ssh_keys),
             ("domains", self.collect_domains),
             ("firewalls", self.collect_firewalls),
+            ("alert_policies", self.collect_alert_policies),
         ]
 
         self.region_collectors = [
@@ -1097,5 +1104,20 @@ class DigitalOceanTeamCollector:
             },
             successors={
                 EdgeType.default: ["__droplets"],
+            },
+        )
+
+    @metrics_collect_alert_policies.time()
+    def collect_alert_policies(self) -> None:
+        alert_policies = self.client.list_alert_policies()
+        self.collect_resource(
+            alert_policies,
+            resource_class=DigitalOceanAlertPolicy,
+            attr_map={
+                "id": "uuid",
+                "urn": lambda ap: alert_policy_id(ap["uuid"]),
+                "description": "description",
+                "policy_type": "type",
+                "is_enabled": "enabled",
             },
         )

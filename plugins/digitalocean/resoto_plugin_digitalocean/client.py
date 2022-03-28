@@ -1,4 +1,4 @@
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, Union
 from dataclasses import dataclass
 from functools import lru_cache
 import requests
@@ -15,6 +15,8 @@ import resotolib.logging
 log = resotolib.logging.getLogger("resoto." + __name__)
 
 Json = Dict[str, Any]
+
+Failure = str
 
 
 # todo: make it async
@@ -38,6 +40,32 @@ class StreamingWrapper:
             self.session = boto3.session.Session()
         else:
             self.session = None
+
+    def check_status_code(self, response: requests.Response) -> bool:
+        status_code = response.status_code
+        url = response.request.url
+        method = response.request.method
+        if status_code == 429:
+            raise RetryableHttpError(
+                f"Too many requests: {method} {url} {response.reason} {response.text}"
+            )
+        if status_code // 100 == 5:
+            raise RetryableHttpError(
+                f"Server error: {method} {url} {response.reason} {response.text}"
+            )
+        if status_code // 100 == 4:
+            log.warning(
+                f"Client error: {method} {url} {response.reason} {response.text}"
+            )
+            return False
+        if status_code // 100 == 2:
+            log.debug(f"Success: {method} {url}")
+            return True
+
+        log.warning(
+            f"unknown status code {status_code}: {method} {url} {response.reason} {response.text}"
+        )
+        return False
 
     @retry(
         stop_max_attempt_number=10,
@@ -174,26 +202,7 @@ class StreamingWrapper:
             allow_redirects=True,
         )
 
-        status_code = response.status_code
-        if status_code == 429:
-            raise RetryableHttpError(
-                f"Too many requests: {url} {response.reason} {response.text}"
-            )
-        if status_code // 100 == 5:
-            raise RetryableHttpError(
-                f"Server error: {url} {response.reason} {response.text}"
-            )
-        if status_code // 100 == 4:
-            log.warning(f"Client error: POST {url} {response.reason} {response.text}")
-            return False
-        if status_code // 100 == 2:
-            log.debug(f"unassigned: {url}")
-            return True
-
-        log.warning(
-            f"unknown status code {status_code}: {url} {response.reason} {response.text}"
-        )
-        return False
+        return self.check_status_code(response)
 
     @retry(
         stop_max_attempt_number=10,
@@ -316,6 +325,82 @@ class StreamingWrapper:
     def list_tags(self) -> List[Json]:
         return self._fetch("/tags", "tags")
 
+    @retry(
+        stop_max_attempt_number=10,
+        wait_exponential_multiplier=3000,
+        wait_exponential_max=300000,
+        retry_on_exception=retry_on_error,
+    )
+    def get_tag_count(self, tag_name: str) -> Union[Failure, None, int]:
+        url = f"{self.do_api_endpoint}/tags/{tag_name}"
+        response = requests.get(url, headers=self.headers, allow_redirects=True)
+        if response.status_code == 404:
+            return None
+        if self.check_status_code(response):
+            return (
+                response.json()
+                .get("tag", {})
+                .get("tag", {})
+                .get("resources", {})
+                .get("count", 0)
+            )
+        return (
+            f"get_tag_count call failed: status {response.status_code}, "
+            f"reason: {response.reason}, payload: {response.text}"
+        )
+
+    @retry(
+        stop_max_attempt_number=10,
+        wait_exponential_multiplier=3000,
+        wait_exponential_max=300000,
+        retry_on_exception=retry_on_error,
+    )
+    def create_tag(self, tag_name: str) -> bool:
+        url = f"{self.do_api_endpoint}/tags"
+        response = requests.post(url, headers=self.headers, json={"name": tag_name})
+        return self.check_status_code(response)
+
+    @retry(
+        stop_max_attempt_number=10,
+        wait_exponential_multiplier=3000,
+        wait_exponential_max=300000,
+        retry_on_exception=retry_on_error,
+    )
+    def tag_resource(self, tag_name: str, resource_type: str, resource_id: str) -> bool:
+        url = f"{self.do_api_endpoint}/tags/{tag_name}/resources"
+        payload = {
+            "resources": [{"resource_id": resource_id, "resource_type": resource_type}]
+        }
+        response = requests.post(
+            url, headers=self.headers, json=payload, allow_redirects=True
+        )
+
+        return self.check_status_code(response)
+
+    @retry(
+        stop_max_attempt_number=10,
+        wait_exponential_multiplier=3000,
+        wait_exponential_max=300000,
+        retry_on_exception=retry_on_error,
+    )
+    def untag_resource(
+        self, tag_name: str, resource_type: str, resource_id: str
+    ) -> bool:
+        url = f"{self.do_api_endpoint}/tags/{tag_name}/resources"
+        payload = {
+            "resources": [{"resource_id": resource_id, "resource_type": resource_type}]
+        }
+
+        response = requests.delete(
+            url, headers=self.headers, json=payload, allow_redirects=True
+        )
+
+        if response.status_code == 404:
+            raise RuntimeError(
+                f"Tag {tag_name} or {resource_type} {resource_id} not found."
+            )
+        return self.check_status_code(response)
+
     def list_domains(self) -> List[Json]:
         return self._fetch("/domains", "domains")
 
@@ -324,6 +409,9 @@ class StreamingWrapper:
 
     def list_firewalls(self) -> List[Json]:
         return self._fetch("/firewalls", "firewalls")
+
+    def list_alert_policies(self) -> List[Json]:
+        return self._fetch("/monitoring/alerts", "policies")
 
 
 TeamId = str
