@@ -1,4 +1,4 @@
-from typing import Dict, List, Any, Optional, Union, TypeVar, Callable, cast
+from typing import Dict, List, Any, Optional, Union, TypeVar, Callable
 from dataclasses import dataclass
 from functools import lru_cache
 import requests
@@ -15,16 +15,12 @@ F = TypeVar("F", bound=Callable[..., Any])
 
 
 def retry(func: F) -> F:
-    def wrapper(*args, **kwds):  # type: ignore
-
-        return retry_decorator(
-            stop_max_attempt_number=10,
-            wait_exponential_multiplier=3000,
-            wait_exponential_max=300000,
-            retry_on_exception=retry_on_error,
-        )(func(*args, **kwds))
-
-    return cast(F, wrapper)
+    return retry_decorator(  # type: ignore
+        stop_max_attempt_number=10,
+        wait_exponential_multiplier=3000,
+        wait_exponential_max=300000,
+        retry_on_exception=retry_on_error,
+    )(func)
 
 
 log = resotolib.logging.getLogger("resoto." + __name__)
