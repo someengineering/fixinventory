@@ -40,7 +40,7 @@ Currently it can collect [AWS](plugins/aws/), [Google Cloud](plugins/gcp/), [VMW
 
 ## Docker-based quick start
 
-Docker images are hosted via GitHub container repository: `somecr.io/someengineering/resoto:2.0.0a20`
+Docker images are hosted via GitHub container repository: `somecr.io/someengineering/resoto:2.0.0a21`
 
 In this quick start guide, we’re showing you three things, how to:
 
