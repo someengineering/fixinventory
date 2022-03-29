@@ -30,7 +30,12 @@ from aiostream import stream, pipe
 from aiostream.aiter_utils import is_async_iterable
 from aiostream.core import Stream
 from parsy import Parser, string
+from rich.padding import Padding
+from rich.panel import Panel
+from rich.table import Table
+from rich.text import Text
 
+from resotocore import version
 from resotocore.async_extensions import run_async
 from resotocore.cli import (
     key_values_parser,
@@ -3535,6 +3540,58 @@ class ConfigsCommand(CLICommand):
             return CLISource.single(lambda: stream.just(self.rendered_help(ctx)))
 
 
+class WelcomeCommand(CLICommand, InternalPart):
+    """
+    ```shell
+    welcome
+    ```
+    Show a welcome message to the user.
+    """
+
+    with open(os.path.dirname(__file__) + "/../static/ck-unicode-truecolor.ans", "r", encoding="utf-8") as ckf:
+        ck = Text.from_ansi(ckf.read())
+
+    @property
+    def name(self) -> str:
+        return "welcome"
+
+    def info(self) -> str:
+        return "Show a welcome message to the user."
+
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
+        async def welcome() -> str:
+            info = Table.grid(expand=True)
+            info.add_column(justify="center")
+            info.add_row(Text("Resoto", style="bold"))
+            info.add_row(Text(f"Version: {version()}", style="dim"))
+
+            # ck mascot is centered (rendered if color is enabled)
+            center_horizont = (
+                int((ctx.console_renderer.width - 22) / 2)
+                if ctx.console_renderer is not None and ctx.console_renderer.width is not None
+                else 0
+            )
+            center_vertical = (
+                int((ctx.console_renderer.height - 21) / 2)
+                if ctx.console_renderer is not None and ctx.console_renderer.height is not None
+                else 0
+            )
+
+            grid = Table.grid(expand=True)
+            grid.add_column()
+            grid.add_row(Padding("", pad=(center_vertical, 0, 0, 0)))
+            grid.add_row(Padding(WelcomeCommand.ck if ctx.supports_color() else "", pad=(0, 0, 2, center_horizont)))
+            grid.add_row(info)
+            grid.add_row(Padding("", pad=(center_vertical * 2 // 3, 0, 0, 0)))
+            grid.add_row(Panel("[b]> help[/b] for on-line help\n[b]> help[/b] [i]<cmd>[/i] to get help on a command"))
+            grid.add_row(Padding("", pad=(center_vertical // 3, 0, 0, 0)))
+
+            res = ctx.render_console(grid)
+            return res
+
+        return CLISource.single(lambda: stream.just(welcome()))
+
+
 def all_commands(d: CLIDependencies) -> List[CLICommand]:
     commands = [
         AggregatePart(d),
@@ -3571,6 +3628,7 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         TailCommand(d),
         UniqCommand(d),
         WorkflowsCommand(d),
+        WelcomeCommand(d),
         WriteCommand(d),
     ]
     # commands that are only available when the system is started in debug mode
