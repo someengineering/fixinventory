@@ -7,4 +7,4 @@ tox==3.24.5
 coverage==6.3.2
 setuptools==60.10.0
 pylint==2.12.2
-black==22.1.0
+black==22.3.0
