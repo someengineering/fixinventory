@@ -57,6 +57,8 @@ def main() -> None:
         history = FileHistory(history_file)
         session = PromptSession(history=history)
         log.debug("Starting interactive session")
+        # send the welcome command to the core
+        shell.handle_command("welcome", headers)
 
         while not shutdown_event.is_set():
             try:

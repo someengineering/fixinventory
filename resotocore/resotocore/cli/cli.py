@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 import calendar
 import logging
-import os
 from asyncio import Task
 from contextlib import suppress
 from dataclasses import replace
@@ -18,7 +17,6 @@ from aiostream import stream
 from aiostream.core import Stream
 from parsy import Parser
 from rich.padding import Padding
-from rich.text import Text
 from tzlocal import get_localzone
 
 from resotocore import version
@@ -37,6 +35,7 @@ from resotocore.cli.command import (
     SearchCLIPart,
     ExecuteSearchCommand,
     JobsCommand,
+    WelcomeCommand,
 )
 from resotocore.cli.model import (
     ParsedCommand,
@@ -55,11 +54,7 @@ from resotocore.cli.model import (
 from resotocore.console_renderer import ConsoleRenderer
 from resotocore.error import CLIParseError
 from resotocore.model.typed_model import class_fqn
-from resotocore.parse_util import (
-    make_parser,
-    pipe_p,
-    semicolon_p,
-)
+from resotocore.parse_util import make_parser, pipe_p, semicolon_p
 from resotocore.query.model import (
     Query,
     Navigation,
@@ -111,9 +106,6 @@ class HelpCommand(CLICommand):
 
     Show help text for a command or general help information.
     """
-
-    with open(os.path.dirname(__file__) + "/../static/ck-unicode-truecolor.ans", "r", encoding="utf-8") as log_file:
-        ck = Text.from_ansi(log_file.read())
 
     def __init__(
         self,
@@ -171,7 +163,7 @@ class HelpCommand(CLICommand):
                 if ctx.console_renderer is not None and ctx.console_renderer.width is not None
                 else 0
             )
-            logo = ctx.render_console(Padding(self.ck, pad=(0, 0, 0, middle))) if ctx.supports_color() else ""
+            logo = ctx.render_console(Padding(WelcomeCommand.ck, pad=(0, 0, 0, middle))) if ctx.supports_color() else ""
             return headline + logo + ctx.render_console(result)
 
         def help_command() -> Stream:

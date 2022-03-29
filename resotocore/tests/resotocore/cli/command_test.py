@@ -813,3 +813,10 @@ async def test_discord_alias(cli: CLI, echo_http_server: Tuple[int, List[Tuple[R
         "content": "🔥🔥🔥 Resoto found stuff! 🔥🔥🔥",
         "embeds": [{"title": "test", "fields": [{"name": "bla", "value": "yes or no"} for _ in range(0, 25)]}],
     }
+
+
+@pytest.mark.asyncio
+async def test_welcome(cli: CLI) -> None:
+    ctx = CLIContext(console_renderer=ConsoleRenderer.default_renderer())
+    result = await cli.execute_cli_command(f"welcome", stream.list, ctx)
+    assert "Resoto" in result[0][0]
