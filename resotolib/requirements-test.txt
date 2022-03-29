@@ -3,10 +3,9 @@ flake8==4.0.1
 pep8-naming==0.12.1
 tox==3.24.5
 coverage==6.3.2
-setuptools==60.10.0
-pylint==2.12.2
+setuptools==61.2.0
+pylint==2.13.3
 black==22.3.0
 pytest==7.1.1
 pytest-cov==3.0.0
 pytest-runner==6.0.0
-click==8.0.1
