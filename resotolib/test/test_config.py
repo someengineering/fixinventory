@@ -24,6 +24,8 @@ def test_config():
     assert cfg.configtest.testvar2 == 12346
     with pytest.raises(ConfigNotFoundError):
         Config.does_not_exist.foo = "bar"
+    with pytest.raises(ConfigNotFoundError):
+        cfg.does_not_exist.foo = "bar"
 
 
 @dataclass
