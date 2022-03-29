@@ -2230,7 +2230,7 @@ class JobsCommand(CLICommand, PreserveOutputFormat):
     Job early_hi added.
 
     # wait for message of type collect_done and print a message
-    > jobs add --id wait_for_collect_done collect_done: echo hello world
+    > jobs add --id wait_for_collect_done --wait-for-event collect_done echo hello world
     Job wait_for_collect_done added.
 
     # run the job directly without waiting for a trigger
