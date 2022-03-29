@@ -83,8 +83,10 @@ class CertificateHandler:
         args = self.config.args
         if args.no_tls:
             log.info("TLS disabled.")
+            return None
         else:
-            ctx = create_default_context(purpose=Purpose.CLIENT_AUTH)  # type: ignore
+            # noinspection PyTypeChecker
+            ctx = create_default_context(purpose=Purpose.CLIENT_AUTH)
             if self.config.args.tls_cert:
                 log.info("Using TLS certificate from command line.")
                 # Use the certificate provided via cmd line flags
