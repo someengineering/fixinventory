@@ -157,6 +157,8 @@ class Config(metaclass=MetaConfig):
                     )
                     continue
                 target_type = Config.running_config.types[config_id][config_attr]
+                if target_type in (list, tuple, set):
+                    config_value = target_type(config_value.split(","))
                 config_value = convert(config_value, target_type)
                 log.debug(
                     f"Overriding attr {config_attr} of {config_id} with value of type {target_type}"
