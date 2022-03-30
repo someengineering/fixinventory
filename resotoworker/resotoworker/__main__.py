@@ -14,6 +14,7 @@ from resotolib.web.metrics import WebApp
 from resotolib.utils import log_stats, increase_limits
 from resotolib.args import ArgumentParser
 from resotolib.core import add_args as core_add_args, resotocore
+from resotolib.core.ca import TLSData
 from resotolib.core.actions import CoreActions
 from resotolib.core.tasks import CoreTasks
 from resotoworker.pluginloader import PluginLoader
@@ -61,8 +62,15 @@ def main() -> None:
     # added their args to the arg parser
     arg_parser.parse_args()
 
+    tls_data = None
+    if resotocore.is_secure:
+        tls_data = TLSData(
+            common_name=ArgumentParser.args.subscriber_id,
+            resotocore_uri=resotocore.http_uri,
+        )
+        tls_data.load_from_core()
     config = Config(
-        ArgumentParser.args.subscriber_id, resotocore_uri=resotocore.http_uri
+        ArgumentParser.args.subscriber_id, resotocore_uri=resotocore.http_uri, tls_data=tls_data
     )
     add_config(config)
     plugin_loader.add_plugin_config(config)
@@ -75,10 +83,14 @@ def main() -> None:
     # Try to increase nofile and nproc limits
     increase_limits()
 
+    web_server_args = {}
+    if tls_data:
+        web_server_args = {"ssl_cert": tls_data.cert_path, "ssl_key": tls_data.key_path}
     web_server = WebServer(
         WebApp(mountpoint=Config.resotoworker.web_path),
         web_host=Config.resotoworker.web_host,
         web_port=Config.resotoworker.web_port,
+        **web_server_args,
     )
     web_server.daemon = True
     web_server.start()
@@ -98,6 +110,7 @@ def main() -> None:
             },
         },
         message_processor=partial(core_actions_processor, plugin_loader),
+        tls_data=tls_data
     )
 
     task_queue_filter = {}
@@ -109,6 +122,7 @@ def main() -> None:
         tasks=["tag"],
         task_queue_filter=task_queue_filter,
         message_processor=core_tag_tasks_processor,
+        tls_data=tls_data,
     )
     core_actions.start()
     core_tasks.start()

@@ -3,7 +3,6 @@ import warnings
 from contextlib import suppress
 
 import certifi
-import logging
 
 import requests
 from ssl import create_default_context, SSLContext
@@ -20,6 +19,8 @@ from resotolib.x509 import (
     load_cert_from_file,
     write_cert_to_file,
     write_key_to_file,
+    key_to_bytes,
+    load_key_from_bytes,
 )
 from resotolib.jwt import decode_jwt_from_headers, encode_jwt_to_headers
 from cryptography.x509.base import Certificate
@@ -146,6 +147,37 @@ class TLSData:
         self.__key_path = f"{self.__tempdir.name}/cert.key"
         self.__loaded = Event()
         self.__lock = Lock()
+
+    def __getstate__(self):
+        d = self.__dict__.copy()
+        del d["_TLSData__lock"]
+        del d["_TLSData__loaded"]
+        del d["_TLSData__ca_cert"]
+        del d["_TLSData__cert"]
+        del d["_TLSData__key"]
+        d["__is_loaded"] = self.__loaded.is_set()
+        if self.__loaded.is_set():
+            d["__ca_cert_bytes"] = cert_to_bytes(self.__ca_cert)
+            d["__cert_bytes"] = cert_to_bytes(self.__cert)
+            d["__key_bytes"] = key_to_bytes(self.__key)
+        return d
+
+    def __setstate__(self, d):
+        d["_TLSData__lock"] = Lock()
+        d["_TLSData__loaded"] = Event()
+        d["_TLSData__ca_cert"] = None
+        d["_TLSData__cert"] = None
+        d["_TLSData__key"] = None
+        if d["__is_loaded"]:
+            d["_TLSData__loaded"].set()
+            d["_TLSData__ca_cert"] = load_cert_from_bytes(d["__ca_cert_bytes"])
+            d["_TLSData__cert"] = load_cert_from_bytes(d["__cert_bytes"])
+            d["_TLSData__key"] = load_key_from_bytes(d["__key_bytes"])
+            del d["__ca_cert_bytes"]
+            del d["__cert_bytes"]
+            del d["__key_bytes"]
+        del d["__is_loaded"]
+        self.__dict__.update(d)
 
     def load_from_core(self) -> None:
         with self.__lock:
