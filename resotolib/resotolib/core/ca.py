@@ -97,11 +97,13 @@ class TLSData:
         resotocore_uri: str = None,
         psk: str = None,
         ca_only: bool = False,
+        renew_before: timedelta = timedelta(days=1),
     ) -> None:
         self.common_name = common_name
         self.san_dns_names = san_dns_names
         self.san_ip_addresses = san_ip_addresses
         self.__ca_only = ca_only
+        self.renew_before = renew_before
         self.__tempdir = TemporaryDirectory(prefix="resoto-cert-", dir=tempdir)
         if resotocore_uri is None:
             resotocore_uri = resotocore.http_uri
@@ -163,9 +165,10 @@ class TLSData:
         while not self.__exit.is_set():
             if self.__loaded.is_set():
                 for cert in (self.__ca_cert, self.__cert):
-                    if isinstance(
-                        cert, Certificate
-                    ) and cert.not_valid_after < datetime.utcnow() - timedelta(days=1):
+                    if (
+                        isinstance(cert, Certificate)
+                        and cert.not_valid_after < datetime.utcnow() - self.renew_before
+                    ):
                         self.reload()
                         break
             time.sleep(5)
