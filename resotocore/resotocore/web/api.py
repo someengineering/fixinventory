@@ -343,7 +343,11 @@ class Api:
 
     async def certificate(self, _: Request) -> StreamResponse:
         cert, fingerprint = self.cert_handler.authority_certificate
-        headers = {"SHA256-Fingerprint": fingerprint}
+
+        headers = {
+            "SHA256-Fingerprint": fingerprint,
+            "Content-Disposition": 'attachment, filename="resoto_root_ca.pem"',
+        }
         if self.config.api.psk:
             headers["Authorization"] = "Bearer " + encode_jwt({"sha256_fingerprint": fingerprint}, self.config.api.psk)
         return HTTPOk(headers=headers, body=cert, content_type="application/x-pem-file")
