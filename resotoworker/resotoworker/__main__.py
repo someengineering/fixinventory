@@ -53,6 +53,7 @@ def main() -> None:
     logging_add_args(arg_parser)
     core_add_args(arg_parser)
     Config.add_args(arg_parser)
+    TLSData.add_args(arg_parser)
 
     # Find resoto Plugins in the resoto.plugins module
     plugin_loader = PluginLoader()

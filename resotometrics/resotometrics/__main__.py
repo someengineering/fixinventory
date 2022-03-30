@@ -50,6 +50,7 @@ def main() -> None:
     resotocore_add_args(arg_parser)
     logging_add_args(arg_parser)
     jwt_add_args(arg_parser)
+    TLSData.add_args(arg_parser)
     arg_parser.parse_args()
 
     tls_data = None

@@ -202,9 +202,9 @@ class TLSData:
                 cert_key_pass = None
                 if getattr(ArgumentParser.args, "cert_key_pass", None) is not None:
                     cert_key_pass = ArgumentParser.args.cert_key_pass
-                log.debug(f"Loading key from {ArgumentParser.args.key}")
+                log.debug(f"Loading key from {ArgumentParser.args.cert_key}")
                 self.__key = load_key_from_file(
-                    ArgumentParser.args.key, passphrase=cert_key_pass
+                    ArgumentParser.args.cert_key, passphrase=cert_key_pass
                 )
             else:
                 log.debug("Requesting signed cert from core")
@@ -308,7 +308,6 @@ class TLSData:
             "--no-verify-certs",
             help="Turn off certificate verification",
             default=True,
-            type=bool,
             dest="verify_certs",
             action="store_false",
         )
