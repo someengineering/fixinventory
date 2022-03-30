@@ -80,3 +80,9 @@ def test_fulltext_index_query(foo_model: Model, graph_db: GraphDB) -> None:
         "ANALYZER((((PHRASE(ft.flat, @b0)) and (PHRASE(ft.flat, @b1))) or "
         "(PHRASE(ft.flat, @b2))) and (PHRASE(ft.flat, @b3)), 'delimited')"
     ) in query_string('"a" and "b" or "c" and "d"')
+
+
+def test_ancestors_kind_lookup(foo_model: Model, graph_db: GraphDB) -> None:
+    # 1234 is coerced to a string
+    query = "ancestors.account.reported.name==1234"
+    assert to_query(graph_db, QueryModel(parse_query(query), foo_model))[1] == {"b0": "1234"}

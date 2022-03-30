@@ -50,6 +50,12 @@ unset_props = json.dumps(["flat"])
 fulltext_delimiter = [" ", "_", "-", "@", ":", "/", "."]
 fulltext_delimiter_regexp = re.compile("[" + "".join(re.escape(a) for a in fulltext_delimiter) + "]+")
 
+# All resolved ancestors attributes have to be treated explicitly.
+# Queries with /ancestors.kind.xxx have to be treated as merge query parameters.
+ancestor_merges = {
+    f"ancestors.{p.to_path[1]}" for r in GraphResolver.to_resolve for p in r.resolve if p.to_path[0] == "ancestors"
+}
+
 
 def to_query(db: Any, query_model: QueryModel, with_edges: bool = False) -> Tuple[str, Json]:
     count: Dict[str, int] = defaultdict(lambda: 0)
@@ -72,7 +78,8 @@ def query_string(
     # Note: the parts are maintained in reverse order
     query_parts = query.parts[::-1]
     model = query_model.model
-    merge_names: Set[str] = query_model.query.merge_names
+    # combine merge names from the query as well as the default ancestor merge names
+    merge_names: Set[str] = query_model.query.merge_names | ancestor_merges
     mw = query.preamble.get("merge_with_ancestors")
     merge_with: List[str] = re.split("\\s*,\\s*", str(mw)) if mw else []
 
