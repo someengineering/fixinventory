@@ -70,6 +70,7 @@ class Config(metaclass=MetaConfig):
             resotocore.ws_uri,
             events={"config-updated"},
             message_processor=self.on_config_event,
+            tls_data=tls_data,
         )
 
     def __getattr__(self, name):

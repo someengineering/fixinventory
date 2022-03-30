@@ -104,10 +104,8 @@ def update_config_model(
     psk: str = None,
     verify: Optional[str] = None,
 ) -> bool:
-    resotocore_uri, psk, headers = default_args(resotocore_uri, psk)
-    headers = {
-        "Content-Type": "application/json",
-    }
+    headers = {"Content-Type": "application/json"}
+    resotocore_uri, psk, headers = default_args(resotocore_uri, psk, headers=headers)
     model_uri = f"{resotocore_uri}/configs/model"
     model_json = json.dumps(model, indent=4)
 
