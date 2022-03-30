@@ -4,27 +4,26 @@ import os
 import threading
 import resotolib.signal
 from typing import List, Dict
+from .config import add_config
+from resotolib.config import Config
 from resotolib.logging import log, setup_logger, add_args as logging_add_args
-from resotolib.graph import add_args as graph_add_args
 from resotolib.jwt import add_args as jwt_add_args
-from resotolib.pluginloader import PluginLoader
 from resotolib.baseplugin import BaseCollectorPlugin, PluginType
 from resotolib.web import WebServer
 from resotolib.web.metrics import WebApp
 from resotolib.utils import log_stats, increase_limits
 from resotolib.args import ArgumentParser
-from resotolib.core import add_args as core_add_args
+from resotolib.core import add_args as core_add_args, resotocore
 from resotolib.core.actions import CoreActions
 from resotolib.core.tasks import CoreTasks
-from resotoworker.collect import collect_and_send, add_args as collect_add_args
-from resotoworker.cleanup import cleanup, add_args as cleanup_add_args
-from resotoworker.resotocore import add_args as resotocore_add_args
+from resotoworker.pluginloader import PluginLoader
+from resotoworker.collect import collect_and_send
+from resotoworker.cleanup import cleanup
 from resotoworker.tag import core_tag_tasks_processor
 from resotolib.event import (
     add_event_listener,
     Event,
     EventType,
-    add_args as event_add_args,
 )
 
 
@@ -44,36 +43,15 @@ def main() -> None:
 
     resotolib.signal.parent_pid = os.getpid()
 
-    # Add cli args
-    # The following double parsing of cli args is done so that when
-    # a user specifies e.g. `--collector aws --help`  they would
-    # no longer be shown cli args for other collectors like gcp.
-    collector_arg_parser = ArgumentParser(
-        description="resoto worker",
-        env_args_prefix="RESOTOWORKER_",
-        add_help=False,
-        add_machine_help=False,
-    )
-    PluginLoader.add_args(collector_arg_parser)
-    (args, _) = collector_arg_parser.parse_known_args()
-    ArgumentParser.args = args
-
     arg_parser = ArgumentParser(
         description="resoto worker",
         env_args_prefix="RESOTOWORKER_",
     )
+    add_args(arg_parser)
     jwt_add_args(arg_parser)
     logging_add_args(arg_parser)
-    graph_add_args(arg_parser)
-    collect_add_args(arg_parser)
-    cleanup_add_args(arg_parser)
     core_add_args(arg_parser)
-    resotocore_add_args(arg_parser)
-    CoreActions.add_args(arg_parser)
-    WebApp.add_args(arg_parser)
-    PluginLoader.add_args(arg_parser)
-    event_add_args(arg_parser)
-    add_args(arg_parser)
+    Config.add_args(arg_parser)
 
     # Find resoto Plugins in the resoto.plugins module
     plugin_loader = PluginLoader()
@@ -83,6 +61,13 @@ def main() -> None:
     # added their args to the arg parser
     arg_parser.parse_args()
 
+    config = Config(
+        ArgumentParser.args.subscriber_id, resotocore_uri=resotocore.http_uri
+    )
+    add_config(config)
+    plugin_loader.add_plugin_config(config)
+    config.load_config()
+
     # Handle Ctrl+c and other means of termination/shutdown
     resotolib.signal.initializer()
     add_event_listener(EventType.SHUTDOWN, shutdown, blocking=False)
@@ -90,35 +75,37 @@ def main() -> None:
     # Try to increase nofile and nproc limits
     increase_limits()
 
-    web_server = WebServer(WebApp())
+    web_server = WebServer(
+        WebApp(mountpoint=Config.resotoworker.web_path),
+        web_host=Config.resotoworker.web_host,
+        web_port=Config.resotoworker.web_port,
+    )
     web_server.daemon = True
     web_server.start()
 
     core_actions = CoreActions(
-        identifier=f"{ArgumentParser.args.resotocore_subscriber_id}-collect_cleanup",
-        resotocore_uri=ArgumentParser.args.resotocore_uri,
-        resotocore_ws_uri=ArgumentParser.args.resotocore_ws_uri,
+        identifier=f"{ArgumentParser.args.subscriber_id}-collector",
+        resotocore_uri=resotocore.http_uri,
+        resotocore_ws_uri=resotocore.ws_uri,
         actions={
             "collect": {
-                "timeout": ArgumentParser.args.timeout,
+                "timeout": Config.resotoworker.timeout,
                 "wait_for_completion": True,
             },
             "cleanup": {
-                "timeout": ArgumentParser.args.timeout,
+                "timeout": Config.resotoworker.timeout,
                 "wait_for_completion": True,
             },
         },
-        message_processor=partial(
-            core_actions_processor, plugin_loader.plugins(PluginType.COLLECTOR)
-        ),
+        message_processor=partial(core_actions_processor, plugin_loader),
     )
 
     task_queue_filter = {}
-    if ArgumentParser.args.collector and len(ArgumentParser.args.collector) > 0:
-        task_queue_filter = {"cloud": list(ArgumentParser.args.collector)}
+    if len(Config.resotoworker.collector) > 0:
+        task_queue_filter = {"cloud": list(Config.resotoworker.collector)}
     core_tasks = CoreTasks(
-        identifier="workerd-tasks",
-        resotocore_ws_uri=ArgumentParser.args.resotocore_ws_uri,
+        identifier=f"{ArgumentParser.args.subscriber_id}-tagger",
+        resotocore_ws_uri=resotocore.ws_uri,
         tasks=["tag"],
         task_queue_filter=task_queue_filter,
         message_processor=core_tag_tasks_processor,
@@ -144,9 +131,8 @@ def main() -> None:
     os._exit(0)
 
 
-def core_actions_processor(
-    collectors: List[BaseCollectorPlugin], message: Dict
-) -> None:
+def core_actions_processor(plugin_loader: PluginLoader, message: Dict) -> None:
+    collectors: List[BaseCollectorPlugin] = plugin_loader.plugins(PluginType.COLLECTOR)
     if not isinstance(message, dict):
         log.error(f"Invalid message: {message}")
         return
@@ -182,30 +168,6 @@ def core_actions_processor(
         return reply_message
 
 
-def add_args(arg_parser: ArgumentParser) -> None:
-    arg_parser.add_argument(
-        "--timeout",
-        help="Collection/cleanup Timeout in seconds (default: 10800)",
-        default=10800,
-        dest="timeout",
-        type=int,
-    )
-    arg_parser.add_argument(
-        "--web-port",
-        help="Web Port (default 9955)",
-        default=9956,
-        dest="web_port",
-        type=int,
-    )
-    arg_parser.add_argument(
-        "--web-host",
-        help="IP to bind to (default: ::)",
-        default="::",
-        dest="web_host",
-        type=str,
-    )
-
-
 def shutdown(event: Event) -> None:
     reason = event.data.get("reason")
     emergency = event.data.get("emergency")
@@ -238,6 +200,16 @@ def force_shutdown(delay: int = 10) -> None:
         )
     )
     os._exit(0)
+
+
+def add_args(arg_parser: ArgumentParser) -> None:
+    arg_parser.add_argument(
+        "--subscriber-id",
+        help="Unique subscriber ID (default: resoto.worker)",
+        default="resoto.worker",
+        dest="subscriber_id",
+        type=str,
+    )
 
 
 if __name__ == "__main__":

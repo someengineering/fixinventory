@@ -2,7 +2,6 @@ import os
 import time
 from resotolib.logging import log
 from resotolib.utils import RWLock
-from resotolib.args import ArgumentParser
 from collections import defaultdict
 from threading import Thread, Lock
 from typing import Callable, Iterable
@@ -130,7 +129,7 @@ def add_event_listener(
     event_type: EventType,
     listener: Callable,
     blocking: bool = False,
-    timeout: int = None,
+    timeout: int = 900,
     one_shot: bool = False,
 ) -> bool:
     """Add an Event Listener"""
@@ -140,12 +139,6 @@ def add_event_listener(
             f" {event_type.name}"
         )
         return False
-
-    if timeout is None:
-        if hasattr(ArgumentParser.args, "event_timeout"):
-            timeout = ArgumentParser.args.event_timeout
-        else:
-            timeout = 900
 
     log.debug(
         f"Registering {listener} with event {event_type.name}"
@@ -185,13 +178,3 @@ def list_event_listeners() -> Iterable:
                     f"blocking: {listener_data['blocking']}, "
                     f"one-shot: {listener_data['one-shot']}"
                 )
-
-
-def add_args(arg_parser: ArgumentParser) -> None:
-    arg_parser.add_argument(
-        "--event-timeout",
-        help="Event Listener Timeout in seconds (default 900)",
-        default=900,
-        dest="event_timeout",
-        type=int,
-    )

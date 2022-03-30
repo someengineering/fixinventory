@@ -5,6 +5,7 @@ from typing import ClassVar, Dict, List, Optional
 from resotolib.baseplugin import BaseCollectorPlugin
 from resotolib.graph import Graph, EdgeType
 from resotolib.args import ArgumentParser
+from resotolib.config import Config
 from resotolib.baseresources import (
     BaseAccount,
     BaseRegion,
@@ -102,14 +103,44 @@ class ExampleCollectorPlugin(BaseCollectorPlugin):
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:
-        arg_parser.add_argument(
-            "--example-region",
-            help="Example Region",
-            dest="example_region",
-            type=str,
-            default=None,
-            nargs="+",
-        )
+        """Example of how to use the ArgumentParser
+
+        Can be accessed via ArgumentParser.args.example_arg
+        Note: almost all plugin config should be done via add_config()
+        so it can be changed centrally and at runtime.
+        """
+        #        arg_parser.add_argument(
+        #            "--example-arg",
+        #            help="Example Argument",
+        #            dest="example_arg",
+        #            type=str,
+        #            default=None,
+        #            nargs="+",
+        #        )
+        pass
+
+    @staticmethod
+    def add_config(config: Config) -> None:
+        """Add any plugin config to the global config store.
+
+        Method called by the PluginLoader upon plugin initialization.
+        Can be used to introduce plugin config arguments to the global config store.
+        """
+        #        config.add_config(ExampleConfig)
+        pass
+
+
+@dataclass
+class ExampleConfig:
+    """Example of how to use the resotocore config service
+
+    Can be accessed via Config.example.region
+    """
+
+    kind: ClassVar[str] = "example"
+    region: Optional[List[str]] = field(
+        default=None, metadata={"description": "Example Region"}
+    )
 
 
 @dataclass(eq=False)

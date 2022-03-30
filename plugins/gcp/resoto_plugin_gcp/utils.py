@@ -2,7 +2,7 @@ import json
 import os
 import socket
 from resotolib.baseresources import BaseResource
-from resotolib.args import ArgumentParser
+from resotolib.config import Config
 from resotolib.graph import Graph
 from resotolib.utils import RWLock
 import resotolib.logging
@@ -50,7 +50,7 @@ class Credentials:
     def load():
         with Credentials._lock.write_access:
             if not Credentials._initialized:
-                for sa_data in ArgumentParser.args.gcp_service_account:
+                for sa_data in Config.gcp.service_account:
                     credentials = load_credentials(sa_data)
                     for project in list_credential_projects(credentials):
                         Credentials._credentials[project["id"]] = credentials

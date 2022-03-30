@@ -4,8 +4,8 @@ from pprint import pformat
 from retrying import retry
 from typing import Callable, List, Dict, Type, Union
 from resotolib.baseresources import BaseResource, EdgeType
+from resotolib.config import Config
 from resotolib.graph import Graph
-from resotolib.args import ArgumentParser
 from resotolib.utils import except_log_and_pass
 from prometheus_client import Summary
 from .resources import (
@@ -324,10 +324,10 @@ class GCPProjectCollector:
         """
         self.graph = Graph(root=self.project)
         collectors = set(self.collector_set)
-        if len(ArgumentParser.args.gcp_collect) > 0:
-            collectors = set(ArgumentParser.args.gcp_collect).intersection(collectors)
-        if len(ArgumentParser.args.gcp_no_collect) > 0:
-            collectors = collectors - set(ArgumentParser.args.gcp_no_collect)
+        if len(Config.gcp.collect) > 0:
+            collectors = set(Config.gcp.collect).intersection(collectors)
+        if len(Config.gcp.no_collect) > 0:
+            collectors = collectors - set(Config.gcp.no_collect)
         collectors = collectors.union(set(self.mandatory_collectors.keys()))
 
         log.debug(

@@ -1,5 +1,6 @@
 import requests
-from typing import Dict, Tuple
+import json
+from typing import Dict, Tuple, List
 from resotolib.args import ArgumentParser
 from resotolib.jwt import encode_jwt_to_headers
 from resotolib.logging import log
@@ -19,11 +20,11 @@ def default_args(
     return resotocore_uri, psk, headers
 
 
-class ConfigNotFoundError(Exception):
+class ConfigNotFoundError(AttributeError):
     pass
 
 
-def get_configs(resotocore_uri: str = None, psk: str = None) -> Dict:
+def get_configs(resotocore_uri: str = None, psk: str = None) -> List:
     resotocore_uri, psk, headers = default_args(resotocore_uri, psk)
 
     log.debug("Getting configs")
@@ -33,13 +34,16 @@ def get_configs(resotocore_uri: str = None, psk: str = None) -> Dict:
     raise RuntimeError(f"Error getting configs: {r.content.decode('utf-8')}")
 
 
-def get_config(config_id: str, resotocore_uri: str = None, psk: str = None) -> Dict:
+def get_config(
+    config_id: str, resotocore_uri: str = None, psk: str = None
+) -> Tuple[Dict, str]:
     resotocore_uri, psk, headers = default_args(resotocore_uri, psk)
 
     log.debug(f"Getting config {config_id}")
     r = requests.get(f"{resotocore_uri}/config/{config_id}", headers=headers)
     if r.status_code == 200:
-        return r.json()
+        revision = r.headers.get("Resoto-Config-Revision", "unknown")
+        return r.json(), revision
     elif r.status_code == 404:
         raise ConfigNotFoundError(f"Config {config_id} does not exist")
     raise RuntimeError(f"Error getting config {config_id}: {r.content.decode('utf-8')}")
@@ -47,7 +51,7 @@ def get_config(config_id: str, resotocore_uri: str = None, psk: str = None) -> D
 
 def set_config(
     config_id: str, config: Dict, resotocore_uri: str = None, psk: str = None
-) -> bool:
+) -> str:
     resotocore_uri, psk, headers = default_args(resotocore_uri, psk)
 
     log.debug(f"Storing config {config_id}")
@@ -55,7 +59,8 @@ def set_config(
         f"{resotocore_uri}/config/{config_id}", json=config, headers=headers
     )
     if r.status_code == 200:
-        return True
+        revision = r.headers.get("Resoto-Config-Revision", "unknown")
+        return revision
     raise RuntimeError(f"Error storing config {config_id}: {r.content.decode('utf-8')}")
 
 
@@ -69,3 +74,20 @@ def delete_config(config_id: str, resotocore_uri: str = None, psk: str = None) -
     raise RuntimeError(
         f"Error deleting config {config_id}: {r.content.decode('utf-8')}"
     )
+
+
+def update_config_model(
+    model: List, resotocore_uri: str = None, psk: str = None
+) -> bool:
+    resotocore_uri, psk, headers = default_args(resotocore_uri, psk)
+    headers = {
+        "Content-Type": "application/json",
+    }
+    model_uri = f"{resotocore_uri}/configs/model"
+    model_json = json.dumps(model, indent=4)
+
+    log.debug("Updating config model")
+    r = requests.patch(model_uri, data=model_json, headers=headers)
+    if r.status_code != 200:
+        log.error(r.content)
+        raise RuntimeError(f"Failed to update model: {r.content}")

@@ -1,7 +1,8 @@
+from copy import deepcopy
 from resotolib.logging import log
-import yaml
 from resotolib.baseplugin import BaseActionPlugin
-from resotolib.args import ArgumentParser
+from resotolib.config import Config
+from .config import TagValidatorConfig
 from resotolib.core.query import CoreGraph
 from resotolib.utils import parse_delta, delta_to_str
 from typing import Dict
@@ -12,18 +13,15 @@ class TagValidatorPlugin(BaseActionPlugin):
 
     def __init__(self):
         super().__init__()
-        if ArgumentParser.args.tagvalidator_config:
-            self.config = TagValidatorConfig(
-                config_file=ArgumentParser.args.tagvalidator_config
-            )
-            self.config.read()
+        self.config = None
 
     def bootstrap(self) -> bool:
-        return ArgumentParser.args.tagvalidator_config is not None
+        return Config.plugin_tagvalidator.enabled
 
     def do_action(self, data: Dict) -> None:
         log.info("Tag Validator called")
-        self.config.read()
+        Config.plugin_tagvalidator.validate(Config.plugin_tagvalidator)
+        self.config = deepcopy(Config.plugin_tagvalidator.config)
 
         cg = CoreGraph()
 
@@ -87,77 +85,12 @@ class TagValidatorPlugin(BaseActionPlugin):
                 )
         cg.patch_nodes(graph)
         for command in commands:
-            if ArgumentParser.args.tagvalidator_dry_run:
+            if Config.plugin_tagvalidator.dry_run:
                 log.debug(f"Tag validator dry run - not executing: {command}")
                 continue
             for response in cg.execute(command):
                 log.debug(f"Response: {response}")
 
     @staticmethod
-    def add_args(arg_parser: ArgumentParser) -> None:
-        arg_parser.add_argument(
-            "--tagvalidator-config",
-            help="Path to Tag Validator Config",
-            default=None,
-            dest="tagvalidator_config",
-        )
-        arg_parser.add_argument(
-            "--tagvalidator-dry-run",
-            help="Tag Validator Dry Run",
-            dest="tagvalidator_dry_run",
-            action="store_true",
-            default=False,
-        )
-
-
-class TagValidatorConfig(dict):
-    def __init__(self, *args, config_file: str = None, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self.config_file = config_file
-
-    def read(self) -> bool:
-        if not self.config_file:
-            log.error(
-                "Attribute config_file is not set on TagValidatorConfig() instance"
-            )
-            return False
-
-        with open(self.config_file) as config_file:
-            config = yaml.load(config_file, Loader=yaml.FullLoader)
-        if self.validate(config):
-            self.update(config)
-        return True
-
-    @staticmethod
-    def validate(config) -> bool:
-        required_sections = ["kinds", "accounts"]
-        for section in required_sections:
-            if section not in config:
-                raise ValueError(f"Section '{section}' not found in config")
-
-        if not isinstance(config["kinds"], list) or len(config["kinds"]) == 0:
-            raise ValueError("Error in 'kinds' section")
-
-        if not isinstance(config["accounts"], dict) or len(config["accounts"]) == 0:
-            raise ValueError("Error in 'accounts' section")
-
-        default_expiration = config.get("default", {}).get("expiration")
-        if default_expiration is not None:
-            default_expiration = parse_delta(default_expiration)
-
-        for cloud_id, account in config["accounts"].items():
-            for account_id, account_data in account.items():
-                if "name" not in account_data:
-                    raise ValueError(
-                        f"Missing 'name' for account '{cloud_id}/{account_id}"
-                    )
-                if "expiration" in account_data:
-                    account_data["expiration"] = parse_delta(account_data["expiration"])
-                else:
-                    if default_expiration is None:
-                        raise ValueError(
-                            f"Missing 'expiration' for account '{cloud_id}/{account_id}'"
-                            "and no default expiration defined"
-                        )
-                    account_data["expiration"] = default_expiration
-        return True
+    def add_config(config: Config) -> None:
+        config.add_config(TagValidatorConfig)

@@ -1,12 +1,11 @@
 import os
 import cherrypy
 from prometheus_client.exposition import generate_latest, CONTENT_TYPE_LATEST
-from resotolib.args import ArgumentParser
 
 
 class WebApp:
-    def __init__(self) -> None:
-        self.mountpoint = ArgumentParser.args.web_path
+    def __init__(self, mountpoint: str = "/") -> None:
+        self.mountpoint = mountpoint
         local_path = os.path.abspath(os.path.dirname(__file__))
         config = {
             "tools.gzip.on": True,
@@ -29,13 +28,3 @@ class WebApp:
     def metrics(self):
         cherrypy.response.headers["Content-Type"] = CONTENT_TYPE_LATEST
         return generate_latest()
-
-    @staticmethod
-    def add_args(arg_parser: ArgumentParser) -> None:
-        arg_parser.add_argument(
-            "--web-path",
-            help="Web root in browser (default: /)",
-            default="/",
-            dest="web_path",
-            type=str,
-        )

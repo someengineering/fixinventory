@@ -1,6 +1,6 @@
 import resotolib.logging
 from resotolib.graph import Graph
-from resotolib.args import ArgumentParser
+from resotolib.config import Config
 
 from kubernetes import client
 from .resources.cluster import KubernetesCluster
@@ -45,10 +45,10 @@ class KubernetesCollector:
         Resource collectors add their resources to the local `self.graph` graph.
         """
         collectors = set(all_collectors.keys())
-        if len(ArgumentParser.args.k8s_collect) > 0:
-            collectors = set(ArgumentParser.args.k8s_collect).intersection(collectors)
-        if len(ArgumentParser.args.k8s_no_collect) > 0:
-            collectors = collectors - set(ArgumentParser.args.k8s_no_collect)
+        if len(Config.k8s.collect) > 0:
+            collectors = set(Config.k8s.collect).intersection(collectors)
+        if len(Config.k8s.no_collect) > 0:
+            collectors = collectors - set(Config.k8s.no_collect)
         collectors = collectors.union(set(mandatory_collectors.keys()))
 
         log.debug(

@@ -1,9 +1,11 @@
-import os
 import sys
 import time
+import resotolib.signal
 from resotolib.logging import log, setup_logger, add_args as logging_add_args
 from resotolib.jwt import add_args as jwt_add_args
-from resotolib.core.config import get_config, set_config, ConfigNotFoundError
+from resotolib.config import Config
+from resotolib.core import add_args as resotocore_add_args, resotocore
+from .config import ResotoMetricsConfig
 from functools import partial
 from resotolib.core.actions import CoreActions
 from resotometrics.metrics import Metrics, GraphCollector
@@ -19,13 +21,6 @@ from prometheus_client import Summary, REGISTRY
 from prometheus_client.core import GaugeMetricFamily, CounterMetricFamily
 from threading import Event
 from resotolib.args import ArgumentParser
-from signal import signal, SIGTERM, SIGINT
-from yaml import load
-
-try:
-    from yaml import CLoader as Loader
-except ImportError:
-    from yaml import Loader
 
 
 shutdown_event = Event()
@@ -44,42 +39,50 @@ def handler(sig, frame) -> None:
 def main() -> None:
     setup_logger("resotometrics")
 
-    signal(SIGINT, handler)
-    signal(SIGTERM, handler)
+    resotolib.signal.initializer()
 
     arg_parser = ArgumentParser(
         description="resoto metrics exporter", env_args_prefix="RESOTOMETRICS_"
     )
     add_args(arg_parser)
+    Config.add_args(arg_parser)
+    resotocore_add_args(arg_parser)
     logging_add_args(arg_parser)
     jwt_add_args(arg_parser)
-    WebServer.add_args(arg_parser)
-    WebApp.add_args(arg_parser)
     arg_parser.parse_args()
+
+    config = Config(
+        ArgumentParser.args.subscriber_id, resotocore_uri=resotocore.http_uri
+    )
+    config.add_config(ResotoMetricsConfig)
+    config.load_config()
 
     metrics = Metrics()
     graph_collector = GraphCollector(metrics)
     REGISTRY.register(graph_collector)
 
-    base_uri = ArgumentParser.args.resotocore_uri.strip("/")
-    resotocore_graph = ArgumentParser.args.resotocore_graph
-    graph_uri = f"{base_uri}/graph/{resotocore_graph}"
+    resotocore_graph = Config.resotometrics.graph
+    graph_uri = f"{resotocore.http_uri}/graph/{resotocore_graph}"
     query_uri = f"{graph_uri}/query/aggregate?section=reported"
 
     message_processor = partial(core_actions_processor, metrics, query_uri)
     core_actions = CoreActions(
-        identifier="resotometrics",
-        resotocore_uri=ArgumentParser.args.resotocore_uri,
-        resotocore_ws_uri=ArgumentParser.args.resotocore_ws_uri,
+        identifier=ArgumentParser.args.subscriber_id,
+        resotocore_uri=resotocore.http_uri,
+        resotocore_ws_uri=resotocore.ws_uri,
         actions={
             "generate_metrics": {
-                "timeout": ArgumentParser.args.timeout,
+                "timeout": Config.resotometrics.timeout,
                 "wait_for_completion": True,
             },
         },
         message_processor=message_processor,
     )
-    web_server = WebServer(WebApp())
+    web_server = WebServer(
+        WebApp(mountpoint=Config.resotometrics.web_path),
+        web_host=Config.resotometrics.web_host,
+        web_port=Config.resotometrics.web_port,
+    )
     web_server.daemon = True
     web_server.start()
     core_actions.start()
@@ -120,36 +123,17 @@ def core_actions_processor(metrics: Metrics, query_uri: str, message: dict) -> N
         return reply_message
 
 
-def find_metrics():
-    log.debug("Finding metrics")
-    try:
-        metrics_descriptions = get_config("resotometrics")
-    except ConfigNotFoundError:
-        log.debug("Metrics config not found in resotocore - loading default metrics")
-        local_path = os.path.abspath(os.path.dirname(__file__))
-        default_metrics_file = f"{local_path}/default_metrics.yaml"
-        if not os.path.isfile(default_metrics_file):
-            raise RuntimeError(
-                f"Could not find default metrics file {default_metrics_file}"
-            )
-        with open(default_metrics_file, "r") as f:
-            metrics_descriptions = load(f, Loader=Loader)
-        set_config("resotometrics", metrics_descriptions)
-    return metrics_descriptions
-
-
 @metrics_update_metrics.time()
 def update_metrics(metrics: Metrics, query_uri: str) -> None:
-    metrics_descriptions = find_metrics()
+    metrics_descriptions = Config.resotometrics.metrics
     for _, data in metrics_descriptions.items():
         if shutdown_event.is_set():
             return
+        metrics_search = data.search
+        metric_type = data.type
+        metric_help = data.help
 
-        metrics_query = data.get("query")
-        metric_type = data.get("type")
-        metric_help = data.get("help", "")
-
-        if metrics_query is None:
+        if metrics_search is None:
             continue
 
         if metric_type not in ("gauge", "counter"):
@@ -157,7 +141,7 @@ def update_metrics(metrics: Metrics, query_uri: str) -> None:
             continue
 
         try:
-            for result in query(metrics_query, query_uri):
+            for result in query(metrics_search, query_uri):
                 labels = get_labels_from_result(result)
                 label_values = get_label_values_from_result(result, labels)
 
@@ -193,29 +177,11 @@ def update_metrics(metrics: Metrics, query_uri: str) -> None:
 
 def add_args(arg_parser: ArgumentParser) -> None:
     arg_parser.add_argument(
-        "--resotocore-uri",
-        help="resotocore URI (default: http://localhost:8900)",
-        default="http://localhost:8900",
-        dest="resotocore_uri",
-    )
-    arg_parser.add_argument(
-        "--resotocore-ws-uri",
-        help="resotocore Websocket URI (default: ws://localhost:8900)",
-        default="ws://localhost:8900",
-        dest="resotocore_ws_uri",
-    )
-    arg_parser.add_argument(
-        "--resotocore-graph",
-        help="resotocore graph name (default: resoto)",
-        default="resoto",
-        dest="resotocore_graph",
-    )
-    arg_parser.add_argument(
-        "--timeout",
-        help="Metrics generation timeout in seconds (default: 300)",
-        default=300,
-        dest="timeout",
-        type=int,
+        "--subscriber-id",
+        help="Unique subscriber ID (default: resoto.metrics)",
+        default="resoto.metrics",
+        dest="subscriber_id",
+        type=str,
     )
 
 

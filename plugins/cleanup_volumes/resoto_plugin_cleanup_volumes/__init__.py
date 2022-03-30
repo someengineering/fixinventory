@@ -3,34 +3,41 @@ from resotolib.logging import log
 from resotolib.core.query import CoreGraph
 from resotolib.graph import Graph
 from resotolib.baseresources import BaseVolume
-from resotolib.args import ArgumentParser
+from resotolib.config import Config
 from resotolib.utils import parse_delta
+from .config import CleanupVolumesConfig
 from typing import Dict
 
 
 class CleanupVolumesPlugin(BaseActionPlugin):
     action = "cleanup_plan"
 
+    def __init__(self) -> None:
+        super().__init__()
+        self.age = None
+        if Config.plugin_cleanup_volumes.enabled:
+            self.update_age()
+
     def bootstrap(self) -> bool:
-        if ArgumentParser.args.cleanup_volumes:
-            try:
-                self.age = parse_delta(ArgumentParser.args.cleanup_volumes_age)
-                log.debug(f"Volume Cleanup Plugin Age {self.age}")
-            except ValueError:
-                log.exception(
-                    f"Error while parsing Volume Cleanup Age {ArgumentParser.args.volclean_age}"
-                )
-            else:
-                return True
-        return False
+        return Config.plugin_cleanup_volumes.enabled
 
     def do_action(self, data: Dict) -> None:
+        self.update_age()
         cg = CoreGraph()
-
         query = "is(volume) and reported.volume_status == available <-[0:]->"
         graph = cg.graph(query)
         self.volumes_cleanup(graph)
         cg.patch_nodes(graph)
+
+    def update_age(self) -> None:
+        try:
+            self.age = parse_delta(Config.plugin_cleanup_volumes.min_age)
+            log.debug(f"Volume Cleanup Plugin Age {self.age}")
+        except ValueError:
+            log.error(
+                f"Error while parsing Volume Cleanup Age {Config.plugin_cleanup_volumes.min_age}"
+            )
+            raise
 
     def volumes_cleanup(self, graph: Graph):
         log.info("Volume Cleanup called")
@@ -58,17 +65,5 @@ class CleanupVolumesPlugin(BaseActionPlugin):
                 node.clean = True
 
     @staticmethod
-    def add_args(arg_parser: ArgumentParser) -> None:
-        arg_parser.add_argument(
-            "--cleanup-volumes",
-            help="Cleanup unused Volumes (default: False)",
-            dest="cleanup_volumes",
-            action="store_true",
-            default=False,
-        )
-        arg_parser.add_argument(
-            "--cleanup-volumes-age",
-            help="Cleanup unused Volumes Age (default: 14 days)",
-            default="14 days",
-            dest="cleanup_volumes_age",
-        )
+    def add_config(config: Config) -> None:
+        config.add_config(CleanupVolumesConfig)

@@ -1,5 +1,5 @@
 from resotolib.args import ArgumentParser
-from resotometrics.__main__ import add_args
+from resotolib.core import resotocore, add_args
 
 
 def test_args():
@@ -8,7 +8,5 @@ def test_args():
     )
     add_args(arg_parser)
     arg_parser.parse_args()
-    assert ArgumentParser.args.resotocore_uri == "http://localhost:8900"
-    assert ArgumentParser.args.resotocore_ws_uri == "ws://localhost:8900"
-    assert ArgumentParser.args.resotocore_graph == "resoto"
-    assert ArgumentParser.args.timeout == 300
+    assert resotocore.http_uri == "http://localhost:8900"
+    assert resotocore.ws_uri == "ws://localhost:8900"

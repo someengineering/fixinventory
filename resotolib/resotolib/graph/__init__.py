@@ -1,5 +1,6 @@
 from __future__ import annotations
 import networkx
+from enum import Enum
 from networkx.algorithms.dag import is_directed_acyclic_graph
 from datetime import datetime
 import threading
@@ -369,9 +370,6 @@ class Graph(networkx.MultiDiGraph):
 
     @metrics_graph_resolve_deferred_connections.time()
     def resolve_deferred_connections(self):
-        if getattr(ArgumentParser.args, "ignore_deferred_connections", False):
-            log.debug("Ignoring deferred graph connections")
-            return
         log.debug("Resolving deferred graph connections")
         for node in self.nodes:
             if isinstance(node, BaseResource):
@@ -707,24 +705,6 @@ def set_max_depth(graph: Graph, node: BaseResource, current_depth: int = 0) -> N
         set_max_depth(graph, child_node, current_depth + 1)
 
 
-def add_args(arg_parser: ArgumentParser) -> None:
-    arg_parser.add_argument(
-        "--ignore-deferred-connections",
-        help="Do not try to resolve deferred edges",
-        dest="ignore_deferred_connections",
-        action="store_true",
-        default=False,
-    )
-    arg_parser.add_argument(
-        "--graph-merge-kind",
-        help="Resource kind to merge graph at (default: cloud)",
-        dest="graph_merge_kind",
-        type=str,
-        choices=["cloud", "account"],
-        default="cloud",
-    )
-
-
 def sanitize(graph: Graph, root: GraphRoot = None) -> None:
     log.debug("Sanitizing Graph")
     plugin_roots = {}
@@ -788,8 +768,19 @@ def sanitize(graph: Graph, root: GraphRoot = None) -> None:
     validate_graph_dataclasses_and_nodes(graph)
 
 
+class GraphMergeKind(Enum):
+    cloud = BaseCloud
+    account = BaseAccount
+
+
 class GraphExportIterator:
-    def __init__(self, graph: Graph, delete_tempfile: bool = True, tempdir: str = None):
+    def __init__(
+        self,
+        graph: Graph,
+        delete_tempfile: bool = True,
+        tempdir: str = None,
+        graph_merge_kind: GraphMergeKind = GraphMergeKind.cloud,
+    ):
         self.graph = graph
         ts = datetime.now().strftime("%Y-%m-%d-%H-%M")
         self.tempfile = tempfile.NamedTemporaryFile(
@@ -800,10 +791,11 @@ class GraphExportIterator:
         )
         if not delete_tempfile:
             log.info(f"Writing graph json to file {self.tempfile.name}")
-        self.graph_merge_kind = BaseCloud
-        gmk = getattr(ArgumentParser.args, "graph_merge_kind", "cloud")
-        if gmk == "account":
-            self.graph_merge_kind = BaseAccount
+        if isinstance(graph_merge_kind, GraphMergeKind):
+            self.graph_merge_kind = graph_merge_kind
+        else:
+            log.error(f"Graph merge kind is wrong type {type(graph_merge_kind)}")
+            self.graph_merge_kind = GraphMergeKind.cloud
         self.graph_exported = False
         self.export_lock = threading.Lock()
         self.total_lines = 0
@@ -848,7 +840,7 @@ class GraphExportIterator:
             start_time = time()
             for node in self.graph.nodes:
                 node_dict = node_to_dict(node)
-                if isinstance(node, self.graph_merge_kind):
+                if isinstance(node, self.graph_merge_kind.value):
                     log.debug(f"Replacing sub graph below {node.rtdname}")
                     if "metadata" not in node_dict or not isinstance(
                         node_dict["metadata"], dict

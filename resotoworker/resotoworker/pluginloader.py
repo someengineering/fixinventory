@@ -3,7 +3,8 @@ import inspect
 from resotolib.logging import log
 from typing import List, Optional
 from resotolib.args import ArgumentParser
-from resotolib.baseplugin import BasePlugin, BaseActionPlugin, BaseCliPlugin, PluginType
+from resotolib.config import Config
+from resotolib.baseplugin import BasePlugin, BaseActionPlugin, PluginType
 
 
 plugins = {}
@@ -55,16 +56,9 @@ class PluginLoader:
         if (
             inspect.isclass(plugin)
             and not inspect.isabstract(plugin)
-            and issubclass(plugin, (BasePlugin, BaseActionPlugin, BaseCliPlugin))
+            and issubclass(plugin, (BasePlugin, BaseActionPlugin))
             and plugin.plugin_type in plugins
         ):
-            if plugin.plugin_type == PluginType.COLLECTOR:
-                if (
-                    ArgumentParser.args.collector
-                    and plugin.cloud not in ArgumentParser.args.collector
-                ):
-                    return False
-
             log.debug(f"Found plugin {plugin} ({plugin.plugin_type.name})")
             if plugin not in plugins[plugin.plugin_type]:
                 plugins[plugin.plugin_type].append(plugin)
@@ -74,28 +68,19 @@ class PluginLoader:
         """Returns the list of Plugins of a certain PluginType"""
         if not initialized:
             self.find_plugins()
+        if (
+            plugin_type == PluginType.COLLECTOR
+            and len(Config.resotoworker.collector) > 0
+        ):
+            return [
+                plugin
+                for plugin in plugins.get(plugin_type, [])
+                if plugin.cloud in Config.resotoworker.collector
+            ]
         return plugins.get(plugin_type, [])
 
-    @staticmethod
-    def add_args(arg_parser: ArgumentParser) -> None:
-        """Add args to the arg parser
-
-        This adds the PluginLoader()'s own args.
-        """
-        arg_parser.add_argument(
-            "--collector",
-            help="Collectors to load (default: all)",
-            dest="collector",
-            type=str,
-            default=None,
-            nargs="+",
-        )
-
     def add_plugin_args(self, arg_parser: ArgumentParser) -> None:
-        """Add args to the arg parser
-
-        This adds all the Plugin's args.
-        """
+        """Add args to the arg parser"""
         if not initialized:
             self.find_plugins()
         log.debug("Adding plugin args")
@@ -104,3 +89,12 @@ class PluginLoader:
                 Plugin.add_args(
                     arg_parser
                 )  # add that Plugin's args to the ArgumentParser
+
+    def add_plugin_config(self, config: Config) -> None:
+        """Add plugin config to the config object"""
+        if not initialized:
+            self.find_plugins()
+        log.debug("Adding plugin config")
+        for type_plugins in plugins.values():  # iterate over all PluginTypes
+            for Plugin in type_plugins:  # iterate over each Plugin of each PluginType
+                Plugin.add_config(config)

@@ -28,7 +28,7 @@ time_unit_combines = [",", "and"]
 
 # Check if a string is a valid
 DurationRe = re.compile(
-    "^[+-]?([\\d.]+("
+    "^[+-]?([\\d.]+\\s*("
     + "|".join(chain.from_iterable(names for unit, names, _ in time_units))
     + ")\\s*("
     + "|".join(time_unit_combines)

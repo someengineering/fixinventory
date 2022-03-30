@@ -8,7 +8,7 @@ from datetime import datetime, timezone, timedelta
 from functools import lru_cache
 from threading import Lock
 from collections.abc import Mapping
-from resotolib.args import ArgumentParser
+from resotolib.config import Config
 from resotolib.graph import Graph
 from resotolib.baseresources import EdgeType
 from resotolib.utils import make_valid_timestamp, chunks
@@ -313,10 +313,8 @@ class AWSAccountCollector:
             self.account.name = self.account.account_alias = account_alias
 
         collectors = self.collector_set
-        if len(ArgumentParser.args.aws_collect) > 0:
-            collectors = set(ArgumentParser.args.aws_collect).intersection(
-                self.collector_set
-            )
+        if len(Config.aws.collect) > 0:
+            collectors = set(Config.aws.collect).intersection(self.collector_set)
         log.debug(
             f"Running the following collectors in account {self.account.dname}: {', '.join(collectors)}"
         )
@@ -329,7 +327,7 @@ class AWSAccountCollector:
 
         # Collect regions in parallel after global resources have been collected
         with concurrent.futures.ThreadPoolExecutor(
-            max_workers=ArgumentParser.args.aws_region_pool_size,
+            max_workers=Config.aws.region_pool_size,
             thread_name_prefix=f"aws_{self.account.id}",
         ) as executor:
             futures = {
@@ -366,9 +364,8 @@ class AWSAccountCollector:
         graph = Graph(root=region)
         for collector_name, collector in collectors.items():
             if (
-                len(ArgumentParser.args.aws_collect) > 0
-                and collector_name not in ArgumentParser.args.aws_collect
-            ) or collector_name in ArgumentParser.args.aws_no_collect:
+                len(Config.aws.collect) > 0 and collector_name not in Config.aws.collect
+            ) or collector_name in Config.aws.no_collect:
                 log.debug(
                     f"Not running {collector_name} collector in account {self.account.dname} region {region.name}"
                 )
@@ -532,7 +529,7 @@ class AWSAccountCollector:
             )
         )
         service_quotas = []
-        if "quotas" in ArgumentParser.args.aws_no_collect:
+        if "quotas" in Config.aws.no_collect:
             log.debug(
                 (
                     f"Skipping quotas collection in account {self.account.dname} region {region.id} for "

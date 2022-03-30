@@ -1,14 +1,15 @@
 import threading
 import cherrypy
-from resotolib.args import ArgumentParser
 from resotolib.logging import log
 
 
 class WebServer(threading.Thread):
-    def __init__(self, webapp) -> None:
+    def __init__(self, web_app, web_host: str = "::", web_port: int = 9955) -> None:
         super().__init__()
         self.name = "webserver"
-        self.webapp = webapp
+        self.web_app = web_app
+        self.web_host = web_host
+        self.web_port = web_port
 
     @property
     def serving(self):
@@ -25,22 +26,22 @@ class WebServer(threading.Thread):
 
         # We always mount at / as well as any user configured --web-path
         cherrypy.tree.mount(
-            self.webapp,
+            self.web_app,
             "",
-            self.webapp.config,
+            self.web_app.config,
         )
-        if self.webapp.mountpoint not in ("/", ""):
+        if self.web_app.mountpoint not in ("/", ""):
             cherrypy.tree.mount(
-                self.webapp,
-                self.webapp.mountpoint,
-                self.webapp.config,
+                self.web_app,
+                self.web_app.mountpoint,
+                self.web_app.config,
             )
         cherrypy.config.update(
             {
                 "global": {
                     "engine.autoreload.on": False,
-                    "server.socket_host": ArgumentParser.args.web_host,
-                    "server.socket_port": ArgumentParser.args.web_port,
+                    "server.socket_host": self.web_host,
+                    "server.socket_port": self.web_port,
                     "log.screen": False,
                     "log.access_file": "",
                     "log.error_file": "",
@@ -58,20 +59,3 @@ class WebServer(threading.Thread):
     def shutdown(self):
         log.debug("Received request to shutdown http server threads")
         cherrypy.engine.exit()
-
-    @staticmethod
-    def add_args(arg_parser: ArgumentParser) -> None:
-        arg_parser.add_argument(
-            "--web-port",
-            help="Web Port (default 9955)",
-            default=9955,
-            dest="web_port",
-            type=int,
-        )
-        arg_parser.add_argument(
-            "--web-host",
-            help="IP to bind to (default: ::)",
-            default="::",
-            dest="web_host",
-            type=str,
-        )

@@ -3,7 +3,8 @@ from typing import Optional, List, Tuple
 from resoto_plugin_digitalocean.client import StreamingWrapper
 from resoto_plugin_digitalocean.collector import DigitalOceanTeamCollector
 from resoto_plugin_digitalocean.resources import DigitalOceanTeam
-from resotolib.args import ArgumentParser
+from resoto_plugin_digitalocean.config import DigitalOceanCollectorConfig
+from resotolib.config import Config
 from resotolib.baseplugin import BaseCollectorPlugin
 from resotolib.logging import log
 from resotolib.graph import Graph
@@ -21,10 +22,8 @@ class DigitalOceanCollectorPlugin(BaseCollectorPlugin):  # type: ignore
         accounts. An account must always be followed by a region.
         A region can contain arbitrary resources.
         """
-        tokens = ArgumentParser.args.digitalocean_api_tokens
-        spaces_access_keys: List[
-            str
-        ] = ArgumentParser.args.digitalocean_spaces_access_keys
+        tokens = Config.digitalocean.api_tokens
+        spaces_access_keys: List[str] = Config.digitalocean.spaces_access_keys
         spaces_keys: List[Tuple[Optional[str], Optional[str]]] = []
 
         def spaces_keys_valid(keys: List[str]) -> bool:
@@ -73,20 +72,5 @@ class DigitalOceanCollectorPlugin(BaseCollectorPlugin):  # type: ignore
             return dopc.graph
 
     @staticmethod
-    def add_args(arg_parser: ArgumentParser) -> None:
-        arg_parser.add_argument(
-            "--digitalocean-api-tokens",
-            help="DigitalOcean API tokens for the teams to be collected",
-            dest="digitalocean_api_tokens",
-            type=str,
-            default=[],
-            nargs="+",
-        )
-        arg_parser.add_argument(
-            "--digitalocean-spaces-access-keys",
-            help="DigitalOcean Spaces access keys for the teams to be collected, separated by colons",
-            dest="digitalocean_spaces_access_keys",
-            type=str,
-            default=[],
-            nargs="+",
-        )
+    def add_config(config: Config) -> None:
+        config.add_config(DigitalOceanCollectorConfig)
