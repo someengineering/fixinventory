@@ -4,11 +4,11 @@ import sys
 from threading import Event
 from typing import Callable
 from urllib.parse import urlencode
-
 from prompt_toolkit import PromptSession
 from prompt_toolkit.history import FileHistory
 from resotolib.args import ArgumentParser, Namespace
-from resotolib.core.ca import ensure_tls_setup_for_requests
+from resotolib.core import resotocore, add_args as core_add_args
+from resotolib.core.ca import TLSData
 from resotolib.jwt import add_args as jwt_add_args
 from resotolib.logging import log, setup_logger, add_args as logging_add_args
 from resotolib.utils import rnd_str
@@ -22,12 +22,22 @@ def main() -> None:
     arg_parser = ArgumentParser(
         description="resoto shell", env_args_prefix="RESOTOSHELL_"
     )
+    core_add_args(arg_parser)
     add_args(arg_parser)
     logging_add_args(arg_parser)
     jwt_add_args(arg_parser)
+    TLSData.add_args(arg_parser, ca_only=True)
     args = arg_parser.parse_args()
 
-    ensure_tls_setup_for_requests(args.resotocore_uri, args.psk, args.tls_cert)
+    tls_data = None
+    if resotocore.is_secure:
+        tls_data = TLSData(
+            common_name="resh",
+            resotocore_uri=resotocore.http_uri,
+            ca_only=True,
+        )
+        tls_data.load_from_core()
+
     headers = {"Accept": "text/plain"}
     execute_endpoint = f"{args.resotocore_uri}/cli/execute"
     execute_endpoint += f"?resoto_session_id={rnd_str()}"
@@ -39,7 +49,7 @@ def main() -> None:
         execute_endpoint += f"&{query_string}"
 
     if ArgumentParser.args.stdin:
-        shell = Shell(execute_endpoint, False, "monochrome")
+        shell = Shell(execute_endpoint, False, "monochrome", tls_data)
         log.debug("Reading commands from STDIN")
         try:
             for command in sys.stdin.readlines():
@@ -54,7 +64,7 @@ def main() -> None:
         finally:
             shutdown_event.set()
     else:
-        shell = Shell(execute_endpoint, True, detect_color_system(args))
+        shell = Shell(execute_endpoint, True, detect_color_system(args), tls_data)
         completer = None
         history_file = str(pathlib.Path.home() / ".resotoshell_history")
         history = FileHistory(history_file)
@@ -112,18 +122,6 @@ def add_args(arg_parser: ArgumentParser) -> None:
 
         return check_file
 
-    arg_parser.add_argument(
-        "--resotocore-uri",
-        help="resotocore URI (default: https://localhost:8900)",
-        default="https://localhost:8900",
-        dest="resotocore_uri",
-    )
-    arg_parser.add_argument(
-        "--tls-cert",
-        type=is_file("can not parse --tls-cert"),
-        help="Path to a single file in PEM format containing the certificate as well as any number "
-        "of CA certificates needed to establish the certificate’s authenticity.",
-    )
     arg_parser.add_argument(
         "--resotocore-section",
         help="All queries are interpreted with this section name. If not set, the server default is used.",

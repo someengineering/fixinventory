@@ -1,9 +1,5 @@
 import os
 import warnings
-from contextlib import suppress
-
-import certifi
-
 import requests
 from ssl import create_default_context, SSLContext
 from typing import Tuple, Optional, List, Dict, Union
@@ -30,41 +26,6 @@ from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
 from tempfile import TemporaryDirectory
 from threading import Lock, Event
 from resotolib.logging import log
-
-
-def ensure_tls_setup_for_requests(
-    resotocore_uri: str, psk: Optional[str], tls_cert: Optional[str]
-) -> None:
-    """
-    The requests library uses its own TLS configuration.
-    This function ensures that the certificate is set up correctly.
-    :param resotocore_uri: the uri of the resotocore
-    :param psk: the optional psk
-    :param tls_cert: if defined use the given cert, otherwise it is downloaded from resotocore.
-    """
-
-    def append_cert_to_file(cert: Certificate) -> None:
-        with open(certifi.where(), "ab") as outfile:
-            outfile.write(b"\n")
-            outfile.write(b"# Issuer: Resoto\n")
-            outfile.write(b"# Label: Resoto Root CA\n")
-            outfile.write(cert_to_bytes(cert))
-
-    if resotocore_uri.startswith("https://"):
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            try:
-                # Only install the certificate, if not already done
-                requests.get(resotocore_uri)
-                log.debug("TLS is working - no additional setup required")
-            except requests.exceptions.SSLError:
-                with suppress(Exception):
-                    if tls_cert:
-                        log.debug("Adding CA root to trust store from cmd line")
-                        append_cert_to_file(load_cert_from_file(tls_cert))
-                    else:
-                        log.debug("Adding CA root to trust store from resotocore")
-                        append_cert_to_file(get_ca_cert(resotocore_uri, psk))
 
 
 def get_ca_cert(
@@ -132,10 +93,12 @@ class TLSData:
         tempdir: str = None,
         resotocore_uri: str = None,
         psk: str = None,
+        ca_only: bool = False,
     ) -> None:
         self.common_name = common_name
         self.san_dns_names = san_dns_names
         self.san_ip_addresses = san_ip_addresses
+        self.__ca_only = ca_only
         self.__tempdir = TemporaryDirectory(prefix="resoto-cert-", dir=tempdir)
         if resotocore_uri is None:
             resotocore_uri = resotocore.http_uri
@@ -193,32 +156,33 @@ class TLSData:
                 )
             log.debug(f"Writing CA cert {self.__ca_cert_path}")
             write_ca_bundle(self.__ca_cert, self.__ca_cert_path, include_certifi=True)
-            if (
-                getattr(ArgumentParser.args, "cert", None) is not None
-                and getattr(ArgumentParser.args, "cert_key", None) is not None
-            ):
-                log.debug(f"Loading certificate from {ArgumentParser.args.cert}")
-                self.__cert = load_cert_from_file(ArgumentParser.args.cert)
-                cert_key_pass = None
-                if getattr(ArgumentParser.args, "cert_key_pass", None) is not None:
-                    cert_key_pass = ArgumentParser.args.cert_key_pass
-                log.debug(f"Loading key from {ArgumentParser.args.cert_key}")
-                self.__key = load_key_from_file(
-                    ArgumentParser.args.cert_key, passphrase=cert_key_pass
-                )
-            else:
-                log.debug("Requesting signed cert from core")
-                self.__key, self.__cert = get_signed_cert(
-                    common_name=self.common_name,
-                    san_dns_names=self.san_dns_names,
-                    san_ip_addresses=self.san_ip_addresses,
-                    resotocore_uri=self.__resotocore_uri,
-                    psk=self.__psk,
-                    ca_cert_path=self.ca_cert_path,
-                )
-            log.debug(f"Writing signed cert/key {self.__cert_path}")
-            write_cert_to_file(self.__cert, self.__cert_path)
-            write_key_to_file(self.__key, self.__key_path)
+            if not self.__ca_only:
+                if (
+                    getattr(ArgumentParser.args, "cert", None) is not None
+                    and getattr(ArgumentParser.args, "cert_key", None) is not None
+                ):
+                    log.debug(f"Loading certificate from {ArgumentParser.args.cert}")
+                    self.__cert = load_cert_from_file(ArgumentParser.args.cert)
+                    cert_key_pass = None
+                    if getattr(ArgumentParser.args, "cert_key_pass", None) is not None:
+                        cert_key_pass = ArgumentParser.args.cert_key_pass
+                    log.debug(f"Loading key from {ArgumentParser.args.cert_key}")
+                    self.__key = load_key_from_file(
+                        ArgumentParser.args.cert_key, passphrase=cert_key_pass
+                    )
+                else:
+                    log.debug("Requesting signed cert from core")
+                    self.__key, self.__cert = get_signed_cert(
+                        common_name=self.common_name,
+                        san_dns_names=self.san_dns_names,
+                        san_ip_addresses=self.san_ip_addresses,
+                        resotocore_uri=self.__resotocore_uri,
+                        psk=self.__psk,
+                        ca_cert_path=self.ca_cert_path,
+                    )
+                log.debug(f"Writing signed cert/key {self.__cert_path}")
+                write_cert_to_file(self.__cert, self.__cert_path)
+                write_key_to_file(self.__key, self.__key_path)
             self.__loaded.set()
 
     @property
@@ -275,7 +239,7 @@ class TLSData:
         return context
 
     @staticmethod
-    def add_args(arg_parser: ArgumentParser) -> None:
+    def add_args(arg_parser: ArgumentParser, ca_only: bool = False) -> None:
         arg_parser.add_argument(
             "--ca-cert",
             help="Path to custom CA certificate file",
@@ -283,27 +247,28 @@ class TLSData:
             type=str,
             dest="ca_cert",
         )
-        arg_parser.add_argument(
-            "--cert",
-            help="Path to custom certificate file",
-            default=None,
-            type=str,
-            dest="cert",
-        )
-        arg_parser.add_argument(
-            "--cert-key",
-            help="Path to custom certificate key file",
-            default=None,
-            type=str,
-            dest="cert_key",
-        )
-        arg_parser.add_argument(
-            "--cert-key-pass",
-            help="Passphrase for certificate key file",
-            default=None,
-            type=str,
-            dest="cert_key_pass",
-        )
+        if not ca_only:
+            arg_parser.add_argument(
+                "--cert",
+                help="Path to custom certificate file",
+                default=None,
+                type=str,
+                dest="cert",
+            )
+            arg_parser.add_argument(
+                "--cert-key",
+                help="Path to custom certificate key file",
+                default=None,
+                type=str,
+                dest="cert_key",
+            )
+            arg_parser.add_argument(
+                "--cert-key-pass",
+                help="Passphrase for certificate key file",
+                default=None,
+                type=str,
+                dest="cert_key_pass",
+            )
         arg_parser.add_argument(
             "--no-verify-certs",
             help="Turn off certificate verification",
