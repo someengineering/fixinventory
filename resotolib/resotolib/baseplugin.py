@@ -166,6 +166,7 @@ class BaseActionPlugin(ABC, Process):
                 },
             },
             message_processor=self.action_processor,
+            tls_data=self.tls_data,
         )
         core_actions.start()
         core_actions.join()

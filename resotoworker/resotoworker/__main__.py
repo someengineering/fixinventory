@@ -70,7 +70,9 @@ def main() -> None:
         )
         tls_data.load_from_core()
     config = Config(
-        ArgumentParser.args.subscriber_id, resotocore_uri=resotocore.http_uri, tls_data=tls_data
+        ArgumentParser.args.subscriber_id,
+        resotocore_uri=resotocore.http_uri,
+        tls_data=tls_data,
     )
     add_config(config)
     plugin_loader.add_plugin_config(config)
@@ -110,7 +112,7 @@ def main() -> None:
             },
         },
         message_processor=partial(core_actions_processor, plugin_loader),
-        tls_data=tls_data
+        tls_data=tls_data,
     )
 
     task_queue_filter = {}
