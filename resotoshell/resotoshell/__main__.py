@@ -1,17 +1,19 @@
+import os
 import pathlib
 import sys
 from threading import Event
+from typing import Callable
 from urllib.parse import urlencode
 
 from prompt_toolkit import PromptSession
 from prompt_toolkit.history import FileHistory
-from rich.console import Console
-
-from resotolib.args import ArgumentParser
+from resotolib.args import ArgumentParser, Namespace
+from resotolib.core.ca import ensure_tls_setup_for_requests
 from resotolib.jwt import add_args as jwt_add_args
 from resotolib.logging import log, setup_logger, add_args as logging_add_args
 from resotolib.utils import rnd_str
 from resotoshell.shell import Shell
+from rich.console import Console
 
 
 def main() -> None:
@@ -23,16 +25,17 @@ def main() -> None:
     add_args(arg_parser)
     logging_add_args(arg_parser)
     jwt_add_args(arg_parser)
-    arg_parser.parse_args()
+    args = arg_parser.parse_args()
 
+    ensure_tls_setup_for_requests(args.resotocore_uri, args.psk, args.tls_cert)
     headers = {"Accept": "text/plain"}
-    execute_endpoint = f"{ArgumentParser.args.resotocore_uri}/cli/execute"
+    execute_endpoint = f"{args.resotocore_uri}/cli/execute"
     execute_endpoint += f"?resoto_session_id={rnd_str()}"
-    if ArgumentParser.args.resotocore_graph:
-        query_string = urlencode({"graph": ArgumentParser.args.resotocore_graph})
+    if args.resotocore_graph:
+        query_string = urlencode({"graph": args.resotocore_graph})
         execute_endpoint += f"&{query_string}"
-    if ArgumentParser.args.resotocore_section:
-        query_string = urlencode({"section": ArgumentParser.args.resotocore_section})
+    if args.resotocore_section:
+        query_string = urlencode({"section": args.resotocore_section})
         execute_endpoint += f"&{query_string}"
 
     if ArgumentParser.args.stdin:
@@ -51,7 +54,7 @@ def main() -> None:
         finally:
             shutdown_event.set()
     else:
-        shell = Shell(execute_endpoint, True, detect_color_system())
+        shell = Shell(execute_endpoint, True, detect_color_system(args))
         completer = None
         history_file = str(pathlib.Path.home() / ".resotoshell_history")
         history = FileHistory(history_file)
@@ -83,8 +86,8 @@ def main() -> None:
     sys.exit(0)
 
 
-def detect_color_system() -> str:
-    if ArgumentParser.args.no_color:
+def detect_color_system(args: Namespace) -> str:
+    if args.no_color:
         return "monochrome"
     else:
         lookup = {
@@ -100,17 +103,26 @@ def detect_color_system() -> str:
 
 
 def add_args(arg_parser: ArgumentParser) -> None:
+    def is_file(message: str) -> Callable[[str], str]:
+        def check_file(path: str) -> str:
+            if os.path.isfile(path):
+                return path
+            else:
+                raise AttributeError(f"{message}: path {path} is not a directory!")
+
+        return check_file
+
     arg_parser.add_argument(
         "--resotocore-uri",
-        help="resotocore URI (default: http://localhost:8900)",
-        default="http://localhost:8900",
+        help="resotocore URI (default: https://localhost:8900)",
+        default="https://localhost:8900",
         dest="resotocore_uri",
     )
     arg_parser.add_argument(
-        "--resotocore-ws-uri",
-        help="resotocore Websocket URI (default: ws://localhost:8900)",
-        default="ws://localhost:8900",
-        dest="resotocore_ws_uri",
+        "--tls-cert",
+        type=is_file("can not parse --tls-cert"),
+        help="Path to a single file in PEM format containing the certificate as well as any number "
+        "of CA certificates needed to establish the certificate’s authenticity.",
     )
     arg_parser.add_argument(
         "--resotocore-section",
