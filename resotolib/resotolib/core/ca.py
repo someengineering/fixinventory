@@ -1,4 +1,5 @@
 import warnings
+from contextlib import suppress
 
 import certifi
 import logging
@@ -40,19 +41,21 @@ def ensure_tls_setup_for_requests(
             outfile.write(b"# Label: Resoto Root CA\n")
             outfile.write(cert_to_bytes(cert))
 
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        try:
-            # Only install the certificate, if not already done
-            requests.get(resotocore_uri)
-            log.debug("TLS is working - no additional setup required")
-        except requests.exceptions.SSLError:
-            if tls_cert:
-                log.debug("Adding CA root to trust store from cmd line")
-                append_cert_to_file(load_cert_from_file(tls_cert))
-            else:
-                log.debug("Adding CA root to trust store from resotocore")
-                append_cert_to_file(get_ca_cert(resotocore_uri, psk))
+    if resotocore_uri.startswith("https://"):
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            try:
+                # Only install the certificate, if not already done
+                requests.get(resotocore_uri)
+                log.debug("TLS is working - no additional setup required")
+            except requests.exceptions.SSLError:
+                with suppress(Exception):
+                    if tls_cert:
+                        log.debug("Adding CA root to trust store from cmd line")
+                        append_cert_to_file(load_cert_from_file(tls_cert))
+                    else:
+                        log.debug("Adding CA root to trust store from resotocore")
+                        append_cert_to_file(get_ca_cert(resotocore_uri, psk))
 
 
 def get_ca_cert(resotocore_uri: str, psk: str) -> Certificate:
