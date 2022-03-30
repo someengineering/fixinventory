@@ -6,7 +6,7 @@ import certifi
 
 import requests
 from ssl import create_default_context, SSLContext
-from typing import Tuple, Optional, List, Dict
+from typing import Tuple, Optional, List, Dict, Union
 from resotolib.args import ArgumentParser
 from resotolib.core import resotocore
 from resotolib.x509 import (
@@ -262,7 +262,10 @@ class TLSData:
         return {"ca_certs": self.ca_cert_path}
 
     @property
-    def verify(self) -> str:
+    def verify(self) -> Union[str, bool]:
+        if getattr(ArgumentParser.args, "verify_certs", None) is not None:
+            if ArgumentParser.args.verify_certs is False:
+                return False
         return self.ca_cert_path
 
     @property

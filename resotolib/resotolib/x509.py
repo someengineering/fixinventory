@@ -171,9 +171,7 @@ def write_ca_bundle(
         f.write(f"# Issuer: {cert.issuer.rfc4514_string()}\n".encode())
         f.write(f"# Subject: {cert.subject.rfc4514_string()}\n".encode())
         label = cert.issuer.get_attributes_for_oid(NameOID.COMMON_NAME)[0].value
-        f.write(
-            f"# Label: {label}\n".encode()
-        )
+        f.write(f"# Label: {label}\n".encode())
         f.write(f"# Serial: {cert.serial_number}\n".encode())
         md5 = cert_fingerprint(cert, "MD5")
         sha1 = cert_fingerprint(cert, "SHA1")
