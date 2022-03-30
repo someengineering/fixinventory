@@ -59,7 +59,7 @@ def test_web():
         time.sleep(1)
 
 
-def DISABLED_test_secure_web():
+def disabled_test_secure_web():
     with tempfile.TemporaryDirectory() as tmp:
         ca_key, ca_cert = bootstrap_ca()
         cert_key = gen_rsa_key()
