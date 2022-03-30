@@ -109,7 +109,9 @@ def main() -> None:
     sys.exit(0)
 
 
-def core_actions_processor(metrics: Metrics, query_uri: str, tls_data: TLSData, message: dict) -> None:
+def core_actions_processor(
+    metrics: Metrics, query_uri: str, tls_data: TLSData, message: dict
+) -> None:
     if not isinstance(message, dict):
         log.error(f"Invalid message: {message}")
         return
@@ -141,7 +143,9 @@ def core_actions_processor(metrics: Metrics, query_uri: str, tls_data: TLSData, 
 
 
 @metrics_update_metrics.time()
-def update_metrics(metrics: Metrics, query_uri: str, tls_data: Optional[TLSData] = None) -> None:
+def update_metrics(
+    metrics: Metrics, query_uri: str, tls_data: Optional[TLSData] = None
+) -> None:
     metrics_descriptions = Config.resotometrics.metrics
     for _, data in metrics_descriptions.items():
         if shutdown_event.is_set():
