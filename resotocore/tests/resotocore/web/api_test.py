@@ -45,7 +45,18 @@ async def core_client(
 
     process = Process(
         target=run,
-        args=(["--graphdb-database", "test", "--graphdb-username", "test", "--graphdb-password", "test", "--debug"],),
+        args=(
+            [
+                "--graphdb-database",
+                "test",
+                "--graphdb-username",
+                "test",
+                "--graphdb-password",
+                "test",
+                "--debug",
+                "--no-tls",
+            ],
+        ),
     )
     process.start()
     ready = False
