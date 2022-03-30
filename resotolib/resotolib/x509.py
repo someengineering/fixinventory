@@ -15,21 +15,23 @@ from cryptography.x509.oid import NameOID
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import rsa
-from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
+from cryptography.hazmat.primitives.asymmetric.rsa import (
+    RSAPrivateKey,
+    generate_private_key,
+)
 from cryptography.x509.base import Certificate, CertificateSigningRequest
 from typing import List, Optional, Tuple, Union
 
 
 def gen_rsa_key(key_size: int = 2048) -> RSAPrivateKey:
-    return rsa.generate_private_key(
+    return generate_private_key(
         public_exponent=65537, key_size=key_size, backend=default_backend()
     )
 
 
 def bootstrap_ca(
     days_valid: int = 3650,
-    common_name: str = "resoto Root CA",
+    common_name: str = "Resoto Root CA",
     organization_name: str = "Some Engineering Inc.",
     locality_name: str = "San Francisco",
     state_or_province_name: str = "California",

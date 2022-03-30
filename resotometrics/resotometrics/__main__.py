@@ -5,6 +5,7 @@ from resotolib.logging import log, setup_logger, add_args as logging_add_args
 from resotolib.jwt import add_args as jwt_add_args
 from resotolib.config import Config
 from resotolib.core import add_args as resotocore_add_args, resotocore
+from resotolib.core.ca import TLSData
 from .config import ResotoMetricsConfig
 from functools import partial
 from resotolib.core.actions import CoreActions
@@ -51,8 +52,15 @@ def main() -> None:
     jwt_add_args(arg_parser)
     arg_parser.parse_args()
 
+    tls_data = TLSData(
+        common_name=ArgumentParser.args.subscriber_id,
+        resotocore_uri=resotocore.http_uri,
+    )
+    tls_data.load_from_core()
     config = Config(
-        ArgumentParser.args.subscriber_id, resotocore_uri=resotocore.http_uri
+        ArgumentParser.args.subscriber_id,
+        resotocore_uri=resotocore.http_uri,
+        tls_data=tls_data,
     )
     config.add_config(ResotoMetricsConfig)
     config.load_config()
@@ -77,6 +85,7 @@ def main() -> None:
             },
         },
         message_processor=message_processor,
+        tls_data=tls_data,
     )
     web_server = WebServer(
         WebApp(mountpoint=Config.resotometrics.web_path),

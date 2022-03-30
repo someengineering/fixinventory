@@ -5,6 +5,7 @@ from resotolib.config import Config
 from resotolib.core import resotocore
 from resotolib.graph import Graph, sanitize
 from resotolib.core.model_export import node_from_dict, node_to_dict
+from resotolib.core.ca import TLSData
 from resotolib.baseresources import EdgeType
 from resotolib.args import ArgumentParser
 from resotolib.logging import log
@@ -13,7 +14,12 @@ from typing import Optional
 
 
 class CoreGraph:
-    def __init__(self, base_uri: str = None, graph: str = None) -> None:
+    def __init__(
+        self,
+        base_uri: str = None,
+        graph: str = None,
+        tls_data: Optional[TLSData] = None,
+    ) -> None:
         if base_uri is None:
             self.base_uri = resotocore.http_uri
         else:
@@ -22,6 +28,9 @@ class CoreGraph:
             self.graph_name = Config.resotoworker.graph
         else:
             self.graph_name = graph
+        self.verify = None
+        if tls_data:
+            self.verify = tls_data.ca_cert_path
         self.graph_uri = f"{self.base_uri}/graph/{self.graph_name}"
         self.query_uri = f"{self.graph_uri}/query/graph"
 
@@ -32,7 +41,7 @@ class CoreGraph:
         if self.graph_name:
             query_string = urlencode({"graph": self.graph_name})
             execute_endpoint += f"?{query_string}"
-        return self.post(execute_endpoint, command, headers)
+        return self.post(execute_endpoint, command, headers, verify=self.verify)
 
     def query(self, query: str, edge_type: Optional[EdgeType] = None):
         log.debug(f"Sending query {query}")
@@ -41,13 +50,14 @@ class CoreGraph:
         if edge_type is not None:
             query_string = urlencode({"edge_type": edge_type.value})
             query_endpoint += f"?{query_string}"
-        return self.post(query_endpoint, query, headers)
+        return self.post(query_endpoint, query, headers, verify=self.verify)
 
     @staticmethod
-    def post(uri, data, headers):
+    def post(uri, data, headers, verify: Optional[str] = None):
         if getattr(ArgumentParser.args, "psk", None):
             encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)
-        r = requests.post(uri, data=data, headers=headers, stream=True)
+
+        r = requests.post(uri, data=data, headers=headers, stream=True, verify=verify)
         if r.status_code != 200:
             log.error(r.content.decode())
             raise RuntimeError(f"Failed to query graph: {r.content.decode()}")
@@ -101,7 +111,10 @@ class CoreGraph:
             encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)
 
         r = requests.patch(
-            f"{self.graph_uri}/nodes", data=GraphChangeIterator(graph), headers=headers
+            f"{self.graph_uri}/nodes",
+            data=GraphChangeIterator(graph),
+            headers=headers,
+            verify=self.verify,
         )
         if r.status_code != 200:
             err = r.content.decode("utf-8")

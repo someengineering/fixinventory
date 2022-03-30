@@ -2,6 +2,7 @@ import jsons
 import threading
 from resotolib.logging import log
 from resotolib.args import ArgumentParser, convert
+from resotolib.core.ca import TLSData
 from resotolib.core.model_export import dataclasses_to_resotocore_model, optional_origin
 from resotolib.core import ResotocoreURI
 from resotolib.core.config import (
@@ -11,7 +12,7 @@ from resotolib.core.config import (
     update_config_model,
 )
 from resotolib.core.events import CoreEvents
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from dataclasses import fields
 
 
@@ -51,12 +52,20 @@ class MetaConfig(type):
 class Config(metaclass=MetaConfig):
     running_config: RunningConfig = _config
 
-    def __init__(self, config_name: str, resotocore_uri: str = None) -> None:
+    def __init__(
+        self,
+        config_name: str,
+        resotocore_uri: str = None,
+        tls_data: Optional[TLSData] = None,
+    ) -> None:
         self._config_lock = threading.Lock()
         self.config_name = config_name
         self._initial_load = True
         resotocore = ResotocoreURI(resotocore_uri)
         self.resotocore_uri = resotocore.http_uri
+        self.verify = None
+        if tls_data:
+            self.verify = tls_data.verify
         self._ce = CoreEvents(
             resotocore.ws_uri,
             events={"config-updated"},
@@ -103,7 +112,7 @@ class Config(metaclass=MetaConfig):
         with self._config_lock:
             try:
                 config, new_config_revision = get_config(
-                    self.config_name, self.resotocore_uri
+                    self.config_name, self.resotocore_uri, verify=self.verify
                 )
                 if len(config) == 0:
                     if self._initial_load:
@@ -177,9 +186,11 @@ class Config(metaclass=MetaConfig):
         )
 
     def save_config(self) -> None:
-        update_config_model(self.model, resotocore_uri=self.resotocore_uri)
+        update_config_model(
+            self.model, resotocore_uri=self.resotocore_uri, verify=self.verify
+        )
         stored_config_revision = set_config(
-            self.config_name, self.dict(), self.resotocore_uri
+            self.config_name, self.dict(), self.resotocore_uri, verify=self.verify
         )
         if stored_config_revision != Config.running_config.revision:
             Config.running_config.revision = stored_config_revision
