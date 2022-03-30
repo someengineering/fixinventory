@@ -79,7 +79,11 @@ def get_ca_cert(
         if psk:
             # noinspection PyTypeChecker
             jwt = decode_jwt_from_headers(r.headers, psk)
-            if jwt is None or jwt["sha256_fingerprint"] != cert_fingerprint(ca_cert):
+            if jwt is None:
+                raise ValueError(
+                    "Failed to decode JWT - was resotocore started without PSK?"
+                )
+            if jwt["sha256_fingerprint"] != cert_fingerprint(ca_cert):
                 raise ValueError("Invalid Root CA certificate fingerprint")
         return ca_cert
 
