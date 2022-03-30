@@ -1,4 +1,5 @@
 import requests
+import urllib3
 from typing import Tuple, Optional, List
 from resotolib.args import ArgumentParser
 from resotolib.x509 import (
@@ -19,11 +20,12 @@ def get_ca_cert(resotocore_uri: str = None, psk: str = None) -> Certificate:
     if psk is None:
         psk = getattr(ArgumentParser.args, "psk", None)
 
+    urllib3.disable_warnings()
     r = requests.get(f"{resotocore_uri}/ca/cert", verify=False)
     ca_cert = load_cert_from_bytes(r.content)
     if psk:
         jwt = decode_jwt_from_headers(r.headers, psk)
-        if jwt["sha256_fingerprint"] != cert_fingerprint(ca_cert):
+        if jwt is None or jwt["sha256_fingerprint"] != cert_fingerprint(ca_cert):
             raise ValueError("Invalid Root CA certificate fingerprint")
     return ca_cert
 
