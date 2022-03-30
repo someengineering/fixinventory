@@ -42,7 +42,7 @@ class Cleaner:
     @metrics_cleanup.time()
     def cleanup(self) -> None:
         if not Config.resotoworker.cleanup:
-            log.error(
+            log.debug(
                 (
                     "Cleanup called but --cleanup flag not provided at startup"
                     " - ignoring call"
