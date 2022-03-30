@@ -8,5 +8,5 @@ def test_args():
     )
     add_args(arg_parser)
     arg_parser.parse_args()
-    assert resotocore.http_uri == "http://localhost:8900"
-    assert resotocore.ws_uri == "ws://localhost:8900"
+    assert resotocore.http_uri == "https://localhost:8900"
+    assert resotocore.ws_uri == "wss://localhost:8900"
