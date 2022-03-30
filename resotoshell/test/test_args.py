@@ -8,4 +8,4 @@ def test_args():
     )
     add_args(arg_parser)
     arg_parser.parse_args()
-    assert ArgumentParser.args.resotocore_uri == "http://localhost:8900"
+    assert ArgumentParser.args.resotocore_uri == "https://localhost:8900"
