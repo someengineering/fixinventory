@@ -31,6 +31,7 @@ class WebServer(threading.Thread):
         # fixed string. So instead of having duplicate timestamps in
         # each web server related log message they are now prefixed
         # with the string 'CherryPy'.
+        cherrypy.config.reset()
         cherrypy._cplogging.LogManager.time = lambda self: "CherryPy"
         cherrypy.engine.unsubscribe("graceful", cherrypy.log.reopen_files)
 
