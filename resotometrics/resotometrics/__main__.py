@@ -21,6 +21,7 @@ from resotolib.web.metrics import WebApp
 from prometheus_client import Summary, REGISTRY
 from prometheus_client.core import GaugeMetricFamily, CounterMetricFamily
 from threading import Event
+from typing import Optional
 from resotolib.args import ArgumentParser
 
 
@@ -76,7 +77,7 @@ def main() -> None:
     graph_uri = f"{resotocore.http_uri}/graph/{resotocore_graph}"
     query_uri = f"{graph_uri}/query/aggregate?section=reported"
 
-    message_processor = partial(core_actions_processor, metrics, query_uri)
+    message_processor = partial(core_actions_processor, metrics, query_uri, tls_data)
     core_actions = CoreActions(
         identifier=ArgumentParser.args.subscriber_id,
         resotocore_uri=resotocore.http_uri,
@@ -108,7 +109,7 @@ def main() -> None:
     sys.exit(0)
 
 
-def core_actions_processor(metrics: Metrics, query_uri: str, message: dict) -> None:
+def core_actions_processor(metrics: Metrics, query_uri: str, tls_data: TLSData, message: dict) -> None:
     if not isinstance(message, dict):
         log.error(f"Invalid message: {message}")
         return
@@ -120,7 +121,7 @@ def core_actions_processor(metrics: Metrics, query_uri: str, message: dict) -> N
         try:
             if message_type == "generate_metrics":
                 start_time = time.time()
-                update_metrics(metrics, query_uri)
+                update_metrics(metrics, query_uri, tls_data)
                 run_time = time.time() - start_time
                 log.debug(f"Updated metrics for {run_time:.2f} seconds")
             else:
@@ -140,7 +141,7 @@ def core_actions_processor(metrics: Metrics, query_uri: str, message: dict) -> N
 
 
 @metrics_update_metrics.time()
-def update_metrics(metrics: Metrics, query_uri: str) -> None:
+def update_metrics(metrics: Metrics, query_uri: str, tls_data: Optional[TLSData] = None) -> None:
     metrics_descriptions = Config.resotometrics.metrics
     for _, data in metrics_descriptions.items():
         if shutdown_event.is_set():
@@ -157,7 +158,7 @@ def update_metrics(metrics: Metrics, query_uri: str) -> None:
             continue
 
         try:
-            for result in query(metrics_search, query_uri):
+            for result in query(metrics_search, query_uri, tls_data=tls_data):
                 labels = get_labels_from_result(result)
                 label_values = get_label_values_from_result(result, labels)
 

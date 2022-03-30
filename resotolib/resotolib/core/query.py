@@ -56,7 +56,6 @@ class CoreGraph:
     def post(uri, data, headers, verify: Optional[str] = None):
         if getattr(ArgumentParser.args, "psk", None):
             encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)
-
         r = requests.post(uri, data=data, headers=headers, stream=True, verify=verify)
         if r.status_code != 200:
             log.error(r.content.decode())

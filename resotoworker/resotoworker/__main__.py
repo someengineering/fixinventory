@@ -112,7 +112,7 @@ def main() -> None:
                 "wait_for_completion": True,
             },
         },
-        message_processor=partial(core_actions_processor, plugin_loader),
+        message_processor=partial(core_actions_processor, plugin_loader, tls_data),
         tls_data=tls_data,
     )
 
@@ -148,7 +148,9 @@ def main() -> None:
     os._exit(0)
 
 
-def core_actions_processor(plugin_loader: PluginLoader, message: Dict) -> None:
+def core_actions_processor(
+    plugin_loader: PluginLoader, tls_data: TLSData, message: Dict
+) -> None:
     collectors: List[BaseCollectorPlugin] = plugin_loader.plugins(PluginType.COLLECTOR)
     if not isinstance(message, dict):
         log.error(f"Invalid message: {message}")
@@ -161,12 +163,12 @@ def core_actions_processor(plugin_loader: PluginLoader, message: Dict) -> None:
         try:
             if message_type == "collect":
                 start_time = time.time()
-                collect_and_send(collectors)
+                collect_and_send(collectors, tls_data=tls_data)
                 run_time = int(time.time() - start_time)
                 log.info(f"Collect ran for {run_time} seconds")
             elif message_type == "cleanup":
                 start_time = time.time()
-                cleanup()
+                cleanup(tls_data=tls_data)
                 run_time = int(time.time() - start_time)
                 log.info(f"Cleanup ran for {run_time} seconds")
             else:

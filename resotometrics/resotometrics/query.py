@@ -1,11 +1,14 @@
 import requests
 import json
+from resotolib.core.ca import TLSData
 from resotolib.args import ArgumentParser
 from resotolib.jwt import encode_jwt_to_headers
-from typing import Iterator
+from typing import Iterator, Optional
 
 
-def query(query_str: str, query_uri: str) -> Iterator:
+def query(
+    query_str: str, query_uri: str, tls_data: Optional[TLSData] = None
+) -> Iterator:
     headers = {"Accept": "application/x-ndjson"}
     if ArgumentParser.args.psk:
         encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)
@@ -15,6 +18,7 @@ def query(query_str: str, query_uri: str) -> Iterator:
         data=query_str,
         headers=headers,
         stream=True,
+        verify=getattr(tls_data, "verify", None),
     )
     if r.status_code != 200:
         raise RuntimeError(f"Failed to query graph: {r.content.decode('utf-8')}")
