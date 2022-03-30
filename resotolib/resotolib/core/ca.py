@@ -163,7 +163,9 @@ class TLSData:
         while not self.__exit.is_set():
             if self.__loaded.is_set():
                 for cert in (self.__ca_cert, self.__cert):
-                    if cert.not_valid_after < datetime.utcnow() - timedelta(days=1):
+                    if isinstance(
+                        cert, Certificate
+                    ) and cert.not_valid_after < datetime.utcnow() - timedelta(days=1):
                         self.reload()
                         break
             time.sleep(5)
