@@ -11,7 +11,7 @@ def test_config():
     core_add_args(arg_parser)
     arg_parser.parse_args()
     cfg = Config("test")
-    cfg.add_config(TestConfig)
+    cfg.add_config(ConfigTest)
     cfg.init_default_config()
     assert Config.dict() == {
         "configtest": {"testvar1": "testing123", "testvar2": 12345}
@@ -29,7 +29,7 @@ def test_config():
 
 
 @dataclass
-class TestConfig:
+class ConfigTest:
     kind: ClassVar[str] = "configtest"
     testvar1: Optional[str] = field(
         default="testing123", metadata={"description": "A test string"}
