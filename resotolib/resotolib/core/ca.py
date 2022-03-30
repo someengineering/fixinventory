@@ -1,6 +1,7 @@
 import os
 import warnings
 import requests
+import time
 from ssl import create_default_context, SSLContext
 from typing import Tuple, Optional, List, Dict, Union
 from resotolib.args import ArgumentParser
@@ -24,8 +25,10 @@ from resotolib.jwt import decode_jwt_from_headers, encode_jwt_to_headers
 from cryptography.x509.base import Certificate
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
 from tempfile import TemporaryDirectory
-from threading import Lock, Event
+from threading import Lock, Event, Thread
 from resotolib.logging import log
+from resotolib.event import add_event_listener, Event as ResotoEvent, EventType
+from datetime import datetime, timedelta
 
 
 def get_ca_cert(
@@ -110,13 +113,20 @@ class TLSData:
         self.__ca_cert_path = f"{self.__tempdir.name}/ca.crt"
         self.__cert_path = f"{self.__tempdir.name}/cert.crt"
         self.__key_path = f"{self.__tempdir.name}/cert.key"
+        self.__load_lock = Lock()
         self.__loaded = Event()
-        self.__lock = Lock()
+        self.__exit = Event()
+        add_event_listener(EventType.SHUTDOWN, self.shutdown, blocking=False)
+        self.__watcher = Thread(target=self.__expiration_watcher)
+
+    def shutdown(self, event: Optional[ResotoEvent] = None) -> None:
+        self.__exit.set()
 
     def __getstate__(self):
         d = self.__dict__.copy()
-        del d["_TLSData__lock"]
+        del d["_TLSData__load_lock"]
         del d["_TLSData__loaded"]
+        del d["_TLSData__exit"]
         del d["_TLSData__ca_cert"]
         del d["_TLSData__cert"]
         del d["_TLSData__key"]
@@ -128,8 +138,9 @@ class TLSData:
         return d
 
     def __setstate__(self, d):
-        d["_TLSData__lock"] = Lock()
+        d["_TLSData__load_lock"] = Lock()
         d["_TLSData__loaded"] = Event()
+        d["_TLSData__exit"] = Event()
         d["_TLSData__ca_cert"] = None
         d["_TLSData__cert"] = None
         d["_TLSData__key"] = None
@@ -144,8 +155,21 @@ class TLSData:
         del d["__is_loaded"]
         self.__dict__.update(d)
 
+    def reload(self) -> None:
+        self.__loaded.clear()
+        self.load_from_core()
+
+    def __expiration_watcher(self) -> None:
+        while not self.__exit.is_set():
+            if self.__loaded.is_set():
+                for cert in (self.__ca_cert, self.__cert):
+                    if cert.not_valid_after < datetime.utcnow() - timedelta(days=1):
+                        self.reload()
+                        break
+            time.sleep(5)
+
     def load_from_core(self) -> None:
-        with self.__lock:
+        with self.__load_lock:
             if getattr(ArgumentParser.args, "ca_cert", None) is not None:
                 log.debug(f"Loading CA certificate from {ArgumentParser.args.ca_cert}")
                 self.__ca_cert = load_cert_from_file(ArgumentParser.args.ca_cert)
@@ -184,6 +208,8 @@ class TLSData:
                 write_cert_to_file(self.__cert, self.__cert_path)
                 write_key_to_file(self.__key, self.__key_path)
             self.__loaded.set()
+            if not self.__watcher.is_alive():
+                self.__watcher.start()
 
     @property
     def ca_cert(self) -> str:
