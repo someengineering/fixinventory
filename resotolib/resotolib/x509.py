@@ -1,4 +1,5 @@
 import os
+import certifi
 from ipaddress import (
     ip_address,
     ip_network,
@@ -33,17 +34,11 @@ def bootstrap_ca(
     days_valid: int = 3650,
     common_name: str = "Resoto Root CA",
     organization_name: str = "Some Engineering Inc.",
-    locality_name: str = "San Francisco",
-    state_or_province_name: str = "California",
-    country_name: str = "US",
     path_length: int = 2,
 ) -> Tuple[RSAPrivateKey, Certificate]:
     ca_key = gen_rsa_key()
     subject = issuer = x509.Name(
         [
-            x509.NameAttribute(NameOID.COUNTRY_NAME, country_name),
-            x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, state_or_province_name),
-            x509.NameAttribute(NameOID.LOCALITY_NAME, locality_name),
             x509.NameAttribute(NameOID.ORGANIZATION_NAME, organization_name),
             x509.NameAttribute(NameOID.COMMON_NAME, common_name),
         ]
@@ -163,6 +158,29 @@ def write_csr_to_file(csr: CertificateSigningRequest, csr_path: str) -> None:
 
 def write_cert_to_file(cert: Certificate, cert_path: str) -> None:
     with open(cert_path, "wb") as f:
+        f.write(cert_to_bytes(cert))
+
+
+def write_ca_bundle(
+    cert: Certificate, cert_path: str, include_certifi: bool = True
+) -> None:
+    with open(cert_path, "wb") as f:
+        if include_certifi:
+            f.write(certifi.contents().encode())
+        f.write("\n".encode())
+        f.write(f"# Issuer: {cert.issuer.rfc4514_string()}\n".encode())
+        f.write(f"# Subject: {cert.subject.rfc4514_string()}\n".encode())
+        label = cert.issuer.get_attributes_for_oid(NameOID.COMMON_NAME)[0].value
+        f.write(
+            f"# Label: {label}\n".encode()
+        )
+        f.write(f"# Serial: {cert.serial_number}\n".encode())
+        md5 = cert_fingerprint(cert, "MD5")
+        sha1 = cert_fingerprint(cert, "SHA1")
+        sha256 = cert_fingerprint(cert, "SHA256")
+        f.write(f"# MD5 Fingerprint: {md5}\n".encode())
+        f.write(f"# SHA1 Fingerprint: {sha1}\n".encode())
+        f.write(f"# SHA256 Fingerprint: {sha256}\n".encode())
         f.write(cert_to_bytes(cert))
 
 

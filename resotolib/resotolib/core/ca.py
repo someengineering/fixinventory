@@ -21,6 +21,8 @@ from resotolib.x509 import (
     write_key_to_file,
     key_to_bytes,
     load_key_from_bytes,
+    load_key_from_file,
+    write_ca_bundle,
 )
 from resotolib.jwt import decode_jwt_from_headers, encode_jwt_to_headers
 from cryptography.x509.base import Certificate
@@ -181,21 +183,39 @@ class TLSData:
 
     def load_from_core(self) -> None:
         with self.__lock:
-            log.debug("Loading CA cert from core")
-            self.__ca_cert = get_ca_cert(
-                resotocore_uri=self.__resotocore_uri, psk=self.__psk
-            )
+            if getattr(ArgumentParser.args, "ca_cert", None) is not None:
+                log.debug(f"Loading CA certificate from {ArgumentParser.args.ca_cert}")
+                self.__ca_cert = load_cert_from_file(ArgumentParser.args.ca_cert)
+            else:
+                log.debug("Loading CA cert from core")
+                self.__ca_cert = get_ca_cert(
+                    resotocore_uri=self.__resotocore_uri, psk=self.__psk
+                )
             log.debug(f"Writing CA cert {self.__ca_cert_path}")
-            write_cert_to_file(self.__ca_cert, self.__ca_cert_path)
-            log.debug("Requesting signed cert from core")
-            self.__key, self.__cert = get_signed_cert(
-                common_name=self.common_name,
-                san_dns_names=self.san_dns_names,
-                san_ip_addresses=self.san_ip_addresses,
-                resotocore_uri=self.__resotocore_uri,
-                psk=self.__psk,
-                ca_cert_path=self.ca_cert_path,
-            )
+            write_ca_bundle(self.__ca_cert, self.__ca_cert_path, include_certifi=True)
+            if (
+                getattr(ArgumentParser.args, "cert", None) is not None
+                and getattr(ArgumentParser.args, "cert_key", None) is not None
+            ):
+                log.debug(f"Loading certificate from {ArgumentParser.args.cert}")
+                self.__cert = load_cert_from_file(ArgumentParser.args.cert)
+                cert_key_pass = None
+                if getattr(ArgumentParser.args, "cert_key_pass", None) is not None:
+                    cert_key_pass = ArgumentParser.args.cert_key_pass
+                log.debug(f"Loading key from {ArgumentParser.args.key}")
+                self.__key = load_key_from_file(
+                    ArgumentParser.args.key, passphrase=cert_key_pass
+                )
+            else:
+                log.debug("Requesting signed cert from core")
+                self.__key, self.__cert = get_signed_cert(
+                    common_name=self.common_name,
+                    san_dns_names=self.san_dns_names,
+                    san_ip_addresses=self.san_ip_addresses,
+                    resotocore_uri=self.__resotocore_uri,
+                    psk=self.__psk,
+                    ca_cert_path=self.ca_cert_path,
+                )
             log.debug(f"Writing signed cert/key {self.__cert_path}")
             write_cert_to_file(self.__cert, self.__cert_path)
             write_key_to_file(self.__key, self.__key_path)
@@ -250,3 +270,42 @@ class TLSData:
         context = create_default_context()
         context.load_verify_locations(cafile=self.ca_cert_path)
         return context
+
+    @staticmethod
+    def add_args(arg_parser: ArgumentParser) -> None:
+        arg_parser.add_argument(
+            "--ca-cert",
+            help="Path to custom CA certificate file",
+            default=None,
+            type=str,
+            dest="ca_cert",
+        )
+        arg_parser.add_argument(
+            "--cert",
+            help="Path to custom certificate file",
+            default=None,
+            type=str,
+            dest="cert",
+        )
+        arg_parser.add_argument(
+            "--cert-key",
+            help="Path to custom certificate key file",
+            default=None,
+            type=str,
+            dest="cert_key",
+        )
+        arg_parser.add_argument(
+            "--cert-key-pass",
+            help="Passphrase for certificate key file",
+            default=None,
+            type=str,
+            dest="cert_key_pass",
+        )
+        arg_parser.add_argument(
+            "--no-verify-certs",
+            help="Turn off certificate verification",
+            default=True,
+            type=bool,
+            dest="verify_certs",
+            action="store_false",
+        )
