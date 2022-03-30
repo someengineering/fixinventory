@@ -109,6 +109,8 @@ def get_signed_cert(
     r = requests.post(
         f"{resotocore_uri}/ca/sign", cert_csr_bytes, headers=headers, **request_kwargs
     )
+    if r.status_code != 200:
+        raise ValueError(f"Failed to get signed certificate: {r.text}")
     cert_bytes = r.content
     cert_crt = load_cert_from_bytes(cert_bytes)
     return cert_key, cert_crt
