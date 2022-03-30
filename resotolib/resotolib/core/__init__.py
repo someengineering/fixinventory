@@ -38,5 +38,9 @@ class ResotocoreURI:
             scheme = "wss"
         return f"{scheme}://{self.uri.netloc}"
 
+    @property
+    def is_secure(self) -> bool:
+        return self.uri.scheme == "https"
+
 
 resotocore = ResotocoreURI()

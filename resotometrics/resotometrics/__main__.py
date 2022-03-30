@@ -52,11 +52,13 @@ def main() -> None:
     jwt_add_args(arg_parser)
     arg_parser.parse_args()
 
-    tls_data = TLSData(
-        common_name=ArgumentParser.args.subscriber_id,
-        resotocore_uri=resotocore.http_uri,
-    )
-    tls_data.load_from_core()
+    tls_data = None
+    if resotocore.is_secure:
+        tls_data = TLSData(
+            common_name=ArgumentParser.args.subscriber_id,
+            resotocore_uri=resotocore.http_uri,
+        )
+        tls_data.load_from_core()
     config = Config(
         ArgumentParser.args.subscriber_id,
         resotocore_uri=resotocore.http_uri,
@@ -87,10 +89,14 @@ def main() -> None:
         message_processor=message_processor,
         tls_data=tls_data,
     )
+    web_server_args = {}
+    if tls_data:
+        web_server_args = {"ssl_cert": tls_data.cert_path, "ssl_key": tls_data.key_path}
     web_server = WebServer(
         WebApp(mountpoint=Config.resotometrics.web_path),
         web_host=Config.resotometrics.web_host,
         web_port=Config.resotometrics.web_port,
+        **web_server_args,
     )
     web_server.daemon = True
     web_server.start()
