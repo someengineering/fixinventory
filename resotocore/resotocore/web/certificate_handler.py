@@ -53,9 +53,10 @@ class CertificateHandler:
         return cert_to_bytes(certificate), cert_fingerprint(certificate)
 
     def create_host_certificate(self, ca_key: RSAPrivateKey, ca_cert: Certificate) -> Tuple[RSAPrivateKey, Certificate]:
+        cfg = self.config.api.host_certificate
         key = gen_rsa_key()
-        host_names = get_local_hostnames(args=self.config.args)
-        host_ips = get_local_ip_addresses(args=self.config.args)
+        host_names = get_local_hostnames(cfg.include_loopback, cfg)
+        host_ips = get_local_ip_addresses(cfg.include_loopback, cfg, cfg.connect_to_ips)
         log.info(f'Create host certificate for hostnames:{", ".join(host_names)} and ips:{", ".join(host_ips)}')
         csr = gen_csr(key, san_dns_names=list(host_names), san_ip_addresses=list(host_ips))
         cert = sign_csr(csr, ca_key, ca_cert)
@@ -87,10 +88,10 @@ class CertificateHandler:
         else:
             # noinspection PyTypeChecker
             ctx = create_default_context(purpose=Purpose.CLIENT_AUTH)
-            if self.config.args.tls_cert:
+            if self.config.args.ca_cert:
                 log.info("Using TLS certificate from command line.")
                 # Use the certificate provided via cmd line flags
-                ctx.load_cert_chain(args.tls_cert, args.tls_key, args.tls_password)
+                ctx.load_cert_chain(args.ca_cert, args.ca_cert_key, args.ca_cert_key_pass)
             else:
                 log.info("Using TLS certificate from data store.")
                 # ssl library wants to load cert/key from file: put it into a temp directory for loading
@@ -99,5 +100,5 @@ class CertificateHandler:
                     key_file = Path(td, "key")
                     write_cert_to_file(self._host_cert, str(cert_file))
                     write_key_to_file(self._host_key, str(key_file))
-                    ctx.load_cert_chain(str(cert_file), str(key_file), args.tls_password)
+                    ctx.load_cert_chain(str(cert_file), str(key_file), args.ca_cert_key_pass)
             return ctx

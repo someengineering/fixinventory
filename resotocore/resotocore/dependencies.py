@@ -157,19 +157,22 @@ def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None
     )
     parser.add_argument("--no-tls", default=False, action="store_true", help="Disable TLS and use plain HTTP.")
     parser.add_argument(
-        "--tls-cert",
-        type=is_file("can not parse --tls-cert"),
+        "--ca-cert",
+        type=is_file("can not parse --ca-cert"),
+        dest="ca_cert",
         help="Path to a single file in PEM format containing the certificate as well as any number "
         "of CA certificates needed to establish the certificate’s authenticity.",
     )
     parser.add_argument(
-        "--tls-key",
-        type=is_file("can not parse --tls-key"),
+        "--ca-cert-key",
+        type=is_file("can not parse --ca-cert-key"),
+        dest="ca_cert_key",
         help="Path to a file containing the private key. "
         "If not defined the private key will be taken from certfile as well.",
     )
     parser.add_argument(
-        "--tls-password",
+        "--ca-cert-key-pass",
+        dest="ca_cert_key_pass",
         type=str,
         help="Optional password to decrypt the private key file.",
     )
@@ -179,14 +182,14 @@ def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None
         help="Print the version of resotocore and exit.",
     )
     parser.add_argument(
-        "--config-override",
+        "--override",
         nargs="+",
         type=key_value,
         dest="config_override",
         default=[],
         help="Override configuration parameters. Format: path.to.property=value. "
         "Note: the value can be any json value - proper escaping from the shell is required."
-        "Example: --config-override api.hosts='[localhost, some.domain]' api.port=12345",
+        "Example: --override api.hosts='[localhost, some.domain]' api.port=12345",
     )
 
     # All suppressed properties are only here for backward compatibility.

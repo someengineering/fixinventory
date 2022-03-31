@@ -2,6 +2,7 @@ import asyncio
 import logging
 import platform
 import sys
+import traceback
 from argparse import Namespace
 from asyncio import Queue
 from contextlib import suppress
@@ -52,6 +53,8 @@ def main() -> None:
         log.info("Stopping resoto graph core.")
         shutdown_process(0)
     except Exception as ex:
+        if "--debug" in sys.argv:
+            print(traceback.format_exc())
         print(f"resotocore stopped. Reason {class_fqn(ex)}: {ex}", file=sys.stderr)
         shutdown_process(1)
 
@@ -95,7 +98,7 @@ def with_config(created: bool, system_data: SystemData, sdb: StandardDatabase, c
     info = system_info()
     event_sender = NoEventSender() if config.runtime.analytics_opt_out else PostHogEventSender(system_data)
     db = db_access(config, sdb, event_sender)
-    cert_handler = CertificateHandler.lookup(config, sdb, config.args.tls_password)
+    cert_handler = CertificateHandler.lookup(config, sdb, config.args.ca_cert_key_pass)
     message_bus = MessageBus()
     scheduler = Scheduler()
     worker_task_queue = WorkerTaskQueue()

@@ -17,6 +17,22 @@ ResotoCoreRoot = "resotocore"
 
 
 @dataclass()
+class CertificateConfig:
+    kind: ClassVar[str] = f"{ResotoCoreRoot}_certificate_config"
+    include_loopback: bool = field(default=True, metadata={"description": "Include loopback in certificate"})
+    csr_san_dns_names: List[str] = field(
+        default_factory=list, metadata={"description": "List of DNS names to include in CSR"}
+    )
+    csr_san_ip_addresses: List[str] = field(
+        default_factory=list, metadata={"description": "List of IP addresses to include in CSR"}
+    )
+    connect_to_ips: List[str] = field(
+        default_factory=lambda: ["8.8.8.8", "2001:4860:4860::8888"],
+        metadata={"description": "List of IP addresses to connect to get the local ip address."},
+    )
+
+
+@dataclass()
 class ApiConfig:
     kind: ClassVar[str] = f"{ResotoCoreRoot}_api_config"
 
@@ -32,7 +48,9 @@ class ApiConfig:
         default=None,
         metadata={"description": "The directory where the UI is installed. This directory will be served under "},
     )
-    psk: Optional[str] = field(default=None, metadata={"description": "The pre-shared key to use."})
+    host_certificate: CertificateConfig = field(
+        default_factory=CertificateConfig, metadata={"description": "The certificate configuration for this server."}
+    )
 
 
 # Define rules to validate this config
@@ -273,7 +291,6 @@ def parse_config(args: Namespace, json_config: Json) -> CoreConfig:
     set_from_cmd_line = {
         "api.hosts": args.host,
         "api.port": args.port,
-        "api.psk": args.psk,
         "api.tsdb_proxy_url": args.tsdb_proxy_url,
         "api.ui_path": args.ui_path,
         "cli.default_graph": args.cli_default_graph,

@@ -82,7 +82,7 @@ class Shell:
                     data=body,
                     headers=headers,
                     stream=True,
-                    verify=self.tls_data.verify,
+                    verify=self.tls_data.verify if self.tls_data else None,
                 )
             except ConnectionError:
                 err = (

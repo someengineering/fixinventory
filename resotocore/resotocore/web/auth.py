@@ -62,9 +62,9 @@ def check_jwt(psk: str) -> Middleware:
 
 
 def auth_handler(config: CoreConfig) -> Middleware:
-    if config.api.psk:
+    if config.args.psk:
         log.info("Use JWT authentication with a pre shared key")
-        return check_jwt(config.api.psk)
+        return check_jwt(config.args.psk)
     else:
         log.info("No authentication requested.")
         return no_check

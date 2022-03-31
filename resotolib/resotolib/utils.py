@@ -11,7 +11,6 @@ if sys.platform == "linux":
     import resource
 import time
 import json
-from argparse import Namespace
 from resotolib.logging import log
 from functools import wraps
 from pprint import pformat
@@ -700,7 +699,7 @@ class ResourceChanges:
 
 
 def get_local_ip_addresses(
-    include_loopback: bool = True, args: Namespace = None, connect_to_ips: List = None
+    include_loopback: bool = True, args: Any = None, connect_to_ips: List = None
 ) -> List[str]:
     ips = set()
     if connect_to_ips is None:
@@ -734,9 +733,7 @@ def get_local_ip_addresses(
     return list(ips)
 
 
-def get_local_hostnames(
-    include_loopback: bool = True, args: Namespace = None
-) -> List[str]:
+def get_local_hostnames(include_loopback: bool = True, args: Any = None) -> List[str]:
     hostnames = set()
     if include_loopback:
         hostnames.add("localhost")
