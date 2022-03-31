@@ -57,12 +57,10 @@ class CertificateHandler:
         key = gen_rsa_key()
         host_names = get_local_hostnames(
             include_loopback=cfg.include_loopback,
-            san_ip_addresses=cfg.csr_san_ip_addresses,
-            san_dns_names=cfg.csr_san_dns_names,
+            san_ip_addresses=cfg.san_ip_addresses,
+            san_dns_names=cfg.san_dns_names,
         )
-        host_ips = get_local_ip_addresses(
-            include_loopback=cfg.include_loopback, san_ip_addresses=cfg.csr_san_ip_addresses
-        )
+        host_ips = get_local_ip_addresses(include_loopback=cfg.include_loopback, san_ip_addresses=cfg.san_ip_addresses)
         log.info(f'Create host certificate for hostnames:{", ".join(host_names)} and ips:{", ".join(host_ips)}')
         csr = gen_csr(
             key,
