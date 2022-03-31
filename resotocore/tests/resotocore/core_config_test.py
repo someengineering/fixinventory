@@ -29,8 +29,8 @@ def test_read_config() -> None:
                 "ui_path": "fest",
                 "host_certificate": {
                     "common_name": "test",
-                    "csr_san_dns_names": ["test.example.com"],
-                    "csr_san_ip_addresses": ["4.3.2.1"],
+                    "san_dns_names": ["test.example.com"],
+                    "san_ip_addresses": ["4.3.2.1"],
                     "include_loopback": False,
                 },
             },
