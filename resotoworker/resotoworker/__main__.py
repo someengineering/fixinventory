@@ -69,7 +69,7 @@ def main() -> None:
             common_name=ArgumentParser.args.subscriber_id,
             resotocore_uri=resotocore.http_uri,
         )
-        tls_data.load_from_core()
+        tls_data.load()
     config = Config(
         ArgumentParser.args.subscriber_id,
         resotocore_uri=resotocore.http_uri,

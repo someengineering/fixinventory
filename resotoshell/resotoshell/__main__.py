@@ -36,7 +36,7 @@ def main() -> None:
             resotocore_uri=resotocore.http_uri,
             ca_only=True,
         )
-        tls_data.load_from_core()
+        tls_data.load()
 
     headers = {"Accept": "text/plain"}
     execute_endpoint = f"{args.resotocore_uri}/cli/execute"

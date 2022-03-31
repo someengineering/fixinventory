@@ -159,7 +159,7 @@ class TLSData:
 
     def reload(self) -> None:
         self.__loaded.clear()
-        self.load_from_core()
+        self.load()
 
     def __expiration_watcher(self) -> None:
         while not self.__exit.is_set():
@@ -173,7 +173,7 @@ class TLSData:
                         break
             time.sleep(5)
 
-    def load_from_core(self) -> None:
+    def load(self) -> None:
         with self.__load_lock:
             if getattr(ArgumentParser.args, "ca_cert", None) is not None:
                 log.debug(f"Loading CA certificate from {ArgumentParser.args.ca_cert}")
@@ -219,37 +219,37 @@ class TLSData:
     @property
     def ca_cert(self) -> str:
         if not os.path.isfile(self.__ca_cert_path):
-            self.load_from_core()
+            self.load()
         return self.__ca_cert
 
     @property
     def cert(self) -> str:
         if not self.__loaded.is_set():
-            self.load_from_core()
+            self.load()
         return self.__cert
 
     @property
     def key(self) -> str:
         if not self.__loaded.is_set():
-            self.load_from_core()
+            self.load()
         return self.__key
 
     @property
     def ca_cert_path(self) -> str:
         if not os.path.isfile(self.__ca_cert_path):
-            self.load_from_core()
+            self.load()
         return self.__ca_cert_path
 
     @property
     def cert_path(self) -> str:
         if not self.__loaded.is_set():
-            self.load_from_core()
+            self.load()
         return self.__cert_path
 
     @property
     def key_path(self) -> str:
         if not self.__loaded.is_set():
-            self.load_from_core()
+            self.load()
         return self.__key_path
 
     @property
