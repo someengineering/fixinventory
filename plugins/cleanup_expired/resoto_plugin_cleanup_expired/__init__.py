@@ -14,7 +14,7 @@ class CleanupExpiredPlugin(BaseActionPlugin):
 
     def do_action(self, data: Dict) -> None:
         log.debug("Cleanup Expired called")
-        cg = CoreGraph()
+        cg = CoreGraph(tls_data=self.tls_data)
         command = 'query /metadata.expires < "@NOW@" | clean "Resource is expired"'
         for response in cg.execute(command):
             if (

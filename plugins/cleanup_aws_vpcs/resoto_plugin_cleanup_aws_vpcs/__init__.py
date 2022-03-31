@@ -39,7 +39,7 @@ class CleanupAWSVPCsPlugin(BaseActionPlugin):
     def do_action(self, data: Dict) -> None:
         Config.plugin_cleanup_aws_vpcs.validate(Config.plugin_cleanup_aws_vpcs)
         self.config = deepcopy(Config.plugin_cleanup_aws_vpcs.config)
-        cg = CoreGraph()
+        cg = CoreGraph(tls_data=self.tls_data)
         query = "is(aws_vpc) and /desired.clean == true and /metadata.cleaned == false <-default,delete[0:]delete->"
         graph = cg.graph(query)
         self.vpc_cleanup(graph)

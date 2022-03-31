@@ -29,7 +29,7 @@ class CleanupAWSLoadbalancersPlugin(BaseActionPlugin):
 
     def do_action(self, data: Dict) -> None:
         self.update_age()
-        cg = CoreGraph()
+        cg = CoreGraph(tls_data=self.tls_data)
         query = 'is(["aws_elb", "aws_alb", "aws_alb_target_group"]) <-default,delete[0:]delete->'
         graph = cg.graph(query)
         self.loadbalancer_cleanup(graph)

@@ -23,7 +23,7 @@ class CleanupVolumesPlugin(BaseActionPlugin):
 
     def do_action(self, data: Dict) -> None:
         self.update_age()
-        cg = CoreGraph()
+        cg = CoreGraph(tls_data=self.tls_data)
         query = "is(volume) and reported.volume_status == available <-[0:]->"
         graph = cg.graph(query)
         self.volumes_cleanup(graph)

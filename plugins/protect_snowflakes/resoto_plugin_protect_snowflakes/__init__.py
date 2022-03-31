@@ -19,7 +19,7 @@ class ProtectSnowflakesPlugin(BaseActionPlugin):
         Config.plugin_protect_snowflakes.validate(Config.plugin_protect_snowflakes)
         self.config = deepcopy(Config.plugin_protect_snowflakes.config)
 
-        cg = CoreGraph()
+        cg = CoreGraph(tls_data=self.tls_data)
         resource_parts = []
         for cloud_id, accounts in self.config.items():
             for account_id, regions in accounts.items():

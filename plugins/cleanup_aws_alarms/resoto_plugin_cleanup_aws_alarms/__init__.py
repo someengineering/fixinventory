@@ -25,7 +25,7 @@ class CleanupAWSAlarmsPlugin(BaseActionPlugin):
         return Config.plugin_cleanup_aws_alarms.enabled
 
     def do_action(self, data: Dict) -> None:
-        cg = CoreGraph()
+        cg = CoreGraph(tls_data=self.tls_data)
 
         query = "is(aws_cloudwatch_alarm) <-default,delete[0:]delete->"
         graph = cg.graph(query)

@@ -133,7 +133,7 @@ def main() -> None:
     for Plugin in plugin_loader.plugins(PluginType.ACTION):
         try:
             log.debug(f"Starting action plugin {Plugin}")
-            plugin = Plugin()
+            plugin = Plugin(tls_data=tls_data)
             plugin.start()
         except Exception as e:
             log.exception(f"Caught unhandled persistent Plugin exception {e}")
