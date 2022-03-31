@@ -1,13 +1,13 @@
 import requests
 import json
-from resotolib.core.ca import TLSHolder
+from resotolib.core.ca import TLSData
 from resotolib.args import ArgumentParser
 from resotolib.jwt import encode_jwt_to_headers
 from typing import Iterator, Optional
 
 
 def query(
-    query_str: str, query_uri: str, tls_data: Optional[TLSHolder] = None
+    query_str: str, query_uri: str, tls_data: Optional[TLSData] = None
 ) -> Iterator:
     headers = {"Accept": "application/x-ndjson"}
     if ArgumentParser.args.psk:

@@ -2,7 +2,7 @@ import jsons
 import threading
 from resotolib.logging import log
 from resotolib.args import ArgumentParser, convert
-from resotolib.core.ca import TLSHolder
+from resotolib.core.ca import TLSData
 from resotolib.core.model_export import dataclasses_to_resotocore_model, optional_origin
 from resotolib.core import ResotocoreURI
 from resotolib.core.config import (
@@ -56,7 +56,7 @@ class Config(metaclass=MetaConfig):
         self,
         config_name: str,
         resotocore_uri: str = None,
-        tls_data: Optional[TLSHolder] = None,
+        tls_data: Optional[TLSData] = None,
     ) -> None:
         self._config_lock = threading.Lock()
         self.config_name = config_name

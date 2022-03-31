@@ -5,7 +5,7 @@ from resotolib.logging import log, setup_logger, add_args as logging_add_args
 from resotolib.jwt import add_args as jwt_add_args
 from resotolib.config import Config
 from resotolib.core import add_args as resotocore_add_args, resotocore
-from resotolib.core.ca import TLSHolder
+from resotolib.core.ca import TLSData
 from .config import ResotoMetricsConfig
 from functools import partial
 from resotolib.core.actions import CoreActions
@@ -51,20 +51,20 @@ def main() -> None:
     resotocore_add_args(arg_parser)
     logging_add_args(arg_parser)
     jwt_add_args(arg_parser)
-    TLSHolder.add_args(arg_parser)
+    TLSData.add_args(arg_parser)
     arg_parser.parse_args()
 
-    tls_holder = None
+    tls_data = None
     if resotocore.is_secure:
-        tls_holder = TLSHolder(
+        tls_data = TLSData(
             common_name=ArgumentParser.args.subscriber_id,
             resotocore_uri=resotocore.http_uri,
         )
-        tls_holder.start()
+        tls_data.start()
     config = Config(
         ArgumentParser.args.subscriber_id,
         resotocore_uri=resotocore.http_uri,
-        tls_data=tls_holder,
+        tls_data=tls_data,
     )
     config.add_config(ResotoMetricsConfig)
     config.load_config()
@@ -77,7 +77,7 @@ def main() -> None:
     graph_uri = f"{resotocore.http_uri}/graph/{resotocore_graph}"
     query_uri = f"{graph_uri}/query/aggregate?section=reported"
 
-    message_processor = partial(core_actions_processor, metrics, query_uri, tls_holder)
+    message_processor = partial(core_actions_processor, metrics, query_uri, tls_data)
     core_actions = CoreActions(
         identifier=ArgumentParser.args.subscriber_id,
         resotocore_uri=resotocore.http_uri,
@@ -89,13 +89,13 @@ def main() -> None:
             },
         },
         message_processor=message_processor,
-        tls_data=tls_holder,
+        tls_data=tls_data,
     )
     web_server_args = {}
-    if tls_holder:
+    if tls_data:
         web_server_args = {
-            "ssl_cert": tls_holder.cert_path,
-            "ssl_key": tls_holder.key_path,
+            "ssl_cert": tls_data.cert_path,
+            "ssl_key": tls_data.key_path,
         }
     web_server = WebServer(
         WebApp(mountpoint=Config.resotometrics.web_path),
@@ -113,7 +113,7 @@ def main() -> None:
 
 
 def core_actions_processor(
-    metrics: Metrics, query_uri: str, tls_data: TLSHolder, message: dict
+    metrics: Metrics, query_uri: str, tls_data: TLSData, message: dict
 ) -> None:
     if not isinstance(message, dict):
         log.error(f"Invalid message: {message}")
@@ -147,7 +147,7 @@ def core_actions_processor(
 
 @metrics_update_metrics.time()
 def update_metrics(
-    metrics: Metrics, query_uri: str, tls_data: Optional[TLSHolder] = None
+    metrics: Metrics, query_uri: str, tls_data: Optional[TLSData] = None
 ) -> None:
     metrics_descriptions = Config.resotometrics.metrics
     for _, data in metrics_descriptions.items():

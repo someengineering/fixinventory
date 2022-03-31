@@ -7,7 +7,7 @@ from resotolib.logging import log
 from resotolib.event import EventType, remove_event_listener, add_event_listener, Event
 from resotolib.args import ArgumentParser
 from resotolib.jwt import encode_jwt_to_headers
-from resotolib.core.ca import TLSHolder
+from resotolib.core.ca import TLSData
 from typing import Callable, Dict, Optional, Set
 
 
@@ -17,7 +17,7 @@ class CoreEvents(threading.Thread):
         resotocore_ws_uri: str,
         events: Optional[Set] = None,
         message_processor: Optional[Callable] = None,
-        tls_data: Optional[TLSHolder] = None,
+        tls_data: Optional[TLSData] = None,
     ) -> None:
         super().__init__()
         self.ws_uri = f"{resotocore_ws_uri}/events"

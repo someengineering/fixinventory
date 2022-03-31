@@ -9,7 +9,7 @@ from prompt_toolkit import PromptSession
 from prompt_toolkit.history import FileHistory
 from resotolib.args import ArgumentParser, Namespace
 from resotolib.core import resotocore, add_args as core_add_args
-from resotolib.core.ca import TLSHolder
+from resotolib.core.ca import TLSData
 from resotolib.jwt import add_args as jwt_add_args
 from resotolib.logging import log, setup_logger, add_args as logging_add_args
 from resotolib.utils import rnd_str
@@ -26,17 +26,17 @@ def main() -> None:
     add_args(arg_parser)
     logging_add_args(arg_parser)
     jwt_add_args(arg_parser)
-    TLSHolder.add_args(arg_parser, ca_only=True)
+    TLSData.add_args(arg_parser, ca_only=True)
     args = arg_parser.parse_args()
 
-    tls_holder = None
+    tls_data = None
     if resotocore.is_secure:
-        tls_holder = TLSHolder(
+        tls_data = TLSData(
             common_name="resh",
             resotocore_uri=resotocore.http_uri,
             ca_only=True,
         )
-    with tls_holder or nullcontext():
+    with tls_data or nullcontext():
         headers = {"Accept": "text/plain"}
         execute_endpoint = f"{args.resotocore_uri}/cli/execute"
         execute_endpoint += f"?resoto_session_id={rnd_str()}"
@@ -48,15 +48,15 @@ def main() -> None:
             execute_endpoint += f"&{query_string}"
 
         if args.stdin:
-            handle_from_stdin(execute_endpoint, tls_holder, headers)
+            handle_from_stdin(execute_endpoint, tls_data, headers)
         else:
-            repl(execute_endpoint, tls_holder, headers, args)
+            repl(execute_endpoint, tls_data, headers, args)
         sys.exit(0)
 
 
 def repl(
     execute_endpoint: str,
-    tls_data: Optional[TLSHolder],
+    tls_data: Optional[TLSData],
     headers: Dict[str, str],
     args: Namespace,
 ) -> None:
@@ -89,7 +89,7 @@ def repl(
 
 
 def handle_from_stdin(
-    execute_endpoint: str, tls_data: Optional[TLSHolder], headers: Dict[str, str]
+    execute_endpoint: str, tls_data: Optional[TLSData], headers: Dict[str, str]
 ) -> None:
     shell = Shell(execute_endpoint, False, "monochrome", tls_data)
     log.debug("Reading commands from STDIN")

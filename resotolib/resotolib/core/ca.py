@@ -94,7 +94,7 @@ def get_signed_cert(
     return cert_key, cert_crt
 
 
-class TLSHolder:
+class TLSData:
     def __init__(
         self,
         common_name: str = None,

@@ -8,11 +8,11 @@ from resotolib.jwt import encode_jwt_to_headers
 from resotolib.graph import Graph, GraphExportIterator
 from resotolib.config import Config
 from resotolib.core import resotocore
-from resotolib.core.ca import TLSHolder
+from resotolib.core.ca import TLSData
 from typing import Optional
 
 
-def send_to_resotocore(graph: Graph, tls_data: Optional[TLSHolder] = None):
+def send_to_resotocore(graph: Graph, tls_data: Optional[TLSData] = None):
     if not ArgumentParser.args.resotocore_uri:
         return
 
