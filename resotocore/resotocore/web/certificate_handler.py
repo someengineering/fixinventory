@@ -55,10 +55,22 @@ class CertificateHandler:
     def create_host_certificate(self, ca_key: RSAPrivateKey, ca_cert: Certificate) -> Tuple[RSAPrivateKey, Certificate]:
         cfg = self.config.api.host_certificate
         key = gen_rsa_key()
-        host_names = get_local_hostnames(cfg.include_loopback, cfg)
-        host_ips = get_local_ip_addresses(cfg.include_loopback, cfg, cfg.connect_to_ips)
+        host_names = get_local_hostnames(
+            include_loopback=cfg.include_loopback,
+            san_ip_addresses=cfg.csr_san_ip_addresses,
+            san_dns_names=cfg.csr_san_dns_names,
+        )
+        host_ips = get_local_ip_addresses(
+            include_loopback=cfg.include_loopback, san_ip_addresses=cfg.csr_san_ip_addresses
+        )
         log.info(f'Create host certificate for hostnames:{", ".join(host_names)} and ips:{", ".join(host_ips)}')
-        csr = gen_csr(key, san_dns_names=list(host_names), san_ip_addresses=list(host_ips))
+        csr = gen_csr(
+            key,
+            common_name=cfg.common_name,
+            san_dns_names=list(host_names),
+            san_ip_addresses=list(host_ips),
+            include_loopback=cfg.include_loopback,
+        )
         cert = sign_csr(csr, ca_key, ca_cert)
         return key, cert
 

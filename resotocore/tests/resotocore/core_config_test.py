@@ -28,7 +28,7 @@ def test_read_config() -> None:
                 "tsdb_proxy_url": "test",
                 "ui_path": "fest",
                 "host_certificate": {
-                    "connect_to_ips": ["1.2.3.4", "1:2:3::4444"],
+                    "common_name": "test",
                     "csr_san_dns_names": ["test.example.com"],
                     "csr_san_ip_addresses": ["4.3.2.1"],
                     "include_loopback": False,

@@ -19,16 +19,13 @@ ResotoCoreRoot = "resotocore"
 @dataclass()
 class CertificateConfig:
     kind: ClassVar[str] = f"{ResotoCoreRoot}_certificate_config"
+    common_name: str = field(default="some.engineering", metadata={"description": "The common name of the certificate"})
     include_loopback: bool = field(default=True, metadata={"description": "Include loopback in certificate"})
     csr_san_dns_names: List[str] = field(
         default_factory=list, metadata={"description": "List of DNS names to include in CSR"}
     )
     csr_san_ip_addresses: List[str] = field(
         default_factory=list, metadata={"description": "List of IP addresses to include in CSR"}
-    )
-    connect_to_ips: List[str] = field(
-        default_factory=lambda: ["8.8.8.8", "2001:4860:4860::8888"],
-        metadata={"description": "List of IP addresses to connect to get the local ip address."},
     )
 
 

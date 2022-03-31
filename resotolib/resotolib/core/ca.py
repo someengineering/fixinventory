@@ -62,6 +62,7 @@ def get_signed_cert(
     resotocore_uri: str = None,
     psk: str = None,
     ca_cert_path: str = None,
+    connect_to_ips: Optional[List[str]] = None,
 ) -> Tuple[RSAPrivateKey, Certificate]:
     if resotocore_uri is None:
         resotocore_uri = getattr(ArgumentParser.args, "resotocore_uri", None)
@@ -69,7 +70,13 @@ def get_signed_cert(
         psk = getattr(ArgumentParser.args, "psk", None)
 
     cert_key = gen_rsa_key()
-    cert_csr = gen_csr(cert_key, common_name, san_dns_names, san_ip_addresses)
+    cert_csr = gen_csr(
+        cert_key,
+        common_name=common_name,
+        connect_to_ips=connect_to_ips,
+        san_dns_names=san_dns_names,
+        san_ip_addresses=san_ip_addresses,
+    )
     cert_csr_bytes = csr_to_bytes(cert_csr)
     headers = {}
     if psk is not None:
