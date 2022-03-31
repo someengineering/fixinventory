@@ -1,8 +1,10 @@
 import os
 import pathlib
 import sys
+import time
+import resotolib.signal
 from contextlib import nullcontext
-from threading import Event
+from threading import Event, Thread
 from typing import Callable, Optional, Dict
 from urllib.parse import urlencode
 from prompt_toolkit import PromptSession
@@ -13,11 +15,14 @@ from resotolib.core.ca import TLSData
 from resotolib.jwt import add_args as jwt_add_args
 from resotolib.logging import log, setup_logger, add_args as logging_add_args
 from resotolib.utils import rnd_str
+from resotolib.event import add_event_listener, Event as ResotoEvent, EventType
 from resotoshell.shell import Shell
 from rich.console import Console
 
 
 def main() -> None:
+    resotolib.signal.parent_pid = os.getpid()
+    resotolib.signal.initializer()
     setup_logger("resotoshell")
     arg_parser = ArgumentParser(
         description="resoto shell", env_args_prefix="RESOTOSHELL_"
@@ -51,7 +56,9 @@ def main() -> None:
             handle_from_stdin(execute_endpoint, tls_data, headers)
         else:
             repl(execute_endpoint, tls_data, headers, args)
-        sys.exit(0)
+    resotolib.signal.kill_children(resotolib.signal.SIGTERM, ensure_death=True)
+    log.debug("Shutdown complete")
+    sys.exit(0)
 
 
 def repl(
@@ -68,6 +75,12 @@ def repl(
     session = PromptSession(history=history)
     log.debug("Starting interactive session")
     # send the welcome command to the core
+    def shutdown(event: ResotoEvent) -> None:
+        shutdown_event.set()
+        kt = Thread(target=resotolib.signal.delayed_exit, name="shutdown")
+        kt.start()
+
+    add_event_listener(EventType.SHUTDOWN, shutdown)
     shell.handle_command("welcome", headers)
     while not shutdown_event.is_set():
         try:

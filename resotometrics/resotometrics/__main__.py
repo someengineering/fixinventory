@@ -1,3 +1,4 @@
+import os
 import sys
 import time
 import resotolib.signal
@@ -40,7 +41,7 @@ def handler(sig, frame) -> None:
 
 def main() -> None:
     setup_logger("resotometrics")
-
+    resotolib.signal.parent_pid = os.getpid()
     resotolib.signal.initializer()
 
     arg_parser = ArgumentParser(
@@ -109,6 +110,8 @@ def main() -> None:
     shutdown_event.wait()
     web_server.shutdown()
     core_actions.shutdown()
+    resotolib.signal.kill_children(resotolib.signal.SIGTERM, ensure_death=True)
+    log.info("Shutdown complete")
     sys.exit(0)
 
 
