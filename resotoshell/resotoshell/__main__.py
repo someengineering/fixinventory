@@ -1,7 +1,6 @@
 import os
 import pathlib
 import sys
-import time
 import resotolib.signal
 from contextlib import nullcontext
 from threading import Event, Thread
@@ -74,13 +73,15 @@ def repl(
     history = FileHistory(history_file)
     session = PromptSession(history=history)
     log.debug("Starting interactive session")
-    # send the welcome command to the core
+
     def shutdown(event: ResotoEvent) -> None:
         shutdown_event.set()
         kt = Thread(target=resotolib.signal.delayed_exit, name="shutdown")
         kt.start()
 
     add_event_listener(EventType.SHUTDOWN, shutdown)
+
+    # send the welcome command to the core
     shell.handle_command("welcome", headers)
     while not shutdown_event.is_set():
         try:
