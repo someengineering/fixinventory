@@ -1,7 +1,6 @@
 import os
 import warnings
 import requests
-import time
 from ssl import create_default_context, SSLContext
 from typing import Tuple, Optional, List, Dict, Union
 from resotolib.args import ArgumentParser
