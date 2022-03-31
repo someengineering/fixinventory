@@ -12,7 +12,7 @@ from requests import Response, post
 from requests.exceptions import ConnectionError
 from requests_toolbelt import MultipartDecoder, MultipartEncoder
 from requests_toolbelt.multipart.decoder import BodyPart
-from resotolib.core.ca import TLSData
+from resotolib.core.ca import TLSHolder
 from resotolib.args import ArgumentParser
 from resotolib.jwt import encode_jwt_to_headers
 from resotolib.logging import log
@@ -25,12 +25,12 @@ class Shell:
         execute_endpoint: str,
         tty: bool,
         color_system: str,
-        tls_data: TLSData = None,
+        tls_data: Optional[TLSHolder] = None,
     ):
         self.execute_endpoint = execute_endpoint
         self.tty = tty
         self.color_system = color_system
-        self.tls_data = tls_data
+        self.verify = tls_data.verify if tls_data else None
 
     def handle_command(
         self,
@@ -82,7 +82,7 @@ class Shell:
                     data=body,
                     headers=headers,
                     stream=True,
-                    verify=self.tls_data.verify if self.tls_data else None,
+                    verify=self.verify,
                 )
             except ConnectionError:
                 err = (

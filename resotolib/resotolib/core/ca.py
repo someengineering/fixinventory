@@ -25,7 +25,7 @@ from resotolib.jwt import decode_jwt_from_headers, encode_jwt_to_headers
 from cryptography.x509.base import Certificate
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
 from tempfile import TemporaryDirectory
-from threading import Lock, Event, Thread
+from threading import Lock, Event, Thread, Condition
 from resotolib.logging import log
 from resotolib.event import add_event_listener, Event as ResotoEvent, EventType
 from datetime import datetime, timedelta
@@ -94,7 +94,7 @@ def get_signed_cert(
     return cert_key, cert_crt
 
 
-class TLSData:
+class TLSHolder:
     def __init__(
         self,
         common_name: str = None,
@@ -124,12 +124,24 @@ class TLSData:
         self.__key_path = f"{self.__tempdir.name}/cert.key"
         self.__load_lock = Lock()
         self.__loaded = Event()
-        self.__exit = Event()
+        self.__exit = Condition()
         add_event_listener(EventType.SHUTDOWN, self.shutdown, blocking=False)
         self.__watcher = Thread(target=self.__expiration_watcher)
 
+    def __enter__(self) -> None:
+        self.start()
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        self.shutdown()
+
+    def start(self) -> None:
+        self.load()
+        if not self.__watcher.is_alive():
+            self.__watcher.start()
+
     def shutdown(self, event: Optional[ResotoEvent] = None) -> None:
-        self.__exit.set()
+        with self.__exit:
+            self.__exit.notify()
 
     def __getstate__(self):
         d = self.__dict__.copy()
@@ -149,7 +161,7 @@ class TLSData:
     def __setstate__(self, d):
         d["_TLSData__load_lock"] = Lock()
         d["_TLSData__loaded"] = Event()
-        d["_TLSData__exit"] = Event()
+        d["_TLSData__exit"] = Condition()
         d["_TLSData__ca_cert"] = None
         d["_TLSData__cert"] = None
         d["_TLSData__key"] = None
@@ -169,16 +181,19 @@ class TLSData:
         self.load()
 
     def __expiration_watcher(self) -> None:
-        while not self.__exit.is_set():
-            if self.__loaded.is_set():
-                for cert in (self.__ca_cert, self.__cert):
-                    if (
-                        isinstance(cert, Certificate)
-                        and cert.not_valid_after < datetime.utcnow() - self.renew_before
-                    ):
-                        self.reload()
-                        break
-            time.sleep(5)
+        while True:
+            with self.__exit:
+                if self.__loaded.is_set():
+                    for cert in (self.__ca_cert, self.__cert):
+                        if (
+                            isinstance(cert, Certificate)
+                            and cert.not_valid_after
+                            < datetime.utcnow() - self.renew_before
+                        ):
+                            self.reload()
+                            break
+                if self.__exit.wait(60):
+                    break
 
     def load(self) -> None:
         with self.__load_lock:
@@ -220,8 +235,6 @@ class TLSData:
                 write_cert_to_file(self.__cert, self.__cert_path)
                 write_key_to_file(self.__key, self.__key_path)
             self.__loaded.set()
-            if not self.__watcher.is_alive():
-                self.__watcher.start()
 
     @property
     def ca_cert(self) -> str:

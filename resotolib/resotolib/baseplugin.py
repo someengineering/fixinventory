@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from enum import Enum, auto
-from resotolib.core.ca import TLSData
+from resotolib.core.ca import TLSHolder
 from resotolib.graph import Graph
 from resotolib.core import resotocore
 from resotolib.core.actions import CoreActions
@@ -85,7 +85,7 @@ class BaseActionPlugin(ABC, Process):
     plugin_type = PluginType.ACTION
     action = NotImplemented  # Name of the action this plugin implements
 
-    def __init__(self, tls_data: Optional[TLSData] = None) -> None:
+    def __init__(self, tls_data: Optional[TLSHolder] = None) -> None:
         super().__init__()
         self._args = ArgumentParser.args
         self._config = resotolib.config._config

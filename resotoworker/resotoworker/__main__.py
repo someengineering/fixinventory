@@ -14,7 +14,7 @@ from resotolib.web.metrics import WebApp
 from resotolib.utils import log_stats, increase_limits
 from resotolib.args import ArgumentParser
 from resotolib.core import add_args as core_add_args, resotocore
-from resotolib.core.ca import TLSData
+from resotolib.core.ca import TLSHolder
 from resotolib.core.actions import CoreActions
 from resotolib.core.tasks import CoreTasks
 from resotoworker.pluginloader import PluginLoader
@@ -53,7 +53,7 @@ def main() -> None:
     logging_add_args(arg_parser)
     core_add_args(arg_parser)
     Config.add_args(arg_parser)
-    TLSData.add_args(arg_parser)
+    TLSHolder.add_args(arg_parser)
 
     # Find resoto Plugins in the resoto.plugins module
     plugin_loader = PluginLoader()
@@ -63,17 +63,17 @@ def main() -> None:
     # added their args to the arg parser
     arg_parser.parse_args()
 
-    tls_data = None
+    tls_holder = None
     if resotocore.is_secure:
-        tls_data = TLSData(
+        tls_holder = TLSHolder(
             common_name=ArgumentParser.args.subscriber_id,
             resotocore_uri=resotocore.http_uri,
         )
-        tls_data.load()
+        tls_holder.start()
     config = Config(
         ArgumentParser.args.subscriber_id,
         resotocore_uri=resotocore.http_uri,
-        tls_data=tls_data,
+        tls_data=tls_holder,
     )
     add_config(config)
     plugin_loader.add_plugin_config(config)
@@ -87,8 +87,11 @@ def main() -> None:
     increase_limits()
 
     web_server_args = {}
-    if tls_data:
-        web_server_args = {"ssl_cert": tls_data.cert_path, "ssl_key": tls_data.key_path}
+    if tls_holder:
+        web_server_args = {
+            "ssl_cert": tls_holder.cert_path,
+            "ssl_key": tls_holder.key_path,
+        }
     web_server = WebServer(
         WebApp(mountpoint=Config.resotoworker.web_path),
         web_host=Config.resotoworker.web_host,
@@ -112,8 +115,8 @@ def main() -> None:
                 "wait_for_completion": True,
             },
         },
-        message_processor=partial(core_actions_processor, plugin_loader, tls_data),
-        tls_data=tls_data,
+        message_processor=partial(core_actions_processor, plugin_loader, tls_holder),
+        tls_data=tls_holder,
     )
 
     task_queue_filter = {}
@@ -125,7 +128,7 @@ def main() -> None:
         tasks=["tag"],
         task_queue_filter=task_queue_filter,
         message_processor=core_tag_tasks_processor,
-        tls_data=tls_data,
+        tls_data=tls_holder,
     )
     core_actions.start()
     core_tasks.start()
@@ -149,7 +152,7 @@ def main() -> None:
 
 
 def core_actions_processor(
-    plugin_loader: PluginLoader, tls_data: TLSData, message: Dict
+    plugin_loader: PluginLoader, tls_data: TLSHolder, message: Dict
 ) -> None:
     collectors: List[BaseCollectorPlugin] = plugin_loader.plugins(PluginType.COLLECTOR)
     if not isinstance(message, dict):

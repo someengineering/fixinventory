@@ -1,6 +1,6 @@
 from resotolib.logging import log
 from resotolib.core.query import CoreGraph
-from resotolib.core.ca import TLSData
+from resotolib.core.ca import TLSHolder
 from networkx import DiGraph
 from resotolib.graph import Graph
 from resotolib.baseresources import BaseResource, EdgeType
@@ -15,7 +15,7 @@ from typing import Optional
 metrics_cleanup = Summary("resoto_cleanup_seconds", "Time it took the cleanup() method")
 
 
-def cleanup(tls_data: Optional[TLSData] = None):
+def cleanup(tls_data: Optional[TLSHolder] = None):
     """Run resource cleanup"""
 
     log.info("Running cleanup")

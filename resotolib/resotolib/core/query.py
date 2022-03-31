@@ -5,7 +5,7 @@ from resotolib.config import Config
 from resotolib.core import resotocore
 from resotolib.graph import Graph, sanitize
 from resotolib.core.model_export import node_from_dict, node_to_dict
-from resotolib.core.ca import TLSData
+from resotolib.core.ca import TLSHolder
 from resotolib.baseresources import EdgeType
 from resotolib.args import ArgumentParser
 from resotolib.logging import log
@@ -18,7 +18,7 @@ class CoreGraph:
         self,
         base_uri: str = None,
         graph: str = None,
-        tls_data: Optional[TLSData] = None,
+        tls_data: Optional[TLSHolder] = None,
     ) -> None:
         if base_uri is None:
             self.base_uri = resotocore.http_uri

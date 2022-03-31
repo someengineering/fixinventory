@@ -7,7 +7,7 @@ from resotolib.event import EventType, remove_event_listener, add_event_listener
 from resotolib.logging import log
 from resotolib.args import ArgumentParser
 from resotolib.jwt import encode_jwt_to_headers
-from resotolib.core.ca import TLSData
+from resotolib.core.ca import TLSHolder
 from typing import Callable, Dict, Optional, List
 from urllib.parse import urlunsplit, urlencode, urlsplit
 
@@ -21,7 +21,7 @@ class CoreTasks(threading.Thread):
         task_queue_filter: Optional[Dict[str, List[str]]] = None,
         message_processor: Optional[Callable] = None,
         max_workers: int = 20,
-        tls_data: Optional[TLSData] = None,
+        tls_data: Optional[TLSHolder] = None,
     ) -> None:
         super().__init__()
         self.identifier = identifier
