@@ -18,8 +18,8 @@ from typing import Dict
 class CleanupAWSLoadbalancersPlugin(BaseActionPlugin):
     action = "cleanup_plan"
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.age = None
         if Config.plugin_cleanup_aws_loadbalancers.enabled:
             self.update_age()

@@ -12,8 +12,8 @@ from typing import Dict
 class CleanupVolumesPlugin(BaseActionPlugin):
     action = "cleanup_plan"
 
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.age = None
         if Config.plugin_cleanup_volumes.enabled:
             self.update_age()

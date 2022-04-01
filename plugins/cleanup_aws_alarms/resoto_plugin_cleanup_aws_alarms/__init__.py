@@ -14,8 +14,8 @@ from typing import Dict
 class CleanupAWSAlarmsPlugin(BaseActionPlugin):
     action = "cleanup_plan"
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         self.config = {}
         if Config.plugin_cleanup_aws_alarms.enabled:

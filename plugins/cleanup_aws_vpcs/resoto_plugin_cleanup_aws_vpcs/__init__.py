@@ -29,8 +29,8 @@ from typing import Dict
 class CleanupAWSVPCsPlugin(BaseActionPlugin):
     action = "post_cleanup_plan"
 
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.config = {}
 
     def bootstrap(self) -> bool:
