@@ -161,7 +161,7 @@ def write_csr_to_file(
     csr: CertificateSigningRequest, csr_path: str, rename: bool = True
 ) -> None:
     tmp_csr_path = f"{csr_path}.tmp" if rename else csr_path
-    with open(csr_path, "wb") as f:
+    with open(tmp_csr_path, "wb") as f:
         f.write(csr_to_bytes(csr))
     if rename:
         os.rename(tmp_csr_path, csr_path)
