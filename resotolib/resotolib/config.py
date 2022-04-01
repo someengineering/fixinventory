@@ -2,6 +2,8 @@ import jsons
 import threading
 from resotolib.logging import log
 from resotolib.args import ArgumentParser, convert
+from resotolib.core.ca import TLSData
+from resotolib.signal import restart
 from resotolib.core.model_export import dataclasses_to_resotocore_model, optional_origin
 from resotolib.core import ResotocoreURI
 from resotolib.core.config import (
@@ -11,7 +13,7 @@ from resotolib.core.config import (
     update_config_model,
 )
 from resotolib.core.events import CoreEvents
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from dataclasses import fields
 
 
@@ -51,16 +53,25 @@ class MetaConfig(type):
 class Config(metaclass=MetaConfig):
     running_config: RunningConfig = _config
 
-    def __init__(self, config_name: str, resotocore_uri: str = None) -> None:
+    def __init__(
+        self,
+        config_name: str,
+        resotocore_uri: str = None,
+        tls_data: Optional[TLSData] = None,
+    ) -> None:
         self._config_lock = threading.Lock()
         self.config_name = config_name
         self._initial_load = True
         resotocore = ResotocoreURI(resotocore_uri)
         self.resotocore_uri = resotocore.http_uri
+        self.verify = None
+        if tls_data:
+            self.verify = tls_data.verify
         self._ce = CoreEvents(
             resotocore.ws_uri,
             events={"config-updated"},
             message_processor=self.on_config_event,
+            tls_data=tls_data,
         )
 
     def __getattr__(self, name):
@@ -97,13 +108,13 @@ class Config(metaclass=MetaConfig):
         else:
             raise RuntimeError("Config must have a 'kind' attribute")
 
-    def load_config(self) -> None:
+    def load_config(self, reload: bool = False) -> None:
         if len(Config.running_config.classes) == 0:
             raise RuntimeError("No config added")
         with self._config_lock:
             try:
                 config, new_config_revision = get_config(
-                    self.config_name, self.resotocore_uri
+                    self.config_name, self.resotocore_uri, verify=self.verify
                 )
                 if len(config) == 0:
                     if self._initial_load:
@@ -127,6 +138,8 @@ class Config(metaclass=MetaConfig):
                         )
                     else:
                         log.warning(f"Unknown config section {config_id}")
+                if reload and self.restart_required(new_config):
+                    restart()
                 Config.running_config.data = new_config
                 Config.running_config.revision = new_config_revision
             self.init_default_config()
@@ -137,6 +150,23 @@ class Config(metaclass=MetaConfig):
             if not self._ce.is_alive():
                 log.debug("Starting config event listener")
                 self._ce.start()
+
+    @staticmethod
+    def restart_required(new_config: Dict) -> bool:
+        for config_id, config_data in new_config.items():
+            if config_id in Config.running_config.data:
+                for field in fields(config_data):
+                    if field.metadata.get("restart_required", False):
+                        old_value = getattr(
+                            Config.running_config.data[config_id], field.name, None
+                        )
+                        new_value = getattr(config_data, field.name, None)
+                        if new_value != old_value:
+                            log.debug(
+                                f"Changed config {config_id}.{field.name} requires restart"
+                            )
+                            return True
+        return False
 
     def override_config(self) -> None:
         if getattr(ArgumentParser.args, "config_override", None) is None:
@@ -177,9 +207,11 @@ class Config(metaclass=MetaConfig):
         )
 
     def save_config(self) -> None:
-        update_config_model(self.model, resotocore_uri=self.resotocore_uri)
+        update_config_model(
+            self.model, resotocore_uri=self.resotocore_uri, verify=self.verify
+        )
         stored_config_revision = set_config(
-            self.config_name, self.dict(), self.resotocore_uri
+            self.config_name, self.dict(), self.resotocore_uri, verify=self.verify
         )
         if stored_config_revision != Config.running_config.revision:
             Config.running_config.revision = stored_config_revision
@@ -198,7 +230,7 @@ class Config(metaclass=MetaConfig):
         ):
             try:
                 log.debug(f"Config {self.config_name} has changed - reloading")
-                self.load_config()
+                self.load_config(reload=True)
             except Exception:
                 log.exception("Failed to reload config")
 

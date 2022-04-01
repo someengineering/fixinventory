@@ -22,7 +22,18 @@ def test_parse_empty(default_config: CoreConfig) -> None:
 def test_read_config() -> None:
     config = {
         "resotocore": {
-            "api": {"hosts": ["1.2.3.4"], "port": 1234, "psk": "test", "tsdb_proxy_url": "test", "ui_path": "fest"},
+            "api": {
+                "hosts": ["1.2.3.4"],
+                "port": 1234,
+                "tsdb_proxy_url": "test",
+                "ui_path": "fest",
+                "host_certificate": {
+                    "common_name": "test",
+                    "san_dns_names": ["test.example.com"],
+                    "san_ip_addresses": ["4.3.2.1"],
+                    "include_loopback": False,
+                },
+            },
             "cli": {
                 "default_graph": "foo",
                 "default_section": "bla",
@@ -80,6 +91,7 @@ def test_model() -> None:
     assert {m["fqn"] for m in model} == {
         "resotocore",
         "resotocore_api_config",
+        "resotocore_certificate_config",
         "resotocore_cli_config",
         "resotocore_cli_alias_template",
         "resotocore_cli_alias_template_parameter",
@@ -91,7 +103,7 @@ def test_model() -> None:
 @fixture
 def default_config() -> CoreConfig:
     return CoreConfig(
-        api=ApiConfig(hosts=["localhost"], port=8900, tsdb_proxy_url=None, ui_path=None, psk=None),
+        api=ApiConfig(hosts=["localhost"], port=8900, tsdb_proxy_url=None, ui_path=None),
         cli=CLIConfig(default_graph="resoto", default_section="reported"),
         db=DatabaseConfig(
             server="http://localhost:8529",

@@ -11,8 +11,8 @@ from typing import Dict
 class TagValidatorPlugin(BaseActionPlugin):
     action = "pre_cleanup_plan"
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.config = None
 
     def bootstrap(self) -> bool:
@@ -23,7 +23,7 @@ class TagValidatorPlugin(BaseActionPlugin):
         Config.plugin_tagvalidator.validate(Config.plugin_tagvalidator)
         self.config = deepcopy(Config.plugin_tagvalidator.config)
 
-        cg = CoreGraph()
+        cg = CoreGraph(tls_data=self.tls_data)
 
         query_tag = "tagvalidate"
         exclusion_part = "metadata.protected == false and metadata.phantom == false and metadata.cleaned == false"

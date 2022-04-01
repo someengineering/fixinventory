@@ -1,5 +1,6 @@
 from resotolib.logging import log
 from resotolib.core.query import CoreGraph
+from resotolib.core.ca import TLSData
 from networkx import DiGraph
 from resotolib.graph import Graph
 from resotolib.baseresources import BaseResource, EdgeType
@@ -8,17 +9,18 @@ from resotolib.utils import ordinal
 from resotolib.config import Config
 from concurrent.futures import ThreadPoolExecutor
 from prometheus_client import Summary
+from typing import Optional
 
 
 metrics_cleanup = Summary("resoto_cleanup_seconds", "Time it took the cleanup() method")
 
 
-def cleanup():
+def cleanup(tls_data: Optional[TLSData] = None):
     """Run resource cleanup"""
 
     log.info("Running cleanup")
 
-    cg = CoreGraph()
+    cg = CoreGraph(tls_data=tls_data)
 
     query_filter = ""
     if Config.resotoworker.collector and len(Config.resotoworker.collector) > 0:

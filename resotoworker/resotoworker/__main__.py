@@ -14,6 +14,7 @@ from resotolib.web.metrics import WebApp
 from resotolib.utils import log_stats, increase_limits
 from resotolib.args import ArgumentParser
 from resotolib.core import add_args as core_add_args, resotocore
+from resotolib.core.ca import TLSData
 from resotolib.core.actions import CoreActions
 from resotolib.core.tasks import CoreTasks
 from resotoworker.pluginloader import PluginLoader
@@ -52,6 +53,7 @@ def main() -> None:
     logging_add_args(arg_parser)
     core_add_args(arg_parser)
     Config.add_args(arg_parser)
+    TLSData.add_args(arg_parser)
 
     # Find resoto Plugins in the resoto.plugins module
     plugin_loader = PluginLoader()
@@ -61,8 +63,17 @@ def main() -> None:
     # added their args to the arg parser
     arg_parser.parse_args()
 
+    tls_data = None
+    if resotocore.is_secure:
+        tls_data = TLSData(
+            common_name=ArgumentParser.args.subscriber_id,
+            resotocore_uri=resotocore.http_uri,
+        )
+        tls_data.start()
     config = Config(
-        ArgumentParser.args.subscriber_id, resotocore_uri=resotocore.http_uri
+        ArgumentParser.args.subscriber_id,
+        resotocore_uri=resotocore.http_uri,
+        tls_data=tls_data,
     )
     add_config(config)
     plugin_loader.add_plugin_config(config)
@@ -75,10 +86,17 @@ def main() -> None:
     # Try to increase nofile and nproc limits
     increase_limits()
 
+    web_server_args = {}
+    if tls_data:
+        web_server_args = {
+            "ssl_cert": tls_data.cert_path,
+            "ssl_key": tls_data.key_path,
+        }
     web_server = WebServer(
         WebApp(mountpoint=Config.resotoworker.web_path),
         web_host=Config.resotoworker.web_host,
         web_port=Config.resotoworker.web_port,
+        **web_server_args,
     )
     web_server.daemon = True
     web_server.start()
@@ -97,7 +115,8 @@ def main() -> None:
                 "wait_for_completion": True,
             },
         },
-        message_processor=partial(core_actions_processor, plugin_loader),
+        message_processor=partial(core_actions_processor, plugin_loader, tls_data),
+        tls_data=tls_data,
     )
 
     task_queue_filter = {}
@@ -109,6 +128,7 @@ def main() -> None:
         tasks=["tag"],
         task_queue_filter=task_queue_filter,
         message_processor=core_tag_tasks_processor,
+        tls_data=tls_data,
     )
     core_actions.start()
     core_tasks.start()
@@ -116,7 +136,7 @@ def main() -> None:
     for Plugin in plugin_loader.plugins(PluginType.ACTION):
         try:
             log.debug(f"Starting action plugin {Plugin}")
-            plugin = Plugin()
+            plugin = Plugin(tls_data=tls_data)
             plugin.start()
         except Exception as e:
             log.exception(f"Caught unhandled persistent Plugin exception {e}")
@@ -131,7 +151,9 @@ def main() -> None:
     os._exit(0)
 
 
-def core_actions_processor(plugin_loader: PluginLoader, message: Dict) -> None:
+def core_actions_processor(
+    plugin_loader: PluginLoader, tls_data: TLSData, message: Dict
+) -> None:
     collectors: List[BaseCollectorPlugin] = plugin_loader.plugins(PluginType.COLLECTOR)
     if not isinstance(message, dict):
         log.error(f"Invalid message: {message}")
@@ -144,12 +166,12 @@ def core_actions_processor(plugin_loader: PluginLoader, message: Dict) -> None:
         try:
             if message_type == "collect":
                 start_time = time.time()
-                collect_and_send(collectors)
+                collect_and_send(collectors, tls_data=tls_data)
                 run_time = int(time.time() - start_time)
                 log.info(f"Collect ran for {run_time} seconds")
             elif message_type == "cleanup":
                 start_time = time.time()
-                cleanup()
+                cleanup(tls_data=tls_data)
                 run_time = int(time.time() - start_time)
                 log.info(f"Cleanup ran for {run_time} seconds")
             else:

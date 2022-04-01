@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from enum import Enum, auto
+from resotolib.core.ca import TLSData
 from resotolib.graph import Graph
 from resotolib.core import resotocore
 from resotolib.core.actions import CoreActions
@@ -13,7 +14,7 @@ from prometheus_client import Counter
 import resotolib.config
 import resotolib.signal
 import time
-from typing import Dict
+from typing import Dict, Optional
 
 metrics_unhandled_plugin_exceptions = Counter(
     "resoto_unhandled_plugin_exceptions_total",
@@ -84,7 +85,7 @@ class BaseActionPlugin(ABC, Process):
     plugin_type = PluginType.ACTION
     action = NotImplemented  # Name of the action this plugin implements
 
-    def __init__(self) -> None:
+    def __init__(self, tls_data: Optional[TLSData] = None) -> None:
         super().__init__()
         self._args = ArgumentParser.args
         self._config = resotolib.config._config
@@ -92,6 +93,7 @@ class BaseActionPlugin(ABC, Process):
         self.finished = False
         self.timeout = Config.resotoworker.timeout
         self.wait_for_completion = True
+        self.tls_data = tls_data
 
     @abstractmethod
     def do_action(self, data: Dict):
@@ -164,6 +166,7 @@ class BaseActionPlugin(ABC, Process):
                 },
             },
             message_processor=self.action_processor,
+            tls_data=self.tls_data,
         )
         core_actions.start()
         core_actions.join()

@@ -1,4 +1,5 @@
 import os
+import certifi
 from ipaddress import (
     ip_address,
     ip_network,
@@ -7,7 +8,6 @@ from ipaddress import (
     IPv4Network,
     IPv6Network,
 )
-from resotolib.args import ArgumentParser
 from resotolib.utils import get_local_hostnames, get_local_ip_addresses
 from datetime import datetime, timedelta, timezone
 from cryptography import x509
@@ -15,33 +15,29 @@ from cryptography.x509.oid import NameOID
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import rsa
-from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
+from cryptography.hazmat.primitives.asymmetric.rsa import (
+    RSAPrivateKey,
+    generate_private_key,
+)
 from cryptography.x509.base import Certificate, CertificateSigningRequest
 from typing import List, Optional, Tuple, Union
 
 
 def gen_rsa_key(key_size: int = 2048) -> RSAPrivateKey:
-    return rsa.generate_private_key(
+    return generate_private_key(
         public_exponent=65537, key_size=key_size, backend=default_backend()
     )
 
 
 def bootstrap_ca(
     days_valid: int = 3650,
-    common_name: str = "resoto Root CA",
+    common_name: str = "Resoto Root CA",
     organization_name: str = "Some Engineering Inc.",
-    locality_name: str = "San Francisco",
-    state_or_province_name: str = "California",
-    country_name: str = "US",
     path_length: int = 2,
 ) -> Tuple[RSAPrivateKey, Certificate]:
     ca_key = gen_rsa_key()
     subject = issuer = x509.Name(
         [
-            x509.NameAttribute(NameOID.COUNTRY_NAME, country_name),
-            x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, state_or_province_name),
-            x509.NameAttribute(NameOID.LOCALITY_NAME, locality_name),
             x509.NameAttribute(NameOID.ORGANIZATION_NAME, organization_name),
             x509.NameAttribute(NameOID.COMMON_NAME, common_name),
         ]
@@ -78,18 +74,25 @@ def bootstrap_ca(
 
 def gen_csr(
     csr_key: RSAPrivateKey,
+    *,
     common_name: str = "some.engineering",
     san_dns_names: Optional[List[str]] = None,
     san_ip_addresses: Optional[List[str]] = None,
     include_loopback: bool = True,
+    connect_to_ips: Optional[List[str]] = None,
 ) -> CertificateSigningRequest:
     if san_dns_names is None:
         san_dns_names = get_local_hostnames(
-            include_loopback=include_loopback, args=ArgumentParser.args
+            include_loopback=include_loopback,
+            san_ip_addresses=san_ip_addresses,
+            san_dns_names=san_dns_names,
+            connect_to_ips=connect_to_ips,
         )
     if san_ip_addresses is None:
         san_ip_addresses = get_local_ip_addresses(
-            include_loopback=include_loopback, args=ArgumentParser.args
+            include_loopback=include_loopback,
+            san_ip_addresses=san_ip_addresses,
+            connect_to_ips=connect_to_ips,
         )
     csr_build = x509.CertificateSigningRequestBuilder().subject_name(
         x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, common_name)])
@@ -154,23 +157,59 @@ def sign_csr(
     return crt_build.sign(ca_key, hashes.SHA256(), default_backend())
 
 
-def write_csr_to_file(csr: CertificateSigningRequest, csr_path: str) -> None:
-    with open(csr_path, "wb") as f:
+def write_csr_to_file(
+    csr: CertificateSigningRequest, csr_path: str, rename: bool = True
+) -> None:
+    tmp_csr_path = f"{csr_path}.tmp" if rename else csr_path
+    with open(tmp_csr_path, "wb") as f:
         f.write(csr_to_bytes(csr))
+    if rename:
+        os.rename(tmp_csr_path, csr_path)
 
 
-def write_cert_to_file(cert: Certificate, cert_path: str) -> None:
-    with open(cert_path, "wb") as f:
+def write_cert_to_file(cert: Certificate, cert_path: str, rename: bool = True) -> None:
+    tmp_cert_path = f"{cert_path}.tmp" if rename else cert_path
+    with open(tmp_cert_path, "wb") as f:
         f.write(cert_to_bytes(cert))
+    if rename:
+        os.rename(tmp_cert_path, cert_path)
+
+
+def write_ca_bundle(
+    cert: Certificate, cert_path: str, include_certifi: bool = True, rename: bool = True
+) -> None:
+    tmp_cert_path = f"{cert_path}.tmp" if rename else cert_path
+    with open(tmp_cert_path, "wb") as f:
+        if include_certifi:
+            f.write(certifi.contents().encode())
+        f.write("\n".encode())
+        f.write(f"# Issuer: {cert.issuer.rfc4514_string()}\n".encode())
+        f.write(f"# Subject: {cert.subject.rfc4514_string()}\n".encode())
+        label = cert.issuer.get_attributes_for_oid(NameOID.COMMON_NAME)[0].value
+        f.write(f"# Label: {label}\n".encode())
+        f.write(f"# Serial: {cert.serial_number}\n".encode())
+        md5 = cert_fingerprint(cert, "MD5")
+        sha1 = cert_fingerprint(cert, "SHA1")
+        sha256 = cert_fingerprint(cert, "SHA256")
+        f.write(f"# MD5 Fingerprint: {md5}\n".encode())
+        f.write(f"# SHA1 Fingerprint: {sha1}\n".encode())
+        f.write(f"# SHA256 Fingerprint: {sha256}\n".encode())
+        f.write(cert_to_bytes(cert))
+    if rename:
+        os.rename(tmp_cert_path, cert_path)
 
 
 def write_key_to_file(
     key: RSAPrivateKey,
     key_path: str,
     passphrase: Optional[str] = None,
+    rename: bool = True,
 ) -> None:
-    with open(os.open(key_path, os.O_CREAT | os.O_WRONLY, 0o600), "wb") as f:
+    tmp_key_path = f"{key_path}.tmp" if rename else key_path
+    with open(os.open(tmp_key_path, os.O_CREAT | os.O_WRONLY, 0o600), "wb") as f:
         f.write(key_to_bytes(key, passphrase))
+    if rename:
+        os.rename(tmp_key_path, key_path)
 
 
 def key_to_bytes(

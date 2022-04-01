@@ -1,3 +1,4 @@
+import os
 import sys
 import time
 import resotolib.signal
@@ -5,6 +6,7 @@ from resotolib.logging import log, setup_logger, add_args as logging_add_args
 from resotolib.jwt import add_args as jwt_add_args
 from resotolib.config import Config
 from resotolib.core import add_args as resotocore_add_args, resotocore
+from resotolib.core.ca import TLSData
 from .config import ResotoMetricsConfig
 from functools import partial
 from resotolib.core.actions import CoreActions
@@ -19,7 +21,9 @@ from resotolib.web import WebServer
 from resotolib.web.metrics import WebApp
 from prometheus_client import Summary, REGISTRY
 from prometheus_client.core import GaugeMetricFamily, CounterMetricFamily
+from resotolib.event import add_event_listener, EventType, Event as ResotoEvent
 from threading import Event
+from typing import Optional
 from resotolib.args import ArgumentParser
 
 
@@ -31,16 +35,17 @@ metrics_update_metrics = Summary(
 )
 
 
-def handler(sig, frame) -> None:
+def shutdown(event: ResotoEvent) -> None:
     log.info("Shutting down")
     shutdown_event.set()
 
 
 def main() -> None:
     setup_logger("resotometrics")
-
+    resotolib.signal.parent_pid = os.getpid()
     resotolib.signal.initializer()
 
+    add_event_listener(EventType.SHUTDOWN, shutdown)
     arg_parser = ArgumentParser(
         description="resoto metrics exporter", env_args_prefix="RESOTOMETRICS_"
     )
@@ -49,10 +54,20 @@ def main() -> None:
     resotocore_add_args(arg_parser)
     logging_add_args(arg_parser)
     jwt_add_args(arg_parser)
+    TLSData.add_args(arg_parser)
     arg_parser.parse_args()
 
+    tls_data = None
+    if resotocore.is_secure:
+        tls_data = TLSData(
+            common_name=ArgumentParser.args.subscriber_id,
+            resotocore_uri=resotocore.http_uri,
+        )
+        tls_data.start()
     config = Config(
-        ArgumentParser.args.subscriber_id, resotocore_uri=resotocore.http_uri
+        ArgumentParser.args.subscriber_id,
+        resotocore_uri=resotocore.http_uri,
+        tls_data=tls_data,
     )
     config.add_config(ResotoMetricsConfig)
     config.load_config()
@@ -65,7 +80,7 @@ def main() -> None:
     graph_uri = f"{resotocore.http_uri}/graph/{resotocore_graph}"
     query_uri = f"{graph_uri}/query/aggregate?section=reported"
 
-    message_processor = partial(core_actions_processor, metrics, query_uri)
+    message_processor = partial(core_actions_processor, metrics, query_uri, tls_data)
     core_actions = CoreActions(
         identifier=ArgumentParser.args.subscriber_id,
         resotocore_uri=resotocore.http_uri,
@@ -77,11 +92,19 @@ def main() -> None:
             },
         },
         message_processor=message_processor,
+        tls_data=tls_data,
     )
+    web_server_args = {}
+    if tls_data:
+        web_server_args = {
+            "ssl_cert": tls_data.cert_path,
+            "ssl_key": tls_data.key_path,
+        }
     web_server = WebServer(
         WebApp(mountpoint=Config.resotometrics.web_path),
         web_host=Config.resotometrics.web_host,
         web_port=Config.resotometrics.web_port,
+        **web_server_args,
     )
     web_server.daemon = True
     web_server.start()
@@ -89,10 +112,14 @@ def main() -> None:
     shutdown_event.wait()
     web_server.shutdown()
     core_actions.shutdown()
+    resotolib.signal.kill_children(resotolib.signal.SIGTERM, ensure_death=True)
+    log.info("Shutdown complete")
     sys.exit(0)
 
 
-def core_actions_processor(metrics: Metrics, query_uri: str, message: dict) -> None:
+def core_actions_processor(
+    metrics: Metrics, query_uri: str, tls_data: TLSData, message: dict
+) -> None:
     if not isinstance(message, dict):
         log.error(f"Invalid message: {message}")
         return
@@ -104,7 +131,7 @@ def core_actions_processor(metrics: Metrics, query_uri: str, message: dict) -> N
         try:
             if message_type == "generate_metrics":
                 start_time = time.time()
-                update_metrics(metrics, query_uri)
+                update_metrics(metrics, query_uri, tls_data)
                 run_time = time.time() - start_time
                 log.debug(f"Updated metrics for {run_time:.2f} seconds")
             else:
@@ -124,7 +151,9 @@ def core_actions_processor(metrics: Metrics, query_uri: str, message: dict) -> N
 
 
 @metrics_update_metrics.time()
-def update_metrics(metrics: Metrics, query_uri: str) -> None:
+def update_metrics(
+    metrics: Metrics, query_uri: str, tls_data: Optional[TLSData] = None
+) -> None:
     metrics_descriptions = Config.resotometrics.metrics
     for _, data in metrics_descriptions.items():
         if shutdown_event.is_set():
@@ -141,7 +170,7 @@ def update_metrics(metrics: Metrics, query_uri: str) -> None:
             continue
 
         try:
-            for result in query(metrics_search, query_uri):
+            for result in query(metrics_search, query_uri, tls_data=tls_data):
                 labels = get_labels_from_result(result)
                 label_values = get_label_values_from_result(result, labels)
 

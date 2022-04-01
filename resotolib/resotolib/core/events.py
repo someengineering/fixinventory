@@ -7,6 +7,7 @@ from resotolib.logging import log
 from resotolib.event import EventType, remove_event_listener, add_event_listener, Event
 from resotolib.args import ArgumentParser
 from resotolib.jwt import encode_jwt_to_headers
+from resotolib.core.ca import TLSData
 from typing import Callable, Dict, Optional, Set
 
 
@@ -16,6 +17,7 @@ class CoreEvents(threading.Thread):
         resotocore_ws_uri: str,
         events: Optional[Set] = None,
         message_processor: Optional[Callable] = None,
+        tls_data: Optional[TLSData] = None,
     ) -> None:
         super().__init__()
         self.ws_uri = f"{resotocore_ws_uri}/events"
@@ -23,6 +25,7 @@ class CoreEvents(threading.Thread):
             query_string = urlencode({"show": ",".join(events)})
             self.ws_uri += f"?{query_string}"
         self.message_processor = message_processor
+        self.tls_data = tls_data
         self.ws = None
         self.shutdown_event = threading.Event()
 
@@ -53,7 +56,10 @@ class CoreEvents(threading.Thread):
             on_error=self.on_error,
             on_close=self.on_close,
         )
-        self.ws.run_forever()
+        sslopt = None
+        if self.tls_data:
+            sslopt = {"ca_certs": self.tls_data.ca_cert_path}
+        self.ws.run_forever(sslopt=sslopt)
 
     def shutdown(self, event: Event = None) -> None:
         log.debug(

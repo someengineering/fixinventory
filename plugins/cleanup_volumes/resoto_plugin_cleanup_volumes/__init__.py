@@ -12,8 +12,8 @@ from typing import Dict
 class CleanupVolumesPlugin(BaseActionPlugin):
     action = "cleanup_plan"
 
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.age = None
         if Config.plugin_cleanup_volumes.enabled:
             self.update_age()
@@ -23,7 +23,7 @@ class CleanupVolumesPlugin(BaseActionPlugin):
 
     def do_action(self, data: Dict) -> None:
         self.update_age()
-        cg = CoreGraph()
+        cg = CoreGraph(tls_data=self.tls_data)
         query = "is(volume) and reported.volume_status == available <-[0:]->"
         graph = cg.graph(query)
         self.volumes_cleanup(graph)

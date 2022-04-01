@@ -11,7 +11,6 @@ if sys.platform == "linux":
     import resource
 import time
 import json
-from argparse import Namespace
 from resotolib.logging import log
 from functools import wraps
 from pprint import pformat
@@ -700,7 +699,10 @@ class ResourceChanges:
 
 
 def get_local_ip_addresses(
-    include_loopback: bool = True, args: Namespace = None, connect_to_ips: List = None
+    *,
+    include_loopback: bool = True,
+    san_ip_addresses: Optional[List[str]] = None,
+    connect_to_ips: Optional[List[str]] = None,
 ) -> List[str]:
     ips = set()
     if connect_to_ips is None:
@@ -727,15 +729,17 @@ def get_local_ip_addresses(
         else:
             ips.add(local_address)
 
-    if args is not None:
-        csr_san_ip_addresses = getattr(args, "csr_san_ip_addresses", [])
-        if isinstance(csr_san_ip_addresses, list):
-            ips.update(csr_san_ip_addresses)
+    if isinstance(san_ip_addresses, list):
+        ips.update(san_ip_addresses)
     return list(ips)
 
 
 def get_local_hostnames(
-    include_loopback: bool = True, args: Namespace = None
+    *,
+    include_loopback: bool = True,
+    san_ip_addresses: Optional[List[str]] = None,
+    san_dns_names: Optional[List[str]] = None,
+    connect_to_ips: Optional[List[str]] = None,
 ) -> List[str]:
     hostnames = set()
     if include_loopback:
@@ -748,7 +752,11 @@ def get_local_hostnames(
     else:
         hostnames.add(local_hostname)
 
-    for ip in get_local_ip_addresses(include_loopback=include_loopback, args=args):
+    for ip in get_local_ip_addresses(
+        include_loopback=include_loopback,
+        connect_to_ips=connect_to_ips,
+        san_ip_addresses=san_ip_addresses,
+    ):
         try:
             hostname = socket.gethostbyaddr(ip)[0]
         except Exception:
@@ -756,10 +764,8 @@ def get_local_hostnames(
         else:
             hostnames.add(hostname)
 
-    if args is not None:
-        csr_san_dns_names = getattr(args, "csr_san_dns_names", [])
-        if isinstance(csr_san_dns_names, list):
-            hostnames.update(csr_san_dns_names)
+    if isinstance(san_dns_names, list):
+        hostnames.update(san_dns_names)
     return list(hostnames)
 
 

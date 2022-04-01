@@ -5,8 +5,8 @@ from urllib.parse import urlparse, ParseResult
 def add_args(arg_parser: ArgumentParser) -> None:
     arg_parser.add_argument(
         "--resotocore-uri",
-        help="resotocore URI (default: http://localhost:8900)",
-        default="http://localhost:8900",
+        help="resotocore URI (default: https://localhost:8900)",
+        default="https://localhost:8900",
         dest="resotocore_uri",
     )
 
@@ -19,6 +19,8 @@ class ResotocoreURI:
     def uri(self) -> ParseResult:
         if self.resotocore_uri is None:
             resotocore_uri = getattr(ArgumentParser.args, "resotocore_uri", None)
+            if resotocore_uri is None:
+                resotocore_uri = "https://localhost:8900"
         else:
             resotocore_uri = self.resotocore_uri
         if resotocore_uri is None:
@@ -35,6 +37,10 @@ class ResotocoreURI:
         if self.uri.scheme == "https":
             scheme = "wss"
         return f"{scheme}://{self.uri.netloc}"
+
+    @property
+    def is_secure(self) -> bool:
+        return self.uri.scheme == "https"
 
 
 resotocore = ResotocoreURI()

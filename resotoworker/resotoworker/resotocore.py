@@ -8,9 +8,11 @@ from resotolib.jwt import encode_jwt_to_headers
 from resotolib.graph import Graph, GraphExportIterator
 from resotolib.config import Config
 from resotolib.core import resotocore
+from resotolib.core.ca import TLSData
+from typing import Optional
 
 
-def send_to_resotocore(graph: Graph):
+def send_to_resotocore(graph: Graph, tls_data: Optional[TLSData] = None):
     if not ArgumentParser.args.resotocore_uri:
         return
 
@@ -22,8 +24,9 @@ def send_to_resotocore(graph: Graph):
     tempdir = Config.resotoworker.tempdir
     graph_merge_kind = Config.resotoworker.graph_merge_kind
 
-    create_graph(base_uri, resotocore_graph)
-    update_model(graph, base_uri, dump_json=dump_json, tempdir=tempdir)
+    verify = getattr(tls_data, "verify", None)
+    create_graph(base_uri, resotocore_graph, verify=verify)
+    update_model(graph, base_uri, dump_json=dump_json, tempdir=tempdir, verify=verify)
 
     graph_export_iterator = GraphExportIterator(
         graph,
@@ -34,10 +37,12 @@ def send_to_resotocore(graph: Graph):
     #  The graph is not required any longer and can be released.
     del graph
     graph_export_iterator.export_graph()
-    send_graph(graph_export_iterator, base_uri, resotocore_graph)
+    send_graph(graph_export_iterator, base_uri, resotocore_graph, verify=verify)
 
 
-def create_graph(resotocore_base_uri: str, resotocore_graph: str):
+def create_graph(
+    resotocore_base_uri: str, resotocore_graph: str, verify: Optional[str] = None
+):
     graph_uri = f"{resotocore_base_uri}/graph/{resotocore_graph}"
 
     log.debug(f"Creating graph {resotocore_graph} via {graph_uri}")
@@ -48,14 +53,18 @@ def create_graph(resotocore_base_uri: str, resotocore_graph: str):
     }
     if getattr(ArgumentParser.args, "psk", None):
         encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)
-    r = requests.post(graph_uri, data="", headers=headers)
+    r = requests.post(graph_uri, data="", headers=headers, verify=verify)
     if r.status_code != 200:
         log.error(r.content)
         raise RuntimeError(f"Failed to create graph: {r.content}")
 
 
 def update_model(
-    graph: Graph, resotocore_base_uri: str, dump_json: bool = False, tempdir: str = None
+    graph: Graph,
+    resotocore_base_uri: str,
+    dump_json: bool = False,
+    tempdir: str = None,
+    verify: Optional[str] = None,
 ) -> None:
     model_uri = f"{resotocore_base_uri}/model"
 
@@ -80,7 +89,7 @@ def update_model(
     if getattr(ArgumentParser.args, "psk", None):
         encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)
 
-    r = requests.patch(model_uri, data=model_json, headers=headers)
+    r = requests.patch(model_uri, data=model_json, headers=headers, verify=verify)
     if r.status_code != 200:
         log.error(r.content)
         raise RuntimeError(f"Failed to create model: {r.content}")
@@ -90,6 +99,7 @@ def send_graph(
     graph_export_iterator: GraphExportIterator,
     resotocore_base_uri: str,
     resotocore_graph: str,
+    verify: Optional[str] = None,
 ):
     merge_uri = f"{resotocore_base_uri}/graph/{resotocore_graph}/merge"
 
@@ -104,9 +114,7 @@ def send_graph(
         encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)
 
     r = requests.post(
-        merge_uri,
-        data=graph_export_iterator,
-        headers=headers,
+        merge_uri, data=graph_export_iterator, headers=headers, verify=verify
     )
     if r.status_code != 200:
         log.error(r.content)

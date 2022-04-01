@@ -7,6 +7,7 @@ from resotolib.logging import log
 from resotolib.event import EventType, remove_event_listener, add_event_listener, Event
 from resotolib.args import ArgumentParser
 from resotolib.jwt import encode_jwt_to_headers
+from resotolib.core.ca import TLSData
 from typing import Callable, Dict, Optional
 
 
@@ -18,6 +19,7 @@ class CoreActions(threading.Thread):
         resotocore_ws_uri: str,
         actions: Dict,
         message_processor: Optional[Callable] = None,
+        tls_data: Optional[TLSData] = None,
     ) -> None:
         super().__init__()
         self.identifier = identifier
@@ -26,6 +28,7 @@ class CoreActions(threading.Thread):
         self.actions = actions
         self.message_processor = message_processor
         self.ws = None
+        self.tls_data = tls_data
         self.shutdown_event = threading.Event()
 
     def __del__(self):
@@ -61,7 +64,10 @@ class CoreActions(threading.Thread):
             on_error=self.on_error,
             on_close=self.on_close,
         )
-        self.ws.run_forever()
+        sslopt = None
+        if self.tls_data:
+            sslopt = {"ca_certs": self.tls_data.ca_cert_path}
+        self.ws.run_forever(sslopt=sslopt)
 
     def shutdown(self, event: Event = None) -> None:
         log.debug(
@@ -93,7 +99,11 @@ class CoreActions(threading.Thread):
         if getattr(ArgumentParser.args, "psk", None):
             encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)
 
-        r = client(url, headers=headers, params=data)
+        verify = None
+        if self.tls_data:
+            verify = self.tls_data.ca_cert_path
+
+        r = client(url, headers=headers, params=data, verify=verify)
         if r.status_code != 200:
             raise RuntimeError(
                 f'Error during (un)registration for "{action}"'

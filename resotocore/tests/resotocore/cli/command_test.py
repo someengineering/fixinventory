@@ -72,6 +72,9 @@ from tests.resotocore.worker_task_queue_test import worker, task_queue, performe
 # noinspection PyUnresolvedReferences
 from tests.resotocore.config.config_handler_service_test import config_handler
 
+# noinspection PyUnresolvedReferences
+from tests.resotocore.web.certificate_handler_test import cert_handler
+
 
 @fixture
 def json_source() -> str:

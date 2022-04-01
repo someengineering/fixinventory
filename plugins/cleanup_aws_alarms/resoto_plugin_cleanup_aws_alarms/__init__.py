@@ -14,8 +14,8 @@ from typing import Dict
 class CleanupAWSAlarmsPlugin(BaseActionPlugin):
     action = "cleanup_plan"
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         self.config = {}
         if Config.plugin_cleanup_aws_alarms.enabled:
@@ -25,7 +25,7 @@ class CleanupAWSAlarmsPlugin(BaseActionPlugin):
         return Config.plugin_cleanup_aws_alarms.enabled
 
     def do_action(self, data: Dict) -> None:
-        cg = CoreGraph()
+        cg = CoreGraph(tls_data=self.tls_data)
 
         query = "is(aws_cloudwatch_alarm) <-default,delete[0:]delete->"
         graph = cg.graph(query)

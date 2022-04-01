@@ -31,6 +31,7 @@ from resotocore.query.template_expander import TemplateExpander, render_template
 from resotocore.task import TaskHandler
 from resotocore.types import Json, JsonElement
 from resotocore.util import AccessJson
+from resotocore.web.certificate_handler import CertificateHandler
 from resotocore.worker_task_queue import WorkerTaskQueue
 
 
@@ -180,6 +181,10 @@ class CLIDependencies:
     @property
     def config_handler(self) -> ConfigHandler:
         return self.lookup["config_handler"]  # type:ignore
+
+    @property
+    def cert_handler(self) -> CertificateHandler:
+        return self.lookup["cert_handler"]  # type:ignore
 
     @property
     def http_session(self) -> ClientSession:

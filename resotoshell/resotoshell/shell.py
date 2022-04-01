@@ -12,7 +12,7 @@ from requests import Response, post
 from requests.exceptions import ConnectionError
 from requests_toolbelt import MultipartDecoder, MultipartEncoder
 from requests_toolbelt.multipart.decoder import BodyPart
-
+from resotolib.core.ca import TLSData
 from resotolib.args import ArgumentParser
 from resotolib.jwt import encode_jwt_to_headers
 from resotolib.logging import log
@@ -20,10 +20,17 @@ from resotoshell.protected_files import validate_paths
 
 
 class Shell:
-    def __init__(self, execute_endpoint: str, tty: bool, color_system: str):
+    def __init__(
+        self,
+        execute_endpoint: str,
+        tty: bool,
+        color_system: str,
+        tls_data: Optional[TLSData] = None,
+    ):
         self.execute_endpoint = execute_endpoint
         self.tty = tty
         self.color_system = color_system
+        self.verify = tls_data.verify if tls_data else None
 
     def handle_command(
         self,
@@ -71,7 +78,11 @@ class Shell:
 
             try:
                 return post(
-                    self.execute_endpoint, data=body, headers=headers, stream=True
+                    self.execute_endpoint,
+                    data=body,
+                    headers=headers,
+                    stream=True,
+                    verify=self.verify,
                 )
             except ConnectionError:
                 err = (

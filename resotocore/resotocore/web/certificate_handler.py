@@ -1,9 +1,14 @@
 from __future__ import annotations
 
 import logging
+from pathlib import Path
+from ssl import SSLContext, create_default_context, Purpose
+from tempfile import TemporaryDirectory
 from typing import Tuple, Optional
 
 from arango.database import StandardDatabase
+from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
+from cryptography.x509 import Certificate
 from resotolib.utils import get_local_ip_addresses, get_local_hostnames
 from resotolib.x509 import (
     bootstrap_ca,
@@ -16,11 +21,13 @@ from resotolib.x509 import (
     load_cert_from_bytes,
     cert_fingerprint,
     load_csr_from_bytes,
+    write_key_to_file,
+    write_cert_to_file,
+    load_key_from_file,
+    load_cert_from_file,
 )
-from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
-from cryptography.x509 import Certificate
 
-from resotocore.core_config import CoreConfig
+from resotocore.core_config import CoreConfig, CertificateConfig
 
 log = logging.getLogger(__name__)
 
@@ -32,32 +39,100 @@ class CertificateHandler:
         self._ca_cert = ca_cert
         self._ca_cert_bytes = cert_to_bytes(ca_cert)
         self._ca_cert_fingerprint = cert_fingerprint(ca_cert)
-        self._host_key, self._host_cert = self.create_host_certificate(ca_key, ca_cert)
+        self._host_key, self._host_cert = self.__create_host_certificate(config.api.host_certificate, ca_key, ca_cert)
+        self._host_context = self.__create_host_context(config, self._host_cert, self._host_key)
+        self._client_context = self.__create_client_context(config, ca_cert)
 
     @property
     def authority_certificate(self) -> Tuple[bytes, str]:
         return self._ca_cert_bytes, self._ca_cert_fingerprint
 
     @property
-    def host_certificate(self) -> Certificate:
-        return self._host_cert
+    def host_certificate(self) -> Tuple[RSAPrivateKey, Certificate]:
+        return self._host_key, self._host_cert
 
     def sign(self, csr_bytes: bytes) -> Tuple[bytes, str]:
         csr = load_csr_from_bytes(csr_bytes)
         certificate = sign_csr(csr, self._ca_key, self._ca_cert)
         return cert_to_bytes(certificate), cert_fingerprint(certificate)
 
-    def create_host_certificate(self, ca_key: RSAPrivateKey, ca_cert: Certificate) -> Tuple[RSAPrivateKey, Certificate]:
+    @property
+    def host_context(self) -> Optional[SSLContext]:
+        return self._host_context
+
+    @property
+    def client_context(self) -> SSLContext:
+        return self._client_context
+
+    @staticmethod
+    def __create_host_certificate(
+        cfg: CertificateConfig, ca_key: RSAPrivateKey, ca_cert: Certificate
+    ) -> Tuple[RSAPrivateKey, Certificate]:
         key = gen_rsa_key()
-        host_names = get_local_hostnames(args=self.config.args)
-        host_ips = get_local_ip_addresses(args=self.config.args)
+        host_names = get_local_hostnames(
+            include_loopback=cfg.include_loopback,
+            san_ip_addresses=cfg.san_ip_addresses,
+            san_dns_names=cfg.san_dns_names,
+        )
+        host_ips = get_local_ip_addresses(include_loopback=cfg.include_loopback, san_ip_addresses=cfg.san_ip_addresses)
         log.info(f'Create host certificate for hostnames:{", ".join(host_names)} and ips:{", ".join(host_ips)}')
-        csr = gen_csr(key, san_dns_names=list(host_names), san_ip_addresses=list(host_ips))
+        csr = gen_csr(
+            key,
+            common_name=cfg.common_name,
+            san_dns_names=list(host_names),
+            san_ip_addresses=list(host_ips),
+            include_loopback=cfg.include_loopback,
+        )
         cert = sign_csr(csr, ca_key, ca_cert)
         return key, cert
 
     @staticmethod
-    def lookup(config: CoreConfig, db: StandardDatabase, passphrase: Optional[str] = None) -> CertificateHandler:
+    def __create_host_context(
+        config: CoreConfig, host_cert: Certificate, host_key: RSAPrivateKey
+    ) -> Optional[SSLContext]:
+        args = config.args
+        if args.no_tls:
+            log.info("TLS disabled.")
+            return None
+        else:
+            # noinspection PyTypeChecker
+            ctx = create_default_context(purpose=Purpose.CLIENT_AUTH)
+            if config.args.cert:
+                log.info("Using TLS certificate from command line.")
+                # Use the certificate provided via cmd line flags
+                ctx.load_cert_chain(args.cert, args.cert_key, args.cert_key_pass)
+            else:
+                log.info("Using TLS certificate from data store.")
+                # ssl library wants to load cert/key from file: put it into a temp directory for loading
+                with TemporaryDirectory() as td:
+                    cert_file = Path(td, "cert")
+                    key_file = Path(td, "key")
+                    write_cert_to_file(host_cert, str(cert_file))
+                    write_key_to_file(host_key, str(key_file))
+                    ctx.load_cert_chain(str(cert_file), str(key_file), args.ca_cert_key_pass)
+            return ctx
+
+    @staticmethod
+    def __create_client_context(config: CoreConfig, ca_cert: Certificate) -> SSLContext:
+        # noinspection PyTypeChecker
+        ctx = create_default_context(purpose=Purpose.SERVER_AUTH)
+        if config.args.ca_cert:
+            ctx.load_verify_locations(cafile=config.args.ca_cert)
+        else:
+            ca_bytes = cert_to_bytes(ca_cert).decode("utf-8")
+            ctx.load_verify_locations(cadata=ca_bytes)
+        return ctx
+
+    @staticmethod
+    def lookup(config: CoreConfig, db: StandardDatabase) -> CertificateHandler:
+        args = config.args
+        # if we get a ca certificate from the command line, use it
+        if args.ca_cert and args.ca_cert_key:
+            ca_key = load_key_from_file(args.ca_cert_key, args.ca_cert_key_pass)
+            ca_cert = load_cert_from_file(args.ca_cert_cert)
+            return CertificateHandler(config, ca_key, ca_cert)
+
+        # otherwise, load from database or create it
         sd = db.collection("system_data")
         maybe_ca = sd.get("ca")
         if maybe_ca and isinstance(maybe_ca.get("key"), str) and isinstance(maybe_ca.get("certificate"), str):
@@ -66,10 +141,10 @@ class CertificateHandler:
             certificate = load_cert_from_bytes(maybe_ca["certificate"].encode("utf-8"))
             return CertificateHandler(config, key, certificate)
         else:
-            wo = "with" if passphrase else "without"
+            wo = "with" if args.ca_cert_key_pass else "without"
             log.info(f"No ca certificate found - create a new one {wo} passphrase.")
             key, certificate = bootstrap_ca()
-            key_string = key_to_bytes(key, passphrase).decode("utf-8")
+            key_string = key_to_bytes(key, args.ca_cert_key_pass).decode("utf-8")
             certificate_string = cert_to_bytes(certificate).decode("utf-8")
             sd.insert({"_key": "ca", "key": key_string, "certificate": certificate_string})
             return CertificateHandler(config, key, certificate)

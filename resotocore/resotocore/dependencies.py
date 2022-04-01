@@ -155,17 +155,45 @@ def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None
         dest="graphdb_request_timeout",
         help="Request timeout in seconds (default: 900)",
     )
-    # TODO: TLS handling via config file (separate change)
+    parser.add_argument("--no-tls", default=False, action="store_true", help="Disable TLS and use plain HTTP.")
     parser.add_argument(
-        "--tls-key",
-        type=is_file("can not parse --tls-key"),
-        help="Path to a file containing the private key. "
-        "If not defined the private key will be taken from certfile as well.",
+        "--cert",
+        type=is_file("can not parse --cert"),
+        dest="cert",
+        help="Path to a single file in PEM format containing the host certificate. "
+        "If no certificate is provided, it is created using the CA.",
     )
     parser.add_argument(
-        "--tls-password",
+        "--cert-key",
+        type=is_file("can not parse --cert-key"),
+        dest="cert_key",
+        help="In case a --cert is provided. Path to a file containing the private key.",
+    )
+    parser.add_argument(
+        "--cert-key-pass",
+        dest="cert_key_pass",
         type=str,
-        help="Optional password to decrypt the private key file.",
+        help="In case a --cert is provided. Optional password to decrypt the private key file.",
+    )
+    parser.add_argument(
+        "--ca-cert",
+        type=is_file("can not parse --ca-cert"),
+        dest="ca_cert",
+        help="Path to a single file in PEM format containing the CA certificate.",
+    )
+    parser.add_argument(
+        "--ca-cert-key",
+        type=is_file("can not parse --ca-cert-key"),
+        dest="ca_cert_key",
+        help="Path to a file containing the private key for the CA certificate. "
+        "New certificates can be created when when a CA certificate and private key is provided. "
+        "Without the private key, the CA certificate is only used for outgoing http requests..",
+    )
+    parser.add_argument(
+        "--ca-cert-key-pass",
+        dest="ca_cert_key_pass",
+        type=str,
+        help="Optional password to decrypt the private ca-cert-key file.",
     )
     parser.add_argument(
         "--version",
@@ -173,14 +201,14 @@ def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None
         help="Print the version of resotocore and exit.",
     )
     parser.add_argument(
-        "--config-override",
+        "--override",
         nargs="+",
         type=key_value,
         dest="config_override",
         default=[],
         help="Override configuration parameters. Format: path.to.property=value. "
         "Note: the value can be any json value - proper escaping from the shell is required."
-        "Example: --config-override api.hosts='[localhost, some.domain]' api.port=12345",
+        "Example: --override api.hosts='[localhost, some.domain]' api.port=12345",
     )
 
     # All suppressed properties are only here for backward compatibility.
@@ -194,7 +222,6 @@ def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None
     parser.add_argument("--analytics-opt-out", default=None, action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--ui-path", type=is_dir("can not parse --ui-dir"), help=argparse.SUPPRESS)
     parser.add_argument("--tsdb-proxy-url", type=is_url("can not parse --tsdb-proxy-url"), help=argparse.SUPPRESS)
-    parser.add_argument("--tls-cert", type=is_file("can not parse --tls-cert"), help=argparse.SUPPRESS)
     parser.add_argument("--cli-default-graph", type=str, dest="cli_default_graph", help=argparse.SUPPRESS)
     parser.add_argument("--cli-default-section", type=str, dest="cli_default_section", help=argparse.SUPPRESS)
     parser.add_argument("--jobs", nargs="*", type=argparse.FileType("r"), help=argparse.SUPPRESS)

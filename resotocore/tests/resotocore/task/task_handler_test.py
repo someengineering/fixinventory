@@ -62,6 +62,9 @@ from tests.resotocore.query.template_expander_test import expander
 # noinspection PyUnresolvedReferences
 from tests.resotocore.worker_task_queue_test import worker, task_queue, performed_by, incoming_tasks
 
+# noinspection PyUnresolvedReferences
+from tests.resotocore.web.certificate_handler_test import cert_handler
+
 
 @fixture
 async def subscription_handler(message_bus: MessageBus) -> SubscriptionHandler:

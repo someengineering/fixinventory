@@ -11,9 +11,12 @@ from resotolib.args import ArgumentParser
 from argparse import Namespace
 from typing import List, Optional
 from resotolib.config import Config, RunningConfig
+from resotolib.core.ca import TLSData
 
 
-def collect_and_send(collectors: List[BaseCollectorPlugin]) -> None:
+def collect_and_send(
+    collectors: List[BaseCollectorPlugin], tls_data: Optional[TLSData] = None
+) -> None:
     def collect(collectors: List[BaseCollectorPlugin]) -> Graph:
         graph = Graph(root=GraphRoot("root", {}))
 
@@ -58,7 +61,7 @@ def collect_and_send(collectors: List[BaseCollectorPlugin]) -> None:
         sanitize(graph)
         return graph
 
-    send_to_resotocore(collect(collectors))
+    send_to_resotocore(collect(collectors), tls_data=tls_data)
 
 
 def collect_plugin_graph(

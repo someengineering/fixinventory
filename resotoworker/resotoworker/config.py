@@ -54,14 +54,23 @@ class ResotoWorkerConfig:
         },
     )
     web_host: Optional[str] = field(
-        default="::", metadata={"description": "IP address to bind the web server to"}
+        default="::",
+        metadata={
+            "description": "IP address to bind the web server to",
+            "restart_required": True,
+        },
     )
     web_port: Optional[int] = field(
-        default=9956, metadata={"description": "Web server tcp port to listen on"}
+        default=9956,
+        metadata={
+            "description": "Web server tcp port to listen on",
+            "restart_required": True,
+        },
     )
     web_path: Optional[str] = field(
         default="/",
         metadata={
-            "description": "Web root in browser (change if running behind an ingress proxy)"
+            "description": "Web root in browser (change if running behind an ingress proxy)",
+            "restart_required": True,
         },
     )

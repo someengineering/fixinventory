@@ -1,14 +1,13 @@
 import asyncio
 import logging
 import platform
-import ssl
 import sys
+import traceback
 from argparse import Namespace
 from asyncio import Queue
 from contextlib import suppress
 from datetime import timedelta
-from ssl import SSLContext
-from typing import AsyncIterator, Optional, List
+from typing import AsyncIterator, List
 
 from aiohttp.web_app import Application
 from arango.database import StandardDatabase
@@ -54,6 +53,8 @@ def main() -> None:
         log.info("Stopping resoto graph core.")
         shutdown_process(0)
     except Exception as ex:
+        if "--debug" in sys.argv:
+            print(traceback.format_exc())
         print(f"resotocore stopped. Reason {class_fqn(ex)}: {ex}", file=sys.stderr)
         shutdown_process(1)
 
@@ -119,6 +120,7 @@ def with_config(created: bool, system_data: SystemData, sdb: StandardDatabase, c
         config=config,
         template_expander=template_expander,
         config_handler=config_handler,
+        cert_handler=cert_handler,
     )
     default_env = {"graph": config.cli.default_graph, "section": config.cli.default_section}
     cli = CLI(cli_deps, all_commands(cli_deps), default_env, alias_names())
@@ -210,12 +212,13 @@ def with_config(created: bool, system_data: SystemData, sdb: StandardDatabase, c
         api.app.cleanup_ctx.append(on_start_stop)
         return api.app
 
-    tls_context: Optional[SSLContext] = None
-    if config.args.tls_cert:
-        tls_context = SSLContext(ssl.PROTOCOL_TLS)
-        tls_context.load_cert_chain(config.args.tls_cert, config.args.tls_key, config.args.tls_password)
-
-    runner.run_app(async_initializer(), api.stop, host=config.api.hosts, port=config.api.port, ssl_context=tls_context)
+    runner.run_app(
+        async_initializer(),
+        api.stop,
+        host=config.api.hosts,
+        port=config.api.port,
+        ssl_context=cert_handler.host_context,
+    )
 
 
 if __name__ == "__main__":

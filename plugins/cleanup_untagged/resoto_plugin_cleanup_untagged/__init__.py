@@ -17,7 +17,7 @@ class CleanupUntaggedPlugin(BaseActionPlugin):
 
     def do_action(self, data: Dict) -> None:
         log.debug("Cleanup Untagged called")
-        cg = CoreGraph()
+        cg = CoreGraph(tls_data=self.tls_data)
         config = deepcopy(Config.plugin_cleanup_untagged.config)
 
         tags_part = 'not(has_key(tags, ["' + '", "'.join(config["tags"]) + '"]))'
