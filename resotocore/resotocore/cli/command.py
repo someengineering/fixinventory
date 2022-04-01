@@ -3194,7 +3194,7 @@ class HttpCommand(CLICommand):
                     data=data,
                     compress=template.compress,
                     timeout=template.timeout,
-                    ssl=not template.no_ssl_verify,
+                    ssl=False if template.no_ssl_verify else self.dependencies.cert_handler.client_context,
                 ) as response:
                     log.debug(f"Request performed: {response}")
                     if (200 <= response.status < 400) or retries_left == 0:
@@ -3655,4 +3655,5 @@ def alias_names() -> Dict[str, str]:
         "lists": "list",
         "template": "templates",
         "workflow": "workflows",
+        "man": "help",
     }

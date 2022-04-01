@@ -33,6 +33,7 @@ from resotocore.model.graph_access import EdgeType
 from resotocore.model.model import Model
 from resotocore.query.template_expander import TemplateExpander
 from resotocore.util import utc, from_utc
+from resotocore.web.certificate_handler import CertificateHandler
 from resotocore.worker_task_queue import WorkerTaskQueue, WorkerTaskDescription
 
 # noinspection PyUnresolvedReferences
@@ -62,6 +63,9 @@ from tests.resotocore.query.template_expander_test import expander
 # noinspection PyUnresolvedReferences
 from tests.resotocore.worker_task_queue_test import worker, task_queue, performed_by, incoming_tasks
 
+# noinspection PyUnresolvedReferences
+from tests.resotocore.web.certificate_handler_test import cert_handler
+
 
 @fixture
 async def cli_deps(
@@ -73,6 +77,7 @@ async def cli_deps(
     worker: Tuple[WorkerTaskDescription, WorkerTaskDescription, WorkerTaskDescription],
     expander: TemplateExpander,
     config_handler: ConfigHandler,
+    cert_handler: CertificateHandler,
 ) -> AsyncIterator[CLIDependencies]:
     db_access = DbAccess(filled_graph_db.db.db, event_sender, NoAdjust(), empty_config())
     model_handler = ModelHandlerStatic(foo_model)
@@ -87,6 +92,7 @@ async def cli_deps(
         template_expander=expander,
         forked_tasks=Queue(),
         config_handler=config_handler,
+        cert_handler=cert_handler,
     )
     yield deps
     await deps.stop()
