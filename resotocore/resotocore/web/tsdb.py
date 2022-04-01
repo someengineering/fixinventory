@@ -28,6 +28,7 @@ def tsdb(api_handler: "api.Api") -> Callable[[Request], Awaitable[StreamResponse
                 headers=in_headers,
                 compress="deflate",
                 data=request.content,
+                ssl=api_handler.cert_handler.client_context,
             ) as cr:
                 log.info(f"Proxy tsdb request to: {url} resulted in status={cr.status}")
                 headers = cr.headers.copy()
