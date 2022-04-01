@@ -98,7 +98,7 @@ def with_config(created: bool, system_data: SystemData, sdb: StandardDatabase, c
     info = system_info()
     event_sender = NoEventSender() if config.runtime.analytics_opt_out else PostHogEventSender(system_data)
     db = db_access(config, sdb, event_sender)
-    cert_handler = CertificateHandler.lookup(config, sdb, config.args.ca_cert_key_pass)
+    cert_handler = CertificateHandler.lookup(config, sdb)
     message_bus = MessageBus()
     scheduler = Scheduler()
     worker_task_queue = WorkerTaskQueue()

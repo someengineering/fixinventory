@@ -23,6 +23,8 @@ from resotolib.x509 import (
     load_csr_from_bytes,
     write_key_to_file,
     write_cert_to_file,
+    load_key_from_file,
+    load_cert_from_file,
 )
 
 from resotocore.core_config import CoreConfig
@@ -73,7 +75,15 @@ class CertificateHandler:
         return key, cert
 
     @staticmethod
-    def lookup(config: CoreConfig, db: StandardDatabase, passphrase: Optional[str] = None) -> CertificateHandler:
+    def lookup(config: CoreConfig, db: StandardDatabase) -> CertificateHandler:
+        args = config.args
+        # if we get a ca certificate from the command line, use it
+        if args.ca_cert and args.ca_cert_key:
+            ca_key = load_key_from_file(args.ca_cert_key, args.ca_cert_key_pass)
+            ca_cert = load_cert_from_file(args.ca_cert_cert)
+            return CertificateHandler(config, ca_key, ca_cert)
+
+        # otherwise, load from database or create it
         sd = db.collection("system_data")
         maybe_ca = sd.get("ca")
         if maybe_ca and isinstance(maybe_ca.get("key"), str) and isinstance(maybe_ca.get("certificate"), str):
@@ -82,10 +92,10 @@ class CertificateHandler:
             certificate = load_cert_from_bytes(maybe_ca["certificate"].encode("utf-8"))
             return CertificateHandler(config, key, certificate)
         else:
-            wo = "with" if passphrase else "without"
+            wo = "with" if args.ca_cert_key_pass else "without"
             log.info(f"No ca certificate found - create a new one {wo} passphrase.")
             key, certificate = bootstrap_ca()
-            key_string = key_to_bytes(key, passphrase).decode("utf-8")
+            key_string = key_to_bytes(key, args.ca_cert_key_pass).decode("utf-8")
             certificate_string = cert_to_bytes(certificate).decode("utf-8")
             sd.insert({"_key": "ca", "key": key_string, "certificate": certificate_string})
             return CertificateHandler(config, key, certificate)
@@ -98,10 +108,10 @@ class CertificateHandler:
         else:
             # noinspection PyTypeChecker
             ctx = create_default_context(purpose=Purpose.CLIENT_AUTH)
-            if self.config.args.ca_cert:
+            if self.config.args.cert:
                 log.info("Using TLS certificate from command line.")
                 # Use the certificate provided via cmd line flags
-                ctx.load_cert_chain(args.ca_cert, args.ca_cert_key, args.ca_cert_key_pass)
+                ctx.load_cert_chain(args.cert, args.cert_key, args.cert_key_pass)
             else:
                 log.info("Using TLS certificate from data store.")
                 # ssl library wants to load cert/key from file: put it into a temp directory for loading

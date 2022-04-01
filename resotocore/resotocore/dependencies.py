@@ -157,24 +157,43 @@ def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None
     )
     parser.add_argument("--no-tls", default=False, action="store_true", help="Disable TLS and use plain HTTP.")
     parser.add_argument(
+        "--cert",
+        type=is_file("can not parse --cert"),
+        dest="cert",
+        help="Path to a single file in PEM format containing the host certificate. "
+        "If no certificate is provided, it is created using the CA.",
+    )
+    parser.add_argument(
+        "--cert-key",
+        type=is_file("can not parse --cert-key"),
+        dest="cert_key",
+        help="In case a --cert is provided. Path to a file containing the private key.",
+    )
+    parser.add_argument(
+        "--cert-key-pass",
+        dest="cert_key_pass",
+        type=str,
+        help="In case a --cert is provided. Optional password to decrypt the private key file.",
+    )
+    parser.add_argument(
         "--ca-cert",
         type=is_file("can not parse --ca-cert"),
         dest="ca_cert",
-        help="Path to a single file in PEM format containing the certificate as well as any number "
-        "of CA certificates needed to establish the certificate’s authenticity.",
+        help="Path to a single file in PEM format containing the CA certificate.",
     )
     parser.add_argument(
         "--ca-cert-key",
         type=is_file("can not parse --ca-cert-key"),
         dest="ca_cert_key",
-        help="Path to a file containing the private key. "
-        "If not defined the private key will be taken from certfile as well.",
+        help="Path to a file containing the private key for the CA certificate. "
+        "New certificates can be created when when a CA certificate and private key is provided. "
+        "Without the private key, the CA certificate is only used for outgoing http requests..",
     )
     parser.add_argument(
         "--ca-cert-key-pass",
         dest="ca_cert_key_pass",
         type=str,
-        help="Optional password to decrypt the private key file.",
+        help="Optional password to decrypt the private ca-cert-key file.",
     )
     parser.add_argument(
         "--version",
