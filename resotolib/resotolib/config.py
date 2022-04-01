@@ -3,6 +3,7 @@ import threading
 from resotolib.logging import log
 from resotolib.args import ArgumentParser, convert
 from resotolib.core.ca import TLSData
+from resotolib.signal import restart
 from resotolib.core.model_export import dataclasses_to_resotocore_model, optional_origin
 from resotolib.core import ResotocoreURI
 from resotolib.core.config import (
@@ -107,7 +108,7 @@ class Config(metaclass=MetaConfig):
         else:
             raise RuntimeError("Config must have a 'kind' attribute")
 
-    def load_config(self) -> None:
+    def load_config(self, reload: bool = False) -> None:
         if len(Config.running_config.classes) == 0:
             raise RuntimeError("No config added")
         with self._config_lock:
@@ -137,6 +138,8 @@ class Config(metaclass=MetaConfig):
                         )
                     else:
                         log.warning(f"Unknown config section {config_id}")
+                if reload and self.restart_required(new_config):
+                    restart()
                 Config.running_config.data = new_config
                 Config.running_config.revision = new_config_revision
             self.init_default_config()
@@ -147,6 +150,23 @@ class Config(metaclass=MetaConfig):
             if not self._ce.is_alive():
                 log.debug("Starting config event listener")
                 self._ce.start()
+
+    @staticmethod
+    def restart_required(new_config: Dict) -> bool:
+        for config_id, config_data in new_config.items():
+            if config_id in Config.running_config.data:
+                for field in fields(config_data):
+                    if field.metadata.get("restart_required", False):
+                        old_value = getattr(
+                            Config.running_config.data[config_id], field.name, None
+                        )
+                        new_value = getattr(config_data, field.name, None)
+                        if new_value != old_value:
+                            log.debug(
+                                f"Changed config {config_id}.{field.name} requires restart"
+                            )
+                            return True
+        return False
 
     def override_config(self) -> None:
         if getattr(ArgumentParser.args, "config_override", None) is None:
@@ -210,7 +230,7 @@ class Config(metaclass=MetaConfig):
         ):
             try:
                 log.debug(f"Config {self.config_name} has changed - reloading")
-                self.load_config()
+                self.load_config(reload=True)
             except Exception:
                 log.exception("Failed to reload config")
 

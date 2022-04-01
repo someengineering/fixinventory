@@ -1,14 +1,46 @@
 import os
 import time
 import sys
+import fcntl
 import psutil
 import threading
+import subprocess
 from resotolib.logging import log
 from resotolib.event import dispatch_event, Event, EventType
 from signal import signal, Signals, SIGTERM, SIGINT
 
 
 parent_pid = None
+initial_dir = os.getcwd()
+
+
+def restart() -> None:
+    python_args = []
+    if not getattr(sys, "frozen", False):
+        python_args = subprocess._args_from_interpreter_flags()
+    args = python_args + sys.argv
+
+    path_prefix = "." + os.pathsep
+    python_path = os.environ.get("PYTHONPATH", "")
+    if sys.path[0] == "" and not python_path.startswith(path_prefix):
+        os.environ["PYTHONPATH"] = path_prefix + python_path
+
+    kill_children(SIGTERM, ensure_death=True)
+
+    try:
+        open_max = os.sysconf("SC_OPEN_MAX")
+    except AttributeError:
+        open_max = 1024
+
+    for fd in range(3, open_max):
+        try:
+            flags = fcntl.fcntl(fd, fcntl.F_GETFD)
+        except IOError:
+            continue
+        fcntl.fcntl(fd, fcntl.F_SETFD, flags | fcntl.FD_CLOEXEC)
+
+    os.chdir(initial_dir)
+    os.execv(sys.executable, [sys.executable] + args)
 
 
 def delayed_exit(delay: int = 3) -> None:
