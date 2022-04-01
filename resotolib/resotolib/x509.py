@@ -157,20 +157,29 @@ def sign_csr(
     return crt_build.sign(ca_key, hashes.SHA256(), default_backend())
 
 
-def write_csr_to_file(csr: CertificateSigningRequest, csr_path: str) -> None:
+def write_csr_to_file(
+    csr: CertificateSigningRequest, csr_path: str, rename: bool = True
+) -> None:
+    tmp_csr_path = f"{csr_path}.tmp" if rename else csr_path
     with open(csr_path, "wb") as f:
         f.write(csr_to_bytes(csr))
+    if rename:
+        os.rename(tmp_csr_path, csr_path)
 
 
-def write_cert_to_file(cert: Certificate, cert_path: str) -> None:
-    with open(cert_path, "wb") as f:
+def write_cert_to_file(cert: Certificate, cert_path: str, rename: bool = True) -> None:
+    tmp_cert_path = f"{cert_path}.tmp" if rename else cert_path
+    with open(tmp_cert_path, "wb") as f:
         f.write(cert_to_bytes(cert))
+    if rename:
+        os.rename(tmp_cert_path, cert_path)
 
 
 def write_ca_bundle(
-    cert: Certificate, cert_path: str, include_certifi: bool = True
+    cert: Certificate, cert_path: str, include_certifi: bool = True, rename: bool = True
 ) -> None:
-    with open(cert_path, "wb") as f:
+    tmp_cert_path = f"{cert_path}.tmp" if rename else cert_path
+    with open(tmp_cert_path, "wb") as f:
         if include_certifi:
             f.write(certifi.contents().encode())
         f.write("\n".encode())
@@ -186,15 +195,21 @@ def write_ca_bundle(
         f.write(f"# SHA1 Fingerprint: {sha1}\n".encode())
         f.write(f"# SHA256 Fingerprint: {sha256}\n".encode())
         f.write(cert_to_bytes(cert))
+    if rename:
+        os.rename(tmp_cert_path, cert_path)
 
 
 def write_key_to_file(
     key: RSAPrivateKey,
     key_path: str,
     passphrase: Optional[str] = None,
+    rename: bool = True,
 ) -> None:
-    with open(os.open(key_path, os.O_CREAT | os.O_WRONLY, 0o600), "wb") as f:
+    tmp_key_path = f"{key_path}.tmp" if rename else key_path
+    with open(os.open(tmp_key_path, os.O_CREAT | os.O_WRONLY, 0o600), "wb") as f:
         f.write(key_to_bytes(key, passphrase))
+    if rename:
+        os.rename(tmp_key_path, key_path)
 
 
 def key_to_bytes(
