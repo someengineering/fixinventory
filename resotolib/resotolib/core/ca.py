@@ -150,6 +150,8 @@ class TLSData:
         del d["_TLSData__ca_cert"]
         del d["_TLSData__cert"]
         del d["_TLSData__key"]
+        del d["_TLSData__watcher"]
+        d["__watcher_is_alive"] = self.__watcher.is_alive()
         d["__is_loaded"] = self.__loaded.is_set()
         if self.__loaded.is_set():
             d["__ca_cert_bytes"] = cert_to_bytes(self.__ca_cert)
@@ -173,6 +175,10 @@ class TLSData:
             del d["__cert_bytes"]
             del d["__key_bytes"]
         del d["__is_loaded"]
+        d["_TLSData__watcher"] = Thread(target=self.__expiration_watcher)
+        if d["__watcher_is_alive"]:
+            d["_TLSData__watcher"].start()
+        del d["__watcher_is_alive"]
         self.__dict__.update(d)
 
     def reload(self) -> None:
