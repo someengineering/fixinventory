@@ -21,6 +21,7 @@ from resotolib.web import WebServer
 from resotolib.web.metrics import WebApp
 from prometheus_client import Summary, REGISTRY
 from prometheus_client.core import GaugeMetricFamily, CounterMetricFamily
+from resotolib.event import add_event_listener, EventType, Event as ResotoEvent
 from threading import Event
 from typing import Optional
 from resotolib.args import ArgumentParser
@@ -34,7 +35,7 @@ metrics_update_metrics = Summary(
 )
 
 
-def handler(sig, frame) -> None:
+def shutdown(event: ResotoEvent) -> None:
     log.info("Shutting down")
     shutdown_event.set()
 
@@ -44,6 +45,7 @@ def main() -> None:
     resotolib.signal.parent_pid = os.getpid()
     resotolib.signal.initializer()
 
+    add_event_listener(EventType.SHUTDOWN, shutdown)
     arg_parser = ArgumentParser(
         description="resoto metrics exporter", env_args_prefix="RESOTOMETRICS_"
     )
