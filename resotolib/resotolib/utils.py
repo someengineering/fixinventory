@@ -17,6 +17,11 @@ from pprint import pformat
 from typing import Any, Callable, Dict, List, Tuple, Optional
 from datetime import date, datetime, timezone, timedelta
 
+try:
+    from psutil import cpu_count
+except ImportError:
+    from os import cpu_count
+
 
 class RWLock:
     """Synchronization object used in a solution of so-called second
@@ -772,3 +777,16 @@ def get_local_hostnames(
 def ordinal(num: int) -> str:
     suffix = "tsnrhtdd"[(num // 10 % 10 != 1) * (num % 10 < 4) * num % 10 :: 4]
     return f"{num}{suffix}"
+
+
+def num_default_threads(num_min_threads: int = 4) -> int:
+    count = num_min_threads
+    try:
+        # try to get the number of usable cores first
+        count = len(os.sched_getaffinity(0))
+    except AttributeError:
+        try:
+            count = cpu_count()
+        except Exception:
+            pass
+    return max(count, num_min_threads)

@@ -1,3 +1,4 @@
+from resotolib.utils import num_default_threads
 from dataclasses import dataclass, field
 from typing import List, ClassVar
 
@@ -20,7 +21,8 @@ class GcpConfig:
         metadata={"description": "GCP services to exclude (default: none)"},
     )
     project_pool_size: int = field(
-        default=5, metadata={"description": "GCP project thread/process pool size"}
+        default_factory=num_default_threads,
+        metadata={"description": "GCP project thread/process pool size"},
     )
     fork: bool = field(
         default=True,

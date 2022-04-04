@@ -1,3 +1,4 @@
+from resotolib.utils import num_default_threads
 from dataclasses import dataclass, field
 from typing import List, ClassVar, Optional
 
@@ -30,7 +31,8 @@ class K8sConfig:
         metadata={"description": "Objects to exclude (default: none)"},
     )
     pool_size: int = field(
-        default=5, metadata={"description": "Thread/process pool size"}
+        default_factory=num_default_threads,
+        metadata={"description": "Thread/process pool size"},
     )
     fork: bool = field(
         default=True,

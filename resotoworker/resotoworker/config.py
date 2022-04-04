@@ -1,5 +1,6 @@
 from resotolib.graph import GraphMergeKind
 from resotolib.config import Config
+from resotolib.utils import num_default_threads
 from dataclasses import dataclass, field
 from typing import ClassVar, Optional, List
 
@@ -44,7 +45,7 @@ class ResotoWorkerConfig:
         default=False, metadata={"description": "Enable cleanup of resources"}
     )
     cleanup_pool_size: Optional[int] = field(
-        default=10,
+        default_factory=lambda: num_default_threads() * 2,
         metadata={"description": "How many cleanup threads to run in parallel"},
     )
     cleanup_dry_run: Optional[bool] = field(
