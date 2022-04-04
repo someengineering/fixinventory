@@ -226,8 +226,8 @@ def test_model_checking(person_model: Model) -> None:
     assert person_model.check_valid({"kind": "Base", "id": "32"}) is None
     assert person_model.check_valid({"kind": "Base", "id": "32", "list": ["one", "two"]}) is None
     assert person_model.check_valid({"kind": "Base", "id": "32", "list": [1, 2]})["list"] == ["1", "2"]  # type: ignore
-    expected = 'Kind:Base Property:list is not valid: Expected property is not an array!: {"kind": "Base", "id": "32", "list": "not iterable"}'
-    assert expect_error(person_model, {"kind": "Base", "id": "32", "list": "not iterable"}) == expected
+    expected = 'Kind:Base Property:list is not valid: Expected property is a json object not an array!: {"kind": "Base", "id": "32", "list": {"not": "an array"}}'
+    assert expect_error(person_model, {"kind": "Base", "id": "32", "list": {"not": "an array"}}) == expected
     assert person_model.check_valid({"kind": "Base", "id": 32}) == {"kind": "Base", "id": "32"}
     expected = 'Kind:Base Property:id is required and missing in {"kind": "Base"}'
     assert expect_error(person_model, {"kind": "Base"}) == expected

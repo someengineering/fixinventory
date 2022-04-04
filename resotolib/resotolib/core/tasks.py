@@ -74,7 +74,7 @@ class CoreTasks(threading.Thread):
         resotocore_ws_uri_split = urlsplit(self.resotocore_ws_uri)
         scheme = resotocore_ws_uri_split.scheme
         netloc = resotocore_ws_uri_split.netloc
-        path = "/work/queue"
+        path = resotocore_ws_uri_split.path + "/work/queue"
         query_dict = {"task": ",".join(self.tasks)}
         query_dict.update({k: ",".join(v) for k, v in self.task_queue_filter.items()})
         query = urlencode(query_dict)

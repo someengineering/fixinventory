@@ -640,9 +640,14 @@ class ArrayKind(Kind):
         self.inner.resolve(model)
 
     def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
-        if not isinstance(obj, list):
-            raise AttributeError("Expected property is not an array!")
         has_coerced = False
+        if isinstance(obj, dict):
+            # list is expected, but object found
+            raise AttributeError("Expected property is a json object not an array!")
+        elif not isinstance(obj, list):
+            # in case of simple type, we can make it an array
+            obj = [obj]
+            has_coerced = True
 
         def check(item: Any) -> ValidationResult:
             nonlocal has_coerced

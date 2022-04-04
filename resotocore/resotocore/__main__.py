@@ -215,8 +215,8 @@ def with_config(created: bool, system_data: SystemData, sdb: StandardDatabase, c
     runner.run_app(
         async_initializer(),
         api.stop,
-        host=config.api.hosts,
-        port=config.api.port,
+        host=config.api.web_hosts,
+        port=config.api.web_port,
         ssl_context=cert_handler.host_context,
     )
 

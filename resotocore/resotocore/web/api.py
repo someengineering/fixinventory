@@ -139,97 +139,97 @@ class Api:
         self.session: Optional[ClientSession] = None
         self.in_shutdown = False
         self.websocket_handler: Dict[str, Tuple[Future, web.WebSocketResponse]] = {}  # type: ignore # pypy
+        path_part = config.api.web_path.strip().strip("/").strip()
+        web_path = "" if path_part == "" else f"/{path_part}"
+        self.__add_routes(web_path)
+
+    def __add_routes(self, prefix: str) -> None:
         static_path = os.path.abspath(os.path.dirname(__file__) + "/../static")
         ui_route: List[AbstractRouteDef] = (
-            [web.static("/ui/", self.config.api.ui_path)]
+            [web.static(f"{prefix}/ui/", self.config.api.ui_path)]
             if self.config.api.ui_path and Path(self.config.api.ui_path).exists()
-            else [web.get("/ui/index.html", self.no_ui)]
+            else [web.get(f"{prefix}/ui/index.html", self.no_ui)]
         )
-        tsdb_route = [web.route(METH_ANY, "/tsdb/{tail:.+}", tsdb(self))] if self.config.api.tsdb_proxy_url else []
+        tsdb_route = (
+            [web.route(METH_ANY, prefix + "/tsdb/{tail:.+}", tsdb(self))] if self.config.api.tsdb_proxy_url else []
+        )
         self.app.add_routes(
             [
                 # Model operations
-                web.get("/model", self.get_model),
-                web.get("/model/uml", self.model_uml),
-                web.patch("/model", self.update_model),
+                web.get(prefix + "/model", self.get_model),
+                web.get(prefix + "/model/uml", self.model_uml),
+                web.patch(prefix + "/model", self.update_model),
                 # CRUD Graph operations
-                web.get("/graph", self.list_graphs),
-                web.get("/graph/{graph_id}", self.get_node),
-                web.post("/graph/{graph_id}", self.create_graph),
-                web.delete("/graph/{graph_id}", self.wipe),
-                # No section of the graph
-                # TODO: deprecated. Remove it.
-                web.post("/graph/{graph_id}/query/raw", self.raw),
-                web.post("/graph/{graph_id}/query/explain", self.explain),
-                web.post("/graph/{graph_id}/query/list", self.query_list),
-                web.post("/graph/{graph_id}/query/graph", self.query_graph_stream),
-                web.post("/graph/{graph_id}/query/aggregate", self.query_aggregation),
+                web.get(prefix + "/graph", self.list_graphs),
+                web.get(prefix + "/graph/{graph_id}", self.get_node),
+                web.post(prefix + "/graph/{graph_id}", self.create_graph),
+                web.delete(prefix + "/graph/{graph_id}", self.wipe),
                 # search the graph
-                web.post("/graph/{graph_id}/search/raw", self.raw),
-                web.post("/graph/{graph_id}/search/explain", self.explain),
-                web.post("/graph/{graph_id}/search/list", self.query_list),
-                web.post("/graph/{graph_id}/search/graph", self.query_graph_stream),
-                web.post("/graph/{graph_id}/search/aggregate", self.query_aggregation),
+                web.post(prefix + "/graph/{graph_id}/search/raw", self.raw),
+                web.post(prefix + "/graph/{graph_id}/search/explain", self.explain),
+                web.post(prefix + "/graph/{graph_id}/search/list", self.query_list),
+                web.post(prefix + "/graph/{graph_id}/search/graph", self.query_graph_stream),
+                web.post(prefix + "/graph/{graph_id}/search/aggregate", self.query_aggregation),
                 # maintain the graph
-                web.patch("/graph/{graph_id}/nodes", self.update_nodes),
-                web.post("/graph/{graph_id}/merge", self.merge_graph),
-                web.post("/graph/{graph_id}/batch/merge", self.update_merge_graph_batch),
-                web.get("/graph/{graph_id}/batch", self.list_batches),
-                web.post("/graph/{graph_id}/batch/{batch_id}", self.commit_batch),
-                web.delete("/graph/{graph_id}/batch/{batch_id}", self.abort_batch),
+                web.patch(prefix + "/graph/{graph_id}/nodes", self.update_nodes),
+                web.post(prefix + "/graph/{graph_id}/merge", self.merge_graph),
+                web.post(prefix + "/graph/{graph_id}/batch/merge", self.update_merge_graph_batch),
+                web.get(prefix + "/graph/{graph_id}/batch", self.list_batches),
+                web.post(prefix + "/graph/{graph_id}/batch/{batch_id}", self.commit_batch),
+                web.delete(prefix + "/graph/{graph_id}/batch/{batch_id}", self.abort_batch),
                 # node specific actions
-                web.post("/graph/{graph_id}/node/{node_id}/under/{parent_node_id}", self.create_node),
-                web.get("/graph/{graph_id}/node/{node_id}", self.get_node),
-                web.patch("/graph/{graph_id}/node/{node_id}", self.update_node),
-                web.delete("/graph/{graph_id}/node/{node_id}", self.delete_node),
-                web.patch("/graph/{graph_id}/node/{node_id}/section/{section}", self.update_node),
+                web.post(prefix + "/graph/{graph_id}/node/{node_id}/under/{parent_node_id}", self.create_node),
+                web.get(prefix + "/graph/{graph_id}/node/{node_id}", self.get_node),
+                web.patch(prefix + "/graph/{graph_id}/node/{node_id}", self.update_node),
+                web.delete(prefix + "/graph/{graph_id}/node/{node_id}", self.delete_node),
+                web.patch(prefix + "/graph/{graph_id}/node/{node_id}/section/{section}", self.update_node),
                 # Subscriptions
-                web.get("/subscribers", self.list_all_subscriptions),
-                web.get("/subscribers/for/{event_type}", self.list_subscription_for_event),
+                web.get(prefix + "/subscribers", self.list_all_subscriptions),
+                web.get(prefix + "/subscribers/for/{event_type}", self.list_subscription_for_event),
                 # Subscription
-                web.get("/subscriber/{subscriber_id}", self.get_subscriber),
-                web.put("/subscriber/{subscriber_id}", self.update_subscriber),
-                web.delete("/subscriber/{subscriber_id}", self.delete_subscriber),
-                web.post("/subscriber/{subscriber_id}/{event_type}", self.add_subscription),
-                web.delete("/subscriber/{subscriber_id}/{event_type}", self.delete_subscription),
-                web.get("/subscriber/{subscriber_id}/handle", self.handle_subscribed),
+                web.get(prefix + "/subscriber/{subscriber_id}", self.get_subscriber),
+                web.put(prefix + "/subscriber/{subscriber_id}", self.update_subscriber),
+                web.delete(prefix + "/subscriber/{subscriber_id}", self.delete_subscriber),
+                web.post(prefix + "/subscriber/{subscriber_id}/{event_type}", self.add_subscription),
+                web.delete(prefix + "/subscriber/{subscriber_id}/{event_type}", self.delete_subscription),
+                web.get(prefix + "/subscriber/{subscriber_id}/handle", self.handle_subscribed),
                 # CLI
-                web.post("/cli/evaluate", self.evaluate),
-                web.post("/cli/execute", self.execute),
-                web.get("/cli/info", self.cli_info),
+                web.post(prefix + "/cli/evaluate", self.evaluate),
+                web.post(prefix + "/cli/execute", self.execute),
+                web.get(prefix + "/cli/info", self.cli_info),
                 # Event operations
-                web.get("/events", self.handle_events),
+                web.get(prefix + "/events", self.handle_events),
                 # Worker operations
-                web.get("/work/queue", self.handle_work_tasks),
-                web.get("/work/create", self.create_work),
-                web.get("/work/list", self.list_work),
+                web.get(prefix + "/work/queue", self.handle_work_tasks),
+                web.get(prefix + "/work/create", self.create_work),
+                web.get(prefix + "/work/list", self.list_work),
                 # Serve static filed
-                web.get("", self.redirect_to_api_doc),
-                web.static("/static", static_path),
+                web.get(prefix, self.redirect_to_api_doc),
+                web.static(prefix + "/static", static_path),
                 # metrics
-                web.get("/metrics", self.metrics),
+                web.get(prefix + "/metrics", self.metrics),
                 # config operations
-                web.get("/configs", self.list_configs),
-                web.put("/config/{config_id}", self.put_config),
-                web.get("/config/{config_id}", self.get_config),
-                web.patch("/config/{config_id}", self.patch_config),
-                web.delete("/config/{config_id}", self.delete_config),
+                web.get(prefix + "/configs", self.list_configs),
+                web.put(prefix + "/config/{config_id}", self.put_config),
+                web.get(prefix + "/config/{config_id}", self.get_config),
+                web.patch(prefix + "/config/{config_id}", self.patch_config),
+                web.delete(prefix + "/config/{config_id}", self.delete_config),
                 # config model operations
-                web.get("/configs/validation", self.list_config_models),
-                web.get("/configs/model", self.get_configs_model),
-                web.patch("/configs/model", self.update_configs_model),
-                web.put("/config/{config_id}/validation", self.put_config_validation),
-                web.get("/config/{config_id}/validation", self.get_config_validation),
+                web.get(prefix + "/configs/validation", self.list_config_models),
+                web.get(prefix + "/configs/model", self.get_configs_model),
+                web.patch(prefix + "/configs/model", self.update_configs_model),
+                web.put(prefix + "/config/{config_id}/validation", self.put_config_validation),
+                web.get(prefix + "/config/{config_id}/validation", self.get_config_validation),
                 # ca operations
-                web.get("/ca/cert", self.certificate),
-                web.post("/ca/sign", self.sign_certificate),
+                web.get(prefix + "/ca/cert", self.certificate),
+                web.post(prefix + "/ca/sign", self.sign_certificate),
                 # system operations
-                web.get("/system/ping", self.ping),
-                web.get("/system/ready", self.ready),
+                web.get(prefix + "/system/ping", self.ping),
+                web.get(prefix + "/system/ready", self.ready),
                 # forwards
-                web.get("/tsdb", self.forward("/tsdb/")),
-                web.get("/ui", self.forward("/ui/index.html")),
-                web.get("/ui/", self.forward("/ui/index.html")),
+                web.get(prefix + "/tsdb", self.forward("/tsdb/")),
+                web.get(prefix + "/ui", self.forward("/ui/index.html")),
+                web.get(prefix + "/ui/", self.forward("/ui/index.html")),
                 *ui_route,
                 *tsdb_route,
             ]
@@ -237,7 +237,7 @@ class Api:
         SwaggerFile(
             self.app,
             spec_file=f"{static_path}/api-doc.yaml",
-            swagger_ui_settings=SwaggerUiSettings(path="/api-doc", layout="BaseLayout", docExpansion="none"),
+            swagger_ui_settings=SwaggerUiSettings(path=prefix + "/api-doc", layout="BaseLayout", docExpansion="none"),
         )
 
     async def start(self) -> None:

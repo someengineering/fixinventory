@@ -209,7 +209,7 @@ class MessageBus:
             self.active_listener[subscriber_id] = ch_list
             for channel in ch_list:
                 add_listener(channel)
-            log.info(f"Listener {subscriber_id} added to following queues: {ch_list}")
+            log.info(f"Event listener {subscriber_id} added to following queues: {ch_list}")
             yield queue
         finally:
             log.info(f"Remove listener: {subscriber_id}")
