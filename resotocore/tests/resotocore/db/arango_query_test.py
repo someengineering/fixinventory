@@ -86,3 +86,10 @@ def test_ancestors_kind_lookup(foo_model: Model, graph_db: GraphDB) -> None:
     # 1234 is coerced to a string
     query = "ancestors.account.reported.name==1234"
     assert to_query(graph_db, QueryModel(parse_query(query), foo_model))[1] == {"b0": "1234"}
+
+
+def test_escape_property_path(foo_model: Model, graph_db: GraphDB) -> None:
+    raw = "metadata.replace.with.filter.sort.bla==true"
+    query = to_query(graph_db, QueryModel(parse_query(raw), foo_model))[0]
+    # aql keywords are escaped with backslashes
+    assert "m0.metadata.`replace`.`with`.`filter`.`sort`.bla" in query

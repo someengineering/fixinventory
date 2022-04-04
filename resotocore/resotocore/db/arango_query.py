@@ -43,6 +43,25 @@ from resotocore.util import first, set_value_in_path, exist
 
 log = logging.getLogger(__name__)
 
+# Those words are keywords in aql and need to be "escaped"
+escape_aql_parts = {
+    "collect",
+    "filter",
+    "for",
+    "insert",
+    "let",
+    "limit",
+    "remove",
+    "replace",
+    "return",
+    "search",
+    "sort",
+    "update",
+    "upsert",
+    "window",
+    "with",
+}
+
 allowed_first_merge_part = Part(AllTerm())
 unset_props = json.dumps(["flat"])
 # This list of delimiter is also used in the arango delimiter index.
@@ -104,7 +123,13 @@ def query_string(
             before, after = path.rsplit(resolved.prop.name, 1)
             return f'{before}{".".join(synth.path)}{after}'
 
+        def escape_part(path_part: str) -> str:
+            return f"`{path_part}`" if path_part.lower() in escape_aql_parts else path_part
+
         prop_name = synthetic_path(resolved.prop.synthetic) if resolved.prop.synthetic else path
+
+        # make sure the path does not contain any aql keywords
+        prop_name = ".".join(escape_part(pn) for pn in prop_name.split("."))
 
         return prop_name, resolved, merge_name
 
