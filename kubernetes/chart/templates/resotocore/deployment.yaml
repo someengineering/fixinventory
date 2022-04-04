@@ -36,27 +36,16 @@ spec:
         - name: {{ .Chart.Name }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          image: "{{ .Values.image.repositoryFolder }}/resotocore:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:
-            - --host
-            - {{ .Values.resotocore.host | default "0.0.0.0" | quote }}
-            - --start-collect-on-subscriber-connect
             - --graphdb-server
             - {{ .Values.resotocore.graphdb.server | quote }}
             - --graphdb-database
             - {{ .Values.resotocore.graphdb.database | quote }}
             - --graphdb-username
-            - {{ .Values.resotocore.graphdb.login | quote }}
-            {{- if .Values.resotocore.tsdbProxyUrl }}
-            - --tsdb-proxy-url
-            - {{ .Values.resotocore.tsdbProxyUrl | quote }}
-            {{- end }}
+            - {{ .Values.resotocore.graphdb.username | quote }}
           env:
-          - name: START_STACK
-            value: "false"
-          - name: START_RESOTOCORE
-            value: "true"
           {{- if .Values.resotocore.graphdb.passwordSecret }}
           - name: RESOTOCORE_GRAPHDB_PASSWORD
             valueFrom:
@@ -69,15 +58,15 @@ spec:
               secretKeyRef:
                 name: {{ include "resoto.fullname" . }}-psk
                 key: "psk"
-
           ports:
-            - name: http
+            - name: https
               containerPort: 8900
               protocol: TCP
           readinessProbe:
             httpGet:
               path: /system/ready
-              port: http
+              port: https
+              scheme: HTTPS
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}

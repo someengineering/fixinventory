@@ -4,7 +4,7 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-IMAGE_TAG="${IMAGE_TAG:-latest}"
+IMAGE_TAG="${IMAGE_TAG:-edge}"
 NO_START_KIND="${NO_START_KIND:-}"
 
 if [ -z "${NO_START_KIND}" ]; then
@@ -65,15 +65,11 @@ helm upgrade -i --namespace resoto resoto "$DIR/chart" --set image.tag=$IMAGE_TA
 resotocore:
   graphdb:
     server: http://single-server:8529
-    login: ck
+    username: ck
     database: resoto
     passwordSecret:
       name: arango-user
       key: password
-resotoworker:
-  collector: example
-  extraArgs:
-    - --fork
 EOF
 # wait for it to be ready
 kubectl --namespace resoto rollout status deploy/resoto-resotocore --timeout=300s
