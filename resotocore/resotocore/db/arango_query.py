@@ -11,7 +11,7 @@ from resotocore.constants import less_greater_then_operations as lgt_ops, arango
 from resotocore.db import EstimatedSearchCost, EstimatedQueryCostRating as Rating
 from resotocore.db.arangodb_functions import as_arangodb_function
 from resotocore.db.model import QueryModel
-from resotocore.model.graph_access import EdgeType, Section, Direction
+from resotocore.model.graph_access import Section, Direction
 from resotocore.model.model import SyntheticProperty, ResolvedProperty
 from resotocore.model.resolve_in_graph import GraphResolver
 from resotocore.query.model import (
@@ -38,7 +38,6 @@ from resotocore.query.model import (
     FulltextTerm,
     Limit,
 )
-from resotocore.query.query_parser import merge_ancestors_parser
 from resotocore.util import first, set_value_in_path, exist
 
 log = logging.getLogger(__name__)
@@ -80,8 +79,6 @@ def query_string(
     model = query_model.model
     # combine merge names from the query as well as the default ancestor merge names
     merge_names: Set[str] = query_model.query.merge_names | ancestor_merges
-    mw = query.preamble.get("merge_with_ancestors")
-    merge_with: List[str] = re.split("\\s*,\\s*", str(mw)) if mw else []
 
     def next_counter(name: str) -> int:
         count = counters[name]
@@ -436,42 +433,6 @@ def query_string(
         cursor = navigation(cursor, p.navigation) if p.navigation else cursor
         return p, cursor, filtered_out, query_part
 
-    def merge_ancestors(cursor: str, part_str: str, ancestor_names: List[str]) -> Tuple[str, str]:
-        ancestors: List[Tuple[str, str]] = [merge_ancestors_parser.parse(p) for p in ancestor_names]
-        m_parts = [f"FOR node in {cursor} "]
-
-        # filter out resolved ancestors: all remaining ancestors need to be looked up in hierarchy
-        to_resolve = [(nr, p_as) for nr, p_as in ancestors if nr not in GraphResolver.resolved_ancestors]
-        if to_resolve:
-            merge_stop_at = next_bind_var_name()
-            merge_ancestor_nodes = next_bind_var_name()
-            bind_vars[merge_stop_at] = to_resolve[0][0]
-            bind_vars[merge_ancestor_nodes] = [tr[0] for tr in to_resolve]
-            m_parts.append(
-                "LET ancestor_nodes = ("
-                + f"FOR p IN 1..1000 INBOUND node {db.edge_collection(EdgeType.default)} "
-                + f"PRUNE @{merge_stop_at} in p.kinds "
-                + "OPTIONS {order: 'bfs', uniqueVertices: 'global'} "
-                + f"FILTER p.kinds any in @{merge_ancestor_nodes} RETURN p)"
-            )
-            for tr, _ in to_resolve:
-                bv = next_bind_var_name()
-                bind_vars[bv] = tr
-                m_parts.append(f"""LET {tr} = FIRST(FOR p IN ancestor_nodes FILTER @{bv} IN p.kinds RETURN p)""")
-
-        # all resolved ancestors can be looked up directly
-        for tr, _ in ancestors:
-            if tr in GraphResolver.resolved_ancestors:
-                m_parts.append(f'LET {tr} = DOCUMENT("{db.vertex_name}", node.refs.{tr}_id)')
-
-        result_parts = []
-        for section in Section.content_ordered:
-            ancestor_result = "{" + ",".join([f"{p[1]}: {p[0]}.{section}" for p in ancestors]) + "}"
-            result_parts.append(f"{section}: MERGE(NOT_NULL(node.{section},{{}}), {ancestor_result})")
-
-        m_parts.append("RETURN MERGE(node, {" + ", ".join(result_parts) + "})")
-        return "merge_with_ancestor", part_str + f' LET merge_with_ancestor = ({" ".join(m_parts)})'
-
     def sort(cursor: str, so: List[Sort]) -> str:
         def single_sort(single: Sort) -> str:
             prop_name, resolved, merge_name = prop_name_kind(single.name)
@@ -516,8 +477,8 @@ def query_string(
         parts.append(part_tuple)
         crsr = part_tuple[1]
 
-    all_parts = fulltext_part + " ".join(p[3] for p in parts)
-    resulting_cursor, query_str = merge_ancestors(crsr, all_parts, merge_with) if merge_with else (crsr, all_parts)
+    query_str = fulltext_part + " ".join(p[3] for p in parts)
+    resulting_cursor = crsr
     nxt = next_crs()
     if query.aggregate:  # return aggregate
         resulting_cursor, aggregation = aggregate(resulting_cursor, query.aggregate)

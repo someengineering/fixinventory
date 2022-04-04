@@ -436,27 +436,6 @@ async def test_query_aggregate(filled_graph_db: ArangoGraphDB, foo_model: Model)
 
 
 @pytest.mark.asyncio
-async def test_query_with_merge(filled_graph_db: ArangoGraphDB, foo_model: Model) -> None:
-    query = parse_query('(merge_with_ancestors="foo as foobar,bar"): is("bla")')
-    async with await filled_graph_db.search_list(QueryModel(query, foo_model)) as cursor:
-        async for bla in cursor:
-            js = AccessJson(bla)
-            assert "bar" in js.reported  # key exists
-            assert "bar" in js.desired  # key exists
-            assert "bar" in js.metadata  # key exists
-            assert js.reported.bar.is_none  # bla is not a parent of this node
-            assert js.desired.bar.is_none  # bla is not a parent of this node
-            assert js.metadata.bar.is_none  # bla is not a parent of this node
-            assert js.reported.foobar is not None  # foobar is merged into reported
-            assert js.desired.foobar is not None  # foobar is merged into reported
-            assert js.metadata.foobar is not None  # foobar is merged into reported
-            # make sure the correct parent is merged (foobar(1) -> bla(1_xxx))
-            assert js.reported.identifier.startswith(js.reported.foobar.identifier)
-            assert js.reported.identifier.startswith(js.desired.foobar.node_id)
-            assert js.reported.identifier.startswith(js.metadata.foobar.node_id)
-
-
-@pytest.mark.asyncio
 async def test_query_with_fulltext(filled_graph_db: ArangoGraphDB, foo_model: Model) -> None:
     async def search(query: str) -> List[JsonElement]:
         async with await filled_graph_db.search_list(QueryModel(parse_query(query), foo_model)) as cursor:

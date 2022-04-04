@@ -173,7 +173,8 @@ def test_part() -> None:
 
 def test_query() -> None:
     query = (
-        Query.by("ec2", P("cpu") > 4, (P("mem") < 23) | (P("mem") < 59), preamble={"merge_with_ancestors": "cloud"})
+        Query.by("ec2", P("cpu") > 4, (P("mem") < 23) | (P("mem") < 59))
+        .merge_with("cloud", Navigation(1, Navigation.Max, direction=Direction.inbound), Query.mk_term("cloud"))
         .traverse_out()
         .filter(P("some.int.value") < 1, P("some.other") == 23)
         .traverse_out()
@@ -183,13 +184,12 @@ def test_query() -> None:
         .add_sort("test", "asc")
         .with_limit(10)
     )
-    assert (
-        str(query)
-        == 'aggregate(foo: sum(cpu))(merge_with_ancestors="cloud"):'
-        + '((is("ec2") and cpu > 4) and (mem < 23 or mem < 59)) -default-> '
-        + "(some.int.value < 1 and some.other == 23) -default-> "
-        + '(active == 12 and in_subnet(ip, "1.2.3.4/96")) '
-        + "with(empty, -default->) sort test asc limit 10"
+    assert str(query) == (
+        'aggregate(foo: sum(cpu)):((is("ec2") and cpu > 4) and (mem < 23 or mem < 59)) '
+        '{cloud: all <-default[1:]- is("cloud")} -default-> '
+        "(some.int.value < 1 and some.other == 23) -default-> "
+        '(active == 12 and in_subnet(ip, "1.2.3.4/96")) '
+        "with(empty, -default->) sort test asc limit 10"
     )
     assert_round_trip(query_parser, query)
 
