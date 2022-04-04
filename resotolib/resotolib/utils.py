@@ -789,4 +789,6 @@ def num_default_threads(num_min_threads: int = 4) -> int:
             count = cpu_count()
         except Exception:
             pass
+    if not isinstance(count, int):
+        count = num_min_threads
     return max(count, num_min_threads)
