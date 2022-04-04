@@ -45,8 +45,6 @@ edge_direction = sampled_from(list(Direction.all))
 edge_type = sampled_from(list(EdgeType.all))
 sort_order = sampled_from([SortOrder.Asc, SortOrder.Desc])
 aggregate_functions = sampled_from(["sum", "count", "min", "max", "avg"])
-preamble_prop = just(("merge_with_ancestors", "cloud as cloud, account"))
-preamble_props = lists(preamble_prop, min_size=0, max_size=1).map(dict)  # type:ignore
 is_term = builds(IsTerm, lists(kind, min_size=1, max_size=2))
 predicate_term = builds(Predicate, query_property, query_operations, query_values, just({}))
 leaf_term: SearchStrategy[Term] = is_term | predicate_term
@@ -137,6 +135,6 @@ query = builds(
     Query,
     # test a more complex query with multiple parts and navigation or one simple part without navigation
     lists(part, min_size=1, max_size=3) | lists(only_filter_part, min_size=1, max_size=1),
-    preamble_props,
+    just({}),
     optional(aggregate),
 )

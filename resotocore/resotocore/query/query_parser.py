@@ -83,7 +83,7 @@ array_modifier_p = reduce(lambda x, y: x | y, [lexeme(string(a)) for a in ["all"
 function_p = reduce(lambda x, y: x | y, [lexeme(string(a)) for a in ["in_subnet", "has_desired_change", "has_key"]])
 
 
-preamble_prop_p = reduce(lambda x, y: x | y, [lexeme(string(a)) for a in ["edge_type", "merge_with_ancestors"]])
+preamble_prop_p = reduce(lambda x, y: x | y, [lexeme(string(a)) for a in ["edge_type"]])
 
 # This json parser is different from the one of parse_util: it uses query stop words
 json_value_in_query_p = lexeme(
@@ -356,15 +356,6 @@ def aggregate_group_variable_parser() -> Parser:
     name = yield aggregate_variable_name_p | aggregate_group_variable_name_combined_p
     as_name = yield (as_p >> literal_p).optional()
     return AggregateVariable(name, as_name)
-
-
-@make_parser
-def merge_ancestors_parser() -> Parser:
-    # parses foo as bla -> "foo", "bla"
-    # parses foo        -> "foo", "foo"
-    name = yield variable_p
-    as_name = yield (as_p >> literal_p).optional()
-    return name, as_name if as_name else name
 
 
 math_op_p = reduce(lambda x, y: x | y, [lexeme(string(a)) for a in ["+", "-", "*", "/", "%"]])
