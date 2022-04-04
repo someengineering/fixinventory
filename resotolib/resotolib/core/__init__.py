@@ -29,14 +29,14 @@ class ResotocoreURI:
 
     @property
     def http_uri(self) -> str:
-        return f"{self.uri.scheme}://{self.uri.netloc}"
+        return f"{self.uri.scheme}://{self.uri.netloc}{self.uri.path}"
 
     @property
     def ws_uri(self) -> str:
         scheme = "ws"
         if self.uri.scheme == "https":
             scheme = "wss"
-        return f"{scheme}://{self.uri.netloc}"
+        return f"{scheme}://{self.uri.netloc}{self.uri.path}"
 
     @property
     def is_secure(self) -> bool:

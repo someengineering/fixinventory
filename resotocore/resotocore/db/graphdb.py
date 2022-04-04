@@ -814,30 +814,6 @@ class ArangoGraphDB(GraphDB):
     async def create_update_schema(self) -> None:
         db = self.db
 
-        # Edge Definition dependency was renamed to default in 2.0.0a13
-        # TODO: This method can be removed before 2.0 is released
-        def rename_edge_dependency_to_default(graph_name: str, vertex_name: str, edge_name: str) -> None:
-            ddb = db.db
-            gdb = ddb.graph(graph_name)
-            dependency = self.edge_collection("dependency")
-            if (
-                ddb.has_graph(graph_name)
-                and gdb.has_edge_definition(dependency)
-                and not gdb.has_edge_definition(edge_name)
-            ):
-                log.info(f"Migration: rename edge collection {dependency} to {edge_name}")
-                # we need to delete the edge definition first, otherwise the graph is in limbo state
-                gdb.delete_edge_definition(dependency, purge=False)
-                # rename dependency -> default
-                db.db.collection(dependency).rename(edge_name)
-                # add edge definition to the graph
-                gdb.create_edge_definition(edge_name, [vertex_name], [vertex_name])
-
-        # The view index was created using a default analyzer
-        # TODO: This method can be removed before 2.0 is released.
-        def delete_wrong_index_view() -> None:
-            db.db.delete_view(f"search_{self.vertex_name}", ignore_missing=True)
-
         async def create_update_graph(
             graph_name: str, vertex_name: str, edge_name: str
         ) -> Tuple[Graph, VertexCollection, EdgeCollection]:
@@ -858,6 +834,7 @@ class ArangoGraphDB(GraphDB):
             node_idxes = {idx["name"]: idx for idx in nodes.indexes()}
             # this index will hold all the necessary data to query for an update (index only query)
             if "update_nodes_ref_id" not in node_idxes:
+                log.info(f"Add index update_nodes_ref_id on {nodes.name}")
                 nodes.add_persistent_index(
                     # if _key would be defined as first property, the optimizer would use it in case
                     # a simple id() query would be executed.
@@ -866,10 +843,6 @@ class ArangoGraphDB(GraphDB):
                     name="update_nodes_ref_id",
                 )
 
-            # One index only for kinds was not sufficient and got extended.
-            # TODO: This statement can be removed before 2.0 is released.
-            if "kinds" in node_idxes:
-                nodes.delete_index("kinds")
             if "kinds_id_name_ctime" not in node_idxes:
                 nodes.add_persistent_index(
                     ["kinds[*]", "reported.id", "reported.name", "reported.ctime"],
@@ -878,17 +851,17 @@ class ArangoGraphDB(GraphDB):
                 )
             progress_idxes = {idx["name"]: idx for idx in progress.indexes()}
             if "parent_nodes" not in progress_idxes:
+                log.info(f"Add index parent_nodes on {progress.name}")
                 progress.add_persistent_index(["parent_nodes[*]"], name="parent_nodes")
             if "root_nodes" not in progress_idxes:
+                log.info(f"Add index root_nodes on {progress.name}")
                 progress.add_persistent_index(["root_nodes[*]"], name="root_nodes")
-            # This index was used until 2.0.0a9
-            if "update_value" in node_idxes:
-                nodes.delete_index("update_value", True)
 
         def create_update_edge_indexes(edges: EdgeCollection) -> None:
             edge_idxes = {idx["name"]: idx for idx in edges.indexes()}
             # this index will hold all the necessary data to query for an update (index only query)
             if "update_edges_ref_id" not in edge_idxes:
+                log.info(f"Add index update_edges_ref_id on {edges.name}")
                 edges.add_persistent_index(
                     ["_key", "_from", "_to", "refs.cloud_id", "refs.account_id", "refs.region_id"],
                     sparse=False,
@@ -906,7 +879,6 @@ class ArangoGraphDB(GraphDB):
             try:
                 db.db.analyzer("delimited")
             except AnalyzerGetError:
-                delete_wrong_index_view()
                 db.db.create_analyzer(
                     "delimited",
                     "pipeline",
@@ -925,6 +897,7 @@ class ArangoGraphDB(GraphDB):
 
             views = {view["name"]: view for view in await db.views()}
             if name not in views:
+                log.info(f"Create view {name}")
                 await db.create_view(
                     name,
                     "arangosearch",
@@ -937,8 +910,6 @@ class ArangoGraphDB(GraphDB):
 
         for edge_type in EdgeType.all:
             edge_type_name = self.edge_collection(edge_type)
-            if edge_type == EdgeType.default:
-                rename_edge_dependency_to_default(self.name, self.vertex_name, edge_type_name)
             await create_update_graph(self.name, self.vertex_name, edge_type_name)
 
         vertex = db.graph(self.name).vertex_collection(self.vertex_name)

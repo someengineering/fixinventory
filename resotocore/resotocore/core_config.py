@@ -1,3 +1,5 @@
+import logging
+import re
 from argparse import Namespace
 from dataclasses import dataclass, field
 from datetime import timedelta
@@ -7,13 +9,17 @@ from arango.database import StandardDatabase
 from cerberus import schema_registry
 from resotolib.core.model_export import dataclasses_to_resotocore_model
 
+from resotocore.model.model import Kind, Model, ComplexKind
 from resotocore.model.typed_model import from_js, to_js
 from resotocore.types import Json, JsonElement
 from resotocore.util import set_value_in_path
 from resotocore.validator import Validator, schema_name
 
+log = logging.getLogger(__name__)
+
 ResotoCoreConfigId = "resoto.core"
 ResotoCoreRoot = "resotocore"
+ResotoCoreRootRE = re.compile(r"^resotocore[.]")
 
 
 @dataclass()
@@ -33,10 +39,17 @@ class CertificateConfig:
 class ApiConfig:
     kind: ClassVar[str] = f"{ResotoCoreRoot}_api_config"
 
-    hosts: List[str] = field(
+    web_hosts: List[str] = field(
         default_factory=lambda: ["localhost"], metadata={"description": "TCP host(s) to bind on (default: localhost)"}
     )
-    port: int = field(default=8900, metadata={"description": "TCP port to bind on (default: 8900)"})
+    web_port: int = field(default=8900, metadata={"description": "TCP port to bind on (default: 8900)"})
+    web_path: str = field(
+        default="/",
+        metadata={
+            "description": "Web path root (default: /).\n"
+            "This should only be required, if you are running a proxy server, that is not able to handle a sub-path."
+        },
+    )
     tsdb_proxy_url: Optional[str] = field(
         default=None,
         metadata={"description": "The url to the time series database. This path will be served under /tsdb/."},
@@ -257,7 +270,7 @@ class EditableConfig:
 
 
 def config_model() -> List[Json]:
-    return dataclasses_to_resotocore_model({EditableConfig})  # type: ignore
+    return dataclasses_to_resotocore_model({EditableConfig}, allow_unknown_props=False)  # type: ignore
 
 
 # Define rules to validate this config
@@ -286,30 +299,31 @@ def parse_config(args: Namespace, json_config: Json) -> CoreConfig:
     )
     # take command line options and translate it to the config model
     set_from_cmd_line = {
-        "api.hosts": args.host,
-        "api.port": args.port,
-        "api.tsdb_proxy_url": args.tsdb_proxy_url,
         "api.ui_path": args.ui_path,
-        "cli.default_graph": args.cli_default_graph,
-        "cli.default_section": args.cli_default_section,
-        "graph_update.abort_after_seconds": args.graph_update_abort_after.total_seconds()
-        if args.graph_update_abort_after
-        else None,
-        "graph_update.merge_max_wait_time_seconds": args.merge_max_wait_time_seconds,
-        "runtime.analytics_opt_out": args.analytics_opt_out,
         "runtime.debug": args.debug,
-        "runtime.log_level": args.log_level,
-        "runtime.start_collect_on_subscriber_connect": args.start_collect_on_subscriber_connect,
+        "runtime.analytics_opt_out": args.analytics_opt_out,
     }
 
     # take config overrides and adjust the configuration
-    for key, value in args.config_override:
-        set_from_cmd_line[key] = value
+    for config_list in args.config_override:
+        for key, value in config_list:
+            set_from_cmd_line[ResotoCoreRootRE.sub("", key, 1)] = value
 
+    # set the relevant value in the json config model
     adjusted = json_config.get(ResotoCoreRoot) or {}
     for path, value in set_from_cmd_line.items():
         if value is not None:
             adjusted = set_value_in_path(value, path, adjusted)
+
+    # coerce the resulting json to the config model
+    try:
+        model = Model.from_kinds(from_js(config_model(), List[Kind]))
+        root = model.get(ResotoCoreRoot)
+        if isinstance(root, ComplexKind):
+            adjusted = root.check_valid(adjusted) or adjusted
+    except Exception as e:
+        log.warning("Can not adjust configuration: e", exc_info=e)
+
     ed = from_js(adjusted, EditableConfig)
     return CoreConfig(api=ed.api, cli=ed.cli, db=db, graph_update=ed.graph_update, runtime=ed.runtime, args=args)
 
