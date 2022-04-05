@@ -137,7 +137,6 @@ setup_resotocore() {
         export RESOTOCORE_GRAPHDB_USERNAME
         export RESOTOCORE_GRAPHDB_PASSWORD
         export RESOTOCORE_PSK
-        export RESOTOCORE_HOST
     fi
 }
 
@@ -148,7 +147,6 @@ setup_resotoworker() {
         mkdir -p "$runit_resotoworker_rundir"
         argsdispatcher resotoworker "$runit_resotoworker_conf_in" "$@" > "$runit_resotoworker_rundir/run"
         export RESOTOWORKER_RESOTOCORE_URI
-        export RESOTOWORKER_RESOTOCORE_WS_URI
         export RESOTOWORKER_PSK
     fi
 }
@@ -160,7 +158,6 @@ setup_resotometrics() {
         mkdir -p "$runit_resotometrics_rundir"
         argsdispatcher resotometrics "$runit_resotometrics_conf_in" "$@" > "$runit_resotometrics_rundir/run"
         export RESOTOMETRICS_RESOTOCORE_URI
-        export RESOTOMETRICS_RESOTOCORE_WS_URI
         export RESOTOMETRICS_PSK
     fi
 }
