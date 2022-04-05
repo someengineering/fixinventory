@@ -47,7 +47,7 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
             else Config.gcp.project_pool_size
         )
         pool_args = {"max_workers": max_workers}
-        if Config.gcp.fork:
+        if Config.gcp.fork_process:
             pool_args["mp_context"] = multiprocessing.get_context("spawn")
             pool_args["initializer"] = resotolib.signal.initializer
             pool_executor = futures.ProcessPoolExecutor
@@ -88,7 +88,7 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
         """Collects an individual project.
 
         Is being called in collect() and either run within a thread or a spawned
-        process. Depending on whether `--gcp-fork` was specified or not.
+        process. Depending on whether `gcp.fork_process` was specified or not.
 
         Because the spawned process does not inherit any of our memory or file
         descriptors we are passing the already parsed `args` Namespace() to this

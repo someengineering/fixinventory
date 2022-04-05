@@ -78,7 +78,7 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
             else Config.aws.account_pool_size
         )
         pool_args = {"max_workers": max_workers}
-        if Config.aws.fork:
+        if Config.aws.fork_process:
             pool_args["mp_context"] = multiprocessing.get_context("spawn")
             pool_args["initializer"] = resotolib.signal.initializer
             pool_executor = futures.ProcessPoolExecutor

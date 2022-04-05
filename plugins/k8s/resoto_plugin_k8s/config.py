@@ -34,8 +34,8 @@ class K8sConfig:
         default_factory=num_default_threads,
         metadata={"description": "Thread/process pool size"},
     )
-    fork: bool = field(
-        default=True,
+    fork_process: bool = field(
+        default=False,
         metadata={"description": "Fork collector process instead of using threads"},
     )
     all_contexts: bool = field(

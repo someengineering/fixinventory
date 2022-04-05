@@ -28,7 +28,7 @@ class ResotoWorkerConfig:
     pool_size: Optional[int] = field(
         default=5, metadata={"description": "Collector thread/process pool size"}
     )
-    fork: Optional[bool] = field(
+    fork_process: Optional[bool] = field(
         default=True, metadata={"description": "Use forked process instead of threads"}
     )
     graph_merge_kind: Optional[GraphMergeKind] = field(

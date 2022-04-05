@@ -24,7 +24,7 @@ class GcpConfig:
         default_factory=num_default_threads,
         metadata={"description": "GCP project thread/process pool size"},
     )
-    fork: bool = field(
+    fork_process: bool = field(
         default=True,
         metadata={"description": "Fork collector process instead of using threads"},
     )

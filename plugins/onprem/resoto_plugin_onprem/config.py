@@ -22,7 +22,7 @@ class OnpremConfig:
     pool_size: int = field(
         default=5, metadata={"description": "Thread/process pool size"}
     )
-    fork: bool = field(
+    fork_process: bool = field(
         default=True,
         metadata={"description": "Fork collector process instead of using threads"},
     )

@@ -12,4 +12,4 @@ def test_args():
     assert len(Config.gcp.collect) == 0
     assert len(Config.gcp.no_collect) == 0
     assert Config.gcp.project_pool_size == num_default_threads()
-    assert Config.gcp.fork is True
+    assert Config.gcp.fork_process is True
