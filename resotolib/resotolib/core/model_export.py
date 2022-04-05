@@ -134,7 +134,9 @@ def should_export(field: Field) -> bool:
     return not field.name.startswith("_")
 
 
-def dataclasses_to_resotocore_model(classes: Set[type]) -> List[Json]:
+def dataclasses_to_resotocore_model(
+    classes: Set[type], allow_unknown_props: bool = False
+) -> List[Json]:
     """
     Analyze all transitive dataclasses and create the model
     definition as understood by resotocore.
@@ -142,6 +144,7 @@ def dataclasses_to_resotocore_model(classes: Set[type]) -> List[Json]:
     should be used to create json in the same format.
 
     :param classes: all dataclasses to analyze.
+    :param allow_unknown_props: allow properties in json that are not defined in the model.
     :return: the model definition in the resotocore json format.
     """
 
@@ -197,7 +200,12 @@ def dataclasses_to_resotocore_model(classes: Set[type]) -> List[Json]:
             for p in prop(field)
         ]
         model.append(
-            {"fqn": model_name(clazz), "bases": base_names, "properties": props}
+            {
+                "fqn": model_name(clazz),
+                "bases": base_names,
+                "properties": props,
+                "allow_unknown_props": allow_unknown_props,
+            }
         )
 
     def export_enum(clazz: type) -> None:

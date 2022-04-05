@@ -62,7 +62,7 @@ class CoreConfigHandler:
                 await self.worker_task_queue.error_task(worker_id, task.id, "Failing to process the task!")
 
     async def __handle_events(self) -> None:
-        async with self.message_bus.subscribe("resotocore_config_update", [CoreMessage.ConfigUpdated]) as events:
+        async with self.message_bus.subscribe("resotocore.config.update", [CoreMessage.ConfigUpdated]) as events:
             while True:
                 event = await events.get()
                 if event.data.get("id") == ResotoCoreConfigId:

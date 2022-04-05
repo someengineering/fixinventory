@@ -43,7 +43,7 @@ def wait_and_start(
         return None
 
     async def wait_for_subscriber() -> None:
-        async with message_bus.subscribe(f"wait_for_actor_{uuid_str()}", [CoreMessage.Connected]) as bus:
+        async with message_bus.subscribe(f"resotocore.wait_for_actor_{uuid_str()}", [CoreMessage.Connected]) as bus:
             while True:
                 message = await bus.get()
                 maybe_workflow = workflow_if_actor(message)

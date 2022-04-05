@@ -8,7 +8,6 @@ from contextlib import suppress
 from copy import copy
 from dataclasses import replace
 from datetime import timedelta
-from functools import reduce
 from io import TextIOWrapper
 from typing import Optional, Any, Callable, Union, Sequence, Dict, List, Tuple
 
@@ -216,13 +215,9 @@ class TaskHandlerService(TaskHandler):
     async def start(self) -> TaskHandlerService:
         log.info("TaskHandlerService is starting up!")
 
-        # load job descriptions from configuration files
-        file_jobs = [await self.parse_job_file(file) for file in self.config.args.jobs] if self.config.args.jobs else []
-        jobs: List[Job] = reduce(lambda r, l: r + l, file_jobs, [])
-
         # load job descriptions from database
         db_jobs = [job async for job in self.job_db.all()]
-        self.task_descriptions = [*self.task_descriptions, *jobs, *db_jobs]
+        self.task_descriptions = [*self.task_descriptions, *db_jobs]
 
         # load and restore all tasks
         self.tasks = {wi.id: wi for wi in await self.start_interrupted_tasks()}
@@ -237,7 +232,7 @@ class TaskHandlerService(TaskHandler):
             self.initial_start_workflow_task = wait_and_start(filtered, self, self.message_bus)
 
         async def listen_to_message_bus() -> None:
-            async with self.message_bus.subscribe("task_handler") as messages:
+            async with self.message_bus.subscribe("resotocore.task_handler") as messages:
                 while True:
                     message = None
                     try:
