@@ -52,7 +52,7 @@ def inside_docker() -> bool:
     )
 
 
-def default_nic() -> List[str]:
+def default_hosts() -> List[str]:
     return ["0.0.0.0"] if inside_docker() else ["localhost"]
 
 
@@ -74,7 +74,7 @@ class ApiConfig:
     kind: ClassVar[str] = f"{ResotoCoreRoot}_api_config"
 
     web_hosts: List[str] = field(
-        default_factory=default_nic, metadata={"description": f"TCP host(s) to bind on (default: {default_nic()})"}
+        default_factory=default_hosts, metadata={"description": f"TCP host(s) to bind on (default: {default_hosts()})"}
     )
     web_port: int = field(default=8900, metadata={"description": "TCP port to bind on (default: 8900)"})
     web_path: str = field(
