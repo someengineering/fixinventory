@@ -145,7 +145,7 @@ class Config(metaclass=MetaConfig):
             self.init_default_config()
             if self._initial_load:
                 self.save_config()
-            self.override_config()
+            self.override_config(Config.running_config)
             self._initial_load = False
             if not self._ce.is_alive():
                 log.debug("Starting config event listener")
@@ -168,7 +168,8 @@ class Config(metaclass=MetaConfig):
                             return True
         return False
 
-    def override_config(self) -> None:
+    @staticmethod
+    def override_config(running_config: RunningConfig) -> None:
         if getattr(ArgumentParser.args, "config_override", None) is None:
             return
         for override in getattr(ArgumentParser.args, "config_override", []):
@@ -177,28 +178,66 @@ class Config(metaclass=MetaConfig):
                 if "." not in config_key:
                     log.error(f"Invalid config override {config_key}")
                     continue
-                config_id, config_attr = config_key.split(".", 1)
-                if config_id not in Config.running_config.types:
-                    log.error(f"Override unknown config id {config_id}")
-                    continue
-                if config_attr not in Config.running_config.types[config_id]:
-                    log.error(
-                        f"Override unknown config attr {config_attr} for {config_id}"
-                    )
-                    continue
-                target_type = Config.running_config.types[config_id][config_attr]
+
+                config_keys = config_key.split(".")
+                num_keys = len(config_keys)
+                config_part = running_config.data
+                set_value = False
+                fallback_target_type = None
+                if (
+                    config_keys[0] in Config.running_config.types
+                    and config_keys[1] in Config.running_config.types[config_keys[0]]
+                ):
+                    fallback_target_type = Config.running_config.types[config_keys[0]][
+                        config_keys[1]
+                    ]
+                for num_key, key in enumerate(config_keys):
+                    if num_key == num_keys - 1:
+                        set_value = True
+
+                    if hasattr(config_part, key):
+                        attr_value = getattr(config_part, key)
+                        if set_value:
+                            config_value = Config.cast_target_type(
+                                config_value, attr_value, fallback_target_type
+                            )
+                            setattr(config_part, key, config_value)
+                        else:
+                            config_part = attr_value
+                    elif isinstance(config_part, dict) and key in config_part:
+                        attr_value = config_part[key]
+                        if set_value:
+                            config_value = Config.cast_target_type(
+                                config_value, attr_value, fallback_target_type
+                            )
+                            config_part[key] = config_value
+                        else:
+                            config_part = attr_value
+                    else:
+                        log.error(f"Override key {config_key} is unknown - skipping")
+                        break
+
+                target_type = str
                 if target_type in (list, tuple, set):
                     config_value = target_type(config_value.split(","))
                 config_value = convert(config_value, target_type)
-                log.debug(
-                    f"Overriding attr {config_attr} of {config_id} with value of type {target_type}"
-                )
-                setattr(
-                    Config.running_config.data[config_id], config_attr, config_value
-                )
 
             except Exception:
                 log.exception(f"Failed to override config {override}")
+
+    @staticmethod
+    def cast_target_type(
+        config_value: Any, current_value: Any, fallback_target_type: type
+    ) -> object:
+        if current_value is None and fallback_target_type is not None:
+            target_type = fallback_target_type
+        else:
+            target_type = type(current_value)
+        if target_type in (list, tuple, set):
+            config_value = target_type(config_value.split(","))
+        else:
+            config_value = convert(config_value, target_type)
+        return config_value
 
     @staticmethod
     def dict() -> Dict:
