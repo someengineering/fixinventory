@@ -11,9 +11,11 @@ from resotocore.util import (
     count_iterator,
 )
 from resotocore.model.resolve_in_graph import NodePath
+from resotocore.util import uuid_str, utc
 from collections import defaultdict
 import re
 from dataclasses import dataclass
+from posthog import Client
 
 JsonElement = Union[str, int, float, bool, None, Mapping[str, Any], Sequence[Any]]
 
@@ -61,7 +63,7 @@ def generate_icon_map():
     security = "Arch_Security-Identity-Compliance"
     containers = "Arch_Containers"
     networking = "Arch_Networking-Content-Delivery"
-    size = "16"
+    size = "32"
     prefix_amazon = "Arch_Amazon"
     prefix_aws = "Arch_AWS"
     prefix = "Arch"
@@ -129,7 +131,7 @@ def render_dot(gen: Iterator[JsonElement]) -> Generator[str, None, None]:
                     name = value_in_path_get(item, NodePath.reported_name, "n/a")
                     kind = value_in_path_get(item, NodePath.reported_kind, "n/a")
                     account = value_in_path_get(item, NodePath.ancestor_account_name, "graph_root")
-                    id = value_in_path_get(item, NodePath.reported_id, "graph_root")
+                    id = value_in_path_get(item, NodePath.reported_id, "n/a")
                     paired12 = colors[kind]
                     in_account[account].append(uid)
                     resource = ResourceDescription(uid, name, id, parse_kind(kind), kind)
@@ -163,6 +165,24 @@ def ensure_assets():
         os.remove("Asset-Package.zip")
         print("Downloading done.")
 
+def send_analytics():
+    if 'RESOTOCORE_ANALYTICS_OPT_OUT' not in os.environ:
+        client = Client(api_key="n/a", host="https://analytics.some.engineering", flush_interval=0.5, max_retries=3, gzip=True)
+        api_key = requests.get("https://cdn.some.engineering/posthog/public_api_key").text.strip()
+        client.api_key = api_key
+        for consumer in client.consumers:
+            consumer.api_key = api_key
+        run_id = uuid_str()
+        system_id = f"dot-rendering-script"
+        now = utc()
+        client.identify(system_id, {"run_id": run_id, "created_at": now})
+        client.capture(
+            distinct_id=system_id,
+            event="dot-rendering-script-run",
+            properties={"run_id": run_id},  # type: ignore
+            timestamp=now,
+        )    
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -170,6 +190,7 @@ def main():
     parser.add_argument("out", help="DOT output file")
     args = parser.parse_args()    
     ensure_assets()
+    send_analytics()    
     with open(args.json_dump, "r") as f:
         with open(args.out, "w") as out:
             json_obj = json.load(f)
