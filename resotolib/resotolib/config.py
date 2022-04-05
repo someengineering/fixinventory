@@ -174,6 +174,9 @@ class Config(metaclass=MetaConfig):
             return
         for override in getattr(ArgumentParser.args, "config_override", []):
             try:
+                if "=" not in override:
+                    log.error(f"Invalid config override {override}")
+                    continue
                 config_key, config_value = override.split("=", 1)
                 if "." not in config_key:
                     log.error(f"Invalid config override {config_key}")
@@ -203,6 +206,7 @@ class Config(metaclass=MetaConfig):
                 for num_key, key in enumerate(config_keys):
                     if num_key == num_keys - 1:
                         set_value = True
+                        log.debug(f"Overriding config key {config_key}")
 
                     if hasattr(config_part, key):
                         attr_value = getattr(config_part, key)
