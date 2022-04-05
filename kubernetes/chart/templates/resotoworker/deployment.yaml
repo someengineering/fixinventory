@@ -35,23 +35,19 @@ spec:
         - name: {{ .Chart.Name }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          image: "{{ .Values.image.repositoryFolder }}/resotoworker:{{ .Values.image.tag | default .Chart.AppVersion }}"
 
           args:
-          - --collector
-          - {{ .Values.resotoworker.collector }}
           - --resotocore-uri
-          - http://{{ include "resoto.fullname" . }}-resotocore:{{ .Values.resotocore.service.port }}
-          - --resotocore-ws-uri
-          - ws://{{ include "resoto.fullname" . }}-resotocore:{{ .Values.resotocore.service.port }}
+          - https://{{ include "resoto.fullname" . }}-resotocore:8900
+          {{- if .Values.resotoworker.overrides }}
+          - --override
+          {{- toYaml .Values.resotoworker.overrides | nindent 10 }}
+          {{- end }}
           {{- if .Values.resotoworker.extraArgs }}
           {{- toYaml .Values.resotoworker.extraArgs | nindent 10 }}
           {{- end }}
           env:
-            - name: START_STACK
-              value: "false"
-            - name: START_RESOTOWORKER
-              value: "true"
             - name: PSK
               valueFrom:
                 secretKeyRef:
@@ -62,10 +58,15 @@ spec:
           {{- toYaml .Values.resotoworker.extraEnv | nindent 12 }}
           {{- end }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+              - name: https
+                containerPort: 9956
+                protocol: TCP
           readinessProbe:
             httpGet:
               path: /health
-              port: 9956
+              port: https
+              scheme: HTTPS
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
     {{- if .Values.resotoworker.volumeMounts }}

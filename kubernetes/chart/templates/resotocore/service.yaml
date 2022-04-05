@@ -9,7 +9,7 @@ spec:
   type: {{ .Values.resotocore.service.type }}
   ports:
     - port: {{ .Values.resotocore.service.port }}
-      targetPort: http
+      targetPort: api
       protocol: TCP
       name: http
   selector:

@@ -36,27 +36,27 @@ spec:
         - name: {{ .Chart.Name }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          image: "{{ .Values.image.repositoryFolder }}/resotocore:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:
-            - --host
-            - {{ .Values.resotocore.host | default "0.0.0.0" | quote }}
-            - --start-collect-on-subscriber-connect
-            - --graphdb-server
-            - {{ .Values.resotocore.graphdb.server | quote }}
-            - --graphdb-database
-            - {{ .Values.resotocore.graphdb.database | quote }}
-            - --graphdb-username
-            - {{ .Values.resotocore.graphdb.login | quote }}
-            {{- if .Values.resotocore.tsdbProxyUrl }}
-            - --tsdb-proxy-url
-            - {{ .Values.resotocore.tsdbProxyUrl | quote }}
-            {{- end }}
+          - --graphdb-server
+          - {{ .Values.resotocore.graphdb.server | quote }}
+          - --graphdb-database
+          - {{ .Values.resotocore.graphdb.database | quote }}
+          - --graphdb-username
+          - {{ .Values.resotocore.graphdb.username | quote }}
+          - --override
+          # add the host name of the resoto core service to the certificate
+          - resotocore.api.host_certificate.san_dns_names=[ "{{ include "resoto.fullname" . }}-resotocore"]
+          # bind to all available network interfaces
+          - resotocore.api.web_hosts=[0.0.0.0]
+          {{- if .Values.resotocore.overrides }}
+          {{- toYaml .Values.resotocore.overrides | nindent 10 }}
+          {{- end }}
+          {{- if .Values.resotocore.extraArgs }}
+          {{- toYaml .Values.resotocore.extraArgs | nindent 10 }}
+          {{- end }}
           env:
-          - name: START_STACK
-            value: "false"
-          - name: START_RESOTOCORE
-            value: "true"
           {{- if .Values.resotocore.graphdb.passwordSecret }}
           - name: RESOTOCORE_GRAPHDB_PASSWORD
             valueFrom:
@@ -69,15 +69,18 @@ spec:
               secretKeyRef:
                 name: {{ include "resoto.fullname" . }}-psk
                 key: "psk"
-
+          {{- if .Values.resotocore.extraEnv }}
+          {{- toYaml .Values.resotocore.extraEnv | nindent 12 }}
+          {{- end }}
           ports:
-            - name: http
+            - name: api
               containerPort: 8900
               protocol: TCP
           readinessProbe:
             httpGet:
               path: /system/ready
-              port: http
+              port: api
+              scheme: HTTPS
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}

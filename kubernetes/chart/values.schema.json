@@ -66,7 +66,7 @@
                     "type": "object",
                     "required": [
                         "server",
-                        "login",
+                        "username",
                         "database"
                     ],
                     "properties": {
@@ -75,8 +75,9 @@
                             "description": "The URL of the graph database server. i.e: http://foobar.tld:8529",
                             "minLength": 1
                         },
-                        "login": {
+                        "username": {
                             "type": "string",
+                            "description": "The database user name to login.",
                             "minLength": 1
                         },
                         "database": {
@@ -99,24 +100,40 @@
                                     "minLength": 1
                                 }
                             }
+                        },
+                        "extraEnv": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "value": {
+                                        "type": "string"
+                                    },
+                                    "valueFrom": {
+                                        "type": "object"
+                                    }
+                                },
+                                "required": [
+                                    "name"
+                                ]
+                            }
+                        },
+                        "extraArgs": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
                         }
                     }
-                },
-                "host": {
-                    "type": "string"
-                },
-                "tsdbProxyUrl": {
-                    "type": "string",
-                    "format": "uri",
-                    "pattern": "^https?://"
                 }
             }
         },
         "resotoworker": {
             "type": "object",
-            "required": [
-                "collector"
-            ],
+            "required": [ ],
             "properties": {
                 "extraEnv": {
                     "type": "array",
@@ -144,10 +161,6 @@
                         "type": "string"
                     }
                 },
-                "collector": {
-                    "type": "string",
-                    "minLength": 1
-                },
                 "volumes": {
                     "type": "array",
                     "items": {
@@ -158,6 +171,38 @@
                     "type": "array",
                     "items": {
                         "type": "object"
+                    }
+                }
+            }
+        },
+        "resotometrics": {
+            "type": "object",
+            "required": [ ],
+            "properties": {
+                "extraEnv": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string"
+                            },
+                            "value": {
+                                "type": "string"
+                            },
+                            "valueFrom": {
+                                "type": "object"
+                            }
+                        },
+                        "required": [
+                            "name"
+                        ]
+                    }
+                },
+                "extraArgs": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
                     }
                 }
             }
