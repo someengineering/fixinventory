@@ -31,7 +31,7 @@ def collect_and_send(
             )
             return
         pool_args = {"max_workers": max_workers}
-        if Config.resotoworker.fork:
+        if Config.resotoworker.fork_process:
             pool_args["mp_context"] = multiprocessing.get_context("spawn")
             pool_args["initializer"] = resotolib.signal.initializer
             pool_executor = futures.ProcessPoolExecutor

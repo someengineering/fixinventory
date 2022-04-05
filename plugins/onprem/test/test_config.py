@@ -12,4 +12,4 @@ def test_config():
     assert Config.onprem.ssh_key is None
     assert len(Config.onprem.server) == 0
     assert Config.onprem.pool_size == 5
-    assert Config.onprem.fork is True
+    assert Config.onprem.fork_process is True

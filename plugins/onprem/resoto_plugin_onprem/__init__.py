@@ -76,7 +76,7 @@ class OnpremCollectorPlugin(BaseCollectorPlugin):
             else Config.onprem.pool_size
         )
         pool_args = {"max_workers": max_workers}
-        if Config.onprem.fork:
+        if Config.onprem.fork_process:
             pool_args["mp_context"] = multiprocessing.get_context("spawn")
             pool_args["initializer"] = resotolib.signal.initializer
             pool_executor = futures.ProcessPoolExecutor

@@ -40,9 +40,9 @@ class AwsConfig:
     scrape_org: bool = field(
         default=False, metadata={"description": "Scrape the entire AWS organization"}
     )
-    fork: bool = field(
+    fork_process: bool = field(
         default=True,
-        metadata={"description": "Forked collector process instead of threads"},
+        metadata={"description": "Fork collector process instead of using threads"},
     )
     scrape_exclude_account: Optional[List[str]] = field(
         default=None,
