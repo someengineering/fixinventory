@@ -5,7 +5,11 @@ import resotolib.signal
 from resotolib.logging import log, setup_logger, add_args as logging_add_args
 from resotolib.jwt import add_args as jwt_add_args
 from resotolib.config import Config
-from resotolib.core import add_args as resotocore_add_args, resotocore
+from resotolib.core import (
+    add_args as resotocore_add_args,
+    resotocore,
+    wait_for_resotocore,
+)
 from resotolib.core.ca import TLSData
 from .config import ResotoMetricsConfig
 from functools import partial
@@ -56,6 +60,8 @@ def main() -> None:
     jwt_add_args(arg_parser)
     TLSData.add_args(arg_parser)
     arg_parser.parse_args()
+
+    wait_for_resotocore(resotocore.http_uri)
 
     tls_data = None
     if resotocore.is_secure:

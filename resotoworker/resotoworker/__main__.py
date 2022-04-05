@@ -13,7 +13,7 @@ from resotolib.web import WebServer
 from resotolib.web.metrics import WebApp
 from resotolib.utils import log_stats, increase_limits
 from resotolib.args import ArgumentParser
-from resotolib.core import add_args as core_add_args, resotocore
+from resotolib.core import add_args as core_add_args, resotocore, wait_for_resotocore
 from resotolib.core.ca import TLSData
 from resotolib.core.actions import CoreActions
 from resotolib.core.tasks import CoreTasks
@@ -62,6 +62,8 @@ def main() -> None:
     # At this point the CLI, all Plugins as well as the WebServer have
     # added their args to the arg parser
     arg_parser.parse_args()
+
+    wait_for_resotocore(resotocore.http_uri)
 
     tls_data = None
     if resotocore.is_secure:
