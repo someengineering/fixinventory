@@ -45,6 +45,11 @@ spec:
             - {{ .Values.resotocore.graphdb.database | quote }}
             - --graphdb-username
             - {{ .Values.resotocore.graphdb.username | quote }}
+            - --override
+            # add the host name of the service
+            - resotocore.api.host_certificate.san_dns_names=["{{ include "resoto.fullname" . }}-resotocore"]
+            # bind to all available network interfaces
+            - resotocore.api.web_hosts=[0.0.0.0]
           env:
           {{- if .Values.resotocore.graphdb.passwordSecret }}
           - name: RESOTOCORE_GRAPHDB_PASSWORD
@@ -59,13 +64,13 @@ spec:
                 name: {{ include "resoto.fullname" . }}-psk
                 key: "psk"
           ports:
-            - name: https
+            - name: api
               containerPort: 8900
               protocol: TCP
           readinessProbe:
             httpGet:
               path: /system/ready
-              port: https
+              port: api
               scheme: HTTPS
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
