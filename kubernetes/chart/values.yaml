@@ -37,11 +37,19 @@ securityContext: { }
   # runAsUser: 1000
 
 resotoworker:
+  # Use this section to override configuration values
+  overrides: [ ]
+  # Use this section to define extra arguments
   extraArgs: [ ]
+  # Use this section to pass extra environment variables
   extraEnv: [ ]
 
 resotometrics:
+  # Use this section to override configuration values
+  overrides: [ ]
+  # Use this section to define extra arguments
   extraArgs: [ ]
+  # Use this section to pass extra environment variables
   extraEnv: [ ]
 
 resotocore:
@@ -61,18 +69,29 @@ resotocore:
           - path: /
             pathType: ImplementationSpecific
     tls: [ ]
-    #  - secretName: chart-example-tls
-    #    hosts:
-    #      - chart-example.local
-    # When installing, fill these in:
+
+  # This defines the access to the graph database
   graphdb:
-    database: resoto
-    username: resoto
+    # The complete url of the graph database
     server: http://single-server:8529
+    # The name of the database to use
+    database: resoto
+    # The name of the user to connect
+    username: resoto
+    # The secret to get the password from
     passwordSecret:
       name: arango-user
       key: password
-  extraArgs: [ ]
+
+  # Use this section to override configuration values
+  overrides:
+    # start a collect cycle automatically when the first collector is connected
+    - resotocore.runtime.start_collect_on_subscriber_connect=true
+
+  # Use this section to define extra arguments
+  extraArgs: []
+
+  # Use this section to pass extra environment variables
   extraEnv: [ ]
 
 resources: { }

@@ -70,8 +70,6 @@ resotocore:
     passwordSecret:
       name: arango-user
       key: password
-image:
-  pullPolicy: Always
 EOF
 # wait for it to be ready
 kubectl --namespace resoto rollout status deploy/resoto-resotocore --timeout=300s

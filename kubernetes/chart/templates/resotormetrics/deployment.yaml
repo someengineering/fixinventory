@@ -44,6 +44,10 @@ spec:
           args:
           - --resotocore-uri
           - https://{{ include "resoto.fullname" . }}-resotocore:8900
+          {{- if .Values.resotometrics.overrides }}
+          - --override
+          {{- toYaml .Values.resotometrics.overrides | nindent 10 }}
+          {{- end }}
           {{- if .Values.resotometrics.extraArgs }}
           {{- toYaml .Values.resotometrics.extraArgs | nindent 10 }}
           {{- end }}

@@ -23,11 +23,11 @@ jobs:
             - name: Set up Helm
               uses: azure/setup-helm@v1
               with:
-                version: v3.4.0
+                version: v3.8.1
 
             - uses: engineerd/setup-kind@v0.5.0
               with:
-                version: "v0.11.1"
+                version: "v0.12.0"
             - name: Testing
               run: |
                   NO_START_KIND=1 IMAGE_TAG=edge bash -x ./kubernetes/setup-kind.sh

@@ -39,17 +39,23 @@ spec:
           image: "{{ .Values.image.repositoryFolder }}/resotocore:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:
-            - --graphdb-server
-            - {{ .Values.resotocore.graphdb.server | quote }}
-            - --graphdb-database
-            - {{ .Values.resotocore.graphdb.database | quote }}
-            - --graphdb-username
-            - {{ .Values.resotocore.graphdb.username | quote }}
-            - --override
-            # add the host name of the service
-            - resotocore.api.host_certificate.san_dns_names=["{{ include "resoto.fullname" . }}-resotocore"]
-            # bind to all available network interfaces
-            - resotocore.api.web_hosts=[0.0.0.0]
+          - --graphdb-server
+          - {{ .Values.resotocore.graphdb.server | quote }}
+          - --graphdb-database
+          - {{ .Values.resotocore.graphdb.database | quote }}
+          - --graphdb-username
+          - {{ .Values.resotocore.graphdb.username | quote }}
+          - --override
+          # add the host name of the resoto core service to the certificate
+          - resotocore.api.host_certificate.san_dns_names=[ "{{ include "resoto.fullname" . }}-resotocore"]
+          # bind to all available network interfaces
+          - resotocore.api.web_hosts=[0.0.0.0]
+          {{- if .Values.resotocore.overrides }}
+          {{- toYaml .Values.resotocore.overrides | nindent 10 }}
+          {{- end }}
+          {{- if .Values.resotocore.extraArgs }}
+          {{- toYaml .Values.resotocore.extraArgs | nindent 10 }}
+          {{- end }}
           env:
           {{- if .Values.resotocore.graphdb.passwordSecret }}
           - name: RESOTOCORE_GRAPHDB_PASSWORD
@@ -63,6 +69,9 @@ spec:
               secretKeyRef:
                 name: {{ include "resoto.fullname" . }}-psk
                 key: "psk"
+          {{- if .Values.resotocore.extraEnv }}
+          {{- toYaml .Values.resotocore.extraEnv | nindent 12 }}
+          {{- end }}
           ports:
             - name: api
               containerPort: 8900
