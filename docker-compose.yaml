@@ -32,13 +32,13 @@ services:
       - PSK
       - RESOTOCORE_GRAPHDB_SERVER=http://graphdb:8529
       - RESOTOCORE_GRAPHDB_PASSWORD=changeme
-      - RESOTOCORE_OVERRIDE0=resotocore.api.hosts=resotocore
+      - RESOTOCORE_OVERRIDE0=resotocore.api.web_hosts=resotocore
       - RESOTOCORE_OVERRIDE1=resotocore.api.tsdb_proxy_url=http://tsdb:9090
       - RESOTOCORE_OVERRIDE2=resotocore.api.ui_path=/usr/local/resoto/ui/
       - RESOTOCORE_OVERRIDE3=resotocore.runtime.start_collect_on_subscriber_connect=true
     restart: always
     stop_grace_period: 2m
-  resotoworker: 
+  resotoworker:
     image: somecr.io/someengineering/resotoworker:edge
     depends_on:
       - resotocore
@@ -46,10 +46,10 @@ services:
       - 9956:9956
     environment:
       - PSK
-      - RESOTOWORKER_RESOTOCORE_URI=http://resotocore:8900
+      - RESOTOWORKER_RESOTOCORE_URI=https://resotocore:8900
     restart: always
     stop_grace_period: 2m
-  resotometrics: 
+  resotometrics:
     image: somecr.io/someengineering/resotometrics:edge
     depends_on:
       - resotocore
@@ -57,16 +57,16 @@ services:
       - 9955:9955
     environment:
       - PSK
-      - RESOTOMETRICS_RESOTOCORE_URI=http://resotocore:8900
+      - RESOTOMETRICS_RESOTOCORE_URI=https://resotocore:8900
     restart: always
     stop_grace_period: 2m
-  resotoshell: 
+  resotoshell:
     image: somecr.io/someengineering/resotoshell:edge
     depends_on:
       - resotocore
     environment:
       - PSK
-      - RESOTOSHELL_RESOTOCORE_URI=http://resotocore:8900
+      - RESOTOSHELL_RESOTOCORE_URI=https://resotocore:8900
     restart: always
     stop_grace_period: 2m
 volumes:
