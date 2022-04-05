@@ -23,53 +23,50 @@ services:
       - --web.console.libraries=/usr/share/prometheus/console_libraries
       - --web.console.templates=/usr/share/prometheus/consoles
   resotocore:
-    image: somecr.io/someengineering/resotocore:2.0.0a21
+    image: somecr.io/someengineering/resotocore:edge
     depends_on:
       - graphdb
     ports:
       - 8900:8900
     environment:
       - PSK
-      - RESOTOCORE_HOST=resotocore
-      - RESOTOCORE_UI_PATH=/usr/local/resoto/ui/
-      - RESOTOCORE_START_COLLECT_ON_SUBSCRIBER_CONNECT=true
-      - RESOTOCORE_TSDB_PROXY_URL=http://tsdb:9090
       - RESOTOCORE_GRAPHDB_SERVER=http://graphdb:8529
       - RESOTOCORE_GRAPHDB_PASSWORD=changeme
+      - RESOTOCORE_OVERRIDE0=resotocore.api.web_hosts=resotocore
+      - RESOTOCORE_OVERRIDE1=resotocore.api.tsdb_proxy_url=http://tsdb:9090
+      - RESOTOCORE_OVERRIDE2=resotocore.api.ui_path=/usr/local/resoto/ui/
+      - RESOTOCORE_OVERRIDE3=resotocore.runtime.start_collect_on_subscriber_connect=true
     restart: always
     stop_grace_period: 2m
-  resotoworker: 
-    image: somecr.io/someengineering/resotoworker:2.0.0a21
+  resotoworker:
+    image: somecr.io/someengineering/resotoworker:edge
     depends_on:
       - resotocore
     ports:
       - 9956:9956
     environment:
       - PSK
-      - RESOTOWORKER_RESOTOCORE_URI=http://resotocore:8900
-      - RESOTOWORKER_RESOTOCORE_WS_URI=ws://resotocore:8900
+      - RESOTOWORKER_RESOTOCORE_URI=https://resotocore:8900
     restart: always
     stop_grace_period: 2m
-  resotometrics: 
-    image: somecr.io/someengineering/resotometrics:2.0.0a21
+  resotometrics:
+    image: somecr.io/someengineering/resotometrics:edge
     depends_on:
       - resotocore
     ports:
       - 9955:9955
     environment:
       - PSK
-      - RESOTOMETRICS_RESOTOCORE_URI=http://resotocore:8900
-      - RESOTOMETRICS_RESOTOCORE_WS_URI=ws://resotocore:8900
+      - RESOTOMETRICS_RESOTOCORE_URI=https://resotocore:8900
     restart: always
     stop_grace_period: 2m
-  resotoshell: 
-    image: somecr.io/someengineering/resotoshell:2.0.0a21
+  resotoshell:
+    image: somecr.io/someengineering/resotoshell:edge
     depends_on:
       - resotocore
     environment:
       - PSK
-      - RESOTOSHELL_RESOTOCORE_URI=http://resotocore:8900
-      - RESOTOSHELL_RESOTOCORE_WS_URI=ws://resotocore:8900
+      - RESOTOSHELL_RESOTOCORE_URI=https://resotocore:8900
     restart: always
     stop_grace_period: 2m
 volumes:
