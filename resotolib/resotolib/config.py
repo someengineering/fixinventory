@@ -13,7 +13,7 @@ from resotolib.core.config import (
     update_config_model,
 )
 from resotolib.core.events import CoreEvents
-from typing import Dict, Any, List, Optional, Annotated
+from typing import Dict, Any, List, Optional
 from dataclasses import fields
 
 
