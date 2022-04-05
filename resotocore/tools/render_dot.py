@@ -27,7 +27,18 @@ class ResourceKind(Enum):
     K8S_CLUSER = 5
     NETWORK = 6
     LOAD_BALANCER = 7
+    CLOUD = 8
 
+kind_colors = {
+    ResourceKind.INSTANCE: "8",
+    ResourceKind.VOLUME: "4",
+    ResourceKind.IMAGE: "7",
+    ResourceKind.FIREWALL: "6",
+    ResourceKind.K8S_CLUSER: "5",
+    ResourceKind.NETWORK: "10",
+    ResourceKind.LOAD_BALANCER: "9",
+    ResourceKind.CLOUD: "1",
+}
 
 @dataclass
 class ResourceDescription:
@@ -84,7 +95,7 @@ def render_img_tag(src: Optional[str]) -> str:
 
 
 def render_resource(resource: ResourceDescription, icon_map: Mapping[ResourceDescription, str], color: int) -> str:
-    return f""""{resource.uid}" [shape=plain, label=<<TABLE STYLE="ROUNDED" COLOR="{color}" BORDER="1" CELLBORDER="1" CELLPADDING="5">
+    return f""""{resource.uid}" [shape=plain, label=<<TABLE STYLE="ROUNDED" COLOR="{color}" BORDER="3" CELLBORDER="1" CELLPADDING="5">
     <TR>
         <TD SIDES="B">
         <TABLE CELLPADDING="1" BORDER="0" CELLSPACING="0">
@@ -132,14 +143,14 @@ def render_dot(gen: Iterator[JsonElement]) -> Generator[str, None, None]:
                     kind = value_in_path_get(item, NodePath.reported_kind, "n/a")
                     account = value_in_path_get(item, NodePath.ancestor_account_name, "graph_root")
                     id = value_in_path_get(item, NodePath.reported_id, "n/a")
-                    paired12 = colors[kind]
+                    parsed_kind = parse_kind(kind)
+                    paired12 = kind_colors.get(parsed_kind, colors[kind])
                     in_account[account].append(uid)
-                    resource = ResourceDescription(uid, name, id, parse_kind(kind), kind)
+                    resource = ResourceDescription(uid, name, id, parsed_kind, kind)
                     yield render_resource(resource, icon_map, paired12)
             elif type_name == "edge":
                 from_node = value_in_path(item, NodePath.from_node)
                 to_node = value_in_path(item, NodePath.to_node)
-                edge_type = value_in_path(item, NodePath.edge_type)
                 if from_node and to_node:
                     yield f' "{from_node}" -> "{to_node}" '
         else:
