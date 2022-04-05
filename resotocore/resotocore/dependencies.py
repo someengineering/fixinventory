@@ -16,7 +16,7 @@ from resotolib.utils import iec_size_format
 
 from resotocore import async_extensions, version
 from resotocore.analytics import AnalyticsEventSender
-from resotocore.core_config import CoreConfig, parse_config
+from resotocore.core_config import CoreConfig, parse_config, git_hash_from_file, inside_docker
 from resotocore.db.db_access import DbAccess
 from resotocore.model.adjust_node import DirectAdjuster
 from resotocore.parse_util import make_parser, variable_p, equals_p, json_value_p, comma_p
@@ -27,7 +27,7 @@ log = logging.getLogger(__name__)
 
 SystemInfo = namedtuple(
     "SystemInfo",
-    ["version", "cpus", "mem_available", "mem_total", "inside_docker", "started_at"],
+    ["version", "git_hash", "cpus", "mem_available", "mem_total", "inside_docker", "started_at"],
 )
 started_at = utc()
 
@@ -47,10 +47,11 @@ def system_info() -> SystemInfo:
     mem = psutil.virtual_memory()
     return SystemInfo(
         version=version(),
+        git_hash=git_hash_from_file() or "n/a",
         cpus=mp.cpu_count(),
         mem_available=iec_size_format(mem.available),
         mem_total=iec_size_format(mem.total),
-        inside_docker=os.path.exists("/.dockerenv"),  # this file is created by the docker runtime
+        inside_docker=inside_docker(),
         started_at=started_at,
     )
 
@@ -197,7 +198,7 @@ def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None
         default=[],
         help="Override configuration parameters. Format: path.to.property=value. "
         "Note: the value can be any json value - proper escaping from the shell is required."
-        "Example: --override resotocore.api.hosts='[localhost, some.domain]' resotocore.api.port=12345",
+        "Example: --override resotocore.api.web_hosts='[localhost, some.domain]' resotocore.api.web_port=12345",
     )
     parser.add_argument(
         "--verbose",
