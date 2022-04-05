@@ -1,8 +1,11 @@
 import logging
+import os
 import re
 from argparse import Namespace
+from contextlib import suppress
 from dataclasses import dataclass, field
 from datetime import timedelta
+from pathlib import Path
 from typing import Optional, List, ClassVar
 
 from arango.database import StandardDatabase
@@ -20,6 +23,37 @@ log = logging.getLogger(__name__)
 ResotoCoreConfigId = "resoto.core"
 ResotoCoreRoot = "resotocore"
 ResotoCoreRootRE = re.compile(r"^resotocore[.]")
+# created by the docker build process
+GitHashFile = "/usr/local/etc/git-commit.HEAD"
+
+
+def git_hash_from_file() -> Optional[str]:
+    """
+    Returns the git hash from the file created by the docker build.
+    In case we do not run inside a docker container, this method returns None.
+    """
+    with suppress(Exception):
+        path = Path(GitHashFile)
+        if path.exists():
+            return path.read_text("utf-8").strip()
+    return None
+
+
+def inside_docker() -> bool:
+    """
+    Try to detect if we are running inside a docker container.
+    """
+    return (
+        # environment variables have to be set explicitly
+        os.environ.get("INSIDE_DOCKER", "false").lower() in ("true", "yes", "1")
+        or os.environ.get("INSIDE_KUBERNETES", "false").lower() in ("true", "yes", "1")
+        # this file is available in the created docker container
+        or git_hash_from_file() is not None
+    )
+
+
+def default_hosts() -> List[str]:
+    return ["0.0.0.0"] if inside_docker() else ["localhost"]
 
 
 @dataclass()
@@ -40,7 +74,7 @@ class ApiConfig:
     kind: ClassVar[str] = f"{ResotoCoreRoot}_api_config"
 
     web_hosts: List[str] = field(
-        default_factory=lambda: ["localhost"], metadata={"description": "TCP host(s) to bind on (default: localhost)"}
+        default_factory=default_hosts, metadata={"description": f"TCP host(s) to bind on (default: {default_hosts()})"}
     )
     web_port: int = field(default=8900, metadata={"description": "TCP port to bind on (default: 8900)"})
     web_path: str = field(

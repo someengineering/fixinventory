@@ -59,7 +59,7 @@ literal_dp = regex("[A-Za-z0-9][A-Za-z0-9_\\-]*")
 # - props with non json conform keys: foo.bla.`:-)`.bar
 variable_dp_backtick_allowed = regex(r"[^`]+")
 variable_dp_backtick = backtick_dp + variable_dp_backtick_allowed + backtick_dp
-variable_dp_part_string = regex("[A-Za-z_][A-Za-z0-9_]*")
+variable_dp_part_string = regex("[A-Za-z_][A-Za-z0-9_\\-]*")
 variable_dp_part_plain = regex("[.]*")
 variable_dp_part_extra = regex("[0-9.*\\[\\]]*")
 variable_dp_part = variable_dp_part_string | variable_dp_backtick

@@ -1,5 +1,9 @@
+from pathlib import Path
+from tempfile import TemporaryDirectory
+
 from pytest import fixture
 
+from resotocore import core_config
 from resotocore.core_config import (
     parse_config,
     CoreConfig,
@@ -98,6 +102,22 @@ def test_model() -> None:
         "resotocore_graph_update_config",
         "resotocore_runtime_config",
     }
+
+
+def test_in_docker() -> None:
+    with TemporaryDirectory() as tmp:
+        path = Path(tmp, "git.hash")
+        path.write_text("foo", encoding="utf-8")
+        stored = core_config.GitHashFile
+        core_config.GitHashFile = str(path)
+        assert core_config.inside_docker() is True
+        assert core_config.git_hash_from_file() == "foo"
+        assert core_config.default_hosts() == ["0.0.0.0"]
+        core_config.GitHashFile = "/this/path/does/not/exist"
+        assert core_config.inside_docker() is False
+        assert core_config.git_hash_from_file() is None
+        assert core_config.default_hosts() == ["localhost"]
+        core_config.GitHashFile = stored
 
 
 @fixture
