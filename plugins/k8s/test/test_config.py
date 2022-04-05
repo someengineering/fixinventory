@@ -1,3 +1,4 @@
+from resotolib.utils import num_default_threads
 from resotolib.config import Config
 from resoto_plugin_k8s import KubernetesCollectorPlugin
 
@@ -14,6 +15,6 @@ def test_config():
     assert len(Config.k8s.cacert) == 0
     assert len(Config.k8s.collect) == 0
     assert len(Config.k8s.no_collect) == 0
-    assert Config.k8s.pool_size == 5
+    assert Config.k8s.pool_size == num_default_threads()
     assert Config.k8s.fork is True
     assert Config.k8s.all_contexts is False

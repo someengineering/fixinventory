@@ -1,3 +1,4 @@
+from resotolib.utils import num_default_threads
 from dataclasses import dataclass, field
 from typing import List, ClassVar, Optional
 
@@ -54,7 +55,8 @@ class AwsConfig:
         default=False, metadata={"description": "Do not scrape current account"}
     )
     account_pool_size: int = field(
-        default=5, metadata={"description": "Account thread/process pool size"}
+        default_factory=num_default_threads,
+        metadata={"description": "Account thread/process pool size"},
     )
     region_pool_size: int = field(
         default=20, metadata={"description": "Region thread pool size"}
