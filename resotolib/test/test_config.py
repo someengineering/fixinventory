@@ -1,6 +1,6 @@
 import pytest
 from dataclasses import dataclass, field
-from typing import Optional, ClassVar, Dict
+from typing import ClassVar, Dict
 from resotolib.config import Config, ConfigNotFoundError
 from resotolib.args import get_arg_parser, ArgumentParser
 from resotolib.core import add_args as core_add_args
