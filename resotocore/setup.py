@@ -22,7 +22,7 @@ setup_requirements = [
 
 setup(
     name="resotocore",
-    version="2.0.0a22",
+    version="2.0.0rc0",
     description="Keeps all the things.",
     python_requires=">=3.5",
     classifiers=["Programming Language :: Python :: 3"],
