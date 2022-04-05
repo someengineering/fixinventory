@@ -106,7 +106,7 @@ def test_model() -> None:
 
 def test_in_docker() -> None:
     with TemporaryDirectory() as tmp:
-        path = Path(tmp, "config.yaml")
+        path = Path(tmp, "git.hash")
         path.write_text("foo", encoding="utf-8")
         stored = core_config.GitHashFile
         core_config.GitHashFile = str(path)

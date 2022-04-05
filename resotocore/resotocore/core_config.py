@@ -23,6 +23,7 @@ log = logging.getLogger(__name__)
 ResotoCoreConfigId = "resoto.core"
 ResotoCoreRoot = "resotocore"
 ResotoCoreRootRE = re.compile(r"^resotocore[.]")
+# created by the docker build process
 GitHashFile = "/usr/local/etc/git-commit.HEAD"
 
 
