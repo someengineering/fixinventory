@@ -13,7 +13,7 @@ from resotolib.core.config import (
     update_config_model,
 )
 from resotolib.core.events import CoreEvents
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Annotated
 from dataclasses import fields
 
 
@@ -183,14 +183,23 @@ class Config(metaclass=MetaConfig):
                 num_keys = len(config_keys)
                 config_part = running_config.data
                 set_value = False
+
+                # By default we cast the override value to the type of the current
+                # value. This works for most cases including dictionary values.
+                # Should the current value be None we see if there was a type specified
+                # for the dataclass field and use it as a fallback.
+                # This only works for dataclass fields.
+                config_section = config_keys[0]
+                top_config_key = config_keys[1]
                 fallback_target_type = None
                 if (
-                    config_keys[0] in Config.running_config.types
-                    and config_keys[1] in Config.running_config.types[config_keys[0]]
+                    config_section in Config.running_config.types
+                    and top_config_key in Config.running_config.types[config_section]
                 ):
-                    fallback_target_type = Config.running_config.types[config_keys[0]][
-                        config_keys[1]
+                    fallback_target_type = Config.running_config.types[config_section][
+                        top_config_key
                     ]
+
                 for num_key, key in enumerate(config_keys):
                     if num_key == num_keys - 1:
                         set_value = True
