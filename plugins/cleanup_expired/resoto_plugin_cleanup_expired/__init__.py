@@ -1,6 +1,6 @@
 from resotolib.baseplugin import BaseActionPlugin
 from resotolib.logging import log
-from resotolib.core.query import CoreGraph
+from resotolib.core.search import CoreGraph
 from resotolib.config import Config
 from .config import CleanupExpiredConfig
 from typing import Dict

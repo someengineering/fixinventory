@@ -1,5 +1,5 @@
 from resotolib.logging import log
-from resotolib.core.query import CoreGraph
+from resotolib.core.search import CoreGraph
 from resotolib.core.ca import TLSData
 from networkx import DiGraph
 from resotolib.graph import Graph
@@ -22,16 +22,16 @@ def cleanup(tls_data: Optional[TLSData] = None):
 
     cg = CoreGraph(tls_data=tls_data)
 
-    query_filter = ""
+    search_filter = ""
     if Config.resotoworker.collector and len(Config.resotoworker.collector) > 0:
         clouds = '["' + '", "'.join(Config.resotoworker.collector) + '"]'
-        query_filter = f"and /ancestors.cloud.reported.id in {clouds} "
-    query = (
+        search_filter = f"and /ancestors.cloud.reported.id in {clouds} "
+    search = (
         f"/desired.clean == true and /metadata.cleaned != true"
-        f" and /metadata.protected!=true {query_filter}<-default,delete[0:]->"
+        f" and /metadata.protected!=true {search_filter}<-default,delete[0:]->"
     )
 
-    graph = cg.graph(query)
+    graph = cg.graph(search)
     cleaner = Cleaner(graph)
     cleaner.cleanup()
     cg.patch_nodes(graph)

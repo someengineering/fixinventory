@@ -32,7 +32,7 @@ class CoreGraph:
         if tls_data:
             self.verify = tls_data.ca_cert_path
         self.graph_uri = f"{self.base_uri}/graph/{self.graph_name}"
-        self.query_uri = f"{self.graph_uri}/query/graph"
+        self.search_uri = f"{self.graph_uri}/search/graph"
 
     def execute(self, command: str):
         log.debug(f"Executing command: {command}")
@@ -43,14 +43,14 @@ class CoreGraph:
             execute_endpoint += f"?{query_string}"
         return self.post(execute_endpoint, command, headers, verify=self.verify)
 
-    def query(self, query: str, edge_type: Optional[EdgeType] = None):
-        log.debug(f"Sending query {query}")
+    def search(self, search: str, edge_type: Optional[EdgeType] = None):
+        log.debug(f"Sending search {search}")
         headers = {"Accept": "application/x-ndjson"}
-        query_endpoint = self.query_uri
+        search_endpoint = self.search_uri
         if edge_type is not None:
             query_string = urlencode({"edge_type": edge_type.value})
-            query_endpoint += f"?{query_string}"
-        return self.post(query_endpoint, query, headers, verify=self.verify)
+            search_endpoint += f"?{query_string}"
+        return self.post(search_endpoint, search, headers, verify=self.verify)
 
     @staticmethod
     def post(uri, data, headers, verify: Optional[str] = None):
@@ -59,7 +59,7 @@ class CoreGraph:
         r = requests.post(uri, data=data, headers=headers, stream=True, verify=verify)
         if r.status_code != 200:
             log.error(r.content.decode())
-            raise RuntimeError(f"Failed to query graph: {r.content.decode()}")
+            raise RuntimeError(f"Failed to search graph: {r.content.decode()}")
         for line in r.iter_lines():
             if not line:
                 continue
@@ -70,7 +70,7 @@ class CoreGraph:
                 log.error(e)
                 continue
 
-    def graph(self, query: str) -> Graph:
+    def graph(self, search: str) -> Graph:
         def process_data_line(data: dict, graph: Graph):
             """Process a single line of resotocore graph data"""
 
@@ -95,7 +95,7 @@ class CoreGraph:
 
         graph = Graph()
         node_mapping = {}
-        for data in self.query(query):
+        for data in self.search(search):
             try:
                 process_data_line(data, graph)
             except ValueError as e:

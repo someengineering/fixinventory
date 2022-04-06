@@ -15,8 +15,8 @@ from .config import ResotoMetricsConfig
 from functools import partial
 from resotolib.core.actions import CoreActions
 from resotometrics.metrics import Metrics, GraphCollector
-from resotometrics.query import (
-    query,
+from resotometrics.search import (
+    search,
     get_labels_from_result,
     get_metrics_from_result,
     get_label_values_from_result,
@@ -84,9 +84,9 @@ def main() -> None:
 
     resotocore_graph = Config.resotometrics.graph
     graph_uri = f"{resotocore.http_uri}/graph/{resotocore_graph}"
-    query_uri = f"{graph_uri}/query/aggregate?section=reported"
+    search_uri = f"{graph_uri}/search/aggregate?section=reported"
 
-    message_processor = partial(core_actions_processor, metrics, query_uri, tls_data)
+    message_processor = partial(core_actions_processor, metrics, search_uri, tls_data)
     core_actions = CoreActions(
         identifier=ArgumentParser.args.subscriber_id,
         resotocore_uri=resotocore.http_uri,
@@ -124,7 +124,7 @@ def main() -> None:
 
 
 def core_actions_processor(
-    metrics: Metrics, query_uri: str, tls_data: TLSData, message: dict
+    metrics: Metrics, search_uri: str, tls_data: TLSData, message: dict
 ) -> None:
     if not isinstance(message, dict):
         log.error(f"Invalid message: {message}")
@@ -137,7 +137,7 @@ def core_actions_processor(
         try:
             if message_type == "generate_metrics":
                 start_time = time.time()
-                update_metrics(metrics, query_uri, tls_data)
+                update_metrics(metrics, search_uri, tls_data)
                 run_time = time.time() - start_time
                 log.debug(f"Updated metrics for {run_time:.2f} seconds")
             else:
@@ -158,7 +158,7 @@ def core_actions_processor(
 
 @metrics_update_metrics.time()
 def update_metrics(
-    metrics: Metrics, query_uri: str, tls_data: Optional[TLSData] = None
+    metrics: Metrics, search_uri: str, tls_data: Optional[TLSData] = None
 ) -> None:
     metrics_descriptions = Config.resotometrics.metrics
     for _, data in metrics_descriptions.items():
@@ -176,7 +176,7 @@ def update_metrics(
             continue
 
         try:
-            for result in query(metrics_search, query_uri, tls_data=tls_data):
+            for result in search(metrics_search, search_uri, tls_data=tls_data):
                 labels = get_labels_from_result(result)
                 label_values = get_label_values_from_result(result, labels)
 
