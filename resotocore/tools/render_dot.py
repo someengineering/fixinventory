@@ -313,7 +313,9 @@ def report_success(output_file):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("query", help="query for visualization")
-    parser.add_argument("--engine", help="language engine to use", default="sfdp")
+    parser.add_argument(
+        "--engine", help="graphviz layout engine to use", default="sfdp"
+    )
     parser.add_argument("--format", help="output format", default="svg")
     parser.add_argument("--output", help="output file", default="graph.svg")
     parser.add_argument("--psk", help="Pre shared key to be passed to resh", dest="psk")
