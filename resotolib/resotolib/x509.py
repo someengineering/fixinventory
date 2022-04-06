@@ -80,16 +80,28 @@ def gen_csr(
     san_ip_addresses: Optional[List[str]] = None,
     include_loopback: bool = True,
     connect_to_ips: Optional[List[str]] = None,
+    discover_local_dns_names: bool = True,
+    discover_local_ip_addresses: bool = True,
 ) -> CertificateSigningRequest:
     if san_dns_names is None:
-        san_dns_names = get_local_hostnames(
+        san_dns_names = []
+    elif isinstance(san_dns_names, str):
+        san_dns_names = [san_dns_names]
+    if san_ip_addresses is None:
+        san_ip_addresses = []
+    elif isinstance(san_ip_addresses, str):
+        san_ip_addresses = [san_ip_addresses]
+
+    if discover_local_dns_names:
+        san_dns_names += get_local_hostnames(
             include_loopback=include_loopback,
             san_ip_addresses=san_ip_addresses,
             san_dns_names=san_dns_names,
             connect_to_ips=connect_to_ips,
         )
-    if san_ip_addresses is None:
-        san_ip_addresses = get_local_ip_addresses(
+
+    if discover_local_ip_addresses:
+        san_ip_addresses += get_local_ip_addresses(
             include_loopback=include_loopback,
             san_ip_addresses=san_ip_addresses,
             connect_to_ips=connect_to_ips,
