@@ -4,7 +4,6 @@ import shutil
 import subprocess
 import sys
 from collections import defaultdict
-from types import NoneType
 from typing import List, Dict, Any, Union, Callable
 
 DEFAULT_ENV_ARGS_PREFIX = "RESOTO_"
@@ -125,6 +124,10 @@ def get_arg_parser(
         description=description, add_help=add_help, env_args_prefix=env_args_prefix
     )
     return arg_parser
+
+
+# removed from types in 3.0-3.9: introduced again in 3.10
+NoneType = type(None)
 
 
 def convert(value: Any, type_goal: Union[type, Callable]) -> Any:
