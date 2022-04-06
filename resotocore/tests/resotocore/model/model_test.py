@@ -78,10 +78,13 @@ def test_string() -> None:
 def test_number() -> None:
     int32 = NumberKind("cores", "int32", 1, 8)
     flot = NumberKind("test", "float", 1, 8)
+    assert int32.coerce_if_required(1) is None
+    assert int32.coerce_if_required(None) is None
+    assert int32.coerce_if_required("no number") is None
     assert int32.check_valid(1) is None
     assert int32.check_valid(8) is None
     assert int32.check_valid("8") is 8
-    assert expect_error(int32, "7.123") == "Expected int32 but got 7.123"
+    assert expect_error(int32, "7.123") == "Expected type int32 but got str"
     assert flot.check_valid("7.123") == 7.123
     assert expect_error(int32, 0) == ">0< should be greater or equals than: 1"
     assert expect_error(int32, 9) == ">9< should be smaller or equals than: 8"
@@ -93,12 +96,15 @@ def test_number() -> None:
 
 def test_boolean() -> None:
     a = BooleanKind("question")
+    assert a.coerce_if_required(True) is None
+    assert a.coerce_if_required(None) is None
+    assert a.coerce_if_required("no bool") is None
     assert a.check_valid(True) is None
     assert a.check_valid(False) is None
     assert a.check_valid("true") is True
     assert a.check_valid("false") is False
     assert a.check_valid("FALSE") is False
-    assert expect_error(a, "test").startswith("Expected boolean but got")
+    assert expect_error(a, "test").startswith("Expected type boolean but got")
 
 
 def test_duration() -> None:
@@ -108,10 +114,13 @@ def test_duration() -> None:
     assert (
         expect_error(a, "23df") == "Wrong format for duration: 23df. Examples: 1yr, 3mo, 3d4h3min1s, 3days and 2hours"
     )
-    assert a.coerce("12d") == "1036800s"
+    assert a.coerce_if_required("12d") == "1036800s"
     with pytest.raises(AttributeError) as no_date:
-        a.coerce("simply no duration")
-    assert str(no_date.value) == f"Expected duration but got: >simply no duration<"
+        a.check_valid("simply no duration")
+    assert (
+        str(no_date.value)
+        == "Wrong format for duration: simply no duration. Examples: 1yr, 3mo, 3d4h3min1s, 3days and 2hours"
+    )
 
 
 def test_transform() -> None:
@@ -120,7 +129,7 @@ def test_transform() -> None:
     with pytest.raises(AttributeError):
         age.check_valid("3s")  # check valid is not allowed on synthetic values (they do not get imported!)
     # age transforms a duration into a timestamp before now
-    one_day_old = from_utc(age.coerce("1d"))
+    one_day_old = from_utc(age.coerce_if_required("1d"))  # type: ignore
     # difference between 1d and computed utc-24h should be less than 2 seconds (depending on test env less)
     assert (one_day_old - (utc() - timedelta(hours=24))).total_seconds() <= 2
 
@@ -136,34 +145,37 @@ def test_datetime() -> None:
     assert a.check_valid("2021-06-08T08:56:15Z") is None
     assert a.check_valid("2021-06-08T08:56:15+00:00") == "2021-06-08T08:56:15Z"
     assert expect_error(a, True) == "Expected type datetime but got bool"
-    assert a.coerce("2021-06-08T08:56:15Z") == "2021-06-08T08:56:15Z"
-    assert a.coerce("2021-06-08T08:56:15.0000+00:00") == "2021-06-08T08:56:15Z"
-    assert a.coerce("2021-06-08T08:56:15.0000+02:00") == "2021-06-08T06:56:15Z"
-    assert a.coerce("2021-06-08T08:56:15.0000-02:00") == "2021-06-08T10:56:15Z"
-    assert a.coerce("2021-06-08T08:56:15.0000+0000") == "2021-06-08T08:56:15Z"
-    assert a.coerce("2021-06-08 08:56:15").startswith("2021-06-08T")  # type: ignore
-    assert a.coerce("2021-06-08 08:56:15").endswith(":56:15Z")  # type: ignore # ignore the hours, time zone dependant
+    assert a.coerce_if_required(None) is None
+    assert a.coerce_if_required("no datetime") is None
+    assert a.coerce_if_required("2021-06-08T08") is not None
+    assert a.coerce_if_required("2021-06-08T08:56:15Z") is None
+    assert a.coerce_if_required("2021-06-08T08:56:15.0000+00:00") == "2021-06-08T08:56:15Z"
+    assert a.coerce_if_required("2021-06-08T08:56:15.0000+02:00") == "2021-06-08T06:56:15Z"
+    assert a.coerce_if_required("2021-06-08T08:56:15.0000-02:00") == "2021-06-08T10:56:15Z"
+    assert a.coerce_if_required("2021-06-08T08:56:15.0000+0000") == "2021-06-08T08:56:15Z"
+    assert a.coerce_if_required("2021-06-08 08:56:15").startswith("2021-06-08T")  # type: ignore
+    assert a.coerce_if_required("2021-06-08 08:56:15").endswith(":56:15Z")  # type: ignore # ignore the hours, time zone dependant
     today = datetime.today().replace(hour=6, minute=56, second=15).strftime(DateTimeKind.Format)
-    assert a.coerce("08:56:15").startswith(today[0:11])  # type: ignore
-    assert a.coerce("08:56:15").endswith(":56:15Z")  # type: ignore# ignore the hours, time zone dependant
-    assert a.coerce("-12d").startswith("20")  # type: ignore
-    assert a.coerce("12mo").startswith("20")  # type: ignore
-    with pytest.raises(AttributeError) as no_date:
-        a.coerce("simply no date")
-    assert str(no_date.value) == f"Expected datetime but got: >simply no date<"
+    assert a.coerce_if_required("08:56:15").startswith(today[0:11])  # type: ignore
+    assert a.coerce_if_required("08:56:15").endswith(":56:15Z")  # type: ignore# ignore the hours, time zone dependant
+    assert a.coerce_if_required("-12d").startswith("20")  # type: ignore
+    assert a.coerce_if_required("12mo").startswith("20")  # type: ignore
+    with pytest.raises(Exception) as no_date:
+        a.check_valid("simply no date")
+    assert str(no_date.value) == f"Invalid isoformat string: 'simply no date'"
 
 
 def test_date() -> None:
     a = DateKind("d")
     assert a.check_valid("2021-06-08") is None
     assert expect_error(a, True) == "Expected type date but got bool"
-    assert a.coerce("2021-06-08") == "2021-06-08"
-    assert a.coerce("2021 06 08") == "2021-06-08"
-    assert a.coerce("-12d").startswith("20")  # type: ignore
-    assert a.coerce("12mo").startswith("20")  # type: ignore
-    with pytest.raises(AttributeError) as no_date:
-        a.coerce("simply no date")
-    assert str(no_date.value) == f"Expected date but got: >simply no date<"
+    assert a.coerce_if_required("2021-06-08") == "2021-06-08"
+    assert a.coerce_if_required("2021 06 08") == "2021-06-08"
+    assert a.coerce_if_required("-12d").startswith("20")  # type: ignore
+    assert a.coerce_if_required("12mo").startswith("20")  # type: ignore
+    with pytest.raises(Exception) as no_date:
+        a.check_valid("simply no date")
+    assert str(no_date.value) == f"Invalid isoformat string: 'simply no date'"
 
 
 def test_dictionary() -> None:
@@ -226,6 +238,7 @@ def test_model_checking(person_model: Model) -> None:
     assert person_model.check_valid({"kind": "Base", "id": "32"}) is None
     assert person_model.check_valid({"kind": "Base", "id": "32", "list": ["one", "two"]}) is None
     assert person_model.check_valid({"kind": "Base", "id": "32", "list": [1, 2]})["list"] == ["1", "2"]  # type: ignore
+
     expected = 'Kind:Base Property:list is not valid: Expected property is a json object not an array!: {"kind": "Base", "id": "32", "list": {"not": "an array"}}'
     assert expect_error(person_model, {"kind": "Base", "id": "32", "list": {"not": "an array"}}) == expected
     assert person_model.check_valid({"kind": "Base", "id": 32}) == {"kind": "Base", "id": "32"}

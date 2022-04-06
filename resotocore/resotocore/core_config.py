@@ -348,7 +348,7 @@ def parse_config(args: Namespace, json_config: Json) -> CoreConfig:
         if value is not None:
             adjusted = set_value_in_path(value, path, adjusted)
 
-    # coerce the resulting json to the config model
+    # coerce_if_required the resulting json to the config model
     try:
         model = Model.from_kinds(from_js(config_model(), List[Kind]))
         root = model.get(ResotoCoreRoot)
