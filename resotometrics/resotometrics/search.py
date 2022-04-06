@@ -6,7 +6,7 @@ from resotolib.jwt import encode_jwt_to_headers
 from typing import Iterator, Optional
 
 
-def query(
+def search(
     query_str: str, query_uri: str, tls_data: Optional[TLSData] = None
 ) -> Iterator:
     headers = {"Accept": "application/x-ndjson"}

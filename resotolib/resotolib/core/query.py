@@ -32,7 +32,7 @@ class CoreGraph:
         if tls_data:
             self.verify = tls_data.ca_cert_path
         self.graph_uri = f"{self.base_uri}/graph/{self.graph_name}"
-        self.query_uri = f"{self.graph_uri}/query/graph"
+        self.search_uri = f"{self.graph_uri}/search/graph"
 
     def execute(self, command: str):
         log.debug(f"Executing command: {command}")
@@ -46,11 +46,11 @@ class CoreGraph:
     def query(self, query: str, edge_type: Optional[EdgeType] = None):
         log.debug(f"Sending query {query}")
         headers = {"Accept": "application/x-ndjson"}
-        query_endpoint = self.query_uri
+        search_endpoint = self.search_uri
         if edge_type is not None:
             query_string = urlencode({"edge_type": edge_type.value})
-            query_endpoint += f"?{query_string}"
-        return self.post(query_endpoint, query, headers, verify=self.verify)
+            search_endpoint += f"?{query_string}"
+        return self.post(search_endpoint, query, headers, verify=self.verify)
 
     @staticmethod
     def post(uri, data, headers, verify: Optional[str] = None):
