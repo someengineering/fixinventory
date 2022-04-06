@@ -12,7 +12,7 @@ def read(fname):
 
 setup(
     name="resoto-plugin-tagvalidator",
-    version="2.0.0rc1",
+    version="2.0.0rc2",
     description="Resoto Tag Validator Plugin",
     license="Apache 2.0",
     packages=find_packages(),
