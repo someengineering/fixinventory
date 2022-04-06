@@ -93,7 +93,7 @@ def gen_csr(
         san_ip_addresses = [san_ip_addresses]
 
     if discover_local_dns_names:
-        san_dns_names += get_local_hostnames(
+        san_dns_names = get_local_hostnames(
             include_loopback=include_loopback,
             san_ip_addresses=san_ip_addresses,
             san_dns_names=san_dns_names,
@@ -101,11 +101,12 @@ def gen_csr(
         )
 
     if discover_local_ip_addresses:
-        san_ip_addresses += get_local_ip_addresses(
+        san_ip_addresses = get_local_ip_addresses(
             include_loopback=include_loopback,
             san_ip_addresses=san_ip_addresses,
             connect_to_ips=connect_to_ips,
         )
+
     csr_build = x509.CertificateSigningRequestBuilder().subject_name(
         x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, common_name)])
     )
