@@ -135,20 +135,14 @@ def convert(value: Any, type_goal: Union[type, Callable]) -> Any:
         return value
     elif isinstance(type_goal, type):
         try:
-            if type_goal is str:
-                return str(value)
+            if type_goal in (str, int, float, complex):
+                return type_goal(value)
             elif type_goal is bool:
                 return value.lower() in ("true", "1", "yes")
-            elif type_goal is int:
-                return int(value)
-            elif type_goal is float:
-                return float(value)
-            elif type_goal is complex:
-                return complex(value)
             else:
                 # don't know how to handle this type
                 return value
-        except ValueError:
+        except Exception:
             # can not convert value
             return value
     elif callable(type_goal):
