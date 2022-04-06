@@ -1,4 +1,6 @@
 import os
+from typing import List
+
 from resotolib.args import get_arg_parser, ArgumentParser, convert, NoneType
 from resotolib.logging import add_args as logging_add_args
 from resotolib.jwt import add_args as jwt_add_args
@@ -44,6 +46,9 @@ def test_args():
 
 
 def test_convert() -> None:
+    def make_a_list(s: str) -> List[str]:
+        return s.split(",")
+
     # coercing works
     assert convert(None, NoneType) is None
     assert convert("3", int) == 3
@@ -59,3 +64,6 @@ def test_convert() -> None:
 
     # does not know how to handle
     assert convert("args", ArgumentParser) == "args"
+
+    # call a function
+    assert convert("1,2,3,4", make_a_list) == ["1", "2", "3", "4"]
