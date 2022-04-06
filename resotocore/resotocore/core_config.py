@@ -353,7 +353,7 @@ def parse_config(args: Namespace, json_config: Json) -> CoreConfig:
         model = Model.from_kinds(from_js(config_model(), List[Kind]))
         root = model.get(ResotoCoreRoot)
         if isinstance(root, ComplexKind):
-            adjusted = root.check_valid(adjusted) or adjusted
+            adjusted = root.coerce(adjusted)
     except Exception as e:
         log.warning("Can not adjust configuration: e", exc_info=e)
 
