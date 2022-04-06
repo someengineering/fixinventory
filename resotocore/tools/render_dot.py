@@ -193,7 +193,6 @@ def render_dot(gen: Iterator[JsonElement]) -> Generator[str, None, None]:
 
 
 def ensure_assets():
-
     if not os.path.exists("Assets"):
         print("AWS icon assets missing. Downloading assets...")
         r = requests.get(
