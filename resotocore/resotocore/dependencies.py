@@ -19,7 +19,7 @@ from resotocore.analytics import AnalyticsEventSender
 from resotocore.core_config import CoreConfig, parse_config, git_hash_from_file, inside_docker
 from resotocore.db.db_access import DbAccess
 from resotocore.model.adjust_node import DirectAdjuster
-from resotocore.parse_util import make_parser, variable_p, equals_p, json_value_p, comma_p
+from resotocore.parse_util import make_parser, variable_p, equals_p, comma_p, simple_json_value_dp
 from resotocore.types import JsonElement
 from resotocore.util import utc
 
@@ -33,14 +33,11 @@ started_at = utc()
 
 
 @make_parser
-def path_value_parser() -> Parser:
+def path_simple_value_parser() -> Parser:
     key = yield variable_p
     yield equals_p
-    value = yield json_value_p
+    value = yield simple_json_value_dp.sep_by(comma_p, min=1)
     return key, value
-
-
-path_values_parser = path_value_parser.sep_by(comma_p)
 
 
 def system_info() -> SystemInfo:
@@ -77,7 +74,8 @@ def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None
 
     def key_value(kv: str) -> Tuple[str, JsonElement]:
         try:
-            return path_value_parser.parse(kv)  # type: ignore
+            key, value = path_simple_value_parser.parse(kv)
+            return (key, value[0]) if len(value) == 1 else (key, value)
         except Exception as ex:
             raise AttributeError(f"Can not parse config option: {kv}. Reason: {ex}") from ex
 
@@ -196,8 +194,10 @@ def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None
         dest="config_override",
         default=[],
         help="Override configuration parameters. Format: path.to.property=value. "
-        "Note: the value can be any json value - proper escaping from the shell is required."
-        "Example: --override resotocore.api.web_hosts='[localhost, some.domain]' resotocore.api.web_port=12345",
+        "The existing configuration will be patched with the provided values. "
+        "A value can be a simple value or a comma separated list of values if a list is required. "
+        "Note: this argument allows multiple overrides separated by comma. "
+        "Example: --override resotocore.api.web_hosts=localhost,some.domain resotocore.api.web_port=12345",
     )
     parser.add_argument(
         "--verbose",

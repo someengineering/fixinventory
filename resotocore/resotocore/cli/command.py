@@ -65,7 +65,6 @@ from resotocore.cli.model import (
 )
 from resotocore.config import ConfigEntity
 from resotocore.db.model import QueryModel
-from resotocore.dependencies import path_values_parser
 from resotocore.dependencies import system_info
 from resotocore.error import CLIParseError, ClientError, CLIExecutionError
 from resotocore.model.graph_access import Section, EdgeType
@@ -79,6 +78,9 @@ from resotocore.parse_util import (
     variable_dp,
     literal_dp,
     comma_p,
+    variable_p,
+    equals_p,
+    json_value_p,
 )
 from resotocore.query.model import Query, P, Template, NavigateUntilRoot, IsTerm
 from resotocore.query.query_parser import parse_query
@@ -3373,6 +3375,17 @@ class WorkflowsCommand(CLICommand):
             return CLISource(list_workflows)
         else:
             return CLISource.single(lambda: stream.just(self.rendered_help(ctx)))
+
+
+@make_parser
+def path_value_parser() -> Parser:
+    key = yield variable_p
+    yield equals_p
+    value = yield json_value_p
+    return key, value
+
+
+path_values_parser = path_value_parser.sep_by(comma_p)
 
 
 class ConfigsCommand(CLICommand):
