@@ -34,6 +34,8 @@ except ImportError:
 
 JsonElement = Union[str, int, float, bool, None, Mapping[str, Any], Sequence[Any]]
 
+run_id = uuid_str()
+
 
 class ResourceKind(Enum):
     INSTANCE = 1
@@ -205,7 +207,7 @@ def ensure_assets():
         print("Downloading done.")
 
 
-def send_analytics():
+def send_analytics(run_id: str, event: str):
     if "RESOTOCORE_ANALYTICS_OPT_OUT" not in os.environ:
         client = Client(
             api_key="n/a",
@@ -220,50 +222,63 @@ def send_analytics():
         client.api_key = api_key
         for consumer in client.consumers:
             consumer.api_key = api_key
-        run_id = uuid_str()
         system_id = f"dot-rendering-script"
         now = utc()
         client.identify(system_id, {"run_id": run_id, "created_at": now})
         client.capture(
             distinct_id=system_id,
-            event="dot-rendering-script-run",
+            event=event,
             properties={"run_id": run_id},  # type: ignore
             timestamp=now,
         )
 
 
-def check_dependencies(args):
+def report_and_exit():
+    send_analytics(run_id, "dot-rendering-script-failed")
+    exit(1)
+
+
+def resh(query, args) -> str:
+    uri = ["--resotocore-uri", args.uri] if args.uri else []
+    psk = ["--psk", args.psk] if args.psk else []
+    command = ["resh"] + uri + psk + ["--stdin"]
+    p = subprocess.Popen(
+        command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
+    )
+    output = p.communicate(input=query.encode())[0].decode()
+    return output
+
+
+def preflight_check(args):
     resh_result = subprocess.run(["resh", "-h"], stdout=subprocess.PIPE)
     if resh_result.returncode != 0:
         print("Can't find resh. Is resoto virtualenv activated?")
         print(
             "Hint: see https://resoto.com/docs/contributing/components for more info."
         )
-        exit(1)
+        report_and_exit()
+    resh_ping = resh("echo ping", args)
+    if not resh_ping.startswith("ping"):
+        print(f"resh can't reach resotocore at {args.uri}: {resh_ping}")
+        report_and_exit()
     grahviz_result = subprocess.run(
         [args.engine, "-V"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT
     )
     if grahviz_result.returncode != 0:
         print(f"Can't find {args.engine} grahviz renderer. Is graphviz instlled?")
         print("See https://graphviz.org/download/ for the installation instructions.")
-        exit(1)
+        report_and_exit()
 
 
 def call_resh(args):
     query = args.query
     query += " | format --json | write resoto_graph_export.json"
-    uri = ["--resotocore-uri", args.uri] if args.uri else []
-    psk = ["--psk", args.psk] if args.psk else []
-    command = ["resh"] + uri + psk + ["--stdin"]
     if os.path.isfile("resoto_graph_export.json"):
         os.remove("resoto_graph_export.json")
-    p = subprocess.Popen(
-        command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
-    )
-    output = p.communicate(input=query.encode())[0].decode()
+    output = resh(query, args)
     if not output.startswith("Received a file"):
         print(f"resh error: {output}")
-        exit(1)
+        report_and_exit()
 
 
 def generate_dot():
@@ -286,7 +301,7 @@ def run_graphviz(args) -> str:
     )
     if render_result.returncode != 0:
         print(f"{engine} error: {render_result.stdout.decode()}")
-        exit(1)
+        report_and_exit()
     os.remove("resoto_graph_export.dot")
     return output_file
 
@@ -304,13 +319,14 @@ def main():
     parser.add_argument("--psk", help="Pre shared key to be passed to resh", dest="psk")
     parser.add_argument("--resotocore-uri", help="resotocore URI", dest="uri")
     args = parser.parse_args()
-    check_dependencies(args)
+    send_analytics(run_id, "dot-rendering-script-started")
+    preflight_check(args)
     ensure_assets()
-    send_analytics()
     call_resh(args)
     generate_dot()
     output_name = run_graphviz(args)
     report_success(output_name)
+    send_analytics(run_id, "dot-rendering-script-finished")
 
 
 if __name__ == "__main__":
