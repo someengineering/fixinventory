@@ -196,7 +196,7 @@ def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None
         help="Override configuration parameters. Format: path.to.property=value. "
         "The existing configuration will be patched with the provided values. "
         "A value can be a simple value or a comma separated list of values if a list is required. "
-        "Note: this argument allows multiple overrides separated by comma. "
+        "Note: this argument allows multiple overrides separated by space. "
         "Example: --override resotocore.api.web_hosts=localhost,some.domain resotocore.api.web_port=12345",
     )
     parser.add_argument(
