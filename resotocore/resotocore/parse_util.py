@@ -196,15 +196,8 @@ def json_object_pair() -> Parser:
 
 
 json_object_p = l_curly_dp >> json_object_pair.sep_by(comma_dp).map(dict) << r_curly_dp
-json_value_dp = (
-    double_quoted_string_dp
-    | json_array_parser
-    | json_object_p
-    | true_dp
-    | false_dp
-    | null_dp
-    | unquoted_string_dp
-    | float_dp
-    | integer_dp
+simple_json_value_dp = (
+    double_quoted_string_dp | true_dp | false_dp | null_dp | unquoted_string_dp | float_dp | integer_dp
 )
+json_value_dp = json_array_parser | json_object_p | simple_json_value_dp
 json_value_p = lexeme(json_value_dp)

@@ -95,7 +95,8 @@ def run_process(args: Namespace) -> None:
 
 def with_config(created: bool, system_data: SystemData, sdb: StandardDatabase, config: CoreConfig) -> None:
     reconfigure_logging(config)  # based on the config, logging might have changed
-    log.debug(f"Starting with config: {config}")
+    # only lg the editable config - to not log any passwords
+    log.debug(f"Starting with config: {config.editable}")
     info = system_info()
     event_sender = NoEventSender() if config.runtime.analytics_opt_out else PostHogEventSender(system_data)
     db = db_access(config, sdb, event_sender)
