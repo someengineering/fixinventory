@@ -27,6 +27,7 @@ try:
     from dataclasses import dataclass
     from posthog import Client
     import subprocess
+    from pathlib import Path
 except ImportError:
     print(f"Can't import one or more modules. Is resoto dev environment activated?")
     print(f"Hint: see https://resoto.com/docs/contributing/components for more info.")
@@ -35,6 +36,7 @@ except ImportError:
 JsonElement = Union[str, int, float, bool, None, Mapping[str, Any], Sequence[Any]]
 
 run_id = uuid_str()
+resoto_assets_path = f"{str(Path.home())}/.resoto/cache/aws_icon_assets/"
 
 
 class ResourceKind(Enum):
@@ -89,7 +91,7 @@ def parse_kind(kind: str) -> Optional[ResourceKind]:
 
 
 def generate_icon_map():
-    icon_dir = "./Assets/Architecture-Service-Icons_01312022"
+    icon_dir = f"{resoto_assets_path}/Architecture-Service-Icons_01312022"
     compute = "Arch_Compute"
     storage = "Arch_Storage"
     security = "Arch_Security-Identity-Compliance"
@@ -193,15 +195,16 @@ def render_dot(gen: Iterator[JsonElement]) -> Generator[str, None, None]:
 
 
 def ensure_assets():
-    if not os.path.exists("Assets"):
+    if not os.path.exists(resoto_assets_path):
         print("AWS icon assets missing. Downloading assets...")
+        os.makedirs(resoto_assets_path, exist_ok=True)
         r = requests.get(
             "https://d1.awsstatic.com/webteam/architecture-icons/q1-2022/Asset-Package_01312022.735e45eb7f0891333b7fcce325b0af915fd44766.zip"
         )
         with open("./Asset-Package.zip", "wb") as f:
             f.write(r.content)
         with zipfile.ZipFile("Asset-Package.zip", "r") as zip_ref:
-            zip_ref.extractall("Assets")
+            zip_ref.extractall(resoto_assets_path)
         os.remove("Asset-Package.zip")
         print("Downloading done.")
 
