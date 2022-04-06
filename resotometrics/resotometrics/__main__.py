@@ -16,7 +16,7 @@ from functools import partial
 from resotolib.core.actions import CoreActions
 from resotometrics.metrics import Metrics, GraphCollector
 from resotometrics.search import (
-    query,
+    search,
     get_labels_from_result,
     get_metrics_from_result,
     get_label_values_from_result,
@@ -176,7 +176,7 @@ def update_metrics(
             continue
 
         try:
-            for result in query(metrics_search, query_uri, tls_data=tls_data):
+            for result in search(metrics_search, query_uri, tls_data=tls_data):
                 labels = get_labels_from_result(result)
                 label_values = get_label_values_from_result(result, labels)
 
