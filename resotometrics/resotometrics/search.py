@@ -7,21 +7,21 @@ from typing import Iterator, Optional
 
 
 def search(
-    query_str: str, query_uri: str, tls_data: Optional[TLSData] = None
+    search_str: str, search_uri: str, tls_data: Optional[TLSData] = None
 ) -> Iterator:
     headers = {"Accept": "application/x-ndjson"}
     if ArgumentParser.args.psk:
         encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)
 
     r = requests.post(
-        query_uri,
-        data=query_str,
+        search_uri,
+        data=search_str,
         headers=headers,
         stream=True,
         verify=getattr(tls_data, "verify", None),
     )
     if r.status_code != 200:
-        raise RuntimeError(f"Failed to query graph: {r.content.decode('utf-8')}")
+        raise RuntimeError(f"Failed to search graph: {r.content.decode('utf-8')}")
 
     for line in r.iter_lines():
         if not line:

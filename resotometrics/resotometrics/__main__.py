@@ -158,7 +158,7 @@ def core_actions_processor(
 
 @metrics_update_metrics.time()
 def update_metrics(
-    metrics: Metrics, query_uri: str, tls_data: Optional[TLSData] = None
+    metrics: Metrics, search_uri: str, tls_data: Optional[TLSData] = None
 ) -> None:
     metrics_descriptions = Config.resotometrics.metrics
     for _, data in metrics_descriptions.items():
@@ -176,7 +176,7 @@ def update_metrics(
             continue
 
         try:
-            for result in search(metrics_search, query_uri, tls_data=tls_data):
+            for result in search(metrics_search, search_uri, tls_data=tls_data):
                 labels = get_labels_from_result(result)
                 label_values = get_label_values_from_result(result, labels)
 
