@@ -605,8 +605,8 @@ class TransformKind(SimpleKind):
         if value is None:
             return None
         elif self.source_kind:
-            coerced_source = self.source_kind.coerce_if_required(value)
-            real = self.source_to_destination(coerced_source or value)  # type: ignore
+            coerced_source = self.source_kind.coerce(value)
+            real = self.source_to_destination(coerced_source)  # type: ignore
             return real
         else:
             return None
@@ -615,8 +615,8 @@ class TransformKind(SimpleKind):
         if value is None:
             return None
         elif self.destination_kind:
-            real_coerced = self.destination_kind.coerce_if_required(value)
-            synth = self.destination_to_source(real_coerced or value)  # type: ignore
+            real_coerced = self.destination_kind.coerce(value)
+            synth = self.destination_to_source(real_coerced)  # type: ignore
             return synth
         else:
             raise AttributeError(f"Synthetic kind is not resolved: {self.fqn}")
