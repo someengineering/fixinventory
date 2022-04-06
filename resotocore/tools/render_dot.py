@@ -232,11 +232,6 @@ def send_analytics(run_id: str, event: str):
         )
 
 
-def report_and_exit():
-    send_analytics(run_id, "dot-rendering-script-failed")
-    exit(1)
-
-
 def resh(query, args) -> str:
     uri = ["--resotocore-uri", args.uri] if args.uri else []
     psk = ["--psk", args.psk] if args.psk else []
@@ -255,18 +250,18 @@ def preflight_check(args):
         print(
             "Hint: see https://resoto.com/docs/contributing/components for more info."
         )
-        report_and_exit()
+        exit(1)
     resh_ping = resh("echo ping", args)
     if not resh_ping.startswith("ping"):
         print(f"resh can't reach resotocore at {args.uri}: {resh_ping}")
-        report_and_exit()
+        exit(1)
     grahviz_result = subprocess.run(
         [args.engine, "-V"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT
     )
     if grahviz_result.returncode != 0:
         print(f"Can't find {args.engine} grahviz renderer. Is graphviz instlled?")
         print("See https://graphviz.org/download/ for the installation instructions.")
-        report_and_exit()
+        exit(1)
 
 
 def call_resh(args):
@@ -277,7 +272,7 @@ def call_resh(args):
     output = resh(query, args)
     if not output.startswith("Received a file"):
         print(f"resh error: {output}")
-        report_and_exit()
+        exit(1)
 
 
 def generate_dot():
@@ -300,7 +295,7 @@ def run_graphviz(args) -> str:
     )
     if render_result.returncode != 0:
         print(f"{engine} error: {render_result.stdout.decode()}")
-        report_and_exit()
+        exit(1)
     os.remove("resoto_graph_export.dot")
     return output_file
 
@@ -320,14 +315,13 @@ def main():
     parser.add_argument("--psk", help="Pre shared key to be passed to resh", dest="psk")
     parser.add_argument("--resotocore-uri", help="resotocore URI", dest="uri")
     args = parser.parse_args()
-    send_analytics(run_id, "dot-rendering-script-started")
     preflight_check(args)
     ensure_assets()
     call_resh(args)
     generate_dot()
     output_name = run_graphviz(args)
     report_success(output_name)
-    send_analytics(run_id, "dot-rendering-script-finished")
+    send_analytics(run_id, "dot-rendering-script-executed")
 
 
 if __name__ == "__main__":
