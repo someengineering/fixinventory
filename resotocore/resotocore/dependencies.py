@@ -194,7 +194,6 @@ def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None
         nargs="+",
         type=key_value,
         dest="config_override",
-        action="append",
         default=[],
         help="Override configuration parameters. Format: path.to.property=value. "
         "Note: the value can be any json value - proper escaping from the shell is required."
