@@ -1,11 +1,10 @@
-import os
-import ast
 import argparse
-import sys
+import os
 import shutil
 import subprocess
+import sys
 from collections import defaultdict
-from typing import List, Dict
+from typing import List, Dict, Any, Union, Callable
 
 DEFAULT_ENV_ARGS_PREFIX = "RESOTO_"
 
@@ -96,19 +95,18 @@ class ArgumentParser(argparse.ArgumentParser):
                     new_default = os.environ.get(env_name)
 
                 if new_default is not None:
-                    if action.type is not None:
+                    if isinstance(action.type, type):
+                        type_goal = action.type
+                    elif callable(action.type):
                         type_goal = action.type
                     else:
                         type_goal = type(action.default)
-                    if type_goal not in (str, int, float, complex, bool):
-                        type_goal = str
 
-                    if type_goal != str:
-                        if isinstance(new_default, list):
-                            for i, v in enumerate(new_default):
-                                new_default[i] = convert(v, type_goal)
-                        else:
-                            new_default = convert(new_default, type_goal)
+                    if isinstance(new_default, list):
+                        new_default = [convert(n, type_goal) for n in new_default]
+                    else:
+                        new_default = convert(new_default, type_goal)
+
                     action.default = new_default
         ret_args, ret_argv = super().parse_known_args(args=args, namespace=namespace)
         ArgumentParser.args = ret_args
@@ -126,16 +124,27 @@ def get_arg_parser(
     return arg_parser
 
 
-def convert(value, type_goal):
-    try:
-        if type_goal == bool:
-            value = str(value).capitalize()
-        converted_value = type_goal(ast.literal_eval(value))
-    except ValueError:
-        pass
-    else:
-        value = converted_value
-    return value
+# removed from types in 3.0-3.9: introduced again in 3.10
+NoneType = type(None)
+
+
+def convert(value: Any, type_goal: Union[type, Callable]) -> Any:
+    if type_goal is NoneType:
+        return value
+    elif isinstance(type_goal, type):
+        try:
+            if type_goal in (str, int, float, complex):
+                return type_goal(value)
+            elif type_goal is bool:
+                return value.lower() in ("true", "1", "yes")
+            else:
+                # don't know how to handle this type
+                return value
+        except Exception:
+            # can not convert value
+            return value
+    elif callable(type_goal):
+        return type_goal(value)
 
 
 def args_dispatcher(

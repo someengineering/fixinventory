@@ -339,9 +339,8 @@ def parse_config(args: Namespace, json_config: Json) -> CoreConfig:
     }
 
     # take config overrides and adjust the configuration
-    for config_list in args.config_override:
-        for key, value in config_list:
-            set_from_cmd_line[ResotoCoreRootRE.sub("", key, 1)] = value
+    for key, value in args.config_override:
+        set_from_cmd_line[ResotoCoreRootRE.sub("", key, 1)] = value
 
     # set the relevant value in the json config model
     adjusted = json_config.get(ResotoCoreRoot) or {}
