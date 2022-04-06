@@ -1,5 +1,5 @@
 from resotolib.logging import log
-from resotolib.core.query import CoreGraph
+from resotolib.core.search import CoreGraph
 from resotolib.core.ca import TLSData
 from networkx import DiGraph
 from resotolib.graph import Graph

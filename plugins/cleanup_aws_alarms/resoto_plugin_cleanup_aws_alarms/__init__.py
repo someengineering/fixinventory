@@ -1,5 +1,5 @@
 from resotolib.baseplugin import BaseActionPlugin
-from resotolib.core.query import CoreGraph
+from resotolib.core.search import CoreGraph
 from resotolib.graph import Graph
 from resoto_plugin_aws.resources import (
     AWSCloudwatchAlarm,

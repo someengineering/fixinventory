@@ -3,7 +3,7 @@ from resotolib.logging import log
 from resotolib.baseplugin import BaseActionPlugin
 from resotolib.config import Config
 from .config import TagValidatorConfig
-from resotolib.core.query import CoreGraph
+from resotolib.core.search import CoreGraph
 from resotolib.utils import parse_delta, delta_to_str
 from typing import Dict
 

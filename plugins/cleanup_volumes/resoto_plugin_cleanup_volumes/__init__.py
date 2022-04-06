@@ -1,6 +1,6 @@
 from resotolib.baseplugin import BaseActionPlugin
 from resotolib.logging import log
-from resotolib.core.query import CoreGraph
+from resotolib.core.search import CoreGraph
 from resotolib.graph import Graph
 from resotolib.baseresources import BaseVolume
 from resotolib.config import Config
