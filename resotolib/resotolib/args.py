@@ -107,8 +107,6 @@ class ArgumentParser(argparse.ArgumentParser):
                     else:
                         new_default = convert(new_default, type_goal)
 
-                    if env_name == "RESOTOCORE_OVERRIDE":
-                        pass
                     action.default = new_default
         ret_args, ret_argv = super().parse_known_args(args=args, namespace=namespace)
         ArgumentParser.args = ret_args
