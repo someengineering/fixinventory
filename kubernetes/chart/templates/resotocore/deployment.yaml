@@ -47,9 +47,9 @@ spec:
           - {{ .Values.resotocore.graphdb.username | quote }}
           - --override
           # add the host name of the resoto core service to the certificate
-          - resotocore.api.host_certificate.san_dns_names=[ "{{ include "resoto.fullname" . }}-resotocore"]
+          - resotocore.api.host_certificate.san_dns_names={{ include "resoto.fullname" . }}-resotocore
           # bind to all available network interfaces
-          - resotocore.api.web_hosts=[0.0.0.0]
+          - resotocore.api.web_hosts=0.0.0.0
           {{- if .Values.resotocore.overrides }}
           {{- toYaml .Values.resotocore.overrides | nindent 10 }}
           {{- end }}
