@@ -361,7 +361,7 @@ def parse_config(args: Namespace, json_config: Json) -> CoreConfig:
         ed = from_js(adjusted, EditableConfig)
     except Exception as e:
         # only here as last resort - should never be required
-        log.warning("Final configuration can not be parsed! Fall back to default configuration.", exc_info=e)
+        log.error("Final configuration can not be parsed! Fall back to default configuration.", exc_info=e)
         ed = EditableConfig()
 
     return CoreConfig(api=ed.api, cli=ed.cli, db=db, graph_update=ed.graph_update, runtime=ed.runtime, args=args)
