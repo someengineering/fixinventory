@@ -305,7 +305,7 @@ async def test_config(core_client: ApiClient, foo_kinds: List[Kind]) -> None:
     # put a config with schema that is violated
     with pytest.raises(AttributeError) as ex:
         await core_client.put_config(cfg_id, {"foo": {"some_int": "abc"}})
-    assert "Expected int32 but got abc" in str(ex.value)
+    assert "Expected type int32 but got str" in str(ex.value)
 
     # put a config with schema that is violated, but turn validation off
     await core_client.put_config(cfg_id, {"foo": {"some_int": "abc"}}, validate=False)
