@@ -16,28 +16,33 @@ Resoto Prometheus exporter
 ## Overview
 `resotometrics` takes [`resotocore`](../resotocore/) graph data and runs aggregation functions on it. Those aggregated metrics
 are then exposed in a [Prometheus](https://prometheus.io/) compatible format. The default TCP port is `9955` but
-can be changed using the `--web-port` argument.
+can be changed using the `resotometrics.web_port` config attribute.
 
 
 ## Usage
 `resotometrics` uses the following commandline arguments:
 ```
-  --web-port WEB_PORT   TCP port to listen on (default: 9955)
+  --subscriber-id SUBSCRIBER_ID
+                        Unique subscriber ID (default: resoto.metrics)
+  --override CONFIG_OVERRIDE [CONFIG_OVERRIDE ...]
+                        Override config attribute(s)
   --resotocore-uri RESOTOCORE_URI
-                        resotocore URI (default: http://localhost:8900)
-  --resotocore-ws-uri RESOTOCORE_WS_URI
-                        resotocore Websocket URI (default: ws://localhost:8900)
-  --resotocore-graph RESOTOCORE_GRAPH
-                        resotocore graph name (default: resoto)
-  --timeout TIMEOUT     Metrics generation timeout in seconds (default: 300)
+                        resotocore URI (default: https://localhost:8900)
   --verbose, -v         Verbose logging
-  --logfile LOGFILE     Logfile to log into
+  --quiet               Only log errors
+  --psk PSK             Pre-shared key
+  --ca-cert CA_CERT     Path to custom CA certificate file
+  --cert CERT           Path to custom certificate file
+  --cert-key CERT_KEY   Path to custom certificate key file
+  --cert-key-pass CERT_KEY_PASS
+                        Passphrase for certificate key file
+  --no-verify-certs     Turn off certificate verification
 ```
 
 ENV Prefix: `RESOTOMETRICS_`
 Every CLI arg can also be specified using ENV variables.
 
-For instance the boolean `--verbose` would become `RESOTOMETRICS_VERBOSE=true` or `--timeout 300` would become `RESOTOMETRICS_TIMEOUT=300`.
+For instance the boolean `--verbose` would become `RESOTOMETRICS_VERBOSE=true`.
 
 Once started `resotometrics` will register for `generate_metrics` core events. When such an event is received it will
 generate Resoto metrics and provide them at the `/metrics` endpoint.
@@ -55,7 +60,7 @@ Resoto core supports aggregated queries to produce metrics. Our common library [
 
 For example, instances have CPU cores and memory, so they define default metrics for those attributes. Right now metrics are hard coded and read from the base resources, but future versions of Resoto will allow you to define your own metrics in `resotocore` and have `resotometrics` export them.
 
-For right now you can use the aggregate API at `{resotocore}:8900/graph/{graph}/reported/query/aggregate` or the `aggregate` CLI command to generate your own metrics. For API details check out the `resotocore` API documentation as well as the Swagger UI at `{resotocore}:8900/api-doc/`.
+For right now you can use the aggregate API at `{resotocore}:8900/graph/{graph}/reported/search/aggregate` or the `aggregate` CLI command to generate your own metrics. For API details check out the `resotocore` API documentation as well as the Swagger UI at `{resotocore}:8900/api-doc/`.
 
 In the following we will be using the Resoto shell `resh` and the `aggregate` command.
 
@@ -63,22 +68,20 @@ In the following we will be using the Resoto shell `resh` and the `aggregate` co
 ### Example
 Enter the following commands into `resh`
 ```
-query is(instance) | merge_ancestors cloud,account,region | aggregate reported.cloud.name as cloud, reported.account.name as account, reported.region.name as region, reported.instance_type as type : sum(1) as instances_total, sum(reported.instance_cores) as cores_total, sum(reported.instance_memory*1024*1024*1024) as memory_bytes
+search is(instance) | aggregate /ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account, /ancestors.region.reported.name as region, instance_type as type : sum(1) as instances_total, sum(instance_cores) as cores_total, sum(instance_memory*1024*1024*1024) as memory_bytes
 ```
 
 Here is the same query with line feeds for readability (can not be copy'pasted)
 ```
-query is(instance) |
-  merge_ancestors
-    cloud,account,region |
+search is(instance) |
   aggregate
-    reported.cloud.name as cloud,
-    reported.account.name as account,
-    reported.region.name as region,
-    reported.instance_type as type :
+    /ancestors.cloud.reported.name as cloud,
+    /ancestors.account.reported.name as account,
+    /ancestors.region.reported.name as region,
+    instance_type as type :
   sum(1) as instances_total,
-  sum(reported.instance_cores) as cores_total,
-  sum(reported.instance_memory*1024*1024*1024) as memory_bytes
+  sum(instance_cores) as cores_total,
+  sum(instance_memory*1024*1024*1024) as memory_bytes
 ```
 
 If your graph contains any compute instances the resulting output will look something like this
@@ -113,28 +116,25 @@ memory_bytes: 193273528320
 ```
 
 Let us dissect what we've written here:
-- `query is(instance)` fetch all the resources that inherit from base kind `instance`. This would be compute instances like `aws_ec2_instance` or `gcp_instance`.
-- `merge_ancestors cloud,account,region` merge the resulting instances with their ancestor resources (meaning their parents and parent parents higher up the graph going towards the graph root) so that we can aggregate by cloud name, account name and so on.
-- `aggregate reported.cloud.name as cloud, reported.account.name as account, reported.region.name as region, reported.instance_type as type` aggregate the instance metrics by `cloud`, `account`, and `region` name as well as `instance_type` (think `GROUP_BY` in SQL).
-- `sum(1) as instances_total, sum(reported.instance_cores) as cores_total, sum(reported.instance_memory*1024*1024*1024) as memory_bytes` sum up the total number of instances, number of instance cores and memory. The later is stored in GB and here we convert it to bytes as is customary in Prometheus exporters.
+- `search is(instance)` fetch all the resources that inherit from base kind `instance`. This would be compute instances like `aws_ec2_instance` or `gcp_instance`.
+- `aggregate /ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account, /ancestors.region.reported.name as region, instance_type as type` aggregate the instance metrics by `cloud`, `account`, and `region` name as well as `instance_type` (think `GROUP_BY` in SQL).
+- `sum(1) as instances_total, sum(instance_cores) as cores_total, sum(instance_memory*1024*1024*1024) as memory_bytes` sum up the total number of instances, number of instance cores and memory. The later is stored in GB and here we convert it to bytes as is customary in Prometheus exporters.
 
 
 ### Taking it one step further
 ```
-query is(instance) and reported.instance_status = running | merge_ancestors cloud,account,region,instance_type as parent_instance_type | aggregate reported.cloud.name as cloud, reported.account.name as account, reported.region.name as region, reported.instance_type as type : sum(reported.parent_instance_type.ondemand_cost) as instances_hourly_cost_estimate
+search is(instance) and instance_status = running | aggregate /ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account, /ancestors.region.reported.name as region, instance_type as type : sum(/ancestors.instance_type.reported.ondemand_cost) as instances_hourly_cost_estimate
 ```
 
-Again the same query with line feeds for readbility (can not be copy'pasted)
+Again the same query with line feeds for readability (can not be copy'pasted)
 ```
-query is(instance) and reported.instance_status = running |
-  merge_ancestors
-    cloud,account,region,instance_type as parent_instance_type |
+search is(instance) and instance_status = running |
   aggregate
-    reported.cloud.name as cloud,
-    reported.account.name as account,
-    reported.region.name as region,
-    reported.instance_type as type :
-  sum(reported.parent_instance_type.ondemand_cost) as instances_hourly_cost_estimate
+    /ancestors.cloud.reported.name as cloud,
+    /ancestors.account.reported.name as account,
+    /ancestors.region.reported.name as region,
+    instance_type as type :
+  sum(/ancestors.instance_type.reported.ondemand_cost) as instances_hourly_cost_estimate
 ```
 
 Outputs something like
@@ -148,13 +148,13 @@ group:
 instances_hourly_cost_estimate: 0.949995
 ```
 
-What did we do here? We told Resoto to find all resource of type compute instance (`query is(instance)`) with a status of `running` and then merge the result with ancestors (parents and parent parents) of type `cloud`, `account`, `region` and now also `instance_type`.
+What did we do here? We told Resoto to find all resource of type compute instance (`search is(instance)`) with a status of `running` and then merge the result with ancestors (parents and parent parents) of type `cloud`, `account`, `region` and now also `instance_type`.
 
 Let us look at two things here. First, in the previous example we already aggregated by `instance_type`. However this was the string attribute called `instance_type` that is part of every instance resource and contains strings like `m5.xlarge` (AWS) or `n1-standard-4` (GCP).
 
 Example
 ```
-> query is(instance) | tail -1 | format {reported.kind} {reported.name} {reported.instance_type}
+> search is(instance) | tail -1 | format {kind} {name} {instance_type}
 aws_ec2_instance i-039e06bb2539e5484 t2.micro
 ```
 
@@ -162,7 +162,7 @@ What we did now was ask Resoto to go up the graph and find the directly connecte
 
 An `instance_type` resource looks something like this
 ```
-> query is(instance_type) | tail -1
+> search is(instance_type) | tail -1 | dump
 reported:
   kind: aws_ec2_instance_type
   id: t2.micro
