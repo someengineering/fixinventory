@@ -3610,7 +3610,7 @@ class WelcomeCommand(CLICommand, InternalPart):
 class CertificateCommand(CLICommand):
     """
     ```shell
-    certificate create --common-name <common-name> --dns-names <dns-name>...<dns-name> \
+    certificate create --common-name <common-name> [--dns-names <dns-name>...<dns-name>] \
     [--ip-addresses <ip-address>...<ip-address>] [--days-valid <days-valid>]
     ```
 
@@ -3620,7 +3620,7 @@ class CertificateCommand(CLICommand):
 
     ## Parameters
     - common-name [mandatory]: server name protected by the ssl certificate.
-    - dns-names [mandatory]: DNS names that the certificate should be valid for.
+    - dns-names [optional]: DNS names that the certificate should be valid for.
     - ip-addresses [optional]: IP addresses that the certificate should be valid for.
     - days-valid [optional, default to 365]: number of days the certificate should be valid.
 
@@ -3638,7 +3638,7 @@ class CertificateCommand(CLICommand):
         return "certificate"
 
     def info(self) -> str:
-        return "Manage TLS certificates."
+        return "Create TLS certificates."
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
         async def create_certificate(
@@ -3649,8 +3649,8 @@ class CertificateCommand(CLICommand):
                 common_name, dns_names, ip_addresses, days_valid
             )
             with TemporaryDirectory() as tmpdir:
-                key_file = os.path.join(tmpdir, "host_key.pem")
-                cert_file = os.path.join(tmpdir, "host_cert.pem")
+                key_file = os.path.join(tmpdir, f"{common_name}.key")
+                cert_file = os.path.join(tmpdir, f"{common_name}.crt")
                 write_cert_to_file(cert, cert_file, rename=False)
                 write_key_to_file(key, key_file, rename=False)
                 yield key_file
@@ -3660,7 +3660,7 @@ class CertificateCommand(CLICommand):
         if len(args) == 2 and args[0] == "create":
             parser = NoExitArgumentParser()
             parser.add_argument("--common-name", required=True)
-            parser.add_argument("--dns-names", nargs="+", required=True)
+            parser.add_argument("--dns-names", nargs="+", default=[])
             parser.add_argument("--ip-addresses", nargs="+", default=[])
             parser.add_argument("--days-valid", type=int, default=365)
             parsed = parser.parse_args(args[1].split())

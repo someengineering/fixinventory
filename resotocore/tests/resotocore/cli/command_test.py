@@ -833,4 +833,4 @@ async def test_certificate(cli: CLI) -> None:
     )
     # will create 2 files
     assert len(result[0]) == 2
-    assert [a.rsplit("/")[-1] for a in result[0]] == ["host_key.pem", "host_cert.pem"]
+    assert [a.rsplit("/")[-1] for a in result[0]] == ["foo.resoto.com.key", "foo.resoto.com.crt"]
