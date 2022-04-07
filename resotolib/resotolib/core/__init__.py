@@ -15,27 +15,40 @@ def add_args(arg_parser: ArgumentParser) -> None:
     )
 
 
-def wait_for_resotocore(resotocore_uri: str, timeout: int = 300) -> None:
+def resotocore_is_up(resotocore_uri: str, timeout: int = 5) -> bool:
     ready_uri = f"{resotocore_uri}/system/ready"
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            response = requests.get(ready_uri, timeout=timeout, verify=False)
+            if response.status_code == 200:
+                return True
+    except Exception:
+        pass
+    return False
+
+
+def wait_for_resotocore(resotocore_uri: str, timeout: int = 300) -> None:
     start_time = time.time()
     core_up = False
     wait_time = -1
+    remaining_wait = timeout
+    waitlog = log.info
     while wait_time < timeout:
+        if resotocore_is_up(resotocore_uri):
+            core_up = True
+            break
+        else:
+            waitlog(
+                f"Waiting up to {remaining_wait:.2f}s for resotocore"
+                f" to come online at {resotocore_uri}"
+            )
+            waitlog = log.debug
+        time.sleep(2)
         wait_time = time.time() - start_time
-        try:
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                log.debug(f"Waiting for resotocore to come online at {resotocore_uri}")
-                response = requests.get(ready_uri, timeout=5, verify=False)
-                if response.status_code == 200:
-                    log.debug("resotocore is ready")
-                    core_up = True
-                    break
-        except Exception:
-            pass
-        time.sleep(5)
+        remaining_wait = timeout - wait_time
     if not core_up:
-        raise TimeoutError(f"resotocore not ready after {timeout} seconds")
+        raise TimeoutError(f"resotocore not ready after {wait_time:.2f} seconds")
 
 
 class ResotocoreURI:

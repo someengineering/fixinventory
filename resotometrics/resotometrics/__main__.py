@@ -47,7 +47,6 @@ def shutdown(event: ResotoEvent) -> None:
 def main() -> None:
     setup_logger("resotometrics")
     resotolib.signal.parent_pid = os.getpid()
-    resotolib.signal.initializer()
 
     add_event_listener(EventType.SHUTDOWN, shutdown)
     arg_parser = ArgumentParser(
@@ -61,7 +60,11 @@ def main() -> None:
     TLSData.add_args(arg_parser)
     arg_parser.parse_args()
 
-    wait_for_resotocore(resotocore.http_uri)
+    try:
+        wait_for_resotocore(resotocore.http_uri)
+    except TimeoutError as e:
+        log.fatal(f"Failed to connect to resotocore: {e}")
+        sys.exit(1)
 
     tls_data = None
     if resotocore.is_secure:
@@ -77,6 +80,8 @@ def main() -> None:
     )
     config.add_config(ResotoMetricsConfig)
     config.load_config()
+
+    resotolib.signal.initializer()
 
     metrics = Metrics()
     graph_collector = GraphCollector(metrics)

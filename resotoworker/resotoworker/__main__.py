@@ -1,6 +1,7 @@
 from functools import partial
 import time
 import os
+import sys
 import threading
 import resotolib.signal
 from typing import List, Dict
@@ -63,7 +64,11 @@ def main() -> None:
     # added their args to the arg parser
     arg_parser.parse_args()
 
-    wait_for_resotocore(resotocore.http_uri)
+    try:
+        wait_for_resotocore(resotocore.http_uri)
+    except TimeoutError as e:
+        log.fatal(f"Failed to connect to resotocore: {e}")
+        sys.exit(1)
 
     tls_data = None
     if resotocore.is_secure:
