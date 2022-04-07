@@ -717,16 +717,11 @@ class DictionaryKind(Kind):
             coerced: Json = {}
             has_coerced = False
             for p, v in value.items():
-                part = "key"
-                try:
-                    ck = self.key_kind.coerce_if_required(p)
-                    part = "value"
-                    cv = self.value_kind.coerce_if_required(v)
-                    coerced[ck or p] = cv or v  # type: ignore
-                    if ck is not None or cv is not None:
-                        has_coerced = True
-                except Exception as at:
-                    raise AttributeError(f"{part} of {self.fqn} is not valid: {at}") from at
+                ck = self.key_kind.coerce_if_required(p)
+                cv = self.value_kind.coerce_if_required(v)
+                coerced[ck or p] = cv or v  # type: ignore
+                if ck is not None or cv is not None:
+                    has_coerced = True
             return coerced if has_coerced else None
         else:
             return None
