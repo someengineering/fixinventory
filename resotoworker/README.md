@@ -27,63 +27,27 @@ There can be one or more instances of `resotoworker` in a Resoto deployment. A s
 ## Usage
 `resotoworker` uses the following commandline arguments:
 ```
-  -h, --help            show this help message and exit
-  --verbose, -v         Verbose logging
-  --logfile LOGFILE     Logfile to log into
-  --collector COLLECTOR [COLLECTOR ...]
-                        Collectors to load (default: all)
-  --cleanup             Enable cleanup of resources (default: False)
-  --cleanup-pool-size CLEANUP_POOL_SIZE
-                        Cleanup thread pool size (default: 10)
-  --cleanup-dry-run     Cleanup dry run (default: False)
-  --resotocore-uri RESOTOCORE_URI
-                        resotocore URI (default: http://localhost:8900)
-  --resotocore-ws-uri RESOTOCORE_WS_URI
-                        resotocore Websocket URI (default: ws://localhost:8900)
-  --resotocore-graph RESOTOCORE_GRAPH
-                        resotocore graph name (default: resoto)
-  --pool-size POOL_SIZE
-                        Collector Thread/Process Pool Size (default: 5)
-  --fork                Use forked process instead of threads (default: False)
-  --timeout TIMEOUT     Collection Timeout in seconds (default: 10800)
-  --debug-dump-json     Dump the generated json data (default: False)
+  --subscriber-id SUBSCRIBER_ID
+                        Unique subscriber ID (default: resoto.worker)
   --psk PSK             Pre-shared key
-  --web-port WEB_PORT   Web Port (default 9955)
-  --web-host WEB_HOST   IP to bind to (default: ::)
+  --verbose, -v         Verbose logging
+  --quiet               Only log errors
+  --resotocore-uri RESOTOCORE_URI
+                        resotocore URI (default: https://localhost:8900)
+  --override CONFIG_OVERRIDE [CONFIG_OVERRIDE ...]
+                        Override config attribute(s)
+  --ca-cert CA_CERT     Path to custom CA certificate file
+  --cert CERT           Path to custom certificate file
+  --cert-key CERT_KEY   Path to custom certificate key file
+  --cert-key-pass CERT_KEY_PASS
+                        Passphrase for certificate key file
+  --no-verify-certs     Turn off certificate verification
 ```
 
 ENV Prefix: `RESOTOWORKER_`
 Every CLI arg can also be specified using ENV variables.
 
-For instance the boolean `--fork` would become `RESOTOWORKER_FORK=true` or `--collector aws gcp` would become `RESOTOWORKER_COLLECTOR="aws gcp"`.
-
-*Important*: Every plugin will add its own CLI args to those of `resotoworker`. Check the individual plugin documentation for details or use `resotoworker --help` to see the complete list.
-
-
-### Usage examples
-```
-$ resotoworker \
-    --verbose \
-    --fork \
-    --collector aws \
-    --aws-fork \
-    --aws-account-pool-size 50 \
-    --aws-access-key-id AKIAZGZEXAMPLE \
-    --aws-secret-access-key vO51EW/8ILMGrSBV/Ia9FEXAMPLE \
-    --aws-role resoto \
-    --aws-scrape-org
-```
-
-Let us unpack this command
-- `verbose` turn on verbose logging
-- `fork` makes `resotoworker` fork each collector plugin instead of using threads
-- `collector aws` loads the AWS collector plugin
-- `aws-fork` tells the AWS collector plugin to also use forked processes instead of threads
-- `aws-access-key-id/-secret-access-key` AWS credentials for API access. Instead of using credentials directly you can also opt to inherit them from the [`awscli`](https://aws.amazon.com/cli/) environment or when running on EC2 using an instance profile.
-- `aws-role` the IAM role Resoto should assume when making API requests
-- `aws-scrape-org` tells the AWS collector plugin to retrieve a list of all org accounts and then assume into each one of them.
-
-The reason for using forked processes instead of threads is to work around performance limitations of Python's [GIL](https://en.wikipedia.org/wiki/Global_interpreter_lock). By forking we almost scale linearly with the number of CPU cores when collecting many accounts at once. The default is to use threads to conserve system resources.
+For instance the boolean `--fork` would become `RESOTOWORKER_FORK=true`.
 
 
 ## Details
@@ -102,7 +66,7 @@ Once all the workers finish collecting and sent their graph to the core, the wor
 #### Tasks
 When a plugin or a user decides that a resource tag should be added, changed or removed, e.g. by running
 ```
-match id = i-039e06bb2539e5484 | tag update owner lukas
+search id = i-039e06bb2539e5484 | tag update owner lukas
 ```
 `resotocore` will put this tagging task onto a task queue. This task is then consumed by a `resotoworker` that knows how to perform tagging for that particular resource and its particular cloud and account. In our example above where we are setting the tag `owner: lukas` for an AWS EC2 instance with ID `i-039e06bb2539e5484` the task would be given to a `resotoworker` that knows how to update AWS EC2 instance tags in that resources account.
 
