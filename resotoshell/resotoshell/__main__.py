@@ -9,7 +9,7 @@ from urllib.parse import urlencode
 from prompt_toolkit import PromptSession
 from prompt_toolkit.history import FileHistory
 from resotolib.args import ArgumentParser, Namespace
-from resotolib.core import resotocore, add_args as core_add_args
+from resotolib.core import resotocore, add_args as core_add_args, resotocore_is_up
 from resotolib.core.ca import TLSData
 from resotolib.jwt import add_args as jwt_add_args
 from resotolib.logging import log, setup_logger, add_args as logging_add_args
@@ -32,6 +32,10 @@ def main() -> None:
     jwt_add_args(arg_parser)
     TLSData.add_args(arg_parser, ca_only=True)
     args = arg_parser.parse_args()
+
+    if not resotocore_is_up(resotocore.http_uri):
+        log.fatal(f"resotocore is not online at {resotocore.http_uri}")
+        sys.exit(1)
 
     tls_data = None
     if resotocore.is_secure:
