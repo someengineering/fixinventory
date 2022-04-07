@@ -155,6 +155,7 @@ RUN echo "${SOURCE_COMMIT:-unknown}" > /usr/local/etc/git-commit.HEAD
 FROM phusion/baseimage:focal-1.0.0
 ENV DEBIAN_FRONTEND=noninteractive
 ENV LANG="en_US.UTF-8"
+ENV TERM="xterm-256color"
 COPY --from=build-env /usr/local /usr/local
 ENV PATH=/usr/local/python/bin:/usr/local/pypy/bin:/usr/local/db/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 WORKDIR /
