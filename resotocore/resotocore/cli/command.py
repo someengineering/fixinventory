@@ -19,6 +19,7 @@ from dataclasses import dataclass
 from datetime import timedelta
 from functools import partial
 from itertools import dropwhile
+from tempfile import TemporaryDirectory
 from typing import Dict, List, Tuple, Optional, Any, AsyncIterator, Hashable, Iterable, Callable, Awaitable, cast, Set
 from urllib.parse import urlparse, urlunparse
 
@@ -30,6 +31,7 @@ from aiostream import stream, pipe
 from aiostream.aiter_utils import is_async_iterable
 from aiostream.core import Stream
 from parsy import Parser, string
+from resotolib.x509 import write_cert_to_file, write_key_to_file
 from rich.padding import Padding
 from rich.panel import Panel
 from rich.table import Table
@@ -3605,11 +3607,84 @@ class WelcomeCommand(CLICommand, InternalPart):
         return CLISource.single(lambda: stream.just(welcome()))
 
 
+class CertificateCommand(CLICommand):
+    """
+    ```shell
+    certificate create --common-name <common-name> --dns-names <dns-name>...<dns-name> \
+    [--ip-addresses <ip-address>...<ip-address>] [--days-valid <days-valid>]
+    ```
+
+    Create a new TLS key and certificate based on the internal root CA certificate.
+    This can be used to create a self-signed certificate for additional components that communicate with Resoto.
+
+
+    ## Parameters
+    - common-name [mandatory]: server name protected by the ssl certificate.
+    - dns-names [mandatory]: DNS names that the certificate should be valid for.
+    - ip-addresses [optional]: IP addresses that the certificate should be valid for.
+    - days-valid [optional, default to 365]: number of days the certificate should be valid.
+
+    ## Examples
+
+    ```shell
+    > tls create --common-name "example.com" --dns-names "example.com" "*.example.com" --days-valid 365
+    Received a file host_key.pem, which is stored to ./host_key.pem.
+    Received a file host_cert.pem, which is stored to ./host_cert.pem.
+    ```
+    """
+
+    @property
+    def name(self) -> str:
+        return "certificate"
+
+    def info(self) -> str:
+        return "Manage TLS certificates."
+
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
+        async def create_certificate(
+            common_name: str, dns_names: List[str], ip_addresses: List[str], days_valid: int
+        ) -> AsyncIterator[str]:
+
+            key, cert = self.dependencies.cert_handler.create_key_and_cert(
+                common_name, dns_names, ip_addresses, days_valid
+            )
+            with TemporaryDirectory() as tmpdir:
+                key_file = os.path.join(tmpdir, "host_key.pem")
+                cert_file = os.path.join(tmpdir, "host_cert.pem")
+                write_cert_to_file(cert, cert_file, rename=False)
+                write_key_to_file(key, key_file, rename=False)
+                yield key_file
+                yield cert_file
+
+        args = re.split("\\s+", arg, maxsplit=1) if arg else []
+        if len(args) == 2 and args[0] == "create":
+            parser = NoExitArgumentParser()
+            parser.add_argument("--common-name", required=True)
+            parser.add_argument("--dns-names", nargs="+", required=True)
+            parser.add_argument("--ip-addresses", nargs="+", default=[])
+            parser.add_argument("--days-valid", type=int, default=365)
+            parsed = parser.parse_args(args[1].split())
+            return CLISource.with_count(
+                partial(
+                    create_certificate,
+                    parsed.common_name,
+                    parsed.dns_names,
+                    parsed.ip_addresses,
+                    parsed.days_valid,
+                ),
+                2,
+                produces=MediaType.FilePath,
+            )
+        else:
+            return CLISource.single(lambda: stream.just(self.rendered_help(ctx)))
+
+
 def all_commands(d: CLIDependencies) -> List[CLICommand]:
     commands = [
         AggregatePart(d),
         AggregateToCountCommand(d),
         AncestorsPart(d),
+        CertificateCommand(d),
         ChunkCommand(d),
         CleanCommand(d),
         ConfigsCommand(d),

@@ -823,3 +823,14 @@ async def test_welcome(cli: CLI) -> None:
     ctx = CLIContext(console_renderer=ConsoleRenderer.default_renderer())
     result = await cli.execute_cli_command(f"welcome", stream.list, ctx)
     assert "Resoto" in result[0][0]
+
+
+@pytest.mark.asyncio
+async def test_certificate(cli: CLI) -> None:
+    result = await cli.execute_cli_command(
+        f"certificate create --common-name foo.resoto.com --dns-names bla --ip-addresses 1.2.3.4 --days-valid 1",
+        stream.list,
+    )
+    # will create 2 files
+    assert len(result[0]) == 2
+    assert [a.rsplit("/")[-1] for a in result[0]] == ["host_key.pem", "host_cert.pem"]

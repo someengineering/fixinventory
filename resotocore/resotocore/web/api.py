@@ -66,7 +66,7 @@ from resotocore.task.model import Subscription
 from resotocore.task.subscribers import SubscriptionHandler
 from resotocore.task.task_handler import TaskHandlerService
 from resotocore.types import Json, JsonElement
-from resotocore.util import uuid_str, force_gen, rnd_str, if_set, duration, count_iterator
+from resotocore.util import uuid_str, force_gen, rnd_str, if_set, duration
 from resotocore.web import auth
 from resotocore.web.certificate_handler import CertificateHandler
 from resotocore.web.content_renderer import result_binary_gen, single_result
@@ -848,7 +848,7 @@ class Api:
                     return await self.stream_response_from_gen(request, gen, count)
                 elif first_result.produces.file_path:
                     await mp_response.prepare(request)
-                    await Api.multi_file_response(parsed, gen, boundary, mp_response)
+                    await Api.multi_file_response(first_result, gen, boundary, mp_response)
                     return mp_response
                 else:
                     raise AttributeError(f"Can not handle type: {first_result.produces}")
@@ -866,7 +866,7 @@ class Api:
                             )
                             await mp.write(mp_response, close_boundary=True)
                     elif single.produces.file_path:
-                        await Api.multi_file_response(parsed, gen, boundary, mp_response)
+                        await Api.multi_file_response(single, gen, boundary, mp_response)
                     else:
                         raise AttributeError(f"Can not handle type: {single.produces}")
             await mp_response.write_eof()
@@ -944,11 +944,9 @@ class Api:
 
     @staticmethod
     async def multi_file_response(
-        parsed: List[ParsedCommandLine], results: AsyncIterator[str], boundary: str, response: StreamResponse
+        cmd_line: ParsedCommandLine, results: AsyncIterator[str], boundary: str, response: StreamResponse
     ) -> None:
-        it = count_iterator()
         async for file_path in results:
-            cmd_line = parsed[next(it)]
             path = Path(file_path)
             if not (path.exists() and path.is_file()):
                 raise HTTPNotFound(text=f"No file with this path: {file_path}")
