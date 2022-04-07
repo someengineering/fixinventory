@@ -151,7 +151,7 @@ class HelpCommand(CLICommand):
                  ## Available Commands: \n{available}
 
                  *Note* that you can pipe commands using the pipe character (|)
-                 and chain multiple commands using the semicolon (;)."
+                 and chain multiple commands using the semicolon (;).
 
                  Use `help <command>` to show help for a specific command.
                  """

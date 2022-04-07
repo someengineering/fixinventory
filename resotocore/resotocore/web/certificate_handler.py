@@ -4,7 +4,7 @@ import logging
 from pathlib import Path
 from ssl import SSLContext, create_default_context, Purpose
 from tempfile import TemporaryDirectory
-from typing import Tuple, Optional
+from typing import Tuple, Optional, List
 
 from arango.database import StandardDatabase
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
@@ -50,6 +50,22 @@ class CertificateHandler:
     @property
     def host_certificate(self) -> Tuple[RSAPrivateKey, Certificate]:
         return self._host_key, self._host_cert
+
+    def create_key_and_cert(
+        self, common_name: str, dns_names: List[str], ip_addresses: List[str], days_valid: int
+    ) -> Tuple[RSAPrivateKey, Certificate]:
+        key = gen_rsa_key()
+        csr = gen_csr(
+            key,
+            include_loopback=False,
+            common_name=common_name,
+            san_dns_names=dns_names,
+            san_ip_addresses=ip_addresses,
+            discover_local_dns_names=False,
+            discover_local_ip_addresses=False,
+        )
+        cert = sign_csr(csr, key, self._ca_cert, days_valid)
+        return key, cert
 
     def sign(self, csr_bytes: bytes) -> Tuple[bytes, str]:
         csr = load_csr_from_bytes(csr_bytes)
