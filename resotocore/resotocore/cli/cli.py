@@ -70,7 +70,7 @@ from resotocore.query.model import (
 from resotocore.query.query_parser import aggregate_parameter_parser
 from resotocore.query.template_expander import render_template
 from resotocore.types import JsonElement
-from resotocore.util import utc_str, utc, from_utc
+from resotocore.util import utc_str, utc, from_utc, group_by
 
 log = logging.getLogger(__name__)
 
@@ -118,6 +118,9 @@ class HelpCommand(CLICommand):
         self.all_parts = {p.name: p for p in parts + [self]}
         self.parts = {p.name: p for p in parts + [self] if not isinstance(p, InternalPart)}
         self.alias_names = {a: n for a, n in alias_names.items() if n in self.parts and a not in self.parts}
+        self.reverse_alias_names: Dict[str, List[str]] = {
+            k: [e[0] for e in v] for k, v in group_by(lambda a: a[1], self.alias_names.items()).items()  # type: ignore
+        }
         self.alias_templates = {a.name: a for a in sorted(alias_templates, key=attrgetter("name"))}
 
     @property
@@ -128,32 +131,27 @@ class HelpCommand(CLICommand):
         return "Shows available commands, as well as help for any specific command."
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLISource:
+        def placeholders() -> str:
+            replacements = "\n".join(f"- `@{key}@` -> {value}" for key, value in CLI.replacements(**ctx.env).items())
+            return ctx.render_console(f"## Valid placeholder string: \n\n{replacements}")
+
         def overview() -> str:
             all_parts = sorted(self.parts.values(), key=lambda p: p.name)
             parts = (p for p in all_parts if isinstance(p, CLICommand))
             indent = "                 "  # required for dedent to work properly
             available = "\n".join(f"{indent}- `{part.name}` - {part.info()}" for part in parts)
-            aliases = "\n".join(
-                f"{indent}- `{alias}` (`{cmd}`) - {self.parts[cmd].info()}" for alias, cmd in self.alias_names.items()
-            )
             alias_templates = "\n".join(f"{indent}- `{a.name}` - {a.info}" for a in self.alias_templates.values())
-            replacements = "\n".join(
-                f"{indent}- `@{key}@` -> {value}" for key, value in CLI.replacements(**ctx.env).items()
-            )
             result = dedent(
                 f"""
-                 ## Valid placeholder string: \n{replacements}
+                 ## Custom Commands: \n{alias_templates}
 
-                 ## Available Aliases: \n{aliases}
-
-                 ## Available Templates: \n{alias_templates}
-
-                 ## Available Commands: \n{available}
+                 ## Builtin Commands: \n{available}
 
                  *Note* that you can pipe commands using the pipe character (|)
                  and chain multiple commands using the semicolon (;).
 
-                 Use `help <command>` to show help for a specific command.
+                 Use `help <command>` to show help for a specific command. \\
+                 Uee `help placeholders` to see the list of available placeholders.
                  """
             )
             headline = ctx.render_console(f"# resotocore CLI ({version()})")
@@ -169,8 +167,14 @@ class HelpCommand(CLICommand):
         def help_command() -> Stream:
             if not arg:
                 result = overview()
+            elif arg == "placeholders":
+                result = placeholders()
             elif arg in self.all_parts:
-                result = self.all_parts[arg].rendered_help(ctx)
+                maybe_aliases = self.reverse_alias_names.get(arg)
+                result = ""
+                if maybe_aliases:
+                    result += f'{arg} can also invoked via: {", ".join(maybe_aliases)}\n\n'
+                result += self.all_parts[arg].rendered_help(ctx)
             elif arg in self.alias_names:
                 alias = self.alias_names[arg]
                 explain = f"{arg} is an alias for {alias}\n\n"
@@ -341,8 +345,8 @@ class CLI:
                 # since the output of aggregation is not exactly the same as count
                 # we also add the aggregate_to_count command after the query
                 assert query.aggregate is None, "Can not combine aggregate and count!"
-                group_by = [AggregateVariable(AggregateVariableName(arg), "name")] if arg else []
-                aggregate = Aggregate(group_by, [AggregateFunction("sum", 1, [], "count")])
+                group_by_var = [AggregateVariable(AggregateVariableName(arg), "name")] if arg else []
+                aggregate = Aggregate(group_by_var, [AggregateFunction("sum", 1, [], "count")])
                 # If the query should be explained, we want the output as is
                 if "explain" not in parsed_options:
                     additional_commands.append(self.command("aggregate_to_count", None, ctx))

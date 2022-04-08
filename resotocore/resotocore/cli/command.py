@@ -583,7 +583,7 @@ class AggregatePart(SearchCLIPart):
         return "aggregate"
 
     def info(self) -> str:
-        return "Aggregate this search by the provided specification"
+        return "Aggregate this search by the provided specification."
 
 
 class HeadCommand(SearchCLIPart):
@@ -805,7 +805,7 @@ class EchoCommand(CLICommand):
         return "echo"
 
     def info(self) -> str:
-        return "Send the provided message to downstream"
+        return "Send the provided message to downstream."
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLISource:
         return CLISource.single(lambda: stream.just(strip_quotes(arg if arg else "")))
@@ -892,7 +892,7 @@ class SleepCommand(CLICommand):
         return "sleep"
 
     def info(self) -> str:
-        return "Suspend execution for an interval of time"
+        return "Suspend execution for an interval of time."
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLISource:
 
@@ -2501,7 +2501,7 @@ class TagCommand(SendWorkerTaskCommand):
         return "tag"
 
     def info(self) -> str:
-        return "Update a tag with provided value or delete a tag"
+        return "Update a tag with provided value or delete a tag."
 
     def timeout(self) -> timedelta:
         return timedelta(seconds=30)
@@ -3108,7 +3108,7 @@ class HttpCommand(CLICommand):
         return "http"
 
     def info(self) -> str:
-        return "Perform http request with incoming data"
+        return "Perform http request with incoming data."
 
     default_timeout = ClientTimeout(total=30)
     colon_port = re.compile("^:(\\d+)(.*)$")
