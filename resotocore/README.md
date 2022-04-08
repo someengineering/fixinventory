@@ -11,19 +11,19 @@ Resoto core graph platform
 
 
 ## Overview
-The Resoto graph platfrom `resotocore` is the persistance and query backend of resoto. It maintains the graph
+The Resoto graph platfrom `resotocore` is the persistance and search backend of resoto. It maintains the graph
 of resources and provides APIs to update and access them. Within `resotocore` there are workflows consisting of steps
 that result in actions like `collect`, `cleanup` or `generate_metrics`. These actions are being received by components
 like [`resotoworker`](../resotoworker/) and [`resotometrics`](../resotometrics/).
 
-`resotocore` also provides the CLI API that [`resotosh`](../resotosh/) calls.
+`resotocore` also provides the CLI API that [`resotoshell`](../resotoshell/) calls.
+
+More information can be found in [the docs](https://resoto.com/docs/concepts/components/core).
 
 
 ## Usage
 ```
-  -h, --help            show this help message and exit
-  --log-level LOG_LEVEL
-                        Log level (default: info)
+  --psk PSK             Pre-shared key
   --graphdb-server GRAPHDB_SERVER
                         Graph database server (default: http://localhost:8529)
   --graphdb-database GRAPHDB_DATABASE
@@ -32,19 +32,35 @@ like [`resotoworker`](../resotoworker/) and [`resotometrics`](../resotometrics/)
                         Graph database login (default: resoto)
   --graphdb-password GRAPHDB_PASSWORD
                         Graph database password (default: "")
+  --graphdb-root-password GRAPHDB_ROOT_PASSWORD
+                        Graph root database password used for creating user and database if not existent.
+  --graphdb-bootstrap-do-not-secure
+                        Leave an empty root password during system setup process.
   --graphdb-type GRAPHDB_TYPE
                         Graph database type (default: arangodb)
   --graphdb-no-ssl-verify
-                        If the connection should be verified (default: False)
+                        If the connection should not be verified (default: False)
   --graphdb-request-timeout GRAPHDB_REQUEST_TIMEOUT
                         Request timeout in seconds (default: 900)
-  --psk PSK             Pre-shared key
-  --host HOST [HOST ...]
-                        TCP host(s) to bind on (default: 127.0.0.1)
-  --port PORT           TCP port to bind on (default: 8900)
-  --plantuml-server PLANTUML_SERVER
-                        PlantUML server URI for UML image rendering (default: https://www.plantuml.com/plantuml)
-  --jobs [JOBS ...]
+  --no-tls              Disable TLS and use plain HTTP.
+  --cert CERT           Path to a single file in PEM format containing the host certificate. If no certificate is provided, it is created using the CA.
+  --cert-key CERT_KEY   In case a --cert is provided. Path to a file containing the private key.
+  --cert-key-pass CERT_KEY_PASS
+                        In case a --cert is provided. Optional password to decrypt the private key file.
+  --ca-cert CA_CERT     Path to a single file in PEM format containing the CA certificate.
+  --ca-cert-key CA_CERT_KEY
+                        Path to a file containing the private key for the CA certificate. New certificates can be created when a CA certificate and private key is provided. Without the private key, the
+                        CA certificate is only used for outgoing http requests.
+  --ca-cert-key-pass CA_CERT_KEY_PASS
+                        Optional password to decrypt the private ca-cert-key file.
+  --version             Print the version of resotocore and exit.
+  --override CONFIG_OVERRIDE [CONFIG_OVERRIDE ...], -o CONFIG_OVERRIDE [CONFIG_OVERRIDE ...]
+                        Override configuration parameters. Format: path.to.property=value. The existing configuration will be patched with the provided values. A value can be a simple value or a comma
+                        separated list of values if a list is required. Note: this argument allows multiple overrides separated by space. Example: --override
+                        resotocore.api.web_hosts=localhost,some.domain resotocore.api.web_port=12345
+  --verbose, -v         Enable verbose logging.
+  --debug               Enable debug mode. If not defined use configuration.
+  --ui-path UI_PATH     Path to the UI files. If not defined use configuration..
 ```
 
 

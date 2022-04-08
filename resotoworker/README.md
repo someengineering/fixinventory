@@ -23,6 +23,8 @@ Only those plugins have knowledge about how to communicate with each cloud. How 
 
 There can be one or more instances of `resotoworker` in a Resoto deployment. A single `resotoworker` can collect many clouds or you could have multiple `resotoworker` collecting one cloud or even one account in one cloud each.
 
+More information can be found below and in [the docs](https://resoto.com/docs/concepts/components/worker).
+
 
 ## Usage
 `resotoworker` uses the following commandline arguments:
