@@ -15,6 +15,7 @@ from resotocore.core_config import (
     RuntimeConfig,
     config_model,
     EditableConfig,
+    CustomCommandsConfig,
 )
 from resotocore.dependencies import parse_args
 from resotocore.model.typed_model import to_js
@@ -91,9 +92,10 @@ def test_model() -> None:
         "resotocore",
         "resotocore_api_config",
         "resotocore_certificate_config",
-        "resotocore_cli_config",
         "resotocore_cli_alias_template",
         "resotocore_cli_alias_template_parameter",
+        "resotocore_cli_config",
+        "resotocore_cli_custom_commands",
         "resotocore_graph_update_config",
         "resotocore_runtime_config",
     }
@@ -165,5 +167,6 @@ def default_config() -> CoreConfig:
         graph_update=GraphUpdateConfig(),
         # We use this flag explicitly - otherwise it is picked up by env vars
         runtime=RuntimeConfig(analytics_opt_out=True),
+        custom_commands=CustomCommandsConfig(),
         args=parse_args(["--analytics-opt-out"]),
     )
