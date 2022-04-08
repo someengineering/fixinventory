@@ -229,7 +229,7 @@ class CLI:
         alias_names: Dict[str, str],
     ):
         dependencies.extend(cli=self)
-        alias_templates = [AliasTemplate.from_config(alias) for alias in dependencies.config.cli.alias_templates]
+        alias_templates = [AliasTemplate.from_config(cmd) for cmd in dependencies.config.custom_commands.commands]
         help_cmd = HelpCommand(dependencies, parts, alias_names, alias_templates)
         cmds = {p.name: p for p in parts + [help_cmd]}
         alias_cmds = {alias: cmds[name] for alias, name in alias_names.items() if name in cmds and alias not in cmds}

@@ -20,9 +20,16 @@ from resotocore.validator import Validator, schema_name
 
 log = logging.getLogger(__name__)
 
+# ids used in the config store
 ResotoCoreConfigId = "resoto.core"
+ResotoCoreCommandsConfigId = "resoto.core.commands"
+
+# root note of the configuration value
 ResotoCoreRoot = "resotocore"
+ResotoCoreCommandsRoot = "custom_commands"
+
 ResotoCoreRootRE = re.compile(r"^resotocore[.]")
+
 # created by the docker build process
 GitHashFile = "/usr/local/etc/git-commit.HEAD"
 
@@ -56,8 +63,20 @@ def default_hosts() -> List[str]:
     return ["0.0.0.0"] if inside_docker() else ["localhost"]
 
 
+def validate_config(config: Json, clazz: type) -> Optional[Json]:
+    schema = schema_name(clazz)
+    v = Validator(schema=schema, allow_unknown=True)
+    result = v.validate(config, normalize=False)
+    return None if result else v.errors
+
+
+class ConfigObject:
+    def validate(self) -> Optional[Json]:
+        return validate_config(to_js(self), type(self))
+
+
 @dataclass()
-class CertificateConfig:
+class CertificateConfig(ConfigObject):
     kind: ClassVar[str] = f"{ResotoCoreRoot}_certificate_config"
     common_name: str = field(default="some.engineering", metadata={"description": "The common name of the certificate"})
     include_loopback: bool = field(default=True, metadata={"description": "Include loopback in certificate"})
@@ -70,7 +89,7 @@ class CertificateConfig:
 
 
 @dataclass()
-class ApiConfig:
+class ApiConfig(ConfigObject):
     kind: ClassVar[str] = f"{ResotoCoreRoot}_api_config"
 
     web_hosts: List[str] = field(
@@ -108,7 +127,7 @@ schema_registry.add(
 
 
 @dataclass()
-class DatabaseConfig:
+class DatabaseConfig(ConfigObject):
     kind: ClassVar[str] = f"{ResotoCoreRoot}_database_config"
     server: str = field(
         default="http://localhost:8529",
@@ -131,7 +150,7 @@ class DatabaseConfig:
 
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
-class AliasTemplateParameterConfig:
+class AliasTemplateParameterConfig(ConfigObject):
     kind: ClassVar[str] = f"{ResotoCoreRoot}_cli_alias_template_parameter"
     name: str = field(metadata=dict(description="The name of the parameter."))
     description: str = field(metadata=dict(description="The intent of this parameter."))
@@ -145,7 +164,7 @@ class AliasTemplateParameterConfig:
 
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
-class AliasTemplateConfig:
+class AliasTemplateConfig(ConfigObject):
     kind: ClassVar[str] = f"{ResotoCoreRoot}_cli_alias_template"
     name: str = field(metadata=dict(description="The name of the alias to execute."))
     info: str = field(metadata=dict(description="A one line sentence that describes the effect of this command."))
@@ -182,7 +201,7 @@ def alias_templates() -> List[AliasTemplateConfig]:
 
 
 @dataclass()
-class CLIConfig:
+class CLIConfig(ConfigObject):
     kind: ClassVar[str] = f"{ResotoCoreRoot}_cli_config"
     default_graph: str = field(
         default="resoto",
@@ -195,10 +214,6 @@ class CLIConfig:
             "Relative paths will be interpreted with respect to this section."
         },
     )
-    alias_templates: List[AliasTemplateConfig] = field(
-        default_factory=alias_templates,
-        metadata={"description": "Here you can define all alias templates for the CLI."},
-    )
 
 
 # Define rules to validate this config
@@ -206,7 +221,23 @@ schema_registry.add(schema_name(CLIConfig), {})
 
 
 @dataclass()
-class GraphUpdateConfig:
+class CustomCommandsConfig(ConfigObject):
+    kind: ClassVar[str] = ResotoCoreCommandsRoot
+    commands: List[AliasTemplateConfig] = field(
+        default_factory=alias_templates,
+        metadata={"description": "Here you can define all custom commands for the CLI."},
+    )
+
+    def json(self) -> Json:
+        return {ResotoCoreCommandsRoot: to_js(self, strip_attr="kind")}
+
+
+# Define rules to validate this config
+schema_registry.add(schema_name(CustomCommandsConfig), {})
+
+
+@dataclass()
+class GraphUpdateConfig(ConfigObject):
     kind: ClassVar[str] = f"{ResotoCoreRoot}_graph_update_config"
     merge_max_wait_time_seconds: int = field(
         default=3600, metadata={"description": "Max waiting time to complete a merge graph action."}
@@ -234,7 +265,7 @@ schema_registry.add(
 
 
 @dataclass()
-class RuntimeConfig:
+class RuntimeConfig(ConfigObject):
     kind: ClassVar[str] = f"{ResotoCoreRoot}_runtime_config"
     analytics_opt_out: bool = field(default=False, metadata={"description": "Stop collecting analytics data."})
     debug: bool = field(default=False, metadata={"description": "Enable debug logging and exception tracing."})
@@ -257,12 +288,13 @@ schema_registry.add(
 
 
 @dataclass()
-class CoreConfig:
+class CoreConfig(ConfigObject):
     api: ApiConfig
     cli: CLIConfig
     graph_update: GraphUpdateConfig
     runtime: RuntimeConfig
     db: DatabaseConfig
+    custom_commands: CustomCommandsConfig
     args: Namespace
 
     @property
@@ -274,7 +306,7 @@ class CoreConfig:
 
 
 @dataclass()
-class EditableConfig:
+class EditableConfig(ConfigObject):
     kind: ClassVar[str] = ResotoCoreRoot
     api: ApiConfig = field(
         default_factory=ApiConfig,
@@ -293,18 +325,10 @@ class EditableConfig:
         metadata={"description": "Runtime related properties."},
     )
 
-    def validate(self) -> Optional[Json]:
-        return self.validate_config(to_js(self))
-
-    @staticmethod
-    def validate_config(config: Json) -> Optional[Json]:
-        v = Validator(schema="EditableConfig", allow_unknown=True)
-        result = v.validate(config, normalize=False)
-        return None if result else v.errors
-
 
 def config_model() -> List[Json]:
-    return dataclasses_to_resotocore_model({EditableConfig}, allow_unknown_props=False)  # type: ignore
+    config_classes = {EditableConfig, CustomCommandsConfig}
+    return dataclasses_to_resotocore_model(config_classes, allow_unknown_props=False)  # type: ignore
 
 
 # Define rules to validate this config
@@ -320,7 +344,7 @@ schema_registry.add(
 )
 
 
-def parse_config(args: Namespace, json_config: Json) -> CoreConfig:
+def parse_config(args: Namespace, core_config: Json, command_templates: Optional[Json] = None) -> CoreConfig:
     db = DatabaseConfig(
         server=args.graphdb_server,
         database=args.graphdb_database,
@@ -343,7 +367,7 @@ def parse_config(args: Namespace, json_config: Json) -> CoreConfig:
         set_from_cmd_line[ResotoCoreRootRE.sub("", key, 1)] = value
 
     # set the relevant value in the json config model
-    adjusted = json_config.get(ResotoCoreRoot) or {}
+    adjusted = core_config.get(ResotoCoreRoot) or {}
     for path, value in set_from_cmd_line.items():
         if value is not None:
             adjusted = set_value_in_path(value, path, adjusted)
@@ -355,7 +379,7 @@ def parse_config(args: Namespace, json_config: Json) -> CoreConfig:
         if isinstance(root, ComplexKind):
             adjusted = root.coerce(adjusted)
     except Exception as e:
-        log.warning("Can not adjust configuration: e", exc_info=e)
+        log.warning(f"Can not adjust configuration: {e}", exc_info=e)
 
     try:
         ed = from_js(adjusted, EditableConfig)
@@ -364,13 +388,31 @@ def parse_config(args: Namespace, json_config: Json) -> CoreConfig:
         log.error("Final configuration can not be parsed! Fall back to default configuration.", exc_info=e)
         ed = EditableConfig()
 
-    return CoreConfig(api=ed.api, cli=ed.cli, db=db, graph_update=ed.graph_update, runtime=ed.runtime, args=args)
+    commands_config = CustomCommandsConfig()
+    if command_templates:
+        try:
+            commands_config = from_js(command_templates.get(ResotoCoreCommandsRoot), CustomCommandsConfig)
+        except Exception as e:
+            log.error(f"Can not parse command templates. Fall back to defaults. Reason: {e}", exc_info=e)
+
+    return CoreConfig(
+        api=ed.api,
+        cli=ed.cli,
+        db=db,
+        graph_update=ed.graph_update,
+        runtime=ed.runtime,
+        custom_commands=commands_config,
+        args=args,
+    )
 
 
 def config_from_db(args: Namespace, db: StandardDatabase, collection_name: str = "configs") -> CoreConfig:
-    config_entity = db.collection("configs").get(ResotoCoreConfigId) if db.has_collection(collection_name) else None
+    configs = db.collection(collection_name) if db.has_collection(collection_name) else None
+    config_entity = configs.get(ResotoCoreConfigId) if configs else None
     config = config_entity.get("config") if config_entity else None  # ConfigEntity.config
     if config:
-        return parse_config(args, config)
+        command_config = configs.get(ResotoCoreCommandsConfigId)
+        command_config = command_config.get("config") if command_config else None
+        return parse_config(args, config, command_config)
     else:
         return parse_config(args, {})

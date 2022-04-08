@@ -8,11 +8,21 @@ from typing import Optional, List, Callable
 import yaml
 
 from resotocore.config import ConfigHandler, ConfigEntity, ConfigValidation
-from resotocore.core_config import CoreConfig, ResotoCoreConfigId, config_model, EditableConfig, ResotoCoreRoot
+from resotocore.core_config import (
+    CoreConfig,
+    ResotoCoreConfigId,
+    config_model,
+    EditableConfig,
+    ResotoCoreRoot,
+    ResotoCoreCommandsConfigId,
+    ResotoCoreCommandsRoot,
+    CustomCommandsConfig,
+)
 from resotocore.dependencies import empty_config
 from resotocore.message_bus import MessageBus, CoreMessage
 from resotocore.model.model import Kind
 from resotocore.model.typed_model import from_js
+from resotocore.types import Json
 from resotocore.util import deep_merge, restart_service, value_in_path
 from resotocore.worker_task_queue import WorkerTaskQueue, WorkerTaskDescription, WorkerTaskName, WorkerTask
 
@@ -36,51 +46,89 @@ class CoreConfigHandler:
         self.config_handler = config_handler
         self.exit_fn = exit_fn
 
+    @staticmethod
+    def validate_config_entry(task_data: Json) -> Optional[Json]:
+        def validate_core_config() -> Optional[Json]:
+            config = value_in_path(task_data, ["config", ResotoCoreRoot])
+            if isinstance(config, dict):
+                # try to read editable config, throws if there are errors
+                read = from_js(config, EditableConfig)
+                return read.validate()
+            else:
+                return {"error": "Expected a json object"}
+
+        def validate_commands_config() -> Optional[Json]:
+            config = value_in_path(task_data, ["config", ResotoCoreCommandsRoot])
+            if isinstance(config, dict):
+                # try to read editable config, throws if there are errors
+                read = from_js(config, CustomCommandsConfig)
+                return read.validate()
+            else:
+                return {"error": "Expected a json object"}
+
+        holder = value_in_path(task_data, ["config"])
+        if not isinstance(holder, dict):
+            return {"error": "Expected a json object in config"}
+        elif ResotoCoreRoot in holder:
+            return validate_core_config()
+        elif ResotoCoreCommandsRoot in holder:
+            return validate_commands_config()
+        else:
+            return {"error": "No known configuration found"}
+
     async def __validate_config(self) -> None:
         worker_id = "resotocore.config.validate"
-        description = WorkerTaskDescription(WorkerTaskName.validate_config, {"config_id": [ResotoCoreConfigId]})
+        description = WorkerTaskDescription(
+            WorkerTaskName.validate_config, {"config_id": [ResotoCoreConfigId, ResotoCoreCommandsConfigId]}
+        )
         async with self.worker_task_queue.attach(worker_id, [description]) as tasks:
             while True:
                 task: WorkerTask = await tasks.get()
                 try:
-                    config = value_in_path(task.data, ["config", ResotoCoreRoot])
-                    if isinstance(config, dict):
-                        # try to read editable config, throws if there are errors
-                        from_js(config, EditableConfig)
-                        errors = EditableConfig.validate_config(config)
-                        if errors:
-                            message = "Validation Errors:\n" + yaml.safe_dump(errors)
-                            await self.worker_task_queue.error_task(worker_id, task.id, message)
-                        else:
-                            await self.worker_task_queue.acknowledge_task(worker_id, task.id)
-                        continue
+                    errors = self.validate_config_entry(task.data)
+                    if errors:
+                        message = "Validation Errors:\n" + yaml.safe_dump(errors)
+                        await self.worker_task_queue.error_task(worker_id, task.id, message)
+                    else:
+                        await self.worker_task_queue.acknowledge_task(worker_id, task.id)
                 except Exception as ex:
                     log.warning("Error processing validate configuration task", exc_info=ex)
                     await self.worker_task_queue.error_task(worker_id, task.id, str(ex))
-                    continue
-                # safeguard, if we should ever come here
-                await self.worker_task_queue.error_task(worker_id, task.id, "Failing to process the task!")
 
     async def __handle_events(self) -> None:
         async with self.message_bus.subscribe("resotocore.config.update", [CoreMessage.ConfigUpdated]) as events:
             while True:
                 event = await events.get()
-                if event.data.get("id") == ResotoCoreConfigId:
-                    log.info("Core config was updated. Restart to take effect.")
+                event_id = event.data.get("id")
+                if event_id in (ResotoCoreConfigId, ResotoCoreCommandsConfigId):
+                    log.info(f"Core config was updated: {event_id} Restart to take effect.")
                     # stop the process and rely on os to restart the service
                     self.exit_fn()
 
     async def __update_config(self) -> None:
+        # in case the internal configuration holds new properties, we update the existing config always.
         try:
-            # in case the internal configuration holds new properties, we update the existing config always.
             existing = await self.config_handler.get_config(ResotoCoreConfigId)
             empty = empty_config().json()
             updated = deep_merge(empty, existing.config) if existing else empty
             if existing is None or updated != existing.config:
                 await self.config_handler.put_config(ConfigEntity(ResotoCoreConfigId, updated), False)
                 log.info("Default resoto config updated.")
+
         except Exception as ex:
             log.error(f"Could not update resoto default configuration: {ex}", exc_info=ex)
+
+        # make sure there is a default command configuration
+        # note: this configuration is only created one time and never updated
+        try:
+            existing_commands = await self.config_handler.get_config(ResotoCoreCommandsConfigId)
+            if existing_commands is None:
+                await self.config_handler.put_config(
+                    ConfigEntity(ResotoCoreCommandsConfigId, CustomCommandsConfig().json()), False
+                )
+                log.info("Default resoto commands config updated.")
+        except Exception as ex:
+            log.error(f"Could not update resoto command configuration: {ex}", exc_info=ex)
 
     async def __update_model(self) -> None:
         try:
@@ -88,6 +136,9 @@ class CoreConfigHandler:
             await self.config_handler.update_configs_model(kinds)
             await self.config_handler.put_config_validation(
                 ConfigValidation(ResotoCoreConfigId, external_validation=True)
+            )
+            await self.config_handler.put_config_validation(
+                ConfigValidation(ResotoCoreCommandsConfigId, external_validation=True)
             )
             log.debug("Resoto core config model updated.")
         except Exception as ex:
