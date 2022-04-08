@@ -119,7 +119,7 @@ class HelpCommand(CLICommand):
         self.parts = {p.name: p for p in parts + [self] if not isinstance(p, InternalPart)}
         self.alias_names = {a: n for a, n in alias_names.items() if n in self.parts and a not in self.parts}
         self.reverse_alias_names: Dict[str, List[str]] = {
-            k: [e[0] for e in v] for k, v in group_by(lambda an: an[1], self.alias_names.items()).items()
+            k: [e[0] for e in v] for k, v in group_by(lambda a: a[1], self.alias_names.items()).items()  # type: ignore
         }
         self.alias_templates = {a.name: a for a in sorted(alias_templates, key=attrgetter("name"))}
 
@@ -345,8 +345,8 @@ class CLI:
                 # since the output of aggregation is not exactly the same as count
                 # we also add the aggregate_to_count command after the query
                 assert query.aggregate is None, "Can not combine aggregate and count!"
-                group_by = [AggregateVariable(AggregateVariableName(arg), "name")] if arg else []
-                aggregate = Aggregate(group_by, [AggregateFunction("sum", 1, [], "count")])
+                group_by_var = [AggregateVariable(AggregateVariableName(arg), "name")] if arg else []
+                aggregate = Aggregate(group_by_var, [AggregateFunction("sum", 1, [], "count")])
                 # If the query should be explained, we want the output as is
                 if "explain" not in parsed_options:
                     additional_commands.append(self.command("aggregate_to_count", None, ctx))
