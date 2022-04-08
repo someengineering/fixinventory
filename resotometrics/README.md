@@ -18,6 +18,8 @@ Resoto Prometheus exporter
 are then exposed in a [Prometheus](https://prometheus.io/) compatible format. The default TCP port is `9955` but
 can be changed using the `resotometrics.web_port` config attribute.
 
+More information can be found below and in [the docs](https://resoto.com/docs/concepts/components/metrics).
+
 
 ## Usage
 `resotometrics` uses the following commandline arguments:

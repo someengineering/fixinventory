@@ -17,6 +17,8 @@ Resoto Shell
 ## Overview
 `resh` starts the resoto shell. It is used to interact with `resotocore`. It allows you to explore the graph, find resources of interest, mark them for cleanup, fix their tagging, aggregate over their metadata to create metrics and format the output for use in a 3rd party script or system.
 
+More information can be found below and in [the docs](https://resoto.com/docs/concepts/components/shell).
+
 
 ## Usage
 `resh` uses the following commandline arguments:
