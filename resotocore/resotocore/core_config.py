@@ -222,7 +222,7 @@ schema_registry.add(schema_name(CLIConfig), {})
 
 @dataclass()
 class CustomCommandsConfig(ConfigObject):
-    kind: ClassVar[str] = f"{ResotoCoreRoot}_cli_custom_commands"
+    kind: ClassVar[str] = ResotoCoreCommandsRoot
     commands: List[AliasTemplateConfig] = field(
         default_factory=alias_templates,
         metadata={"description": "Here you can define all custom commands for the CLI."},

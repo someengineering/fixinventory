@@ -89,13 +89,13 @@ def test_validate() -> None:
 def test_model() -> None:
     model = config_model()
     assert {m["fqn"] for m in model} == {
+        "custom_commands",
         "resotocore",
         "resotocore_api_config",
         "resotocore_certificate_config",
         "resotocore_cli_alias_template",
         "resotocore_cli_alias_template_parameter",
         "resotocore_cli_config",
-        "resotocore_cli_custom_commands",
         "resotocore_graph_update_config",
         "resotocore_runtime_config",
     }
