@@ -1,2 +1,2 @@
-resotolib==2.0.0rc2
+resotolib==2.0.0rc3
 onelogin==2.0.2
