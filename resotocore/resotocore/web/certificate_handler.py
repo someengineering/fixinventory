@@ -157,7 +157,7 @@ class CertificateHandler:
         if args.ca_cert and args.ca_cert_key:
             ca_key = load_key_from_file(args.ca_cert_key, args.ca_cert_key_pass)
             ca_cert = load_cert_from_file(args.ca_cert_cert)
-            log.info(f"Using CA certificate from command line: {cert_fingerprint(ca_cert)}")
+            log.info(f"Using CA certificate from command line. fingerprint:{cert_fingerprint(ca_cert)}")
             return CertificateHandler(config, ca_key, ca_cert, temp_dir)
 
         # otherwise, load from database or create it
@@ -167,12 +167,14 @@ class CertificateHandler:
             log.debug("Found existing certificate in data store.")
             key = load_key_from_bytes(maybe_ca["key"].encode("utf-8"))
             certificate = load_cert_from_bytes(maybe_ca["certificate"].encode("utf-8"))
-            log.info(f"Using CA certificate from database: {cert_fingerprint(certificate)}")
+            log.info(f"Using CA certificate from database. fingerprint:{cert_fingerprint(certificate)}")
             return CertificateHandler(config, key, certificate, temp_dir)
         else:
             wo = "with" if args.ca_cert_key_pass else "without"
             key, certificate = bootstrap_ca()
-            log.info(f"No ca certificate found - create a new one {wo} passphrase: {cert_fingerprint(certificate)}")
+            log.info(
+                f"No ca certificate found - create new one {wo} passphrase. fingerprint:{cert_fingerprint(certificate)}"
+            )
             key_string = key_to_bytes(key, args.ca_cert_key_pass).decode("utf-8")
             certificate_string = cert_to_bytes(certificate).decode("utf-8")
             sd.insert({"_key": "ca", "key": key_string, "certificate": certificate_string})
