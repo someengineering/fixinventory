@@ -3,14 +3,19 @@ import logging
 import platform
 import sys
 import traceback
+import warnings
 from argparse import Namespace
 from asyncio import Queue
 from contextlib import suppress
+from dataclasses import replace
 from datetime import timedelta
-from typing import AsyncIterator, List
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from typing import AsyncIterator, List, Union
 
 from aiohttp.web_app import Application
 from arango.database import StandardDatabase
+from urllib3.exceptions import HTTPWarning
 
 from resotocore import version
 from resotocore.analytics import CoreEvent, NoEventSender
@@ -21,7 +26,7 @@ from resotocore.cli.command import alias_names, all_commands
 from resotocore.cli.model import CLIDependencies
 from resotocore.config.config_handler_service import ConfigHandlerService
 from resotocore.config.core_config_handler import CoreConfigHandler
-from resotocore.core_config import config_from_db, CoreConfig
+from resotocore.core_config import config_from_db, CoreConfig, RunConfig
 from resotocore.db import SystemData
 from resotocore.db.db_access import DbAccess
 from resotocore.dependencies import db_access, setup_process, parse_args, system_info, reconfigure_logging
@@ -87,20 +92,34 @@ def run(arguments: List[str]) -> None:
 
 
 def run_process(args: Namespace) -> None:
-    # wait here for an initial connection to the database before we continue. blocking!
-    created, system_data, sdb = DbAccess.connect(args, timedelta(seconds=60))
-    config = config_from_db(args, sdb)
-    with_config(created, system_data, sdb, config)
+    with TemporaryDirectory() as temp_name:
+        temp = Path(temp_name)
+        with warnings.catch_warnings():  # ignore ssl errors during setup
+            warnings.simplefilter("ignore", HTTPWarning)
+            # wait here for an initial connection to the database before we continue. blocking!
+            created, system_data, sdb = DbAccess.connect(args, timedelta(seconds=60), verify=False)
+            config = config_from_db(args, sdb)
+            cert_handler = CertificateHandler.lookup(config, sdb, temp)
+            verify: Union[bool, str] = False if args.graphdb_no_ssl_verify else str(cert_handler.ca_bundle)
+            config = replace(config, run=RunConfig(temp, verify))
+        # connect again with the correct certificate settings
+        _, _, db_client = DbAccess.connect(args, timedelta(seconds=5), verify=verify)
+        with_config(created, system_data, db_client, cert_handler, config)
 
 
-def with_config(created: bool, system_data: SystemData, sdb: StandardDatabase, config: CoreConfig) -> None:
+def with_config(
+    created: bool,
+    system_data: SystemData,
+    sdb: StandardDatabase,
+    cert_handler: CertificateHandler,
+    config: CoreConfig,
+) -> None:
     reconfigure_logging(config)  # based on the config, logging might have changed
     # only lg the editable config - to not log any passwords
     log.debug(f"Starting with config: {config.editable}")
     info = system_info()
     event_sender = NoEventSender() if config.runtime.analytics_opt_out else PostHogEventSender(system_data)
     db = db_access(config, sdb, event_sender)
-    cert_handler = CertificateHandler.lookup(config, sdb)
     message_bus = MessageBus()
     scheduler = Scheduler()
     worker_task_queue = WorkerTaskQueue()

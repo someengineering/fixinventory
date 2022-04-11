@@ -16,6 +16,7 @@ from resotocore.core_config import (
     config_model,
     EditableConfig,
     CustomCommandsConfig,
+    RunConfig,
 )
 from resotocore.dependencies import parse_args
 from resotocore.model.typed_model import to_js
@@ -169,4 +170,5 @@ def default_config() -> CoreConfig:
         runtime=RuntimeConfig(analytics_opt_out=True),
         custom_commands=CustomCommandsConfig(),
         args=parse_args(["--analytics-opt-out"]),
+        run=RunConfig(),
     )
