@@ -6,7 +6,7 @@ from contextlib import suppress
 from dataclasses import dataclass, field
 from datetime import timedelta
 from pathlib import Path
-from typing import Optional, List, ClassVar
+from typing import Optional, List, ClassVar, Dict
 
 from arango.database import StandardDatabase
 from cerberus import schema_registry
@@ -288,21 +288,37 @@ schema_registry.add(
 
 
 @dataclass()
+class WorkflowConfig(ConfigObject):
+    kind: ClassVar[str] = f"{ResotoCoreRoot}_workflow_config"
+    schedule: str = field(metadata={"description": "Cron expression as schedule for the workflow to run."})
+
+
+schema_registry.add(
+    schema_name(WorkflowConfig),
+    dict(schedule={"type": "string", "is_cron": True}),
+)
+
+
+@dataclass()
 class CoreConfig(ConfigObject):
     api: ApiConfig
     cli: CLIConfig
     graph_update: GraphUpdateConfig
     runtime: RuntimeConfig
     db: DatabaseConfig
+    workflows: Dict[str, WorkflowConfig]
     custom_commands: CustomCommandsConfig
     args: Namespace
 
     @property
     def editable(self) -> "EditableConfig":
-        return EditableConfig(self.api, self.cli, self.graph_update, self.runtime)
+        return EditableConfig(self.api, self.cli, self.graph_update, self.runtime, self.workflows)
 
     def json(self) -> Json:
         return {ResotoCoreRoot: to_js(self.editable, strip_attr="kind")}
+
+    def validate(self) -> Optional[Json]:
+        return self.editable.validate()
 
 
 @dataclass()
@@ -324,6 +340,10 @@ class EditableConfig(ConfigObject):
         default_factory=RuntimeConfig,
         metadata={"description": "Runtime related properties."},
     )
+    workflows: Dict[str, WorkflowConfig] = field(
+        default_factory=lambda: {"collect_and_cleanup": WorkflowConfig(schedule="0 * * * *")},
+        metadata={"description": "Workflow related properties."},
+    )
 
 
 def config_model() -> List[Json]:
@@ -340,6 +360,11 @@ schema_registry.add(
         cli={"schema": schema_name(CLIConfig), "allow_unknown": True},
         graph_update={"schema": schema_name(GraphUpdateConfig), "allow_unknown": True},
         runtime={"schema": schema_name(RuntimeConfig), "allow_unknown": True},
+        workflows={
+            "type": "dict",
+            "keysrules": {"type": "string"},
+            "valuesrules": {"schema": schema_name(WorkflowConfig)},
+        },
     ),
 )
 
@@ -397,12 +422,13 @@ def parse_config(args: Namespace, core_config: Json, command_templates: Optional
 
     return CoreConfig(
         api=ed.api,
+        args=args,
         cli=ed.cli,
+        custom_commands=commands_config,
         db=db,
         graph_update=ed.graph_update,
         runtime=ed.runtime,
-        custom_commands=commands_config,
-        args=args,
+        workflows=ed.workflows,
     )
 
 

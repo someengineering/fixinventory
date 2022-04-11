@@ -43,6 +43,7 @@ from resotocore.task.task_description import (
     ExecuteOnCLI,
     StepErrorBehaviour,
     RestartAgainStepAction,
+    Trigger,
 )
 from resotocore.util import first, Periodic, group_by, uuid_str, utc_str, utc
 
@@ -77,7 +78,7 @@ class TaskHandlerService(TaskHandler):
         self.start_when_done: Dict[str, TaskDescription] = {}
 
         # Step1: define all workflows and jobs in code: later it will be persisted and read from database
-        self.task_descriptions: Sequence[TaskDescription] = [*self.known_workflows(), *self.known_jobs()]
+        self.task_descriptions: Sequence[TaskDescription] = [*self.known_workflows(config), *self.known_jobs()]
         self.tasks: Dict[str, RunningTask] = {}
         self.message_bus_watcher: Optional[Task] = None  # type: ignore # pypy
         self.initial_start_workflow_task: Optional[Task] = None  # type: ignore # pypy
@@ -228,7 +229,7 @@ class TaskHandlerService(TaskHandler):
             await self.update_trigger(descriptor)
 
         if self.config.runtime.start_collect_on_subscriber_connect:
-            filtered = [wf for wf in self.known_workflows() if wf.id == "collect_and_cleanup"]
+            filtered = [wf for wf in self.known_workflows(self.config) if wf.id == "collect_and_cleanup"]
             self.initial_start_workflow_task = wait_and_start(filtered, self, self.message_bus)
 
         async def listen_to_message_bus() -> None:
@@ -583,7 +584,14 @@ class TaskHandlerService(TaskHandler):
         return []
 
     @staticmethod
-    def known_workflows() -> List[Workflow]:
+    def known_workflows(config: CoreConfig) -> List[Workflow]:
+        def workflow(name: str, steps: List[Step]) -> Workflow:
+            trigger: List[Trigger] = [EventTrigger(f"start_{name}_workflow")]
+            wf_config = config.workflows.get(name)
+            if wf_config:
+                trigger.append(TimeTrigger(wf_config.schedule))
+            return Workflow(uid=name, name=name, steps=steps, triggers=trigger, on_surpass=TaskSurpassBehaviour.Wait)
+
         collect_steps = [
             Step("pre_collect", PerformAction("pre_collect"), timedelta(seconds=10)),
             Step("collect", PerformAction("collect"), timedelta(seconds=10)),
@@ -603,34 +611,10 @@ class TaskHandlerService(TaskHandler):
             Step("post_generate_metrics", PerformAction("post_generate_metrics"), timedelta(seconds=10)),
         ]
         return [
-            Workflow(
-                uid="collect",
-                name="collect",
-                steps=collect_steps + metrics_steps,
-                triggers=[EventTrigger("start_collect_workflow")],
-                on_surpass=TaskSurpassBehaviour.Wait,
-            ),
-            Workflow(
-                uid="cleanup",
-                name="cleanup",
-                steps=cleanup_steps + metrics_steps,
-                triggers=[EventTrigger("start_cleanup_workflow")],
-                on_surpass=TaskSurpassBehaviour.Wait,
-            ),
-            Workflow(
-                uid="metrics",
-                name="metrics",
-                steps=metrics_steps,
-                triggers=[EventTrigger("start_metrics_workflow")],
-                on_surpass=TaskSurpassBehaviour.Wait,
-            ),
-            Workflow(
-                uid="collect_and_cleanup",
-                name="collect_and_cleanup",
-                steps=collect_steps + cleanup_steps + metrics_steps,
-                triggers=[EventTrigger("start_collect_and_cleanup_workflow"), TimeTrigger("0 * * * *")],
-                on_surpass=TaskSurpassBehaviour.Wait,
-            ),
+            workflow("collect", collect_steps + metrics_steps),
+            workflow("cleanup", cleanup_steps + metrics_steps),
+            workflow("metrics", metrics_steps),
+            workflow("collect_and_cleanup", collect_steps + cleanup_steps + metrics_steps),
         ]
 
     # endregion

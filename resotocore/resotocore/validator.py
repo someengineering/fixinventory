@@ -1,5 +1,7 @@
 from pathlib import Path
 from urllib import parse
+
+from apscheduler.triggers.cron import CronTrigger
 from cerberus import Validator as ValidatorBase
 
 
@@ -31,3 +33,13 @@ class Validator(ValidatorBase):  # type: ignore
                 self._error(field, "url is missing scheme")
             if not parsed.netloc:
                 self._error(field, "url is missing host")
+
+    def _validate_is_cron(self, _: bool, field: str, value: str) -> None:
+        """
+        {'type': 'boolean'}
+        """
+        if value:
+            try:
+                CronTrigger.from_crontab(value)
+            except Exception as ex:
+                self._error(field, f"Invalid cron expression: {ex}")

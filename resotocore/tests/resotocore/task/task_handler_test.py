@@ -258,3 +258,15 @@ async def test_handle_failing_task_command(task_handler: TaskHandlerService, cap
     # One warning has been emitted
     assert len(caplog.records) == 1
     assert "Command non_existing_command failed with error" in caplog.records[0].message
+
+
+@pytest.mark.asyncio
+async def test_default_workflow_triggers() -> None:
+    workflows = {wf.name: wf for wf in TaskHandlerService.known_workflows(empty_config())}
+    assert workflows["collect"].triggers == [EventTrigger("start_collect_workflow")]
+    assert workflows["cleanup"].triggers == [EventTrigger("start_cleanup_workflow")]
+    assert workflows["metrics"].triggers == [EventTrigger("start_metrics_workflow")]
+    assert workflows["collect_and_cleanup"].triggers == [
+        EventTrigger("start_collect_and_cleanup_workflow"),
+        TimeTrigger("0 * * * *"),
+    ]

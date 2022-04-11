@@ -9,13 +9,12 @@ from resotocore.core_config import (
     parse_config,
     CoreConfig,
     ApiConfig,
-    CLIConfig,
     DatabaseConfig,
-    GraphUpdateConfig,
     RuntimeConfig,
     config_model,
     EditableConfig,
     CustomCommandsConfig,
+    WorkflowConfig,
 )
 from resotocore.dependencies import parse_args
 from resotocore.model.typed_model import to_js
@@ -84,6 +83,9 @@ def test_validate() -> None:
             }
         ]
     }
+    assert EditableConfig(workflows={"foo": WorkflowConfig("bla")}).validate() == {
+        "workflows": [{"foo": [{"schedule": ["Invalid cron expression: Wrong number of fields; got 1, expected 5"]}]}]
+    }
 
 
 def test_model() -> None:
@@ -98,6 +100,7 @@ def test_model() -> None:
         "resotocore_cli_config",
         "resotocore_graph_update_config",
         "resotocore_runtime_config",
+        "resotocore_workflow_config",
     }
 
 
@@ -154,19 +157,26 @@ def config_json() -> Json:
                 "plantuml_server": "https://foo",
                 "start_collect_on_subscriber_connect": True,
             },
+            "workflows": {
+                "collect_and_cleanup": {
+                    "schedule": "0 0 0 0 *",
+                }
+            },
         }
     }
 
 
 @fixture
 def default_config() -> CoreConfig:
+    ed = EditableConfig()
     return CoreConfig(
-        api=ApiConfig(),
-        cli=CLIConfig(),
+        api=ed.api,
+        cli=ed.cli,
         db=DatabaseConfig(),
-        graph_update=GraphUpdateConfig(),
+        graph_update=ed.graph_update,
         # We use this flag explicitly - otherwise it is picked up by env vars
         runtime=RuntimeConfig(analytics_opt_out=True),
+        workflows=ed.workflows,
         custom_commands=CustomCommandsConfig(),
         args=parse_args(["--analytics-opt-out"]),
     )
