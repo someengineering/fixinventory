@@ -84,7 +84,7 @@ class BaseResource(ABC):
     phantom: ClassVar[bool] = False
 
     id: str
-    tags: Dict[str, str] = None
+    tags: Dict[str, Optional[str]] = None
     name: str = None
     _cloud: object = field(default=None, repr=False)
     _account: object = field(default=None, repr=False)

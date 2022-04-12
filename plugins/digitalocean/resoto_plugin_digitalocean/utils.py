@@ -146,19 +146,21 @@ def alert_policy_id(value: str) -> str:
     return f"do:alert:{value}"
 
 
-tag_prefix: str = "rsto_"
 tag_value_sep: str = "--"
 
 
-def parse_tag(tag: str) -> Tuple[str, str]:
-    if tag.startswith(tag_prefix):
-        tag_parts = tag.split("--")
-        key = tag_parts[0][len(tag_prefix) :]
-        value = tag_parts[1] if len(tag_parts) > 1 else ""
+def parse_tag(tag: str) -> Tuple[str, Optional[str]]:
+    if tag_value_sep in tag:
+        tag_parts = tag.split("--", 1)
+        key = tag_parts[0]
+        value = tag_parts[1] if len(tag_parts) > 1 else None
         return (key, value)
     else:
-        return (tag, "")
+        return (tag, None)
 
 
-def dump_tag(key: str, value: str) -> str:
-    return f"{tag_prefix}{key}{tag_value_sep}{value}"
+def dump_tag(key: str, value: Optional[str]) -> str:
+    if value and len(value) > 0:
+        return f"{key}{tag_value_sep}{value}"
+    else:
+        return f"{key}"
