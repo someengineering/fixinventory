@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import ClassVar, Dict, List, Optional
+from typing import ClassVar, Dict, List, Optional, Tuple
 
 import resotolib.logging
 from resotolib.baseresources import (
@@ -25,6 +25,7 @@ from resotolib.baseresources import (
 from resotolib.graph import Graph
 from resoto_plugin_digitalocean.client import get_team_credentials
 from resoto_plugin_digitalocean.client import StreamingWrapper
+from .utils import dump_tag
 
 log = resotolib.logging.getLogger("resoto." + __name__)
 
@@ -75,11 +76,10 @@ class DigitalOceanResource(BaseResource):  # type: ignore
 
         tag_resource_name = self.tag_resource_name()
         if tag_resource_name:
+            if (len(key) == 0) or (value is None) or (len(value) == 0):
+                raise ValueError("tag key and value must not be empty")
+
             log.debug(f"Updating tag {key} on resource {self.id}")
-            if value:
-                log.warning(
-                    "DigitalOcean does not support tag values. It will be ignored."
-                )
             team = self._account
             credentials = get_team_credentials(team.id)
             if credentials is None:
@@ -92,17 +92,31 @@ class DigitalOceanResource(BaseResource):  # type: ignore
                 credentials.spaces_secret_key,
             )
 
-            tag_ready: bool = True
+            # 1. we search for a resoto key-value tag, if found, we untag the resource
+            existing_tag: Optional[Tuple[str, str]] = next(
+                filter(lambda tag: tag[0].startswith(key), self.tags.items()), None
+            )
 
-            tag_count = client.get_tag_count(key)
+            if existing_tag:
+                # resotocore knows the tag. If the value is not empty, then it is a resoto key-value tag,
+                # otherwise it is a tag created in DigitalOcean console
+                tag_value_exists: bool = len(existing_tag[1]) > 0
+                old_tag_kv = dump_tag(existing_tag[0], existing_tag[1])
+                tag_key = old_tag_kv if tag_value_exists else key
+                client.untag_resource(tag_key, tag_resource_name, self.id)
+
+            # 2. we tag the resource using the key-value formatted tag
+            tag_kv = dump_tag(key, value)
+            tag_ready: bool = True
+            tag_count = client.get_tag_count(tag_kv)
             # tag count call failed irrecoverably, we can't continue
             if isinstance(tag_count, str):
                 raise RuntimeError(f"Tag update failed. Reason: {tag_count}")
             # tag does not exist, create it
             if tag_count is None:
-                tag_ready = client.create_tag(key)
+                tag_ready = client.create_tag(tag_kv)
 
-            return tag_ready and client.tag_resource(key, tag_resource_name, self.id)
+            return tag_ready and client.tag_resource(tag_kv, tag_resource_name, self.id)
         else:
             raise NotImplementedError(f"resource {self.kind} does not support tagging")
 
@@ -121,12 +135,27 @@ class DigitalOceanResource(BaseResource):  # type: ignore
                 credentials.spaces_access_key,
                 credentials.spaces_secret_key,
             )
-            untagged = client.untag_resource(key, tag_resource_name, self.id)
+            # 1. we search for a resoto key-value tag, if found, we untag the resource
+            existing_kv_tag: Optional[Tuple[str, str]] = next(
+                filter(lambda tag: tag[0].startswith(key), self.tags.items()), None
+            )
+
+            if not existing_kv_tag:
+                # tag does not exist, nothing to do
+                return False
+
+            tag_value_exists: bool = len(existing_kv_tag[1]) > 0
+            tag_key = (
+                dump_tag(existing_kv_tag[0], existing_kv_tag[1])
+                if tag_value_exists
+                else key
+            )
+            untagged = client.untag_resource(tag_key, tag_resource_name, self.id)
             if not untagged:
                 return False
-            tag_count = client.get_tag_count(key)
+            tag_count = client.get_tag_count(tag_key)
             if tag_count == 0:
-                return client.delete("/tags", key)
+                return client.delete("/tags", tag_key)
             return True
         else:
             raise NotImplementedError(f"resource {self.kind} does not support tagging")

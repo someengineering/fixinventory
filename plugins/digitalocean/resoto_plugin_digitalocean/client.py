@@ -5,11 +5,10 @@ import requests
 import boto3
 from botocore.exceptions import EndpointConnectionError, HTTPClientError
 from retrying import retry as retry_decorator
-from resotolib.args import ArgumentParser
 from resoto_plugin_digitalocean.utils import retry_on_error
 from resoto_plugin_digitalocean.utils import RetryableHttpError
 import resotolib.logging
-
+from resotolib.config import Config
 
 F = TypeVar("F", bound=Callable[..., Any])
 
@@ -397,8 +396,8 @@ class TeamCredentials:
 
 @lru_cache()
 def get_team_credentials(team_id: TeamId) -> Optional[TeamCredentials]:
-    tokens = ArgumentParser.args.digitalocean_api_tokens
-    spaces_keys = ArgumentParser.args.digitalocean_spaces_access_keys
+    tokens = Config.digitalocean.api_tokens
+    spaces_keys = Config.digitalocean.spaces_access_keys
 
     spaces_keys = spaces_keys[: len(tokens)]
     spaces_keys.extend([":"] * (len(tokens) - len(spaces_keys)))
