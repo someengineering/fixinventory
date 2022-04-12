@@ -25,6 +25,7 @@ from resotolib.x509 import (
     write_cert_to_file,
     load_key_from_file,
     load_cert_from_file,
+    write_ca_bundle,
 )
 
 from resotocore.core_config import CoreConfig, CertificateConfig
@@ -33,7 +34,7 @@ log = logging.getLogger(__name__)
 
 
 class CertificateHandler:
-    def __init__(self, config: CoreConfig, ca_key: RSAPrivateKey, ca_cert: Certificate) -> None:
+    def __init__(self, config: CoreConfig, ca_key: RSAPrivateKey, ca_cert: Certificate, temp_dir: Path) -> None:
         self.config = config
         self._ca_key = ca_key
         self._ca_cert = ca_cert
@@ -42,6 +43,16 @@ class CertificateHandler:
         self._host_key, self._host_cert = self.__create_host_certificate(config.api.host_certificate, ca_key, ca_cert)
         self._host_context = self.__create_host_context(config, self._host_cert, self._host_key)
         self._client_context = self.__create_client_context(config, ca_cert)
+        self._ca_bundle = temp_dir / "ca-bundle.crt"
+        write_ca_bundle(self._ca_cert, str(self._ca_bundle), rename=False)
+
+    @property
+    def ca_cert(self) -> Certificate:
+        return self._ca_cert
+
+    @property
+    def ca_bundle(self) -> Path:
+        return self._ca_bundle
 
     @property
     def authority_certificate(self) -> Tuple[bytes, str]:
@@ -64,7 +75,7 @@ class CertificateHandler:
             discover_local_dns_names=False,
             discover_local_ip_addresses=False,
         )
-        cert = sign_csr(csr, key, self._ca_cert, days_valid)
+        cert = sign_csr(csr, self._ca_key, self._ca_cert, days_valid)
         return key, cert
 
     def sign(self, csr_bytes: bytes) -> Tuple[bytes, str]:
@@ -140,13 +151,14 @@ class CertificateHandler:
         return ctx
 
     @staticmethod
-    def lookup(config: CoreConfig, db: StandardDatabase) -> CertificateHandler:
+    def lookup(config: CoreConfig, db: StandardDatabase, temp_dir: Path) -> CertificateHandler:
         args = config.args
         # if we get a ca certificate from the command line, use it
         if args.ca_cert and args.ca_cert_key:
             ca_key = load_key_from_file(args.ca_cert_key, args.ca_cert_key_pass)
             ca_cert = load_cert_from_file(args.ca_cert_cert)
-            return CertificateHandler(config, ca_key, ca_cert)
+            log.info(f"Using CA certificate from command line. fingerprint:{cert_fingerprint(ca_cert)}")
+            return CertificateHandler(config, ca_key, ca_cert, temp_dir)
 
         # otherwise, load from database or create it
         sd = db.collection("system_data")
@@ -155,12 +167,15 @@ class CertificateHandler:
             log.debug("Found existing certificate in data store.")
             key = load_key_from_bytes(maybe_ca["key"].encode("utf-8"))
             certificate = load_cert_from_bytes(maybe_ca["certificate"].encode("utf-8"))
-            return CertificateHandler(config, key, certificate)
+            log.info(f"Using CA certificate from database. fingerprint:{cert_fingerprint(certificate)}")
+            return CertificateHandler(config, key, certificate, temp_dir)
         else:
             wo = "with" if args.ca_cert_key_pass else "without"
-            log.info(f"No ca certificate found - create a new one {wo} passphrase.")
             key, certificate = bootstrap_ca()
+            log.info(
+                f"No ca certificate found - create new one {wo} passphrase. fingerprint:{cert_fingerprint(certificate)}"
+            )
             key_string = key_to_bytes(key, args.ca_cert_key_pass).decode("utf-8")
             certificate_string = cert_to_bytes(certificate).decode("utf-8")
             sd.insert({"_key": "ca", "key": key_string, "certificate": certificate_string})
-            return CertificateHandler(config, key, certificate)
+            return CertificateHandler(config, key, certificate, temp_dir)

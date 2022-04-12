@@ -3,7 +3,7 @@ from abc import ABC
 from argparse import Namespace
 from datetime import datetime, timezone, timedelta
 from time import sleep
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Union
 
 from arango import ArangoServerError, ArangoClient
 from arango.database import StandardDatabase
@@ -129,10 +129,10 @@ class DbAccess(ABC):
     # Note: this call uses sleep and will block the current executing thread!
     @classmethod
     def connect(
-        cls, args: Namespace, timeout: timedelta, sleep_time: float = 5
+        cls, args: Namespace, timeout: timedelta, sleep_time: float = 5, verify: Union[str, bool, None] = None
     ) -> Tuple[bool, SystemData, StandardDatabase]:
         deadline = utc() + timeout
-        db = cls.client(args)
+        db = cls.client(args, verify)
 
         def create_database() -> None:
             try:
@@ -221,11 +221,11 @@ class DbAccess(ABC):
                 sleep(sleep_time)
 
     @staticmethod
-    def client(args: Namespace) -> StandardDatabase:
+    def client(args: Namespace, verify: Union[bool, str, None] = None) -> StandardDatabase:
         if args.graphdb_type not in "arangodb":
             log.fatal(f"Unknown Graph DB type {args.graphdb_type}")
             shutdown_process(1)
 
-        http_client = ArangoHTTPClient(args.graphdb_request_timeout, not args.graphdb_no_ssl_verify)
+        http_client = ArangoHTTPClient(args.graphdb_request_timeout, verify=verify)
         client = ArangoClient(hosts=args.graphdb_server, http_client=http_client)
         return client.db(args.graphdb_database, username=args.graphdb_username, password=args.graphdb_password)

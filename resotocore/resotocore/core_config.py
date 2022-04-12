@@ -6,7 +6,7 @@ from contextlib import suppress
 from dataclasses import dataclass, field
 from datetime import timedelta
 from pathlib import Path
-from typing import Optional, List, ClassVar, Dict
+from typing import Optional, List, ClassVar, Dict, Union
 
 from arango.database import StandardDatabase
 from cerberus import schema_registry
@@ -300,6 +300,12 @@ schema_registry.add(
 
 
 @dataclass()
+class RunConfig(ConfigObject):
+    temp_dir: Path = Path("/tmp")  # set to random temp directory during start of process
+    verify: Union[bool, str, None] = None
+
+
+@dataclass()
 class CoreConfig(ConfigObject):
     api: ApiConfig
     cli: CLIConfig
@@ -309,6 +315,7 @@ class CoreConfig(ConfigObject):
     workflows: Dict[str, WorkflowConfig]
     custom_commands: CustomCommandsConfig
     args: Namespace
+    run: RunConfig
 
     @property
     def editable(self) -> "EditableConfig":
@@ -429,6 +436,7 @@ def parse_config(args: Namespace, core_config: Json, command_templates: Optional
         graph_update=ed.graph_update,
         runtime=ed.runtime,
         workflows=ed.workflows,
+        run=RunConfig(),  # overridden for each run
     )
 
 

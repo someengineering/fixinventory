@@ -145,7 +145,7 @@ class DbUpdaterProcess(Process):
 
     async def setup_and_merge(self) -> GraphUpdate:
         sender = InMemoryEventSender()
-        _, _, sdb = DbAccess.connect(self.config.args, timedelta(seconds=3))
+        _, _, sdb = DbAccess.connect(self.config.args, timedelta(seconds=3), verify=self.config.run.verify)
         db = db_access(self.config, sdb, sender)
         result = await self.merge_graph(db)
         for event in sender.events:
