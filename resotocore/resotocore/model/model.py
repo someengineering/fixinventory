@@ -867,8 +867,10 @@ class ComplexKind(Kind):
             return None
 
     def create_yaml(self, elem: JsonElement, initial_level: int = 0) -> str:
-        def safe_string(s: str) -> str:
-            return remove_suffix(yaml.dump(s, allow_unicode=True, width=sys.maxsize), "\n...\n").strip()
+        def safe_string(s: str, default_style: Optional[str] = None) -> str:
+            return remove_suffix(
+                yaml.dump(s, allow_unicode=True, width=sys.maxsize, default_style=default_style), "\n...\n"
+            ).strip()
 
         def walk_element(e: JsonElement, kind: Kind, indent: int, cr_on_object: bool = True) -> str:
             if isinstance(e, dict):
@@ -903,7 +905,7 @@ class ComplexKind(Kind):
             elif isinstance(e, list):
                 return "[]"
             elif isinstance(e, str):
-                return safe_string(e)
+                return safe_string(e, "'")
             elif e is None:
                 return "null"
             elif e is True:
