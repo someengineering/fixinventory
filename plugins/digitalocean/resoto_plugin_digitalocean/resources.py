@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import ClassVar, Dict, List, Optional, Tuple
+from typing import ClassVar, Dict, List, Optional
 
 import resotolib.logging
 from resotolib.baseresources import (
@@ -126,7 +126,7 @@ class DigitalOceanResource(BaseResource):  # type: ignore
                 credentials.spaces_secret_key,
             )
 
-            if not key in self.tags:
+            if key not in self.tags:
                 # tag does not exist, nothing to do
                 return False
 
