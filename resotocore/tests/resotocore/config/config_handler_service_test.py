@@ -123,7 +123,7 @@ async def test_config_yaml(config_handler: ConfigHandler, config_model: List[Kin
           some_number: 32
           # Some string.
           # And some description.
-          some_string: test
+          some_string: 'test'
           # Some sub.
           # And some description.
           some_sub:

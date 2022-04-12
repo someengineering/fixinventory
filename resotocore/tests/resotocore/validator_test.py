@@ -15,3 +15,9 @@ def test_is_url() -> None:
     assert v.errors == {"url": ["url is missing host", "url is missing scheme"]}
     v = Validator()
     assert v.validate({"url": "https://resoto.com"}, {"url": {"is_url": True}}) is True
+
+
+def test_is_cron() -> None:
+    v = Validator()
+    assert v.validate({"cron": "* * * * *"}, {"cron": {"is_cron": True}}) is True
+    assert v.validate({"cron": "no cron expression"}, {"cron": {"is_cron": True}}) is False
