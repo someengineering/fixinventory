@@ -94,7 +94,10 @@ class DigitalOceanResource(BaseResource):  # type: ignore
 
             # 1. we search for a resoto key-value tag, if found, we untag the resource
             existing_tag: Optional[Tuple[str, str]] = next(
-                filter(lambda tag: tag[0].startswith(key), self.tags.items()), None
+                filter(
+                    lambda tag: (tag or ("", ""))[0].startswith(key), self.tags.items()
+                ),
+                None,
             )
 
             if existing_tag:
@@ -137,7 +140,10 @@ class DigitalOceanResource(BaseResource):  # type: ignore
             )
             # 1. we search for a resoto key-value tag, if found, we untag the resource
             existing_kv_tag: Optional[Tuple[str, str]] = next(
-                filter(lambda tag: tag[0].startswith(key), self.tags.items()), None
+                filter(
+                    lambda tag: (tag or ("", ""))[0].startswith(key), self.tags.items()
+                ),
+                None,
             )
 
             if not existing_kv_tag:
