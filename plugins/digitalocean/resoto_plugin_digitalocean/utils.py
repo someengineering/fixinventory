@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Union, Callable, Any, Dict, Optional
+from typing import Union, Callable, Any, Dict, Optional, Tuple
 
 import resotolib.logging
 
@@ -144,3 +144,23 @@ def firewall_id(value: str) -> str:
 
 def alert_policy_id(value: str) -> str:
     return f"do:alert:{value}"
+
+
+tag_value_sep: str = "--"
+
+
+def parse_tag(tag: str) -> Tuple[str, Optional[str]]:
+    if tag_value_sep in tag:
+        tag_parts = tag.split("--", 1)
+        key = tag_parts[0]
+        value = tag_parts[1] if len(tag_parts) > 1 else None
+        return (key, value)
+    else:
+        return (tag, None)
+
+
+def dump_tag(key: str, value: Optional[str]) -> str:
+    if value and len(value) > 0:
+        return f"{key}{tag_value_sep}{value}"
+    else:
+        return f"{key}"

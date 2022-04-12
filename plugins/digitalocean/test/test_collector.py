@@ -166,7 +166,7 @@ def test_collect_droplets() -> None:
     assert image.size_gigabytes == 1
     assert image.min_disk_size == 15
     assert image.image_status == "available"
-    assert image.tags == {"image_tag": ""}
+    assert image.tags == {"image_tag": None}
 
     droplet = graph.search_first("urn", "do:droplet:289110074")
     assert droplet.urn == "do:droplet:289110074"
@@ -181,7 +181,7 @@ def test_collect_droplets() -> None:
     assert droplet.ctime == datetime.datetime(
         2022, 3, 3, 16, 26, 55, tzinfo=datetime.timezone.utc
     )
-    assert droplet.tags == {"droplet_tag": ""}
+    assert droplet.tags == {"droplet_tag": None}
 
 
 def test_collect_volumes() -> None:

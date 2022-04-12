@@ -62,6 +62,7 @@ from .utils import (
     domain_record_id,
     firewall_id,
     alert_policy_id,
+    parse_tag,
 )
 
 Json = Dict[str, Any]
@@ -275,10 +276,10 @@ class DigitalOceanTeamCollector:
         """See a similar method in the GCPCollectorPlugin"""
         # The following are default attributes that are passed to every
         # BaseResource() if found in `result`
-        def extract_tags(result: Dict[str, Any]) -> Dict[str, str]:
+        def extract_tags(result: Dict[str, Any]) -> Dict[str, Optional[str]]:
             raw_tags = result.get("tags", [])
             raw_tags = raw_tags if raw_tags else []
-            tags = [(tag, "") for tag in raw_tags if tag]
+            tags = [parse_tag(tag) for tag in raw_tags if tag]
             return dict(tags) if tags else {}
 
         kwargs = {
