@@ -90,23 +90,12 @@ class DigitalOceanResource(BaseResource):  # type: ignore
                 credentials.spaces_secret_key,
             )
 
-            # 1. we search for a resoto key-value tag, if found, we untag the resource
-            existing_tag: Optional[Tuple[str, Optional[str]]] = next(
-                filter(
-                    lambda tag: (tag or ("", None))[0].startswith(key),
-                    self.tags.items(),
-                ),
-                None,
-            )
-
-            if existing_tag:
-                # resotocore knows the tag. If the value is not empty, then it is a resoto key-value tag,
-                # otherwise it is a tag created in DigitalOcean console
-                old_tag_kv = dump_tag(existing_tag[0], existing_tag[1])
-                tag_key = old_tag_kv if existing_tag[1] else key
+            if key in self.tags:
+                # resotocore knows about the tag. Therefore we need to clean it first
+                tag_key = dump_tag(key, self.tags.get(key))
                 client.untag_resource(tag_key, tag_resource_name, self.id)
 
-            # 2. we tag the resource using the key-value formatted tag
+            # we tag the resource using the key-value formatted tag
             tag_kv = dump_tag(key, value)
             tag_ready: bool = True
             tag_count = client.get_tag_count(tag_kv)
@@ -136,19 +125,12 @@ class DigitalOceanResource(BaseResource):  # type: ignore
                 credentials.spaces_access_key,
                 credentials.spaces_secret_key,
             )
-            # 1. we search for a resoto key-value tag, if found, we untag the resource
-            existing_kv_tag: Optional[Tuple[str, Optional[str]]] = next(
-                filter(
-                    lambda tag: (tag or ("", ""))[0].startswith(key), self.tags.items()
-                ),
-                None,
-            )
 
-            if not existing_kv_tag:
+            if not key in self.tags:
                 # tag does not exist, nothing to do
                 return False
 
-            tag_key = dump_tag(existing_kv_tag[0], existing_kv_tag[1])
+            tag_key = dump_tag(key, self.tags.get(key))
             untagged = client.untag_resource(tag_key, tag_resource_name, self.id)
             if not untagged:
                 return False
