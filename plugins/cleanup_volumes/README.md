@@ -1,20 +1,32 @@
 # resoto-plugin-cleanup_volumes
 Volume cleanup plugin for Resoto
 
-This plugin removes unused EBS volumes.
+This plugin cleans up storage volumes.
 
 ## Usage
-Turn on general cleanup using the `--cleanup` argument and activate this plugin by adding `--cleanup-volumes`.
+
+In `resh` execute
+
 ```
-$ resotoworker -v --cleanup --cleanup-volumes
+> config edit resoto.worker
 ```
 
-The default volume age is 14 days. Meaning if a volume is not in use and has not had any read or write IOPS within
-the last 14 days it will be deleted.
+and find the following section
 
-Optionally change the age cutoff value using the `--cleanup-volumes-age` argument.
+```
+plugin_cleanup_volumes:
+  # Enable plugin?
+  enabled: false
+  # Minimum age of unused volumes to cleanup
+  min_age: '14 days'
+```
 
-The following age units are valid:
+The default volume age is 14 days. Meaning if a volume is not in use and has not had any read or write IOPS within the last 14 days it will be deleted.
+
+Optionally change the age cutoff value using the `min_age` option.
+
+Example of valid age units:
+
 ```
 weeks
 days
@@ -22,17 +34,4 @@ hours
 minutes
 ```
 
-Each of them can be abbreviated down to one letter. E.g. `7d`, `24h`, `60m`, etc. A space in between the numeric and the unit is optional,
-meaning `7d` and `7 days` are equivalent.
-
-### Example:
-```
-$ resotoworker -v --cleanup --cleanup-volumes --cleanup-volumes-age 2d
-```
-
-## List of arguments
-```
-  --cleanup-volumes     Cleanup unused Volumes (default: False)
-  --cleanup-volumes-age CLEANUP_VOLUMES_AGE
-                        Cleanup unused Volumes Age (default: 14 days)
-```
+Each of them can be abbreviated down to one letter. E.g. `7d`, `24h`, `60m`, etc. A space in between the numeric and the unit is optional, meaning `7d` and `7 days` are equivalent.
