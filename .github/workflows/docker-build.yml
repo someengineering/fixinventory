@@ -233,7 +233,7 @@ jobs:
             type=edge
           labels: |
             org.opencontainers.image.title=resotoshell
-            org.opencontainers.image.description=Resoto Shell Jump Container
+            org.opencontainers.image.description=Resoto Shell (resh)
             org.opencontainers.image.vendor=Some Engineering Inc.
 
       - name: Set up QEMU
