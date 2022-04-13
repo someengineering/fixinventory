@@ -231,6 +231,26 @@ jobs:
             type=edge
           labels: |
             org.opencontainers.image.title=resotoshell
+            org.opencontainers.image.description=Resoto Shell Jump Container
+            org.opencontainers.image.vendor=Some Engineering Inc.
+
+      - name: Docker resh meta
+        id: reshmeta
+        uses: docker/metadata-action@v3
+        with:
+          images: |
+            someengineering/resh
+            ghcr.io/someengineering/resh
+          flavor: |
+            latest=${{ steps.platform.outputs.latest }}
+          tags: |
+            type=pep440,pattern={{version}}
+            type=pep440,pattern={{major}}.{{minor}}
+            type=pep440,pattern={{major}}
+            type=sha,prefix=
+            type=edge
+          labels: |
+            org.opencontainers.image.title=resh
             org.opencontainers.image.description=Resoto Shell (resh)
             org.opencontainers.image.vendor=Some Engineering Inc.
 
@@ -335,6 +355,19 @@ jobs:
             IMAGE_TAG=${{ steps.sha.outputs.short }}
           tags: ${{ steps.shellmeta.outputs.tags }}
           labels: ${{ steps.shellmeta.outputs.labels }}
+
+      - name: Build and push resh Docker image
+        if: github.event_name != 'pull_request'
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: ./Dockerfile.resh
+          platforms: ${{ steps.platform.outputs.targets }}
+          push: ${{ github.event_name != 'pull_request' }}
+          build-args: |
+            IMAGE_TAG=${{ steps.sha.outputs.short }}
+          tags: ${{ steps.reshmeta.outputs.tags }}
+          labels: ${{ steps.reshmeta.outputs.labels }}
 
       - name: Move cache
         run: |

@@ -1,3 +1,7 @@
+# This is a jump container used to provide access into a Resoto environment.
+# The idea is that it runs idle and allows users to e.g. `kubectl exec` into it
+# and run `resh`. If you need a container to run on your local machine use
+# `somecr.io/someengineering/resh` instead.
 ARG IMAGE_TAG=edge
 FROM ghcr.io/someengineering/resotobase:${IMAGE_TAG}
 ENTRYPOINT ["/bin/dumb-init", "--", "/usr/local/sbin/bootstrap", "/usr/local/bin/resh-wait"]

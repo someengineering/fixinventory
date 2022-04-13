@@ -1,3 +1,4 @@
+# This container runs `resotocore`.
 ARG IMAGE_TAG=edge
 FROM ghcr.io/someengineering/resotobase:${IMAGE_TAG}
 EXPOSE 8900
