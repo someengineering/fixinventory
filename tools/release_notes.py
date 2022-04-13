@@ -86,10 +86,7 @@ def show_log(from_tag: str, to_tag: str):
             )
 
     print("\n<!--truncate-->")
-    print("\n## Docker Images")
-    print("\n### All-in-One\n")
-    print(f"- `somecr.io/someengineering/resoto:{to_tag}`")
-    print("\n### Components\n")
+    print("\n## Docker Images\n")
     for image in ["resotocore", "resotoworker", "resotoshell", "resotometrics"]:
         print(f"- `somecr.io/someengineering/{image}:{to_tag}`")
 
