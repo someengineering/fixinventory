@@ -1,7 +1,8 @@
-# This is a jump container used to provide access into a Resoto environment.
-# The idea is that it runs idle and allows users to e.g. `kubectl exec` into it
-# and run `resh`. If you need a container to run on your local machine use
-# `somecr.io/someengineering/resh` instead.
+# This container runs `resh`. If the `--wait` flag is provided it will instead
+# go into an endless loop and wait for users to exec `resh` inside the container.
+# The idea being that this container is e.g. deployed into a k8s environment
+# having access to `resotocore`. Users can then authenticate with the k8s cluster
+# and kubectl exec into the container to run `resh`.
 ARG IMAGE_TAG=edge
 FROM ghcr.io/someengineering/resotobase:${IMAGE_TAG}
 ENTRYPOINT ["/bin/dumb-init", "--", "/usr/local/sbin/bootstrap", "/usr/bin/resh"]
