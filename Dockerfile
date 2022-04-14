@@ -1,3 +1,5 @@
+# This standalone container contains all of Resoto plus dependencies.
+# Including ArangoDB and Prometheus.
 ARG UI_IMAGE_TAG=latest
 FROM ghcr.io/someengineering/resoto-ui:${UI_IMAGE_TAG} as resoto-ui-env
 
