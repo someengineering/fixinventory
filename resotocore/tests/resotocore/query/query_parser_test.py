@@ -29,6 +29,7 @@ from resotocore.query.model import (
     CombinedTerm,
     Predicate,
     Limit,
+    NotTerm,
 )
 from resotocore.model.graph_access import EdgeType, Direction
 from parsy import Parser, ParseError
@@ -113,6 +114,8 @@ def test_not() -> None:
     assert_round_trip(not_term, (P.with_id("foo") | P.of_kind("bla")).not_term())
     assert_round_trip(not_term, P.of_kind("bla").not_term())
     assert_round_trip(not_term, term_parser.parse("not(is(a) or not is(b) and not a>1 or not b<2 or not(a>1))"))
+    # make sure not only negates the simple term, not the combined term
+    assert term_parser.parse("not a==b and b==c") == CombinedTerm(NotTerm(P("a") == "b"), "and", P("b") == "c")
 
 
 def test_filter_term() -> None:

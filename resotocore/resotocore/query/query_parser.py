@@ -123,7 +123,7 @@ def function_term() -> Parser:
 @make_parser
 def not_term() -> Parser:
     yield not_p
-    term = yield filter_term_parser
+    term = yield simple_term_p  # negation should affect only the next simple term
     return NotTerm(term)
 
 
