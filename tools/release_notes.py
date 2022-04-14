@@ -13,7 +13,12 @@ Commit = namedtuple(
     ["commit_hash", "author", "component", "group", "message", "pr", "timestamp"],
 )
 
-long_names = {"feat": "Features", "fix": "Fixes", "chore": "Chores"}
+group_names = {
+    "feat": "Features",
+    "fix": "Fixes",
+    "docs": "Documentation",
+    "chore": "Chores",
+}
 rewrite_component = {"api-docs": "docs", "README": "docs"}
 rewrite_group = {"bug": "fix"}
 
@@ -49,7 +54,7 @@ def parse_commit(row: list[str]) -> Commit:
         component, group = brackets[0], "feat"
     else:
         component, group = "resoto", "feat"
-    msg_pr = re.fullmatch("(?:\\[.+])?\\s*(.*)\\(#(\\d+)\\)", msg)
+    msg_pr = re.fullmatch("(?:\\[[^]]+]\\s*){0,2}(.*)\\(#(\\d+)\\)", msg)
     message, pr = msg_pr.groups() if msg_pr else (msg, "")
     return Commit(
         commit_hash,
@@ -76,8 +81,10 @@ def show_log(from_tag: str, to_tag: str):
     print(f"\n# v{to_tag}")
 
     print("\n## What's Changed")
-    for group, commits in grouped.items():
-        print(f"\n### {long_names.get(group, group)}\n")
+    # define sort order for groups: order of group names and then the rest
+    group_weights = defaultdict(lambda: 100, {a: num for num, a in enumerate(group_names)})
+    for group, commits in sorted(grouped.items(), key=lambda x: group_weights[x[0]]):
+        print(f"\n### {group_names.get(group, group)}\n")
         for commit in commits:
             print(
                 f"- [`{commit.commit_hash}`](https://github.com/someengineering/resoto/commit/{commit.commit_hash}) "
