@@ -1,4 +1,4 @@
-# Getting started Graph rendering script manual
+# Getting started with graph rendering script
 
 ## Setup process
 1. If you haven't done this already, install the [resoto development environment](https://resoto.com/docs/contributing/components).
