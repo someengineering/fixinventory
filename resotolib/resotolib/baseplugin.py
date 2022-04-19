@@ -6,15 +6,16 @@ from resotolib.core import resotocore
 from resotolib.core.actions import CoreActions
 from resotolib.args import ArgumentParser
 from resotolib.config import Config
-from resotolib.logging import log, setup_logger
+from resotolib.logging import log
 from resotolib.baseresources import Cloud
 from threading import Thread, current_thread
-from multiprocessing import Process
 from prometheus_client import Counter
 import resotolib.config
 import resotolib.signal
 import time
 from typing import Dict, Optional
+
+# from multiprocessing import Process
 
 metrics_unhandled_plugin_exceptions = Counter(
     "resoto_unhandled_plugin_exceptions_total",
@@ -81,7 +82,7 @@ class BasePlugin(ABC, Thread):
         pass
 
 
-class BaseActionPlugin(ABC, Process):
+class BaseActionPlugin(ABC, Thread):
     plugin_type = PluginType.ACTION
     action = NotImplemented  # Name of the action this plugin implements
 
@@ -133,10 +134,10 @@ class BaseActionPlugin(ABC, Process):
 
     def run(self) -> None:
         try:
-            ArgumentParser.args = self._args
-            resotolib.config._config = self._config
-            setup_logger("resotoworker")
-            resotolib.signal.initializer()
+            # ArgumentParser.args = self._args
+            # resotolib.config._config = self._config
+            # setup_logger("resotoworker")
+            # resotolib.signal.initializer()
             current_thread().name = self.name
             if self.bootstrap():
                 self.go()
