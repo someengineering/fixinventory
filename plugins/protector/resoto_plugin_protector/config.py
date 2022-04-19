@@ -12,24 +12,24 @@ default_config = {
 
 
 @dataclass
-class ProtectSnowflakesConfig:
-    kind: ClassVar[str] = "plugin_protect_snowflakes"
+class ProtectorConfig:
+    kind: ClassVar[str] = "plugin_protector"
     enabled: bool = field(
         default=False,
-        metadata={"description": "Enable plugin?"},
+        metadata={"description": "Enable plugin?", "restart_required": True},
     )
     config: Dict[str, Dict[str, Dict[str, Dict[str, List[str]]]]] = field(
         default_factory=lambda: default_config,
         metadata={
             "description": (
                 "Configuration for the plugin\n"
-                "See https://github.com/someengineering/resoto/tree/main/plugins/protect_snowflakes for syntax details"
+                "See https://github.com/someengineering/resoto/tree/main/plugins/protector for syntax details"
             )
         },
     )
 
     @staticmethod
-    def validate(cfg: "ProtectSnowflakesConfig") -> bool:
+    def validate(cfg: "ProtectorConfig") -> bool:
         config = cfg.config
         if not isinstance(config, dict):
             raise ValueError("Config is no dict")
