@@ -8,7 +8,7 @@ class CleanupVolumesConfig:
     kind: ClassVar[str] = "plugin_cleanup_volumes"
     enabled: bool = field(
         default=False,
-        metadata={"description": "Enable plugin?"},
+        metadata={"description": "Enable plugin?", "restart_required": True},
     )
     min_age: str = field(
         default="14 days",

@@ -1,14 +1,15 @@
 from dataclasses import dataclass, field
-from typing import ClassVar, Optional, Dict, List
+from typing import ClassVar, Dict, List
 
 
 @dataclass
 class CleanupAWSAlarmsConfig:
     kind: ClassVar[str] = "plugin_cleanup_aws_alarms"
-    enabled: Optional[bool] = field(
-        default=False, metadata={"description": "Enable plugin?"}
+    enabled: bool = field(
+        default=False,
+        metadata={"description": "Enable plugin?", "restart_required": True},
     )
-    config: Optional[Dict[str, List[str]]] = field(
+    config: Dict[str, List[str]] = field(
         default_factory=lambda: {"aws": ["1234567", "567890"]},
         metadata={
             "description": (

@@ -39,7 +39,7 @@ class CleanupUntaggedConfig:
     kind: ClassVar[str] = "plugin_cleanup_untagged"
     enabled: bool = field(
         default=False,
-        metadata={"description": "Enable plugin?"},
+        metadata={"description": "Enable plugin?", "restart_required": True},
     )
     config: Dict[str, Union[Dict, List]] = field(
         default_factory=lambda: default_config,

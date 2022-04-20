@@ -1,7 +1,7 @@
 # Note: this workflow is automatically generated via the `create_pr` script in the same folder.
 # Please do not change the file, but the script!
 
-name: Check PR (Plugin protect_snowflakes)
+name: Check PR (Plugin protector)
 on:
   push:
     branches:
@@ -9,12 +9,12 @@ on:
   pull_request:
     paths:
       - 'resotolib/**'
-      - 'plugins/protect_snowflakes/**'
+      - 'plugins/protector/**'
       - '.github/**'
 
 jobs:
-  protect_snowflakes:
-    name: "protect_snowflakes"
+  protector:
+    name: "protector"
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -41,11 +41,11 @@ jobs:
           pip install tox wheel flake8
 
       - name: Run tests
-        working-directory: ./plugins/protect_snowflakes
+        working-directory: ./plugins/protector
         run: tox
 
       - name: Archive code coverage results
         uses: actions/upload-artifact@v2
         with:
-          name: plugin-protect_snowflakes-code-coverage-report
-          path: ./plugins/protect_snowflakes/htmlcov/
+          name: plugin-protector-code-coverage-report
+          path: ./plugins/protector/htmlcov/

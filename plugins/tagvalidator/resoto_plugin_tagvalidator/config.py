@@ -32,7 +32,7 @@ class TagValidatorConfig:
     kind: ClassVar[str] = "plugin_tagvalidator"
     enabled: bool = field(
         default=False,
-        metadata={"description": "Enable plugin?"},
+        metadata={"description": "Enable plugin?", "restart_required": True},
     )
     dry_run: bool = field(
         default=False,

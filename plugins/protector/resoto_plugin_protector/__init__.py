@@ -4,20 +4,20 @@ from resotolib.core.search import CoreGraph
 from resotolib.baseplugin import BaseActionPlugin
 from resotolib.core.model_export import node_from_dict
 from resotolib.config import Config
-from .config import ProtectSnowflakesConfig
+from .config import ProtectorConfig
 from typing import Dict
 
 
-class ProtectSnowflakesPlugin(BaseActionPlugin):
+class ProtectorPlugin(BaseActionPlugin):
     action = "post_collect"
 
     def bootstrap(self) -> bool:
-        return Config.plugin_protect_snowflakes.enabled
+        return Config.plugin_protector.enabled
 
     def do_action(self, data: Dict) -> None:
-        log.info("Protect Snowflakes called")
-        Config.plugin_protect_snowflakes.validate(Config.plugin_protect_snowflakes)
-        self.config = deepcopy(Config.plugin_protect_snowflakes.config)
+        log.info("Protector called")
+        Config.plugin_protector.validate(Config.plugin_protector)
+        self.config = deepcopy(Config.plugin_protector.config)
 
         cg = CoreGraph(tls_data=self.tls_data)
         resource_parts = []
@@ -32,17 +32,17 @@ class ProtectSnowflakesPlugin(BaseActionPlugin):
                                 f" cloud {cloud_id}"
                             )
                             resource_parts.append(
-                                f'(reported.id == "{resource_id}"'
-                                f' and reported.kind == "{kind}"'
-                                f' and metadata.ancestors.region.id == "{region_id}"'
-                                f' and metadata.ancestors.cloud.id == "{cloud_id}")'
+                                f'(/reported.id == "{resource_id}"'
+                                f' and /reported.kind == "{kind}"'
+                                f' and /ancestors.region.reported.id == "{region_id}"'
+                                f' and /ancestors.cloud.reported.id == "{cloud_id}")'
                             )
         resource_part = " or ".join(resource_parts)
-        command = f"query {resource_part} | protect"
+        command = f"search {resource_part} | protect"
         for node_data in cg.execute(command):
             node = node_from_dict(node_data)
             log.debug(f"Protected {node.rtdname}")
 
     @staticmethod
     def add_config(config: Config) -> None:
-        config.add_config(ProtectSnowflakesConfig)
+        config.add_config(ProtectorConfig)

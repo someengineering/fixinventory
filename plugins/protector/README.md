@@ -1,5 +1,5 @@
-# resoto-plugin-protect_snowflakes
-Protect Snowflakes Plugin for Resoto
+# resoto-plugin-protector
+Protector Plugin for Resoto
 
 This plugin protects important resources from deletion by Resoto.
 
@@ -14,9 +14,9 @@ In `resh` execute
 and find the following section
 
 ```
-plugin_protect_snowflakes:
+plugin_protector:
   # Configuration for the plugin
-  # See https://github.com/someengineering/resoto/tree/main/plugins/protect_snowflakes for syntax details
+  # See https://github.com/someengineering/resoto/tree/main/plugins/protector for syntax details
   config:
     aws:
       '110465657741':
