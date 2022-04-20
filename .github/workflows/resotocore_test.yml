@@ -50,5 +50,7 @@ jobs:
           pip install -r requirements-test.txt
           pip install -r requirements.txt
       - name: Run Tests
+        env:
+          RESOTOCORE_ANALYTICS_OPT_OUT: true
         run: pytest
 
