@@ -31,9 +31,6 @@ spec:
     caSecretName: None
 EOF
 
-# create secret for dashboard. not really needed for test, but nice to have.
-kubectl --namespace resoto create secret generic arangodb-operator-dashboard --from-literal=username=a --from-literal=password=a
-
 # wait for the db deployment is ready.
 kubectl --namespace resoto wait --for=condition=ready arangodeployment/single-server --timeout=300s
 
@@ -43,21 +40,6 @@ ARANGO_DB_POD=$(kubectl --namespace resoto get pod -larango_deployment=single-se
 # wait until the db is ready to accept clients.
 timeout 1m $SHELL -c "until kubectl --namespace resoto exec $ARANGO_DB_POD -- /lifecycle/tools/arangodb_operator lifecycle probe --endpoint=/_api/version --auth; do sleep 1; done"
 
-# create a db and user for us.
-kubectl --namespace resoto exec -i $ARANGO_DB_POD -- arangosh --console.history false --server.password "" <<EOF
-const users = require('@arangodb/users');
-print("creating user");
-users.save('ck', 'ck');
-print("creating db");
-db._createDatabase('resoto');
-print("granting user db access");
-users.grantDatabase('ck', 'resoto', 'rw');
-print("all done:", users.all());
-EOF
-
-# put the db password in a secret.
-kubectl --namespace resoto create secret generic arango-user --from-literal=password=ck
-
 # install cloud keeper with the example collector
 
 DIR="$(dirname "$(realpath "$0")")"
@@ -65,11 +47,6 @@ helm upgrade -i --namespace resoto resoto "$DIR/chart" --set image.tag=$IMAGE_TA
 resotocore:
   graphdb:
     server: http://single-server:8529
-    username: ck
-    database: resoto
-    passwordSecret:
-      name: arango-user
-      key: password
 EOF
 # wait for it to be ready
 kubectl --namespace resoto rollout status deploy/resoto-resotocore --timeout=300s
