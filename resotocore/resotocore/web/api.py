@@ -764,10 +764,12 @@ class Api:
             terminal = request.headers.get("Resoto-Shell-Terminal", "false") == "true"
             colors = ConsoleColorSystem.from_name(request.headers.get("Resoto-Shell-Color-System", "monochrome"))
             renderer = ConsoleRenderer(width=columns, height=rows, color_system=colors, terminal=terminal)
-            return CLIContext(env=dict(request.query), console_renderer=renderer)
+            return CLIContext(env=dict(request.query), console_renderer=renderer, source="api")
         except Exception as ex:
             log.debug("Could not create CLI context.", exc_info=ex)
-            return CLIContext(env=dict(request.query), console_renderer=ConsoleRenderer.default_renderer())
+            return CLIContext(
+                env=dict(request.query), console_renderer=ConsoleRenderer.default_renderer(), source="api"
+            )
 
     async def evaluate(self, request: Request) -> StreamResponse:
         ctx = self.cli_context_from_request(request)

@@ -10,9 +10,7 @@ from resotocore.cli.cli import CLI
 from resotocore.db.jobdb import JobDb
 from resotocore.db.runningtaskdb import RunningTaskDb
 from resotocore.dependencies import empty_config
-from resotocore.error import ParseError
 from resotocore.message_bus import MessageBus, Event, Message, ActionDone, Action
-from resotocore.task import TaskHandler
 from resotocore.task.model import Subscriber
 from resotocore.task.scheduler import Scheduler
 from resotocore.task.subscribers import SubscriptionHandler
@@ -118,36 +116,6 @@ async def test_run_job(task_handler: TaskHandlerService, all_events: List[Messag
     started: Event = await wait_for_message(all_events, "task_started", Event)
     await wait_for_message(all_events, "task_end", Event)
     assert started.data["task"] == "Speakable name of workflow"
-
-
-@pytest.mark.asyncio
-async def test_parse_job_line_time_trigger(task_handler: TaskHandler) -> None:
-    job = await task_handler.parse_job_line("test", '0 5 * * sat   match t2 == "node" | clean')
-    assert job.trigger == TimeTrigger("0 5 * * sat")
-    assert job.command.command == 'match t2 == "node" | clean'
-    assert job.wait is None
-    with pytest.raises(ParseError):
-        await task_handler.parse_job_line("test", '0 5 invalid_cron_expr * sat : match t2 == "node" | clean')
-
-
-@pytest.mark.asyncio
-async def test_parse_job_line_event_and_time_trigger(task_handler: TaskHandler) -> None:
-    job = await task_handler.parse_job_line("test", '0 5 * * sat cleanup_plan : match t2 == "node" | clean')
-    assert job.trigger == TimeTrigger("0 5 * * sat")
-    assert job.command.command == 'match t2 == "node" | clean'
-    assert job.wait[0] == EventTrigger("cleanup_plan")  # type: ignore
-    with pytest.raises(ParseError):
-        await task_handler.parse_job_line("test", '0 5 invalid_cron_expr * sat cleanup_plan:match t2 == "node" | clean')
-
-
-@pytest.mark.asyncio
-async def test_parse_job_line_event_trigger(task_handler: TaskHandler) -> None:
-    job = await task_handler.parse_job_line("test", 'cleanup_plan : match t2 == "node" | clean')
-    assert job.trigger == EventTrigger("cleanup_plan")
-    assert job.command.command == 'match t2 == "node" | clean'
-    assert job.wait is None
-    with pytest.raises(ParseError):
-        await task_handler.parse_job_line("test", 'cleanup_plan match t2 == "node" | clean')
 
 
 @pytest.mark.asyncio

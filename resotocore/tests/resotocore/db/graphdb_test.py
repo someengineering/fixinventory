@@ -619,6 +619,10 @@ async def test_events(event_graph_db: EventGraphDB, foo_model: Model, event_send
         CoreEvent.GraphMerged,
         CoreEvent.BatchUpdateGraphMerged,
     ]
+    merge_event = AccessJson(event_sender.events[3].context)
+    assert merge_event.graph == event_graph_db.graph_name
+    assert merge_event.providers == ["collector"]
+    assert merge_event.batch is False
 
 
 def to_json(obj: BaseResource) -> Json:
