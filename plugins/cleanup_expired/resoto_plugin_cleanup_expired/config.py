@@ -7,5 +7,5 @@ class CleanupExpiredConfig:
     kind: ClassVar[str] = "plugin_cleanup_expired"
     enabled: bool = field(
         default=False,
-        metadata={"description": "Enable plugin?"},
+        metadata={"description": "Enable plugin?", "restart_required": True},
     )

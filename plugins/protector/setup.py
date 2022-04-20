@@ -11,16 +11,14 @@ def read(fname):
 
 
 setup(
-    name="resoto-plugin-protect_snowflakes",
+    name="resoto-plugin-protector",
     version="2.1.0a0",
-    description="Resoto Snowflake Protection Plugin",
+    description="Resoto Protector Plugin",
     license="Apache 2.0",
     packages=find_packages(),
     long_description=read("README.md"),
     entry_points={
-        "resoto.plugins": [
-            "protect_snowflakes = resoto_plugin_protect_snowflakes:ProtectSnowflakesPlugin"
-        ]
+        "resoto.plugins": ["protector = resoto_plugin_protector:ProtectorPlugin"]
     },
     include_package_data=True,
     zip_safe=False,
