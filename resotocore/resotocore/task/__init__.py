@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Optional, List, Dict
+from typing import Optional, List
 
 from resotocore.task.task_description import Job, RunningTask, Workflow
 
@@ -19,12 +19,6 @@ class TaskHandler(ABC):
 
     @abstractmethod
     async def delete_job(self, job_id: str) -> Optional[Job]:
-        pass
-
-    @abstractmethod
-    async def parse_job_line(
-        self, source: str, line: str, env: Optional[Dict[str, str]] = None, mutable: bool = True
-    ) -> Job:
         pass
 
     @abstractmethod

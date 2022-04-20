@@ -463,7 +463,12 @@ class CLI:
             resoto_session_id = context.env.get("resoto_session_id")
             await self.dependencies.event_sender.core_event(
                 CoreEvent.CLICommand,
-                {"command_names": command_names, "used_aliases": used_aliases, "session_id": resoto_session_id},
+                {
+                    "command_names": command_names,
+                    "used_aliases": used_aliases,
+                    "session_id": resoto_session_id,
+                    "source": context.source or "unknown",
+                },
                 command_lines=len(parsed),
                 commands=len(command_names),
             )
