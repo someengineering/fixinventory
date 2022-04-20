@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import timedelta
 from pathlib import Path
 from ssl import SSLContext, create_default_context, Purpose
 from tempfile import TemporaryDirectory
@@ -29,6 +30,7 @@ from resotolib.x509 import (
 )
 
 from resotocore.core_config import CoreConfig, CertificateConfig
+from resotocore.util import Periodic
 
 log = logging.getLogger(__name__)
 
@@ -44,7 +46,17 @@ class CertificateHandler:
         self._host_context = self.__create_host_context(config, self._host_cert, self._host_key)
         self._client_context = self.__create_client_context(config, ca_cert)
         self._ca_bundle = temp_dir / "ca-bundle.crt"
-        write_ca_bundle(self._ca_cert, str(self._ca_bundle), rename=False)
+        self.__recreate_ca_file()  # write the CA bundle to the temp dir
+        self._ca_cert_recreate = Periodic("recreate ca bundle file", self.__recreate_ca_file, timedelta(hours=1))
+
+    async def start(self) -> None:
+        await self._ca_cert_recreate.start()
+
+    async def stop(self) -> None:
+        await self._ca_cert_recreate.stop()
+
+    def __recreate_ca_file(self) -> None:
+        write_ca_bundle(self._ca_cert, str(self._ca_bundle))
 
     @property
     def ca_cert(self) -> Certificate:
