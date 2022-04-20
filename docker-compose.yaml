@@ -65,17 +65,34 @@ services:
     restart: always
     stop_grace_period: 2m
   resotoshell:
+    # This container is not started by default. To start a shell use this command:
+    # $> docker-compose run resotoshell
     image: somecr.io/someengineering/resotoshell:edge
     profiles:
-      # The shell should not be started with the default stack
-      # Run this command to start a resotoshell
-      # docker-compose run resotoshell
       - do-not-start
     depends_on:
       - resotocore
     environment:
       - PSK
       - RESOTOSHELL_RESOTOCORE_URI=https://resotocore:8900
+    restart: always
+    stop_grace_period: 2m
+  resotoshell-server:
+    # This container can be used as jump target to start a shell.
+    # Find the ID of the shell server and exec into it
+    # $> docker ps -f name=resoto_resotoshell-server_1 --format "{{.ID}}"
+    # $> docker exec -it <ID> resh
+    #
+    # Or to do it in one step
+    # $> docker exec -it $(docker ps -f name=resoto_resotoshell-server_1 --format "{{.ID}}") resh
+    image: somecr.io/someengineering/resotoshell:edge
+    depends_on:
+      - resotocore
+    environment:
+      - PSK
+      - RESOTOSHELL_RESOTOCORE_URI=https://resotocore:8900
+    command:
+      - --wait
     restart: always
     stop_grace_period: 2m
 volumes:
