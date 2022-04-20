@@ -65,6 +65,7 @@ class CLIContext:
     query: Optional[Query] = None
     query_options: Dict[str, Any] = field(default_factory=dict)
     console_renderer: Optional[ConsoleRenderer] = None
+    source: Optional[str] = None  # who is calling
 
     def variable_in_section(self, variable: str) -> str:
         # if there is no query, always assume the root section

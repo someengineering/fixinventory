@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from resotocore import version
 from resotocore.analytics import AnalyticsEventSender, CoreEvent
 from resotocore.message_bus import MessageBus
 from resotocore.model.model_handler import ModelHandler
@@ -20,7 +21,11 @@ def emit_recurrent_events(
     async def emit_events() -> None:
         # information about the model
         model = await model_handler.load_model()
-        await event_sender.core_event(CoreEvent.ModelInfo, model_count=len(model.kinds))
+        await event_sender.core_event(
+            CoreEvent.ModelInfo,
+            dict(version=version()),
+            model_count=len(model.kinds),
+        )
         # information about all subscribers/actors
         subscribers = await subscription_handler.all_subscribers()
         await event_sender.core_event(

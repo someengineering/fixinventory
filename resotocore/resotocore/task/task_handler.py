@@ -2,25 +2,21 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import re
 from asyncio import Task, CancelledError
 from contextlib import suppress
 from copy import copy
 from dataclasses import replace
 from datetime import timedelta
-from io import TextIOWrapper
 from typing import Optional, Any, Callable, Union, Sequence, Dict, List, Tuple
 
 from aiostream import stream
 
 from resotocore.analytics import AnalyticsEventSender, CoreEvent
-from resotocore.cli import strip_quotes
 from resotocore.cli.cli import CLI
 from resotocore.cli.model import CLIContext
 from resotocore.core_config import CoreConfig
 from resotocore.db.jobdb import JobDb
 from resotocore.db.runningtaskdb import RunningTaskData, RunningTaskDb
-from resotocore.error import ParseError, CLIParseError
 from resotocore.message_bus import MessageBus, Event, Action, ActionDone, Message, ActionError
 from resotocore.task import TaskHandler
 from resotocore.task.model import Subscriber
@@ -45,7 +41,7 @@ from resotocore.task.task_description import (
     RestartAgainStepAction,
     Trigger,
 )
-from resotocore.util import first, Periodic, group_by, uuid_str, utc_str, utc
+from resotocore.util import first, Periodic, group_by, utc_str, utc
 
 log = logging.getLogger(__name__)
 
@@ -72,7 +68,7 @@ class TaskHandlerService(TaskHandler):
         self.subscription_handler = subscription_handler
         self.scheduler = scheduler
         self.cli = cli
-        self.cli_context = CLIContext()
+        self.cli_context = CLIContext(source="task_handler")
         self.config = config
         # note: the waiting queue is kept in memory and lost when the service is restarted.
         self.start_when_done: Dict[str, TaskDescription] = {}
@@ -419,7 +415,7 @@ class TaskHandlerService(TaskHandler):
                         await self.message_bus.emit(command.message)
                         results[command] = None
                     elif isinstance(command, ExecuteOnCLI):
-                        ctx = CLIContext({**command.env, **wi.descriptor.environment})
+                        ctx = replace(self.cli_context, env={**command.env, **wi.descriptor.environment})
                         result = await self.cli.execute_cli_command(command.command, stream.list, ctx)
                         results[command] = result
                     else:
@@ -498,83 +494,6 @@ class TaskHandlerService(TaskHandler):
                 self.start_when_done.pop(task.descriptor.id, None)
                 await self.start_task_directly(task.descriptor, "previous_task_finished")
 
-    # endregion
-
-    # region parse job data
-
-    async def parse_job_file(self, file: TextIOWrapper) -> List[Job]:
-        """
-        Parse a file with job definitions.
-        Every line is either a blank line, a comment or a job definition.
-
-        Example
-        # cron based trigger
-        0 5 * * sat : reported name="foo" | desire name="bla"
-
-        # cron based + event based trigger
-        0 5 * * sat event_name : reported name="foo" | desire name="bla"
-
-        :param file: the file handle to parse.
-        :return: all parsed jobs.
-        :raises: ParseError if the job can not be parsed
-        """
-        jobs = []
-        with file as reader:
-            for line in reader:
-                stripped = line.strip()
-                if stripped and not stripped.startswith("#"):
-                    job = await self.parse_job_line(f"file {file.name}", stripped, mutable=False)
-                    jobs.append(job)
-        return jobs
-
-    async def parse_job_line(
-        self, source: str, line: str, env: Optional[Dict[str, str]] = None, mutable: bool = True
-    ) -> Job:
-        """
-        Parse a single job line.
-        :param source: the source of this line (just for naming purposes)
-        :param line: the line of text
-        :param env: the context for this job
-        :param mutable: defines if the resulting job is mutable or not.
-        :return: the parsed jon
-        """
-
-        stripped = line.strip()
-        timeout = timedelta(hours=1)
-        wait_timeout = timedelta(hours=24)
-        ctx = replace(self.cli_context, env={**self.cli_context.env, **env}) if env else self.cli_context
-
-        async def parse_with_cron() -> Job:
-            parts = re.split("\\s+", stripped, 5)
-            if len(parts) != 6:
-                raise ValueError(f"Invalid job {stripped}")
-            wait: Optional[Tuple[EventTrigger, timedelta]] = None
-            trigger = TimeTrigger(" ".join(parts[0:5]))
-            command = strip_quotes(parts[5])
-            # check if we also need to wait for an event: name_of_event : command
-            if self.event_re.match(command):
-                event, command = re.split("\\s*:\\s*", command, 1)
-                command = strip_quotes(command)
-                wait = EventTrigger(event), wait_timeout
-            await self.cli.evaluate_cli_command(command, ctx, replace_place_holder=False)
-            uid = uuid_str(f"{command}{trigger}{wait}")[0:8]
-            return Job(uid, ExecuteCommand(command), timeout, trigger, wait, ctx.env, mutable)
-
-        async def parse_event() -> Job:
-            event, command = re.split("\\s*:\\s*", stripped, 1)
-            command = strip_quotes(command)
-            await self.cli.evaluate_cli_command(command, ctx, replace_place_holder=False)
-            uid = uuid_str(f"{command}{event}")[0:8]
-            return Job(uid, ExecuteCommand(command), timeout, EventTrigger(event), None, ctx.env, mutable)
-
-        try:
-            return await (parse_event() if self.event_re.match(stripped) else parse_with_cron())
-        except CLIParseError as ex:
-            raise ex
-        except Exception as ex:
-            raise ParseError(f"Can not parse job command line: {stripped}") from ex
-
-    event_re = re.compile("^[A-Za-z][A-Za-z0-9_\\-]*\\s*:")
     # endregion
 
     # region known task descriptors

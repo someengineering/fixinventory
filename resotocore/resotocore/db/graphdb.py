@@ -30,6 +30,7 @@ from resotocore.model.graph_access import GraphAccess, GraphBuilder, EdgeType, S
 from resotocore.model.model import Model, ComplexKind, TransformKind
 from resotocore.model.resolve_in_graph import NodePath, GraphResolver
 from resotocore.query.model import Query
+from resotocore.types import JsonElement
 from resotocore.util import first, value_in_path_get, utc_str, uuid_str, value_in_path, json_hash, set_value_in_path
 
 log = logging.getLogger(__name__)
@@ -1074,7 +1075,6 @@ class EventGraphDB(GraphDB):
         self, graph_to_merge: MultiDiGraph, model: Model, maybe_change_id: Optional[str] = None, is_batch: bool = False
     ) -> Tuple[List[str], GraphUpdate]:
         roots, info = await self.real.merge_graph(graph_to_merge, model, maybe_change_id, is_batch)
-        event_data = {"graph": self.graph_name}
         root_counter: Dict[str, int] = {}
         for root in roots:
             root_node = graph_to_merge.nodes[root]
@@ -1083,6 +1083,14 @@ class EventGraphDB(GraphDB):
             summary: Dict[str, int] = value_in_path_get(root_node, NodePath.descendant_summary, {})
             for nd_name, nd_count in summary.items():
                 root_counter[f"node_count_{rep_id}.{nd_name}"] = nd_count
+
+        # Filter the cloud nodes and get the name
+        provider_names = [
+            value_in_path_get(data, NodePath.reported_name, node_id)
+            for node_id, data in graph_to_merge.nodes(data=True)
+            if "cloud" in data.get("kinds", [])
+        ]
+        event_data: Dict[str, JsonElement] = {"graph": self.graph_name, "providers": provider_names, "batch": is_batch}
 
         kind = CoreEvent.BatchUpdateGraphMerged if is_batch else CoreEvent.GraphMerged
         await self.event_sender.core_event(
