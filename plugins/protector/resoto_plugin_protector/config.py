@@ -3,9 +3,9 @@ from typing import ClassVar, Dict, List
 
 
 default_config = {
-    "aws": {
-        "110465657741": {
-            "us-east-1": {"aws_ec2_instance": ["i-0fcbe8974615bfd37"]},
+    "example": {
+        "Example Account": {
+            "us-west": {"example_instance": ["someInstance1"]},
         },
     },
 }
@@ -23,7 +23,12 @@ class ProtectorConfig:
         metadata={
             "description": (
                 "Configuration for the plugin\n"
-                "See https://github.com/someengineering/resoto/tree/main/plugins/protector for syntax details"
+                "Format:\n"
+                "  cloud.id:\n"
+                "    account.id:\n"
+                "      region.id:\n"
+                "        kind:\n"
+                "          - resource.id"
             )
         },
     )
