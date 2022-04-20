@@ -308,7 +308,13 @@ def report_success(output_file):
 
 
 def main():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        description="Render a result of a resoto query to image file.",
+        epilog="""Example: python3 render_dot.py 'search --with-edges is(instance) <-[0:]->'
+This command will collect instances in your graph and render them to an svg file.
+""",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
     parser.add_argument("query", help="query for visualization")
     parser.add_argument(
         "--engine", help="graphviz layout engine to use", default="sfdp"
