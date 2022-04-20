@@ -181,6 +181,7 @@ def with_config(
         await cli.start()
         await task_handler.start()
         await core_config_handler.start()
+        await cert_handler.start()
         await api.start()
         if created:
             await event_sender.core_event(CoreEvent.SystemInstalled)
@@ -201,6 +202,7 @@ def with_config(
     async def on_stop() -> None:
         duration = utc() - info.started_at
         await api.stop()
+        await cert_handler.stop()
         await core_config_handler.stop()
         await task_handler.stop()
         await cli.stop()
