@@ -43,6 +43,11 @@ resotoworker:
   extraArgs: [ ]
   # Use this section to pass extra environment variables
   extraEnv: [ ]
+  # Use this section to define volumes of the worker
+  volumes: []
+  # Use this section to define volume mounts for the worker
+  volumeMounts: []
+
 
 resotometrics:
   # Use this section to override configuration values
