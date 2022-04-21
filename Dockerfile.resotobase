@@ -5,6 +5,8 @@
 # use the same base package for all containers.
 ARG UI_IMAGE_TAG=latest
 FROM ghcr.io/someengineering/resoto-ui:${UI_IMAGE_TAG} as resoto-ui-env
+FROM docker.io/arangodb/arangodb:3.9.1-noavx as arangodb-amd64-env
+FROM docker.io/programmador/arangodb:3.9.0-devel as arangodb-arm64-env
 
 FROM ubuntu:20.04 as build-env
 ENV DEBIAN_FRONTEND=noninteractive
@@ -79,6 +81,21 @@ RUN /usr/local/python/bin/python3 -m ensurepip
 WORKDIR /usr/local
 RUN /usr/local/python/bin/python3 -m venv resoto-venv-python3
 RUN /usr/local/pypy/bin/pypy3 -m venv resoto-venv-pypy3
+
+# Download and install ArangoDB client on x86 builds (there are no official ArangoDB binaries for arm64)
+WORKDIR /tmp/arangodb
+RUN mkdir -p /tmp/arangodb/amd64 /tmp/arangodb/arm64
+COPY --from=arangodb-amd64-env /usr/bin/arangodump /tmp/arangodb/amd64/
+COPY --from=arangodb-amd64-env /usr/bin/arangorestore /tmp/arangodb/amd64/
+COPY --from=arangodb-arm64-env /usr/bin/arangodump /tmp/arangodb/arm64/
+COPY --from=arangodb-arm64-env /usr/bin/arangorestore /tmp/arangodb/arm64/
+RUN if [ ${TARGETPLATFORM} = "linux/amd64" ]; then \
+        cp /tmp/arangodb/amd64/* /usr/local/bin/; \
+    elif [ ${TARGETPLATFORM} = "linux/arm64" ]; then \
+        cp /tmp/arangodb/arm64/* /usr/local/bin/; \
+    else \
+        echo "Building for unknown platform - not copying ArangoDB client binaries"; \
+    fi
 
 # Prepare PyPy whl build env
 RUN mkdir -p /build-python
