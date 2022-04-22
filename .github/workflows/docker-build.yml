@@ -62,9 +62,9 @@ jobs:
         uses: actions/cache@v2
         with:
           path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          key: ${{ runner.os }}-${{ secrets.CACHE_VERSION }}-buildx-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-buildx-
+            ${{ runner.os }}-${{ secrets.CACHE_VERSION }}-buildx-
 
       - name: Log in to Docker Hub
         if: github.event_name != 'pull_request'
@@ -251,9 +251,9 @@ jobs:
         uses: actions/cache@v2
         with:
           path: /tmp/.buildx-cache
-          key: base-${{ runner.os }}-buildx-${{ github.sha }}
+          key: base-${{ runner.os }}-${{ secrets.CACHE_VERSION }}-buildx-${{ github.sha }}
           restore-keys: |
-            base-${{ runner.os }}-buildx-
+            base-${{ runner.os }}-${{ secrets.CACHE_VERSION }}-buildx-
 
       - name: Log in to Docker Hub
         if: github.event_name != 'pull_request'
