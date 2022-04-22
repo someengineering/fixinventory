@@ -2,7 +2,7 @@
 
 ## Setup process
 1. If you haven't done this already, install the [resoto development environment](https://resoto.com/docs/contributing/components).
-2. Now, you need the [install graphviz](https://graphviz.org/download/). 
+2. Now, you need to [install graphviz](https://graphviz.org/download/). 
 3. Additionally, you will need access to a running resotocore instance.
 
 ## Usage
