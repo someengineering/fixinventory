@@ -40,11 +40,8 @@ def test_complete_command() -> None:
 
 def test_search() -> None:
     n = SearchCompleter(known_kinds, known_props)
-    assert complete("", n, True) == {
-        "is(kind): matches elements of defined kind",
-        "all: matches all elements",
-    }
-    assert complete("i", n, True) == {"is(kind): matches elements of defined kind"}
+    assert len(complete("", n, True)) > len(known_props)
+    assert "is(" in complete("i", n)
     assert len(complete("is(", n)) == len(known_kinds)
     assert len(complete("is(instance) and ", n)) == len(known_props)
     assert len(complete("is(instance) or ", n)) == len(known_props)
