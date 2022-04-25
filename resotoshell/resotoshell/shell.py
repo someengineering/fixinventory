@@ -2,7 +2,6 @@ import os.path
 import re
 import shutil
 import sys
-from pathlib import Path
 from subprocess import call
 from tempfile import TemporaryDirectory
 from typing import Dict, Union, Optional, Tuple, Any
@@ -15,6 +14,7 @@ from requests_toolbelt.multipart.decoder import BodyPart
 from resotolib.core.ca import TLSData
 from resotolib.args import ArgumentParser
 from resotolib.jwt import encode_jwt_to_headers
+from resotolib.utils import sha256sum
 from resotolib.logging import log
 from resotoshell.protected_files import validate_paths
 
@@ -162,9 +162,14 @@ class Shell:
         ):
             with TemporaryDirectory() as tmp:
                 name, path = store_file(tmp)
+                original_shasum = sha256sum(path)
                 call([os.environ.get("EDITOR", "vi"), path])
-                stats = Path(path).lstat()
-                if stats.st_mtime != stats.st_ctime:
+                new_shasum = sha256sum(path)
+                log.debug(
+                    f"Original config sha256: {original_shasum},"
+                    f" new sha256: {new_shasum}"
+                )
+                if new_shasum != original_shasum:
                     self.handle_command(f"{command} {name}", {}, {name: path})
                 else:
                     print("No change made while editing the file. Update aborted.")

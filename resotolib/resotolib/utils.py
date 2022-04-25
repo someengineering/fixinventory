@@ -1,5 +1,6 @@
 import string
 import threading
+import hashlib
 import socket
 import re
 import os
@@ -462,6 +463,20 @@ def iec_size_format(byte_size: int) -> str:
             return f"{byte_size:.2f} {unit}"
         byte_size /= 1024.0
     return f"{byte_size:.2f} YiB"
+
+
+# via https://stackoverflow.com/a/44873382
+def sha256sum(filename: str, buffer_size: int = 128 * 1024) -> str:
+    h = hashlib.sha256()
+    buffer = bytearray(buffer_size)
+    buffer_view = memoryview(buffer)
+    with open(filename, "rb", buffering=0) as f:
+        while True:
+            n = f.readinto(buffer_view)
+            if not n:
+                break
+            h.update(buffer_view[:n])
+    return h.hexdigest()
 
 
 def json_default(o):
