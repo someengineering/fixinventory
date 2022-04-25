@@ -6,7 +6,6 @@ from typing import Callable, Optional, Dict
 from urllib.parse import urlencode
 
 import resotolib.signal
-from prompt_toolkit import PromptSession
 from resotolib.args import ArgumentParser, Namespace
 from resotolib.core import resotocore, add_args as core_add_args, resotocore_is_up
 from resotolib.core.ca import TLSData

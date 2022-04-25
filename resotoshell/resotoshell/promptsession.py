@@ -1,4 +1,3 @@
-import logging
 import pathlib
 import re
 from dataclasses import dataclass, field
@@ -259,6 +258,8 @@ class CommandLineCompleter(Completer):
                 return FuzzyWordCompleter(kinds, WORD=True)
             elif arg.value_hint == "property":
                 return FuzzyWordCompleter(props, WORD=True)
+            elif arg.value_hint == "command":
+                return FuzzyWordCompleter([cmd.name for cmd in cmds], WORD=True)
             elif arg.value_hint == "search":
                 return SearchCompleter(kinds, props)
             elif arg.help_text:
@@ -1123,6 +1124,16 @@ known_commands = [
             ArgInfo(None, True, help_text="the number of elements to return. e.g. -10"),
         ],
         source=False,
+    ),
+    CommandInfo(
+        "help",
+        [
+            ArgInfo(
+                None,
+                expects_value=True,
+                value_hint="command",
+            ),
+        ],
     ),
     CommandInfo(
         "http",

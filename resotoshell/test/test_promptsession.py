@@ -1,4 +1,4 @@
-from typing import List, Set
+from typing import Set
 
 from prompt_toolkit.completion import (
     Completer,
