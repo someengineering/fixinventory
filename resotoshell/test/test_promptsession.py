@@ -9,7 +9,7 @@ from prompt_toolkit.completion import (
 from prompt_toolkit.document import Document
 
 from resotoshell.promptsession import (
-    ResotoCompleter,
+    CommandLineCompleter,
     known_commands,
 )
 
@@ -22,7 +22,7 @@ def complete(part: str, completer: Completer, return_display: bool = True) -> Li
 
 
 def test_complete_command() -> None:
-    n = ResotoCompleter(*known_commands)
+    n = CommandLineCompleter.create_completer(known_commands, [], [])
 
     # source commands
     assert len(complete("", n)) == 12
@@ -35,8 +35,13 @@ def test_complete_command() -> None:
     assert complete("search all | cl", n) == ["clean"]
 
 
+def test_foo() -> None:
+    n = CommandLineCompleter.create_completer(known_commands, [], [])
+    assert complete("search all | list ", n) == [""]
+
+
 def test_complete_option() -> None:
-    n = ResotoCompleter(*known_commands)
+    n = CommandLineCompleter.create_completer(known_commands, [], [])
     assert complete("ancestors ", n) == [
         "--with-origin",
         "default: (edge type)",
@@ -58,6 +63,8 @@ def test_complete_option() -> None:
     ]
 
     assert complete("configs show ", n) == ["<config_id> e.g. resoto.core"]
+
+    assert complete("search all | list ", n) == [""]
 
 
 def test_complete_word() -> None:
