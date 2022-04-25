@@ -2,7 +2,8 @@ import unittest
 import threading
 import time
 import copy
-from resotolib.utils import RWLock, ordinal
+from tempfile import TemporaryDirectory
+from resotolib.utils import RWLock, ordinal, sha256sum
 from resotolib.baseresources import BaseResource
 from dataclasses import dataclass
 from typing import ClassVar
@@ -217,3 +218,15 @@ def test_ordinal():
     assert ordinal(21) == "21st"
     assert ordinal(22) == "22nd"
     assert ordinal(23) == "23rd"
+
+
+def test_sha256sum():
+    test_string = b"Hello World!"
+    expected_sha256sum = (
+        "7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069"
+    )
+    with TemporaryDirectory() as tmp:
+        tmp_file = f"{tmp}/testfile"
+        with open(tmp_file, "wb") as f:
+            f.write(test_string)
+        assert sha256sum(tmp_file) == expected_sha256sum
