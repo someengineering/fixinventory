@@ -28,7 +28,7 @@ def test_complete_command() -> None:
     n = CommandLineCompleter.create_completer(known_commands, [], [])
 
     # source commands
-    assert len(complete("", n)) == 12
+    assert len(complete("", n)) == 13
     assert complete("c", n) == {"certificate", "configs", "echo", "search"}
     assert complete("ce", n) == {"certificate"}
 
