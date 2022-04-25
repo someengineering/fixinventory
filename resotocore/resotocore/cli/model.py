@@ -285,6 +285,42 @@ class CLIFlow(CLIAction):
         return self.make_stream(await gen if iscoroutine(gen) else gen)
 
 
+@dataclass
+class ArgInfo:
+    # If the argument has a name. It is quite common that arguments do not have a name
+    # but are expected at some position.
+    # Example: `count <kind>`: kind is the argument at position 1 without a name
+    name: Optional[str] = None
+    # Defines if this argument expects a value.
+    # Some arguments are only flags, while others expect a value.
+    # Example: `--compress` is a flag without value
+    # Example: `--count <kind>` is an argument with value
+    expects_value: bool = False
+    # If the value has to be picked from a list of values (enumeration).
+    # Example: `--format svg|png|jpg`
+    possible_values: List[str] = field(default_factory=list)
+    # If this argument is allowed to be specified multiple times
+    can_occur_multiple_times: bool = False
+    # Give a type hint for the argument value.
+    # Allowed values are:
+    # - `file`: the argument expects a file path
+    # - `kind`: the argument expects a kind in the model
+    # - `property`: the argument expects a property in the model
+    # - `command`: the argument expects a command on the cli
+    # - `event`: the event handled or emitted by the task handler
+    # - `search`: the argument expects a search string
+    value_hint: Optional[str] = None
+    # Help text of the argument option.
+    help_text: Optional[str] = None
+
+
+# mypy does not support recursive type aliases: define 3 levels as maximum here
+ArgsInfo = Union[
+    Dict[str, Union[Dict[str, Union[Dict[str, Union[Any, List[ArgInfo]]], List[ArgInfo]]], List[ArgInfo]]],
+    List[ArgInfo],
+]
+
+
 class CLICommand(ABC):
     """
     The CLIPart is the base for all participants of the cli execution.
@@ -293,8 +329,9 @@ class CLICommand(ABC):
     Sink: takes a stream of objects and creates a result
     """
 
-    def __init__(self, dependencies: CLIDependencies):
+    def __init__(self, dependencies: CLIDependencies, allowed_in_source_position: bool = False) -> None:
         self.dependencies = dependencies
+        self.allowed_in_source_position = allowed_in_source_position
 
     @property
     @abstractmethod
@@ -309,6 +346,10 @@ class CLICommand(ABC):
     def rendered_help(self, ctx: CLIContext) -> str:
         text = f"\n**{self.name}: {self.info()}**\n\n{self.help()}"
         return ctx.render_console(text)
+
+    @abstractmethod
+    def args_info(self) -> ArgsInfo:
+        pass
 
     @abstractmethod
     def info(self) -> str:

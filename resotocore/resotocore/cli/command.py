@@ -64,6 +64,8 @@ from resotocore.cli.model import (
     CLIDependencies,
     ParsedCommand,
     NoTerminalOutput,
+    ArgsInfo,
+    ArgInfo,
 )
 from resotocore.config import ConfigEntity
 from resotocore.db.model import QueryModel
@@ -326,6 +328,9 @@ class SearchPart(SearchCLIPart):
     def info(self) -> str:
         return "Search the graph."
 
+    def args_info(self) -> ArgsInfo:
+        return [ArgInfo(expects_value=True, value_hint="search")]
+
 
 class PredecessorsPart(SearchCLIPart):
     """
@@ -368,6 +373,12 @@ class PredecessorsPart(SearchCLIPart):
 
     def info(self) -> str:
         return "Select all predecessors of this node in the graph."
+
+    def args_info(self) -> ArgsInfo:
+        return [
+            ArgInfo("--with-origin"),
+            ArgInfo(expects_value=True, possible_values=["default", "delete"], help_text="edge type"),
+        ]
 
     @staticmethod
     def parse_args(arg: Optional[str], ctx: CLIContext) -> Tuple[int, str]:
@@ -427,6 +438,12 @@ class SuccessorsPart(SearchCLIPart):
     def info(self) -> str:
         return "Select all successor of this node in the graph."
 
+    def args_info(self) -> ArgsInfo:
+        return [
+            ArgInfo("--with-origin"),
+            ArgInfo(expects_value=True, possible_values=["default", "delete"], help_text="edge type"),
+        ]
+
 
 class AncestorsPart(SearchCLIPart):
     """
@@ -474,6 +491,12 @@ class AncestorsPart(SearchCLIPart):
     def info(self) -> str:
         return "Select all ancestors of this node in the graph."
 
+    def args_info(self) -> ArgsInfo:
+        return [
+            ArgInfo("--with-origin"),
+            ArgInfo(expects_value=True, possible_values=["default", "delete"], help_text="edge type"),
+        ]
+
 
 class DescendantsPart(SearchCLIPart):
     """
@@ -515,6 +538,12 @@ class DescendantsPart(SearchCLIPart):
 
     def info(self) -> str:
         return "Select all descendants of this node in the graph."
+
+    def args_info(self) -> ArgsInfo:
+        return [
+            ArgInfo("--with-origin"),
+            ArgInfo(expects_value=True, possible_values=["default", "delete"], help_text="edge type"),
+        ]
 
 
 class AggregatePart(SearchCLIPart):
@@ -585,6 +614,9 @@ class AggregatePart(SearchCLIPart):
     def info(self) -> str:
         return "Aggregate this search by the provided specification."
 
+    def args_info(self) -> ArgsInfo:
+        return [ArgInfo(expects_value=True, value_hint="aggregate", help_text="aggregation specification")]
+
 
 class HeadCommand(SearchCLIPart):
     """
@@ -629,6 +661,9 @@ class HeadCommand(SearchCLIPart):
         size = self.parse_size(arg)
         return CLIFlow(lambda in_stream: stream.take(in_stream, size))
 
+    def args_info(self) -> ArgsInfo:
+        return [ArgInfo(expects_value=True, help_text="number of elements to take")]
+
     @staticmethod
     def parse_size(arg: Optional[str]) -> int:
         return abs(int(arg)) if arg else 100
@@ -672,6 +707,9 @@ class TailCommand(SearchCLIPart):
 
     def info(self) -> str:
         return "Return n last elements of the stream."
+
+    def args_info(self) -> ArgsInfo:
+        return [ArgInfo(expects_value=True, help_text="number of elements to take")]
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
         size = HeadCommand.parse_size(arg)
@@ -733,6 +771,9 @@ class CountCommand(SearchCLIPart):
 
     def info(self) -> str:
         return "Count incoming elements or sum defined property."
+
+    def args_info(self) -> ArgsInfo:
+        return [ArgInfo(expects_value=True, help_text="optional property to count")]
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
         get_path = ctx.variable_in_section(arg).split(".") if arg else None
@@ -807,6 +848,9 @@ class EchoCommand(CLICommand):
     def info(self) -> str:
         return "Send the provided message to downstream."
 
+    def args_info(self) -> ArgsInfo:
+        return [ArgInfo(expects_value=True, help_text="message to send downstream")]
+
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLISource:
         return CLISource.single(lambda: stream.just(strip_quotes(arg if arg else "")))
 
@@ -854,6 +898,9 @@ class JsonCommand(CLICommand):
     def info(self) -> str:
         return "Parse json and pass parsed objects to the output stream."
 
+    def args_info(self) -> ArgsInfo:
+        return [ArgInfo(expects_value=True, help_text="json string to emit")]
+
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLISource:
         if arg:
             js = json.loads(arg)
@@ -893,6 +940,9 @@ class SleepCommand(CLICommand):
 
     def info(self) -> str:
         return "Suspend execution for an interval of time."
+
+    def args_info(self) -> ArgsInfo:
+        return [ArgInfo(expects_value=True, help_text="number of seconds to sleep")]
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLISource:
 
@@ -934,6 +984,9 @@ class AggregateToCountCommand(CLICommand, InternalPart):
 
     def info(self) -> str:
         return "Convert the output of an aggregate search to the result of count."
+
+    def args_info(self) -> ArgsInfo:
+        return []
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
         name_path = ["group", "name"]
@@ -986,6 +1039,9 @@ class ExecuteSearchCommand(CLICommand, InternalPart):
 
     def info(self) -> str:
         return "Search the database and pass the results to the output stream."
+
+    def args_info(self) -> ArgsInfo:
+        return [ArgInfo(expects_value=True, value_hint="search", help_text="search to perform")]
 
     @staticmethod
     def parse_known(arg: str) -> Tuple[Dict[str, Any], str]:
@@ -1091,6 +1147,9 @@ class EnvCommand(CLICommand):
     def info(self) -> str:
         return "Retrieve the environment and pass it to the output stream."
 
+    def args_info(self) -> ArgsInfo:
+        return []
+
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLISource:
         return CLISource.with_count(lambda: stream.just(ctx.env), len(ctx.env))
 
@@ -1135,6 +1194,9 @@ class ChunkCommand(CLICommand):
 
     def info(self) -> str:
         return "Chunk incoming elements in batches."
+
+    def args_info(self) -> ArgsInfo:
+        return [ArgInfo(expects_value=True, help_text="The number of elements to put into one chunk.")]
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
         size = int(arg) if arg else 100
@@ -1181,6 +1243,9 @@ class FlattenCommand(CLICommand):
     def info(self) -> str:
         return "Take incoming batches of elements and flattens them to a stream of single elements."
 
+    def args_info(self) -> ArgsInfo:
+        return []
+
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
         def iterate(it: Any) -> Stream:
             return stream.iterate(it) if is_async_iterable(it) or isinstance(it, Iterable) else stream.just(it)
@@ -1220,6 +1285,9 @@ class UniqCommand(CLICommand):
 
     def info(self) -> str:
         return "Remove all duplicated objects from the stream."
+
+    def args_info(self) -> ArgsInfo:
+        return []
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
         visited = set()
@@ -1297,6 +1365,12 @@ class JqCommand(CLICommand, OutputTransformer):
 
     def info(self) -> str:
         return "Filter and process json."
+
+    def args_info(self) -> ArgsInfo:
+        return [
+            ArgInfo("--no-rewrite"),
+            ArgInfo(expects_value=True, help_text="The filter definition to create a jq program."),
+        ]
 
     path_re = re.compile("[.](/?[A-Za-z]+)[A-Za-z0-9\\[\\].]*")
 
@@ -1400,6 +1474,12 @@ class KindsCommand(CLICommand, PreserveOutputFormat):
 
     def info(self) -> str:
         return "Retrieves information about the graph data kinds."
+
+    def args_info(self) -> ArgsInfo:
+        return [
+            ArgInfo("-p", expects_value=True, help_text="lookup the kind for the defined property path."),
+            ArgInfo(expects_value=True, value_hint="kind", help_text="kind to lookup"),
+        ]
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLISource:
         show_path: Optional[str] = None
@@ -1516,6 +1596,9 @@ class SetDesiredCommand(SetDesiredStateBase):
     def info(self) -> str:
         return "Allows to set arbitrary properties as desired for all incoming database objects."
 
+    def args_info(self) -> ArgsInfo:
+        return [ArgInfo(expects_value=True, help_text="<prop>=<value>")]
+
     def patch(self, arg: Optional[str], ctx: CLIContext) -> Json:
         if arg and arg.strip():
             return key_values_parser.parse(arg)  # type: ignore
@@ -1563,6 +1646,9 @@ class CleanCommand(SetDesiredStateBase):
 
     def info(self) -> str:
         return "Mark all incoming database objects for cleaning."
+
+    def args_info(self) -> ArgsInfo:
+        return [ArgInfo(expects_value=True, help_text="optional reason for cleaning")]
 
     def patch(self, arg: Optional[str], ctx: CLIContext) -> Json:
         return {"clean": True}
@@ -1645,6 +1731,9 @@ class SetMetadataCommand(SetMetadataStateBase):
     def info(self) -> str:
         return "Allows to set arbitrary properties as metadata for all incoming database objects."
 
+    def args_info(self) -> ArgsInfo:
+        return [ArgInfo(expects_value=True, help_text="<key>=<value>")]
+
     def patch(self, arg: Optional[str], ctx: CLIContext) -> Json:
         if arg and arg.strip():
             return key_values_parser.parse(arg)  # type: ignore
@@ -1684,6 +1773,9 @@ class ProtectCommand(SetMetadataStateBase):
 
     def info(self) -> str:
         return "Mark all incoming database objects as protected."
+
+    def args_info(self) -> ArgsInfo:
+        return []
 
     def patch(self, arg: Optional[str], ctx: CLIContext) -> Json:
         return {"protected": True}
@@ -1738,6 +1830,25 @@ class FormatCommand(CLICommand, OutputTransformer):
 
     def info(self) -> str:
         return "Transform incoming objects as string with a defined format."
+
+    def args_info(self) -> ArgsInfo:
+        return [
+            ArgInfo(
+                possible_values=[
+                    "--json",
+                    "--ndjson",
+                    "--text",
+                    "--cytoscape",
+                    "--graphml",
+                    "--dot",
+                ],
+                help_text="output format",
+            ),
+            ArgInfo(
+                expects_value=True,
+                help_text="format definition with {} placeholders",
+            ),
+        ]
 
     formats = {
         "ndjson": respond_ndjson,
@@ -1854,6 +1965,9 @@ class DumpCommand(CLICommand, OutputTransformer):
 
     def info(self) -> str:
         return "Dump all properties of incoming objects."
+
+    def args_info(self) -> ArgsInfo:
+        return []
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
         # Dump returns the same stream as provided without changing anything.
@@ -1984,6 +2098,15 @@ class ListCommand(CLICommand, OutputTransformer):
 
     def info(self) -> str:
         return "Format elements as property list, csv or markdown."
+
+    def args_info(self) -> ArgsInfo:
+        return [
+            ArgInfo(possible_values=["--csv", "--markdown"], help_text="format"),
+            ArgInfo(
+                expects_value=True,
+                help_text="comma separated list of properties to show",
+            ),
+        ]
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
         parser = NoExitArgumentParser()
@@ -2278,6 +2401,31 @@ class JobsCommand(CLICommand, PreserveOutputFormat):
     def info(self) -> str:
         return "Manage all jobs."
 
+    def args_info(self) -> ArgsInfo:
+        return {
+            "add": [
+                ArgInfo("--id", expects_value=True),
+                ArgInfo("--schedule", expects_value=True),
+                ArgInfo("--wait-for-event", expects_value=True),
+                ArgInfo("--timeout", expects_value=True),
+                ArgInfo(None, value_hint="command", help_text="<command> to run"),
+            ],
+            "show": [
+                ArgInfo(None, help_text="<job-id>"),
+            ],
+            "list": [],
+            "update": [
+                ArgInfo(None, help_text="<job-id>"),
+                ArgInfo("--schedule", expects_value=True),
+                ArgInfo("--wait-for-event", value_hint="event", expects_value=True),
+            ],
+            "delete": [ArgInfo(None, help_text="<job-id>")],
+            "activate": [ArgInfo(None, help_text="<job-id>")],
+            "deactivate": [ArgInfo(None, help_text="<job-id>")],
+            "run": [ArgInfo(None, help_text="<job-id>")],
+            "running": [],
+        }
+
     @staticmethod
     def is_jobs_update(command: ParsedCommand) -> bool:
         if command.cmd == "jobs":
@@ -2503,6 +2651,18 @@ class TagCommand(SendWorkerTaskCommand):
     def info(self) -> str:
         return "Update a tag with provided value or delete a tag."
 
+    def args_info(self) -> ArgsInfo:
+        return {
+            "update": [
+                ArgInfo("--nowait"),
+                ArgInfo(None, expects_value=True, help_text="<tag-name> [tag-value]"),
+            ],
+            "delete": [
+                ArgInfo("--nowait"),
+                ArgInfo(None, expects_value=True, help_text="<tag-name>"),
+            ],
+        }
+
     def timeout(self) -> timedelta:
         return timedelta(seconds=30)
 
@@ -2615,6 +2775,9 @@ class FileCommand(CLICommand, InternalPart):
     def info(self) -> str:
         return "only for debugging purposes..."
 
+    def args_info(self) -> ArgsInfo:
+        return [ArgInfo(expects_value=True, value_hint="file", help_text="file to download")]
+
 
 class UploadCommand(CLICommand, InternalPart):
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLISource:
@@ -2637,6 +2800,9 @@ class UploadCommand(CLICommand, InternalPart):
 
     def info(self) -> str:
         return "only for debugging purposes..."
+
+    def args_info(self) -> ArgsInfo:
+        return [ArgInfo(expects_value=True, value_hint="file", help_text="file to upload")]
 
 
 class SystemCommand(CLICommand, PreserveOutputFormat):
@@ -2722,6 +2888,29 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
 
     def info(self) -> str:
         return "Access and manage system wide properties."
+
+    def args_info(self) -> ArgsInfo:
+        return {
+            "backup": {
+                "create": [
+                    ArgInfo(
+                        None,
+                        expects_value=True,
+                        help_text="The name of the backup file.",
+                        value_hint="file",
+                    ),
+                ],
+                "restore": [
+                    ArgInfo(
+                        None,
+                        expects_value=True,
+                        help_text="The name of the local backup file to upload.",
+                        value_hint="file",
+                    ),
+                ],
+            },
+            "info": [],
+        }
 
     async def create_backup(self, arg: Optional[str]) -> AsyncIterator[str]:
         temp_dir: str = tempfile.mkdtemp()
@@ -2900,6 +3089,9 @@ class WriteCommand(CLICommand, NoTerminalOutput):
     def info(self) -> str:
         return "Writes the incoming stream of data to a file in the defined format."
 
+    def args_info(self) -> ArgsInfo:
+        return [ArgInfo(expects_value=True, value_hint="file", help_text="file to write to")]
+
     @staticmethod
     async def write_result_to_file(in_stream: Stream, file_name: str) -> AsyncIterator[str]:
         temp_dir: str = tempfile.mkdtemp()
@@ -2987,6 +3179,14 @@ class TemplatesCommand(CLICommand, PreserveOutputFormat):
 
     def info(self) -> str:
         return "Access the search template library."
+
+    def args_info(self) -> ArgsInfo:
+        return {
+            "add": [ArgInfo(None, expects_value=True, help_text="<name> <template>")],
+            "delete": [ArgInfo(None, expects_value=True, help_text="<name>")],
+            "test": [ArgInfo(None, expects_value=True, help_text="<key1>=<value1>, ..., <keyN>=<valueN> <template>")],
+            "update": [ArgInfo(None, expects_value=True, help_text="<name> <template>")],
+        }
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
         def template_str(template: Template) -> str:
@@ -3109,6 +3309,16 @@ class HttpCommand(CLICommand):
 
     def info(self) -> str:
         return "Perform http request with incoming data."
+
+    def args_info(self) -> ArgsInfo:
+        return [
+            ArgInfo("--compress"),
+            ArgInfo("--timeout", expects_value=True, help_text="Timeout in seconds"),
+            ArgInfo("--no-ssl-verify"),
+            ArgInfo("--no-body"),
+            ArgInfo("--nr-of-retries", expects_value=True, help_text="Number of retries"),
+            ArgInfo(None, expects_value=True, help_text="<method> <url> <headers> <query_params>"),
+        ]
 
     default_timeout = ClientTimeout(total=30)
     colon_port = re.compile("^:(\\d+)(.*)$")
@@ -3333,6 +3543,14 @@ class WorkflowsCommand(CLICommand):
     def info(self) -> str:
         return "Manage all workflows."
 
+    def args_info(self) -> ArgsInfo:
+        return {
+            "show": [ArgInfo(None, help_text="<workflow-id>")],
+            "list": [],
+            "run": [ArgInfo(None, help_text="<workflow-id>")],
+            "running": [],
+        }
+
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLISource:
         async def list_workflows() -> Tuple[int, AsyncIterator[JsonElement]]:
             listed = await self.dependencies.task_handler.list_workflows()
@@ -3466,6 +3684,18 @@ class ConfigsCommand(CLICommand):
     def info(self) -> str:
         return "Manage configuration settings."
 
+    def args_info(self) -> ArgsInfo:
+        return {
+            "list": [],
+            "set": [ArgInfo(None, expects_value=True, help_text="<config_id> <key>=<value>")],
+            "show": [ArgInfo(None, expects_value=True, help_text="<config_id> e.g. resoto.core")],
+            "edit": [ArgInfo(None, expects_value=True, help_text="<config_id>")],
+            "update": [
+                ArgInfo(None, expects_value=True, help_text="<config_id> /path/to/config.yaml", value_hint="file")
+            ],
+            "delete": [ArgInfo(None, expects_value=True, help_text="<config_id>")],
+        }
+
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
         async def show_config(cfg_id: str) -> AsyncIterator[JsonElement]:
             cfg = await self.dependencies.config_handler.config_yaml(cfg_id)
@@ -3573,6 +3803,9 @@ class WelcomeCommand(CLICommand, InternalPart):
     def info(self) -> str:
         return "Show a welcome message to the user."
 
+    def args_info(self) -> ArgsInfo:
+        return []
+
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
         async def welcome() -> str:
             info = Table.grid(expand=True)
@@ -3640,6 +3873,16 @@ class CertificateCommand(CLICommand):
     def info(self) -> str:
         return "Create TLS certificates."
 
+    def args_info(self) -> ArgsInfo:
+        return {
+            "create": [
+                ArgInfo("--common-name", True, help_text="Common name like: example.com"),
+                ArgInfo("--dns-names", True, help_text="List of other dns names: example.org example.io"),
+                ArgInfo("--ip-addresses", True, help_text="List of ip addresses: 1.2.3.4 2.3.4.5"),
+            ],
+            "delete": [],
+        }
+
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
         async def create_certificate(
             common_name: str, dns_names: List[str], ip_addresses: List[str], days_valid: int
@@ -3684,39 +3927,39 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         AggregatePart(d),
         AggregateToCountCommand(d),
         AncestorsPart(d),
-        CertificateCommand(d),
+        CertificateCommand(d, allowed_in_source_position=True),
         ChunkCommand(d),
         CleanCommand(d),
-        ConfigsCommand(d),
+        ConfigsCommand(d, allowed_in_source_position=True),
         CountCommand(d),
         DescendantsPart(d),
         DumpCommand(d),
-        EchoCommand(d),
-        EnvCommand(d),
-        ExecuteSearchCommand(d),
+        EchoCommand(d, allowed_in_source_position=True),
+        EnvCommand(d, allowed_in_source_position=True),
+        ExecuteSearchCommand(d, allowed_in_source_position=True),
         FlattenCommand(d),
         FormatCommand(d),
         HeadCommand(d),
         HttpCommand(d),
-        JobsCommand(d),
+        JobsCommand(d, allowed_in_source_position=True),
         JqCommand(d),
-        JsonCommand(d),
-        KindsCommand(d),
+        JsonCommand(d, allowed_in_source_position=True),
+        KindsCommand(d, allowed_in_source_position=True),
         ListCommand(d),
-        TemplatesCommand(d),
+        TemplatesCommand(d, allowed_in_source_position=True),
         PredecessorsPart(d),
         ProtectCommand(d),
-        SearchPart(d),
+        SearchPart(d, allowed_in_source_position=True),
         SetDesiredCommand(d),
         SetMetadataCommand(d),
-        SleepCommand(d),
+        SleepCommand(d, allowed_in_source_position=True),
         SuccessorsPart(d),
-        SystemCommand(d),
+        SystemCommand(d, allowed_in_source_position=True),
         TagCommand(d),
         TailCommand(d),
         UniqCommand(d),
-        WorkflowsCommand(d),
-        WelcomeCommand(d),
+        WorkflowsCommand(d, allowed_in_source_position=True),
+        WelcomeCommand(d, allowed_in_source_position=True),
         WriteCommand(d),
     ]
     # commands that are only available when the system is started in debug mode

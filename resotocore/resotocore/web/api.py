@@ -740,7 +740,13 @@ class Api:
 
     async def cli_info(self, _: Request) -> StreamResponse:
         def cmd_json(cmd: CLICommand) -> Json:
-            return {"name": cmd.name, "info": cmd.info(), "help": cmd.help()}
+            return {
+                "name": cmd.name,
+                "info": cmd.info(),
+                "help": cmd.help(),
+                "args": to_js(cmd.args_info(), force_dict=True),
+                "source": cmd.allowed_in_source_position,
+            }
 
         def alias_json(cmd: AliasTemplate) -> Json:
             return {"name": cmd.name, "info": cmd.info, "help": cmd.help()}
