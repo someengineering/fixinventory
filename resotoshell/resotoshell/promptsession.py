@@ -1,8 +1,11 @@
+import logging
 import pathlib
+import re
 from dataclasses import dataclass, field
 from typing import Iterable, Optional, List, Dict, Union
 
 from prompt_toolkit import PromptSession as PTSession
+from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from prompt_toolkit.completion import (
     Completer,
     CompleteEvent,
@@ -11,13 +14,22 @@ from prompt_toolkit.completion import (
     NestedCompleter,
     merge_completers,
     PathCompleter,
+    FuzzyWordCompleter,
 )
 from prompt_toolkit.document import Document
 from prompt_toolkit.history import FileHistory
 from prompt_toolkit.styles import Style
 
 
-def cut_document(document: Document, last_part: str) -> Document:
+def cut_document_remaining(document: Document, remaining: str) -> Document:
+    return Document(
+        remaining,
+        cursor_position=document.cursor_position
+        - (len(document.text) - len(remaining)),
+    )
+
+
+def cut_document_last(document: Document, last_part: str) -> Document:
     left, right = document.text_before_cursor.rsplit(last_part, 1)
     right_stripped = right.lstrip()
     return Document(
@@ -78,20 +90,48 @@ class CommandCompleter(Completer):
             return []
 
 
+re_inside_is = re.compile("is\\(([^)]*)$")
+# re_json_value = r'(?:"([^"]*)")|(?:\[[^\\]+\])|(?:\{[^}]+\})|(?:[A-Za-z0-9_\-:/.]+)'
+# re_inside_filter = re.compile(
+#     f".*(?:[A-Za-z_][A-Za-z0-9_\\-.\\[\\]]*)\\s*(?:==|=|!=|<|>|<=|>=|=~|~|!~|in|not in)\\s*(?:{re_json_value})$"
+# )
+param_start = re.compile(r".*(?:and|or)\s+([A-Za-z0-9_\-]*)$")
+
+
 class SearchCompleter(Completer):
     def __init__(self, kinds: List[str], props: List[str]):
         self.kinds = kinds
         self.props = props
-        display_kind = {f"{k})": k for k in kinds}
-        self.kind_completer = WordCompleter(
-            list(display_kind.keys()), display_dict=display_kind, WORD=True
+        self.kind_completer = FuzzyWordCompleter(kinds, WORD=True)
+        self.props_completer = FuzzyWordCompleter(props, WORD=True)
+        self.start_completer = WordCompleter(
+            ["is", "all"],
+            display_dict=(
+                {
+                    "is": "is(kind): matches elements of defined kind",
+                    "all": "all: matches all elements",
+                }
+            ),
+            WORD=True,
         )
-        self.props_completer = WordCompleter(props, WORD=True)
 
     def get_completions(
         self, document: Document, complete_event: CompleteEvent
     ) -> Iterable[Completion]:
-        pass
+
+        text = document.text_before_cursor
+        text_stripped = text.strip()
+
+        if text_stripped == "is"[0 : len(text_stripped)]:
+            return self.start_completer.get_completions(document, complete_event)
+        elif in_is := re_inside_is.match(text):
+            doc = cut_document_remaining(document, in_is.group(1))
+            return self.kind_completer.get_completions(doc, complete_event)
+        elif parm := param_start.match(text):
+            doc = cut_document_remaining(document, parm.group(1))
+            return self.props_completer.get_completions(doc, complete_event)
+        else:
+            return []
 
 
 class ExampleCompleter(Completer):
@@ -118,8 +158,8 @@ class ArgsCompleter(Completer):
         # this completer completes new options as well as direct values
         self.completer = merge_completers(
             [
-                WordCompleter(list(self.args.keys()), WORD=True),
-                *[a.completer for a in direct],
+                FuzzyWordCompleter(list(self.args.keys()), WORD=True),
+                *[a.completer for a in direct if a.completer],
             ]
         )
         self.value_lookup: Dict[str, ArgCompleter] = {
@@ -162,7 +202,7 @@ class ArgsCompleter(Completer):
             )
         else:
             # suggest the arg values
-            doc = cut_document(document, maybe.arg.name)
+            doc = cut_document_last(document, maybe.arg.name)
             return maybe.get_completions(doc, complete_event)
 
 
@@ -170,10 +210,10 @@ class CommandLineCompleter(Completer):
     def __init__(self, commands: List[CommandInfo], completers: List[CommandCompleter]):
         self.commands = commands
         self.command_completers = {c.cmd.name: c for c in completers}
-        self.source_completer = WordCompleter(
+        self.source_completer = FuzzyWordCompleter(
             [c.name for c in commands if c.source], WORD=True
         )
-        self.flow_completer = WordCompleter(
+        self.flow_completer = FuzzyWordCompleter(
             [c.name for c in commands if not c.source], WORD=True
         )
 
@@ -199,7 +239,7 @@ class CommandLineCompleter(Completer):
         if not text.endswith((";", "|")):  # enforce a space after ; or |
             maybe = self.find_current_command(adapted)
             if maybe is not None:
-                doc = cut_document(document, maybe.cmd.name)
+                doc = cut_document_last(document, maybe.cmd.name)
                 return maybe.get_completions(doc, complete_event)
             elif ";" in text or "|" in text:
                 return self.flow_completer.get_completions(adapted, complete_event)
@@ -212,18 +252,13 @@ class CommandLineCompleter(Completer):
     ) -> "CommandLineCompleter":
         def arg_completer(arg: ArgInfo) -> Optional[Completer]:
             if arg.possible_values:
-                hp = (
-                    {p: f"{p}: ({arg.help_text})" for p in arg.possible_values}
-                    if arg.help_text
-                    else None
-                )
-                return WordCompleter(arg.possible_values, display_dict=hp, WORD=True)
+                return FuzzyWordCompleter(arg.possible_values, WORD=True)
             elif arg.value_hint == "file":
                 return PathCompleter()
             elif arg.value_hint == "kind":
-                return WordCompleter(kinds, WORD=True)
+                return FuzzyWordCompleter(kinds, WORD=True)
             elif arg.value_hint == "property":
-                return WordCompleter(props, WORD=True)
+                return FuzzyWordCompleter(props, WORD=True)
             elif arg.value_hint == "search":
                 return SearchCompleter(kinds, props)
             elif arg.help_text:
@@ -1186,7 +1221,7 @@ known_commands = [
         source=False,
     ),
     CommandInfo("protect", source=False),
-    CommandInfo("search"),
+    CommandInfo("search", options=[ArgInfo(None, True, value_hint="search")]),
     CommandInfo(
         "set_desired",
         options=[
@@ -1351,7 +1386,7 @@ class PromptSession:
                 completer=self.completer,
                 complete_while_typing=True,
                 style=self.style,
-                # auto_suggest=AutoSuggestFromHistory(),
+                auto_suggest=AutoSuggestFromHistory(),
             )
         except (TypeError, AttributeError) as ex:
             raise KeyboardInterrupt from ex
