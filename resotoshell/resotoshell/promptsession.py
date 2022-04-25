@@ -13,7 +13,7 @@ from prompt_toolkit.completion import (
     NestedCompleter,
     merge_completers,
     PathCompleter,
-    FuzzyWordCompleter,
+    FuzzyCompleter,
 )
 from prompt_toolkit.document import Document
 from prompt_toolkit.history import FileHistory
@@ -89,29 +89,54 @@ class CommandCompleter(Completer):
             return []
 
 
+class FuzzyWordCompleter(Completer):
+    def __init__(
+        self,
+        words: List[str],
+        display_dict: Optional[Dict[str, str]] = None,
+        meta_dict: Optional[Dict[str, str]] = None,
+    ) -> None:
+        self.words = words
+        self.WORD = True
+        self.word_completer = WordCompleter(
+            words=self.words,
+            WORD=self.WORD,
+            display_dict=display_dict,
+            meta_dict=meta_dict,
+        )
+        self.fuzzy_completer = FuzzyCompleter(self.word_completer, WORD=self.WORD)
+
+    def get_completions(
+        self, document: Document, complete_event: CompleteEvent
+    ) -> Iterable[Completion]:
+        return self.fuzzy_completer.get_completions(document, complete_event)
+
+
+re_start_query = re.compile(r"^\s*([A-Za-z0-9_]*)$")
 re_inside_is = re.compile("is\\(([^)]*)$")
 # re_json_value = r'(?:"([^"]*)")|(?:\[[^\\]+\])|(?:\{[^}]+\})|(?:[A-Za-z0-9_\-:/.]+)'
 # re_inside_filter = re.compile(
 #     f".*(?:[A-Za-z_][A-Za-z0-9_\\-.\\[\\]]*)\\s*(?:==|=|!=|<|>|<=|>=|=~|~|!~|in|not in)\\s*(?:{re_json_value})$"
 # )
-param_start = re.compile(r".*(?:and|or)\s+([A-Za-z0-9_\-]*)$")
+re_param_start = re.compile(r".*(?:and|or)\s+([A-Za-z0-9_\-]*)$")
 
 
 class SearchCompleter(Completer):
     def __init__(self, kinds: List[str], props: List[str]):
         self.kinds = kinds
         self.props = props
-        self.kind_completer = FuzzyWordCompleter(kinds, WORD=True)
-        self.props_completer = FuzzyWordCompleter(props, WORD=True)
-        self.start_completer = WordCompleter(
-            ["is", "all"],
-            display_dict=(
+        self.kind_completer = FuzzyWordCompleter(kinds)
+        self.props_completer = FuzzyWordCompleter(props)
+        self.start_completer = FuzzyWordCompleter(
+            ['"', "is(", "all"] + self.props,
+            meta_dict=(
                 {
-                    "is": "is(kind): matches elements of defined kind",
-                    "all": "all: matches all elements",
+                    '"': 'full text search. e.g. "test"',
+                    "is(": "matches elements of defined kind",
+                    "all": "matches all elements",
+                    **{p: "filter property" for p in self.props},
                 }
             ),
-            WORD=True,
         )
 
     def get_completions(
@@ -121,12 +146,13 @@ class SearchCompleter(Completer):
         text = document.text_before_cursor
         text_stripped = text.strip()
 
-        if text_stripped == "is"[0 : len(text_stripped)]:
-            return self.start_completer.get_completions(document, complete_event)
+        if in_start := re_start_query.match(text_stripped):
+            doc = cut_document_remaining(document, in_start.group(1))
+            return self.start_completer.get_completions(doc, complete_event)
         elif in_is := re_inside_is.match(text):
             doc = cut_document_remaining(document, in_is.group(1))
             return self.kind_completer.get_completions(doc, complete_event)
-        elif parm := param_start.match(text):
+        elif parm := re_param_start.match(text):
             doc = cut_document_remaining(document, parm.group(1))
             return self.props_completer.get_completions(doc, complete_event)
         else:
@@ -157,7 +183,7 @@ class ArgsCompleter(Completer):
         # this completer completes new options as well as direct values
         self.completer = merge_completers(
             [
-                FuzzyWordCompleter(list(self.args.keys()), WORD=True),
+                FuzzyWordCompleter(list(self.args.keys())),
                 *[a.completer for a in direct if a.completer],
             ]
         )
@@ -210,10 +236,10 @@ class CommandLineCompleter(Completer):
         self.commands = commands
         self.command_completers = {c.cmd.name: c for c in completers}
         self.source_completer = FuzzyWordCompleter(
-            [c.name for c in commands if c.source], WORD=True
+            [c.name for c in commands if c.source]
         )
         self.flow_completer = FuzzyWordCompleter(
-            [c.name for c in commands if not c.source], WORD=True
+            [c.name for c in commands if not c.source]
         )
 
     def find_current_command(self, document: Document) -> Optional[CommandCompleter]:
@@ -251,15 +277,15 @@ class CommandLineCompleter(Completer):
     ) -> "CommandLineCompleter":
         def arg_completer(arg: ArgInfo) -> Optional[Completer]:
             if arg.possible_values:
-                return FuzzyWordCompleter(arg.possible_values, WORD=True)
+                return FuzzyWordCompleter(arg.possible_values)
             elif arg.value_hint == "file":
                 return PathCompleter()
             elif arg.value_hint == "kind":
-                return FuzzyWordCompleter(kinds, WORD=True)
+                return FuzzyWordCompleter(kinds)
             elif arg.value_hint == "property":
-                return FuzzyWordCompleter(props, WORD=True)
+                return FuzzyWordCompleter(props)
             elif arg.value_hint == "command":
-                return FuzzyWordCompleter([cmd.name for cmd in cmds], WORD=True)
+                return FuzzyWordCompleter([cmd.name for cmd in cmds])
             elif arg.value_hint == "search":
                 return SearchCompleter(kinds, props)
             elif arg.help_text:
