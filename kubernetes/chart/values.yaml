@@ -92,6 +92,8 @@ resotocore:
   overrides:
     # start a collect cycle automatically when the first collector is connected
     - resotocore.runtime.start_collect_on_subscriber_connect=true
+    # this is location of the UI in the docker container
+    - resotocore.api.ui_path=/usr/local/resoto/ui/
 
   # Use this section to define extra arguments
   extraArgs: []
