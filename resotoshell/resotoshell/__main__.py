@@ -1,20 +1,20 @@
 import os
-import pathlib
 import sys
-import resotolib.signal
 from contextlib import nullcontext
 from threading import Event, Thread
 from typing import Callable, Optional, Dict
 from urllib.parse import urlencode
+
+import resotolib.signal
 from prompt_toolkit import PromptSession
-from prompt_toolkit.history import FileHistory
 from resotolib.args import ArgumentParser, Namespace
 from resotolib.core import resotocore, add_args as core_add_args, resotocore_is_up
 from resotolib.core.ca import TLSData
+from resotolib.event import add_event_listener, Event as ResotoEvent, EventType
 from resotolib.jwt import add_args as jwt_add_args
 from resotolib.logging import log, setup_logger, add_args as logging_add_args
 from resotolib.utils import rnd_str
-from resotolib.event import add_event_listener, Event as ResotoEvent, EventType
+from resotoshell.promptsession import PromptSession
 from resotoshell.shell import Shell
 from rich.console import Console
 
@@ -72,10 +72,7 @@ def repl(
 ) -> None:
     shutdown_event = Event()
     shell = Shell(execute_endpoint, True, detect_color_system(args), tls_data)
-    completer = None
-    history_file = str(pathlib.Path.home() / ".resotoshell_history")
-    history = FileHistory(history_file)
-    session = PromptSession(history=history)
+    session = PromptSession()
     log.debug("Starting interactive session")
 
     def shutdown(event: ResotoEvent) -> None:
@@ -89,7 +86,7 @@ def repl(
     shell.handle_command("welcome", headers)
     while not shutdown_event.is_set():
         try:
-            command = session.prompt("> ", completer=completer)
+            command = session.prompt()
             if command == "":
                 continue
             if command == "quit":
