@@ -19,7 +19,9 @@ from resotocore.util import rnd_str, AccessJson
 
 # noinspection PyUnresolvedReferences
 from tests.resotocore.db.graphdb_test import foo_kinds, test_db, create_graph, system_db, local_client
-from tests.resotocore.web.api_client import ApiClient
+from resotoclient import ResotoClient as ApiClient
+from resotoclient import models as rc
+from networkx import MultiDiGraph
 
 
 @fixture
@@ -27,6 +29,13 @@ async def client_session() -> AsyncIterator[ClientSession]:
     session = ClientSession()
     yield session
     await session.close()
+
+
+def graph_to_json(graph: MultiDiGraph) -> List[rc.JsObject]:
+    ga: List[rc.JsValue] = [{**node, "type": "node"} for _, node in graph.nodes(data=True)]
+    for from_node, to_node, data in graph.edges(data=True):
+        ga.append({"type": "edge", "from": from_node, "to": to_node, "edge_type": data["edge_type"]})
+    return ga
 
 
 @fixture
@@ -69,7 +78,7 @@ async def core_client(
                 count -= 1
                 if count == 0:
                     raise AssertionError("Process does not came up as expected")
-    yield ApiClient("http://localhost:8900", client_session)
+    yield ApiClient("http://localhost:8900", None)
     # terminate the process
     process.terminate()
     process.join(5)
@@ -85,8 +94,8 @@ g = "graphtest"
 
 @pytest.mark.asyncio
 async def test_system_api(core_client: ApiClient, client_session: ClientSession) -> None:
-    assert await core_client.ping() == "pong"
-    assert await core_client.ready() == "ok"
+    assert core_client.ping() == "pong"
+    assert core_client.ready() == "ok"
     # make sure we get redirected to the api docs
     async with client_session.get("http://localhost:8900", allow_redirects=False) as r:
         assert r.headers["location"] == "api-doc"
@@ -99,94 +108,107 @@ async def test_system_api(core_client: ApiClient, client_session: ClientSession)
 async def test_model_api(core_client: ApiClient) -> None:
 
     # GET /model
-    assert len((await core_client.model()).kinds) >= len(predefined_kinds)
+    assert len((core_client.model()).kinds) >= len(predefined_kinds)
 
     # PATCH /model
-    update = await core_client.update_model(
+    string_kind: rc.Kind = rc.Kind(fqn="only_three", runtime_kind="string", properties=None, bases=None)
+    setattr(string_kind, "min_length", 3)
+    setattr(string_kind, "max_length", 3)
+
+    complex_kind: rc.Kind = rc.Kind(
+        fqn="test_cpl",
+        runtime_kind=None,
+        properties=[{"description": None, "kind": "only_three", "name": "ot", "required": False, "synthetic": None}],
+        bases=None,
+    )
+    setattr(complex_kind, "allow_unknown_props", False)
+
+    update = core_client.update_model(
         [
-            StringKind("only_three", min_length=3, max_length=3),
-            ComplexKind("test_cpl", [], [Property("ot", "only_three")]),
+            string_kind,
+            complex_kind,
         ]
     )
-    assert isinstance(update.get("only_three"), StringKind)
+    none_kind = rc.Kind(fqn="none", runtime_kind=None, properties=None, bases=None)
+    assert (update.kinds.get("only_three") or none_kind).runtime_kind == "string"
 
 
 @pytest.mark.asyncio
 async def test_graph_api(core_client: ApiClient) -> None:
     # make sure we have a clean slate
     with suppress(Exception):
-        await core_client.delete_graph(g)
+        core_client.delete_graph(g)
 
     # create a new graph
-    graph = await core_client.create_graph(g)
+    graph = AccessJson(core_client.create_graph(g))
     assert graph.id == "root"
     assert graph.reported.kind == "graph_root"
 
     # list all graphs
-    graphs = await core_client.list_graphs()
+    graphs = core_client.list_graphs()
     assert g in graphs
 
     # get one specific graph
-    graph: AccessJson = await core_client.get_graph(g)  # type: ignore
+    graph: AccessJson = AccessJson(core_client.get_graph(g))  # type: ignore
     assert graph.id == "root"
     assert graph.reported.kind == "graph_root"
 
     # wipe the data in the graph
-    assert await core_client.delete_graph(g, truncate=True) == "Graph truncated."
-    assert g in await core_client.list_graphs()
+    assert core_client.delete_graph(g, truncate=True) == "Graph truncated."
+    assert g in core_client.list_graphs()
 
     # create a node in the graph
     uid = rnd_str()
-    node = await core_client.create_node(g, "root", uid, {"identifier": uid, "kind": "child", "name": "max"})
+    node = AccessJson(core_client.create_node("root", uid, {"identifier": uid, "kind": "child", "name": "max"}, g))
     assert node.id == uid
     assert node.reported.name == "max"
 
     # update a node in the graph
-    node = await core_client.patch_node(g, uid, {"name": "moritz"}, "reported")
+    node = AccessJson(core_client.patch_node(uid, {"name": "moritz"}, "reported", g))
     assert node.id == uid
     assert node.reported.name == "moritz"
 
     # get the node
-    node = await core_client.get_node(g, uid)
+    node = AccessJson(core_client.get_node(uid, g))
     assert node.id == uid
     assert node.reported.name == "moritz"
 
     # delete the node
-    await core_client.delete_node(g, uid)
+    core_client.delete_node(uid, g)
     with pytest.raises(AttributeError):
         # node can not be found
-        await core_client.get_node(g, uid)
+        core_client.get_node(uid, g)
 
     # merge a complete graph
-    merged = await core_client.merge_graph(g, create_graph("test"))
-    assert merged == GraphUpdate(112, 1, 0, 212, 0, 0)
+    merged = core_client.merge_graph(graph_to_json(create_graph("test")), g)
+    assert merged == rc.GraphUpdate(112, 1, 0, 212, 0, 0)
 
     # batch graph update and commit
-    batch1_id, batch1_info = await core_client.add_to_batch(g, create_graph("hello"), "batch1")
-    # assert batch1_info == GraphUpdate(0, 100, 0, 0, 0, 0)
+    batch1_id, batch1_info = core_client.add_to_batch(graph_to_json(create_graph("hello")), "batch1", g)
+    assert batch1_info == rc.GraphUpdate(0, 100, 0, 0, 0, 0)
     assert batch1_id == "batch1"
-    batch_infos = await core_client.list_batches(g)
+    batch_infos = AccessJson.wrap_list(core_client.list_batches(g))
     assert len(batch_infos) == 1
     # assert batch_infos[0].id == batch1_id
     assert batch_infos[0].affected_nodes == ["collector"]  # replace node
     assert batch_infos[0].is_batch is True
-    await core_client.commit_batch(g, batch1_id)
+    core_client.commit_batch(batch1_id, g)
 
     # batch graph update and abort
-    batch2_id, batch2_info = await core_client.add_to_batch(g, create_graph("bonjour"), "batch2")
-    assert batch2_info == GraphUpdate(0, 100, 0, 0, 0, 0)
+    batch2_id, batch2_info = core_client.add_to_batch(graph_to_json(create_graph("bonjour")), "batch2", g)
+    assert batch2_info == rc.GraphUpdate(0, 100, 0, 0, 0, 0)
     assert batch2_id == "batch2"
-    await core_client.abort_batch(g, batch2_id)
+    core_client.abort_batch(batch2_id, g)
 
     # update nodes
     update = [{"id": node["id"], "reported": {"name": "bruce"}} for _, node in create_graph("foo").nodes(data=True)]
-    updated_nodes = await core_client.patch_nodes(g, update)
+    updated_nodes = core_client.patch_nodes(update, g)
     assert len(updated_nodes) == 113
     for n in updated_nodes:
-        assert n.reported.name == "bruce"
+        assert n.get("reported", {}).get("name") == "bruce"
 
     # create the raw search
-    raw = await core_client.search_graph_raw(g, 'id("3")')
+    raw = core_client.search_graph_raw('id("3")', g)
     assert raw == {
         "query": "LET filter0 = (FOR m0 in graphtest FILTER m0._key == @b0  RETURN m0) "
         'FOR result in filter0 RETURN UNSET(result, ["flat"])',
@@ -194,61 +216,66 @@ async def test_graph_api(core_client: ApiClient) -> None:
     }
 
     # estimate the search
-    cost = await core_client.search_graph_explain(g, 'id("3")')
+    cost = core_client.search_graph_explain('id("3")', g)
     assert cost.full_collection_scan is False
-    assert cost.rating == EstimatedQueryCostRating.simple
+    assert cost.rating == rc.EstimatedQueryCostRating.simple
 
     # search list
-    result_list = await core_client.search_list(g, 'id("3") -[0:]->')
+    result_list = list(core_client.search_list('id("3") -[0:]->', g))
     assert len(result_list) == 11  # one parent node and 10 child nodes
-    assert result_list[0].id == "3"  # first node is the parent node
+    assert result_list[0].get("id") == "3"  # first node is the parent node
 
     # search graph
-    result_graph = await core_client.search_graph(g, 'id("3") -[0:]->')
+    result_graph = list(core_client.search_graph('id("3") -[0:]->', g))
     assert len(result_graph) == 21  # 11 nodes + 10 edges
-    assert result_list[0].id == "3"  # first node is the parent node
+    assert result_list[0].get("id") == "3"  # first node is the parent node
 
     # aggregate
-    result_aggregate = await core_client.search_aggregate(g, "aggregate(reported.kind as kind: sum(1) as count): all")
-    assert {r.group.kind: r.count for r in result_aggregate} == {"bla": 100, "cloud": 1, "foo": 11, "graph_root": 1}
+    result_aggregate = core_client.search_aggregate("aggregate(reported.kind as kind: sum(1) as count): all", g)
+    assert {r["group"]["kind"]: r["count"] for r in result_aggregate} == {
+        "bla": 100,
+        "cloud": 1,
+        "foo": 11,
+        "graph_root": 1,
+    }
 
     # delete the graph
-    assert await core_client.delete_graph(g) == "Graph deleted."
-    assert g not in await core_client.list_graphs()
+    assert core_client.delete_graph(g) == "Graph deleted."
+    assert g not in core_client.list_graphs()
 
 
 @pytest.mark.asyncio
 async def test_subscribers(core_client: ApiClient) -> None:
     # provide a clean slate
-    for subscriber in await core_client.subscribers():
-        await core_client.delete_subscriber(subscriber.id)
+    for subscriber in core_client.subscribers():
+        core_client.delete_subscriber(subscriber.id)
 
     sub_id = rnd_str()
 
     # add subscription
-    subscriber = await core_client.add_subscription(sub_id, Subscription("test"))
+    subscriber = core_client.add_subscription(sub_id, rc.Subscription("test"))
     assert subscriber.id == sub_id
     assert len(subscriber.subscriptions) == 1
     assert subscriber.subscriptions["test"] is not None
 
     # delete subscription
-    subscriber = await core_client.delete_subscription(sub_id, Subscription("test"))
+    subscriber = core_client.delete_subscription(sub_id, rc.Subscription("test"))
     assert subscriber.id == sub_id
     assert len(subscriber.subscriptions) == 0
 
     # update subscriber
-    updated = await core_client.update_subscriber(sub_id, [Subscription("test"), Subscription("rest")])
+    updated = core_client.update_subscriber(sub_id, [rc.Subscription("test"), rc.Subscription("rest")])
     assert updated is not None
     assert updated.id == sub_id
     assert len(updated.subscriptions) == 2
 
     # subscriber for message type
-    assert await core_client.subscribers_for_event("test") == [updated]
-    assert await core_client.subscribers_for_event("rest") == [updated]
-    assert await core_client.subscribers_for_event("does_not_exist") == []
+    assert core_client.subscribers_for_event("test") == [updated]
+    assert core_client.subscribers_for_event("rest") == [updated]
+    assert core_client.subscribers_for_event("does_not_exist") == []
 
     # get subscriber
-    sub = await core_client.subscriber(sub_id)
+    sub = core_client.subscriber(sub_id)
     assert sub is not None
 
 
@@ -256,74 +283,75 @@ async def test_subscribers(core_client: ApiClient) -> None:
 async def test_cli(core_client: ApiClient) -> None:
     # make sure we have a clean slate
     with suppress(Exception):
-        await core_client.delete_graph(g)
-    await core_client.create_graph(g)
-    await core_client.merge_graph(g, create_graph("test"))
+        core_client.delete_graph(g)
+    core_client.create_graph(g)
+    graph_update = graph_to_json(create_graph("test"))
+    core_client.merge_graph(graph_update, g)
 
     # evaluate search with count
-    result = await core_client.cli_evaluate(g, "search all | count kind")
+    result = core_client.cli_evaluate("search all | count kind", g)
     assert len(result) == 1
     parsed, to_execute = result[0]
     assert len(parsed.commands) == 2
     assert (parsed.commands[0].cmd, parsed.commands[1].cmd) == ("search", "count")
     assert len(to_execute) == 2
-    assert (to_execute[0].cmd, to_execute[1].cmd) == ("execute_search", "aggregate_to_count")
+    assert (to_execute[0].get("cmd"), to_execute[1].get("cmd")) == ("execute_search", "aggregate_to_count")
 
     # execute search with count
-    executed = await core_client.cli_execute(g, "search is(foo) or is(bla) | count kind")
+    executed = list(core_client.cli_execute("search is(foo) or is(bla) | count kind", g))
     assert executed == ["cloud: 1", "foo: 11", "bla: 100", "total matched: 112", "total unmatched: 0"]
 
     # list all cli commands
-    info = await core_client.cli_info()
+    info = AccessJson(core_client.cli_info())
     assert len(info.commands) == 34
 
 
 @pytest.mark.asyncio
-async def test_config(core_client: ApiClient, foo_kinds: List[Kind]) -> None:
+async def test_config(core_client: ApiClient, foo_kinds: List[rc.Kind]) -> None:
     # make sure we have a clean slate
-    for config in await core_client.configs():
-        await core_client.delete_config(config)
+    for config in core_client.configs():
+        core_client.delete_config(config)
 
     # define a config model
-    model = await core_client.update_configs_model(foo_kinds)
-    assert "foo" in model
-    assert "bla" in model
+    model = core_client.update_configs_model(foo_kinds)
+    assert "foo" in model.kinds
+    assert "bla" in model.kinds
     # get the config model again
-    get_model = await core_client.get_configs_model()
-    assert len(model) == len(get_model)
+    get_model = core_client.get_configs_model()
+    assert len(model.kinds) == len(get_model.kinds)
 
     # define config validation
-    validation = ConfigValidation("external.validated.config", external_validation=True)
-    assert await core_client.put_config_validation(validation) == validation
+    validation = rc.ConfigValidation("external.validated.config", external_validation=True)
+    assert core_client.put_config_validation(validation) == validation
 
     # get the config validation
-    assert await core_client.get_config_validation(validation.id) == validation
+    assert core_client.get_config_validation(validation.id) == validation
 
     # put config
     cfg_id = rnd_str()
 
     # put a config with schema that is violated
     with pytest.raises(AttributeError) as ex:
-        await core_client.put_config(cfg_id, {"foo": {"some_int": "abc"}})
+        core_client.put_config(cfg_id, {"foo": {"some_int": "abc"}})
     assert "Expected type int32 but got str" in str(ex.value)
 
     # put a config with schema that is violated, but turn validation off
-    await core_client.put_config(cfg_id, {"foo": {"some_int": "abc"}}, validate=False)
+    core_client.put_config(cfg_id, {"foo": {"some_int": "abc"}}, validate=False)
 
     # set a simple state
-    assert await core_client.put_config(cfg_id, {"a": 1}) == {"a": 1}
+    assert core_client.put_config(cfg_id, {"a": 1}) == {"a": 1}
 
     # patch config
-    assert await core_client.patch_config(cfg_id, {"a": 1}) == {"a": 1}
-    assert await core_client.patch_config(cfg_id, {"b": 2}) == {"a": 1, "b": 2}
-    assert await core_client.patch_config(cfg_id, {"c": 3}) == {"a": 1, "b": 2, "c": 3}
+    assert core_client.patch_config(cfg_id, {"a": 1}) == {"a": 1}
+    assert core_client.patch_config(cfg_id, {"b": 2}) == {"a": 1, "b": 2}
+    assert core_client.patch_config(cfg_id, {"c": 3}) == {"a": 1, "b": 2, "c": 3}
 
     # get config
-    assert await core_client.config(cfg_id) == {"a": 1, "b": 2, "c": 3}
+    assert core_client.config(cfg_id) == {"a": 1, "b": 2, "c": 3}
 
     # list configs
-    assert await core_client.configs() == [cfg_id]
+    assert list(core_client.configs()) == [cfg_id]
 
     # delete config
-    await core_client.delete_config(cfg_id)
-    assert await core_client.configs() == []
+    core_client.delete_config(cfg_id)
+    assert list(core_client.configs()) == []
