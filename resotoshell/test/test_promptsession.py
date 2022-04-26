@@ -38,6 +38,28 @@ def test_complete_command() -> None:
     assert complete("search all | cl", n) == {"clean"}
 
 
+def test_property() -> None:
+    n = SearchCompleter(known_kinds, known_props)
+    # /ancestors.xxx handling
+    assert complete("/anc", n) == {"/ancestors."}
+    assert len(complete("/ancestors.", n)) == len(known_kinds)
+    assert complete("/ancestors.account.", n) == {"reported", "desired", "metadata"}
+    assert len(complete("/ancestors.account.reported.", n)) >= len(known_props)
+    assert complete("is(volume) and /anc", n) == {"/ancestors."}
+    assert len(complete("is(volume) and /ancestors.", n)) == len(known_kinds)
+    assert complete("is(volume) and /ancestors.account.", n) == {
+        "reported",
+        "desired",
+        "metadata",
+    }
+    assert len(complete("is(volume) and /ancestors.account.reported.", n)) >= len(
+        known_props
+    )
+    # /reported handling
+    assert complete("/repo", n) == {"/reported."}
+    assert len(complete("/reported.", n)) >= len(known_props)
+
+
 def test_search() -> None:
     n = SearchCompleter(known_kinds, known_props)
     assert len(complete("", n, True)) > len(known_props)

@@ -124,26 +124,36 @@ class FuzzyWordCompleter(Completer):
 re_nav_block = r"[a-zA-Z0-9]*(?:\[[0-9:]+\])?[a-zA-Z0-9]*"
 re_navigation = re.compile(f"-{re_nav_block}->|<-{re_nav_block}-|<-{re_nav_block}->")
 
-re_start_query = re.compile(r"^\s*([A-Za-z0-9_]*)$")
+re_start_query = re.compile(r"^\s*(/?[A-Za-z0-9_.]*)$")
 re_inside_is = re.compile(".*is\\(([^)]*)$")
 re_json_value = r'(?:"[^"]*")|(?:\[[^\\]+\])|(?:\{[^}]+\})|(?:[A-Za-z0-9_\-:/.]+)'
 
 re_partial_and_or = r"|a|an|and|o|or|-|<|-|--|<-|s|so|sor|sort|l|li|lim|limi|limit"
-re_param = "[A-Za-z_][A-Za-z0-9_\\-.\\[\\]]*"
+re_param = "/?[A-Za-z_][A-Za-z0-9_\\-.\\[\\]]*"
 re_op = "==|=|!=|<|>|<=|>=|=~|~|!~|in|not in"
 re_fulltext = r'(?:"[^"]*")'
 
 # match and/or
 re_after_bracket = re.compile(f".*\\)\\s+({re_partial_and_or})$")
+# noinspection RegExpUnnecessaryNonCapturingGroup
 re_after_param_filter = re.compile(
     f".*(?:{re_param})\\s*(?:{re_op})\\s*(?:{re_json_value})\\s({re_partial_and_or})$"
 )
+# noinspection RegExpUnnecessaryNonCapturingGroup
 re_after_fulltext = re.compile(f".*(?:{re_fulltext})\\s*({re_partial_and_or})$")
 re_after_sort_limit = re.compile(
     f".*(?:sort\\s+\\S+\\s(?:asc|desc)?|limit\\s+\\d+(?:,\\s*\\d+)?)\\s*({re_partial_and_or})$"
 )
 
-re_param_start = re.compile(r".*(?:and|or)\s+([A-Za-z0-9_\-]*)$")
+re_param_start = re.compile(r".*(?:and|or)\s+(/?[\w\-\[\].]*)$")
+re_slash_reported = re.compile(r"/reported.([^.]*)$")
+re_ancestor_descendant_kind = re.compile(r"(?:/ancestors.|/descendants.)([^.]*)$")
+re_ancestor_descendant_section = re.compile(
+    r"(?:/ancestors.|/descendants.)[\w\d_-]+[.]([^.]*)$"
+)
+re_ancestor_descendant_reported = re.compile(
+    r"(?:/ancestors.|/descendants.)[\w\d_-]+[.]reported[.]([^.]*)$"
+)
 
 
 class SearchCompleter(Completer):
@@ -154,18 +164,25 @@ class SearchCompleter(Completer):
         ops = ["=", "!=", ">", "<", "<=", ">=", "~", "!~", "in"]
         self.ops_lookup = set(ops)
         self.kind_completer = FuzzyWordCompleter(kinds)
-        self.props_completer = FuzzyWordCompleter(props)
         self.start_completer = FuzzyWordCompleter(
-            ['"', "is(", "all"] + self.props,
+            ['"', "is(", "/ancestors."]
+            + props
+            + ["/reported.", "/desired.", "/metadata.", "/descendants.", "all"],
             meta_dict=(
                 {
                     '"': 'full text search. e.g. "test"',
                     "is(": "matches elements of defined kind",
                     "all": "matches all elements",
+                    "/reported.": "absolute path in reported section",
+                    "/desired.": "absolute path in desired section",
+                    "/metadata.": "absolute path in metadata section",
+                    "/ancestors.": "filter ancestor properties",
+                    "/descendants.": "filter descendant properties",
                     **{p: "filter property" for p in self.props},
                 }
             ),
         )
+        self.property_names_completer = FuzzyWordCompleter(props)
         self.ops_completer = FuzzyWordCompleter(ops)
         self.and_or_completer = FuzzyWordCompleter(
             [
@@ -202,6 +219,7 @@ class SearchCompleter(Completer):
             "Number of elements with optional offset. e.g. 23 or 12, 23"
         )
         self.sort_order_completer = FuzzyWordCompleter(["asc", "desc"])
+        self.section_completer = FuzzyWordCompleter(["reported", "desired", "metadata"])
 
     def get_completions(
         self, document: Document, complete_event: CompleteEvent
@@ -212,22 +230,38 @@ class SearchCompleter(Completer):
         last = parts[-1].lstrip() if parts else ""
         last_words = last.split()
 
-        def word_at(idx: int) -> Optional[str]:
-            return last_words[idx] if abs(idx) < len(last_words) else None
+        def word_at(idx: int) -> str:
+            return last_words[idx] if abs(idx) <= len(last_words) else ""
 
         last_word = word_at(-1)
         have_sort = " sort " in last
         have_limit = " limit " in last
 
+        def property_completions(prop_doc: Document) -> Iterable[Completion]:
+            if kind := re_ancestor_descendant_kind.match(last_word):
+                pd = cut_document_remaining(prop_doc, kind.span(1))
+                return self.kind_completer.get_completions(pd, complete_event)
+            elif section := re_ancestor_descendant_section.match(last_word):
+                pd = cut_document_remaining(prop_doc, section.span(1))
+                return self.section_completer.get_completions(pd, complete_event)
+            elif section := re_ancestor_descendant_reported.match(last_word):
+                pd = cut_document_remaining(prop_doc, section.span(1))
+                return self.property_names_completer.get_completions(pd, complete_event)
+            elif reported := re_slash_reported.match(last_word):
+                pd = cut_document_remaining(prop_doc, reported.span(1))
+                return self.property_names_completer.get_completions(pd, complete_event)
+            else:
+                return self.start_completer.get_completions(prop_doc, complete_event)
+
         if in_start := re_start_query.match(last):
             doc = cut_document_remaining(document, in_start.span(1))
-            return self.start_completer.get_completions(doc, complete_event)
+            return property_completions(doc)
+        elif parm := re_param_start.match(text):
+            doc = cut_document_remaining(document, parm.span(1))
+            return property_completions(doc)
         elif in_is := re_inside_is.match(text):
             doc = cut_document_remaining(document, in_is.span(1))
             return self.kind_completer.get_completions(doc, complete_event)
-        elif parm := re_param_start.match(text):
-            doc = cut_document_remaining(document, parm.span(1))
-            return self.start_completer.get_completions(doc, complete_event)
         elif after := re_after_bracket.match(last):
             doc = cut_document_remaining(document, after.span(1))
             return self.and_or_completer.get_completions(doc, complete_event)
@@ -239,7 +273,7 @@ class SearchCompleter(Completer):
             return self.and_or_completer.get_completions(doc, complete_event)
         elif last_word == "sort":
             doc = cut_document_last(document, last_word)
-            return self.props_completer.get_completions(doc, complete_event)
+            return self.property_names_completer.get_completions(doc, complete_event)
         elif last_word == "limit":
             doc = cut_document_last(document, last_word)
             return self.limit_completer.get_completions(doc, complete_event)
@@ -258,7 +292,9 @@ class SearchCompleter(Completer):
                     "or": have_sort | have_limit,
                 },
             )
-        elif last_word in self.prop_lookup and not have_sort:
+        elif (
+            last_word in self.prop_lookup or last_word.startswith("/")
+        ) and not have_sort:
             doc = cut_document_last(document, last_word)
             return self.ops_completer.get_completions(doc, complete_event)
         elif last_word in self.ops_lookup:
