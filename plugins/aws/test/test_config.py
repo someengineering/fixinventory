@@ -15,7 +15,7 @@ def test_args():
     assert Config.aws.region is None
     assert Config.aws.scrape_org is False
     assert Config.aws.fork_process is True
-    assert Config.aws.scrape_exclude_account is None
+    assert Config.aws.scrape_exclude_account == []
     assert Config.aws.assume_current is False
     assert Config.aws.do_not_scrape_current is False
     assert Config.aws.account_pool_size == num_default_threads()

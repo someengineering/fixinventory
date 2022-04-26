@@ -108,7 +108,9 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
     @property
     def regions(self) -> List:
         if len(self.__regions) == 0:
-            if not Config.aws.region:
+            if not Config.aws.region or (
+                isinstance(Config.aws.region, list) and len(Config.aws.region) == 0
+            ):
                 log.debug("AWS region not specified, assuming all regions")
                 self.__regions = all_regions()
             else:
