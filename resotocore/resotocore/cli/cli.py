@@ -50,6 +50,8 @@ from resotocore.cli.model import (
     CLISource,
     NoTerminalOutput,
     AliasTemplate,
+    ArgsInfo,
+    ArgInfo,
 )
 from resotocore.console_renderer import ConsoleRenderer
 from resotocore.error import CLIParseError
@@ -114,7 +116,7 @@ class HelpCommand(CLICommand):
         alias_names: Dict[str, str],
         alias_templates: List[AliasTemplate],
     ):
-        super().__init__(dependencies)
+        super().__init__(dependencies, True)
         self.all_parts = {p.name: p for p in parts + [self]}
         self.parts = {p.name: p for p in parts + [self] if not isinstance(p, InternalPart)}
         self.alias_names = {a: n for a, n in alias_names.items() if n in self.parts and a not in self.parts}
@@ -129,6 +131,9 @@ class HelpCommand(CLICommand):
 
     def info(self) -> str:
         return "Shows available commands, as well as help for any specific command."
+
+    def args_info(self) -> ArgsInfo:
+        return [ArgInfo(None, expects_value=True, value_hint="command")]
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLISource:
         def placeholders() -> str:

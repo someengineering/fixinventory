@@ -38,7 +38,7 @@ def to_js(node: Any, **kwargs: Any) -> Json:
 
 def to_json(node: Any, **kwargs: Any) -> JsonElement:
     # shortcut: assume a dict is already a json value
-    if isinstance(node, dict):
+    if isinstance(node, dict) and not kwargs.get("force_dict", False):
         return node
     return jsons.dump(  # type: ignore
         node,
