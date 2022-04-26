@@ -467,6 +467,22 @@ class CommandLineCompleter(Completer):
         return CommandLineCompleter(cmds, cmd_completer)
 
 
+class SafeCompleter(Completer):
+    """
+    This completer ensures, that the underlying completer will always return "something"
+    prompt_toolkit does not handle empty completions very well.
+    """
+
+    def __init__(self, completer: Completer) -> None:
+        self.completer = completer
+
+    def get_completions(
+        self, document: Document, complete_event: CompleteEvent
+    ) -> Iterable[Completion]:
+        result = self.completer.get_completions(document, complete_event)
+        return [] if result is None else result
+
+
 known_kinds = [
     "access_key",
     "account",
@@ -1564,7 +1580,7 @@ class PromptSession:
     def prompt(self) -> str:
         return self.session.prompt(
             self.prompt_message,
-            completer=self.completer,
+            completer=SafeCompleter(self.completer),
             complete_while_typing=True,
             style=self.style,
             auto_suggest=AutoSuggestFromHistory(),
