@@ -1562,13 +1562,10 @@ class PromptSession:
         self.session = PTSession(history=history)
 
     def prompt(self) -> str:
-        try:
-            return self.session.prompt(
-                self.prompt_message,
-                completer=self.completer,
-                complete_while_typing=True,
-                style=self.style,
-                auto_suggest=AutoSuggestFromHistory(),
-            )
-        except (TypeError, AttributeError) as ex:
-            raise KeyboardInterrupt from ex
+        return self.session.prompt(
+            self.prompt_message,
+            completer=self.completer,
+            complete_while_typing=True,
+            style=self.style,
+            auto_suggest=AutoSuggestFromHistory(),
+        )
