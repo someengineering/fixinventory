@@ -44,8 +44,8 @@ class AwsConfig:
         default=True,
         metadata={"description": "Fork collector process instead of using threads"},
     )
-    scrape_exclude_account: Optional[List[str]] = field(
-        default=None,
+    scrape_exclude_account: List[str] = field(
+        default_factory=list,
         metadata={"description": "List of accounts to exclude when scraping the org"},
     )
     assume_current: bool = field(

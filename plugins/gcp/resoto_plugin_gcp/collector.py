@@ -846,7 +846,7 @@ class GCPProjectCollector:
                 resource.region(graph).name == "undefined"
                 and resource.zone(graph).name == "undefined"
             ):
-                log.error(
+                log.debug(
                     f"Resource {resource.rtdname} has no region or zone"
                     " - removing from graph"
                 )
@@ -1052,7 +1052,7 @@ class GCPProjectCollector:
             resource.region(graph).name == "undefined"
             and resource.zone(graph).name == "undefined"
         ):
-            log.error(
+            log.debug(
                 f"Resource {resource.rtdname} has no region or zone"
                 " - removing from graph"
             )
