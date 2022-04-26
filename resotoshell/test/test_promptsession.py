@@ -42,9 +42,48 @@ def test_search() -> None:
     n = SearchCompleter(known_kinds, known_props)
     assert len(complete("", n, True)) > len(known_props)
     assert "is(" in complete("i", n)
+
+    # show possible kinds in is()
     assert len(complete("is(", n)) == len(known_kinds)
-    assert len(complete("is(instance) and ", n)) == len(known_props)
-    assert len(complete("is(instance) or ", n)) == len(known_props)
+
+    # show possible combinations after is()
+    assert {"and", "or"} <= complete("is(foo) ", n)
+
+    # show possible props for filter expression
+    assert len(complete("is(instance) and ", n)) > len(known_props)
+    assert len(complete("is(instance) or ", n)) > len(known_props)
+
+    # show possible operators for filter expression
+    assert {">", "<", "=", "!=", ">=", "<="} <= complete("is(instance) or age ", n)
+
+    # show possible operators for filter expression
+    assert complete("is(instance) or age >= ", n, True) == {
+        "Value like 123, test, 12days, true, false, null, [1,2,3], {a:1}"
+    }
+
+    # suggest sort and limit after filter
+    # show possible operators for filter expression
+    assert {"sort", "limit"} <= complete("is(instance) or age >= 12d ", n)
+
+    # show all properties for sorting
+    assert len(complete("is(instance) or age >= 12d sort ", n)) == len(known_props)
+
+    # show sort order after the property
+    assert {"asc", "desc"} <= complete("is(instance) or age >= 12d sort foo ", n)
+
+    # do not suggest sort again, but limit
+    assert "sort" not in complete("is(instance) or age >= 12d sort foo asc ", n)
+    assert "limit" in complete("is(instance) or age >= 12d sort foo asc ", n)
+
+    # suggest traverse operators after limit
+    assert {"<--", "-->"} <= complete(
+        "is(instance) or age >= 12d sort foo limit 23, 12 ", n
+    )
+
+    # suggest filter expression after traverse
+    assert {"is(", "all"} <= complete(
+        "is(instance) or age >= 12d sort foo limit 23, 12 --> ", n
+    )
 
 
 def test_complete_option() -> None:
