@@ -108,6 +108,7 @@ class Shell:
                         )
                         handle_response(mp, True)
                     else:
+                        log.debug(f"HTTP error, code: {response.status_code}")
                         print(response.text, file=sys.stderr)
                         return
 
