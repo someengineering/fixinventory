@@ -91,11 +91,15 @@ class CoreTasks(threading.Thread):
             on_message=self.on_message,
             on_error=self.on_error,
             on_close=self.on_close,
+            on_ping=self.on_ping,
+            on_pong=self.on_pong,
         )
         sslopt = None
         if self.tls_data:
             sslopt = {"ca_certs": self.tls_data.ca_cert_path}
-        self.ws.run_forever(sslopt=sslopt)
+        self.ws.run_forever(
+            sslopt=sslopt, ping_interval=30, ping_timeout=10, ping_payload="ping"
+        )
 
     def shutdown(self, event: Event = None) -> None:
         log.debug(
@@ -121,3 +125,9 @@ class CoreTasks(threading.Thread):
 
     def on_open(self, ws):
         log.debug(f"{self.identifier} connected to resotocore task queue")
+
+    def on_ping(self, ws, message):
+        log.debug(f"{self.identifier} tasks ping from resotocore message bus")
+
+    def on_pong(self, ws, message):
+        log.debug(f"{self.identifier} tasks pong from resotocore message bus")
