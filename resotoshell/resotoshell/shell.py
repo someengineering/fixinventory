@@ -131,15 +131,17 @@ class Shell:
         def store_file(directory: str) -> Tuple[str, str]:
             disposition = part.headers.get("Content-Disposition", "")
             match = re.findall('filename="([^"]+)"', disposition)
-            name = match[0] if match else "out"
-            path = os.path.join(directory, name)
+            filename = match[0] if match else "out"
+            if "/" in filename:
+                raise ValueError(f"Invalid filename: {filename}")
+            filepath = os.path.join(directory, filename)
             i = 0
-            while os.path.exists(path):
+            while os.path.exists(filepath):
                 i += 1
-                path = os.path.join(directory, f"{name}-{i}")
-            with open(path, "wb+") as fh:
+                filepath = os.path.join(directory, f"{filename}-{i}")
+            with open(filepath, "wb+") as fh:
                 fh.write(part.content)
-            return name, path
+            return filename, filepath
 
         content_type = part.headers.get("Content-Type", "text/plain")
         action = part.headers.get("Resoto-Shell-Action")
@@ -162,22 +164,24 @@ class Shell:
             content_type == "application/octet-stream" and action == "edit" and command
         ):
             with TemporaryDirectory() as tmp:
-                name, path = store_file(tmp)
-                original_shasum = sha256sum(path)
-                call([os.environ.get("EDITOR", "vi"), path])
-                new_shasum = sha256sum(path)
+                filename, filepath = store_file(tmp)
+                original_shasum = sha256sum(filepath)
+                call([os.environ.get("EDITOR", "vi"), filepath])
+                new_shasum = sha256sum(filepath)
                 log.debug(
                     f"Original config sha256: {original_shasum},"
                     f" new sha256: {new_shasum}"
                 )
                 if new_shasum != original_shasum:
-                    self.handle_command(f"{command} {name}", {}, {name: path})
+                    self.handle_command(
+                        f"{command} {filename}", {}, {filename: filepath}
+                    )
                 else:
                     print("No change made while editing the file. Update aborted.")
         # File is sent: save it to local disk
         elif content_type == "application/octet-stream":
-            name, path = store_file(ArgumentParser.args.download_directory)
-            print(f"Received a file {name}, which is stored to {path}.")
+            filename, filepath = store_file(ArgumentParser.args.download_directory)
+            print(f"Received a file {filename}, which is stored to {filepath}.")
         # Multipart: handle each part separately
         elif content_type.startswith("multipart"):
             # Received a multipart response: parse the parts
