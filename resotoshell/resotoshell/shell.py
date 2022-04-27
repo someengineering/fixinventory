@@ -132,6 +132,8 @@ class Shell:
             disposition = part.headers.get("Content-Disposition", "")
             match = re.findall('filename="([^"]+)"', disposition)
             filename = match[0] if match else "out"
+            if "/" in filename:
+                raise ValueError(f"Invalid filename: {filename}")
             filepath = os.path.join(directory, filename)
             i = 0
             while os.path.exists(filepath):
