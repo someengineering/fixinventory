@@ -4,42 +4,44 @@ import shutil
 import sys
 from subprocess import call
 from tempfile import TemporaryDirectory
-from typing import Dict, Union, Optional, Tuple, Any
+from typing import Dict, Union, Optional, Tuple
 from urllib.parse import urlsplit
 
-from requests import Response, post
+from requests import Response
 from requests.exceptions import ConnectionError
-from requests_toolbelt import MultipartDecoder, MultipartEncoder
+from requests_toolbelt import MultipartDecoder
 from requests_toolbelt.multipart.decoder import BodyPart
-from resotolib.core.ca import TLSData
 from resotolib.args import ArgumentParser
-from resotolib.jwt import encode_jwt_to_headers
 from resotolib.utils import sha256sum
 from resotolib.logging import log
 from resotoshell.protected_files import validate_paths
+from resotoclient import ResotoClient
 
 
 class Shell:
     def __init__(
         self,
-        execute_endpoint: str,
+        client: ResotoClient,
         tty: bool,
         color_system: str,
-        tls_data: Optional[TLSData] = None,
+        graph: Optional[str] = None,
+        section: Optional[str] = None,
     ):
-        self.execute_endpoint = execute_endpoint
+        self.client = client
         self.tty = tty
         self.color_system = color_system
-        self.verify = tls_data.verify if tls_data else None
+        self.graph = graph
+        self.section = section
 
     def handle_command(
         self,
         command: str,
-        additional_headers: Dict[str, str],
+        additional_headers: Optional[Dict[str, str]] = None,
         files: Optional[Dict[str, str]] = None,
     ) -> None:
-        headers = {}
-        headers.update(additional_headers)
+        headers: Dict[str, str] = {}
+        headers.update({"Accept": "text/plain"})
+        headers.update(additional_headers or {})
 
         # set tty headers
         if self.tty:
@@ -54,44 +56,6 @@ class Shell:
                 }
             )
 
-        def post_request(
-            data: Union[bytes, Dict[str, str]],
-            content_type: str,
-        ) -> Optional[Response]:
-            # define content-type
-            headers["Content-Type"] = content_type
-            # sign request
-            if ArgumentParser.args.psk:
-                encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)
-
-            body: Optional[Any] = None
-            if isinstance(data, bytes):
-                body = data
-            elif isinstance(data, dict):
-                parts = {
-                    name: (name, open(path, "rb"), "application/octet-stream")
-                    for name, path in data.items()
-                }
-                body = MultipartEncoder(parts, "file-upload")
-            else:
-                raise AttributeError(f"Can not handle data of type: {type(data)}")
-
-            try:
-                return post(
-                    self.execute_endpoint,
-                    data=body,
-                    headers=headers,
-                    stream=True,
-                    verify=self.verify,
-                )
-            except ConnectionError:
-                err = (
-                    "Error: Could not communicate with resotocore"
-                    f" at {urlsplit(self.execute_endpoint).netloc}."
-                    " Is it up and reachable?"
-                )
-                print(err, file=sys.stderr)
-
         def handle_response(maybe: Optional[Response], upload: bool = False):
             if maybe is not None:
                 with maybe as response:
@@ -102,9 +66,12 @@ class Shell:
                         to_upload = validate_paths(
                             {fp["name"]: fp["path"] for fp in required}
                         )
-                        headers["Resoto-Shell-Command"] = command
-                        mp = post_request(
-                            to_upload, "multipart/form-data; boundary=file-upload"
+                        mp: Response = self.client.cli_execute_raw(
+                            command=command,
+                            files=to_upload,
+                            graph=self.graph,
+                            section=self.section,
+                            headers=headers,
                         )
                         handle_response(mp, True)
                     else:
@@ -113,14 +80,21 @@ class Shell:
                         return
 
         try:
-            if files:
-                headers["Resoto-Shell-Command"] = command
-                received_response = post_request(
-                    files, "multipart/form-data; boundary=file-upload"
-                )
-            else:
-                received_response = post_request(command.encode("utf-8"), "text/plain")
+            received_response = self.client.cli_execute_raw(
+                command=command,
+                files=files,
+                graph=self.graph,
+                section=self.section,
+                headers=headers,
+            )
             handle_response(received_response)
+        except ConnectionError:
+            err = (
+                "Error: Could not communicate with resotocore"
+                f" at {urlsplit(self.client.base_url).netloc}."
+                " Is it up and reachable?"
+            )
+            print(err, file=sys.stderr)
         except Exception as ex:
             print(f"Error performing command: `{command}`\nReason: {ex}")
 
