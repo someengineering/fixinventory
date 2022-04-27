@@ -828,14 +828,21 @@ def _badlink(info: TarInfo, base: str) -> bool:
 
 def safe_members_in_tarfile(tarfile: TarFile) -> List:
     base = os.path.realpath(os.path.abspath((".")))
+    basename = os.path.basename(tarfile.name)
     result = []
     for tar_info in tarfile.getmembers():
         if _badpath(tar_info.name, base):
-            log.error(f"{tar_info.name} is blocked: illegal path.")
+            log.error(f"Error in {basename}, {tar_info.name} is blocked: illegal path")
         elif tar_info.issym() and _badlink(tar_info, base):
-            log.error(f"{tar_info.name} is blocked: Symlink to {tar_info.linkname}")
+            log.error(
+                f"Error in {basename}, {tar_info.name} is blocked:"
+                f" symlink to {tar_info.linkname}"
+            )
         elif tar_info.islnk() and _badlink(tar_info, base):
-            log.error(f"{tar_info.name} is blocked: Hard link to {tar_info.linkname}")
+            log.error(
+                f"Error in {basename}, {tar_info.name} is blocked:"
+                f" hard link to {tar_info.linkname}"
+            )
         else:
             result.append(tar_info)
     return result
