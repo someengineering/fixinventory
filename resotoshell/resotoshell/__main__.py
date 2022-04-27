@@ -43,6 +43,10 @@ def main() -> None:
             resotocore_uri=resotocore.http_uri,
             ca_only=True,
         )
+        try:
+            tls_data.load()
+        except Exception:
+            sys.exit(1)
     with tls_data or nullcontext():
         headers = {"Accept": "text/plain"}
         execute_endpoint = f"{args.resotocore_uri}/cli/execute"
