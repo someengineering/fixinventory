@@ -562,7 +562,7 @@ async def test_list_command(cli: CLI) -> None:
     result = await cli.execute_cli_command(
         f"json {json.dumps(props)}" " | list --csv a,b,c,d,e,f,non_existent", stream.list
     )
-    assert result[0] == ["a,b,c,d,e,f,non_existent", "a,True,False,,12,1.234,"]
+    assert result[0] == ['"a","b","c","d","e","f","non_existent"', '"a",True,False,"",12,1.234,""']
 
     # List supports markdown output
     props = dict(id="test", a="a", b=True, c=False, d=None, e=12, f=1.234, reported={})
