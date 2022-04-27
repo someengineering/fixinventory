@@ -12,6 +12,7 @@ from arango.database import StandardDatabase
 from parsy import Parser
 from resotolib.args import ArgumentParser
 from resotolib.jwt import add_args as jwt_add_args
+from resotolib.logging import setup_logger
 from resotolib.utils import iec_size_format
 
 from resotocore import async_extensions, version
@@ -26,8 +27,7 @@ from resotocore.util import utc
 log = logging.getLogger(__name__)
 
 SystemInfo = namedtuple(
-    "SystemInfo",
-    ["version", "git_hash", "cpus", "mem_available", "mem_total", "inside_docker", "started_at"],
+    "SystemInfo", ["version", "git_hash", "cpus", "mem_available", "mem_total", "inside_docker", "started_at"]
 )
 started_at = utc()
 
@@ -141,7 +141,12 @@ def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None
         dest="graphdb_request_timeout",
         help="Request timeout in seconds (default: 900)",
     )
-    parser.add_argument("--no-tls", default=False, action="store_true", help="Disable TLS and use plain HTTP.")
+    parser.add_argument(
+        "--no-tls",
+        default=False,
+        action="store_true",
+        help="Disable TLS and use plain HTTP.",
+    )
     parser.add_argument(
         "--cert",
         type=is_file("can not parse --cert"),
@@ -254,14 +259,9 @@ def reconfigure_logging(config: CoreConfig) -> None:
 def configure_logging(log_level: str, verbose: bool) -> None:
     # Note: if another appender than the log appender is used, proper multiprocess logging needs to be enabled.
     # See https://docs.python.org/3/howto/logging-cookbook.html#logging-to-a-single-file-from-multiple-processes
-    log_format = "%(asctime)s|resotocore|%(levelname)5s|%(process)d|%(threadName)10s  %(message)s"
     level = log_level.upper()
-    logging.basicConfig(
-        format=log_format,
-        datefmt="%y-%m-%d %H:%M:%S",
-        level=logging.getLevelName(level),
-        force=True,
-    )
+    setup_logger("resotocore", level=level, verbose=verbose, force=True)
+
     # adjust log levels for specific loggers
     if verbose:
         logging.getLogger("resotocore").setLevel(logging.DEBUG)
