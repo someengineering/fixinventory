@@ -2178,7 +2178,7 @@ class ListCommand(CLICommand, OutputTransformer):
         async def csv_stream(in_stream: Stream) -> JsGen:
             output = io.StringIO()
             dialect = csv.unix_dialect()
-            writer = csv.writer(output, dialect=dialect, quoting=csv.QUOTE_MINIMAL)
+            writer = csv.writer(output, dialect=dialect, quoting=csv.QUOTE_NONNUMERIC)
 
             def to_csv_string(lst: List[Any]) -> str:
                 writer.writerow(lst)

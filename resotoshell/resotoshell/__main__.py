@@ -16,6 +16,7 @@ from resotolib.utils import rnd_str
 from resotoshell.promptsession import PromptSession
 from resotoshell.shell import Shell
 from rich.console import Console
+from resotoclient import ResotoClient
 
 
 def main() -> None:
@@ -36,41 +37,22 @@ def main() -> None:
         log.fatal(f"resotocore is not online at {resotocore.http_uri}")
         sys.exit(1)
 
-    tls_data = None
-    if resotocore.is_secure:
-        tls_data = TLSData(
-            common_name="resh",
-            resotocore_uri=resotocore.http_uri,
-            ca_only=True,
-        )
-    with tls_data or nullcontext():
-        headers = {"Accept": "text/plain"}
-        execute_endpoint = f"{args.resotocore_uri}/cli/execute"
-        execute_endpoint += f"?resoto_session_id={rnd_str()}"
-        if args.resotocore_graph:
-            query_string = urlencode({"graph": args.resotocore_graph})
-            execute_endpoint += f"&{query_string}"
-        if args.resotocore_section:
-            query_string = urlencode({"section": args.resotocore_section})
-            execute_endpoint += f"&{query_string}"
-
-        if args.stdin:
-            handle_from_stdin(execute_endpoint, tls_data, headers)
-        else:
-            repl(execute_endpoint, tls_data, headers, args)
+    client = ResotoClient(url=resotocore.http_uri, psk=args.psk, custom_ca_cert_path=args.ca_cert, verify=args.verify_certs)
+    if args.stdin:
+        handle_from_stdin(client)
+    else:
+        repl(client, args)
     resotolib.signal.kill_children(resotolib.signal.SIGTERM, ensure_death=True)
     log.debug("Shutdown complete")
     sys.exit(0)
 
 
 def repl(
-    execute_endpoint: str,
-    tls_data: Optional[TLSData],
-    headers: Dict[str, str],
+    client: ResotoClient,
     args: Namespace,
 ) -> None:
     shutdown_event = Event()
-    shell = Shell(execute_endpoint, True, detect_color_system(args), tls_data)
+    shell = Shell(client, True, detect_color_system(args))
     session = PromptSession()
     log.debug("Starting interactive session")
 
@@ -82,7 +64,7 @@ def repl(
     add_event_listener(EventType.SHUTDOWN, shutdown)
 
     # send the welcome command to the core
-    shell.handle_command("welcome", headers)
+    shell.handle_command("welcome")
     while not shutdown_event.is_set():
         try:
             command = session.prompt()
@@ -91,7 +73,7 @@ def repl(
             if command == "quit":
                 shutdown_event.set()
                 continue
-            shell.handle_command(command, headers)
+            shell.handle_command(command)
         except KeyboardInterrupt:
             pass
         except EOFError:
@@ -103,14 +85,14 @@ def repl(
 
 
 def handle_from_stdin(
-    execute_endpoint: str, tls_data: Optional[TLSData], headers: Dict[str, str]
+    client: ResotoClient
 ) -> None:
-    shell = Shell(execute_endpoint, False, "monochrome", tls_data)
+    shell = Shell(client, False, "monochrome")
     log.debug("Reading commands from STDIN")
     try:
         for command in sys.stdin.readlines():
             command = command.rstrip()
-            shell.handle_command(command, headers)
+            shell.handle_command(command )
     except KeyboardInterrupt:
         pass
     except (RuntimeError, ValueError) as e:
