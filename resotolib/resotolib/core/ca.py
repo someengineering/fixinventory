@@ -29,6 +29,15 @@ from threading import Lock, Event, Thread, Condition
 from resotolib.logging import log
 from resotolib.event import add_event_listener, Event as ResotoEvent, EventType
 from datetime import datetime, timedelta
+from jwt.exceptions import InvalidSignatureError
+
+
+class FingerprintError(Exception):
+    pass
+
+
+class NoJWTError(Exception):
+    pass
 
 
 def get_ca_cert(
@@ -47,11 +56,9 @@ def get_ca_cert(
             # noinspection PyTypeChecker
             jwt = decode_jwt_from_headers(r.headers, psk)
             if jwt is None:
-                raise ValueError(
-                    "Failed to decode JWT - was resotocore started without PSK?"
-                )
+                raise NoJWTError("Failed to decode JWT")
             if jwt["sha256_fingerprint"] != cert_fingerprint(ca_cert):
-                raise ValueError("Invalid Root CA certificate fingerprint")
+                raise FingerprintError("Invalid Root CA certificate fingerprint")
         return ca_cert
 
 
@@ -228,9 +235,22 @@ class TLSData:
                 self.__ca_cert = load_cert_from_file(ArgumentParser.args.ca_cert)
             else:
                 log.debug("Loading CA cert from core")
-                self.__ca_cert = get_ca_cert(
-                    resotocore_uri=self.__resotocore_uri, psk=self.__psk
-                )
+                try:
+                    self.__ca_cert = get_ca_cert(
+                        resotocore_uri=self.__resotocore_uri, psk=self.__psk
+                    )
+                except FingerprintError as e:
+                    log.fatal(f"{e}, MITM attack?")
+                    raise
+                except InvalidSignatureError as e:
+                    log.fatal(f"{e}, wrong PSK?")
+                    raise
+                except NoJWTError as e:
+                    log.fatal(f"{e}, resotocore started without PSK?")
+                    raise
+                except Exception as e:
+                    log.fatal(f"{e}")
+                    raise
             log.debug(f"Writing CA cert {self.__ca_cert_path}")
             write_ca_bundle(self.__ca_cert, self.__ca_cert_path, include_certifi=True)
             if not self.__ca_only:
