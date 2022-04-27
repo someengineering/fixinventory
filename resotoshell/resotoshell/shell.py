@@ -4,20 +4,19 @@ import shutil
 import sys
 from subprocess import call
 from tempfile import TemporaryDirectory
-from typing import Dict, Union, Optional, Tuple, Any
+from typing import Dict, Union, Optional, Tuple
 from urllib.parse import urlsplit
 
-from requests import Response, post
+from requests import Response
 from requests.exceptions import ConnectionError
-from requests_toolbelt import MultipartDecoder, MultipartEncoder
+from requests_toolbelt import MultipartDecoder
 from requests_toolbelt.multipart.decoder import BodyPart
-from resotolib.core.ca import TLSData
 from resotolib.args import ArgumentParser
-from resotolib.jwt import encode_jwt_to_headers
 from resotolib.utils import sha256sum
 from resotolib.logging import log
 from resotoshell.protected_files import validate_paths
 from resotoclient import ResotoClient
+
 
 class Shell:
     def __init__(
@@ -67,7 +66,13 @@ class Shell:
                         to_upload = validate_paths(
                             {fp["name"]: fp["path"] for fp in required}
                         )
-                        mp: Response = self.client.cli_execute_raw(command=command, files=to_upload, graph=self.graph, section=self.section, headers=headers)
+                        mp: Response = self.client.cli_execute_raw(
+                            command=command,
+                            files=to_upload,
+                            graph=self.graph,
+                            section=self.section,
+                            headers=headers,
+                        )
                         handle_response(mp, True)
                     else:
                         log.debug(f"HTTP error, code: {response.status_code}")
@@ -75,7 +80,13 @@ class Shell:
                         return
 
         try:
-            received_response = self.client.cli_execute_raw(command=command, files=files, graph=self.graph, section=self.section, headers=headers)
+            received_response = self.client.cli_execute_raw(
+                command=command,
+                files=files,
+                graph=self.graph,
+                section=self.section,
+                headers=headers,
+            )
             handle_response(received_response)
         except ConnectionError:
             err = (

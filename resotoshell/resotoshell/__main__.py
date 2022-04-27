@@ -1,9 +1,7 @@
 import os
 import sys
-from contextlib import nullcontext
 from threading import Event, Thread
-from typing import Callable, Optional, Dict
-from urllib.parse import urlencode
+from typing import Callable
 
 import resotolib.signal
 from resotolib.args import ArgumentParser, Namespace
@@ -12,7 +10,6 @@ from resotolib.core.ca import TLSData
 from resotolib.event import add_event_listener, Event as ResotoEvent, EventType
 from resotolib.jwt import add_args as jwt_add_args
 from resotolib.logging import log, setup_logger, add_args as logging_add_args
-from resotolib.utils import rnd_str
 from resotoshell.promptsession import PromptSession
 from resotoshell.shell import Shell
 from rich.console import Console
@@ -37,7 +34,12 @@ def main() -> None:
         log.fatal(f"resotocore is not online at {resotocore.http_uri}")
         sys.exit(1)
 
-    client = ResotoClient(url=resotocore.http_uri, psk=args.psk, custom_ca_cert_path=args.ca_cert, verify=args.verify_certs)
+    client = ResotoClient(
+        url=resotocore.http_uri,
+        psk=args.psk,
+        custom_ca_cert_path=args.ca_cert,
+        verify=args.verify_certs,
+    )
     if args.stdin:
         handle_from_stdin(client)
     else:
@@ -84,15 +86,13 @@ def repl(
             log.exception("Caught unhandled exception while processing CLI command")
 
 
-def handle_from_stdin(
-    client: ResotoClient
-) -> None:
+def handle_from_stdin(client: ResotoClient) -> None:
     shell = Shell(client, False, "monochrome")
     log.debug("Reading commands from STDIN")
     try:
         for command in sys.stdin.readlines():
             command = command.rstrip()
-            shell.handle_command(command )
+            shell.handle_command(command)
     except KeyboardInterrupt:
         pass
     except (RuntimeError, ValueError) as e:
