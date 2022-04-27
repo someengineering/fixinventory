@@ -248,6 +248,9 @@ class TLSData:
                 except NoJWTError as e:
                     log.fatal(f"{e}, resotocore started without PSK?")
                     raise
+                except Exception as e:
+                    log.fatal(f"{e}")
+                    raise
             log.debug(f"Writing CA cert {self.__ca_cert_path}")
             write_ca_bundle(self.__ca_cert, self.__ca_cert_path, include_certifi=True)
             if not self.__ca_only:
