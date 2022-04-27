@@ -173,7 +173,9 @@ class Shell:
                     f" new sha256: {new_shasum}"
                 )
                 if new_shasum != original_shasum:
-                    self.handle_command(f"{command} {filename}", {}, {filename: filepath})
+                    self.handle_command(
+                        f"{command} {filename}", {}, {filename: filepath}
+                    )
                 else:
                     print("No change made while editing the file. Update aborted.")
         # File is sent: save it to local disk
