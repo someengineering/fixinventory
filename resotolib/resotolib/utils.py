@@ -14,6 +14,7 @@ import time
 import json
 from resotolib.logging import log
 from functools import wraps
+from tarfile import TarFile, TarInfo
 from pprint import pformat
 from typing import Any, Callable, Dict, List, Tuple, Optional
 from datetime import date, datetime, timezone, timedelta
@@ -807,3 +808,34 @@ def num_default_threads(num_min_threads: int = 4) -> int:
     if not isinstance(count, int):
         count = num_min_threads
     return max(count, num_min_threads)
+
+
+# via vmware/pyvcloud/vcd/utils.py
+def _badpath(path: str, base: str) -> bool:
+    # joinpath will ignore base if path is absolute
+    return not os.path.realpath(os.path.abspath(os.path.join(base, path))).startswith(
+        base
+    )
+
+
+def _badlink(info: TarInfo, base: str) -> bool:
+    # Links are interpreted relative to the directory containing the link
+    tip = os.path.realpath(
+        os.path.abspath(os.path.join(base, os.path.dirname(info.name)))
+    )
+    return _badpath(info.linkname, base=tip)
+
+
+def safe_members_in_tarfile(tarfile: TarFile) -> List:
+    base = os.path.realpath(os.path.abspath((".")))
+    result = []
+    for tar_info in tarfile.getmembers():
+        if _badpath(tar_info.name, base):
+            log.error(f"{tar_info.name} is blocked: illegal path.")
+        elif tar_info.issym() and _badlink(tar_info, base):
+            log.error(f"{tar_info.name} is blocked: Symlink to {tar_info.linkname}")
+        elif tar_info.islnk() and _badlink(tar_info, base):
+            log.error(f"{tar_info.name} is blocked: Hard link to {tar_info.linkname}")
+        else:
+            result.append(tar_info)
+    return result

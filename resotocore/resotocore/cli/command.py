@@ -32,6 +32,7 @@ from aiostream.aiter_utils import is_async_iterable
 from aiostream.core import Stream
 from parsy import Parser, string
 from resotolib.x509 import write_cert_to_file, write_key_to_file
+from resotolib.utils import safe_members_in_tarfile
 from rich.padding import Padding
 from rich.panel import Panel
 from rich.table import Table
@@ -2977,7 +2978,7 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
         try:
             # extract tar file
             with tarfile.open(backup_file, "r") as tar:
-                tar.extractall(temp_dir)
+                tar.extractall(temp_dir, members=safe_members_in_tarfile(tar))
 
             # fmt: off
             db_conf = self.dependencies.config.db
