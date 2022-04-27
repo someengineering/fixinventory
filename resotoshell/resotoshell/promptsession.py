@@ -1,7 +1,7 @@
 import pathlib
 import re
 from dataclasses import dataclass, field
-from typing import Iterable, Optional, List, Dict, Union
+from typing import Iterable, Optional, List, Dict, Union, Tuple
 
 from prompt_toolkit import PromptSession as PTSession
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
@@ -20,7 +20,8 @@ from prompt_toolkit.history import FileHistory
 from prompt_toolkit.styles import Style
 
 
-def cut_document_remaining(document: Document, remaining: str) -> Document:
+def cut_document_remaining(document: Document, span: Tuple[int, int]) -> Document:
+    remaining = document.text_before_cursor[span[0] : span[1]]
     return Document(
         remaining,
         cursor_position=document.cursor_position
@@ -111,50 +112,194 @@ class FuzzyWordCompleter(Completer):
     ) -> Iterable[Completion]:
         return self.fuzzy_completer.get_completions(document, complete_event)
 
+    def get_completions_filtered(
+        self, document: Document, complete_event: CompleteEvent, **filter_values: bool
+    ) -> Iterable[Completion]:
+        for v in self.get_completions(document, complete_event):
+            filtered = filter_values.get(v.text, False)
+            if not filtered:
+                yield v
 
-re_start_query = re.compile(r"^\s*([A-Za-z0-9_]*)$")
-re_inside_is = re.compile("is\\(([^)]*)$")
-# re_json_value = r'(?:"([^"]*)")|(?:\[[^\\]+\])|(?:\{[^}]+\})|(?:[A-Za-z0-9_\-:/.]+)'
-# re_inside_filter = re.compile(
-#     f".*(?:[A-Za-z_][A-Za-z0-9_\\-.\\[\\]]*)\\s*(?:==|=|!=|<|>|<=|>=|=~|~|!~|in|not in)\\s*(?:{re_json_value})$"
-# )
-re_param_start = re.compile(r".*(?:and|or)\s+([A-Za-z0-9_\-]*)$")
+
+re_nav_block = r"[a-zA-Z0-9]*(?:\[[0-9:]+\])?[a-zA-Z0-9]*"
+re_navigation = re.compile(f"-{re_nav_block}->|<-{re_nav_block}-|<-{re_nav_block}->")
+
+re_start_query = re.compile(r"^\s*(/?[A-Za-z0-9_.]*)$")
+re_inside_is = re.compile(".*is\\(([^)]*)$")
+re_json_value = r'(?:"[^"]*")|(?:\[[^\\]+\])|(?:\{[^}]+\})|(?:[A-Za-z0-9_\-:/.]+)'
+
+re_partial_and_or = r"|a|an|and|o|or|-|<|-|--|<-|s|so|sor|sort|l|li|lim|limi|limit"
+re_param = "/?[A-Za-z_][A-Za-z0-9_\\-.\\[\\]]*"
+re_op = "==|=|!=|<|>|<=|>=|=~|~|!~|in|not in"
+re_fulltext = r'(?:"[^"]*")'
+
+# match and/or
+re_after_bracket = re.compile(f".*\\)\\s+({re_partial_and_or})$")
+# noinspection RegExpUnnecessaryNonCapturingGroup
+re_after_param_filter = re.compile(
+    f".*(?:{re_param})\\s*(?:{re_op})\\s*(?:{re_json_value})\\s({re_partial_and_or})$"
+)
+# noinspection RegExpUnnecessaryNonCapturingGroup
+re_after_fulltext = re.compile(f".*(?:{re_fulltext})\\s*({re_partial_and_or})$")
+re_after_sort_limit = re.compile(
+    f".*(?:sort\\s+\\S+\\s(?:asc|desc)?|limit\\s+\\d+(?:,\\s*\\d+)?)\\s*({re_partial_and_or})$"
+)
+
+re_param_start = re.compile(r".*(?:and|or)\s+(/?[\w\-\[\].]*)$")
+re_slash_reported = re.compile(r"/reported.([^.]*)$")
+re_ancestor_descendant_kind = re.compile(r"(?:/ancestors.|/descendants.)([^.]*)$")
+re_ancestor_descendant_section = re.compile(
+    r"(?:/ancestors.|/descendants.)[\w\d_-]+[.]([^.]*)$"
+)
+re_ancestor_descendant_reported = re.compile(
+    r"(?:/ancestors.|/descendants.)[\w\d_-]+[.]reported[.]([^.]*)$"
+)
 
 
 class SearchCompleter(Completer):
     def __init__(self, kinds: List[str], props: List[str]):
         self.kinds = kinds
         self.props = props
+        self.prop_lookup = set(props)
+        ops = ["=", "!=", ">", "<", "<=", ">=", "~", "!~", "in"]
+        self.ops_lookup = set(ops)
         self.kind_completer = FuzzyWordCompleter(kinds)
-        self.props_completer = FuzzyWordCompleter(props)
         self.start_completer = FuzzyWordCompleter(
-            ['"', "is(", "all"] + self.props,
+            ['"', "is(", "/ancestors."]
+            + props
+            + ["/reported.", "/desired.", "/metadata.", "/descendants.", "all"],
             meta_dict=(
                 {
                     '"': 'full text search. e.g. "test"',
                     "is(": "matches elements of defined kind",
                     "all": "matches all elements",
+                    "/reported.": "absolute path in reported section",
+                    "/desired.": "absolute path in desired section",
+                    "/metadata.": "absolute path in metadata section",
+                    "/ancestors.": "filter ancestor properties",
+                    "/descendants.": "filter descendant properties",
                     **{p: "filter property" for p in self.props},
                 }
             ),
         )
+        self.property_names_completer = FuzzyWordCompleter(props)
+        self.ops_completer = FuzzyWordCompleter(ops)
+        self.and_or_completer = FuzzyWordCompleter(
+            [
+                "and",
+                "or",
+                "sort",
+                "limit",
+                "-->",
+                "<--",
+                "-[0:1]->",
+                "<-[0:1]-",
+                "-[0:]->",
+                "<-[0:]-",
+                "<-[0:]->",
+            ],
+            meta_dict={
+                "and": "combine next term with and",
+                "or": "combine next term with or",
+                "sort": "sort results based on property",
+                "limit": "limit results by offset and number",
+                "-->": "traverse outbound one hop",
+                "<--": "traverse inbound one hop",
+                "-[0:1]->": "outbound one hop with current node",
+                "<-[0:1]-": "inbound one hop with current node",
+                "-[0:]->": "outbound to all leaves",
+                "<-[0:]-": "inbound until the root",
+                "<-[0:]->": "any reachable node from here",
+            },
+        )
+        self.value_completer = ExampleCompleter(
+            "Value like 123, test, 12days, true, false, null, [1,2,3], {a:1}"
+        )
+        self.limit_completer = ExampleCompleter(
+            "Number of elements with optional offset. e.g. 23 or 12, 23"
+        )
+        self.sort_order_completer = FuzzyWordCompleter(["asc", "desc"])
+        self.section_completer = FuzzyWordCompleter(["reported", "desired", "metadata"])
 
     def get_completions(
         self, document: Document, complete_event: CompleteEvent
     ) -> Iterable[Completion]:
 
         text = document.text_before_cursor
-        text_stripped = text.strip()
+        parts = re_navigation.split(text)
+        last = parts[-1].lstrip() if parts else ""
+        last_words = last.split()
 
-        if in_start := re_start_query.match(text_stripped):
-            doc = cut_document_remaining(document, in_start.group(1))
-            return self.start_completer.get_completions(doc, complete_event)
-        elif in_is := re_inside_is.match(text):
-            doc = cut_document_remaining(document, in_is.group(1))
-            return self.kind_completer.get_completions(doc, complete_event)
+        def word_at(idx: int) -> str:
+            return last_words[idx] if abs(idx) <= len(last_words) else ""
+
+        last_word = word_at(-1)
+        have_sort = " sort " in last
+        have_limit = " limit " in last
+
+        def property_completions(prop_doc: Document) -> Iterable[Completion]:
+            if kind := re_ancestor_descendant_kind.match(last_word):
+                pd = cut_document_remaining(prop_doc, kind.span(1))
+                return self.kind_completer.get_completions(pd, complete_event)
+            elif section := re_ancestor_descendant_section.match(last_word):
+                pd = cut_document_remaining(prop_doc, section.span(1))
+                return self.section_completer.get_completions(pd, complete_event)
+            elif section := re_ancestor_descendant_reported.match(last_word):
+                pd = cut_document_remaining(prop_doc, section.span(1))
+                return self.property_names_completer.get_completions(pd, complete_event)
+            elif reported := re_slash_reported.match(last_word):
+                pd = cut_document_remaining(prop_doc, reported.span(1))
+                return self.property_names_completer.get_completions(pd, complete_event)
+            else:
+                return self.start_completer.get_completions(prop_doc, complete_event)
+
+        if in_start := re_start_query.match(last):
+            doc = cut_document_remaining(document, in_start.span(1))
+            return property_completions(doc)
         elif parm := re_param_start.match(text):
-            doc = cut_document_remaining(document, parm.group(1))
-            return self.props_completer.get_completions(doc, complete_event)
+            doc = cut_document_remaining(document, parm.span(1))
+            return property_completions(doc)
+        elif in_is := re_inside_is.match(text):
+            doc = cut_document_remaining(document, in_is.span(1))
+            return self.kind_completer.get_completions(doc, complete_event)
+        elif after := re_after_bracket.match(last):
+            doc = cut_document_remaining(document, after.span(1))
+            return self.and_or_completer.get_completions(doc, complete_event)
+        elif after := re_after_param_filter.match(last):
+            doc = cut_document_remaining(document, after.span(1))
+            return self.and_or_completer.get_completions(doc, complete_event)
+        elif after := re_after_fulltext.match(last):
+            doc = cut_document_remaining(document, after.span(1))
+            return self.and_or_completer.get_completions(doc, complete_event)
+        elif last_word == "sort":
+            doc = cut_document_last(document, last_word)
+            return self.property_names_completer.get_completions(doc, complete_event)
+        elif last_word == "limit":
+            doc = cut_document_last(document, last_word)
+            return self.limit_completer.get_completions(doc, complete_event)
+        elif word_at(-2) == "sort":  # sort order
+            doc = cut_document_last(document, last_word)
+            return self.sort_order_completer.get_completions(doc, complete_event)
+        elif after := re_after_sort_limit.match(last):
+            doc = cut_document_remaining(document, after.span(1))
+            return self.and_or_completer.get_completions_filtered(
+                doc,
+                complete_event,
+                **{
+                    "sort": have_sort | have_limit,
+                    "limit": have_limit,
+                    "and": have_sort | have_limit,
+                    "or": have_sort | have_limit,
+                },
+            )
+        elif (
+            last_word in self.prop_lookup or last_word.startswith("/")
+        ) and not have_sort:
+            doc = cut_document_last(document, last_word)
+            return self.ops_completer.get_completions(doc, complete_event)
+        elif last_word in self.ops_lookup:
+            doc = cut_document_last(document, last_word)
+            return self.value_completer.get_completions(doc, complete_event)
         else:
             return []
 
@@ -320,6 +465,22 @@ class CommandLineCompleter(Completer):
 
         cmd_completer = [CommandCompleter(cmd, command_completer(cmd)) for cmd in cmds]
         return CommandLineCompleter(cmds, cmd_completer)
+
+
+class SafeCompleter(Completer):
+    """
+    This completer ensures, that the underlying completer will always return "something"
+    prompt_toolkit does not handle empty completions very well.
+    """
+
+    def __init__(self, completer: Completer) -> None:
+        self.completer = completer
+
+    def get_completions(
+        self, document: Document, complete_event: CompleteEvent
+    ) -> Iterable[Completion]:
+        result = self.completer.get_completions(document, complete_event)
+        return [] if result is None else result
 
 
 known_kinds = [
@@ -1417,13 +1578,10 @@ class PromptSession:
         self.session = PTSession(history=history)
 
     def prompt(self) -> str:
-        try:
-            return self.session.prompt(
-                self.prompt_message,
-                completer=self.completer,
-                complete_while_typing=True,
-                style=self.style,
-                auto_suggest=AutoSuggestFromHistory(),
-            )
-        except (TypeError, AttributeError) as ex:
-            raise KeyboardInterrupt from ex
+        return self.session.prompt(
+            self.prompt_message,
+            completer=SafeCompleter(self.completer),
+            complete_while_typing=True,
+            style=self.style,
+            auto_suggest=AutoSuggestFromHistory(),
+        )
