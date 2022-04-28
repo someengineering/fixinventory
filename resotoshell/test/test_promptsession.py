@@ -1,3 +1,4 @@
+import re
 from typing import Set
 
 from prompt_toolkit.completion import (
@@ -14,14 +15,22 @@ from resotoshell.promptsession import (
     SearchCompleter,
     known_kinds,
     known_props,
+    DocumentExtension,
+    AggregateCompleter,
 )
 
 
-def complete(part: str, completer: Completer, return_display: bool = False) -> Set[str]:
+def complete(part: str, completer: Completer, return_meta: bool = False) -> Set[str]:
     return {
-        a.display[0][1] if return_display else a.text
+        a.display_meta_text if return_meta else a.text
         for a in completer.get_completions(Document(part, len(part)), CompleteEvent())
     }
+
+
+def test_doc_ext() -> None:
+    d = Document("Sentence 1. Things I want to say", 32)
+    ext = DocumentExtension(d, re.compile(r"\s*[.]\s*"))
+    assert ext.last_doc() == Document("Things I want to say", 20)
 
 
 def test_complete_command() -> None:
@@ -62,7 +71,7 @@ def test_property() -> None:
 
 def test_search() -> None:
     n = SearchCompleter(known_kinds, known_props)
-    assert len(complete("", n, True)) > len(known_props)
+    assert len(complete("", n)) > len(known_props)
     assert "is(" in complete("i", n)
 
     # show possible kinds in is()
@@ -80,7 +89,7 @@ def test_search() -> None:
 
     # show possible operators for filter expression
     assert complete("is(instance) or age >= ", n, True) == {
-        "Value like 123, test, 12days, true, false, null, [1,2,3], {a:1}"
+        "like 123, test, 12days, true, false, null, [1,2,3], {a:1}"
     }
 
     # suggest sort and limit after filter
@@ -108,6 +117,33 @@ def test_search() -> None:
     )
 
 
+def test_aggregate() -> None:
+    n = AggregateCompleter(known_kinds, known_props)
+    # show all  possible properties (+ example etc)
+    assert len(complete("", n)) >= len(known_props)
+    # after the group
+    assert {"as", ":", ","} <= complete("name ", n)
+    # define a name for the group
+    assert complete("name as ", n, True) == {"name of this result"}
+    # after a complete group
+    assert {":", ","} <= complete("name as bla ", n)
+    assert "as" not in complete("name as bla ", n)
+    # expect the next group var
+    assert len(complete("name, ", n)) >= len(known_props)
+    # works the same for multiple group vars
+    assert {"as", ":", ","} <= complete("name, foo ", n)
+
+    # show possible functions
+    assert {"sum(", "min("} <= complete("name: ", n)
+    # show all properties + static values
+    assert len(complete("name: sum(", n)) >= len(known_props)
+    # suggest to name this function
+    assert {"as", ","} <= complete("name: sum(1)", n)
+    # after named function, only comma is allowed
+    assert complete("name: sum(1) as bla ", n) == {","}
+    assert complete("name: sum(1) as bla, min(foo) as foo ", n) == {","}
+
+
 def test_complete_option() -> None:
     n = CommandLineCompleter.create_completer(known_commands, [], [])
     assert complete("ancestors ", n) == {
@@ -132,9 +168,9 @@ def test_complete_option() -> None:
 
     assert complete("configs show ", n, True) == {"<config_id> e.g. resoto.core"}
 
-    assert complete("search all | list ", n, True) == {
+    assert complete("search all | list ", n) == {
         "--markdown",
-        "the list of properties, comma separated",
+        " ",
         "--csv",
     }
 
