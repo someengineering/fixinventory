@@ -162,7 +162,7 @@ class Config(metaclass=MetaConfig):
                         )
                         new_value = getattr(config_data, field.name, None)
                         if new_value != old_value:
-                            log.debug(
+                            log.info(
                                 f"Changed config {config_id}.{field.name} requires restart"
                             )
                             return True
