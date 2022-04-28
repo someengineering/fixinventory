@@ -25,27 +25,58 @@ def restart() -> None:
     if sys.path[0] == "" and not python_path.startswith(path_prefix):
         os.environ["PYTHONPATH"] = path_prefix + python_path
 
-    kill_children(SIGTERM, ensure_death=True)
-
     try:
-        open_max = os.sysconf("SC_OPEN_MAX")
-    except AttributeError:
-        open_max = 1024
+        close_fds()
+    except Exception:
+        log.exception("Failed to FD_CLOEXEC all file descriptors")
 
-    for fd in range(3, open_max):
-        try:
-            flags = fcntl.fcntl(fd, fcntl.F_GETFD)
-        except IOError:
-            continue
-        fcntl.fcntl(fd, fcntl.F_SETFD, flags | fcntl.FD_CLOEXEC)
+    kill_children(SIGTERM, ensure_death=True)
 
     os.chdir(initial_dir)
     os.execv(sys.executable, [sys.executable] + args)
+    log.fatal("Failed to restart - exiting")
+    os._exit(1)
 
 
 def delayed_exit(delay: int = 3) -> None:
     time.sleep(delay)
     os._exit(0)
+
+
+def close_fds() -> None:
+    try:
+        open_max = os.sysconf("SC_OPEN_MAX")
+    except AttributeError:
+        open_max = 1024
+
+    if sys.platform == "linux":
+        proc = "/proc"
+        pid = str(os.getpid())
+        try:
+            for entry in os.listdir(os.path.join(proc, pid, "fd")):
+                entry_path = os.path.join(proc, pid, "fd", entry)
+                if os.path.islink(entry_path) and entry.isnumeric():
+                    fd = int(entry)
+                    if fd >= 3:
+                        try:
+                            fd_cloexec(fd)
+                        except Exception:
+                            log.error(f"Failed to FD_CLOEXEC {fd}")
+        except (PermissionError, FileNotFoundError):
+            pass
+    else:
+        if open_max > 65536:
+            log.warning(f"High SC_OPEN_MAX: {open_max}, restart will take longer")
+        for fd in range(3, open_max):
+            fd_cloexec(fd)
+
+
+def fd_cloexec(fd: int) -> None:
+    try:
+        flags = fcntl.fcntl(fd, fcntl.F_GETFD)
+    except IOError:
+        return
+    fcntl.fcntl(fd, fcntl.F_SETFD, flags | fcntl.FD_CLOEXEC)
 
 
 def handler(sig, frame) -> None:
