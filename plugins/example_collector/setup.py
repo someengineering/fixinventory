@@ -12,7 +12,7 @@ def read(fname):
 
 setup(
     name="resoto-plugin-example_collector",
-    version="2.1.0a0",
+    version="2.2.0a0",
     description="Resoto Example Collector Plugin",
     license="Apache 2.0",
     packages=find_packages(),
