@@ -21,7 +21,7 @@ from rich.console import Console
 def main() -> None:
     resotolib.signal.parent_pid = os.getpid()
     resotolib.signal.initializer()
-    setup_logger("resotoshell")
+    setup_logger("resotoshell", json_format=False)
     arg_parser = ArgumentParser(
         description="resoto shell", env_args_prefix="RESOTOSHELL_"
     )

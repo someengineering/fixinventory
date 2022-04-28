@@ -112,20 +112,29 @@ def setup_logger(
     verbose: bool = False,
     quiet: bool = False,
     level: Optional[str] = None,
+    json_format: bool = True,
 ) -> None:
-    handler = StreamHandler()
-    formatter = JsonFormatter(
-        {
-            "timestamp": "asctime",
-            "level": "levelname",
-            "message": "message",
-            "pid": "process",
-            "thread": "threadName",
-        },
-        static_values={"process": proc},
-    )
-    handler.setFormatter(formatter)
-    basicConfig(handlers=[handler], force=force, level=level)
+    # override log output via env var
+    plain_text = os.environ.get("RESOTO_LOG_TEXT", "false").lower() == "true"
+    if json_format and not plain_text:
+        handler = StreamHandler()
+        formatter = JsonFormatter(
+            {
+                "timestamp": "asctime",
+                "level": "levelname",
+                "message": "message",
+                "pid": "process",
+                "thread": "threadName",
+            },
+            static_values={"process": proc},
+        )
+        handler.setFormatter(formatter)
+        basicConfig(handlers=[handler], force=force, level=level)
+    else:
+        log_format = f"%(asctime)s|{proc}|%(levelname)5s|%(process)d|%(threadName)10s  %(message)s"
+        # allow to define the log format via env var
+        log_format = os.environ.get("RESOTO_LOG_FORMAT", log_format)
+        basicConfig(format=log_format, datefmt="%y-%m-%d %H:%M:%S", force=force)
     argv = sys.argv[1:]
     if (
         verbose
