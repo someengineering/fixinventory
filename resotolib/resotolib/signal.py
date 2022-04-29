@@ -44,34 +44,10 @@ def delayed_exit(delay: int = 3) -> None:
 
 
 def close_fds() -> None:
-    open_max = 0
-    if sys.platform == "linux":
-        try:
-            for fd in os.listdir(os.path.join("/proc", str(os.getpid()), "fd")):
-                if not fd.isnumeric():
-                    continue
-                fd = int(fd)
-                if fd > open_max:
-                    open_max = fd
-            # We have a race between reading /proc and setting
-            # FD_CLOEXEC so we're adding some safety margin in
-            # case some thread opened new fds in between.
-            open_max += 1024
-        except Exception:
-            open_max = 1024
-    else:
-        try:
-            # This can return really big numbers so it's better to have
-            # an OS specific implementation like the Linux one above.
-            open_max = os.sysconf("SC_OPEN_MAX")
-        except AttributeError:
-            open_max = 1024
+    if sys.platform == "win32":
+        return
 
-    if open_max > 65536:
-        # SC_OPEN_MAX can be 1 billion or more. In that case we log a warning
-        # but still try to close all possible file descriptors rather than leaking
-        # them. This can delay restarting by several minutes.
-        log.warning(f"High SC_OPEN_MAX: {open_max}, restart will take longer")
+    open_max = max([f.fd for f in psutil.Process().open_files()]) + 1024
     for fd in range(3, open_max):
         fd_cloexec(fd)
 
