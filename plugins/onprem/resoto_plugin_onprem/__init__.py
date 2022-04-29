@@ -1,8 +1,8 @@
 from resotolib.baseresources import BaseResource
-import resotolib.logging
+import resotolib.logger
 import socket
 import multiprocessing
-import resotolib.signal
+import resotolib.proc
 from concurrent import futures
 from resotolib.baseplugin import BaseCollectorPlugin
 from argparse import Namespace
@@ -14,7 +14,7 @@ from .config import OnpremConfig
 from paramiko import ssh_exception
 from typing import Dict
 
-log = resotolib.logging.getLogger("resoto." + __name__)
+log = resotolib.logger.getLogger("resoto." + __name__)
 
 
 class OnpremCollectorPlugin(BaseCollectorPlugin):
@@ -78,7 +78,7 @@ class OnpremCollectorPlugin(BaseCollectorPlugin):
         pool_args = {"max_workers": max_workers}
         if Config.onprem.fork_process:
             pool_args["mp_context"] = multiprocessing.get_context("spawn")
-            pool_args["initializer"] = resotolib.signal.initializer
+            pool_args["initializer"] = resotolib.proc.initializer
             pool_executor = futures.ProcessPoolExecutor
             collect_args = {
                 "args": ArgumentParser.args,
@@ -128,7 +128,7 @@ def collect_server(
         hostname, port = hostname.split(":", 1)
 
     collector_name = f"onprem_{hostname}"
-    resotolib.signal.set_thread_name(collector_name)
+    resotolib.proc.set_thread_name(collector_name)
     try:
         s = instance_from_ssh(
             hostname,

@@ -5,7 +5,7 @@ import fcntl
 import psutil
 import threading
 import subprocess
-from resotolib.logging import log
+from resotolib.logger import log
 from resotolib.event import dispatch_event, Event, EventType
 from signal import signal, Signals, SIGTERM, SIGINT
 

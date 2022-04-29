@@ -12,7 +12,7 @@ if sys.platform == "linux":
     import resource
 import time
 import json
-from resotolib.logging import log
+from resotolib.logger import log
 from functools import wraps
 from tarfile import TarFile, TarInfo
 from pprint import pformat

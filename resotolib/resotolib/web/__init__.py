@@ -1,6 +1,6 @@
 import threading
 import cherrypy
-from resotolib.logging import log
+from resotolib.logger import log
 from typing import Optional
 
 

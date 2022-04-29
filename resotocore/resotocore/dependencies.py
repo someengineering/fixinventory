@@ -12,7 +12,7 @@ from arango.database import StandardDatabase
 from parsy import Parser
 from resotolib.args import ArgumentParser
 from resotolib.jwt import add_args as jwt_add_args
-from resotolib.logging import setup_logger
+from resotolib.logger import setup_logger
 from resotolib.utils import iec_size_format
 
 from resotocore import async_extensions, version

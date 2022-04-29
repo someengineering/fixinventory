@@ -1,4 +1,4 @@
-import resotolib.logging
+import resotolib.logger
 import threading
 import time
 import ssl
@@ -24,7 +24,7 @@ from resotolib.event import (
 from resotolib.graph import Graph
 from .config import SlackConfig
 
-log = resotolib.logging.getLogger("resoto." + __name__)
+log = resotolib.logger.getLogger("resoto." + __name__)
 
 
 def retry_on_request_limit_exceeded(e):

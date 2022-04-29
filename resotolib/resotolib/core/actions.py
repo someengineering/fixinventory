@@ -3,7 +3,7 @@ import time
 import websocket
 import requests
 import json
-from resotolib.logging import log
+from resotolib.logger import log
 from resotolib.event import EventType, remove_event_listener, add_event_listener, Event
 from resotolib.args import ArgumentParser
 from resotolib.jwt import encode_jwt_to_headers

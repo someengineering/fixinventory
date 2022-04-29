@@ -6,7 +6,7 @@ from resoto_plugin_digitalocean.resources import DigitalOceanTeam
 from resoto_plugin_digitalocean.config import DigitalOceanCollectorConfig
 from resotolib.config import Config
 from resotolib.baseplugin import BaseCollectorPlugin
-from resotolib.logging import log
+from resotolib.logger import log
 from resotolib.graph import Graph
 
 

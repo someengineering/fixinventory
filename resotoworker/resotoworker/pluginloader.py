@@ -1,6 +1,6 @@
 import pkg_resources
 import inspect
-from resotolib.logging import log
+from resotolib.logger import log
 from typing import List, Optional
 from resotolib.args import ArgumentParser
 from resotolib.config import Config

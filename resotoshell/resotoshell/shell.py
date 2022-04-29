@@ -13,7 +13,7 @@ from requests_toolbelt import MultipartDecoder
 from requests_toolbelt.multipart.decoder import BodyPart
 from resotolib.args import ArgumentParser
 from resotolib.utils import sha256sum
-from resotolib.logging import log
+from resotolib.logger import log
 from resotoshell.protected_files import validate_paths
 from resotoclient import ResotoClient
 

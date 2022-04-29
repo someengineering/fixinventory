@@ -1,6 +1,6 @@
 import multiprocessing
-from resotolib.logging import log, setup_logger
-import resotolib.signal
+from resotolib.logger import log, setup_logger
+import resotolib.proc
 from concurrent import futures
 from typing import Dict, Optional
 from resotolib.baseplugin import BaseCollectorPlugin
@@ -49,7 +49,7 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
         pool_args = {"max_workers": max_workers}
         if Config.gcp.fork_process:
             pool_args["mp_context"] = multiprocessing.get_context("spawn")
-            pool_args["initializer"] = resotolib.signal.initializer
+            pool_args["initializer"] = resotolib.proc.initializer
             pool_executor = futures.ProcessPoolExecutor
             collect_args = {
                 "args": ArgumentParser.args,
@@ -96,7 +96,7 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
         """
         project = GCPProject(project_id, {})
         collector_name = f"gcp_{project.id}"
-        resotolib.signal.set_thread_name(collector_name)
+        resotolib.proc.set_thread_name(collector_name)
 
         if args is not None:
             ArgumentParser.args = args

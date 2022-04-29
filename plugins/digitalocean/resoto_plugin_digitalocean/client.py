@@ -7,7 +7,7 @@ from botocore.exceptions import EndpointConnectionError, HTTPClientError
 from retrying import retry as retry_decorator
 from resoto_plugin_digitalocean.utils import retry_on_error
 from resoto_plugin_digitalocean.utils import RetryableHttpError
-import resotolib.logging
+import resotolib.logger
 from resotolib.config import Config
 
 F = TypeVar("F", bound=Callable[..., Any])
@@ -22,7 +22,7 @@ def retry(func: F) -> F:
     )(func)
 
 
-log = resotolib.logging.getLogger("resoto." + __name__)
+log = resotolib.logger.getLogger("resoto." + __name__)
 
 Json = Dict[str, Any]
 

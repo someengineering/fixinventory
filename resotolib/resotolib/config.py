@@ -1,9 +1,9 @@
 import jsons
 import threading
-from resotolib.logging import log
+from resotolib.logger import log
 from resotolib.args import ArgumentParser, convert
 from resotolib.core.ca import TLSData
-from resotolib.signal import restart
+from resotolib.proc import restart
 from resotolib.core.model_export import dataclasses_to_resotocore_model, optional_origin
 from resotolib.core import ResotocoreURI
 from resotolib.core.config import (

@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import ClassVar, Dict, List, Optional
 
-import resotolib.logging
+import resotolib.logger
 from resotolib.baseresources import (
     BaseAccount,
     BaseDatabase,
@@ -27,7 +27,7 @@ from resoto_plugin_digitalocean.client import get_team_credentials
 from resoto_plugin_digitalocean.client import StreamingWrapper
 from .utils import dump_tag
 
-log = resotolib.logging.getLogger("resoto." + __name__)
+log = resotolib.logger.getLogger("resoto." + __name__)
 
 
 @dataclass(eq=False)

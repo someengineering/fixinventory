@@ -19,7 +19,7 @@ from pkg_resources import resource_filename
 from typing import List, Optional, Dict, Tuple
 from retrying import retry
 from pprint import pformat
-from resotolib.logging import log
+from resotolib.logger import log
 
 # boto3 has no way of converting between short and long region names
 # The pricing API expects long region names, whereas ever other API works with short region names.

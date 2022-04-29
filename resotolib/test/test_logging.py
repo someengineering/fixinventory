@@ -1,5 +1,5 @@
 import logging
-from resotolib.logging import log, JsonFormatter
+from resotolib.logger import log, JsonFormatter
 
 
 def test_logging():

@@ -8,7 +8,7 @@ from resotolib.utils import make_valid_timestamp
 from .utils import aws_client, aws_resource
 from typing import ClassVar, Any
 from dataclasses import dataclass
-from resotolib.logging import log
+from resotolib.logger import log
 
 
 default_ctime = make_valid_timestamp(date(2006, 3, 19))  # AWS public launch date

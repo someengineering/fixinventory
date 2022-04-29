@@ -1,5 +1,5 @@
 from copy import deepcopy
-from resotolib.logging import log
+from resotolib.logger import log
 from resotolib.core.search import CoreGraph
 from resotolib.baseplugin import BaseActionPlugin
 from resotolib.core.model_export import node_from_dict

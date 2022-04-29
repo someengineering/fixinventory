@@ -4,7 +4,7 @@ from typing import Tuple, Type, List, Dict, Callable, Any, Optional, cast
 
 from prometheus_client import Summary
 
-import resotolib.logging
+import resotolib.logger
 from resotolib.baseresources import BaseResource, EdgeType
 from resotolib.graph import Graph
 from .client import StreamingWrapper
@@ -67,7 +67,7 @@ from .utils import (
 
 Json = Dict[str, Any]
 
-log = resotolib.logging.getLogger("resoto." + __name__)
+log = resotolib.logger.getLogger("resoto." + __name__)
 
 metrics_collect_projects = Summary(
     "resoto_plugin_digitalocean_collect_projects_seconds",

@@ -26,7 +26,7 @@ from cryptography.x509.base import Certificate
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
 from tempfile import TemporaryDirectory
 from threading import Lock, Event, Thread, Condition
-from resotolib.logging import log
+from resotolib.logger import log
 from resotolib.event import add_event_listener, Event as ResotoEvent, EventType
 from datetime import datetime, timedelta
 from jwt.exceptions import InvalidSignatureError

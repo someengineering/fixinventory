@@ -5,7 +5,7 @@ from resotolib.baseresources import BaseResource
 from resotolib.config import Config
 from resotolib.graph import Graph
 from resotolib.utils import RWLock
-import resotolib.logging
+import resotolib.logger
 from typing import Iterable, List, Union, Callable, Any, Dict
 from googleapiclient import discovery
 from googleapiclient.errors import HttpError as GoogleApiClientHttpError
@@ -17,8 +17,8 @@ from tenacity import Retrying, stop_after_attempt, retry_if_exception_type
 
 # from google.oauth2.credentials import UserAccessTokenCredentials
 
-log = resotolib.logging.getLogger("resoto." + __name__)
-resotolib.logging.getLogger("googleapiclient").setLevel(resotolib.logging.ERROR)
+log = resotolib.logger.getLogger("resoto." + __name__)
+resotolib.logger.getLogger("googleapiclient").setLevel(resotolib.logger.ERROR)
 
 
 SCOPES = ["https://www.googleapis.com/auth/cloud-platform"]

@@ -2,7 +2,7 @@ from typing import List, Dict, ClassVar, Optional
 from datetime import datetime, timezone, timedelta
 from resotolib.graph import Graph
 from resotolib.utils import make_valid_timestamp
-import resotolib.logging
+import resotolib.logger
 from resotolib.baseresources import (
     BaseQuota,
     BaseAccount,
@@ -40,7 +40,7 @@ from .utils import (
 from dataclasses import dataclass, field, InitVar
 
 
-log = resotolib.logging.getLogger("resoto." + __name__)
+log = resotolib.logger.getLogger("resoto." + __name__)
 
 # Resources that can exist within zones OR outside zones in regions only
 regional_resources = (

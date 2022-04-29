@@ -1,4 +1,4 @@
-from resotolib.logging import log
+from resotolib.logger import log
 from resotolib.core.search import CoreGraph
 from resotolib.core.ca import TLSData
 from networkx import DiGraph

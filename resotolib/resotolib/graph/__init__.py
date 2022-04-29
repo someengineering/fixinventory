@@ -8,7 +8,7 @@ import pickle
 import json
 import re
 import tempfile
-from resotolib.logging import log
+from resotolib.logger import log
 from resotolib.baseresources import (
     BaseCloud,
     BaseAccount,

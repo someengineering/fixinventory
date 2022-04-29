@@ -3,13 +3,13 @@ import sys
 from threading import Event, Thread
 from typing import Callable
 
-import resotolib.signal
+import resotolib.proc
 from resotolib.args import ArgumentParser, Namespace
 from resotolib.core import resotocore, add_args as core_add_args, resotocore_is_up
 from resotolib.core.ca import TLSData
 from resotolib.event import add_event_listener, Event as ResotoEvent, EventType
 from resotolib.jwt import add_args as jwt_add_args
-from resotolib.logging import log, setup_logger, add_args as logging_add_args
+from resotolib.logger import log, setup_logger, add_args as logging_add_args
 from resotoshell.promptsession import PromptSession
 from resotoshell.shell import Shell
 from rich.console import Console
@@ -17,8 +17,8 @@ from resotoclient import ResotoClient
 
 
 def main() -> None:
-    resotolib.signal.parent_pid = os.getpid()
-    resotolib.signal.initializer()
+    resotolib.proc.parent_pid = os.getpid()
+    resotolib.proc.initializer()
     setup_logger("resotoshell", json_format=False)
     arg_parser = ArgumentParser(
         description="resoto shell", env_args_prefix="RESOTOSHELL_"
@@ -44,7 +44,7 @@ def main() -> None:
         handle_from_stdin(client)
     else:
         repl(client, args)
-    resotolib.signal.kill_children(resotolib.signal.SIGTERM, ensure_death=True)
+    resotolib.proc.kill_children(resotolib.proc.SIGTERM, ensure_death=True)
     log.debug("Shutdown complete")
     sys.exit(0)
 
@@ -60,7 +60,7 @@ def repl(
 
     def shutdown(event: ResotoEvent) -> None:
         shutdown_event.set()
-        kt = Thread(target=resotolib.signal.delayed_exit, name="shutdown")
+        kt = Thread(target=resotolib.proc.delayed_exit, name="shutdown")
         kt.start()
 
     add_event_listener(EventType.SHUTDOWN, shutdown)

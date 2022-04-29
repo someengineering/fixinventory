@@ -1,4 +1,4 @@
-from resotolib.logging import log
+from resotolib.logger import log
 
 
 class Metrics:
