@@ -1662,7 +1662,12 @@ known_commands = [
     CommandInfo(
         "kinds",
         [
-            ArgInfo("-p", expects_value=True, value_hint="property"),
+            ArgInfo(
+                "-p",
+                expects_value=True,
+                value_hint="kind",
+                help_text="lookup property name",
+            ),
             ArgInfo(
                 None,
                 expects_value=True,
