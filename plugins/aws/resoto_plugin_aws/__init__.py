@@ -1,6 +1,6 @@
 import botocore.exceptions
 import multiprocessing
-import resotolib.signal
+import resotolib.proc
 import resotolib.logger
 from resotolib.logger import log, setup_logger
 from concurrent import futures
@@ -80,7 +80,7 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
         pool_args = {"max_workers": max_workers}
         if Config.aws.fork_process:
             pool_args["mp_context"] = multiprocessing.get_context("spawn")
-            pool_args["initializer"] = resotolib.signal.initializer
+            pool_args["initializer"] = resotolib.proc.initializer
             pool_executor = futures.ProcessPoolExecutor
         else:
             pool_executor = futures.ThreadPoolExecutor
@@ -184,7 +184,7 @@ def collect_account(
     running_config: RunningConfig = None,
 ) -> Graph:
     collector_name = f"aws_{account.id}"
-    resotolib.signal.set_thread_name(collector_name)
+    resotolib.proc.set_thread_name(collector_name)
 
     if args is not None:
         ArgumentParser.args = args

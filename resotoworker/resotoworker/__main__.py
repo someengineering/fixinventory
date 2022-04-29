@@ -3,7 +3,7 @@ import time
 import os
 import sys
 import threading
-import resotolib.signal
+import resotolib.proc
 from typing import List, Dict
 from .config import add_config
 from resotolib.config import Config
@@ -43,7 +43,7 @@ def main() -> None:
     except Exception:
         pass
 
-    resotolib.signal.parent_pid = os.getpid()
+    resotolib.proc.parent_pid = os.getpid()
 
     arg_parser = ArgumentParser(
         description="resoto worker",
@@ -87,7 +87,7 @@ def main() -> None:
     config.load_config()
 
     # Handle Ctrl+c and other means of termination/shutdown
-    resotolib.signal.initializer()
+    resotolib.proc.initializer()
     add_event_listener(EventType.SHUTDOWN, shutdown, blocking=False)
 
     # Try to increase nofile and nproc limits
@@ -153,7 +153,7 @@ def main() -> None:
     shutdown_event.wait()
     web_server.shutdown()
     time.sleep(1)  # everything gets 1000ms to shutdown gracefully before we force it
-    resotolib.signal.kill_children(resotolib.signal.SIGTERM, ensure_death=True)
+    resotolib.proc.kill_children(resotolib.proc.SIGTERM, ensure_death=True)
     log.info("Shutdown complete")
     os._exit(0)
 
@@ -202,10 +202,10 @@ def shutdown(event: Event) -> None:
     emergency = event.data.get("emergency")
 
     if emergency:
-        resotolib.signal.emergency_shutdown(reason)
+        resotolib.proc.emergency_shutdown(reason)
 
     current_pid = os.getpid()
-    if current_pid != resotolib.signal.parent_pid:
+    if current_pid != resotolib.proc.parent_pid:
         return
 
     if reason is None:

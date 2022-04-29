@@ -1,5 +1,5 @@
 import resotolib.logger
-import resotolib.signal
+import resotolib.proc
 from resotolib.baseplugin import BaseCollectorPlugin
 from resotolib.config import Config
 from .resources import GithubAccount, GithubRegion, GithubOrg, GithubUser, GithubRepo

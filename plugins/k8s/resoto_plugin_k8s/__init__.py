@@ -1,6 +1,6 @@
 import resotolib.logger
 import multiprocessing
-import resotolib.signal
+import resotolib.proc
 from concurrent import futures
 from typing import Optional, Dict
 from resotolib.baseplugin import BaseCollectorPlugin
@@ -36,7 +36,7 @@ class KubernetesCollectorPlugin(BaseCollectorPlugin):
         pool_args = {"max_workers": max_workers}
         if Config.k8s.fork_process:
             pool_args["mp_context"] = multiprocessing.get_context("spawn")
-            pool_args["initializer"] = resotolib.signal.initializer
+            pool_args["initializer"] = resotolib.proc.initializer
             pool_executor = futures.ProcessPoolExecutor
             collect_args = {
                 "args": ArgumentParser.args,
@@ -81,7 +81,7 @@ class KubernetesCollectorPlugin(BaseCollectorPlugin):
         """
         cluster = KubernetesCluster(cluster_id, {})
         collector_name = f"k8s_{cluster.id}"
-        resotolib.signal.set_thread_name(collector_name)
+        resotolib.proc.set_thread_name(collector_name)
 
         if args is not None:
             ArgumentParser.args = args

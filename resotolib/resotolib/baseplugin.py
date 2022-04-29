@@ -11,7 +11,7 @@ from resotolib.baseresources import Cloud
 from threading import Thread, current_thread
 from prometheus_client import Counter
 import resotolib.config
-import resotolib.signal
+import resotolib.proc
 import time
 from typing import Dict, Optional
 

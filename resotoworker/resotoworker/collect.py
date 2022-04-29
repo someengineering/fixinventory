@@ -1,5 +1,5 @@
 import multiprocessing
-import resotolib.signal
+import resotolib.proc
 from time import time
 from concurrent import futures
 from resotoworker.resotocore import send_to_resotocore
@@ -33,7 +33,7 @@ def collect_and_send(
         pool_args = {"max_workers": max_workers}
         if Config.resotoworker.fork_process:
             pool_args["mp_context"] = multiprocessing.get_context("spawn")
-            pool_args["initializer"] = resotolib.signal.initializer
+            pool_args["initializer"] = resotolib.proc.initializer
             pool_executor = futures.ProcessPoolExecutor
             collect_args = {
                 "args": ArgumentParser.args,
@@ -71,7 +71,7 @@ def collect_plugin_graph(
 ) -> Optional[Graph]:
     collector: BaseCollectorPlugin = collector_plugin()
     collector_name = f"collector_{collector.cloud}"
-    resotolib.signal.set_thread_name(collector_name)
+    resotolib.proc.set_thread_name(collector_name)
 
     if args is not None:
         ArgumentParser.args = args

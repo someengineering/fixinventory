@@ -1,7 +1,7 @@
 import os
 import sys
 import time
-import resotolib.signal
+import resotolib.proc
 from resotolib.logger import log, setup_logger, add_args as logging_add_args
 from resotolib.jwt import add_args as jwt_add_args
 from resotolib.config import Config
@@ -46,7 +46,7 @@ def shutdown(event: ResotoEvent) -> None:
 
 def main() -> None:
     setup_logger("resotometrics")
-    resotolib.signal.parent_pid = os.getpid()
+    resotolib.proc.parent_pid = os.getpid()
 
     add_event_listener(EventType.SHUTDOWN, shutdown)
     arg_parser = ArgumentParser(
@@ -81,7 +81,7 @@ def main() -> None:
     config.add_config(ResotoMetricsConfig)
     config.load_config()
 
-    resotolib.signal.initializer()
+    resotolib.proc.initializer()
 
     metrics = Metrics()
     graph_collector = GraphCollector(metrics)
@@ -123,7 +123,7 @@ def main() -> None:
     shutdown_event.wait()
     web_server.shutdown()
     core_actions.shutdown()
-    resotolib.signal.kill_children(resotolib.signal.SIGTERM, ensure_death=True)
+    resotolib.proc.kill_children(resotolib.proc.SIGTERM, ensure_death=True)
     log.info("Shutdown complete")
     sys.exit(0)
 
