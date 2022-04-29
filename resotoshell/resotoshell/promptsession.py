@@ -1489,7 +1489,7 @@ known_commands = [
             ],
             "edit": [
                 ArgInfo(
-                    None, expects_value=True, help_text="<config_id> <key>=<value>"
+                    None, expects_value=True, help_text="<config_id> e.g. resoto.core"
                 ),
             ],
             "update": [
@@ -1501,7 +1501,7 @@ known_commands = [
             ],
             "delete": [
                 ArgInfo(
-                    None, expects_value=True, help_text="<config_id> <key>=<value>"
+                    None, expects_value=True, help_text="<config_id> e.g. resoto.core"
                 ),
             ],
         },
