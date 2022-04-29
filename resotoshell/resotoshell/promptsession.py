@@ -35,7 +35,8 @@ def cut_document_remaining(document: Document, span: Tuple[int, int]) -> Documen
 
 
 def cut_document_last(document: Document, last_part: str) -> Document:
-    left, right = document.text_before_cursor.rsplit(last_part, 1)
+    sp = document.text_before_cursor.rsplit(last_part, 1)
+    left, right = (sp[0], sp[1]) if len(sp) > 1 else (last_part, "")
     right_stripped = right.lstrip()
     return Document(
         right_stripped,
@@ -734,7 +735,7 @@ class SafeCompleter(Completer):
             result = self.completer.get_completions(document, complete_event)
             return [] if result is None else result
         except Exception as ex:
-            log.warning(f"Error in completer: {ex}")
+            log.warning(f"Error in completer: {ex}", exc_info=ex)
             return []
 
 
@@ -1470,7 +1471,6 @@ known_commands = [
                     help_text="List of ip addresses: 1.2.3.4 2.3.4.5",
                 ),
             ],
-            "delete": [],
         },
     ),
     CommandInfo(
@@ -1823,7 +1823,7 @@ known_commands = [
             ],
         },
     ),
-    CommandInfo("unique", source=False),
+    CommandInfo("uniq", source=False),
     CommandInfo(
         "workflows",
         sub_commands={
