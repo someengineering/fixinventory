@@ -1,6 +1,6 @@
 from copy import deepcopy
 from resotolib.baseplugin import BaseActionPlugin
-from resotolib.logging import log
+from resotolib.logger import log
 from resotolib.core.search import CoreGraph
 from resotolib.core.model_export import node_from_dict
 from resotolib.config import Config

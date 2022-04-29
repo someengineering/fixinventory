@@ -4,7 +4,7 @@ from typing import Dict, Tuple, List, Optional
 from resotolib.core import resotocore
 from resotolib.args import ArgumentParser
 from resotolib.jwt import encode_jwt_to_headers
-from resotolib.logging import log
+from resotolib.logger import log
 
 
 def default_args(

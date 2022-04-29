@@ -1,15 +1,15 @@
 import sys
-import resotolib.logging
+import resotolib.logger
 from resotolib.args import get_arg_parser, ArgumentParser
 from resoto_plugin_aws import get_org_accounts
 
 
-resotolib.logging.getLogger("resoto").setLevel(resotolib.logging.ERROR)
-log = resotolib.logging.getLogger(__name__)
+resotolib.logger.getLogger("resoto").setLevel(resotolib.logger.ERROR)
+log = resotolib.logger.getLogger(__name__)
 
 argv = sys.argv[1:]
 if "-v" in argv or "--verbose" in argv:
-    resotolib.logging.getLogger("resoto").setLevel(resotolib.logging.DEBUG)
+    resotolib.logger.getLogger("resoto").setLevel(resotolib.logger.DEBUG)
 
 
 def main() -> None:

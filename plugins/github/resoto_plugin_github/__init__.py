@@ -1,4 +1,4 @@
-import resotolib.logging
+import resotolib.logger
 import resotolib.signal
 from resotolib.baseplugin import BaseCollectorPlugin
 from resotolib.config import Config
@@ -6,7 +6,7 @@ from .resources import GithubAccount, GithubRegion, GithubOrg, GithubUser, Githu
 from .config import GithubConfig
 from github import Github
 
-log = resotolib.logging.getLogger("resoto." + __name__)
+log = resotolib.logger.getLogger("resoto." + __name__)
 
 
 class GithubCollectorPlugin(BaseCollectorPlugin):

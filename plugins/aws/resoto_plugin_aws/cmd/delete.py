@@ -6,16 +6,16 @@ from resoto_plugin_aws.resources import AWSAccount
 from resoto_plugin_aws import AWSPlugin, current_account_id
 from resotolib.utils import make_valid_timestamp
 from resotolib.args import get_arg_parser, ArgumentParser
-import resotolib.logging
+import resotolib.logger
 import re
 from datetime import datetime
 
-resotolib.logging.getLogger("resoto.cmd").setLevel(resotolib.logging.INFO)
-log = resotolib.logging.getLogger("resoto.cmd")
+resotolib.logger.getLogger("resoto.cmd").setLevel(resotolib.logger.INFO)
+log = resotolib.logger.getLogger("resoto.cmd")
 
 argv = sys.argv[1:]
 if "-v" in argv or "--verbose" in argv:
-    resotolib.logging.getLogger("resoto.cmd").setLevel(resotolib.logging.DEBUG)
+    resotolib.logger.getLogger("resoto.cmd").setLevel(resotolib.logger.DEBUG)
 log.info("resoto S3 object purger")
 
 

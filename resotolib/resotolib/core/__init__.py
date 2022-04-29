@@ -1,7 +1,7 @@
 import time
 import requests
 import warnings
-from resotolib.logging import log
+from resotolib.logger import log
 from resotolib.args import ArgumentParser
 from urllib.parse import urlparse, ParseResult
 

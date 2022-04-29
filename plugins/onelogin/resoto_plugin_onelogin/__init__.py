@@ -1,4 +1,4 @@
-import resotolib.logging
+import resotolib.logger
 from datetime import datetime, timedelta, timezone
 from onelogin.api.client import OneLoginClient
 from onelogin.api.models.user import User
@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from typing import ClassVar, Optional, Dict, List
 from .config import OneloginConfig
 
-log = resotolib.logging.getLogger("resoto." + __name__)
+log = resotolib.logger.getLogger("resoto." + __name__)
 
 
 @dataclass(eq=False)

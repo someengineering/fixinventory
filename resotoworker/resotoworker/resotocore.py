@@ -3,7 +3,7 @@ import requests
 import tempfile
 from datetime import datetime
 from resotolib.args import ArgumentParser
-from resotolib.logging import log
+from resotolib.logger import log
 from resotolib.jwt import encode_jwt_to_headers
 from resotolib.graph import Graph, GraphExportIterator
 from resotolib.config import Config

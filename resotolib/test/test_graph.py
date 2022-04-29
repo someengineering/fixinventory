@@ -1,12 +1,12 @@
 import pytest
 from resotolib.graph import Graph, GraphContainer, GraphExportIterator
 from resotolib.baseresources import BaseResource, EdgeType, GraphRoot
-import resotolib.logging as logging
+import resotolib.logger as logger
 from dataclasses import dataclass
 from typing import ClassVar
 from sys import getrefcount
 
-logging.getLogger("resoto").setLevel(logging.DEBUG)
+logger.getLogger("resoto").setLevel(logger.DEBUG)
 
 
 @dataclass(eq=False)

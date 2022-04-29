@@ -6,7 +6,7 @@ import base64
 import hashlib
 import uuid
 import weakref
-from resotolib.logging import log
+from resotolib.logger import log
 from enum import Enum
 from typing import Dict, Iterator, List, ClassVar, Optional
 from resotolib.utils import make_valid_timestamp, ResourceChanges

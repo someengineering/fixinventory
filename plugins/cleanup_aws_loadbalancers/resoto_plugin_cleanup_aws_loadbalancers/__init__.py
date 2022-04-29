@@ -1,6 +1,6 @@
 from resotolib.baseplugin import BaseActionPlugin
 from resotolib.baseresources import EdgeType
-from resotolib.logging import log
+from resotolib.logger import log
 from resotolib.core.search import CoreGraph
 from resotolib.graph import Graph
 from resoto_plugin_aws.resources import (

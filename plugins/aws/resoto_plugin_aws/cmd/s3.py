@@ -18,7 +18,7 @@ from sqlalchemy import (
 from prompt_toolkit import PromptSession
 from prompt_toolkit.history import FileHistory
 from prompt_toolkit.completion import WordCompleter
-import resotolib.logging
+import resotolib.logger
 from resotov1.cli import replace_placeholder
 from resotolib.utils import split_esc, iec_size_format
 from resotolib.args import get_arg_parser, ArgumentParser
@@ -26,12 +26,12 @@ from resoto_plugin_aws.utils import aws_session
 from resoto_plugin_aws.resources import AWSAccount
 from resoto_plugin_aws import current_account_id, AWSPlugin, get_org_accounts
 
-resotolib.logging.getLogger("resoto.cmd").setLevel(resotolib.logging.INFO)
-log = resotolib.logging.getLogger("resoto.cmd")
+resotolib.logger.getLogger("resoto.cmd").setLevel(resotolib.logger.INFO)
+log = resotolib.logger.getLogger("resoto.cmd")
 
 argv = sys.argv[1:]
 if "-v" in argv or "--verbose" in argv:
-    resotolib.logging.getLogger("resoto.cmd").setLevel(resotolib.logging.DEBUG)
+    resotolib.logger.getLogger("resoto.cmd").setLevel(resotolib.logger.DEBUG)
 log.info("resoto S3 bucket collector")
 
 

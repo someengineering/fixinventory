@@ -1,9 +1,9 @@
-import resotolib.logging
+import resotolib.logger
 from collections import defaultdict
 from paramiko import SSHClient
 from .resources import OnpremInstance
 
-log = resotolib.logging.getLogger("resoto." + __name__)
+log = resotolib.logger.getLogger("resoto." + __name__)
 
 
 def instance_from_ssh(

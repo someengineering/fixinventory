@@ -7,7 +7,7 @@ import resotolib.signal
 from typing import List, Dict
 from .config import add_config
 from resotolib.config import Config
-from resotolib.logging import log, setup_logger, add_args as logging_add_args
+from resotolib.logger import log, setup_logger, add_args as logging_add_args
 from resotolib.jwt import add_args as jwt_add_args
 from resotolib.baseplugin import BaseCollectorPlugin, PluginType
 from resotolib.web import WebServer

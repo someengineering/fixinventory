@@ -1,4 +1,4 @@
-import resotolib.logging
+import resotolib.logger
 import multiprocessing
 import resotolib.signal
 from concurrent import futures
@@ -15,7 +15,7 @@ from .collector import KubernetesCollector
 from .resources.cluster import KubernetesCluster
 
 
-log = resotolib.logging.getLogger("resoto." + __name__)
+log = resotolib.logger.getLogger("resoto." + __name__)
 
 
 class KubernetesCollectorPlugin(BaseCollectorPlugin):

@@ -9,7 +9,7 @@ from resotolib.core import resotocore, add_args as core_add_args, resotocore_is_
 from resotolib.core.ca import TLSData
 from resotolib.event import add_event_listener, Event as ResotoEvent, EventType
 from resotolib.jwt import add_args as jwt_add_args
-from resotolib.logging import log, setup_logger, add_args as logging_add_args
+from resotolib.logger import log, setup_logger, add_args as logging_add_args
 from resotoshell.promptsession import PromptSession
 from resotoshell.shell import Shell
 from rich.console import Console

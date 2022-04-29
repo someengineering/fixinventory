@@ -1,5 +1,5 @@
 import multiprocessing
-from resotolib.logging import log, setup_logger
+from resotolib.logger import log, setup_logger
 import resotolib.signal
 from concurrent import futures
 from typing import Dict, Optional

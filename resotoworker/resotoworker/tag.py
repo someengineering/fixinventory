@@ -1,4 +1,4 @@
-from resotolib.logging import log
+from resotolib.logger import log
 from resotolib.core.model_export import node_from_dict, node_to_dict
 
 

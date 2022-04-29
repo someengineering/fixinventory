@@ -1,5 +1,5 @@
 from copy import deepcopy
-from resotolib.logging import log
+from resotolib.logger import log
 from resotolib.baseplugin import BaseActionPlugin
 from resotolib.config import Config
 from .config import TagValidatorConfig

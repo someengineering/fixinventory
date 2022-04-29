@@ -6,7 +6,7 @@ from resotoworker.resotocore import send_to_resotocore
 from resotolib.baseplugin import BaseCollectorPlugin
 from resotolib.baseresources import GraphRoot
 from resotolib.graph import Graph, sanitize
-from resotolib.logging import log, setup_logger
+from resotolib.logger import log, setup_logger
 from resotolib.args import ArgumentParser
 from argparse import Namespace
 from typing import List, Optional

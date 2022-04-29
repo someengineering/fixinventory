@@ -1,10 +1,10 @@
-import resotolib.logging
+import resotolib.logger
 from resotolib.config import Config
 from typing import Dict
 from kubernetes import client, config
 
 
-log = resotolib.logging.getLogger("resoto." + __name__)
+log = resotolib.logger.getLogger("resoto." + __name__)
 
 
 def k8s_config() -> Dict:

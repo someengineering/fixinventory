@@ -1,4 +1,4 @@
-import resotolib.logging
+import resotolib.logger
 from dataclasses import dataclass, field, InitVar
 from datetime import datetime
 from typing import ClassVar, Dict, List, Optional
@@ -17,7 +17,7 @@ from resotolib.baseresources import (
     VolumeStatus,
 )
 
-log = resotolib.logging.getLogger("resoto." + __name__)
+log = resotolib.logger.getLogger("resoto." + __name__)
 
 
 class ExampleCollectorPlugin(BaseCollectorPlugin):

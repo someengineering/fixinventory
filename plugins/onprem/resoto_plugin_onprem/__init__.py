@@ -1,5 +1,5 @@
 from resotolib.baseresources import BaseResource
-import resotolib.logging
+import resotolib.logger
 import socket
 import multiprocessing
 import resotolib.signal
@@ -14,7 +14,7 @@ from .config import OnpremConfig
 from paramiko import ssh_exception
 from typing import Dict
 
-log = resotolib.logging.getLogger("resoto." + __name__)
+log = resotolib.logger.getLogger("resoto." + __name__)
 
 
 class OnpremCollectorPlugin(BaseCollectorPlugin):

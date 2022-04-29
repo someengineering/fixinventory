@@ -2,7 +2,7 @@ import os
 from typing import List
 
 from resotolib.args import get_arg_parser, ArgumentParser, convert, NoneType
-from resotolib.logging import add_args as logging_add_args
+from resotolib.logger import add_args as logging_add_args
 from resotolib.jwt import add_args as jwt_add_args
 
 

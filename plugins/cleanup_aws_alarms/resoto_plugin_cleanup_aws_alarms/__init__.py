@@ -5,7 +5,7 @@ from resoto_plugin_aws.resources import (
     AWSCloudwatchAlarm,
     AWSEC2Instance,
 )
-from resotolib.logging import log
+from resotolib.logger import log
 from resotolib.config import Config
 from .config import CleanupAWSAlarmsConfig
 from typing import Dict

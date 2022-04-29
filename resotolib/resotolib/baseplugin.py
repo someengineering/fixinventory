@@ -6,7 +6,7 @@ from resotolib.core import resotocore
 from resotolib.core.actions import CoreActions
 from resotolib.args import ArgumentParser
 from resotolib.config import Config
-from resotolib.logging import log
+from resotolib.logger import log
 from resotolib.baseresources import Cloud
 from threading import Thread, current_thread
 from prometheus_client import Counter

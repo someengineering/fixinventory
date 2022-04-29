@@ -1,4 +1,4 @@
-import resotolib.logging
+import resotolib.logger
 from resotolib.graph import Graph
 from resotolib.config import Config
 
@@ -11,7 +11,7 @@ from .resources import (
 )
 
 
-log = resotolib.logging.getLogger("resoto." + __name__)
+log = resotolib.logger.getLogger("resoto." + __name__)
 
 
 class KubernetesCollector:

@@ -1,8 +1,8 @@
 import botocore.exceptions
 import multiprocessing
 import resotolib.signal
-import resotolib.logging
-from resotolib.logging import log, setup_logger
+import resotolib.logger
+from resotolib.logger import log, setup_logger
 from concurrent import futures
 from resotolib.args import ArgumentParser
 from argparse import Namespace
@@ -18,7 +18,7 @@ from prometheus_client import Summary, Counter
 from typing import List
 
 
-resotolib.logging.getLogger("boto").setLevel(resotolib.logging.CRITICAL)
+resotolib.logger.getLogger("boto").setLevel(resotolib.logger.CRITICAL)
 
 metrics_collect = Summary(
     "resoto_plugin_aws_collect_seconds", "Time it took the collect() method"

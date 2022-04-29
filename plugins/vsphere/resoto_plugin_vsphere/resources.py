@@ -1,5 +1,5 @@
 from resotolib.graph import Graph
-import resotolib.logging
+import resotolib.logger
 from resotolib.baseresources import (
     BaseAccount,
     BaseRegion,
@@ -11,7 +11,7 @@ from typing import ClassVar, Dict
 from pyVmomi import vim
 from .vsphere_client import get_vsphere_client, VSphereClient
 
-log = resotolib.logging.getLogger("resoto." + __name__)
+log = resotolib.logger.getLogger("resoto." + __name__)
 
 
 @dataclass(eq=False)

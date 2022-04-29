@@ -2,7 +2,7 @@ import os
 import sys
 import time
 import resotolib.signal
-from resotolib.logging import log, setup_logger, add_args as logging_add_args
+from resotolib.logger import log, setup_logger, add_args as logging_add_args
 from resotolib.jwt import add_args as jwt_add_args
 from resotolib.config import Config
 from resotolib.core import (

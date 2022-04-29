@@ -1,4 +1,4 @@
-import resotolib.logging
+import resotolib.logger
 import socket
 from pprint import pformat
 from retrying import retry
@@ -64,7 +64,7 @@ from .utils import (
     retry_on_error,
 )
 
-log = resotolib.logging.getLogger("resoto." + __name__)
+log = resotolib.logger.getLogger("resoto." + __name__)
 
 
 metrics_collect_regions = Summary(

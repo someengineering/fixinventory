@@ -1,6 +1,6 @@
 from datetime import datetime
 
-import resotolib.logging
+import resotolib.logger
 from resotolib.config import Config
 from resotolib.baseplugin import BaseCollectorPlugin
 from resotolib.baseresources import BaseResource
@@ -11,7 +11,7 @@ from .config import VSphereConfig
 
 from pyVmomi import vim
 
-log = resotolib.logging.getLogger("resoto." + __name__)
+log = resotolib.logger.getLogger("resoto." + __name__)
 
 
 class VSphereCollectorPlugin(BaseCollectorPlugin):

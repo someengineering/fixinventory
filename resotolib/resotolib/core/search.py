@@ -8,7 +8,7 @@ from resotolib.core.model_export import node_from_dict, node_to_dict
 from resotolib.core.ca import TLSData
 from resotolib.baseresources import EdgeType
 from resotolib.args import ArgumentParser
-from resotolib.logging import log
+from resotolib.logger import log
 from resotolib.jwt import encode_jwt_to_headers
 from typing import Optional
 
