@@ -97,7 +97,7 @@ def test_search() -> None:
     assert {"sort", "limit"} <= complete("is(instance) or age >= 12d ", n)
 
     # show all properties for sorting
-    assert len(complete("is(instance) or age >= 12d sort ", n)) == len(known_props)
+    assert len(complete("is(instance) or age >= 12d sort ", n)) >= len(known_props)
 
     # show sort order after the property
     assert {"asc", "desc"} <= complete("is(instance) or age >= 12d sort foo ", n)

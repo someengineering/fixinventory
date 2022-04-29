@@ -149,6 +149,8 @@ re_after_fulltext = re.compile(f".*(?:{re_fulltext})\\s*({re_partial_and_or})$")
 re_after_sort_limit = re.compile(
     f".*(?:sort\\s+\\S+\\s(?:asc|desc)?|limit\\s+\\d+(?:,\\s*\\d+)?)\\s*({re_partial_and_or})$"
 )
+re_sort_attribute = re.compile(r".*sort\s+(\S*)$")
+re_sort_order = re.compile(r".*sort\s+\S+\s+(\S*)$")
 
 re_param_start = re.compile(r".*(?:and|or)\s+(/?[\w\-\[\].]*)$")
 re_slash_reported = re.compile(r"/reported.([^.]*)$")
@@ -172,10 +174,12 @@ re_after_third_word_fn = re.compile(f"^\\s*{re_fn}\\s+\\w+\\s+\\w+\\s*(\\w*)$")
 
 
 class DocumentExtension:
-    def __init__(self, document: Document, part_splitter: Pattern) -> None:
+    def __init__(
+        self, document: Document, part_splitter: Optional[Pattern] = None
+    ) -> None:
         self.document = document
         self.text = document.text_before_cursor
-        self.parts = part_splitter.split(self.text)
+        self.parts = part_splitter.split(self.text) if part_splitter else [self.text]
         self.last = self.parts[-1].lstrip() if self.parts else ""
         self.last_words = self.last.split()
         self.last_word = self.word_at(-1)
@@ -199,7 +203,23 @@ class AbstractSearchCompleter(Completer, ABC):
         self.prop_lookup = set(props)
         ops = ["=", "!=", ">", "<", "<=", ">=", "~", "!~", "in"]
         self.ops_lookup = set(ops)
-        self.kind_completer = FuzzyWordCompleter(kinds)
+        self.kind_completer = FuzzyWordCompleter(
+            kinds, meta_dict={p: "kind" for p in kinds}
+        )
+        self.property_names_completer = FuzzyWordCompleter(
+            props
+            + ["/ancestors.", "/reported.", "/desired.", "/metadata.", "/descendants."],
+            meta_dict=(
+                {
+                    "/reported.": "absolute path in reported section",
+                    "/desired.": "absolute path in desired section",
+                    "/metadata.": "absolute path in metadata section",
+                    "/ancestors.": "ancestor properties",
+                    "/descendants.": "descendant properties",
+                    **{p: "property" for p in self.props},
+                }
+            ),
+        )
         self.start_completer = FuzzyWordCompleter(
             ['"', "is(", "/ancestors."]
             + props
@@ -218,7 +238,6 @@ class AbstractSearchCompleter(Completer, ABC):
                 }
             ),
         )
-        self.property_names_completer = FuzzyWordCompleter(props)
         self.ops_completer = FuzzyWordCompleter(ops)
         self.and_or_completer = FuzzyWordCompleter(
             [
@@ -280,6 +299,23 @@ class AbstractSearchCompleter(Completer, ABC):
             return start_with.get_completions(doc, complete_event)
 
 
+class KindCompleter(AbstractSearchCompleter):
+    def get_completions(
+        self, document: Document, complete_event: CompleteEvent
+    ) -> Iterable[Completion]:
+        return self.kind_completer.get_completions(document, complete_event)
+
+
+class PropertyCompleter(AbstractSearchCompleter):
+    def get_completions(
+        self, document: Document, complete_event: CompleteEvent
+    ) -> Iterable[Completion]:
+        ext = DocumentExtension(document)
+        return self.property_completions(
+            document, ext, complete_event, self.property_names_completer
+        )
+
+
 class SearchCompleter(AbstractSearchCompleter):
     def get_completions(
         self, document: Document, complete_event: CompleteEvent
@@ -310,15 +346,17 @@ class SearchCompleter(AbstractSearchCompleter):
         elif after := re_after_fulltext.match(ext.last):
             doc = ext.cut_last(after.span(1))
             return self.and_or_completer.get_completions(doc, complete_event)
-        elif ext.last_word == "sort":
-            doc = cut_document_last(document, ext.last_word)
-            return self.property_names_completer.get_completions(doc, complete_event)
+        elif after := re_sort_attribute.match(ext.last):
+            doc = ext.cut_last(after.span(1))
+            return self.property_completions(
+                doc, ext, complete_event, self.property_names_completer
+            )
+        elif after := re_sort_order.match(ext.last):  # sort order
+            doc = ext.cut_last(after.span(1))
+            return self.sort_order_completer.get_completions(doc, complete_event)
         elif ext.last_word == "limit":
             doc = cut_document_last(document, ext.last_word)
             return self.limit_completer.get_completions(doc, complete_event)
-        elif ext.word_at(-2) == "sort":  # sort order
-            doc = cut_document_last(document, ext.last_word)
-            return self.sort_order_completer.get_completions(doc, complete_event)
         elif after := re_after_sort_limit.match(ext.last):
             doc = cut_document_remaining(document, after.span(1))
             return self.and_or_completer.get_completions_filtered(
@@ -494,7 +532,14 @@ class ArgsCompleter(Completer):
         # this completer completes new options as well as direct values
         self.completer = merge_completers(
             [
-                FuzzyWordCompleter(list(self.args.keys())),
+                FuzzyWordCompleter(
+                    list(self.args.keys()),
+                    meta_dict={
+                        arg: complete.arg.help_text
+                        for arg, complete in self.args.items()
+                        if complete.arg.help_text is not None
+                    },
+                ),
                 *[a.completer for a in direct if a.completer],
             ]
         )
@@ -592,15 +637,21 @@ class CommandLineCompleter(Completer):
     ) -> "CommandLineCompleter":
         def arg_completer(arg: ArgInfo) -> Optional[Completer]:
             if arg.possible_values:
-                return FuzzyWordCompleter(arg.possible_values)
+                meta = (
+                    {a: arg.help_text for a in arg.possible_values}
+                    if arg.help_text is not None
+                    else None
+                )
+                return FuzzyWordCompleter(arg.possible_values, meta_dict=meta)
             elif arg.value_hint == "file":
                 return PathCompleter()
             elif arg.value_hint == "kind":
-                return FuzzyWordCompleter(kinds)
+                return KindCompleter(kinds, props)
             elif arg.value_hint == "property":
-                return FuzzyWordCompleter(props)
+                return PropertyCompleter(kinds, props)
             elif arg.value_hint == "command":
-                return FuzzyWordCompleter([cmd.name for cmd in cmds])
+                meta = {cmd.name: "command" for cmd in cmds}
+                return FuzzyWordCompleter([cmd.name for cmd in cmds], meta_dict=meta)
             elif arg.value_hint == "search":
                 return SearchCompleter(kinds, props)
             elif arg.value_hint == "aggregate":
@@ -1368,7 +1419,7 @@ known_commands = [
     CommandInfo(
         "ancestors",
         options=[
-            ArgInfo("--with-origin"),
+            ArgInfo("--with-origin", help_text="include the origin in the output"),
             ArgInfo(None, True, ["default", "delete"], help_text="edge type"),
         ],
         source=False,
@@ -1443,13 +1494,20 @@ known_commands = [
     ),
     CommandInfo(
         "count",
-        [ArgInfo(None, expects_value=True, help_text="optional property to count")],
+        [
+            ArgInfo(
+                None,
+                expects_value=True,
+                help_text="optional property to count",
+                value_hint="property",
+            )
+        ],
         source=False,
     ),
     CommandInfo(
         "descendants",
         options=[
-            ArgInfo("--with-origin"),
+            ArgInfo("--with-origin", help_text="include the origin in the output"),
             ArgInfo(None, True, ["default", "delete"], help_text="edge type"),
         ],
         source=False,
@@ -1474,6 +1532,7 @@ known_commands = [
                     "--graphml",
                     "--dot",
                 ],
+                help_text="output format",
             ),
             ArgInfo(
                 None,
@@ -1503,11 +1562,13 @@ known_commands = [
     CommandInfo(
         "http",
         [
-            ArgInfo("--compress"),
-            ArgInfo("--timeout", expects_value=True),
-            ArgInfo("--no-ssl-verify"),
-            ArgInfo("--no-body"),
-            ArgInfo("--nr-of-retries", expects_value=True),
+            ArgInfo("--compress", help_text="compress the output"),
+            ArgInfo("--timeout", expects_value=True, help_text="timeout in seconds"),
+            ArgInfo("--no-ssl-verify", help_text="disable SSL verification"),
+            ArgInfo("--no-body", help_text="do not send a body"),
+            ArgInfo(
+                "--nr-of-retries", expects_value=True, help_text="number of retries"
+            ),
             ArgInfo(
                 None,
                 expects_value=True,
@@ -1520,10 +1581,14 @@ known_commands = [
         "jobs",
         sub_commands={
             "add": [
-                ArgInfo("--id", expects_value=True),
-                ArgInfo("--schedule", expects_value=True),
-                ArgInfo("--wait-for-event", expects_value=True),
-                ArgInfo("--timeout", expects_value=True),
+                ArgInfo("--id", expects_value=True, help_text="job id"),
+                ArgInfo("--schedule", expects_value=True, help_text="cron schedule"),
+                ArgInfo(
+                    "--wait-for-event", expects_value=True, help_text="trigger by event"
+                ),
+                ArgInfo(
+                    "--timeout", expects_value=True, help_text="timeout in seconds"
+                ),
                 ArgInfo(None, help_text="<command> to run"),
             ],
             "show": [
@@ -1532,8 +1597,10 @@ known_commands = [
             "list": [],
             "update": [
                 ArgInfo(None, help_text="<job-id>"),
-                ArgInfo("--schedule", expects_value=True),
-                ArgInfo("--wait-for-event", expects_value=True),
+                ArgInfo("--schedule", expects_value=True, help_text="cron schedule"),
+                ArgInfo(
+                    "--wait-for-event", expects_value=True, help_text="trigger by event"
+                ),
             ],
             "delete": [
                 ArgInfo(None, help_text="<job-id>"),
@@ -1559,7 +1626,7 @@ known_commands = [
     CommandInfo(
         "jq",
         [
-            ArgInfo("--no-rewrite"),
+            ArgInfo("--no-rewrite", help_text="pass as is to jq without rewriting"),
             ArgInfo(None, expects_value=True, help_text="the text to echo"),
         ],
         source=False,
@@ -1591,7 +1658,7 @@ known_commands = [
     CommandInfo(
         "predecessors",
         options=[
-            ArgInfo("--with-origin"),
+            ArgInfo("--with-origin", help_text="include origin in the output"),
             ArgInfo(None, True, ["default", "delete"], help_text="edge type"),
         ],
         source=False,
@@ -1621,7 +1688,7 @@ known_commands = [
     CommandInfo(
         "successors",
         options=[
-            ArgInfo("--with-origin"),
+            ArgInfo("--with-origin", help_text="include the origin in the output"),
             ArgInfo(None, True, ["default", "delete"], help_text="edge type"),
         ],
         source=False,
@@ -1654,7 +1721,9 @@ known_commands = [
         "tag",
         sub_commands={
             "update": [
-                ArgInfo("--nowait"),
+                ArgInfo(
+                    "--nowait", help_text="do not wait for the operation to complete"
+                ),
                 ArgInfo(
                     None,
                     expects_value=True,
@@ -1662,7 +1731,9 @@ known_commands = [
                 ),
             ],
             "delete": [
-                ArgInfo("--nowait"),
+                ArgInfo(
+                    "--nowait", help_text="do not wait for the operation to complete"
+                ),
                 ArgInfo(
                     None,
                     expects_value=True,
