@@ -25,27 +25,52 @@ def restart() -> None:
     if sys.path[0] == "" and not python_path.startswith(path_prefix):
         os.environ["PYTHONPATH"] = path_prefix + python_path
 
-    kill_children(SIGTERM, ensure_death=True)
-
     try:
-        open_max = os.sysconf("SC_OPEN_MAX")
-    except AttributeError:
-        open_max = 1024
+        close_fds()
+    except Exception:
+        log.exception("Failed to FD_CLOEXEC all file descriptors")
 
-    for fd in range(3, open_max):
-        try:
-            flags = fcntl.fcntl(fd, fcntl.F_GETFD)
-        except IOError:
-            continue
-        fcntl.fcntl(fd, fcntl.F_SETFD, flags | fcntl.FD_CLOEXEC)
+    kill_children(SIGTERM, ensure_death=True)
 
     os.chdir(initial_dir)
     os.execv(sys.executable, [sys.executable] + args)
+    log.fatal("Failed to restart - exiting")
+    os._exit(1)
 
 
 def delayed_exit(delay: int = 3) -> None:
     time.sleep(delay)
     os._exit(0)
+
+
+def close_fds(safety_margin: int = 1024) -> None:
+    """Set FD_CLOEXEC on all file descriptors except stdin, stdout, stderr
+
+    Since there is a race between determining the max number of fds to close
+    and actually closing them we are adding a safety margin.
+    """
+    if sys.platform == "win32":
+        return
+
+    num_open = max([f.fd for f in psutil.Process().open_files()])
+
+    try:
+        sc_open_max = os.sysconf("SC_OPEN_MAX")
+    except AttributeError:
+        sc_open_max = 1024
+
+    num_close = min(num_open + safety_margin, sc_open_max)
+
+    for fd in range(3, num_close):
+        fd_cloexec(fd)
+
+
+def fd_cloexec(fd: int) -> None:
+    try:
+        flags = fcntl.fcntl(fd, fcntl.F_GETFD)
+    except IOError:
+        return
+    fcntl.fcntl(fd, fcntl.F_SETFD, flags | fcntl.FD_CLOEXEC)
 
 
 def handler(sig, frame) -> None:
