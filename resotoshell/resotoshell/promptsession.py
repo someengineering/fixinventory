@@ -510,14 +510,19 @@ class AggregateCompleter(AbstractSearchCompleter):
 
 class HintCompleter(Completer):
     def __init__(self, hint: str, meta: Optional[str] = None, value: str = " ") -> None:
+        self.value = value
         self.cpl = WordCompleter(
-            [value], meta_dict={value: meta}, display_dict={value: hint}
+            [value], meta_dict={value: meta}, display_dict={value: hint}, WORD=True
         )
 
     def get_completions(
         self, document: Document, complete_event: CompleteEvent
     ) -> Iterable[Completion]:
-        return self.cpl.get_completions(document, complete_event)
+        # Only show a hint once at the start
+        if self.value == " " and document.text_before_cursor.strip() != "":
+            return []
+        else:
+            return self.cpl.get_completions(document, complete_event)
 
 
 class ArgsCompleter(Completer):
@@ -529,19 +534,19 @@ class ArgsCompleter(Completer):
 
         self.args: Dict[str, ArgCompleter] = {arg.arg.name: arg for arg in opts}
 
-        # this completer completes new options as well as direct values
+        self.options_completer = FuzzyWordCompleter(
+            list(self.args.keys()),
+            meta_dict={
+                arg: complete.arg.help_text
+                for arg, complete in self.args.items()
+                if complete.arg.help_text is not None
+            },
+        )
+        self.direct_completer = merge_completers(
+            [a.completer for a in direct if a.completer]
+        )
         self.completer = merge_completers(
-            [
-                FuzzyWordCompleter(
-                    list(self.args.keys()),
-                    meta_dict={
-                        arg: complete.arg.help_text
-                        for arg, complete in self.args.items()
-                        if complete.arg.help_text is not None
-                    },
-                ),
-                *[a.completer for a in direct if a.completer],
-            ]
+            [self.options_completer, self.direct_completer]
         )
         self.value_lookup: Dict[str, ArgCompleter] = {
             v: a for a in args for v in a.arg.possible_values
@@ -555,36 +560,59 @@ class ArgsCompleter(Completer):
     def get_completions(
         self, document: Document, complete_event: CompleteEvent
     ) -> Iterable[Completion]:
-        parts = document.text_before_cursor.strip().split()
+        text = document.text_before_cursor
+        parts = text.strip().split()
         maybe = self.inside_option(parts)
-        if maybe is None:
 
-            def allowed(completion: Completion) -> bool:
-                txt = completion.text
-                # has this parameter been specified before?
-                if (
-                    txt in parts
-                    and txt in self.args
-                    and not self.args[txt].arg.can_occur_multiple_times
-                ):
-                    return False
-                # is this a possible value, where another value is already defined?
-                if txt in self.value_lookup:
-                    return not any(
-                        v
-                        for v in self.value_lookup[txt].arg.possible_values
-                        if v in parts
-                    )
-                # if we come here: this is a valid completion
-                return True
+        # eat all options: remaining parts can be completed eventually
+        adapted = text
+        for arg in self.args.values():
+            val_pattern = "\\s+\\S+\\s+" if arg.arg.expects_value else "\\s*"
+            adapted = re.sub(f"\\s*{arg.arg.name}{val_pattern}", "", adapted)
+        doc = Document(
+            adapted,
+            cursor_position=document.cursor_position - (len(text) - len(adapted)),
+        )
 
-            return filter(
-                allowed, self.completer.get_completions(document, complete_event)
+        # look at the last word to see if an option is started
+        adapted_stripped = adapted.lstrip()
+        sp = adapted_stripped.rsplit(maxsplit=1)
+        last = sp[-1] if len(sp) > 1 else adapted_stripped
+        start_arg = any(a.arg.name.startswith(last) for a in self.args.values())
+
+        def allowed(completion: Completion) -> bool:
+            txt = completion.text
+            # has this parameter been specified before?
+            if (
+                txt in parts
+                and txt in self.args
+                and not self.args[txt].arg.can_occur_multiple_times
+            ):
+                return False
+            # is this a possible value, where another value is already defined?
+            if txt in self.value_lookup:
+                return not any(
+                    v for v in self.value_lookup[txt].arg.possible_values if v in parts
+                )
+            # if we come here: this is a valid completion
+            return True
+
+        # either there is no option or an option has been started
+        if adapted_stripped == "" or start_arg:
+            doc = Document(
+                last,
+                cursor_position=document.cursor_position
+                - (len(document.text) - len(last)),
             )
-        else:
+            return filter(allowed, self.completer.get_completions(doc, complete_event))
+        # inside an option
+        elif maybe is not None:
             # suggest the arg values
-            doc = cut_document_last(document, maybe.arg.name)
+            doc = cut_document_last(doc, maybe.arg.name)
             return maybe.get_completions(doc, complete_event)
+        # no option started and not inside any option: assume a direct completion
+        else:
+            return self.direct_completer.get_completions(doc, complete_event)
 
 
 class CommandLineCompleter(Completer):
@@ -1664,7 +1692,14 @@ known_commands = [
         source=False,
     ),
     CommandInfo("protect", source=False),
-    CommandInfo("search", options=[ArgInfo(None, True, value_hint="search")]),
+    CommandInfo(
+        "search",
+        options=[
+            ArgInfo("--explain", help_text="explain search cost"),
+            ArgInfo("--with-edges", help_text="include edges in the output"),
+            ArgInfo(None, True, value_hint="search"),
+        ],
+    ),
     CommandInfo(
         "set_desired",
         options=[

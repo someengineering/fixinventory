@@ -161,18 +161,17 @@ def test_complete_option() -> None:
         "delete",
     }
     assert complete("configs show ", n, True) == {"<config_id> e.g. resoto.core"}
-
     assert complete("certificate create --common-name ", n, True) == {
         "Common name like: example.com"
     }
-
+    assert "--common-name" not in complete(
+        "certificate create --common-name example.com ", n
+    )
     assert complete("configs show ", n, True) == {"<config_id> e.g. resoto.core"}
+    assert complete("search all | list ", n) == {"--markdown", " ", "--csv"}
 
-    assert complete("search all | list ", n) == {
-        "--markdown",
-        " ",
-        "--csv",
-    }
+    # nothing is suggested when the hint has been provided
+    assert complete("echo hello ", n) == set()
 
 
 def test_complete_word() -> None:
