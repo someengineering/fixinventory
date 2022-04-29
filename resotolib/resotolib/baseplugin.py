@@ -137,7 +137,7 @@ class BaseActionPlugin(ABC, Thread):
             # ArgumentParser.args = self._args
             # resotolib.config._config = self._config
             # setup_logger("resotoworker")
-            # resotolib.signal.initializer()
+            # resotolib.proc.initializer()
             current_thread().name = self.name
             if self.bootstrap():
                 self.go()
