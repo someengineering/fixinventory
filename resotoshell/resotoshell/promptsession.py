@@ -1665,7 +1665,7 @@ known_commands = [
             ArgInfo(
                 "-p",
                 expects_value=True,
-                value_hint="kind",
+                value_hint="property",
                 help_text="lookup property name",
             ),
             ArgInfo(
