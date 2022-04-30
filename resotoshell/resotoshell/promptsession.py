@@ -1700,7 +1700,6 @@ known_commands = [
     CommandInfo(
         "search",
         options=[
-            ArgInfo("--explain", help_text="explain search cost"),
             ArgInfo("--with-edges", help_text="include edges in the output"),
             ArgInfo(None, True, value_hint="search"),
         ],
