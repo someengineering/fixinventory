@@ -3,6 +3,7 @@ import pathlib
 import re
 from abc import ABC
 from dataclasses import dataclass, field
+from itertools import chain
 from re import Pattern
 from typing import Iterable, Optional, List, Dict, Union, Tuple
 
@@ -134,7 +135,9 @@ re_start_query = re.compile(r"^\s*(/?[A-Za-z0-9_.]*)$")
 re_inside_is = re.compile(".*is\\(([^)]*)$")
 re_json_value = r'(?:"[^"]*")|(?:\[[^\\]+\])|(?:\{[^}]+\})|(?:[A-Za-z0-9_\-:/.]+)'
 
-re_partial_and_or = r"|a|an|and|o|or|-|<|-|--|<-|s|so|sor|sort|l|li|lim|limi|limit"
+re_partial_and_or = (
+    r"|a|an|and|o|or|-|<|-|-\[|--|<-|<-\[|s|so|sor|sort|l|li|lim|limi|limit"
+)
 re_param = "/?[A-Za-z_][A-Za-z0-9_\\-.\\[\\]]*"
 re_op = "==|=|!=|<|>|<=|>=|=~|~|!~|in|not in"
 re_fulltext = r'(?:"[^"]*")'
@@ -174,6 +177,7 @@ re_third_word_after_fn = re.compile(f"^\\s*{re_fn}\\s+\\w+\\s*(\\w*)$")
 re_after_third_word_fn = re.compile(f"^\\s*{re_fn}\\s+\\w+\\s+\\w+\\s*(\\w*)$")
 re_after_bracket_start = re.compile(f"(?:|.*\\s+)\\((\\w*)$")
 
+
 class DocumentExtension:
     def __init__(
         self, document: Document, part_splitter: Optional[Pattern] = None
@@ -184,6 +188,9 @@ class DocumentExtension:
         self.last = self.parts[-1].lstrip() if self.parts else ""
         self.last_words = self.last.split()
         self.last_word = self.word_at(-1)
+
+    def cut_text(self, span: Tuple[int, int]) -> Document:
+        return cut_document_remaining(self.document, span)
 
     def cut_last(self, span: Tuple[int, int]) -> Document:
         return cut_document_remaining(self.last_doc(), span)
@@ -331,17 +338,17 @@ class SearchCompleter(AbstractSearchCompleter):
                 doc, ext, complete_event, self.start_completer
             )
         elif parm := re_param_start.match(ext.text):
-            doc = ext.cut_last(parm.span(1))
+            doc = ext.cut_text(parm.span(1))
             return self.property_completions(
                 doc, ext, complete_event, self.start_completer
             )
         elif bracket := re_after_bracket_start.match(ext.text):
-            doc = ext.cut_last(bracket.span(1))
+            doc = ext.cut_text(bracket.span(1))
             return self.property_completions(
                 doc, ext, complete_event, self.start_completer
             )
         elif in_is := re_inside_is.match(ext.text):
-            doc = ext.cut_last(in_is.span(1))
+            doc = ext.cut_text(in_is.span(1))
             return self.kind_completer.get_completions(doc, complete_event)
         elif after := re_after_bracket.match(ext.last):
             doc = ext.cut_last(after.span(1))
@@ -548,7 +555,6 @@ class ArgsCompleter(Completer):
                 if complete.arg.help_text is not None
             },
         )
-        self.have_direct_args = len(direct) > 0
         self.direct_completer = merge_completers(
             [a.completer for a in direct if a.completer]
         )
@@ -605,19 +611,25 @@ class ArgsCompleter(Completer):
             return True
 
         # either there is no option or an option has been started
-        if adapted_stripped == "" or (start_arg and not self.have_direct_args):
-            doc = Document(
+        if adapted_stripped == "" or start_arg:
+            last_doc = Document(
                 last,
                 cursor_position=document.cursor_position
                 - (len(document.text) - len(last)),
             )
-            return filter(allowed, self.completer.get_completions(doc, complete_event))
+            return list(
+                self.direct_completer.get_completions(doc, complete_event)
+            ) + list(
+                filter(
+                    allowed, self.completer.get_completions(last_doc, complete_event)
+                )
+            )
         # inside an option
         elif maybe is not None:
             # suggest the arg values
             doc = cut_document_last(doc, maybe.arg.name)
             return maybe.get_completions(doc, complete_event)
-        # no option started and not inside any option: assume a direct completion
+            # no option started and not inside any option: assume a direct completion
         else:
             return self.direct_completer.get_completions(doc, complete_event)
 

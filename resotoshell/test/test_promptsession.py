@@ -117,6 +117,11 @@ def test_search() -> None:
     )
 
 
+def test_foo() -> None:
+    n = CommandLineCompleter.create_completer(known_commands, [], [])
+    p = complete("certificate create --common-name 23 ", n)
+
+
 def test_aggregate() -> None:
     n = AggregateCompleter(known_kinds, known_props)
     # show all  possible properties (+ example etc)
