@@ -58,6 +58,7 @@ class ArgInfo:
     can_occur_multiple_times: bool = False
     value_hint: Optional[str] = None
     help_text: Optional[str] = None
+    option_group: Optional[str] = None
 
 
 SubCommands = Dict[str, Union["SubCommands", List[ArgInfo]]]
@@ -567,9 +568,6 @@ class ArgsCompleter(Completer):
         self.direct_completer = merge_completers(
             [a.completer for a in direct if a.completer]
         )
-        self.completer = merge_completers(
-            [self.options_completer, self.direct_completer]
-        )
         self.value_lookup: Dict[str, ArgCompleter] = {
             v: a for a in args for v in a.arg.possible_values
         }
@@ -600,24 +598,47 @@ class ArgsCompleter(Completer):
         adapted_stripped = adapted.lstrip()
         sp = adapted_stripped.rsplit(maxsplit=1)
         last = sp[-1] if len(sp) > 1 else adapted_stripped
-        start_arg = any(a.arg.name.startswith(last) for a in self.args.values())
+        start_arg = last.strip() != "" and any(
+            a.arg.name.startswith(last) for a in self.args.values() if a.arg.name
+        )
+
+        def option_group_defined(completion: Completion) -> bool:
+            # another option group defined
+            ag = self.args.get(completion.text)
+            result = False
+            if group := ag.arg.option_group if ag else None:
+                result = any(
+                    a.arg.name in parts
+                    for a in self.args.values()
+                    if a.arg.option_group == group
+                )
+            return result
 
         def allowed(completion: Completion) -> bool:
             txt = completion.text
             # has this parameter been specified before?
-            if (
+            already_defined = (
                 txt in parts
                 and txt in self.args
                 and not self.args[txt].arg.can_occur_multiple_times
-            ):
-                return False
+            )
+
             # is this a possible value, where another value is already defined?
+            another_value_defined = False
             if txt in self.value_lookup:
-                return not any(
+                another_value_defined = any(
                     v for v in self.value_lookup[txt].arg.possible_values if v in parts
                 )
+
+            # another option group defined
+            of_defined = option_group_defined(completion)
+
             # if we come here: this is a valid completion
-            return True
+            return (
+                False
+                if already_defined or another_value_defined or of_defined
+                else True
+            )
 
         # either there is no option or an option has been started
         if adapted_stripped == "" or start_arg:
@@ -626,13 +647,9 @@ class ArgsCompleter(Completer):
                 cursor_position=document.cursor_position
                 - (len(document.text) - len(last)),
             )
-            return list(
-                self.direct_completer.get_completions(doc, complete_event)
-            ) + list(
-                self.options_completer.get_completions_filtered(
-                    last_doc, complete_event, allowed
-                )
-            )
+            direct = self.direct_completer.get_completions(doc, complete_event)
+            opts = self.options_completer.get_completions(last_doc, complete_event)
+            return [c for c in (list(direct) + list(opts)) if allowed(c)]
         # inside an option
         elif maybe is not None:
             # suggest the arg values
@@ -1577,22 +1594,17 @@ known_commands = [
     CommandInfo(
         "format",
         [
-            ArgInfo(
-                None,
-                possible_values=[
-                    "--json",
-                    "--ndjson",
-                    "--text",
-                    "--cytoscape",
-                    "--graphml",
-                    "--dot",
-                ],
-                help_text="output format",
-            ),
+            ArgInfo("--json", help_text="output format", option_group="output"),
+            ArgInfo("--ndjson", help_text="output format", option_group="output"),
+            ArgInfo("--text", help_text="output format", option_group="output"),
+            ArgInfo("--cytoscape", help_text="output format", option_group="output"),
+            ArgInfo("--graphml", help_text="output format", option_group="output"),
+            ArgInfo("--dot", help_text="output format", option_group="output"),
             ArgInfo(
                 None,
                 expects_value=True,
                 help_text="format definition with {} placeholders.",
+                option_group="output",
             ),
         ],
         source=False,
@@ -1706,11 +1718,13 @@ known_commands = [
     CommandInfo(
         "list",
         [
-            ArgInfo(None, possible_values=["--csv", "--markdown"], help_text="format"),
+            ArgInfo("--csv", help_text="format", option_group="format"),
+            ArgInfo("--markdown", help_text="format", option_group="format"),
             ArgInfo(
                 None,
                 expects_value=True,
                 help_text="the list of properties, comma separated",
+                option_group="format",
             ),
         ],
         source=False,
