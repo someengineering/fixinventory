@@ -11,7 +11,7 @@ def read(fname):
 
 
 setup(
-    name="resoto-plugin-example_collector",
+    name="resoto-plugin-example-collector",
     version="2.2.0a0",
     description="Resoto Example Collector Plugin",
     license="Apache 2.0",
