@@ -3,7 +3,6 @@ import pathlib
 import re
 from abc import ABC
 from dataclasses import dataclass, field
-from itertools import chain
 from re import Pattern
 from typing import Iterable, Optional, List, Dict, Union, Tuple
 
@@ -175,7 +174,7 @@ re_fn = r"\w+\([^)]+\)"
 re_second_word_after_fn = re.compile(f"^\\s*{re_fn}\\s*(\\w*)$")
 re_third_word_after_fn = re.compile(f"^\\s*{re_fn}\\s+\\w+\\s*(\\w*)$")
 re_after_third_word_fn = re.compile(f"^\\s*{re_fn}\\s+\\w+\\s+\\w+\\s*(\\w*)$")
-re_after_bracket_start = re.compile(f"(?:|.*\\s+)\\((\\w*)$")
+re_after_bracket_start = re.compile(r"(?:|.*\s+)\((\w*)$")
 
 
 class DocumentExtension:

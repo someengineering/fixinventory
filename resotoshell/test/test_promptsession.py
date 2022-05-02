@@ -115,11 +115,7 @@ def test_search() -> None:
     assert {"is(", "all"} <= complete(
         "is(instance) or age >= 12d sort foo limit 23, 12 --> ", n
     )
-
-
-def test_foo() -> None:
-    n = CommandLineCompleter.create_completer(known_commands, [], [])
-    p = complete("certificate create --common-name 23 ", n)
+    assert {"is(", "all"} <= complete("(", n)
 
 
 def test_aggregate() -> None:
