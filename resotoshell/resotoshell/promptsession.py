@@ -4,7 +4,7 @@ import re
 from abc import ABC
 from dataclasses import dataclass, field
 from re import Pattern
-from typing import Iterable, Optional, List, Dict, Union, Tuple
+from typing import Iterable, Optional, List, Dict, Union, Tuple, Callable
 
 from prompt_toolkit import PromptSession as PTSession
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
@@ -122,12 +122,21 @@ class FuzzyWordCompleter(Completer):
         return self.fuzzy_completer.get_completions(document, complete_event)
 
     def get_completions_filtered(
-        self, document: Document, complete_event: CompleteEvent, **filter_values: bool
+        self,
+        document: Document,
+        complete_event: CompleteEvent,
+        fn: Callable[[Completion], bool],
     ) -> Iterable[Completion]:
         for v in self.get_completions(document, complete_event):
-            filtered = filter_values.get(v.text, False)
-            if not filtered:
+            if fn(v):
                 yield v
+
+    def get_completions_without(
+        self, document: Document, complete_event: CompleteEvent, **filter_values: bool
+    ) -> Iterable[Completion]:
+        return self.get_completions_filtered(
+            document, complete_event, lambda v: not filter_values.get(v.text, False)
+        )
 
 
 re_nav_block = r"[a-zA-Z0-9]*(?:\[[0-9:]+\])?[a-zA-Z0-9]*"
@@ -371,7 +380,7 @@ class SearchCompleter(AbstractSearchCompleter):
             return self.limit_completer.get_completions(doc, complete_event)
         elif after := re_after_sort_limit.match(ext.last):
             doc = cut_document_remaining(document, after.span(1))
-            return self.and_or_completer.get_completions_filtered(
+            return self.and_or_completer.get_completions_without(
                 doc,
                 complete_event,
                 **{
@@ -620,8 +629,8 @@ class ArgsCompleter(Completer):
             return list(
                 self.direct_completer.get_completions(doc, complete_event)
             ) + list(
-                filter(
-                    allowed, self.completer.get_completions(last_doc, complete_event)
+                self.options_completer.get_completions_filtered(
+                    last_doc, complete_event, allowed
                 )
             )
         # inside an option
