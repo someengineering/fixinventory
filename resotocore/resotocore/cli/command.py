@@ -3821,19 +3821,16 @@ class WelcomeCommand(CLICommand, InternalPart):
                 else 0
             )
             center_vertical = (
-                int((ctx.console_renderer.height - 21) / 2)
+                max(0, int(ctx.console_renderer.height - 27))
                 if ctx.console_renderer is not None and ctx.console_renderer.height is not None
                 else 0
             )
-
             grid = Table.grid(expand=True)
             grid.add_column()
             grid.add_row(Padding("", pad=(center_vertical, 0, 0, 0)))
-            grid.add_row(Padding(WelcomeCommand.ck if ctx.supports_color() else "", pad=(0, 0, 2, center_horizont)))
+            grid.add_row(Padding(WelcomeCommand.ck if ctx.supports_color() else "", pad=(0, 0, 1, center_horizont)))
             grid.add_row(info)
-            grid.add_row(Padding("", pad=(center_vertical * 2 // 3, 0, 0, 0)))
             grid.add_row(Panel("[b]> help[/b] for on-line help\n[b]> help[/b] [i]<cmd>[/i] to get help on a command"))
-            grid.add_row(Padding("", pad=(center_vertical // 3, 0, 0, 0)))
 
             res = ctx.render_console(grid)
             return res

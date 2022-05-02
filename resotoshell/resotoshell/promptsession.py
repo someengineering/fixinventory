@@ -172,7 +172,7 @@ re_fn = r"\w+\([^)]+\)"
 re_second_word_after_fn = re.compile(f"^\\s*{re_fn}\\s*(\\w*)$")
 re_third_word_after_fn = re.compile(f"^\\s*{re_fn}\\s+\\w+\\s*(\\w*)$")
 re_after_third_word_fn = re.compile(f"^\\s*{re_fn}\\s+\\w+\\s+\\w+\\s*(\\w*)$")
-
+re_after_bracket_start = re.compile(f"(?:|.*\\s+)\\((\\w*)$")
 
 class DocumentExtension:
     def __init__(
@@ -335,13 +335,15 @@ class SearchCompleter(AbstractSearchCompleter):
             return self.property_completions(
                 doc, ext, complete_event, self.start_completer
             )
+        elif bracket := re_after_bracket_start.match(ext.text):
+            doc = ext.cut_last(bracket.span(1))
+            return self.property_completions(
+                doc, ext, complete_event, self.start_completer
+            )
         elif in_is := re_inside_is.match(ext.text):
             doc = ext.cut_last(in_is.span(1))
             return self.kind_completer.get_completions(doc, complete_event)
         elif after := re_after_bracket.match(ext.last):
-            doc = ext.cut_last(after.span(1))
-            return self.and_or_completer.get_completions(doc, complete_event)
-        elif after := re_after_param_filter.match(ext.last):
             doc = ext.cut_last(after.span(1))
             return self.and_or_completer.get_completions(doc, complete_event)
         elif after := re_after_fulltext.match(ext.last):
@@ -370,6 +372,9 @@ class SearchCompleter(AbstractSearchCompleter):
                     "or": have_sort | have_limit,
                 },
             )
+        elif after := re_after_param_filter.match(ext.last):
+            doc = ext.cut_last(after.span(1))
+            return self.and_or_completer.get_completions(doc, complete_event)
         elif (
             ext.last_word in self.prop_lookup or ext.last_word.startswith("/")
         ) and not have_sort:
@@ -543,6 +548,7 @@ class ArgsCompleter(Completer):
                 if complete.arg.help_text is not None
             },
         )
+        self.have_direct_args = len(direct) > 0
         self.direct_completer = merge_completers(
             [a.completer for a in direct if a.completer]
         )
@@ -599,7 +605,7 @@ class ArgsCompleter(Completer):
             return True
 
         # either there is no option or an option has been started
-        if adapted_stripped == "" or start_arg:
+        if adapted_stripped == "" or (start_arg and not self.have_direct_args):
             doc = Document(
                 last,
                 cursor_position=document.cursor_position
