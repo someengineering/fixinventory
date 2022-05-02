@@ -35,16 +35,19 @@ def cut_document_remaining(document: Document, span: Tuple[int, int]) -> Documen
 
 
 def cut_document_last(document: Document, last_part: str) -> Document:
-    sp = document.text_before_cursor.rsplit(last_part, 1)
-    left, right = (sp[0], sp[1]) if len(sp) > 1 else (last_part, "")
-    right_stripped = right.lstrip()
-    return Document(
-        right_stripped,
-        cursor_position=document.cursor_position
-        - len(left)
-        - len(last_part)
-        - (len(right) - len(right_stripped)),
-    )
+    text = document.text_before_cursor
+    if last_part in text:
+        left, right = document.text_before_cursor.rsplit(last_part, 1)
+        right_stripped = right.lstrip()
+        return Document(
+            right_stripped,
+            cursor_position=document.cursor_position
+            - len(left)
+            - len(last_part)
+            - (len(right) - len(right_stripped)),
+        )
+    else:
+        return document
 
 
 @dataclass
@@ -456,7 +459,7 @@ class AggregateCompleter(AbstractSearchCompleter):
             "kind, volume_type as type: sum(volume_size) as volume_size",
         )
         self.with_hint_completer = merge_completers(
-            [self.hint_completer, self.props_completer]
+            [self.hint_completer, self.props_completer, self.aggregate_fn_completer]
         )
         self.value_hint_completer = HintCompleter("<name>", "name of this result")
 
@@ -509,9 +512,7 @@ class AggregateCompleter(AbstractSearchCompleter):
         self, document: Document, complete_event: CompleteEvent
     ) -> Iterable[Completion]:
         text = document.text_before_cursor
-        in_functions = ":" in text or any(
-            a for a in self.aggregate_fns if f"{a}(" in text
-        )
+        in_functions = ":" in text or any(a for a in self.aggregate_fns if a in text)
         if text.strip() == "":
             return self.with_hint_completer.get_completions(document, complete_event)
         elif in_functions:

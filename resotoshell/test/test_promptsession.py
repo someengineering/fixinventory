@@ -144,6 +144,11 @@ def test_aggregate() -> None:
     assert complete("name: sum(1) as bla ", n) == {","}
     assert complete("name: sum(1) as bla, min(foo) as foo ", n) == {","}
 
+    # start with function
+    assert len(complete("sum(", n)) >= len(known_props)
+    assert complete("sum(foo) as ", n, True) == {"name of this result"}
+    assert {"sum(", "min("} <= complete("sum(foo) as foo,", n)
+
 
 def test_complete_option() -> None:
     n = CommandLineCompleter.create_completer(known_commands, [], [])
