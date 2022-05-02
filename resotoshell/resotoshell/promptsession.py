@@ -138,7 +138,7 @@ re_partial_and_or = (
     r"|a|an|and|o|or|-|<|-|-\[|--|<-|<-\[|s|so|sor|sort|l|li|lim|limi|limit"
 )
 re_param = "/?[A-Za-z_][A-Za-z0-9_\\-.\\[\\]]*"
-re_op = "==|=|!=|<|>|<=|>=|=~|~|!~|in|not in"
+re_op = "==|=|!=|<|>|<=|>=|=~|~|!~|\\s+in\\s+|\\s+not in\\s+"
 re_fulltext = r'(?:"[^"]*")'
 
 # match and/or
