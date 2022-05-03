@@ -774,7 +774,7 @@ class CountCommand(SearchCLIPart):
         return "Count incoming elements or sum defined property."
 
     def args_info(self) -> ArgsInfo:
-        return [ArgInfo(expects_value=True, help_text="optional property to count")]
+        return [ArgInfo(expects_value=True, help_text="optional property to count", value_hint="property")]
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
         get_path = ctx.variable_in_section(arg).split(".") if arg else None
@@ -1478,7 +1478,7 @@ class KindsCommand(CLICommand, PreserveOutputFormat):
 
     def args_info(self) -> ArgsInfo:
         return [
-            ArgInfo("-p", expects_value=True, help_text="lookup the kind for the defined property path."),
+            ArgInfo("-p", expects_value=True, value_hint="property", help_text="lookup the kind of a property path."),
             ArgInfo(expects_value=True, value_hint="kind", help_text="kind to lookup"),
         ]
 
@@ -1834,21 +1834,13 @@ class FormatCommand(CLICommand, OutputTransformer):
 
     def args_info(self) -> ArgsInfo:
         return [
-            ArgInfo(
-                possible_values=[
-                    "--json",
-                    "--ndjson",
-                    "--text",
-                    "--cytoscape",
-                    "--graphml",
-                    "--dot",
-                ],
-                help_text="output format",
-            ),
-            ArgInfo(
-                expects_value=True,
-                help_text="format definition with {} placeholders",
-            ),
+            ArgInfo("--json", help_text="output format", option_group="output"),
+            ArgInfo("--ndjson", help_text="output format", option_group="output"),
+            ArgInfo("--text", help_text="output format", option_group="output"),
+            ArgInfo("--cytoscape", help_text="output format", option_group="output"),
+            ArgInfo("--graphml", help_text="output format", option_group="output"),
+            ArgInfo("--dot", help_text="output format", option_group="output"),
+            ArgInfo(expects_value=True, help_text="format definition with {} placeholders", option_group="output"),
         ]
 
     formats = {
@@ -2102,10 +2094,12 @@ class ListCommand(CLICommand, OutputTransformer):
 
     def args_info(self) -> ArgsInfo:
         return [
-            ArgInfo(possible_values=["--csv", "--markdown"], help_text="format"),
+            ArgInfo("--csv", help_text="format", option_group="format"),
+            ArgInfo("--markdown", help_text="format", option_group="format"),
             ArgInfo(
                 expects_value=True,
                 help_text="comma separated list of properties to show",
+                value_hint="property_list_with_as",
             ),
         ]
 
@@ -2411,14 +2405,14 @@ class JobsCommand(CLICommand, PreserveOutputFormat):
                 ArgInfo("--timeout", expects_value=True),
                 ArgInfo(None, value_hint="command", help_text="<command> to run"),
             ],
-            "show": [
-                ArgInfo(None, help_text="<job-id>"),
-            ],
+            "show": [ArgInfo(None, help_text="<job-id>")],
             "list": [],
             "update": [
-                ArgInfo(None, help_text="<job-id>"),
+                ArgInfo("--id", expects_value=True),
                 ArgInfo("--schedule", expects_value=True),
-                ArgInfo("--wait-for-event", value_hint="event", expects_value=True),
+                ArgInfo("--wait-for-event", expects_value=True),
+                ArgInfo("--timeout", expects_value=True),
+                ArgInfo(None, value_hint="command", help_text="<command> to run"),
             ],
             "delete": [ArgInfo(None, help_text="<job-id>")],
             "activate": [ArgInfo(None, help_text="<job-id>")],
@@ -2558,6 +2552,7 @@ class SendWorkerTaskCommand(CLICommand, ABC):
             if wait_for_result:
                 return await result_future
             else:
+                # noinspection PyTypeChecker
                 result_task: Task[JsonElement] = asyncio.create_task(result_future)
                 await self.dependencies.forked_tasks.put((result_task, f"WorkerTask {task_name}:{task.id}"))
                 return f"Spawned WorkerTask {task_name}:{task.id}"
@@ -2654,14 +2649,8 @@ class TagCommand(SendWorkerTaskCommand):
 
     def args_info(self) -> ArgsInfo:
         return {
-            "update": [
-                ArgInfo("--nowait"),
-                ArgInfo(None, expects_value=True, help_text="<tag-name> [tag-value]"),
-            ],
-            "delete": [
-                ArgInfo("--nowait"),
-                ArgInfo(None, expects_value=True, help_text="<tag-name>"),
-            ],
+            "update": [ArgInfo("--nowait"), ArgInfo(None, expects_value=True, help_text="<tag-name> [tag-value]")],
+            "delete": [ArgInfo("--nowait"), ArgInfo(None, expects_value=True, help_text="<tag-name>")],
         }
 
     def timeout(self) -> timedelta:
@@ -2899,7 +2888,7 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
                         expects_value=True,
                         help_text="The name of the backup file.",
                         value_hint="file",
-                    ),
+                    )
                 ],
                 "restore": [
                     ArgInfo(
@@ -2907,7 +2896,7 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
                         expects_value=True,
                         help_text="The name of the local backup file to upload.",
                         value_hint="file",
-                    ),
+                    )
                 ],
             },
             "info": [],
@@ -3821,6 +3810,7 @@ class WelcomeCommand(CLICommand, InternalPart):
                 else 0
             )
             center_vertical = (
+                # this is the height of the area that we show
                 max(0, int(ctx.console_renderer.height - 27))
                 if ctx.console_renderer is not None and ctx.console_renderer.height is not None
                 else 0
@@ -3877,8 +3867,7 @@ class CertificateCommand(CLICommand):
                 ArgInfo("--common-name", True, help_text="Common name like: example.com"),
                 ArgInfo("--dns-names", True, help_text="List of other dns names: example.org example.io"),
                 ArgInfo("--ip-addresses", True, help_text="List of ip addresses: 1.2.3.4 2.3.4.5"),
-            ],
-            "delete": [],
+            ]
         }
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
@@ -3907,11 +3896,7 @@ class CertificateCommand(CLICommand):
             parsed = parser.parse_args(args[1].split())
             return CLISource.with_count(
                 partial(
-                    create_certificate,
-                    parsed.common_name,
-                    parsed.dns_names,
-                    parsed.ip_addresses,
-                    parsed.days_valid,
+                    create_certificate, parsed.common_name, parsed.dns_names, parsed.ip_addresses, parsed.days_valid
                 ),
                 2,
                 produces=MediaType.FilePath,

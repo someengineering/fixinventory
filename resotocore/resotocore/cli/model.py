@@ -227,7 +227,10 @@ class CLIAction(ABC):
 class CLISource(CLIAction):
     def __init__(
         self,
-        fn: Callable[[], Union[Tuple[Optional[int], JsGen], Awaitable[Tuple[Optional[int], JsGen]]]],
+        fn: Callable[
+            [],
+            Union[Tuple[Optional[int], JsGen], Awaitable[Tuple[Optional[int], JsGen]]],
+        ],
         produces: MediaType = MediaType.Json,
         requires: Optional[List[CLICommandRequirement]] = None,
         envelope: Optional[Dict[str, str]] = None,
@@ -312,11 +315,20 @@ class ArgInfo:
     value_hint: Optional[str] = None
     # Help text of the argument option.
     help_text: Optional[str] = None
+    # If multiple options share the same group, only one of them can be selected.
+    # Use groups if you have multiple options, where only one is allowed to be selected.s
+    option_group: Optional[str] = None
 
 
 # mypy does not support recursive type aliases: define 3 levels as maximum here
 ArgsInfo = Union[
-    Dict[str, Union[Dict[str, Union[Dict[str, Union[Any, List[ArgInfo]]], List[ArgInfo]]], List[ArgInfo]]],
+    Dict[
+        str,
+        Union[
+            Dict[str, Union[Dict[str, Union[Any, List[ArgInfo]]], List[ArgInfo]]],
+            List[ArgInfo],
+        ],
+    ],
     List[ArgInfo],
 ]
 
