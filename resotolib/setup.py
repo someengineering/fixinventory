@@ -18,6 +18,7 @@ setup(
     license=resotolib.__license__,
     packages=find_packages(),
     long_description=readme,
+    long_description_content_type="text/markdown",
     include_package_data=True,
     zip_safe=False,
     install_requires=requirements,
