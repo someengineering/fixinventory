@@ -17,6 +17,7 @@ from resotoshell.promptsession import (
     known_props,
     DocumentExtension,
     AggregateCompleter,
+    PropertyListCompleter,
 )
 
 
@@ -67,6 +68,15 @@ def test_property() -> None:
     # /reported handling
     assert complete("/repo", n) == {"/reported."}
     assert len(complete("/reported.", n)) >= len(known_props)
+
+
+def test_property_list() -> None:
+    n = PropertyListCompleter(known_kinds, known_props)
+    assert complete("/anc", n) == {"/ancestors."}
+    assert complete("foo, /anc", n) == {"/ancestors."}
+    assert complete("foo as bla, /anc", n) == {"/ancestors."}
+    assert {"followers"} <= complete("foo as bla, foll", n)
+    assert len(complete("foo as ", n)) == 1  # suggest name
 
 
 def test_search() -> None:
@@ -151,7 +161,7 @@ def test_aggregate() -> None:
 
 
 def test_complete_option() -> None:
-    n = CommandLineCompleter.create_completer(known_commands, [], [])
+    n = CommandLineCompleter.create_completer(known_commands, known_kinds, known_props)
     assert complete("ancestors ", n) == {
         "--with-origin",
         "default",
@@ -180,7 +190,8 @@ def test_complete_option() -> None:
         "certificate create --common-name example.com ", n
     )
     assert complete("configs show ", n, True) == {"<config_id> e.g. resoto.core"}
-    assert complete("search all | list ", n) == {"--markdown", " ", "--csv"}
+    assert {"--markdown", "--csv"} <= complete("search all | list ", n)
+    assert len(complete("search all | list ", n)) >= len(known_props)
 
     # nothing is suggested when the hint has been provided
     assert complete("echo hello ", n) == set()

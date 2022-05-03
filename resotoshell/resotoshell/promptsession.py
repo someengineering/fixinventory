@@ -326,16 +326,6 @@ class KindCompleter(AbstractSearchCompleter):
         return self.kind_completer.get_completions(document, complete_event)
 
 
-class PropertyCompleter(AbstractSearchCompleter):
-    def get_completions(
-        self, document: Document, complete_event: CompleteEvent
-    ) -> Iterable[Completion]:
-        ext = DocumentExtension(document)
-        return self.property_completions(
-            document, ext, complete_event, self.property_names_completer
-        )
-
-
 class SearchCompleter(AbstractSearchCompleter):
     def get_completions(
         self, document: Document, complete_event: CompleteEvent
@@ -457,7 +447,7 @@ class AggregateCompleter(AbstractSearchCompleter):
         self.fn_after_name = merge_completers(
             [self.as_completer, self.comma_fn_completer]
         )
-        self.comma_colon_completer = merge_completers(
+        self.after_group = merge_completers(
             [self.comma_var_completer, self.colon_completer]
         )
         self.after_fn_completer = merge_completers(
@@ -490,7 +480,7 @@ class AggregateCompleter(AbstractSearchCompleter):
             return self.value_hint_completer.get_completions(doc, complete_event)
         elif after := re_after_third_word.match(ext.last):
             doc = ext.cut_last(after.span(1))
-            return self.comma_colon_completer.get_completions(doc, complete_event)
+            return self.after_group.get_completions(doc, complete_event)
         else:
             return []
 
@@ -529,6 +519,41 @@ class AggregateCompleter(AbstractSearchCompleter):
             return self.fn_completion(document, complete_event)
         else:
             return self.group_completion(document, complete_event)
+
+
+class PropertyCompleter(AbstractSearchCompleter):
+    def get_completions(
+        self, document: Document, complete_event: CompleteEvent
+    ) -> Iterable[Completion]:
+        ext = DocumentExtension(document)
+        return self.property_completions(
+            document, ext, complete_event, self.property_names_completer
+        )
+
+
+class PropertyListCompleter(AggregateCompleter):
+    # Inherit from aggregate completer only, since the grouping completer
+    # already implements everything we need.
+    def __init__(
+        self, kinds: List[str], props: List[str], with_as: bool = True
+    ) -> None:
+        super().__init__(kinds, props)
+        self.comma_var_completer = FuzzyWordCompleter(
+            [","],
+            meta_dict=({",": "define another variable"}),
+        )
+        self.props_completer = self.property_names_completer
+        self.group_after_name = (
+            merge_completers([self.as_completer, self.comma_var_completer])
+            if with_as
+            else self.comma_var_completer
+        )
+        self.after_group = self.comma_var_completer
+
+    def get_completions(
+        self, document: Document, complete_event: CompleteEvent
+    ) -> Iterable[Completion]:
+        return self.group_completion(document, complete_event)
 
 
 class HintCompleter(Completer):
@@ -652,8 +677,8 @@ class ArgsCompleter(Completer):
             )
             direct = direct_completers().get_completions(doc, complete_event)
             opts = self.options_completer.get_completions(last_doc, complete_event)
-            return list(direct) + [c for c in opts if allowed(c)]
-        # inside an option
+            return [c for c in opts if allowed(c)] + list(direct)
+            # inside an option
         elif maybe is not None:
             # suggest the arg values
             doc = cut_document_last(doc, maybe.arg.name)
@@ -725,6 +750,10 @@ class CommandLineCompleter(Completer):
                 return KindCompleter(kinds, props)
             elif arg.value_hint == "property":
                 return PropertyCompleter(kinds, props)
+            elif arg.value_hint == "property_list_plain":
+                return PropertyListCompleter(kinds, props, with_as=False)
+            elif arg.value_hint == "property_list_with_as":
+                return PropertyListCompleter(kinds, props, with_as=True)
             elif arg.value_hint == "command":
                 meta = {cmd.name: "command" for cmd in cmds}
                 return FuzzyWordCompleter([cmd.name for cmd in cmds], meta_dict=meta)
@@ -1666,11 +1695,15 @@ known_commands = [
             ],
             "list": [],
             "update": [
-                ArgInfo(None, help_text="<job-id>"),
+                ArgInfo("--id", expects_value=True, help_text="job id"),
                 ArgInfo("--schedule", expects_value=True, help_text="cron schedule"),
                 ArgInfo(
                     "--wait-for-event", expects_value=True, help_text="trigger by event"
                 ),
+                ArgInfo(
+                    "--timeout", expects_value=True, help_text="timeout in seconds"
+                ),
+                ArgInfo(None, help_text="<command> to run"),
             ],
             "delete": [
                 ArgInfo(None, help_text="<job-id>"),
@@ -1727,6 +1760,7 @@ known_commands = [
                 None,
                 expects_value=True,
                 help_text="the list of properties, comma separated",
+                value_hint="property_list_with_as",
             ),
         ],
         source=False,
