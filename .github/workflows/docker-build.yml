@@ -26,9 +26,15 @@ jobs:
       - name: Set build platforms
         id: platform
         run: |
+          GITHUB_REF="${{ github.ref }}"
+          GITHUB_TAG=${GITHUB_REF##*/}
           if [ "${{ github.ref_type }}" = tag ]; then
               echo "::set-output name=uitag::latest"
-              echo "::set-output name=latest::true"
+              if [[ "$GITHUB_TAG" =~ [0-9][ab][0-9]* ]]; then
+                echo "::set-output name=latest::false"
+              else
+                echo "::set-output name=latest::true"
+              fi
           else
               echo "::set-output name=uitag::edge"
               echo "::set-output name=latest::false"
