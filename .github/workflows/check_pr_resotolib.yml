@@ -19,7 +19,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v2
         with:
-          python-version: '3.9'
+          python-version: '3.10'
           architecture: 'x64'
 
       - name: Restore dependency cache
@@ -60,3 +60,4 @@ jobs:
         with:
           user: __token__
           password: ${{ secrets.PYPI_RESOTOLIB }}
+          packages_dir: ./resotolib/dist/

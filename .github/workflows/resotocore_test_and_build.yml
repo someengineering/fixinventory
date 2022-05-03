@@ -1,4 +1,4 @@
-name: Test (resotocore)
+name: Test and build (resotocore)
 on:
   push:
     branches:
@@ -12,8 +12,8 @@ on:
       - '.github/**'
 
 jobs:
-  lint-and-test:
-    name: "Test (resotocore)"
+  resotocore-test-and-build:
+    name: "Test and build (resotocore)"
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -33,6 +33,12 @@ jobs:
         with:
           python-version: 'pypy-3.8-v7.3.7'
           architecture: 'x64'
+      - name: Setup Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
       - name: Restore dependency cache
         uses: actions/cache@v2
         with:
@@ -53,4 +59,17 @@ jobs:
         env:
           RESOTOCORE_ANALYTICS_OPT_OUT: true
         run: pytest
-
+      - name: Build a binary wheel and a source tarball
+        run: >-
+          python -m
+          build
+          --sdist
+          --wheel
+          --outdir dist/
+      - name: Publish distribution to PyPI
+        if: github.ref_type == 'tag'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_RESOTOCORE }}
+          packages_dir: ./resotocore/dist/
