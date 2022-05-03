@@ -227,10 +227,7 @@ class CLIAction(ABC):
 class CLISource(CLIAction):
     def __init__(
         self,
-        fn: Callable[
-            [],
-            Union[Tuple[Optional[int], JsGen], Awaitable[Tuple[Optional[int], JsGen]]],
-        ],
+        fn: Callable[[], Union[Tuple[Optional[int], JsGen], Awaitable[Tuple[Optional[int], JsGen]]]],
         produces: MediaType = MediaType.Json,
         requires: Optional[List[CLICommandRequirement]] = None,
         envelope: Optional[Dict[str, str]] = None,
@@ -322,13 +319,7 @@ class ArgInfo:
 
 # mypy does not support recursive type aliases: define 3 levels as maximum here
 ArgsInfo = Union[
-    Dict[
-        str,
-        Union[
-            Dict[str, Union[Dict[str, Union[Any, List[ArgInfo]]], List[ArgInfo]]],
-            List[ArgInfo],
-        ],
-    ],
+    Dict[str, Union[Dict[str, Union[Dict[str, Union[Any, List[ArgInfo]]], List[ArgInfo]]], List[ArgInfo]]],
     List[ArgInfo],
 ]
 
