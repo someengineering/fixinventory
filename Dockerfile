@@ -8,7 +8,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 ARG TESTS
 ARG SOURCE_COMMIT
 ARG PYTHON_VERSION=3.10.4
-ARG PYPY_VERSION=7.3.9
+ARG PYPY_VERSION=7.3.7
 ARG ARANGODB_VERSION=3.8.4
 ARG PROMETHEUS_VERSION=2.35.0
 
@@ -69,7 +69,7 @@ RUN /usr/local/python/bin/python3 -m ensurepip
 # Download and install PyPy
 WORKDIR /build
 RUN mkdir -p /build/pypy
-RUN curl -L -o /tmp/pypy.tar.bz2 https://downloads.python.org/pypy/pypy3.9-v${PYPY_VERSION}-linux64.tar.bz2
+RUN curl -L -o /tmp/pypy.tar.bz2 https://downloads.python.org/pypy/pypy3.8-v${PYPY_VERSION}-linux64.tar.bz2
 RUN tar xjvf /tmp/pypy.tar.bz2 --strip-components=1 -C /build/pypy
 RUN mv /build/pypy /usr/local/pypy
 RUN /usr/local/pypy/bin/pypy3 -m ensurepip
