@@ -554,9 +554,11 @@ class ArgsCompleter(Completer):
         opts: List[ArgCompleter] = []
         for x in args:
             (direct if x.arg.name is None else opts).append(x)
-
+        self.direct = direct
         self.args: Dict[str, ArgCompleter] = {arg.arg.name: arg for arg in opts}
-
+        self.value_lookup: Dict[str, ArgCompleter] = {
+            v: a for a in args for v in a.arg.possible_values
+        }
         self.options_completer = FuzzyWordCompleter(
             list(self.args.keys()),
             meta_dict={
@@ -565,12 +567,6 @@ class ArgsCompleter(Completer):
                 if complete.arg.help_text is not None
             },
         )
-        self.direct_completer = merge_completers(
-            [a.completer for a in direct if a.completer]
-        )
-        self.value_lookup: Dict[str, ArgCompleter] = {
-            v: a for a in args for v in a.arg.possible_values
-        }
 
     def inside_option(self, parts: List[str]) -> Optional[ArgCompleter]:
         for idx, part in enumerate(reversed(parts)):
@@ -602,17 +598,17 @@ class ArgsCompleter(Completer):
             a.arg.name.startswith(last) for a in self.args.values() if a.arg.name
         )
 
-        def option_group_defined(completion: Completion) -> bool:
-            # another option group defined
-            ag = self.args.get(completion.text)
-            result = False
-            if group := ag.arg.option_group if ag else None:
-                result = any(
+        def direct_completers() -> Completer:
+            def allowed_arg(arg_info: ArgInfo) -> bool:
+                group = arg_info.option_group
+                return group is None or not any(
                     a.arg.name in parts
                     for a in self.args.values()
                     if a.arg.option_group == group
                 )
-            return result
+
+            d = [a.completer for a in self.direct if a.completer if allowed_arg(a.arg)]
+            return merge_completers(d)
 
         def allowed(completion: Completion) -> bool:
             txt = completion.text
@@ -631,12 +627,19 @@ class ArgsCompleter(Completer):
                 )
 
             # another option group defined
-            of_defined = option_group_defined(completion)
+            ag = self.args.get(completion.text)
+            option_group_defined = False
+            if group := ag.arg.option_group if ag else None:
+                option_group_defined = any(
+                    a.arg.name in parts
+                    for a in self.args.values()
+                    if a.arg.option_group == group
+                )
 
             # if we come here: this is a valid completion
             return (
                 False
-                if already_defined or another_value_defined or of_defined
+                if already_defined or another_value_defined or option_group_defined
                 else True
             )
 
@@ -647,9 +650,9 @@ class ArgsCompleter(Completer):
                 cursor_position=document.cursor_position
                 - (len(document.text) - len(last)),
             )
-            direct = self.direct_completer.get_completions(doc, complete_event)
+            direct = direct_completers().get_completions(doc, complete_event)
             opts = self.options_completer.get_completions(last_doc, complete_event)
-            return [c for c in (list(direct) + list(opts)) if allowed(c)]
+            return list(direct) + [c for c in opts if allowed(c)]
         # inside an option
         elif maybe is not None:
             # suggest the arg values
@@ -657,7 +660,7 @@ class ArgsCompleter(Completer):
             return maybe.get_completions(doc, complete_event)
             # no option started and not inside any option: assume a direct completion
         else:
-            return self.direct_completer.get_completions(doc, complete_event)
+            return direct_completers().get_completions(doc, complete_event)
 
 
 class CommandLineCompleter(Completer):
@@ -1724,7 +1727,6 @@ known_commands = [
                 None,
                 expects_value=True,
                 help_text="the list of properties, comma separated",
-                option_group="format",
             ),
         ],
         source=False,
