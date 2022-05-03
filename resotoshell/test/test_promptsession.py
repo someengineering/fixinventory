@@ -17,6 +17,7 @@ from resotoshell.promptsession import (
     known_props,
     DocumentExtension,
     AggregateCompleter,
+    PropertyListCompleter,
 )
 
 
@@ -69,6 +70,15 @@ def test_property() -> None:
     assert len(complete("/reported.", n)) >= len(known_props)
 
 
+def test_property_list() -> None:
+    n = PropertyListCompleter(known_kinds, known_props)
+    assert complete("/anc", n) == {"/ancestors."}
+    assert complete("foo, /anc", n) == {"/ancestors."}
+    assert complete("foo as bla, /anc", n) == {"/ancestors."}
+    assert {"followers"} <= complete("foo as bla, foll", n)
+    assert len(complete("foo as ", n)) == 1  # suggest name
+
+
 def test_search() -> None:
     n = SearchCompleter(known_kinds, known_props)
     assert len(complete("", n)) > len(known_props)
@@ -97,7 +107,7 @@ def test_search() -> None:
     assert {"sort", "limit"} <= complete("is(instance) or age >= 12d ", n)
 
     # show all properties for sorting
-    assert len(complete("is(instance) or age >= 12d sort ", n)) == len(known_props)
+    assert len(complete("is(instance) or age >= 12d sort ", n)) >= len(known_props)
 
     # show sort order after the property
     assert {"asc", "desc"} <= complete("is(instance) or age >= 12d sort foo ", n)
@@ -115,6 +125,7 @@ def test_search() -> None:
     assert {"is(", "all"} <= complete(
         "is(instance) or age >= 12d sort foo limit 23, 12 --> ", n
     )
+    assert {"is(", "all"} <= complete("(", n)
 
 
 def test_aggregate() -> None:
@@ -143,14 +154,25 @@ def test_aggregate() -> None:
     assert complete("name: sum(1) as bla ", n) == {","}
     assert complete("name: sum(1) as bla, min(foo) as foo ", n) == {","}
 
+    # start with function
+    assert len(complete("sum(", n)) >= len(known_props)
+    assert complete("sum(foo) as ", n, True) == {"name of this result"}
+    assert {"sum(", "min("} <= complete("sum(foo) as foo,", n)
+
 
 def test_complete_option() -> None:
-    n = CommandLineCompleter.create_completer(known_commands, [], [])
+    n = CommandLineCompleter.create_completer(known_commands, known_kinds, known_props)
     assert complete("ancestors ", n) == {
         "--with-origin",
         "default",
         "delete",
     }
+    # show all options
+    assert complete("ancestors --with-origin ", n) == {"default", "delete"}
+    # once a direct value is supplied, no other option is shown
+    assert complete("ancestors default ", n) == set()
+    # once a direct value is supplied, no other option is shown
+    assert complete("ancestors --with-origin default ", n) == set()
     assert complete("ancestors -", n) == {"--with-origin"}
     assert complete("configs ", n) == {
         "list",
@@ -161,18 +183,18 @@ def test_complete_option() -> None:
         "delete",
     }
     assert complete("configs show ", n, True) == {"<config_id> e.g. resoto.core"}
-
     assert complete("certificate create --common-name ", n, True) == {
         "Common name like: example.com"
     }
-
+    assert "--common-name" not in complete(
+        "certificate create --common-name example.com ", n
+    )
     assert complete("configs show ", n, True) == {"<config_id> e.g. resoto.core"}
+    assert {"--markdown", "--csv"} <= complete("search all | list ", n)
+    assert len(complete("search all | list ", n)) >= len(known_props)
 
-    assert complete("search all | list ", n) == {
-        "--markdown",
-        " ",
-        "--csv",
-    }
+    # nothing is suggested when the hint has been provided
+    assert complete("echo hello ", n) == set()
 
 
 def test_complete_word() -> None:

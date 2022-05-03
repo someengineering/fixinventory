@@ -4,7 +4,7 @@ import re
 from abc import ABC
 from dataclasses import dataclass, field
 from re import Pattern
-from typing import Iterable, Optional, List, Dict, Union, Tuple
+from typing import Iterable, Optional, List, Dict, Union, Tuple, Callable
 
 from prompt_toolkit import PromptSession as PTSession
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
@@ -35,15 +35,19 @@ def cut_document_remaining(document: Document, span: Tuple[int, int]) -> Documen
 
 
 def cut_document_last(document: Document, last_part: str) -> Document:
-    left, right = document.text_before_cursor.rsplit(last_part, 1)
-    right_stripped = right.lstrip()
-    return Document(
-        right_stripped,
-        cursor_position=document.cursor_position
-        - len(left)
-        - len(last_part)
-        - (len(right) - len(right_stripped)),
-    )
+    text = document.text_before_cursor
+    if last_part in text:
+        left, right = document.text_before_cursor.rsplit(last_part, 1)
+        right_stripped = right.lstrip()
+        return Document(
+            right_stripped,
+            cursor_position=document.cursor_position
+            - len(left)
+            - len(last_part)
+            - (len(right) - len(right_stripped)),
+        )
+    else:
+        return document
 
 
 @dataclass
@@ -54,6 +58,7 @@ class ArgInfo:
     can_occur_multiple_times: bool = False
     value_hint: Optional[str] = None
     help_text: Optional[str] = None
+    option_group: Optional[str] = None
 
 
 SubCommands = Dict[str, Union["SubCommands", List[ArgInfo]]]
@@ -118,12 +123,21 @@ class FuzzyWordCompleter(Completer):
         return self.fuzzy_completer.get_completions(document, complete_event)
 
     def get_completions_filtered(
-        self, document: Document, complete_event: CompleteEvent, **filter_values: bool
+        self,
+        document: Document,
+        complete_event: CompleteEvent,
+        fn: Callable[[Completion], bool],
     ) -> Iterable[Completion]:
         for v in self.get_completions(document, complete_event):
-            filtered = filter_values.get(v.text, False)
-            if not filtered:
+            if fn(v):
                 yield v
+
+    def get_completions_without(
+        self, document: Document, complete_event: CompleteEvent, **filter_values: bool
+    ) -> Iterable[Completion]:
+        return self.get_completions_filtered(
+            document, complete_event, lambda v: not filter_values.get(v.text, False)
+        )
 
 
 re_nav_block = r"[a-zA-Z0-9]*(?:\[[0-9:]+\])?[a-zA-Z0-9]*"
@@ -133,9 +147,11 @@ re_start_query = re.compile(r"^\s*(/?[A-Za-z0-9_.]*)$")
 re_inside_is = re.compile(".*is\\(([^)]*)$")
 re_json_value = r'(?:"[^"]*")|(?:\[[^\\]+\])|(?:\{[^}]+\})|(?:[A-Za-z0-9_\-:/.]+)'
 
-re_partial_and_or = r"|a|an|and|o|or|-|<|-|--|<-|s|so|sor|sort|l|li|lim|limi|limit"
+re_partial_and_or = (
+    r"|a|an|and|o|or|-|<|-|-\[|--|<-|<-\[|s|so|sor|sort|l|li|lim|limi|limit"
+)
 re_param = "/?[A-Za-z_][A-Za-z0-9_\\-.\\[\\]]*"
-re_op = "==|=|!=|<|>|<=|>=|=~|~|!~|in|not in"
+re_op = "==|=|!=|<|>|<=|>=|=~|~|!~|\\s+in\\s+|\\s+not in\\s+"
 re_fulltext = r'(?:"[^"]*")'
 
 # match and/or
@@ -149,6 +165,8 @@ re_after_fulltext = re.compile(f".*(?:{re_fulltext})\\s*({re_partial_and_or})$")
 re_after_sort_limit = re.compile(
     f".*(?:sort\\s+\\S+\\s(?:asc|desc)?|limit\\s+\\d+(?:,\\s*\\d+)?)\\s*({re_partial_and_or})$"
 )
+re_sort_attribute = re.compile(r".*sort\s+(\S*)$")
+re_sort_order = re.compile(r".*sort\s+\S+\s+(\S*)$")
 
 re_param_start = re.compile(r".*(?:and|or)\s+(/?[\w\-\[\].]*)$")
 re_slash_reported = re.compile(r"/reported.([^.]*)$")
@@ -169,16 +187,22 @@ re_fn = r"\w+\([^)]+\)"
 re_second_word_after_fn = re.compile(f"^\\s*{re_fn}\\s*(\\w*)$")
 re_third_word_after_fn = re.compile(f"^\\s*{re_fn}\\s+\\w+\\s*(\\w*)$")
 re_after_third_word_fn = re.compile(f"^\\s*{re_fn}\\s+\\w+\\s+\\w+\\s*(\\w*)$")
+re_after_bracket_start = re.compile(r"(?:|.*\s+)\((\w*)$")
 
 
 class DocumentExtension:
-    def __init__(self, document: Document, part_splitter: Pattern) -> None:
+    def __init__(
+        self, document: Document, part_splitter: Optional[Pattern] = None
+    ) -> None:
         self.document = document
         self.text = document.text_before_cursor
-        self.parts = part_splitter.split(self.text)
+        self.parts = part_splitter.split(self.text) if part_splitter else [self.text]
         self.last = self.parts[-1].lstrip() if self.parts else ""
         self.last_words = self.last.split()
         self.last_word = self.word_at(-1)
+
+    def cut_text(self, span: Tuple[int, int]) -> Document:
+        return cut_document_remaining(self.document, span)
 
     def cut_last(self, span: Tuple[int, int]) -> Document:
         return cut_document_remaining(self.last_doc(), span)
@@ -199,7 +223,23 @@ class AbstractSearchCompleter(Completer, ABC):
         self.prop_lookup = set(props)
         ops = ["=", "!=", ">", "<", "<=", ">=", "~", "!~", "in"]
         self.ops_lookup = set(ops)
-        self.kind_completer = FuzzyWordCompleter(kinds)
+        self.kind_completer = FuzzyWordCompleter(
+            kinds, meta_dict={p: "kind" for p in kinds}
+        )
+        self.property_names_completer = FuzzyWordCompleter(
+            props
+            + ["/ancestors.", "/reported.", "/desired.", "/metadata.", "/descendants."],
+            meta_dict=(
+                {
+                    "/reported.": "absolute path in reported section",
+                    "/desired.": "absolute path in desired section",
+                    "/metadata.": "absolute path in metadata section",
+                    "/ancestors.": "ancestor properties",
+                    "/descendants.": "descendant properties",
+                    **{p: "property" for p in self.props},
+                }
+            ),
+        )
         self.start_completer = FuzzyWordCompleter(
             ['"', "is(", "/ancestors."]
             + props
@@ -218,7 +258,6 @@ class AbstractSearchCompleter(Completer, ABC):
                 }
             ),
         )
-        self.property_names_completer = FuzzyWordCompleter(props)
         self.ops_completer = FuzzyWordCompleter(ops)
         self.and_or_completer = FuzzyWordCompleter(
             [
@@ -280,6 +319,13 @@ class AbstractSearchCompleter(Completer, ABC):
             return start_with.get_completions(doc, complete_event)
 
 
+class KindCompleter(AbstractSearchCompleter):
+    def get_completions(
+        self, document: Document, complete_event: CompleteEvent
+    ) -> Iterable[Completion]:
+        return self.kind_completer.get_completions(document, complete_event)
+
+
 class SearchCompleter(AbstractSearchCompleter):
     def get_completions(
         self, document: Document, complete_event: CompleteEvent
@@ -294,34 +340,38 @@ class SearchCompleter(AbstractSearchCompleter):
                 doc, ext, complete_event, self.start_completer
             )
         elif parm := re_param_start.match(ext.text):
-            doc = ext.cut_last(parm.span(1))
+            doc = ext.cut_text(parm.span(1))
+            return self.property_completions(
+                doc, ext, complete_event, self.start_completer
+            )
+        elif bracket := re_after_bracket_start.match(ext.text):
+            doc = ext.cut_text(bracket.span(1))
             return self.property_completions(
                 doc, ext, complete_event, self.start_completer
             )
         elif in_is := re_inside_is.match(ext.text):
-            doc = ext.cut_last(in_is.span(1))
+            doc = ext.cut_text(in_is.span(1))
             return self.kind_completer.get_completions(doc, complete_event)
         elif after := re_after_bracket.match(ext.last):
-            doc = ext.cut_last(after.span(1))
-            return self.and_or_completer.get_completions(doc, complete_event)
-        elif after := re_after_param_filter.match(ext.last):
             doc = ext.cut_last(after.span(1))
             return self.and_or_completer.get_completions(doc, complete_event)
         elif after := re_after_fulltext.match(ext.last):
             doc = ext.cut_last(after.span(1))
             return self.and_or_completer.get_completions(doc, complete_event)
-        elif ext.last_word == "sort":
-            doc = cut_document_last(document, ext.last_word)
-            return self.property_names_completer.get_completions(doc, complete_event)
+        elif after := re_sort_attribute.match(ext.last):
+            doc = ext.cut_last(after.span(1))
+            return self.property_completions(
+                doc, ext, complete_event, self.property_names_completer
+            )
+        elif after := re_sort_order.match(ext.last):  # sort order
+            doc = ext.cut_last(after.span(1))
+            return self.sort_order_completer.get_completions(doc, complete_event)
         elif ext.last_word == "limit":
             doc = cut_document_last(document, ext.last_word)
             return self.limit_completer.get_completions(doc, complete_event)
-        elif ext.word_at(-2) == "sort":  # sort order
-            doc = cut_document_last(document, ext.last_word)
-            return self.sort_order_completer.get_completions(doc, complete_event)
         elif after := re_after_sort_limit.match(ext.last):
             doc = cut_document_remaining(document, after.span(1))
-            return self.and_or_completer.get_completions_filtered(
+            return self.and_or_completer.get_completions_without(
                 doc,
                 complete_event,
                 **{
@@ -331,6 +381,9 @@ class SearchCompleter(AbstractSearchCompleter):
                     "or": have_sort | have_limit,
                 },
             )
+        elif after := re_after_param_filter.match(ext.last):
+            doc = ext.cut_last(after.span(1))
+            return self.and_or_completer.get_completions(doc, complete_event)
         elif (
             ext.last_word in self.prop_lookup or ext.last_word.startswith("/")
         ) and not have_sort:
@@ -394,7 +447,7 @@ class AggregateCompleter(AbstractSearchCompleter):
         self.fn_after_name = merge_completers(
             [self.as_completer, self.comma_fn_completer]
         )
-        self.comma_colon_completer = merge_completers(
+        self.after_group = merge_completers(
             [self.comma_var_completer, self.colon_completer]
         )
         self.after_fn_completer = merge_completers(
@@ -406,7 +459,7 @@ class AggregateCompleter(AbstractSearchCompleter):
             "kind, volume_type as type: sum(volume_size) as volume_size",
         )
         self.with_hint_completer = merge_completers(
-            [self.hint_completer, self.props_completer]
+            [self.hint_completer, self.props_completer, self.aggregate_fn_completer]
         )
         self.value_hint_completer = HintCompleter("<name>", "name of this result")
 
@@ -427,7 +480,7 @@ class AggregateCompleter(AbstractSearchCompleter):
             return self.value_hint_completer.get_completions(doc, complete_event)
         elif after := re_after_third_word.match(ext.last):
             doc = ext.cut_last(after.span(1))
-            return self.comma_colon_completer.get_completions(doc, complete_event)
+            return self.after_group.get_completions(doc, complete_event)
         else:
             return []
 
@@ -459,9 +512,7 @@ class AggregateCompleter(AbstractSearchCompleter):
         self, document: Document, complete_event: CompleteEvent
     ) -> Iterable[Completion]:
         text = document.text_before_cursor
-        in_functions = ":" in text or any(
-            a for a in self.aggregate_fns if f"{a}(" in text
-        )
+        in_functions = ":" in text or any(a for a in self.aggregate_fns if a in text)
         if text.strip() == "":
             return self.with_hint_completer.get_completions(document, complete_event)
         elif in_functions:
@@ -470,16 +521,56 @@ class AggregateCompleter(AbstractSearchCompleter):
             return self.group_completion(document, complete_event)
 
 
+class PropertyCompleter(AbstractSearchCompleter):
+    def get_completions(
+        self, document: Document, complete_event: CompleteEvent
+    ) -> Iterable[Completion]:
+        ext = DocumentExtension(document)
+        return self.property_completions(
+            document, ext, complete_event, self.property_names_completer
+        )
+
+
+class PropertyListCompleter(AggregateCompleter):
+    # Inherit from aggregate completer only, since the grouping completer
+    # already implements everything we need.
+    def __init__(
+        self, kinds: List[str], props: List[str], with_as: bool = True
+    ) -> None:
+        super().__init__(kinds, props)
+        self.comma_var_completer = FuzzyWordCompleter(
+            [","],
+            meta_dict=({",": "define another variable"}),
+        )
+        self.props_completer = self.property_names_completer
+        self.group_after_name = (
+            merge_completers([self.as_completer, self.comma_var_completer])
+            if with_as
+            else self.comma_var_completer
+        )
+        self.after_group = self.comma_var_completer
+
+    def get_completions(
+        self, document: Document, complete_event: CompleteEvent
+    ) -> Iterable[Completion]:
+        return self.group_completion(document, complete_event)
+
+
 class HintCompleter(Completer):
     def __init__(self, hint: str, meta: Optional[str] = None, value: str = " ") -> None:
+        self.value = value
         self.cpl = WordCompleter(
-            [value], meta_dict={value: meta}, display_dict={value: hint}
+            [value], meta_dict={value: meta}, display_dict={value: hint}, WORD=True
         )
 
     def get_completions(
         self, document: Document, complete_event: CompleteEvent
     ) -> Iterable[Completion]:
-        return self.cpl.get_completions(document, complete_event)
+        # Only show a hint once at the start
+        if self.value == " " and document.text_before_cursor.strip() != "":
+            return []
+        else:
+            return self.cpl.get_completions(document, complete_event)
 
 
 class ArgsCompleter(Completer):
@@ -488,19 +579,19 @@ class ArgsCompleter(Completer):
         opts: List[ArgCompleter] = []
         for x in args:
             (direct if x.arg.name is None else opts).append(x)
-
+        self.direct = direct
         self.args: Dict[str, ArgCompleter] = {arg.arg.name: arg for arg in opts}
-
-        # this completer completes new options as well as direct values
-        self.completer = merge_completers(
-            [
-                FuzzyWordCompleter(list(self.args.keys())),
-                *[a.completer for a in direct if a.completer],
-            ]
-        )
         self.value_lookup: Dict[str, ArgCompleter] = {
             v: a for a in args for v in a.arg.possible_values
         }
+        self.options_completer = FuzzyWordCompleter(
+            list(self.args.keys()),
+            meta_dict={
+                arg: complete.arg.help_text
+                for arg, complete in self.args.items()
+                if complete.arg.help_text is not None
+            },
+        )
 
     def inside_option(self, parts: List[str]) -> Optional[ArgCompleter]:
         for idx, part in enumerate(reversed(parts)):
@@ -510,36 +601,91 @@ class ArgsCompleter(Completer):
     def get_completions(
         self, document: Document, complete_event: CompleteEvent
     ) -> Iterable[Completion]:
-        parts = document.text_before_cursor.strip().split()
+        text = document.text_before_cursor
+        parts = text.strip().split()
         maybe = self.inside_option(parts)
-        if maybe is None:
 
-            def allowed(completion: Completion) -> bool:
-                txt = completion.text
-                # has this parameter been specified before?
-                if (
-                    txt in parts
-                    and txt in self.args
-                    and not self.args[txt].arg.can_occur_multiple_times
-                ):
-                    return False
-                # is this a possible value, where another value is already defined?
-                if txt in self.value_lookup:
-                    return not any(
-                        v
-                        for v in self.value_lookup[txt].arg.possible_values
-                        if v in parts
-                    )
-                # if we come here: this is a valid completion
-                return True
+        # eat all options: remaining parts can be completed eventually
+        adapted = text
+        for arg in self.args.values():
+            val_pattern = "\\s+\\S+\\s+" if arg.arg.expects_value else "\\s*"
+            adapted = re.sub(f"\\s*{arg.arg.name}{val_pattern}", "", adapted)
+        doc = Document(
+            adapted,
+            cursor_position=document.cursor_position - (len(text) - len(adapted)),
+        )
 
-            return filter(
-                allowed, self.completer.get_completions(document, complete_event)
+        # look at the last word to see if an option is started
+        adapted_stripped = adapted.lstrip()
+        sp = adapted_stripped.rsplit(maxsplit=1)
+        last = sp[-1] if len(sp) > 1 else adapted_stripped
+        start_arg = last.strip() != "" and any(
+            a.arg.name.startswith(last) for a in self.args.values() if a.arg.name
+        )
+
+        def direct_completers() -> Completer:
+            def allowed_arg(arg_info: ArgInfo) -> bool:
+                group = arg_info.option_group
+                return group is None or not any(
+                    a.arg.name in parts
+                    for a in self.args.values()
+                    if a.arg.option_group == group
+                )
+
+            d = [a.completer for a in self.direct if a.completer if allowed_arg(a.arg)]
+            return merge_completers(d)
+
+        def allowed(completion: Completion) -> bool:
+            txt = completion.text
+            # has this parameter been specified before?
+            already_defined = (
+                txt in parts
+                and txt in self.args
+                and not self.args[txt].arg.can_occur_multiple_times
             )
-        else:
+
+            # is this a possible value, where another value is already defined?
+            another_value_defined = False
+            if txt in self.value_lookup:
+                another_value_defined = any(
+                    v for v in self.value_lookup[txt].arg.possible_values if v in parts
+                )
+
+            # another option group defined
+            ag = self.args.get(completion.text)
+            option_group_defined = False
+            if group := ag.arg.option_group if ag else None:
+                option_group_defined = any(
+                    a.arg.name in parts
+                    for a in self.args.values()
+                    if a.arg.option_group == group
+                )
+
+            # if we come here: this is a valid completion
+            return (
+                False
+                if already_defined or another_value_defined or option_group_defined
+                else True
+            )
+
+        # either there is no option or an option has been started
+        if adapted_stripped == "" or start_arg:
+            last_doc = Document(
+                last,
+                cursor_position=document.cursor_position
+                - (len(document.text) - len(last)),
+            )
+            direct = direct_completers().get_completions(doc, complete_event)
+            opts = self.options_completer.get_completions(last_doc, complete_event)
+            return [c for c in opts if allowed(c)] + list(direct)
+            # inside an option
+        elif maybe is not None:
             # suggest the arg values
-            doc = cut_document_last(document, maybe.arg.name)
+            doc = cut_document_last(doc, maybe.arg.name)
             return maybe.get_completions(doc, complete_event)
+            # no option started and not inside any option: assume a direct completion
+        else:
+            return direct_completers().get_completions(doc, complete_event)
 
 
 class CommandLineCompleter(Completer):
@@ -592,15 +738,25 @@ class CommandLineCompleter(Completer):
     ) -> "CommandLineCompleter":
         def arg_completer(arg: ArgInfo) -> Optional[Completer]:
             if arg.possible_values:
-                return FuzzyWordCompleter(arg.possible_values)
+                meta = (
+                    {a: arg.help_text for a in arg.possible_values}
+                    if arg.help_text is not None
+                    else None
+                )
+                return FuzzyWordCompleter(arg.possible_values, meta_dict=meta)
             elif arg.value_hint == "file":
                 return PathCompleter()
             elif arg.value_hint == "kind":
-                return FuzzyWordCompleter(kinds)
+                return KindCompleter(kinds, props)
             elif arg.value_hint == "property":
-                return FuzzyWordCompleter(props)
+                return PropertyCompleter(kinds, props)
+            elif arg.value_hint == "property_list_plain":
+                return PropertyListCompleter(kinds, props, with_as=False)
+            elif arg.value_hint == "property_list_with_as":
+                return PropertyListCompleter(kinds, props, with_as=True)
             elif arg.value_hint == "command":
-                return FuzzyWordCompleter([cmd.name for cmd in cmds])
+                meta = {cmd.name: "command" for cmd in cmds}
+                return FuzzyWordCompleter([cmd.name for cmd in cmds], meta_dict=meta)
             elif arg.value_hint == "search":
                 return SearchCompleter(kinds, props)
             elif arg.value_hint == "aggregate":
@@ -655,7 +811,7 @@ class SafeCompleter(Completer):
             result = self.completer.get_completions(document, complete_event)
             return [] if result is None else result
         except Exception as ex:
-            log.warning(f"Error in completer: {ex}")
+            log.warning(f"Error in completer: {ex}", exc_info=ex)
             return []
 
 
@@ -1368,7 +1524,7 @@ known_commands = [
     CommandInfo(
         "ancestors",
         options=[
-            ArgInfo("--with-origin"),
+            ArgInfo("--with-origin", help_text="include the origin in the output"),
             ArgInfo(None, True, ["default", "delete"], help_text="edge type"),
         ],
         source=False,
@@ -1391,7 +1547,6 @@ known_commands = [
                     help_text="List of ip addresses: 1.2.3.4 2.3.4.5",
                 ),
             ],
-            "delete": [],
         },
     ),
     CommandInfo(
@@ -1410,7 +1565,7 @@ known_commands = [
             ],
             "edit": [
                 ArgInfo(
-                    None, expects_value=True, help_text="<config_id> <key>=<value>"
+                    None, expects_value=True, help_text="<config_id> e.g. resoto.core"
                 ),
             ],
             "update": [
@@ -1422,7 +1577,7 @@ known_commands = [
             ],
             "delete": [
                 ArgInfo(
-                    None, expects_value=True, help_text="<config_id> <key>=<value>"
+                    None, expects_value=True, help_text="<config_id> e.g. resoto.core"
                 ),
             ],
         },
@@ -1443,13 +1598,20 @@ known_commands = [
     ),
     CommandInfo(
         "count",
-        [ArgInfo(None, expects_value=True, help_text="optional property to count")],
+        [
+            ArgInfo(
+                None,
+                expects_value=True,
+                help_text="optional property to count",
+                value_hint="property",
+            )
+        ],
         source=False,
     ),
     CommandInfo(
         "descendants",
         options=[
-            ArgInfo("--with-origin"),
+            ArgInfo("--with-origin", help_text="include the origin in the output"),
             ArgInfo(None, True, ["default", "delete"], help_text="edge type"),
         ],
         source=False,
@@ -1464,21 +1626,17 @@ known_commands = [
     CommandInfo(
         "format",
         [
-            ArgInfo(
-                None,
-                possible_values=[
-                    "--json",
-                    "--ndjson",
-                    "--text",
-                    "--cytoscape",
-                    "--graphml",
-                    "--dot",
-                ],
-            ),
+            ArgInfo("--json", help_text="output format", option_group="output"),
+            ArgInfo("--ndjson", help_text="output format", option_group="output"),
+            ArgInfo("--text", help_text="output format", option_group="output"),
+            ArgInfo("--cytoscape", help_text="output format", option_group="output"),
+            ArgInfo("--graphml", help_text="output format", option_group="output"),
+            ArgInfo("--dot", help_text="output format", option_group="output"),
             ArgInfo(
                 None,
                 expects_value=True,
                 help_text="format definition with {} placeholders.",
+                option_group="output",
             ),
         ],
         source=False,
@@ -1503,11 +1661,13 @@ known_commands = [
     CommandInfo(
         "http",
         [
-            ArgInfo("--compress"),
-            ArgInfo("--timeout", expects_value=True),
-            ArgInfo("--no-ssl-verify"),
-            ArgInfo("--no-body"),
-            ArgInfo("--nr-of-retries", expects_value=True),
+            ArgInfo("--compress", help_text="compress the output"),
+            ArgInfo("--timeout", expects_value=True, help_text="timeout in seconds"),
+            ArgInfo("--no-ssl-verify", help_text="disable SSL verification"),
+            ArgInfo("--no-body", help_text="do not send a body"),
+            ArgInfo(
+                "--nr-of-retries", expects_value=True, help_text="number of retries"
+            ),
             ArgInfo(
                 None,
                 expects_value=True,
@@ -1520,10 +1680,14 @@ known_commands = [
         "jobs",
         sub_commands={
             "add": [
-                ArgInfo("--id", expects_value=True),
-                ArgInfo("--schedule", expects_value=True),
-                ArgInfo("--wait-for-event", expects_value=True),
-                ArgInfo("--timeout", expects_value=True),
+                ArgInfo("--id", expects_value=True, help_text="job id"),
+                ArgInfo("--schedule", expects_value=True, help_text="cron schedule"),
+                ArgInfo(
+                    "--wait-for-event", expects_value=True, help_text="trigger by event"
+                ),
+                ArgInfo(
+                    "--timeout", expects_value=True, help_text="timeout in seconds"
+                ),
                 ArgInfo(None, help_text="<command> to run"),
             ],
             "show": [
@@ -1531,9 +1695,15 @@ known_commands = [
             ],
             "list": [],
             "update": [
-                ArgInfo(None, help_text="<job-id>"),
-                ArgInfo("--schedule", expects_value=True),
-                ArgInfo("--wait-for-event", expects_value=True),
+                ArgInfo("--id", expects_value=True, help_text="job id"),
+                ArgInfo("--schedule", expects_value=True, help_text="cron schedule"),
+                ArgInfo(
+                    "--wait-for-event", expects_value=True, help_text="trigger by event"
+                ),
+                ArgInfo(
+                    "--timeout", expects_value=True, help_text="timeout in seconds"
+                ),
+                ArgInfo(None, help_text="<command> to run"),
             ],
             "delete": [
                 ArgInfo(None, help_text="<job-id>"),
@@ -1559,7 +1729,7 @@ known_commands = [
     CommandInfo(
         "jq",
         [
-            ArgInfo("--no-rewrite"),
+            ArgInfo("--no-rewrite", help_text="pass as is to jq without rewriting"),
             ArgInfo(None, expects_value=True, help_text="the text to echo"),
         ],
         source=False,
@@ -1567,7 +1737,12 @@ known_commands = [
     CommandInfo(
         "kinds",
         [
-            ArgInfo("-p", expects_value=True, value_hint="property"),
+            ArgInfo(
+                "-p",
+                expects_value=True,
+                value_hint="property",
+                help_text="lookup property name",
+            ),
             ArgInfo(
                 None,
                 expects_value=True,
@@ -1579,11 +1754,13 @@ known_commands = [
     CommandInfo(
         "list",
         [
-            ArgInfo(None, possible_values=["--csv", "--markdown"], help_text="format"),
+            ArgInfo("--csv", help_text="format", option_group="format"),
+            ArgInfo("--markdown", help_text="format", option_group="format"),
             ArgInfo(
                 None,
                 expects_value=True,
                 help_text="the list of properties, comma separated",
+                value_hint="property_list_with_as",
             ),
         ],
         source=False,
@@ -1591,13 +1768,19 @@ known_commands = [
     CommandInfo(
         "predecessors",
         options=[
-            ArgInfo("--with-origin"),
+            ArgInfo("--with-origin", help_text="include origin in the output"),
             ArgInfo(None, True, ["default", "delete"], help_text="edge type"),
         ],
         source=False,
     ),
     CommandInfo("protect", source=False),
-    CommandInfo("search", options=[ArgInfo(None, True, value_hint="search")]),
+    CommandInfo(
+        "search",
+        options=[
+            ArgInfo("--with-edges", help_text="include edges in the output"),
+            ArgInfo(None, True, value_hint="search"),
+        ],
+    ),
     CommandInfo(
         "set_desired",
         options=[
@@ -1621,7 +1804,7 @@ known_commands = [
     CommandInfo(
         "successors",
         options=[
-            ArgInfo("--with-origin"),
+            ArgInfo("--with-origin", help_text="include the origin in the output"),
             ArgInfo(None, True, ["default", "delete"], help_text="edge type"),
         ],
         source=False,
@@ -1654,7 +1837,9 @@ known_commands = [
         "tag",
         sub_commands={
             "update": [
-                ArgInfo("--nowait"),
+                ArgInfo(
+                    "--nowait", help_text="do not wait for the operation to complete"
+                ),
                 ArgInfo(
                     None,
                     expects_value=True,
@@ -1662,7 +1847,9 @@ known_commands = [
                 ),
             ],
             "delete": [
-                ArgInfo("--nowait"),
+                ArgInfo(
+                    "--nowait", help_text="do not wait for the operation to complete"
+                ),
                 ArgInfo(
                     None,
                     expects_value=True,
@@ -1712,7 +1899,7 @@ known_commands = [
             ],
         },
     ),
-    CommandInfo("unique", source=False),
+    CommandInfo("uniq", source=False),
     CommandInfo(
         "workflows",
         sub_commands={
