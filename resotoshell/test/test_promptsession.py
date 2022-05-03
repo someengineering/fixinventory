@@ -157,6 +157,12 @@ def test_complete_option() -> None:
         "default",
         "delete",
     }
+    # show all options
+    assert complete("ancestors --with-origin ", n) == {"default", "delete"}
+    # once a direct value is supplied, no other option is shown
+    assert complete("ancestors default ", n) == set()
+    # once a direct value is supplied, no other option is shown
+    assert complete("ancestors --with-origin default ", n) == set()
     assert complete("ancestors -", n) == {"--with-origin"}
     assert complete("configs ", n) == {
         "list",
