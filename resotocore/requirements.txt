@@ -5,7 +5,7 @@ aiohttp[speedups]==3.8.1
 jsons==1.6.1
 parsy==1.4.0
 plantuml==0.3.0
-python-arango==7.3.3
+python-arango==7.3.1 # 7.3.3 destroys TLS handling
 python-dateutil==2.8.2
 toolz==0.11.2
 transitions==0.8.11
