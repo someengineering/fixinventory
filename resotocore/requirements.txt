@@ -17,8 +17,6 @@ PyYAML==6.0
 resotolib==2.2.0a0
 jq==1.2.2
 posthog==1.4.7
-# available in python 3.8
-backports.cached-property==1.0.1
 ustache==0.1.5
 aiofiles==0.8.0
 cryptography==37.0.2

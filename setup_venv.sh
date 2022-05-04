@@ -164,7 +164,7 @@ install_dev() {
         pip install -q -r "https://raw.githubusercontent.com/someengineering/resoto/main/resotocore/requirements-test.txt"
     fi
     # Install required types (first run is required to detect required packages)
-    (cd resotocore; mypy --python-version 3.8 resotocore tests > /dev/null 2>&1 || true; mypy --python-version 3.8 --install-types --non-interactive resotocore tests > /dev/null 2>&1 || true)
+    (cd resotocore; mypy --python-version 3.9 resotocore tests > /dev/null 2>&1 || true; mypy --python-version 3.9 --install-types --non-interactive resotocore tests > /dev/null 2>&1 || true)
 
 }
 
