@@ -30,6 +30,7 @@ setup(
     install_requires=required,
     license="Apache Software License 2.0",
     long_description=readme,
+    long_description_content_type="text/markdown",
     include_package_data=True,
     packages=find_packages(include=["resotocore", "resotocore.*"]),
     setup_requires=setup_requirements,

@@ -1,4 +1,4 @@
-# resoto-plugin-cleanup_volumes
+# resoto-plugin-cleanup-volumes
 Volume cleanup plugin for Resoto
 
 This plugin cleans up storage volumes.

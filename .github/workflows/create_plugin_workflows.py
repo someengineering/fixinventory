@@ -44,7 +44,11 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install --upgrade --editable resotolib/
-          pip install tox wheel flake8
+          pip install tox wheel flake8 build
+"""
+
+aws_plugin = """
+          pip install --upgrade --editable plugins/aws/
 """
 
 step_run_test = """
@@ -57,6 +61,23 @@ step_run_test = """
         with:
           name: plugin-@name@-code-coverage-report
           path: @directory@/htmlcov/
+
+      - name: Build a binary wheel and a source tarball
+        working-directory: @directory@
+        run: >-
+          python -m
+          build
+          --sdist
+          --wheel
+          --outdir dist/
+
+      - name: Publish distribution to PyPI
+        if: github.ref_type == 'tag'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_@PKGNAME@ }}
+          packages_dir: @directory@/dist/
 """
 
 
@@ -66,9 +87,11 @@ plugins_path = os.path.abspath(
 for plugin in os.listdir(plugins_path):
     if os.path.isdir(os.path.join(plugins_path, plugin)):
         with open(f"check_pr_plugin_{plugin}.yml", "w") as yml:
-            yml.write(install.replace("@name@", plugin))
+            yml.write(install.replace("@name@", plugin).replace("@PKGNAME@", f"resoto_plugin_{plugin}".upper()))
+            if "_aws_" in plugin:
+                yml.write(aws_plugin)
             yml.write(
                 step_run_test.replace("@directory@", f"./plugins/{plugin}").replace(
                     "@name@", plugin
-                )
+                ).replace("@PKGNAME@", f"resoto_plugin_{plugin}".upper())
             )
