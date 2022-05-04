@@ -56,7 +56,7 @@ class Shell:
                 }
             )
 
-        def handle_response(maybe: Optional[Response], upload: bool = False):
+        def handle_response(maybe: Optional[Response], upload: bool = False) -> None:
             if maybe is not None:
                 with maybe as response:
                     if response.status_code == 200:

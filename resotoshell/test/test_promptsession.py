@@ -11,14 +11,115 @@ from prompt_toolkit.document import Document
 
 from resotoshell.promptsession import (
     CommandLineCompleter,
-    known_commands,
     SearchCompleter,
-    known_kinds,
-    known_props,
     DocumentExtension,
     AggregateCompleter,
     PropertyListCompleter,
+    CommandInfo,
+    ArgInfo,
 )
+
+known_kinds = ["account", "instance", "instance_type", "network"]
+known_props = ["age", "instance_memory", "instance_status"]
+known_commands = [
+    CommandInfo(
+        "aggregate", source=False, args=[ArgInfo(None, True, value_hint="aggregate")]
+    ),
+    CommandInfo(
+        "ancestors",
+        args=[
+            ArgInfo("--with-origin", help_text="include the origin in the output"),
+            ArgInfo(None, True, ["default", "delete"], help_text="edge type"),
+        ],
+        source=False,
+    ),
+    CommandInfo(
+        "certificate",
+        args={
+            "create": [
+                ArgInfo(
+                    "--common-name", True, help_text="Common name like: example.com"
+                ),
+                ArgInfo(
+                    "--dns-names",
+                    True,
+                    help_text="List of other dns names: example.org example.io",
+                ),
+                ArgInfo(
+                    "--ip-addresses",
+                    True,
+                    help_text="List of ip addresses: 1.2.3.4 2.3.4.5",
+                ),
+            ],
+        },
+    ),
+    CommandInfo(
+        "configs",
+        args={
+            "list": [],
+            "set": [
+                ArgInfo(
+                    None, expects_value=True, help_text="<config_id> <key>=<value>"
+                ),
+            ],
+            "show": [
+                ArgInfo(
+                    None, expects_value=True, help_text="<config_id> e.g. resoto.core"
+                )
+            ],
+            "edit": [
+                ArgInfo(
+                    None, expects_value=True, help_text="<config_id> e.g. resoto.core"
+                ),
+            ],
+            "update": [
+                ArgInfo(
+                    None,
+                    expects_value=True,
+                    help_text="<config_id> /path/to/config.yaml",
+                ),
+            ],
+            "delete": [
+                ArgInfo(
+                    None, expects_value=True, help_text="<config_id> e.g. resoto.core"
+                ),
+            ],
+        },
+    ),
+    CommandInfo(
+        "count",
+        [
+            ArgInfo(
+                None,
+                expects_value=True,
+                help_text="optional property to count",
+                value_hint="property",
+            )
+        ],
+        source=False,
+    ),
+    CommandInfo(
+        "list",
+        [
+            ArgInfo("--csv", help_text="format", option_group="format"),
+            ArgInfo("--markdown", help_text="format", option_group="format"),
+            ArgInfo(
+                None,
+                expects_value=True,
+                help_text="the list of properties, comma separated",
+                value_hint="property_list_with_as",
+            ),
+        ],
+        source=False,
+    ),
+    CommandInfo(
+        "search",
+        args=[
+            ArgInfo("--with-edges", help_text="include edges in the output"),
+            ArgInfo(None, True, value_hint="search"),
+        ],
+    ),
+]
 
 
 def complete(part: str, completer: Completer, return_meta: bool = False) -> Set[str]:
@@ -38,14 +139,13 @@ def test_complete_command() -> None:
     n = CommandLineCompleter.create_completer(known_commands, [], [])
 
     # source commands
-    assert len(complete("", n)) == 13
-    assert complete("c", n) == {"certificate", "configs", "echo", "search"}
+    assert len(complete("", n)) == 3
+    assert complete("c", n) == {"certificate", "configs", "search"}
     assert complete("ce", n) == {"certificate"}
 
     # flow commands
-    assert len(complete("search all | ", n)) == 22
-    assert {"chunk", "clean", "count"} <= complete("search all | c", n)
-    assert complete("search all | cl", n) == {"clean"}
+    assert len(complete("search all | ", n)) == 4
+    assert complete("search all | c", n) == {"ancestors", "count"}
 
 
 def test_property() -> None:
@@ -75,7 +175,7 @@ def test_property_list() -> None:
     assert complete("/anc", n) == {"/ancestors."}
     assert complete("foo, /anc", n) == {"/ancestors."}
     assert complete("foo as bla, /anc", n) == {"/ancestors."}
-    assert {"followers"} <= complete("foo as bla, foll", n)
+    assert complete("foo as bla, ins", n) == {"instance_memory", "instance_status"}
     assert len(complete("foo as ", n)) == 1  # suggest name
 
 

@@ -312,6 +312,9 @@ class ArgInfo:
     value_hint: Optional[str] = None
     # Help text of the argument option.
     help_text: Optional[str] = None
+    # If multiple options share the same group, only one of them can be selected.
+    # Use groups if you have multiple options, where only one is allowed to be selected.s
+    option_group: Optional[str] = None
 
 
 # mypy does not support recursive type aliases: define 3 levels as maximum here

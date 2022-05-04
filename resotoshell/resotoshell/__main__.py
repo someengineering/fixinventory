@@ -57,7 +57,7 @@ def repl(
 ) -> None:
     shutdown_event = Event()
     shell = Shell(client, True, detect_color_system(args))
-    session = PromptSession()
+    session = PromptSession(client)
     log.debug("Starting interactive session")
 
     def shutdown(event: ResotoEvent) -> None:
