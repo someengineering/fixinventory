@@ -45,6 +45,7 @@ def main() -> None:
         handle_from_stdin(client)
     else:
         repl(client, args)
+    client.shutdown()
     resotolib.proc.kill_children(resotolib.proc.SIGTERM, ensure_death=True)
     log.debug("Shutdown complete")
     sys.exit(0)
