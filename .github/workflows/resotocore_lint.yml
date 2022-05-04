@@ -12,7 +12,7 @@ on:
       - '.github/**'
 
 jobs:
-  lint-and-test:
+  resotocore-lint:
     name: "Lint (resotocore)"
     runs-on: ubuntu-latest
     defaults:
