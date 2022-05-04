@@ -9,12 +9,8 @@ from aiohttp import ClientSession
 from arango.database import StandardDatabase
 
 from resotocore.__main__ import run
-from resotocore.config import ConfigValidation
-from resotocore.db import EstimatedQueryCostRating
-from resotocore.db.model import GraphUpdate
-from resotocore.model.model import predefined_kinds, Kind, StringKind, ComplexKind, Property
+from resotocore.model.model import predefined_kinds, Kind
 from resotocore.model.typed_model import to_js
-from resotocore.task.model import Subscription
 from resotocore.util import rnd_str, AccessJson
 
 # noinspection PyUnresolvedReferences
@@ -115,20 +111,11 @@ async def test_model_api(core_client: ApiClient) -> None:
     setattr(string_kind, "min_length", 3)
     setattr(string_kind, "max_length", 3)
 
-    complex_kind: rc.Kind = rc.Kind(
-        fqn="test_cpl",
-        runtime_kind=None,
-        properties=[{"description": None, "kind": "only_three", "name": "ot", "required": False, "synthetic": None}],
-        bases=None,
-    )
+    prop = rc.Property(name="ot", kind="only_three", required=False)
+    complex_kind: rc.Kind = rc.Kind(fqn="test_cpl", runtime_kind=None, properties=[prop], bases=None)
     setattr(complex_kind, "allow_unknown_props", False)
 
-    update = core_client.update_model(
-        [
-            string_kind,
-            complex_kind,
-        ]
-    )
+    update = core_client.update_model([string_kind, complex_kind])
     none_kind = rc.Kind(fqn="none", runtime_kind=None, properties=None, bases=None)
     assert (update.kinds.get("only_three") or none_kind).runtime_kind == "string"
 
@@ -221,12 +208,12 @@ async def test_graph_api(core_client: ApiClient) -> None:
     assert cost.rating == rc.EstimatedQueryCostRating.simple
 
     # search list
-    result_list = list(core_client.search_list('id("3") -[0:]->', g))
+    result_list = list(core_client.search_list('id("3") -[0:]->', graph=g))
     assert len(result_list) == 11  # one parent node and 10 child nodes
     assert result_list[0].get("id") == "3"  # first node is the parent node
 
     # search graph
-    result_graph = list(core_client.search_graph('id("3") -[0:]->', g))
+    result_graph = list(core_client.search_graph('id("3") -[0:]->', graph=g))
     assert len(result_graph) == 21  # 11 nodes + 10 edges
     assert result_list[0].get("id") == "3"  # first node is the parent node
 

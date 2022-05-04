@@ -2558,7 +2558,7 @@ class SendWorkerTaskCommand(CLICommand, ABC):
             if wait_for_result:
                 return await result_future
             else:
-                result_task: Task[JsonElement] = asyncio.create_task(result_future)
+                result_task: Task[JsonElement] = asyncio.create_task(result_future)  # type: ignore
                 await self.dependencies.forked_tasks.put((result_task, f"WorkerTask {task_name}:{task.id}"))
                 return f"Spawned WorkerTask {task_name}:{task.id}"
 

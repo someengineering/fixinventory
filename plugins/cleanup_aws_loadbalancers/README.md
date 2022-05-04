@@ -1,4 +1,4 @@
-# resoto-plugin-cleanup_aws_loadbalancers
+# resoto-plugin-cleanup-aws-loadbalancers
 AWS Loadbalancers Cleanup Plugin for Resoto
 
 This plugin cleans up AWS ALB/ELB load balancers with no instances attached to them.

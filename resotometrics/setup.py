@@ -18,6 +18,7 @@ setup(
     license=resotometrics.__license__,
     packages=find_packages(),
     long_description=readme,
+    long_description_content_type="text/markdown",
     entry_points={
         "console_scripts": [
             "resotometrics = resotometrics.__main__:main",
