@@ -238,6 +238,8 @@ class CLI:
         help_cmd = HelpCommand(dependencies, parts, alias_names, alias_templates)
         cmds = {p.name: p for p in parts + [help_cmd]}
         alias_cmds = {alias: cmds[name] for alias, name in alias_names.items() if name in cmds and alias not in cmds}
+        self.direct_commands = cmds
+        self.alias_commands = alias_cmds
         self.commands: Dict[str, CLICommand] = {**cmds, **alias_cmds}
         self.cli_env = env
         self.dependencies = dependencies
