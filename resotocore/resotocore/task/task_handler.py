@@ -76,8 +76,8 @@ class TaskHandlerService(TaskHandler):
         # Step1: define all workflows and jobs in code: later it will be persisted and read from database
         self.task_descriptions: Sequence[TaskDescription] = [*self.known_workflows(config), *self.known_jobs()]
         self.tasks: Dict[str, RunningTask] = {}
-        self.message_bus_watcher: Optional[Task] = None  # type: ignore # pypy
-        self.initial_start_workflow_task: Optional[Task] = None  # type: ignore # pypy
+        self.message_bus_watcher: Optional[Task[None]] = None
+        self.initial_start_workflow_task: Optional[Task[None]] = None
         self.timeout_watcher = Periodic("task_timeout_watcher", self.check_overdue_tasks, timedelta(seconds=10))
         self.registered_event_trigger: List[Tuple[EventTrigger, TaskDescription]] = []
         self.registered_event_trigger_by_message_type: Dict[str, List[Tuple[EventTrigger, TaskDescription]]] = {}
@@ -437,7 +437,7 @@ class TaskHandlerService(TaskHandler):
                     # if this was the last result the task was waiting for, delete the task
                     await self.store_running_task_state(wi, origin_message)
 
-        async def execute_in_order(task: Task) -> None:  # type: ignore # pypy
+        async def execute_in_order(task: Task[Any]) -> None:
             # make sure the last execution is finished, before the new execution starts
             await task
             await execute_commands()

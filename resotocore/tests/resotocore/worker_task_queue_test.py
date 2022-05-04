@@ -7,7 +7,7 @@ from pytest import fixture, mark
 
 from resotocore.model.graph_access import Section
 from resotocore.model.resolve_in_graph import GraphResolver, NodePath
-from resotocore.util import group_by, identity, value_in_path
+from resotocore.util import group_by, value_in_path
 from resotocore.worker_task_queue import WorkerTaskDescription, WorkerTaskQueue, WorkerTask, WorkerTaskName
 
 
@@ -104,7 +104,7 @@ async def test_handle_work_successfully(
     assert results == [{"result": "done!"} for _ in range(0, 20)]
 
     # make sure the work is split equally between all workers: 20 work items by 4 workers: 5 work items each
-    by_worker = group_by(identity, (item for sublist in performed_by.values() for item in sublist))
+    by_worker = group_by(lambda x: x, (item for sublist in performed_by.values() for item in sublist))
     assert len(by_worker) == 4
     for work_done in by_worker.values():
         assert len(work_done) == 5
@@ -112,8 +112,7 @@ async def test_handle_work_successfully(
 
 @mark.asyncio
 async def test_handle_failure(
-    task_queue: WorkerTaskQueue,
-    worker: Tuple[WorkerTaskDescription, WorkerTaskDescription, WorkerTaskDescription],
+    task_queue: WorkerTaskQueue, worker: Tuple[WorkerTaskDescription, WorkerTaskDescription, WorkerTaskDescription]
 ) -> None:
     _, fail_task, _ = worker
 
@@ -155,7 +154,7 @@ async def test_handle_outdated(
         assert isinstance(r, Exception)
 
     # 20 work items by 4 workers: 5 work items each + retried 3 times (15) => 20
-    by_worker = group_by(identity, (item for sublist in performed_by.values() for item in sublist))
+    by_worker = group_by(lambda x: x, (item for sublist in performed_by.values() for item in sublist))
     assert len(by_worker) == 4
     for work_done in by_worker.values():
         assert len(work_done) == 20

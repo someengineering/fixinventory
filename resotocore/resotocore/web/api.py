@@ -138,7 +138,7 @@ class Api:
         self.app.on_response_prepare.append(on_response_prepare)
         self.session: Optional[ClientSession] = None
         self.in_shutdown = False
-        self.websocket_handler: Dict[str, Tuple[Future, web.WebSocketResponse]] = {}  # type: ignore # pypy
+        self.websocket_handler: Dict[str, Tuple[Future[Any], web.WebSocketResponse]] = {}
         path_part = config.api.web_path.strip().strip("/").strip()
         web_path = "" if path_part == "" else f"/{path_part}"
         self.__add_routes(web_path)

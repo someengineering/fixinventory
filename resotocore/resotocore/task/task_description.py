@@ -599,7 +599,7 @@ class RunningTask:
         self.subscribers_by_event = subscribers_by_event
         self.task_started_at = utc()
         self.step_started_at = self.task_started_at
-        self.update_task: Optional[Task] = None  # type: ignore # pypy
+        self.update_task: Optional[Task[None]] = None
         self.descriptor_alive = True
 
         steps = [StepState.from_step(step, self) for step in descriptor.steps]

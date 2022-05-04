@@ -17,7 +17,7 @@ def wait_and_start(
     task_handler: TaskHandler,
     message_bus: MessageBus,
     wait_after_connect: timedelta = timedelta(seconds=10),
-) -> Task:  # type: ignore # pypy
+) -> Task[None]:
     """
     This function is used to trigger workflows automatically, when the related subscribing actor connects.
     Such behaviour can be useful during startup, when we do not want to wait until the next scheduled time triggers.

@@ -13,7 +13,7 @@ from resotocore.model.graph_access import EdgeType, Direction
 from resotocore.model.resolve_in_graph import GraphResolver
 from resotocore.model.typed_model import to_js_str
 from resotocore.types import Json, JsonElement
-from resotocore.util import combine_optional, first
+from resotocore.util import combine_optional
 
 PathRoot = "/"
 
@@ -244,10 +244,18 @@ class Term(abc.ABC):
         elif isinstance(self, NotTerm):
             return self.term.find_term(fn)
         elif isinstance(self, MergeTerm):
+
+            def walk_merge_queries(mt: MergeTerm) -> Optional[Term]:
+                for mq in mt.merge:
+                    for p in mq.query.parts:
+                        if (term := p.term.find_term(fn)) is not None:
+                            return term
+                return None
+
             return (
                 self.pre_filter.find_term(fn)
                 or (self.post_filter.find_term(fn) if self.post_filter else None)
-                or first(lambda mq: first(lambda p: p.term.find_term(fn), mq.query.parts), self.merge)
+                or walk_merge_queries(self)
             )
         else:
             return None
@@ -704,8 +712,7 @@ class Aggregate:
 
     def change_variable(self, fn: Callable[[str], str]) -> Aggregate:
         return Aggregate(
-            [a.change_variable(fn) for a in self.group_by],
-            [a.change_variable(fn) for a in self.group_func],
+            [a.change_variable(fn) for a in self.group_by], [a.change_variable(fn) for a in self.group_func]
         )
 
     def property_paths(self) -> Set[str]:

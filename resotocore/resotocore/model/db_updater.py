@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from datetime import timedelta
 from multiprocessing import Process, Queue
 from queue import Empty
-from typing import Optional, Union, AsyncGenerator, Any, Generator, List, cast
+from typing import Optional, Union, AsyncGenerator, Any, Generator, List
 
 from aiostream import stream
 from aiostream.core import Stream
@@ -190,7 +190,7 @@ async def merge_graph_process(
             await run_async(write.put, pa, True, stale)
         return alive
 
-    def read_results() -> Task:  # type: ignore # pypy
+    def read_results() -> Task[GraphUpdate]:
         async def read_forever() -> GraphUpdate:
             nonlocal deadline
             nonlocal dead_adjusted
@@ -213,7 +213,7 @@ async def merge_graph_process(
 
         return asyncio.create_task(read_forever())
 
-    task: Optional[Task] = None  # type: ignore # pypy
+    task: Optional[Task[GraphUpdate]] = None
     result: Optional[GraphUpdate] = None
     try:
         reset_process_start_method()  # other libraries might have tampered the value in the mean time
@@ -226,7 +226,7 @@ async def merge_graph_process(
                     # in case the child is dead, we should stop
                     break
         await send_to_child(MergeGraph(db.name, change_id, maybe_batch is not None))
-        result = cast(GraphUpdate, await task)  # wait for final result
+        result = await task  # wait for final result
         return result
     finally:
         if task is not None and not task.done():
