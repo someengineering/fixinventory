@@ -54,6 +54,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install --upgrade --editable ../resotolib
           pip install -r requirements-test.txt
+          pip install -r requirements-dev.txt
           pip install -r requirements.txt
       - name: Run Tests
         env:
