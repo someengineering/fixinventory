@@ -1,4 +1,4 @@
-# resoto-plugin-cleanup_untagged
+# resoto-plugin-cleanup-untagged
 Cleanup Untagged Plugin for Resoto
 
 This plugin deletes cloud resources that are missing mandatory tags after a certain amount of time has passed since their creation.

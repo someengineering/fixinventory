@@ -1,4 +1,4 @@
-# resoto-plugin-cleanup_expired
+# resoto-plugin-cleanup-expired
 Resoto plugin for cleanup of expired resources
 
 This plugin looks for resources with the tags `expiration` or `resoto:expires` and flags them for cleanup if they are expired.
