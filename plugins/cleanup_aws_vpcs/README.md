@@ -1,4 +1,4 @@
-# resoto-plugin-cleanup_aws_vpcs
+# resoto-plugin-cleanup-aws-vpcs
 AWS VPC Cleanup Plugin for Resoto
 
 This plugin marks all VPC dependencies for cleanup. The VPC must have been previously marked for cleanup by another cleanup plugin.
