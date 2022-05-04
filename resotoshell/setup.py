@@ -16,6 +16,7 @@ setup(
     license=resotoshell.__license__,
     packages=find_packages(),
     long_description=readme,
+    long_description_content_type="text/markdown",
     entry_points={
         "console_scripts": [
             "resh = resotoshell.__main__:main",

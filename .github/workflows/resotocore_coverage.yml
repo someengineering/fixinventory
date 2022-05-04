@@ -14,7 +14,7 @@ on:
       - '.github/**'
 
 jobs:
-  lint-and-test:
+  resotocore-coverage:
     name: "Coverage (resotocore)"
     runs-on: ubuntu-latest
     defaults:

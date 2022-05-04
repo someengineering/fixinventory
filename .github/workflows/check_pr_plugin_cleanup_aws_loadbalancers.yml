@@ -38,7 +38,9 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install --upgrade --editable resotolib/
-          pip install tox wheel flake8
+          pip install tox wheel flake8 build
+
+          pip install --upgrade --editable plugins/aws/
 
       - name: Run tests
         working-directory: ./plugins/cleanup_aws_loadbalancers
@@ -49,3 +51,20 @@ jobs:
         with:
           name: plugin-cleanup_aws_loadbalancers-code-coverage-report
           path: ./plugins/cleanup_aws_loadbalancers/htmlcov/
+
+      - name: Build a binary wheel and a source tarball
+        working-directory: ./plugins/cleanup_aws_loadbalancers
+        run: >-
+          python -m
+          build
+          --sdist
+          --wheel
+          --outdir dist/
+
+      - name: Publish distribution to PyPI
+        if: github.ref_type == 'tag'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_RESOTO_PLUGIN_CLEANUP_AWS_LOADBALANCERS }}
+          packages_dir: ./plugins/cleanup_aws_loadbalancers/dist/
