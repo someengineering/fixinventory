@@ -92,7 +92,7 @@ def uuid_str(from_object: Optional[Any] = None) -> str:
         return str(uuid.uuid1())
 
 
-def group_by(f: Callable[[AnyT], AnyR], iterable: Iterable) -> Dict[AnyR, List[AnyT]]:  # type: ignore # pypy
+def group_by(f: Callable[[AnyT], AnyR], iterable: Iterable[AnyT]) -> Dict[AnyR, List[AnyT]]:
     """
     Group iterable by key provided by given key function.
     :param f: the function to be applied on every element that yields the key.
@@ -106,11 +106,11 @@ def group_by(f: Callable[[AnyT], AnyR], iterable: Iterable) -> Dict[AnyR, List[A
     return v
 
 
-def non_empty(el: Iterable) -> bool:  # type: ignore # pypy
+def non_empty(el: Iterable[Any]) -> bool:
     return bool(el)
 
 
-def empty(el: Iterable) -> bool:  # type: ignore # pypy
+def empty(el: Iterable[Any]) -> bool:
     return not non_empty(el)
 
 
@@ -136,7 +136,7 @@ def interleave(elements: List[AnyT]) -> List[Tuple[AnyT, AnyT]]:
 
 # we expect a callable that returns a truthy value.
 # Due to limitations of lambda expressions we use Any here.
-def exist(f: Callable[[Any], Any], iterable: Iterable) -> bool:  # type: ignore # pypy
+def exist(f: Callable[[Any], Any], iterable: Iterable[Any]) -> bool:
     """
     Items are passed to the callable as long as it returns False.
     Return True once the callable finds one True, otherwise return False.
@@ -152,7 +152,7 @@ def exist(f: Callable[[Any], Any], iterable: Iterable) -> bool:  # type: ignore 
 
 # we expect a callable that returns a truthy value.
 # Due to limitations of lambda expressions we use Any here.
-def first(f: Callable[[Any], Any], iterable: Iterable) -> Optional[Any]:  # type: ignore # pypy
+def first(f: Callable[[Any], Any], iterable: Iterable[AnyT]) -> Optional[AnyT]:
     for a in iterable:
         if f(a):
             return a
@@ -262,7 +262,7 @@ async def force_gen(gen: AsyncIterator[AnyT]) -> AsyncIterator[AnyT]:
         return gen
 
 
-def set_future_result(future: Future, result: Any) -> None:  # type: ignore # pypy
+def set_future_result(future: Future[Any], result: Any) -> None:
     if not future.done():
         if isinstance(result, Exception):
             future.set_exception(result)
@@ -302,7 +302,7 @@ class Periodic:
         self.func = func
         self.frequency = frequency
         self.first_run = first_run if first_run else frequency
-        self._task: Optional[Task] = None  # type: ignore # pypy
+        self._task: Optional[Task[None]] = None
 
     @property
     def started(self) -> bool:

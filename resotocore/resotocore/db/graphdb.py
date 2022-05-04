@@ -17,12 +17,7 @@ from networkx import MultiDiGraph
 from resotocore.analytics import CoreEvent, AnalyticsEventSender
 from resotocore.db import arango_query, EstimatedSearchCost
 from resotocore.db.arango_query import fulltext_delimiter
-from resotocore.db.async_arangodb import (
-    AsyncArangoDB,
-    AsyncArangoTransactionDB,
-    AsyncArangoDBBase,
-    AsyncCursorContext,
-)
+from resotocore.db.async_arangodb import AsyncArangoDB, AsyncArangoTransactionDB, AsyncArangoDBBase, AsyncCursorContext
 from resotocore.db.model import GraphUpdate, QueryModel
 from resotocore.error import InvalidBatchUpdate, ConflictingChangeInProgress, NoSuchChangeError, OptimisticLockingFailed
 from resotocore.model.adjust_node import AdjustNode
@@ -209,12 +204,7 @@ class ArangoGraphDB(GraphDB):
         # call adjuster on resulting node
         ctime = value_in_path_get(node, NodePath.reported_ctime, utc_str())
         adjusted = self.adjust_node(model, GraphAccess.dump_direct(node_id, updated, kind, recompute=True), ctime)
-        update = {
-            "_key": node["_key"],
-            "hash": adjusted["hash"],
-            "kinds": adjusted["kinds"],
-            "flat": adjusted["flat"],
-        }
+        update = {"_key": node["_key"], "hash": adjusted["hash"], "kinds": adjusted["kinds"], "flat": adjusted["flat"]}
         # copy relevant sections into update node
         for sec in [section] if section else Section.content_ordered:
             if sec in adjusted:
@@ -473,9 +463,7 @@ class ArangoGraphDB(GraphDB):
                 ]
                 + edge_inserts
                 + edge_deletes
-                + [
-                    f'remove {{_key: "{change_key}"}} in {self.in_progress}',
-                ],
+                + [f'remove {{_key: "{change_key}"}} in {self.in_progress}'],
             )
         )
         await self.db.execute_transaction(
@@ -526,7 +514,7 @@ class ArangoGraphDB(GraphDB):
         return self.node_adjuster.adjust(json)
 
     def prepare_nodes(
-        self, access: GraphAccess, node_cursor: Iterable, model: Model  # type: ignore # pypy
+        self, access: GraphAccess, node_cursor: Iterable[Json], model: Model
     ) -> Tuple[GraphUpdate, List[Json], List[Json], List[Json]]:
         log.info(f"Prepare nodes for subgraph {access.root()}")
         info = GraphUpdate()
@@ -538,11 +526,7 @@ class ArangoGraphDB(GraphDB):
 
         def insert_node(node: Json) -> None:
             elem = self.adjust_node(model, node, access.at_json)
-            js_doc: Json = {
-                "_key": elem["id"],
-                "created": access.at_json,
-                "updated": access.at_json,
-            }
+            js_doc: Json = {"_key": elem["id"], "created": access.at_json, "updated": access.at_json}
             for prop in optional_properties:
                 value = node.get(prop, None)
                 if value:
@@ -577,7 +561,7 @@ class ArangoGraphDB(GraphDB):
         return info, resource_inserts, resource_updates, resource_deletes
 
     def prepare_edges(
-        self, access: GraphAccess, edge_cursor: Iterable, edge_type: str  # type: ignore # pypy
+        self, access: GraphAccess, edge_cursor: Iterable[Json], edge_type: str
     ) -> Tuple[GraphUpdate, List[Json], List[Json]]:
         log.info(f"Prepare edges of type {edge_type} for subgraph {access.root()}")
         info = GraphUpdate()

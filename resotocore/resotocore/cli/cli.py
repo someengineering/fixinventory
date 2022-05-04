@@ -121,7 +121,7 @@ class HelpCommand(CLICommand):
         self.parts = {p.name: p for p in parts + [self] if not isinstance(p, InternalPart)}
         self.alias_names = {a: n for a, n in alias_names.items() if n in self.parts and a not in self.parts}
         self.reverse_alias_names: Dict[str, List[str]] = {
-            k: [e[0] for e in v] for k, v in group_by(lambda a: a[1], self.alias_names.items()).items()  # type: ignore
+            k: [e[0] for e in v] for k, v in group_by(lambda a: a[1], self.alias_names.items()).items()
         }
         self.alias_templates = {a.name: a for a in sorted(alias_templates, key=attrgetter("name"))}
 
@@ -227,11 +227,7 @@ class CLI:
     """
 
     def __init__(
-        self,
-        dependencies: CLIDependencies,
-        parts: List[CLICommand],
-        env: Dict[str, Any],
-        alias_names: Dict[str, str],
+        self, dependencies: CLIDependencies, parts: List[CLICommand], env: Dict[str, Any], alias_names: Dict[str, str]
     ):
         dependencies.extend(cli=self)
         alias_templates = [AliasTemplate.from_config(cmd) for cmd in dependencies.config.custom_commands.commands]
