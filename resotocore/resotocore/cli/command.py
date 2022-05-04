@@ -2881,21 +2881,9 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
     def args_info(self) -> ArgsInfo:
         return {
             "backup": {
-                "create": [
-                    ArgInfo(
-                        None,
-                        expects_value=True,
-                        help_text="The name of the backup file.",
-                        value_hint="file",
-                    )
-                ],
+                "create": [ArgInfo(None, expects_value=True, help_text="name of the backup file.", value_hint="file")],
                 "restore": [
-                    ArgInfo(
-                        None,
-                        expects_value=True,
-                        help_text="The name of the local backup file to upload.",
-                        value_hint="file",
-                    )
+                    ArgInfo(None, expects_value=True, help_text="local backup file to upload.", value_hint="file")
                 ],
             },
             "info": [],
