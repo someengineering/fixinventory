@@ -2,11 +2,9 @@ import resotometrics
 from setuptools import setup, find_packages
 
 
-requirements = []
 with open("requirements.txt") as f:
     requirements = f.read().splitlines()
 
-readme = ""
 with open("README.md") as f:
     readme = f.read()
 
@@ -38,7 +36,7 @@ setup(
         # License information
         "License :: OSI Approved :: Apache Software License",
         # Supported python versions
-        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
         # Supported OS's
         "Operating System :: POSIX :: Linux",
         "Operating System :: Unix",

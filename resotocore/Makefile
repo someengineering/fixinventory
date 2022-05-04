@@ -59,7 +59,7 @@ lint: ## static code analysis
 	black --line-length 120 --check resotocore tests
 	flake8 resotocore
 	pylint resotocore
-	mypy --python-version 3.8 --strict resotocore tests
+	mypy --python-version 3.9 --strict resotocore tests
 
 test: ## run tests quickly with the default Python
 	pytest
@@ -75,7 +75,7 @@ coverage: ## check code coverage quickly with the default Python
 	$(BROWSER) htmlcov/index.html
 
 venv-pypy:
-	pypy3.8 -m venv venv-pypy
+	pypy3.9 -m venv venv-pypy
 	. ./venv-pypy/bin/activate && python3 -m pip install --upgrade pip
 	. ./venv-pypy/bin/activate && pip install --upgrade --editable ../resotolib
 	. ./venv-pypy/bin/activate && pip install -r requirements-test.txt
