@@ -714,7 +714,7 @@ def sanitize(graph: Graph, root: GraphRoot = None) -> None:
         root = graph.root
 
     if root is None:
-        log.error("No graph root found - unable to sanitize")
+        log.debug("No graph root found - unable to sanitize")
         return
 
     for node in graph.successors(root):
@@ -725,7 +725,7 @@ def sanitize(graph: Graph, root: GraphRoot = None) -> None:
             log.debug(f"Found Graph Root {node.id}")
             graph_roots.append(node)
         else:
-            log.error(f"Found unknown node {node.id} of type {node.kind}")
+            log.debug(f"Found unknown node {node.id} of type {node.kind}")
 
     if len(graph_roots) > 0:
         for graph_root in graph_roots:
