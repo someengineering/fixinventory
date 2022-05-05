@@ -40,7 +40,10 @@ def main() -> None:
         custom_ca_cert_path=args.ca_cert,
         verify=args.verify_certs,
     )
-    client.start()
+    try:
+        client.start()
+    except Exception:
+        sys.exit(1)
     if args.stdin or not sys.stdin.isatty():
         handle_from_stdin(client)
     else:
