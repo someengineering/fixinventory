@@ -97,13 +97,14 @@ def run_process(args: Namespace) -> None:
         with warnings.catch_warnings():  # ignore ssl errors during setup
             warnings.simplefilter("ignore", HTTPWarning)
             # wait here for an initial connection to the database before we continue. blocking!
-            created, system_data, sdb = DbAccess.connect(args, timedelta(seconds=60), verify=False)
+            created, system_data, sdb = DbAccess.connect(args, timedelta(seconds=120), verify=False)
             config = config_from_db(args, sdb)
             cert_handler = CertificateHandler.lookup(config, sdb, temp)
             verify: Union[bool, str] = False if args.graphdb_no_ssl_verify else str(cert_handler.ca_bundle)
             config = replace(config, run=RunConfig(temp, verify))
-        # connect again with the correct certificate settings
-        _, _, db_client = DbAccess.connect(args, timedelta(seconds=5), verify=verify)
+        # in case of tls: connect again with the correct certificate settings
+        use_tls = args.graphdb_server.startswith("https://")
+        db_client = DbAccess.connect(args, timedelta(seconds=30), verify=verify)[2] if use_tls else sdb
         with_config(created, system_data, db_client, cert_handler, config)
 
 
