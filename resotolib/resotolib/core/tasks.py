@@ -117,8 +117,8 @@ class CoreTasks(threading.Thread):
             return
         self.queue.put(message)
 
-    def on_error(self, ws, error):
-        log.debug(f"{self.identifier} event bus error: {error}")
+    def on_error(self, ws, e):
+        log.debug(f"{self.identifier} event bus error: {e!r}")
 
     def on_close(self, ws, close_status_code, close_msg):
         log.debug(f"{self.identifier} disconnected from resotocore task queue")

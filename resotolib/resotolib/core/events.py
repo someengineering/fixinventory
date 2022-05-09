@@ -86,8 +86,8 @@ class CoreEvents(threading.Thread):
             except Exception:
                 log.exception(f"Something went wrong while processing {message}")
 
-    def on_error(self, ws, error):
-        log.debug(f"Event bus error: {error}")
+    def on_error(self, ws, e):
+        log.debug(f"Event bus error: {e!r}")
 
     def on_close(self, ws, close_status_code, close_msg):
         log.debug("Disconnected from resotocore event bus")
