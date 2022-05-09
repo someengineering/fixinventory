@@ -24,6 +24,8 @@ class ExampleEnum(Enum):
 @dataclass
 class DataClassBase:
     kind: ClassVar[str] = "base"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {"default": [], "delete": []}
+
     tags: Dict[str, str] = field(metadata={"description": "Description of tags"})
     _private_prop: dict
     __dunder_prop: list
@@ -42,6 +44,10 @@ class DataClassProp:
 @dataclass
 class DataClassExample(DataClassBase):
     kind: ClassVar[str] = "example"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["example"],
+        "delete": ["other"],
+    }
     list_of_string: List[str]
     optional_list_of_props: Optional[List[DataClassProp]]
     props: List[DataClassProp]
@@ -124,16 +130,19 @@ def test_dataclasses_to_resotocore_model() -> None:
         props = {p["name"]: p for p in r.get("properties", [])}
         if r["fqn"] == "base":
             assert len(r["properties"]) == 3
+            assert r["successor_kinds"] == {"default": [], "delete": []}
             assert props["tags"]["kind"] == "dictionary[string, string]"
             assert props["tags"]["description"] == "Description of tags"
             assert props["ctime"]["kind"] == "datetime"
             assert props["age"]["kind"] == "trafo.duration_to_datetime"
             assert props["age"]["synthetic"]["path"] == ["ctime"]
         elif r["fqn"] == "prop":
+            assert r["successor_kinds"] is None
             assert len(r["properties"]) == 2
             assert props["key"]["kind"] == "string"
             assert props["value"]["kind"] == "any"
         elif r["fqn"] == "example":
+            assert r["successor_kinds"] == {"default": ["example"], "delete": ["other"]}
             assert len(r["properties"]) == 10
             assert props["list_of_string"]["kind"] == "string[]"
             assert props["optional_list_of_props"]["kind"] == "prop[]"
