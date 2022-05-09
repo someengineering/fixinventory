@@ -1,11 +1,12 @@
 import time
 import copy
+import botocore.exceptions
 from datetime import date
 from enum import Enum, auto
 from resotolib.baseresources import *
 from resotolib.graph import Graph
 from resotolib.utils import make_valid_timestamp
-from .utils import aws_client, aws_resource
+from .utils import aws_client, aws_resource, tags_as_dict
 from typing import ClassVar, Any
 from dataclasses import dataclass
 from resotolib.logger import log
@@ -371,6 +372,46 @@ class AWSS3Bucket(AWSResource, BaseBucket):
         bucket.objects.delete()
         bucket.delete()
         return True
+
+    def set_tags(self, tags: Dict[str, str]) -> bool:
+        client = aws_client(self, "s3")
+        tag_set = [{"Key": k, "Value": v} for k, v in tags.items()]
+        client.put_bucket_tagging(Bucket=self.name, Tagging={"TagSet": tag_set})
+        # BaseResource.tags is a setter that will make a copy of the provided
+        # dict ref and turn it into a ResourceTagsDict.
+        self.tags = tags
+        return True
+
+    def update_tag(self, key, value) -> bool:
+        client = aws_client(self, "s3")
+        # Because S3 tags can not be updated or deleted individually we
+        # fetch the current set of tags to keep the race between reading
+        # and writing short. Ideally we'd have a revision like in GCP or
+        # the ability to modify individual tags instead of all at once.
+        tags = {}
+        try:
+            response = client.get_bucket_tagging(Bucket=self.name)
+            tags = tags_as_dict(response["TagSet"])
+        except botocore.exceptions.ClientError as e:
+            if e.response["Error"]["Code"] != "NoSuchTagSet":
+                raise
+        tags[key] = value
+        return self.set_tags(tags)
+
+    def delete_tag(self, key) -> bool:
+        client = aws_client(self, "s3")
+        tags = {}
+        try:
+            response = client.get_bucket_tagging(Bucket=self.name)
+            tags = tags_as_dict(response["TagSet"])
+        except botocore.exceptions.ClientError as e:
+            if e.response["Error"]["Code"] != "NoSuchTagSet":
+                raise
+        if key in tags:
+            del tags[key]
+        else:
+            raise KeyError(key)
+        return self.set_tags(tags)
 
 
 @dataclass(eq=False)

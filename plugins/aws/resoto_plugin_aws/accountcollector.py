@@ -12,7 +12,7 @@ from resotolib.config import Config
 from resotolib.graph import Graph
 from resotolib.baseresources import EdgeType
 from resotolib.utils import make_valid_timestamp, chunks
-from .utils import aws_session, paginate, arn_partition
+from .utils import aws_session, paginate, arn_partition, tags_as_dict
 from .resources import *
 from prometheus_client import Summary, Counter
 from pkg_resources import resource_filename
@@ -600,7 +600,7 @@ class AWSAccountCollector:
             try:
                 v = AWSEC2Volume(
                     volume.id,
-                    self.tags_as_dict(volume.tags),
+                    tags_as_dict(volume.tags),
                     _account=self.account,
                     _region=region,
                     ctime=volume.create_time,
@@ -1115,7 +1115,7 @@ class AWSAccountCollector:
         for role in roles:
             r = AWSIAMRole(
                 role["RoleId"],
-                self.tags_as_dict(role.get("Tags", [])),
+                tags_as_dict(role.get("Tags", [])),
                 _account=self.account,
                 _region=region,
                 ctime=role.get("CreateDate"),
@@ -1198,7 +1198,7 @@ class AWSAccountCollector:
         for user in users:
             u = AWSIAMUser(
                 user["UserId"],
-                self.tags_as_dict(user.get("Tags", [])),
+                tags_as_dict(user.get("Tags", [])),
                 _account=self.account,
                 _region=region,
                 ctime=user.get("CreateDate"),
@@ -1337,7 +1337,7 @@ class AWSAccountCollector:
             try:
                 i = AWSEC2Instance(
                     instance.id,
-                    self.tags_as_dict(instance.tags),
+                    tags_as_dict(instance.tags),
                     _account=self.account,
                     _region=region,
                     ctime=instance.launch_time,
@@ -1398,7 +1398,7 @@ class AWSAccountCollector:
         client = session.client("autoscaling", region_name=region.id)
         for autoscaling_group in paginate(client.describe_auto_scaling_groups):
             name = autoscaling_group["AutoScalingGroupName"]
-            tags = self.tags_as_dict(autoscaling_group.get("Tags", []))
+            tags = tags_as_dict(autoscaling_group.get("Tags", []))
             log.debug(f"Found Autoscaling Group {name}")
             asg = AWSAutoScalingGroup(
                 name,
@@ -1426,7 +1426,7 @@ class AWSAccountCollector:
         for network_acl in paginate(client.describe_network_acls):
             acl_id = network_acl["NetworkAclId"]
             vpc_id = network_acl.get("VpcId")
-            tags = self.tags_as_dict(network_acl.get("Tags", []))
+            tags = tags_as_dict(network_acl.get("Tags", []))
             acl_name = tags.get("Name", acl_id)
             acl = AWSEC2NetworkAcl(
                 acl_id, tags, name=acl_name, _account=self.account, _region=region
@@ -1458,7 +1458,7 @@ class AWSAccountCollector:
             ngw_id = nat_gw["NatGatewayId"]
             vpc_id = nat_gw.get("VpcId")
             subnet_id = nat_gw.get("SubnetId")
-            tags = self.tags_as_dict(nat_gw.get("Tags", []))
+            tags = tags_as_dict(nat_gw.get("Tags", []))
             ngw_name = tags.get("Name", ngw_id)
             ngw = AWSEC2NATGateway(
                 ngw_id,
@@ -1497,7 +1497,7 @@ class AWSAccountCollector:
         client = session.client("ec2", region_name=region.id)
         for snapshot in paginate(client.describe_snapshots, OwnerIds=["self"]):
             snap_id = snapshot["SnapshotId"]
-            tags = self.tags_as_dict(snapshot.get("Tags", []))
+            tags = tags_as_dict(snapshot.get("Tags", []))
             snap_name = tags.get("Name", snap_id)
             snap = AWSEC2Snapshot(
                 snap_id,
@@ -1531,7 +1531,7 @@ class AWSAccountCollector:
         client = session.client("ec2", region_name=region.id)
         for peering_connection in paginate(client.describe_vpc_peering_connections):
             pc_id = peering_connection["VpcPeeringConnectionId"]
-            tags = self.tags_as_dict(peering_connection.get("Tags", []))
+            tags = tags_as_dict(peering_connection.get("Tags", []))
             pc_name = tags.get("Name", pc_id)
             pc = AWSVPCPeeringConnection(
                 pc_id, tags, name=pc_name, _account=self.account, _region=region
@@ -1571,7 +1571,7 @@ class AWSAccountCollector:
         client = session.client("ec2", region_name=region.id)
         for endpoint in paginate(client.describe_vpc_endpoints):
             ep_id = endpoint["VpcEndpointId"]
-            tags = self.tags_as_dict(endpoint.get("Tags", []))
+            tags = tags_as_dict(endpoint.get("Tags", []))
             ep_name = tags.get("Name", ep_id)
             ep = AWSVPCEndpoint(
                 ep_id,
@@ -1623,7 +1623,7 @@ class AWSAccountCollector:
         for keypair in response.get("KeyPairs", []):
             keypair_name = keypair["KeyName"]
             keypair_id = keypair["KeyPairId"]
-            tags = self.tags_as_dict(keypair.get("Tags", []))
+            tags = tags_as_dict(keypair.get("Tags", []))
             log.debug(f"Found AWS EC2 Key Pair {keypair_name}")
             kp = AWSEC2KeyPair(
                 keypair_id,
@@ -1706,12 +1706,17 @@ class AWSAccountCollector:
         graph.add_resource(region, bq)
         session = aws_session(self.account.id, self.account.role)
         s3 = session.resource("s3", region_name=region.id)
-
         for bucket in s3.buckets.all():
             try:
+                tags = {}
+                try:
+                    tags = tags_as_dict(s3.BucketTagging(bucket.name).tag_set)
+                except botocore.exceptions.ClientError as e:
+                    if e.response["Error"]["Code"] != "NoSuchTagSet":
+                        raise
                 b = AWSS3Bucket(
                     bucket.name,
-                    {},
+                    tags=tags,
                     arn=f"arn:{arn_partition(region)}:s3:::{bucket.name}",
                     _account=self.account,
                     _region=region,
@@ -1740,7 +1745,7 @@ class AWSAccountCollector:
         for target_group in target_groups:
             arn = target_group["TargetGroupArn"]
             tags = client.describe_tags(ResourceArns=[arn])
-            tags = self.tags_as_dict(next(iter(tags["TagDescriptions"]))["Tags"])
+            tags = tags_as_dict(next(iter(tags["TagDescriptions"]))["Tags"])
             tg = AWSALBTargetGroup(
                 target_group["TargetGroupName"],
                 tags,
@@ -1802,7 +1807,7 @@ class AWSAccountCollector:
                 log.debug(f"Found ALB {alb['LoadBalancerName']} ({alb['DNSName']})")
                 arn = alb["LoadBalancerArn"]
                 tags = client.describe_tags(ResourceArns=[arn])
-                tags = self.tags_as_dict(next(iter(tags["TagDescriptions"]))["Tags"])
+                tags = tags_as_dict(next(iter(tags["TagDescriptions"]))["Tags"])
                 a = AWSALB(
                     alb["LoadBalancerName"],
                     tags,
@@ -1882,7 +1887,7 @@ class AWSAccountCollector:
             try:
                 log.debug(f"Found ELB {elb['LoadBalancerName']} ({elb['DNSName']})")
                 tags = client.describe_tags(LoadBalancerNames=[elb["LoadBalancerName"]])
-                tags = self.tags_as_dict(next(iter(tags["TagDescriptions"]))["Tags"])
+                tags = tags_as_dict(next(iter(tags["TagDescriptions"]))["Tags"])
                 e = AWSELB(
                     elb["DNSName"],
                     tags,
@@ -1951,7 +1956,7 @@ class AWSAccountCollector:
         ec2 = session.resource("ec2", region_name=region.id)
         for vpc in ec2.vpcs.all():
             try:
-                vpc_tags = self.tags_as_dict(vpc.tags)
+                vpc_tags = tags_as_dict(vpc.tags)
                 vpc_name = vpc_tags.get("Name", vpc.id)
                 v = AWSVPC(
                     vpc.id,
@@ -1979,7 +1984,7 @@ class AWSAccountCollector:
         ec2 = session.resource("ec2", region_name=region.id)
         for subnet in ec2.subnets.all():
             try:
-                tags = self.tags_as_dict(subnet.tags)
+                tags = tags_as_dict(subnet.tags)
                 subnet_name = tags.get("Name", subnet.id)
                 s = AWSEC2Subnet(
                     subnet.id,
@@ -2013,7 +2018,7 @@ class AWSAccountCollector:
         ec2 = session.resource("ec2", region_name=region.id)
         for igw in ec2.internet_gateways.all():
             try:
-                tags = self.tags_as_dict(igw.tags)
+                tags = tags_as_dict(igw.tags)
                 igw_name = tags.get("Name", igw.id)
                 i = AWSEC2InternetGateway(
                     igw.id, tags, name=igw_name, _account=self.account, _region=region
@@ -2045,7 +2050,7 @@ class AWSAccountCollector:
             try:
                 s = AWSEC2SecurityGroup(
                     sg.id,
-                    self.tags_as_dict(sg.tags),
+                    tags_as_dict(sg.tags),
                     name=sg.group_name,
                     _account=self.account,
                     _region=region,
@@ -2070,7 +2075,7 @@ class AWSAccountCollector:
         ec2 = session.resource("ec2", region_name=region.id)
         for rt in ec2.route_tables.all():
             try:
-                tags = self.tags_as_dict(rt.tags)
+                tags = tags_as_dict(rt.tags)
                 rt_name = tags.get("Name", rt.id)
                 r = AWSEC2RouteTable(
                     rt.id, tags, name=rt_name, _account=self.account, _region=region
@@ -2097,7 +2102,7 @@ class AWSAccountCollector:
             try:
                 n = AWSEC2NetworkInterface(
                     ni.id,
-                    self.tags_as_dict(ni.tag_set),
+                    tags_as_dict(ni.tag_set),
                     _account=self.account,
                     _region=region,
                 )
@@ -2176,7 +2181,7 @@ class AWSAccountCollector:
         for stack in stacks:
             s = AWSCloudFormationStack(
                 stack["StackId"],
-                self.tags_as_dict(stack["Tags"]),
+                tags_as_dict(stack["Tags"]),
                 _account=self.account,
                 _region=region,
                 ctime=stack.get("CreationTime"),
@@ -2215,7 +2220,7 @@ class AWSAccountCollector:
             stack_set = stack_set.get("StackSet", {})
             s = AWSCloudFormationStackSet(
                 stack_set["StackSetId"],
-                self.tags_as_dict(stack_set.get("Tags", [])),
+                tags_as_dict(stack_set.get("Tags", [])),
                 name=stack_set.get("StackSetName"),
                 _account=self.account,
                 _region=region,
@@ -2319,7 +2324,7 @@ class AWSAccountCollector:
             public_ip = address.get("PublicIp")
             private_ip_address = address.get("PrivateIpAddress")
             ip_address = public_ip if public_ip is not None else private_ip_address
-            tags = self.tags_as_dict(address.get("Tags", []))
+            tags = tags_as_dict(address.get("Tags", []))
             name = tags.get("Name", allocation_id)
             ip = AWSEC2ElasticIP(
                 allocation_id, tags, name=name, _account=self.account, _region=region
@@ -2411,7 +2416,7 @@ class AWSAccountCollector:
             tag_response = tag_client.list_tags_for_resource(
                 ResourceARN=cloudwatch_alarm.get("AlarmArn")
             )
-            tags = self.tags_as_dict(tag_response.get("Tags", []))
+            tags = tags_as_dict(tag_response.get("Tags", []))
             log.debug(f"Found Cloudwatch Alarm {name}")
             cwa = AWSCloudwatchAlarm(
                 name,
@@ -2695,10 +2700,6 @@ class AWSAccountCollector:
                 )
             )
             return node
-
-    @staticmethod
-    def tags_as_dict(tags: List) -> Dict:
-        return {tag["Key"]: tag["Value"] for tag in tags or []}
 
     @staticmethod
     def parameters_as_dict(parameters: List) -> Dict:

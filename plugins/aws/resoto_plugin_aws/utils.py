@@ -1,7 +1,7 @@
 import boto3
 import boto3.session
 import uuid
-from typing import Iterable
+from typing import Iterable, List, Dict
 from resotolib.config import Config
 from resotolib.baseresources import BaseRegion, BaseResource
 from resotolib.graph import Graph
@@ -91,3 +91,7 @@ def arn_partition(region: BaseRegion):
     elif region.id.startswith("us-gov-"):
         arn_partition = "aws-us-gov"
     return arn_partition
+
+
+def tags_as_dict(tags: List) -> Dict:
+    return {tag["Key"]: tag["Value"] for tag in tags or []}
