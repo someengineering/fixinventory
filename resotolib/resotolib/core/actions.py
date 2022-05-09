@@ -38,12 +38,12 @@ class CoreActions(threading.Thread):
         self.name = self.identifier
         add_event_listener(EventType.SHUTDOWN, self.shutdown)
         while not self.shutdown_event.is_set():
-            log.info("Connecting to resotocore message bus")
+            log.debug("Connecting to resotocore message bus")
             try:
                 self.connect()
             except Exception as e:
-                log.error(e)
-            time.sleep(10)
+                log.debug(e)
+            time.sleep(1)
 
     def connect(self) -> None:
         for event, data in self.actions.items():
@@ -139,7 +139,7 @@ class CoreActions(threading.Thread):
                 log.exception(f"Something went wrong while processing {message}")
 
     def on_error(self, ws, error):
-        log.error(f"{self.identifier} message bus error: {error}")
+        log.debug(f"{self.identifier} message bus error: {error}")
 
     def on_close(self, ws, close_status_code, close_msg):
         log.debug(f"{self.identifier} disconnected from resotocore message bus")

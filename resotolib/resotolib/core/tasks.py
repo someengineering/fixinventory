@@ -50,12 +50,12 @@ class CoreTasks(threading.Thread):
             ).start()
 
         while not self.shutdown_event.is_set():
-            log.info("Connecting to resotocore task queue")
+            log.debug("Connecting to resotocore task queue")
             try:
                 self.connect()
             except Exception as e:
-                log.error(e)
-            time.sleep(10)
+                log.debug(e)
+            time.sleep(1)
 
     def worker(self) -> None:
         while not self.shutdown_event.is_set():
@@ -118,7 +118,7 @@ class CoreTasks(threading.Thread):
         self.queue.put(message)
 
     def on_error(self, ws, error):
-        log.error(f"{self.identifier} event bus error: {error}")
+        log.debug(f"{self.identifier} event bus error: {error}")
 
     def on_close(self, ws, close_status_code, close_msg):
         log.debug(f"{self.identifier} disconnected from resotocore task queue")
