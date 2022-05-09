@@ -8,7 +8,8 @@ from typing import Dict, List, Tuple, Union
 from arango import ArangoServerError, ArangoClient
 from arango.database import StandardDatabase
 from dateutil.parser import parse
-from requests.exceptions import ConnectionError as ArangoConnectionError
+from requests.exceptions import RequestException
+
 
 from resotocore.analytics import AnalyticsEventSender
 from resotocore.core_config import CoreConfig
@@ -216,8 +217,8 @@ class DbAccess(ABC):
                     log.warning(f"Problem accessing the graph database: {ex}. Trying again in 5 seconds.")
                 # Retry directly after the first attempt
                 sleep(sleep_time)
-            except ArangoConnectionError:
-                log.warning("Can not access database. Trying again in 5 seconds.")
+            except (RequestException, ConnectionError) as ex:
+                log.warning(f"Can not access database. Trying again in 5 seconds: {ex}")
                 sleep(sleep_time)
 
     @staticmethod
