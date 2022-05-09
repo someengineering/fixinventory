@@ -746,7 +746,7 @@ class ComplexKind(Kind):
         self.bases = bases
         self.properties = properties
         self.allow_unknown_props = allow_unknown_props
-        self.successor_kinds = successor_kinds
+        self.successor_kinds = successor_kinds or {}
         self.__prop_by_name = {prop.name: prop for prop in properties}
         self.__resolved = False
         self.__resolved_kinds: Dict[str, Tuple[Property, Kind]] = {}
@@ -766,6 +766,12 @@ class ComplexKind(Kind):
 
             # property path -> kind
             self.__property_by_path = ComplexKind.resolve_properties(self)
+
+            # make sure all successor kinds can be resolved
+            for names in self.successor_kinds.values():
+                for name in names or []:
+                    if name not in model:
+                        raise AttributeError(f"{name} is not a known kind")
 
             # resolve the hierarchy
             if not self.is_root():
@@ -787,6 +793,7 @@ class ComplexKind(Kind):
                 and self.properties == other.properties
                 and self.bases == other.bases
                 and self.allow_unknown_props == other.allow_unknown_props
+                and self.successor_kinds == other.successor_kinds
             )
         else:
             return False
