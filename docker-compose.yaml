@@ -5,15 +5,24 @@ services:
     image: arangodb:3.8.6
     platform: linux/amd64
     environment:
-      - ARANGO_ROOT_PASSWORD=
+      - ARANGO_ROOT_PASSWORD=changeme
     ports:
-      - 8529:8529
+      - "8529:8529"
     volumes:
       - resoto_graphdb_data:/var/lib/arangodb3
+    ulimits:
+      nofile:
+        soft: 32768
+        hard: 65535
+    deploy:
+      resources:
+        reservations:
+          cpus: "1"
+          memory: "512M"
   tsdb:
     image: prom/prometheus:v2.33.4
     ports:
-      - 9090:9090
+      - "9090:9090"
     volumes:
       - ./dockerV2/prometheus.yml:/etc/prometheus/prometheus.yml
       - resoto_tsdb_data:/prometheus
@@ -27,12 +36,17 @@ services:
     depends_on:
       - graphdb
     ports:
-      - 8900:8900
+      - "8900:8900"
     environment:
       - PSK
-      - RESOTOCORE_GRAPHDB_SERVER=http://graphdb:8529
-      - RESOTOCORE_GRAPHDB_PASSWORD=changeme
     command:
+      - --graphdb-server
+      - http://graphdb:8529
+      - --graphdb-root-password
+      # Same as ARANGO_ROOT_PASSWORD
+      - changeme
+      - --graphdb-password
+      - changeme
       - --override
       - resotocore.api.web_hosts=resotocore
       - resotocore.api.host_certificate.common_name=resotocore
@@ -42,6 +56,11 @@ services:
       - resotocore.runtime.start_collect_on_subscriber_connect=true
     restart: always
     stop_grace_period: 2m
+    deploy:
+      resources:
+        reservations:
+          cpus: "1"
+          memory: "512M"
   resotoworker:
     image: somecr.io/someengineering/resotoworker:edge
     depends_on:
@@ -53,6 +72,11 @@ services:
       - RESOTOWORKER_RESOTOCORE_URI=https://resotocore:8900
     restart: always
     stop_grace_period: 2m
+    deploy:
+      resources:
+        reservations:
+          cpus: "1"
+          memory: "512M"
   resotometrics:
     image: somecr.io/someengineering/resotometrics:edge
     depends_on:
@@ -66,7 +90,7 @@ services:
     stop_grace_period: 2m
   resotoshell:
     # This container is not started by default. To start a shell use this command:
-    # $> docker-compose run resotoshell
+    # $> docker compose run --rm resotoshell
     image: somecr.io/someengineering/resotoshell:edge
     profiles:
       - do-not-start
