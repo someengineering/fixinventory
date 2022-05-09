@@ -54,7 +54,7 @@ class CoreTasks(threading.Thread):
             try:
                 self.connect()
             except Exception as e:
-                log.debug(e)
+                log.error(e)
             time.sleep(1)
 
     def worker(self) -> None:

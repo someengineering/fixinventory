@@ -40,7 +40,7 @@ class CoreEvents(threading.Thread):
             try:
                 self.connect()
             except Exception as e:
-                log.debug(e)
+                log.error(e)
             time.sleep(1)
 
     def connect(self) -> None:
