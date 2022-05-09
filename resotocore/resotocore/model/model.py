@@ -252,7 +252,8 @@ class Kind(ABC):
             props = list(map(lambda p: from_js(p, Property), js.get("properties", [])))
             bases: Optional[List[str]] = js.get("bases")
             allow_unknown_props = js.get("allow_unknown_props", False)
-            return ComplexKind(js["fqn"], bases if bases else [], props, allow_unknown_props)
+            successor_kinds = js.get("successor_kinds")
+            return ComplexKind(js["fqn"], bases if bases else [], props, allow_unknown_props, successor_kinds)
         else:
             raise JSONDecodeError("Given type can not be read.", json.dumps(js), 0)
 
@@ -732,11 +733,20 @@ class DictionaryKind(Kind):
 
 
 class ComplexKind(Kind):
-    def __init__(self, fqn: str, bases: List[str], properties: List[Property], allow_unknown_props: bool = False):
+    def __init__(
+        self,
+        fqn: str,
+        bases: List[str],
+        properties: List[Property],
+        allow_unknown_props: bool = False,
+        # EdgeType -> possible list of successor kinds
+        successor_kinds: Optional[Dict[str, List[str]]] = None,
+    ):
         super().__init__(fqn)
         self.bases = bases
         self.properties = properties
         self.allow_unknown_props = allow_unknown_props
+        self.successor_kinds = successor_kinds
         self.__prop_by_name = {prop.name: prop for prop in properties}
         self.__resolved = False
         self.__resolved_kinds: Dict[str, Tuple[Property, Kind]] = {}

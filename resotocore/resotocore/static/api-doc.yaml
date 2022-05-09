@@ -2385,14 +2385,29 @@ components:
       allOf:
         - $ref: '#/components/schemas/KindBase'
       properties:
-        base:
-          type: string
-          description: "In case of inheritance, this defines the base kind."
+        bases:
+          type: array
+          items:
+            type: string
+          description: "In case of inheritance, this defines the base kinds."
         properties:
           type: array
           description: "Defines all properties of this complex kind"
           items:
             $ref: '#/components/schemas/Property'
+        allow_unknown_props:
+          type: boolean
+          default: False
+          description: "In case properties are accepted, that are not listed in the model"
+        successor_kinds:
+          description: "Dictionary of successor kinds."
+          example: |
+            { "default": ["kind1", "kind2"], "delete": ["kind3"] }
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
     StringDictKind:
       type: object
       description: "A simple dictionary where all keys and values are strings"
@@ -2501,6 +2516,8 @@ components:
           description: Indicates, if the argument expects a value.
         possible_values:
           type: array
+          items:
+            type: string
           description: Possible values for this argument.
         can_occur_multiple_times:
           type: boolean
