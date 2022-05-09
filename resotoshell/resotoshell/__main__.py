@@ -40,9 +40,19 @@ def main() -> None:
         custom_ca_cert_path=args.ca_cert,
         verify=args.verify_certs,
     )
+
+    def check_system_info() -> None:
+        try:
+            list(client.cli_execute("system info"))
+        except Exception as e:
+            log.error(f"resotocore is not accessible: {e}")
+            raise e
+
     try:
         client.start()
+        check_system_info()
     except Exception:
+        client.shutdown()
         sys.exit(1)
     if args.stdin or not sys.stdin.isatty():
         handle_from_stdin(client)
