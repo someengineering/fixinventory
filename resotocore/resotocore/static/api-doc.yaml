@@ -75,6 +75,16 @@ paths:
       tags:
         - model
       parameters:
+        - name: output
+          description: The output format.
+          in: query
+          schema:
+            type: string
+            enum:
+              - svg
+              - png
+            default: svg
+          required: false
         - name: show
           description: comma separated list of resources to show. Entries can be regexps.
           in: query
@@ -93,14 +103,41 @@ paths:
           required: false
           explode: false
           example: aws_ec2_instance,gcp.*
-        - name: with_bases
+        - name: with_inheritance
+          description: Include inheritance relations in the model.
+          in: query
+          schema:
+            type: boolean
+            default: true
+        - name: with_base_classes
           description: Include all base classes of visible entries
           in: query
           schema:
             type: boolean
             default: true
-        - name: with_descendants
+        - name: with_subclasses
           description: Include all descendant classes of visible entries
+          in: query
+          schema:
+            type: boolean
+            default: false
+        - name: dependency
+          description: |
+            comma separated list of dependency relationships.
+          in: query
+          schema:
+            type: string
+          required: false
+          explode: false
+          example: default
+        - name: with_predecessors
+          description: Include all predecessors of selected entries
+          in: query
+          schema:
+            type: boolean
+            default: false
+        - name: with_successors
+          description: Include all successors of selected entries
           in: query
           schema:
             type: boolean

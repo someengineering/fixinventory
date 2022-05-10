@@ -12,7 +12,7 @@ from typing import Union, Any, Optional, Callable, Type, Sequence, Dict, List, S
 import yaml
 from dateutil.parser import parse
 from jsons import set_deserializer, set_serializer
-from networkx import DiGraph
+from networkx import MultiDiGraph
 from parsy import regex, string, Parser
 
 from resotocore.durations import duration_parser, DurationRe
@@ -1074,14 +1074,26 @@ class Model:
                 f'No kind definition found for {js["kind"]}' if "kind" in js else f"No attribute kind found in {js}"
             ) from ex
 
-    def graph(self) -> DiGraph:
-        graph = DiGraph()
+    def graph(self) -> MultiDiGraph:
+        graph = MultiDiGraph()
 
         def handle_complex(cx: ComplexKind) -> None:
             graph.add_node(cx.fqn, data=cx)
+            # inheritance
             if not cx.is_root():
                 for base in cx.bases:
-                    graph.add_edge(cx.fqn, base)
+                    graph.add_edge(cx.fqn, base, f"inheritance_{cx.fqn}_{base}", type="inheritance")
+
+            # dependency
+            for name, successors in cx.successor_kinds.items():
+                for successor in successors or []:
+                    graph.add_edge(
+                        cx.fqn,
+                        successor,
+                        f"successor_{cx.fqn}_{successor}_{name}",
+                        type="successor",
+                        edge_type=name,
+                    )
 
         for kind in self.kinds.values():
             if isinstance(kind, ComplexKind):
