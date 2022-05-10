@@ -128,7 +128,7 @@ class ModelHandlerDB(ModelHandler):
 
         def class_node(cpx: ComplexKind) -> str:
             props = "\n".join([f"**{p.name}**: {p.kind}" for p in cpx.properties]) if with_properties else ""
-            link = " [[#{cpx.fqn}]]" if link_classes else ""
+            link = f" [[#{cpx.fqn}]]" if link_classes else ""
             return f"class {cpx.fqn}{link} {{\n{props}\n}}"
 
         def descendants(cpx: ComplexKind) -> Set[str]:
