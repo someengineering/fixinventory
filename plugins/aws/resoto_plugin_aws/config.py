@@ -61,6 +61,12 @@ class AwsConfig:
     region_pool_size: int = field(
         default=20, metadata={"description": "Region thread pool size"}
     )
+    parallel_api_requests: int = field(
+        default=10,
+        metadata={
+            "description": "Maximum number of parallel API requests per account/region"
+        },
+    )
     collect: List[str] = field(
         default_factory=list,
         metadata={"description": "List of AWS services to collect (default: all)"},

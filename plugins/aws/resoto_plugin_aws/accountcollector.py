@@ -1706,27 +1706,29 @@ class AWSAccountCollector:
         graph.add_resource(region, bq)
         session = aws_session(self.account.id, self.account.role)
         s3 = session.resource("s3", region_name=region.id)
+        buckets: List[AWSS3Bucket] = []
         for bucket in s3.buckets.all():
             try:
-                tags = {}
-                try:
-                    tags = tags_as_dict(s3.BucketTagging(bucket.name).tag_set)
-                except botocore.exceptions.ClientError as e:
-                    if e.response["Error"]["Code"] != "NoSuchTagSet":
-                        raise
                 b = AWSS3Bucket(
                     bucket.name,
-                    tags=tags,
+                    tags={},
                     arn=f"arn:{arn_partition(region)}:s3:::{bucket.name}",
                     _account=self.account,
                     _region=region,
                     ctime=bucket.creation_date,
                 )
+                buckets.append(b)
                 log.debug(f"Found bucket {b.id}")
                 graph.add_resource(region, b)
                 graph.add_edge(bq, b)
             except botocore.exceptions.ClientError:
                 log.exception(f"Some boto3 call failed on resource {bucket} - skipping")
+
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=Config.aws.parallel_api_requests,
+            thread_name_prefix=f"aws_{self.account.id}_s3_bucket_tags",
+        ) as executor:
+            executor.map(lambda b: b.refresh_tags(), buckets)
 
     @metrics_collect_alb_target_groups.time()
     def collect_alb_target_groups(self, region: AWSRegion, graph: Graph) -> None:
