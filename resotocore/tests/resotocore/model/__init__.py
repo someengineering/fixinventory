@@ -23,6 +23,7 @@ class ModelHandlerStatic(ModelHandler):
         dependency_edges: Optional[Set[str]] = None,
         with_predecessors: bool = False,
         with_successors: bool = False,
+        with_properties: bool = True,
     ) -> bytes:
         raise NotImplemented
 

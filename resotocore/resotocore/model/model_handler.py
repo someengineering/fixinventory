@@ -32,6 +32,7 @@ class ModelHandler(ABC):
         dependency_edges: Optional[Set[str]] = None,
         with_predecessors: bool = False,
         with_successors: bool = False,
+        with_properties: bool = True,
     ) -> bytes:
         """
         Generate a PlantUML image of the model.
@@ -45,6 +46,7 @@ class ModelHandler(ABC):
         :param dependency_edges: draw dependency edges of given edge type between classes
         :param with_predecessors: include predecessors for all matching classes to show in the diagram
         :param with_successors: include successors for all matching classes to show in the diagram
+        :param with_properties: include properties for all matching classes to show in the diagram
         :return: the generated image
         """
 
@@ -99,6 +101,7 @@ class ModelHandlerDB(ModelHandler):
         dependency_edges: Optional[Set[str]] = None,
         with_predecessors: bool = False,
         with_successors: bool = False,
+        with_properties: bool = True,
     ) -> bytes:
         allowed_edge_types: Set[str] = dependency_edges or set()
         assert output in ("svg", "png"), "Only svg and png is supported!"
@@ -121,7 +124,7 @@ class ModelHandlerDB(ModelHandler):
                 return exist(lambda r: r.fullmatch(k.fqn), show)
 
         def class_node(cpx: ComplexKind) -> str:
-            props = "\n".join([f"**{p.name}**: {p.kind}" for p in cpx.properties])
+            props = "\n".join([f"**{p.name}**: {p.kind}" for p in cpx.properties]) if with_properties else ""
             return f"class {cpx.fqn} {{\n{props}\n}}"
 
         def descendants(cpx: ComplexKind) -> Set[str]:

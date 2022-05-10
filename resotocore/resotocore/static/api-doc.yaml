@@ -142,6 +142,12 @@ paths:
           schema:
             type: boolean
             default: false
+        - name: with_properties
+          description: Show properties of selected entries
+          in: query
+          schema:
+            type: boolean
+            default: true
       responses:
         "200":
           description: "Returns the model as uml diagram in svg format"

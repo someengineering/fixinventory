@@ -553,6 +553,7 @@ class Api:
         dependency = set(request.query["dependency"].split(",")) if "dependency" in request.query else None
         with_predecessors = request.query.get("with_predecessors", "false") != "false"
         with_successors = request.query.get("with_successors", "false") != "false"
+        with_properties = request.query.get("with_properties", "true") != "false"
         result = await self.model_handler.uml_image(
             output=output,
             show_packages=show,
@@ -563,6 +564,7 @@ class Api:
             dependency_edges=dependency,
             with_predecessors=with_predecessors,
             with_successors=with_successors,
+            with_properties=with_properties,
         )
         response = web.StreamResponse()
         mt = {"svg": "image/svg+xml", "png": "image/png"}
