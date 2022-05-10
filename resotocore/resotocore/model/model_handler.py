@@ -163,7 +163,7 @@ class ModelHandlerDB(ModelHandler):
         for fr, to, data in graph.edges(data=True):
             if fr in visible and to in visible:
                 if with_inheritance and data["type"] == "inheritance":
-                    edges += f"{fr} <|--- {to}\n"
+                    edges += f"{to} <|--- {fr}\n"
                 elif data["type"] == "successor" and data["edge_type"] in allowed_edge_types:
                     edges += f"{fr} -[#1A83AF]-> {to}\n"
                 else:
