@@ -1,7 +1,7 @@
 import time
 import copy
 from datetime import date
-from enum import Enum, auto
+from enum import auto
 from resotolib.baseresources import *
 from resotolib.graph import Graph
 from resotolib.utils import make_valid_timestamp
@@ -91,6 +91,7 @@ class AWSRegion(BaseRegion):
             "aws_ec2_elastic_ip",
             "aws_cloudwatch_alarm",
             "aws_cloudformation_stack",
+            "aws_cloudformation_stack_set",
             "aws_autoscaling_group",
             "aws_alb_target_group",
             "aws_alb_quota",

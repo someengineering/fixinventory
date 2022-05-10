@@ -141,13 +141,15 @@ class GCPZone(GCPResource, BaseZone):
     kind: ClassVar[str] = "gcp_zone"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
         "default": [
-            "gcp_network_endpoint_group",
-            "gcp_machine_type",
-            "gcp_instance_group",
-            "gcp_instance",
-            "gcp_disk_type",
-            "gcp_disk",
             "gcp_database",
+            "gcp_disk",
+            "gcp_disk_type",
+            "gcp_instance",
+            "gcp_instance_group",
+            "gcp_machine_type",
+            "gcp_network_endpoint_group",
+            "gcp_security_policy",
+            "gcp_gke_cluster",
         ],
         "delete": [],
     }
@@ -161,14 +163,16 @@ class GCPRegion(GCPResource, BaseRegion):
     kind: ClassVar[str] = "gcp_region"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
         "default": [
-            "gcp_zone",
-            "gcp_vpn_tunnel",
-            "gcp_target_vpn_gateway",
-            "gcp_target_pool",
-            "gcp_subnetwork",
-            "gcp_router",
-            "gcp_quota",
+            "gcp_database",
             "gcp_forwarding_rule",
+            "gcp_gke_cluster",
+            "gcp_quota",
+            "gcp_router",
+            "gcp_subnetwork",
+            "gcp_target_pool",
+            "gcp_target_vpn_gateway",
+            "gcp_vpn_tunnel",
+            "gcp_zone",
         ],
         "delete": [],
     }
@@ -260,8 +264,8 @@ GCPDisk.volume_status = property(
 class GCPInstance(GCPResource, BaseInstance):
     kind: ClassVar[str] = "gcp_instance"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["gcp_disk"],
-        "delete": ["gcp_target_pool", "gcp_instance_group"],
+        "default": ["gcp_disk", "gcp_ssl_certificate"],
+        "delete": ["gcp_target_pool", "gcp_instance_group", "gcp_target_instance"],
     }
     api_identifier: ClassVar[str] = "instance"
 
@@ -322,22 +326,26 @@ class GCPNetwork(GCPResource, BaseNetwork):
     kind: ClassVar[str] = "gcp_network"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
         "default": [
-            "gcp_target_vpn_gateway",
-            "gcp_subnetwork",
-            "gcp_router",
-            "gcp_route",
-            "gcp_network_endpoint_group",
-            "gcp_instance_group",
+            "gcp_global_network_endpoint_group",
             "gcp_instance",
+            "gcp_instance_group",
+            "gcp_network_endpoint_group",
+            "gcp_route",
+            "gcp_router",
+            "gcp_subnetwork",
+            "gcp_target_vpn_gateway",
+            "gcp_vpn_gateway",
         ],
         "delete": [
-            "gcp_target_vpn_gateway",
-            "gcp_subnetwork",
-            "gcp_router",
-            "gcp_route",
-            "gcp_network_endpoint_group",
-            "gcp_instance_group",
+            "gcp_global_network_endpoint_group",
             "gcp_instance",
+            "gcp_instance_group",
+            "gcp_network_endpoint_group",
+            "gcp_route",
+            "gcp_router",
+            "gcp_subnetwork",
+            "gcp_target_vpn_gateway",
+            "gcp_vpn_gateway",
         ],
     }
     api_identifier: ClassVar[str] = "network"
@@ -347,8 +355,18 @@ class GCPNetwork(GCPResource, BaseNetwork):
 class GCPSubnetwork(GCPResource, BaseSubnet):
     kind: ClassVar[str] = "gcp_subnetwork"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["gcp_network_endpoint_group", "gcp_instance_group", "gcp_instance"],
-        "delete": ["gcp_network_endpoint_group", "gcp_instance_group", "gcp_instance"],
+        "default": [
+            "gcp_global_network_endpoint_group",
+            "gcp_network_endpoint_group",
+            "gcp_instance_group",
+            "gcp_instance",
+        ],
+        "delete": [
+            "gcp_global_network_endpoint_group",
+            "gcp_network_endpoint_group",
+            "gcp_instance_group",
+            "gcp_instance",
+        ],
     }
     api_identifier: ClassVar[str] = "subnetwork"
 
@@ -424,6 +442,10 @@ class GCPSnapshot(GCPResource, BaseSnapshot):
 @dataclass(eq=False)
 class GCPSSLCertificate(GCPResource, BaseCertificate):
     kind: ClassVar[str] = "gcp_ssl_certificate"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": [],
+        "delete": ["gcp_instance", "gcp_target_https_proxy", "gcp_target_ssl_proxy"],
+    }
     api_identifier: ClassVar[str] = "sslCertificate"
 
     description: Optional[str] = None
@@ -437,7 +459,7 @@ class GCPSSLCertificate(GCPResource, BaseCertificate):
 class GCPMachineType(GCPResource, BaseInstanceType):
     kind: ClassVar[str] = "gcp_machine_type"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["gcp_instance"],
+        "default": ["gcp_instance", "gcp_instance_template"],
         "delete": [],
     }
     api_identifier: ClassVar[str] = "machineType"
@@ -450,6 +472,10 @@ class GCPMachineType(GCPResource, BaseInstanceType):
 @dataclass(eq=False)
 class GCPNetworkEndpointGroup(GCPResource, BaseResource):
     kind: ClassVar[str] = "gcp_network_endpoint_group"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": [],
+        "delete": ["gcp_backend_service"],
+    }
     api_identifier: ClassVar[str] = "networkEndpointGroup"
 
     default_port: int = -1
@@ -469,8 +495,8 @@ class GCPGlobalNetworkEndpointGroup(GCPResource, BaseResource):
 class GCPInstanceGroup(GCPResource, BaseResource):
     kind: ClassVar[str] = "gcp_instance_group"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["gcp_instance"],
-        "delete": ["gcp_backend_service"],
+        "default": ["gcp_instance", "gcp_instance_group_manager"],
+        "delete": ["gcp_backend_service", "gcp_instance_group_manager"],
     }
     api_identifier: ClassVar[str] = "instanceGroup"
 
@@ -478,12 +504,23 @@ class GCPInstanceGroup(GCPResource, BaseResource):
 @dataclass(eq=False)
 class GCPInstanceGroupManager(GCPResource, BaseResource):
     kind: ClassVar[str] = "gcp_instance_group_manager"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": [
+            "gcp_health_check",
+            "gcp_http_health_check",
+            "gcp_https_health_check",
+        ],
+    }
     api_identifier: ClassVar[str] = "instanceGroupManager"
 
 
 @dataclass(eq=False)
 class GCPAutoscaler(GCPResource, BaseAutoScalingGroup):
     kind: ClassVar[str] = "gcp_autoscaler"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["gcp_instance_group_manager"],
+        "delete": ["gcp_instance_group_manager"],
+    }
     api_identifier: ClassVar[str] = "autoscaler"
 
 
@@ -492,14 +529,25 @@ class GCPHealthCheck(GCPResource, BaseHealthCheck):
     kind: ClassVar[str] = "gcp_health_check"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
         "default": [],
-        "delete": ["gcp_target_pool"],
+        "delete": [
+            "gcp_target_pool",
+            "gcp_backend_service",
+            "gcp_instance_group_manager",
+        ],
     }
     api_identifier: ClassVar[str] = "healthCheck"
 
 
 @dataclass(eq=False)
 class GCPHTTPHealthCheck(GCPResource, BaseHealthCheck):
+    """Deprecated by gcp. GCPHealthCheck is the new standard."""
+
     kind: ClassVar[str] = "gcp_http_health_check"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": [],
+        "delete": ["gcp_backend_service", "gcp_instance_group_manager"],
+    }
+
     api_identifier: ClassVar[str] = "httpHealthCheck"
 
     host: str = ""
@@ -510,12 +558,24 @@ class GCPHTTPHealthCheck(GCPResource, BaseHealthCheck):
 @dataclass(eq=False)
 class GCPHTTPSHealthCheck(GCPHTTPHealthCheck):
     kind: ClassVar[str] = "gcp_https_health_check"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": [],
+        "delete": ["gcp_backend_service", "gcp_instance_group_manager"],
+    }
     api_identifier: ClassVar[str] = "httpsHealthCheck"
 
 
 @dataclass(eq=False)
 class GCPUrlMap(GCPResource, BaseResource):
     kind: ClassVar[str] = "gcp_url_map"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["gcp_backend_service"],
+        "delete": [
+            "gcp_target_http_proxy",
+            "gcp_target_https_proxy",
+            "gcp_target_grpc_proxy",
+        ],
+    }
     api_identifier: ClassVar[str] = "urlMap"
 
 
@@ -524,7 +584,7 @@ class GCPTargetPool(GCPResource, BaseResource):
     kind: ClassVar[str] = "gcp_target_pool"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
         "default": ["gcp_instance", "gcp_http_health_check"],
-        "delete": ["gcp_forwarding_rule"],
+        "delete": ["gcp_forwarding_rule", "gcp_global_forwarding_rule"],
     }
     api_identifier: ClassVar[str] = "targetPool"
 
@@ -535,6 +595,10 @@ class GCPTargetPool(GCPResource, BaseResource):
 @dataclass(eq=False)
 class GCPTargetHttpProxy(GCPResource, BaseResource):
     kind: ClassVar[str] = "gcp_target_http_proxy"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["gcp_url_map"],
+        "delete": ["gcp_forwarding_rule", "gcp_global_forwarding_rule"],
+    }
     api_identifier: ClassVar[str] = "targetHttpProxy"
 
     def __post_init__(self) -> None:
@@ -546,6 +610,10 @@ class GCPTargetHttpProxy(GCPResource, BaseResource):
 @dataclass(eq=False)
 class GCPTargetHttpsProxy(GCPResource, BaseResource):
     kind: ClassVar[str] = "gcp_target_https_proxy"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["gcp_url_map", "gcp_ssl_certificate"],
+        "delete": ["gcp_forwarding_rule", "gcp_global_forwarding_rule"],
+    }
     api_identifier: ClassVar[str] = "targetHttpsProxy"
 
     def __post_init__(self) -> None:
@@ -557,6 +625,10 @@ class GCPTargetHttpsProxy(GCPResource, BaseResource):
 @dataclass(eq=False)
 class GCPTargetSslProxy(GCPResource, BaseResource):
     kind: ClassVar[str] = "gcp_target_ssl_proxy"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["gcp_backend_service", "gcp_ssl_certificate"],
+        "delete": ["gcp_forwarding_rule", "gcp_global_forwarding_rule"],
+    }
     api_identifier: ClassVar[str] = "targetSslProxy"
 
     def __post_init__(self) -> None:
@@ -569,7 +641,7 @@ class GCPTargetTcpProxy(GCPResource, BaseResource):
     kind: ClassVar[str] = "gcp_target_tcp_proxy"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
         "default": ["gcp_backend_service"],
-        "delete": ["gcp_forwarding_rule"],
+        "delete": ["gcp_forwarding_rule", "gcp_global_forwarding_rule"],
     }
     api_identifier: ClassVar[str] = "targetTcpProxy"
 
@@ -581,6 +653,10 @@ class GCPTargetTcpProxy(GCPResource, BaseResource):
 @dataclass(eq=False)
 class GCPTargetGrpcProxy(GCPResource, BaseResource):
     kind: ClassVar[str] = "gcp_target_grpc_proxy"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["gcp_url_map"],
+        "delete": ["gcp_forwarding_rule", "gcp_global_forwarding_rule"],
+    }
     api_identifier: ClassVar[str] = "targetGrpcProxy"
 
     def __post_init__(self) -> None:
@@ -591,6 +667,9 @@ class GCPTargetGrpcProxy(GCPResource, BaseResource):
 @dataclass(eq=False)
 class GCPTargetInstance(GCPResource, BaseResource):
     kind: ClassVar[str] = "gcp_target_instance"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["gcp_instance"],
+    }
     api_identifier: ClassVar[str] = "targetInstance"
 
 
@@ -604,8 +683,14 @@ class GCPQuota(GCPResource, BaseQuota):
 class GCPBackendService(GCPResource, BaseResource):
     kind: ClassVar[str] = "gcp_backend_service"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["gcp_instance_group", "gcp_health_check"],
-        "delete": ["gcp_target_tcp_proxy"],
+        "default": [
+            "gcp_instance_group",
+            "gcp_network_endpoint_group",
+            "gcp_health_check",
+            "gcp_http_health_check",
+            "gcp_https_health_check",
+        ],
+        "delete": ["gcp_target_tcp_proxy", "gcp_target_ssl_proxy"],
     }
 
     api_identifier: ClassVar[str] = "backendService"
@@ -618,6 +703,10 @@ class GCPForwardingRule(GCPResource, BaseLoadBalancer):
         "default": [
             "gcp_target_vpn_gateway",
             "gcp_target_tcp_proxy",
+            "gcp_target_ssl_proxy",
+            "gcp_target_grpc_proxy",
+            "gcp_target_http_proxy",
+            "gcp_target_https_proxy",
             "gcp_target_pool",
         ],
         "delete": [],
@@ -638,6 +727,18 @@ class GCPForwardingRule(GCPResource, BaseLoadBalancer):
 @dataclass(eq=False)
 class GCPGlobalForwardingRule(GCPForwardingRule):
     kind: ClassVar[str] = "gcp_global_forwarding_rule"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": [
+            "gcp_target_vpn_gateway",
+            "gcp_target_tcp_proxy",
+            "gcp_target_ssl_proxy",
+            "gcp_target_grpc_proxy",
+            "gcp_target_http_proxy",
+            "gcp_target_https_proxy",
+            "gcp_target_pool",
+        ],
+        "delete": [],
+    }
     api_identifier: ClassVar[str] = "globalForwardingRule"
 
 
