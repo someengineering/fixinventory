@@ -383,35 +383,41 @@ class AWSS3Bucket(AWSResource, BaseBucket):
         return True
 
     def update_tag(self, key, value) -> bool:
-        client = aws_client(self, "s3")
         # Because S3 tags can not be updated or deleted individually we
         # fetch the current set of tags to keep the race between reading
         # and writing short. Ideally we'd have a revision like in GCP or
         # the ability to modify individual tags instead of all at once.
-        tags = {}
-        try:
-            response = client.get_bucket_tagging(Bucket=self.name)
-            tags = tags_as_dict(response["TagSet"])
-        except botocore.exceptions.ClientError as e:
-            if e.response["Error"]["Code"] != "NoSuchTagSet":
-                raise
+        tags = self.get_tags()
         tags[key] = value
         return self.set_tags(tags)
 
     def delete_tag(self, key) -> bool:
-        client = aws_client(self, "s3")
-        tags = {}
-        try:
-            response = client.get_bucket_tagging(Bucket=self.name)
-            tags = tags_as_dict(response["TagSet"])
-        except botocore.exceptions.ClientError as e:
-            if e.response["Error"]["Code"] != "NoSuchTagSet":
-                raise
+        tags = self.get_tags()
         if key in tags:
             del tags[key]
         else:
             raise KeyError(key)
         return self.set_tags(tags)
+
+    def get_tags(self) -> Dict:
+        """Fetch the S3 buckets tags from the AWS API."""
+        log.debug(f"Fetching tags for {self.rtdname}")
+        tags = {}
+        client = aws_client(self, "s3")
+        try:
+            response = client.get_bucket_tagging(Bucket=self.name)
+            tags = tags_as_dict(response["TagSet"])
+        except botocore.exceptions.ClientError as e:
+            if e.response["Error"]["Code"] != "NoSuchTagSet":
+                raise
+        return tags
+
+    def refresh_tags(self) -> None:
+        """Replace the resources tags with the current tags from the AWS API.
+
+        DO NOT call this method from within update_tag or delete_tag!
+        """
+        self.tags = self.get_tags()
 
 
 @dataclass(eq=False)
