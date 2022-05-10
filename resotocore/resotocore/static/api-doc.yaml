@@ -148,6 +148,12 @@ paths:
           schema:
             type: boolean
             default: true
+        - name: link_classes
+          description: Add anchor links to classes.
+          in: query
+          schema:
+            type: boolean
+            default: false
       responses:
         "200":
           description: "Returns the model as uml diagram in svg format"

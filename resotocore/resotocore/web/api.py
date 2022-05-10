@@ -554,6 +554,7 @@ class Api:
         with_predecessors = request.query.get("with_predecessors", "false") != "false"
         with_successors = request.query.get("with_successors", "false") != "false"
         with_properties = request.query.get("with_properties", "true") != "false"
+        link_classes = request.query.get("link_classes", "false") != "false"
         result = await self.model_handler.uml_image(
             output=output,
             show_packages=show,

@@ -33,6 +33,7 @@ class ModelHandler(ABC):
         with_predecessors: bool = False,
         with_successors: bool = False,
         with_properties: bool = True,
+        link_classes: bool = False,
     ) -> bytes:
         """
         Generate a PlantUML image of the model.
@@ -47,6 +48,7 @@ class ModelHandler(ABC):
         :param with_predecessors: include predecessors for all matching classes to show in the diagram
         :param with_successors: include successors for all matching classes to show in the diagram
         :param with_properties: include properties for all matching classes to show in the diagram
+        :param link_classes: add anchor links to all classes
         :return: the generated image
         """
 
@@ -102,6 +104,7 @@ class ModelHandlerDB(ModelHandler):
         with_predecessors: bool = False,
         with_successors: bool = False,
         with_properties: bool = True,
+        link_classes: bool = False,
     ) -> bytes:
         allowed_edge_types: Set[str] = dependency_edges or set()
         assert output in ("svg", "png"), "Only svg and png is supported!"
@@ -125,7 +128,8 @@ class ModelHandlerDB(ModelHandler):
 
         def class_node(cpx: ComplexKind) -> str:
             props = "\n".join([f"**{p.name}**: {p.kind}" for p in cpx.properties]) if with_properties else ""
-            return f"class {cpx.fqn} {{\n{props}\n}}"
+            link = " [[#{cpx.fqn}]]" if link_classes else ""
+            return f"class {cpx.fqn}{link} {{\n{props}\n}}"
 
         def descendants(cpx: ComplexKind) -> Set[str]:
             return {kind.fqn for kind in model.complex_kinds() if cpx.fqn in kind.kind_hierarchy()}
@@ -169,8 +173,6 @@ class ModelHandlerDB(ModelHandler):
                     edges += f"{to} <|--- {fr}\n"
                 elif data["type"] == "successor" and data["edge_type"] in allowed_edge_types:
                     edges += f"{fr} -[#1A83AF]-> {to}\n"
-                else:
-                    print("NOT VISIBLE: ", fr, to, data)
 
         puml = PlantUML(f"{self.plantuml_server}/{output}/")
         return await run_async(puml.processes, f"@startuml\n{PlantUmlAttrs}\n{nodes}\n{edges}\n@enduml")  # type: ignore
