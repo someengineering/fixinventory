@@ -566,6 +566,7 @@ class Api:
             with_predecessors=with_predecessors,
             with_successors=with_successors,
             with_properties=with_properties,
+            link_classes=link_classes,
         )
         response = web.StreamResponse()
         mt = {"svg": "image/svg+xml", "png": "image/png"}
