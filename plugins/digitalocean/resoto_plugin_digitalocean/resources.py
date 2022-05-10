@@ -173,7 +173,6 @@ class DigitalOceanTeam(DigitalOceanResource, BaseAccount):  # type: ignore
             "digitalocean_space",
             "digitalocean_ssh_key",
             "digitalocean_tag",
-            "digitalocean_team",
             "digitalocean_volume",
         ],
         "delete": [],
@@ -394,7 +393,6 @@ class DigitalOceanNetwork(DigitalOceanResource, BaseNetwork):  # type: ignore
             "digitalocean_load_balancer",
             "digitalocean_kubernetes_cluster",
             "digitalocean_droplet",
-            "digitalocean_network",
             "digitalocean_database",
         ],
         "delete": [
