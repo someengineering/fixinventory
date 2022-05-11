@@ -134,7 +134,7 @@ class CoreActions(threading.Thread):
             try:
                 result = self.message_processor(message)
                 log.debug(f"Sending reply {result}")
-                ws.send(json.dumps(result))
+                self.ws.send(json.dumps(result))
             except Exception:
                 log.exception(f"Something went wrong while processing {message}")
 
