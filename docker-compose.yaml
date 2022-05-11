@@ -40,7 +40,9 @@ services:
     environment:
       - PSK
       - RESOTO_VERBOSE
+      # Resoto will create a new database and user with this password using the root account
       - RESOTOCORE_GRAPHDB_PASSWORD=changeme
+      # Same as ARANGO_ROOT_PASSWORD
       - RESOTOCORE_GRAPHDB_ROOT_PASSWORD=changeme
     command:
       - --graphdb-server
