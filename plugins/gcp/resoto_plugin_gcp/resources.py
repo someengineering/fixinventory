@@ -461,7 +461,12 @@ class GCPSSLCertificate(GCPResource, BaseCertificate):
     kind: ClassVar[str] = "gcp_ssl_certificate"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
         "default": [],
-        "delete": ["gcp_instance", "gcp_target_https_proxy", "gcp_target_ssl_proxy", "gcp_target_grpc_proxy"],
+        "delete": [
+            "gcp_instance",
+            "gcp_target_https_proxy",
+            "gcp_target_ssl_proxy",
+            "gcp_target_grpc_proxy",
+        ],
     }
     api_identifier: ClassVar[str] = "sslCertificate"
 
@@ -577,7 +582,11 @@ class GCPHTTPSHealthCheck(GCPHTTPHealthCheck):
     kind: ClassVar[str] = "gcp_https_health_check"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
         "default": [],
-        "delete": ["gcp_backend_service", "gcp_instance_group_manager", "gcp_target_pool"],
+        "delete": [
+            "gcp_backend_service",
+            "gcp_instance_group_manager",
+            "gcp_target_pool",
+        ],
     }
     api_identifier: ClassVar[str] = "httpsHealthCheck"
 
@@ -629,7 +638,11 @@ class GCPTargetHttpsProxy(GCPResource, BaseResource):
     kind: ClassVar[str] = "gcp_target_https_proxy"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
         "default": ["gcp_url_map", "gcp_ssl_certificate"],
-        "delete": ["gcp_forwarding_rule", "gcp_global_forwarding_rule", "gcp_backend_service"],
+        "delete": [
+            "gcp_forwarding_rule",
+            "gcp_global_forwarding_rule",
+            "gcp_backend_service",
+        ],
     }
     api_identifier: ClassVar[str] = "targetHttpsProxy"
 
