@@ -45,6 +45,12 @@ class CoreActions(threading.Thread):
                 log.error(e)
             time.sleep(1)
 
+    def wait_for_ws(self, timeout: int = 10) -> bool:
+        start = time.time()
+        while self.ws is None and time.time() - start < timeout:
+            time.sleep(0.1)
+        return self.ws is not None
+
     def connect(self) -> None:
         for event, data in self.actions.items():
             if not isinstance(data, dict):
@@ -56,22 +62,25 @@ class CoreActions(threading.Thread):
         headers = {}
         if getattr(ArgumentParser.args, "psk", None):
             encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)
-        self.ws = websocket.WebSocketApp(
-            ws_uri,
-            header=headers,
-            on_open=self.on_open,
-            on_message=self.on_message,
-            on_error=self.on_error,
-            on_close=self.on_close,
-            on_ping=self.on_ping,
-            on_pong=self.on_pong,
-        )
-        sslopt = None
-        if self.tls_data:
-            sslopt = {"ca_certs": self.tls_data.ca_cert_path}
-        self.ws.run_forever(
-            sslopt=sslopt, ping_interval=30, ping_timeout=10, ping_payload="ping"
-        )
+        try:
+            self.ws = websocket.WebSocketApp(
+                ws_uri,
+                header=headers,
+                on_open=self.on_open,
+                on_message=self.on_message,
+                on_error=self.on_error,
+                on_close=self.on_close,
+                on_ping=self.on_ping,
+                on_pong=self.on_pong,
+            )
+            sslopt = None
+            if self.tls_data:
+                sslopt = {"ca_certs": self.tls_data.ca_cert_path}
+            self.ws.run_forever(
+                sslopt=sslopt, ping_interval=30, ping_timeout=10, ping_payload="ping"
+            )
+        finally:
+            self.ws = None
 
     def shutdown(self, event: Event = None) -> None:
         log.debug(
@@ -133,8 +142,11 @@ class CoreActions(threading.Thread):
         if self.message_processor is not None and callable(self.message_processor):
             try:
                 result = self.message_processor(message)
-                log.debug(f"Sending reply {result}")
-                ws.send(json.dumps(result))
+                if self.wait_for_ws():
+                    log.debug(f"Sending reply {result}")
+                    self.ws.send(json.dumps(result))
+                else:
+                    log.error(f"Unable to send reply {result}")
             except Exception:
                 log.exception(f"Something went wrong while processing {message}")
 
