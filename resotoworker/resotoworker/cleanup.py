@@ -46,7 +46,7 @@ class Cleaner:
         if not Config.resotoworker.cleanup:
             log.debug(
                 (
-                    "Cleanup called but --cleanup flag not provided at startup"
+                    "Cleanup called but resotoworker.cleanup not configured"
                     " - ignoring call"
                 )
             )
