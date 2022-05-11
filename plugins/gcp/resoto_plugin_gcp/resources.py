@@ -117,6 +117,10 @@ class GCPProject(GCPResource, BaseAccount):
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
         "default": [
             "gcp_target_tcp_proxy",
+            "gcp_target_ssl_proxy",
+            "gcp_target_http_proxy",
+            "gcp_target_https_proxy",
+            "gcp_target_grpc_proxy",
             "gcp_subnetwork",
             "gcp_ssl_certificate",
             "gcp_snapshot",
@@ -141,6 +145,7 @@ class GCPZone(GCPResource, BaseZone):
     kind: ClassVar[str] = "gcp_zone"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
         "default": [
+            "gcp_autoscaler",
             "gcp_database",
             "gcp_disk",
             "gcp_disk_type",
@@ -163,14 +168,26 @@ class GCPRegion(GCPResource, BaseRegion):
     kind: ClassVar[str] = "gcp_region"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
         "default": [
+            "gcp_autoscaler",
+            "gcp_backend_service",
             "gcp_database",
+            "gcp_disk",
+            "gcp_disk_type",
             "gcp_forwarding_rule",
             "gcp_gke_cluster",
+            "gcp_health_check",
+            "gcp_instance_group",
+            "gcp_instance_group_manager",
+            "gcp_network_endpoint_group",
             "gcp_quota",
             "gcp_router",
+            "gcp_ssl_certificate",
             "gcp_subnetwork",
+            "gcp_target_http_proxy",
+            "gcp_target_https_proxy",
             "gcp_target_pool",
             "gcp_target_vpn_gateway",
+            "gcp_url_map",
             "gcp_vpn_tunnel",
             "gcp_zone",
         ],
@@ -444,7 +461,7 @@ class GCPSSLCertificate(GCPResource, BaseCertificate):
     kind: ClassVar[str] = "gcp_ssl_certificate"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
         "default": [],
-        "delete": ["gcp_instance", "gcp_target_https_proxy", "gcp_target_ssl_proxy"],
+        "delete": ["gcp_instance", "gcp_target_https_proxy", "gcp_target_ssl_proxy", "gcp_target_grpc_proxy"],
     }
     api_identifier: ClassVar[str] = "sslCertificate"
 
@@ -560,7 +577,7 @@ class GCPHTTPSHealthCheck(GCPHTTPHealthCheck):
     kind: ClassVar[str] = "gcp_https_health_check"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
         "default": [],
-        "delete": ["gcp_backend_service", "gcp_instance_group_manager"],
+        "delete": ["gcp_backend_service", "gcp_instance_group_manager", "gcp_target_pool"],
     }
     api_identifier: ClassVar[str] = "httpsHealthCheck"
 
@@ -583,7 +600,7 @@ class GCPUrlMap(GCPResource, BaseResource):
 class GCPTargetPool(GCPResource, BaseResource):
     kind: ClassVar[str] = "gcp_target_pool"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["gcp_instance", "gcp_http_health_check"],
+        "default": ["gcp_instance", "gcp_http_health_check", "gcp_https_health_check"],
         "delete": ["gcp_forwarding_rule", "gcp_global_forwarding_rule"],
     }
     api_identifier: ClassVar[str] = "targetPool"
@@ -612,7 +629,7 @@ class GCPTargetHttpsProxy(GCPResource, BaseResource):
     kind: ClassVar[str] = "gcp_target_https_proxy"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
         "default": ["gcp_url_map", "gcp_ssl_certificate"],
-        "delete": ["gcp_forwarding_rule", "gcp_global_forwarding_rule"],
+        "delete": ["gcp_forwarding_rule", "gcp_global_forwarding_rule", "gcp_backend_service"],
     }
     api_identifier: ClassVar[str] = "targetHttpsProxy"
 
@@ -654,7 +671,7 @@ class GCPTargetTcpProxy(GCPResource, BaseResource):
 class GCPTargetGrpcProxy(GCPResource, BaseResource):
     kind: ClassVar[str] = "gcp_target_grpc_proxy"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["gcp_url_map"],
+        "default": ["gcp_url_map", "gcp_ssl_certificate"],
         "delete": ["gcp_forwarding_rule", "gcp_global_forwarding_rule"],
     }
     api_identifier: ClassVar[str] = "targetGrpcProxy"
@@ -688,6 +705,7 @@ class GCPBackendService(GCPResource, BaseResource):
             "gcp_network_endpoint_group",
             "gcp_health_check",
             "gcp_http_health_check",
+            "gcp_https_health_check",
             "gcp_https_health_check",
         ],
         "delete": ["gcp_target_tcp_proxy", "gcp_target_ssl_proxy"],
