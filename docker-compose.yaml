@@ -39,14 +39,12 @@ services:
       - "8900:8900"
     environment:
       - PSK
+      - RESOTO_VERBOSE
+      - RESOTOCORE_GRAPHDB_PASSWORD=changeme
+      - RESOTOCORE_GRAPHDB_ROOT_PASSWORD=changeme
     command:
       - --graphdb-server
       - http://graphdb:8529
-      - --graphdb-root-password
-      # Same as ARANGO_ROOT_PASSWORD
-      - changeme
-      - --graphdb-password
-      - changeme
       - --override
       - resotocore.api.web_hosts=resotocore
       - resotocore.api.host_certificate.common_name=resotocore
@@ -59,8 +57,8 @@ services:
     deploy:
       resources:
         reservations:
-          cpus: "1"
-          memory: "512M"
+          cpus: "0.5"
+          memory: "1G"
   resotoworker:
     image: somecr.io/someengineering/resotoworker:edge
     depends_on:
@@ -69,14 +67,15 @@ services:
       - 9956:9956
     environment:
       - PSK
+      - RESOTO_VERBOSE
       - RESOTOWORKER_RESOTOCORE_URI=https://resotocore:8900
     restart: always
     stop_grace_period: 2m
     deploy:
       resources:
         reservations:
-          cpus: "1"
-          memory: "512M"
+          cpus: "0.5"
+          memory: "1G"
   resotometrics:
     image: somecr.io/someengineering/resotometrics:edge
     depends_on:
@@ -85,6 +84,7 @@ services:
       - 9955:9955
     environment:
       - PSK
+      - RESOTO_VERBOSE
       - RESOTOMETRICS_RESOTOCORE_URI=https://resotocore:8900
     restart: always
     stop_grace_period: 2m

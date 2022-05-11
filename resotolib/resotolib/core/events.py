@@ -36,12 +36,12 @@ class CoreEvents(threading.Thread):
         self.name = "eventbus-listener"
         add_event_listener(EventType.SHUTDOWN, self.shutdown)
         while not self.shutdown_event.is_set():
-            log.info("Connecting to resotocore event bus")
+            log.debug("Connecting to resotocore event bus")
             try:
                 self.connect()
             except Exception as e:
                 log.error(e)
-            time.sleep(10)
+            time.sleep(1)
 
     def connect(self) -> None:
         log.debug(f"Connecting to {self.ws_uri}")
@@ -86,8 +86,8 @@ class CoreEvents(threading.Thread):
             except Exception:
                 log.exception(f"Something went wrong while processing {message}")
 
-    def on_error(self, ws, error):
-        log.error(f"Event bus error: {error}")
+    def on_error(self, ws, e):
+        log.debug(f"Event bus error: {e!r}")
 
     def on_close(self, ws, close_status_code, close_msg):
         log.debug("Disconnected from resotocore event bus")
