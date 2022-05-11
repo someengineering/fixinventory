@@ -31,6 +31,7 @@ services:
     environment:
       - PSK
       - RESOTO_VERBOSE
+      - RESOTO_LOG_TEXT
       - RESOTOCORE_GRAPHDB_SERVER=http://graphdb:8529
       - RESOTOCORE_GRAPHDB_PASSWORD=changeme
     command:
@@ -52,6 +53,7 @@ services:
     environment:
       - PSK
       - RESOTO_VERBOSE
+      - RESOTO_LOG_TEXT
       - RESOTOWORKER_RESOTOCORE_URI=https://resotocore:8900
     restart: always
     stop_grace_period: 2m
@@ -64,6 +66,7 @@ services:
     environment:
       - PSK
       - RESOTO_VERBOSE
+      - RESOTO_LOG_TEXT
       - RESOTOMETRICS_RESOTOCORE_URI=https://resotocore:8900
     restart: always
     stop_grace_period: 2m
