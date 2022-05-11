@@ -22,6 +22,10 @@ class SlackResource:
 @dataclass(eq=False)
 class SlackTeam(SlackResource, BaseAccount):
     kind: ClassVar[str] = "slack_team"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["slack_region"],
+        "delete": [],
+    }
     domain: str = None
     email_domain: str = None
     icon: str = None
@@ -41,6 +45,10 @@ class SlackTeam(SlackResource, BaseAccount):
 @dataclass(eq=False)
 class SlackRegion(SlackResource, BaseRegion):
     kind = "slack_region"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["slack_usergroup", "slack_user", "slack_conversation"],
+        "delete": [],
+    }
 
 
 @dataclass(eq=False)
@@ -133,6 +141,10 @@ class SlackUser(SlackResource, BaseUser):
 @dataclass(eq=False)
 class SlackUsergroup(SlackResource, BaseGroup):
     kind: ClassVar[str] = "slack_usergroup"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["slack_user"],
+        "delete": [],
+    }
 
     auto_provision: bool = None
     auto_type: Optional[str] = None
@@ -179,6 +191,10 @@ class SlackUsergroup(SlackResource, BaseGroup):
 @dataclass(eq=False)
 class SlackConversation(SlackResource, BaseResource):
     kind: ClassVar[str] = "slack_conversation"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["slack_user"],
+        "delete": [],
+    }
 
     creator: Optional[str] = None
     is_archived: bool = None

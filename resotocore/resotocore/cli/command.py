@@ -1478,24 +1478,23 @@ class KindsCommand(CLICommand, PreserveOutputFormat):
 
     def args_info(self) -> ArgsInfo:
         return [
-            ArgInfo("-p", expects_value=True, value_hint="property", help_text="lookup the kind of a property path."),
-            ArgInfo(expects_value=True, value_hint="kind", help_text="kind to lookup"),
+            ArgInfo(
+                "-p",
+                expects_value=True,
+                value_hint="property",
+                help_text="lookup the kind of a property path.",
+                option_group="lookup",
+            ),
+            ArgInfo(expects_value=True, value_hint="kind", help_text="kind to lookup", option_group="lookup"),
         ]
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLISource:
-        show_path: Optional[str] = None
-        show_kind: Optional[str] = None
+        parser = NoExitArgumentParser()
+        parser.add_argument("-p", "--property-path", dest="property_path", type=str)
+        parser.add_argument("name", type=str, nargs="?")
+        args = parser.parse_args(strip_quotes(arg or "").split())
 
-        if arg:
-            args = strip_quotes(arg).split(" ")
-            if len(args) == 1:
-                show_kind = arg
-            elif len(args) == 2 and args[0] == "-p":
-                show_path = args[1]
-            else:
-                raise AttributeError(f"Don't know what to do with: {arg}")
-
-        def kind_to_js(kind: Kind) -> Json:
+        def kind_to_js(model: Model, kind: Kind) -> Json:
             if isinstance(kind, SimpleKind):
                 return {"name": kind.fqn, "runtime_kind": kind.runtime_kind}
             elif isinstance(kind, DictionaryKind):
@@ -1508,21 +1507,31 @@ class KindsCommand(CLICommand, PreserveOutputFormat):
                     return (synth[p.name].kind.runtime_kind if p.name in synth else p.kind) if p.synthetic else p.kind
 
                 props = sorted(kind.all_props(), key=lambda k: k.name)
+                predecessors = list(
+                    {
+                        cpl.fqn
+                        for cpl in model.complex_kinds()
+                        if kind.fqn in cpl.successor_kinds.get(EdgeType.default, [])
+                    }
+                )
                 return {
                     "name": kind.fqn,
                     "bases": list(kind.kind_hierarchy() - {kind.fqn}),
                     "properties": {p.name: kind_name(p) for p in props},
+                    "predecessors": predecessors,
+                    "successors": kind.successor_kinds.get(EdgeType.default, []),
                 }
             else:
                 return {"name": kind.fqn}
 
         async def source() -> Tuple[int, Stream]:
             model = await self.dependencies.model_handler.load_model()
-            if show_kind:
-                result = kind_to_js(model[show_kind]) if show_kind in model else f"No kind with this name: {show_kind}"
+            if args.name:
+                kind = args.name
+                result = kind_to_js(model, model[kind]) if kind in model else f"No kind with this name: {kind}"
                 return 1, stream.just(result)
-            elif show_path:
-                result = kind_to_js(model.kind_by_path(Section.without_section(show_path)))
+            elif args.property_path:
+                result = kind_to_js(model, model.kind_by_path(Section.without_section(args.property_path)))
                 return 1, stream.just(result)
             else:
                 result = sorted([model.fqn for model in model.kinds.values() if isinstance(model, ComplexKind)])

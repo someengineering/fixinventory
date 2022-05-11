@@ -147,6 +147,36 @@ class DigitalOceanTeam(DigitalOceanResource, BaseAccount):  # type: ignore
     """DigitalOcean Team"""
 
     kind: ClassVar[str] = "digitalocean_team"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": [
+            "digitalocean_alert_policy",
+            "digitalocean_app",
+            "digitalocean_cdn_endpoint",
+            "digitalocean_certificate",
+            "digitalocean_container_registry",
+            "digitalocean_container_registry_repository",
+            "digitalocean_container_registry_repository_tag",
+            "digitalocean_database",
+            "digitalocean_domain",
+            "digitalocean_domain_record",
+            "digitalocean_droplet",
+            "digitalocean_firewall",
+            "digitalocean_floating_ip",
+            "digitalocean_image",
+            "digitalocean_kubernetes_cluster",
+            "digitalocean_load_balancer",
+            "digitalocean_network",
+            "digitalocean_project",
+            "digitalocean_region",
+            "digitalocean_resource",
+            "digitalocean_snapshot",
+            "digitalocean_space",
+            "digitalocean_ssh_key",
+            "digitalocean_tag",
+            "digitalocean_volume",
+        ],
+        "delete": [],
+    }
 
 
 @dataclass(eq=False)
@@ -154,6 +184,22 @@ class DigitalOceanRegion(DigitalOceanResource, BaseRegion):  # type: ignore
     """DigitalOcean region"""
 
     kind: ClassVar[str] = "digitalocean_region"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": [
+            "digitalocean_app",
+            "digitalocean_container_registry",
+            "digitalocean_database",
+            "digitalocean_droplet",
+            "digitalocean_floating_ip",
+            "digitalocean_image",
+            "digitalocean_kubernetes_cluster",
+            "digitalocean_load_balancer",
+            "digitalocean_network",
+            "digitalocean_snapshot",
+            "digitalocean_space",
+        ],
+        "delete": [],
+    }
 
     do_region_slug: Optional[str] = None
     do_region_features: Optional[List[str]] = None
@@ -166,6 +212,29 @@ class DigitalOceanProject(DigitalOceanResource, BaseResource):  # type: ignore
     """DigitalOcean project"""
 
     kind: ClassVar[str] = "digitalocean_project"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": [
+            "digitalocean_database",
+            "digitalocean_domain",
+            "digitalocean_droplet",
+            "digitalocean_floating_ip",
+            "digitalocean_kubernetes_cluster",
+            "digitalocean_load_balancer",
+            "digitalocean_space",
+            "digitalocean_volume",
+        ],
+        "delete": [
+            "digitalocean_database",
+            "digitalocean_domain",
+            "digitalocean_droplet",
+            "digitalocean_floating_ip",
+            "digitalocean_kubernetes_cluster",
+            "digitalocean_load_balancer",
+            "digitalocean_space",
+            "digitalocean_volume",
+        ],
+    }
+
     owner_uuid: Optional[str] = None
     owner_id: Optional[str] = None
     description: Optional[str] = None
@@ -187,6 +256,15 @@ class DigitalOceanDroplet(DigitalOceanResource, BaseInstance):  # type: ignore
     """
 
     kind: ClassVar[str] = "digitalocean_droplet"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": [
+            "digitalocean_floating_ip",
+            "digitalocean_snapshot",
+            "digitalocean_volume",
+        ],
+        "delete": [],
+    }
+
     instance_status_map: ClassVar[Dict[str, InstanceStatus]] = {
         "new": InstanceStatus.BUSY,
         "active": InstanceStatus.RUNNING,
@@ -230,6 +308,10 @@ class DigitalOceanKubernetesCluster(DigitalOceanResource, BaseResource):  # type
     """DigitalOcean Kubernetes Cluster"""
 
     kind: ClassVar[str] = "digitalocean_kubernetes_cluster"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["digitalocean_droplet"],
+        "delete": [],
+    }
 
     k8s_version: Optional[str] = None
     k8s_cluster_subnet: Optional[str] = None
@@ -249,6 +331,10 @@ class DigitalOceanKubernetesCluster(DigitalOceanResource, BaseResource):  # type
 @dataclass(eq=False)
 class DigitalOceanVolume(DigitalOceanResource, BaseVolume):  # type: ignore
     kind: ClassVar[str] = "digitalocean_volume"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["digitalocean_snapshot"],
+        "delete": ["digitalocean_droplet"],
+    }
 
     volume_status_map: ClassVar[Dict[str, VolumeStatus]] = {
         "creating": VolumeStatus.BUSY,
@@ -282,6 +368,10 @@ DigitalOceanVolume.volume_status = property(
 @dataclass(eq=False)
 class DigitalOceanDatabase(DigitalOceanResource, BaseDatabase):  # type: ignore
     kind: ClassVar[str] = "digitalocean_database"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["digitalocean_app"],
+        "delete": [],
+    }
 
     def delete_uri_path(self) -> Optional[str]:
         return "/databases"
@@ -298,6 +388,19 @@ class DigitalOceanNetwork(DigitalOceanResource, BaseNetwork):  # type: ignore
     """
 
     kind: ClassVar[str] = "digitalocean_network"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": [
+            "digitalocean_load_balancer",
+            "digitalocean_kubernetes_cluster",
+            "digitalocean_droplet",
+            "digitalocean_database",
+        ],
+        "delete": [
+            "digitalocean_database",
+            "digitalocean_droplet",
+            "digitalocean_kubernetes_cluster",
+        ],
+    }
 
     ip_range: Optional[str] = None
     description: Optional[str] = None
@@ -328,6 +431,10 @@ class DigitalOceanLoadBalancer(DigitalOceanResource, BaseLoadBalancer):  # type:
     """DigitalOcean load balancer"""
 
     kind: ClassVar[str] = "digitalocean_load_balancer"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["digitalocean_droplet"],
+        "delete": [],
+    }
 
     nr_nodes: Optional[int] = None
     loadbalancer_status: Optional[str] = None
@@ -373,6 +480,10 @@ class DigitalOceanImage(DigitalOceanResource, BaseResource):  # type: ignore
     """DigitalOcean image"""
 
     kind: ClassVar[str] = "digitalocean_image"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["digitalocean_droplet"],
+        "delete": [],
+    }
 
     distribution: Optional[str] = None
     image_slug: Optional[str] = None
@@ -464,6 +575,11 @@ class DigitalOceanContainerRegistry(DigitalOceanResource, BaseResource):  # type
     """DigitalOcean container registry"""
 
     kind = "digitalocean_container_registry"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["digitalocean_container_registry_repository"],
+        "delete": [],
+    }
+
     storage_usage_bytes: Optional[int] = None
     is_read_only: Optional[bool] = None
 
@@ -492,6 +608,10 @@ class DigitalOceanContainerRegistryRepository(DigitalOceanResource, BaseResource
     """DigitalOcean container registry repository"""
 
     kind = "digitalocean_container_registry_repository"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["digitalocean_container_registry_repository_tag"],
+        "delete": [],
+    }
 
     tag_count: Optional[int] = None
     manifest_count: Optional[int] = None
@@ -541,6 +661,10 @@ class DigitalOceanDomain(DigitalOceanResource, BaseDomain):  # type: ignore
     """DigitalOcean domain"""
 
     kind = "digitalocean_domain"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["digitalocean_domain_record"],
+        "delete": [],
+    }
 
     def delete_uri_path(self) -> Optional[str]:
         return "/domains"
@@ -562,6 +686,11 @@ class DigitalOceanFirewall(DigitalOceanResource, BaseResource):  # type: ignore
     """DigitalOcean firewall"""
 
     kind = "digitalocean_firewall"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["digitalocean_droplet"],
+        "delete": [],
+    }
+
     firewall_status: Optional[str] = None
 
     def delete_uri_path(self) -> Optional[str]:

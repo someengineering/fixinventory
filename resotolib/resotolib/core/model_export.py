@@ -2,7 +2,7 @@ from dataclasses import is_dataclass, fields, Field
 from datetime import datetime, date, timedelta, timezone
 from functools import lru_cache, reduce
 from pydoc import locate
-from typing import List, MutableSet, Union, Tuple, Dict, Set, Any, TypeVar
+from typing import List, MutableSet, Union, Tuple, Dict, Set, Any, TypeVar, Type
 from resotolib.baseresources import BaseResource
 from resotolib.utils import type_str, str2timedelta, str2timezone
 from typing import get_args, get_origin
@@ -205,10 +205,11 @@ def dataclasses_to_resotocore_model(
                 "bases": base_names,
                 "properties": props,
                 "allow_unknown_props": allow_unknown_props,
+                "successor_kinds": getattr(clazz, "successor_kinds", None),
             }
         )
 
-    def export_enum(clazz: type) -> None:
+    def export_enum(clazz: Type[Enum]) -> None:
         # The name of the enum literal is taken not the value.
         # This matches jsons handling of enumeration marshalling.
         enum_values = [literal.name for literal in clazz]
@@ -220,7 +221,7 @@ def dataclasses_to_resotocore_model(
         if is_dataclass(cls):
             export_data_class(cls)
         elif is_enum(cls):
-            export_enum(cls)
+            export_enum(cls)  # type: ignore
         else:
             raise AttributeError(f"Don't know how to handle: {cls}")
     return model

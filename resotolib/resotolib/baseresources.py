@@ -71,17 +71,20 @@ class BaseResource(ABC):
     the resource within the Graph. The name is used for display purposes. Tags are
     key/value pairs that get exported in the GRAPHML view.
 
-    There's also two class variables, kind and phantom.
-    kind is a string describing the type of resource, e.g. 'aws_ec2_instance'
-    or 'some_cloud_load_balancer'.
-    phantom is a bool describing whether or not the resource actually exists within
-    the cloud or if it's just a phantom resource like pricing information or usage
-    quota. I.e. some information relevant to the cloud account but not actually existing
-    in the form of a usable resource.
+    There's also class variables, kind, phantom and successor_kinds.
+    `kind` is a string describing the type of resource, e.g. 'aws_ec2_instance'
+       or 'some_cloud_load_balancer'.
+    `phantom` is a bool describing whether the resource actually exists within
+       the cloud or if it's just a phantom resource like pricing information
+       or usage quota. I.e. some information relevant to the cloud account
+       but not actually existing in the form of a usable resource.
+    `successor_kinds` is a list of kinds that can be connected to this resource for
+       the related edge type.
     """
 
     kind: ClassVar[str] = "resource"
     phantom: ClassVar[bool] = False
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {"default": [], "delete": []}
 
     id: str
     tags: Dict[str, Optional[str]] = None
