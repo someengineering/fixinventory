@@ -96,12 +96,12 @@ class Cleaner:
 
         log_prefix = f"Resource {node.rtdname} is marked for removal"
         if Config.resotoworker.cleanup_dry_run:
-            log.debug(
+            log.info(
                 f"{log_prefix}, not calling pre cleanup method because of dry run flag"
             )
             return
 
-        log.debug(f"{log_prefix}, calling pre cleanup method")
+        log.info(f"{log_prefix}, calling pre cleanup method")
         try:
             node.pre_cleanup(self.graph)
         except Exception:
@@ -115,12 +115,12 @@ class Cleaner:
     def clean(self, node: BaseResource) -> None:
         log_prefix = f"Resource {node.rtdname} is marked for removal"
         if Config.resotoworker.cleanup_dry_run:
-            log.debug(
+            log.info(
                 f"{log_prefix}, not calling cleanup method because of dry run flag"
             )
             return
 
-        log.debug(f"{log_prefix}, calling cleanup method")
+        log.info(f"{log_prefix}, calling cleanup method")
         try:
             node.cleanup(self.graph)
         except Exception:
