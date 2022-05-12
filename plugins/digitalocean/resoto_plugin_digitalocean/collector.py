@@ -505,7 +505,7 @@ class DigitalOceanTeamCollector:
                 "urn": lambda d: droplet_id(d["id"]),
                 "instance_status": "status",
                 "instance_cores": "vcpus",
-                "instance_memory": "memory",
+                "instance_memory": lambda d: d["memory"] / 1024.0,
                 "droplet_backup_ids": lambda d: list(
                     map(str, d.get("backup_ids", []) or [])
                 ),
