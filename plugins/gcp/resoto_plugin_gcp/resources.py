@@ -281,7 +281,7 @@ GCPDisk.volume_status = property(
 class GCPInstance(GCPResource, BaseInstance):
     kind: ClassVar[str] = "gcp_instance"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["gcp_disk", "gcp_ssl_certificate"],
+        "default": ["gcp_disk"],
         "delete": ["gcp_target_pool", "gcp_instance_group", "gcp_target_instance"],
     }
     api_identifier: ClassVar[str] = "instance"
@@ -462,7 +462,6 @@ class GCPSSLCertificate(GCPResource, BaseCertificate):
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
         "default": [],
         "delete": [
-            "gcp_instance",
             "gcp_target_https_proxy",
             "gcp_target_ssl_proxy",
             "gcp_target_grpc_proxy",
