@@ -171,7 +171,7 @@ def test_collect_droplets() -> None:
     droplet = graph.search_first("urn", "do:droplet:289110074")
     assert droplet.urn == "do:droplet:289110074"
     assert droplet.name == "ubuntu-s-1vcpu-1gb-fra1-01"
-    assert droplet.instance_memory == 1024
+    assert droplet.instance_memory == 1
     assert droplet.instance_cores == 1
     assert droplet.instance_status == "running"
     assert droplet.region().urn == "do:region:fra1"
