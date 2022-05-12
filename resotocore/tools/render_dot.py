@@ -28,6 +28,7 @@ try:
     from posthog import Client
     import subprocess
     from pathlib import Path
+    import shlex
 except ImportError:
     print(f"Can't import one or more modules. Is resoto dev environment activated?")
     print(f"Hint: see https://resoto.com/docs/contributing/components for more info.")
@@ -232,8 +233,8 @@ def send_analytics(run_id: str, event: str):
 
 
 def resh(query, args) -> str:
-    uri = ["--resotocore-uri", args.uri] if args.uri else []
-    psk = ["--psk", args.psk] if args.psk else []
+    uri = ["--resotocore-uri", shlex.quote(args.uri)] if args.uri else []
+    psk = ["--psk", shlex.quote(args.psk)] if args.psk else []
     command = ["resh"] + uri + psk + ["--stdin"]
     p = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     output = p.communicate(input=query.encode())[0].decode()
