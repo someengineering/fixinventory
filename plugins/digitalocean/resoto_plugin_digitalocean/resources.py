@@ -165,7 +165,7 @@ class DigitalOceanTeam(DigitalOceanResource, BaseAccount):  # type: ignore
             "digitalocean_image",
             "digitalocean_kubernetes_cluster",
             "digitalocean_load_balancer",
-            "digitalocean_network",
+            "digitalocean_vpc",
             "digitalocean_project",
             "digitalocean_region",
             "digitalocean_resource",
@@ -194,7 +194,7 @@ class DigitalOceanRegion(DigitalOceanResource, BaseRegion):  # type: ignore
             "digitalocean_image",
             "digitalocean_kubernetes_cluster",
             "digitalocean_load_balancer",
-            "digitalocean_network",
+            "digitalocean_vpc",
             "digitalocean_snapshot",
             "digitalocean_space",
         ],
@@ -381,13 +381,13 @@ class DigitalOceanDatabase(DigitalOceanResource, BaseDatabase):  # type: ignore
 
 
 @dataclass(eq=False)
-class DigitalOceanNetwork(DigitalOceanResource, BaseNetwork):  # type: ignore
+class DigitalOceanVPC(DigitalOceanResource, BaseNetwork):  # type: ignore
     """DigitalOcean network
 
     This is what instances and other networking related resources might reside in.
     """
 
-    kind: ClassVar[str] = "digitalocean_network"
+    kind: ClassVar[str] = "digitalocean_vpc"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
         "default": [
             "digitalocean_load_balancer",

@@ -15,7 +15,7 @@ from .resources import (
     DigitalOceanTeam,
     DigitalOceanVolume,
     DigitalOceanDatabase,
-    DigitalOceanNetwork,
+    DigitalOceanVPC,
     DigitalOceanKubernetesCluster,
     DigitalOceanSnapshot,
     DigitalOceanLoadBalancer,
@@ -646,7 +646,7 @@ class DigitalOceanTeamCollector:
         vpcs = self.client.list_vpcs()
         self.collect_resource(
             vpcs,
-            resource_class=DigitalOceanNetwork,
+            resource_class=DigitalOceanVPC,
             attr_map={
                 "id": "id",
                 "urn": "urn",
