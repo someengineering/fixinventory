@@ -23,7 +23,7 @@ services:
       - --web.console.libraries=/usr/share/prometheus/console_libraries
       - --web.console.templates=/usr/share/prometheus/consoles
   resotocore:
-    image: somecr.io/someengineering/resotocore:edge
+    image: somecr.io/someengineering/resotocore:2.2
     depends_on:
       - graphdb
     ports:
@@ -45,7 +45,7 @@ services:
     restart: always
     stop_grace_period: 2m
   resotoworker:
-    image: somecr.io/someengineering/resotoworker:edge
+    image: somecr.io/someengineering/resotoworker:2.2
     depends_on:
       - resotocore
     ports:
@@ -58,7 +58,7 @@ services:
     restart: always
     stop_grace_period: 2m
   resotometrics:
-    image: somecr.io/someengineering/resotometrics:edge
+    image: somecr.io/someengineering/resotometrics:2.2
     depends_on:
       - resotocore
     ports:
@@ -73,7 +73,7 @@ services:
   resotoshell:
     # This container is not started by default. To start a shell use this command:
     # $> docker-compose run resotoshell
-    image: somecr.io/someengineering/resotoshell:edge
+    image: somecr.io/someengineering/resotoshell:2.2
     profiles:
       - do-not-start
     depends_on:
@@ -91,7 +91,7 @@ services:
     #
     # Or to do it in one step
     # $> docker exec -it $(docker ps -f name=resoto_resotoshell-server_1 --format "{{.ID}}") resh
-    image: somecr.io/someengineering/resotoshell:edge
+    image: somecr.io/someengineering/resotoshell:2.2
     depends_on:
       - resotocore
     environment:
