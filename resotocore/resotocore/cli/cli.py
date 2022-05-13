@@ -36,6 +36,8 @@ from resotocore.cli.command import (
     ExecuteSearchCommand,
     JobsCommand,
     WelcomeCommand,
+    SortPart,
+    LimitPart,
 )
 from resotocore.cli.model import (
     ParsedCommand,
@@ -69,7 +71,7 @@ from resotocore.query.model import (
     Limit,
     Sort,
 )
-from resotocore.query.query_parser import aggregate_parameter_parser
+from resotocore.query.query_parser import aggregate_parameter_parser, sort_args_p, limit_parser_direct
 from resotocore.query.template_expander import render_template
 from resotocore.types import JsonElement
 from resotocore.util import utc_str, utc, from_utc, group_by
@@ -328,6 +330,13 @@ class CLI:
             arg = command.arg if command.arg else ""
             if isinstance(part, SearchPart):
                 query = query.combine(await parse_query(arg))
+            elif isinstance(part, SortPart):
+                if query.current_part.sort == DefaultSort:
+                    query = query.set_sort(*sort_args_p.parse(arg))
+                else:
+                    query = query.add_sort(*sort_args_p.parse(arg))
+            elif isinstance(part, LimitPart):
+                query = query.with_limit(limit_parser_direct.parse(arg))
             elif isinstance(part, PredecessorsPart):
                 origin, edge = PredecessorsPart.parse_args(arg, ctx)
                 query = query.traverse_in(origin, 1, edge)
@@ -354,7 +363,7 @@ class CLI:
                 if "explain" not in parsed_options:
                     additional_commands.append(self.command("aggregate_to_count", None, ctx))
                 query = replace(query, aggregate=aggregate)
-                query = query.add_sort(f"{PathRoot}count")
+                query = query.set_sort(Sort(f"{PathRoot}count"))
             elif isinstance(part, HeadCommand):
                 size = HeadCommand.parse_size(arg)
                 limit = query.parts[0].limit or Limit(0, size)
@@ -398,7 +407,7 @@ class CLI:
             query = replace(query, parts=parts)
 
         # If the last part is a navigation, we need to add sort which will ingest a new part.
-        with_sort = query.set_sort(DefaultSort) if query.current_part.navigation else query
+        with_sort = query.set_sort(*DefaultSort) if query.current_part.navigation else query
         # When all parts are combined, interpret the result on defined section.
         final_query = with_sort.on_section(ctx.env.get("section", PathRoot))
         options = ExecuteSearchCommand.argument_string(parsed_options)

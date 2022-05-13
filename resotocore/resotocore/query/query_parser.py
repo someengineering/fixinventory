@@ -286,11 +286,14 @@ def single_sort_arg_parser() -> Parser:
     return Sort(name, order if order else SortOrder.Asc)
 
 
+sort_args_p = single_sort_arg_parser.sep_by(comma_p, min=1)
+
+
 @make_parser
 def sort_parser() -> Parser:
     yield sort_dp
     yield space_dp
-    attributes = yield single_sort_arg_parser.sep_by(comma_p, min=1)
+    attributes = yield sort_args_p
     yield whitespace
     return attributes
 
@@ -301,12 +304,13 @@ reversed_p = lexeme(string("reversed")).optional().map(lambda x: x is not None)
 
 
 @make_parser
-def limit_parser() -> Parser:
-    yield limit_p
-    yield space_dp
+def limit_parser_direct() -> Parser:
     num = yield integer_dp
     with_offset = yield limit_with_offset_parser.optional()
     return Limit(num, with_offset) if with_offset else Limit(0, num)
+
+
+limit_parser = limit_p >> space_dp >> limit_parser_direct
 
 
 @make_parser

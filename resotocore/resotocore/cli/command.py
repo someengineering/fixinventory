@@ -333,6 +333,84 @@ class SearchPart(SearchCLIPart):
         return [ArgInfo(expects_value=True, value_hint="search")]
 
 
+class SortPart(SearchCLIPart):
+    """
+    ```shell
+    sort <sort_property> [asc|desc], <sort_property> [asc|desc], ...
+    ```
+    Sort the search results based on the given properties in the given order.
+
+    ## Parameters
+    - <sort_property> [mandatory]: the property to sort by.
+    - [asc|desc] [optional, default to asc]: the sort order as ascending or descending.
+
+    ## Examples
+
+    ```shell
+    # Search all volumes and sort by volume size ascending, showing the smallest volume first.
+    > search is(volume) | sort volume_size desc | head -1
+    kind=aws_ec2_volume, id=vol-1, name=vol-2, age=1yr5mo, cloud=aws, account=eng, region=us-west-2
+
+    # Add a second search criteria
+    > search is(volume) | sort volume_size asc, name desc | head -2
+    kind=example_volume, id=Vol2, name=Vol2, age=1mo8d, cloud=example, account=Example Account, region=US East
+    kind=example_volume, id=Vol1, name=Vol1, age=1mo8d, cloud=example, account=Example Account, region=US West
+
+    # Same search as before, now sort by name ascending
+    > search is(volume) | sort volume_size asc, name asc | head -2
+    kind=example_volume, id=Vol1, name=Vol1, age=1mo8d, cloud=example, account=Example Account, region=US West
+    kind=example_volume, id=Vol2, name=Vol2, age=1mo8d, cloud=example, account=Example Account, region=US East
+    ```
+    """
+
+    @property
+    def name(self) -> str:
+        return "sort"
+
+    def info(self) -> str:
+        return "Sort the search results."
+
+    def args_info(self) -> ArgsInfo:
+        return [ArgInfo(expects_value=True, help_text="<property> [asc|desc]")]
+
+
+class LimitPart(SearchCLIPart):
+    """
+    ```shell
+    limit [offset] <nr_items>
+    ```
+    Limit allows to define an optional offset as well as the number if item to return.
+
+    ## Parameters
+    - offset [optional, default to 0]: drop the first number of items and start at defined position.
+    - nr_items [mandatory]: the number of items to return.
+
+    ## Examples
+
+    ```shell
+    # Return the first 3 results from the search
+    > search is(volume) | limit 3
+    kind=aws_ec2_volume, id=vol-0, name=fs-0, age=2mo23d, cloud=aws, account=eng, region=us-west-2
+    kind=aws_ec2_volume, id=vol-1, name=fs-1, age=2mo23d, cloud=aws, account=eng, region=us-west-2
+    kind=aws_ec2_volume, id=vol-2, name=fs-2, age=2mo23d, cloud=aws, account=eng, region=us-west-1
+
+    # Return one result from the search dropping the first 2 items
+    > search is(volume) | limit 2, 1
+    kind=aws_ec2_volume, id=vol-2, name=fs-2, age=2mo23d, cloud=aws, account=eng, region=us-west-1
+    ```
+    """
+
+    @property
+    def name(self) -> str:
+        return "limit"
+
+    def info(self) -> str:
+        return "Limit the number of returned search results."
+
+    def args_info(self) -> ArgsInfo:
+        return [ArgInfo(expects_value=True, help_text="[offset], <nr_items> to return")]
+
+
 class PredecessorsPart(SearchCLIPart):
     """
     ```shell
@@ -3924,6 +4002,7 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         JqCommand(d),
         JsonCommand(d, allowed_in_source_position=True),
         KindsCommand(d, allowed_in_source_position=True),
+        LimitPart(d),
         ListCommand(d),
         TemplatesCommand(d, allowed_in_source_position=True),
         PredecessorsPart(d),
@@ -3932,6 +4011,7 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         SetDesiredCommand(d),
         SetMetadataCommand(d),
         SleepCommand(d, allowed_in_source_position=True),
+        SortPart(d),
         SuccessorsPart(d),
         SystemCommand(d, allowed_in_source_position=True),
         TagCommand(d),

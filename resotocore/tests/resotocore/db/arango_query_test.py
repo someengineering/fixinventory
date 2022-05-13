@@ -5,7 +5,7 @@ from resotocore.db.arango_query import to_query, query_cost, fulltext_term_combi
 from resotocore.db.graphdb import GraphDB
 from resotocore.db.model import QueryModel
 from resotocore.model.model import Model
-from resotocore.query.model import Query
+from resotocore.query.model import Query, Sort
 
 from resotocore.query.query_parser import parse_query
 
@@ -18,10 +18,10 @@ def test_sort_order_for_synthetic_prop(foo_model: Model, graph_db: GraphDB) -> N
         query_str, _ = to_query(graph_db, QueryModel(q, foo_model))
         assert f"SORT {expected_sort}" in query_str, f"Expected {expected_sort} in {query_str}"
 
-    check_sort_in_query(Query.by("foo").add_sort("reported.age"), "m0.reported.ctime desc")
-    check_sort_in_query(Query.by("foo").add_sort("some.age"), "m0.some.age asc")
-    check_sort_in_query(Query.by("foo").add_sort("reported.ctime"), "m0.reported.ctime asc")
-    check_sort_in_query(Query.by("foo").add_sort("metadata.expired"), "m0.metadata.expired asc")
+    check_sort_in_query(Query.by("foo").add_sort(Sort("reported.age")), "m0.reported.ctime desc")
+    check_sort_in_query(Query.by("foo").add_sort(Sort("some.age")), "m0.some.age asc")
+    check_sort_in_query(Query.by("foo").add_sort(Sort("reported.ctime")), "m0.reported.ctime asc")
+    check_sort_in_query(Query.by("foo").add_sort(Sort("metadata.expired")), "m0.metadata.expired asc")
 
 
 @pytest.mark.asyncio
