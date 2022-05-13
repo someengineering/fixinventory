@@ -184,7 +184,7 @@ def test_query() -> None:
         .filter(P("active") == 12, P.function("in_subnet").on("ip", "1.2.3.4/96"))
         .filter_with(WithClause(WithClauseFilter("==", 0), Navigation()))
         .group_by([AggregateVariable(AggregateVariableName("foo"))], [AggregateFunction("sum", "cpu")])
-        .add_sort("test", "asc")
+        .add_sort(Sort("test", "asc"))
         .with_limit(10)
     )
     assert str(query) == (
@@ -279,7 +279,7 @@ def test_sort_order() -> None:
     assert sort_parser.parse("sort foo asc") == [Sort("foo", "asc")]
     parsed = sort_parser.parse("sort foo asc, bla desc, bar")
     assert parsed == [Sort("foo", "asc"), Sort("bla", "desc"), Sort("bar", "asc")]
-    assert_round_trip(query_parser, Query.by("test").add_sort("test").add_sort("goo"))
+    assert_round_trip(query_parser, Query.by("test").add_sort(Sort("test")).add_sort(Sort("goo")))
 
 
 def test_limit() -> None:
