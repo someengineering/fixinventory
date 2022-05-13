@@ -1,6 +1,8 @@
 name: Check PR (resotoworker)
 on:
   push:
+    tags:
+      - "*.*.*"
     branches:
         - main
   pull_request:

@@ -1,6 +1,8 @@
 name: Test and build (resotocore)
 on:
   push:
+    tags:
+      - "*.*.*"
     branches:
       - main
     paths:

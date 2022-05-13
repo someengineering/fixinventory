@@ -10,6 +10,8 @@ install = """# Note: this workflow is automatically generated via the `create_pr
 name: Check PR (Plugin @name@)
 on:
   push:
+    tags:
+      - "*.*.*"
     branches:
         - main
   pull_request:
