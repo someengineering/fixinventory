@@ -4,6 +4,8 @@
 name: Check PR (Plugin vsphere)
 on:
   push:
+    tags:
+      - "*.*.*"
     branches:
         - main
   pull_request:

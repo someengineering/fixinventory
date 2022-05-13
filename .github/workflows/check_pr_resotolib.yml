@@ -1,6 +1,8 @@
 name: Check PR (resotolib)
 on:
   push:
+    tags:
+      - "*.*.*"
     branches:
         - main
   pull_request:

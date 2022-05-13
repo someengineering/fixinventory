@@ -4,6 +4,8 @@
 name: Check PR (Plugin cleanup_aws_loadbalancers)
 on:
   push:
+    tags:
+      - "*.*.*"
     branches:
         - main
   pull_request:
