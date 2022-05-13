@@ -1882,6 +1882,8 @@ class FormatCommand(CLICommand, OutputTransformer):
 
     ## Options
     - `--json` [Optional] - will create a json string from the incoming json. The result will be a json array.
+    - `--yaml` [Optional] - will create a yaml string from the incoming json.
+       Subsequent object will be separated by `---`.
     - `--ndjson` [Optional] - will create a json object for every element, where one element fits on one line.
     - `--text` [Optional] - will create a text representation of every element.
     - `--cytoscape` [Optional] - will create a string representation in the well known cytoscape format.
@@ -1927,6 +1929,7 @@ class FormatCommand(CLICommand, OutputTransformer):
             ArgInfo("--cytoscape", help_text="output format", option_group="output"),
             ArgInfo("--graphml", help_text="output format", option_group="output"),
             ArgInfo("--dot", help_text="output format", option_group="output"),
+            ArgInfo("--yaml", help_text="output format", option_group="output"),
             ArgInfo(expects_value=True, help_text="format definition with {} placeholders", option_group="output"),
         ]
 
