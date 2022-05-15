@@ -1,5 +1,5 @@
 <p align="center"><img src="https://raw.githubusercontent.com/someengineering/resoto/main/misc/resoto_200.png" alt="Resoto"/>
-<h1 align="center">Housekeeping for Clouds!</h1></p>
+<h1 align="center">Automate tedious infrastructure tasks, remarkably fast!</h1></p>
 
 <p align="center"><img src="https://raw.githubusercontent.com/someengineering/resoto/main/misc/resoto_banner.png" /></p>
 
@@ -12,7 +12,7 @@
 ## Table of contents
 
 * [Overview](#overview)
-* [Docker-based quick start](#docker-based-quick-start)
+* [Getting started](#getting-started)
 * [Cloning this repository](#cloning-this-repository)
 * [Component list](#component-list)
 * [Contact](#contact)
@@ -20,15 +20,21 @@
 
 
 ## Overview
-Resoto is “housekeeping for clouds” - find leaky resources, manage quota limits, detect drift and clean up.
+Search Infrastructure
+* Resoto maps out your cloud infrastructure in a [graph](https://resoto.com/docs/concepts/graph) and provides a simple [search syntax](https://resoto.com/docs/concepts/search).
 
-Resoto indexes resources, captures dependencies and maps out your infrastructure in a graph so that it’s understandable for a human. The graph contains metrics for each resource. Developers and SREs can search the graph with a query language, and create alerting and clean-up workflows. Metrics can be aggregated and exported to a time series database like Prometheus.
+Generate Reports
+* Resoto keeps track of and reports infrastructure changes over time, making it easy to [audit resource usage and cleanup](https://resoto.com/docs/concepts/search/aggregation).
+
+Automate Tasks
+* Tedious tasks like rule enforcement, resource tagging, and cleanup can be [automated using jobs](https://resoto.com/docs/concepts/automation/job).
+
 
 If you ever
 * had a standstill in your CI pipeline because a broken job leaked cloud resources which triggered a quota limit
 * wanted to find all expired certificate
-* had to change the tags of thousands of EC2 instances at once
-* needed to delete all unused EBS volumes that had no I/O in the past month
+* had to change the tags of thousands of EC2 instances
+* needed to delete all unused EBS volumes that had no I/O for a while
 * wished for a god view that lets you explore all cloud usage across all clouds
 * reported the cost of a project across different accounts or even across clouds
 * cleaned up orphaned load balancers that had no active backends
@@ -36,23 +42,9 @@ If you ever
 
 Those are the kinds of situations Resoto was built for.
 
-Currently it can collect [AWS](plugins/aws/), [Google Cloud](plugins/gcp/), [VMWare Vsphere](plugins/vsphere/), [OneLogin](plugins/onelogin/) and [Slack](plugins/slack/). The later can also be used for notification of resource cleanups. If the cloud you are using is not listed it is easy to write your own collectors. An example can be found [here](plugins/example_collector/).
+Currently it can collect [AWS](plugins/aws/), [Google Cloud](plugins/gcp/),[DigitalOcean](plugins/digitalocean/), [VMWare Vsphere](plugins/vsphere/), [OneLogin](plugins/onelogin/) and [Slack](plugins/slack/). If the cloud you are using is not listed it is easy to write your own collectors. An example can be found [here](plugins/example_collector/).
 
-## Docker-based quick start
-
-Docker images are hosted via GitHub container repository: `somecr.io/someengineering/resoto:2.2.0`
-
-In this quick start guide, we’re showing you three things, how to:
-
-    1. install Resoto for AWS with Docker
-    2. use the Resoto CLI to run your first collect workflow
-    3. query the results of the collect run
-
-The docker set-up takes 2-5 minutes. The duration of the first collect process depends on the size of your environment - usually 5-10 minutes.
-
-Examples and data in this guide are based on a small AWS [Cloud9](https://aws.amazon.com/cloud9/) environment.
-To start exploring you need AWS credentials and a working Docker environment with access to AWS APIs.
-We assume you are familiar with basic Docker operations and how to operate a Linux shell.
+## Getting started
 
 **Continue reading the Quick Start Guide**
 --> [https://resoto.com/docs/getting-started/](https://resoto.com/docs/getting-started/)
@@ -64,7 +56,6 @@ We assume you are familiar with basic Docker operations and how to operate a Lin
 - [`resotoworker`](resotoworker/) provides workers that load [plugins](plugins/) to perform collect and cleanup operations.
 - [`resotometrics`](resotometrics/) is a [Prometheus](https://prometheus.io/) [exporter](https://prometheus.io/docs/instrumenting/exporters/).
 - [`plugins`](plugins/) are a collection of worker plugins like [AWS](plugins/aws/)
-- [`resoto-ui`](https://github.com/someengineering/resoto-ui/) a UI prototype.
 
 
 ## Contact
