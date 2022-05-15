@@ -13,7 +13,6 @@
 
 * [Overview](#overview)
 * [Getting started](#getting-started)
-* [Cloning this repository](#cloning-this-repository)
 * [Component list](#component-list)
 * [Contact](#contact)
 * [License](#license)
