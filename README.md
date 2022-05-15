@@ -20,14 +20,11 @@
 
 
 ## Overview
-🔍 Search Infrastructure
-* Resoto maps out your cloud infrastructure in a [graph](https://resoto.com/docs/concepts/graph) and provides a simple [search syntax](https://resoto.com/docs/concepts/search).
+🔍 Search Infrastructure: Resoto maps out your cloud infrastructure in a [graph](https://resoto.com/docs/concepts/graph) and provides a simple [search syntax](https://resoto.com/docs/concepts/search).
 
-📊 Generate Reports
-* Resoto keeps track of and reports infrastructure changes over time, making it easy to [audit resource usage and cleanup](https://resoto.com/docs/concepts/search/aggregation).
+📊 Generate Reports: Resoto keeps track of and reports infrastructure changes over time, making it easy to [audit resource usage and cleanup](https://resoto.com/docs/concepts/search/aggregation).
 
-🤖 Automate Tasks
-* Tedious tasks like rule enforcement, resource tagging, and cleanup can be [automated using jobs](https://resoto.com/docs/concepts/automation/job).
+🤖 Automate Tasks: Tedious tasks like rule enforcement, resource tagging, and cleanup can be [automated using jobs](https://resoto.com/docs/concepts/automation/job).
 
 
 If you ever
@@ -42,7 +39,7 @@ If you ever
 
 Those are the kinds of situations Resoto was built for.
 
-Currently it can collect [AWS](plugins/aws/), [Google Cloud](plugins/gcp/),[DigitalOcean](plugins/digitalocean/), [VMWare Vsphere](plugins/vsphere/), [OneLogin](plugins/onelogin/) and [Slack](plugins/slack/). If the cloud you are using is not listed it is easy to write your own collectors. An example can be found [here](plugins/example_collector/).
+Currently it can collect [AWS](plugins/aws/), [Google Cloud](plugins/gcp/),[DigitalOcean](plugins/digitalocean/), [VMWare Vsphere](plugins/vsphere/), [OneLogin](plugins/onelogin/) and [Slack](plugins/slack/) resources. If the cloud you are using is not listed it is easy to write your own collectors. An example can be found [here](plugins/example_collector/).
 
 ## Getting started
 
