@@ -42,8 +42,7 @@ Currently it can collect [AWS](plugins/aws/), [Google Cloud](plugins/gcp/),[Digi
 
 ## Getting started
 
-**Continue reading the Quick Start Guide**
---> [https://resoto.com/docs/getting-started/](https://resoto.com/docs/getting-started/)
+Continue reading [the Quick Start Guide](https://resoto.com/docs/getting-started/)
 
 
 # Component list
