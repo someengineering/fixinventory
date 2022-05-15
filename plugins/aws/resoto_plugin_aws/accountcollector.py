@@ -2299,9 +2299,12 @@ class AWSAccountCollector:
             c.arn = cluster.get("arn")
             c.cluster_status = cluster.get("status")
             c.cluster_endpoint = cluster.get("endpoint")
+            log.debug(
+                f"Found {c.rtdname} in account {self.account.dname} region {region.id}"
+            )
             if "roleArn" in cluster:
                 log.debug(
-                    f"Queuing deferred connection from role {cluster['roleArn']} to {c.kind} {c.id}"
+                    f"Queuing deferred connection from role {cluster['roleArn']} to {c.rtdname}"
                 )
                 c.add_deferred_connection({"arn": cluster["roleArn"]}, parent=False)
                 c.add_deferred_connection(
@@ -2384,6 +2387,9 @@ class AWSAccountCollector:
             n.cluster_name = cluster.name
             n.arn = nodegroup.get("nodegroupArn")
             n.nodegroup_status = nodegroup.get("status")
+            log.debug(
+                f"Found {n.rtdname} in account {self.account.dname} region {region.id} cluster {cluster.id}"
+            )
             graph.add_resource(cluster, n)
             graph.add_edge(cluster, n, edge_type=EdgeType.delete)
             for autoscaling_group in nodegroup.get("resources", {}).get(
