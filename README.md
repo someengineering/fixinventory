@@ -26,19 +26,7 @@
 🤖 Automate Tasks: Tedious tasks like rule enforcement, resource tagging, and cleanup can be [automated using jobs](https://resoto.com/docs/concepts/automation/job).
 
 
-If you ever
-* had a standstill in your CI pipeline because a broken job leaked cloud resources which triggered a quota limit
-* wanted to find all expired certificate
-* had to change the tags of thousands of EC2 instances
-* needed to delete all unused EBS volumes that had no I/O for a while
-* wished for a god view that lets you explore all cloud usage across all clouds
-* reported the cost of a project across different accounts or even across clouds
-* cleaned up orphaned load balancers that had no active backends
-* wanted to automate any of the above
-
-Those are the kinds of situations Resoto was built for.
-
-Currently it can collect [AWS](plugins/aws/), [Google Cloud](plugins/gcp/),[DigitalOcean](plugins/digitalocean/), [VMWare Vsphere](plugins/vsphere/), [OneLogin](plugins/onelogin/) and [Slack](plugins/slack/) resources. If the cloud you are using is not listed it is easy to write your own collectors. An example can be found [here](plugins/example_collector/).
+Currently Resoto can collect [AWS](plugins/aws/), [Google Cloud](plugins/gcp/), [DigitalOcean](plugins/digitalocean/), [VMWare Vsphere](plugins/vsphere/), [OneLogin](plugins/onelogin/) and [Slack](plugins/slack/) resources. If the cloud you are using is not listed it is easy to write your own collectors. An example can be found [here](plugins/example_collector/).
 
 ## Getting started
 
