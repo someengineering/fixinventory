@@ -6,6 +6,7 @@ from dataclasses import replace
 from deepdiff import DeepDiff
 from hypothesis import given, settings, HealthCheck
 
+from resotocore import error
 from tests.resotocore.query import query
 from resotocore.query.model import (
     Navigation,
@@ -305,6 +306,12 @@ def test_with_clause() -> None:
 
     assert_round_trip(with_clause_parser, WithClause(clause_filter, nav, term, WithClause(clause_filter, nav)), edge)
     assert_round_trip(with_clause_parser, WithClause(clause_filter, nav), edge)
+
+
+def test_special_cases() -> None:
+    with pytest.raises(error.ParseError):
+        # parser was able to read: is(instance) and sort in "stance_cores"
+        parse_query("is(instance) and sort instance_cores")
 
 
 @given(query)
