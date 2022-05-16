@@ -27,7 +27,7 @@ class ApiClient:
     async def model(self) -> Model:
         async with self.session.get(self.base_path + "/model") as response:
             model_json = await response.json()
-            model = Model.from_kinds([from_js(kind, Kind) for kind in model_json["kinds"].values()])  # type: ignore
+            model = Model.from_kinds([from_js(kind, Kind) for kind in model_json])  # type: ignore
             return model
 
     async def update_model(self, update: List[Kind]) -> Model:
