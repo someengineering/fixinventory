@@ -2,7 +2,7 @@ import time
 import copy
 import botocore.exceptions
 from datetime import date
-from enum import Enum, auto
+from enum import auto
 from resotolib.baseresources import *
 from resotolib.graph import Graph
 from resotolib.utils import make_valid_timestamp
@@ -19,6 +19,11 @@ default_ctime = make_valid_timestamp(date(2006, 3, 19))  # AWS public launch dat
 @dataclass(eq=False)
 class AWSAccount(BaseAccount):
     kind: ClassVar[str] = "aws_account"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["aws_region"],
+        "delete": [],
+    }
+
     account_alias: Optional[str] = ""
     role: Optional[str] = None
     users: Optional[int] = 0
@@ -50,6 +55,51 @@ class AWSAccount(BaseAccount):
 @dataclass(eq=False)
 class AWSRegion(BaseRegion):
     kind: ClassVar[str] = "aws_region"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": [
+            "aws_vpc_quota",
+            "aws_vpc_peering_connection",
+            "aws_vpc_endpoint",
+            "aws_vpc",
+            "aws_s3_bucket_quota",
+            "aws_s3_bucket",
+            "aws_rds_instance",
+            "aws_iam_server_certificate_quota",
+            "aws_iam_server_certificate",
+            "aws_iam_role",
+            "aws_iam_policy",
+            "aws_iam_instance_profile",
+            "aws_iam_group",
+            "aws_elb_quota",
+            "aws_elb",
+            "aws_eks_cluster",
+            "aws_ec2_volume_type",
+            "aws_ec2_volume",
+            "aws_iam_user",
+            "aws_ec2_subnet",
+            "aws_ec2_snapshot",
+            "aws_ec2_security_group",
+            "aws_ec2_route_table",
+            "aws_ec2_network_interface",
+            "aws_ec2_network_acl",
+            "aws_ec2_nat_gateway",
+            "aws_ec2_keypair",
+            "aws_ec2_internet_gateway_quota",
+            "aws_ec2_internet_gateway",
+            "aws_ec2_instance_type",
+            "aws_ec2_instance_quota",
+            "aws_ec2_instance",
+            "aws_ec2_elastic_ip",
+            "aws_cloudwatch_alarm",
+            "aws_cloudformation_stack",
+            "aws_cloudformation_stack_set",
+            "aws_autoscaling_group",
+            "aws_alb_target_group",
+            "aws_alb_quota",
+            "aws_alb",
+        ],
+        "delete": [],
+    }
     ctime: Optional[datetime] = default_ctime
 
     def delete(self, graph) -> bool:
@@ -68,16 +118,34 @@ class AWSResource:
 @dataclass(eq=False)
 class AWSEC2InstanceType(AWSResource, BaseInstanceType):
     kind: ClassVar[str] = "aws_ec2_instance_type"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["aws_ec2_instance"],
+        "delete": [],
+    }
 
 
 @dataclass(eq=False)
 class AWSEC2InstanceQuota(AWSResource, BaseInstanceQuota):
     kind: ClassVar[str] = "aws_ec2_instance_quota"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["aws_ec2_instance_type"],
+        "delete": [],
+    }
 
 
 @dataclass(eq=False)
 class AWSEC2Instance(AWSResource, BaseInstance):
     kind: ClassVar[str] = "aws_ec2_instance"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": [
+            "aws_ec2_volume",
+            "aws_ec2_network_interface",
+            "aws_ec2_keypair",
+            "aws_ec2_elastic_ip",
+            "aws_cloudwatch_alarm",
+        ],
+        "delete": ["aws_elb", "aws_autoscaling_group", "aws_alb_target_group"],
+    }
 
     instance_status_map: ClassVar[Dict[str, InstanceStatus]] = {
         "pending": InstanceStatus.BUSY,
@@ -134,6 +202,10 @@ AWSEC2Instance.instance_status = property(
 @dataclass(eq=False)
 class AWSEC2KeyPair(AWSResource, BaseKeyPair):
     kind: ClassVar[str] = "aws_ec2_keypair"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": [],
+        "delete": ["aws_ec2_instance"],
+    }
 
     def delete(self, graph: Graph) -> bool:
         ec2 = aws_client(self, "ec2", graph)
@@ -154,11 +226,20 @@ class AWSEC2KeyPair(AWSResource, BaseKeyPair):
 @dataclass(eq=False)
 class AWSEC2VolumeType(AWSResource, BaseVolumeType):
     kind: ClassVar[str] = "aws_ec2_volume_type"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["aws_ec2_volume"],
+        "delete": [],
+    }
 
 
 @dataclass(eq=False)
 class AWSEC2Volume(AWSResource, BaseVolume):
     kind: ClassVar[str] = "aws_ec2_volume"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["aws_ec2_snapshot"],
+        "delete": ["aws_ec2_instance"],
+    }
+
     volume_kms_key_id: Optional[str] = None
     volume_multi_attach_enabled: Optional[bool] = None
     volume_outpost_arn: Optional[str] = None
@@ -272,6 +353,24 @@ class AWSEC2Snapshot(AWSResource, BaseSnapshot):
 @dataclass(eq=False)
 class AWSEC2Subnet(AWSResource, BaseSubnet):
     kind: ClassVar[str] = "aws_ec2_subnet"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": [
+            "aws_vpc_endpoint",
+            "aws_rds_instance",
+            "aws_elb",
+            "aws_ec2_network_interface",
+            "aws_ec2_network_acl",
+            "aws_ec2_nat_gateway",
+            "aws_alb",
+        ],
+        "delete": [
+            "aws_vpc_endpoint",
+            "aws_rds_instance",
+            "aws_elb",
+            "aws_ec2_network_interface",
+            "aws_alb",
+        ],
+    }
 
     def delete(self, graph: Graph) -> bool:
         ec2 = aws_resource(self, "ec2", graph)
@@ -293,6 +392,11 @@ class AWSEC2Subnet(AWSResource, BaseSubnet):
 @dataclass(eq=False)
 class AWSEC2ElasticIP(AWSResource, BaseIPAddress):
     kind: ClassVar[str] = "aws_ec2_elastic_ip"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": [],
+        "delete": ["aws_ec2_network_interface", "aws_ec2_instance"],
+    }
+
     instance_id: Optional[str] = None
     public_ip: Optional[str] = None
     allocation_id: Optional[str] = None
@@ -329,6 +433,36 @@ class AWSEC2ElasticIP(AWSResource, BaseIPAddress):
 @dataclass(eq=False)
 class AWSVPC(AWSResource, BaseNetwork):
     kind: ClassVar[str] = "aws_vpc"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": [
+            "aws_vpc_peering_connection",
+            "aws_vpc_endpoint",
+            "aws_rds_instance",
+            "aws_elb",
+            "aws_ec2_subnet",
+            "aws_ec2_security_group",
+            "aws_ec2_route_table",
+            "aws_ec2_network_interface",
+            "aws_ec2_network_acl",
+            "aws_ec2_nat_gateway",
+            "aws_ec2_internet_gateway",
+            "aws_alb_target_group",
+        ],
+        "delete": [
+            "aws_vpc_peering_connection",
+            "aws_vpc_endpoint",
+            "aws_rds_instance",
+            "aws_elb",
+            "aws_ec2_subnet",
+            "aws_ec2_security_group",
+            "aws_ec2_route_table",
+            "aws_ec2_network_interface",
+            "aws_ec2_network_acl",
+            "aws_ec2_nat_gateway",
+            "aws_ec2_internet_gateway",
+            "aws_alb_target_group",
+        ],
+    }
     is_default: bool = False
 
     def delete(self, graph: Graph) -> bool:
@@ -360,6 +494,10 @@ class AWSVPC(AWSResource, BaseNetwork):
 @dataclass(eq=False)
 class AWSVPCQuota(AWSResource, BaseNetworkQuota):
     kind: ClassVar[str] = "aws_vpc_quota"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["aws_vpc"],
+        "delete": [],
+    }
 
 
 @dataclass(eq=False)
@@ -423,11 +561,19 @@ class AWSS3Bucket(AWSResource, BaseBucket):
 @dataclass(eq=False)
 class AWSS3BucketQuota(AWSResource, BaseBucketQuota):
     kind: ClassVar[str] = "aws_s3_bucket_quota"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["aws_s3_bucket"],
+        "delete": [],
+    }
 
 
 @dataclass(eq=False)
 class AWSELB(AWSResource, BaseLoadBalancer):
     kind: ClassVar[str] = "aws_elb"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["aws_ec2_instance"],
+        "delete": [],
+    }
 
     def delete(self, graph: Graph) -> bool:
         client = aws_client(self, "elb", graph)
@@ -451,6 +597,10 @@ class AWSELB(AWSResource, BaseLoadBalancer):
 @dataclass(eq=False)
 class AWSALB(AWSResource, BaseLoadBalancer):
     kind: ClassVar[str] = "aws_alb"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["aws_iam_server_certificate", "aws_alb_target_group"],
+        "delete": [],
+    }
 
     def delete(self, graph: Graph) -> bool:
         client = aws_client(self, "elbv2", graph)
@@ -472,29 +622,12 @@ class AWSALB(AWSResource, BaseLoadBalancer):
 @dataclass(eq=False)
 class AWSALBTargetGroup(AWSResource, BaseResource):
     kind: ClassVar[str] = "aws_alb_target_group"
-
-    metrics_description = {
-        "aws_alb_target_groups_total": {
-            "help": "Number of AWS ALB Target Groups",
-            "labels": ["cloud", "account", "region"],
-        },
-        "cleaned_aws_alb_target_groups_total": {
-            "help": "Cleaned number of AWS ALB Target Groups",
-            "labels": ["cloud", "account", "region"],
-        },
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["aws_ec2_instance"],
+        "delete": ["aws_alb"],
     }
-    target_type: str = ""
 
-    def metrics(self, graph) -> Dict:
-        metrics_keys = (
-            self.cloud(graph).name,
-            self.account(graph).dname,
-            self.region(graph).name,
-        )
-        self._metrics["aws_alb_target_groups_total"][metrics_keys] = 1
-        if self._cleaned:
-            self._metrics["cleaned_aws_alb_target_groups_total"][metrics_keys] = 1
-        return self._metrics
+    target_type: str = ""
 
     def delete(self, graph: Graph) -> bool:
         client = aws_client(self, "elbv2", graph)
@@ -516,11 +649,19 @@ class AWSALBTargetGroup(AWSResource, BaseResource):
 @dataclass(eq=False)
 class AWSELBQuota(AWSResource, BaseLoadBalancerQuota):
     kind: ClassVar[str] = "aws_elb_quota"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["aws_elb"],
+        "delete": [],
+    }
 
 
 @dataclass(eq=False)
 class AWSALBQuota(AWSResource, BaseLoadBalancerQuota):
     kind: ClassVar[str] = "aws_alb_quota"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["aws_alb"],
+        "delete": [],
+    }
 
 
 @dataclass(eq=False)
@@ -558,6 +699,11 @@ class AWSEC2InternetGateway(AWSResource, BaseGateway):
 @dataclass(eq=False)
 class AWSEC2NATGateway(AWSResource, BaseGateway):
     kind: ClassVar[str] = "aws_ec2_nat_gateway"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["aws_ec2_network_interface"],
+        "delete": [],
+    }
+
     nat_gateway_status: str = ""
 
     def delete(self, graph: Graph) -> bool:
@@ -579,11 +725,24 @@ class AWSEC2NATGateway(AWSResource, BaseGateway):
 @dataclass(eq=False)
 class AWSEC2InternetGatewayQuota(AWSResource, BaseGatewayQuota):
     kind: ClassVar[str] = "aws_ec2_internet_gateway_quota"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["aws_ec2_internet_gateway"],
+        "delete": [],
+    }
 
 
 @dataclass(eq=False)
 class AWSEC2SecurityGroup(AWSResource, BaseSecurityGroup):
     kind: ClassVar[str] = "aws_ec2_security_group"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": [
+            "aws_vpc_endpoint",
+            "aws_rds_instance",
+            "aws_elb",
+            "aws_ec2_network_interface",
+        ],
+        "delete": ["aws_vpc_endpoint", "aws_rds_instance"],
+    }
 
     def pre_delete(self, graph: Graph) -> bool:
         ec2 = aws_resource(self, "ec2", graph)
@@ -641,6 +800,10 @@ class AWSEC2SecurityGroup(AWSResource, BaseSecurityGroup):
 @dataclass(eq=False)
 class AWSEC2RouteTable(AWSResource, BaseRoutingTable):
     kind: ClassVar[str] = "aws_ec2_route_table"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["aws_vpc_endpoint"],
+        "delete": ["aws_vpc_endpoint"],
+    }
 
     def pre_delete(self, graph: Graph) -> bool:
         ec2 = aws_resource(self, "ec2", graph)
@@ -694,6 +857,10 @@ class AWSVPCPeeringConnection(AWSResource, BasePeeringConnection):
 @dataclass(eq=False)
 class AWSVPCEndpoint(AWSResource, BaseEndpoint):
     kind: ClassVar[str] = "aws_vpc_endpoint"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["aws_ec2_network_interface"],
+        "delete": [],
+    }
     vpc_endpoint_type: str = ""
     vpc_endpoint_status: str = ""
 
@@ -716,6 +883,10 @@ class AWSVPCEndpoint(AWSResource, BaseEndpoint):
 @dataclass(eq=False)
 class AWSEC2NetworkAcl(AWSResource, BaseNetworkAcl):
     kind: ClassVar[str] = "aws_ec2_network_acl"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": [],
+        "delete": ["aws_ec2_subnet"],
+    }
     is_default: bool = False
 
     def delete(self, graph: Graph) -> bool:
@@ -737,6 +908,10 @@ class AWSEC2NetworkAcl(AWSResource, BaseNetworkAcl):
 @dataclass(eq=False)
 class AWSEC2NetworkInterface(AWSResource, BaseNetworkInterface):
     kind: ClassVar[str] = "aws_ec2_network_interface"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["aws_ec2_elastic_ip"],
+        "delete": ["aws_vpc_endpoint", "aws_ec2_nat_gateway", "aws_ec2_instance"],
+    }
 
     def delete(self, graph: Graph) -> bool:
         ec2 = aws_resource(self, "ec2", graph)
@@ -764,6 +939,10 @@ class AWSRDSInstance(AWSResource, BaseDatabase):
 @dataclass(eq=False)
 class AWSIAMUser(AWSResource, BaseUser):
     kind: ClassVar[str] = "aws_iam_user"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["aws_iam_access_key"],
+        "delete": ["aws_iam_policy"],
+    }
     user_policies: List = field(default_factory=list)
 
     def pre_delete(self, graph: Graph) -> bool:
@@ -797,6 +976,10 @@ class AWSIAMUser(AWSResource, BaseUser):
 @dataclass(eq=False)
 class AWSIAMGroup(AWSResource, BaseGroup):
     kind: ClassVar[str] = "aws_iam_group"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["aws_iam_user"],
+        "delete": ["aws_iam_policy"],
+    }
     group_policies: List = field(default_factory=list)
 
     def pre_delete(self, graph: Graph) -> bool:
@@ -830,6 +1013,11 @@ class AWSIAMGroup(AWSResource, BaseGroup):
 @dataclass(eq=False)
 class AWSIAMRole(AWSResource, BaseRole):
     kind: ClassVar[str] = "aws_iam_role"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["aws_iam_policy", "aws_iam_instance_profile"],
+        "delete": ["aws_iam_policy", "aws_iam_instance_profile", "aws_eks_cluster"],
+    }
+
     role_policies: List = field(default_factory=list)
 
     def pre_delete(self, graph: Graph) -> bool:
@@ -863,6 +1051,10 @@ class AWSIAMRole(AWSResource, BaseRole):
 @dataclass(eq=False)
 class AWSIAMPolicy(AWSResource, BasePolicy):
     kind: ClassVar[str] = "aws_iam_policy"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["aws_iam_user", "aws_iam_group"],
+        "delete": [],
+    }
 
     def delete(self, graph: Graph) -> bool:
         iam = aws_resource(self, "iam", graph)
@@ -874,6 +1066,10 @@ class AWSIAMPolicy(AWSResource, BasePolicy):
 @dataclass(eq=False)
 class AWSIAMInstanceProfile(AWSResource, BaseInstanceProfile):
     kind: ClassVar[str] = "aws_iam_instance_profile"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["aws_ec2_instance"],
+        "delete": [],
+    }
 
     def pre_delete(self, graph: Graph) -> bool:
         iam = aws_resource(self, "iam", graph)
@@ -896,6 +1092,7 @@ class AWSIAMInstanceProfile(AWSResource, BaseInstanceProfile):
 @dataclass(eq=False)
 class AWSIAMAccessKey(AWSResource, BaseAccessKey):
     kind: ClassVar[str] = "aws_iam_access_key"
+
     user_name: Optional[str] = None
     access_key_last_used_region: Optional[str] = None
     access_key_last_used_service_name: Optional[str] = None
@@ -910,6 +1107,10 @@ class AWSIAMAccessKey(AWSResource, BaseAccessKey):
 @dataclass(eq=False)
 class AWSIAMServerCertificate(AWSResource, BaseCertificate):
     kind: ClassVar[str] = "aws_iam_server_certificate"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": [],
+        "delete": ["aws_alb"],
+    }
     path: str = None
 
     def delete(self, graph: Graph) -> bool:
@@ -922,6 +1123,10 @@ class AWSIAMServerCertificate(AWSResource, BaseCertificate):
 @dataclass(eq=False)
 class AWSIAMServerCertificateQuota(AWSResource, BaseCertificateQuota):
     kind: ClassVar[str] = "aws_iam_server_certificate_quota"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["aws_iam_server_certificate"],
+        "delete": [],
+    }
 
 
 @dataclass(eq=False)
@@ -1002,29 +1207,12 @@ class AWSCloudFormationStack(AWSResource, BaseStack):
 @dataclass(eq=False)
 class AWSEKSCluster(AWSResource, BaseResource):
     kind: ClassVar[str] = "aws_eks_cluster"
-    metrics_description: ClassVar[Dict] = {
-        "aws_eks_clusters_total": {
-            "help": "Number of AWS EKS Clusters",
-            "labels": ["cloud", "account", "region"],
-        },
-        "cleaned_aws_eks_clusters_total": {
-            "help": "Cleaned number of AWS EKS Clusters",
-            "labels": ["cloud", "account", "region"],
-        },
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["aws_iam_role", "aws_eks_nodegroup"],
+        "delete": ["aws_eks_nodegroup"],
     }
     cluster_status: str = ""
     cluster_endpoint: str = ""
-
-    def metrics(self, graph) -> Dict:
-        metrics_keys = (
-            self.cloud(graph).name,
-            self.account(graph).dname,
-            self.region(graph).name,
-        )
-        self._metrics["aws_eks_clusters_total"][metrics_keys] = 1
-        if self._cleaned:
-            self._metrics["cleaned_aws_eks_clusters_total"][metrics_keys] = 1
-        return self._metrics
 
     def delete(self, graph: Graph) -> bool:
         eks = aws_client(self, "eks", graph)
@@ -1045,29 +1233,13 @@ class AWSEKSCluster(AWSResource, BaseResource):
 @dataclass(eq=False)
 class AWSEKSNodegroup(AWSResource, BaseResource):
     kind: ClassVar[str] = "aws_eks_nodegroup"
-    metrics_description: ClassVar[Dict] = {
-        "aws_eks_nodegroups_total": {
-            "help": "Number of AWS EKS Nodegroups",
-            "labels": ["cloud", "account", "region"],
-        },
-        "cleaned_aws_eks_nodegroups_total": {
-            "help": "Cleaned number of AWS EKS Nodegroups",
-            "labels": ["cloud", "account", "region"],
-        },
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["aws_autoscaling_group"],
+        "delete": [],
     }
+
     cluster_name: str = ""
     nodegroup_status: str = ""
-
-    def metrics(self, graph) -> Dict:
-        metrics_keys = (
-            self.cloud(graph).name,
-            self.account(graph).dname,
-            self.region(graph).name,
-        )
-        self._metrics["aws_eks_nodegroups_total"][metrics_keys] = 1
-        if self._cleaned:
-            self._metrics["cleaned_aws_eks_nodegroups_total"][metrics_keys] = 1
-        return self._metrics
 
     def delete(self, graph: Graph) -> bool:
         eks = aws_client(self, "eks", graph)
@@ -1088,6 +1260,10 @@ class AWSEKSNodegroup(AWSResource, BaseResource):
 @dataclass(eq=False)
 class AWSAutoScalingGroup(AWSResource, BaseAutoScalingGroup):
     kind: ClassVar[str] = "aws_autoscaling_group"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["aws_ec2_instance"],
+        "delete": ["aws_eks_nodegroup"],
+    }
 
     def delete(self, graph: Graph, force_delete: bool = True) -> bool:
         client = aws_client(self, "autoscaling", graph)
@@ -1130,16 +1306,11 @@ class AWSAutoScalingGroup(AWSResource, BaseAutoScalingGroup):
 @dataclass(eq=False)
 class AWSCloudwatchAlarm(AWSResource, BaseResource):
     kind: ClassVar[str] = "aws_cloudwatch_alarm"
-    metrics_description: ClassVar[Dict] = {
-        "aws_cloudwatch_alarms_total": {
-            "help": "Number of AWS Cloudwatch Alarms",
-            "labels": ["cloud", "account", "region", "state"],
-        },
-        "cleaned_aws_cloudwatch_alarms_total": {
-            "help": "Cleaned number of AWS Cloudwatch Alarms",
-            "labels": ["cloud", "account", "region", "state"],
-        },
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": [],
+        "delete": ["aws_ec2_instance"],
     }
+
     actions_enabled: bool = False
     alarm_description: Optional[str] = None
     alarm_actions: Optional[List] = field(default_factory=list)
@@ -1154,18 +1325,6 @@ class AWSCloudwatchAlarm(AWSResource, BaseResource):
     state_value: Optional[str] = None
     statistic: Optional[str] = None
     threshold: Optional[float] = 0.0
-
-    def metrics(self, graph) -> Dict:
-        metrics_keys = (
-            self.cloud(graph).name,
-            self.account(graph).dname,
-            self.region(graph).name,
-            self.state_value,
-        )
-        self._metrics["aws_cloudwatch_alarms_total"][metrics_keys] = 1
-        if self._cleaned:
-            self._metrics["cleaned_aws_cloudwatch_alarms_total"][metrics_keys] = 1
-        return self._metrics
 
     def delete(self, graph: Graph) -> bool:
         cloudwatch = aws_resource(self, "cloudwatch", graph)

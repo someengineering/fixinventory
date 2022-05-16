@@ -4,6 +4,8 @@
 name: Check PR (Plugin cleanup_expired)
 on:
   push:
+    tags:
+      - "*.*.*"
     branches:
         - main
   pull_request:

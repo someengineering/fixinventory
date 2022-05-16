@@ -40,6 +40,7 @@ services:
     environment:
       - PSK
       - RESOTO_VERBOSE
+      - RESOTO_LOG_TEXT
       # Resoto will create a new database and user with this password using the root account
       - RESOTOCORE_GRAPHDB_PASSWORD=changeme
       # Same as ARANGO_ROOT_PASSWORD
@@ -70,6 +71,7 @@ services:
     environment:
       - PSK
       - RESOTO_VERBOSE
+      - RESOTO_LOG_TEXT
       - RESOTOWORKER_RESOTOCORE_URI=https://resotocore:8900
     restart: always
     stop_grace_period: 2m
@@ -87,6 +89,7 @@ services:
     environment:
       - PSK
       - RESOTO_VERBOSE
+      - RESOTO_LOG_TEXT
       - RESOTOMETRICS_RESOTOCORE_URI=https://resotocore:8900
     restart: always
     stop_grace_period: 2m

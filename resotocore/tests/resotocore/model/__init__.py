@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import Optional, List, Set
 
 from resotocore.model.model import Model, Kind
 from resotocore.model.model_handler import ModelHandler
@@ -13,12 +13,18 @@ class ModelHandlerStatic(ModelHandler):
 
     async def uml_image(
         self,
-        show_packages: Optional[List[str]] = None,
-        hide_packages: Optional[List[str]] = None,
         output: str = "svg",
         *,
-        with_bases: bool = False,
-        with_descendants: bool = False,
+        show_packages: Optional[List[str]] = None,
+        hide_packages: Optional[List[str]] = None,
+        with_inheritance: bool = True,
+        with_base_classes: bool = False,
+        with_subclasses: bool = False,
+        dependency_edges: Optional[Set[str]] = None,
+        with_predecessors: bool = False,
+        with_successors: bool = False,
+        with_properties: bool = True,
+        link_classes: bool = False,
     ) -> bytes:
         raise NotImplemented
 

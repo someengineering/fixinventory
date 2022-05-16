@@ -333,6 +333,84 @@ class SearchPart(SearchCLIPart):
         return [ArgInfo(expects_value=True, value_hint="search")]
 
 
+class SortPart(SearchCLIPart):
+    """
+    ```shell
+    sort <sort_property> [asc|desc], <sort_property> [asc|desc], ...
+    ```
+    Sort the search results based on the given properties in the given order.
+
+    ## Parameters
+    - <sort_property> [mandatory]: the property to sort by.
+    - [asc|desc] [optional, default to asc]: the sort order as ascending or descending.
+
+    ## Examples
+
+    ```shell
+    # Search all volumes and sort by volume size ascending, showing the smallest volume first.
+    > search is(volume) | sort volume_size desc | head -1
+    kind=aws_ec2_volume, id=vol-1, name=vol-2, age=1yr5mo, cloud=aws, account=eng, region=us-west-2
+
+    # Add a second search criteria
+    > search is(volume) | sort volume_size asc, name desc | head -2
+    kind=example_volume, id=Vol2, name=Vol2, age=1mo8d, cloud=example, account=Example Account, region=US East
+    kind=example_volume, id=Vol1, name=Vol1, age=1mo8d, cloud=example, account=Example Account, region=US West
+
+    # Same search as before, now sort by name ascending
+    > search is(volume) | sort volume_size asc, name asc | head -2
+    kind=example_volume, id=Vol1, name=Vol1, age=1mo8d, cloud=example, account=Example Account, region=US West
+    kind=example_volume, id=Vol2, name=Vol2, age=1mo8d, cloud=example, account=Example Account, region=US East
+    ```
+    """
+
+    @property
+    def name(self) -> str:
+        return "sort"
+
+    def info(self) -> str:
+        return "Sort the search results."
+
+    def args_info(self) -> ArgsInfo:
+        return [ArgInfo(expects_value=True, help_text="<property> [asc|desc]")]
+
+
+class LimitPart(SearchCLIPart):
+    """
+    ```shell
+    limit [offset] <nr_items>
+    ```
+    Limit allows to define an optional offset as well as the number if item to return.
+
+    ## Parameters
+    - offset [optional, default to 0]: drop the first number of items and start at defined position.
+    - nr_items [mandatory]: the number of items to return.
+
+    ## Examples
+
+    ```shell
+    # Return the first 3 results from the search
+    > search is(volume) | limit 3
+    kind=aws_ec2_volume, id=vol-0, name=fs-0, age=2mo23d, cloud=aws, account=eng, region=us-west-2
+    kind=aws_ec2_volume, id=vol-1, name=fs-1, age=2mo23d, cloud=aws, account=eng, region=us-west-2
+    kind=aws_ec2_volume, id=vol-2, name=fs-2, age=2mo23d, cloud=aws, account=eng, region=us-west-1
+
+    # Return one result from the search dropping the first 2 items
+    > search is(volume) | limit 2, 1
+    kind=aws_ec2_volume, id=vol-2, name=fs-2, age=2mo23d, cloud=aws, account=eng, region=us-west-1
+    ```
+    """
+
+    @property
+    def name(self) -> str:
+        return "limit"
+
+    def info(self) -> str:
+        return "Limit the number of returned search results."
+
+    def args_info(self) -> ArgsInfo:
+        return [ArgInfo(expects_value=True, help_text="[offset], <nr_items> to return")]
+
+
 class PredecessorsPart(SearchCLIPart):
     """
     ```shell
@@ -1478,24 +1556,23 @@ class KindsCommand(CLICommand, PreserveOutputFormat):
 
     def args_info(self) -> ArgsInfo:
         return [
-            ArgInfo("-p", expects_value=True, value_hint="property", help_text="lookup the kind of a property path."),
-            ArgInfo(expects_value=True, value_hint="kind", help_text="kind to lookup"),
+            ArgInfo(
+                "-p",
+                expects_value=True,
+                value_hint="property",
+                help_text="lookup the kind of a property path.",
+                option_group="lookup",
+            ),
+            ArgInfo(expects_value=True, value_hint="kind", help_text="kind to lookup", option_group="lookup"),
         ]
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLISource:
-        show_path: Optional[str] = None
-        show_kind: Optional[str] = None
+        parser = NoExitArgumentParser()
+        parser.add_argument("-p", "--property-path", dest="property_path", type=str)
+        parser.add_argument("name", type=str, nargs="?")
+        args = parser.parse_args(strip_quotes(arg or "").split())
 
-        if arg:
-            args = strip_quotes(arg).split(" ")
-            if len(args) == 1:
-                show_kind = arg
-            elif len(args) == 2 and args[0] == "-p":
-                show_path = args[1]
-            else:
-                raise AttributeError(f"Don't know what to do with: {arg}")
-
-        def kind_to_js(kind: Kind) -> Json:
+        def kind_to_js(model: Model, kind: Kind) -> Json:
             if isinstance(kind, SimpleKind):
                 return {"name": kind.fqn, "runtime_kind": kind.runtime_kind}
             elif isinstance(kind, DictionaryKind):
@@ -1508,21 +1585,31 @@ class KindsCommand(CLICommand, PreserveOutputFormat):
                     return (synth[p.name].kind.runtime_kind if p.name in synth else p.kind) if p.synthetic else p.kind
 
                 props = sorted(kind.all_props(), key=lambda k: k.name)
+                predecessors = list(
+                    {
+                        cpl.fqn
+                        for cpl in model.complex_kinds()
+                        if kind.fqn in cpl.successor_kinds.get(EdgeType.default, [])
+                    }
+                )
                 return {
                     "name": kind.fqn,
                     "bases": list(kind.kind_hierarchy() - {kind.fqn}),
                     "properties": {p.name: kind_name(p) for p in props},
+                    "predecessors": predecessors,
+                    "successors": kind.successor_kinds.get(EdgeType.default, []),
                 }
             else:
                 return {"name": kind.fqn}
 
         async def source() -> Tuple[int, Stream]:
             model = await self.dependencies.model_handler.load_model()
-            if show_kind:
-                result = kind_to_js(model[show_kind]) if show_kind in model else f"No kind with this name: {show_kind}"
+            if args.name:
+                kind = args.name
+                result = kind_to_js(model, model[kind]) if kind in model else f"No kind with this name: {kind}"
                 return 1, stream.just(result)
-            elif show_path:
-                result = kind_to_js(model.kind_by_path(Section.without_section(show_path)))
+            elif args.property_path:
+                result = kind_to_js(model, model.kind_by_path(Section.without_section(args.property_path)))
                 return 1, stream.just(result)
             else:
                 result = sorted([model.fqn for model in model.kinds.values() if isinstance(model, ComplexKind)])
@@ -1795,6 +1882,8 @@ class FormatCommand(CLICommand, OutputTransformer):
 
     ## Options
     - `--json` [Optional] - will create a json string from the incoming json. The result will be a json array.
+    - `--yaml` [Optional] - will create a yaml string from the incoming json.
+       Subsequent object will be separated by `---`.
     - `--ndjson` [Optional] - will create a json object for every element, where one element fits on one line.
     - `--text` [Optional] - will create a text representation of every element.
     - `--cytoscape` [Optional] - will create a string representation in the well known cytoscape format.
@@ -1840,6 +1929,7 @@ class FormatCommand(CLICommand, OutputTransformer):
             ArgInfo("--cytoscape", help_text="output format", option_group="output"),
             ArgInfo("--graphml", help_text="output format", option_group="output"),
             ArgInfo("--dot", help_text="output format", option_group="output"),
+            ArgInfo("--yaml", help_text="output format", option_group="output"),
             ArgInfo(expects_value=True, help_text="format definition with {} placeholders", option_group="output"),
         ]
 
@@ -3915,6 +4005,7 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         JqCommand(d),
         JsonCommand(d, allowed_in_source_position=True),
         KindsCommand(d, allowed_in_source_position=True),
+        LimitPart(d),
         ListCommand(d),
         TemplatesCommand(d, allowed_in_source_position=True),
         PredecessorsPart(d),
@@ -3923,6 +4014,7 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         SetDesiredCommand(d),
         SetMetadataCommand(d),
         SleepCommand(d, allowed_in_source_position=True),
+        SortPart(d),
         SuccessorsPart(d),
         SystemCommand(d, allowed_in_source_position=True),
         TagCommand(d),

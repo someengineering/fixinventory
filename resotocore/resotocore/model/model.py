@@ -12,7 +12,7 @@ from typing import Union, Any, Optional, Callable, Type, Sequence, Dict, List, S
 import yaml
 from dateutil.parser import parse
 from jsons import set_deserializer, set_serializer
-from networkx import DiGraph
+from networkx import MultiDiGraph
 from parsy import regex, string, Parser
 
 from resotocore.durations import duration_parser, DurationRe
@@ -252,7 +252,8 @@ class Kind(ABC):
             props = list(map(lambda p: from_js(p, Property), js.get("properties", [])))
             bases: Optional[List[str]] = js.get("bases")
             allow_unknown_props = js.get("allow_unknown_props", False)
-            return ComplexKind(js["fqn"], bases if bases else [], props, allow_unknown_props)
+            successor_kinds = js.get("successor_kinds")
+            return ComplexKind(js["fqn"], bases if bases else [], props, allow_unknown_props, successor_kinds)
         else:
             raise JSONDecodeError("Given type can not be read.", json.dumps(js), 0)
 
@@ -732,11 +733,20 @@ class DictionaryKind(Kind):
 
 
 class ComplexKind(Kind):
-    def __init__(self, fqn: str, bases: List[str], properties: List[Property], allow_unknown_props: bool = False):
+    def __init__(
+        self,
+        fqn: str,
+        bases: List[str],
+        properties: List[Property],
+        allow_unknown_props: bool = False,
+        # EdgeType -> possible list of successor kinds
+        successor_kinds: Optional[Dict[str, List[str]]] = None,
+    ):
         super().__init__(fqn)
         self.bases = bases
         self.properties = properties
         self.allow_unknown_props = allow_unknown_props
+        self.successor_kinds = successor_kinds or {}
         self.__prop_by_name = {prop.name: prop for prop in properties}
         self.__resolved = False
         self.__resolved_kinds: Dict[str, Tuple[Property, Kind]] = {}
@@ -756,6 +766,12 @@ class ComplexKind(Kind):
 
             # property path -> kind
             self.__property_by_path = ComplexKind.resolve_properties(self)
+
+            # make sure all successor kinds can be resolved
+            for names in self.successor_kinds.values():
+                for name in names or []:
+                    if name not in model:
+                        raise AttributeError(f"{name} is not a known kind")
 
             # resolve the hierarchy
             if not self.is_root():
@@ -777,6 +793,7 @@ class ComplexKind(Kind):
                 and self.properties == other.properties
                 and self.bases == other.bases
                 and self.allow_unknown_props == other.allow_unknown_props
+                and self.successor_kinds == other.successor_kinds
             )
         else:
             return False
@@ -1057,14 +1074,26 @@ class Model:
                 f'No kind definition found for {js["kind"]}' if "kind" in js else f"No attribute kind found in {js}"
             ) from ex
 
-    def graph(self) -> DiGraph:
-        graph = DiGraph()
+    def graph(self) -> MultiDiGraph:
+        graph = MultiDiGraph()
 
         def handle_complex(cx: ComplexKind) -> None:
             graph.add_node(cx.fqn, data=cx)
+            # inheritance
             if not cx.is_root():
                 for base in cx.bases:
-                    graph.add_edge(cx.fqn, base)
+                    graph.add_edge(cx.fqn, base, f"inheritance_{cx.fqn}_{base}", type="inheritance")
+
+            # dependency
+            for name, successors in cx.successor_kinds.items():
+                for successor in successors or []:
+                    graph.add_edge(
+                        cx.fqn,
+                        successor,
+                        f"successor_{cx.fqn}_{successor}_{name}",
+                        type="successor",
+                        edge_type=name,
+                    )
 
         for kind in self.kinds.values():
             if isinstance(kind, ComplexKind):

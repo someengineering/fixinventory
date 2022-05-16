@@ -193,6 +193,7 @@ def foo_kinds() -> List[Kind]:
             Property("ctime", "datetime"),
             Property("age", "trafo.duration_to_datetime", False, SyntheticProperty(["ctime"])),
         ],
+        successor_kinds={EdgeType.default: ["bla"]},
     )
     bla = ComplexKind(
         "bla",
@@ -203,6 +204,7 @@ def foo_kinds() -> List[Kind]:
             Property("f", "int32"),
             Property("g", "int32[]"),
         ],
+        successor_kinds={EdgeType.default: ["bla"]},
     )
     cloud = ComplexKind("cloud", ["foo"], [])
     account = ComplexKind("account", ["foo"], [])

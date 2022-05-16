@@ -11,6 +11,7 @@ from networkx import DiGraph
 
 from resotocore.cli.model import CLIContext
 from resotocore.console_renderer import ConsoleRenderer, ConsoleColorSystem
+from resotocore.model.graph_access import EdgeType
 from resotocore.model.model import (
     StringKind,
     Kind,
@@ -49,19 +50,19 @@ def test_json_marshalling() -> None:
     roundtrip(ArrayKind(StringKind("string")), Kind)
     roundtrip(Property("foo", "foo"), Property)
     roundtrip(Property("age", "trafo.duration_to_datetime", False, SyntheticProperty(["ctime"])), Property)
-    roundtrip(
-        ComplexKind(
-            "Test",
-            ["Base"],
-            [
-                Property("array", "string[]"),
-                Property("s", "float"),
-                Property("i", "int32"),
-                Property("other", "SomeComposite"),
-            ],
-        ),
-        Kind,
-    )
+    props = [
+        Property("array", "string[]"),
+        Property("s", "float"),
+        Property("i", "int32"),
+        Property("other", "SomeComposite"),
+    ]
+    successor_kinds = {
+        EdgeType.default: ["Base", "Test"],
+        EdgeType.delete: ["Base"],
+    }
+    roundtrip(ComplexKind("Test", ["Base"], props), Kind)
+    roundtrip(ComplexKind("Test", [], props, True), Kind)
+    roundtrip(ComplexKind("Test", [], props, True, successor_kinds), Kind)
 
 
 def test_string() -> None:

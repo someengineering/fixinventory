@@ -75,6 +75,16 @@ paths:
       tags:
         - model
       parameters:
+        - name: output
+          description: The output format.
+          in: query
+          schema:
+            type: string
+            enum:
+              - svg
+              - png
+            default: svg
+          required: false
         - name: show
           description: comma separated list of resources to show. Entries can be regexps.
           in: query
@@ -93,14 +103,53 @@ paths:
           required: false
           explode: false
           example: aws_ec2_instance,gcp.*
-        - name: with_bases
+        - name: with_inheritance
+          description: Include inheritance relations in the model.
+          in: query
+          schema:
+            type: boolean
+            default: true
+        - name: with_base_classes
           description: Include all base classes of visible entries
           in: query
           schema:
             type: boolean
             default: true
-        - name: with_descendants
+        - name: with_subclasses
           description: Include all descendant classes of visible entries
+          in: query
+          schema:
+            type: boolean
+            default: false
+        - name: dependency
+          description: |
+            comma separated list of dependency relationships.
+          in: query
+          schema:
+            type: string
+          required: false
+          explode: false
+          example: default
+        - name: with_predecessors
+          description: Include all predecessors of selected entries
+          in: query
+          schema:
+            type: boolean
+            default: false
+        - name: with_successors
+          description: Include all successors of selected entries
+          in: query
+          schema:
+            type: boolean
+            default: false
+        - name: with_properties
+          description: Show properties of selected entries
+          in: query
+          schema:
+            type: boolean
+            default: true
+        - name: link_classes
+          description: Add anchor links to classes.
           in: query
           schema:
             type: boolean
@@ -2385,14 +2434,29 @@ components:
       allOf:
         - $ref: '#/components/schemas/KindBase'
       properties:
-        base:
-          type: string
-          description: "In case of inheritance, this defines the base kind."
+        bases:
+          type: array
+          items:
+            type: string
+          description: "In case of inheritance, this defines the base kinds."
         properties:
           type: array
           description: "Defines all properties of this complex kind"
           items:
             $ref: '#/components/schemas/Property'
+        allow_unknown_props:
+          type: boolean
+          default: False
+          description: "In case properties are accepted, that are not listed in the model"
+        successor_kinds:
+          description: "Dictionary of successor kinds."
+          example: |
+            { "default": ["kind1", "kind2"], "delete": ["kind3"] }
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
     StringDictKind:
       type: object
       description: "A simple dictionary where all keys and values are strings"
@@ -2501,6 +2565,8 @@ components:
           description: Indicates, if the argument expects a value.
         possible_values:
           type: array
+          items:
+            type: string
           description: Possible values for this argument.
         can_occur_multiple_times:
           type: boolean

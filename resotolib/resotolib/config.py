@@ -144,7 +144,11 @@ class Config(metaclass=MetaConfig):
                 Config.running_config.revision = new_config_revision
             self.init_default_config()
             if self._initial_load:
-                self.save_config()
+                # Try to store the generated config. Handle failure gracefully.
+                try:
+                    self.save_config()
+                except RuntimeError as e:
+                    log.error(f"Failed to save config: {e}")
             self.override_config(Config.running_config)
             self._initial_load = False
             if not self._ce.is_alive():

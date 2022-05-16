@@ -544,15 +544,33 @@ class Api:
         return web.json_response([wt_to_js(ot) for ot in self.worker_task_queue.outstanding_tasks.values()])
 
     async def model_uml(self, request: Request) -> StreamResponse:
+        output = request.query.get("output", "svg")
         show = request.query["show"].split(",") if "show" in request.query else None
         hide = request.query["hide"].split(",") if "hide" in request.query else None
-        with_bases = request.query.get("with_bases", "true") != "false"
-        with_descendants = request.query.get("with_descendants", "false") != "false"
+        with_inheritance = request.query.get("with_inheritance", "true") != "false"
+        with_base_classes = request.query.get("with_base_classes", "true") != "false"
+        with_subclasses = request.query.get("with_subclasses", "false") != "false"
+        dependency = set(request.query["dependency"].split(",")) if "dependency" in request.query else None
+        with_predecessors = request.query.get("with_predecessors", "false") != "false"
+        with_successors = request.query.get("with_successors", "false") != "false"
+        with_properties = request.query.get("with_properties", "true") != "false"
+        link_classes = request.query.get("link_classes", "false") != "false"
         result = await self.model_handler.uml_image(
-            show, hide, with_bases=with_bases, with_descendants=with_descendants
+            output=output,
+            show_packages=show,
+            hide_packages=hide,
+            with_inheritance=with_inheritance,
+            with_base_classes=with_base_classes,
+            with_subclasses=with_subclasses,
+            dependency_edges=dependency,
+            with_predecessors=with_predecessors,
+            with_successors=with_successors,
+            with_properties=with_properties,
+            link_classes=link_classes,
         )
         response = web.StreamResponse()
-        response.headers["Content-Type"] = "image/svg+xml"
+        mt = {"svg": "image/svg+xml", "png": "image/png"}
+        response.headers["Content-Type"] = mt[output]
         await response.prepare(request)
         await response.write_eof(result)
         return response

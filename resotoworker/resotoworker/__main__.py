@@ -177,10 +177,21 @@ def core_actions_processor(
                 run_time = int(time.time() - start_time)
                 log.info(f"Collect ran for {run_time} seconds")
             elif message_type == "cleanup":
-                start_time = time.time()
-                cleanup(tls_data=tls_data)
-                run_time = int(time.time() - start_time)
-                log.info(f"Cleanup ran for {run_time} seconds")
+                if not Config.resotoworker.cleanup:
+                    log.info(
+                        "Cleanup called but disabled in config"
+                        " (resotoworker.cleanup) - skipping"
+                    )
+                else:
+                    if Config.resotoworker.cleanup_dry_run:
+                        log.info(
+                            "Cleanup called with dry run configured"
+                            " (resotoworker.cleanup_dry_run)"
+                        )
+                    start_time = time.time()
+                    cleanup(tls_data=tls_data)
+                    run_time = int(time.time() - start_time)
+                    log.info(f"Cleanup ran for {run_time} seconds")
             else:
                 raise ValueError(f"Unknown message type {message_type}")
         except Exception as e:

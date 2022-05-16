@@ -15,7 +15,7 @@ from .resources import (
     DigitalOceanTeam,
     DigitalOceanVolume,
     DigitalOceanDatabase,
-    DigitalOceanNetwork,
+    DigitalOceanVPC,
     DigitalOceanKubernetesCluster,
     DigitalOceanSnapshot,
     DigitalOceanLoadBalancer,
@@ -505,7 +505,7 @@ class DigitalOceanTeamCollector:
                 "urn": lambda d: droplet_id(d["id"]),
                 "instance_status": "status",
                 "instance_cores": "vcpus",
-                "instance_memory": "memory",
+                "instance_memory": lambda d: d["memory"] / 1024.0,
                 "droplet_backup_ids": lambda d: list(
                     map(str, d.get("backup_ids", []) or [])
                 ),
@@ -646,7 +646,7 @@ class DigitalOceanTeamCollector:
         vpcs = self.client.list_vpcs()
         self.collect_resource(
             vpcs,
-            resource_class=DigitalOceanNetwork,
+            resource_class=DigitalOceanVPC,
             attr_map={
                 "id": "id",
                 "urn": "urn",

@@ -528,6 +528,8 @@ async def test_kinds_command(cli: CLI, foo_model: Model) -> None:
             "some_int": "int32",
             "some_string": "string",
         },
+        "predecessors": [],
+        "successors": ["bla"],
     }
     result = await cli.execute_cli_command("kind string", stream.list)
     assert result[0][0] == {"name": "string", "runtime_kind": "string"}
@@ -535,6 +537,34 @@ async def test_kinds_command(cli: CLI, foo_model: Model) -> None:
     assert result[0][0] == {"name": "datetime", "runtime_kind": "datetime"}
     with pytest.raises(Exception):
         await cli.execute_cli_command("kind foo bla bar", stream.list)
+
+
+@pytest.mark.asyncio
+async def test_sort_command(cli: CLI) -> None:
+    async def identifiers(query: str) -> List[str]:
+        result = await cli.execute_cli_command(query, stream.list)
+        return [r["reported"]["identifier"] for r in result[0]]
+
+    id_wo = await identifiers("search is(bla) | sort identifier")
+    id_asc = await identifiers("search is(bla) | sort identifier asc")
+    id_desc = await identifiers("search is(bla) | sort identifier desc")
+    id_kind = await identifiers("search is(bla) | sort identifier | sort kind")
+    assert id_wo == id_asc
+    assert id_wo == id_kind
+    assert id_asc == list(reversed(id_desc))
+
+
+@pytest.mark.asyncio
+async def test_limit_command(cli: CLI) -> None:
+    async def identifiers(query: str) -> List[str]:
+        result = await cli.execute_cli_command(query, stream.list)
+        return [r["reported"]["identifier"] for r in result[0]]
+
+    assert await identifiers("search is(bla) sort identifier | limit 1") == ["0_0"]
+    assert await identifiers("search is(bla) sort identifier | limit 2") == ["0_0", "0_1"]
+    assert await identifiers("search is(bla) sort identifier | limit 2, 2") == ["0_2", "0_3"]
+    assert await identifiers("search is(bla) sort identifier | limit 10, 2") == ["1_0", "1_1"]
+    assert await identifiers("search is(bla) sort identifier | limit 100, 2") == []
 
 
 @pytest.mark.asyncio
