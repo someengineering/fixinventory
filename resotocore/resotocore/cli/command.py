@@ -18,7 +18,7 @@ from contextlib import suppress
 from dataclasses import dataclass
 from datetime import timedelta
 from functools import partial
-from itertools import dropwhile
+from itertools import dropwhile, chain
 from tempfile import TemporaryDirectory
 from typing import Dict, List, Tuple, Optional, Any, AsyncIterator, Hashable, Iterable, Callable, Awaitable, cast, Set
 from urllib.parse import urlparse, urlunparse
@@ -2203,6 +2203,7 @@ class ListCommand(CLICommand, OutputTransformer):
 
         def default_props_to_show() -> List[Tuple[List[str], str]]:
             result = []
+            local_paths = set()
             # with the object id, if edges are requested
             if ctx.query_options.get("with-edges") is True:
                 result.append((["id"], "node_id"))
@@ -2210,9 +2211,14 @@ class ListCommand(CLICommand, OutputTransformer):
             result.extend(self.default_properties_to_show)
             # add all predicates the user has queried
             if ctx.query:
-                for predicate in ctx.query.predicates:
-                    if predicate.name not in self.all_default_props:
-                        result.append((self.dot_re.split(predicate.name), predicate.name.rsplit(".", 1)[-1]))
+                # add all predicates the user has queried
+                predicate_names = (p.name for p in ctx.query.predicates)
+                # add sort keys of the last part the user has defined
+                sort_names = (s.name for s in ctx.query.current_part.sort)
+                for name in chain(predicate_names, sort_names):
+                    if name not in self.all_default_props and name not in local_paths:
+                        local_paths.add(name)
+                        result.append((self.dot_re.split(name), name.rsplit(".", 1)[-1]))
             # add all context properties
             result.extend(self.default_context_properties_to_show)
             return result
