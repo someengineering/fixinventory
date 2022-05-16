@@ -11,7 +11,7 @@ from resotolib.graph import Graph
 
 
 class DigitalOceanCollectorPlugin(BaseCollectorPlugin):  # type: ignore
-    cloud = "do"
+    cloud = "digitalocean"
 
     def collect(self) -> None:
         """This method is being called by resoto whenever the collector runs
