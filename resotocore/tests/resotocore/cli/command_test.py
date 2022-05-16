@@ -569,9 +569,9 @@ async def test_limit_command(cli: CLI) -> None:
 
 @pytest.mark.asyncio
 async def test_list_command(cli: CLI) -> None:
-    result = await cli.execute_cli_command('search is (foo) and identifier=="4" | list', stream.list)
+    result = await cli.execute_cli_command('search is (foo) and identifier=="4" sort some_int | list', stream.list)
     assert len(result[0]) == 1
-    assert result[0][0].startswith("kind=foo, identifier=4, age=")
+    assert result[0][0].startswith("kind=foo, identifier=4, some_int=0, age=")
     list_cmd = "list some_int as si, some_string"
     result = await cli.execute_cli_command(f'search is (foo) and identifier=="4" | {list_cmd}', stream.list)
     assert result[0] == ["si=0, some_string=hello"]
