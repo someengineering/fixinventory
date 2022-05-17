@@ -19,13 +19,22 @@ scrape_configs:
       - targets: ["localhost:9090"]
 
   - job_name: "resotocore"
+    scheme: https
+    tls_config:
+      insecure_skip_verify: true
     static_configs:
       - targets: ["resotocore:8900"]
 
   - job_name: "resotometrics"
+    scheme: https
+    tls_config:
+      insecure_skip_verify: true
     static_configs:
       - targets: ["resotometrics:9955"]
 
   - job_name: "resotoworker"
+    scheme: https
+    tls_config:
+      insecure_skip_verify: true
     static_configs:
       - targets: ["resotoworker:9956"]
