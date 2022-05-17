@@ -7,13 +7,17 @@ services:
     environment:
       - ARANGO_ROOT_PASSWORD=
     ports:
-      - 8529:8529
+      - "8529:8529"
     volumes:
       - resoto_graphdb_data:/var/lib/arangodb3
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
   tsdb:
     image: prom/prometheus:v2.33.4
     ports:
-      - 9090:9090
+      - "9090:9090"
     volumes:
       - ./dockerV2/prometheus.yml:/etc/prometheus/prometheus.yml
       - resoto_tsdb_data:/prometheus
@@ -27,12 +31,13 @@ services:
     depends_on:
       - graphdb
     ports:
-      - 8900:8900
+      - "8900:8900"
     environment:
       - PSK
       - RESOTO_VERBOSE
       - RESOTO_LOG_TEXT
       - RESOTOCORE_GRAPHDB_SERVER=http://graphdb:8529
+      # Resoto will create a new database and user with this password using the root account
       - RESOTOCORE_GRAPHDB_PASSWORD=changeme
     command:
       - --override
@@ -72,7 +77,7 @@ services:
     stop_grace_period: 2m
   resotoshell:
     # This container is not started by default. To start a shell use this command:
-    # $> docker-compose run resotoshell
+    # $> docker compose run --rm resotoshell
     image: somecr.io/someengineering/resotoshell:edge
     profiles:
       - do-not-start

@@ -29,3 +29,4 @@ docs/_build/
 .dccache
 resotoshell/backup_*
 resotocore/tools/Assets
+out/
