@@ -72,16 +72,18 @@ from resotocore.query.model import (
 
 operation_p = (
     reduce(
-        lambda x, y: x | y, [lexeme(string(a)) for a in ["<=", ">=", ">", "<", "==", "!=", "=~", "!~", "in", "not in"]]
+        lambda x, y: x | y,
+        [lexeme(string(a)) for a in ["<=", ">=", ">", "<", "==", "!=", "=~", "!~"]],
     )
     | lexeme(string("=")).result("==")
     | lexeme(string("~")).result("=~")
+    | (whitespace >> string("in") << space_dp).desc("in")
+    | (whitespace >> string("not in") << space_dp).desc("not in")
 )
 
 array_modifier_p = reduce(lambda x, y: x | y, [lexeme(string(a)) for a in ["all", "any", "none"]])
 
 function_p = reduce(lambda x, y: x | y, [lexeme(string(a)) for a in ["in_subnet", "has_desired_change", "has_key"]])
-
 
 preamble_prop_p = reduce(lambda x, y: x | y, [lexeme(string(a)) for a in ["edge_type"]])
 

@@ -577,7 +577,7 @@ class Api:
 
     async def get_model(self, request: Request) -> StreamResponse:
         md = await self.model_handler.load_model()
-        return await single_result(request, to_js(md))
+        return await single_result(request, to_js(md.kinds.values()))
 
     async def update_model(self, request: Request) -> StreamResponse:
         js = await self.json_from_request(request)
