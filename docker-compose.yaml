@@ -5,7 +5,7 @@ services:
     image: arangodb:3.8.6
     platform: linux/amd64
     environment:
-      - ARANGO_ROOT_PASSWORD=changeme
+      - ARANGO_ROOT_PASSWORD=
     ports:
       - "8529:8529"
     volumes:
@@ -14,11 +14,6 @@ services:
       nofile:
         soft: 32768
         hard: 65535
-    deploy:
-      resources:
-        reservations:
-          cpus: "1"
-          memory: "512M"
   tsdb:
     image: prom/prometheus:v2.33.4
     ports:
@@ -41,13 +36,10 @@ services:
       - PSK
       - RESOTO_VERBOSE
       - RESOTO_LOG_TEXT
+      - RESOTOCORE_GRAPHDB_SERVER=http://graphdb:8529
       # Resoto will create a new database and user with this password using the root account
       - RESOTOCORE_GRAPHDB_PASSWORD=changeme
-      # Same as ARANGO_ROOT_PASSWORD
-      - RESOTOCORE_GRAPHDB_ROOT_PASSWORD=changeme
     command:
-      - --graphdb-server
-      - http://graphdb:8529
       - --override
       - resotocore.api.web_hosts=resotocore
       - resotocore.api.host_certificate.common_name=resotocore
@@ -57,11 +49,6 @@ services:
       - resotocore.runtime.start_collect_on_subscriber_connect=true
     restart: always
     stop_grace_period: 2m
-    deploy:
-      resources:
-        reservations:
-          cpus: "0.5"
-          memory: "1G"
   resotoworker:
     image: somecr.io/someengineering/resotoworker:edge
     depends_on:
@@ -75,11 +62,6 @@ services:
       - RESOTOWORKER_RESOTOCORE_URI=https://resotocore:8900
     restart: always
     stop_grace_period: 2m
-    deploy:
-      resources:
-        reservations:
-          cpus: "0.5"
-          memory: "1G"
   resotometrics:
     image: somecr.io/someengineering/resotometrics:edge
     depends_on:
