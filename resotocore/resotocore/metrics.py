@@ -5,11 +5,11 @@ from typing import Callable, Any, TypeVar, cast
 from prometheus_client import Histogram, Counter, Gauge
 
 # All exported metrics are listed here
-
-MethodDuration = Histogram("method_call_duration", "Duration of single method call", ["module", "name"])
-RequestCount = Counter("requests_total", "Total Request Count", ["method", "endpoint", "http_status"])
-RequestLatency = Histogram("request_latency_seconds", "Request latency", ["endpoint"])
-RequestInProgress = Gauge("requests_in_progress_total", "Requests in progress", ["endpoint", "method"])
+Prefix = "resotocore_"
+MethodDuration = Histogram(f"{Prefix}method_call_duration", "Duration of single method call", ["module", "name"])
+RequestCount = Counter(f"{Prefix}requests_total", "Total Request Count", ["method", "endpoint", "http_status"])
+RequestLatency = Histogram(f"{Prefix}request_latency_seconds", "Request latency", ["endpoint"])
+RequestInProgress = Gauge(f"{Prefix}requests_in_progress_total", "Requests in progress", ["endpoint", "method"])
 
 # Create a type that is bound to the underlying wrapped function
 # This way all signature information is preserved!
