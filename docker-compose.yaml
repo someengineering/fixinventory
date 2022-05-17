@@ -12,7 +12,7 @@ services:
       - resoto_graphdb_data:/var/lib/arangodb3
     ulimits:
       nofile:
-        soft: 32768
+        soft: 65535
         hard: 65535
   tsdb:
     image: prom/prometheus:v2.33.4
