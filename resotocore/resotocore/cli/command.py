@@ -114,6 +114,7 @@ from resotocore.web.content_renderer import (
     respond_cytoscape,
 )
 from resotocore.worker_task_queue import WorkerTask, WorkerTaskName
+from resotocore.task.task_description import TaskDescriptorId
 
 log = logging.getLogger(__name__)
 
@@ -3642,7 +3643,7 @@ class WorkflowsCommand(CLICommand):
                 yield f"No workflow with this id: {wf_id}"
 
         async def run_workflow(wf_id: str) -> AsyncIterator[str]:
-            task = await self.dependencies.task_handler.start_task_by_descriptor_id(wf_id)
+            task = await self.dependencies.task_handler.start_task_by_descriptor_id(TaskDescriptorId(wf_id))
             yield (
                 f"Workflow {task.descriptor.id} started with id {task.id}."
                 if task

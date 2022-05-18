@@ -152,7 +152,7 @@ def exist(f: Callable[[Any], Any], iterable: Iterable[Any]) -> bool:
 
 # we expect a callable that returns a truthy value.
 # Due to limitations of lambda expressions we use Any here.
-def first(f: Callable[[Any], Any], iterable: Iterable[AnyT]) -> Optional[AnyT]:
+def first(f: Callable[[AnyT], Any], iterable: Iterable[AnyT]) -> Optional[AnyT]:
     for a in iterable:
         if f(a):
             return a

@@ -26,6 +26,7 @@ from resotocore.cli.command import alias_names, all_commands
 from resotocore.cli.model import CLIDependencies
 from resotocore.config.config_handler_service import ConfigHandlerService
 from resotocore.config.core_config_handler import CoreConfigHandler
+from resotocore.collectworker.merge_outer_edge_handler import MergeOuterEdgesHandler
 from resotocore.core_config import config_from_db, CoreConfig, RunConfig
 from resotocore.db import SystemData
 from resotocore.db.db_access import DbAccess
@@ -151,6 +152,7 @@ def with_config(
         db.running_task_db, db.job_db, message_bus, event_sender, subscriptions, scheduler, cli, config
     )
     core_config_handler = CoreConfigHandler(config, message_bus, worker_task_queue, config_handler)
+    merge_outer_edges_handler = MergeOuterEdgesHandler(message_bus, subscriptions, task_handler)
     cli_deps.extend(task_handler=task_handler)
     api = Api(
         db,
@@ -182,6 +184,7 @@ def with_config(
         await cli.start()
         await task_handler.start()
         await core_config_handler.start()
+        await merge_outer_edges_handler.start()
         await cert_handler.start()
         await api.start()
         if created:
@@ -205,6 +208,7 @@ def with_config(
         await api.stop()
         await cert_handler.stop()
         await core_config_handler.stop()
+        await merge_outer_edges_handler.stop()
         await task_handler.stop()
         await cli.stop()
         await event_sender.core_event(CoreEvent.SystemStopped, total_seconds=int(duration.total_seconds()))

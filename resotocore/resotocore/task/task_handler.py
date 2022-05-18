@@ -18,7 +18,7 @@ from resotocore.core_config import CoreConfig
 from resotocore.db.jobdb import JobDb
 from resotocore.db.runningtaskdb import RunningTaskData, RunningTaskDb
 from resotocore.message_bus import MessageBus, Event, Action, ActionDone, Message, ActionError
-from resotocore.task import TaskHandler
+from resotocore.task import TaskDescriptorId, TaskHandler
 from resotocore.task.model import Subscriber
 from resotocore.task.scheduler import Scheduler
 from resotocore.task.start_workflow_on_first_subscriber import wait_and_start
@@ -125,12 +125,12 @@ class TaskHandlerService(TaskHandler):
 
     async def start_task_directly(self, desc: TaskDescription, reason: str) -> RunningTask:
         updated = self.evaluate_task_definition(desc)
-        wi, commands = RunningTask.empty(updated, self.subscription_handler.subscribers_by_event)
-        log.info(f"Start new task: {updated.name} with id {wi.id}")
+        task, commands = RunningTask.empty(updated, self.subscription_handler.subscribers_by_event)
+        log.info(f"Start new task: {updated.name} with id {task.id}")
         # store initial state in database
-        await self.running_task_db.insert(wi)
-        self.tasks[wi.id] = wi
-        await self.execute_task_commands(wi, commands)
+        await self.running_task_db.insert(task)
+        self.tasks[task.id] = task
+        await self.execute_task_commands(task, commands)
         await self.event_sender.core_event(
             CoreEvent.TaskStarted,
             {
@@ -140,7 +140,7 @@ class TaskHandlerService(TaskHandler):
                 "kind": type(updated).__name__,
             },
         )
-        return wi
+        return task
 
     async def start_task(self, desc: TaskDescription, reason: str) -> Optional[RunningTask]:
         existing = first(lambda x: x.descriptor.id == desc.id and x.is_active, self.tasks.values())
@@ -284,7 +284,7 @@ class TaskHandlerService(TaskHandler):
     async def running_tasks(self) -> List[RunningTask]:
         return list(self.tasks.values())
 
-    async def start_task_by_descriptor_id(self, uid: str) -> Optional[RunningTask]:
+    async def start_task_by_descriptor_id(self, uid: TaskDescriptorId) -> Optional[RunningTask]:
         td = first(lambda t: t.id == uid, self.task_descriptions)
         if td:
             return await self.start_task(td, "direct")
@@ -504,7 +504,7 @@ class TaskHandlerService(TaskHandler):
 
     @staticmethod
     def known_workflows(config: CoreConfig) -> List[Workflow]:
-        def workflow(name: str, steps: List[Step]) -> Workflow:
+        def workflow(name: TaskDescriptorId, steps: List[Step]) -> Workflow:
             trigger: List[Trigger] = [EventTrigger(f"start_{name}_workflow")]
             wf_config = config.workflows.get(name)
             if wf_config:
@@ -514,6 +514,7 @@ class TaskHandlerService(TaskHandler):
         collect_steps = [
             Step("pre_collect", PerformAction("pre_collect"), timedelta(seconds=10)),
             Step("collect", PerformAction("collect"), timedelta(seconds=10)),
+            Step("merge_outer_edges", PerformAction("merge_outer_edges"), timedelta(seconds=10)),
             Step("post_collect", PerformAction("post_collect"), timedelta(seconds=10)),
         ]
         cleanup_steps = [
@@ -530,10 +531,10 @@ class TaskHandlerService(TaskHandler):
             Step("post_generate_metrics", PerformAction("post_generate_metrics"), timedelta(seconds=10)),
         ]
         return [
-            workflow("collect", collect_steps + metrics_steps),
-            workflow("cleanup", cleanup_steps + metrics_steps),
-            workflow("metrics", metrics_steps),
-            workflow("collect_and_cleanup", collect_steps + cleanup_steps + metrics_steps),
+            workflow(TaskDescriptorId("collect"), collect_steps + metrics_steps),
+            workflow(TaskDescriptorId("cleanup"), cleanup_steps + metrics_steps),
+            workflow(TaskDescriptorId("metrics"), metrics_steps),
+            workflow(TaskDescriptorId("collect_and_cleanup"), collect_steps + cleanup_steps + metrics_steps),
         ]
 
     # endregion
