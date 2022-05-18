@@ -1,0 +1,61 @@
+name: Check PR (resotolog)
+on:
+  push:
+    tags:
+      - "*.*.*"
+    branches:
+        - main
+  pull_request:
+    paths:
+      - 'resotolog/**'
+      - 'resotolib/**'
+      - '.github/**'
+
+jobs:
+  resotolog:
+    name: "resotolog"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.10'
+          architecture: 'x64'
+
+      - name: Restore dependency cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: $\{\{runner.os}}-pip-$\{\{hashFiles('setup.py')}}
+          restore-keys: |
+            $\{\{ runner.os }}-pip-
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install tox wheel flake8 build
+          pip install --upgrade --editable resotolib/
+
+      - name: Run tests
+        working-directory: ./resotolog
+        run: tox
+
+      - name: Build a binary wheel and a source tarball
+        working-directory: ./resotolog
+        run: >-
+          python -m
+          build
+          --sdist
+          --wheel
+          --outdir dist/
+
+      - name: Publish distribution to PyPI
+        if: github.ref_type == 'tag'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_resotolog }}
+          packages_dir: ./resotolog/dist/
