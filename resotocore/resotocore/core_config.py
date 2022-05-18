@@ -399,7 +399,7 @@ def parse_config(args: Namespace, core_config: Json, command_templates: Optional
     set_from_cmd_line = {
         "api.ui_path": args.ui_path,
         "runtime.debug": args.debug,
-        "runtime.usage_metrics": not args.analytics_opt_out,
+        "runtime.usage_metrics": not args.analytics_opt_out if args.analytics_opt_out is not None else None,
     }
 
     # take config overrides and adjust the configuration
