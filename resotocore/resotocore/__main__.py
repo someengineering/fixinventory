@@ -119,7 +119,7 @@ def with_config(
     # only lg the editable config - to not log any passwords
     log.debug(f"Starting with config: {config.editable}")
     info = system_info()
-    event_sender = NoEventSender() if config.runtime.analytics_opt_out else PostHogEventSender(system_data)
+    event_sender = PostHogEventSender(system_data) if config.runtime.usage_metrics else NoEventSender()
     db = db_access(config, sdb, event_sender)
     message_bus = MessageBus()
     scheduler = Scheduler()

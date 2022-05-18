@@ -232,7 +232,8 @@ def set_value_in_path(element: JsonElement, path_or_name: Union[List[str], str],
     return js
 
 
-def del_value_in_path(element: JsonElement, path: List[str]) -> JsonElement:
+def del_value_in_path(element: JsonElement, path_or_name: Union[List[str], str]) -> JsonElement:
+    path = path_or_name if isinstance(path_or_name, list) else path_or_name.split(".")
     pl = len(path) - 1
 
     def at_idx(current: JsonElement, idx: int) -> JsonElement:

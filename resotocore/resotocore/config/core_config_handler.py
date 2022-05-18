@@ -17,6 +17,7 @@ from resotocore.core_config import (
     ResotoCoreCommandsConfigId,
     ResotoCoreCommandsRoot,
     CustomCommandsConfig,
+    migrate_config,
 )
 from resotocore.dependencies import empty_config
 from resotocore.message_bus import MessageBus, CoreMessage
@@ -111,10 +112,10 @@ class CoreConfigHandler:
             existing = await self.config_handler.get_config(ResotoCoreConfigId)
             empty = empty_config().json()
             updated = deep_merge(empty, existing.config) if existing else empty
+            updated = migrate_config(updated)
             if existing is None or updated != existing.config:
                 await self.config_handler.put_config(ConfigEntity(ResotoCoreConfigId, updated), False)
                 log.info("Default resoto config updated.")
-
         except Exception as ex:
             log.error(f"Could not update resoto default configuration: {ex}", exc_info=ex)
 
