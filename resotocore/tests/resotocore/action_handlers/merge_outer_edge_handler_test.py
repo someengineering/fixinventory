@@ -2,7 +2,7 @@ import pytest
 import asyncio
 from pytest import fixture
 from tests.resotocore.task.task_handler_test import task_handler
-from resotocore.merge_outer_edge.merge_outer_edge_handler import MergeOuterEdgesHandler
+from resotocore.action_handlers.merge_outer_edge_handler import MergeOuterEdgesHandler
 from resotocore.message_bus import Action, MessageBus
 from resotocore.task.task_handler import TaskHandlerService
 from resotocore.task.subscribers import SubscriptionHandler
