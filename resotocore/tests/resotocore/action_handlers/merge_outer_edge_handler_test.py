@@ -8,7 +8,7 @@ from resotocore.task.task_handler import TaskHandlerService
 from resotocore.task.subscribers import SubscriptionHandler
 from tests.resotocore.message_bus_test import message_bus, all_events, wait_for_message
 from tests.resotocore.db.runningtaskdb_test import running_task_db
-
+from typing import AsyncGenerator
 from resotocore.task.task_description import (
     Workflow,
     Step,
@@ -59,9 +59,11 @@ async def merge_handler(
     message_bus: MessageBus,
     subscription_handler: SubscriptionHandler,
     task_handler: TaskHandlerService,
-) -> MergeOuterEdgesHandler:
+) -> AsyncGenerator[MergeOuterEdgesHandler, None]:
     handler = MergeOuterEdgesHandler(message_bus, subscription_handler, task_handler)
-    return handler
+    await handler.start()
+    yield handler
+    await handler.stop()
 
 
 merge_outer_edges = "merge_outer_edges"
@@ -71,8 +73,6 @@ merge_outer_edges = "merge_outer_edges"
 async def test_handler_invocation(
     merge_handler: MergeOuterEdgesHandler, subscription_handler: SubscriptionHandler, message_bus: MessageBus
 ) -> None:
-    await merge_handler.start()
-
     merge_called: asyncio.Future[str] = asyncio.get_event_loop().create_future()
 
     def mocked_merge(self: MergeOuterEdgesHandler, task_id: str) -> None:
@@ -87,5 +87,3 @@ async def test_handler_invocation(
     await message_bus.emit(Action(merge_outer_edges, "test_task_1", merge_outer_edges))
 
     assert await merge_called == "test_task_1"
-
-    await merge_handler.stop()
