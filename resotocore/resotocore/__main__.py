@@ -26,7 +26,7 @@ from resotocore.cli.command import alias_names, all_commands
 from resotocore.cli.model import CLIDependencies
 from resotocore.config.config_handler_service import ConfigHandlerService
 from resotocore.config.core_config_handler import CoreConfigHandler
-from resotocore.collectworker.merge_outer_edge_handler import MergeOuterEdgesHandler
+from resotocore.merge_outer_edge.merge_outer_edge_handler import MergeOuterEdgesHandler
 from resotocore.core_config import config_from_db, CoreConfig, RunConfig
 from resotocore.db import SystemData
 from resotocore.db.db_access import DbAccess
