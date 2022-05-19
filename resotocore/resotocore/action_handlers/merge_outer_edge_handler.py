@@ -1,4 +1,4 @@
-from resotocore.message_bus import MessageBus, ActionDone, Action
+from resotocore.message_bus import MessageBus, Action
 import logging
 import asyncio
 from asyncio import Task, Future
@@ -12,7 +12,7 @@ from resotocore.task.subscribers import SubscriptionHandler
 
 log = logging.getLogger(__name__)
 
-subscriber_id = "resotocore.merge_outer_edges"
+subscriber_id = "resotocore"
 merge_outer_edges = "merge_outer_edges"
 
 
@@ -39,14 +39,7 @@ class MergeOuterEdgesHandler:
                 event = await events.get()
                 if isinstance(event, Action) and event.message_type == merge_outer_edges:
                     self.merge_outer_edges(event.task_id)
-                    await self.task_handler_service.handle_action_done(
-                        ActionDone(
-                            merge_outer_edges,
-                            event.task_id,
-                            merge_outer_edges,
-                            self.subscriber.id if self.subscriber else subscriber_id,
-                        )
-                    )
+                    await self.task_handler_service.handle_action_done(event.done(subscriber_id))
 
     async def start(self) -> None:
         subscription_done = asyncio.get_event_loop().create_future()

@@ -71,7 +71,10 @@ merge_outer_edges = "merge_outer_edges"
 
 @pytest.mark.asyncio
 async def test_handler_invocation(
-    merge_handler: MergeOuterEdgesHandler, subscription_handler: SubscriptionHandler, message_bus: MessageBus
+    merge_handler: MergeOuterEdgesHandler,
+    subscription_handler: SubscriptionHandler,
+    message_bus: MessageBus,
+    task_handler: TaskHandlerService,
 ) -> None:
     merge_called: asyncio.Future[str] = asyncio.get_event_loop().create_future()
 
@@ -82,7 +85,7 @@ async def test_handler_invocation(
 
     subscribers = await subscription_handler.list_subscriber_for(merge_outer_edges)
 
-    assert subscribers[0].id == "resotocore.merge_outer_edges"
+    assert subscribers[0].id == "resotocore"
 
     await message_bus.emit(Action(merge_outer_edges, "test_task_1", merge_outer_edges))
 
