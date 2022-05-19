@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Optional, List
 
-from resotocore.task.task_description import Job, RunningTask, Workflow
+from resotocore.task.task_description import Job, RunningTask, Workflow, TaskDescriptorId
 
 
 class TaskHandler(ABC):
@@ -22,7 +22,7 @@ class TaskHandler(ABC):
         pass
 
     @abstractmethod
-    async def start_task_by_descriptor_id(self, uid: str) -> Optional[RunningTask]:
+    async def start_task_by_descriptor_id(self, uid: TaskDescriptorId) -> Optional[RunningTask]:
         pass
 
     @abstractmethod

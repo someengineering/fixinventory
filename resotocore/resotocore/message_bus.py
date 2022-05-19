@@ -124,7 +124,8 @@ class ActionMessage(Message):
 
 
 class Action(ActionMessage):
-    pass
+    def done(self, subscriber_id: str) -> ActionDone:
+        return ActionDone(self.message_type, self.task_id, self.step_name, subscriber_id, dict(self.data))
 
 
 class ActionDone(ActionMessage):

@@ -10,7 +10,7 @@ from resotocore.db.async_arangodb import AsyncArangoDB
 from resotocore.db.entitydb import EntityDb, ArangoEntityDb
 from resotocore.message_bus import Message
 from resotocore.model.typed_model import to_js
-from resotocore.task.task_description import RunningTask
+from resotocore.task.task_description import RunningTask, TaskDescriptorId
 from resotocore.types import Json
 from resotocore.util import utc
 
@@ -22,7 +22,7 @@ class RunningTaskData:
     # id of the related task
     id: str
     # id of the related task descriptor
-    task_descriptor_id: str
+    task_descriptor_id: TaskDescriptorId
     # name of the related task descriptor
     task_descriptor_name: str
     # all messages that have been received by this task

@@ -114,6 +114,7 @@ from resotocore.web.content_renderer import (
     respond_cytoscape,
 )
 from resotocore.worker_task_queue import WorkerTask, WorkerTaskName
+from resotocore.task.task_description import TaskDescriptorId
 
 log = logging.getLogger(__name__)
 
@@ -2578,7 +2579,7 @@ class JobsCommand(CLICommand, PreserveOutputFormat):
             yield f"Job {job_id} deleted." if job else f"No job with this id: {job_id}"
 
         async def run_job(job_id: str) -> AsyncIterator[str]:
-            task = await self.dependencies.task_handler.start_task_by_descriptor_id(job_id)
+            task = await self.dependencies.task_handler.start_task_by_descriptor_id(TaskDescriptorId(job_id))
             yield f"Job {task.descriptor.id} started with id {task.id}." if task else f"No job with this id: {job_id}"
 
         async def activate_deactivate_job(job_id: str, active: bool) -> AsyncIterator[JsonElement]:
@@ -3642,7 +3643,7 @@ class WorkflowsCommand(CLICommand):
                 yield f"No workflow with this id: {wf_id}"
 
         async def run_workflow(wf_id: str) -> AsyncIterator[str]:
-            task = await self.dependencies.task_handler.start_task_by_descriptor_id(wf_id)
+            task = await self.dependencies.task_handler.start_task_by_descriptor_id(TaskDescriptorId(wf_id))
             yield (
                 f"Workflow {task.descriptor.id} started with id {task.id}."
                 if task

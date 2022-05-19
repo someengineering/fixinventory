@@ -15,6 +15,7 @@ from resotocore.task.model import Subscriber
 from resotocore.task.scheduler import Scheduler
 from resotocore.task.subscribers import SubscriptionHandler
 from resotocore.task.task_description import (
+    TaskDescriptorId,
     Workflow,
     Step,
     PerformAction,
@@ -99,7 +100,7 @@ async def task_handler(
 @fixture
 def test_workflow() -> Workflow:
     return Workflow(
-        "test_workflow",
+        TaskDescriptorId("test_workflow"),
         "Speakable name of workflow",
         [
             Step("start", PerformAction("start_collect"), timedelta(seconds=10)),
@@ -212,7 +213,7 @@ async def test_wait_for_running_job(
 async def test_handle_failing_task_command(task_handler: TaskHandlerService, caplog: LogCaptureFixture) -> None:
     caplog.set_level(logging.WARN)
     # This job will fail. Take a very long timeout - to avoid a timeout
-    job = Job("fail", ExecuteCommand("non_existing_command"), timedelta(hours=4))
+    job = Job(TaskDescriptorId("fail"), ExecuteCommand("non_existing_command"), timedelta(hours=4))
     task_handler.task_descriptions = [job]
     assert len(await task_handler.running_tasks()) == 0
     await task_handler.start_task(job, "test fail")

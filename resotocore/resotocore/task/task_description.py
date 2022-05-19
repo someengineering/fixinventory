@@ -5,7 +5,7 @@ import uuid
 from abc import ABC
 from datetime import timedelta
 from enum import Enum
-from typing import Optional, Any, Sequence, MutableSequence, Callable, Dict, List, Set, Tuple
+from typing import Optional, Any, Sequence, MutableSequence, Callable, Dict, List, Set, Tuple, NewType
 
 from dataclasses import dataclass
 
@@ -23,6 +23,8 @@ from resotocore.util import first, interleave, empty, exist, identity, utc, utc_
 from resotocore.task.model import Subscriber
 
 log = logging.getLogger(__name__)
+
+TaskDescriptorId = NewType("TaskDescriptorId", str)
 
 
 class StepErrorBehaviour(Enum):
@@ -142,7 +144,7 @@ class ExecuteOnCLI(TaskCommand):
 
 # endregion
 
-# region Trigger: when an task should be triggered
+# region Trigger: when a task should be triggered
 class Trigger(ABC):
     def __eq__(self, other: object) -> bool:
         return self.__dict__ == other.__dict__ if isinstance(other, Trigger) else False
@@ -199,7 +201,7 @@ class Step:
 class TaskDescription(ABC):
     def __init__(
         self,
-        uid: str,
+        uid: TaskDescriptorId,
         name: str,
         steps: Sequence[Step],
         triggers: Sequence[Trigger],
@@ -225,7 +227,7 @@ class TaskDescription(ABC):
 class Job(TaskDescription):
     def __init__(
         self,
-        uid: str,
+        uid: TaskDescriptorId,
         command: ExecuteCommand,
         timeout: timedelta,
         trigger: Optional[Trigger] = None,
@@ -234,7 +236,7 @@ class Job(TaskDescription):
         mutable: bool = True,
         active: bool = True,
     ):
-        steps = []
+        steps: List[Step] = []
         if wait:
             wait_trigger, wait_timeout = wait
             action = WaitForEvent(wait_trigger.message_type, wait_trigger.filter_data)
@@ -289,7 +291,7 @@ class Workflow(TaskDescription):
 
     def __init__(
         self,
-        uid: str,
+        uid: TaskDescriptorId,
         name: str,
         steps: Sequence[Step],
         triggers: Sequence[Trigger],
@@ -433,7 +435,7 @@ class PerformActionState(StepState):
     def __init__(self, perform: PerformAction, step: Step, instance: RunningTask):
         super().__init__(step, instance)
         self.perform = perform
-        self.wait_for = self.instance.subscribers_by_event().get(perform.message_type, [])
+        self.wait_for: List[Subscriber] = self.instance.subscribers_by_event().get(perform.message_type, [])
 
     def current_step_done(self) -> bool:
         """
@@ -585,9 +587,9 @@ class RunningTask:
     ) -> Tuple[RunningTask, Sequence[TaskCommand]]:
         assert len(descriptor.steps) > 0, "TaskDescription needs at least one step!"
         uid = str(uuid.uuid1())
-        wi = RunningTask(uid, descriptor, subscriber_by_event)
-        messages = [SendMessage(Event("task_started", data={"task": descriptor.name})), *wi.move_to_next_state()]
-        return wi, messages
+        task = RunningTask(uid, descriptor, subscriber_by_event)
+        messages = [SendMessage(Event("task_started", data={"task": descriptor.name})), *task.move_to_next_state()]
+        return task, messages
 
     def __init__(
         self, uid: str, descriptor: TaskDescription, subscribers_by_event: Callable[[], Dict[str, List[Subscriber]]]

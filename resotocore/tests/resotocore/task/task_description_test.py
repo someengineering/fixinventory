@@ -10,6 +10,7 @@ from resotocore.model.typed_model import from_js, to_js
 from resotocore.task.model import Subscriber, Subscription
 from resotocore.task.subscribers import SubscriptionHandler
 from resotocore.task.task_description import (
+    TaskDescriptorId,
     Workflow,
     Step,
     RunningTask,
@@ -41,7 +42,7 @@ async def subscription_handler(message_bus: MessageBus) -> SubscriptionHandler:
 @fixture
 def test_workflow() -> Workflow:
     return Workflow(
-        "test_workflow",
+        TaskDescriptorId("test_workflow"),
         "Speakable name of workflow",
         [
             Step("start", PerformAction("start_collect"), timedelta(seconds=10)),
@@ -88,7 +89,9 @@ def test_eq() -> None:
     assert s3 == Step("a", EmitEvent(Event("a", {"a": "b"})), timedelta())
     assert s4 == Step("a", ExecuteCommand("echo hello"), timedelta())
     trigger = [EventTrigger("start me up")]
-    assert Workflow("a", "a", [s1, s2, s3, s4], trigger) == Workflow("a", "a", [s1, s2, s3, s4], trigger)
+    assert Workflow(TaskDescriptorId("a"), "a", [s1, s2, s3, s4], trigger) == Workflow(
+        TaskDescriptorId("a"), "a", [s1, s2, s3, s4], trigger
+    )
 
 
 def test_ack_for(workflow_instance: Tuple[RunningTask, Subscriber, Subscriber, Dict[str, List[Subscriber]]]) -> None:
@@ -205,7 +208,7 @@ def test_marshalling_step() -> None:
 
 
 def test_marshalling_job() -> None:
-    j = Job("id", ExecuteCommand("echo hello"), timedelta(seconds=10), EventTrigger("run_job"))
+    j = Job(TaskDescriptorId("id"), ExecuteCommand("echo hello"), timedelta(seconds=10), EventTrigger("run_job"))
     roundtrip(j)
     roundtrip(Job(j.id, j.command, j.timeout, j.trigger, (EventTrigger("test"), timedelta(hours=2))))
 
