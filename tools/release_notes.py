@@ -89,7 +89,7 @@ def show_log(from_tag: str, to_tag: str):
             print(
                 f"- [`{commit.commit_hash}`](https://github.com/someengineering/resoto/commit/{commit.commit_hash}) "
                 f'<span class="badge badge--secondary">{commit.component}</span> {commit.message}'
-                f"([#{commit.pr}](https://github.com/someengineering/resoto/pull/{commit.pr}))"
+                f"{f' ([#{commit.pr}](https://github.com/someengineering/resoto/pull/{commit.pr}))' if commit.pr else ''}"
             )
 
     print("\n<!--truncate-->")
