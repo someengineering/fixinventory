@@ -2579,7 +2579,7 @@ class JobsCommand(CLICommand, PreserveOutputFormat):
             yield f"Job {job_id} deleted." if job else f"No job with this id: {job_id}"
 
         async def run_job(job_id: str) -> AsyncIterator[str]:
-            task = await self.dependencies.task_handler.start_task_by_descriptor_id(job_id)
+            task = await self.dependencies.task_handler.start_task_by_descriptor_id(TaskDescriptorId(job_id))
             yield f"Job {task.descriptor.id} started with id {task.id}." if task else f"No job with this id: {job_id}"
 
         async def activate_deactivate_job(job_id: str, active: bool) -> AsyncIterator[JsonElement]:

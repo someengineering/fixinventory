@@ -1,6 +1,6 @@
 from typing import List, Optional, Dict
 
-from resotocore.task import  TaskHandler
+from resotocore.task import TaskHandler
 from resotocore.task.task_description import RunningTask, Job, Workflow, TaskDescriptorId
 from resotocore.util import first
 

@@ -9,7 +9,7 @@ from resotocore.db import jobdb
 from resotocore.db.async_arangodb import AsyncArangoDB
 from resotocore.db.entitydb import EventEntityDb
 from resotocore.db.jobdb import JobDb, EventJobDb
-from resotocore.task.task_description import Job, ExecuteCommand, EventTrigger
+from resotocore.task.task_description import Job, ExecuteCommand, EventTrigger, TaskDescriptorId
 
 # noinspection PyUnresolvedReferences
 from tests.resotocore.analytics import event_sender
@@ -36,8 +36,8 @@ def event_db(job_db: JobDb, event_sender: InMemoryEventSender) -> EventJobDb:
 def jobs() -> List[Job]:
     wait = (EventTrigger("wait"), timedelta(seconds=30))
     return [
-        Job("id1", ExecuteCommand("echo hello"), timedelta(seconds=10), EventTrigger("run_job")),
-        Job("id2", ExecuteCommand("sleep 10"), timedelta(seconds=10), EventTrigger("run_job"), wait),
+        Job(TaskDescriptorId("id1"), ExecuteCommand("echo hello"), timedelta(seconds=10), EventTrigger("run_job")),
+        Job(TaskDescriptorId("id2"), ExecuteCommand("sleep 10"), timedelta(seconds=10), EventTrigger("run_job"), wait),
     ]
 
 

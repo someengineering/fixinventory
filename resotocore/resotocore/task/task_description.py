@@ -5,7 +5,7 @@ import uuid
 from abc import ABC
 from datetime import timedelta
 from enum import Enum
-from typing import Coroutine, Optional, Any, Sequence, MutableSequence, Callable, Dict, List, Set, Tuple, NewType
+from typing import Optional, Any, Sequence, MutableSequence, Callable, Dict, List, Set, Tuple, NewType
 
 from dataclasses import dataclass
 
@@ -398,8 +398,6 @@ class StepState(State):  # type: ignore
             return WaitForEventState(step.action, step, instance)
         elif isinstance(step.action, ExecuteCommand):
             return ExecuteCommandState(step.action, step, instance)
-        elif isinstance(step.action, ExecuteOnCore):
-            return ExecuteOnCoreState(step.action, step, instance)
         else:
             raise AttributeError(f"No mapping for {type(step.action).__name__}")
 

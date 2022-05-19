@@ -3,6 +3,7 @@ from typing import Optional, List
 
 from resotocore.task.task_description import Job, RunningTask, Workflow, TaskDescriptorId
 
+
 class TaskHandler(ABC):
     @abstractmethod
     async def list_workflows(self) -> List[Workflow]:
