@@ -257,6 +257,25 @@ class Kind(ABC):
         else:
             raise JSONDecodeError("Given type can not be read.", json.dumps(js), 0)
 
+    def sort_json(self, js: Json) -> Json:
+        """
+        Sort the given json element according to the kind definition.
+        A model which define properties in a specific order, the json object also uses the same order.
+        This will walk the complete json structure.
+        """
+        if isinstance(js, dict) and isinstance(self, ComplexKind):
+            prop_order = {rp.name: idx for idx, rp in enumerate(self.all_props())}
+            sub = {
+                k: self.property_kind_of(k, AnyKind()).sort_json(v) if isinstance(v, dict) else v for k, v in js.items()
+            }
+            # a property which is unknown is moved to the end with no specific order
+            return dict(sorted(sub.items(), key=lambda k: prop_order.get(k[0], sys.maxsize)))
+        elif isinstance(js, dict):
+            # noinspection PyTypeChecker
+            return dict(sorted(js.items()))
+        else:
+            return js
+
 
 simple_kind_to_type: Dict[str, Type[Union[str, int, float, bool]]] = {
     "string": str,
@@ -780,7 +799,7 @@ class ComplexKind(Kind):
                     base.resolve(model)
                     if isinstance(base, ComplexKind):
                         self.__resolved_kinds.update(base.__resolved_kinds)
-                        self.__all_props += base.__all_props
+                        self.__all_props = base.__all_props + self.__all_props
                         self.__prop_by_name = {prop.name: prop for prop in self.__all_props}
                         self.__resolved_hierarchy.update(base.__resolved_hierarchy)
                         self.__property_by_path.extend(base.__property_by_path)

@@ -65,6 +65,24 @@ def test_json_marshalling() -> None:
     roundtrip(ComplexKind("Test", [], props, True, successor_kinds), Kind)
 
 
+def test_json_sort(person_model: Model) -> None:
+    ps = person_model["Person"].sort_json(
+        {
+            "name": "a",
+            "tags": {"c": 2, "a": 1},
+            "address": {"name": "a", "id": "a", "city": "gotham", "zip": "123"},
+            "mtime": "2020-01-01T00:00:00Z",
+            "list": ["b", "a"],
+            "id": "a",
+        }
+    )
+    # this is the order of the properties in the model
+    assert list(ps.keys()) == ["id", "list", "tags", "mtime", "name", "address"]
+    assert list(ps["address"].keys()) == ["id", "zip", "city", "name"]
+    # tags do not have a related complex kind: expect natural sort order
+    assert list(ps["tags"].keys()) == ["a", "c"]
+
+
 def test_string() -> None:
     a = StringKind("string", 5, 13, "foo.*bla")
     assert expect_error(a, "foo") == ">foo< does not conform to regex: foo.*bla"
