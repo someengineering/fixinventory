@@ -18,7 +18,7 @@ from resotocore.core_config import CoreConfig
 from resotocore.db.jobdb import JobDb
 from resotocore.db.runningtaskdb import RunningTaskData, RunningTaskDb
 from resotocore.message_bus import MessageBus, Event, Action, ActionDone, Message, ActionError
-from resotocore.task import TaskDescriptorId, TaskHandler
+from resotocore.task import TaskHandler
 from resotocore.task.model import Subscriber
 from resotocore.task.scheduler import Scheduler
 from resotocore.task.start_workflow_on_first_subscriber import wait_and_start
@@ -40,6 +40,7 @@ from resotocore.task.task_description import (
     StepErrorBehaviour,
     RestartAgainStepAction,
     Trigger,
+    TaskDescriptorId,
 )
 from resotocore.util import first, Periodic, group_by, utc_str, utc
 

@@ -40,7 +40,12 @@ class MergeOuterEdgesHandler:
                 if isinstance(event, Action) and event.message_type == merge_outer_edges:
                     self.merge_outer_edges(event.task_id)
                     await self.task_handler_service.handle_action_done(
-                        ActionDone(merge_outer_edges, event.task_id, merge_outer_edges, self.subscriber.id)
+                        ActionDone(
+                            merge_outer_edges,
+                            event.task_id,
+                            merge_outer_edges,
+                            self.subscriber.id if self.subscriber else subscriber_id,
+                        )
                     )
 
     async def start(self) -> None:
@@ -48,7 +53,9 @@ class MergeOuterEdgesHandler:
         self.subscriber = await self.subscription_handler.add_subscription(
             subscriber_id, merge_outer_edges, True, timedelta(seconds=30)
         )
-        self.merge_outer_edges_listener = asyncio.create_task(self.__handle_events(subscription_done), name=subscriber_id)
+        self.merge_outer_edges_listener = asyncio.create_task(
+            self.__handle_events(subscription_done), name=subscriber_id
+        )
         await subscription_done
 
     async def stop(self) -> None:

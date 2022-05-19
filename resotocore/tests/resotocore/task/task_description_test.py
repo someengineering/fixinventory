@@ -89,7 +89,9 @@ def test_eq() -> None:
     assert s3 == Step("a", EmitEvent(Event("a", {"a": "b"})), timedelta())
     assert s4 == Step("a", ExecuteCommand("echo hello"), timedelta())
     trigger = [EventTrigger("start me up")]
-    assert Workflow(TaskDescriptorId("a"), "a", [s1, s2, s3, s4], trigger) == Workflow(TaskDescriptorId("a"), "a", [s1, s2, s3, s4], trigger)
+    assert Workflow(TaskDescriptorId("a"), "a", [s1, s2, s3, s4], trigger) == Workflow(
+        TaskDescriptorId("a"), "a", [s1, s2, s3, s4], trigger
+    )
 
 
 def test_ack_for(workflow_instance: Tuple[RunningTask, Subscriber, Subscriber, Dict[str, List[Subscriber]]]) -> None:

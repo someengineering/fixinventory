@@ -34,7 +34,10 @@ async def running_task_db(test_db: StandardDatabase) -> RunningTaskDb:
 def instances() -> List[RunningTaskData]:
     messages = [ActionDone(str(a), "test", "bla", "sf") for a in range(0, 10)]
     state_data = {"test": 1}
-    return [RunningTaskData(str(a), TaskDescriptorId(str(a)), "task_123", messages, "start", state_data, utc()) for a in range(0, 10)]
+    return [
+        RunningTaskData(str(a), TaskDescriptorId(str(a)), "task_123", messages, "start", state_data, utc())
+        for a in range(0, 10)
+    ]
 
 
 @pytest.mark.asyncio
