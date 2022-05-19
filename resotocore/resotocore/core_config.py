@@ -3,6 +3,7 @@ import os
 import re
 from argparse import Namespace
 from contextlib import suppress
+from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import timedelta
 from pathlib import Path
@@ -15,7 +16,7 @@ from resotolib.core.model_export import dataclasses_to_resotocore_model
 from resotocore.model.model import Kind, Model, ComplexKind
 from resotocore.model.typed_model import from_js, to_js
 from resotocore.types import Json, JsonElement
-from resotocore.util import set_value_in_path
+from resotocore.util import set_value_in_path, value_in_path, del_value_in_path
 from resotocore.validator import Validator, schema_name
 
 log = logging.getLogger(__name__)
@@ -267,7 +268,6 @@ schema_registry.add(
 @dataclass()
 class RuntimeConfig(ConfigObject):
     kind: ClassVar[str] = f"{ResotoCoreRoot}_runtime_config"
-    analytics_opt_out: bool = field(default=False, metadata={"description": "Stop collecting analytics data."})
     debug: bool = field(default=False, metadata={"description": "Enable debug logging and exception tracing."})
     log_level: str = field(default="info", metadata={"description": "Log level (default: info)"})
     plantuml_server: str = field(
@@ -277,6 +277,14 @@ class RuntimeConfig(ConfigObject):
     start_collect_on_subscriber_connect: bool = field(
         default=False,
         metadata={"description": "Start the collect workflow, when the first handling actor connects to the system."},
+    )
+    usage_metrics: bool = field(
+        default=True,
+        metadata={
+            "description": "Help us improving Resoto by collecting usage metrics.\n"
+            "See https://resoto.com/docs/reference/telemetry for more information.\n"
+            "This data is anonymous. No personally identifiable information is captured or stored."
+        },
     )
 
 
@@ -391,7 +399,7 @@ def parse_config(args: Namespace, core_config: Json, command_templates: Optional
     set_from_cmd_line = {
         "api.ui_path": args.ui_path,
         "runtime.debug": args.debug,
-        "runtime.analytics_opt_out": args.analytics_opt_out,
+        "runtime.usage_metrics": not args.analytics_opt_out if args.analytics_opt_out is not None else None,
     }
 
     # take config overrides and adjust the configuration
@@ -399,7 +407,8 @@ def parse_config(args: Namespace, core_config: Json, command_templates: Optional
         set_from_cmd_line[ResotoCoreRootRE.sub("", key, 1)] = value
 
     # set the relevant value in the json config model
-    adjusted = core_config.get(ResotoCoreRoot) or {}
+    migrated = migrate_config(core_config)
+    adjusted = migrated.get(ResotoCoreRoot) or {}
     for path, value in set_from_cmd_line.items():
         if value is not None:
             adjusted = set_value_in_path(value, path, adjusted)
@@ -438,6 +447,23 @@ def parse_config(args: Namespace, core_config: Json, command_templates: Optional
         workflows=ed.workflows,
         run=RunConfig(),  # overridden for each run
     )
+
+
+def migrate_config(config: Json) -> Json:
+    """
+    :param config: The core configuration
+    :return: the migrated json.
+    """
+    cfg = config.get(ResotoCoreRoot) or {}
+    adapted = deepcopy(cfg)
+
+    # 2.2 -> 2.3: rename and toggle `analytics_opt_out` -> `usage_metrics`
+    opt_out = value_in_path(cfg, "runtime.analytics_opt_out")
+    usage = value_in_path(cfg, "runtime.usage_metrics")
+    if opt_out is not None and usage is None:
+        set_value_in_path(not opt_out, "runtime.usage_metrics", adapted)
+    del_value_in_path(adapted, "runtime.analytics_opt_out")
+    return {ResotoCoreRoot: adapted}
 
 
 def config_from_db(args: Namespace, db: StandardDatabase, collection_name: str = "configs") -> CoreConfig:

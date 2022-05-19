@@ -16,10 +16,12 @@ from resotocore.core_config import (
     CustomCommandsConfig,
     WorkflowConfig,
     RunConfig,
+    migrate_config,
 )
 from resotocore.dependencies import parse_args
 from resotocore.model.typed_model import to_js
 from resotocore.types import Json
+from resotocore.util import value_in_path
 
 
 def test_parse_empty(default_config: CoreConfig) -> None:
@@ -121,6 +123,18 @@ def test_in_docker() -> None:
         core_config.GitHashFile = stored
 
 
+def test_migration() -> None:
+    cfg1 = migrate_config(dict(resotocore=dict(runtime=dict(analytics_opt_out=True))))
+    assert value_in_path(cfg1, "resotocore.runtime.usage_metrics") is False
+    assert value_in_path(cfg1, "resotocore.runtime.analytics_opt_out") is None
+    cfg2 = migrate_config(dict(resotocore=dict(runtime=dict(usage_metrics=True))))
+    assert value_in_path(cfg2, "resotocore.runtime.usage_metrics") is True
+    assert value_in_path(cfg1, "resotocore.runtime.analytics_opt_out") is None
+    cfg3 = migrate_config(dict(resotocore=dict(runtime=dict(analytics_opt_out=True, usage_metrics=True))))
+    assert value_in_path(cfg3, "resotocore.runtime.usage_metrics") is True
+    assert value_in_path(cfg1, "resotocore.runtime.analytics_opt_out") is None
+
+
 @fixture
 def config_json() -> Json:
     return {
@@ -152,7 +166,7 @@ def config_json() -> Json:
             },
             "graph_update": {"abort_after_seconds": 1234, "merge_max_wait_time_seconds": 4321},
             "runtime": {
-                "analytics_opt_out": True,
+                "usage_metrics": False,
                 "debug": True,
                 "log_level": "WARN",
                 "plantuml_server": "https://foo",
@@ -176,7 +190,7 @@ def default_config() -> CoreConfig:
         db=DatabaseConfig(),
         graph_update=ed.graph_update,
         # We use this flag explicitly - otherwise it is picked up by env vars
-        runtime=RuntimeConfig(analytics_opt_out=True),
+        runtime=RuntimeConfig(usage_metrics=False),
         workflows=ed.workflows,
         custom_commands=CustomCommandsConfig(),
         args=parse_args(["--analytics-opt-out"]),
