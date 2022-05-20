@@ -6,13 +6,14 @@ from typing import Optional
 from contextlib import suppress
 from datetime import timedelta
 from resotocore.task.model import Subscriber
+from resotocore.ids import SubscriberId
 from resotocore.task.task_handler import TaskHandlerService
 
 from resotocore.task.subscribers import SubscriptionHandler
 
 log = logging.getLogger(__name__)
 
-subscriber_id = "resotocore"
+subscriber_id = SubscriberId("resotocore")
 merge_outer_edges = "merge_outer_edges"
 
 

@@ -16,11 +16,13 @@ from frozendict import frozendict
 from jsons import set_deserializer, set_serializer
 from transitions import Machine, State, MachineError
 
+from resotocore.task.model import Subscriber
 from resotocore.message_bus import Event, Action, ActionDone, Message, ActionError
 from resotocore.model.typed_model import to_json, from_js, to_js
 from resotocore.types import Json
 from resotocore.util import first, interleave, empty, exist, identity, utc, utc_str
-from resotocore.task.model import Subscriber
+from resotocore.ids import SubscriberId
+
 
 log = logging.getLogger(__name__)
 
@@ -443,7 +445,7 @@ class PerformActionState(StepState):
         The step behavior defines how to deal in case of an error.
         """
         msg_type = self.perform.message_type
-        in_step: Set[str] = {
+        in_step: Set[SubscriberId] = {
             x.subscriber_id
             for x in self.instance.received_messages
             if isinstance(x, (ActionDone, ActionError)) and x.step_name == self.step.name

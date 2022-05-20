@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 from typing import Dict, List
 
 from datetime import timedelta
+from resotocore.ids import SubscriberId
 
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
@@ -14,11 +15,11 @@ class Subscription:
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
 class Subscriber:
-    id: str
+    id: SubscriberId
     subscriptions: Dict[str, Subscription] = field(default_factory=dict)
 
     @staticmethod
-    def from_list(uid: str, subscriptions: List[Subscription]) -> Subscriber:
+    def from_list(uid: SubscriberId, subscriptions: List[Subscription]) -> Subscriber:
         return Subscriber(uid, {s.message_type: s for s in subscriptions})
 
     def add_subscription(self, message_type: str, wait_for_completion: bool, timeout: timedelta) -> Subscriber:

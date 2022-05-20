@@ -8,6 +8,7 @@ from pytest import fixture
 from resotocore.message_bus import MessageBus, Action, ActionDone, ActionError, Event
 from resotocore.model.typed_model import from_js, to_js
 from resotocore.task.model import Subscriber, Subscription
+from resotocore.ids import SubscriberId
 from resotocore.task.subscribers import SubscriptionHandler
 from resotocore.task.task_description import (
     TaskDescriptorId,
@@ -35,7 +36,7 @@ from tests.resotocore.message_bus_test import message_bus
 async def subscription_handler(message_bus: MessageBus) -> SubscriptionHandler:
     in_mem = InMemoryDb(Subscriber, lambda x: x.id)
     result = SubscriptionHandler(in_mem, message_bus)
-    await result.add_subscription("sub_1", "test", True, timedelta(seconds=3))
+    await result.add_subscription(SubscriberId("sub_1"), "test", True, timedelta(seconds=3))
     return result
 
 
@@ -63,8 +64,8 @@ def workflow_instance(
     sub1 = Subscription("start_collect", True, td)
     sub2 = Subscription("collect", True, td)
     sub3 = Subscription("collect_done", True, td)
-    s1 = Subscriber.from_list("s1", [sub1, sub2, sub3])
-    s2 = Subscriber.from_list("s2", [sub2, sub3])
+    s1 = Subscriber.from_list(SubscriberId("s1"), [sub1, sub2, sub3])
+    s2 = Subscriber.from_list(SubscriberId("s2"), [sub2, sub3])
     subscriptions = {"start_collect": [s1], "collect": [s1, s2], "collect_done": [s1, s2]}
     w, _ = RunningTask.empty(test_workflow, lambda: subscriptions)
     w.received_messages = [

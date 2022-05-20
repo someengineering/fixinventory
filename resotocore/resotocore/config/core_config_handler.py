@@ -19,6 +19,7 @@ from resotocore.core_config import (
     CustomCommandsConfig,
     migrate_config,
 )
+from resotocore.ids import SubscriberId
 from resotocore.dependencies import empty_config
 from resotocore.message_bus import MessageBus, CoreMessage
 from resotocore.model.model import Kind
@@ -97,7 +98,8 @@ class CoreConfigHandler:
                     await self.worker_task_queue.error_task(worker_id, task.id, str(ex))
 
     async def __handle_events(self) -> None:
-        async with self.message_bus.subscribe("resotocore.config.update", [CoreMessage.ConfigUpdated]) as events:
+        subscriber_id = SubscriberId("resotocore.config.update")
+        async with self.message_bus.subscribe(subscriber_id, [CoreMessage.ConfigUpdated]) as events:
             while True:
                 event = await events.get()
                 event_id = event.data.get("id")

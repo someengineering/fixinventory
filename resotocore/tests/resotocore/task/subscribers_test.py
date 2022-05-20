@@ -10,6 +10,7 @@ from tests.resotocore.db.entitydb import InMemoryDb
 from resotocore.model.typed_model import to_js, from_js
 from resotocore.task.model import Subscription, Subscriber
 from resotocore.task.subscribers import SubscriptionHandler
+from resotocore.ids import SubscriberId
 
 
 @fixture
@@ -20,7 +21,7 @@ def in_mem_db() -> SubscriberDb:
 @fixture
 async def handler(in_mem_db: SubscriberDb) -> SubscriptionHandler:
     result = SubscriptionHandler(in_mem_db, MessageBus())
-    await result.add_subscription("sub_1", "test", True, timedelta(seconds=3))
+    await result.add_subscription(SubscriberId("sub_1"), "test", True, timedelta(seconds=3))
     return result
 
 
@@ -40,20 +41,20 @@ def test_json_marshalling_subscribers() -> None:
         Subscription("d", False, timedelta(days=1)),
         Subscription("e", False, timedelta(weeks=1)),
     ]
-    roundtrip(Subscriber.from_list("foo", []))
-    roundtrip(Subscriber.from_list("foo", subscriptions))
+    roundtrip(Subscriber.from_list(SubscriberId("foo"), []))
+    roundtrip(Subscriber.from_list(SubscriberId("foo"), subscriptions))
 
 
 @mark.asyncio
 async def test_subscribe(handler: SubscriptionHandler, in_mem_db: SubscriberDb) -> None:
     # register first time
-    result = await handler.add_subscription("foo", "event_bla", True, timedelta(seconds=3))
+    result = await handler.add_subscription(SubscriberId("foo"), "event_bla", True, timedelta(seconds=3))
     assert len(result.subscriptions) == 1
     assert result.subscriptions["event_bla"].message_type == "event_bla"
     # should be persisted in database as well
     assert len((await in_mem_db.get("foo")).subscriptions) == 1  # type: ignore
     # register again is ignored
-    result = await handler.add_subscription("foo", "event_bla", True, timedelta(seconds=3))
+    result = await handler.add_subscription(SubscriberId("foo"), "event_bla", True, timedelta(seconds=3))
     assert len(result.subscriptions) == 1
     assert result.subscriptions["event_bla"].message_type == "event_bla"
     # should be persisted in database as well
@@ -64,17 +65,17 @@ async def test_subscribe(handler: SubscriptionHandler, in_mem_db: SubscriberDb) 
 async def test_unsubscribe(handler: SubscriptionHandler, in_mem_db: SubscriberDb) -> None:
     # register first time
     subs = [Subscription("event_bla"), Subscription("event_bar")]
-    result = await handler.update_subscriptions("foo", subs)
+    result = await handler.update_subscriptions(SubscriberId("foo"), subs)
     assert len(result.subscriptions) == 2
-    updated = await handler.remove_subscription("foo", "event_bla")
+    updated = await handler.remove_subscription(SubscriberId("foo"), "event_bla")
     assert len(updated.subscriptions) == 1
     # should be persisted in database as well
     assert len((await in_mem_db.get("foo")).subscriptions) == 1  # type: ignore
     # second time should be ignored
-    updated = await handler.remove_subscription("foo", "event_bla")
+    updated = await handler.remove_subscription(SubscriberId("foo"), "event_bla")
     assert len(updated.subscriptions) == 1
     # last subscription is removed
-    updated = await handler.remove_subscription("foo", "event_bar")
+    updated = await handler.remove_subscription(SubscriberId("foo"), "event_bar")
     assert len(updated.subscriptions) == 0
     # should be persisted in database as well
     assert await in_mem_db.get("foo") is None
@@ -82,7 +83,7 @@ async def test_unsubscribe(handler: SubscriptionHandler, in_mem_db: SubscriberDb
 
 @mark.asyncio
 async def test_get_subscriber(handler: SubscriptionHandler) -> None:
-    result = await handler.get_subscriber("sub_1")
+    result = await handler.get_subscriber(SubscriberId("sub_1"))
     assert result
     assert result.id == "sub_1"
 

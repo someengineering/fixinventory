@@ -11,6 +11,7 @@ from jsons import set_deserializer, set_serializer
 
 from resotocore.types import Json
 from resotocore.util import pop_keys
+from resotocore.ids import SubscriberId
 
 log = logging.getLogger(__name__)
 
@@ -124,7 +125,7 @@ class ActionMessage(Message):
 
 
 class Action(ActionMessage):
-    def done(self, subscriber_id: str) -> ActionDone:
+    def done(self, subscriber_id: SubscriberId) -> ActionDone:
         return ActionDone(self.message_type, self.task_id, self.step_name, subscriber_id, dict(self.data))
 
 
@@ -134,7 +135,7 @@ class ActionDone(ActionMessage):
         message_type: str,
         task_id: str,
         step_name: str,
-        subscriber_id: str,
+        subscriber_id: SubscriberId,
         data: Optional[Json] = None,
     ):
         super().__init__(message_type, task_id, step_name, data)
@@ -147,7 +148,7 @@ class ActionError(ActionMessage):
         message_type: str,
         task_id: str,
         step_name: str,
-        subscriber_id: str,
+        subscriber_id: SubscriberId,
         error: str,
         data: Optional[Json] = None,
     ):
@@ -166,11 +167,11 @@ class MessageBus:
         # key is the channel name, value is the list of queues
         self.listeners: Dict[str, List[Queue[Message]]] = {}
         # key is the subscriber id, value is the list of queue names
-        self.active_listener: Dict[str, List[str]] = {}
+        self.active_listener: Dict[SubscriberId, List[str]] = {}
 
     @asynccontextmanager
     async def subscribe(
-        self, subscriber_id: str, channels: Optional[List[str]] = None, queue_size: int = 0
+        self, subscriber_id: SubscriberId, channels: Optional[List[str]] = None, queue_size: int = 0
     ) -> AsyncGenerator[Queue[Message], None]:
         """
         Subscribe to a list of event channels.
