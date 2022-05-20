@@ -69,7 +69,7 @@ class EventStreamer:
                         await self.__send_with_connection(ws)
                 except Exception as e:
                     await asyncio.sleep(3)
-                    log.warning("Could not send log messages to resotolog. Retry.")
+                    log.warning(f"Could not send log messages to resotolog. Retry. {e}")
 
     async def __send_with_connection(self, ws: ClientWebSocketResponse) -> None:
         while True:

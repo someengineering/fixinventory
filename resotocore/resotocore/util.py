@@ -30,7 +30,7 @@ from typing import (
 )
 
 from dateutil.parser import isoparse
-from resotolib import asynchronous
+from resotolib.asynchronous import periodic
 
 from resotocore.durations import parse_duration
 from resotocore.error import RestartService
@@ -42,7 +42,7 @@ AnyT = TypeVar("AnyT")
 AnyR = TypeVar("AnyR")
 
 # moved to resotolib. define it here to have stable references
-Periodic = asynchronous.Periodic
+Periodic = periodic.Periodic
 
 
 def identity(o: AnyT) -> AnyT:

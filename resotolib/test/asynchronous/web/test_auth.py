@@ -25,7 +25,7 @@ async def app_with_auth() -> Application:
         # make sure, the context variable is set
         assert jwt["foo"] == "bla"
         assert "exp" in jwt
-        return Response(text=f"Hello, world")
+        return Response(text="Hello, world")
 
     app = Application(middlewares=[check_jwt("test", set())])
     app.router.add_get("/", hello)
