@@ -49,6 +49,7 @@ from resotocore.cli.model import (
     InternalPart,
     AliasTemplate,
 )
+from resotocore.ids import TaskId
 from resotocore.config import ConfigHandler, ConfigValidation, ConfigEntity
 from resotocore.console_renderer import ConsoleColorSystem, ConsoleRenderer
 from resotocore.core_config import CoreConfig
@@ -527,7 +528,9 @@ class Api:
     async def create_work(self, request: Request) -> StreamResponse:
         attrs = {k: v for k, v in request.query.items() if k != "task"}
         future = asyncio.get_event_loop().create_future()
-        task = WorkerTask(uuid_str(), "test", attrs, {"some": "data", "foo": "bla"}, future, timedelta(seconds=3))
+        task = WorkerTask(
+            TaskId(uuid_str()), "test", attrs, {"some": "data", "foo": "bla"}, future, timedelta(seconds=3)
+        )
         await self.worker_task_queue.add_task(task)
         await future
         return web.HTTPOk()

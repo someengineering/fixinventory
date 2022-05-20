@@ -12,6 +12,7 @@ from resotocore.model.model import Model, Kind, ComplexKind
 from resotocore.types import Json
 from resotocore.util import uuid_str
 from resotocore.worker_task_queue import WorkerTaskQueue, WorkerTask, WorkerTaskName
+from resotocore.ids import TaskId
 
 
 class ConfigHandlerService(ConfigHandler):
@@ -142,7 +143,7 @@ class ConfigHandlerService(ConfigHandler):
         """
         future = asyncio.get_event_loop().create_future()
         task = WorkerTask(
-            uuid_str(),
+            TaskId(uuid_str()),
             WorkerTaskName.validate_config,
             {"config_id": cfg_id},
             {"task": WorkerTaskName.validate_config, "config": config},

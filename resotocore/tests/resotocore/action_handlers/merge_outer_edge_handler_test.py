@@ -7,6 +7,7 @@ from resotocore.message_bus import Action, MessageBus
 from resotocore.task.task_handler import TaskHandlerService
 from resotocore.task.subscribers import SubscriptionHandler
 from typing import AsyncGenerator
+from resotocore.ids import TaskId
 
 # noinspection PyUnresolvedReferences
 from tests.resotocore.task.task_handler_test import task_handler
@@ -68,11 +69,10 @@ async def test_handler_invocation(
     merge_handler: MergeOuterEdgesHandler,
     subscription_handler: SubscriptionHandler,
     message_bus: MessageBus,
-    task_handler: TaskHandlerService,
 ) -> None:
-    merge_called: asyncio.Future[str] = asyncio.get_event_loop().create_future()
+    merge_called: asyncio.Future[TaskId] = asyncio.get_event_loop().create_future()
 
-    def mocked_merge(task_id: str) -> None:
+    def mocked_merge(task_id: TaskId) -> None:
         merge_called.set_result(task_id)
 
     # monkey patching the merge_outer_edges method
@@ -83,6 +83,8 @@ async def test_handler_invocation(
 
     assert subscribers[0].id == "resotocore"
 
-    await message_bus.emit(Action(merge_outer_edges, "test_task_1", merge_outer_edges))
+    task_id = TaskId("test_task_1")
 
-    assert await merge_called == "test_task_1"
+    await message_bus.emit(Action(merge_outer_edges, task_id, merge_outer_edges))
+
+    assert await merge_called == task_id

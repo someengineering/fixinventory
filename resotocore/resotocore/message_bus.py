@@ -8,6 +8,7 @@ from typing import Any, Optional, Dict, List, AsyncGenerator
 
 from frozendict import frozendict
 from jsons import set_deserializer, set_serializer
+from resotocore.ids import TaskId
 
 from resotocore.types import Json
 from resotocore.util import pop_keys
@@ -117,7 +118,7 @@ class Event(Message):
 
 
 class ActionMessage(Message):
-    def __init__(self, message_type: str, task_id: str, step_name: str, data: Optional[Json] = None):
+    def __init__(self, message_type: str, task_id: TaskId, step_name: str, data: Optional[Json] = None):
         super().__init__(message_type, data)
         self.task_id = task_id
         self.step_name = step_name
@@ -132,7 +133,7 @@ class ActionDone(ActionMessage):
     def __init__(
         self,
         message_type: str,
-        task_id: str,
+        task_id: TaskId,
         step_name: str,
         subscriber_id: str,
         data: Optional[Json] = None,
@@ -145,7 +146,7 @@ class ActionError(ActionMessage):
     def __init__(
         self,
         message_type: str,
-        task_id: str,
+        task_id: TaskId,
         step_name: str,
         subscriber_id: str,
         error: str,
