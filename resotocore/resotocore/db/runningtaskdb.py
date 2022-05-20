@@ -8,10 +8,10 @@ from typing import Sequence, Optional
 
 from resotocore.db.async_arangodb import AsyncArangoDB
 from resotocore.db.entitydb import EntityDb, ArangoEntityDb
-from resotocore.ids import TaskId
+from resotocore.ids import TaskId, TaskDescriptorId
 from resotocore.message_bus import Message
 from resotocore.model.typed_model import to_js
-from resotocore.task.task_description import RunningTask, TaskDescriptorId
+from resotocore.task.task_description import RunningTask
 from resotocore.types import Json
 from resotocore.util import utc
 
@@ -51,7 +51,7 @@ class RunningTaskData:
         )
 
 
-class RunningTaskDb(EntityDb[RunningTaskData]):
+class RunningTaskDb(EntityDb[str, RunningTaskData]):
     @abstractmethod
     async def update_state(self, wi: RunningTask, message: Optional[Message]) -> None:
         pass
@@ -61,7 +61,7 @@ class RunningTaskDb(EntityDb[RunningTaskData]):
         pass
 
 
-class ArangoRunningTaskDb(ArangoEntityDb[RunningTaskData], RunningTaskDb):
+class ArangoRunningTaskDb(ArangoEntityDb[str, RunningTaskData], RunningTaskDb):
     def __init__(self, db: AsyncArangoDB, collection: str):
         super().__init__(db, collection, RunningTaskData, lambda k: k.id)
 

@@ -8,10 +8,9 @@ from resotocore.db.runningtaskdb import RunningTaskData, RunningTaskDb
 from resotocore.message_bus import ActionDone
 from resotocore.util import utc
 from resotocore.task.model import Subscriber
-from resotocore.ids import TaskId
-from resotocore.ids import SubscriberId
+from resotocore.ids import TaskId, SubscriberId, TaskDescriptorId
 
-from resotocore.task.task_description import RunningTask, TaskDescriptorId
+from resotocore.task.task_description import RunningTask
 
 # noinspection PyUnresolvedReferences
 from tests.resotocore.task.task_description_test import workflow_instance, test_workflow
@@ -65,7 +64,7 @@ async def test_delete(running_task_db: RunningTaskDb, instances: List[RunningTas
     remaining = list(instances)
     for _ in instances:
         sub = remaining.pop()
-        await running_task_db.delete(sub)
+        await running_task_db.delete_value(sub)
         loaded = [sub async for sub in running_task_db.all()]
         assert remaining.sort() == loaded.sort()
     assert len([sub async for sub in running_task_db.all()]) == 0

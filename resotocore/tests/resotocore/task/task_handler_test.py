@@ -12,11 +12,10 @@ from resotocore.db.runningtaskdb import RunningTaskDb
 from resotocore.dependencies import empty_config
 from resotocore.message_bus import MessageBus, Event, Message, ActionDone, Action
 from resotocore.task.model import Subscriber
-from resotocore.ids import SubscriberId
+from resotocore.ids import SubscriberId, TaskDescriptorId
 from resotocore.task.scheduler import Scheduler
 from resotocore.task.subscribers import SubscriptionHandler
 from resotocore.task.task_description import (
-    TaskDescriptorId,
     Workflow,
     Step,
     PerformAction,
@@ -75,7 +74,7 @@ async def subscription_handler(message_bus: MessageBus) -> SubscriptionHandler:
 
 @fixture
 def job_db() -> JobDb:
-    return InMemoryDb[Job](Job, lambda x: x.id)
+    return InMemoryDb[str, Job](Job, lambda x: x.id)
 
 
 @fixture

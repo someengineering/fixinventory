@@ -8,10 +8,9 @@ from pytest import fixture
 from resotocore.message_bus import MessageBus, Action, ActionDone, ActionError, Event
 from resotocore.model.typed_model import from_js, to_js
 from resotocore.task.model import Subscriber, Subscription
-from resotocore.ids import SubscriberId
+from resotocore.ids import SubscriberId, TaskDescriptorId
 from resotocore.task.subscribers import SubscriptionHandler
 from resotocore.task.task_description import (
-    TaskDescriptorId,
     Workflow,
     Step,
     RunningTask,
@@ -34,7 +33,7 @@ from tests.resotocore.message_bus_test import message_bus
 
 @fixture
 async def subscription_handler(message_bus: MessageBus) -> SubscriptionHandler:
-    in_mem = InMemoryDb(Subscriber, lambda x: x.id)
+    in_mem = InMemoryDb[SubscriberId, Subscriber](Subscriber, lambda x: x.id)
     result = SubscriptionHandler(in_mem, message_bus)
     await result.add_subscription(SubscriberId("sub_1"), "test", True, timedelta(seconds=3))
     return result

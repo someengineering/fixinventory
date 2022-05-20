@@ -5,7 +5,7 @@ import uuid
 from abc import ABC
 from datetime import timedelta
 from enum import Enum
-from typing import Optional, Any, Sequence, MutableSequence, Callable, Dict, List, Set, Tuple, NewType
+from typing import Optional, Any, Sequence, MutableSequence, Callable, Dict, List, Set, Tuple
 
 from dataclasses import dataclass
 
@@ -22,12 +22,10 @@ from resotocore.message_bus import Event, Action, ActionDone, Message, ActionErr
 from resotocore.model.typed_model import to_json, from_js, to_js
 from resotocore.types import Json
 from resotocore.util import first, interleave, empty, exist, identity, utc, utc_str
-from resotocore.ids import SubscriberId
+from resotocore.ids import SubscriberId, TaskDescriptorId
 
 
 log = logging.getLogger(__name__)
-
-TaskDescriptorId = NewType("TaskDescriptorId", str)
 
 
 class StepErrorBehaviour(Enum):

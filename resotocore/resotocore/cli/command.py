@@ -50,7 +50,7 @@ from resotocore.cli import (
     args_parts_unquoted_parser,
     args_parts_parser,
 )
-from resotocore.ids import TaskId
+from resotocore.ids import ConfigId, TaskId
 from resotocore.cli.model import (
     CLICommand,
     CLIContext,
@@ -115,7 +115,7 @@ from resotocore.web.content_renderer import (
     respond_cytoscape,
 )
 from resotocore.worker_task_queue import WorkerTask, WorkerTaskName
-from resotocore.task.task_description import TaskDescriptorId
+from resotocore.ids import TaskDescriptorId
 
 log = logging.getLogger(__name__)
 
@@ -3772,11 +3772,11 @@ class ConfigsCommand(CLICommand):
         }
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
-        async def show_config(cfg_id: str) -> AsyncIterator[JsonElement]:
+        async def show_config(cfg_id: ConfigId) -> AsyncIterator[JsonElement]:
             cfg = await self.dependencies.config_handler.config_yaml(cfg_id)
             yield cfg if cfg else f"No config with this id: {cfg_id}"
 
-        async def delete_config(cfg_id: str) -> AsyncIterator[str]:
+        async def delete_config(cfg_id: ConfigId) -> AsyncIterator[str]:
             await self.dependencies.config_handler.delete_config(cfg_id)
             yield f"Config {cfg_id} has been deleted."
 
@@ -3790,7 +3790,7 @@ class ConfigsCommand(CLICommand):
             finally:
                 shutil.rmtree(temp_dir)
 
-        async def set_config(cfg_id: str, updates: List[Tuple[str, JsonElement]]) -> AsyncIterator[JsonElement]:
+        async def set_config(cfg_id: ConfigId, updates: List[Tuple[str, JsonElement]]) -> AsyncIterator[JsonElement]:
             cfg = await self.dependencies.config_handler.get_config(cfg_id)
             updated = cfg.config if cfg else {}
             for prop, js in updates:
@@ -3798,7 +3798,7 @@ class ConfigsCommand(CLICommand):
             await self.dependencies.config_handler.put_config(ConfigEntity(cfg_id, updated))
             yield await self.dependencies.config_handler.config_yaml(cfg_id)
 
-        async def edit_config(cfg_id: str) -> AsyncIterator[str]:
+        async def edit_config(cfg_id: ConfigId) -> AsyncIterator[str]:
             # Editing a config is a two-step process:
             # 1) download the config and make it available to edit
             # 2) upload the config file and update the config from content --> update_config
@@ -3807,7 +3807,7 @@ class ConfigsCommand(CLICommand):
                 raise AttributeError(f"No config with this id: {cfg_id}")
             return send_file(yml)
 
-        async def update_config(cfg_id: str) -> AsyncIterator[str]:
+        async def update_config(cfg_id: ConfigId) -> AsyncIterator[str]:
             # Usually invoked by resh automatically via edit_config, but can also be triggered manually.
             # A config with given id is changed by the content of uploaded file "config"
             try:

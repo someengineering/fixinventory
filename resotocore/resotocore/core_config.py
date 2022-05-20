@@ -11,6 +11,7 @@ from typing import Optional, List, ClassVar, Dict, Union
 
 from arango.database import StandardDatabase
 from cerberus import schema_registry
+from resotocore.ids import ConfigId
 from resotolib.core.model_export import dataclasses_to_resotocore_model
 
 from resotocore.model.model import Kind, Model, ComplexKind
@@ -22,8 +23,8 @@ from resotocore.validator import Validator, schema_name
 log = logging.getLogger(__name__)
 
 # ids used in the config store
-ResotoCoreConfigId = "resoto.core"
-ResotoCoreCommandsConfigId = "resoto.core.commands"
+ResotoCoreConfigId = ConfigId("resoto.core")
+ResotoCoreCommandsConfigId = ConfigId("resoto.core.commands")
 
 # root note of the configuration value
 ResotoCoreRoot = "resotocore"

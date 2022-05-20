@@ -61,7 +61,7 @@ async def test_delete(subscriber_db: SubscriberDb, subscribers: List[Subscriber]
     remaining = list(subscribers)
     for _ in subscribers:
         sub = remaining.pop()
-        await subscriber_db.delete(sub)
+        await subscriber_db.delete_value(sub)
         loaded = [sub async for sub in subscriber_db.all()]
         assert remaining.sort() == loaded.sort()
     assert len([sub async for sub in subscriber_db.all()]) == 0
@@ -76,7 +76,7 @@ async def test_events(
     await event_db.update_many(subscribers)
     # 6 times delete
     for sub in subscribers:
-        await event_db.delete(sub)
+        await event_db.delete_value(sub)
     # make sure all events will arrive
     await asyncio.sleep(0.1)
     # ensure the correct count and order of events

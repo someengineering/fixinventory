@@ -9,7 +9,8 @@ from resotocore.db import jobdb
 from resotocore.db.async_arangodb import AsyncArangoDB
 from resotocore.db.entitydb import EventEntityDb
 from resotocore.db.jobdb import JobDb, EventJobDb
-from resotocore.task.task_description import Job, ExecuteCommand, EventTrigger, TaskDescriptorId
+from resotocore.task.task_description import Job, ExecuteCommand, EventTrigger
+from resotocore.ids import TaskDescriptorId
 
 # noinspection PyUnresolvedReferences
 from tests.resotocore.analytics import event_sender
@@ -68,7 +69,7 @@ async def test_delete(job_db: JobDb, jobs: List[Job]) -> None:
     remaining = list(jobs)
     for _ in jobs:
         sub = remaining.pop()
-        await job_db.delete(sub)
+        await job_db.delete_value(sub)
         loaded = [sub async for sub in job_db.all()]
         assert remaining.sort(key=job_id) == loaded.sort(key=job_id)
     assert len([sub async for sub in job_db.all()]) == 0
@@ -81,7 +82,7 @@ async def test_events(event_db: EventJobDb, jobs: List[Job], event_sender: InMem
     await event_db.update_many(jobs)
     # 2 times delete
     for sub in jobs:
-        await event_db.delete(sub)
+        await event_db.delete_value(sub)
     # make sure all events will arrive
     await asyncio.sleep(0.1)
     # ensure the correct count and order of events

@@ -59,7 +59,7 @@ async def test_delete(template_db: TemplateEntityDb, templates: List[Template]) 
     remaining = list(templates)
     for _ in templates:
         sub = remaining.pop()
-        await template_db.delete(sub)
+        await template_db.delete_value(sub)
         loaded = [sub async for sub in template_db.all()]
         assert remaining.sort() == loaded.sort()
     assert len([sub async for sub in template_db.all()]) == 0
@@ -74,7 +74,7 @@ async def test_events(
     await event_db.update_many(templates)
     # 6 times delete
     for sub in templates:
-        await event_db.delete(sub)
+        await event_db.delete_value(sub)
     # make sure all events will arrive
     await asyncio.sleep(0.1)
     # ensure the correct count and order of events

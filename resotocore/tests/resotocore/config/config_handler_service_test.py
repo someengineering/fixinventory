@@ -6,6 +6,7 @@ from pytest import fixture
 
 from resotocore.config import ConfigHandler, ConfigEntity, ConfigValidation
 from resotocore.config.config_handler_service import ConfigHandlerService
+from resotocore.ids import ConfigId
 from resotocore.message_bus import MessageBus, CoreMessage, Event, Message
 from resotocore.model.model import Kind, ComplexKind, Property
 from resotocore.model.typed_model import to_js, from_js
@@ -56,23 +57,24 @@ async def test_config(config_handler: ConfigHandler) -> None:
     # list is empty on start
     assert [a async for a in config_handler.list_config_ids()] == []
 
+    config_id = ConfigId("test")
     # add one entry
-    entity = ConfigEntity("test", {"test": True})
+    entity = ConfigEntity(config_id, {"test": True})
     assert await config_handler.put_config(entity) == entity
 
     # get one entry
-    assert await config_handler.get_config("test") == entity
+    assert await config_handler.get_config(config_id) == entity
 
     # patch the config
-    assert await config_handler.patch_config(ConfigEntity("test", {"rest": False})) == ConfigEntity(
-        "test", {"test": True, "rest": False}
+    assert await config_handler.patch_config(ConfigEntity(config_id, {"rest": False})) == ConfigEntity(
+        config_id, {"test": True, "rest": False}
     )
 
     # list all configs
     assert [a async for a in config_handler.list_config_ids()] == ["test"]
 
     # delete the config
-    assert await config_handler.delete_config("test") is None
+    assert await config_handler.delete_config(config_id) is None
 
     # list all configs
     assert [a async for a in config_handler.list_config_ids()] == []
@@ -95,20 +97,21 @@ async def test_config_validation(config_handler: ConfigHandler, config_model: Li
 
     # check the config against the model
     invalid_config = {"section": {"some_number": "no number"}}
+    invalid_config_id = ConfigId("invalid_config")
     with pytest.raises(AttributeError) as reason:
-        await config_handler.put_config(ConfigEntity("invalid_config", invalid_config))
+        await config_handler.put_config(ConfigEntity(invalid_config_id, invalid_config))
     assert "some_number is not valid: Expected type int32 but got str" in str(reason.value)
 
     # External validation turned on: config with name "invalid_config" is rejected by the configured worker
-    await config_handler.put_config_validation(ConfigValidation("invalid_config", True))
+    await config_handler.put_config_validation(ConfigValidation(invalid_config_id, True))
     with pytest.raises(AttributeError) as reason:
         # The config is actually valid, but the external validation will fail
-        await config_handler.put_config(ConfigEntity("invalid_config", valid_config))
+        await config_handler.put_config(ConfigEntity(invalid_config_id, valid_config))
     assert "Error executing task: Invalid Config ;)" in str(reason)
 
     # If external validation is turned off, the configuration can be updated
-    await config_handler.put_config_validation(ConfigValidation("invalid_config", False))
-    await config_handler.put_config(ConfigEntity("invalid_config", valid_config))
+    await config_handler.put_config_validation(ConfigValidation(invalid_config_id, False))
+    await config_handler.put_config(ConfigEntity(invalid_config_id, valid_config))
 
 
 @pytest.mark.asyncio
@@ -141,38 +144,41 @@ async def test_config_yaml(config_handler: ConfigHandler, config_model: List[Kin
         """
     ).strip()
     # config has section with attached model
-    await config_handler.put_config(ConfigEntity("test", {"section": config}))
-    assert expect_comment in (await config_handler.config_yaml("test") or "")
+    test_config_id = ConfigId("test")
+    await config_handler.put_config(ConfigEntity(test_config_id, {"section": config}))
+    assert expect_comment in (await config_handler.config_yaml(test_config_id) or "")
     # different section with no attached model
-    await config_handler.put_config(ConfigEntity("no_model", {"another_section": config}))
-    assert expect_no_comment in (await config_handler.config_yaml("no_model") or "")
+    nomodel_config_id = ConfigId("no_model")
+    await config_handler.put_config(ConfigEntity(nomodel_config_id, {"another_section": config}))
+    assert expect_no_comment in (await config_handler.config_yaml(nomodel_config_id) or "")
 
 
 @pytest.mark.asyncio
 async def test_config_change_emits_event(config_handler: ConfigHandler, all_events: List[Message]) -> None:
     # Put a config
     all_events.clear()
-    cfg = await config_handler.put_config(ConfigEntity("foo", dict(test=1)))
+    config_id = ConfigId("foo")
+    cfg = await config_handler.put_config(ConfigEntity(config_id, dict(test=1)))
     message = await wait_for_message(all_events, CoreMessage.ConfigUpdated, Event)
     assert message.data["id"] == cfg.id
     assert message.data["revision"] == cfg.revision
 
     # Patch a config
     all_events.clear()
-    cfg = await config_handler.patch_config(ConfigEntity("foo", dict(foo=2)))
+    cfg = await config_handler.patch_config(ConfigEntity(config_id, dict(foo=2)))
     message = await wait_for_message(all_events, CoreMessage.ConfigUpdated, Event)
     assert message.data["id"] == cfg.id
     assert message.data["revision"] == cfg.revision
 
     # Delete a config
     all_events.clear()
-    await config_handler.delete_config("foo")
+    await config_handler.delete_config(config_id)
     message = await wait_for_message(all_events, CoreMessage.ConfigDeleted, Event)
-    assert message.data["id"] == "foo"
+    assert message.data["id"] == config_id
     assert "revision" not in message.data
 
 
 def test_config_entity_roundtrip() -> None:
-    entity = ConfigEntity("test", {"test": 1}, "test")
+    entity = ConfigEntity(ConfigId("test"), {"test": 1}, "test")
     again = from_js(to_js(entity), ConfigEntity)
     assert entity == again

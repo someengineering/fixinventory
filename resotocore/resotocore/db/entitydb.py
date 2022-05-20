@@ -1,7 +1,7 @@
 import logging
 from abc import ABC, abstractmethod
 from dataclasses import is_dataclass, replace
-from typing import AsyncGenerator, Generic, TypeVar, Optional, Type, Union, Callable, List
+from typing import AsyncGenerator, Generic, TypeVar, Optional, Type, Callable, List
 
 from arango import DocumentUpdateError, DocumentRevisionError
 from jsons import JsonsError
@@ -15,11 +15,12 @@ from resotocore.types import Json
 log = logging.getLogger(__name__)
 
 T = TypeVar("T")
+K = TypeVar("K", bound=str)
 
 
-class EntityDb(ABC, Generic[T]):
+class EntityDb(ABC, Generic[K, T]):
     @abstractmethod
-    def keys(self) -> AsyncGenerator[str, None]:
+    def keys(self) -> AsyncGenerator[K, None]:
         pass
 
     @abstractmethod
@@ -31,7 +32,7 @@ class EntityDb(ABC, Generic[T]):
         pass
 
     @abstractmethod
-    async def get(self, key: str) -> Optional[T]:
+    async def get(self, key: K) -> Optional[T]:
         pass
 
     @abstractmethod
@@ -39,7 +40,11 @@ class EntityDb(ABC, Generic[T]):
         pass
 
     @abstractmethod
-    async def delete(self, key_or_object: Union[str, T]) -> None:
+    async def delete(self, key: K) -> None:
+        pass
+
+    @abstractmethod
+    async def delete_value(self, value: T) -> None:
         pass
 
     @abstractmethod
@@ -51,14 +56,14 @@ class EntityDb(ABC, Generic[T]):
         pass
 
 
-class ArangoEntityDb(EntityDb[T], ABC):
-    def __init__(self, db: AsyncArangoDB, collection_name: str, t_type: Type[T], key_fn: Callable[[T], str]):
+class ArangoEntityDb(EntityDb[K, T], ABC):
+    def __init__(self, db: AsyncArangoDB, collection_name: str, t_type: Type[T], key_fn: Callable[[T], K]):
         self.db = db
         self.collection_name = collection_name
         self.t_type = t_type
         self.key_of = key_fn
 
-    async def keys(self) -> AsyncGenerator[str, None]:
+    async def keys(self) -> AsyncGenerator[K, None]:
         with await self.db.keys(self.collection_name) as cursor:
             for element in cursor:
                 yield element
@@ -74,7 +79,7 @@ class ArangoEntityDb(EntityDb[T], ABC):
     async def update_many(self, elements: List[T]) -> None:
         await self.db.insert_many(self.collection_name, [self.to_doc(e) for e in elements], overwrite=True)
 
-    async def get(self, key: str) -> Optional[T]:
+    async def get(self, key: K) -> Optional[T]:
         result = await self.db.get(self.collection_name, key)
         return from_js(result, self.t_type) if result else None
 
@@ -96,8 +101,11 @@ class ArangoEntityDb(EntityDb[T], ABC):
                 setattr(t, "revision", result["_rev"])
         return t
 
-    async def delete(self, key_or_object: Union[str, T]) -> None:
-        key = key_or_object if isinstance(key_or_object, str) else self.key_of(key_or_object)
+    async def delete(self, key: K) -> None:
+        await self.db.delete(self.collection_name, key, ignore_missing=True)
+
+    async def delete_value(self, value: T) -> None:
+        key = self.key_of(value)
         await self.db.delete(self.collection_name, key, ignore_missing=True)
 
     async def create_update_schema(self) -> None:
@@ -115,13 +123,13 @@ class ArangoEntityDb(EntityDb[T], ABC):
         return js
 
 
-class EventEntityDb(EntityDb[T]):
-    def __init__(self, db: EntityDb[T], event_sender: AnalyticsEventSender, entity_name: str):
+class EventEntityDb(EntityDb[K, T]):
+    def __init__(self, db: EntityDb[K, T], event_sender: AnalyticsEventSender, entity_name: str):
         self.db = db
         self.event_sender = event_sender
         self.entity_name = entity_name
 
-    def keys(self) -> AsyncGenerator[str, None]:
+    def keys(self) -> AsyncGenerator[K, None]:
         return self.db.keys()
 
     def all(self) -> AsyncGenerator[T, None]:
@@ -132,7 +140,7 @@ class EventEntityDb(EntityDb[T]):
         await self.event_sender.core_event(f"{self.entity_name}-updated-many", count=len(elements))
         return result
 
-    async def get(self, key: str) -> Optional[T]:
+    async def get(self, key: K) -> Optional[T]:
         return await self.db.get(key)
 
     async def update(self, t: T) -> T:
@@ -140,8 +148,12 @@ class EventEntityDb(EntityDb[T]):
         await self.event_sender.core_event(f"{self.entity_name}-updated")
         return result
 
-    async def delete(self, key_or_object: Union[str, T]) -> None:
-        await self.db.delete(key_or_object)
+    async def delete(self, key: K) -> None:
+        await self.db.delete(key)
+        await self.event_sender.core_event(f"{self.entity_name}-deleted")
+
+    async def delete_value(self, value: T) -> None:
+        await self.db.delete_value(value)
         await self.event_sender.core_event(f"{self.entity_name}-deleted")
 
     async def create_update_schema(self) -> None:

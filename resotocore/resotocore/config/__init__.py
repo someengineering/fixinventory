@@ -8,11 +8,12 @@ from jsons import set_deserializer, set_serializer
 
 from resotocore.model.model import Model, Kind
 from resotocore.types import Json
+from resotocore.ids import ConfigId
 
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
 class ConfigEntity:
-    id: str
+    id: ConfigId
     config: Json
     revision: Optional[str] = None
 
@@ -38,11 +39,11 @@ class ConfigValidation:
 
 class ConfigHandler(ABC):
     @abstractmethod
-    def list_config_ids(self) -> AsyncIterator[str]:
+    def list_config_ids(self) -> AsyncIterator[ConfigId]:
         pass
 
     @abstractmethod
-    async def get_config(self, cfg_id: str) -> Optional[ConfigEntity]:
+    async def get_config(self, cfg_id: ConfigId) -> Optional[ConfigEntity]:
         pass
 
     @abstractmethod
@@ -54,7 +55,7 @@ class ConfigHandler(ABC):
         pass
 
     @abstractmethod
-    async def delete_config(self, cfg_id: str) -> None:
+    async def delete_config(self, cfg_id: ConfigId) -> None:
         pass
 
     @abstractmethod
@@ -78,7 +79,7 @@ class ConfigHandler(ABC):
         pass
 
     @abstractmethod
-    async def config_yaml(self, cfg_id: str, revision: bool = False) -> Optional[str]:
+    async def config_yaml(self, cfg_id: ConfigId, revision: bool = False) -> Optional[str]:
         pass
 
 
