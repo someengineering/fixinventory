@@ -8,7 +8,7 @@ from datetime import timedelta
 from resotocore.task.model import Subscriber
 from resotocore.ids import SubscriberId
 from resotocore.task.task_handler import TaskHandlerService
-
+from resotocore.ids import TaskId
 from resotocore.task.subscribers import SubscriptionHandler
 
 log = logging.getLogger(__name__)
@@ -30,7 +30,7 @@ class MergeOuterEdgesHandler:
         self.subscriber: Optional[Subscriber] = None
         self.task_handler_service = task_handler_service
 
-    def merge_outer_edges(self, task_id: str) -> None:
+    def merge_outer_edges(self, task_id: TaskId) -> None:
         log.info(f"MergeOuterEdgesHandler: Noop outer edge merge for task_id: {task_id}")
 
     async def __handle_events(self, subscription_done: Future[None]) -> None:

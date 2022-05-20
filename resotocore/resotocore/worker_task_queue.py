@@ -13,6 +13,7 @@ from typing import Any, Optional, AsyncGenerator, Dict, List
 
 from resotocore.types import Json
 from resotocore.util import utc, Periodic, set_future_result
+from resotocore.ids import TaskId, WorkerId
 
 log = logging.getLogger(__name__)
 
@@ -24,7 +25,7 @@ class WorkerTaskName:
 
 @dataclass(eq=False, frozen=True)
 class WorkerTask:
-    id: str  # the unique id of the task
+    id: TaskId  # the unique id of the task
     name: str  # the well known name of the task to perform: the worker attaches to this name
     attrs: Dict[str, str]  # all worker attributes need to match those attrs (but the task can define more)
     data: Json
@@ -43,7 +44,7 @@ class WorkerTask:
 
 @dataclass(order=True, unsafe_hash=True)
 class WorkerTaskResult:
-    task_id: str
+    task_id: TaskId
     result: str
     data: Optional[Json] = None
     error: Optional[str] = None
@@ -72,7 +73,7 @@ class WorkerTaskDescription:
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
 class WorkerTaskSubscription:
-    worker_id: str
+    worker_id: WorkerId
     task: WorkerTaskDescription
     queue: Queue[WorkerTask]
 
@@ -104,7 +105,7 @@ class WorkerTaskQueue:
 
     @asynccontextmanager
     async def attach(
-        self, worker_id: str, task_descriptions: List[WorkerTaskDescription], queue_size: int = 0
+        self, worker_id: WorkerId, task_descriptions: List[WorkerTaskDescription], queue_size: int = 0
     ) -> AsyncGenerator[Queue[WorkerTask], None]:
         queue: Queue[WorkerTask] = Queue(queue_size)
         subscriptions = [WorkerTaskSubscription(worker_id, td, queue) for td in task_descriptions]
@@ -134,11 +135,11 @@ class WorkerTaskQueue:
         async with self.lock:
             await self.__add_task(task, retry_count)
 
-    async def acknowledge_task(self, worker_id: str, task_id: str, result: Optional[Json] = None) -> None:
+    async def acknowledge_task(self, worker_id: WorkerId, task_id: TaskId, result: Optional[Json] = None) -> None:
         async with self.lock:
             await self.__acknowledge_task(worker_id, task_id, result)
 
-    async def error_task(self, worker_id: str, task_id: str, message: str) -> None:
+    async def error_task(self, worker_id: WorkerId, task_id: TaskId, message: str) -> None:
         async with self.lock:
             await self.__error_task(worker_id, task_id, message)
 
@@ -190,7 +191,7 @@ class WorkerTaskQueue:
                 self.unassigned_tasks[task.id] = WorkerTaskOnHold(task, retry_count, utc() + task.timeout)
             return False
 
-    async def __acknowledge_task(self, worker_id: str, task_id: str, result: Optional[Json]) -> None:
+    async def __acknowledge_task(self, worker_id: WorkerId, task_id: TaskId, result: Optional[Json]) -> None:
         # remove task from internal list
         in_progress = self.outstanding_tasks.get(task_id, None)
         if in_progress:
@@ -202,7 +203,7 @@ class WorkerTaskQueue:
             else:
                 log.info(f"Got result for task {task_id} from wrong worker {worker_id}. outdated?")
 
-    async def __error_task(self, worker_id: str, task_id: str, message: str) -> None:
+    async def __error_task(self, worker_id: WorkerId, task_id: TaskId, message: str) -> None:
         log.warning(f"Task {task_id} yielded an error: {message}")
         in_progress = self.outstanding_tasks.get(task_id, None)
         if in_progress:

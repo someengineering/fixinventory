@@ -42,6 +42,7 @@ from resotocore.cli.model import (
     InternalPart,
     AliasTemplate,
 )
+from resotocore.ids import TaskId
 from resotocore.config import ConfigHandler, ConfigValidation, ConfigEntity
 from resotocore.console_renderer import ConsoleColorSystem, ConsoleRenderer
 from resotocore.core_config import CoreConfig
@@ -57,6 +58,7 @@ from resotocore.model.model_handler import ModelHandler
 from resotocore.model.typed_model import to_json, from_js, to_js_str, to_js
 from resotocore.query import QueryParser
 from resotocore.task.model import Subscription
+from resotocore.ids import SubscriberId, WorkerId
 from resotocore.task.subscribers import SubscriptionHandler
 from resotocore.task.task_handler import TaskHandlerService
 from resotocore.types import Json, JsonElement
@@ -437,7 +439,7 @@ class Api:
         )
 
     async def handle_work_tasks(self, request: Request) -> WebSocketResponse:
-        worker_id = uuid_str()
+        worker_id = WorkerId(uuid_str())
         task_param = request.query.get("task")
         if not task_param:
             raise AttributeError("A worker needs to define at least one task that it can perform")
@@ -465,7 +467,9 @@ class Api:
     async def create_work(self, request: Request) -> StreamResponse:
         attrs = {k: v for k, v in request.query.items() if k != "task"}
         future = asyncio.get_event_loop().create_future()
-        task = WorkerTask(uuid_str(), "test", attrs, {"some": "data", "foo": "bla"}, future, timedelta(seconds=3))
+        task = WorkerTask(
+            TaskId(uuid_str()), "test", attrs, {"some": "data", "foo": "bla"}, future, timedelta(seconds=3)
+        )
         await self.worker_task_queue.add_task(task)
         await future
         return web.HTTPOk()

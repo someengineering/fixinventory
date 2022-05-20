@@ -32,7 +32,7 @@ jobs:
               run: |
                   NO_START_KIND=1 IMAGE_TAG=edge bash -x ./kubernetes/setup-kind.sh
                   # make sure we get the example collector in a reasonable time.
-                  timeout 1m /bin/bash -c "until echo kind |kubectl --namespace resoto exec -i deploy/resoto-resotocore -- resh --stdin|grep example_resource; do sleep 1; done"
+                  timeout 1m /bin/bash -c "until echo 'workflows run collect; sleep 5; kind' |kubectl --namespace resoto exec -i deploy/resoto-resotocore -- resh --stdin|grep example_resource; do sleep 1; done"
             - name: Debug info on failure
               if: ${{ failure() }}
               run: |
