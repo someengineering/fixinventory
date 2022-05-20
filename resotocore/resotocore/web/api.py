@@ -63,7 +63,7 @@ from resotocore.model.model_handler import ModelHandler
 from resotocore.model.typed_model import to_json, from_js, to_js_str, to_js
 from resotocore.query import QueryParser
 from resotocore.task.model import Subscription
-from resotocore.model.ids import SubscriberId
+from resotocore.ids import SubscriberId
 from resotocore.task.subscribers import SubscriptionHandler
 from resotocore.task.task_handler import TaskHandlerService
 from resotocore.types import Json, JsonElement

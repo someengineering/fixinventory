@@ -10,7 +10,7 @@ from tests.resotocore.db.entitydb import InMemoryDb
 from resotocore.model.typed_model import to_js, from_js
 from resotocore.task.model import Subscription, Subscriber
 from resotocore.task.subscribers import SubscriptionHandler
-from resotocore.model.ids import SubscriberId
+from resotocore.ids import SubscriberId
 
 
 @fixture

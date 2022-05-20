@@ -11,7 +11,7 @@ from jsons import set_deserializer, set_serializer
 
 from resotocore.types import Json
 from resotocore.util import pop_keys
-from resotocore.model.ids import SubscriberId
+from resotocore.ids import SubscriberId
 
 log = logging.getLogger(__name__)
 

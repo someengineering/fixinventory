@@ -4,7 +4,7 @@ from asyncio import Task
 from contextlib import suppress
 from functools import partial
 from typing import Optional, List, Callable
-from resotocore.model.ids import SubscriberId
+from resotocore.ids import SubscriberId
 
 import yaml
 

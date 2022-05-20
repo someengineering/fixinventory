@@ -8,7 +8,7 @@ from pytest import fixture
 from resotocore.message_bus import MessageBus, Action, ActionDone, ActionError, Event
 from resotocore.model.typed_model import from_js, to_js
 from resotocore.task.model import Subscriber, Subscription
-from resotocore.model.ids import SubscriberId
+from resotocore.ids import SubscriberId
 from resotocore.task.subscribers import SubscriptionHandler
 from resotocore.task.task_description import (
     TaskDescriptorId,

@@ -12,7 +12,7 @@ from resotocore.db.runningtaskdb import RunningTaskDb
 from resotocore.dependencies import empty_config
 from resotocore.message_bus import MessageBus, Event, Message, ActionDone, Action
 from resotocore.task.model import Subscriber
-from resotocore.model.ids import SubscriberId
+from resotocore.ids import SubscriberId
 from resotocore.task.scheduler import Scheduler
 from resotocore.task.subscribers import SubscriptionHandler
 from resotocore.task.task_description import (

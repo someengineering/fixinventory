@@ -5,7 +5,7 @@ from datetime import timedelta
 from typing import Optional, List
 
 from resotocore.message_bus import MessageBus, CoreMessage, Message
-from resotocore.model.ids import SubscriberId
+from resotocore.ids import SubscriberId
 from resotocore.task import TaskHandler
 from resotocore.task.task_description import PerformAction, Workflow
 from resotocore.util import uuid_str

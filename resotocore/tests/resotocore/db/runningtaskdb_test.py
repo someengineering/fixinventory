@@ -8,7 +8,7 @@ from resotocore.db.runningtaskdb import RunningTaskData, RunningTaskDb
 from resotocore.message_bus import ActionDone
 from resotocore.util import utc
 from resotocore.task.model import Subscriber
-from resotocore.model.ids import SubscriberId
+from resotocore.ids import SubscriberId
 
 from resotocore.task.task_description import RunningTask, TaskDescriptorId
 

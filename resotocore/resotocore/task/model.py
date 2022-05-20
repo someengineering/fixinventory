@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from typing import Dict, List
 
 from datetime import timedelta
-from resotocore.model.ids import SubscriberId
+from resotocore.ids import SubscriberId
 
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)

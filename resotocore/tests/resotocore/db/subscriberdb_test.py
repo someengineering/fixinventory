@@ -9,7 +9,7 @@ from resotocore.db.async_arangodb import AsyncArangoDB
 from resotocore.db.entitydb import EventEntityDb
 from resotocore.db.subscriberdb import SubscriberDb, EventSubscriberDb
 from resotocore.task.model import Subscriber, Subscription
-from resotocore.model.ids import SubscriberId
+from resotocore.ids import SubscriberId
 
 # noinspection PyUnresolvedReferences
 from tests.resotocore.db.graphdb_test import test_db, system_db, local_client

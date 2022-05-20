@@ -7,7 +7,7 @@ from pytest import fixture, mark
 
 from resotocore.message_bus import MessageBus, Message, Event, Action, ActionDone, ActionError
 from resotocore.model.typed_model import to_js, from_js
-from resotocore.model.ids import SubscriberId
+from resotocore.ids import SubscriberId
 from resotocore.util import AnyT, utc, first
 
 

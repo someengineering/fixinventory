@@ -18,7 +18,7 @@ from resotocore.core_config import CoreConfig
 from resotocore.db.jobdb import JobDb
 from resotocore.db.runningtaskdb import RunningTaskData, RunningTaskDb
 from resotocore.message_bus import MessageBus, Event, Action, ActionDone, Message, ActionError
-from resotocore.model.ids import SubscriberId
+from resotocore.ids import SubscriberId
 from resotocore.task import TaskHandler
 from resotocore.task.model import Subscriber
 from resotocore.task.scheduler import Scheduler

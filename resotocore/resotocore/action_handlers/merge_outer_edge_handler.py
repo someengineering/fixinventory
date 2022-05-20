@@ -6,7 +6,7 @@ from typing import Optional
 from contextlib import suppress
 from datetime import timedelta
 from resotocore.task.model import Subscriber
-from resotocore.model.ids import SubscriberId
+from resotocore.ids import SubscriberId
 from resotocore.task.task_handler import TaskHandlerService
 
 from resotocore.task.subscribers import SubscriptionHandler

@@ -10,7 +10,7 @@ from resotocore.db.subscriberdb import SubscriberDb
 from resotocore.message_bus import MessageBus
 from resotocore.util import utc, Periodic
 from resotocore.task.model import Subscriber, Subscription
-from resotocore.model.ids import SubscriberId
+from resotocore.ids import SubscriberId
 
 log = logging.getLogger(__name__)
 
