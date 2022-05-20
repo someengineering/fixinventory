@@ -49,7 +49,6 @@ from resotocore.core_config import CoreConfig
 from resotocore.db.db_access import DbAccess
 from resotocore.db.graphdb import GraphDB
 from resotocore.db.model import QueryModel
-from resotocore.ids import SubscriberId
 from resotocore.message_bus import MessageBus, Message, ActionDone, Action, ActionError
 from resotocore.model.db_updater import merge_graph_process
 from resotocore.model.graph_access import Section
