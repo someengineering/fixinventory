@@ -72,11 +72,12 @@ async def test_handler_invocation(
 ) -> None:
     merge_called: asyncio.Future[str] = asyncio.get_event_loop().create_future()
 
-    def mocked_merge(_: MergeOuterEdgesHandler, task_id: str) -> None:
+    def mocked_merge(task_id: str) -> None:
         merge_called.set_result(task_id)
 
     # monkey patching the merge_outer_edges method
-    merge_handler.merge_outer_edges = lambda task_id: mocked_merge(merge_handler, task_id)  # type: ignore
+    # use setattr here, since assignment does not work in mypy https://github.com/python/mypy/issues/2427
+    setattr(merge_handler, "merge_outer_edges", mocked_merge)
 
     subscribers = await subscription_handler.list_subscriber_for(merge_outer_edges)
 
