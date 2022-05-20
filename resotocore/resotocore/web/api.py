@@ -64,7 +64,7 @@ from resotocore.model.model_handler import ModelHandler
 from resotocore.model.typed_model import to_json, from_js, to_js_str, to_js
 from resotocore.query import QueryParser
 from resotocore.task.model import Subscription
-from resotocore.ids import SubscriberId
+from resotocore.ids import SubscriberId, WorkerId
 from resotocore.task.subscribers import SubscriptionHandler
 from resotocore.task.task_handler import TaskHandlerService
 from resotocore.types import Json, JsonElement
@@ -483,7 +483,7 @@ class Api:
         ws = web.WebSocketResponse()
         await ws.prepare(request)
 
-        worker_id = uuid_str()
+        worker_id = WorkerId(uuid_str())
         task_param = request.query.get("task")
         if not task_param:
             raise AttributeError("A worker needs to define at least one task that it can perform")
