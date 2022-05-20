@@ -9,6 +9,7 @@ from resotocore.model.graph_access import Section
 from resotocore.model.resolve_in_graph import GraphResolver, NodePath
 from resotocore.util import group_by, value_in_path
 from resotocore.worker_task_queue import WorkerTaskDescription, WorkerTaskQueue, WorkerTask, WorkerTaskName
+from resotocore.ids import TaskId
 
 
 @fixture
@@ -161,4 +162,4 @@ async def test_handle_outdated(
 
 
 def create_task(uid: str, name: str) -> WorkerTask:
-    return WorkerTask(uid, name, {}, {}, asyncio.get_event_loop().create_future(), timedelta())
+    return WorkerTask(TaskId(uid), name, {}, {}, asyncio.get_event_loop().create_future(), timedelta())

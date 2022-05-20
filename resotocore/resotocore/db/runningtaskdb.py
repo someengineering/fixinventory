@@ -8,6 +8,7 @@ from typing import Sequence, Optional
 
 from resotocore.db.async_arangodb import AsyncArangoDB
 from resotocore.db.entitydb import EntityDb, ArangoEntityDb
+from resotocore.ids import TaskId
 from resotocore.message_bus import Message
 from resotocore.model.typed_model import to_js
 from resotocore.task.task_description import RunningTask, TaskDescriptorId
@@ -20,7 +21,7 @@ log = logging.getLogger(__name__)
 @dataclass(order=True, unsafe_hash=True, frozen=True)
 class RunningTaskData:
     # id of the related task
-    id: str
+    id: TaskId
     # id of the related task descriptor
     task_descriptor_id: TaskDescriptorId
     # name of the related task descriptor

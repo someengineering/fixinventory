@@ -8,6 +8,7 @@ from resotocore.db.runningtaskdb import RunningTaskData, RunningTaskDb
 from resotocore.message_bus import ActionDone
 from resotocore.util import utc
 from resotocore.task.model import Subscriber
+from resotocore.ids import TaskId
 from resotocore.ids import SubscriberId
 
 from resotocore.task.task_description import RunningTask, TaskDescriptorId
@@ -33,10 +34,10 @@ async def running_task_db(test_db: StandardDatabase) -> RunningTaskDb:
 
 @pytest.fixture
 def instances() -> List[RunningTaskData]:
-    messages = [ActionDone(str(a), "test", "bla", SubscriberId("sf")) for a in range(0, 10)]
+    messages = [ActionDone(str(a), TaskId("test"), "bla", SubscriberId("sf")) for a in range(0, 10)]
     state_data = {"test": 1}
     return [
-        RunningTaskData(str(a), TaskDescriptorId(str(a)), "task_123", messages, "start", state_data, utc())
+        RunningTaskData(TaskId(str(a)), TaskDescriptorId(str(a)), "task_123", messages, "start", state_data, utc())
         for a in range(0, 10)
     ]
 
@@ -76,9 +77,11 @@ async def test_update_state(
     workflow_instance: Tuple[RunningTask, Subscriber, Subscriber, Dict[str, List[Subscriber]]],
 ) -> None:
     wi, _, _, _ = workflow_instance
-    first = ActionDone("start_collect", "test", "bla", SubscriberId("sf"))
-    second = ActionDone("collect", "test", "bla", SubscriberId("sf"))
-    third = ActionDone("collect_done", "test", "bla", SubscriberId("sf"))
+    task_id = TaskId("test")
+    subscriber_id = SubscriberId("sf")
+    first = ActionDone("start_collect", task_id, "bla", subscriber_id)
+    second = ActionDone("collect", task_id, "bla", subscriber_id)
+    third = ActionDone("collect_done", task_id, "bla", subscriber_id)
 
     async def assert_state(current: str, message_count: int) -> RunningTaskData:
         state: RunningTaskData = await running_task_db.get(wi.id)  # type: ignore

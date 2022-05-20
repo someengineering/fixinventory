@@ -9,6 +9,7 @@ from resotocore.message_bus import MessageBus, Message, Event, Action, ActionDon
 from resotocore.model.typed_model import to_js, from_js
 from resotocore.ids import SubscriberId
 from resotocore.util import AnyT, utc, first
+from resotocore.ids import TaskId
 
 
 @fixture
@@ -83,13 +84,15 @@ async def test_handler(message_bus: MessageBus) -> None:
 
 
 def test_message_serialization() -> None:
+    task_id = TaskId("123")
+    subsctiber_id = SubscriberId("sub")
     roundtrip(Event("test", {"a": "b", "c": 1, "d": "bla"}))
-    roundtrip(Action("test", "123", "step_name"))
-    roundtrip(Action("test", "123", "step_name", {"test": 1}))
-    roundtrip(ActionDone("test", "123", "step_name", SubscriberId("sub")))
-    roundtrip(ActionDone("test", "123", "step_name", SubscriberId("sub"), {"test": 1}))
-    roundtrip(ActionError("test", "123", "step_name", SubscriberId("sub"), "oops"))
-    roundtrip(ActionError("test", "123", "step_name", SubscriberId("sub"), "oops", {"test": 23}))
+    roundtrip(Action("test", task_id, "step_name"))
+    roundtrip(Action("test", task_id, "step_name", {"test": 1}))
+    roundtrip(ActionDone("test", task_id, "step_name", subsctiber_id))
+    roundtrip(ActionDone("test", task_id, "step_name", subsctiber_id, {"test": 1}))
+    roundtrip(ActionError("test", task_id, "step_name", subsctiber_id, "oops"))
+    roundtrip(ActionError("test", task_id, "step_name", subsctiber_id, "oops", {"test": 23}))
 
 
 def roundtrip(obj: Any) -> None:

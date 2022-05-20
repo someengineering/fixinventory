@@ -50,6 +50,7 @@ from resotocore.cli import (
     args_parts_unquoted_parser,
     args_parts_parser,
 )
+from resotocore.ids import TaskId
 from resotocore.cli.model import (
     CLICommand,
     CLIContext,
@@ -2641,7 +2642,7 @@ class SendWorkerTaskCommand(CLICommand, ABC):
     ) -> Stream:
         async def send_to_queue(task_name: str, task_args: Dict[str, str], data: Json) -> JsonElement:
             future = asyncio.get_event_loop().create_future()
-            task = WorkerTask(uuid_str(), task_name, task_args, data, future, self.timeout())
+            task = WorkerTask(TaskId(uuid_str()), task_name, task_args, data, future, self.timeout())
             # enqueue this task
             await self.dependencies.worker_task_queue.add_task(task)
             # wait for the task result

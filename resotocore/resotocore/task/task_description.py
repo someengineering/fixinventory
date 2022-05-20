@@ -16,6 +16,7 @@ from frozendict import frozendict
 from jsons import set_deserializer, set_serializer
 from transitions import Machine, State, MachineError
 
+from resotocore.ids import TaskId
 from resotocore.task.model import Subscriber
 from resotocore.message_bus import Event, Action, ActionDone, Message, ActionError
 from resotocore.model.typed_model import to_json, from_js, to_js
@@ -588,13 +589,13 @@ class RunningTask:
         descriptor: TaskDescription, subscriber_by_event: Callable[[], Dict[str, List[Subscriber]]]
     ) -> Tuple[RunningTask, Sequence[TaskCommand]]:
         assert len(descriptor.steps) > 0, "TaskDescription needs at least one step!"
-        uid = str(uuid.uuid1())
+        uid = TaskId(str(uuid.uuid1()))
         task = RunningTask(uid, descriptor, subscriber_by_event)
         messages = [SendMessage(Event("task_started", data={"task": descriptor.name})), *task.move_to_next_state()]
         return task, messages
 
     def __init__(
-        self, uid: str, descriptor: TaskDescription, subscribers_by_event: Callable[[], Dict[str, List[Subscriber]]]
+        self, uid: TaskId, descriptor: TaskDescription, subscribers_by_event: Callable[[], Dict[str, List[Subscriber]]]
     ):
         self.id = uid
         self.is_error = False
