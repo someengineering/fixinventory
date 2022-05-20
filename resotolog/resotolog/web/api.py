@@ -1,13 +1,14 @@
-import asyncio
-import uuid
 from asyncio import Future
 from contextlib import suppress
+from functools import partial
 from typing import Any, Dict, Tuple, Callable, Awaitable
+from uuid import uuid1
 
 import jsons
-from aiohttp import web, WSMessage, WSMsgType
+from aiohttp import web
 from aiohttp.web import Request, StreamResponse, WebSocketResponse
 from resotolib.asynchronous.web.auth import auth_handler
+from resotolib.asynchronous.web.ws_handler import accept_websocket
 from resotolib.log import Event
 from resotolib.logger import log
 
@@ -75,67 +76,31 @@ class Api:
         return web.HTTPOk(text="ok")
 
     async def events_in(self, request: Request) -> WebSocketResponse:
-        ws = WebSocketResponse()
-        await ws.prepare(request)
-        wsid = str(uuid.uuid1())
-
-        async def receive() -> None:
+        async def handle_message(msg: str) -> None:
             try:
-                async for msg in ws:
-                    if isinstance(msg, WSMessage) and msg.type == WSMsgType.CLOSED or msg.type == WSMsgType.ERROR:
-                        break  # end the session
-                    elif isinstance(msg, WSMessage) and msg.type == WSMsgType.TEXT and len(msg.data.strip()) > 0:
-                        log.debug(f"Incoming message: type={msg.type} data={msg.data} extra={msg.extra}")
-                        message = jsons.loads(msg.data, Event)
-                        await self.handler.add_event(message)
-            except Exception as ex:
-                # do not allow any exception - it will destroy the async fiber and cleanup
-                log.info(f"Receive: message listener {wsid}: {ex}. Hang up.")
-            finally:
-                await self.clean_ws_handler(wsid)
+                event = jsons.loads(msg, Event)
+                await self.handler.add_event(event)
+            except Exception as e:
+                log.error(f"Failed to handle event: {e}")
 
-        to_wait = asyncio.create_task(receive())
-        self.websocket_handler[wsid] = (to_wait, ws)
-        await to_wait
-        return ws
+        return await accept_websocket(  # type: ignore # why ??
+            request,
+            handle_incoming=handle_message,
+            websocket_handler=self.websocket_handler,
+        )
 
     async def events_out(self, request: Request) -> WebSocketResponse:
-        ws = WebSocketResponse()
-        await ws.prepare(request)
-        wsid = str(uuid.uuid1())
         show = request.query["show"].split(",") if "show" in request.query else ["*"]
         last = int(request.query.get("last", "100"))
         buffer = int(request.query.get("buffer", "1000"))
+        listener_id = str(uuid1())
 
-        async def receive() -> None:
-            try:
-                async for msg in ws:
-                    if isinstance(msg, WSMessage) and msg.type == WSMsgType.TEXT and len(msg.data.strip()) > 0:
-                        log.debug(f"Incoming message: type={msg.type} data={msg.data} extra={msg.extra}")
-            except Exception as ex:
-                # do not allow any exception - it will destroy the async fiber and cleanup
-                log.info(f"Receive: message listener {wsid}: {ex}. Hang up.")
-            finally:
-                await self.clean_ws_handler(wsid)
+        async def handle_message(msg: str) -> None:
+            pass
 
-        async def send() -> None:
-            try:
-                async with self.handler.subscribe(
-                    wsid,
-                    channels=show,
-                    show_last=last,
-                    queue_size=buffer,
-                ) as events:
-                    while True:
-                        event: Event = await events.get()
-                        await ws.send_str(jsons.dumps(event) + "\n")
-            except Exception as ex:
-                # do not allow any exception - it will destroy the async fiber and cleanup
-                log.info(f"Send: message listener {wsid}: {ex}. Hang up.")
-            finally:
-                await self.clean_ws_handler(wsid)
-
-        to_wait = asyncio.gather(asyncio.create_task(receive()), asyncio.create_task(send()))
-        self.websocket_handler[wsid] = (to_wait, ws)
-        await to_wait
-        return ws
+        return await accept_websocket(  # type: ignore # why??
+            request,
+            handle_incoming=handle_message,
+            websocket_handler=self.websocket_handler,
+            outgoing_context=partial(self.handler.subscribe, listener_id, show, last, buffer),
+        )
