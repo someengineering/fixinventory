@@ -1,4 +1,3 @@
-import logging
 import sys
 import traceback
 from argparse import Namespace
@@ -7,14 +6,12 @@ from typing import AsyncIterator, List, Optional
 from aiohttp.web_app import Application
 from resotolib import jwt
 from resotolib.args import ArgumentParser
-from resotolib.logger import setup_logger
+from resotolib.logger import setup_logger, log
 
 from resotolog.logs.log_handler import LogHandler
 from resotolog.model import LogConfig, RestartService
 from resotolog.web import runner
 from resotolog.web.api import Api
-
-log = logging.getLogger(__name__)
 
 
 def main() -> None:

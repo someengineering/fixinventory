@@ -44,7 +44,7 @@ class EventStreamer:
         await self.periodic.start()
         self.task = asyncio.create_task(self.__send_log_messages())
 
-    async def stop(self, *args) -> None:
+    async def stop(self) -> None:
         log.info("Stopping log streamer")
         await self.periodic.stop()
         self.task.cancel()
@@ -166,6 +166,7 @@ class EventStreamSync(EventStream):
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         self.stop()
+
 
 class EventStreamAsync(EventStream):
     async def start(self) -> None:

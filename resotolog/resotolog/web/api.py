@@ -1,20 +1,19 @@
 import asyncio
-import json
-import logging
 import uuid
 from asyncio import Future
 from contextlib import suppress
 from typing import Any, Dict, Tuple, Callable, Awaitable
 
+import jsons
 from aiohttp import web, WSMessage, WSMsgType
-from aiohttp.web import Request, StreamResponse
+from aiohttp.web import Request, StreamResponse, WebSocketResponse
 from resotolib.asynchronous.web.auth import auth_handler
+from resotolib.log import Event
+from resotolib.logger import log
 
 from resotolog.logs.log_handler import LogHandler
-from resotolog.model import LogConfig, Message
+from resotolog.model import LogConfig
 from resotolog.web.directives import error_handler
-
-log = logging.getLogger(__name__)
 
 AlwaysAllowed = {"/metrics", "/api-doc.*", "/system/.*"}
 
@@ -27,7 +26,7 @@ class Api:
             middlewares=[auth_handler(config.args.psk, AlwaysAllowed), error_handler()]
         )
         self.in_shutdown = False
-        self.websocket_handler: Dict[str, Tuple[Future[Any], web.WebSocketResponse]] = {}
+        self.websocket_handler: Dict[str, Tuple[Future[Any], WebSocketResponse]] = {}
         self.__add_routes("")  # bind to root
 
     def __add_routes(self, prefix: str) -> None:
@@ -35,8 +34,8 @@ class Api:
             [
                 web.get(prefix + "/system/ping", self.ping),
                 web.get(prefix + "/system/ready", self.ready),
-                web.get(prefix + "/ingest", self.log_events_in),
-                web.get(prefix + "/logs", self.log_events_out),
+                web.get(prefix + "/ingest", self.events_in),
+                web.get(prefix + "/events", self.events_out),
             ]
         )
 
@@ -75,8 +74,8 @@ class Api:
     async def ready(_: Request) -> StreamResponse:
         return web.HTTPOk(text="ok")
 
-    async def log_events_in(self, request: Request) -> web.WebSocketResponse:
-        ws = web.WebSocketResponse()
+    async def events_in(self, request: Request) -> WebSocketResponse:
+        ws = WebSocketResponse()
         await ws.prepare(request)
         wsid = str(uuid.uuid1())
 
@@ -86,9 +85,9 @@ class Api:
                     if isinstance(msg, WSMessage) and msg.type == WSMsgType.CLOSED or msg.type == WSMsgType.ERROR:
                         break  # end the session
                     elif isinstance(msg, WSMessage) and msg.type == WSMsgType.TEXT and len(msg.data.strip()) > 0:
-                        log.info(f"Incoming message: type={msg.type} data={msg.data} extra={msg.extra}")
-                        message = Message(json.loads(msg.data))
-                        await self.handler.add_entry(message)
+                        log.debug(f"Incoming message: type={msg.type} data={msg.data} extra={msg.extra}")
+                        message = jsons.loads(msg.data, Event)
+                        await self.handler.add_event(message)
             except Exception as ex:
                 # do not allow any exception - it will destroy the async fiber and cleanup
                 log.info(f"Receive: message listener {wsid}: {ex}. Hang up.")
@@ -100,16 +99,19 @@ class Api:
         await to_wait
         return ws
 
-    async def log_events_out(self, request: Request) -> web.WebSocketResponse:
-        ws = web.WebSocketResponse()
+    async def events_out(self, request: Request) -> WebSocketResponse:
+        ws = WebSocketResponse()
         await ws.prepare(request)
         wsid = str(uuid.uuid1())
+        show = request.query["show"].split(",") if "show" in request.query else ["*"]
+        last = int(request.query.get("last", "100"))
+        buffer = int(request.query.get("buffer", "1000"))
 
         async def receive() -> None:
             try:
                 async for msg in ws:
                     if isinstance(msg, WSMessage) and msg.type == WSMsgType.TEXT and len(msg.data.strip()) > 0:
-                        log.info(f"Incoming message: type={msg.type} data={msg.data} extra={msg.extra}")
+                        log.debug(f"Incoming message: type={msg.type} data={msg.data} extra={msg.extra}")
             except Exception as ex:
                 # do not allow any exception - it will destroy the async fiber and cleanup
                 log.info(f"Receive: message listener {wsid}: {ex}. Hang up.")
@@ -118,10 +120,15 @@ class Api:
 
         async def send() -> None:
             try:
-                async with self.handler.subscribe(wsid) as events:
+                async with self.handler.subscribe(
+                    wsid,
+                    channels=show,
+                    show_last=last,
+                    queue_size=buffer,
+                ) as events:
                     while True:
-                        message: Message = await events.get()
-                        await ws.send_str(json.dumps(message.payload) + "\n")
+                        event: Event = await events.get()
+                        await ws.send_str(jsons.dumps(event) + "\n")
             except Exception as ex:
                 # do not allow any exception - it will destroy the async fiber and cleanup
                 log.info(f"Send: message listener {wsid}: {ex}. Hang up.")

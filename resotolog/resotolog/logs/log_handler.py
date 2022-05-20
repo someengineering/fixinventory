@@ -1,36 +1,33 @@
 from asyncio import Queue, QueueFull
 from collections import deque
 from contextlib import asynccontextmanager
-from logging import getLogger
 from typing import AsyncGenerator, Optional, List, Dict
 
-from resotolog.model import Message
-
-log = getLogger(__name__)
+from resotolib.log import Event
+from resotolib.logger import log
 
 
 class LogHandler:
     def __init__(self, max_entries: int) -> None:
-        self.messages = deque[Message](maxlen=max_entries)
+        self.events = deque[Event](maxlen=max_entries)
         # key is the channel name, value is the list of queues
-        self.listeners: Dict[str, List[Queue[Message]]] = {}
+        self.listeners: Dict[str, List[Queue[Event]]] = {}
         # key is the subscriber id, value is the list of queue names
         self.active_listener: Dict[str, List[str]] = {}
 
-    async def add_entry(self, msg: Message) -> None:
-        log.info(f"add entry: {msg}")
-        self.messages.append(msg)
-        await self.emit(msg)
+    async def add_event(self, event: Event) -> None:
+        self.events.append(event)
+        await self.emit(event)
 
     @asynccontextmanager
     async def subscribe(
         self, subscriber_id: str, channels: Optional[List[str]] = None, queue_size: int = 0, show_last: int = 100
-    ) -> AsyncGenerator[Queue[Message], None]:
-        queue: Queue[Message] = Queue(queue_size)
+    ) -> AsyncGenerator[Queue[Event], None]:
+        queue: Queue[Event] = Queue(queue_size)
 
         # initially fill the list with the last x entries
         try:
-            for idx, element in enumerate(reversed(self.messages)):
+            for idx, element in enumerate(reversed(self.events)):
                 if idx < show_last:
                     queue.put_nowait(element)
         except QueueFull:
@@ -62,10 +59,13 @@ class LogHandler:
                 remove_listener(channel)
             self.active_listener.pop(subscriber_id, None)
 
-    async def emit(self, message: Message) -> None:
+    async def emit(self, event: Event) -> None:
         async def emit_by(name: str) -> None:
             for listener in self.listeners.get(name, []):
-                await listener.put(message)
+                try:
+                    await listener.put(event)
+                except QueueFull:
+                    log.warning(f"Queue for listener {name} is full. Dropping message.")
 
-        # await emit_by(message.message_type)  # inform specific listener
+        await emit_by(event.kind)  # inform specific listener
         await emit_by("*")  # inform "all" event listener

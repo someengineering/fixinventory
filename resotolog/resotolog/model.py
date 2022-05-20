@@ -1,8 +1,5 @@
 from argparse import Namespace
 from dataclasses import dataclass
-from typing import Dict, Any
-
-Json = Dict[str, Any]
 
 
 @dataclass
@@ -16,8 +13,3 @@ class RestartService(SystemExit):
     def __init__(self, reason: str) -> None:
         super().__init__(f"RestartService due to: {reason}")
         self.reason = reason
-
-
-@dataclass
-class Message:
-    payload: Json
