@@ -35,8 +35,6 @@ from aiohttp.web_routedef import AbstractRouteDef
 from aiohttp_swagger3 import SwaggerFile, SwaggerUiSettings
 from aiostream.core import Stream
 from networkx.readwrite import cytoscape_data
-from resotolib.jwt import encode_jwt
-
 from resotocore.analytics import AnalyticsEventSender
 from resotocore.cli.cli import CLI
 from resotocore.cli.command import ListCommand, alias_names
@@ -68,7 +66,6 @@ from resotocore.task.subscribers import SubscriptionHandler
 from resotocore.task.task_handler import TaskHandlerService
 from resotocore.types import Json, JsonElement
 from resotocore.util import uuid_str, force_gen, rnd_str, if_set, duration
-from resotocore.web import auth
 from resotocore.web.certificate_handler import CertificateHandler
 from resotocore.web.content_renderer import result_binary_gen, single_result
 from resotocore.web.directives import (
@@ -87,6 +84,8 @@ from resotocore.worker_task_queue import (
     WorkerTaskResult,
     WorkerTaskInProgress,
 )
+from resotolib.asynchronous.web.auth import auth_handler
+from resotolib.jwt import encode_jwt
 
 log = logging.getLogger(__name__)
 
@@ -96,6 +95,9 @@ def section_of(request: Request) -> Optional[str]:
     if section and section != "/" and section not in Section.content:
         raise AttributeError(f"Given section does not exist: {section}")
     return section
+
+
+AlwaysAllowed = {"/metrics", "/api-doc.*", "/system/.*", "/ui.*", "/ca/cert"}
 
 
 class Api:
@@ -130,7 +132,7 @@ class Api:
             # note on order: the middleware is passed in the order provided.
             middlewares=[
                 metrics_handler,
-                auth.auth_handler(config),
+                auth_handler(config.args.psk, AlwaysAllowed),
                 cors_handler,
                 error_handler(config, event_sender),
                 default_middleware(self),

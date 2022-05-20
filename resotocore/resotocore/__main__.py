@@ -30,7 +30,7 @@ from resotocore.action_handlers.merge_outer_edge_handler import MergeOuterEdgesH
 from resotocore.core_config import config_from_db, CoreConfig, RunConfig
 from resotocore.db import SystemData
 from resotocore.db.db_access import DbAccess
-from resotocore.dependencies import db_access, setup_process, parse_args, system_info, reconfigure_logging
+from resotocore.dependencies import db_access, setup_process, parse_args, system_info, reconfigure_logging, log_shipper
 from resotocore.error import RestartService
 from resotocore.message_bus import MessageBus
 from resotocore.model.model_handler import ModelHandlerDB
@@ -110,11 +110,7 @@ def run_process(args: Namespace) -> None:
 
 
 def with_config(
-    created: bool,
-    system_data: SystemData,
-    sdb: StandardDatabase,
-    cert_handler: CertificateHandler,
-    config: CoreConfig,
+    created: bool, system_data: SystemData, sdb: StandardDatabase, cert_handler: CertificateHandler, config: CoreConfig
 ) -> None:
     reconfigure_logging(config)  # based on the config, logging might have changed
     # only lg the editable config - to not log any passwords
@@ -128,12 +124,9 @@ def with_config(
     model = ModelHandlerDB(db.get_model_db(), config.runtime.plantuml_server)
     template_expander = DBTemplateExpander(db.template_entity_db)
     config_handler = ConfigHandlerService(
-        db.config_entity_db,
-        db.config_validation_entity_db,
-        db.configs_model_db,
-        worker_task_queue,
-        message_bus,
+        db.config_entity_db, db.config_validation_entity_db, db.configs_model_db, worker_task_queue, message_bus
     )
+    log_ship = log_shipper(config)
     cli_deps = CLIDependencies(
         message_bus=message_bus,
         event_sender=event_sender,
@@ -186,6 +179,7 @@ def with_config(
         await core_config_handler.start()
         await merge_outer_edges_handler.start()
         await cert_handler.start()
+        await log_ship.start()
         await api.start()
         if created:
             await event_sender.core_event(CoreEvent.SystemInstalled)
@@ -206,6 +200,7 @@ def with_config(
     async def on_stop() -> None:
         duration = utc() - info.started_at
         await api.stop()
+        await log_ship.stop()
         await cert_handler.stop()
         await core_config_handler.stop()
         await merge_outer_edges_handler.stop()

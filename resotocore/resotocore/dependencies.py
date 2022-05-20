@@ -5,16 +5,12 @@ import os.path
 import sys
 from argparse import Namespace
 from collections import namedtuple
+from datetime import timedelta
 from typing import Optional, List, Callable, Tuple
 
 import psutil
 from arango.database import StandardDatabase
 from parsy import Parser
-from resotolib.args import ArgumentParser
-from resotolib.jwt import add_args as jwt_add_args
-from resotolib.logger import setup_logger
-from resotolib.utils import iec_size_format
-
 from resotocore import async_extensions, version
 from resotocore.analytics import AnalyticsEventSender
 from resotocore.core_config import CoreConfig, parse_config, git_hash_from_file, inside_docker
@@ -23,6 +19,11 @@ from resotocore.model.adjust_node import DirectAdjuster
 from resotocore.parse_util import make_parser, variable_p, equals_p, comma_p, simple_json_value_dp
 from resotocore.types import JsonElement
 from resotocore.util import utc
+from resotolib.args import ArgumentParser
+from resotolib.jwt import add_args as jwt_add_args
+from resotolib.log.logstream import LogStreamAsync, ShipLogsAsync
+from resotolib.logger import setup_logger
+from resotolib.utils import iec_size_format
 
 log = logging.getLogger(__name__)
 
@@ -92,22 +93,13 @@ def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None
         help="Graph database server (default: http://localhost:8529)",
     )
     parser.add_argument(
-        "--graphdb-database",
-        default="resoto",
-        dest="graphdb_database",
-        help="Graph database name (default: resoto)",
+        "--graphdb-database", default="resoto", dest="graphdb_database", help="Graph database name (default: resoto)"
     )
     parser.add_argument(
-        "--graphdb-username",
-        default="resoto",
-        dest="graphdb_username",
-        help="Graph database login (default: resoto)",
+        "--graphdb-username", default="resoto", dest="graphdb_username", help="Graph database login (default: resoto)"
     )
     parser.add_argument(
-        "--graphdb-password",
-        default="",
-        dest="graphdb_password",
-        help='Graph database password (default: "")',
+        "--graphdb-password", default="", dest="graphdb_password", help='Graph database password (default: "")'
     )
     parser.add_argument(
         "--graphdb-root-password",
@@ -123,10 +115,7 @@ def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None
         help="Leave an empty root password during system setup process.",
     )
     parser.add_argument(
-        "--graphdb-type",
-        default="arangodb",
-        dest="graphdb_type",
-        help="Graph database type (default: arangodb)",
+        "--graphdb-type", default="arangodb", dest="graphdb_type", help="Graph database type (default: arangodb)"
     )
     parser.add_argument(
         "--graphdb-no-ssl-verify",
@@ -141,12 +130,7 @@ def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None
         dest="graphdb_request_timeout",
         help="Request timeout in seconds (default: 900)",
     )
-    parser.add_argument(
-        "--no-tls",
-        default=False,
-        action="store_true",
-        help="Disable TLS and use plain HTTP.",
-    )
+    parser.add_argument("--no-tls", default=False, action="store_true", help="Disable TLS and use plain HTTP.")
     parser.add_argument(
         "--cert",
         type=is_file("can not parse --cert"),
@@ -186,11 +170,7 @@ def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None
         type=str,
         help="Optional password to decrypt the private ca-cert-key file.",
     )
-    parser.add_argument(
-        "--version",
-        action="store_true",
-        help="Print the version of resotocore and exit.",
-    )
+    parser.add_argument("--version", action="store_true", help="Print the version of resotocore and exit.")
     parser.add_argument(
         "--override",
         "-o",
@@ -205,18 +185,10 @@ def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None
         "Example: --override resotocore.api.web_hosts=localhost,some.domain resotocore.api.web_port=12345",
     )
     parser.add_argument(
-        "--verbose",
-        "-v",
-        dest="verbose",
-        default=False,
-        action="store_true",
-        help="Enable verbose logging.",
+        "--verbose", "-v", dest="verbose", default=False, action="store_true", help="Enable verbose logging."
     )
     parser.add_argument(  # No default here on purpose: it can be reconfigured!
-        "--debug",
-        default=None,
-        action="store_true",
-        help="Enable debug mode. If not defined use configuration.",
+        "--debug", default=None, action="store_true", help="Enable debug mode. If not defined use configuration."
     )
     parser.add_argument(  # No default here on purpose: it can be reconfigured!
         "--ui-path",
@@ -264,6 +236,8 @@ def configure_logging(log_level: str, verbose: bool) -> None:
 
     # adjust log levels for specific loggers
     if verbose:
+        logging.getLogger("resoto").setLevel(logging.DEBUG)
+        logging.getLogger("resotolib").setLevel(logging.DEBUG)
         logging.getLogger("resotocore").setLevel(logging.DEBUG)
         # in case of restart: reset the original level
         logging.getLogger("posthog").setLevel(level)
@@ -273,6 +247,8 @@ def configure_logging(log_level: str, verbose: bool) -> None:
         logging.getLogger("apscheduler.scheduler").setLevel(level)
     else:
         # in case of restart: reset the original level
+        logging.getLogger("resoto").setLevel(level)
+        logging.getLogger("resotolib").setLevel(level)
         logging.getLogger("resotocore").setLevel(level)
         # mute analytics transmission errors unless debug is enabled
         logging.getLogger("posthog").setLevel(logging.FATAL)
@@ -282,6 +258,12 @@ def configure_logging(log_level: str, verbose: bool) -> None:
         # apscheduler uses the term Job when it triggers, which confuses people.
         logging.getLogger("apscheduler.executors").setLevel(logging.WARNING)
         logging.getLogger("apscheduler.scheduler").setLevel(logging.WARNING)
+
+
+def log_shipper(config: CoreConfig) -> ShipLogsAsync:
+    # todo: use config to determine url and props
+    streamer = LogStreamAsync("http://localhost:8080/ingest", 10000, timedelta(seconds=1))
+    return ShipLogsAsync("resotocore", streamer)
 
 
 def reset_process_start_method() -> None:

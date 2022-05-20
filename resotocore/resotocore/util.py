@@ -1,12 +1,14 @@
 from __future__ import annotations
+
 import asyncio
 import hashlib
 import json
 import logging
 import random
 import string
+import sys
 import uuid
-from asyncio import Task, Future
+from asyncio import Future
 from collections import defaultdict
 from collections.abc import Iterable
 from contextlib import suppress
@@ -15,7 +17,6 @@ from typing import (
     Any,
     Callable,
     Optional,
-    Awaitable,
     TypeVar,
     Mapping,
     AsyncGenerator,
@@ -28,8 +29,8 @@ from typing import (
     Sequence,
 )
 
-import sys
 from dateutil.parser import isoparse
+from resotolib import asynchronous
 
 from resotocore.durations import parse_duration
 from resotocore.error import RestartService
@@ -39,6 +40,9 @@ log = logging.getLogger(__name__)
 
 AnyT = TypeVar("AnyT")
 AnyR = TypeVar("AnyR")
+
+# moved to resotolib. define it here to have stable references
+Periodic = asynchronous.Periodic
 
 
 def identity(o: AnyT) -> AnyT:
@@ -291,48 +295,6 @@ def restart_service(reason: str) -> None:
 def shutdown_process(exit_code: int) -> None:
     __mute_async_exception_reporting_on_current_loop()
     sys.exit(exit_code)
-
-
-class Periodic:
-    """
-    Periodic execution of a function based on a defined frequency that can be started and stopped.
-    """
-
-    def __init__(self, name: str, func: Callable[[], Any], frequency: timedelta, first_run: Optional[timedelta] = None):
-        self.name = name
-        self.func = func
-        self.frequency = frequency
-        self.first_run = first_run if first_run else frequency
-        self._task: Optional[Task[None]] = None
-
-    @property
-    def started(self) -> bool:
-        return self._task is not None
-
-    async def start(self) -> None:
-        if self._task is None:
-            # Start task to call func periodically:
-            self._task = asyncio.ensure_future(self._run())
-            log.info(f"Periodic task {self.name} has been started.")
-
-    async def stop(self) -> None:
-        # Stop task and await it stopped:
-        if self._task is not None:
-            self._task.cancel()
-            with suppress(asyncio.CancelledError):
-                await self._task
-
-    async def _run(self) -> None:
-        await asyncio.sleep(self.first_run.total_seconds())
-        while True:
-            log.debug(f"Execute periodic task {self.name}.")
-            try:
-                result = self.func()
-                if isinstance(result, Awaitable):
-                    await result
-            except Exception as ex:
-                log.error(f"Periodic function {self.name} caught an exception: {ex}", exc_info=ex)
-            await asyncio.sleep(self.frequency.total_seconds())
 
 
 class AccessNone:
