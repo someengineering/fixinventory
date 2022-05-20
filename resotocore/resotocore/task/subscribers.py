@@ -10,6 +10,7 @@ from resotocore.db.subscriberdb import SubscriberDb
 from resotocore.message_bus import MessageBus
 from resotocore.util import utc, Periodic
 from resotocore.task.model import Subscriber, Subscription
+from resotocore.model.ids import SubscriberId
 
 log = logging.getLogger(__name__)
 
@@ -24,7 +25,7 @@ class SubscriptionHandler(ABC):
     def __init__(self, db: SubscriberDb, message_bus: MessageBus) -> None:
         self.db = db
         self.message_bus = message_bus
-        self._subscribers_by_id: Dict[str, Subscriber] = {}
+        self._subscribers_by_id: Dict[SubscriberId, Subscriber] = {}
         self._subscribers_by_event: Dict[str, List[Subscriber]] = {}
         self.started_at = utc()
         self.cleaner = Periodic("subscription_cleaner", self.check_outdated_handler, timedelta(seconds=10))
@@ -41,14 +42,14 @@ class SubscriptionHandler(ABC):
     async def all_subscribers(self) -> Iterable[Subscriber]:
         return self._subscribers_by_id.values()
 
-    async def get_subscriber(self, subscriber_id: str) -> Optional[Subscriber]:
+    async def get_subscriber(self, subscriber_id: SubscriberId) -> Optional[Subscriber]:
         return self._subscribers_by_id.get(subscriber_id)
 
     async def list_subscriber_for(self, event_type: str) -> List[Subscriber]:
         return self._subscribers_by_event.get(event_type, [])
 
     async def add_subscription(
-        self, subscriber_id: str, event_type: str, wait_for_completion: bool, timeout: timedelta
+        self, subscriber_id: SubscriberId, event_type: str, wait_for_completion: bool, timeout: timedelta
     ) -> Subscriber:
         existing = self._subscribers_by_id.get(subscriber_id, Subscriber(subscriber_id, {}))
         updated = existing.add_subscription(event_type, wait_for_completion, timeout)
@@ -58,7 +59,7 @@ class SubscriptionHandler(ABC):
             await self.__load_from_db()
         return updated
 
-    async def remove_subscription(self, subscriber_id: str, event_type: str) -> Subscriber:
+    async def remove_subscription(self, subscriber_id: SubscriberId, event_type: str) -> Subscriber:
         existing = self._subscribers_by_id.get(subscriber_id, Subscriber(subscriber_id, {}))
         updated = existing.remove_subscription(event_type)
         if existing != updated:
@@ -70,7 +71,7 @@ class SubscriptionHandler(ABC):
             await self.__load_from_db()
         return updated
 
-    async def update_subscriptions(self, subscriber_id: str, subscriptions: List[Subscription]) -> Subscriber:
+    async def update_subscriptions(self, subscriber_id: SubscriberId, subscriptions: List[Subscription]) -> Subscriber:
         existing = self._subscribers_by_id.get(subscriber_id, None)
         updated = Subscriber.from_list(subscriber_id, subscriptions)
         if existing != updated:
@@ -79,7 +80,7 @@ class SubscriptionHandler(ABC):
             await self.__load_from_db()
         return updated
 
-    async def remove_subscriber(self, subscriber_id: str) -> Optional[Subscriber]:
+    async def remove_subscriber(self, subscriber_id: SubscriberId) -> Optional[Subscriber]:
         existing = self._subscribers_by_id.get(subscriber_id, None)
         if existing:
             log.info(f"Subscriber {subscriber_id}: remove subscriber")

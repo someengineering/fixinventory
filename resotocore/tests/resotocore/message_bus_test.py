@@ -7,6 +7,7 @@ from pytest import fixture, mark
 
 from resotocore.message_bus import MessageBus, Message, Event, Action, ActionDone, ActionError
 from resotocore.model.typed_model import to_js, from_js
+from resotocore.model.ids import SubscriberId
 from resotocore.util import AnyT, utc, first
 
 
@@ -20,7 +21,7 @@ async def all_events(message_bus: MessageBus) -> AsyncGenerator[List[Message], N
     events: List[Message] = []
 
     async def gather_events() -> None:
-        async with message_bus.subscribe("test") as event_queue:
+        async with message_bus.subscribe(SubscriberId("test")) as event_queue:
             while True:
                 events.append(await event_queue.get())
 
@@ -61,7 +62,7 @@ async def test_handler(message_bus: MessageBus) -> None:
         await message_bus.emit(Event("bar"))
 
     async def wait_for(name: str, list: List[Message]) -> None:
-        async with message_bus.subscribe("test", [name]) as events:
+        async with message_bus.subscribe(SubscriberId("test"), [name]) as events:
             while True:
                 list.append(await events.get())
 
@@ -85,10 +86,10 @@ def test_message_serialization() -> None:
     roundtrip(Event("test", {"a": "b", "c": 1, "d": "bla"}))
     roundtrip(Action("test", "123", "step_name"))
     roundtrip(Action("test", "123", "step_name", {"test": 1}))
-    roundtrip(ActionDone("test", "123", "step_name", "sub"))
-    roundtrip(ActionDone("test", "123", "step_name", "sub", {"test": 1}))
-    roundtrip(ActionError("test", "123", "step_name", "sub", "oops"))
-    roundtrip(ActionError("test", "123", "step_name", "sub", "oops", {"test": 23}))
+    roundtrip(ActionDone("test", "123", "step_name", SubscriberId("sub")))
+    roundtrip(ActionDone("test", "123", "step_name", SubscriberId("sub"), {"test": 1}))
+    roundtrip(ActionError("test", "123", "step_name", SubscriberId("sub"), "oops"))
+    roundtrip(ActionError("test", "123", "step_name", SubscriberId("sub"), "oops", {"test": 23}))
 
 
 def roundtrip(obj: Any) -> None:

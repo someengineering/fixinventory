@@ -12,6 +12,7 @@ from resotocore.db.runningtaskdb import RunningTaskDb
 from resotocore.dependencies import empty_config
 from resotocore.message_bus import MessageBus, Event, Message, ActionDone, Action
 from resotocore.task.model import Subscriber
+from resotocore.model.ids import SubscriberId
 from resotocore.task.scheduler import Scheduler
 from resotocore.task.subscribers import SubscriptionHandler
 from resotocore.task.task_description import (
@@ -144,9 +145,9 @@ async def test_recover_workflow(
         th.task_descriptions = [test_workflow]
         return th
 
-    await subscription_handler.add_subscription("sub_1", "start_collect", True, timedelta(seconds=30))
-    sub1 = await subscription_handler.add_subscription("sub_1", "collect", True, timedelta(seconds=30))
-    sub2 = await subscription_handler.add_subscription("sub_2", "collect", True, timedelta(seconds=30))
+    await subscription_handler.add_subscription(SubscriberId("sub_1"), "start_collect", True, timedelta(seconds=30))
+    sub1 = await subscription_handler.add_subscription(SubscriberId("sub_1"), "collect", True, timedelta(seconds=30))
+    sub2 = await subscription_handler.add_subscription(SubscriberId("sub_2"), "collect", True, timedelta(seconds=30))
 
     async with handler() as wf1:
         # kick off a new workflow
@@ -162,7 +163,7 @@ async def test_recover_workflow(
 
     # subscriber 3 is also registering for collect
     # since the collect phase is already started, it should not participate in this round
-    sub3 = await subscription_handler.add_subscription("sub_3", "collect", True, timedelta(seconds=30))
+    sub3 = await subscription_handler.add_subscription(SubscriberId("sub_3"), "collect", True, timedelta(seconds=30))
 
     # simulate a restart, wf1 is stopped and wf2 needs to recover from database
     async with handler() as wf2:
@@ -190,7 +191,9 @@ async def test_wait_for_running_job(
     test_workflow.on_surpass = TaskSurpassBehaviour.Wait
     task_handler.task_descriptions = [test_workflow]
     # subscribe as collect handler - the workflow will need to wait for this handler
-    sub = await task_handler.subscription_handler.add_subscription("sub_1", "collect", True, timedelta(seconds=30))
+    sub = await task_handler.subscription_handler.add_subscription(
+        SubscriberId("sub_1"), "collect", True, timedelta(seconds=30)
+    )
     await task_handler.handle_event(Event("start me up"))
     # check, that the workflow has started
     running_before = await task_handler.running_tasks()

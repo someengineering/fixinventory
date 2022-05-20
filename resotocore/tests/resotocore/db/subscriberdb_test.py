@@ -9,6 +9,7 @@ from resotocore.db.async_arangodb import AsyncArangoDB
 from resotocore.db.entitydb import EventEntityDb
 from resotocore.db.subscriberdb import SubscriberDb, EventSubscriberDb
 from resotocore.task.model import Subscriber, Subscription
+from resotocore.model.ids import SubscriberId
 
 # noinspection PyUnresolvedReferences
 from tests.resotocore.db.graphdb_test import test_db, system_db, local_client
@@ -34,7 +35,7 @@ def event_db(subscriber_db: SubscriberDb, event_sender: AnalyticsEventSender) ->
 @pytest.fixture
 def subscribers() -> List[Subscriber]:
     subs = [Subscription("foo", True) for _ in range(0, 10)]
-    return [Subscriber.from_list(str(a), subs) for a in range(0, 10)]
+    return [Subscriber.from_list(SubscriberId(str(a)), subs) for a in range(0, 10)]
 
 
 @pytest.mark.asyncio
