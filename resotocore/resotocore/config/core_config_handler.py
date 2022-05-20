@@ -19,7 +19,7 @@ from resotocore.core_config import (
     CustomCommandsConfig,
     migrate_config,
 )
-from resotocore.ids import SubscriberId
+from resotocore.ids import SubscriberId, WorkerId
 from resotocore.dependencies import empty_config
 from resotocore.message_bus import MessageBus, CoreMessage
 from resotocore.model.model import Kind
@@ -79,7 +79,7 @@ class CoreConfigHandler:
             return {"error": "No known configuration found"}
 
     async def __validate_config(self) -> None:
-        worker_id = "resotocore.config.validate"
+        worker_id = WorkerId("resotocore.config.validate")
         description = WorkerTaskDescription(
             WorkerTaskName.validate_config, {"config_id": [ResotoCoreConfigId, ResotoCoreCommandsConfigId]}
         )

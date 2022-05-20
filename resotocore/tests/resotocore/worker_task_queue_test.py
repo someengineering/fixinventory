@@ -4,6 +4,7 @@ from datetime import timedelta
 from typing import AsyncGenerator, Dict, List, Tuple
 
 from pytest import fixture, mark
+from resotocore.ids import WorkerId
 
 from resotocore.model.graph_access import Section
 from resotocore.model.resolve_in_graph import GraphResolver, NodePath
@@ -29,7 +30,7 @@ def incoming_tasks() -> List[WorkerTask]:
 
 @fixture
 async def worker(
-    task_queue: WorkerTaskQueue, performed_by: Dict[str, List[str]], incoming_tasks: List[WorkerTask]
+    task_queue: WorkerTaskQueue, performed_by: Dict[str, List[WorkerId]], incoming_tasks: List[WorkerTask]
 ) -> AsyncGenerator[Tuple[WorkerTaskDescription, WorkerTaskDescription, WorkerTaskDescription], None]:
     success = WorkerTaskDescription("success_task")
     fail = WorkerTaskDescription("fail_task")
@@ -37,7 +38,7 @@ async def worker(
     tag = WorkerTaskDescription(WorkerTaskName.tag)
     validate_config = WorkerTaskDescription(WorkerTaskName.validate_config)
 
-    async def do_work(worker_id: str, task_descriptions: List[WorkerTaskDescription]) -> None:
+    async def do_work(worker_id: WorkerId, task_descriptions: List[WorkerTaskDescription]) -> None:
         async with task_queue.attach(worker_id, task_descriptions) as tasks:
             while True:
                 task: WorkerTask = await tasks.get()
@@ -81,7 +82,10 @@ async def worker(
 
                     await task_queue.acknowledge_task(worker_id, task.id, node)
 
-    workers = [asyncio.create_task(do_work(f"w{a}", [success, fail, wait, tag, validate_config])) for a in range(0, 4)]
+    workers = [
+        asyncio.create_task(do_work(WorkerId(f"w{a}"), [success, fail, wait, tag, validate_config]))
+        for a in range(0, 4)
+    ]
     await asyncio.sleep(0)
 
     yield success, fail, wait
