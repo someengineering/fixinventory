@@ -1,5 +1,4 @@
 from asyncio import Future
-from contextlib import suppress
 from functools import partial
 from typing import Any, Dict, Tuple, Callable, Awaitable
 from uuid import uuid1
@@ -8,7 +7,7 @@ import jsons
 from aiohttp import web
 from aiohttp.web import Request, StreamResponse, WebSocketResponse
 from resotolib.asynchronous.web.auth import auth_handler
-from resotolib.asynchronous.web.ws_handler import accept_websocket
+from resotolib.asynchronous.web.ws_handler import accept_websocket, clean_ws_handler
 from resotolib.log import Event
 from resotolib.logger import log
 
@@ -47,18 +46,7 @@ class Api:
         if not self.in_shutdown:
             self.in_shutdown = True
             for ws_id in list(self.websocket_handler):
-                await self.clean_ws_handler(ws_id)
-
-    async def clean_ws_handler(self, ws_id: str) -> None:
-        with suppress(Exception):
-            handler = self.websocket_handler.get(ws_id)
-            if handler:
-                self.websocket_handler.pop(ws_id, None)
-                future, ws = handler
-                future.cancel()
-                log.info(f"Cleanup ws handler: {ws_id} ({len(self.websocket_handler)} active)")
-                if not ws.closed:
-                    await ws.close()
+                await clean_ws_handler(ws_id, self.websocket_handler)
 
     @staticmethod
     def forward(to: str) -> Callable[[Request], Awaitable[StreamResponse]]:

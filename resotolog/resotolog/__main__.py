@@ -52,10 +52,10 @@ def run_process(args: Namespace) -> None:
     api = Api(config, handler)
 
     async def on_start() -> None:
-        pass
+        await api.start()
 
     async def on_stop() -> None:
-        pass
+        await api.stop()
 
     async def async_initializer() -> Application:
         async def on_start_stop(_: Application) -> AsyncIterator[None]:
