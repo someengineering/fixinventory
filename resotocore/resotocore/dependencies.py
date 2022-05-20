@@ -21,7 +21,7 @@ from resotocore.types import JsonElement
 from resotocore.util import utc
 from resotolib.args import ArgumentParser
 from resotolib.jwt import add_args as jwt_add_args
-from resotolib.log.logstream import LogStreamAsync, ShipLogsAsync
+from resotolib.log.logstream import EventStreamer, EventStreamAsync, LogStreamHandler
 from resotolib.logger import setup_logger
 from resotolib.utils import iec_size_format
 
@@ -260,10 +260,12 @@ def configure_logging(log_level: str, verbose: bool) -> None:
         logging.getLogger("apscheduler.scheduler").setLevel(logging.WARNING)
 
 
-def log_shipper(config: CoreConfig) -> ShipLogsAsync:
+def log_shipper(config: CoreConfig) -> EventStreamAsync:
     # todo: use config to determine url and props
-    streamer = LogStreamAsync("http://localhost:8080/ingest", 10000, timedelta(seconds=1))
-    return ShipLogsAsync("resotocore", streamer)
+    streamer = EventStreamer("http://localhost:8080/ingest", 10000, timedelta(seconds=1))
+    log_props = {"message": "message", "pid": "process", "thread": "threadName"}
+    log_handler = LogStreamHandler("resotocore", streamer, log_props)
+    return EventStreamAsync(streamer, log_handler)
 
 
 def reset_process_start_method() -> None:

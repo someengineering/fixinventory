@@ -1,6 +1,6 @@
 import json
 from dataclasses import dataclass, field
-from typing import ClassVar, Optional, Dict
+from typing import ClassVar, Optional, Dict, Mapping
 import sys
 import os
 from logging import (
@@ -16,7 +16,7 @@ from logging import (
 )
 
 from resotolib.args import ArgumentParser
-
+from resotolib.types import Json
 
 getLogger().setLevel(ERROR)
 getLogger("resoto").setLevel(INFO)
@@ -64,7 +64,7 @@ class JsonFormatter(Formatter):
 
     def __init__(
         self,
-        fmt_dict: dict,
+        fmt_dict: Mapping[str, str],
         time_format: str = "%Y-%m-%dT%H:%M:%S",
         static_values: Optional[Dict[str, str]] = None,
     ):
@@ -83,7 +83,7 @@ class JsonFormatter(Formatter):
             for fmt_key, fmt_val in self.fmt_dict.items()
         }
 
-    def format(self, record) -> str:
+    def formatJsonMessage(self, record) -> Json:  # noqa: N802
         record.message = record.getMessage()
 
         if self.__use_time:
@@ -101,7 +101,10 @@ class JsonFormatter(Formatter):
 
         if record.stack_info:
             message_dict["stack_info"] = self.formatStack(record.stack_info)
+        return message_dict
 
+    def format(self, record) -> str:
+        message_dict = self.formatJsonMessage(record)
         return json.dumps(message_dict, default=str)
 
 
