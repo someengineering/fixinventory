@@ -9,6 +9,8 @@ from resotocore.message_bus import ActionDone
 from resotocore.util import utc
 from resotocore.task.model import Subscriber
 from resotocore.ids import TaskId
+from resotocore.ids import SubscriberId
+
 from resotocore.task.task_description import RunningTask, TaskDescriptorId
 
 # noinspection PyUnresolvedReferences
@@ -32,7 +34,7 @@ async def running_task_db(test_db: StandardDatabase) -> RunningTaskDb:
 
 @pytest.fixture
 def instances() -> List[RunningTaskData]:
-    messages = [ActionDone(str(a), TaskId("test"), "bla", "sf") for a in range(0, 10)]
+    messages = [ActionDone(str(a), TaskId("test"), "bla", SubscriberId("sf")) for a in range(0, 10)]
     state_data = {"test": 1}
     return [
         RunningTaskData(TaskId(str(a)), TaskDescriptorId(str(a)), "task_123", messages, "start", state_data, utc())
@@ -76,9 +78,10 @@ async def test_update_state(
 ) -> None:
     wi, _, _, _ = workflow_instance
     task_id = TaskId("test")
-    first = ActionDone("start_collect", task_id, "bla", "sf")
-    second = ActionDone("collect", task_id, "bla", "sf")
-    third = ActionDone("collect_done", task_id, "bla", "sf")
+    subscriber_id = SubscriberId("sf")
+    first = ActionDone("start_collect", task_id, "bla", subscriber_id)
+    second = ActionDone("collect", task_id, "bla", subscriber_id)
+    third = ActionDone("collect_done", task_id, "bla", subscriber_id)
 
     async def assert_state(current: str, message_count: int) -> RunningTaskData:
         state: RunningTaskData = await running_task_db.get(wi.id)  # type: ignore

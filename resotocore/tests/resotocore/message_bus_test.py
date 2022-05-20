@@ -7,6 +7,7 @@ from pytest import fixture, mark
 
 from resotocore.message_bus import MessageBus, Message, Event, Action, ActionDone, ActionError
 from resotocore.model.typed_model import to_js, from_js
+from resotocore.ids import SubscriberId
 from resotocore.util import AnyT, utc, first
 from resotocore.ids import TaskId
 
@@ -21,7 +22,7 @@ async def all_events(message_bus: MessageBus) -> AsyncGenerator[List[Message], N
     events: List[Message] = []
 
     async def gather_events() -> None:
-        async with message_bus.subscribe("test") as event_queue:
+        async with message_bus.subscribe(SubscriberId("test")) as event_queue:
             while True:
                 events.append(await event_queue.get())
 
@@ -62,7 +63,7 @@ async def test_handler(message_bus: MessageBus) -> None:
         await message_bus.emit(Event("bar"))
 
     async def wait_for(name: str, list: List[Message]) -> None:
-        async with message_bus.subscribe("test", [name]) as events:
+        async with message_bus.subscribe(SubscriberId("test"), [name]) as events:
             while True:
                 list.append(await events.get())
 
@@ -84,13 +85,14 @@ async def test_handler(message_bus: MessageBus) -> None:
 
 def test_message_serialization() -> None:
     task_id = TaskId("123")
+    subsctiber_id = SubscriberId("sub")
     roundtrip(Event("test", {"a": "b", "c": 1, "d": "bla"}))
     roundtrip(Action("test", task_id, "step_name"))
     roundtrip(Action("test", task_id, "step_name", {"test": 1}))
-    roundtrip(ActionDone("test", task_id, "step_name", "sub"))
-    roundtrip(ActionDone("test", task_id, "step_name", "sub", {"test": 1}))
-    roundtrip(ActionError("test", task_id, "step_name", "sub", "oops"))
-    roundtrip(ActionError("test", task_id, "step_name", "sub", "oops", {"test": 23}))
+    roundtrip(ActionDone("test", task_id, "step_name", subsctiber_id))
+    roundtrip(ActionDone("test", task_id, "step_name", subsctiber_id, {"test": 1}))
+    roundtrip(ActionError("test", task_id, "step_name", subsctiber_id, "oops"))
+    roundtrip(ActionError("test", task_id, "step_name", subsctiber_id, "oops", {"test": 23}))
 
 
 def roundtrip(obj: Any) -> None:

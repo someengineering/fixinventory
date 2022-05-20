@@ -64,6 +64,7 @@ from resotocore.model.model_handler import ModelHandler
 from resotocore.model.typed_model import to_json, from_js, to_js_str, to_js
 from resotocore.query import QueryParser
 from resotocore.task.model import Subscription
+from resotocore.ids import SubscriberId
 from resotocore.task.subscribers import SubscriptionHandler
 from resotocore.task.task_handler import TaskHandlerService
 from resotocore.types import Json, JsonElement
@@ -369,7 +370,7 @@ class Api:
         return await single_result(request, to_json(subscribers))
 
     async def get_subscriber(self, request: Request) -> StreamResponse:
-        subscriber_id = request.match_info["subscriber_id"]
+        subscriber_id = SubscriberId(request.match_info["subscriber_id"])
         subscriber = await self.subscription_handler.get_subscriber(subscriber_id)
         return self.optional_json(subscriber, f"No subscriber with id {subscriber_id}")
 
@@ -379,19 +380,19 @@ class Api:
         return await single_result(request, to_json(subscribers))
 
     async def update_subscriber(self, request: Request) -> StreamResponse:
-        subscriber_id = request.match_info["subscriber_id"]
+        subscriber_id = SubscriberId(request.match_info["subscriber_id"])
         body = await self.json_from_request(request)
         subscriptions = from_js(body, List[Subscription])
         sub = await self.subscription_handler.update_subscriptions(subscriber_id, subscriptions)
         return await single_result(request, to_json(sub))
 
     async def delete_subscriber(self, request: Request) -> StreamResponse:
-        subscriber_id = request.match_info["subscriber_id"]
+        subscriber_id = SubscriberId(request.match_info["subscriber_id"])
         await self.subscription_handler.remove_subscriber(subscriber_id)
         return web.HTTPNoContent()
 
     async def add_subscription(self, request: Request) -> StreamResponse:
-        subscriber_id = request.match_info["subscriber_id"]
+        subscriber_id = SubscriberId(request.match_info["subscriber_id"])
         event_type = request.match_info["event_type"]
         timeout = timedelta(seconds=int(request.query.get("timeout", "60")))
         wait_for_completion = request.query.get("wait_for_completion", "true").lower() != "false"
@@ -399,13 +400,13 @@ class Api:
         return await single_result(request, to_js(sub))
 
     async def delete_subscription(self, request: Request) -> StreamResponse:
-        subscriber_id = request.match_info["subscriber_id"]
+        subscriber_id = SubscriberId(request.match_info["subscriber_id"])
         event_type = request.match_info["event_type"]
         sub = await self.subscription_handler.remove_subscription(subscriber_id, event_type)
         return await single_result(request, to_js(sub))
 
     async def handle_subscribed(self, request: Request) -> StreamResponse:
-        subscriber_id = request.match_info["subscriber_id"]
+        subscriber_id = SubscriberId(request.match_info["subscriber_id"])
         subscriber = await self.subscription_handler.get_subscriber(subscriber_id)
         if subscriber_id in self.message_bus.active_listener:
             log.info(f"There is already a listener for subscriber: {subscriber_id}. Reject.")
@@ -421,12 +422,12 @@ class Api:
 
     async def handle_events(self, request: Request) -> StreamResponse:
         show = request.query["show"].split(",") if "show" in request.query else ["*"]
-        return await self.listen_to_events(request, str(uuid.uuid1()), show)
+        return await self.listen_to_events(request, SubscriberId(str(uuid.uuid1())), show)
 
     async def listen_to_events(
         self,
         request: Request,
-        listener_id: str,
+        listener_id: SubscriberId,
         event_types: List[str],
         initial_messages: Optional[Sequence[Message]] = None,
     ) -> web.WebSocketResponse:

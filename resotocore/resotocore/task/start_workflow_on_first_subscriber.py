@@ -5,6 +5,7 @@ from datetime import timedelta
 from typing import Optional, List
 
 from resotocore.message_bus import MessageBus, CoreMessage, Message
+from resotocore.ids import SubscriberId
 from resotocore.task import TaskHandler
 from resotocore.task.task_description import PerformAction, Workflow
 from resotocore.util import uuid_str
@@ -43,7 +44,8 @@ def wait_and_start(
         return None
 
     async def wait_for_subscriber() -> None:
-        async with message_bus.subscribe(f"resotocore.wait_for_actor_{uuid_str()}", [CoreMessage.Connected]) as bus:
+        subscriber_id = SubscriberId(f"resotocore.wait_for_actor_{uuid_str()}")
+        async with message_bus.subscribe(subscriber_id, [CoreMessage.Connected]) as bus:
             while True:
                 message = await bus.get()
                 maybe_workflow = workflow_if_actor(message)

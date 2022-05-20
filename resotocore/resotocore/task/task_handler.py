@@ -18,6 +18,7 @@ from resotocore.core_config import CoreConfig
 from resotocore.db.jobdb import JobDb
 from resotocore.db.runningtaskdb import RunningTaskData, RunningTaskDb
 from resotocore.message_bus import MessageBus, Event, Action, ActionDone, Message, ActionError
+from resotocore.ids import SubscriberId
 from resotocore.task import TaskHandler
 from resotocore.task.model import Subscriber
 from resotocore.task.scheduler import Scheduler
@@ -230,7 +231,7 @@ class TaskHandlerService(TaskHandler):
             self.initial_start_workflow_task = wait_and_start(filtered, self, self.message_bus)
 
         async def listen_to_message_bus() -> None:
-            async with self.message_bus.subscribe("resotocore.task_handler") as messages:
+            async with self.message_bus.subscribe(SubscriberId("resotocore.task_handler")) as messages:
                 while True:
                     message = None
                     try:
