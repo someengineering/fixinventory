@@ -4,7 +4,6 @@ from asyncio import Task
 from contextlib import suppress
 from functools import partial
 from typing import Optional, List, Callable
-from resotocore.ids import SubscriberId
 
 import yaml
 
@@ -20,6 +19,7 @@ from resotocore.core_config import (
     CustomCommandsConfig,
     migrate_config,
 )
+from resotocore.ids import SubscriberId
 from resotocore.dependencies import empty_config
 from resotocore.message_bus import MessageBus, CoreMessage
 from resotocore.model.model import Kind
