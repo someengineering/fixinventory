@@ -11,7 +11,6 @@ from typing import Optional, List, ClassVar, Dict, Union
 
 from arango.database import StandardDatabase
 from cerberus import schema_registry
-from resotocore.ids import ConfigId
 from resotolib.core.model_export import dataclasses_to_resotocore_model
 
 from resotocore.model.model import Kind, Model, ComplexKind
@@ -19,6 +18,8 @@ from resotocore.model.typed_model import from_js, to_js
 from resotocore.types import Json, JsonElement
 from resotocore.util import set_value_in_path, value_in_path, del_value_in_path
 from resotocore.validator import Validator, schema_name
+from resotocore.ids import ConfigId
+
 
 log = logging.getLogger(__name__)
 
