@@ -20,7 +20,7 @@ from resotocore.analytics import AnalyticsEventSender
 from resotocore.core_config import CoreConfig, parse_config, git_hash_from_file, inside_docker
 from resotocore.db.db_access import DbAccess
 from resotocore.model.adjust_node import DirectAdjuster
-from resotocore.parse_util import make_parser, variable_p, equals_p, comma_p, simple_json_value_dp
+from resotocore.parse_util import make_parser, variable_p, equals_p, comma_p, json_value_dp
 from resotocore.types import JsonElement
 from resotocore.util import utc
 
@@ -33,10 +33,10 @@ started_at = utc()
 
 
 @make_parser
-def path_simple_value_parser() -> Parser:
+def path_json_value_parser() -> Parser:
     key = yield variable_p
     yield equals_p
-    value = yield simple_json_value_dp.sep_by(comma_p, min=1)
+    value = yield json_value_dp.sep_by(comma_p, min=1)
     return key, value
 
 
@@ -74,7 +74,7 @@ def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None
 
     def key_value(kv: str) -> Tuple[str, JsonElement]:
         try:
-            key, value = path_simple_value_parser.parse(kv)
+            key, value = path_json_value_parser.parse(kv)
             return (key, value[0]) if len(value) == 1 else (key, value)
         except Exception as ex:
             raise AttributeError(f"Can not parse config option: {kv}. Reason: {ex}") from ex
