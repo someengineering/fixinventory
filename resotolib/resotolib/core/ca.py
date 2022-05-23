@@ -132,25 +132,30 @@ class TLSData:
         self.__load_lock = Lock()
         self.__loaded = Event()
         self.__exit = Condition()
-        add_event_listener(EventType.SHUTDOWN, self.shutdown, blocking=False)
-        self.__watcher = Thread(
-            target=self.__certificates_watcher, name="certificates_watcher"
-        )
+        self.__watcher: Optional[Thread] = None
 
-    def __enter__(self) -> None:
+    def __enter__(self) -> "TLSData":
         self.start()
+        return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         self.shutdown()
 
     def start(self) -> None:
-        self.load()
-        if not self.__watcher.is_alive():
+        if self.__watcher is None:
+            self.load()
+            self.__watcher = Thread(
+                target=self.__certificates_watcher, name="certificates_watcher"
+            )
             self.__watcher.start()
+            add_event_listener(EventType.SHUTDOWN, self.shutdown, blocking=False)
 
     def shutdown(self, event: Optional[ResotoEvent] = None) -> None:
-        with self.__exit:
-            self.__exit.notify()
+        if self.__watcher is not None:
+            with self.__exit:
+                self.__exit.notify()
+            self.__watcher.join()
+            self.__watcher = None
 
     def __getstate__(self):
         d = self.__dict__.copy()

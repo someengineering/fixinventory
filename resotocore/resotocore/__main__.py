@@ -15,9 +15,11 @@ from typing import AsyncIterator, List, Union
 
 from aiohttp.web_app import Application
 from arango.database import StandardDatabase
+from resotolib.asynchronous.web import runner
 from urllib3.exceptions import HTTPWarning
 
 from resotocore import version
+from resotocore.action_handlers.merge_outer_edge_handler import MergeOuterEdgesHandler
 from resotocore.analytics import CoreEvent, NoEventSender
 from resotocore.analytics.posthog import PostHogEventSender
 from resotocore.analytics.recurrent_events import emit_recurrent_events
@@ -26,11 +28,17 @@ from resotocore.cli.command import alias_names, all_commands
 from resotocore.cli.model import CLIDependencies
 from resotocore.config.config_handler_service import ConfigHandlerService
 from resotocore.config.core_config_handler import CoreConfigHandler
-from resotocore.action_handlers.merge_outer_edge_handler import MergeOuterEdgesHandler
 from resotocore.core_config import config_from_db, CoreConfig, RunConfig
 from resotocore.db import SystemData
 from resotocore.db.db_access import DbAccess
-from resotocore.dependencies import db_access, setup_process, parse_args, system_info, reconfigure_logging, log_shipper
+from resotocore.dependencies import (
+    db_access,
+    setup_process,
+    parse_args,
+    system_info,
+    reconfigure_logging,
+    log_shipper,
+)
 from resotocore.error import RestartService
 from resotocore.message_bus import MessageBus
 from resotocore.model.model_handler import ModelHandlerDB
@@ -40,7 +48,6 @@ from resotocore.task.scheduler import Scheduler
 from resotocore.task.subscribers import SubscriptionHandler
 from resotocore.task.task_handler import TaskHandlerService
 from resotocore.util import shutdown_process, utc
-from resotocore.web import runner
 from resotocore.web.api import Api
 from resotocore.web.certificate_handler import CertificateHandler
 from resotocore.worker_task_queue import WorkerTaskQueue

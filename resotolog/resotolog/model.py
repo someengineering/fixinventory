@@ -1,10 +1,44 @@
 from argparse import Namespace
-from dataclasses import dataclass
+from ssl import SSLContext, create_default_context, Purpose
+from typing import Optional
+
+from resotolib.core import ResotocoreURI
+from resotolib.core.ca import TLSData
 
 
-@dataclass
 class LogConfig:
-    args: Namespace
+    def __init__(self, args: Namespace):
+        self.args = args
+        self.core_uri = ResotocoreURI(args.resotocore_uri)
+
+    @property
+    def host(self) -> str:
+        return self.args.host  # type: ignore
+
+    @property
+    def port(self) -> int:
+        return self.args.port  # type: ignore
+
+    def use_tls(self) -> bool:
+        return self.core_uri.is_secure and not self.args.no_tls
+
+    def use_core_cert(self) -> bool:
+        return self.args.cert is None
+
+    @property
+    def ssl_context(self) -> Optional[SSLContext]:
+        if self.use_tls():
+            if self.args.cert is not None:
+                # noinspection PyTypeChecker
+                ctx = create_default_context(Purpose.CLIENT_AUTH)
+                ctx.load_cert_chain(self.args.cert, self.args.cert_key, self.args.cert_key_pass)
+                return ctx
+            else:
+                # TODO: renew ssl context
+                tls = TLSData(common_name="resotolog", resotocore_uri=self.core_uri.http_uri)
+                return tls.ssl_context  # type: ignore
+        else:
+            return None
 
 
 class RestartService(SystemExit):

@@ -6,11 +6,13 @@ from typing import AsyncIterator, List, Optional
 from aiohttp.web_app import Application
 from resotolib import jwt
 from resotolib.args import ArgumentParser
+from resotolib.asynchronous.web import runner
+from resotolib.core import wait_for_resotocore
 from resotolib.logger import setup_logger, log
 
+from resotolog import __version__
 from resotolog.logs.log_handler import LogHandler
 from resotolog.model import LogConfig, RestartService
-from resotolog.web import runner
 from resotolog.web.api import Api
 
 
@@ -22,7 +24,7 @@ def main() -> None:
         run(sys.argv[1:])
         log.info("Process finished.")
     except (KeyboardInterrupt, SystemExit):
-        log.info("Stopping resotolog.")
+        log.debug("Stopping resotolog.")
         sys.exit(0)
     except Exception as ex:
         if "--debug" in sys.argv:
@@ -48,33 +50,24 @@ def run(arguments: List[str]) -> None:
 
 def run_process(args: Namespace) -> None:
     config = LogConfig(args)
-    handler = LogHandler(123)
+    handler = LogHandler(args.max_queued_entries)
     api = Api(config, handler)
-
-    async def on_start() -> None:
-        await api.start()
-
-    async def on_stop() -> None:
-        await api.stop()
 
     async def async_initializer() -> Application:
         async def on_start_stop(_: Application) -> AsyncIterator[None]:
-            await on_start()
+            await api.start()
             log.info("Initialization done. Starting API.")
             yield
             log.info("Shutdown initiated. Stop all tasks.")
-            await on_stop()
+            await api.stop()
 
         api.app.cleanup_ctx.append(on_start_stop)
         return api.app
 
-    runner.run_app(
-        async_initializer(),
-        api.stop,
-        # host=config.api.web_hosts,
-        # port=config.api.web_port,
-        # ssl_context=cert_handler.host_context,
-    )
+    if config.use_tls() and config.use_core_cert():
+        wait_for_resotocore(config.core_uri.http_uri)
+
+    runner.run_app(async_initializer(), api.stop, host=config.host, port=config.port, ssl_context=config.ssl_context)
 
 
 def parse_args(args: Optional[List[str]] = None) -> Namespace:
@@ -83,12 +76,28 @@ def parse_args(args: Optional[List[str]] = None) -> Namespace:
         description="Resoto Log Aggregator.",
     )
     jwt.add_args(parser)
+    parser.add_argument("--no-tls", default=False, action="store_true", help="Disable TLS and use plain HTTP.")
+    parser.add_argument("--cert", help="Path to custom certificate file")
+    parser.add_argument("--cert-key", help="Path to custom certificate key file")
+    parser.add_argument("--cert-key-pass", help="Passphrase for certificate key file")
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose logging.")
+    parser.add_argument("--debug", action="store_true", help="Enable verbose logging.")
+    parser.add_argument("--max-queued-entries", type=int, default=1000)
+    parser.add_argument("--version", action="store_true", help="Show version.")
+    parser.add_argument("--host", default="0.0.0.0", help="Host to listen on.")
+    parser.add_argument("--port", default=9957, type=int, help="Port to listen on.")
+    parser.add_argument(
+        "--resotocore-uri", dest="resotocore_uri", default="https://localhost:8900", help="Resoto Core URI."
+    )
     parsed: Namespace = parser.parse_args(args if args else [])
+    if parsed.version:
+        print(f"resotolog {__version__}")
+        sys.exit(0)
     return parsed
 
 
 def setup_process(args: Namespace) -> None:
-    setup_logger("resotolog", force=True)
+    setup_logger("resotolog", force=True, verbose=args.verbose or args.debug)
 
 
 if __name__ == "__main__":
