@@ -24,8 +24,8 @@ class EventStreamer:
     def __init__(
         self,
         url: str,
-        max_outstanding: int,
-        frequency: timedelta,
+        max_outstanding: int = 10000,
+        frequency: timedelta = timedelta(seconds=1),
         params: Optional[Mapping[str, str]] = None,
         headers: Optional[LooseHeaders] = None,
         ssl: Union[SSLContext, bool, None, Fingerprint] = None,
@@ -86,21 +86,22 @@ level_to_severity = {
     "DEBUG": Severity.debug,
 }
 
+default_log_props = {"message": "message", "pid": "process", "thread": "threadName"}
+
 
 class LogStreamHandler(StreamHandler):
     def __init__(
         self,
         process: str,
         streamer: EventStreamer,
-        fmt_dict: Mapping[str, str],
+        fmt_dict: Optional[Mapping[str, str]] = None,
         attach: bool = True,
     ) -> None:
         super().__init__(None)
         self.streamer = streamer
         self.attach() if attach else None
-        self.fmt_dict = fmt_dict
         self.process = process
-        self.js_formatter = JsonFormatter(fmt_dict)
+        self.js_formatter = JsonFormatter(fmt_dict or default_log_props)
 
     def emit(self, record: LogRecord) -> None:
         payload = self.js_formatter.formatJsonMessage(record)
@@ -131,6 +132,39 @@ class LogStreamHandler(StreamHandler):
 
 
 class EventStream(ABC):
+    def send_event(self, event: Event) -> None:
+        pass
+
+
+class EventStreamSync(EventStream):
+    def __enter__(self) -> None:
+        self.start()
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        self.stop()
+
+    def start(self) -> None:
+        pass
+
+    def stop(self) -> None:
+        pass
+
+
+class EventStreamAsync(EventStream):
+    async def __aenter__(self):
+        await self.start()
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.stop()
+
+    async def start(self) -> None:
+        pass
+
+    async def stop(self) -> None:
+        pass
+
+
+class EventStreamBase(ABC):
     def __init__(self, streamer: EventStreamer, log_handler: LogStreamHandler) -> None:
         self.log_handler = log_handler
         self.streamer = streamer
@@ -139,7 +173,7 @@ class EventStream(ABC):
         self.streamer.send_event(event)
 
 
-class EventStreamSync(EventStream):
+class EventStreamSyncService(EventStreamBase, EventStreamSync):
     def __init__(self, streamer: EventStreamer, log_handler: LogStreamHandler) -> None:
         super().__init__(streamer, log_handler)
         # only here to get the result of the start task (will yield a warning otherwise)
@@ -161,22 +195,18 @@ class EventStreamSync(EventStream):
             )
             self.start_future = None
 
-    def __enter__(self) -> None:
-        self.start()
 
-    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
-        self.stop()
-
-
-class EventStreamAsync(EventStream):
+class EventStreamAsyncService(EventStreamBase, EventStreamAsync):
     async def start(self) -> None:
         await self.streamer.start()
 
     async def stop(self) -> None:
         await self.streamer.stop()
 
-    async def __aenter__(self):
-        await self.start()
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        await self.stop()
+class NoEventStreamSync(EventStreamSync):
+    pass
+
+
+class NoEventStreamAsync(EventStreamAsync):
+    pass

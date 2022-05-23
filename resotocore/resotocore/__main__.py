@@ -37,7 +37,7 @@ from resotocore.dependencies import (
     parse_args,
     system_info,
     reconfigure_logging,
-    log_shipper,
+    event_stream,
 )
 from resotocore.error import RestartService
 from resotocore.message_bus import MessageBus
@@ -52,7 +52,7 @@ from resotocore.web.api import Api
 from resotocore.web.certificate_handler import CertificateHandler
 from resotocore.worker_task_queue import WorkerTaskQueue
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("resotocore")
 
 
 def main() -> None:
@@ -133,7 +133,7 @@ def with_config(
     config_handler = ConfigHandlerService(
         db.config_entity_db, db.config_validation_entity_db, db.configs_model_db, worker_task_queue, message_bus
     )
-    log_ship = log_shipper(config)
+    log_ship = event_stream(config, cert_handler.client_context)
     cli_deps = CLIDependencies(
         message_bus=message_bus,
         event_sender=event_sender,

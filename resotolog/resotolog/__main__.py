@@ -85,7 +85,7 @@ def parse_args(args: Optional[List[str]] = None) -> Namespace:
     parser.add_argument("--max-queued-entries", type=int, default=1000)
     parser.add_argument("--version", action="store_true", help="Show version.")
     parser.add_argument("--host", default="0.0.0.0", help="Host to listen on.")
-    parser.add_argument("--port", default=9957, type=int, help="Port to listen on.")
+    parser.add_argument("--port", default=9966, type=int, help="Port to listen on.")
     parser.add_argument(
         "--resotocore-uri", dest="resotocore_uri", default="https://localhost:8900", help="Resoto Core URI."
     )

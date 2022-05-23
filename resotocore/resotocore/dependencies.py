@@ -5,12 +5,24 @@ import os.path
 import sys
 from argparse import Namespace
 from collections import namedtuple
-from datetime import timedelta
+from ssl import SSLContext
 from typing import Optional, List, Callable, Tuple
 
 import psutil
 from arango.database import StandardDatabase
 from parsy import Parser
+from resotolib.args import ArgumentParser
+from resotolib.jwt import add_args as jwt_add_args
+from resotolib.log.logstream import (
+    EventStreamer,
+    EventStreamAsync,
+    LogStreamHandler,
+    EventStreamAsyncService,
+    NoEventStreamAsync,
+)
+from resotolib.logger import setup_logger
+from resotolib.utils import iec_size_format
+
 from resotocore import async_extensions, version
 from resotocore.analytics import AnalyticsEventSender
 from resotocore.core_config import CoreConfig, parse_config, git_hash_from_file, inside_docker
@@ -19,11 +31,6 @@ from resotocore.model.adjust_node import DirectAdjuster
 from resotocore.parse_util import make_parser, variable_p, equals_p, comma_p, simple_json_value_dp
 from resotocore.types import JsonElement
 from resotocore.util import utc
-from resotolib.args import ArgumentParser
-from resotolib.jwt import add_args as jwt_add_args
-from resotolib.log.logstream import EventStreamer, EventStreamAsync, LogStreamHandler
-from resotolib.logger import setup_logger
-from resotolib.utils import iec_size_format
 
 log = logging.getLogger(__name__)
 
@@ -195,8 +202,8 @@ def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None
         type=is_dir("can not parse --ui-dir"),
         help="Path to the UI files. If not defined use configuration..",
     )
-
     parser.add_argument("--analytics-opt-out", default=None, action="store_true", help=argparse.SUPPRESS)
+    parser.add_argument("--resotolog-uri", dest="resotolog_uri", default=None, help="URI to the resotolog server.")
 
     parsed: Namespace = parser.parse_args(args if args else [], namespace)
 
@@ -260,12 +267,13 @@ def configure_logging(log_level: str, verbose: bool) -> None:
         logging.getLogger("apscheduler.scheduler").setLevel(logging.WARNING)
 
 
-def log_shipper(config: CoreConfig) -> EventStreamAsync:
-    # todo: use config to determine url and props
-    streamer = EventStreamer("http://localhost:8080/ingest", 10000, timedelta(seconds=1))
-    log_props = {"message": "message", "pid": "process", "thread": "threadName"}
-    log_handler = LogStreamHandler("resotocore", streamer, log_props)
-    return EventStreamAsync(streamer, log_handler)
+def event_stream(config: CoreConfig, ctx: SSLContext) -> EventStreamAsync:
+    if url := config.args.resotolog_uri:
+        streamer = EventStreamer(f"{url}/ingest", ssl=ctx)
+        log_handler = LogStreamHandler("resotocore", streamer)
+        return EventStreamAsyncService(streamer, log_handler)
+    else:
+        return NoEventStreamAsync()
 
 
 def reset_process_start_method() -> None:

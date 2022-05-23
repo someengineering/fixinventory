@@ -34,9 +34,11 @@ class LogConfig:
                 ctx.load_cert_chain(self.args.cert, self.args.cert_key, self.args.cert_key_pass)
                 return ctx
             else:
-                # TODO: renew ssl context
                 tls = TLSData(common_name="resotolog", resotocore_uri=self.core_uri.http_uri)
-                return tls.ssl_context  # type: ignore
+                ctx = create_default_context(Purpose.CLIENT_AUTH)
+                ctx.load_cert_chain(tls.cert_path, tls.key_path)
+                # TODO: renew ssl context
+                return ctx
         else:
             return None
 
