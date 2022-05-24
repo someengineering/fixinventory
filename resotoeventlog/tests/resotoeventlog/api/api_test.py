@@ -1,3 +1,4 @@
+import multiprocessing
 from asyncio import sleep
 from contextlib import suppress
 from multiprocessing import Process
@@ -26,7 +27,7 @@ async def eventlog_client(client_session: ClientSession) -> AsyncIterator[EventL
           The fixture ensures that the underlying process has entered the ready state.
           It also ensures to clean up the process, when the test is done.
     """
-
+    multiprocessing.set_start_method("spawn", True)
     process = Process(
         target=run,
         args=(["--debug", "--no-tls", "--port", "8951"],),
