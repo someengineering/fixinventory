@@ -35,6 +35,7 @@ class LogConfig:
                 return ctx
             else:
                 tls = TLSData(common_name="resotoeventlog", resotocore_uri=self.core_uri.http_uri)
+                # noinspection PyTypeChecker
                 ctx = create_default_context(Purpose.CLIENT_AUTH)
                 ctx.load_cert_chain(tls.cert_path, tls.key_path)
                 # TODO: renew ssl context
