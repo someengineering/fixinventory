@@ -72,7 +72,7 @@ def run_process(args: Namespace) -> None:
 
 def parse_args(args: Optional[List[str]] = None) -> Namespace:
     parser = ArgumentParser(
-        env_args_prefix="RESOTOLOG_",
+        env_args_prefix="RESOTOEVENTLOG_",
         description="Resoto Log Aggregator.",
     )
     jwt.add_args(parser)

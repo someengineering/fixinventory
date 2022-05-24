@@ -40,11 +40,11 @@ jobs:
           pip install --upgrade --editable resotolib/
 
       - name: Run tests
-        working-directory: ./resotolog
+        working-directory: ./resotoeventlog
         run: tox
 
       - name: Build a binary wheel and a source tarball
-        working-directory: ./resotolog
+        working-directory: ./resotoeventlog
         run: >-
           python -m
           build
@@ -57,5 +57,5 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           user: __token__
-          password: ${{ secrets.PYPI_resotolog }}
-          packages_dir: ./resotolog/dist/
+          password: ${{ secrets.PYPI_resotoeventlog }}
+          packages_dir: ./resotoeventlog/dist/
