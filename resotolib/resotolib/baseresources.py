@@ -90,7 +90,7 @@ class BaseResource(ABC):
     tags: Dict[str, Optional[str]] = None
     name: str = None
     _cloud: object = field(default=None, repr=False)
-    _account: object = field(default=None, repr=False)
+    _account: "BaseAccount" = field(default=None, repr=False)
     _region: object = field(default=None, repr=False)
     _zone: object = field(default=None, repr=False)
     _resotocore_id: Optional[str] = field(default=None, repr=False)
@@ -427,7 +427,7 @@ class BaseResource(ABC):
     def delete(self, graph) -> bool:
         raise NotImplementedError
 
-    def account(self, graph=None):
+    def account(self, graph=None) -> "BaseAccount":
         account = None
         if graph is None:
             graph = self._graph
@@ -439,7 +439,7 @@ class BaseResource(ABC):
             account = UnknownAccount("undefined", {})
         return account
 
-    def cloud(self, graph=None):
+    def cloud(self, graph=None) -> "BaseCloud":
         cloud = None
         if graph is None:
             graph = self._graph
@@ -451,7 +451,7 @@ class BaseResource(ABC):
             cloud = UnknownCloud("undefined", {})
         return cloud
 
-    def region(self, graph=None):
+    def region(self, graph=None) -> "BaseRegion":
         region = None
         if graph is None:
             graph = self._graph
@@ -463,7 +463,7 @@ class BaseResource(ABC):
             region = UnknownRegion("undefined", {})
         return region
 
-    def zone(self, graph=None):
+    def zone(self, graph=None) -> "BaseZone":
         zone = None
         if graph is None:
             graph = self._graph
