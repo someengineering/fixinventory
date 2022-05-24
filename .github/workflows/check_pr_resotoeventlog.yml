@@ -1,4 +1,4 @@
-name: Check PR (resotolog)
+name: Check PR (resotoeventlog)
 on:
   push:
     tags:
@@ -7,13 +7,13 @@ on:
         - main
   pull_request:
     paths:
-      - 'resotolog/**'
+      - 'resotoeventlog/**'
       - 'resotolib/**'
       - '.github/**'
 
 jobs:
-  resotolog:
-    name: "resotolog"
+  resotoeventlog:
+    name: "resotoeventlog"
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -29,7 +29,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ~/.cache/pip
-          key: $\{\{runner.os}}-pip-$\{\{hashFiles('setup.py')}}
+          key: $\{\{runner.os}}-pip-$\{\{hashFiles('./resotoeventlog/setup.py')}}
           restore-keys: |
             $\{\{ runner.os }}-pip-
 
