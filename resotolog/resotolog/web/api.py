@@ -2,6 +2,7 @@ from asyncio import Future
 from functools import partial
 from typing import Any, Dict, Tuple, Callable, Awaitable
 from uuid import uuid1
+import os
 
 import jsons
 from aiohttp import web
@@ -30,12 +31,16 @@ class Api:
         self.__add_routes("")  # bind to root
 
     def __add_routes(self, prefix: str) -> None:
+        ui_path = os.path.abspath(os.path.dirname(__file__) + "/../ui")
+
         self.app.add_routes(
             [
                 web.get(prefix + "/system/ping", self.ping),
                 web.get(prefix + "/system/ready", self.ready),
                 web.get(prefix + "/ingest", self.events_in),
                 web.get(prefix + "/events", self.events_out),
+                web.static(prefix + "/ui", ui_path),
+                web.get(prefix, self.forward("/ui/index.html")),
             ]
         )
 

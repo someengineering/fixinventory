@@ -1,6 +1,7 @@
 from asyncio import Queue, QueueFull
 from collections import deque
 from contextlib import asynccontextmanager
+from itertools import islice
 from typing import AsyncGenerator, Optional, List, Dict
 
 from resotolib.log import Event
@@ -27,9 +28,9 @@ class LogHandler:
 
         # initially fill the list with the last x entries
         try:
-            for idx, element in enumerate(reversed(self.events)):
-                if idx < show_last:
-                    queue.put_nowait(element)
+            el = len(self.events)
+            for element in islice(self.events, max(0, el - show_last), el):
+                queue.put_nowait(element)
         except QueueFull:
             pass
 

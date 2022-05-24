@@ -1,5 +1,5 @@
-# `resotocore`
-Resoto log aggregator
+# `resotoeventlog`
+Resoto event log aggregator
 
 
 ## Table of contents
