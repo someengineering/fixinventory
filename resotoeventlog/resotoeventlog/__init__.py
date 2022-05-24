@@ -6,7 +6,7 @@ Log aggregator for Resoto
 :license: Apache 2.0, see LICENSE for more details.
 """
 
-__title__ = "resotolog"
+__title__ = "resotoeventlog"
 __description__ = "resoto log."
 __author__ = "Some Engineering Inc."
 __license__ = "Apache 2.0"

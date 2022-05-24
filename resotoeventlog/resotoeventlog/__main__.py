@@ -10,10 +10,10 @@ from resotolib.asynchronous.web import runner
 from resotolib.core import wait_for_resotocore
 from resotolib.logger import setup_logger, log
 
-from resotolog import __version__
-from resotolog.logs.log_handler import LogHandler
-from resotolog.model import LogConfig, RestartService
-from resotolog.web.api import Api
+from resotoeventlog import __version__
+from resotoeventlog.logs.log_handler import LogHandler
+from resotoeventlog.model import LogConfig, RestartService
+from resotoeventlog.web.api import Api
 
 
 def main() -> None:
@@ -24,12 +24,12 @@ def main() -> None:
         run(sys.argv[1:])
         log.info("Process finished.")
     except (KeyboardInterrupt, SystemExit):
-        log.debug("Stopping resotolog.")
+        log.debug("Stopping resotoeventlog.")
         sys.exit(0)
     except Exception as ex:
         if "--debug" in sys.argv:
             print(traceback.format_exc())
-        print(f"resotolog stopped. Reason: {ex}", file=sys.stderr)
+        print(f"resotoeventlog stopped. Reason: {ex}", file=sys.stderr)
         sys.exit(1)
 
 
@@ -85,19 +85,22 @@ def parse_args(args: Optional[List[str]] = None) -> Namespace:
     parser.add_argument("--max-queued-entries", type=int, default=1000)
     parser.add_argument("--version", action="store_true", help="Show version.")
     parser.add_argument("--host", default="0.0.0.0", help="Host to listen on.")
-    parser.add_argument("--port", default=9966, type=int, help="Port to listen on.")
+    parser.add_argument("--port", default=8901, type=int, help="Port to listen on.")
     parser.add_argument(
-        "--resotocore-uri", dest="resotocore_uri", default="https://localhost:8900", help="Resoto Core URI."
+        "--resotocore-uri",
+        dest="resotocore_uri",
+        default="https://localhost:8900",
+        help="Resoto Core URI.",
     )
     parsed: Namespace = parser.parse_args(args if args else [])
     if parsed.version:
-        print(f"resotolog {__version__}")
+        print(f"resotoeventlog {__version__}")
         sys.exit(0)
     return parsed
 
 
 def setup_process(args: Namespace) -> None:
-    setup_logger("resotolog", force=True, verbose=args.verbose or args.debug)
+    setup_logger("resotoeventlog", force=True, verbose=args.verbose or args.debug)
 
 
 if __name__ == "__main__":

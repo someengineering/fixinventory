@@ -12,9 +12,9 @@ from resotolib.asynchronous.web.ws_handler import accept_websocket, clean_ws_han
 from resotolib.log import Event
 from resotolib.logger import log
 
-from resotolog.logs.log_handler import LogHandler
-from resotolog.model import LogConfig
-from resotolog.web.directives import error_handler
+from resotoeventlog.logs.log_handler import LogHandler
+from resotoeventlog.model import LogConfig
+from resotoeventlog.web.directives import error_handler
 
 AlwaysAllowed = {"/metrics", "/api-doc.*", "/system/.*"}
 

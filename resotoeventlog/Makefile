@@ -56,9 +56,9 @@ clean-env: ## remove environment
 	rm -fr venv-pypy
 
 lint: ## static code analysis
-	black --line-length 120 --check resotolog tests
-	flake8 resotolog
-	mypy --python-version 3.9 --strict resotolog tests
+	black --line-length 120 --check resotoeventlog tests
+	flake8 resotoeventlog
+	mypy --python-version 3.9 --strict resotoeventlog tests
 
 test: ## run tests quickly with the default Python
 	pytest
@@ -67,7 +67,7 @@ test-all: ## run tests on every Python version with tox
 	tox
 
 coverage: ## check code coverage quickly with the default Python
-	coverage run --source resotolog -m pytest
+	coverage run --source resotoeventlog -m pytest
 	coverage combine
 	coverage report -m
 	coverage html

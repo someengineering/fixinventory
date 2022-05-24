@@ -203,7 +203,9 @@ def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None
         help="Path to the UI files. If not defined use configuration..",
     )
     parser.add_argument("--analytics-opt-out", default=None, action="store_true", help=argparse.SUPPRESS)
-    parser.add_argument("--resotolog-uri", dest="resotolog_uri", default=None, help="URI to the resotolog server.")
+    parser.add_argument(
+        "--resotoeventlog-uri", dest="resotoeventlog_uri", default=None, help="URI to the resotoeventlog server."
+    )
 
     parsed: Namespace = parser.parse_args(args if args else [], namespace)
 
@@ -268,7 +270,7 @@ def configure_logging(log_level: str, verbose: bool) -> None:
 
 
 def event_stream(config: CoreConfig, ctx: SSLContext) -> EventStreamAsync:
-    if url := config.args.resotolog_uri:
+    if url := config.args.resotoeventlog_uri:
         streamer = EventStreamer(f"{url}/ingest", ssl=ctx)
         log_handler = LogStreamHandler("resotocore", streamer)
         return EventStreamAsyncService(streamer, log_handler)
