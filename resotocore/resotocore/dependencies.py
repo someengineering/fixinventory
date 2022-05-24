@@ -61,7 +61,7 @@ def system_info() -> SystemInfo:
     )
 
 
-def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None) -> Namespace:
+def parse_args(args: Optional[List[str]] = None) -> Namespace:
     def is_file(message: str) -> Callable[[str], str]:
         def check_file(path: str) -> str:
             if os.path.isfile(path):
@@ -207,7 +207,7 @@ def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None
         "--resotoeventlog-uri", dest="resotoeventlog_uri", default=None, help="URI to the resotoeventlog server."
     )
 
-    parsed: Namespace = parser.parse_args(args if args else [], namespace)
+    parsed: Namespace = parser.parse_args(args if args else [])
 
     if parsed.version:
         # print here on purpose, since logging is not set up yet.

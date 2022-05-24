@@ -429,7 +429,7 @@ class Api:
             else:
                 await self.message_bus.emit(message)
 
-        return await accept_websocket(  # type: ignore
+        return await accept_websocket(
             request,
             handle_incoming=handle_message,
             outgoing_context=partial(self.message_bus.subscribe, listener_id, event_types),
@@ -455,12 +455,15 @@ class Api:
             else:
                 log.info(f"Do not understand this message: {msg}")
 
-        return await accept_websocket(  # type: ignore
+        def task_json(task: WorkerTask) -> str:
+            return to_js_str(task.to_json())
+
+        return await accept_websocket(
             request,
             handle_incoming=handle_message,
             outgoing_context=partial(self.worker_task_queue.attach, worker_id, task_descriptions),
             websocket_handler=self.websocket_handler,
-            outgoing_fn=lambda task: to_js_str(task.to_json()),
+            outgoing_fn=task_json,
         )
 
     async def create_work(self, request: Request) -> StreamResponse:
