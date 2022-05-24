@@ -22,7 +22,7 @@ def error_handler() -> Middleware:
     @middleware
     async def error_handler_middleware(request: Request, handler: RequestHandler) -> StreamResponse:
         try:
-            return await handler(request)  # type: ignore
+            return await handler(request)
         except HTTPRedirection as e:
             # redirects are implemented as exceptions in aiohttp for whatever reason...
             raise e

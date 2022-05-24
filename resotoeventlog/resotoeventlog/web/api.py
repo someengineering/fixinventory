@@ -76,7 +76,7 @@ class Api:
             except Exception as e:
                 log.error(f"Failed to handle event: {e}")
 
-        return await accept_websocket(  # type: ignore # why ??
+        return await accept_websocket(
             request,
             handle_incoming=handle_message,
             websocket_handler=self.websocket_handler,
@@ -91,7 +91,7 @@ class Api:
         async def handle_message(msg: str) -> None:
             pass
 
-        return await accept_websocket(  # type: ignore # why??
+        return await accept_websocket(
             request,
             handle_incoming=handle_message,
             websocket_handler=self.websocket_handler,
