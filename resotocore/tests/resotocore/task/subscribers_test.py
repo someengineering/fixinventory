@@ -6,16 +6,17 @@ from pytest import fixture, mark
 
 from resotocore.db.subscriberdb import SubscriberDb
 from resotocore.message_bus import MessageBus
-from tests.resotocore.db.entitydb import InMemoryDb
 from resotocore.model.typed_model import to_js, from_js
 from resotocore.task.model import Subscription, Subscriber
 from resotocore.task.subscribers import SubscriptionHandler
 from resotocore.ids import SubscriberId
 
+from tests.resotocore.db.entitydb import InMemoryDb
+
 
 @fixture
 def in_mem_db() -> SubscriberDb:
-    return InMemoryDb[Subscriber](Subscriber, lambda x: x.id)
+    return InMemoryDb[SubscriberId, Subscriber](Subscriber, lambda x: x.id)
 
 
 @fixture
@@ -64,21 +65,22 @@ async def test_subscribe(handler: SubscriptionHandler, in_mem_db: SubscriberDb) 
 @mark.asyncio
 async def test_unsubscribe(handler: SubscriptionHandler, in_mem_db: SubscriberDb) -> None:
     # register first time
+    subscriber_id = SubscriberId("foo")
     subs = [Subscription("event_bla"), Subscription("event_bar")]
-    result = await handler.update_subscriptions(SubscriberId("foo"), subs)
+    result = await handler.update_subscriptions(subscriber_id, subs)
     assert len(result.subscriptions) == 2
-    updated = await handler.remove_subscription(SubscriberId("foo"), "event_bla")
+    updated = await handler.remove_subscription(subscriber_id, "event_bla")
     assert len(updated.subscriptions) == 1
     # should be persisted in database as well
-    assert len((await in_mem_db.get("foo")).subscriptions) == 1  # type: ignore
+    assert len((await in_mem_db.get(subscriber_id)).subscriptions) == 1  # type: ignore
     # second time should be ignored
-    updated = await handler.remove_subscription(SubscriberId("foo"), "event_bla")
+    updated = await handler.remove_subscription(subscriber_id, "event_bla")
     assert len(updated.subscriptions) == 1
     # last subscription is removed
-    updated = await handler.remove_subscription(SubscriberId("foo"), "event_bar")
+    updated = await handler.remove_subscription(subscriber_id, "event_bar")
     assert len(updated.subscriptions) == 0
     # should be persisted in database as well
-    assert await in_mem_db.get("foo") is None
+    assert await in_mem_db.get(subscriber_id) is None
 
 
 @mark.asyncio

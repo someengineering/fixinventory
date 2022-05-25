@@ -1,18 +1,24 @@
 import asyncio
-from typing import Union, Optional, AsyncGenerator, Type, Callable, Dict, List
+from typing import Optional, AsyncGenerator, Type, Callable, Dict, List, Generic
 
-from resotocore.db.entitydb import EntityDb, T
+from resotocore.db.entitydb import EntityDb, T, K
 from resotocore.model.typed_model import from_js, to_js
 from resotocore.types import Json
 
 
-class InMemoryDb(EntityDb[T]):
-    def __init__(self, t_type: Type[T], key_fn: Callable[[T], str]):
-        self.items: Dict[str, Json] = {}
+# workaround to check generic types in runtime, aka type tags
+class TypeTag(Generic[T]):
+    def __init__(self, inner: T) -> None:
+        self.inner = inner
+
+
+class InMemoryDb(EntityDb[K, T]):
+    def __init__(self, t_type: Type[T], key_fn: Callable[[T], K]):
+        self.items: Dict[K, Json] = {}
         self.t_type = t_type
         self.key_fn = key_fn
 
-    async def keys(self) -> AsyncGenerator[str, None]:
+    async def keys(self) -> AsyncGenerator[K, None]:
         for key in self.items:
             await asyncio.sleep(0)
             yield key
@@ -26,7 +32,7 @@ class InMemoryDb(EntityDb[T]):
             key = self.key_fn(elem)
             self.items[key] = to_js(elem)
 
-    async def get(self, key: str) -> Optional[T]:
+    async def get(self, key: K) -> Optional[T]:
         js = self.items.get(key)
         return from_js(js, self.t_type) if js else None
 
@@ -34,8 +40,11 @@ class InMemoryDb(EntityDb[T]):
         self.items[self.key_fn(t)] = to_js(t)
         return t
 
-    async def delete(self, key_or_object: Union[str, T]) -> None:
-        key = key_or_object if isinstance(key_or_object, str) else self.key_fn(key_or_object)
+    async def delete(self, key: K) -> None:
+        self.items.pop(key, None)
+
+    async def delete_value(self, value: T) -> None:
+        key = self.key_fn(value)
         self.items.pop(key, None)
 
     async def create_update_schema(self) -> None:

@@ -18,12 +18,14 @@ from resotocore.model.typed_model import from_js, to_js
 from resotocore.types import Json, JsonElement
 from resotocore.util import set_value_in_path, value_in_path, del_value_in_path
 from resotocore.validator import Validator, schema_name
+from resotocore.ids import ConfigId
+
 
 log = logging.getLogger(__name__)
 
 # ids used in the config store
-ResotoCoreConfigId = "resoto.core"
-ResotoCoreCommandsConfigId = "resoto.core.commands"
+ResotoCoreConfigId = ConfigId("resoto.core")
+ResotoCoreCommandsConfigId = ConfigId("resoto.core.commands")
 
 # root note of the configuration value
 ResotoCoreRoot = "resotocore"

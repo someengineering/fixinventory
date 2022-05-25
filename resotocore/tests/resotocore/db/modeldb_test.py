@@ -91,7 +91,7 @@ async def test_delete(model_db: ModelDb, test_model: List[Kind]) -> None:
     remaining = list(test_model)
     for _ in test_model:
         kind = remaining.pop()
-        await model_db.delete(kind)
+        await model_db.delete_value(kind)
         loaded = [kind async for kind in model_db.all()]
         assert remaining.sort(key=fqn) == loaded.sort(key=fqn)
     assert len([kind async for kind in model_db.all()]) == 0
@@ -104,7 +104,7 @@ async def test_events(event_db: EventModelDb, test_model: List[Kind], event_send
     await event_db.update_many(test_model)
     # 6 times delete
     for kind in test_model:
-        await event_db.delete(kind)
+        await event_db.delete_value(kind)
     # make sure all events will arrive
     await asyncio.sleep(0.1)
     # ensure the correct count and order of events

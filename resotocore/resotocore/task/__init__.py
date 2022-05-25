@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import Optional, List
 
-from resotocore.task.task_description import Job, RunningTask, Workflow, TaskDescriptorId
+from resotocore.task.task_description import Job, RunningTask, Workflow
+from resotocore.ids import TaskDescriptorId
 
 
 class TaskHandler(ABC):

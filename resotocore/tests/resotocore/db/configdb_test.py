@@ -6,6 +6,7 @@ from resotocore.config import ConfigEntity, ConfigValidation
 from resotocore.db import configdb
 from resotocore.db.async_arangodb import AsyncArangoDB
 from resotocore.db.configdb import ConfigEntityDb, ConfigValidationEntityDb
+from resotocore.ids import ConfigId
 
 # noinspection PyUnresolvedReferences
 from resotocore.model.model import ComplexKind, Property
@@ -37,7 +38,7 @@ async def validation_db(test_db: StandardDatabase) -> ConfigValidationEntityDb:
 
 @pytest.fixture
 def configs() -> List[ConfigEntity]:
-    return [ConfigEntity(f"id_{a}", {"some": a, "config": "test"}) for a in range(0, 10)]
+    return [ConfigEntity(ConfigId(f"id_{a}"), {"some": a, "config": "test"}) for a in range(0, 10)]
 
 
 @pytest.fixture
@@ -68,7 +69,7 @@ async def test_delete(config_db: ConfigEntityDb, configs: List[ConfigEntity]) ->
     remaining = list(configs)
     for _ in configs:
         sub = remaining.pop()
-        await config_db.delete(sub)
+        await config_db.delete_value(sub)
         loaded = [sub async for sub in config_db.all()]
         assert remaining.sort() == loaded.sort()
     assert len([sub async for sub in config_db.all()]) == 0
@@ -104,7 +105,7 @@ async def test_delete_model(validation_db: ConfigValidationEntityDb, config_mode
     remaining = list(config_models)
     for _ in config_models:
         sub = remaining.pop()
-        await validation_db.delete(sub)
+        await validation_db.delete_value(sub)
         loaded = [sub async for sub in validation_db.all()]
         assert remaining.sort() == loaded.sort()
     assert len([sub async for sub in validation_db.all()]) == 0

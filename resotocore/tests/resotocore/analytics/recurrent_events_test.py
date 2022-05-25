@@ -19,7 +19,7 @@ async def test_emit_recurrent_events() -> None:
     message_bus = MessageBus()
     sender = InMemoryEventSender()
     model = ModelHandlerStatic(Model.empty())
-    sub = SubscriptionHandler(InMemoryDb[Subscriber](Subscriber, lambda x: x.id), message_bus)
+    sub = SubscriptionHandler(InMemoryDb(Subscriber, lambda x: x.id), message_bus)
     queue = WorkerTaskQueue()
     fast = timedelta(seconds=0.001)
     periodic = emit_recurrent_events(sender, model, sub, queue, message_bus, fast, fast)

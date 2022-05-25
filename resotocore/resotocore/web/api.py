@@ -49,7 +49,7 @@ from resotocore.cli.model import (
     InternalPart,
     AliasTemplate,
 )
-from resotocore.ids import TaskId
+from resotocore.ids import TaskId, ConfigId
 from resotocore.config import ConfigHandler, ConfigValidation, ConfigEntity
 from resotocore.console_renderer import ConsoleColorSystem, ConsoleRenderer
 from resotocore.core_config import CoreConfig
@@ -283,7 +283,7 @@ class Api:
         return await self.stream_response_from_gen(request, self.config_handler.list_config_ids())
 
     async def get_config(self, request: Request) -> StreamResponse:
-        config_id = request.match_info["config_id"]
+        config_id = ConfigId(request.match_info["config_id"])
         accept = request.headers.get("accept", "application/json")
         not_found = HTTPNotFound(text="No config with this id")
         if accept == "application/yaml":
@@ -298,7 +298,7 @@ class Api:
                 return not_found
 
     async def put_config(self, request: Request) -> StreamResponse:
-        config_id = request.match_info["config_id"]
+        config_id = ConfigId(request.match_info["config_id"])
         validate = request.query.get("validate", "true").lower() != "false"
         config = await self.json_from_request(request)
         result = await self.config_handler.put_config(ConfigEntity(config_id, config), validate)
@@ -306,14 +306,14 @@ class Api:
         return await single_result(request, result.config, headers)
 
     async def patch_config(self, request: Request) -> StreamResponse:
-        config_id = request.match_info["config_id"]
+        config_id = ConfigId(request.match_info["config_id"])
         patch = await self.json_from_request(request)
         updated = await self.config_handler.patch_config(ConfigEntity(config_id, patch))
         headers = {"Resoto-Config-Revision": updated.revision}
         return await single_result(request, updated.config, headers)
 
     async def delete_config(self, request: Request) -> StreamResponse:
-        config_id = request.match_info["config_id"]
+        config_id = ConfigId(request.match_info["config_id"])
         await self.config_handler.delete_config(config_id)
         return HTTPNoContent()
 

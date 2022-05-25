@@ -12,7 +12,7 @@ from resotocore.model.model import Model, Kind, ComplexKind
 from resotocore.types import Json
 from resotocore.util import uuid_str
 from resotocore.worker_task_queue import WorkerTaskQueue, WorkerTask, WorkerTaskName
-from resotocore.ids import TaskId
+from resotocore.ids import TaskId, ConfigId
 
 
 class ConfigHandlerService(ConfigHandler):
@@ -30,7 +30,7 @@ class ConfigHandlerService(ConfigHandler):
         self.task_queue = task_queue
         self.message_bus = message_bus
 
-    async def coerce_and_check_model(self, cfg_id: str, config: Json, validate: bool = True) -> Json:
+    async def coerce_and_check_model(self, cfg_id: ConfigId, config: Json, validate: bool = True) -> Json:
         model = await self.get_configs_model()
 
         final_config = {}
@@ -57,10 +57,10 @@ class ConfigHandlerService(ConfigHandler):
         # If we come here, everything is fine
         return final_config
 
-    def list_config_ids(self) -> AsyncIterator[str]:
+    def list_config_ids(self) -> AsyncIterator[ConfigId]:
         return self.cfg_db.keys()
 
-    async def get_config(self, cfg_id: str) -> Optional[ConfigEntity]:
+    async def get_config(self, cfg_id: ConfigId) -> Optional[ConfigEntity]:
         return await self.cfg_db.get(cfg_id)
 
     async def put_config(self, cfg: ConfigEntity, validate: bool = True) -> ConfigEntity:
@@ -81,7 +81,7 @@ class ConfigHandlerService(ConfigHandler):
         await self.message_bus.emit_event(CoreMessage.ConfigUpdated, dict(id=result.id, revision=result.revision))
         return result
 
-    async def delete_config(self, cfg_id: str) -> None:
+    async def delete_config(self, cfg_id: ConfigId) -> None:
         await self.cfg_db.delete(cfg_id)
         await self.validation_db.delete(cfg_id)
         await self.message_bus.emit_event(CoreMessage.ConfigDeleted, dict(id=cfg_id))
@@ -108,7 +108,7 @@ class ConfigHandlerService(ConfigHandler):
         await self.model_db.update_many(kinds)
         return updated
 
-    async def config_yaml(self, cfg_id: str, revision: bool = False) -> Optional[str]:
+    async def config_yaml(self, cfg_id: ConfigId, revision: bool = False) -> Optional[str]:
         config = await self.get_config(cfg_id)
         if config:
             model = await self.get_configs_model()
