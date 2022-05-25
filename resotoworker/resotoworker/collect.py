@@ -15,7 +15,9 @@ from resotolib.core.ca import TLSData
 
 
 def collect_and_send(
-    collectors: List[BaseCollectorPlugin], task_id: str, tls_data: Optional[TLSData] = None
+    collectors: List[BaseCollectorPlugin],
+    task_id: str,
+    tls_data: Optional[TLSData] = None,
 ) -> None:
     def collect(collectors: List[BaseCollectorPlugin]) -> Graph:
         graph = Graph(root=GraphRoot("root", {}))

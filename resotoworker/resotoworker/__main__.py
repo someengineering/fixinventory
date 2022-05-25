@@ -1,11 +1,10 @@
-from dataclasses import dataclass
 from functools import partial
 import time
 import os
 import sys
 import threading
 import resotolib.proc
-from typing import List, Dict, Any
+from typing import List, Dict
 from resotoworker.config import add_config
 from resotolib.config import Config
 from resotolib.logger import log, setup_logger, add_args as logging_add_args
