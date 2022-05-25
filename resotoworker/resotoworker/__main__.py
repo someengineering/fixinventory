@@ -1,10 +1,11 @@
+from dataclasses import dataclass
 from functools import partial
 import time
 import os
 import sys
 import threading
 import resotolib.proc
-from typing import List, Dict
+from typing import List, Dict, Any
 from resotoworker.config import add_config
 from resotolib.config import Config
 from resotolib.logger import log, setup_logger, add_args as logging_add_args
@@ -168,12 +169,13 @@ def core_actions_processor(
     kind = message.get("kind")
     message_type = message.get("message_type")
     data = message.get("data")
+    task_id = data.get("task")
     log.debug(f"Received message of kind {kind}, type {message_type}, data: {data}")
     if kind == "action":
         try:
             if message_type == "collect":
                 start_time = time.time()
-                collect_and_send(collectors, tls_data=tls_data)
+                collect_and_send(collectors, tls_data=tls_data, task_id=task_id)
                 run_time = int(time.time() - start_time)
                 log.info(f"Collect ran for {run_time} seconds")
             elif message_type == "cleanup":

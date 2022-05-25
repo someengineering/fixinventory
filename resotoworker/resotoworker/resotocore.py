@@ -12,7 +12,7 @@ from resotolib.core.ca import TLSData
 from typing import Optional
 
 
-def send_to_resotocore(graph: Graph, tls_data: Optional[TLSData] = None):
+def send_to_resotocore(graph: Graph, task_id: str, tls_data: Optional[TLSData] = None):
     if not ArgumentParser.args.resotocore_uri:
         return
 
@@ -37,7 +37,7 @@ def send_to_resotocore(graph: Graph, tls_data: Optional[TLSData] = None):
     #  The graph is not required any longer and can be released.
     del graph
     graph_export_iterator.export_graph()
-    send_graph(graph_export_iterator, base_uri, resotocore_graph, verify=verify)
+    send_graph(graph_export_iterator, base_uri, resotocore_graph, task_id, verify=verify)
 
 
 def create_graph(
@@ -63,7 +63,7 @@ def update_model(
     graph: Graph,
     resotocore_base_uri: str,
     dump_json: bool = False,
-    tempdir: str = None,
+    tempdir: Optional[str] = None,
     verify: Optional[str] = None,
 ) -> None:
     model_uri = f"{resotocore_base_uri}/model"
@@ -99,8 +99,9 @@ def send_graph(
     graph_export_iterator: GraphExportIterator,
     resotocore_base_uri: str,
     resotocore_graph: str,
+    task_id: str,
     verify: Optional[str] = None,
-):
+) -> None:
     merge_uri = f"{resotocore_base_uri}/graph/{resotocore_graph}/merge"
 
     log.debug(f"Sending graph via {merge_uri}")
@@ -109,13 +110,12 @@ def send_graph(
         "Content-Type": "application/x-ndjson",
         "Resoto-Worker-Nodes": str(graph_export_iterator.number_of_nodes),
         "Resoto-Worker-Edges": str(graph_export_iterator.number_of_edges),
+        "Resoto-Worker-Task-Id": task_id,
     }
     if getattr(ArgumentParser.args, "psk", None):
         encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)
 
-    r = requests.post(
-        merge_uri, data=graph_export_iterator, headers=headers, verify=verify
-    )
+    r = requests.post(merge_uri, data=graph_export_iterator, headers=headers, verify=verify)
     if r.status_code != 200:
         log.error(r.content)
         raise RuntimeError(f"Failed to send graph: {r.content}")

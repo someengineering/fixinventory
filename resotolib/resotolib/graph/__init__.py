@@ -30,13 +30,14 @@ from resotolib.event import (
     remove_event_listener,
 )
 from prometheus_client import Summary
-from typing import Dict, List, Tuple
+from typing import Dict, Iterator, List, Tuple, Any, Optional
 from io import BytesIO
 from dataclasses import fields
 from typeguard import check_type
 from time import time
 from collections import defaultdict, namedtuple
 
+Json = Dict[str, Any] 
 
 metrics_graph_search = Summary(
     "resoto_graph_search_seconds", "Time it took the Graph search() method"
@@ -375,7 +376,7 @@ class Graph(networkx.MultiDiGraph):
             if isinstance(node, BaseResource):
                 node.resolve_deferred_connections(self)
 
-    def export_model(self) -> List:
+    def export_model(self) -> List[Json]:
         """Return the graph node dataclass model in resotocore format"""
         classes = set()
         for node in self.nodes:
@@ -778,7 +779,7 @@ class GraphExportIterator:
         self,
         graph: Graph,
         delete_tempfile: bool = True,
-        tempdir: str = None,
+        tempdir: Optional[str] = None,
         graph_merge_kind: GraphMergeKind = GraphMergeKind.cloud,
     ):
         self.graph = graph
@@ -808,7 +809,7 @@ class GraphExportIterator:
         except Exception:
             pass
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[bytes]:
         if not self.graph_exported:
             self.export_graph()
         start_time = time()

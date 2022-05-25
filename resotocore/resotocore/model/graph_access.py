@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+from operator import contains
 import re
 from collections import namedtuple, defaultdict
 from functools import reduce
@@ -80,6 +81,10 @@ class EdgeType:
     # A resource can be deleted, if all outgoing resources are deleted.
     delete: str = "delete"
 
+    # This edge behaves like the default edge type, but is only used to link resources
+    # between different collectors, e.g. AWS and k8s.
+    outer: str = "outer"
+
     # The set of all allowed edge types.
     # Note: the database schema has to be adapted to support additional edge types.
     all: Set[str] = {default, delete}
@@ -106,6 +111,7 @@ class GraphBuilder:
         self.graph = MultiDiGraph()
         self.nodes = 0
         self.edges = 0
+        self.outer_edges: List[EdgeKey] = []
 
     def add_from_json(self, js: Json) -> None:
         if "id" in js and Section.reported in js:
@@ -117,6 +123,8 @@ class GraphBuilder:
                 js.get("search", None),
                 js.get("replace", False) is True,
             )
+        elif "from" in js and "to" in js and js.get("edge_type") == EdgeType.outer:
+            self.add_outer_edge(js["from"], js["to"])
         elif "from" in js and "to" in js:
             self.add_edge(js["from"], js["to"], js.get("edge_type", EdgeType.default))
         else:
@@ -158,6 +166,9 @@ class GraphBuilder:
         self.edges += 1
         key = GraphAccess.edge_key(from_node, to_node, edge_type)
         self.graph.add_edge(from_node, to_node, key, edge_type=edge_type)
+
+    def add_outer_edge(self, from_node: str, to_node: str) -> None:
+        self.outer_edges += GraphAccess.edge_key(from_node, to_node, EdgeType.outer)
 
     @staticmethod
     def content_hash(js: Json, desired: Optional[Json] = None, metadata: Optional[Json] = None) -> str:
@@ -208,9 +219,10 @@ class GraphBuilder:
         for node_id, node in self.graph.nodes(data=True):
             assert node.get(Section.reported), f"{node_id} was used in an edge definition but not provided as vertex!"
 
-        edge_types = {edge[2] for edge in self.graph.edges(data="edge_type")}
+        edge_types: Set[str] = {edge[2] for edge in self.graph.edges(data="edge_type")}
         al = EdgeType.all
         assert not edge_types.difference(al), f"Graph contains unknown edge types! Given: {edge_types}. Known: {al}"
+        assert not contains(edge_types, EdgeType.outer), "Graph contains outer edges!"
         # make sure there is only one root node
         rid = GraphAccess.root_id(self.graph)
         root_node = self.graph.nodes[rid]

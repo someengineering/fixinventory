@@ -21,6 +21,7 @@ from resotocore.db.entitydb import EventEntityDb
 from resotocore.db.graphdb import ArangoGraphDB, GraphDB, EventGraphDB
 from resotocore.db.jobdb import job_db
 from resotocore.db.modeldb import ModelDb, model_db
+from resotocore.db.pending_outer_edge_db import OuterEdgeDb, outer_edge_db
 from resotocore.db.runningtaskdb import running_task_db
 from resotocore.db.subscriberdb import subscriber_db
 from resotocore.db.templatedb import template_entity_db
@@ -43,6 +44,7 @@ class DbAccess(ABC):
         subscriber_name: str = "subscribers",
         running_task_name: str = "running_tasks",
         job_name: str = "jobs",
+        pending_outer_edge_name: str = "pending_outer_edges",
         config_entity: str = "configs",
         config_validation_entity: str = "config_validation",
         configs_model: str = "configs_model",
@@ -55,6 +57,7 @@ class DbAccess(ABC):
         self.model_db = EventEntityDb(model_db(self.db, model_name), event_sender, model_name)
         self.subscribers_db = EventEntityDb(subscriber_db(self.db, subscriber_name), event_sender, subscriber_name)
         self.running_task_db = running_task_db(self.db, running_task_name)
+        self.pending_outer_edge_db = outer_edge_db(self.db, pending_outer_edge_name)
         self.job_db = job_db(self.db, job_name)
         self.config_entity_db = config_entity_db(self.db, config_entity)
         self.config_validation_entity_db = config_validation_entity_db(self.db, config_validation_entity)
@@ -73,6 +76,7 @@ class DbAccess(ABC):
         await self.config_validation_entity_db.create_update_schema()
         await self.configs_model_db.create_update_schema()
         await self.template_entity_db.create_update_schema()
+        await self.pending_outer_edge_db.create_update_schema()
         for graph in self.database.graphs():
             log.info(f'Found graph: {graph["name"]}')
             db = self.get_graph_db(graph["name"])
@@ -115,6 +119,9 @@ class DbAccess(ABC):
 
     def get_model_db(self) -> ModelDb:
         return self.model_db
+
+    def get_pending_outer_edge_db(self) -> OuterEdgeDb:
+        return self.pending_outer_edge_db
 
     async def check_outdated_updates(self) -> None:
         now = datetime.now(timezone.utc)

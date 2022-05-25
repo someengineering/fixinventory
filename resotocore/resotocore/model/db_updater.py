@@ -1,3 +1,4 @@
+from __future__ import annotations
 import asyncio
 import json
 import logging
@@ -19,11 +20,13 @@ from resotocore.core_config import CoreConfig
 from resotocore.db.db_access import DbAccess
 from resotocore.db.graphdb import GraphDB
 from resotocore.db.model import GraphUpdate
+from resotocore.db.pending_outer_edge_db import PendingOuterEdges
 from resotocore.dependencies import db_access, setup_process, reset_process_start_method
 from resotocore.error import ImportAborted
 from resotocore.model.graph_access import GraphBuilder
 from resotocore.model.model import Model
 from resotocore.types import Json
+from resotocore.ids import TaskId
 from resotocore.util import utc, uuid_str, shutdown_process
 
 log = logging.getLogger(__name__)
@@ -46,6 +49,7 @@ class ReadElement(ProcessAction):
     """
 
     elements: List[Union[bytes, Json]]
+    task_id: Optional[str]
 
     def jsons(self) -> Generator[Json, Any, None]:
         return (e if isinstance(e, dict) else json.loads(e) for e in self.elements)
@@ -61,6 +65,7 @@ class MergeGraph(ProcessAction):
     graph: str
     change_id: str
     is_batch: bool = False
+    task_id: Optional[TaskId] = None
 
 
 @dataclass
@@ -110,7 +115,12 @@ class DbUpdaterProcess(Process):
     The result is either an exception in case of failure or a graph update in success case.
     """
 
-    def __init__(self, read_queue: Queue, write_queue: Queue, config: CoreConfig) -> None:  # type: ignore
+    def __init__(
+        self,
+        read_queue: Queue['ProcessAction'],
+        write_queue: Queue['ProcessAction'],
+        config: CoreConfig
+    ) -> None:
         super().__init__(name="merge_update")
         self.read_queue = read_queue
         self.write_queue = write_queue
@@ -140,7 +150,11 @@ class DbUpdaterProcess(Process):
             log.debug("Graph read into memory")
             builder.check_complete()
             graphdb = db.get_graph_db(nxt.graph)
+            outer_edge_db = db.get_pending_outer_edge_db()
             _, result = await graphdb.merge_graph(builder.graph, model, nxt.change_id, nxt.is_batch)
+            if nxt.task_id: # and len(builder.outer_edges) :
+                await outer_edge_db.update(PendingOuterEdges(nxt.task_id, nxt.graph, builder.outer_edges))
+                log.debug(f"Updated {len(builder.outer_edges)} pending outer edges for collect task {nxt.task_id}")
             return result
 
     async def setup_and_merge(self) -> GraphUpdate:
@@ -175,10 +189,11 @@ async def merge_graph_process(
     content: AsyncGenerator[Union[bytes, Json], None],
     max_wait: timedelta,
     maybe_batch: Optional[str],
+    task_id: Optional[str],
 ) -> GraphUpdate:
     change_id = maybe_batch if maybe_batch else uuid_str()
-    write = Queue()  # type: ignore
-    read = Queue()  # type: ignore
+    write: Queue['ProcessAction'] = Queue()
+    read: Queue['ProcessAction'] = Queue()
     updater = DbUpdaterProcess(write, read, config)  # the process reads from our write queue and vice versa
     stale = timedelta(seconds=5).total_seconds()  # consider dead communication after this amount of time
     deadline = utc() + max_wait
@@ -220,12 +235,12 @@ async def merge_graph_process(
         updater.start()
         task = read_results()  # concurrently read result queue
         chunked: Stream = stream.chunks(content, BatchSize)
-        async with chunked.stream() as streamer:  # pylint: disable=no-member
-            async for lines in streamer:
-                if not await send_to_child(ReadElement(lines)):
+        async with chunked.stream() as streamer:
+            async for lines in streamer:  # type: ignore
+                if not await send_to_child(ReadElement(lines, task_id)):  # type: ignore
                     # in case the child is dead, we should stop
                     break
-        await send_to_child(MergeGraph(db.name, change_id, maybe_batch is not None))
+        await send_to_child(MergeGraph(db.name, change_id, maybe_batch is not None, task_id))
         result = await task  # wait for final result
         return result
     finally:
