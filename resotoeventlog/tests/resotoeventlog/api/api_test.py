@@ -37,12 +37,12 @@ async def eventlog_client(client_session: ClientSession) -> AsyncIterator[EventL
     count = 10
     while not ready:
         await sleep(0.5)
+        count -= 1
+        if count == 0:
+            raise AssertionError("Process does not came up as expected")
         with suppress(Exception):
             async with client_session.get("http://localhost:8951/system/ready"):
                 ready = True
-                count -= 1
-                if count == 0:
-                    raise AssertionError("Process does not came up as expected")
     yield EventLogClient("http://localhost:8951", client_session)
     # terminate the process
     process.terminate()
