@@ -313,6 +313,10 @@ def test_special_cases() -> None:
         # parser was able to read: is(instance) and sort in "stance_cores"
         parse_query("is(instance) and sort instance_cores")
 
+    # parser read the reversed option as separate part, so following query became 3 parts
+    q = parse_query("all sort kind desc limit 1 reversed -default-> all sort kind asc")
+    assert len(q.parts) == 2
+
 
 @given(query)
 @settings(max_examples=50, suppress_health_check=HealthCheck.all())
