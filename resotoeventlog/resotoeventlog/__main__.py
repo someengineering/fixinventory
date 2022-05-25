@@ -10,7 +10,7 @@ from resotolib.asynchronous.web import runner
 from resotolib.core import wait_for_resotocore
 from resotolib.logger import setup_logger, log
 
-from resotoeventlog import __version__
+from resotoeventlog import version
 from resotoeventlog.logs.log_handler import LogHandler
 from resotoeventlog.model import LogConfig, RestartService
 from resotoeventlog.web.api import Api
@@ -94,7 +94,7 @@ def parse_args(args: Optional[List[str]] = None) -> Namespace:
     )
     parsed: Namespace = parser.parse_args(args if args else [])
     if parsed.version:
-        print(f"resotoeventlog {__version__}")
+        print(f"resotoeventlog {version()}")
         sys.exit(0)
     return parsed
 

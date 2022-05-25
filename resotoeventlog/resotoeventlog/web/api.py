@@ -16,7 +16,7 @@ from resotoeventlog.logs.log_handler import LogHandler
 from resotoeventlog.model import LogConfig
 from resotoeventlog.web.directives import error_handler
 
-AlwaysAllowed = {"/metrics", "/api-doc.*", "/system/.*"}
+AlwaysAllowed = {"/metrics", "/api-doc.*", "/system/.*", "/ui.*"}
 
 
 class Api:

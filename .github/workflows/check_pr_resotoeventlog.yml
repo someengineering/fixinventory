@@ -41,7 +41,7 @@ jobs:
 
       - name: Run tests
         working-directory: ./resotoeventlog
-        run: tox
+        run: tox -p 4
 
       - name: Build a binary wheel and a source tarball
         working-directory: ./resotoeventlog

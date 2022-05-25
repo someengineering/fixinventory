@@ -23,7 +23,7 @@ setup_requirements = [
 setup(
     name="resotoeventlog",
     version="2.3.0a0",
-    description="Keeps all the things.",
+    description="Event log aggregator for resoto.",
     python_requires=">=3.5",
     classifiers=["Programming Language :: Python :: 3"],
     entry_points={"console_scripts": ["resotoeventlog=resotoeventlog.__main__:main"]},
