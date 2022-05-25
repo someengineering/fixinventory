@@ -1937,7 +1937,7 @@ class FormatCommand(CLICommand, OutputTransformer):
 
     formats = {
         "ndjson": respond_ndjson,
-        "json": respond_json,
+        "json": partial(respond_json, indent=2),
         "text": respond_text,
         "yaml": respond_yaml,
         "cytoscape": respond_cytoscape,
