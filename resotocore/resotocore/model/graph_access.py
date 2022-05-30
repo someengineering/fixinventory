@@ -7,7 +7,8 @@ from operator import contains
 import re
 from collections import namedtuple, defaultdict
 from functools import reduce
-from typing import Optional, Generator, Any, Dict, List, Set, Tuple
+from typing import Optional, Generator, Any, Dict, List, Set, Tuple, Union
+from dataclasses import dataclass
 
 from networkx import DiGraph, MultiDiGraph, all_shortest_paths, is_directed_acyclic_graph
 
@@ -15,6 +16,8 @@ from resotocore.model.model import Model, Kind, AnyKind, ComplexKind, ArrayKind,
 from resotocore.model.resolve_in_graph import GraphResolver, NodePath, ResolveProp
 from resotocore.types import Json
 from resotocore.util import utc, utc_str, value_in_path, set_value_in_path, value_in_path_get
+from resotocore.model.typed_model import from_js
+
 
 log = logging.getLogger(__name__)
 
@@ -81,10 +84,6 @@ class EdgeType:
     # A resource can be deleted, if all outgoing resources are deleted.
     delete: str = "delete"
 
-    # This edge behaves like the default edge type, but is only used to link resources
-    # between different collectors, e.g. AWS and k8s.
-    outer: str = "outer"
-
     # The set of all allowed edge types.
     # Note: the database schema has to be adapted to support additional edge types.
     all: Set[str] = {default, delete}
@@ -105,13 +104,23 @@ class Direction:
 EdgeKey = namedtuple("EdgeKey", ["from_node", "to_node", "edge_type"])
 
 
+SearchCriteria = str
+NodeSelector = Union[str, SearchCriteria]
+
+
+@dataclass
+class DeferredEdge:
+    from_node: NodeSelector
+    to_node: NodeSelector
+
+
 class GraphBuilder:
     def __init__(self, model: Model):
         self.model = model
         self.graph = MultiDiGraph()
         self.nodes = 0
         self.edges = 0
-        self.outer_edges: List[EdgeKey] = []
+        self.deferred_edges: List[DeferredEdge] = []
 
     def add_from_json(self, js: Json) -> None:
         if "id" in js and Section.reported in js:
@@ -123,10 +132,20 @@ class GraphBuilder:
                 js.get("search", None),
                 js.get("replace", False) is True,
             )
-        elif "from" in js and "to" in js and js.get("edge_type") == EdgeType.outer:
-            self.add_outer_edge(js["from"], js["to"])
         elif "from" in js and "to" in js:
             self.add_edge(js["from"], js["to"], js.get("edge_type", EdgeType.default))
+        elif "from_selector" in js and "to_selector" in js:
+            def parse_selector(js: Json) -> NodeSelector:
+                if 'node_id' in js:
+                    return from_js(js['node_id'], str)
+                elif 'search_criterea' in js:
+                    return from_js(js['search_criteria'], str)
+                else:
+                    raise AttributeError(f"edge selector no undersood! Got {json.dumps(js)}")
+            self.add_deferred_connection(
+                parse_selector(js["from_selector"]),
+                parse_selector(js["from_selector"])
+            )
         else:
             raise AttributeError(f"Format not understood! Got {json.dumps(js)} which is neither vertex nor edge.")
 
@@ -167,8 +186,8 @@ class GraphBuilder:
         key = GraphAccess.edge_key(from_node, to_node, edge_type)
         self.graph.add_edge(from_node, to_node, key, edge_type=edge_type)
 
-    def add_outer_edge(self, from_node: str, to_node: str) -> None:
-        self.outer_edges += GraphAccess.edge_key(from_node, to_node, EdgeType.outer)
+    def add_deferred_connection(self, from_selector: NodeSelector, to_selector: NodeSelector) -> None:
+        self.deferred_edges.append((from_selector, to_selector))
 
     @staticmethod
     def content_hash(js: Json, desired: Optional[Json] = None, metadata: Optional[Json] = None) -> str:
@@ -222,7 +241,6 @@ class GraphBuilder:
         edge_types: Set[str] = {edge[2] for edge in self.graph.edges(data="edge_type")}
         al = EdgeType.all
         assert not edge_types.difference(al), f"Graph contains unknown edge types! Given: {edge_types}. Known: {al}"
-        assert not contains(edge_types, EdgeType.outer), "Graph contains outer edges!"
         # make sure there is only one root node
         rid = GraphAccess.root_id(self.graph)
         root_node = self.graph.nodes[rid]

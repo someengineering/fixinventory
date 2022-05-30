@@ -20,7 +20,7 @@ from resotocore.core_config import CoreConfig
 from resotocore.db.db_access import DbAccess
 from resotocore.db.graphdb import GraphDB
 from resotocore.db.model import GraphUpdate
-from resotocore.db.pending_outer_edge_db import PendingOuterEdges
+from resotocore.db.deferred_edge_db import PendingDeferredEdges
 from resotocore.dependencies import db_access, setup_process, reset_process_start_method
 from resotocore.error import ImportAborted
 from resotocore.model.graph_access import GraphBuilder
@@ -147,9 +147,9 @@ class DbUpdaterProcess(Process):
             graphdb = db.get_graph_db(nxt.graph)
             outer_edge_db = db.get_pending_outer_edge_db()
             _, result = await graphdb.merge_graph(builder.graph, model, nxt.change_id, nxt.is_batch)
-            if nxt.task_id and len(builder.outer_edges):
-                await outer_edge_db.update(PendingOuterEdges(nxt.task_id, nxt.graph, builder.outer_edges))
-                log.debug(f"Updated {len(builder.outer_edges)} pending outer edges for collect task {nxt.task_id}")
+            if nxt.task_id and builder.deferred_edges:
+                await outer_edge_db.update(PendingDeferredEdges(nxt.task_id, nxt.graph, builder.deferred_edges))
+                log.debug(f"Updated {len(builder.deferred_edges)} pending outer edges for collect task {nxt.task_id}")
             return result
 
     async def setup_and_merge(self) -> GraphUpdate:
