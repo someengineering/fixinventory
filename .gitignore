@@ -30,3 +30,4 @@ docs/_build/
 resotoshell/backup_*
 resotocore/tools/Assets
 out/
+*.iml

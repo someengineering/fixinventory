@@ -2,6 +2,8 @@ import os
 import time
 import sys
 import fcntl
+from typing import Optional
+
 import psutil
 import threading
 import subprocess
@@ -10,8 +12,8 @@ from resotolib.event import dispatch_event, Event, EventType
 from signal import signal, Signals, SIGTERM, SIGINT
 
 
-parent_pid = None
-initial_dir = os.getcwd()
+parent_pid: Optional[int] = None
+initial_dir: str = os.getcwd()
 
 
 def restart() -> None:

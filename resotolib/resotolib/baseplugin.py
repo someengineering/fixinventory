@@ -196,7 +196,7 @@ class BaseCollectorPlugin(BasePlugin):
     """
 
     plugin_type = PluginType.COLLECTOR  # Type of the Plugin
-    cloud = NotImplemented  # Name of the cloud this plugin implements
+    cloud: str = NotImplemented  # Name of the cloud this plugin implements
 
     def __init__(self) -> None:
         super().__init__()

@@ -1,0 +1,4 @@
+include requirements-dev.txt
+include requirements-test.txt
+include requirements.txt
+include resotoeventlog/ui/*

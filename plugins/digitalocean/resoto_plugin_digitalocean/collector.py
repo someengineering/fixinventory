@@ -1,10 +1,10 @@
+import logging
 import math
 from pprint import pformat
 from typing import Tuple, Type, List, Dict, Callable, Any, Optional, cast
 
 from prometheus_client import Summary
 
-import resotolib.logger
 from resotolib.baseresources import BaseResource, EdgeType
 from resotolib.graph import Graph
 from .client import StreamingWrapper
@@ -67,7 +67,7 @@ from .utils import (
 
 Json = Dict[str, Any]
 
-log = resotolib.logger.getLogger("resoto." + __name__)
+log = logging.getLogger("resoto." + __name__)
 
 metrics_collect_projects = Summary(
     "resoto_plugin_digitalocean_collect_projects_seconds",
@@ -402,15 +402,15 @@ class DigitalOceanTeamCollector:
                     if isinstance(value, List):
                         values = value
                         for value in values:
-                            resource_instance.add_deferred_connection(
+                            resource_instance.add_deferred_connection(  # type: ignore
                                 attr,
                                 value,
-                                is_parent,
+                                is_parent,  # type: ignore
                                 edge_type=edge_type,
                             )
                     elif isinstance(value, str):
-                        resource_instance.add_deferred_connection(
-                            attr, value, is_parent, edge_type=edge_type
+                        resource_instance.add_deferred_connection(  # type: ignore
+                            attr, value, is_parent, edge_type=edge_type  # type: ignore
                         )
                     else:
                         log.error(

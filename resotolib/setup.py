@@ -15,6 +15,7 @@ setup(
     description=resotolib.__description__,
     license=resotolib.__license__,
     packages=find_packages(),
+    package_data={"resotolib": ["py.typed"]},
     long_description=readme,
     long_description_content_type="text/markdown",
     include_package_data=True,

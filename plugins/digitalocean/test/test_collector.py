@@ -28,8 +28,8 @@ from fixtures import (
     alerts,
 )
 from resotolib.graph import sanitize
-from resotolib.baseresources import Cloud, EdgeType
-from resotolib.graph import Graph, GraphRoot
+from resotolib.baseresources import Cloud, EdgeType, GraphRoot
+from resotolib.graph import Graph
 import datetime
 from typing import Dict, Any, List
 

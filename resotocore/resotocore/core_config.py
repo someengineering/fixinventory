@@ -365,7 +365,7 @@ class EditableConfig(ConfigObject):
 
 def config_model() -> List[Json]:
     config_classes = {EditableConfig, CustomCommandsConfig}
-    return dataclasses_to_resotocore_model(config_classes, allow_unknown_props=False)  # type: ignore
+    return dataclasses_to_resotocore_model(config_classes, allow_unknown_props=False)
 
 
 # Define rules to validate this config

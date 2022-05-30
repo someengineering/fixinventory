@@ -1,9 +1,9 @@
+import logging
 from datetime import datetime
 from typing import Union, Callable, Any, Dict, Optional, Tuple
 
-import resotolib.logger
 
-log = resotolib.logger.getLogger("resoto." + __name__)
+log = logging.getLogger("resoto." + __name__)
 
 
 def get_result_data(

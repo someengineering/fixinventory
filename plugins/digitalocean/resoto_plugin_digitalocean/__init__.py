@@ -10,7 +10,7 @@ from resotolib.logger import log
 from resotolib.graph import Graph
 
 
-class DigitalOceanCollectorPlugin(BaseCollectorPlugin):  # type: ignore
+class DigitalOceanCollectorPlugin(BaseCollectorPlugin):
     cloud = "digitalocean"
 
     def collect(self) -> None:

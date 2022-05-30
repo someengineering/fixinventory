@@ -8,33 +8,26 @@ import string
 import tempfile
 import uuid
 from asyncio import Future
-from contextlib import suppress
 from dataclasses import replace
 from datetime import timedelta
+from functools import partial
 from pathlib import Path
 from random import SystemRandom
 from typing import AsyncGenerator, Any, Optional, Sequence, Union, List, Dict, AsyncIterator, Tuple, Callable, Awaitable
 
 import prometheus_client
 import yaml
-from aiohttp import (
-    web,
-    WSMsgType,
-    WSMessage,
-    MultipartWriter,
-    AsyncIterablePayload,
-    BufferedReaderPayload,
-    MultipartReader,
-    ClientSession,
-)
+from aiohttp import web, MultipartWriter, AsyncIterablePayload, BufferedReaderPayload, MultipartReader, ClientSession
 from aiohttp.abc import AbstractStreamWriter
 from aiohttp.hdrs import METH_ANY
-from aiohttp.web import Request, StreamResponse
+from aiohttp.web import Request, StreamResponse, WebSocketResponse
 from aiohttp.web_exceptions import HTTPNotFound, HTTPNoContent, HTTPOk, HTTPNotAcceptable
 from aiohttp.web_routedef import AbstractRouteDef
 from aiohttp_swagger3 import SwaggerFile, SwaggerUiSettings
 from aiostream.core import Stream
 from networkx.readwrite import cytoscape_data
+from resotolib.asynchronous.web.auth import auth_handler
+from resotolib.asynchronous.web.ws_handler import accept_websocket, clean_ws_handler
 from resotolib.jwt import encode_jwt
 
 from resotocore.analytics import AnalyticsEventSender
@@ -69,7 +62,6 @@ from resotocore.task.subscribers import SubscriptionHandler
 from resotocore.task.task_handler import TaskHandlerService
 from resotocore.types import Json, JsonElement
 from resotocore.util import uuid_str, force_gen, rnd_str, if_set, duration
-from resotocore.web import auth
 from resotocore.web.certificate_handler import CertificateHandler
 from resotocore.web.content_renderer import result_binary_gen, single_result
 from resotocore.web.directives import (
@@ -97,6 +89,9 @@ def section_of(request: Request) -> Optional[str]:
     if section and section != "/" and section not in Section.content:
         raise AttributeError(f"Given section does not exist: {section}")
     return section
+
+
+AlwaysAllowed = {"/metrics", "/api-doc.*", "/system/.*", "/ui.*", "/ca/cert"}
 
 
 class Api:
@@ -131,7 +126,7 @@ class Api:
             # note on order: the middleware is passed in the order provided.
             middlewares=[
                 metrics_handler,
-                auth.auth_handler(config),
+                auth_handler(config.args.psk, AlwaysAllowed),
                 cors_handler,
                 error_handler(config, event_sender),
                 default_middleware(self),
@@ -140,7 +135,7 @@ class Api:
         self.app.on_response_prepare.append(on_response_prepare)
         self.session: Optional[ClientSession] = None
         self.in_shutdown = False
-        self.websocket_handler: Dict[str, Tuple[Future[Any], web.WebSocketResponse]] = {}
+        self.websocket_handler: Dict[str, Tuple[Future[Any], WebSocketResponse]] = {}
         path_part = config.api.web_path.strip().strip("/").strip()
         web_path = "" if path_part == "" else f"/{path_part}"
         self.__add_routes(web_path)
@@ -249,20 +244,9 @@ class Api:
         if not self.in_shutdown:
             self.in_shutdown = True
             for ws_id in list(self.websocket_handler):
-                await self.clean_ws_handler(ws_id)
+                await clean_ws_handler(ws_id, self.websocket_handler)
             if self.session:
                 await self.session.close()
-
-    async def clean_ws_handler(self, ws_id: str) -> None:
-        with suppress(Exception):
-            handler = self.websocket_handler.get(ws_id)
-            if handler:
-                self.websocket_handler.pop(ws_id, None)
-                future, ws = handler
-                future.cancel()
-                log.info(f"Cleanup ws handler: {ws_id} ({len(self.websocket_handler)} active)")
-                if not ws.closed:
-                    await ws.close()
 
     @staticmethod
     def forward(to: str) -> Callable[[Request], Awaitable[StreamResponse]]:
@@ -430,59 +414,30 @@ class Api:
         listener_id: SubscriberId,
         event_types: List[str],
         initial_messages: Optional[Sequence[Message]] = None,
-    ) -> web.WebSocketResponse:
-        ws = web.WebSocketResponse()
-        await ws.prepare(request)
-        wsid = uuid_str()
+    ) -> WebSocketResponse:
+        async def handle_message(msg: str) -> None:
+            js = json.loads(msg)
+            if "data" in js:
+                js["data"]["subscriber_id"] = listener_id
+            message: Message = from_js(js, Message)
+            if isinstance(message, Action):
+                raise AttributeError("Actors should not emit action messages. ")
+            elif isinstance(message, ActionDone):
+                await self.workflow_handler.handle_action_done(message)
+            elif isinstance(message, ActionError):
+                await self.workflow_handler.handle_action_error(message)
+            else:
+                await self.message_bus.emit(message)
 
-        async def receive() -> None:
-            try:
-                async for msg in ws:
-                    if isinstance(msg, WSMessage) and msg.type == WSMsgType.TEXT and len(msg.data.strip()) > 0:
-                        log.info(f"Incoming message: type={msg.type} data={msg.data} extra={msg.extra}")
-                        js = json.loads(msg.data)
-                        if "data" in js:
-                            js["data"]["subscriber_id"] = listener_id
-                        message: Message = from_js(js, Message)
-                        if isinstance(message, Action):
-                            raise AttributeError("Actors should not emit action messages. ")
-                        elif isinstance(message, ActionDone):
-                            await self.workflow_handler.handle_action_done(message)
-                        elif isinstance(message, ActionError):
-                            await self.workflow_handler.handle_action_error(message)
-                        else:
-                            await self.message_bus.emit(message)
-            except Exception as ex:
-                # do not allow any exception - it will destroy the async fiber and cleanup
-                log.info(f"Receive: message listener {listener_id}: {ex}. Hang up.")
-            finally:
-                await self.clean_ws_handler(wsid)
+        return await accept_websocket(
+            request,
+            handle_incoming=handle_message,
+            outgoing_context=partial(self.message_bus.subscribe, listener_id, event_types),
+            websocket_handler=self.websocket_handler,
+            initial_messages=initial_messages,
+        )
 
-        async def send() -> None:
-            try:
-                async with self.message_bus.subscribe(listener_id, event_types) as events:
-                    while True:
-                        event = await events.get()
-                        await ws.send_str(to_js_str(event) + "\n")
-            except Exception as ex:
-                # do not allow any exception - it will destroy the async fiber and cleanup
-                log.info(f"Send: message listener {listener_id}: {ex}. Hang up.")
-            finally:
-                await self.clean_ws_handler(wsid)
-
-        if initial_messages:
-            for msg in initial_messages:
-                await ws.send_str(to_js_str(msg) + "\n")
-
-        to_wait = asyncio.gather(asyncio.create_task(receive()), asyncio.create_task(send()))
-        self.websocket_handler[wsid] = (to_wait, ws)
-        await to_wait
-        return ws
-
-    async def handle_work_tasks(self, request: Request) -> web.WebSocketResponse:
-        ws = web.WebSocketResponse()
-        await ws.prepare(request)
-
+    async def handle_work_tasks(self, request: Request) -> WebSocketResponse:
         worker_id = WorkerId(uuid_str())
         task_param = request.query.get("task")
         if not task_param:
@@ -490,41 +445,26 @@ class Api:
         attrs = {k: re.split("\\s*,\\s*", v) for k, v in request.query.items() if k != "task"}
         task_descriptions = [WorkerTaskDescription(name, attrs) for name in re.split("\\s*,\\s*", task_param)]
 
-        async def receive() -> None:
-            try:
-                async for msg in ws:
-                    if isinstance(msg, WSMessage) and msg.type == WSMsgType.TEXT and len(msg.data.strip()) > 0:
-                        log.info(f"Incoming message: type={msg.type} data={msg.data} extra={msg.extra}")
-                        tr = from_js(json.loads(msg.data), WorkerTaskResult)
-                        if tr.result == "error":
-                            error = tr.error if tr.error else "worker signalled error without detailed error message"
-                            await self.worker_task_queue.error_task(worker_id, tr.task_id, error)
-                        elif tr.result == "done":
-                            await self.worker_task_queue.acknowledge_task(worker_id, tr.task_id, tr.data)
-                        else:
-                            log.info(f"Do not understand this message: {msg.data}")
-            except Exception as ex:
-                # do not allow any exception - it will destroy the async fiber and cleanup
-                log.info(f"Receive: worker:{worker_id}: {ex}. Hang up.")
-            finally:
-                await self.clean_ws_handler(worker_id)
+        async def handle_message(msg: str) -> None:
+            tr = from_js(json.loads(msg), WorkerTaskResult)
+            if tr.result == "error":
+                error = tr.error if tr.error else "worker signalled error without detailed error message"
+                await self.worker_task_queue.error_task(worker_id, tr.task_id, error)
+            elif tr.result == "done":
+                await self.worker_task_queue.acknowledge_task(worker_id, tr.task_id, tr.data)
+            else:
+                log.info(f"Do not understand this message: {msg}")
 
-        async def send() -> None:
-            try:
-                async with self.worker_task_queue.attach(worker_id, task_descriptions) as tasks:
-                    while True:
-                        task = await tasks.get()
-                        await ws.send_str(to_js_str(task.to_json()) + "\n")
-            except Exception as ex:
-                # do not allow any exception - it will destroy the async fiber and cleanup
-                log.info(f"Send: worker:{worker_id}: {ex}. Hang up.")
-            finally:
-                await self.clean_ws_handler(worker_id)
+        def task_json(task: WorkerTask) -> str:
+            return to_js_str(task.to_json())
 
-        to_wait = asyncio.gather(asyncio.create_task(receive()), asyncio.create_task(send()))
-        self.websocket_handler[worker_id] = (to_wait, ws)
-        await to_wait
-        return ws
+        return await accept_websocket(
+            request,
+            handle_incoming=handle_message,
+            outgoing_context=partial(self.worker_task_queue.attach, worker_id, task_descriptions),
+            websocket_handler=self.websocket_handler,
+            outgoing_fn=task_json,
+        )
 
     async def create_work(self, request: Request) -> StreamResponse:
         attrs = {k: v for k, v in request.query.items() if k != "task"}

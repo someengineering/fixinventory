@@ -6,7 +6,7 @@ from aiohttp.test_utils import TestClient
 from multidict import CIMultiDict
 from pytest import mark
 from aiohttp.web import Application, Request, Response
-from resotocore.web.auth import check_jwt, jwt_from_context
+from resotolib.asynchronous.web.auth import check_jwt, jwt_from_context
 from resotolib.jwt import encode_jwt
 
 # noinspection PyUnresolvedReferences
@@ -25,9 +25,9 @@ async def app_with_auth() -> Application:
         # make sure, the context variable is set
         assert jwt["foo"] == "bla"
         assert "exp" in jwt
-        return Response(text=f"Hello, world")
+        return Response(text="Hello, world")
 
-    app = Application(middlewares=[check_jwt("test")])
+    app = Application(middlewares=[check_jwt("test", set())])
     app.router.add_get("/", hello)
     return app
 
@@ -36,7 +36,9 @@ async def app_with_auth() -> Application:
 async def test_correct_psk(aiohttp_client: Any, app_with_auth: Application) -> None:
     client: TestClient = await aiohttp_client(app_with_auth)
     jwt = encode_jwt({"foo": "bla"}, "test")
-    resp = await client.get("/", headers=CIMultiDict({"Authorization": f"Bearer {jwt}"}))
+    resp = await client.get(
+        "/", headers=CIMultiDict({"Authorization": f"Bearer {jwt}"})
+    )
     assert resp.status == 200
 
 
@@ -44,7 +46,9 @@ async def test_correct_psk(aiohttp_client: Any, app_with_auth: Application) -> N
 async def test_wrong_psk(aiohttp_client: Any, app_with_auth: Application) -> None:
     client: TestClient = await aiohttp_client(app_with_auth)
     jwt = encode_jwt({"foo": "bla"}, "wrong!")
-    resp = await client.get("/", headers=CIMultiDict({"Authorization": f"Bearer {jwt}"}))
+    resp = await client.get(
+        "/", headers=CIMultiDict({"Authorization": f"Bearer {jwt}"})
+    )
     assert resp.status == 401
 
 
