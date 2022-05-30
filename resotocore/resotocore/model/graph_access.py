@@ -3,7 +3,6 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
-from operator import contains
 import re
 from collections import namedtuple, defaultdict
 from functools import reduce
