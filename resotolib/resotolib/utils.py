@@ -854,7 +854,7 @@ def rrdata_as_dict(record_type: str, record_data: str) -> Dict:
     record_elements = []
     if record_type not in ("TXT"):
         record_data = " ".join(
-            "".join([l.split(";")[0] for l in record_data.splitlines()])
+            "".join([line.split(";")[0] for line in record_data.splitlines()])
             .replace("(", "")
             .replace(")", "")
             .split()
