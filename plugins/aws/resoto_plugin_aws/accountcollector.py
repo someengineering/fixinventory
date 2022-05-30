@@ -2511,6 +2511,7 @@ class AWSAccountCollector:
                         record_type=record_type,
                         record_values=record_values,
                     )
+                    log.debug(f"Found {rs.rtdname} type {rs.record_type}")
                     graph.add_resource(z, rs)
                     for resource_record in record_values:
                         rr = AWSRoute53ResourceRecord(
@@ -2524,12 +2525,21 @@ class AWSAccountCollector:
                             **rrdata_as_dict(record_type, resource_record),
                         )
                         graph.add_resource(rs, rr)
-                    log.debug(f"Found {rs.rtdname}")
+                        graph.add_edge(rs, rr, edge_type=EdgeType.delete)
 
     def account_alias(self) -> Optional[str]:
         session = aws_session(self.account.id, self.account.role)
         client = session.client("iam")
-        account_aliases = client.list_account_aliases().get("AccountAliases", [])
+        account_aliases = []
+        try:
+            account_aliases = client.list_account_aliases().get("AccountAliases", [])
+        except botocore.exceptions.ClientError as e:
+            if e.response["Error"]["Code"] == "AccessDenied":
+                log.info(
+                    f"Not allowed to list IAM account alias for account {self.account.dname}"
+                )
+                return None
+            raise
         if len(account_aliases) == 0:
             log.debug(f"Found no account alias for account {self.account.dname}")
             return None

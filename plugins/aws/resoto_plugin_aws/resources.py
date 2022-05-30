@@ -1425,7 +1425,7 @@ class AWSRoute53Zone(AWSResource, BaseDNSZone):
     kind: ClassVar[str] = "aws_route53_zone"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
         "default": ["aws_route53_resource_record_set"],
-        "delete": ["aws_route53_resource_record_set"],
+        "delete": [],
     }
 
     zone_caller_reference: Optional[str] = None
