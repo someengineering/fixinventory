@@ -185,7 +185,7 @@ class GraphBuilder:
         self.graph.add_edge(from_node, to_node, key, edge_type=edge_type)
 
     def add_deferred_connection(self, from_selector: NodeSelector, to_selector: NodeSelector) -> None:
-        self.deferred_edges.append((from_selector, to_selector))
+        self.deferred_edges.append(DeferredEdge(from_selector, to_selector))
 
     @staticmethod
     def content_hash(js: Json, desired: Optional[Json] = None, metadata: Optional[Json] = None) -> str:
