@@ -135,17 +135,16 @@ class GraphBuilder:
         elif "from" in js and "to" in js:
             self.add_edge(js["from"], js["to"], js.get("edge_type", EdgeType.default))
         elif "from_selector" in js and "to_selector" in js:
+
             def parse_selector(js: Json) -> NodeSelector:
-                if 'node_id' in js:
-                    return from_js(js['node_id'], str)
-                elif 'search_criterea' in js:
-                    return from_js(js['search_criteria'], str)
+                if "node_id" in js:
+                    return from_js(js["node_id"], str)
+                elif "search_criterea" in js:
+                    return from_js(js["search_criteria"], str)
                 else:
                     raise AttributeError(f"edge selector no undersood! Got {json.dumps(js)}")
-            self.add_deferred_connection(
-                parse_selector(js["from_selector"]),
-                parse_selector(js["from_selector"])
-            )
+
+            self.add_deferred_connection(parse_selector(js["from_selector"]), parse_selector(js["from_selector"]))
         else:
             raise AttributeError(f"Format not understood! Got {json.dumps(js)} which is neither vertex nor edge.")
 
