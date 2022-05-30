@@ -115,12 +115,7 @@ class DbUpdaterProcess(Process):
     The result is either an exception in case of failure or a graph update in success case.
     """
 
-    def __init__(
-        self,
-        read_queue: Queue['ProcessAction'],
-        write_queue: Queue['ProcessAction'],
-        config: CoreConfig
-    ) -> None:
+    def __init__(self, read_queue: Queue[ProcessAction], write_queue: Queue[ProcessAction], config: CoreConfig) -> None:
         super().__init__(name="merge_update")
         self.read_queue = read_queue
         self.write_queue = write_queue
@@ -130,7 +125,7 @@ class DbUpdaterProcess(Process):
         try:
             # graph is read into memory. If the sender does not send data in a given amount of time,
             # we raise an exception and abort the update.
-            return self.read_queue.get(True, 90)  # type: ignore
+            return self.read_queue.get(True, 90)
         except Empty as ex:
             raise ImportAborted("Merge process did not receive any data for more than 90 seconds. Abort.") from ex
 
@@ -152,7 +147,7 @@ class DbUpdaterProcess(Process):
             graphdb = db.get_graph_db(nxt.graph)
             outer_edge_db = db.get_pending_outer_edge_db()
             _, result = await graphdb.merge_graph(builder.graph, model, nxt.change_id, nxt.is_batch)
-            if nxt.task_id: # and len(builder.outer_edges) :
+            if nxt.task_id and len(builder.outer_edges):
                 await outer_edge_db.update(PendingOuterEdges(nxt.task_id, nxt.graph, builder.outer_edges))
                 log.debug(f"Updated {len(builder.outer_edges)} pending outer edges for collect task {nxt.task_id}")
             return result
@@ -189,11 +184,11 @@ async def merge_graph_process(
     content: AsyncGenerator[Union[bytes, Json], None],
     max_wait: timedelta,
     maybe_batch: Optional[str],
-    task_id: Optional[str],
+    task_id: Optional[TaskId],
 ) -> GraphUpdate:
     change_id = maybe_batch if maybe_batch else uuid_str()
-    write: Queue['ProcessAction'] = Queue()
-    read: Queue['ProcessAction'] = Queue()
+    write: Queue[ProcessAction] = Queue()
+    read: Queue[ProcessAction] = Queue()
     updater = DbUpdaterProcess(write, read, config)  # the process reads from our write queue and vice versa
     stale = timedelta(seconds=5).total_seconds()  # consider dead communication after this amount of time
     deadline = utc() + max_wait
@@ -236,8 +231,8 @@ async def merge_graph_process(
         task = read_results()  # concurrently read result queue
         chunked: Stream = stream.chunks(content, BatchSize)
         async with chunked.stream() as streamer:
-            async for lines in streamer:  # type: ignore
-                if not await send_to_child(ReadElement(lines, task_id)):  # type: ignore
+            async for lines in streamer:
+                if not await send_to_child(ReadElement(lines, task_id)):
                     # in case the child is dead, we should stop
                     break
         await send_to_child(MergeGraph(db.name, change_id, maybe_batch is not None, task_id))

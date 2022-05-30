@@ -663,7 +663,9 @@ class Api:
     async def merge_graph(self, request: Request) -> StreamResponse:
         log.info("Received merge_graph request")
         graph_id = request.match_info.get("graph_id", "resoto")
-        task_id = request.headers.get("Resoto-Worker-Task-Id")
+        task_id: Optional[TaskId] = None
+        if tid := request.headers.get("Resoto-Worker-Task-Id"):
+            task_id = TaskId(tid)
         db = self.db.get_graph_db(graph_id)
         it = self.to_line_generator(request)
         info = await merge_graph_process(
@@ -674,7 +676,9 @@ class Api:
     async def update_merge_graph_batch(self, request: Request) -> StreamResponse:
         log.info("Received put_sub_graph_batch request")
         graph_id = request.match_info.get("graph_id", "resoto")
-        task_id = request.headers.get("Resoto-Worker-Task-Id")
+        task_id: Optional[TaskId] = None
+        if tid := request.headers.get("Resoto-Worker-Task-Id"):
+            task_id = TaskId(tid)
         db = self.db.get_graph_db(graph_id)
         rnd = "".join(SystemRandom().choice(string.ascii_letters) for _ in range(12))
         batch_id = request.query.get("batch_id", rnd)

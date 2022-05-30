@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from turtle import Pen
 from resotocore.db.async_arangodb import AsyncArangoDB
 from resotocore.db.entitydb import EntityDb, ArangoEntityDb
 from resotocore.model.graph_access import EdgeKey
