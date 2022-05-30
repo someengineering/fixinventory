@@ -1087,7 +1087,7 @@ class BaseDNSRecordSet(BaseResource):
 
     def __post_init__(self) -> None:
         super().__post_init__()
-        self.type = self.type.upper()
+        self.record_type = self.record_type.upper()
 
     def _keys(self) -> tuple:
         if self._graph is None:
@@ -1129,7 +1129,7 @@ class BaseDNSRecord(BaseResource):
 
     def __post_init__(self) -> None:
         super().__post_init__()
-        self.type = self.type.upper()
+        self.record_type = self.record_type.upper()
 
     def _keys(self) -> tuple:
         if self._graph is None:
