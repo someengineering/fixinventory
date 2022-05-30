@@ -1085,6 +1085,10 @@ class BaseDNSRecordSet(BaseResource):
     record_type: str = ""
     record_values: List[str] = field(default_factory=list)
 
+    def __post_init__(self) -> None:
+        super().__post_init__()
+        self.type = self.type.upper()
+
     def _keys(self) -> tuple:
         if self._graph is None:
             raise RuntimeError(
@@ -1122,6 +1126,10 @@ class BaseDNSRecord(BaseResource):
     record_retry: Optional[int] = None
     record_expire: Optional[int] = None
     record_minimum: Optional[int] = None
+
+    def __post_init__(self) -> None:
+        super().__post_init__()
+        self.type = self.type.upper()
 
     def _keys(self) -> tuple:
         if self._graph is None:
