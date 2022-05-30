@@ -37,7 +37,7 @@ from typeguard import check_type
 from time import time
 from collections import defaultdict, namedtuple
 
-Json = Dict[str, Any] 
+Json = Dict[str, Any]
 
 metrics_graph_search = Summary(
     "resoto_graph_search_seconds", "Time it took the Graph search() method"
