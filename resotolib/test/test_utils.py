@@ -3,7 +3,7 @@ import threading
 import time
 import copy
 from tempfile import TemporaryDirectory
-from resotolib.utils import RWLock, ordinal, sha256sum
+from resotolib.utils import RWLock, ordinal, sha256sum, rrdata_as_dict
 from resotolib.baseresources import BaseResource
 from dataclasses import dataclass
 from typing import ClassVar
@@ -230,3 +230,73 @@ def test_sha256sum():
         with open(tmp_file, "wb") as f:
             f.write(test_string)
         assert sha256sum(tmp_file) == expected_sha256sum
+
+
+def test_rrdata_as_dict():
+    test_soa1 = """ns.icann.org. noc.dns.icann.org. (
+        2020080302  ;Serial
+        7200        ;Refresh
+        3600        ;Retry
+        1209600     ;Expire
+        3600        ;Negative response caching TTL
+)
+"""
+    test_soa2 = "ns-1620.awsdns-10.co.uk. awsdns-hostmaster.amazon.com. 1 7200 900 1209600 86400"
+    test_txt1 = '"Hello World"'
+    test_txt2 = '"foo" "bar"'
+    test_txt3 = (
+        '"v=spf1 a mx ip4:192.168.0.0/24 ip4:192.168.1.0/24 ip4:192.168.1.0/24'
+        " ip4:192.168.1.0/24 ip4:192.168.1.0/24 ip4:192.168.1.0/24 ip4:192.168.1.0/24"
+        ' ip4:1" "92.168.1.0/24 ip4:192.168.1.0/24 ip4:192.168.1.0/24'
+        ' ip4:192.168.1.0/24 ip4:192.168.1.0/24 ip4:192.168.1.0/24 -all"'
+    )
+    test_txt4 = r'"Hello \" "World " "this is a test" "of TXT"'
+    test_mx = "1 ASPMX.L.GOOGLE.com."
+    test_a = "10.0.0.1"
+    test_aaaa = "2a05:d014:275:cb00:7dff:602c:d0e7:9c4"
+    test_ns = "ns-137-b.gandi.net."
+    test_srv = "0 10 443 resoto.com."
+    res_soa1 = rrdata_as_dict("SOA", test_soa1)
+    res_soa2 = rrdata_as_dict("SOA", test_soa2)
+    res_txt1 = rrdata_as_dict("TXT", test_txt1)
+    res_txt2 = rrdata_as_dict("TXT", test_txt2)
+    res_txt3 = rrdata_as_dict("TXT", test_txt3)
+    res_txt4 = rrdata_as_dict("TXT", test_txt4)
+    res_mx = rrdata_as_dict("MX", test_mx)
+    res_a = rrdata_as_dict("A", test_a)
+    res_aaaa = rrdata_as_dict("AAAA", test_aaaa)
+    res_ns = rrdata_as_dict("NS", test_ns)
+    res_srv = rrdata_as_dict("SRV", test_srv)
+    assert res_a["record_value"] == test_a
+    assert res_aaaa["record_value"] == test_aaaa
+    assert res_ns["record_value"] == test_ns
+    assert res_mx["record_value"] == "ASPMX.L.GOOGLE.com."
+    assert res_mx["record_priority"] == 1
+    assert res_txt1["record_value"] == "Hello World"
+    assert res_txt2["record_value"] == "foobar"
+    assert res_txt3["record_value"] == (
+        "v=spf1 a mx ip4:192.168.0.0/24 ip4:192.168.1.0/24 ip4:192.168.1.0/24"
+        " ip4:192.168.1.0/24 ip4:192.168.1.0/24 ip4:192.168.1.0/24"
+        " ip4:192.168.1.0/24 ip4:192.168.1.0/24 ip4:192.168.1.0/24"
+        " ip4:192.168.1.0/24 ip4:192.168.1.0/24 ip4:192.168.1.0/24"
+        " ip4:192.168.1.0/24 -all"
+    )
+    assert res_txt4["record_value"] == r'Hello \" "World this is a testof TXT'
+    assert res_srv["record_priority"] == 0
+    assert res_srv["record_weight"] == 10
+    assert res_srv["record_port"] == 443
+    assert res_srv["record_value"] == "resoto.com."
+    assert res_soa1["record_mname"] == "ns.icann.org."
+    assert res_soa1["record_rname"] == "noc.dns.icann.org."
+    assert res_soa1["record_serial"] == 2020080302
+    assert res_soa1["record_refresh"] == 7200
+    assert res_soa1["record_retry"] == 3600
+    assert res_soa1["record_expire"] == 1209600
+    assert res_soa1["record_minimum"] == 3600
+    assert res_soa2["record_mname"] == "ns-1620.awsdns-10.co.uk."
+    assert res_soa2["record_rname"] == "awsdns-hostmaster.amazon.com."
+    assert res_soa2["record_serial"] == 1
+    assert res_soa2["record_refresh"] == 7200
+    assert res_soa2["record_retry"] == 900
+    assert res_soa2["record_expire"] == 1209600
+    assert res_soa2["record_minimum"] == 86400

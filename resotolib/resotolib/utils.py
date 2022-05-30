@@ -849,6 +849,7 @@ def safe_members_in_tarfile(tarfile: TarFile) -> List:
 
 
 def rrdata_as_dict(record_type: str, record_data: str) -> Dict:
+    record_type = record_type.upper()
     rrdata = {}
     record_elements = []
     if record_type not in ("TXT"):
