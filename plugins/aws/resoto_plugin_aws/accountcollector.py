@@ -11,7 +11,7 @@ from collections.abc import Mapping
 from resotolib.config import Config
 from resotolib.graph import Graph
 from resotolib.baseresources import EdgeType
-from resotolib.utils import make_valid_timestamp, chunks
+from resotolib.utils import make_valid_timestamp, chunks, rrdata_as_dict
 from .utils import aws_session, paginate, arn_partition, tags_as_dict
 from .resources import *
 from prometheus_client import Summary, Counter
@@ -241,6 +241,10 @@ metrics_collect_cloudwatch_alarms = Summary(
     "resoto_plugin_aws_collect_cloudwatch_alarms_seconds",
     "Time it took the collect_cloudwatch_alarms() method",
 )
+metrics_collect_route53_zones = Summary(
+    "resoto_plugin_aws_collect_route53_zones_seconds",
+    "Time it took the collect_route53_zones() method",
+)
 
 
 def retry_on_request_limit_exceeded(e):
@@ -275,6 +279,7 @@ class AWSAccountCollector:
             "iam_users": self.collect_iam_users,
             "iam_server_certificates": self.collect_iam_server_certificates,
             "s3_buckets": self.collect_s3_buckets,
+            "route53_zones": self.collect_route53_zones,
         }
         self.region_collectors = {
             "reserved_instances": self.collect_reserved_instances,
@@ -2460,7 +2465,66 @@ class AWSAccountCollector:
                         {"kind": "aws_ec2_instance", "id": instance_id}
                     )
                     graph.add_edge(i, cwa)
-                    graph.add_edge(cwa, i, edge_type=EdgeType.delete)
+                    graph.add_edge(i, cwa, edge_type=EdgeType.delete)
+
+    @metrics_collect_route53_zones.time()
+    def collect_route53_zones(self, region: AWSRegion, graph: Graph) -> None:
+        log.info(
+            (
+                f"Collecting AWS Route53 Zones in account {self.account.dname},"
+                f" region {region.id}"
+            )
+        )
+        session = aws_session(self.account.id, self.account.role)
+        client = session.client("route53", region_name=region.id)
+        rr_session = aws_session(self.account.id, self.account.role)
+        rr_client = rr_session.client("route53", region_name=region.id)
+        for zone in paginate(client.list_hosted_zones):
+            z = AWSRoute53Zone(
+                zone["Id"],
+                {},
+                name=zone["Name"],
+                _account=self.account,
+                _region=region,
+                zone_config=zone.get("Config"),
+                zone_resource_record_set_count=zone.get("ResourceRecordSetCount"),
+                zone_caller_reference=zone.get("CallerReference"),
+                zone_linked_service=zone.get("LinkedService"),
+            )
+            log.debug(f"Found {z.rtdname}")
+            graph.add_resource(region, z)
+            paginator = rr_client.get_paginator("list_resource_record_sets")
+            for record_sets in paginator.paginate(HostedZoneId=z.id):
+                for record_set in record_sets.get("ResourceRecordSets", []):
+                    record_name = record_set["Name"]
+                    record_ttl = record_set.get("TTL")
+                    record_type = record_set.get("Type")
+                    record_values = [
+                        rr.get("Value") for rr in record_set.get("ResourceRecords", [])
+                    ]
+                    rs = AWSRoute53ResourceRecordSet(
+                        record_name,
+                        {},
+                        _account=self.account,
+                        _region=region,
+                        record_ttl=record_ttl,
+                        record_type=record_type,
+                        record_values=record_values,
+                    )
+                    graph.add_resource(z, rs)
+                    for resource_record in record_values:
+                        rr = AWSRoute53ResourceRecord(
+                            record_name,
+                            {},
+                            _account=self.account,
+                            _region=region,
+                            record_ttl=record_ttl,
+                            record_type=record_type,
+                            record_data=resource_record,
+                            **rrdata_as_dict(record_type, resource_record),
+                        )
+                        graph.add_resource(rs, rr)
+                    log.debug(f"Found {rs.rtdname}")
 
     def account_alias(self) -> Optional[str]:
         session = aws_session(self.account.id, self.account.role)

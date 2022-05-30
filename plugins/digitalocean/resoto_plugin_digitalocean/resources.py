@@ -21,8 +21,8 @@ from resotolib.baseresources import (
     BaseEndpoint,
     BaseCertificate,
     BaseKeyPair,
-    BaseDomain,
-    BaseDomainRecord,
+    BaseDNSZone,
+    BaseDNSRecord,
 )
 from resotolib.graph import Graph
 
@@ -658,7 +658,7 @@ class DigitalOceanTag(DigitalOceanResource, BaseResource):
 
 
 @dataclass(eq=False)
-class DigitalOceanDomain(DigitalOceanResource, BaseDomain):
+class DigitalOceanDomain(DigitalOceanResource, BaseDNSZone):
     """DigitalOcean domain"""
 
     kind = "digitalocean_domain"
@@ -666,13 +666,15 @@ class DigitalOceanDomain(DigitalOceanResource, BaseDomain):
         "default": ["digitalocean_domain_record"],
         "delete": [],
     }
+    ttl: Optional[int] = None
+    zone_file: Optional[str] = None
 
     def delete_uri_path(self) -> Optional[str]:
         return "/domains"
 
 
 @dataclass(eq=False)
-class DigitalOceanDomainRecord(DigitalOceanResource, BaseDomainRecord):
+class DigitalOceanDomainRecord(DigitalOceanResource, BaseDNSRecord):
     """DigitalOcean domain record"""
 
     kind = "digitalocean_domain_record"

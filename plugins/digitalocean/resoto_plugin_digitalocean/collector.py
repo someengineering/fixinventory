@@ -1057,10 +1057,10 @@ class DigitalOceanTeamCollector:
             resource_class=DigitalOceanDomainRecord,
             attr_map={
                 "id": lambda r: str(r["id"]),
+                "name": "name",
                 "urn": lambda r: domain_record_id(r["id"]),
                 "domain_name": "domain_name",
                 "record_type": "type",
-                "record_name": "name",
                 "record_data": "data",
                 "record_priority": "priority",
                 "record_port": "port",
