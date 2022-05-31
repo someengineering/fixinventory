@@ -190,7 +190,7 @@ class GraphBuilder:
         self.graph.add_edge(from_node, to_node, key, edge_type=edge_type)
 
     def add_deferred_connection(
-        self, from_selector: NodeSelector, to_selector: NodeSelector, edge_type: EdgeType
+        self, from_selector: NodeSelector, to_selector: NodeSelector, edge_type: str
     ) -> None:
         self.deferred_edges.append(DeferredEdge(from_selector, to_selector, edge_type))
 

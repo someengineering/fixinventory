@@ -43,7 +43,12 @@ async def test_merge_process(
             yield bytes(json.dumps(graph.nodes[node]), "utf-8")
         for from_node, to_node, data in graph.edges(data=True):
             yield bytes(json.dumps({"from": from_node, "to": to_node, "edge_type": data["edge_type"]}), "utf-8")
-        yield bytes(json.dumps({"from_selector": {"node_id": "id_123"}, "to_selector": {"node_id": "id_456"}, "edge_type": "delete"}), "utf-8")
+        yield bytes(
+            json.dumps(
+                {"from_selector": {"node_id": "id_123"}, "to_selector": {"node_id": "id_456"}, "edge_type": "delete"}
+            ),
+            "utf-8",
+        )
 
     result = await merge_graph_process(
         graph_db, event_sender, config, iterator(), timedelta(seconds=30), None, TaskId("test_task_123")
