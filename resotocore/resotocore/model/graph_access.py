@@ -143,7 +143,7 @@ class GraphBuilder:
                 else:
                     raise AttributeError(f"edge selector no undersood! Got {json.dumps(js)}")
 
-            self.add_deferred_connection(parse_selector(js["from_selector"]), parse_selector(js["from_selector"]))
+            self.add_deferred_connection(parse_selector(js["from_selector"]), parse_selector(js["to_selector"]))
         else:
             raise AttributeError(f"Format not understood! Got {json.dumps(js)} which is neither vertex nor edge.")
 

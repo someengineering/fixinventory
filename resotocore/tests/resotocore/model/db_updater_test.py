@@ -9,6 +9,7 @@ from resotocore.analytics import AnalyticsEventSender
 from resotocore.db.graphdb import ArangoGraphDB
 from resotocore.db.model import GraphUpdate
 from resotocore.dependencies import empty_config
+from resotocore.ids import TaskId
 from resotocore.model.db_updater import merge_graph_process
 from resotocore.model.model import Kind
 from resotocore.model.typed_model import to_js
@@ -42,6 +43,13 @@ async def test_merge_process(
             yield bytes(json.dumps(graph.nodes[node]), "utf-8")
         for from_node, to_node, data in graph.edges(data=True):
             yield bytes(json.dumps({"from": from_node, "to": to_node, "edge_type": data["edge_type"]}), "utf-8")
+        yield bytes(json.dumps({"from_selector": {"node_id": "id_123"}, "to_selector": {"node_id": "id_456"}}), "utf-8")
 
-    result = await merge_graph_process(graph_db, event_sender, config, iterator(), timedelta(seconds=30), None, None)
+    result = await merge_graph_process(
+        graph_db, event_sender, config, iterator(), timedelta(seconds=30), None, TaskId("test_task_123")
+    )
     assert result == GraphUpdate(112, 1, 0, 212, 0, 0)
+    elem = graph_db.db.collection("deferred_outer_edges").all().next()
+    assert elem["_key"] == "test_task_123"
+    assert elem["task_id"] == "test_task_123"
+    assert elem["edges"][0] == {"from_node": "id_123", "to_node": "id_456"}
