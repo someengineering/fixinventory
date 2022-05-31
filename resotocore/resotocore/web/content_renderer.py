@@ -2,7 +2,7 @@ import json
 import logging
 import re
 from collections import defaultdict
-from typing import AsyncGenerator, List, Dict, AsyncIterator, Tuple, Callable, Optional
+from typing import AsyncGenerator, List, Dict, AsyncIterator, Tuple, Callable, Optional, Any
 
 import yaml
 from aiohttp.web import StreamResponse, Request, Response, json_response
@@ -14,23 +14,17 @@ from resotocore.error import QueryTookToLongError
 from resotocore.model.resolve_in_graph import NodePath
 from resotocore.model.typed_model import to_json
 from resotocore.types import Json, JsonElement
-from resotocore.util import (
-    del_value_in_path,
-    value_in_path,
-    value_in_path_get,
-    count_iterator,
-    identity,
-)
+from resotocore.util import del_value_in_path, value_in_path, value_in_path_get, count_iterator, identity
 
 log = logging.getLogger(__name__)
 
 
-async def respond_json(gen: AsyncIterator[JsonElement]) -> AsyncGenerator[str, None]:
+async def respond_json(gen: AsyncIterator[JsonElement], **json_args: Any) -> AsyncGenerator[str, None]:
     sep = ","
     yield "["
     first = True
     async for item in gen:
-        js = json.dumps(to_json(item))
+        js = json.dumps(to_json(item), **json_args)
         if not first:
             yield sep
         yield js
