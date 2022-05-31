@@ -25,6 +25,7 @@ from resotocore.query.model import Query, P, Navigation
 from resotocore.query.query_parser import parse_query
 from resotocore.types import JsonElement
 from resotocore.util import AccessJson, utc, value_in_path, AccessNone
+from resotocore.ids import NodeId
 
 # noinspection PyUnresolvedReferences
 from tests.resotocore.analytics import event_sender
@@ -127,7 +128,7 @@ def create_multi_collector_graph(width: int = 3) -> MultiDiGraph:
         key = GraphAccess.edge_key(from_node, to_node, edge_type)
         graph.add_edge(from_node, to_node, key, edge_type=edge_type)
 
-    def add_node(node_id: str, kind: str, replace: bool = False) -> str:
+    def add_node(node_id: NodeId, kind: NodeId, replace: bool = False) -> NodeId:
         reported = {**to_json(Foo(node_id)), "id": node_id, "name": node_id, "kind": kind}
         graph.add_node(
             node_id,
@@ -143,28 +144,28 @@ def create_multi_collector_graph(width: int = 3) -> MultiDiGraph:
         )
         return node_id
 
-    root = add_node("root", "graph_root")
+    root = add_node(NodeId("root"), NodeId("graph_root"))
     for cloud_num in range(0, 2):
-        cloud = add_node(f"cloud_{cloud_num}", "cloud")
+        cloud = add_node(NodeId(f"cloud_{cloud_num}"), NodeId("cloud"))
         add_edge(root, cloud)
         for account_num in range(0, 2):
             aid = f"{cloud_num}:{account_num}"
-            account = add_node(f"account_{aid}", "account")
+            account = add_node(NodeId(f"account_{aid}"), NodeId("account"))
             add_edge(cloud, account)
             add_edge(account, cloud, EdgeType.delete)
             for region_num in range(0, 2):
                 rid = f"{aid}:{region_num}"
-                region = add_node(f"region_{rid}", "region", replace=True)
+                region = add_node(NodeId(f"region_{rid}"), NodeId("region"), replace=True)
                 add_edge(account, region)
                 add_edge(region, account, EdgeType.delete)
                 for parent_num in range(0, width):
                     pid = f"{rid}:{parent_num}"
-                    parent = add_node(f"parent_{pid}", "parent")
+                    parent = add_node(NodeId(f"parent_{pid}"), NodeId("parent"))
                     add_edge(region, parent)
                     add_edge(parent, region, EdgeType.delete)
                     for child_num in range(0, width):
                         cid = f"{pid}:{child_num}"
-                        child = add_node(f"child_{cid}", "child")
+                        child = add_node(NodeId(f"child_{cid}"), NodeId("child"))
                         add_edge(parent, child)
                         add_edge(child, parent, EdgeType.delete)
 
@@ -397,6 +398,8 @@ async def test_query_graph(filled_graph_db: ArangoGraphDB, foo_model: Model) -> 
         assert from_node == "9" or to_node == "9"
         assert data == {"edge_type": "default"}
 
+    node_id: str
+    node: Json
     for node_id, node in graph.nodes.data(True):
         if node_id == "9":
             assert node["metadata"]["query_tag"] == "red"
@@ -509,18 +512,18 @@ async def test_no_null_if_undefined(graph_db: ArangoGraphDB, foo_model: Model) -
 @pytest.mark.asyncio
 async def test_get_node(filled_graph_db: ArangoGraphDB, foo_model: Model) -> None:
     # load sub_root as foo
-    sub_root = to_foo(await filled_graph_db.get_node(foo_model, "sub_root"))
+    sub_root = to_foo(await filled_graph_db.get_node(foo_model, NodeId("sub_root")))
     assert sub_root is not None
     assert isinstance(sub_root, Foo)
     # load node 7 as foo
-    node_7_json = await filled_graph_db.get_node(foo_model, "7")
+    node_7_json = await filled_graph_db.get_node(foo_model, NodeId("7"))
     node_7 = to_foo(node_7_json)
     assert node_7 is not None
     assert isinstance(node_7, Foo)
     # make sure that all synthetic properties are rendered (the age should not be older than 1 second => 0s or 1s)
     assert node_7_json[Section.reported]["age"] in ["0s", "1s"]  # type: ignore
     # load node 1_2 as bla
-    node_1_2 = to_bla(await filled_graph_db.get_node(foo_model, "1_2"))
+    node_1_2 = to_bla(await filled_graph_db.get_node(foo_model, NodeId("1_2")))
     assert node_1_2 is not None
     assert isinstance(node_1_2, Bla)
 
@@ -528,20 +531,24 @@ async def test_get_node(filled_graph_db: ArangoGraphDB, foo_model: Model) -> Non
 @pytest.mark.asyncio
 async def test_insert_node(graph_db: ArangoGraphDB, foo_model: Model) -> None:
     await graph_db.wipe()
-    json = await graph_db.create_node(foo_model, "some_new_id", to_json(Foo("some_new_id", "name")), "root")
+    json = await graph_db.create_node(
+        foo_model, NodeId("some_new_id"), to_json(Foo("some_new_id", "name")), NodeId("root")
+    )
     assert to_foo(json).identifier == "some_new_id"
-    assert to_foo(await graph_db.get_node(foo_model, "some_new_id")).identifier == "some_new_id"
+    assert to_foo(await graph_db.get_node(foo_model, NodeId("some_new_id"))).identifier == "some_new_id"
 
 
 @pytest.mark.asyncio
 async def test_update_node(graph_db: ArangoGraphDB, foo_model: Model) -> None:
     await graph_db.wipe()
-    await graph_db.create_node(foo_model, "some_other", to_json(Foo("some_other", "foo")), "root")
-    json_patch = await graph_db.update_node(foo_model, "some_other", {"name": "bla"}, False, "reported")
+    await graph_db.create_node(foo_model, NodeId("some_other"), to_json(Foo("some_other", "foo")), NodeId("root"))
+    json_patch = await graph_db.update_node(foo_model, NodeId("some_other"), {"name": "bla"}, False, "reported")
     assert to_foo(json_patch).name == "bla"
-    assert to_foo(await graph_db.get_node(foo_model, "some_other")).name == "bla"
+    assert to_foo(await graph_db.get_node(foo_model, NodeId("some_other"))).name == "bla"
     json_replace = (
-        await graph_db.update_node(foo_model, "some_other", {"kind": "bla", "identifier": "123"}, True, "reported")
+        await graph_db.update_node(
+            foo_model, NodeId("some_other"), {"kind": "bla", "identifier": "123"}, True, "reported"
+        )
     )["reported"]
     json_replace.pop("ctime")  # ctime is added by the system automatically. remove it
     assert json_replace == {"kind": "bla", "identifier": "123"}
@@ -556,22 +563,22 @@ async def test_update_nodes(graph_db: ArangoGraphDB, foo_model: Model) -> None:
             assert v == value
 
     await graph_db.wipe()
-    await graph_db.create_node(foo_model, "id1", to_json(Foo("id1", "foo")), "root")
-    await graph_db.create_node(foo_model, "id2", to_json(Foo("id2", "foo")), "root")
+    await graph_db.create_node(foo_model, NodeId("id1"), to_json(Foo("id1", "foo")), NodeId("root"))
+    await graph_db.create_node(foo_model, NodeId("id2"), to_json(Foo("id2", "foo")), NodeId("root"))
     # only change the desired section
     change1 = {"desired": {"test": True}}
-    result1 = [a async for a in graph_db.update_nodes(foo_model, {"id1": change1, "id2": change1})]
+    result1 = [a async for a in graph_db.update_nodes(foo_model, {NodeId("id1"): change1, NodeId("id2"): change1})]
     assert len(result1) == 2
     expect(result1, ["desired", "test"], True)
     # only change the metadata section
     change2 = {"metadata": {"test": True}}
-    result2 = [a async for a in graph_db.update_nodes(foo_model, {"id1": change2, "id2": change2})]
+    result2 = [a async for a in graph_db.update_nodes(foo_model, {NodeId("id1"): change2, NodeId("id2"): change2})]
     assert len(result2) == 2
     expect(result2, ["metadata", "test"], True)
     # change all sections including the reported section
     change3 = {"desired": {"test": False}, "metadata": {"test": False}, "reported": {"name": "test"}}
     node_raw_id1 = AccessJson.wrap_object(graph_db.db.db.collection(graph_db.name).get("id1"))
-    result3 = [a async for a in graph_db.update_nodes(foo_model, {"id1": change3, "id2": change3})]
+    result3 = [a async for a in graph_db.update_nodes(foo_model, {NodeId("id1"): change3, NodeId("id2"): change3})]
     assert len(result3) == 2
     expect(result3, ["desired", "test"], False)
     expect(result3, ["metadata", "test"], False)
@@ -585,7 +592,7 @@ async def test_update_nodes(graph_db: ArangoGraphDB, foo_model: Model) -> None:
     assert node_raw_id1.hash != node_raw_id1_updated.hash
     assert "test" in node_raw_id1_updated.flat
     change4 = {"desired": None, "metadata": None}
-    result4 = [a async for a in graph_db.update_nodes(foo_model, {"id1": change4, "id2": change4})]
+    result4 = [a async for a in graph_db.update_nodes(foo_model, {NodeId("id1"): change4, NodeId("id2"): change4})]
     assert len(result4) == 2
     assert "desired" not in result4
     assert "metadata" not in result4
@@ -594,21 +601,23 @@ async def test_update_nodes(graph_db: ArangoGraphDB, foo_model: Model) -> None:
 @pytest.mark.asyncio
 async def test_delete_node(graph_db: ArangoGraphDB, foo_model: Model) -> None:
     await graph_db.wipe()
-    await graph_db.create_node(foo_model, "sub_root", to_json(Foo("sub_root", "foo")), "root")
-    await graph_db.create_node(foo_model, "some_other_child", to_json(Foo("some_other_child", "foo")), "sub_root")
-    await graph_db.create_node(foo_model, "born_to_die", to_json(Foo("born_to_die", "foo")), "sub_root")
-    await graph_db.delete_node("born_to_die")
-    assert await graph_db.get_node(foo_model, "born_to_die") is None
+    await graph_db.create_node(foo_model, NodeId("sub_root"), to_json(Foo("sub_root", "foo")), NodeId("root"))
+    await graph_db.create_node(
+        foo_model, NodeId("some_other_child"), to_json(Foo("some_other_child", "foo")), NodeId("sub_root")
+    )
+    await graph_db.create_node(foo_model, NodeId("born_to_die"), to_json(Foo("born_to_die", "foo")), NodeId("sub_root"))
+    await graph_db.delete_node(NodeId("born_to_die"))
+    assert await graph_db.get_node(foo_model, NodeId("born_to_die")) is None
     with pytest.raises(AttributeError) as not_allowed:
-        await graph_db.delete_node("sub_root")
+        await graph_db.delete_node(NodeId("sub_root"))
     assert str(not_allowed.value) == "Can not delete node, since it has 1 child(ren)!"
 
 
 @pytest.mark.asyncio
 async def test_events(event_graph_db: EventGraphDB, foo_model: Model, event_sender: InMemoryEventSender) -> None:
-    await event_graph_db.create_node(foo_model, "some_other", to_json(Foo("some_other", "foo")), "root")
-    await event_graph_db.update_node(foo_model, "some_other", {"name": "bla"}, False, "reported")
-    await event_graph_db.delete_node("some_other")
+    await event_graph_db.create_node(foo_model, NodeId("some_other"), to_json(Foo("some_other", "foo")), NodeId("root"))
+    await event_graph_db.update_node(foo_model, NodeId("some_other"), {"name": "bla"}, False, "reported")
+    await event_graph_db.delete_node(NodeId("some_other"))
     await event_graph_db.merge_graph(create_graph("yes or no", width=1), foo_model)
     await event_graph_db.merge_graph(create_graph("maybe", width=1), foo_model, "batch1", True)
     # make sure all events will arrive

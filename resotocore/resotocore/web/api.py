@@ -42,7 +42,7 @@ from resotocore.cli.model import (
     InternalPart,
     AliasTemplate,
 )
-from resotocore.ids import TaskId, ConfigId
+from resotocore.ids import TaskId, ConfigId, NodeId
 from resotocore.config import ConfigHandler, ConfigValidation, ConfigEntity
 from resotocore.console_renderer import ConsoleColorSystem, ConsoleRenderer
 from resotocore.core_config import CoreConfig
@@ -531,7 +531,7 @@ class Api:
 
     async def get_node(self, request: Request) -> StreamResponse:
         graph_id = request.match_info.get("graph_id", "resoto")
-        node_id = request.match_info.get("node_id", "root")
+        node_id = NodeId(request.match_info.get("node_id", "root"))
         graph = self.db.get_graph_db(graph_id)
         model = await self.model_handler.load_model()
         node = await graph.get_node(model, node_id)
@@ -542,8 +542,8 @@ class Api:
 
     async def create_node(self, request: Request) -> StreamResponse:
         graph_id = request.match_info.get("graph_id", "resoto")
-        node_id = request.match_info.get("node_id", "some_existing")
-        parent_node_id = request.match_info.get("parent_node_id", "root")
+        node_id = NodeId(request.match_info.get("node_id", "some_existing"))
+        parent_node_id = NodeId(request.match_info.get("parent_node_id", "root"))
         graph = self.db.get_graph_db(graph_id)
         item = await self.json_from_request(request)
         md = await self.model_handler.load_model()
@@ -552,7 +552,7 @@ class Api:
 
     async def update_node(self, request: Request) -> StreamResponse:
         graph_id = request.match_info.get("graph_id", "resoto")
-        node_id = request.match_info.get("node_id", "some_existing")
+        node_id = NodeId(request.match_info.get("node_id", "some_existing"))
         section = section_of(request)
         graph = self.db.get_graph_db(graph_id)
         patch = await self.json_from_request(request)
@@ -562,7 +562,7 @@ class Api:
 
     async def delete_node(self, request: Request) -> StreamResponse:
         graph_id = request.match_info.get("graph_id", "resoto")
-        node_id = request.match_info.get("node_id", "some_existing")
+        node_id = NodeId(request.match_info.get("node_id", "some_existing"))
         if node_id == "root":
             raise AttributeError("Root node can not be deleted!")
         graph = self.db.get_graph_db(graph_id)
@@ -572,7 +572,7 @@ class Api:
     async def update_nodes(self, request: Request) -> StreamResponse:
         graph_id = request.match_info.get("graph_id", "resoto")
         allowed = {*Section.content, "id", "revision"}
-        updates: Dict[str, Json] = {}
+        updates: Dict[NodeId, Json] = {}
         async for elem in self.to_json_generator(request):
             keys = set(elem.keys())
             assert keys.issubset(allowed), f"Invalid json. Allowed keys are: {allowed}"
@@ -597,7 +597,7 @@ class Api:
             raise AttributeError("Graph name should not have underscores!")
         graph = await self.db.create_graph(graph_id)
         model = await self.model_handler.load_model()
-        root = await graph.get_node(model, "root")
+        root = await graph.get_node(model, NodeId("root"))
         return web.json_response(root)
 
     async def merge_graph(self, request: Request) -> StreamResponse:

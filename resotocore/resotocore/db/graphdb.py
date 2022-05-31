@@ -27,6 +27,7 @@ from resotocore.model.resolve_in_graph import NodePath, GraphResolver
 from resotocore.query.model import Query
 from resotocore.types import JsonElement
 from resotocore.util import first, value_in_path_get, utc_str, uuid_str, value_in_path, json_hash, set_value_in_path
+from resotocore.ids import NodeId
 
 log = logging.getLogger(__name__)
 
@@ -38,37 +39,39 @@ class GraphDB(ABC):
         pass
 
     @abstractmethod
-    async def get_node(self, model: Model, node_id: str) -> Optional[Json]:
+    async def get_node(self, model: Model, node_id: NodeId) -> Optional[Json]:
         pass
 
     @abstractmethod
-    async def create_node(self, model: Model, node_id: str, data: Json, under_node_id: str) -> Json:
+    async def create_node(self, model: Model, node_id: NodeId, data: Json, under_node_id: NodeId) -> Json:
         pass
 
     @abstractmethod
     async def update_node(
-        self, model: Model, node_id: str, patch_or_replace: Json, replace: bool, section: Optional[str]
+        self, model: Model, node_id: NodeId, patch_or_replace: Json, replace: bool, section: Optional[str]
     ) -> Json:
         pass
 
     @abstractmethod
-    def update_nodes(self, model: Model, patches_by_id: Dict[str, Json], **kwargs: Any) -> AsyncGenerator[Json, None]:
+    def update_nodes(
+        self, model: Model, patches_by_id: Dict[NodeId, Json], **kwargs: Any
+    ) -> AsyncGenerator[Json, None]:
         pass
 
     @abstractmethod
     def update_nodes_desired(
-        self, model: Model, patch: Json, node_ids: List[str], **kwargs: Any
+        self, model: Model, patch: Json, node_ids: List[NodeId], **kwargs: Any
     ) -> AsyncGenerator[Json, None]:
         pass
 
     @abstractmethod
     def update_nodes_metadata(
-        self, model: Model, patch: Json, node_ids: List[str], **kwargs: Any
+        self, model: Model, patch: Json, node_ids: List[NodeId], **kwargs: Any
     ) -> AsyncGenerator[Json, None]:
         pass
 
     @abstractmethod
-    async def delete_node(self, node_id: str) -> None:
+    async def delete_node(self, node_id: NodeId) -> None:
         pass
 
     @abstractmethod
@@ -142,11 +145,11 @@ class ArangoGraphDB(GraphDB):
     def edge_collection(self, edge_type: str) -> str:
         return f"{self.name}_{edge_type}"
 
-    async def get_node(self, model: Model, node_id: str) -> Optional[Json]:
+    async def get_node(self, model: Model, node_id: NodeId) -> Optional[Json]:
         node = await self.by_id(node_id)
         return self.document_to_instance_fn(model)(node) if node is not None else None
 
-    async def create_node(self, model: Model, node_id: str, data: Json, under_node_id: str) -> Json:
+    async def create_node(self, model: Model, node_id: NodeId, data: Json, under_node_id: NodeId) -> Json:
         graph = GraphBuilder(model)
         graph.add_node(node_id, data)
         graph.add_edge(under_node_id, node_id, EdgeType.default)
@@ -163,7 +166,7 @@ class ArangoGraphDB(GraphDB):
             return trafo(result["new"])
 
     async def update_node(
-        self, model: Model, node_id: str, patch_or_replace: Json, replace: bool, section: Optional[str]
+        self, model: Model, node_id: NodeId, patch_or_replace: Json, replace: bool, section: Optional[str]
     ) -> Json:
         return await self.update_node_with(self.db, model, node_id, patch_or_replace, replace, section)
 
@@ -171,7 +174,7 @@ class ArangoGraphDB(GraphDB):
         self,
         db: AsyncArangoDBBase,
         model: Model,
-        node_id: str,
+        node_id: NodeId,
         patch_or_replace: Json,
         replace: bool,
         section: Optional[str],
@@ -215,7 +218,7 @@ class ArangoGraphDB(GraphDB):
         return trafo(result["new"])
 
     async def update_nodes(
-        self, model: Model, patches_by_id: Dict[str, Json], **kwargs: Any
+        self, model: Model, patches_by_id: Dict[NodeId, Json], **kwargs: Any
     ) -> AsyncGenerator[Json, None]:
         log.info(f"Update nodes called with {len(patches_by_id)} updates.")
         # collect all sections to be deleted
@@ -223,7 +226,7 @@ class ArangoGraphDB(GraphDB):
         delete_sections = [Section.desired, Section.metadata]
         # group patches by changes: single desired or metadata changes can be executed via special purpose methods.
         updates: Dict[str, Json] = {}
-        updated_nodes: Dict[str, List[str]] = defaultdict(list)
+        updated_nodes: Dict[str, List[NodeId]] = defaultdict(list)
         for uid, patch_js in patches_by_id.items():
             # filter out delete operation
             for section in delete_sections:
@@ -243,7 +246,7 @@ class ArangoGraphDB(GraphDB):
         # all changes are executed inside a transaction: either all changes are successful or none
         async with self.db.begin_transaction(read=[self.vertex_name], write=[self.vertex_name]) as tx:
 
-            async def update_node_multi(js: Json, node_ids: List[str]) -> AsyncGenerator[Json, None]:
+            async def update_node_multi(js: Json, node_ids: List[NodeId]) -> AsyncGenerator[Json, None]:
                 for node_id in node_ids:
                     log.debug(f"Update node: change={js} on {node_id}")
                     single_update = await self.update_node_with(tx, model, node_id, js, False, None)
@@ -270,12 +273,12 @@ class ArangoGraphDB(GraphDB):
                     yield res
 
     def update_nodes_desired(
-        self, model: Model, patch: Json, node_ids: List[str], **kwargs: Any
+        self, model: Model, patch: Json, node_ids: List[NodeId], **kwargs: Any
     ) -> AsyncGenerator[Json, None]:
         return self.update_nodes_section_with(self.db, model, Section.desired, patch, node_ids)
 
     def update_nodes_metadata(
-        self, model: Model, patch: Json, node_ids: List[str], **kwargs: Any
+        self, model: Model, patch: Json, node_ids: List[NodeId], **kwargs: Any
     ) -> AsyncGenerator[Json, None]:
         return self.update_nodes_section_with(self.db, model, Section.metadata, patch, node_ids)
 
@@ -289,7 +292,7 @@ class ArangoGraphDB(GraphDB):
                 yield trafo(element)
 
     async def update_nodes_section_with(
-        self, db: AsyncArangoDBBase, model: Model, section: str, patch: Json, node_ids: List[str]
+        self, db: AsyncArangoDBBase, model: Model, section: str, patch: Json, node_ids: List[NodeId]
     ) -> AsyncGenerator[Json, None]:
         bind_var = {"patch": patch, "node_ids": node_ids}
         trafo = self.document_to_instance_fn(model)
@@ -297,7 +300,7 @@ class ArangoGraphDB(GraphDB):
             for element in cursor:
                 yield trafo(element)
 
-    async def delete_node(self, node_id: str) -> None:
+    async def delete_node(self, node_id: NodeId) -> None:
         with await self.db.aql(query=self.query_count_direct_children(), bind_vars={"rid": node_id}) as cursor:
             count = cursor.next()
             if count > 0:
@@ -309,10 +312,10 @@ class ArangoGraphDB(GraphDB):
             else:
                 return None
 
-    async def by_id(self, node_id: str) -> Optional[Json]:
+    async def by_id(self, node_id: NodeId) -> Optional[Json]:
         return await self.by_id_with(self.db, node_id)
 
-    async def by_id_with(self, db: AsyncArangoDBBase, node_id: str) -> Optional[Json]:
+    async def by_id_with(self, db: AsyncArangoDBBase, node_id: NodeId) -> Optional[Json]:
         with await db.aql(query=self.query_node_by_id(), bind_vars={"rid": node_id}) as cursor:
             return cursor.next() if not cursor.empty() else None
 
@@ -1012,31 +1015,33 @@ class EventGraphDB(GraphDB):
     def name(self) -> str:
         return self.real.name
 
-    async def get_node(self, model: Model, node_id: str) -> Optional[Json]:
+    async def get_node(self, model: Model, node_id: NodeId) -> Optional[Json]:
         return await self.real.get_node(model, node_id)
 
-    async def create_node(self, model: Model, node_id: str, data: Json, under_node_id: str) -> Json:
+    async def create_node(self, model: Model, node_id: NodeId, data: Json, under_node_id: NodeId) -> Json:
         result = await self.real.create_node(model, node_id, data, under_node_id)
         await self.event_sender.core_event(CoreEvent.NodeCreated, {"graph": self.graph_name})
         return result
 
     async def update_node(
-        self, model: Model, node_id: str, patch_or_replace: Json, replace: bool, section: Optional[str]
+        self, model: Model, node_id: NodeId, patch_or_replace: Json, replace: bool, section: Optional[str]
     ) -> Json:
         result = await self.real.update_node(model, node_id, patch_or_replace, replace, section)
         await self.event_sender.core_event(CoreEvent.NodeUpdated, {"graph": self.graph_name, "section": section})
         return result
 
-    async def delete_node(self, node_id: str) -> None:
+    async def delete_node(self, node_id: NodeId) -> None:
         result = await self.real.delete_node(node_id)
         await self.event_sender.core_event(CoreEvent.NodeDeleted, {"graph": self.graph_name})
         return result
 
-    def update_nodes(self, model: Model, patches_by_id: Dict[str, Json], **kwargs: Any) -> AsyncGenerator[Json, None]:
+    def update_nodes(
+        self, model: Model, patches_by_id: Dict[NodeId, Json], **kwargs: Any
+    ) -> AsyncGenerator[Json, None]:
         return self.real.update_nodes(model, patches_by_id, **kwargs)
 
     async def update_nodes_desired(
-        self, model: Model, patch: Json, node_ids: List[str], **kwargs: Any
+        self, model: Model, patch: Json, node_ids: List[NodeId], **kwargs: Any
     ) -> AsyncGenerator[Json, None]:
         result = self.real.update_nodes_desired(model, patch, node_ids, **kwargs)
         await self.event_sender.core_event(
@@ -1046,7 +1051,7 @@ class EventGraphDB(GraphDB):
             yield a
 
     async def update_nodes_metadata(
-        self, model: Model, patch: Json, node_ids: List[str], **kwargs: Any
+        self, model: Model, patch: Json, node_ids: List[NodeId], **kwargs: Any
     ) -> AsyncGenerator[Json, None]:
         result = self.real.update_nodes_metadata(model, patch, node_ids, **kwargs)
         await self.event_sender.core_event(
