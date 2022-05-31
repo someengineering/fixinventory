@@ -846,3 +846,72 @@ def safe_members_in_tarfile(tarfile: TarFile) -> List:
         else:
             result.append(tar_info)
     return result
+
+
+def rrdata_as_dict(record_type: str, record_data: str) -> Dict:
+    record_type = record_type.upper()
+    rrdata = {}
+    record_elements = []
+    if record_type not in ("TXT"):
+        record_data = " ".join(
+            "".join([line.split(";")[0] for line in record_data.splitlines()])
+            .replace("(", "")
+            .replace(")", "")
+            .split()
+        )
+    if record_type in ("SOA", "MX", "SRV", "CAA"):
+        record_elements = record_data.split(" ")
+
+    rrdata["record_value"] = record_data
+
+    if record_type in ("A", "AAAA", "CNAME", "NS", "PTR"):
+        pass
+    elif record_type in ("TXT"):
+        if record_data[0] == '"' and record_data[-1] == '"':
+            record_data = record_data[1:-1]
+        merge_pattern = '" "'
+        merge_pattern_deletions = 0
+        merge_pattern_offsets = [
+            m.start() for m in re.finditer(merge_pattern, record_data)
+        ]
+        for offset in merge_pattern_offsets:
+            offset = offset - merge_pattern_deletions * len(merge_pattern)
+            if record_data[offset - 1] == "\\":
+                continue
+            record_data = (
+                record_data[0:offset] + record_data[offset + len(merge_pattern) :]
+            )
+            merge_pattern_deletions += 1
+
+        rrdata["record_value"] = record_data
+    elif record_type in ("SOA"):
+        rrdata["record_value"] = record_data
+        if len(record_elements) != 7:
+            raise ValueError(f"Invalid SOA record {record_data}")
+        rrdata["record_mname"] = record_elements[0]
+        rrdata["record_rname"] = record_elements[1]
+        rrdata["record_serial"] = int(record_elements[2])
+        rrdata["record_refresh"] = int(record_elements[3])
+        rrdata["record_retry"] = int(record_elements[4])
+        rrdata["record_expire"] = int(record_elements[5])
+        rrdata["record_minimum"] = int(record_elements[6])
+    elif record_type in ("MX"):
+        if len(record_elements) != 2:
+            raise ValueError(f"Invalid MX record {record_data}")
+        rrdata["record_priority"] = int(record_elements[0])
+        rrdata["record_value"] = record_elements[1]
+    elif record_type in ("SRV"):
+        if len(record_elements) != 4:
+            raise ValueError(f"Invalid SRV record {record_data}")
+        rrdata["record_priority"] = int(record_elements[0])
+        rrdata["record_weight"] = int(record_elements[1])
+        rrdata["record_port"] = int(record_elements[2])
+        rrdata["record_value"] = record_elements[3]
+    elif record_type in ("CAA"):
+        if len(record_elements) != 3:
+            raise ValueError(f"Invalid CAA record {record_data}")
+        rrdata["record_flags"] = int(record_elements[0])
+        rrdata["record_tag"] = record_elements[1]
+        rrdata["record_value"] = record_elements[2]
+
+    return rrdata

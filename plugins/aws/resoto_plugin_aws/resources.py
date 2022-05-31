@@ -7,7 +7,7 @@ from resotolib.baseresources import *
 from resotolib.graph import Graph
 from resotolib.utils import make_valid_timestamp
 from .utils import aws_client, aws_resource, tags_as_dict
-from typing import ClassVar, Any
+from typing import ClassVar, Any, Optional, Union
 from dataclasses import dataclass
 from resotolib.logger import log
 
@@ -144,7 +144,12 @@ class AWSEC2Instance(AWSResource, BaseInstance):
             "aws_ec2_elastic_ip",
             "aws_cloudwatch_alarm",
         ],
-        "delete": ["aws_elb", "aws_autoscaling_group", "aws_alb_target_group"],
+        "delete": [
+            "aws_elb",
+            "aws_autoscaling_group",
+            "aws_alb_target_group",
+            "aws_cloudwatch_alarm",
+        ],
     }
 
     instance_status_map: ClassVar[Dict[str, InstanceStatus]] = {
@@ -1308,7 +1313,7 @@ class AWSCloudwatchAlarm(AWSResource, BaseResource):
     kind: ClassVar[str] = "aws_cloudwatch_alarm"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
         "default": [],
-        "delete": ["aws_ec2_instance"],
+        "delete": [],
     }
 
     actions_enabled: bool = False
@@ -1413,3 +1418,43 @@ class AWSCloudFormationStackSet(AWSResource, BaseResource):
             )
         self.tags = tags
         return True
+
+
+@dataclass(eq=False)
+class AWSRoute53Zone(AWSResource, BaseDNSZone):
+    kind: ClassVar[str] = "aws_route53_zone"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["aws_route53_resource_record_set"],
+        "delete": [],
+    }
+
+    zone_caller_reference: Optional[str] = None
+    zone_config: Optional[Dict[str, Union[str, bool]]] = None
+    zone_resource_record_set_count: Optional[int] = None
+    zone_linked_service: Optional[Dict[str, str]] = None
+
+
+@dataclass(eq=False)
+class AWSRoute53ResourceRecordSet(AWSResource, BaseDNSRecordSet):
+    kind: ClassVar[str] = "aws_route53_resource_record_set"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["aws_route53_resource_record"],
+        "delete": ["aws_route53_resource_record"],
+    }
+    record_set_identifier: Optional[str] = None
+    record_region: Optional[str] = None
+    record_geo_location: Optional[Dict[str, str]] = None
+    record_failover: Optional[str] = None
+    record_multi_value_answer: Optional[bool] = None
+    record_alias_target: Optional[Dict[str, Union[str, bool]]] = None
+    record_health_check_id: Optional[str] = None
+    record_traffic_policy_instance_id: Optional[str] = None
+
+
+@dataclass(eq=False)
+class AWSRoute53ResourceRecord(AWSResource, BaseDNSRecord):
+    kind: ClassVar[str] = "aws_route53_resource_record"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": [],
+        "delete": [],
+    }

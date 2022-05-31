@@ -1073,26 +1073,80 @@ class BaseHealthCheck(BaseResource):
 
 
 @dataclass(eq=False)
-class BaseDomain(BaseResource):
-    kind: ClassVar[str] = "domain"
-
-    ttl: Optional[int] = None
-    zone_file: Optional[str] = None
+class BaseDNSZone(BaseResource):
+    kind: ClassVar[str] = "dns_zone"
 
 
 @dataclass(eq=False)
-class BaseDomainRecord(BaseResource):
-    kind: ClassVar[str] = "domain_record"
+class BaseDNSRecordSet(BaseResource):
+    kind: ClassVar[str] = "dns_record_set"
 
-    record_type: Optional[str] = None
-    record_name: Optional[str] = None
-    record_data: Optional[str] = None
+    record_ttl: int = -1
+    record_type: str = ""
+    record_values: List[str] = field(default_factory=list)
+
+    def __post_init__(self) -> None:
+        super().__post_init__()
+        self.record_type = self.record_type.upper()
+
+    def _keys(self) -> tuple:
+        if self._graph is None:
+            raise RuntimeError(
+                f"_keys() called on {self.rtdname} before resource was added to graph"
+            )
+        return (
+            self.kind,
+            self.cloud().id,
+            self.account().id,
+            self.region().id,
+            self.zone().id,
+            self.id,
+            self.name,
+            self.record_type,
+        )
+
+
+@dataclass(eq=False)
+class BaseDNSRecord(BaseResource):
+    kind: ClassVar[str] = "dns_record"
+
+    record_ttl: int = -1
+    record_type: str = ""
+    record_data: str = ""
+    record_value: str = ""
     record_priority: Optional[int] = None
     record_port: Optional[int] = None
-    record_ttl: Optional[int] = None
     record_weight: Optional[int] = None
     record_flags: Optional[int] = None
     record_tag: Optional[str] = None
+    record_mname: Optional[str] = None
+    record_rname: Optional[str] = None
+    record_serial: Optional[int] = None
+    record_refresh: Optional[int] = None
+    record_retry: Optional[int] = None
+    record_expire: Optional[int] = None
+    record_minimum: Optional[int] = None
+
+    def __post_init__(self) -> None:
+        super().__post_init__()
+        self.record_type = self.record_type.upper()
+
+    def _keys(self) -> tuple:
+        if self._graph is None:
+            raise RuntimeError(
+                f"_keys() called on {self.rtdname} before resource was added to graph"
+            )
+        return (
+            self.kind,
+            self.cloud().id,
+            self.account().id,
+            self.region().id,
+            self.zone().id,
+            self.id,
+            self.name,
+            self.record_type,
+            self.record_data,
+        )
 
 
 @dataclass(eq=False)

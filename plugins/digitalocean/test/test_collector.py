@@ -626,8 +626,8 @@ def test_collect_domains() -> None:
     check_edges(graph, "do:domain:do-plugin-test.resoto", "do:domain_record:300036132")
     domain_record = graph.search_first("urn", "do:domain_record:300035870")
     assert domain_record.urn == "do:domain_record:300035870"
+    assert domain_record.name == "@"
     assert domain_record.record_type == "SOA"
-    assert domain_record.record_name == "@"
     assert domain_record.record_data == "1800"
     assert domain_record.record_priority is None
     assert domain_record.record_port is None
