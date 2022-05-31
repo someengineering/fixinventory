@@ -43,7 +43,7 @@ async def test_merge_process(
             yield bytes(json.dumps(graph.nodes[node]), "utf-8")
         for from_node, to_node, data in graph.edges(data=True):
             yield bytes(json.dumps({"from": from_node, "to": to_node, "edge_type": data["edge_type"]}), "utf-8")
-        yield bytes(json.dumps({"from_selector": {"node_id": "id_123"}, "to_selector": {"node_id": "id_456"}}), "utf-8")
+        yield bytes(json.dumps({"from_selector": {"node_id": "id_123"}, "to_selector": {"node_id": "id_456"}, "edge_type": "delete"}), "utf-8")
 
     result = await merge_graph_process(
         graph_db, event_sender, config, iterator(), timedelta(seconds=30), None, TaskId("test_task_123")
@@ -52,4 +52,4 @@ async def test_merge_process(
     elem = graph_db.db.collection("deferred_outer_edges").all().next()
     assert elem["_key"] == "test_task_123"
     assert elem["task_id"] == "test_task_123"
-    assert elem["edges"][0] == {"from_node": "id_123", "to_node": "id_456"}
+    assert elem["edges"][0] == {"from_node": "id_123", "to_node": "id_456", "edge_type": "delete"}

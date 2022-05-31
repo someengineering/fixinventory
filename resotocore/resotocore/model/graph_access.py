@@ -111,6 +111,7 @@ NodeSelector = Union[str, SearchCriteria]
 class DeferredEdge:
     from_node: NodeSelector
     to_node: NodeSelector
+    edge_type: str
 
 
 class GraphBuilder:
@@ -141,9 +142,13 @@ class GraphBuilder:
                 elif "search_criterea" in js:
                     return from_js(js["search_criteria"], str)
                 else:
-                    raise AttributeError(f"edge selector no undersood! Got {json.dumps(js)}")
+                    raise AttributeError(f"can't parse edge selector! Got {json.dumps(js)}")
 
-            self.add_deferred_connection(parse_selector(js["from_selector"]), parse_selector(js["to_selector"]))
+            self.add_deferred_connection(
+                parse_selector(js["from_selector"]),
+                parse_selector(js["to_selector"]),
+                js.get("edge_type", EdgeType.default),
+            )
         else:
             raise AttributeError(f"Format not understood! Got {json.dumps(js)} which is neither vertex nor edge.")
 
@@ -184,8 +189,10 @@ class GraphBuilder:
         key = GraphAccess.edge_key(from_node, to_node, edge_type)
         self.graph.add_edge(from_node, to_node, key, edge_type=edge_type)
 
-    def add_deferred_connection(self, from_selector: NodeSelector, to_selector: NodeSelector) -> None:
-        self.deferred_edges.append(DeferredEdge(from_selector, to_selector))
+    def add_deferred_connection(
+        self, from_selector: NodeSelector, to_selector: NodeSelector, edge_type: EdgeType
+    ) -> None:
+        self.deferred_edges.append(DeferredEdge(from_selector, to_selector, edge_type))
 
     @staticmethod
     def content_hash(js: Json, desired: Optional[Json] = None, metadata: Optional[Json] = None) -> str:
