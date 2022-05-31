@@ -222,9 +222,7 @@ def test_ordinal():
 
 def test_sha256sum():
     test_string = b"Hello World!"
-    expected_sha256sum = (
-        "7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069"
-    )
+    expected_sha256sum = "7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069"
     with TemporaryDirectory() as tmp:
         tmp_file = f"{tmp}/testfile"
         with open(tmp_file, "wb") as f:

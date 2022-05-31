@@ -62,14 +62,8 @@ async def accept_websocket(
                     WSMsgType.CLOSED,
                 ):
                     break
-                elif (
-                    isinstance(msg, WSMessage)
-                    and msg.type == WSMsgType.TEXT
-                    and len(msg.data.strip()) > 0
-                ):
-                    log.debug(
-                        f"Incoming message: type={msg.type} data={msg.data} extra={msg.extra}"
-                    )
+                elif isinstance(msg, WSMessage) and msg.type == WSMsgType.TEXT and len(msg.data.strip()) > 0:
+                    log.debug(f"Incoming message: type={msg.type} data={msg.data} extra={msg.extra}")
                     await handle_incoming(msg.data)
         except Exception as ex:
             # do not allow any exception - it will destroy the async fiber and cleanup

@@ -38,9 +38,7 @@ def encode_jwt(
     return jwt.encode(payload, key, algorithm="HS256", headers=headers)
 
 
-def decode_jwt(
-    encoded_jwt: str, psk: str, options: Optional[Dict[str, Any]] = None
-) -> dict:
+def decode_jwt(encoded_jwt: str, psk: str, options: Optional[Dict[str, Any]] = None) -> dict:
     """Decode a JWT using a key derived from a pre-shared-key and a salt stored
     in the JWT headers.
     """
@@ -61,9 +59,7 @@ def encode_jwt_to_headers(
     """Takes a payload and psk turns them into a JWT and adds that to a http headers
     dictionary. Also returns that dict.
     """
-    http_headers.update(
-        {"Authorization": f"{scheme} {encode_jwt(payload, psk, headers, expire_in)}"}
-    )
+    http_headers.update({"Authorization": f"{scheme} {encode_jwt(payload, psk, headers, expire_in)}"})
     return http_headers
 
 
@@ -76,9 +72,7 @@ def decode_jwt_from_headers(
     """Retrieves the Authorization header from a http headers dictionary and
     passes it to `decode_jwt_from_header_value()` to return the decoded payload.
     """
-    authorization_header = {
-        str(k).capitalize(): v for k, v in http_headers.items()
-    }.get("Authorization")
+    authorization_header = {str(k).capitalize(): v for k, v in http_headers.items()}.get("Authorization")
     if authorization_header is None:
         return None
     return decode_jwt_from_header_value(authorization_header, psk, scheme, options)

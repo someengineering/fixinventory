@@ -75,9 +75,7 @@ def disabled_test_secure_web():
 
         free_port = get_free_port()
         print(f"Starting https webserver on port {free_port}")
-        web_server = WebServer(
-            WebApp(), web_port=free_port, ssl_cert=cert_crt_path, ssl_key=cert_key_path
-        )
+        web_server = WebServer(WebApp(), web_port=free_port, ssl_cert=cert_crt_path, ssl_key=cert_key_path)
         web_server.daemon = True
         web_server.start()
         start_time = time.time()
