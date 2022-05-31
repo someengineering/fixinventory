@@ -27,7 +27,8 @@ from resotolib.event import (
     Event,
     EventType,
 )
-from resotoworker.resotocore import send_to_resotocore
+from resotoworker.resotocore import Resotocore
+import requests
 
 
 # This will be used in main() and shutdown()
@@ -87,7 +88,17 @@ def main() -> None:
     plugin_loader.add_plugin_config(config)
     config.load_config()
 
-    collector = Collector(send_to_resotocore, config)
+    def send_request(request: requests.Request) -> requests.Response:
+        prepared = request.prepare()
+        s = requests.Session()
+        verify = None
+        if tls_data:
+            verify = tls_data.verify
+        return s.send(request=prepared, verify=verify)
+
+    core = Resotocore(send_request, config)
+
+    collector = Collector(core.send_to_resotocore, config)
 
     # Handle Ctrl+c and other means of termination/shutdown
     resotolib.proc.initializer()
@@ -125,7 +136,9 @@ def main() -> None:
                 "wait_for_completion": True,
             },
         },
-        message_processor=partial(core_actions_processor, plugin_loader, tls_data, collector),
+        message_processor=partial(
+            core_actions_processor, plugin_loader, tls_data, collector
+        ),
         tls_data=tls_data,
     )
 
@@ -177,7 +190,7 @@ def core_actions_processor(
         try:
             if message_type == "collect":
                 start_time = time.time()
-                collector.collect_and_send(collectors, tls_data=tls_data, task_id=task_id)
+                collector.collect_and_send(collectors, task_id=task_id)
                 run_time = int(time.time() - start_time)
                 log.info(f"Collect ran for {run_time} seconds")
             elif message_type == "cleanup":

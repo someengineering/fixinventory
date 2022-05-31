@@ -10,16 +10,13 @@ from resotolib.args import ArgumentParser
 from argparse import Namespace
 from typing import List, Optional, Callable
 from resotolib.config import Config, RunningConfig
-from resotolib.core.ca import TLSData
 
 TaskId = str
 
 
 class Collector:
     def __init__(
-        self,
-        send_to_resotocore: Callable[[Graph, TaskId, Optional[TLSData]], None],
-        config: Config
+        self, send_to_resotocore: Callable[[Graph, TaskId], None], config: Config
     ) -> None:
         self._send_to_resotocore = send_to_resotocore
         self._config = config
@@ -28,7 +25,6 @@ class Collector:
         self,
         collectors: List[BaseCollectorPlugin],
         task_id: str,
-        tls_data: Optional[TLSData] = None,
     ) -> None:
         def collect(collectors: List[BaseCollectorPlugin]) -> Graph:
             graph = Graph(root=GraphRoot("root", {}))
@@ -68,13 +64,15 @@ class Collector:
                 for future in futures.as_completed(wait_for):
                     cluster_graph = future.result()
                     if not isinstance(cluster_graph, Graph):
-                        log.error(f"Skipping invalid cluster_graph {type(cluster_graph)}")
+                        log.error(
+                            f"Skipping invalid cluster_graph {type(cluster_graph)}"
+                        )
                         continue
                     graph.merge(cluster_graph)
             sanitize(graph)
             return graph
 
-        self._send_to_resotocore(collect(collectors), task_id, tls_data=tls_data)
+        self._send_to_resotocore(collect(collectors), task_id)
 
 
 def collect_plugin_graph(
