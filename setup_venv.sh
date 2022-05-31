@@ -148,7 +148,7 @@ ensure_pip() {
     if ! python -m pip help > /dev/null 2>&1; then
         python -m ensurepip -q -U
     fi
-    pip install -q -U pip wheel
+    pip install -q -U pip wheel poetry
 }
 
 install_dev() {
