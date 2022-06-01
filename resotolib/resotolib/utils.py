@@ -796,7 +796,9 @@ def update_check(
     if current_version is None:
         current_version = component_version(package_name)
 
-    releases_uri = f"https://api.github.com/repos/{github_project}/releases"
+    # We are assuming that there is a stable release within the first 100 releases returned.
+    # If that is not the case need to implement paging.
+    releases_uri = f"https://api.github.com/repos/{github_project}/releases?per_page=100"
     headers = {"Accept": "application/vnd.github.v3+json"}
     releases_response = requests.get(releases_uri, headers=headers)
     if releases_response.status_code != 200:
@@ -812,9 +814,7 @@ def update_check(
             break
 
     if latest_version is None:
-        release_kind = ""
-        if no_prerelease:
-            release_kind = "stable "
+        release_kind = "stable " if no_prerelease else ""
         raise RuntimeError(f"Unable to find a {release_kind}release for {github_project}")
 
     # If the current version is equal or newer than the remote version return None
