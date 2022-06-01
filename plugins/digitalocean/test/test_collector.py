@@ -109,7 +109,7 @@ def test_collect_regions() -> None:
         "storage",
         "image_transfer",
     ]
-    droplet_sizes: List[str] = regions[1]["sizes"]  # type: ignore
+    droplet_sizes: List[str] = regions[1]["sizes"]
     assert set(region.do_region_droplet_sizes) == set(droplet_sizes)
     assert region.is_available is True
 
