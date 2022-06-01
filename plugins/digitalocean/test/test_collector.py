@@ -1,7 +1,7 @@
 from resoto_plugin_digitalocean.collector import DigitalOceanTeamCollector
 from resoto_plugin_digitalocean.resources import DigitalOceanTeam
 from resoto_plugin_digitalocean.client import StreamingWrapper
-from fixtures import (
+from .fixtures import (
     droplets,
     regions,
     volumes,
