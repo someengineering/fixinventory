@@ -22,9 +22,7 @@ from resotoshell.promptsession import (
 known_kinds = ["account", "instance", "instance_type", "network"]
 known_props = ["age", "instance_memory", "instance_status"]
 known_commands = [
-    CommandInfo(
-        "aggregate", source=False, args=[ArgInfo(None, True, value_hint="aggregate")]
-    ),
+    CommandInfo("aggregate", source=False, args=[ArgInfo(None, True, value_hint="aggregate")]),
     CommandInfo(
         "ancestors",
         args=[
@@ -37,9 +35,7 @@ known_commands = [
         "certificate",
         args={
             "create": [
-                ArgInfo(
-                    "--common-name", True, help_text="Common name like: example.com"
-                ),
+                ArgInfo("--common-name", True, help_text="Common name like: example.com"),
                 ArgInfo(
                     "--dns-names",
                     True,
@@ -58,19 +54,11 @@ known_commands = [
         args={
             "list": [],
             "set": [
-                ArgInfo(
-                    None, expects_value=True, help_text="<config_id> <key>=<value>"
-                ),
+                ArgInfo(None, expects_value=True, help_text="<config_id> <key>=<value>"),
             ],
-            "show": [
-                ArgInfo(
-                    None, expects_value=True, help_text="<config_id> e.g. resoto.core"
-                )
-            ],
+            "show": [ArgInfo(None, expects_value=True, help_text="<config_id> e.g. resoto.core")],
             "edit": [
-                ArgInfo(
-                    None, expects_value=True, help_text="<config_id> e.g. resoto.core"
-                ),
+                ArgInfo(None, expects_value=True, help_text="<config_id> e.g. resoto.core"),
             ],
             "update": [
                 ArgInfo(
@@ -80,9 +68,7 @@ known_commands = [
                 ),
             ],
             "delete": [
-                ArgInfo(
-                    None, expects_value=True, help_text="<config_id> e.g. resoto.core"
-                ),
+                ArgInfo(None, expects_value=True, help_text="<config_id> e.g. resoto.core"),
             ],
         },
     ),
@@ -162,9 +148,7 @@ def test_property() -> None:
         "desired",
         "metadata",
     }
-    assert len(complete("is(volume) and /ancestors.account.reported.", n)) >= len(
-        known_props
-    )
+    assert len(complete("is(volume) and /ancestors.account.reported.", n)) >= len(known_props)
     # /reported handling
     assert complete("/repo", n) == {"/reported."}
     assert len(complete("/reported.", n)) >= len(known_props)
@@ -198,9 +182,7 @@ def test_search() -> None:
     assert {">", "<", "=", "!=", ">=", "<="} <= complete("is(instance) or age ", n)
 
     # show possible operators for filter expression
-    assert complete("is(instance) or age >= ", n, True) == {
-        "like 123, test, 12days, true, false, null, [1,2,3], {a:1}"
-    }
+    assert complete("is(instance) or age >= ", n, True) == {"like 123, test, 12days, true, false, null, [1,2,3], {a:1}"}
 
     # suggest sort and limit after filter
     # show possible operators for filter expression
@@ -217,14 +199,10 @@ def test_search() -> None:
     assert "limit" in complete("is(instance) or age >= 12d sort foo asc ", n)
 
     # suggest traverse operators after limit
-    assert {"<--", "-->"} <= complete(
-        "is(instance) or age >= 12d sort foo limit 23, 12 ", n
-    )
+    assert {"<--", "-->"} <= complete("is(instance) or age >= 12d sort foo limit 23, 12 ", n)
 
     # suggest filter expression after traverse
-    assert {"is(", "all"} <= complete(
-        "is(instance) or age >= 12d sort foo limit 23, 12 --> ", n
-    )
+    assert {"is(", "all"} <= complete("is(instance) or age >= 12d sort foo limit 23, 12 --> ", n)
     assert {"is(", "all"} <= complete("(", n)
 
 
@@ -283,12 +261,8 @@ def test_complete_option() -> None:
         "delete",
     }
     assert complete("configs show ", n, True) == {"<config_id> e.g. resoto.core"}
-    assert complete("certificate create --common-name ", n, True) == {
-        "Common name like: example.com"
-    }
-    assert "--common-name" not in complete(
-        "certificate create --common-name example.com ", n
-    )
+    assert complete("certificate create --common-name ", n, True) == {"Common name like: example.com"}
+    assert "--common-name" not in complete("certificate create --common-name example.com ", n)
     assert complete("configs show ", n, True) == {"<config_id> e.g. resoto.core"}
     assert {"--markdown", "--csv"} <= complete("search all | list ", n)
     assert len(complete("search all | list ", n)) >= len(known_props)

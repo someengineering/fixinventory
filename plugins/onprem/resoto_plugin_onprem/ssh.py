@@ -58,10 +58,7 @@ def get_proc_meminfo(client: SSHClient):
     out, err = client_exec(client, cmd)
     if err:
         raise RuntimeError(f"Error while executing {cmd}: {err}")
-    meminfo = {
-        i[0].rstrip(":"): int(i[1])
-        for i in [line.split() for line in str(out).splitlines()]
-    }
+    meminfo = {i[0].rstrip(":"): int(i[1]) for i in [line.split() for line in str(out).splitlines()]}
     return meminfo
 
 

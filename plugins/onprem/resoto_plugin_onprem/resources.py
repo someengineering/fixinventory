@@ -55,9 +55,7 @@ class OnpremInstance(OnpremResource, BaseInstance):
     }
 
     def _instance_status_setter(self, value: str) -> None:
-        self._instance_status = self.instance_status_map.get(
-            value, InstanceStatus.UNKNOWN
-        )
+        self._instance_status = self.instance_status_map.get(value, InstanceStatus.UNKNOWN)
 
 
 OnpremInstance.instance_status = property(

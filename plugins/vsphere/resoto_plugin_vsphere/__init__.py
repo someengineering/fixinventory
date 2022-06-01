@@ -59,9 +59,7 @@ class VSphereCollectorPlugin(BaseCollectorPlugin):
         container = content.rootFolder  # starting point to look into
         view_type = [vim.VirtualMachine]  # object types to look for
         recursive = True  # whether we should look into it recursively
-        container_view = content.viewManager.CreateContainerView(
-            container, view_type, recursive
-        )
+        container_view = content.viewManager.CreateContainerView(container, view_type, recursive)
 
         vms = container_view.view
 

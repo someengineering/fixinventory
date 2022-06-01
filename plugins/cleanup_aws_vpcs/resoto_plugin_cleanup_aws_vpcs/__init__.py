@@ -60,15 +60,8 @@ class CleanupAWSVPCsPlugin(BaseActionPlugin):
             )
 
             if self.config and len(self.config) > 0:
-                if (
-                    cloud.id not in self.config
-                    or account.id not in self.config[cloud.id]
-                ):
-                    log.debug(
-                        (
-                            f"{log_prefix} Account not found in config - ignoring dependent resources."
-                        )
-                    )
+                if cloud.id not in self.config or account.id not in self.config[cloud.id]:
+                    log.debug((f"{log_prefix} Account not found in config - ignoring dependent resources."))
                     continue
 
             vpc_instances = [
@@ -113,9 +106,7 @@ class CleanupAWSVPCsPlugin(BaseActionPlugin):
                             f"which is set to be cleaned"
                         )
                     )
-                    node.log(
-                        f"Marking {descendant.rtdname} for cleanup because resource is a descendant"
-                    )
+                    node.log(f"Marking {descendant.rtdname} for cleanup because resource is a descendant")
                     descendant.clean = True
                 else:
                     if descendant.clean:

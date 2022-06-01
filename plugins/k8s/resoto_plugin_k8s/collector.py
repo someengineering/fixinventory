@@ -26,9 +26,7 @@ class KubernetesCollector:
     containing all K8S resources.
     """
 
-    def __init__(
-        self, cluster: KubernetesCluster, cluster_config: client.Configuration
-    ) -> None:
+    def __init__(self, cluster: KubernetesCluster, cluster_config: client.Configuration) -> None:
         """
         Args:
             cluster: The K8S cluster resource object this cluster collector
@@ -51,12 +49,7 @@ class KubernetesCollector:
             collectors = collectors - set(Config.k8s.no_collect)
         collectors = collectors.union(set(mandatory_collectors.keys()))
 
-        log.debug(
-            (
-                f"Running the following collectors in {self.cluster.rtdname}:"
-                f" {', '.join(collectors)}"
-            )
-        )
+        log.debug((f"Running the following collectors in {self.cluster.rtdname}:" f" {', '.join(collectors)}"))
         for collector_name, collector in mandatory_collectors.items():
             if collector_name in collectors:
                 log.info(f"Collecting {collector_name} in {self.cluster.rtdname}")

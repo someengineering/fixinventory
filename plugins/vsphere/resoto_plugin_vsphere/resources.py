@@ -58,9 +58,7 @@ class VSphereInstance(BaseInstance, VSphereResource):
         if self._vm() is None:
             log.error(f"could not find vm name {self.name} with id {self.id}")
 
-        log.debug(
-            f"Deleting resource {self.id} in account {self.account(graph).id} region {self.region(graph).id}"
-        )
+        log.debug(f"Deleting resource {self.id} in account {self.account(graph).id} region {self.region(graph).id}")
 
         if self._vm().runtime.powerState == "poweredOn":
             task = self._vm().PowerOffVM_Task()
@@ -84,9 +82,7 @@ class VSphereInstance(BaseInstance, VSphereResource):
         return True
 
     def _instance_status_setter(self, value: str) -> None:
-        self._instance_status = self.instance_status_map.get(
-            value, InstanceStatus.UNKNOWN
-        )
+        self._instance_status = self.instance_status_map.get(value, InstanceStatus.UNKNOWN)
 
 
 VSphereInstance.instance_status = property(

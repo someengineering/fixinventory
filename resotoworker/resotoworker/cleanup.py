@@ -44,12 +44,7 @@ class Cleaner:
     @metrics_cleanup.time()
     def cleanup(self) -> None:
         if not Config.resotoworker.cleanup:
-            log.debug(
-                (
-                    "Cleanup called but resotoworker.cleanup not configured"
-                    " - ignoring call"
-                )
-            )
+            log.debug(("Cleanup called but resotoworker.cleanup not configured" " - ignoring call"))
             return
 
         log.info("Running cleanup")
@@ -80,9 +75,7 @@ class Cleaner:
         log.debug(f"Running parallel cleanup on {len(cleanup_nodes)} nodes")
         parallel_pass_num = 1
         for nodes in dependent_node_iterator(delete_graph):
-            log.debug(
-                f"Cleaning {len(nodes)} nodes in {ordinal(parallel_pass_num)} pass"
-            )
+            log.debug(f"Cleaning {len(nodes)} nodes in {ordinal(parallel_pass_num)} pass")
             with ThreadPoolExecutor(
                 max_workers=Config.resotoworker.cleanup_pool_size,
                 thread_name_prefix="cleaner",
@@ -96,34 +89,23 @@ class Cleaner:
 
         log_prefix = f"Resource {node.rtdname} is marked for removal"
         if Config.resotoworker.cleanup_dry_run:
-            log.info(
-                f"{log_prefix}, not calling pre cleanup method because of dry run flag"
-            )
+            log.info(f"{log_prefix}, not calling pre cleanup method because of dry run flag")
             return
 
         log.info(f"{log_prefix}, calling pre cleanup method")
         try:
             node.pre_cleanup(self.graph)
         except Exception:
-            log.exception(
-                (
-                    "An exception occurred when running resource pre cleanup on"
-                    f" {node.rtdname}"
-                )
-            )
+            log.exception(("An exception occurred when running resource pre cleanup on" f" {node.rtdname}"))
 
     def clean(self, node: BaseResource) -> None:
         log_prefix = f"Resource {node.rtdname} is marked for removal"
         if Config.resotoworker.cleanup_dry_run:
-            log.info(
-                f"{log_prefix}, not calling cleanup method because of dry run flag"
-            )
+            log.info(f"{log_prefix}, not calling cleanup method because of dry run flag")
             return
 
         log.info(f"{log_prefix}, calling cleanup method")
         try:
             node.cleanup(self.graph)
         except Exception:
-            log.exception(
-                f"An exception occurred when running resource cleanup on {node.rtdname}"
-            )
+            log.exception(f"An exception occurred when running resource cleanup on {node.rtdname}")

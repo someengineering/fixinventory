@@ -41,16 +41,10 @@ class CleanupAWSAlarmsPlugin(BaseActionPlugin):
             cloud = node.cloud(graph)
             account = node.account(graph)
             region = node.region(graph)
-            log_prefix = (
-                f"Found {node.rtdname} in cloud {cloud.name} account {account.dname} "
-                f"region {region.name}."
-            )
+            log_prefix = f"Found {node.rtdname} in cloud {cloud.name} account {account.dname} " f"region {region.name}."
 
             if len(self.config) > 0:
-                if (
-                    cloud.id not in self.config
-                    or account.id not in self.config[cloud.id]
-                ):
+                if cloud.id not in self.config or account.id not in self.config[cloud.id]:
                     log.debug((f"{log_prefix} Account not found in config - ignoring."))
                     continue
 
@@ -60,12 +54,8 @@ class CleanupAWSAlarmsPlugin(BaseActionPlugin):
             for dimension in node.dimensions:
                 if dimension.get("Name") == "InstanceId":
                     instance_id = dimension.get("Value")
-                    i = graph.search_first_all(
-                        {"kind": "aws_ec2_instance", "id": instance_id}
-                    )
-                    if isinstance(i, AWSEC2Instance) and i.instance_status not in (
-                        "terminated"
-                    ):
+                    i = graph.search_first_all({"kind": "aws_ec2_instance", "id": instance_id})
+                    if isinstance(i, AWSEC2Instance) and i.instance_status not in ("terminated"):
                         should_clean = False
                         break
                     else:

@@ -24,9 +24,7 @@ def validate_paths(required: Dict[str, str]) -> Dict[str, str]:
         if not os.path.isfile(path):
             raise AttributeError(f"Path is not a file: {path}")
         if is_protected_file(path):
-            raise AttributeError(
-                f"Not allowed to upload {path}. This path is protected."
-            )
+            raise AttributeError(f"Not allowed to upload {path}. This path is protected.")
         result[name] = path
     return result
 

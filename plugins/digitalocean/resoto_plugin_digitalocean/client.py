@@ -57,25 +57,17 @@ class StreamingWrapper:
         url = response.request.url
         method = response.request.method
         if status_code == 429:
-            raise RetryableHttpError(
-                f"Too many requests: {method} {url} {response.reason} {response.text}"
-            )
+            raise RetryableHttpError(f"Too many requests: {method} {url} {response.reason} {response.text}")
         if status_code // 100 == 5:
-            raise RetryableHttpError(
-                f"Server error: {method} {url} {response.reason} {response.text}"
-            )
+            raise RetryableHttpError(f"Server error: {method} {url} {response.reason} {response.text}")
         if status_code // 100 == 4:
-            log.warning(
-                f"Client error: {method} {url} {response.reason} {response.text}"
-            )
+            log.warning(f"Client error: {method} {url} {response.reason} {response.text}")
             return False
         if status_code // 100 == 2:
             log.debug(f"Success: {method} {url}")
             return True
 
-        log.warning(
-            f"unknown status code {status_code}: {method} {url} {response.reason} {response.text}"
-        )
+        log.warning(f"unknown status code {status_code}: {method} {url} {response.reason} {response.text}")
         return False
 
     @retry
@@ -87,18 +79,12 @@ class StreamingWrapper:
 
         def validate_status(response: requests.Response) -> requests.Response:
             if response.status_code == 429:
-                raise RetryableHttpError(
-                    f"Too many requests: {response.reason} {response.text}"
-                )
+                raise RetryableHttpError(f"Too many requests: {response.reason} {response.text}")
             if response.status_code / 100 == 5:
-                raise RetryableHttpError(
-                    f"Server error: {response.reason} {response.text}"
-                )
+                raise RetryableHttpError(f"Server error: {response.reason} {response.text}")
             return response
 
-        json_response = validate_status(
-            requests.get(url, headers=self.headers, allow_redirects=True)
-        ).json()
+        json_response = validate_status(requests.get(url, headers=self.headers, allow_redirects=True)).json()
         payload = json_response.get(payload_object_name, [])
         result.extend(payload if isinstance(payload, list) else [payload])
 
@@ -107,9 +93,7 @@ class StreamingWrapper:
             if url == "":
                 break
             log.debug(f"fetching {url}")
-            json_response = validate_status(
-                requests.get(url, headers=self.headers, allow_redirects=True)
-            ).json()
+            json_response = validate_status(requests.get(url, headers=self.headers, allow_redirects=True)).json()
             payload = json_response.get(payload_object_name, [])
             result.extend(payload if isinstance(payload, list) else [payload])
 
@@ -126,19 +110,13 @@ class StreamingWrapper:
 
         status_code = response.status_code
         if status_code == 429:
-            raise RetryableHttpError(
-                f"Too many requests: {url} {response.reason} {response.text}"
-            )
+            raise RetryableHttpError(f"Too many requests: {url} {response.reason} {response.text}")
         if status_code // 100 == 5:
-            raise RetryableHttpError(
-                f"Server error: {url} {response.reason} {response.text}"
-            )
+            raise RetryableHttpError(f"Server error: {url} {response.reason} {response.text}")
         if status_code == 422 and path == "/floating_ips":
             is_being_unassighed = "The floating IP already has a pending event."
             if response.json().get("message") == is_being_unassighed:
-                raise RetryableHttpError(
-                    f"floating_ip: {url} {response.reason} {response.text}"
-                )
+                raise RetryableHttpError(f"floating_ip: {url} {response.reason} {response.text}")
         if status_code // 100 == 4:
             log.warning(f"Client error: DELETE {url} {response.reason} {response.text}")
             return False
@@ -146,9 +124,7 @@ class StreamingWrapper:
             log.debug(f"deleted: {url}")
             return True
 
-        log.warning(
-            f"unknown status code {status_code}: {url} {response.reason} {response.text}"
-        )
+        log.warning(f"unknown status code {status_code}: {url} {response.reason} {response.text}")
         return False
 
     def get_team_id(self) -> str:
@@ -212,18 +188,14 @@ class StreamingWrapper:
                     aws_secret_access_key=self.spaces_secret_key,
                 )
 
-                buckets: List[Json] = resource.meta.client.list_buckets().get(
-                    "Buckets", []
-                )
+                buckets: List[Json] = resource.meta.client.list_buckets().get("Buckets", [])
                 return buckets
             except HTTPClientError:
                 raise RetryableHttpError("DO Spaces: Too many requests")
             except EndpointConnectionError:
                 return []
             except Exception as e:
-                log.warning(
-                    f"Unknown exception when listing spaces, skipping. Exception: {e}"
-                )
+                log.warning(f"Unknown exception when listing spaces, skipping. Exception: {e}")
                 return []
         else:
             return []
@@ -244,9 +216,7 @@ class StreamingWrapper:
                     if not isinstance(result, list):
                         result = [result]
                     for message in result:
-                        status_code = message.get("ResponseMetadata", {}).get(
-                            "HTTPStatusCode"
-                        )
+                        status_code = message.get("ResponseMetadata", {}).get("HTTPStatusCode")
                         if status_code // 100 == 5:
                             raise RetryableHttpError(
                                 f"Server error: region: {region_slug}, bucket: {bucket_name}, msg: {message}"
@@ -256,9 +226,7 @@ class StreamingWrapper:
                                 f"Too many requests: {region_slug}, bucket: {bucket_name}, msg: {message}"
                             )
                         if status_code // 100 == 4:
-                            log.warning(
-                                f"Client error: region: {region_slug}, bucket: {bucket_name}, msg: {message}"
-                            )
+                            log.warning(f"Client error: region: {region_slug}, bucket: {bucket_name}, msg: {message}")
                             return False
                     return True
 
@@ -279,9 +247,7 @@ class StreamingWrapper:
             except RetryableHttpError as e:
                 raise e
             except Exception as e:
-                log.warning(
-                    f"Unknown exception when deleting space, skipping. Exception: {e}"
-                )
+                log.warning(f"Unknown exception when deleting space, skipping. Exception: {e}")
                 return False
         else:
             return False
@@ -301,12 +267,8 @@ class StreamingWrapper:
     def list_registry_repositories(self, registry_id: str) -> List[Json]:
         return self._fetch(f"/registry/{registry_id}/repositoriesV2", "repositories")
 
-    def list_registry_repository_tags(
-        self, registry_id: str, repository_name: str
-    ) -> List[Json]:
-        return self._fetch(
-            f"/registry/{registry_id}/repositories/{repository_name}/tags", "tags"
-        )
+    def list_registry_repository_tags(self, registry_id: str, repository_name: str) -> List[Json]:
+        return self._fetch(f"/registry/{registry_id}/repositories/{repository_name}/tags", "tags")
 
     def list_ssh_keys(self) -> List[Json]:
         return self._fetch("/account/keys", "ssh_keys")
@@ -321,13 +283,7 @@ class StreamingWrapper:
         if response.status_code == 404:
             return None
         if self.check_status_code(response):
-            count: int = (
-                response.json()
-                .get("tag", {})
-                .get("tag", {})
-                .get("resources", {})
-                .get("count", 0)
-            )
+            count: int = response.json().get("tag", {}).get("tag", {}).get("resources", {}).get("count", 0)
             return count
         return (
             f"get_tag_count call failed: status {response.status_code}, "
@@ -343,32 +299,20 @@ class StreamingWrapper:
     @retry
     def tag_resource(self, tag_name: str, resource_type: str, resource_id: str) -> bool:
         url = f"{self.do_api_endpoint}/tags/{tag_name}/resources"
-        payload = {
-            "resources": [{"resource_id": resource_id, "resource_type": resource_type}]
-        }
-        response = requests.post(
-            url, headers=self.headers, json=payload, allow_redirects=True
-        )
+        payload = {"resources": [{"resource_id": resource_id, "resource_type": resource_type}]}
+        response = requests.post(url, headers=self.headers, json=payload, allow_redirects=True)
 
         return self.check_status_code(response)
 
     @retry
-    def untag_resource(
-        self, tag_name: str, resource_type: str, resource_id: str
-    ) -> bool:
+    def untag_resource(self, tag_name: str, resource_type: str, resource_id: str) -> bool:
         url = f"{self.do_api_endpoint}/tags/{tag_name}/resources"
-        payload = {
-            "resources": [{"resource_id": resource_id, "resource_type": resource_type}]
-        }
+        payload = {"resources": [{"resource_id": resource_id, "resource_type": resource_type}]}
 
-        response = requests.delete(
-            url, headers=self.headers, json=payload, allow_redirects=True
-        )
+        response = requests.delete(url, headers=self.headers, json=payload, allow_redirects=True)
 
         if response.status_code == 404:
-            raise RuntimeError(
-                f"Tag {tag_name} or {resource_type} {resource_id} not found."
-            )
+            raise RuntimeError(f"Tag {tag_name} or {resource_type} {resource_id} not found.")
         return self.check_status_code(response)
 
     def list_domains(self) -> List[Json]:
@@ -408,8 +352,6 @@ def get_team_credentials(team_id: TeamId) -> Optional[TeamCredentials]:
         client = StreamingWrapper(token, spaces_access_key, spaces_secret_key)
         token_team_id = client.get_team_id()
         if token_team_id == team_id:
-            return TeamCredentials(
-                token_team_id, token, spaces_access_key, spaces_secret_key
-            )
+            return TeamCredentials(token_team_id, token, spaces_access_key, spaces_secret_key)
 
     return None

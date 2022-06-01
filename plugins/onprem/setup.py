@@ -17,9 +17,7 @@ setup(
     packages=find_packages(),
     long_description=read("README.md"),
     long_description_content_type="text/markdown",
-    entry_points={
-        "resoto.plugins": ["onprem = resoto_plugin_onprem:OnpremCollectorPlugin"]
-    },
+    entry_points={"resoto.plugins": ["onprem = resoto_plugin_onprem:OnpremCollectorPlugin"]},
     include_package_data=True,
     zip_safe=False,
     install_requires=requirements,

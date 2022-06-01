@@ -70,9 +70,7 @@ class TagValidatorConfig:
         for cloud_id, account in config["accounts"].items():
             for account_id, account_data in account.items():
                 if "name" not in account_data:
-                    raise ValueError(
-                        f"Missing 'name' for account '{cloud_id}/{account_id}"
-                    )
+                    raise ValueError(f"Missing 'name' for account '{cloud_id}/{account_id}")
                 if "expiration" in account_data:
                     account_data["expiration"] = parse_delta(account_data["expiration"])
                 else:

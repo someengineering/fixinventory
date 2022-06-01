@@ -23,9 +23,7 @@ def main() -> None:
 
 
 def add_args(arg_parser: ArgumentParser) -> None:
-    arg_parser.add_argument(
-        "--aws-access-key-id", help="AWS Access Key ID", dest="aws_access_key_id"
-    )
+    arg_parser.add_argument("--aws-access-key-id", help="AWS Access Key ID", dest="aws_access_key_id")
     arg_parser.add_argument(
         "--aws-secret-access-key",
         help="AWS Secret Access Key",

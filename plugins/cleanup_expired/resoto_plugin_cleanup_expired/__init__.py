@@ -17,11 +17,7 @@ class CleanupExpiredPlugin(BaseActionPlugin):
         cg = CoreGraph(tls_data=self.tls_data)
         command = 'query /metadata.expires < "@NOW@" | clean "Resource is expired"'
         for response in cg.execute(command):
-            if (
-                isinstance(response, Dict)
-                and "type" in response
-                and response["type"] == "node"
-            ):
+            if isinstance(response, Dict) and "type" in response and response["type"] == "node":
                 reported = response.get("reported", {})
                 kind = reported.get("kind")
                 node_id = reported.get("id")

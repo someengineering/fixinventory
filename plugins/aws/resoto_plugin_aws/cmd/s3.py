@@ -76,10 +76,7 @@ def add_args(arg_parser: ArgumentParser) -> None:
         cli_history_default = str(default_history_file)
     arg_parser.add_argument(
         "--aws-s3-cli-history",
-        help=(
-            "Path to AWS S3 CLI history file"
-            " (default: None or ~/.resoto_s3_history if exists)"
-        ),
+        help=("Path to AWS S3 CLI history file" " (default: None or ~/.resoto_s3_history if exists)"),
         dest="aws_s3_cli_history",
         type=str,
         default=cli_history_default,
@@ -125,15 +122,12 @@ class BucketObject(Base):
     mtime = Column(DateTime, index=True)
 
     def __repr__(self):
-        return (
-            "<BucketObject(account= '%s', bucket_name='%s', name='%s', size='%s', mtime='%s')>"
-            % (
-                self.account,
-                self.bucket_name,
-                self.name,
-                self.size,
-                self.mtime,
-            )
+        return "<BucketObject(account= '%s', bucket_name='%s', name='%s', size='%s', mtime='%s')>" % (
+            self.account,
+            self.bucket_name,
+            self.name,
+            self.size,
+            self.mtime,
         )
 
 
@@ -189,16 +183,12 @@ def collect():
                     try:
                         collect_bucket(account, bucket.name)
                     except Exception:
-                        log.exception(
-                            f"Failed to collect bucket {bucket.name} in {account.rtdname}"
-                        )
+                        log.exception(f"Failed to collect bucket {bucket.name} in {account.rtdname}")
         else:
             try:
                 collect_bucket(account, ArgumentParser.args.aws_s3_bucket)
             except Exception:
-                log.exception(
-                    f"Failed to collect bucket {ArgumentParser.args.aws_s3_bucket} in {account.rtdname}"
-                )
+                log.exception(f"Failed to collect bucket {ArgumentParser.args.aws_s3_bucket} in {account.rtdname}")
 
 
 def collect_bucket(account: AWSAccount, bucket_name):
@@ -206,18 +196,14 @@ def collect_bucket(account: AWSAccount, bucket_name):
     s3 = session.resource("s3")
     dbs = Session()
 
-    log.info(
-        f"Collecting all objects in AWS S3 bucket {bucket_name} in {account.rtdname}"
-    )
+    log.info(f"Collecting all objects in AWS S3 bucket {bucket_name} in {account.rtdname}")
     bucket = s3.Bucket(bucket_name)
     for bucket_object in bucket.objects.all():
         # TODO: this could be highly optimized via batching
         if (
             not ArgumentParser.args.aws_s3_skip_checks
             and dbs.query(BucketObject)
-            .filter_by(
-                account=account.id, bucket_name=bucket_name, name=bucket_object.key
-            )
+            .filter_by(account=account.id, bucket_name=bucket_name, name=bucket_object.key)
             .scalar()
             is not None
         ):
@@ -249,10 +235,7 @@ def collect_buckets(account: AWSAccount):
 
         if (
             not ArgumentParser.args.aws_s3_skip_checks
-            and dbs.query(Bucket)
-            .filter_by(account=account.id, name=bucket_name)
-            .scalar()
-            is not None
+            and dbs.query(Bucket).filter_by(account=account.id, name=bucket_name).scalar() is not None
         ):
             continue
 
@@ -288,10 +271,7 @@ def get_accounts():
         log.error("Failed to authenticate")
         return []
 
-    if (
-        ArgumentParser.args.aws_assume_current
-        and not ArgumentParser.args.aws_dont_scrape_current
-    ):
+    if ArgumentParser.args.aws_assume_current and not ArgumentParser.args.aws_dont_scrape_current:
         log.warning(
             "You specified --aws-assume-current but not --aws-dont-scrape-current! "
             "This will result in the same account being scraped twice and is likely not what you want."
@@ -300,9 +280,7 @@ def get_accounts():
     if ArgumentParser.args.aws_role and ArgumentParser.args.aws_scrape_org:
         accounts = [
             AWSAccount(aws_account_id, {}, role=ArgumentParser.args.aws_role)
-            for aws_account_id in get_org_accounts(
-                filter_current_account=not ArgumentParser.args.aws_assume_current
-            )
+            for aws_account_id in get_org_accounts(filter_current_account=not ArgumentParser.args.aws_assume_current)
             if aws_account_id not in ArgumentParser.args.aws_scrape_exclude_account
         ]
         if not ArgumentParser.args.aws_dont_scrape_current:
@@ -466,30 +444,20 @@ and chain multipe commands using the semicolon (;).
         yield f"{'type':<8} {'size':>10} {'modification date':>22} {'name':>40}"
         if account is None:
             for result in list_accounts(self.dbs, order_by=order_by):
-                yield self.fprint_result(
-                    "account", result.size, result.mtime, result.dname
-                )
+                yield self.fprint_result("account", result.size, result.mtime, result.dname)
         elif bucket is None:
             for result in list_buckets(self.dbs, account, order_by=order_by):
-                yield self.fprint_result(
-                    "bucket", result.size, result.mtime, result.dname
-                )
+                yield self.fprint_result("bucket", result.size, result.mtime, result.dname)
         else:
-            for result in list_directories(
-                self.dbs, account, bucket, s3object, order_by=order_by
-            ):
+            for result in list_directories(self.dbs, account, bucket, s3object, order_by=order_by):
                 if result.dname == "":
                     directory = "."
                 else:
                     directory = result.dname
                 yield self.fprint_result("dir", result.size, result.mtime, directory)
-            for result in list_objects(
-                self.dbs, account, bucket, s3object, order_by=order_by
-            ):
+            for result in list_objects(self.dbs, account, bucket, s3object, order_by=order_by):
                 if len(result.dname) > 0:
-                    yield self.fprint_result(
-                        "file", result.size, result.mtime, result.dname
-                    )
+                    yield self.fprint_result("file", result.size, result.mtime, result.dname)
 
     @staticmethod
     def fprint_result(obj_type, obj_size, obj_date, obj_name):

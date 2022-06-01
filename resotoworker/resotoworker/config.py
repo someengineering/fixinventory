@@ -18,16 +18,10 @@ class ResotoWorkerConfig:
     )
     graph: Optional[str] = field(
         default="resoto",
-        metadata={
-            "description": "Name of the graph to import data into and run searches on"
-        },
+        metadata={"description": "Name of the graph to import data into and run searches on"},
     )
-    timeout: Optional[int] = field(
-        default=10800, metadata={"description": "Collection/cleanup timeout in seconds"}
-    )
-    pool_size: Optional[int] = field(
-        default=5, metadata={"description": "Collector thread/process pool size"}
-    )
+    timeout: Optional[int] = field(default=10800, metadata={"description": "Collection/cleanup timeout in seconds"})
+    pool_size: Optional[int] = field(default=5, metadata={"description": "Collector thread/process pool size"})
     fork_process: Optional[bool] = field(
         default=True, metadata={"description": "Use forked process instead of threads"}
     )
@@ -38,21 +32,15 @@ class ResotoWorkerConfig:
     debug_dump_json: Optional[bool] = field(
         default=False, metadata={"description": "Dump the generated JSON data to disk"}
     )
-    tempdir: Optional[str] = field(
-        default=None, metadata={"description": "Directory to create temporary files in"}
-    )
-    cleanup: Optional[bool] = field(
-        default=False, metadata={"description": "Enable cleanup of resources"}
-    )
+    tempdir: Optional[str] = field(default=None, metadata={"description": "Directory to create temporary files in"})
+    cleanup: Optional[bool] = field(default=False, metadata={"description": "Enable cleanup of resources"})
     cleanup_pool_size: Optional[int] = field(
         default_factory=lambda: num_default_threads() * 2,
         metadata={"description": "How many cleanup threads to run in parallel"},
     )
     cleanup_dry_run: Optional[bool] = field(
         default=True,
-        metadata={
-            "description": "Do not actually cleanup resources, just create log messages"
-        },
+        metadata={"description": "Do not actually cleanup resources, just create log messages"},
     )
     web_host: Optional[str] = field(
         default="::",
