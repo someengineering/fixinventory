@@ -73,8 +73,9 @@ class NoEventSender(AnalyticsEventSender):
     async def capture(self, event: AnalyticsEvent) -> None:
         log.debug(event)
 
-    async def stop(self) -> None:
+    async def start(self) -> AnalyticsEventSender:
         log.info("Analytics has been turned off. No insights can be created.")
+        return self
 
 
 class InMemoryEventSender(AnalyticsEventSender):

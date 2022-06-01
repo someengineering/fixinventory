@@ -7,11 +7,13 @@ import os
 import gc as garbage_collector
 import sys
 import random
+import pkg_resources
 
 if sys.platform == "linux":
     import resource
 import time
 import json
+import requests
 from resotolib.logger import log
 from functools import wraps
 from tarfile import TarFile, TarInfo
@@ -129,16 +131,12 @@ class _LightSwitch:
 
 
 def rnd_str(str_len: int = 10) -> str:
-    return "".join(
-        random.choice(string.ascii_uppercase + string.digits) for _ in range(str_len)
-    )
+    return "".join(random.choice(string.ascii_uppercase + string.digits) for _ in range(str_len))
 
 
 def make_valid_timestamp(timestamp: datetime) -> Optional[datetime]:
     if not isinstance(timestamp, datetime) and isinstance(timestamp, date):
-        timestamp = datetime.combine(timestamp, datetime.min.time()).replace(
-            tzinfo=timezone.utc
-        )
+        timestamp = datetime.combine(timestamp, datetime.min.time()).replace(tzinfo=timezone.utc)
     elif isinstance(timestamp, datetime) and timestamp.tzinfo is None:
         timestamp = timestamp.replace(tzinfo=timezone.utc)
     elif isinstance(timestamp, datetime):
@@ -293,41 +291,20 @@ def get_stats(graph=None) -> Dict:
         if sys.platform == "linux":
             stats.update(
                 {
-                    "maxrss_parent_bytes": resource.getrusage(
-                        resource.RUSAGE_SELF
-                    ).ru_maxrss
-                    * 1024,
-                    "maxrss_children_bytes": resource.getrusage(
-                        resource.RUSAGE_CHILDREN
-                    ).ru_maxrss
-                    * 1024,
+                    "maxrss_parent_bytes": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024,
+                    "maxrss_children_bytes": resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss * 1024,
                 }
             )
         else:
             stats.update({"maxrss_parent_bytes": 0, "maxrss_children_bytes": 0})
-        stats["maxrss_total_bytes"] = (
-            stats["maxrss_parent_bytes"] + stats["maxrss_children_bytes"]
-        )
-        num_fds_parent = (
-            stats["process"].get("parent", {}).get("num_file_descriptors", 0)
-        )
-        num_fds_children = sum(
-            [
-                v["num_file_descriptors"]
-                for v in stats["process"].get("children", {}).values()
-            ]
-        )
+        stats["maxrss_total_bytes"] = stats["maxrss_parent_bytes"] + stats["maxrss_children_bytes"]
+        num_fds_parent = stats["process"].get("parent", {}).get("num_file_descriptors", 0)
+        num_fds_children = sum([v["num_file_descriptors"] for v in stats["process"].get("children", {}).values()])
         stats.update(
             {
-                "maxrss_parent_human_readable": iec_size_format(
-                    stats["maxrss_parent_bytes"]
-                ),
-                "maxrss_children_human_readable": iec_size_format(
-                    stats["maxrss_children_bytes"]
-                ),
-                "maxrss_total_human_readable": iec_size_format(
-                    stats["maxrss_total_bytes"]
-                ),
+                "maxrss_parent_human_readable": iec_size_format(stats["maxrss_parent_bytes"]),
+                "maxrss_children_human_readable": iec_size_format(stats["maxrss_children_bytes"]),
+                "maxrss_total_human_readable": iec_size_format(stats["maxrss_total_bytes"]),
                 "num_fds_parent": num_fds_parent,
                 "num_fds_children": num_fds_children,
                 "num_fds_total": num_fds_parent + num_fds_children,
@@ -348,17 +325,11 @@ def get_all_process_info(pid: int = None, proc: str = "/proc") -> Dict:
     process_info = {}
     process_info["parent"] = get_process_info(pid)
     process_info["parent"]["file_descriptors"] = get_file_descriptor_info(pid, proc)
-    process_info["parent"]["num_file_descriptors"] = len(
-        process_info["parent"]["file_descriptors"]
-    )
+    process_info["parent"]["num_file_descriptors"] = len(process_info["parent"]["file_descriptors"])
     process_info["children"] = get_child_process_info(pid, proc)
     for pid in process_info["children"]:
-        process_info["children"][pid]["file_descriptors"] = get_file_descriptor_info(
-            pid, proc
-        )
-        process_info["children"][pid]["num_file_descriptors"] = len(
-            process_info["children"][pid]["file_descriptors"]
-        )
+        process_info["children"][pid]["file_descriptors"] = get_file_descriptor_info(pid, proc)
+        process_info["children"][pid]["num_file_descriptors"] = len(process_info["children"][pid]["file_descriptors"])
     return process_info
 
 
@@ -401,9 +372,7 @@ def get_process_info(pid: int = None, proc: str = "/proc") -> Dict:
                 v = re.sub("[ \t]+", " ", v.strip())
                 process_info[k.lower()] = v
         for limit_name in ("NOFILE", "NPROC"):
-            process_info[f"RLIMIT_{limit_name}".lower()] = resource.getrlimit(
-                getattr(resource, f"RLIMIT_{limit_name}")
-            )
+            process_info[f"RLIMIT_{limit_name}".lower()] = resource.getrlimit(getattr(resource, f"RLIMIT_{limit_name}"))
     except (PermissionError, FileNotFoundError):
         pass
     return process_info
@@ -500,9 +469,7 @@ def log_runtime(f):
         kwargs_str = ", ".join([f"{k}={repr(v)}" for k, v in kwargs.items()])
         if len(args) > 0 and len(kwargs) > 0:
             args_str += ", "
-        log.debug(
-            f"Runtime of {f.__name__}({args_str}{kwargs_str}): {runtime:.3f} seconds"
-        )
+        log.debug(f"Runtime of {f.__name__}({args_str}{kwargs_str}): {runtime:.3f} seconds")
         return ret
 
     return timer
@@ -524,9 +491,7 @@ def except_log_and_pass(do_raise: Optional[Tuple] = None):
                 kwargs_str = ", ".join([f"{k}={repr(v)}" for k, v in kwargs.items()])
                 if len(args) > 0 and len(kwargs) > 0:
                     args_str += ", "
-                log.exception(
-                    f"Caught exception in {f.__name__}({args_str}{kwargs_str})"
-                )
+                log.exception(f"Caught exception in {f.__name__}({args_str}{kwargs_str})")
 
         return catch_and_log
 
@@ -553,9 +518,7 @@ def increase_limits() -> None:
         try:
             if soft_limit < hard_limit:
                 log.debug(f"Increasing {limit_name} {soft_limit} -> {hard_limit}")
-                resource.setrlimit(
-                    getattr(resource, limit_name), (hard_limit, hard_limit)
-                )
+                resource.setrlimit(getattr(resource, limit_name), (hard_limit, hard_limit))
         except (ValueError):
             log.error(f"Failed to increase {limit_name} {soft_limit} -> {hard_limit}")
 
@@ -563,9 +526,7 @@ def increase_limits() -> None:
 resource_attributes_blacklist = ["event_log"]
 
 
-def get_resource_attributes(
-    resource, exclude_private: bool = True, keep_data_structures: bool = False
-) -> Dict:
+def get_resource_attributes(resource, exclude_private: bool = True, keep_data_structures: bool = False) -> Dict:
     attributes = dict(resource.__dict__)
     attributes["kind"] = resource.kind
 
@@ -581,11 +542,7 @@ def get_resource_attributes(
     add_keys = {}
 
     for key, value in attributes.items():
-        if (
-            exclude_private
-            and str(key).startswith("_")
-            or str(key) in resource_attributes_blacklist
-        ):
+        if exclude_private and str(key).startswith("_") or str(key) in resource_attributes_blacklist:
             remove_keys.append(key)
         elif isinstance(value, (list, tuple, set)) and not keep_data_structures:
             remove_keys.append(key)
@@ -630,9 +587,7 @@ def get_resource_attributes(
 
 
 def resource2dict(item, exclude_private=True, graph=None) -> Dict:
-    out = get_resource_attributes(
-        item, exclude_private=exclude_private, keep_data_structures=True
-    )
+    out = get_resource_attributes(item, exclude_private=exclude_private, keep_data_structures=True)
     cloud = item.cloud(graph)
     account = item.account(graph)
     region = item.region(graph)
@@ -709,9 +664,7 @@ class ResourceChanges:
                 try:
                     changes[section][attribute] = getattr(self.node, attribute)
                 except AttributeError:
-                    log.error(
-                        f"Resource {self.node.rtdname} has no attribute {attribute}"
-                    )
+                    log.error(f"Resource {self.node.rtdname} has no attribute {attribute}")
         if len(self.node.event_log) > 0:
             if "metadata" not in changes:
                 changes[section] = {}
@@ -813,17 +766,52 @@ def num_default_threads(num_min_threads: int = 4) -> int:
 # via vmware/pyvcloud/vcd/utils.py
 def _badpath(path: str, base: str) -> bool:
     # joinpath will ignore base if path is absolute
-    return not os.path.realpath(os.path.abspath(os.path.join(base, path))).startswith(
-        base
-    )
+    return not os.path.realpath(os.path.abspath(os.path.join(base, path))).startswith(base)
 
 
 def _badlink(info: TarInfo, base: str) -> bool:
     # Links are interpreted relative to the directory containing the link
-    tip = os.path.realpath(
-        os.path.abspath(os.path.join(base, os.path.dirname(info.name)))
-    )
+    tip = os.path.realpath(os.path.abspath(os.path.join(base, os.path.dirname(info.name))))
     return _badpath(info.linkname, base=tip)
+
+
+def current_version(component: str = "resotolib") -> str:
+    return pkg_resources.get_distribution(component).version
+
+
+def update_check(component: str = "resotolib", version: Optional[str] = None) -> Optional[str]:
+    if version is None:
+        version = current_version(component)
+    latest_release_uri = "https://api.github.com/repos/someengineering/resoto/releases/latest"
+    headers = {"Accept": "application/vnd.github.v3+json"}
+    latest_release_response = requests.get(latest_release_uri, headers=headers)
+    if latest_release_response.status_code != 200:
+        raise RuntimeError(
+            f"Unable to get latest release from {latest_release_uri}:" f" {latest_release_response.status_code}"
+        )
+    latest_version = latest_release_response.json()["tag_name"]
+    latest_version_ctime = make_valid_timestamp(
+        datetime.strptime(latest_release_response.json()["published_at"], "%Y-%m-%dT%H:%M:%SZ")
+    )
+    # now = make_valid_timestamp(datetime.utcnow())
+    # latest_version_age = now - latest_version_ctime
+    if pkg_resources.parse_version(version) >= pkg_resources.parse_version(latest_version):
+        return None
+    msg = f"Current version {version} is out of date. Latest version is {latest_version}!"
+
+    current_release_uri = f"https://api.github.com/repos/someengineering/resoto/releases/tags/{version}"
+    current_release_response = requests.get(current_release_uri, headers=headers)
+    if current_release_response.status_code == 200:
+        current_version_ctime = make_valid_timestamp(
+            datetime.strptime(current_release_response.json()["published_at"], "%Y-%m-%dT%H:%M:%SZ")
+        )
+        current_version_age = latest_version_ctime - current_version_ctime
+        msg = (
+            f"Current version {version} is {current_version_age.days} days out of date."
+            f" Latest version is {latest_version}!"
+        )
+
+    return msg
 
 
 def safe_members_in_tarfile(tarfile: TarFile) -> List:
@@ -834,15 +822,71 @@ def safe_members_in_tarfile(tarfile: TarFile) -> List:
         if _badpath(tar_info.name, base):
             log.error(f"Error in {basename}, {tar_info.name} is blocked: illegal path")
         elif tar_info.issym() and _badlink(tar_info, base):
-            log.error(
-                f"Error in {basename}, {tar_info.name} is blocked:"
-                f" symlink to {tar_info.linkname}"
-            )
+            log.error(f"Error in {basename}, {tar_info.name} is blocked:" f" symlink to {tar_info.linkname}")
         elif tar_info.islnk() and _badlink(tar_info, base):
-            log.error(
-                f"Error in {basename}, {tar_info.name} is blocked:"
-                f" hard link to {tar_info.linkname}"
-            )
+            log.error(f"Error in {basename}, {tar_info.name} is blocked:" f" hard link to {tar_info.linkname}")
         else:
             result.append(tar_info)
     return result
+
+
+def rrdata_as_dict(record_type: str, record_data: str) -> Dict:
+    record_type = record_type.upper()
+    rrdata = {}
+    record_elements = []
+    if record_type not in ("TXT"):
+        record_data = " ".join(
+            "".join([line.split(";")[0] for line in record_data.splitlines()]).replace("(", "").replace(")", "").split()
+        )
+    if record_type in ("SOA", "MX", "SRV", "CAA"):
+        record_elements = record_data.split(" ")
+
+    rrdata["record_value"] = record_data
+
+    if record_type in ("A", "AAAA", "CNAME", "NS", "PTR"):
+        pass
+    elif record_type in ("TXT"):
+        if record_data[0] == '"' and record_data[-1] == '"':
+            record_data = record_data[1:-1]
+        merge_pattern = '" "'
+        merge_pattern_deletions = 0
+        merge_pattern_offsets = [m.start() for m in re.finditer(merge_pattern, record_data)]
+        for offset in merge_pattern_offsets:
+            offset = offset - merge_pattern_deletions * len(merge_pattern)
+            if record_data[offset - 1] == "\\":
+                continue
+            record_data = record_data[0:offset] + record_data[offset + len(merge_pattern) :]
+            merge_pattern_deletions += 1
+
+        rrdata["record_value"] = record_data
+    elif record_type in ("SOA"):
+        rrdata["record_value"] = record_data
+        if len(record_elements) != 7:
+            raise ValueError(f"Invalid SOA record {record_data}")
+        rrdata["record_mname"] = record_elements[0]
+        rrdata["record_rname"] = record_elements[1]
+        rrdata["record_serial"] = int(record_elements[2])
+        rrdata["record_refresh"] = int(record_elements[3])
+        rrdata["record_retry"] = int(record_elements[4])
+        rrdata["record_expire"] = int(record_elements[5])
+        rrdata["record_minimum"] = int(record_elements[6])
+    elif record_type in ("MX"):
+        if len(record_elements) != 2:
+            raise ValueError(f"Invalid MX record {record_data}")
+        rrdata["record_priority"] = int(record_elements[0])
+        rrdata["record_value"] = record_elements[1]
+    elif record_type in ("SRV"):
+        if len(record_elements) != 4:
+            raise ValueError(f"Invalid SRV record {record_data}")
+        rrdata["record_priority"] = int(record_elements[0])
+        rrdata["record_weight"] = int(record_elements[1])
+        rrdata["record_port"] = int(record_elements[2])
+        rrdata["record_value"] = record_elements[3]
+    elif record_type in ("CAA"):
+        if len(record_elements) != 3:
+            raise ValueError(f"Invalid CAA record {record_data}")
+        rrdata["record_flags"] = int(record_elements[0])
+        rrdata["record_tag"] = record_elements[1]
+        rrdata["record_value"] = record_elements[2]
+
+    return rrdata

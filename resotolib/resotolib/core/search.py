@@ -89,9 +89,7 @@ class CoreGraph:
                 edge_type = EdgeType.from_value(data.get("edge_type"))
                 if node_from not in node_mapping or node_to not in node_mapping:
                     raise ValueError(f"One of {node_from} -> {node_to} unknown")
-                graph.add_edge(
-                    node_mapping[node_from], node_mapping[node_to], edge_type=edge_type
-                )
+                graph.add_edge(node_mapping[node_from], node_mapping[node_to], edge_type=edge_type)
 
         graph = Graph()
         node_mapping = {}

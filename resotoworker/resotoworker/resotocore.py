@@ -57,9 +57,7 @@ class Resotocore:
         }
         if getattr(ArgumentParser.args, "psk", None):
             encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)
-        request = requests.Request(
-            method="POST", url=graph_uri, data="", headers=headers
-        )
+        request = requests.Request(method="POST", url=graph_uri, data="", headers=headers)
         r = self._send_request(request)
         if r.status_code != 200:
             log.error(r.content)
@@ -95,9 +93,7 @@ class Resotocore:
         if getattr(ArgumentParser.args, "psk", None):
             encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)
 
-        request = requests.Request(
-            method="PATCH", url=model_uri, data=model_json, headers=headers
-        )
+        request = requests.Request(method="PATCH", url=model_uri, data=model_json, headers=headers)
         r = self._send_request(request)
         if r.status_code != 200:
             log.error(r.content)
@@ -123,9 +119,7 @@ class Resotocore:
         if getattr(ArgumentParser.args, "psk", None):
             encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)
 
-        request = requests.Request(
-            method="POST", url=merge_uri, data=graph_export_iterator, headers=headers
-        )
+        request = requests.Request(method="POST", url=merge_uri, data=graph_export_iterator, headers=headers)
         r = self._send_request(request)
         if r.status_code != 200:
             log.error(r.content)

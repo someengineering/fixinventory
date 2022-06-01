@@ -148,7 +148,7 @@ ensure_pip() {
     if ! python -m pip help > /dev/null 2>&1; then
         python -m ensurepip -q -U
     fi
-    pip install -q -U pip wheel
+    pip install -q -U pip wheel poetry
 }
 
 install_dev() {
@@ -170,7 +170,7 @@ install_dev() {
 
 install_resoto() {
     echo "Installing resoto"
-    local resoto_components=(resotolib resotocore resotoshell resotoworker resotometrics)
+    local resoto_components=(resotolib resotocore resotoshell resotoeventlog resotoworker resotometrics)
     for component in "${resoto_components[@]}"; do
         pip_install "$component"
     done

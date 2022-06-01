@@ -1,0 +1,44 @@
+[tool.poetry]
+name = "resoto"
+version = "2.2.0"
+description = "Resoto bundle - single package for Resoto components"
+authors = ["Some Engineering Inc."]
+license = "Apache-2.0"
+readme = "README.md"
+homepage = "https://github.com/someengineering/resoto"
+repository = "https://github.com/someengineering/resoto"
+classifiers = [
+    # Current project status
+    "Development Status :: 4 - Beta",
+    # Audience
+    "Intended Audience :: System Administrators",
+    "Intended Audience :: Information Technology",
+    # License information
+    "License :: OSI Approved :: Apache Software License",
+    # Supported python versions
+    "Programming Language :: Python :: 3.8",
+    # Supported OS's
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: Unix",
+    # Extra metadata
+    "Environment :: Console",
+    "Natural Language :: English",
+    "Topic :: Security",
+    "Topic :: Utilities",
+]
+
+[tool.poetry.urls]
+Changelog = "https://github.com/someengineering/resoto/releases"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+resotocore = "2.2.0"
+resotoworker = "2.2.0"
+resotometrics = "2.2.0"
+resotoshell = "2.2.0"
+resoto-plugins = "2.2.0"
+
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

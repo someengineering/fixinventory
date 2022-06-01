@@ -1,6 +1,6 @@
 import json
 from dataclasses import dataclass, field
-from typing import ClassVar, Optional, Dict
+from typing import ClassVar, Optional, Dict, Mapping
 import sys
 import os
 from logging import (
@@ -16,7 +16,7 @@ from logging import (
 )
 
 from resotolib.args import ArgumentParser
-
+from resotolib.types import Json
 
 getLogger().setLevel(ERROR)
 getLogger("resoto").setLevel(INFO)
@@ -48,12 +48,8 @@ def add_config(config) -> None:
 @dataclass
 class LoggingConfig:
     kind: ClassVar[str] = "logging"
-    verbose: Optional[bool] = field(
-        default=False, metadata={"description": "Verbose logging"}
-    )
-    quiet: Optional[bool] = field(
-        default=False, metadata={"description": "Only log errors"}
-    )
+    verbose: Optional[bool] = field(default=False, metadata={"description": "Verbose logging"})
+    quiet: Optional[bool] = field(default=False, metadata={"description": "Only log errors"})
 
 
 class JsonFormatter(Formatter):
@@ -64,7 +60,7 @@ class JsonFormatter(Formatter):
 
     def __init__(
         self,
-        fmt_dict: dict,
+        fmt_dict: Mapping[str, str],
         time_format: str = "%Y-%m-%dT%H:%M:%S",
         static_values: Optional[Dict[str, str]] = None,
     ):
@@ -78,12 +74,9 @@ class JsonFormatter(Formatter):
         return self.__use_time
 
     def formatMessage(self, record) -> dict:  # noqa: N802
-        return {
-            fmt_key: record.__dict__[fmt_val]
-            for fmt_key, fmt_val in self.fmt_dict.items()
-        }
+        return {fmt_key: record.__dict__[fmt_val] for fmt_key, fmt_val in self.fmt_dict.items()}
 
-    def format(self, record) -> str:
+    def formatJsonMessage(self, record) -> Json:  # noqa: N802
         record.message = record.getMessage()
 
         if self.__use_time:
@@ -101,7 +94,10 @@ class JsonFormatter(Formatter):
 
         if record.stack_info:
             message_dict["stack_info"] = self.formatStack(record.stack_info)
+        return message_dict
 
+    def format(self, record) -> str:
+        message_dict = self.formatJsonMessage(record)
         return json.dumps(message_dict, default=str)
 
 
@@ -136,18 +132,9 @@ def setup_logger(
         log_format = os.environ.get("RESOTO_LOG_FORMAT", log_format)
         basicConfig(format=log_format, datefmt="%y-%m-%d %H:%M:%S", force=force)
     argv = sys.argv[1:]
-    if (
-        verbose
-        or "-v" in argv
-        or "--verbose" in argv
-        or os.environ.get("RESOTO_VERBOSE", "false").lower() == "true"
-    ):
+    if verbose or "-v" in argv or "--verbose" in argv or os.environ.get("RESOTO_VERBOSE", "false").lower() == "true":
         getLogger("resoto").setLevel(DEBUG)
-    elif (
-        quiet
-        or "--quiet" in argv
-        or os.environ.get("RESOTO_QUIET", "false").lower() == "true"
-    ):
+    elif quiet or "--quiet" in argv or os.environ.get("RESOTO_QUIET", "false").lower() == "true":
         getLogger().setLevel(WARNING)
         getLogger("resoto").setLevel(CRITICAL)
 

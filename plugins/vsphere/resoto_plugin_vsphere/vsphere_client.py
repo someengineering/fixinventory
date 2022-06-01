@@ -23,9 +23,7 @@ class VSphereClient:
                 disableSslCertValidation=True,
             )
         else:
-            self._client = SmartConnect(
-                host=self.host, user=self.user, pwd=self.pwd, port=self.port
-            )
+            self._client = SmartConnect(host=self.host, user=self.user, pwd=self.pwd, port=self.port)
 
     @property
     def client(self):
@@ -74,12 +72,8 @@ class VSphereClient:
         property_collector = self.client.content.propertyCollector
         task_list = [str(task) for task in tasks]
         # Create filter
-        obj_specs = [
-            vmodl.query.PropertyCollector.ObjectSpec(obj=task) for task in tasks
-        ]
-        property_spec = vmodl.query.PropertyCollector.PropertySpec(
-            type=vim.Task, pathSet=[], all=True
-        )
+        obj_specs = [vmodl.query.PropertyCollector.ObjectSpec(obj=task) for task in tasks]
+        property_spec = vmodl.query.PropertyCollector.PropertySpec(type=vim.Task, pathSet=[], all=True)
         filter_spec = vmodl.query.PropertyCollector.FilterSpec()
         filter_spec.objectSet = obj_specs
         filter_spec.propSet = [property_spec]

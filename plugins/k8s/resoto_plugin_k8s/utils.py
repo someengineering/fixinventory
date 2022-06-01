@@ -26,28 +26,19 @@ def k8s_config() -> Dict:
         log_msg = "List of Kubernetes clusters contains duplicate entries"
         raise RuntimeError(log_msg)
 
-    cluster_context_conflicts = set(Config.k8s.context).intersection(
-        set(Config.k8s.cluster)
-    )
+    cluster_context_conflicts = set(Config.k8s.context).intersection(set(Config.k8s.cluster))
     if len(cluster_context_conflicts) != 0:
-        log_msg = (
-            "Kubernetes cluster name(s) conflict with context(s):"
-            f" {', '.join(cluster_context_conflicts)}"
-        )
+        log_msg = "Kubernetes cluster name(s) conflict with context(s):" f" {', '.join(cluster_context_conflicts)}"
         raise RuntimeError(log_msg)
 
     try:
-        contexts, active_context = config.list_kube_config_contexts(
-            config_file=Config.k8s.config
-        )
+        contexts, active_context = config.list_kube_config_contexts(config_file=Config.k8s.config)
     except config.config_exception.ConfigException as e:
         log.error(e)
     else:
         if contexts:
             if Config.k8s.all_contexts:
-                log.debug(
-                    "importing all contexts in configuration file since --k8s-all-contexts was specified"
-                )
+                log.debug("importing all contexts in configuration file since --k8s-all-contexts was specified")
             elif len(Config.k8s.context) == 0 and len(Config.k8s.cluster) == 0:
                 active_context = active_context["name"]
                 log.debug(
@@ -63,15 +54,8 @@ def k8s_config() -> Dict:
             contexts = [context["name"] for context in contexts]
 
             for context in contexts:
-                if (
-                    not Config.k8s.all_contexts
-                    and context not in Config.k8s.context
-                    and context != active_context
-                ):
-                    log.debug(
-                        f"skipping context {context} as it is not specified"
-                        " in --k8s-context"
-                    )
+                if not Config.k8s.all_contexts and context not in Config.k8s.context and context != active_context:
+                    log.debug(f"skipping context {context} as it is not specified" " in --k8s-context")
                     continue
                 log.debug(f"loading context {context}")
                 k8s_cfg = client.Configuration()

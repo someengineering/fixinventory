@@ -323,9 +323,9 @@ def part_parser() -> Parser:
     tag = yield tag_parser
     sort = yield sort_parser.optional()
     limit = yield limit_parser.optional()
+    reverse = yield reversed_p
     nav = yield navigation_parser.optional() if term or sort or limit else navigation_parser
     term = term if term else AllTerm()
-    reverse = yield reversed_p
     return Part(term, tag, with_clause, sort if sort else [], limit, nav, reverse)
 
 

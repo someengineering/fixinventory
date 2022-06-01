@@ -39,9 +39,7 @@ class OnpremCollectorPlugin(BaseCollectorPlugin):
             srv = {}
             if "%" in server:
                 server_location, server = server.split("%", 1)
-                location = self.graph.search_first_all(
-                    {"id": server_location, "kind": "onprem_location"}
-                )
+                location = self.graph.search_first_all({"id": server_location, "kind": "onprem_location"})
                 if location is None:
                     location = OnpremLocation(server_location, {})
                     self.graph.add_resource(self.graph.root, location)
@@ -49,9 +47,7 @@ class OnpremCollectorPlugin(BaseCollectorPlugin):
                 log.debug(f"Location for {server} is {location.rtdname}")
             if "%" in server:
                 server_region, server = server.split("%", 1)
-                region = self.graph.search_first_all(
-                    {"id": server_region, "kind": "onprem_region"}
-                )
+                region = self.graph.search_first_all({"id": server_region, "kind": "onprem_region"})
                 if region is None:
                     region = OnpremRegion(server_region, {})
                     self.graph.add_resource(location, region)
@@ -59,9 +55,7 @@ class OnpremCollectorPlugin(BaseCollectorPlugin):
                 log.debug(f"Region for {server} is {region.rtdname}")
             if "%" in server:
                 server_network, server = server.split("%", 1)
-                network = self.graph.search_first_all(
-                    {"id": server_network, "kind": "onprem_network"}
-                )
+                network = self.graph.search_first_all({"id": server_network, "kind": "onprem_network"})
                 if network is None:
                     network = OnpremNetwork(server_network, {})
                     self.graph.add_resource(region, network)
@@ -70,11 +64,7 @@ class OnpremCollectorPlugin(BaseCollectorPlugin):
             srv.update({"hostname": server})
             servers.append(srv)
 
-        max_workers = (
-            len(servers)
-            if len(servers) < Config.onprem.pool_size
-            else Config.onprem.pool_size
-        )
+        max_workers = len(servers) if len(servers) < Config.onprem.pool_size else Config.onprem.pool_size
         pool_args = {"max_workers": max_workers}
         if Config.onprem.fork_process:
             pool_args["mp_context"] = multiprocessing.get_context("spawn")
@@ -111,9 +101,7 @@ class OnpremCollectorPlugin(BaseCollectorPlugin):
         config.add_config(OnpremConfig)
 
 
-def collect_server(
-    srv: Dict, args: Namespace = None, running_config: RunningConfig = None
-) -> Dict:
+def collect_server(srv: Dict, args: Namespace = None, running_config: RunningConfig = None) -> Dict:
     if args is not None:
         ArgumentParser.args = args
     if running_config is not None:

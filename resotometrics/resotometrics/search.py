@@ -6,9 +6,7 @@ from resotolib.jwt import encode_jwt_to_headers
 from typing import Iterator, Optional
 
 
-def search(
-    search_str: str, search_uri: str, tls_data: Optional[TLSData] = None
-) -> Iterator:
+def search(search_str: str, search_uri: str, tls_data: Optional[TLSData] = None) -> Iterator:
     headers = {"Accept": "application/x-ndjson"}
     if ArgumentParser.args.psk:
         encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)

@@ -136,9 +136,7 @@ def main() -> None:
                 "wait_for_completion": True,
             },
         },
-        message_processor=partial(
-            core_actions_processor, plugin_loader, tls_data, collector
-        ),
+        message_processor=partial(core_actions_processor, plugin_loader, tls_data, collector),
         tls_data=tls_data,
     )
 
@@ -174,9 +172,7 @@ def main() -> None:
     os._exit(0)
 
 
-def core_actions_processor(
-    plugin_loader: PluginLoader, tls_data: TLSData, collector: Collector, message: Dict
-) -> None:
+def core_actions_processor(plugin_loader: PluginLoader, tls_data: TLSData, collector: Collector, message: Dict) -> None:
     collectors: List[BaseCollectorPlugin] = plugin_loader.plugins(PluginType.COLLECTOR)
     if not isinstance(message, dict):
         log.error(f"Invalid message: {message}")
@@ -195,16 +191,10 @@ def core_actions_processor(
                 log.info(f"Collect ran for {run_time} seconds")
             elif message_type == "cleanup":
                 if not Config.resotoworker.cleanup:
-                    log.info(
-                        "Cleanup called but disabled in config"
-                        " (resotoworker.cleanup) - skipping"
-                    )
+                    log.info("Cleanup called but disabled in config" " (resotoworker.cleanup) - skipping")
                 else:
                     if Config.resotoworker.cleanup_dry_run:
-                        log.info(
-                            "Cleanup called with dry run configured"
-                            " (resotoworker.cleanup_dry_run)"
-                        )
+                        log.info("Cleanup called with dry run configured" " (resotoworker.cleanup_dry_run)")
                     start_time = time.time()
                     cleanup(tls_data=tls_data)
                     run_time = int(time.time() - start_time)
@@ -238,24 +228,14 @@ def shutdown(event: Event) -> None:
 
     if reason is None:
         reason = "unknown reason"
-    log.info(
-        (
-            f"Received shut down event {event.event_type}:"
-            f" {reason} - killing all threads and child processes"
-        )
-    )
+    log.info((f"Received shut down event {event.event_type}:" f" {reason} - killing all threads and child processes"))
     shutdown_event.set()  # and then end the program
 
 
 def force_shutdown(delay: int = 10) -> None:
     time.sleep(delay)
     log_stats()
-    log.error(
-        (
-            "Some child process or thread timed out during shutdown"
-            " - forcing shutdown completion"
-        )
-    )
+    log.error(("Some child process or thread timed out during shutdown" " - forcing shutdown completion"))
     os._exit(0)
 
 

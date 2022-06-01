@@ -72,8 +72,7 @@ class CleanupAWSLoadbalancersPlugin(BaseActionPlugin):
                     [
                         i
                         for i in node.predecessors(graph, edge_type=EdgeType.delete)
-                        if isinstance(i, AWSEC2Instance)
-                        and i.instance_status != "terminated"
+                        if isinstance(i, AWSEC2Instance) and i.instance_status != "terminated"
                     ]
                 )
                 == 0
@@ -89,11 +88,7 @@ class CleanupAWSLoadbalancersPlugin(BaseActionPlugin):
             elif (
                 isinstance(node, AWSALB)
                 and len(
-                    [
-                        n
-                        for n in node.predecessors(graph, edge_type=EdgeType.delete)
-                        if isinstance(n, AWSALBTargetGroup)
-                    ]
+                    [n for n in node.predecessors(graph, edge_type=EdgeType.delete) if isinstance(n, AWSALBTargetGroup)]
                 )
                 == 0
                 and len(node.backends) == 0
@@ -119,9 +114,7 @@ class CleanupAWSLoadbalancersPlugin(BaseActionPlugin):
             elif isinstance(node, AWSALB):
                 cleanup_alb = True
                 target_groups = [
-                    n
-                    for n in node.predecessors(graph, edge_type=EdgeType.delete)
-                    if isinstance(n, AWSALBTargetGroup)
+                    n for n in node.predecessors(graph, edge_type=EdgeType.delete) if isinstance(n, AWSALBTargetGroup)
                 ]
 
                 if len(node.backends) > 0:
@@ -134,11 +127,8 @@ class CleanupAWSLoadbalancersPlugin(BaseActionPlugin):
                         or len(
                             [
                                 i
-                                for i in tg.predecessors(
-                                    graph, edge_type=EdgeType.delete
-                                )
-                                if isinstance(i, AWSEC2Instance)
-                                and i.instance_status != "terminated"
+                                for i in tg.predecessors(graph, edge_type=EdgeType.delete)
+                                if isinstance(i, AWSEC2Instance) and i.instance_status != "terminated"
                             ]
                         )
                         > 0

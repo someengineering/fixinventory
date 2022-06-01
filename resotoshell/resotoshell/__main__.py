@@ -1,10 +1,13 @@
 import os
 import sys
+from argparse import Namespace
+from signal import SIGTERM
 from threading import Event, Thread
 from typing import Callable
 
 import resotolib.proc
-from resotolib.args import ArgumentParser, Namespace
+from resotoclient import ResotoClient
+from resotolib.args import ArgumentParser
 from resotolib.core import resotocore, add_args as core_add_args, resotocore_is_up
 from resotolib.core.ca import TLSData
 from resotolib.event import add_event_listener, Event as ResotoEvent, EventType
@@ -13,22 +16,19 @@ from resotolib.logger import log, setup_logger, add_args as logging_add_args
 from resotoshell.promptsession import PromptSession
 from resotoshell.shell import Shell
 from rich.console import Console
-from resotoclient import ResotoClient
 
 
 def main() -> None:
     resotolib.proc.parent_pid = os.getpid()
     resotolib.proc.initializer()
     setup_logger("resotoshell", json_format=False)
-    arg_parser = ArgumentParser(
-        description="resoto shell", env_args_prefix="RESOTOSHELL_"
-    )
+    arg_parser = ArgumentParser(description="resoto shell", env_args_prefix="RESOTOSHELL_")
     core_add_args(arg_parser)
     add_args(arg_parser)
     logging_add_args(arg_parser)
     jwt_add_args(arg_parser)
     TLSData.add_args(arg_parser, ca_only=True)
-    args = arg_parser.parse_args()
+    args: Namespace = arg_parser.parse_args()
 
     if not resotocore_is_up(resotocore.http_uri):
         log.fatal(f"resotocore is not online at {resotocore.http_uri}")
@@ -59,7 +59,7 @@ def main() -> None:
     else:
         repl(client, args)
     client.shutdown()
-    resotolib.proc.kill_children(resotolib.proc.SIGTERM, ensure_death=True)
+    resotolib.proc.kill_children(SIGTERM, ensure_death=True)
     log.debug("Shutdown complete")
     sys.exit(0)
 

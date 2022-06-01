@@ -15,9 +15,7 @@ TaskId = str
 
 
 class Collector:
-    def __init__(
-        self, send_to_resotocore: Callable[[Graph, TaskId], None], config: Config
-    ) -> None:
+    def __init__(self, send_to_resotocore: Callable[[Graph, TaskId], None], config: Config) -> None:
         self._send_to_resotocore = send_to_resotocore
         self._config = config
 
@@ -35,9 +33,7 @@ class Collector:
                 else self._config.resotoworker.pool_size
             )
             if max_workers == 0:
-                log.error(
-                    "No workers configured or no collector plugins loaded - skipping collect"
-                )
+                log.error("No workers configured or no collector plugins loaded - skipping collect")
                 return
             pool_args = {"max_workers": max_workers}
             if self._config.resotoworker.fork_process:
@@ -64,9 +60,7 @@ class Collector:
                 for future in futures.as_completed(wait_for):
                     cluster_graph = future.result()
                     if not isinstance(cluster_graph, Graph):
-                        log.error(
-                            f"Skipping invalid cluster_graph {type(cluster_graph)}"
-                        )
+                        log.error(f"Skipping invalid cluster_graph {type(cluster_graph)}")
                         continue
                     graph.merge(cluster_graph)
             sanitize(graph)
@@ -97,16 +91,10 @@ def collect_plugin_graph(
     elapsed = time() - start_time
     if not collector.is_alive():  # The plugin has finished its work
         if not collector.finished:
-            log.error(
-                f"Plugin {collector.cloud} did not finish collection"
-                " - ignoring plugin results"
-            )
+            log.error(f"Plugin {collector.cloud} did not finish collection" " - ignoring plugin results")
             return None
         if not collector.graph.is_dag_per_edge_type():
-            log.error(
-                f"Graph of plugin {collector.cloud} is not acyclic"
-                " - ignoring plugin results"
-            )
+            log.error(f"Graph of plugin {collector.cloud} is not acyclic" " - ignoring plugin results")
             return None
         log.info(f"Collector of plugin {collector.cloud} finished in {elapsed:.4f}s")
         return collector.graph

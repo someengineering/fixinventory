@@ -28,11 +28,7 @@ class KubernetesCollectorPlugin(BaseCollectorPlugin):
         if len(clusters) == 0:
             return
 
-        max_workers = (
-            len(clusters)
-            if len(clusters) < Config.k8s.pool_size
-            else Config.k8s.pool_size
-        )
+        max_workers = len(clusters) if len(clusters) < Config.k8s.pool_size else Config.k8s.pool_size
         pool_args = {"max_workers": max_workers}
         if Config.k8s.fork_process:
             pool_args["mp_context"] = multiprocessing.get_context("spawn")
@@ -97,13 +93,9 @@ class KubernetesCollectorPlugin(BaseCollectorPlugin):
             if e.reason == "Unauthorized":
                 log.error(f"Unable to authenticate with {cluster.rtdname}")
             else:
-                log.exception(
-                    f"An unhandled error occurred while collecting {cluster.rtdname}"
-                )
+                log.exception(f"An unhandled error occurred while collecting {cluster.rtdname}")
         except Exception:
-            log.exception(
-                f"An unhandled error occurred while collecting {cluster.rtdname}"
-            )
+            log.exception(f"An unhandled error occurred while collecting {cluster.rtdname}")
         else:
             return kc.graph
 

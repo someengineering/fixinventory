@@ -7,9 +7,4 @@ def test_config():
     CleanupAWSAlarmsPlugin.add_config(config)
     Config.init_default_config()
     assert Config.plugin_cleanup_aws_alarms.enabled is False
-    assert (
-        Config.plugin_cleanup_aws_alarms.validate(
-            Config.plugin_cleanup_aws_alarms.config
-        )
-        is True
-    )
+    assert Config.plugin_cleanup_aws_alarms.validate(Config.plugin_cleanup_aws_alarms.config) is True

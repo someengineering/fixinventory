@@ -40,9 +40,7 @@ class NoJWTError(Exception):
     pass
 
 
-def get_ca_cert(
-    resotocore_uri: Optional[str] = None, psk: Optional[str] = None
-) -> Certificate:
+def get_ca_cert(resotocore_uri: Optional[str] = None, psk: Optional[str] = None) -> Certificate:
     if resotocore_uri is None:
         resotocore_uri = resotocore.http_uri
     if psk is None:
@@ -91,9 +89,7 @@ def get_signed_cert(
     request_kwargs = {}
     if ca_cert_path is not None:
         request_kwargs["verify"] = ca_cert_path
-    r = requests.post(
-        f"{resotocore_uri}/ca/sign", cert_csr_bytes, headers=headers, **request_kwargs
-    )
+    r = requests.post(f"{resotocore_uri}/ca/sign", cert_csr_bytes, headers=headers, **request_kwargs)
     if r.status_code != 200:
         raise ValueError(f"Failed to get signed certificate: {r.text}")
     cert_bytes = r.content
@@ -132,25 +128,28 @@ class TLSData:
         self.__load_lock = Lock()
         self.__loaded = Event()
         self.__exit = Condition()
-        add_event_listener(EventType.SHUTDOWN, self.shutdown, blocking=False)
-        self.__watcher = Thread(
-            target=self.__certificates_watcher, name="certificates_watcher"
-        )
+        self.__watcher: Optional[Thread] = None
 
-    def __enter__(self) -> None:
+    def __enter__(self) -> "TLSData":
         self.start()
+        return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         self.shutdown()
 
     def start(self) -> None:
-        self.load()
-        if not self.__watcher.is_alive():
+        if self.__watcher is None:
+            self.load()
+            self.__watcher = Thread(target=self.__certificates_watcher, name="certificates_watcher")
             self.__watcher.start()
+            add_event_listener(EventType.SHUTDOWN, self.shutdown, blocking=False)
 
     def shutdown(self, event: Optional[ResotoEvent] = None) -> None:
-        with self.__exit:
-            self.__exit.notify()
+        if self.__watcher is not None:
+            with self.__exit:
+                self.__exit.notify()
+            self.__watcher.join()
+            self.__watcher = None
 
     def __getstate__(self):
         d = self.__dict__.copy()
@@ -184,9 +183,7 @@ class TLSData:
             del d["__cert_bytes"]
             del d["__key_bytes"]
         del d["__is_loaded"]
-        d["_TLSData__watcher"] = Thread(
-            target=self.__certificates_watcher, name="certificates_watcher"
-        )
+        d["_TLSData__watcher"] = Thread(target=self.__certificates_watcher, name="certificates_watcher")
         self.__dict__.update(d)
 
     def reload(self) -> None:
@@ -200,8 +197,7 @@ class TLSData:
                     for cert in (self.__ca_cert, self.__cert):
                         if (
                             isinstance(cert, Certificate)
-                            and cert.not_valid_after
-                            < datetime.utcnow() - self.renew_before
+                            and cert.not_valid_after < datetime.utcnow() - self.renew_before
                         ):
                             self.reload()
                             break
@@ -215,14 +211,9 @@ class TLSData:
         try:
             last_ca_cert_update = time.time() - os.path.getmtime(self.__ca_cert_path)
             last_cert_update = time.time() - os.path.getmtime(self.__cert_path)
-            if (
-                last_ca_cert_update > refresh_every_sec
-                or last_cert_update > refresh_every_sec
-            ):
+            if last_ca_cert_update > refresh_every_sec or last_cert_update > refresh_every_sec:
                 log.debug("Refreshing cert/key files on disk")
-                write_ca_bundle(
-                    self.__ca_cert, self.__ca_cert_path, include_certifi=True
-                )
+                write_ca_bundle(self.__ca_cert, self.__ca_cert_path, include_certifi=True)
                 write_cert_to_file(self.__cert, self.__cert_path)
                 write_key_to_file(self.__key, self.__key_path)
         except FileNotFoundError:
@@ -236,9 +227,7 @@ class TLSData:
             else:
                 log.debug("Loading CA cert from core")
                 try:
-                    self.__ca_cert = get_ca_cert(
-                        resotocore_uri=self.__resotocore_uri, psk=self.__psk
-                    )
+                    self.__ca_cert = get_ca_cert(resotocore_uri=self.__resotocore_uri, psk=self.__psk)
                 except FingerprintError as e:
                     log.fatal(f"{e}, MITM attack?")
                     raise
@@ -264,9 +253,7 @@ class TLSData:
                     if getattr(ArgumentParser.args, "cert_key_pass", None) is not None:
                         cert_key_pass = ArgumentParser.args.cert_key_pass
                     log.debug(f"Loading key from {ArgumentParser.args.cert_key}")
-                    self.__key = load_key_from_file(
-                        ArgumentParser.args.cert_key, passphrase=cert_key_pass
-                    )
+                    self.__key = load_key_from_file(ArgumentParser.args.cert_key, passphrase=cert_key_pass)
                 else:
                     log.debug("Requesting signed cert from core")
                     self.__key, self.__cert = get_signed_cert(

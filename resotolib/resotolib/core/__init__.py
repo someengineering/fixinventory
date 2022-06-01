@@ -39,10 +39,7 @@ def wait_for_resotocore(resotocore_uri: str, timeout: int = 300) -> None:
             core_up = True
             break
         else:
-            waitlog(
-                f"Waiting up to {remaining_wait:.2f}s for resotocore"
-                f" to come online at {resotocore_uri}"
-            )
+            waitlog(f"Waiting up to {remaining_wait:.2f}s for resotocore" f" to come online at {resotocore_uri}")
             waitlog = log.debug
         time.sleep(2)
         wait_time = time.time() - start_time

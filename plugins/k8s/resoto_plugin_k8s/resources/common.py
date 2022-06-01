@@ -17,11 +17,7 @@ class KubernetesResource:
     search_map: ClassVar[Dict] = {
         "_owner": [
             "id",
-            (
-                lambda r: [o.uid for o in r.metadata.owner_references]
-                if r.metadata.owner_references is not None
-                else []
-            ),
+            (lambda r: [o.uid for o in r.metadata.owner_references] if r.metadata.owner_references is not None else []),
         ]
     }
     predecessor_names: ClassVar[List[str]] = ["_owner"]
@@ -50,16 +46,12 @@ class KubernetesResource:
     @classmethod
     def collect(cls, api_client: client.ApiClient, graph: Graph):
         for response in cls.list(api_client):
-            kwargs, search_results = default_attributes(
-                response, cls.attr_map, cls.search_map, graph
-            )
+            kwargs, search_results = default_attributes(response, cls.attr_map, cls.search_map, graph)
             parent = graph.root
             namespace = response.metadata.namespace
             resource = cls(**kwargs)
             if namespace:
-                ns = graph.search_first_all(
-                    {"kind": "kubernetes_namespace", "name": namespace}
-                )
+                ns = graph.search_first_all({"kind": "kubernetes_namespace", "name": namespace})
                 if ns:
                     parent = ns
             log.debug(f"Collected {resource.rtdname} in {parent.rtdname}")
@@ -89,13 +81,9 @@ class KubernetesResource:
                                 if isinstance(value, list):
                                     values = value
                                     for value in values:
-                                        resource.add_deferred_connection(
-                                            {attr: value}, is_parent
-                                        )
+                                        resource.add_deferred_connection({attr: value}, is_parent)
                                 elif isinstance(value, str):
-                                    resource.add_deferred_connection(
-                                        {attr: value}, is_parent
-                                    )
+                                    resource.add_deferred_connection({attr: value}, is_parent)
                                 else:
                                     log.error(
                                         (
@@ -110,9 +98,7 @@ class KubernetesResource:
                 post_process(resource, graph)
 
 
-def default_attributes(
-    response, attr_map: Dict, search_map: Dict, graph: Graph
-) -> Dict:
+def default_attributes(response, attr_map: Dict, search_map: Dict, graph: Graph) -> Dict:
     kwargs = {
         "id": response.metadata.uid,
         "name": response.metadata.name,
@@ -145,11 +131,7 @@ def default_attributes(
                 if map_to not in search_results:
                     search_results[map_to] = []
                 search_results[map_to].append(search_result)
-        if (
-            map_to not in kwargs
-            and map_to in search_results
-            and not str(map_to).startswith("_")
-        ):
+        if map_to not in kwargs and map_to in search_results and not str(map_to).startswith("_"):
             search_result = search_results[map_to]
             if len(search_result) == 1:
                 kwargs[map_to] = search_result[0]

@@ -39,15 +39,9 @@ from collections import defaultdict, namedtuple
 
 Json = Dict[str, Any]
 
-metrics_graph_search = Summary(
-    "resoto_graph_search_seconds", "Time it took the Graph search() method"
-)
-metrics_graph_searchall = Summary(
-    "resoto_graph_searchall_seconds", "Time it took the Graph searchall() method"
-)
-metrics_graph_searchre = Summary(
-    "resoto_graph_searchre_seconds", "Time it took the Graph searchre() method"
-)
+metrics_graph_search = Summary("resoto_graph_search_seconds", "Time it took the Graph search() method")
+metrics_graph_searchall = Summary("resoto_graph_searchall_seconds", "Time it took the Graph searchall() method")
+metrics_graph_searchre = Summary("resoto_graph_searchre_seconds", "Time it took the Graph searchre() method")
 metrics_graph_search_first = Summary(
     "resoto_graph_search_first_seconds",
     "Time it took the Graph search_first() method",
@@ -68,24 +62,12 @@ metrics_graphcache_update_cache = Summary(
     "resoto_graphcache_update_cache_seconds",
     "Time it took the GraphCache update_cache() method",
 )
-metrics_graph2json = Summary(
-    "resoto_graph2json_seconds", "Time it took the graph2json() method"
-)
-metrics_graph2text = Summary(
-    "resoto_graph2text_seconds", "Time it took the graph2text() method"
-)
-metrics_graph2graphml = Summary(
-    "resoto_graph2graphml_seconds", "Time it took the graph2graphml() method"
-)
-metrics_graph2pickle = Summary(
-    "resoto_graph2pickle_seconds", "Time it took the graph2pickle() method"
-)
-metrics_graph2gexf = Summary(
-    "resoto_graph2gexf_seconds", "Time it took the graph2gexf() method"
-)
-metrics_graph2pajek = Summary(
-    "resoto_graph2pajek_seconds", "Time it took the graph2pajek() method"
-)
+metrics_graph2json = Summary("resoto_graph2json_seconds", "Time it took the graph2json() method")
+metrics_graph2text = Summary("resoto_graph2text_seconds", "Time it took the graph2text() method")
+metrics_graph2graphml = Summary("resoto_graph2graphml_seconds", "Time it took the graph2graphml() method")
+metrics_graph2pickle = Summary("resoto_graph2pickle_seconds", "Time it took the graph2pickle() method")
+metrics_graph2gexf = Summary("resoto_graph2gexf_seconds", "Time it took the graph2gexf() method")
+metrics_graph2pajek = Summary("resoto_graph2pajek_seconds", "Time it took the graph2pajek() method")
 
 EdgeKey = namedtuple("EdgeKey", ["src", "dst", "edge_type"])
 
@@ -99,9 +81,7 @@ class Graph(networkx.MultiDiGraph):
         self._log_edge_creation = True
         if isinstance(root, BaseResource):
             self.root = root
-            self.add_node(
-                self.root, label=self.root.name, **get_resource_attributes(self.root)
-            )
+            self.add_node(self.root, label=self.root.name, **get_resource_attributes(self.root))
 
     def merge(self, graph: networkx.MultiDiGraph):
         """Merge another graph into ourselves
@@ -109,12 +89,8 @@ class Graph(networkx.MultiDiGraph):
         If the other graph has a graph.root an edge will be created between
         it and our own graph root.
         """
-        if isinstance(self.root, BaseResource) and isinstance(
-            getattr(graph, "root", None), BaseResource
-        ):
-            log.debug(
-                f"Merging graph of {graph.root.rtdname} into graph of {self.root.rtdname}"
-            )
+        if isinstance(self.root, BaseResource) and isinstance(getattr(graph, "root", None), BaseResource):
+            log.debug(f"Merging graph of {graph.root.rtdname} into graph of {self.root.rtdname}")
             self.add_edge(self.root, graph.root)
         else:
             log.warning("Merging graphs with no valid roots")
@@ -152,9 +128,7 @@ class Graph(networkx.MultiDiGraph):
         """
         resource_attr = get_resource_attributes(node_for_adding)
 
-        self.add_node(
-            node_for_adding, label=node_for_adding.name, **resource_attr, **attr
-        )
+        self.add_node(node_for_adding, label=node_for_adding.name, **resource_attr, **attr)
         self.add_edge(src=parent, dst=node_for_adding, edge_type=edge_type)
 
     def add_node(self, node_for_adding: BaseResource, **attr):
@@ -185,22 +159,13 @@ class Graph(networkx.MultiDiGraph):
             log.error(f"Edge from {src} to {dst} already exists in graph")
             return
         return_key = super().add_edge(src, dst, key=key, **attr)
-        if (
-            self._log_edge_creation
-            and isinstance(src, BaseResource)
-            and isinstance(dst, BaseResource)
-        ):
-            log.debug(
-                f"Added edge from {src.rtdname} to {dst.rtdname} (type: {edge_type.value})"
-            )
+        if self._log_edge_creation and isinstance(src, BaseResource) and isinstance(dst, BaseResource):
+            log.debug(f"Added edge from {src.rtdname} to {dst.rtdname} (type: {edge_type.value})")
             try:
                 src.successor_added(dst, self)
             except Exception:
                 log.exception(
-                    (
-                        f"Unhandled exception while telling {src.rtdname}"
-                        f" that {dst.rtdname} was added as a successor"
-                    )
+                    (f"Unhandled exception while telling {src.rtdname}" f" that {dst.rtdname} was added as a successor")
                 )
             try:
                 dst.predecessor_added(src, self)
@@ -246,14 +211,10 @@ class Graph(networkx.MultiDiGraph):
                 yield successor
 
     def ancestors(self, node: BaseResource, edge_type: EdgeType = None):
-        return networkx.algorithms.dag.ancestors(
-            self.edge_type_subgraph(edge_type), node
-        )
+        return networkx.algorithms.dag.ancestors(self.edge_type_subgraph(edge_type), node)
 
     def descendants(self, node: BaseResource, edge_type: EdgeType = None):
-        return networkx.algorithms.dag.descendants(
-            self.edge_type_subgraph(edge_type), node
-        )
+        return networkx.algorithms.dag.descendants(self.edge_type_subgraph(edge_type), node)
 
     def edge_type_subgraph(self, edge_type: EdgeType = None):
         if edge_type is None:
@@ -288,16 +249,9 @@ class Graph(networkx.MultiDiGraph):
     def search(self, attr, value, regex_search=False):
         """Search for graph nodes by their attribute value"""
         if value is None:
-            log.debug(
-                f"Not searching graph for nodes with attribute values {attr}: {value}"
-            )
+            log.debug(f"Not searching graph for nodes with attribute values {attr}: {value}")
             return ()
-        log.debug(
-            (
-                f"Searching graph for nodes with attribute values {attr}: {value}"
-                f" (regex: {regex_search})"
-            )
-        )
+        log.debug((f"Searching graph for nodes with attribute values {attr}: {value}" f" (regex: {regex_search})"))
         for node in self.nodes():
             node_attr = getattr(node, attr, None)
             if (
@@ -313,18 +267,14 @@ class Graph(networkx.MultiDiGraph):
     @metrics_graph_searchre.time()
     def searchre(self, attr, regex):
         """Regex search for graph nodes by their attribute value"""
-        log.debug(
-            f"Regex searching graph for nodes with attribute values {attr}: {regex}"
-        )
+        log.debug(f"Regex searching graph for nodes with attribute values {attr}: {regex}")
         return self.search(attr, regex, regex_search=True)
 
     @metrics_graph_searchall.time()
     def searchall(self, match: Dict):
         """Search for graph nodes by multiple attributes and values"""
         return (
-            node
-            for node in self.nodes()
-            if all(getattr(node, attr, None) == value for attr, value in match.items())
+            node for node in self.nodes() if all(getattr(node, attr, None) == value for attr, value in match.items())
         )
 
     @metrics_graph_search_first.time()
@@ -364,9 +314,7 @@ class Graph(networkx.MultiDiGraph):
                 if ret:
                     break
         except RecursionError:
-            log.exception(
-                f"Recursive search error triggered for node {node}'s parent class {cls}"
-            )
+            log.exception(f"Recursive search error triggered for node {node}'s parent class {cls}")
         return ret
 
     @metrics_graph_resolve_deferred_connections.time()
@@ -506,9 +454,7 @@ class GraphContainer:
 # argument to export another label based on the given tag.
 def mlabels(labels: List) -> List:
     """Takes a list of labels and appends any cli arg specified tag names to it."""
-    if ArgumentParser.args and getattr(
-        ArgumentParser.args, "metrics_tag_as_label", None
-    ):
+    if ArgumentParser.args and getattr(ArgumentParser.args, "metrics_tag_as_label", None):
         for tag in ArgumentParser.args.metrics_tag_as_label:
             labels.append(make_valid_label(tag))
     return labels
@@ -525,9 +471,7 @@ def mtags(labels: Tuple, node: BaseResource) -> Tuple:
         else:
             labels = tuple([labels])
     ret = list(labels)
-    if ArgumentParser.args and getattr(
-        ArgumentParser.args, "metrics_tag_as_label", None
-    ):
+    if ArgumentParser.args and getattr(ArgumentParser.args, "metrics_tag_as_label", None):
         for tag in ArgumentParser.args.metrics_tag_as_label:
             if tag in node.tags:
                 tag_value = node.tags[tag]
@@ -613,19 +557,14 @@ def dump_graph(graph) -> str:
     for node in graph.nodes:
         yield f"Node: {node.name} (type: {node.kind})"
         for predecessor_node in graph.predecessors(node):
-            yield (
-                f"\tParent: {predecessor_node.name}" f" (type: {predecessor_node.kind})"
-            )
+            yield (f"\tParent: {predecessor_node.name}" f" (type: {predecessor_node.kind})")
         for successor_node in graph.successors(node):
             yield (f"\tChild {successor_node.name} (type: {successor_node.kind})")
 
 
 @metrics_graph2json.time()
 def graph2json(graph):
-    return (
-        json.dumps(networkx.node_link_data(graph), default=json_default, skipkeys=True)
-        + "\n"
-    )
+    return json.dumps(networkx.node_link_data(graph), default=json_default, skipkeys=True) + "\n"
 
 
 @metrics_graph2text.time()
@@ -686,9 +625,7 @@ def validate_graph_dataclasses_and_nodes(graph: Graph) -> None:
             if node.chksum not in node_chksums:
                 node_chksums[node.chksum] = node
             else:
-                log.error(
-                    f"Duplicate checksum {node.chksum} for node {node.rtdname} in graph"
-                )
+                log.error(f"Duplicate checksum {node.chksum} for node {node.rtdname} in graph")
 
 
 def update_graph_ref(graph: Graph) -> None:
@@ -735,8 +672,7 @@ def sanitize(graph: Graph, root: GraphRoot = None) -> None:
                 if isinstance(node, Cloud):
                     if node.id in plugin_roots:
                         log.debug(
-                            f"Found existing plugin root {node.id}"
-                            " - attaching children and removing plugin root"
+                            f"Found existing plugin root {node.id}" " - attaching children and removing plugin root"
                         )
                         for plugin_root_child in list(graph.successors(node)):
                             log.debug(
@@ -748,17 +684,11 @@ def sanitize(graph: Graph, root: GraphRoot = None) -> None:
                             graph.remove_edge(node, plugin_root_child)
                         graph.remove_node(node)
                     else:
-                        log.debug(
-                            f"Found new plugin root {node.id}"
-                            " - attaching to top level root"
-                        )
+                        log.debug(f"Found new plugin root {node.id}" " - attaching to top level root")
                         graph.add_edge(root, node)
                         graph.remove_edge(graph_root, node)
                 else:
-                    log.debug(
-                        f"Found unknown node {node.id} of type {node.kind}"
-                        " - attaching to top level root"
-                    )
+                    log.debug(f"Found unknown node {node.id} of type {node.kind}" " - attaching to top level root")
                     graph.add_edge(root, node)
                     graph.remove_edge(graph_root, node)
             log.debug(f"Removing graph root {graph_root.id}")
@@ -823,9 +753,7 @@ class GraphExportIterator:
             if report_every > 0 and lines_sent > 0 and lines_sent % report_every == 0:
                 percent = round(lines_sent / self.total_lines * 100)
                 elapsed = time() - last_sent
-                log.debug(
-                    f"Sent {lines_sent}/{self.total_lines} nodes and edges ({percent}%) - {elapsed:.4f}s"
-                )
+                log.debug(f"Sent {lines_sent}/{self.total_lines} nodes and edges ({percent}%) - {elapsed:.4f}s")
                 last_sent = time()
             yield line
         self.tempfile.seek(0)
@@ -843,9 +771,7 @@ class GraphExportIterator:
                 node_dict = node_to_dict(node)
                 if isinstance(node, self.graph_merge_kind.value):
                     log.debug(f"Replacing sub graph below {node.rtdname}")
-                    if "metadata" not in node_dict or not isinstance(
-                        node_dict["metadata"], dict
-                    ):
+                    if "metadata" not in node_dict or not isinstance(node_dict["metadata"], dict):
                         node_dict["metadata"] = {}
                     node_dict["metadata"]["replace"] = True
                 node_json = json.dumps(node_dict) + "\n"
@@ -857,9 +783,7 @@ class GraphExportIterator:
             for edge in self.graph.edges:
                 from_node = edge[0]
                 to_node = edge[1]
-                if not isinstance(from_node, BaseResource) or not isinstance(
-                    to_node, BaseResource
-                ):
+                if not isinstance(from_node, BaseResource) or not isinstance(to_node, BaseResource):
                     log.error(f"One of {from_node} and {to_node} is no base resource")
                     continue
                 edge_dict = {"from": from_node.chksum, "to": to_node.chksum}

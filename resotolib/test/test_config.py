@@ -81,17 +81,13 @@ class NestedConfigTest:
     kind: ClassVar[str] = "nested_config_test"
     myint: int = field(default=0, metadata={"description": "My Int"})
     mystr: str = field(default="Hello", metadata={"description": "My String"})
-    mydict: Dict[str, str] = field(
-        default_factory=lambda: {"foo": "bar", "abc": {"def": "ghi"}}
-    )
+    mydict: Dict[str, str] = field(default_factory=lambda: {"foo": "bar", "abc": {"def": "ghi"}})
 
 
 @dataclass
 class ConfigTest:
     kind: ClassVar[str] = "configtest"
-    testvar1: str = field(
-        default="testing123", metadata={"description": "A test string"}
-    )
+    testvar1: str = field(default="testing123", metadata={"description": "A test string"})
     testvar2: int = field(default=12345, metadata={"description": "A test integer"})
     testvar3: NestedConfigTest = field(
         default_factory=lambda: NestedConfigTest(),

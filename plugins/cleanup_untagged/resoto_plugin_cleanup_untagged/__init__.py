@@ -35,10 +35,7 @@ class CleanupUntaggedPlugin(BaseActionPlugin):
         accounts_part = "(" + " or ".join(account_parts) + ")"
         exclusion_part = "/metadata.protected == false and /metadata.phantom == false and /metadata.cleaned == false"
         required_tags = ", ".join(config["tags"])
-        reason = (
-            f"Missing one or more of required tags {required_tags}"
-            " and age more than threshold"
-        )
+        reason = f"Missing one or more of required tags {required_tags}" " and age more than threshold"
         command = f'query {exclusion_part} and {kinds_part} and {tags_part} and {accounts_part} | clean "{reason}"'
         for node_data in cg.execute(command):
             node = node_from_dict(node_data)

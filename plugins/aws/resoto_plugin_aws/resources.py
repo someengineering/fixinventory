@@ -7,7 +7,7 @@ from resotolib.baseresources import *
 from resotolib.graph import Graph
 from resotolib.utils import make_valid_timestamp
 from .utils import aws_client, aws_resource, tags_as_dict
-from typing import ClassVar, Any
+from typing import ClassVar, Any, Optional, Union
 from dataclasses import dataclass
 from resotolib.logger import log
 
@@ -144,7 +144,12 @@ class AWSEC2Instance(AWSResource, BaseInstance):
             "aws_ec2_elastic_ip",
             "aws_cloudwatch_alarm",
         ],
-        "delete": ["aws_elb", "aws_autoscaling_group", "aws_alb_target_group"],
+        "delete": [
+            "aws_elb",
+            "aws_autoscaling_group",
+            "aws_alb_target_group",
+            "aws_cloudwatch_alarm",
+        ],
     }
 
     instance_status_map: ClassVar[Dict[str, InstanceStatus]] = {
@@ -158,9 +163,7 @@ class AWSEC2Instance(AWSResource, BaseInstance):
     }
 
     def _instance_status_setter(self, value: str) -> None:
-        self._instance_status = self.instance_status_map.get(
-            value, InstanceStatus.UNKNOWN
-        )
+        self._instance_status = self.instance_status_map.get(value, InstanceStatus.UNKNOWN)
         if self._instance_status == InstanceStatus.TERMINATED:
             self._cleaned = True
 
@@ -324,9 +327,7 @@ class AWSEC2Volume(AWSResource, BaseVolume):
         return True
 
 
-AWSEC2Volume.volume_status = property(
-    AWSEC2Volume._volume_status_getter, AWSEC2Volume._volume_status_setter
-)
+AWSEC2Volume.volume_status = property(AWSEC2Volume._volume_status_getter, AWSEC2Volume._volume_status_setter)
 
 
 @dataclass(eq=False)
@@ -467,9 +468,7 @@ class AWSVPC(AWSResource, BaseNetwork):
 
     def delete(self, graph: Graph) -> bool:
         if self.is_default:
-            log_msg = (
-                f"Not removing the default VPC {self.id} - aborting delete request"
-            )
+            log_msg = f"Not removing the default VPC {self.id} - aborting delete request"
             log.debug(log_msg)
             self.log(log_msg)
             return False
@@ -583,9 +582,7 @@ class AWSELB(AWSResource, BaseLoadBalancer):
 
     def update_tag(self, key, value) -> bool:
         client = aws_client(self, "elb")
-        client.add_tags(
-            LoadBalancerNames=[self.name], Tags=[{"Key": key, "Value": value}]
-        )
+        client.add_tags(LoadBalancerNames=[self.name], Tags=[{"Key": key, "Value": value}])
         return True
 
     def delete_tag(self, key) -> bool:
@@ -751,26 +748,16 @@ class AWSEC2SecurityGroup(AWSResource, BaseSecurityGroup):
         remove_egress = []
 
         for permission in security_group.ip_permissions:
-            if (
-                "UserIdGroupPairs" in permission
-                and len(permission["UserIdGroupPairs"]) > 0
-            ):
+            if "UserIdGroupPairs" in permission and len(permission["UserIdGroupPairs"]) > 0:
                 p = copy.deepcopy(permission)
                 remove_ingress.append(p)
-                log.debug(
-                    f"Adding incoming permission {p} of {self.kind} {self.dname} to removal list"
-                )
+                log.debug(f"Adding incoming permission {p} of {self.kind} {self.dname} to removal list")
 
         for permission in security_group.ip_permissions_egress:
-            if (
-                "UserIdGroupPairs" in permission
-                and len(permission["UserIdGroupPairs"]) > 0
-            ):
+            if "UserIdGroupPairs" in permission and len(permission["UserIdGroupPairs"]) > 0:
                 p = copy.deepcopy(permission)
                 remove_egress.append(p)
-                log.debug(
-                    f"Adding outgoing permission {p} of {self.kind} {self.dname} to removal list"
-                )
+                log.debug(f"Adding outgoing permission {p} of {self.kind} {self.dname} to removal list")
 
         if len(remove_ingress) > 0:
             security_group.revoke_ingress(IpPermissions=remove_ingress)
@@ -1146,14 +1133,10 @@ class AWSCloudFormationStack(AWSResource, BaseStack):
         DELETE = auto()
 
     def update_tag(self, key, value) -> bool:
-        return self._modify_tag(
-            key, value, mode=AWSCloudFormationStack.ModificationMode.UPDATE
-        )
+        return self._modify_tag(key, value, mode=AWSCloudFormationStack.ModificationMode.UPDATE)
 
     def delete_tag(self, key) -> bool:
-        return self._modify_tag(
-            key, mode=AWSCloudFormationStack.ModificationMode.DELETE
-        )
+        return self._modify_tag(key, mode=AWSCloudFormationStack.ModificationMode.DELETE)
 
     def _modify_tag(self, key, value=None, mode=None, wait=False) -> bool:
         tags = dict(self.tags)
@@ -1176,14 +1159,11 @@ class AWSCloudFormationStack(AWSResource, BaseStack):
             UsePreviousTemplate=True,
             Tags=[{"Key": label, "Value": value} for label, value in tags.items()],
             Parameters=[
-                {"ParameterKey": parameter, "UsePreviousValue": True}
-                for parameter in self.stack_parameters.keys()
+                {"ParameterKey": parameter, "UsePreviousValue": True} for parameter in self.stack_parameters.keys()
             ],
         )
         if response.get("ResponseMetadata", {}).get("HTTPStatusCode", 0) != 200:
-            raise RuntimeError(
-                f"Error updating AWS Cloudformation Stack {self.dname} for {mode.name} of tag {key}"
-            )
+            raise RuntimeError(f"Error updating AWS Cloudformation Stack {self.dname} for {mode.name} of tag {key}")
         if wait:
             self.wait_for_completion(stack, cf)
         self.tags = tags
@@ -1267,9 +1247,7 @@ class AWSAutoScalingGroup(AWSResource, BaseAutoScalingGroup):
 
     def delete(self, graph: Graph, force_delete: bool = True) -> bool:
         client = aws_client(self, "autoscaling", graph)
-        client.delete_auto_scaling_group(
-            AutoScalingGroupName=self.name, ForceDelete=force_delete
-        )
+        client.delete_auto_scaling_group(AutoScalingGroupName=self.name, ForceDelete=force_delete)
         return True
 
     def update_tag(self, key, value) -> bool:
@@ -1308,7 +1286,7 @@ class AWSCloudwatchAlarm(AWSResource, BaseResource):
     kind: ClassVar[str] = "aws_cloudwatch_alarm"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
         "default": [],
-        "delete": ["aws_ec2_instance"],
+        "delete": [],
     }
 
     actions_enabled: bool = False
@@ -1352,9 +1330,7 @@ class AWSCloudFormationStackSet(AWSResource, BaseResource):
     stack_set_capabilities: Optional[List[str]] = field(default_factory=list)
     stack_set_administration_role_arn: Optional[str] = None
     stack_set_execution_role_name: Optional[str] = None
-    stack_set_drift_detection_details: Optional[Dict[str, Any]] = field(
-        default_factory=dict
-    )
+    stack_set_drift_detection_details: Optional[Dict[str, Any]] = field(default_factory=dict)
     stack_set_last_drift_check_timestamp: Optional[datetime] = None
     stack_set_auto_deployment: Optional[Dict[str, bool]] = field(default_factory=dict)
     stack_set_permission_model: Optional[str] = None
@@ -1373,14 +1349,10 @@ class AWSCloudFormationStackSet(AWSResource, BaseResource):
         DELETE = auto()
 
     def update_tag(self, key, value) -> bool:
-        return self._modify_tag(
-            key, value, mode=AWSCloudFormationStackSet.ModificationMode.UPDATE
-        )
+        return self._modify_tag(key, value, mode=AWSCloudFormationStackSet.ModificationMode.UPDATE)
 
     def delete_tag(self, key) -> bool:
-        return self._modify_tag(
-            key, mode=AWSCloudFormationStackSet.ModificationMode.DELETE
-        )
+        return self._modify_tag(key, mode=AWSCloudFormationStackSet.ModificationMode.DELETE)
 
     def _modify_tag(self, key, value=None, mode=None) -> bool:
         tags = dict(self.tags)
@@ -1402,14 +1374,52 @@ class AWSCloudFormationStackSet(AWSResource, BaseResource):
             UsePreviousTemplate=True,
             Tags=[{"Key": label, "Value": value} for label, value in tags.items()],
             Parameters=[
-                {"ParameterKey": parameter, "UsePreviousValue": True}
-                for parameter in self.stack_set_parameters.keys()
+                {"ParameterKey": parameter, "UsePreviousValue": True} for parameter in self.stack_set_parameters.keys()
             ],
         )
         if response.get("ResponseMetadata", {}).get("HTTPStatusCode", 0) != 200:
             raise RuntimeError(
-                "Error updating AWS Cloudformation Stack Set"
-                f" {self.dname} for {mode.name} of tag {key}"
+                "Error updating AWS Cloudformation Stack Set" f" {self.dname} for {mode.name} of tag {key}"
             )
         self.tags = tags
         return True
+
+
+@dataclass(eq=False)
+class AWSRoute53Zone(AWSResource, BaseDNSZone):
+    kind: ClassVar[str] = "aws_route53_zone"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["aws_route53_resource_record_set"],
+        "delete": [],
+    }
+
+    zone_caller_reference: Optional[str] = None
+    zone_config: Optional[Dict[str, Union[str, bool]]] = None
+    zone_resource_record_set_count: Optional[int] = None
+    zone_linked_service: Optional[Dict[str, str]] = None
+
+
+@dataclass(eq=False)
+class AWSRoute53ResourceRecordSet(AWSResource, BaseDNSRecordSet):
+    kind: ClassVar[str] = "aws_route53_resource_record_set"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["aws_route53_resource_record"],
+        "delete": ["aws_route53_resource_record"],
+    }
+    record_set_identifier: Optional[str] = None
+    record_region: Optional[str] = None
+    record_geo_location: Optional[Dict[str, str]] = None
+    record_failover: Optional[str] = None
+    record_multi_value_answer: Optional[bool] = None
+    record_alias_target: Optional[Dict[str, Union[str, bool]]] = None
+    record_health_check_id: Optional[str] = None
+    record_traffic_policy_instance_id: Optional[str] = None
+
+
+@dataclass(eq=False)
+class AWSRoute53ResourceRecord(AWSResource, BaseDNSRecord):
+    kind: ClassVar[str] = "aws_route53_resource_record"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": [],
+        "delete": [],
+    }

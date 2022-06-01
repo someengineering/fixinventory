@@ -22,15 +22,10 @@ def _load_default_metrics() -> Dict[str, Metric]:
     local_path = os.path.abspath(os.path.dirname(__file__))
     default_metrics_file = f"{local_path}/default_metrics.yaml"
     if not os.path.isfile(default_metrics_file):
-        raise RuntimeError(
-            f"Could not find default metrics file {default_metrics_file}"
-        )
+        raise RuntimeError(f"Could not find default metrics file {default_metrics_file}")
     with open(default_metrics_file, "r") as f:
         default_metrics = load(f, Loader=Loader)
-    return {
-        metric_name: Metric(**metric_data)
-        for metric_name, metric_data in default_metrics.items()
-    }
+    return {metric_name: Metric(**metric_data) for metric_name, metric_data in default_metrics.items()}
 
 
 @dataclass
@@ -40,16 +35,11 @@ class ResotoMetricsConfig:
         default="resoto",
         metadata={"description": "Name of the graph to run aggregation searches on"},
     )
-    timeout: Optional[int] = field(
-        default=300, metadata={"description": "Metrics generation timeout in seconds"}
-    )
+    timeout: Optional[int] = field(default=300, metadata={"description": "Metrics generation timeout in seconds"})
     metrics: Optional[Dict[str, Metric]] = field(
         default_factory=_load_default_metrics,
         metadata={
-            "description": (
-                "Metrics config\n"
-                "See https://resoto.com/docs/reference/cli/aggregate for syntax details"
-            )
+            "description": ("Metrics config\n" "See https://resoto.com/docs/reference/cli/aggregate for syntax details")
         },
     )
     web_host: Optional[str] = field(

@@ -102,9 +102,7 @@ class Config(metaclass=MetaConfig):
             Config.running_config.types[config.kind] = {}
             for field in fields(config):
                 if hasattr(field, "type"):
-                    Config.running_config.types[config.kind][
-                        field.name
-                    ] = optional_origin(field.type)
+                    Config.running_config.types[config.kind][field.name] = optional_origin(field.type)
         else:
             raise RuntimeError("Config must have a 'kind' attribute")
 
@@ -113,29 +111,21 @@ class Config(metaclass=MetaConfig):
             raise RuntimeError("No config added")
         with self._config_lock:
             try:
-                config, new_config_revision = get_config(
-                    self.config_name, self.resotocore_uri, verify=self.verify
-                )
+                config, new_config_revision = get_config(self.config_name, self.resotocore_uri, verify=self.verify)
                 if len(config) == 0:
                     if self._initial_load:
-                        raise ConfigNotFoundError(
-                            "Empty config returned - loading defaults"
-                        )
+                        raise ConfigNotFoundError("Empty config returned - loading defaults")
                     else:
                         raise ValueError("Empty config returned")
             except ConfigNotFoundError:
                 pass
             else:
-                log.info(
-                    f"Loaded config {self.config_name} revision {new_config_revision}"
-                )
+                log.info(f"Loaded config {self.config_name} revision {new_config_revision}")
                 new_config = {}
                 for config_id, config_data in config.items():
                     if config_id in Config.running_config.classes:
                         log.debug(f"Loading config section {config_id}")
-                        new_config[config_id] = jsons.load(
-                            config_data, Config.running_config.classes[config_id]
-                        )
+                        new_config[config_id] = jsons.load(config_data, Config.running_config.classes[config_id])
                     else:
                         log.warning(f"Unknown config section {config_id}")
                 if reload and self.restart_required(new_config):
@@ -161,14 +151,10 @@ class Config(metaclass=MetaConfig):
             if config_id in Config.running_config.data:
                 for field in fields(config_data):
                     if field.metadata.get("restart_required", False):
-                        old_value = getattr(
-                            Config.running_config.data[config_id], field.name, None
-                        )
+                        old_value = getattr(Config.running_config.data[config_id], field.name, None)
                         new_value = getattr(config_data, field.name, None)
                         if new_value != old_value:
-                            log.info(
-                                f"Changed config {config_id}.{field.name} requires restart"
-                            )
+                            log.info(f"Changed config {config_id}.{field.name} requires restart")
                             return True
         return False
 
@@ -203,9 +189,7 @@ class Config(metaclass=MetaConfig):
                     config_section in Config.running_config.types
                     and top_config_key in Config.running_config.types[config_section]
                 ):
-                    fallback_target_type = Config.running_config.types[config_section][
-                        top_config_key
-                    ]
+                    fallback_target_type = Config.running_config.types[config_section][top_config_key]
 
                 for num_key, key in enumerate(config_keys):
                     if num_key == num_keys - 1:
@@ -215,18 +199,14 @@ class Config(metaclass=MetaConfig):
                     if hasattr(config_part, key):
                         attr_value = getattr(config_part, key)
                         if set_value:
-                            config_value = Config.cast_target_type(
-                                config_value, attr_value, fallback_target_type
-                            )
+                            config_value = Config.cast_target_type(config_value, attr_value, fallback_target_type)
                             setattr(config_part, key, config_value)
                         else:
                             config_part = attr_value
                     elif isinstance(config_part, dict) and key in config_part:
                         attr_value = config_part[key]
                         if set_value:
-                            config_value = Config.cast_target_type(
-                                config_value, attr_value, fallback_target_type
-                            )
+                            config_value = Config.cast_target_type(config_value, attr_value, fallback_target_type)
                             config_part[key] = config_value
                         else:
                             config_part = attr_value
@@ -243,9 +223,7 @@ class Config(metaclass=MetaConfig):
                 log.exception(f"Failed to override config {override}")
 
     @staticmethod
-    def cast_target_type(
-        config_value: Any, current_value: Any, fallback_target_type: type
-    ) -> object:
+    def cast_target_type(config_value: Any, current_value: Any, fallback_target_type: type) -> object:
         if current_value is None and fallback_target_type is not None:
             target_type = fallback_target_type
         else:
@@ -258,22 +236,14 @@ class Config(metaclass=MetaConfig):
 
     @staticmethod
     def dict() -> Dict:
-        return jsons.dump(
-            Config.running_config.data, strip_attr="kind", strip_properties=True
-        )
+        return jsons.dump(Config.running_config.data, strip_attr="kind", strip_properties=True)
 
     def save_config(self) -> None:
-        update_config_model(
-            self.model, resotocore_uri=self.resotocore_uri, verify=self.verify
-        )
-        stored_config_revision = set_config(
-            self.config_name, self.dict(), self.resotocore_uri, verify=self.verify
-        )
+        update_config_model(self.model, resotocore_uri=self.resotocore_uri, verify=self.verify)
+        stored_config_revision = set_config(self.config_name, self.dict(), self.resotocore_uri, verify=self.verify)
         if stored_config_revision != Config.running_config.revision:
             Config.running_config.revision = stored_config_revision
-            log.debug(
-                f"Saved config {self.config_name} revision {Config.running_config.revision}"
-            )
+            log.debug(f"Saved config {self.config_name} revision {Config.running_config.revision}")
         else:
             log.debug(f"Config {self.config_name} unchanged")
 
@@ -281,8 +251,7 @@ class Config(metaclass=MetaConfig):
         if (
             message.get("message_type") == "config-updated"
             and message.get("data", {}).get("id") == self.config_name
-            and message.get("data", {}).get("revision")
-            != Config.running_config.revision
+            and message.get("data", {}).get("revision") != Config.running_config.revision
         ):
             try:
                 log.debug(f"Config {self.config_name} has changed - reloading")

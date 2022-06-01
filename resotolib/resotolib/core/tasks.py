@@ -45,9 +45,7 @@ class CoreTasks(threading.Thread):
         add_event_listener(EventType.SHUTDOWN, self.shutdown)
 
         for i in range(self.max_workers):
-            threading.Thread(
-                target=self.worker, daemon=True, name=f"worker-{i}"
-            ).start()
+            threading.Thread(target=self.worker, daemon=True, name=f"worker-{i}").start()
 
         while not self.shutdown_event.is_set():
             log.debug("Connecting to resotocore task queue")
@@ -97,14 +95,10 @@ class CoreTasks(threading.Thread):
         sslopt = None
         if self.tls_data:
             sslopt = {"ca_certs": self.tls_data.ca_cert_path}
-        self.ws.run_forever(
-            sslopt=sslopt, ping_interval=30, ping_timeout=10, ping_payload="ping"
-        )
+        self.ws.run_forever(sslopt=sslopt, ping_interval=30, ping_timeout=10, ping_payload="ping")
 
     def shutdown(self, event: Event = None) -> None:
-        log.debug(
-            "Received shutdown event - shutting down resotocore task queue listener"
-        )
+        log.debug("Received shutdown event - shutting down resotocore task queue listener")
         self.shutdown_event.set()
         if self.ws:
             self.ws.close()

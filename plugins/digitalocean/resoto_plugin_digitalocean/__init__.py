@@ -10,7 +10,7 @@ from resotolib.logger import log
 from resotolib.graph import Graph
 
 
-class DigitalOceanCollectorPlugin(BaseCollectorPlugin):  # type: ignore
+class DigitalOceanCollectorPlugin(BaseCollectorPlugin):
     cloud = "digitalocean"
 
     def collect(self) -> None:
@@ -30,9 +30,7 @@ class DigitalOceanCollectorPlugin(BaseCollectorPlugin):  # type: ignore
             return all([len(key.split(":")) == 2 for key in keys])
 
         if not spaces_keys_valid(spaces_access_keys):
-            log.warn(
-                "DigitalOcean Spaces access keys must be provided in pairs of access_key:secret_key"
-            )
+            log.warn("DigitalOcean Spaces access keys must be provided in pairs of access_key:secret_key")
         else:
 
             def key_to_tuple(key: str) -> Tuple[str, str]:
@@ -64,9 +62,7 @@ class DigitalOceanCollectorPlugin(BaseCollectorPlugin):  # type: ignore
             dopc = DigitalOceanTeamCollector(team, client)
             dopc.collect()
         except Exception:
-            log.exception(
-                f"An unhandled error occurred while collecting team {team_id}"
-            )
+            log.exception(f"An unhandled error occurred while collecting team {team_id}")
             return None
         else:
             return dopc.graph
