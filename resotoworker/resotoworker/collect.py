@@ -14,21 +14,15 @@ from resotolib.config import Config, RunningConfig
 from resotolib.core.ca import TLSData
 
 
-def collect_and_send(
-    collectors: List[BaseCollectorPlugin], tls_data: Optional[TLSData] = None
-) -> None:
+def collect_and_send(collectors: List[BaseCollectorPlugin], tls_data: Optional[TLSData] = None) -> None:
     def collect(collectors: List[BaseCollectorPlugin]) -> Graph:
         graph = Graph(root=GraphRoot("root", {}))
 
         max_workers = (
-            len(collectors)
-            if len(collectors) < Config.resotoworker.pool_size
-            else Config.resotoworker.pool_size
+            len(collectors) if len(collectors) < Config.resotoworker.pool_size else Config.resotoworker.pool_size
         )
         if max_workers == 0:
-            log.error(
-                "No workers configured or no collector plugins loaded - skipping collect"
-            )
+            log.error("No workers configured or no collector plugins loaded - skipping collect")
             return
         pool_args = {"max_workers": max_workers}
         if Config.resotoworker.fork_process:
@@ -86,16 +80,10 @@ def collect_plugin_graph(
     elapsed = time() - start_time
     if not collector.is_alive():  # The plugin has finished its work
         if not collector.finished:
-            log.error(
-                f"Plugin {collector.cloud} did not finish collection"
-                " - ignoring plugin results"
-            )
+            log.error(f"Plugin {collector.cloud} did not finish collection" " - ignoring plugin results")
             return None
         if not collector.graph.is_dag_per_edge_type():
-            log.error(
-                f"Graph of plugin {collector.cloud} is not acyclic"
-                " - ignoring plugin results"
-            )
+            log.error(f"Graph of plugin {collector.cloud} is not acyclic" " - ignoring plugin results")
             return None
         log.info(f"Collector of plugin {collector.cloud} finished in {elapsed:.4f}s")
         return collector.graph

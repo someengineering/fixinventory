@@ -30,8 +30,7 @@ def cut_document_remaining(document: Document, span: Tuple[int, int]) -> Documen
     remaining = document.text_before_cursor[span[0] : span[1]]
     return Document(
         remaining,
-        cursor_position=document.cursor_position
-        - (len(document.text) - len(remaining)),
+        cursor_position=document.cursor_position - (len(document.text) - len(remaining)),
     )
 
 
@@ -42,10 +41,7 @@ def cut_document_last(document: Document, last_part: str) -> Document:
         right_stripped = right.lstrip()
         return Document(
             right_stripped,
-            cursor_position=document.cursor_position
-            - len(left)
-            - len(last_part)
-            - (len(right) - len(right_stripped)),
+            cursor_position=document.cursor_position - len(left) - len(last_part) - (len(right) - len(right_stripped)),
         )
     else:
         return document
@@ -90,9 +86,7 @@ class ArgCompleter(Completer):
     arg: ArgInfo
     completer: Optional[Completer]
 
-    def get_completions(
-        self, document: Document, complete_event: CompleteEvent
-    ) -> Iterable[Completion]:
+    def get_completions(self, document: Document, complete_event: CompleteEvent) -> Iterable[Completion]:
         if self.completer:
             return self.completer.get_completions(document, complete_event)
         else:
@@ -104,9 +98,7 @@ class CommandCompleter(Completer):
     cmd: CommandInfo
     completer: Optional[Completer]
 
-    def get_completions(
-        self, document: Document, complete_event: CompleteEvent
-    ) -> Iterable[Completion]:
+    def get_completions(self, document: Document, complete_event: CompleteEvent) -> Iterable[Completion]:
         if self.completer:
             return self.completer.get_completions(document, complete_event)
         else:
@@ -130,9 +122,7 @@ class FuzzyWordCompleter(Completer):
         )
         self.fuzzy_completer = FuzzyCompleter(self.word_completer, WORD=self.WORD)
 
-    def get_completions(
-        self, document: Document, complete_event: CompleteEvent
-    ) -> Iterable[Completion]:
+    def get_completions(self, document: Document, complete_event: CompleteEvent) -> Iterable[Completion]:
         return self.fuzzy_completer.get_completions(document, complete_event)
 
     def get_completions_filtered(
@@ -148,9 +138,7 @@ class FuzzyWordCompleter(Completer):
     def get_completions_without(
         self, document: Document, complete_event: CompleteEvent, **filter_values: bool
     ) -> Iterable[Completion]:
-        return self.get_completions_filtered(
-            document, complete_event, lambda v: not filter_values.get(v.text, False)
-        )
+        return self.get_completions_filtered(document, complete_event, lambda v: not filter_values.get(v.text, False))
 
 
 re_nav_block = r"[a-zA-Z0-9]*(?:\[[0-9:]+\])?[a-zA-Z0-9]*"
@@ -160,9 +148,7 @@ re_start_query = re.compile(r"^\s*(/?[A-Za-z0-9_.]*)$")
 re_inside_is = re.compile(".*is\\(([^)]*)$")
 re_json_value = r'(?:"[^"]*")|(?:\[[^\\]+\])|(?:\{[^}]+\})|(?:[A-Za-z0-9_\-:/.]+)'
 
-re_partial_and_or = (
-    r"|a|an|and|o|or|-|<|-|-\[|--|<-|<-\[|s|so|sor|sort|l|li|lim|limi|limit"
-)
+re_partial_and_or = r"|a|an|and|o|or|-|<|-|-\[|--|<-|<-\[|s|so|sor|sort|l|li|lim|limi|limit"
 re_param = "/?[A-Za-z_][A-Za-z0-9_\\-.\\[\\]]*"
 re_op = "==|=|!=|<|>|<=|>=|=~|~|!~|\\s+in\\s+|\\s+not in\\s+"
 re_fulltext = r'(?:"[^"]*")'
@@ -170,9 +156,7 @@ re_fulltext = r'(?:"[^"]*")'
 # match and/or
 re_after_bracket = re.compile(f".*\\)\\s+({re_partial_and_or})$")
 # noinspection RegExpUnnecessaryNonCapturingGroup
-re_after_param_filter = re.compile(
-    f".*{re_param}\\s*(?:{re_op})\\s*(?:{re_json_value})\\s({re_partial_and_or})$"
-)
+re_after_param_filter = re.compile(f".*{re_param}\\s*(?:{re_op})\\s*(?:{re_json_value})\\s({re_partial_and_or})$")
 # noinspection RegExpUnnecessaryNonCapturingGroup
 re_after_fulltext = re.compile(f".*(?:{re_fulltext})\\s*({re_partial_and_or})$")
 re_after_sort_limit = re.compile(
@@ -184,12 +168,8 @@ re_sort_order = re.compile(r".*sort\s+\S+\s+(\S*)$")
 re_param_start = re.compile(r".*(?:and|or)\s+(/?[\w\-\[\].]*)$")
 re_slash_reported = re.compile(r"/reported.([^.]*)$")
 re_ancestor_descendant_kind = re.compile(r"(?:/ancestors.|/descendants.)([^.]*)$")
-re_ancestor_descendant_section = re.compile(
-    r"(?:/ancestors.|/descendants.)[\w\d_-]+[.]([^.]*)$"
-)
-re_ancestor_descendant_reported = re.compile(
-    r"(?:/ancestors.|/descendants.)[\w\d_-]+[.]reported[.]([^.]*)$"
-)
+re_ancestor_descendant_section = re.compile(r"(?:/ancestors.|/descendants.)[\w\d_-]+[.]([^.]*)$")
+re_ancestor_descendant_reported = re.compile(r"(?:/ancestors.|/descendants.)[\w\d_-]+[.]reported[.]([^.]*)$")
 re_parm = "/?[A-Za-z0-9_\\-.\\[\\]]*"
 re_first_word = re.compile(f"^\\s*({re_parm})$")
 re_second_word = re.compile(f"^\\s*{re_parm}\\s+(\\w*)$")
@@ -204,9 +184,7 @@ re_after_bracket_start = re.compile(r"(?:|.*\s+)\((\w*)$")
 
 
 class DocumentExtension:
-    def __init__(
-        self, document: Document, part_splitter: Optional[Pattern[str]] = None
-    ) -> None:
+    def __init__(self, document: Document, part_splitter: Optional[Pattern[str]] = None) -> None:
         self.document = document
         self.text = document.text_before_cursor
         self.parts = part_splitter.split(self.text) if part_splitter else [self.text]
@@ -221,9 +199,7 @@ class DocumentExtension:
         return cut_document_remaining(self.last_doc(), span)
 
     def last_doc(self) -> Document:
-        return Document(
-            self.last, self.document.cursor_position - (len(self.text) - len(self.last))
-        )
+        return Document(self.last, self.document.cursor_position - (len(self.text) - len(self.last)))
 
     def word_at(self, idx: int) -> str:
         return self.last_words[idx] if abs(idx) <= len(self.last_words) else ""
@@ -236,12 +212,9 @@ class AbstractSearchCompleter(Completer, ABC):
         self.prop_lookup = set(props)
         ops = ["=", "!=", ">", "<", "<=", ">=", "~", "!~", "in"]
         self.ops_lookup = set(ops)
-        self.kind_completer = FuzzyWordCompleter(
-            kinds, meta_dict={p: "kind" for p in kinds}
-        )
+        self.kind_completer = FuzzyWordCompleter(kinds, meta_dict={p: "kind" for p in kinds})
         self.property_names_completer = FuzzyWordCompleter(
-            props
-            + ["/ancestors.", "/reported.", "/desired.", "/metadata.", "/descendants."],
+            props + ["/ancestors.", "/reported.", "/desired.", "/metadata.", "/descendants."],
             meta_dict=(
                 {
                     "/reported.": "absolute path in reported section",
@@ -254,9 +227,7 @@ class AbstractSearchCompleter(Completer, ABC):
             ),
         )
         self.start_completer = FuzzyWordCompleter(
-            ['"', "is(", "/ancestors."]
-            + props
-            + ["/reported.", "/desired.", "/metadata.", "/descendants.", "all"],
+            ['"', "is(", "/ancestors."] + props + ["/reported.", "/desired.", "/metadata.", "/descendants.", "all"],
             meta_dict=(
                 {
                     '"': 'full text search. e.g. "test"',
@@ -300,12 +271,8 @@ class AbstractSearchCompleter(Completer, ABC):
                 "<-[0:]->": "any reachable node from here",
             },
         )
-        self.value_completer = HintCompleter(
-            "<value>", "like 123, test, 12days, true, false, null, [1,2,3], {a:1}"
-        )
-        self.limit_completer = HintCompleter(
-            "<num>", "Number of elements with optional offset. e.g. 23 or 12, 23"
-        )
+        self.value_completer = HintCompleter("<value>", "like 123, test, 12days, true, false, null, [1,2,3], {a:1}")
+        self.limit_completer = HintCompleter("<num>", "Number of elements with optional offset. e.g. 23 or 12, 23")
         self.sort_order_completer = FuzzyWordCompleter(["asc", "desc"])
         self.section_completer = FuzzyWordCompleter(["reported", "desired", "metadata"])
 
@@ -333,35 +300,25 @@ class AbstractSearchCompleter(Completer, ABC):
 
 
 class KindCompleter(AbstractSearchCompleter):
-    def get_completions(
-        self, document: Document, complete_event: CompleteEvent
-    ) -> Iterable[Completion]:
+    def get_completions(self, document: Document, complete_event: CompleteEvent) -> Iterable[Completion]:
         return self.kind_completer.get_completions(document, complete_event)
 
 
 class SearchCompleter(AbstractSearchCompleter):
-    def get_completions(
-        self, document: Document, complete_event: CompleteEvent
-    ) -> Iterable[Completion]:
+    def get_completions(self, document: Document, complete_event: CompleteEvent) -> Iterable[Completion]:
         ext = DocumentExtension(document, re_navigation)
         have_sort = " sort " in ext.last
         have_limit = " limit " in ext.last
 
         if in_start := re_start_query.match(ext.last):
             doc = ext.cut_last(in_start.span(1))
-            return self.property_completions(
-                doc, ext, complete_event, self.start_completer
-            )
+            return self.property_completions(doc, ext, complete_event, self.start_completer)
         elif parm := re_param_start.match(ext.text):
             doc = ext.cut_text(parm.span(1))
-            return self.property_completions(
-                doc, ext, complete_event, self.start_completer
-            )
+            return self.property_completions(doc, ext, complete_event, self.start_completer)
         elif bracket := re_after_bracket_start.match(ext.text):
             doc = ext.cut_text(bracket.span(1))
-            return self.property_completions(
-                doc, ext, complete_event, self.start_completer
-            )
+            return self.property_completions(doc, ext, complete_event, self.start_completer)
         elif in_is := re_inside_is.match(ext.text):
             doc = ext.cut_text(in_is.span(1))
             return self.kind_completer.get_completions(doc, complete_event)
@@ -373,9 +330,7 @@ class SearchCompleter(AbstractSearchCompleter):
             return self.and_or_completer.get_completions(doc, complete_event)
         elif after := re_sort_attribute.match(ext.last):
             doc = ext.cut_last(after.span(1))
-            return self.property_completions(
-                doc, ext, complete_event, self.property_names_completer
-            )
+            return self.property_completions(doc, ext, complete_event, self.property_names_completer)
         elif after := re_sort_order.match(ext.last):  # sort order
             doc = ext.cut_last(after.span(1))
             return self.sort_order_completer.get_completions(doc, complete_event)
@@ -397,9 +352,7 @@ class SearchCompleter(AbstractSearchCompleter):
         elif after := re_after_param_filter.match(ext.last):
             doc = ext.cut_last(after.span(1))
             return self.and_or_completer.get_completions(doc, complete_event)
-        elif (
-            ext.last_word in self.prop_lookup or ext.last_word.startswith("/")
-        ) and not have_sort:
+        elif (ext.last_word in self.prop_lookup or ext.last_word.startswith("/")) and not have_sort:
             doc = cut_document_last(document, ext.last_word)
             return self.ops_completer.get_completions(doc, complete_event)
         elif ext.last_word in self.ops_lookup:
@@ -422,9 +375,7 @@ class AggregateCompleter(AbstractSearchCompleter):
                 "avg(": "average over all occurrences",
             },
         )
-        self.as_completer = FuzzyWordCompleter(
-            ["as"], meta_dict=({"as": "rename this result"})
-        )
+        self.as_completer = FuzzyWordCompleter(["as"], meta_dict=({"as": "rename this result"}))
         self.colon_completer = FuzzyWordCompleter(
             [":"],
             meta_dict=({":": "to define functions for this group"}),
@@ -438,8 +389,7 @@ class AggregateCompleter(AbstractSearchCompleter):
             meta_dict=({",": "define another group function"}),
         )
         self.props_completer = FuzzyWordCompleter(
-            props
-            + ["/ancestors.", "/reported.", "/desired.", "/metadata.", "/descendants."],
+            props + ["/ancestors.", "/reported.", "/desired.", "/metadata.", "/descendants."],
             meta_dict=(
                 {
                     "/reported.": "absolute path in reported section",
@@ -454,18 +404,10 @@ class AggregateCompleter(AbstractSearchCompleter):
         self.group_with_value_completer = merge_completers(
             [HintCompleter("1", "Static value to count", "1"), self.props_completer]
         )
-        self.group_after_name = merge_completers(
-            [self.as_completer, self.colon_completer, self.comma_var_completer]
-        )
-        self.fn_after_name = merge_completers(
-            [self.as_completer, self.comma_fn_completer]
-        )
-        self.after_group = merge_completers(
-            [self.comma_var_completer, self.colon_completer]
-        )
-        self.after_fn_completer = merge_completers(
-            [self.as_completer, self.comma_fn_completer]
-        )
+        self.group_after_name = merge_completers([self.as_completer, self.colon_completer, self.comma_var_completer])
+        self.fn_after_name = merge_completers([self.as_completer, self.comma_fn_completer])
+        self.after_group = merge_completers([self.comma_var_completer, self.colon_completer])
+        self.after_fn_completer = merge_completers([self.as_completer, self.comma_fn_completer])
         self.hint_completer = HintCompleter(
             "Example",
             "aggregation example",
@@ -476,15 +418,11 @@ class AggregateCompleter(AbstractSearchCompleter):
         )
         self.value_hint_completer = HintCompleter("<name>", "name of this result")
 
-    def group_completion(
-        self, document: Document, complete_event: CompleteEvent
-    ) -> Iterable[Completion]:
+    def group_completion(self, document: Document, complete_event: CompleteEvent) -> Iterable[Completion]:
         ext = DocumentExtension(document, re.compile(r"\s*,\s*"))
         if first := re_first_word.match(ext.last):
             doc = ext.cut_last(first.span(1))
-            return self.property_completions(
-                doc, ext, complete_event, self.props_completer
-            )
+            return self.property_completions(doc, ext, complete_event, self.props_completer)
         elif second := re_second_word.match(ext.last):
             doc = ext.cut_last(second.span(1))
             return self.group_after_name.get_completions(doc, complete_event)
@@ -497,12 +435,8 @@ class AggregateCompleter(AbstractSearchCompleter):
         else:
             return []
 
-    def fn_completion(
-        self, document: Document, complete_event: CompleteEvent
-    ) -> Iterable[Completion]:
-        ext = DocumentExtension(
-            cut_document_last(document, ":"), re.compile(r"\s*,\s*")
-        )
+    def fn_completion(self, document: Document, complete_event: CompleteEvent) -> Iterable[Completion]:
+        ext = DocumentExtension(cut_document_last(document, ":"), re.compile(r"\s*,\s*"))
         if first := re_first_word.match(ext.last):
             doc = ext.cut_last(first.span(1))
             return self.aggregate_fn_completer.get_completions(doc, complete_event)
@@ -521,9 +455,7 @@ class AggregateCompleter(AbstractSearchCompleter):
         else:
             return []
 
-    def get_completions(
-        self, document: Document, complete_event: CompleteEvent
-    ) -> Iterable[Completion]:
+    def get_completions(self, document: Document, complete_event: CompleteEvent) -> Iterable[Completion]:
         text = document.text_before_cursor
         in_functions = ":" in text or any(a for a in self.aggregate_fns if a in text)
         if text.strip() == "":
@@ -535,21 +467,15 @@ class AggregateCompleter(AbstractSearchCompleter):
 
 
 class PropertyCompleter(AbstractSearchCompleter):
-    def get_completions(
-        self, document: Document, complete_event: CompleteEvent
-    ) -> Iterable[Completion]:
+    def get_completions(self, document: Document, complete_event: CompleteEvent) -> Iterable[Completion]:
         ext = DocumentExtension(document)
-        return self.property_completions(
-            document, ext, complete_event, self.property_names_completer
-        )
+        return self.property_completions(document, ext, complete_event, self.property_names_completer)
 
 
 class PropertyListCompleter(AggregateCompleter):
     # Inherit from aggregate completer only, since the grouping completer
     # already implements everything we need.
-    def __init__(
-        self, kinds: List[str], props: List[str], with_as: bool = True
-    ) -> None:
+    def __init__(self, kinds: List[str], props: List[str], with_as: bool = True) -> None:
         super().__init__(kinds, props)
         self.comma_var_completer = FuzzyWordCompleter(
             [","],
@@ -557,28 +483,20 @@ class PropertyListCompleter(AggregateCompleter):
         )
         self.props_completer = self.property_names_completer
         self.group_after_name = (
-            merge_completers([self.as_completer, self.comma_var_completer])
-            if with_as
-            else self.comma_var_completer
+            merge_completers([self.as_completer, self.comma_var_completer]) if with_as else self.comma_var_completer
         )
         self.after_group = self.comma_var_completer
 
-    def get_completions(
-        self, document: Document, complete_event: CompleteEvent
-    ) -> Iterable[Completion]:
+    def get_completions(self, document: Document, complete_event: CompleteEvent) -> Iterable[Completion]:
         return self.group_completion(document, complete_event)
 
 
 class HintCompleter(Completer):
     def __init__(self, hint: str, meta: Optional[str] = None, value: str = " ") -> None:
         self.value = value
-        self.cpl = WordCompleter(
-            [value], meta_dict={value: meta}, display_dict={value: hint}, WORD=True
-        )
+        self.cpl = WordCompleter([value], meta_dict={value: meta}, display_dict={value: hint}, WORD=True)
 
-    def get_completions(
-        self, document: Document, complete_event: CompleteEvent
-    ) -> Iterable[Completion]:
+    def get_completions(self, document: Document, complete_event: CompleteEvent) -> Iterable[Completion]:
         # Only show a hint once at the start
         if self.value == " " and document.text_before_cursor.strip() != "":
             return []
@@ -593,18 +511,12 @@ class ArgsCompleter(Completer):
         for x in args:
             (direct if x.arg.name is None else opts).append(x)
         self.direct = direct
-        self.args: Dict[str, ArgCompleter] = {
-            arg.arg.name: arg for arg in opts if arg.arg.name is not None
-        }
-        self.value_lookup: Dict[str, ArgCompleter] = {
-            v: a for a in args for v in a.arg.possible_values
-        }
+        self.args: Dict[str, ArgCompleter] = {arg.arg.name: arg for arg in opts if arg.arg.name is not None}
+        self.value_lookup: Dict[str, ArgCompleter] = {v: a for a in args for v in a.arg.possible_values}
         self.options_completer = FuzzyWordCompleter(
             list(self.args.keys()),
             meta_dict={
-                arg: complete.arg.help_text
-                for arg, complete in self.args.items()
-                if complete.arg.help_text is not None
+                arg: complete.arg.help_text for arg, complete in self.args.items() if complete.arg.help_text is not None
             },
         )
 
@@ -614,9 +526,7 @@ class ArgsCompleter(Completer):
                 return parm if parm.arg.expects_value and idx < 2 else None
         return None
 
-    def get_completions(
-        self, document: Document, complete_event: CompleteEvent
-    ) -> Iterable[Completion]:
+    def get_completions(self, document: Document, complete_event: CompleteEvent) -> Iterable[Completion]:
         text = document.text_before_cursor
         parts = text.strip().split()
         maybe = self.inside_option(parts)
@@ -635,17 +545,13 @@ class ArgsCompleter(Completer):
         adapted_stripped = adapted.lstrip()
         sp = adapted_stripped.rsplit(maxsplit=1)
         last = sp[-1] if len(sp) > 1 else adapted_stripped
-        start_arg = last.strip() != "" and any(
-            a.arg.name.startswith(last) for a in self.args.values() if a.arg.name
-        )
+        start_arg = last.strip() != "" and any(a.arg.name.startswith(last) for a in self.args.values() if a.arg.name)
 
         def direct_completers() -> Completer:
             def allowed_arg(arg_info: ArgInfo) -> bool:
                 group = arg_info.option_group
                 return group is None or not any(
-                    a.arg.name in parts
-                    for a in self.args.values()
-                    if a.arg.option_group == group
+                    a.arg.name in parts for a in self.args.values() if a.arg.option_group == group
                 )
 
             d = [a.completer for a in self.direct if a.completer if allowed_arg(a.arg)]
@@ -654,42 +560,29 @@ class ArgsCompleter(Completer):
         def allowed(completion: Completion) -> bool:
             txt = completion.text
             # has this parameter been specified before?
-            already_defined = (
-                txt in parts
-                and txt in self.args
-                and not self.args[txt].arg.can_occur_multiple_times
-            )
+            already_defined = txt in parts and txt in self.args and not self.args[txt].arg.can_occur_multiple_times
 
             # is this a possible value, where another value is already defined?
             another_value_defined = False
             if txt in self.value_lookup:
-                another_value_defined = any(
-                    v for v in self.value_lookup[txt].arg.possible_values if v in parts
-                )
+                another_value_defined = any(v for v in self.value_lookup[txt].arg.possible_values if v in parts)
 
             # another option group defined
             ag = self.args.get(completion.text)
             option_group_defined = False
             if group := ag.arg.option_group if ag else None:
                 option_group_defined = any(
-                    a.arg.name in parts
-                    for a in self.args.values()
-                    if a.arg.option_group == group
+                    a.arg.name in parts for a in self.args.values() if a.arg.option_group == group
                 )
 
             # if we come here: this is a valid completion
-            return (
-                False
-                if already_defined or another_value_defined or option_group_defined
-                else True
-            )
+            return False if already_defined or another_value_defined or option_group_defined else True
 
         # either there is no option or an option has been started
         if adapted_stripped == "" or start_arg:
             last_doc = Document(
                 last,
-                cursor_position=document.cursor_position
-                - (len(document.text) - len(last)),
+                cursor_position=document.cursor_position - (len(document.text) - len(last)),
             )
             direct = direct_completers().get_completions(doc, complete_event)
             opts = self.options_completer.get_completions(last_doc, complete_event)
@@ -708,25 +601,17 @@ class CommandLineCompleter(Completer):
     def __init__(self, commands: List[CommandInfo], completers: List[CommandCompleter]):
         self.commands = commands
         self.command_completers = {c.cmd.name: c for c in completers}
-        self.source_completer = FuzzyWordCompleter(
-            [c.name for c in commands if c.source]
-        )
-        self.flow_completer = FuzzyWordCompleter(
-            [c.name for c in commands if not c.source]
-        )
+        self.source_completer = FuzzyWordCompleter([c.name for c in commands if c.source])
+        self.flow_completer = FuzzyWordCompleter([c.name for c in commands if not c.source])
 
-    def find_current_command(
-        self, document: Document
-    ) -> Optional[Tuple[CommandCompleter, str]]:
+    def find_current_command(self, document: Document) -> Optional[Tuple[CommandCompleter, str]]:
         parts = document.text_before_cursor.lstrip().split(maxsplit=1)
         if parts and (command := self.command_completers.get(parts[0])) is not None:
             args = parts[1] if len(parts) == 2 else ""
             return command, args
         return None
 
-    def get_completions(
-        self, document: Document, complete_event: CompleteEvent
-    ) -> Iterable[Completion]:
+    def get_completions(self, document: Document, complete_event: CompleteEvent) -> Iterable[Completion]:
         text = document.text_before_cursor.lstrip()
 
         adapted = document
@@ -752,16 +637,10 @@ class CommandLineCompleter(Completer):
             return []
 
     @staticmethod
-    def create_completer(
-        cmds: List[CommandInfo], kinds: List[str], props: List[str]
-    ) -> "CommandLineCompleter":
+    def create_completer(cmds: List[CommandInfo], kinds: List[str], props: List[str]) -> "CommandLineCompleter":
         def arg_completer(arg: ArgInfo) -> Optional[Completer]:
             if arg.possible_values:
-                meta = (
-                    {a: arg.help_text for a in arg.possible_values}
-                    if arg.help_text is not None
-                    else None
-                )
+                meta = {a: arg.help_text for a in arg.possible_values} if arg.help_text is not None else None
                 return FuzzyWordCompleter(arg.possible_values, meta_dict=meta)
             elif arg.value_hint == "file":
                 return PathCompleter()
@@ -789,14 +668,10 @@ class CommandLineCompleter(Completer):
             return ArgCompleter(arg, arg_completer(arg))
 
         def command_completer(cmd: CommandInfo) -> Optional[Completer]:
-            def walk_commands(
-                sub_commands: Dict[str, Union["ArgsInfo", List[ArgInfo]]]
-            ) -> Completer:
+            def walk_commands(sub_commands: Dict[str, Union["ArgsInfo", List[ArgInfo]]]) -> Completer:
                 return NestedCompleter.from_nested_dict(
                     {
-                        sub_cmd: ArgsCompleter(
-                            [arg_value_completer(arg) for arg in options]
-                        )
+                        sub_cmd: ArgsCompleter([arg_value_completer(arg) for arg in options])
                         if isinstance(options, list)
                         else walk_commands(options)
                         for sub_cmd, options in sub_commands.items()
@@ -823,9 +698,7 @@ class SafeCompleter(Completer):
     def __init__(self, completer: Completer) -> None:
         self.completer = completer
 
-    def get_completions(
-        self, document: Document, complete_event: CompleteEvent
-    ) -> Iterable[Completion]:
+    def get_completions(self, document: Document, complete_event: CompleteEvent) -> Iterable[Completion]:
         try:
             result = self.completer.get_completions(document, complete_event)
             return [] if result is None else result
@@ -872,15 +745,8 @@ class PromptSession:
         try:
             log.debug("Fetching core metadata..")
             model = client.model()
-            known_kinds = {
-                k for k, v in model.kinds.items() if v.properties is not None
-            }
-            known_props = {
-                p.name
-                for k, v in model.kinds.items()
-                if v.properties is not None
-                for p in v.properties
-            }
+            known_kinds = {k for k, v in model.kinds.items() if v.properties is not None}
+            known_props = {p.name for k, v in model.kinds.items() if v.properties is not None for p in v.properties}
             info = client.cli_info()
             cmds = [jsons.load(cmd, CommandInfo) for cmd in info.get("commands", [])]
             return cmds, sorted(known_kinds), sorted(known_props)

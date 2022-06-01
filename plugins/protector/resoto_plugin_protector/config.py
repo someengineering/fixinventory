@@ -61,13 +61,9 @@ class ProtectorConfig:
                         if not isinstance(kind, str):
                             raise ValueError(f"Resource Kind {kind} is no string")
                         if not isinstance(resource_list, list):
-                            raise ValueError(
-                                f"Resource List {resource_list} is no list"
-                            )
+                            raise ValueError(f"Resource List {resource_list} is no list")
 
                         for resource_id in resource_list:
                             if not isinstance(resource_id, str):
-                                raise ValueError(
-                                    f"Resource ID {resource_id} is no string"
-                                )
+                                raise ValueError(f"Resource ID {resource_id} is no string")
         return True

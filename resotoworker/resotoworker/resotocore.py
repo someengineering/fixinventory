@@ -40,9 +40,7 @@ def send_to_resotocore(graph: Graph, tls_data: Optional[TLSData] = None):
     send_graph(graph_export_iterator, base_uri, resotocore_graph, verify=verify)
 
 
-def create_graph(
-    resotocore_base_uri: str, resotocore_graph: str, verify: Optional[str] = None
-):
+def create_graph(resotocore_base_uri: str, resotocore_graph: str, verify: Optional[str] = None):
     graph_uri = f"{resotocore_base_uri}/graph/{resotocore_graph}"
 
     log.debug(f"Creating graph {resotocore_graph} via {graph_uri}")
@@ -113,9 +111,7 @@ def send_graph(
     if getattr(ArgumentParser.args, "psk", None):
         encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)
 
-    r = requests.post(
-        merge_uri, data=graph_export_iterator, headers=headers, verify=verify
-    )
+    r = requests.post(merge_uri, data=graph_export_iterator, headers=headers, verify=verify)
     if r.status_code != 200:
         log.error(r.content)
         raise RuntimeError(f"Failed to send graph: {r.content}")

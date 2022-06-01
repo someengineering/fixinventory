@@ -20,9 +20,7 @@ from typing import List
 
 resotolib.logger.getLogger("boto").setLevel(resotolib.logger.CRITICAL)
 
-metrics_collect = Summary(
-    "resoto_plugin_aws_collect_seconds", "Time it took the collect() method"
-)
+metrics_collect = Summary("resoto_plugin_aws_collect_seconds", "Time it took the collect() method")
 metrics_unhandled_account_exceptions = Counter(
     "resoto_plugin_aws_unhandled_account_exceptions_total",
     "Unhandled AWS Plugin Account Exceptions",
@@ -57,26 +55,17 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
         if Config.aws.role and Config.aws.scrape_org:
             accounts = [
                 AWSAccount(aws_account_id, {}, role=Config.aws.role)
-                for aws_account_id in get_org_accounts(
-                    filter_current_account=not Config.aws.assume_current
-                )
+                for aws_account_id in get_org_accounts(filter_current_account=not Config.aws.assume_current)
                 if aws_account_id not in Config.aws.scrape_exclude_account
             ]
             if not Config.aws.do_not_scrape_current:
                 accounts.append(AWSAccount(current_account_id(), {}))
         elif Config.aws.role and Config.aws.account:
-            accounts = [
-                AWSAccount(aws_account_id, {}, role=Config.aws.role)
-                for aws_account_id in Config.aws.account
-            ]
+            accounts = [AWSAccount(aws_account_id, {}, role=Config.aws.role) for aws_account_id in Config.aws.account]
         else:
             accounts = [AWSAccount(current_account_id(), {})]
 
-        max_workers = (
-            len(accounts)
-            if len(accounts) < Config.aws.account_pool_size
-            else Config.aws.account_pool_size
-        )
+        max_workers = len(accounts) if len(accounts) < Config.aws.account_pool_size else Config.aws.account_pool_size
         pool_args = {"max_workers": max_workers}
         if Config.aws.fork_process:
             pool_args["mp_context"] = multiprocessing.get_context("spawn")
@@ -99,18 +88,14 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
             for future in futures.as_completed(wait_for):
                 account_graph = future.result()
                 if not isinstance(account_graph, Graph):
-                    log.error(
-                        f"Returned account graph has invalid type {type(account_graph)}"
-                    )
+                    log.error(f"Returned account graph has invalid type {type(account_graph)}")
                     continue
                 self.graph.merge(account_graph)
 
     @property
     def regions(self) -> List:
         if len(self.__regions) == 0:
-            if not Config.aws.region or (
-                isinstance(Config.aws.region, list) and len(Config.aws.region) == 0
-            ):
+            if not Config.aws.region or (isinstance(Config.aws.region, list) and len(Config.aws.region) == 0):
                 log.debug("AWS region not specified, assuming all regions")
                 self.__regions = all_regions()
             else:
@@ -158,11 +143,7 @@ def get_org_accounts(filter_current_account=False):
         else:
             raise
     filter_account_id = current_account_id() if filter_current_account else -1
-    accounts = [
-        aws_account["Id"]
-        for aws_account in accounts
-        if aws_account["Id"] != filter_account_id
-    ]
+    accounts = [aws_account["Id"] for aws_account in accounts if aws_account["Id"] != filter_account_id]
     for account in accounts:
         log.debug(f"AWS found org account {account}")
     log.info(f"AWS found a total of {len(accounts)} org accounts")
@@ -198,14 +179,10 @@ def collect_account(
     try:
         aac.collect()
     except botocore.exceptions.ClientError as e:
-        log.exception(
-            f"An AWS {e.response['Error']['Code']} error occurred while collecting account {account.dname}"
-        )
+        log.exception(f"An AWS {e.response['Error']['Code']} error occurred while collecting account {account.dname}")
         metrics_unhandled_account_exceptions.labels(account=account.dname).inc()
     except Exception:
-        log.exception(
-            f"An unhandled error occurred while collecting AWS account {account.dname}"
-        )
+        log.exception(f"An unhandled error occurred while collecting AWS account {account.dname}")
         metrics_unhandled_account_exceptions.labels(account=account.dname).inc()
 
     return aac.graph

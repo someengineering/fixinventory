@@ -17,11 +17,7 @@ setup(
     packages=find_packages(),
     long_description=read("README.md"),
     long_description_content_type="text/markdown",
-    entry_points={
-        "resoto.plugins": [
-            "tagvalidator = resoto_plugin_tagvalidator:TagValidatorPlugin"
-        ]
-    },
+    entry_points={"resoto.plugins": ["tagvalidator = resoto_plugin_tagvalidator:TagValidatorPlugin"]},
     include_package_data=True,
     zip_safe=False,
     install_requires=requirements,

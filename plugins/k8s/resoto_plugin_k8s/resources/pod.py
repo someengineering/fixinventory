@@ -24,11 +24,7 @@ class KubernetesPod(KubernetesResource, BaseInstance):
     }
 
     def _instance_status_setter(self, value: str) -> None:
-        self._instance_status = self.instance_status_map.get(
-            value, InstanceStatus.UNKNOWN
-        )
+        self._instance_status = self.instance_status_map.get(value, InstanceStatus.UNKNOWN)
 
 
-KubernetesPod.instance_status = property(
-    KubernetesPod._instance_status_getter, KubernetesPod._instance_status_setter
-)
+KubernetesPod.instance_status = property(KubernetesPod._instance_status_getter, KubernetesPod._instance_status_setter)

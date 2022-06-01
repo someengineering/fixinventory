@@ -330,12 +330,7 @@ class GCPProjectCollector:
             collectors = collectors - set(Config.gcp.no_collect)
         collectors = collectors.union(set(self.mandatory_collectors.keys()))
 
-        log.debug(
-            (
-                f"Running the following collectors in {self.project.rtdname}:"
-                f" {', '.join(collectors)}"
-            )
-        )
+        log.debug((f"Running the following collectors in {self.project.rtdname}:" f" {', '.join(collectors)}"))
         for collector_name, collector in self.mandatory_collectors.items():
             if collector_name in collectors:
                 log.info(f"Collecting {collector_name} in {self.project.rtdname}")
@@ -354,32 +349,20 @@ class GCPProjectCollector:
         for region in regions:
             for collector_name, collector in self.region_collectors.items():
                 if collector_name in collectors:
-                    log.info(
-                        (
-                            f"Collecting {collector_name} in {region.rtdname}"
-                            f" {self.project.rtdname}"
-                        )
-                    )
+                    log.info((f"Collecting {collector_name} in {region.rtdname}" f" {self.project.rtdname}"))
                     collector(region=region)
 
         for zone in zones:
             for collector_name, collector in self.zone_collectors.items():
                 if collector_name in collectors:
-                    log.info(
-                        (
-                            f"Collecting {collector_name} in {zone.rtdname}"
-                            f" {self.project.rtdname}"
-                        )
-                    )
+                    log.info((f"Collecting {collector_name} in {zone.rtdname}" f" {self.project.rtdname}"))
                     collector(zone=zone)
 
         remove_nodes = set()
 
         def rmnodes(cls) -> None:
             for node in self.graph.nodes:
-                if isinstance(node, cls) and not any(
-                    True for _ in self.graph.successors(node)
-                ):
+                if isinstance(node, cls) and not any(True for _ in self.graph.successors(node)):
                     remove_nodes.add(node)
             for node in remove_nodes:
                 self.graph.remove_node(node)
@@ -391,9 +374,7 @@ class GCPProjectCollector:
         rmnodes(GCPServiceSKU)
         rmnodes(GCPService)
 
-    def default_attributes(
-        self, result: Dict, attr_map: Dict = None, search_map: Dict = None
-    ) -> Dict:
+    def default_attributes(self, result: Dict, attr_map: Dict = None, search_map: Dict = None) -> Dict:
         """Finds resource attributes in the GCP API result data and returns
         them together with any graph search results.
 
@@ -513,11 +494,7 @@ class GCPProjectCollector:
                     if map_to not in search_results:
                         search_results[map_to] = []
                     search_results[map_to].append(search_result)
-            if (
-                map_to not in kwargs
-                and map_to in search_results
-                and not str(map_to).startswith("__")
-            ):
+            if map_to not in kwargs and map_to in search_results and not str(map_to).startswith("__"):
                 search_result = search_results[map_to]
                 if len(search_result) == 1:
                     kwargs[map_to] = search_result[0]
@@ -528,11 +505,7 @@ class GCPProjectCollector:
         # region based on the zone information we found.
         # E.g. if we know a disk is in zone us-central1-a then we can find
         # the region us-central1 from that.
-        if (
-            "_zone" in kwargs
-            and "_region" not in kwargs
-            and isinstance(kwargs["_zone"], BaseResource)
-        ):
+        if "_zone" in kwargs and "_region" not in kwargs and isinstance(kwargs["_zone"], BaseResource):
             region = kwargs["_zone"].region(self.graph)
             if region:
                 kwargs["_region"] = region
@@ -635,9 +608,7 @@ class GCPProjectCollector:
             subitems_name=paginate_subitems_name,
             **resource_kwargs,
         ):
-            kwargs, search_results = self.default_attributes(
-                resource, attr_map=attr_map, search_map=search_map
-            )
+            kwargs, search_results = self.default_attributes(resource, attr_map=attr_map, search_map=search_map)
             r = resource_class(**kwargs)
             pr = parent_resource
             log.debug(f"Adding {r.rtdname} to the graph")
@@ -650,9 +621,7 @@ class GCPProjectCollector:
 
             if not isinstance(pr, BaseResource):
                 pr = kwargs.get("_zone", kwargs.get("_region", self.graph.root))
-                log.debug(
-                    f"Parent resource for {r.rtdname} automatically set to {pr.rtdname}"
-                )
+                log.debug(f"Parent resource for {r.rtdname} automatically set to {pr.rtdname}")
             self.graph.add_resource(pr, r, edge_type=EdgeType.default)
 
             for is_parent, edge_sr_names in parent_map.items():
@@ -752,16 +721,8 @@ class GCPProjectCollector:
             attr_map={
                 "volume_size": (lambda r: int(r.get("sizeGb"))),
                 "volume_status": volume_status,
-                "last_attach_timestamp": (
-                    lambda r: iso2datetime(
-                        r.get("lastAttachTimestamp", r["creationTimestamp"])
-                    )
-                ),
-                "last_detach_timestamp": (
-                    lambda r: iso2datetime(
-                        r.get("lastDetachTimestamp", r["creationTimestamp"])
-                    )
-                ),
+                "last_attach_timestamp": (lambda r: iso2datetime(r.get("lastAttachTimestamp", r["creationTimestamp"]))),
+                "last_detach_timestamp": (lambda r: iso2datetime(r.get("lastDetachTimestamp", r["creationTimestamp"]))),
             },
             predecessors={EdgeType.default: ["volume_type", "__users"]},
             successors={EdgeType.delete: ["__users"]},
@@ -799,9 +760,7 @@ class GCPProjectCollector:
                 machine_type.id = result.get("id")
                 machine_type.instance_cores = float(result.get("guestCpus"))
                 machine_type.instance_memory = float(result.get("memoryMb", 0) / 1024)
-                graph.add_resource(
-                    machine_type.zone(graph), machine_type, edge_type=EdgeType.default
-                )
+                graph.add_resource(machine_type.zone(graph), machine_type, edge_type=EdgeType.default)
                 graph.add_edge(machine_type, resource, edge_type=EdgeType.default)
                 self.post_process_machine_type(machine_type, graph)
                 resource._machine_type = machine_type
@@ -813,19 +772,11 @@ class GCPProjectCollector:
             search_map={
                 "__network": [
                     "link",
-                    (
-                        lambda r: next(iter(r.get("networkInterfaces", [])), {}).get(
-                            "network"
-                        )
-                    ),
+                    (lambda r: next(iter(r.get("networkInterfaces", [])), {}).get("network")),
                 ],
                 "__subnetwork": [
                     "link",
-                    (
-                        lambda r: next(iter(r.get("networkInterfaces", [])), {}).get(
-                            "subnetwork"
-                        )
-                    ),
+                    (lambda r: next(iter(r.get("networkInterfaces", [])), {}).get("subnetwork")),
                 ],
                 "machine_type": ["link", "machineType"],
             },
@@ -842,23 +793,12 @@ class GCPProjectCollector:
     @metrics_collect_disk_types.time()
     def collect_disk_types(self):
         def post_process(resource: GCPDiskType, graph: Graph):
-            if (
-                resource.region(graph).name == "undefined"
-                and resource.zone(graph).name == "undefined"
-            ):
-                log.debug(
-                    f"Resource {resource.rtdname} has no region or zone"
-                    " - removing from graph"
-                )
+            if resource.region(graph).name == "undefined" and resource.zone(graph).name == "undefined":
+                log.debug(f"Resource {resource.rtdname} has no region or zone" " - removing from graph")
                 graph.remove_node(resource)
                 return
 
-            log.debug(
-                (
-                    f"Looking up pricing for {resource.rtdname}"
-                    f" in {resource.location(graph).rtdname}"
-                )
-            )
+            log.debug((f"Looking up pricing for {resource.rtdname}" f" in {resource.location(graph).rtdname}"))
             resource_group_map = {
                 "local-ssd": "LocalSSD",
                 "pd-balanced": "SSD",
@@ -880,18 +820,13 @@ class GCPProjectCollector:
                         continue
                 except TypeError:
                     log.exception(
-                        f"Problem accessing geo_taxonomy_regions in {sku.rtdname}:"
-                        f" {type(sku.geo_taxonomy_regions)}"
+                        f"Problem accessing geo_taxonomy_regions in {sku.rtdname}:" f" {type(sku.geo_taxonomy_regions)}"
                     )
-                if resource.name == "pd-balanced" and not sku.name.startswith(
-                    "Balanced"
-                ):
+                if resource.name == "pd-balanced" and not sku.name.startswith("Balanced"):
                     continue
                 if resource.name != "pd-balanced" and sku.name.startswith("Balanced"):
                     continue
-                if resource.zone(graph).name != "undefined" and sku.name.startswith(
-                    "Regional"
-                ):
+                if resource.zone(graph).name != "undefined" and sku.name.startswith("Regional"):
                     continue
                 if (
                     resource.zone(graph).name == "undefined"
@@ -1048,23 +983,12 @@ class GCPProjectCollector:
 
         TODO: Implement GPU types
         """
-        if (
-            resource.region(graph).name == "undefined"
-            and resource.zone(graph).name == "undefined"
-        ):
-            log.debug(
-                f"Resource {resource.rtdname} has no region or zone"
-                " - removing from graph"
-            )
+        if resource.region(graph).name == "undefined" and resource.zone(graph).name == "undefined":
+            log.debug(f"Resource {resource.rtdname} has no region or zone" " - removing from graph")
             graph.remove_node(resource)
             return
 
-        log.debug(
-            (
-                f"Looking up pricing for {resource.rtdname}"
-                f" in {resource.location(graph).rtdname}"
-            )
-        )
+        log.debug((f"Looking up pricing for {resource.rtdname}" f" in {resource.location(graph).rtdname}"))
         skus = []
         for sku in graph.searchall(
             {
@@ -1091,9 +1015,7 @@ class GCPProjectCollector:
                 continue
             if resource.name == "f1-micro" and sku.resource_group != "F1Micro":
                 continue
-            if (
-                resource.name.startswith("n2d-") and not sku.name.startswith("N2D AMD ")
-            ) or (
+            if (resource.name.startswith("n2d-") and not sku.name.startswith("N2D AMD ")) or (
                 not resource.name.startswith("n2d-") and sku.name.startswith("N2D AMD ")
             ):
                 continue
@@ -1101,28 +1023,18 @@ class GCPProjectCollector:
                 not resource.name.startswith("n2-") and sku.name.startswith("N2 ")
             ):
                 continue
-            if (
-                resource.name.startswith("m1-")
-                and not sku.name.startswith("Memory-optimized ")
-            ) or (
-                not resource.name.startswith("m1-")
-                and sku.name.startswith("Memory-optimized ")
+            if (resource.name.startswith("m1-") and not sku.name.startswith("Memory-optimized ")) or (
+                not resource.name.startswith("m1-") and sku.name.startswith("Memory-optimized ")
             ):
                 continue
-            if (
-                resource.name.startswith("c2-")
-                and not sku.name.startswith("Compute optimized ")
-            ) or (
-                not resource.name.startswith("c2-")
-                and sku.name.startswith("Compute optimized ")
+            if (resource.name.startswith("c2-") and not sku.name.startswith("Compute optimized ")) or (
+                not resource.name.startswith("c2-") and sku.name.startswith("Compute optimized ")
             ):
                 continue
             if resource.name.startswith("n1-") and sku.resource_group != "N1Standard":
                 continue
             if "custom" not in resource.name:
-                if (
-                    resource.name.startswith("e2-") and not sku.name.startswith("E2 ")
-                ) or (
+                if (resource.name.startswith("e2-") and not sku.name.startswith("E2 ")) or (
                     not resource.name.startswith("e2-") and sku.name.startswith("E2 ")
                 ):
                     continue
@@ -1152,12 +1064,7 @@ class GCPProjectCollector:
             if ondemand_cost > 0:
                 resource.ondemand_cost = ondemand_cost / 1000000000
         else:
-            log.debug(
-                (
-                    f"Unable to determine SKU(s) for {resource}:"
-                    f" {[sku.dname for sku in skus]}"
-                )
-            )
+            log.debug((f"Unable to determine SKU(s) for {resource}:" f" {[sku.dname for sku in skus]}"))
 
     @metrics_collect_machine_types.time()
     def collect_machine_types(self):
@@ -1251,12 +1158,7 @@ class GCPProjectCollector:
                 "__instance_group": ["link", "instanceGroup"],
                 "__health_checks": [
                     "link",
-                    (
-                        lambda r: [
-                            hc.get("healthCheck", "")
-                            for hc in r.get("autoHealingPolicies", [])
-                        ]
-                    ),
+                    (lambda r: [hc.get("healthCheck", "") for hc in r.get("autoHealingPolicies", [])]),
                 ],
             },
             predecessors={
@@ -1275,12 +1177,8 @@ class GCPProjectCollector:
                 "__instance_group_manager": ["link", "target"],
             },
             attr_map={
-                "min_size": (
-                    lambda r: r.get("autoscalingPolicy", {}).get("minNumReplicas", -1)
-                ),
-                "max_size": (
-                    lambda r: r.get("autoscalingPolicy", {}).get("maxNumReplicas", -1)
-                ),
+                "min_size": (lambda r: r.get("autoscalingPolicy", {}).get("minNumReplicas", -1)),
+                "max_size": (lambda r: r.get("autoscalingPolicy", {}).get("maxNumReplicas", -1)),
             },
             successors={
                 EdgeType.default: ["__instance_group_manager"],
@@ -1451,9 +1349,7 @@ class GCPProjectCollector:
     @metrics_collect_forwarding_rules.time()
     def collect_forwarding_rules(self):
         def post_process(resource: GCPForwardingRule, graph: Graph):
-            instances = [
-                i.name for i in resource.ancestors(graph) if isinstance(i, GCPInstance)
-            ]
+            instances = [i.name for i in resource.ancestors(graph) if isinstance(i, GCPInstance)]
             if len(instances) > 0:
                 resource.backends = sorted(instances)
 
@@ -1515,19 +1411,11 @@ class GCPProjectCollector:
                 "db_type": "databaseVersion",
                 "db_status": "state",
                 "db_endpoint": lambda r: next(
-                    iter(
-                        [
-                            ip["ipAddress"]
-                            for ip in r.get("ipAddresses", [])
-                            if ip.get("type") == "PRIMARY"
-                        ]
-                    ),
+                    iter([ip["ipAddress"] for ip in r.get("ipAddresses", []) if ip.get("type") == "PRIMARY"]),
                     None,
                 ),
                 "instance_type": lambda r: r.get("settings", {}).get("tier"),
-                "volume_size": lambda r: int(
-                    r.get("settings", {}).get("dataDiskSizeGb", -1)
-                ),
+                "volume_size": lambda r: int(r.get("settings", {}).get("dataDiskSizeGb", -1)),
                 "tags": lambda r: r.get("settings", {}).get("userLabels", {}),
             },
             search_map={
@@ -1562,10 +1450,7 @@ class GCPProjectCollector:
                     service_provider_name=r.get("serviceProviderName"),
                     geo_taxonomy_type=r.get("geoTaxonomy", {}).get("type"),
                     geo_taxonomy_regions=r.get("geoTaxonomy", {}).get("regions"),
-                    link=(
-                        f"https://{service.client}.googleapis.com/"
-                        f"{service.api_version}/{r.get('name')}"
-                    ),
+                    link=(f"https://{service.client}.googleapis.com/" f"{service.api_version}/{r.get('name')}"),
                     _account=service.account(graph),
                     _region=service.region(graph),
                     _zone=service.zone(graph),

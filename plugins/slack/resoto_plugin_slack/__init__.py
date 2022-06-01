@@ -29,14 +29,9 @@ log = resotolib.logger.getLogger("resoto." + __name__)
 
 def retry_on_request_limit_exceeded(e):
     if isinstance(e, slack_sdk.errors.SlackApiError):
-        if (
-            not e.response.data.get("ok", False)
-            and e.response.data.get("error") == "ratelimited"
-        ):
+        if not e.response.data.get("ok", False) and e.response.data.get("error") == "ratelimited":
             retry_after = int(e.response.headers.get("Retry-After", 20))
-            log.debug(
-                f"Slack API request limit exceeded, retrying after {retry_after} seconds"
-            )
+            log.debug(f"Slack API request limit exceeded, retrying after {retry_after} seconds")
             time.sleep(retry_after)
             return True
     return False
@@ -84,9 +79,7 @@ class SlackCollectorPlugin(BaseCollectorPlugin):
 
         for member in self.list_members():
             u = SlackUser.new(member)
-            log.debug(
-                f"Found Slack User {u.name}: {u.real_name} ({u.email}) - {u.mtime}"
-            )
+            log.debug(f"Found Slack User {u.name}: {u.real_name} ({u.email}) - {u.mtime}")
             self.graph.add_resource(members, u)
 
         for usergroup in self.list_usergroups():
@@ -111,9 +104,7 @@ class SlackCollectorPlugin(BaseCollectorPlugin):
                 m = self.graph.search_first_all({"kind": "slack_user", "id": member_id})
                 self.graph.add_edge(c, m)
 
-    @retry(
-        stop_max_attempt_number=10, retry_on_exception=retry_on_request_limit_exceeded
-    )
+    @retry(stop_max_attempt_number=10, retry_on_exception=retry_on_request_limit_exceeded)
     def list_conversations(self) -> List:
         log.debug("Fetching list of Slack Conversations")
         channel_types = "public_channel,private_channel"
@@ -134,20 +125,14 @@ class SlackCollectorPlugin(BaseCollectorPlugin):
             conversations.extend(response.data.get("channels", []))
         return conversations
 
-    @retry(
-        stop_max_attempt_number=10, retry_on_exception=retry_on_request_limit_exceeded
-    )
+    @retry(stop_max_attempt_number=10, retry_on_exception=retry_on_request_limit_exceeded)
     def list_conversation_members(self, conversation) -> List:
-        log.debug(
-            f"Fetching list of Slack Conversation members for {conversation.rtdname}"
-        )
+        log.debug(f"Fetching list of Slack Conversation members for {conversation.rtdname}")
         members = []
         try:
             response = self.client.conversations_members(channel=conversation.id)
             members = response.data.get("members", [])
-            while (
-                response.data.get("response_metadata", {}).get("next_cursor", "") != ""
-            ):
+            while response.data.get("response_metadata", {}).get("next_cursor", "") != "":
                 response = self.client.conversations_list(
                     channel=conversation.id,
                     cursor=response.data["response_metadata"]["next_cursor"],
@@ -155,42 +140,28 @@ class SlackCollectorPlugin(BaseCollectorPlugin):
                 log.debug("Fetching more Slack conversation members")
                 members.extend(response.data.get("members", []))
         except slack_sdk.errors.SlackApiError as e:
-            if (
-                not e.response.data.get("ok", False)
-                and e.response.data.get("error") == "internal_error"
-            ):
+            if not e.response.data.get("ok", False) and e.response.data.get("error") == "internal_error":
                 log.error(
-                    (
-                        "Slack responded with an internal error - "
-                        f"skipping members list for {conversation.rtdname}"
-                    )
+                    ("Slack responded with an internal error - " f"skipping members list for {conversation.rtdname}")
                 )
                 return []
             else:
                 raise
         return members
 
-    @retry(
-        stop_max_attempt_number=10, retry_on_exception=retry_on_request_limit_exceeded
-    )
+    @retry(stop_max_attempt_number=10, retry_on_exception=retry_on_request_limit_exceeded)
     def list_usergroups(self) -> List:
         log.debug("Fetching list of Slack Usergroups")
-        response = self.client.usergroups_list(
-            include_users="true", include_count="true", include_disabled="false"
-        )
+        response = self.client.usergroups_list(include_users="true", include_count="true", include_disabled="false")
         return response.data.get("usergroups", [])
 
-    @retry(
-        stop_max_attempt_number=10, retry_on_exception=retry_on_request_limit_exceeded
-    )
+    @retry(stop_max_attempt_number=10, retry_on_exception=retry_on_request_limit_exceeded)
     def list_members(self) -> List:
         log.debug("Fetching list of Slack Users")
         response = self.client.users_list()
         members = response.data.get("members", [])
         while response.data.get("response_metadata", {}).get("next_cursor", "") != "":
-            response = self.client.users_list(
-                cursor=response.data["response_metadata"]["next_cursor"]
-            )
+            response = self.client.users_list(cursor=response.data["response_metadata"]["next_cursor"])
             log.debug("Fetching more Slack users")
             members.extend(response.data.get("members", []))
         return members
@@ -215,9 +186,7 @@ class SlackBotPlugin(BasePlugin):
         self.channels2id = {}
 
         add_event_listener(EventType.SHUTDOWN, self.shutdown)
-        add_event_listener(
-            EventType.CLEANUP_FINISH, self.process_resoto_events, blocking=False
-        )
+        add_event_listener(EventType.CLEANUP_FINISH, self.process_resoto_events, blocking=False)
 
     def __del__(self):
         remove_event_listener(EventType.CLEANUP_FINISH, self.process_resoto_events)
@@ -235,11 +204,7 @@ class SlackBotPlugin(BasePlugin):
         self.update_users_groups_channels(graph)
 
         for node in graph.nodes:
-            if (
-                isinstance(node, BaseResource)
-                and len(node.event_log) > 0
-                and "resoto:owner" in node.tags
-            ):
+            if isinstance(node, BaseResource) and len(node.event_log) > 0 and "resoto:owner" in node.tags:
                 cloud = node.cloud(graph)
                 account = node.account(graph)
                 region = node.region(graph)
@@ -268,16 +233,12 @@ class SlackBotPlugin(BasePlugin):
                     )
 
                 if not isinstance(destination, SlackUser):
-                    log.error(
-                        f"Unable to determine Slack destination based on resoto:owner tag value {owner_tag}"
-                    )
+                    log.error(f"Unable to determine Slack destination based on resoto:owner tag value {owner_tag}")
                     continue
 
                 event_log_text = ""
                 for event in node.event_log:
-                    event_log_text += (
-                        f"{event['timestamp'].isoformat()} {event['msg']}" + "\n"
-                    )
+                    event_log_text += f"{event['timestamp'].isoformat()} {event['msg']}" + "\n"
                 slack_message = (
                     f"Hello {destination.first_name}, your cloud resource `{node.dname}` in "
                     f"cloud `{cloud.name}` account `{account.dname}` region `{region.name}`"
@@ -286,9 +247,7 @@ class SlackBotPlugin(BasePlugin):
                 )
                 self.send_slack_message(destination.id, slack_message)
 
-    @retry(
-        stop_max_attempt_number=10, retry_on_exception=retry_on_request_limit_exceeded
-    )
+    @retry(stop_max_attempt_number=10, retry_on_exception=retry_on_request_limit_exceeded)
     def send_slack_message(self, user_id, message):
         log.debug(f"Sending Slack message to ID {user_id}")
         response = self.client.conversations_open(users=[user_id])
