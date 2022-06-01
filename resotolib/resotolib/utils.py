@@ -800,21 +800,13 @@ def update_check(
     headers = {"Accept": "application/vnd.github.v3+json"}
     releases_response = requests.get(releases_uri, headers=headers)
     if releases_response.status_code != 200:
-        raise RuntimeError(
-            f"Unable to get releases from {releases_uri}:"
-            f" {releases_response.status_code}"
-        )
+        raise RuntimeError(f"Unable to get releases from {releases_uri}:" f" {releases_response.status_code}")
     latest_version = None
     latest_version_ctime = None
     for release in releases_response.json():
         release_tag = release["tag_name"]
-        release_date = make_valid_timestamp(
-            datetime.strptime(release["published_at"], "%Y-%m-%dT%H:%M:%SZ")
-        )
-        if (
-            not no_prerelease
-            or not pkg_resources.parse_version(release_tag).is_prerelease
-        ):
+        release_date = make_valid_timestamp(datetime.strptime(release["published_at"], "%Y-%m-%dT%H:%M:%SZ"))
+        if not no_prerelease or not pkg_resources.parse_version(release_tag).is_prerelease:
             latest_version = release_tag
             latest_version_ctime = release_date
             break
@@ -823,14 +815,10 @@ def update_check(
         release_kind = ""
         if no_prerelease:
             release_kind = "stable "
-        raise RuntimeError(
-            f"Unable to find a {release_kind}release for {github_project}"
-        )
+        raise RuntimeError(f"Unable to find a {release_kind}release for {github_project}")
 
     # If the current version is equal or newer than the remote version return None
-    if pkg_resources.parse_version(current_version) >= pkg_resources.parse_version(
-        latest_version
-    ):
+    if pkg_resources.parse_version(current_version) >= pkg_resources.parse_version(latest_version):
         return None
 
     msg = f"Current version {current_version} is out of date. Latest version is {latest_version}!"
