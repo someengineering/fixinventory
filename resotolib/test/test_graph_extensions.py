@@ -11,9 +11,7 @@ def graph() -> DiGraph:
         g.add_node(i)
     g.add_edges_from([(1, 2), (1, 3), (2, 3)])  # island 1
     g.add_edges_from([(4, 5), (4, 6), (6, 7)])  # island 2
-    g.add_edges_from(
-        [(8, 9), (9, 10), (9, 11), (8, 12), (12, 11), (12, 13)]
-    )  # island 3
+    g.add_edges_from([(8, 9), (9, 10), (9, 11), (8, 12), (12, 11), (12, 13)])  # island 3
     return g
 
 

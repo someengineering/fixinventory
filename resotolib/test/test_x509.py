@@ -38,17 +38,13 @@ def test_x509():
         write_key_to_file(ca_key, key_path=ca_key_path)
         write_cert_to_file(ca_cert, cert_path=ca_cert_path)
 
-        write_key_to_file(
-            cert_key, key_path=cert_key_path, passphrase=cert_key_passphrase
-        )
+        write_key_to_file(cert_key, key_path=cert_key_path, passphrase=cert_key_passphrase)
         write_csr_to_file(cert_csr, csr_path=cert_csr_path)
         write_cert_to_file(cert_crt, cert_path=cert_crt_path)
 
         loaded_ca_key = load_key_from_file(ca_key_path)
         loaded_ca_cert = load_cert_from_file(ca_cert_path)
-        loaded_cert_key = load_key_from_file(
-            cert_key_path, passphrase=cert_key_passphrase
-        )
+        loaded_cert_key = load_key_from_file(cert_key_path, passphrase=cert_key_passphrase)
         loaded_cert_csr = load_csr_from_file(cert_csr_path)
         loaded_cert_crt = load_cert_from_file(cert_crt_path)
 

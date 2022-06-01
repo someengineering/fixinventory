@@ -84,14 +84,11 @@ def handler(sig, frame) -> None:
         # Dispatch shutdown event in parent process which also causes SIGTERM to be sent
         # to the process group and in turn causes the shutdown event in all child
         # processes.
-        dispatch_event(
-            Event(EventType.SHUTDOWN, {"reason": reason, "emergency": False})
-        )
+        dispatch_event(Event(EventType.SHUTDOWN, {"reason": reason, "emergency": False}))
     else:
         reason = f"Received shutdown signal {sig} from parent process"
         log.debug(
-            f"Child with PID {current_pid} shutting down"
-            " - you might see exceptions from interrupted worker threads"
+            f"Child with PID {current_pid} shutting down" " - you might see exceptions from interrupted worker threads"
         )
         # Child's threads have 3s to shut down before the following thread will
         # shut them down hard.
@@ -121,9 +118,7 @@ def emergency_shutdown(reason: str = "") -> None:
     psutil.Process().kill()
 
 
-def kill_children(
-    signal: Signals = SIGTERM, ensure_death: bool = False, timeout: int = 3
-) -> None:
+def kill_children(signal: Signals = SIGTERM, ensure_death: bool = False, timeout: int = 3) -> None:
     procs = psutil.Process().children(recursive=True)
     num_children = len(procs)
     if num_children == 0:

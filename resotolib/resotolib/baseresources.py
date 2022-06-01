@@ -24,26 +24,17 @@ metrics_resource_cleanup_exceptions = Counter(
     "Number of resource cleanup() exceptions",
     ["cloud", "account", "region", "kind"],
 )
-metrics_resource_cleanup = Summary(
-    "resoto_resource_cleanup_seconds", "Time it took the resource cleanup() method"
-)
+metrics_resource_cleanup = Summary("resoto_resource_cleanup_seconds", "Time it took the resource cleanup() method")
 
 
 def unless_protected(f):
     @wraps(f)
     def wrapper(self, *args, **kwargs):
         if not isinstance(self, BaseResource):
-            raise ValueError(
-                "unless_protected() only supports BaseResource type objects"
-            )
+            raise ValueError("unless_protected() only supports BaseResource type objects")
         if self.protected:
             log.error(f"Resource {self.rtdname} is protected - refusing modification")
-            self.log(
-                (
-                    "Modification was requested even though resource is protected"
-                    " - refusing"
-                )
-            )
+            self.log(("Modification was requested even though resource is protected" " - refusing"))
             return False
         return f(self, *args, **kwargs)
 
@@ -149,9 +140,7 @@ class BaseResource(ABC):
         E.g. instance -> aws -> 123457 -> us-east-1 -> us-east-1b -> i-987654 -> myServer
         """
         if self._graph is None:
-            raise RuntimeError(
-                f"_keys() called on {self.rtdname} before resource was added to graph"
-            )
+            raise RuntimeError(f"_keys() called on {self.rtdname} before resource was added to graph")
         return (
             self.kind,
             self.cloud().id,
@@ -234,9 +223,7 @@ class BaseResource(ABC):
     def chksum(self) -> str:
         """Return a checksum of the resource."""
         return (
-            base64.urlsafe_b64encode(
-                hashlib.blake2b(str(self._keys()).encode(), digest_size=16).digest()
-            )
+            base64.urlsafe_b64encode(hashlib.blake2b(str(self._keys()).encode(), digest_size=16).digest())
             .decode("utf-8")
             .rstrip("=")
         )
@@ -340,9 +327,7 @@ class BaseResource(ABC):
         account = self.account(graph)
         region = self.region(graph)
         if not isinstance(account, BaseAccount) or not isinstance(region, BaseRegion):
-            log.error(
-                f"Could not determine account or region for cleanup of {self.rtdname}"
-            )
+            log.error(f"Could not determine account or region for cleanup of {self.rtdname}")
             return False
 
         log_suffix = f" in account {account.dname} region {region.name}"
@@ -358,9 +343,7 @@ class BaseResource(ABC):
             log.info(f"Successfully cleaned up {self.rtdname}{log_suffix}")
         except Exception as e:
             self.log("An error occurred during clean up", exception=e)
-            log.exception(
-                f"An error occurred during clean up {self.rtdname}{log_suffix}"
-            )
+            log.exception(f"An error occurred during clean up {self.rtdname}{log_suffix}")
             cloud = self.cloud(graph)
             metrics_resource_cleanup_exceptions.labels(
                 cloud=cloud.name,
@@ -389,12 +372,7 @@ class BaseResource(ABC):
         account = self.account(graph)
         region = self.region(graph)
         if not isinstance(account, BaseAccount) or not isinstance(region, BaseRegion):
-            log.error(
-                (
-                    "Could not determine account or region for pre cleanup of"
-                    f" {self.rtdname}"
-                )
-            )
+            log.error(("Could not determine account or region for pre cleanup of" f" {self.rtdname}"))
             return False
 
         log_suffix = f" in account {account.dname} region {region.name}"
@@ -409,9 +387,7 @@ class BaseResource(ABC):
             log.info(f"Successfully ran pre clean up {self.rtdname}{log_suffix}")
         except Exception as e:
             self.log("An error occurred during pre clean up", exception=e)
-            log.exception(
-                f"An error occurred during pre clean up {self.rtdname}{log_suffix}"
-            )
+            log.exception(f"An error occurred during pre clean up {self.rtdname}{log_suffix}")
             cloud = self.cloud(graph)
             metrics_resource_pre_cleanup_exceptions.labels(
                 cloud=cloud.name,
@@ -498,9 +474,7 @@ class BaseResource(ABC):
     def add_deferred_connection(
         self, search: Dict, parent: bool = True, edge_type: EdgeType = EdgeType.default
     ) -> None:
-        self._deferred_connections.append(
-            {"search": search, "parent": parent, "edge_type": edge_type}
-        )
+        self._deferred_connections.append({"search": search, "parent": parent, "edge_type": edge_type})
 
     def resolve_deferred_connections(self, graph) -> None:
         if graph is None:
@@ -604,27 +578,14 @@ class ResourceTagsDict(dict):
                     log_msg = f"Successfully set tag {key} to {value} in cloud"
                     self.parent_resource._changes.add("tags")
                     self.parent_resource.log(log_msg)
-                    log.info(
-                        (
-                            f"{log_msg} for {self.parent_resource.kind}"
-                            f" {self.parent_resource.id}"
-                        )
-                    )
+                    log.info((f"{log_msg} for {self.parent_resource.kind}" f" {self.parent_resource.id}"))
                     return super().__setitem__(key, value)
                 else:
                     log_msg = f"Error setting tag {key} to {value} in cloud"
                     self.parent_resource.log(log_msg)
-                    log.error(
-                        (
-                            f"{log_msg} for {self.parent_resource.kind}"
-                            f" {self.parent_resource.id}"
-                        )
-                    )
+                    log.error((f"{log_msg} for {self.parent_resource.kind}" f" {self.parent_resource.id}"))
             except Exception as e:
-                log_msg = (
-                    f"Unhandled exception while trying to set tag {key} to {value}"
-                    f" in cloud: {type(e)} {e}"
-                )
+                log_msg = f"Unhandled exception while trying to set tag {key} to {value}" f" in cloud: {type(e)} {e}"
                 self.parent_resource.log(log_msg, exception=e)
                 if self.parent_resource._raise_tags_exceptions:
                     raise
@@ -641,27 +602,14 @@ class ResourceTagsDict(dict):
                     log_msg = f"Successfully deleted tag {key} in cloud"
                     self.parent_resource._changes.add("tags")
                     self.parent_resource.log(log_msg)
-                    log.info(
-                        (
-                            f"{log_msg} for {self.parent_resource.kind}"
-                            f" {self.parent_resource.id}"
-                        )
-                    )
+                    log.info((f"{log_msg} for {self.parent_resource.kind}" f" {self.parent_resource.id}"))
                     return super().__delitem__(key)
                 else:
                     log_msg = f"Error deleting tag {key} in cloud"
                     self.parent_resource.log(log_msg)
-                    log.error(
-                        (
-                            f"{log_msg} for {self.parent_resource.kind}"
-                            f" {self.parent_resource.id}"
-                        )
-                    )
+                    log.error((f"{log_msg} for {self.parent_resource.kind}" f" {self.parent_resource.id}"))
             except Exception as e:
-                log_msg = (
-                    f"Unhandled exception while trying to delete tag {key} in cloud:"
-                    f" {type(e)} {e}"
-                )
+                log_msg = f"Unhandled exception while trying to delete tag {key} in cloud:" f" {type(e)} {e}"
                 self.parent_resource.log(log_msg, exception=e)
                 if self.parent_resource._raise_tags_exceptions:
                     raise
@@ -680,9 +628,7 @@ class PhantomBaseResource(BaseResource):
     phantom: ClassVar[bool] = True
 
     def cleanup(self, graph=None) -> bool:
-        log.error(
-            f"Resource {self.rtdname} is a phantom resource and can't be cleaned up"
-        )
+        log.error(f"Resource {self.rtdname} is a phantom resource and can't be cleaned up")
         return False
 
 
@@ -806,9 +752,7 @@ class BaseInstance(BaseResource):
         raise NotImplementedError
 
 
-BaseInstance.instance_status = property(
-    BaseInstance._instance_status_getter, BaseInstance._instance_status_setter
-)
+BaseInstance.instance_status = property(BaseInstance._instance_status_getter, BaseInstance._instance_status_setter)
 
 
 @dataclass(eq=False)
@@ -853,9 +797,7 @@ class BaseVolume(BaseResource):
         return graph.search_first_parent_class(self, BaseVolumeType)
 
 
-BaseVolume.volume_status = property(
-    BaseVolume._volume_status_getter, BaseVolume._volume_status_setter
-)
+BaseVolume.volume_status = property(BaseVolume._volume_status_getter, BaseVolume._volume_status_setter)
 
 
 @dataclass(eq=False)
@@ -1091,9 +1033,7 @@ class BaseDNSRecordSet(BaseResource):
 
     def _keys(self) -> tuple:
         if self._graph is None:
-            raise RuntimeError(
-                f"_keys() called on {self.rtdname} before resource was added to graph"
-            )
+            raise RuntimeError(f"_keys() called on {self.rtdname} before resource was added to graph")
         return (
             self.kind,
             self.cloud().id,
@@ -1133,9 +1073,7 @@ class BaseDNSRecord(BaseResource):
 
     def _keys(self) -> tuple:
         if self._graph is None:
-            raise RuntimeError(
-                f"_keys() called on {self.rtdname} before resource was added to graph"
-            )
+            raise RuntimeError(f"_keys() called on {self.rtdname} before resource was added to graph")
         return (
             self.kind,
             self.cloud().id,

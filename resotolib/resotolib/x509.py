@@ -24,9 +24,7 @@ from typing import List, Optional, Tuple, Union
 
 
 def gen_rsa_key(key_size: int = 2048) -> RSAPrivateKey:
-    return generate_private_key(
-        public_exponent=65537, key_size=key_size, backend=default_backend()
-    )
+    return generate_private_key(public_exponent=65537, key_size=key_size, backend=default_backend())
 
 
 def bootstrap_ca(
@@ -50,9 +48,7 @@ def bootstrap_ca(
         .serial_number(x509.random_serial_number())
         .not_valid_before(datetime.now(tz=timezone.utc))
         .not_valid_after(datetime.now(tz=timezone.utc) + timedelta(days=days_valid))
-        .add_extension(
-            x509.BasicConstraints(ca=True, path_length=path_length), critical=True
-        )
+        .add_extension(x509.BasicConstraints(ca=True, path_length=path_length), critical=True)
         .add_extension(
             x509.KeyUsage(
                 digital_signature=False,
@@ -113,8 +109,7 @@ def gen_csr(
     if len(san_dns_names) + len(san_ip_addresses) > 0:
         csr_build = csr_build.add_extension(
             x509.SubjectAlternativeName(
-                [x509.DNSName(n) for n in san_dns_names]
-                + [x509.IPAddress(make_ip(i)) for i in san_ip_addresses]
+                [x509.DNSName(n) for n in san_dns_names] + [x509.IPAddress(make_ip(i)) for i in san_ip_addresses]
             ),
             critical=False,  # Optional extensions are not critical if unsupported
         )
@@ -158,21 +153,15 @@ def sign_csr(
             key_usage.append(x509.ExtendedKeyUsageOID.SERVER_AUTH)
         if client_auth:
             key_usage.append(x509.ExtendedKeyUsageOID.CLIENT_AUTH)
-        crt_build = crt_build.add_extension(
-            x509.ExtendedKeyUsage(key_usage), critical=False
-        )
+        crt_build = crt_build.add_extension(x509.ExtendedKeyUsage(key_usage), critical=False)
     for extension in csr.extensions:
         if not isinstance(extension.value, x509.SubjectAlternativeName):
             continue
-        crt_build = crt_build.add_extension(
-            extension.value, critical=extension.critical
-        )
+        crt_build = crt_build.add_extension(extension.value, critical=extension.critical)
     return crt_build.sign(ca_key, hashes.SHA256(), default_backend())
 
 
-def write_csr_to_file(
-    csr: CertificateSigningRequest, csr_path: str, rename: bool = True
-) -> None:
+def write_csr_to_file(csr: CertificateSigningRequest, csr_path: str, rename: bool = True) -> None:
     tmp_csr_path = f"{csr_path}.tmp" if rename else csr_path
     with open(tmp_csr_path, "wb") as f:
         f.write(csr_to_bytes(csr))
@@ -188,9 +177,7 @@ def write_cert_to_file(cert: Certificate, cert_path: str, rename: bool = True) -
         os.rename(tmp_cert_path, cert_path)
 
 
-def write_ca_bundle(
-    cert: Certificate, cert_path: str, include_certifi: bool = True, rename: bool = True
-) -> None:
+def write_ca_bundle(cert: Certificate, cert_path: str, include_certifi: bool = True, rename: bool = True) -> None:
     tmp_cert_path = f"{cert_path}.tmp" if rename else cert_path
     with open(tmp_cert_path, "wb") as f:
         if include_certifi:
@@ -231,9 +218,7 @@ def key_to_bytes(
 ):
     kwargs = {"encryption_algorithm": serialization.NoEncryption()}
     if passphrase is not None:
-        kwargs["encryption_algorithm"] = serialization.BestAvailableEncryption(
-            passphrase.encode()
-        )
+        kwargs["encryption_algorithm"] = serialization.BestAvailableEncryption(passphrase.encode())
     return key.private_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PrivateFormat.TraditionalOpenSSL,
@@ -261,9 +246,7 @@ def load_cert_from_file(cert_path: str) -> Certificate:
     return load_cert_from_bytes(cert)
 
 
-def load_key_from_file(
-    key_path: str, passphrase: Optional[str] = None
-) -> RSAPrivateKey:
+def load_key_from_file(key_path: str, passphrase: Optional[str] = None) -> RSAPrivateKey:
     with open(key_path, "rb") as f:
         key = f.read()
     return load_key_from_bytes(key, passphrase)
@@ -292,6 +275,4 @@ def make_ip(ip: str) -> Union[IPv4Address, IPv6Address, IPv4Network, IPv6Network
 
 
 def cert_fingerprint(cert: Certificate, hash_algorithm: str = "SHA256") -> str:
-    return ":".join(
-        f"{b:02X}" for b in cert.fingerprint(getattr(hashes, hash_algorithm.upper())())
-    )
+    return ":".join(f"{b:02X}" for b in cert.fingerprint(getattr(hashes, hash_algorithm.upper())()))

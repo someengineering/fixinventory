@@ -120,9 +120,7 @@ def model_name(clazz: type) -> str:
     elif is_dataclass(to_check):
         name = getattr(to_check, "kind", None)
         if not name:
-            raise AttributeError(
-                f"dataclass {to_check} need to define a ClassVar kind!"
-            )
+            raise AttributeError(f"dataclass {to_check} need to define a ClassVar kind!")
         return name
     else:
         return "any"
@@ -134,9 +132,7 @@ def should_export(field: Field) -> bool:
     return not field.name.startswith("_")
 
 
-def dataclasses_to_resotocore_model(
-    classes: Set[type], allow_unknown_props: bool = False
-) -> List[Json]:
+def dataclasses_to_resotocore_model(classes: Set[type], allow_unknown_props: bool = False) -> List[Json]:
     """
     Analyze all transitive dataclasses and create the model
     definition as understood by resotocore.
@@ -160,9 +156,7 @@ def dataclasses_to_resotocore_model(
         synthetic = field.metadata.get("synthetic")
         synthetic = synthetic if synthetic else {}
 
-        def json(
-            name: str, kind_str: str, required: bool, description: str, **kwargs: Any
-        ) -> Json:
+        def json(name: str, kind_str: str, required: bool, description: str, **kwargs: Any) -> Json:
             return {
                 "name": name,
                 "kind": kind_str,
@@ -190,15 +184,8 @@ def dataclasses_to_resotocore_model(
     def export_data_class(clazz: type) -> None:
         bases = [base for base in clazz.__bases__ if is_dataclass(base)]
         base_names = [model_name(base) for base in bases]
-        base_props: Set[Field] = reduce(
-            lambda result, base: result | set(fields(base)), bases, set()
-        )
-        props = [
-            p
-            for field in fields(clazz)
-            if field not in base_props and should_export(field)
-            for p in prop(field)
-        ]
+        base_props: Set[Field] = reduce(lambda result, base: result | set(fields(base)), bases, set())
+        props = [p for field in fields(clazz) if field not in base_props and should_export(field) for p in prop(field)]
         model.append(
             {
                 "fqn": model_name(clazz),
@@ -213,9 +200,7 @@ def dataclasses_to_resotocore_model(
         # The name of the enum literal is taken not the value.
         # This matches jsons handling of enumeration marshalling.
         enum_values = [literal.name for literal in clazz]
-        model.append(
-            {"fqn": model_name(clazz), "runtime_kind": "string", "enum": enum_values}
-        )
+        model.append({"fqn": model_name(clazz), "runtime_kind": "string", "enum": enum_values})
 
     for cls in transitive_classes(classes):
         if is_dataclass(cls):
@@ -229,9 +214,7 @@ def dataclasses_to_resotocore_model(
 
 # Use this model exporter, if a dynamic object is exported
 # with given name and properties.
-def dynamic_object_to_resotocore_model(
-    name: str, properties: Dict[str, type]
-) -> List[Json]:
+def dynamic_object_to_resotocore_model(name: str, properties: Dict[str, type]) -> List[Json]:
     dependant = dataclasses_to_resotocore_model(set(properties.values()))
     # append definition for top level object
     dependant.append(
@@ -270,9 +253,7 @@ def get_node_attributes(node: BaseResource) -> Dict:
     return attributes
 
 
-def node_to_dict(
-    node: BaseResource, changes_only: bool = False, include_revision: bool = False
-) -> Dict:
+def node_to_dict(node: BaseResource, changes_only: bool = False, include_revision: bool = False) -> Dict:
     node_dict = {"id": node._resotocore_id if node._resotocore_id else node.chksum}
     if changes_only:
         node_dict.update(node.changes.get())
@@ -310,9 +291,7 @@ def locate_python_type(python_type: str) -> Any:
     return locate(python_type)
 
 
-def node_from_dict(
-    node_data: Dict, include_select_ancestors: bool = False
-) -> BaseResource:
+def node_from_dict(node_data: Dict, include_select_ancestors: bool = False) -> BaseResource:
     """Create a resource from resotocore graph node data
 
     If include_select_ancestors is True, the resource will be created with
@@ -392,14 +371,8 @@ def restore_node_field_types(node_type: BaseResource, node_data_reported: Dict):
                 datetime_str = datetime_str[:-1] + "+00:00"
             node_data_reported[field.name] = datetime.fromisoformat(datetime_str)
         elif field_type == date:
-            node_data_reported[field.name] = date.fromisoformat(
-                node_data_reported[field.name]
-            )
+            node_data_reported[field.name] = date.fromisoformat(node_data_reported[field.name])
         elif field_type == timedelta:
-            node_data_reported[field.name] = str2timedelta(
-                node_data_reported[field.name]
-            )
+            node_data_reported[field.name] = str2timedelta(node_data_reported[field.name])
         elif field_type == timezone:
-            node_data_reported[field.name] = str2timezone(
-                node_data_reported[field.name]
-            )
+            node_data_reported[field.name] = str2timezone(node_data_reported[field.name])
