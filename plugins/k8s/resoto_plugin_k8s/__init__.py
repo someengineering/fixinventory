@@ -1,19 +1,19 @@
-import resotolib.logger
 import multiprocessing
-import resotolib.proc
+from argparse import Namespace
 from concurrent import futures
 from typing import Optional, Dict
-from resotolib.baseplugin import BaseCollectorPlugin
+
+import resotolib.logger
+import resotolib.proc
+from kubernetes.client import ApiException
+from kubernetes.client import Configuration
+from resoto_plugin_k8s.collector import KubernetesCollector
+from resoto_plugin_k8s.config import K8sConfig
+from resoto_plugin_k8s.resources import KubernetesCluster
 from resotolib.args import ArgumentParser
-from argparse import Namespace
+from resotolib.baseplugin import BaseCollectorPlugin
 from resotolib.config import Config, RunningConfig
 from resotolib.graph import Graph
-from kubernetes import client
-from .config import K8sConfig
-from .utils import k8s_config
-from .collector import KubernetesCollector
-from .resources.cluster import KubernetesCluster
-
 
 log = resotolib.logger.getLogger("resoto." + __name__)
 
@@ -24,17 +24,15 @@ class KubernetesCollectorPlugin(BaseCollectorPlugin):
     def collect(self) -> None:
         log.debug("plugin: Kubernetes collecting resources")
 
-        clusters = k8s_config()
-        if len(clusters) == 0:
+        k8s: K8sConfig = Config.k8s
+        cluster_access = k8s.cluster_access_configs()
+
+        if len(cluster_access) == 0:
             return
 
-        max_workers = (
-            len(clusters)
-            if len(clusters) < Config.k8s.pool_size
-            else Config.k8s.pool_size
-        )
+        max_workers = len(cluster_access) if len(cluster_access) < k8s.pool_size else k8s.pool_size
         pool_args = {"max_workers": max_workers}
-        if Config.k8s.fork_process:
+        if k8s.fork_process:
             pool_args["mp_context"] = multiprocessing.get_context("spawn")
             pool_args["initializer"] = resotolib.proc.initializer
             pool_executor = futures.ProcessPoolExecutor
@@ -54,7 +52,7 @@ class KubernetesCollectorPlugin(BaseCollectorPlugin):
                     cluster_config,
                     **collect_args,
                 )
-                for cluster_id, cluster_config in clusters.items()
+                for cluster_id, cluster_config in cluster_access.items()
             ]
             for future in futures.as_completed(wait_for):
                 cluster_graph = future.result()
@@ -66,7 +64,7 @@ class KubernetesCollectorPlugin(BaseCollectorPlugin):
     @staticmethod
     def collect_cluster(
         cluster_id: str,
-        cluster_config: client.Configuration,
+        cluster_config: Configuration,
         args: Namespace = None,
         running_config: RunningConfig = None,
     ) -> Optional[Dict]:
@@ -91,19 +89,15 @@ class KubernetesCollectorPlugin(BaseCollectorPlugin):
         log.debug(f"Starting new collect process for {cluster.rtdname}")
 
         try:
-            kc = KubernetesCollector(cluster, cluster_config)
+            kc = KubernetesCollector(Config.k8s, cluster, cluster_config)
             kc.collect()
-        except client.exceptions.ApiException as e:
+        except ApiException as e:
             if e.reason == "Unauthorized":
                 log.error(f"Unable to authenticate with {cluster.rtdname}")
             else:
-                log.exception(
-                    f"An unhandled error occurred while collecting {cluster.rtdname}"
-                )
+                log.exception(f"An unhandled error occurred while collecting {cluster.rtdname}")
         except Exception:
-            log.exception(
-                f"An unhandled error occurred while collecting {cluster.rtdname}"
-            )
+            log.exception(f"An unhandled error occurred while collecting {cluster.rtdname}")
         else:
             return kc.graph
 

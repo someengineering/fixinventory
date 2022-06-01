@@ -1,0 +1,36 @@
+{
+    "metadata": {
+        "creationTimestamp": "2021-11-26T10:25:35Z",
+        "labels": {
+            "kubernetes.io/metadata.name": "kube-public"
+        },
+        "managedFields": [
+            {
+                "apiVersion": "v1",
+                "fieldsType": "FieldsV1",
+                "fieldsV1": {
+                    "f:metadata": {
+                        "f:labels": {
+                            ".": {},
+                            "f:kubernetes.io/metadata.name": {}
+                        }
+                    }
+                },
+                "manager": "kube-apiserver",
+                "operation": "Update",
+                "time": "2021-11-26T10:25:35Z"
+            }
+        ],
+        "name": "kube-public",
+        "resourceVersion": "52",
+        "uid": "12f8131e-5acd-4b56-a3af-ff128defcd54"
+    },
+    "spec": {
+        "finalizers": [
+            "kubernetes"
+        ]
+    },
+    "status": {
+        "phase": "Active"
+    }
+}

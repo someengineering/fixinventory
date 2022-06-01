@@ -1,0 +1,338 @@
+{
+    "metadata": {
+        "annotations": {
+            "deprecated.daemonset.template.generation": "4",
+            "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"apps/v1\",\"kind\":\"DaemonSet\",\"metadata\":{\"annotations\":{},\"labels\":{\"doks.digitalocean.com/managed\":\"true\",\"k8s-app\":\"kube-proxy\",\"tier\":\"node\"},\"name\":\"kube-proxy\",\"namespace\":\"kube-system\"},\"spec\":{\"selector\":{\"matchLabels\":{\"k8s-app\":\"kube-proxy\",\"tier\":\"node\"}},\"template\":{\"metadata\":{\"annotations\":{\"clusterlint.digitalocean.com/disabled-checks\":\"privileged-containers,non-root-user,resource-requirements,hostpath-volume\"},\"labels\":{\"doks.digitalocean.com/managed\":\"true\",\"k8s-app\":\"kube-proxy\",\"tier\":\"node\"}},\"spec\":{\"containers\":[{\"command\":[\"kube-proxy\",\"--config=/etc/kubernetes/config/kube-proxy-config.yaml\"],\"image\":\"k8s.gcr.io/kube-proxy:v1.21.11\",\"name\":\"kube-proxy\",\"resources\":{\"requests\":{\"memory\":\"125Mi\"}},\"securityContext\":{\"privileged\":true},\"volumeMounts\":[{\"mountPath\":\"/etc/kubernetes/kubeconfig\",\"name\":\"kube-proxy-kubeconfig\",\"readOnly\":true},{\"mountPath\":\"/etc/kubernetes/config\",\"name\":\"kube-proxy-config\",\"readOnly\":true}]}],\"hostNetwork\":true,\"initContainers\":[{\"command\":[\"sh\",\"-c\",\"rm -f /etc/kubernetes/manifests/kube-proxy.yaml\"],\"image\":\"docker.io/library/busybox:1.30\",\"name\":\"clear-static-kube-proxy\",\"securityContext\":{\"privileged\":true},\"volumeMounts\":[{\"mountPath\":\"/etc/kubernetes/manifests\",\"name\":\"etc-kube-manifests\"}]}],\"priorityClassName\":\"system-node-critical\",\"serviceAccountName\":\"kube-proxy\",\"tolerations\":[{\"effect\":\"NoExecute\",\"operator\":\"Exists\"},{\"effect\":\"NoSchedule\",\"operator\":\"Exists\"},{\"key\":\"CriticalAddonsOnly\",\"operator\":\"Exists\"}],\"volumes\":[{\"configMap\":{\"items\":[{\"key\":\"kube-proxy-config\",\"path\":\"kube-proxy-config.yaml\"}],\"name\":\"kube-proxy\"},\"name\":\"kube-proxy-config\"},{\"hostPath\":{\"path\":\"/etc/kubernetes/manifests\"},\"name\":\"etc-kube-manifests\"},{\"name\":\"kube-proxy-kubeconfig\",\"secret\":{\"items\":[{\"key\":\"kube-proxy.kubeconfig\",\"path\":\"kube-proxy.kubeconfig\"}],\"secretName\":\"kube-proxy\"}}]}},\"updateStrategy\":{\"type\":\"OnDelete\"}}}\n"
+        },
+        "creationTimestamp": "2021-11-26T10:25:44Z",
+        "generation": 4,
+        "labels": {
+            "doks.digitalocean.com/managed": "true",
+            "k8s-app": "kube-proxy",
+            "tier": "node"
+        },
+        "managedFields": [
+            {
+                "apiVersion": "apps/v1",
+                "fieldsType": "FieldsV1",
+                "fieldsV1": {
+                    "f:metadata": {
+                        "f:annotations": {
+                            ".": {},
+                            "f:deprecated.daemonset.template.generation": {},
+                            "f:kubectl.kubernetes.io/last-applied-configuration": {}
+                        },
+                        "f:labels": {
+                            ".": {},
+                            "f:doks.digitalocean.com/managed": {},
+                            "f:k8s-app": {},
+                            "f:tier": {}
+                        }
+                    },
+                    "f:spec": {
+                        "f:revisionHistoryLimit": {},
+                        "f:selector": {},
+                        "f:template": {
+                            "f:metadata": {
+                                "f:annotations": {
+                                    ".": {},
+                                    "f:clusterlint.digitalocean.com/disabled-checks": {}
+                                },
+                                "f:labels": {
+                                    ".": {},
+                                    "f:doks.digitalocean.com/managed": {},
+                                    "f:k8s-app": {},
+                                    "f:tier": {}
+                                }
+                            },
+                            "f:spec": {
+                                "f:containers": {
+                                    "k:{\"name\":\"kube-proxy\"}": {
+                                        ".": {},
+                                        "f:command": {},
+                                        "f:image": {},
+                                        "f:imagePullPolicy": {},
+                                        "f:name": {},
+                                        "f:resources": {
+                                            ".": {},
+                                            "f:requests": {
+                                                ".": {},
+                                                "f:memory": {}
+                                            }
+                                        },
+                                        "f:securityContext": {
+                                            ".": {},
+                                            "f:privileged": {}
+                                        },
+                                        "f:terminationMessagePath": {},
+                                        "f:terminationMessagePolicy": {},
+                                        "f:volumeMounts": {
+                                            ".": {},
+                                            "k:{\"mountPath\":\"/etc/kubernetes/config\"}": {
+                                                ".": {},
+                                                "f:mountPath": {},
+                                                "f:name": {},
+                                                "f:readOnly": {}
+                                            },
+                                            "k:{\"mountPath\":\"/etc/kubernetes/kubeconfig\"}": {
+                                                ".": {},
+                                                "f:mountPath": {},
+                                                "f:name": {},
+                                                "f:readOnly": {}
+                                            }
+                                        }
+                                    }
+                                },
+                                "f:dnsPolicy": {},
+                                "f:hostNetwork": {},
+                                "f:initContainers": {
+                                    ".": {},
+                                    "k:{\"name\":\"clear-static-kube-proxy\"}": {
+                                        ".": {},
+                                        "f:command": {},
+                                        "f:image": {},
+                                        "f:imagePullPolicy": {},
+                                        "f:name": {},
+                                        "f:resources": {},
+                                        "f:securityContext": {
+                                            ".": {},
+                                            "f:privileged": {}
+                                        },
+                                        "f:terminationMessagePath": {},
+                                        "f:terminationMessagePolicy": {},
+                                        "f:volumeMounts": {
+                                            ".": {},
+                                            "k:{\"mountPath\":\"/etc/kubernetes/manifests\"}": {
+                                                ".": {},
+                                                "f:mountPath": {},
+                                                "f:name": {}
+                                            }
+                                        }
+                                    }
+                                },
+                                "f:priorityClassName": {},
+                                "f:restartPolicy": {},
+                                "f:schedulerName": {},
+                                "f:securityContext": {},
+                                "f:serviceAccount": {},
+                                "f:serviceAccountName": {},
+                                "f:terminationGracePeriodSeconds": {},
+                                "f:tolerations": {},
+                                "f:volumes": {
+                                    ".": {},
+                                    "k:{\"name\":\"etc-kube-manifests\"}": {
+                                        ".": {},
+                                        "f:hostPath": {
+                                            ".": {},
+                                            "f:path": {},
+                                            "f:type": {}
+                                        },
+                                        "f:name": {}
+                                    },
+                                    "k:{\"name\":\"kube-proxy-config\"}": {
+                                        ".": {},
+                                        "f:configMap": {
+                                            ".": {},
+                                            "f:defaultMode": {},
+                                            "f:items": {},
+                                            "f:name": {}
+                                        },
+                                        "f:name": {}
+                                    },
+                                    "k:{\"name\":\"kube-proxy-kubeconfig\"}": {
+                                        ".": {},
+                                        "f:name": {},
+                                        "f:secret": {
+                                            ".": {},
+                                            "f:defaultMode": {},
+                                            "f:items": {},
+                                            "f:secretName": {}
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "f:updateStrategy": {
+                            "f:type": {}
+                        }
+                    }
+                },
+                "manager": "kubectl-client-side-apply",
+                "operation": "Update",
+                "time": "2021-11-26T10:25:44Z"
+            },
+            {
+                "apiVersion": "apps/v1",
+                "fieldsType": "FieldsV1",
+                "fieldsV1": {
+                    "f:status": {
+                        "f:currentNumberScheduled": {},
+                        "f:desiredNumberScheduled": {},
+                        "f:numberAvailable": {},
+                        "f:numberReady": {},
+                        "f:observedGeneration": {},
+                        "f:updatedNumberScheduled": {}
+                    }
+                },
+                "manager": "kube-controller-manager",
+                "operation": "Update",
+                "time": "2022-04-30T15:14:27Z"
+            }
+        ],
+        "name": "kube-proxy",
+        "namespace": "kube-system",
+        "resourceVersion": "47401383",
+        "uid": "4f7862b3-7240-4463-8f63-5e344985f03f"
+    },
+    "spec": {
+        "revisionHistoryLimit": 10,
+        "selector": {
+            "matchLabels": {
+                "k8s-app": "kube-proxy",
+                "tier": "node"
+            }
+        },
+        "template": {
+            "metadata": {
+                "annotations": {
+                    "clusterlint.digitalocean.com/disabled-checks": "privileged-containers,non-root-user,resource-requirements,hostpath-volume"
+                },
+                "creationTimestamp": null,
+                "labels": {
+                    "doks.digitalocean.com/managed": "true",
+                    "k8s-app": "kube-proxy",
+                    "tier": "node"
+                }
+            },
+            "spec": {
+                "containers": [
+                    {
+                        "command": [
+                            "kube-proxy",
+                            "--config=/etc/kubernetes/config/kube-proxy-config.yaml"
+                        ],
+                        "image": "k8s.gcr.io/kube-proxy:v1.21.11",
+                        "imagePullPolicy": "IfNotPresent",
+                        "name": "kube-proxy",
+                        "resources": {
+                            "requests": {
+                                "memory": "125Mi"
+                            }
+                        },
+                        "securityContext": {
+                            "privileged": true
+                        },
+                        "terminationMessagePath": "/dev/termination-log",
+                        "terminationMessagePolicy": "File",
+                        "volumeMounts": [
+                            {
+                                "mountPath": "/etc/kubernetes/kubeconfig",
+                                "name": "kube-proxy-kubeconfig",
+                                "readOnly": true
+                            },
+                            {
+                                "mountPath": "/etc/kubernetes/config",
+                                "name": "kube-proxy-config",
+                                "readOnly": true
+                            }
+                        ]
+                    }
+                ],
+                "dnsPolicy": "ClusterFirst",
+                "hostNetwork": true,
+                "initContainers": [
+                    {
+                        "command": [
+                            "sh",
+                            "-c",
+                            "rm -f /etc/kubernetes/manifests/kube-proxy.yaml"
+                        ],
+                        "image": "docker.io/library/busybox:1.30",
+                        "imagePullPolicy": "IfNotPresent",
+                        "name": "clear-static-kube-proxy",
+                        "resources": {},
+                        "securityContext": {
+                            "privileged": true
+                        },
+                        "terminationMessagePath": "/dev/termination-log",
+                        "terminationMessagePolicy": "File",
+                        "volumeMounts": [
+                            {
+                                "mountPath": "/etc/kubernetes/manifests",
+                                "name": "etc-kube-manifests"
+                            }
+                        ]
+                    }
+                ],
+                "priorityClassName": "system-node-critical",
+                "restartPolicy": "Always",
+                "schedulerName": "default-scheduler",
+                "securityContext": {},
+                "serviceAccount": "kube-proxy",
+                "serviceAccountName": "kube-proxy",
+                "terminationGracePeriodSeconds": 30,
+                "tolerations": [
+                    {
+                        "effect": "NoExecute",
+                        "operator": "Exists"
+                    },
+                    {
+                        "effect": "NoSchedule",
+                        "operator": "Exists"
+                    },
+                    {
+                        "key": "CriticalAddonsOnly",
+                        "operator": "Exists"
+                    }
+                ],
+                "volumes": [
+                    {
+                        "configMap": {
+                            "defaultMode": 420,
+                            "items": [
+                                {
+                                    "key": "kube-proxy-config",
+                                    "path": "kube-proxy-config.yaml"
+                                }
+                            ],
+                            "name": "kube-proxy"
+                        },
+                        "name": "kube-proxy-config"
+                    },
+                    {
+                        "hostPath": {
+                            "path": "/etc/kubernetes/manifests",
+                            "type": ""
+                        },
+                        "name": "etc-kube-manifests"
+                    },
+                    {
+                        "name": "kube-proxy-kubeconfig",
+                        "secret": {
+                            "defaultMode": 420,
+                            "items": [
+                                {
+                                    "key": "kube-proxy.kubeconfig",
+                                    "path": "kube-proxy.kubeconfig"
+                                }
+                            ],
+                            "secretName": "kube-proxy"
+                        }
+                    }
+                ]
+            }
+        },
+        "updateStrategy": {
+            "type": "OnDelete"
+        }
+    },
+    "status": {
+        "currentNumberScheduled": 3,
+        "desiredNumberScheduled": 3,
+        "numberAvailable": 3,
+        "numberMisscheduled": 0,
+        "numberReady": 3,
+        "observedGeneration": 4,
+        "updatedNumberScheduled": 3
+    }
+}
