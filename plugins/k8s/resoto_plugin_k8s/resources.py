@@ -1,17 +1,23 @@
 import json
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import ClassVar, Optional, Dict, Type, List
+from typing import ClassVar, Optional, Dict, Type, List, Any
 
 import jsons
-from jsonbender import S, Bender, bend, F, OptionalS, K
-from jsonbender.list_ops import Forall, ForallBend
+from jsonbender import S, Bender, bend, OptionalS, K
+from jsonbender.list_ops import ForallBend
 from jsons import set_deserializer
-from resoto_plugin_k8s.bender_opts import MapValue, StringToUnitNumber, CPUCoresToNumber, Bend
-from resotolib.baseresources import BaseAccount, BaseResource, BaseInstance, BaseRegion, InstanceStatus
+from resoto_plugin_k8s.bender_opts import StringToUnitNumber, CPUCoresToNumber, Bend
+from resotolib.baseresources import (
+    BaseAccount,
+    BaseResource,
+    BaseInstance,
+    BaseRegion,
+    InstanceStatus,
+    BaseVolume,
+    BaseQuota,
+)
 from resotolib.types import Json
-
-# region Covered Resources
 
 
 @dataclass
@@ -77,27 +83,170 @@ class KubernetesResource(BaseResource):
         raise NotImplementedError
 
 
+# region node
+
+
 @dataclass
-class KubernetesCondition:
-    kind: ClassVar[str] = "kubernetes_base_condition"
+class KubernetesNodeStatusAddresses:
+    kind: ClassVar[str] = "kubernetes_node_status_addresses"
     mapping: ClassVar[Dict[str, Bender]] = {
+        "address": OptionalS("address"),
+        "type": OptionalS("type"),
+    }
+    address: Optional[str] = field(default=None)
+    type: Optional[str] = field(default=None)
+
+
+@dataclass
+class KubernetesNodeCondition:
+    kind: ClassVar[str] = "kubernetes_node_status_conditions"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "last_heartbeat_time": OptionalS("lastHeartbeatTime"),
         "last_transition_time": OptionalS("lastTransitionTime"),
         "message": OptionalS("message"),
         "reason": OptionalS("reason"),
         "status": OptionalS("status"),
-        "type": S("type"),
+        "type": OptionalS("type"),
     }
-    last_transition_time: datetime
-    message: Optional[str]
-    reason: Optional[str]
-    status: Optional[str]
-    type: str
+    last_heartbeat_time: Optional[datetime] = field(default=None)
+    last_transition_time: Optional[datetime] = field(default=None)
+    message: Optional[str] = field(default=None)
+    reason: Optional[str] = field(default=None)
+    status: Optional[str] = field(default=None)
+    type: Optional[str] = field(default=None)
 
 
 @dataclass
-class KubernetesNamespace(KubernetesResource, BaseRegion):
-    kind: ClassVar[str] = "kubernetes_namespace"
-    k8s_name: ClassVar[str] = "Namespace"
+class KubernetesNodeStatusConfigSource:
+    kind: ClassVar[str] = "kubernetes_node_status_config_active_configmap"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "kubelet_config_key": OptionalS("kubeletConfigKey"),
+        "name": OptionalS("name"),
+        "namespace": OptionalS("namespace"),
+        "resource_version": OptionalS("resourceVersion"),
+        "uid": OptionalS("uid"),
+    }
+    kubelet_config_key: Optional[str] = field(default=None)
+    name: Optional[str] = field(default=None)
+    namespace: Optional[str] = field(default=None)
+    resource_version: Optional[str] = field(default=None)
+    uid: Optional[str] = field(default=None)
+
+
+@dataclass
+class KubernetesNodeConfigSource:
+    kind: ClassVar[str] = "kubernetes_node_status_config_active"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "config_map": OptionalS("configMap", default={}) >> Bend(KubernetesNodeStatusConfigSource.mapping),
+    }
+    config_map: Optional[KubernetesNodeStatusConfigSource] = field(default=None)
+
+
+@dataclass
+class KubernetesNodeStatusConfig:
+    kind: ClassVar[str] = "kubernetes_node_status_config"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "active": OptionalS("active", default={}) >> Bend(KubernetesNodeConfigSource.mapping),
+        "assigned": OptionalS("assigned", default={}) >> Bend(KubernetesNodeConfigSource.mapping),
+        "error": OptionalS("error"),
+    }
+    active: Optional[KubernetesNodeConfigSource] = field(default=None)
+    assigned: Optional[KubernetesNodeConfigSource] = field(default=None)
+    error: Optional[str] = field(default=None)
+
+
+@dataclass
+class KubernetesDaemonEndpoint:
+    kind: ClassVar[str] = "kubernetes_daemon_endpoint"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "port": OptionalS("Port"),
+    }
+    port: Optional[int] = field(default=None)
+
+
+@dataclass
+class KubernetesNodeDaemonEndpoint:
+    kind: ClassVar[str] = "kubernetes_node_daemon_endpoint"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "kubelet_endpoint": OptionalS("kubeletEndpoint", default={}) >> Bend(KubernetesDaemonEndpoint.mapping),
+    }
+    kubelet_endpoint: Optional[KubernetesDaemonEndpoint] = field(default=None)
+
+
+@dataclass
+class KubernetesNodeStatusImages:
+    kind: ClassVar[str] = "kubernetes_node_status_images"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "names": OptionalS("names", default=[]),
+        "size_bytes": OptionalS("sizeBytes", default=0),
+    }
+    names: List[str] = field(default_factory=list)
+    size_bytes: Optional[int] = field(default=None)
+
+
+@dataclass
+class KubernetesNodeSystemInfo:
+    kind: ClassVar[str] = "kubernetes_node_system_info"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "architecture": OptionalS("architecture"),
+        "boot_id": OptionalS("bootID"),
+        "container_runtime_version": OptionalS("containerRuntimeVersion"),
+        "kernel_version": OptionalS("kernelVersion"),
+        "kube_proxy_version": OptionalS("kubeProxyVersion"),
+        "kubelet_version": OptionalS("kubeletVersion"),
+        "machine_id": OptionalS("machineID"),
+        "operating_system": OptionalS("operatingSystem"),
+        "os_image": OptionalS("osImage"),
+        "system_uuid": OptionalS("systemUUID"),
+    }
+    architecture: Optional[str] = field(default=None)
+    boot_id: Optional[str] = field(default=None)
+    container_runtime_version: Optional[str] = field(default=None)
+    kernel_version: Optional[str] = field(default=None)
+    kube_proxy_version: Optional[str] = field(default=None)
+    kubelet_version: Optional[str] = field(default=None)
+    machine_id: Optional[str] = field(default=None)
+    operating_system: Optional[str] = field(default=None)
+    os_image: Optional[str] = field(default=None)
+    system_uuid: Optional[str] = field(default=None)
+
+
+@dataclass
+class KubernetesAttachedVolume:
+    kind: ClassVar[str] = "kubernetes_attached_volume"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "device_path": OptionalS("devicePath"),
+        "name": OptionalS("name"),
+    }
+    device_path: Optional[str] = field(default=None)
+    name: Optional[str] = field(default=None)
+
+
+@dataclass
+class KubernetesNodeStatus:
+    kind: ClassVar[str] = "kubernetes_node_status"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "addresses": OptionalS("addresses", default=[]) >> ForallBend(KubernetesNodeStatusAddresses.mapping),
+        "conditions": OptionalS("conditions", default=[]) >> ForallBend(KubernetesNodeCondition.mapping),
+        "config": OptionalS("config", default={}) >> Bend(KubernetesNodeStatusConfig.mapping),
+        "capacity": OptionalS("capacity"),
+        "daemon_endpoints": OptionalS("daemonEndpoints", default={}) >> Bend(KubernetesNodeDaemonEndpoint.mapping),
+        "images": OptionalS("images", default=[]) >> ForallBend(KubernetesNodeStatusImages.mapping),
+        "node_info": OptionalS("nodeInfo", default={}) >> Bend(KubernetesNodeSystemInfo.mapping),
+        "phase": OptionalS("phase"),
+        "volumes_attached": OptionalS("volumesAttached", default=[]) >> ForallBend(KubernetesAttachedVolume.mapping),
+        "volumes_in_use": OptionalS("volumesInUse", default=[]),
+    }
+    addresses: List[KubernetesNodeStatusAddresses] = field(default_factory=list)
+    capacity: Optional[Any] = field(default=None)
+    conditions: List[KubernetesNodeCondition] = field(default_factory=list)
+    config: Optional[KubernetesNodeStatusConfig] = field(default=None)
+    daemon_endpoints: Optional[KubernetesNodeDaemonEndpoint] = field(default=None)
+    images: List[KubernetesNodeStatusImages] = field(default_factory=list)
+    node_info: Optional[KubernetesNodeSystemInfo] = field(default=None)
+    phase: Optional[str] = field(default=None)
+    volumes_attached: List[KubernetesAttachedVolume] = field(default_factory=list)
+    volumes_in_use: List[str] = field(default_factory=list)
 
 
 instance_status_map: ClassVar[Dict[str, str]] = {
@@ -110,150 +259,18 @@ instance_status_map: ClassVar[Dict[str, str]] = {
 
 
 @dataclass
-class KubernetesContainerStatus:
-    kind: ClassVar[str] = "kubernetes_container_status"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "container_id": OptionalS("containerID"),
-        "image": S("image"),
-        "image_id": S("imageID"),
-        "name": S("name"),
-        "ready": S("ready"),
-        "restart_count": S("restartCount"),
-    }
-    container_id: Optional[str]
-    image: Optional[str]
-    image_id: str
-    ready: bool
-    restart_count: int
-
-
-@dataclass
-class KubernetesPodCondition(KubernetesCondition):
-    kind: ClassVar[str] = "kubernetes_pod_condition"
-    mapping: ClassVar[Dict[str, Bender]] = KubernetesCondition.mapping | {
-        "last_probe_time": OptionalS("lastProbeTime"),
-    }
-    last_probe_time: Optional[datetime]
-
-
-@dataclass
-class KubernetesPod(KubernetesResource, BaseInstance):
-    kind: ClassVar[str] = "kubernetes_pod"
-    k8s_name: ClassVar[str] = "Pod"
-    mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
-        "instance_status": S("status", "phase") >> MapValue(instance_status_map) >> F(lambda x: x.value),
-        "pod_conditions": S("status", "conditions") >> ForallBend(KubernetesPodCondition.mapping),
-        "pod_container_statuses": S("status", "containerStatuses") >> ForallBend(KubernetesContainerStatus.mapping),
-        "pod_init_container_statuses": S("status", "initContainerStatuses")
-        >> ForallBend(KubernetesContainerStatus.mapping),
-        "phase": S("status", "phase"),
-        "host_ip": S("status", "hostIP"),
-        "pod_ip": S("status", "podIP"),
-        "pod_ips": S("status", "podIPs") >> Forall(lambda x: x["ip"]),
-        "qos_class": S("status", "qosClass"),
-    }
-
-    pod_conditions: List[KubernetesPodCondition] = field(default_factory=list)
-    pod_container_statuses: List[KubernetesContainerStatus] = field(default_factory=list)
-    pod_init_container_statuses: List[KubernetesContainerStatus] = field(default_factory=list)
-    phase: Optional[str] = None
-    host_ip: Optional[str] = None
-    pod_ip: Optional[str] = None
-    pod_ips: List[str] = field(default_factory=list)
-    qos_class: Optional[str] = None
-
-    def _instance_status_getter(self) -> str:
-        return self._instance_status
-
-    def _instance_status_setter(self, value: str) -> None:
-        self._instance_status = value
-
-
-# noinspection PyProtectedMember
-KubernetesPod.instance_status = property(KubernetesPod._instance_status_getter, KubernetesPod._instance_status_setter)
-
-
-@dataclass
-class KubernetesContainerImage:
-    kind: ClassVar[str] = "kubernetes_node_condition"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "names": S("names"),
-        "size_bytes": S("sizeBytes"),
-    }
-    names: List[str]
-    size_bytes: int
-
-
-@dataclass
-class KubernetesNodeCondition(KubernetesCondition):
-    kind: ClassVar[str] = "kubernetes_node_condition"
-    mapping: ClassVar[Dict[str, Bender]] = KubernetesCondition.mapping | {
-        "last_heartbeat_time": OptionalS("lastHeartbeatTime"),
-    }
-    last_heartbeat_time: Optional[datetime]
-
-
-@dataclass
-class KubernetesNodeInfo:
-    kind: ClassVar[str] = "kubernetes_node_info"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "architecture": S("architecture"),
-        "boot_id": S("bootID"),
-        "container_runtime_version": S("containerRuntimeVersion"),
-        "kernel_version": S("kernelVersion"),
-        "kube_proxy_version": S("kubeProxyVersion"),
-        "kubelet_version": S("kubeletVersion"),
-        "machine_id": S("machineID"),
-        "operating_system": S("operatingSystem"),
-        "os_image": S("osImage"),
-        "system_uuid": S("systemUUID"),
-    }
-    architecture: str
-    boot_id: str
-    container_runtime_version: str
-    kernel_version: str
-    kube_proxy_version: str
-    kubelet_version: str
-    machine_id: str
-    operating_system: str
-    os_image: str
-    system_uuid: str
-
-
-@dataclass
-class KubernetesAttachedVolume:
-    kind: ClassVar[str] = "kubernetes_attached_volume"
-    mapping: ClassVar[Dict[str, Bender]] = {"name": S("name"), "device_path": S("devicePath")}
-
-    name: str
-    device_path: str
-
-
-@dataclass
 class KubernetesNode(KubernetesResource, BaseInstance):
     kind: ClassVar[str] = "kubernetes_node"
-    k8s_name: ClassVar[str] = "Node"
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
+        "node_status": OptionalS("status", default={}) >> Bend(KubernetesNodeStatus.mapping),
         "provider_id": S("spec", "providerID"),
         "instance_cores": S("status", "capacity", "cpu") >> CPUCoresToNumber(),
         "instance_memory": S("status", "capacity", "memory") >> StringToUnitNumber("GB"),
         "instance_type": K("kubernetes_node"),
         "instance_status": K(InstanceStatus.RUNNING.value),
-        "node_conditions": S("status", "conditions") >> ForallBend(KubernetesNodeCondition.mapping),
-        "node_daemon_endpoints": S("status", "daemonEndpoints") >> F(lambda de: {k: v["Port"] for k, v in de.items()}),
-        "node_images": S("status", "images") >> ForallBend(KubernetesContainerImage.mapping),
-        "node_info": S("status", "nodeInfo") >> Bend(KubernetesNodeInfo.mapping),
-        "node_volumes_attached": S("status", "volumesAttached") >> ForallBend(KubernetesAttachedVolume.mapping),
-        "node_volumes_in_use": S("status", "volumesInUse"),
     }
-
     provider_id: Optional[str] = None
-    node_conditions: List[KubernetesNodeCondition] = field(default_factory=list)
-    node_daemon_endpoints: Dict[str, int] = field(default_factory=dict)
-    node_info: Optional[KubernetesNodeInfo] = None
-    node_images: List[KubernetesContainerImage] = field(default_factory=list)
-    node_volumes_attached: List[KubernetesAttachedVolume] = field(default_factory=list)
-    node_volumes_in_use: List[str] = field(default_factory=list)
+    node_status: Optional[KubernetesNodeStatus] = field(default=None)
 
     def _instance_status_getter(self) -> str:
         return self._instance_status
@@ -266,49 +283,296 @@ class KubernetesNode(KubernetesResource, BaseInstance):
 KubernetesNode.instance_status = property(
     KubernetesNode._instance_status_getter, KubernetesNode._instance_status_setter
 )
+# endregion
+
+# region pod
 
 
 @dataclass
-class KubernetesDaemonSetCondition(KubernetesCondition):
-    kind: ClassVar[str] = "kubernetes_daemon_set_condition"
-
-
-@dataclass
-class KubernetesDaemonSetStatus:
-    kind: ClassVar[str] = "kubernetes_daemon_set_status"
+class KubernetesPodStatusConditions:
+    kind: ClassVar[str] = "kubernetes_pod_status_conditions"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "collision_count": OptionalS("collisionCount"),
-        "current_number_scheduled": OptionalS("currentNumberScheduled"),
-        "desired_number_scheduled": OptionalS("desiredNumberScheduled"),
-        "number_available": OptionalS("numberAvailable"),
-        "number_misscheduled": OptionalS("numberMisscheduled"),
-        "number_ready": OptionalS("numberReady"),
-        "number_unavailable": OptionalS("numberUnavailable"),
-        "observed_generation": OptionalS("observedGeneration"),
-        "updated_number_scheduled": OptionalS("updatedNumberScheduled"),
-        "conditions": OptionalS("conditions", default=[]) >> ForallBend(KubernetesDaemonSetCondition.mapping),
+        "last_probe_time": OptionalS("lastProbeTime"),
+        "last_transition_time": OptionalS("lastTransitionTime"),
+        "message": OptionalS("message"),
+        "reason": OptionalS("reason"),
+        "status": OptionalS("status"),
+        "type": OptionalS("type"),
     }
-    collisionCount: Optional[int]
-    currentNumberScheduled: Optional[int]
-    desiredNumberScheduled: Optional[int]
-    numberAvailable: Optional[int]
-    numberMisscheduled: Optional[int]
-    numberReady: Optional[int]
-    numberUnavailable: Optional[int]
-    observedGeneration: Optional[int]
-    updatedNumberScheduled: Optional[int]
-    conditions: List[KubernetesDaemonSetCondition] = field(default_factory=list)
+    last_probe_time: Optional[datetime] = field(default=None)
+    last_transition_time: Optional[datetime] = field(default=None)
+    message: Optional[str] = field(default=None)
+    reason: Optional[str] = field(default=None)
+    status: Optional[str] = field(default=None)
+    type: Optional[str] = field(default=None)
 
 
 @dataclass
-class KubernetesDaemonSet(KubernetesResource):
-    kind: ClassVar[str] = "kubernetes_daemon_set"
-    k8s_name: ClassVar[str] = "DaemonSet"
-    mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
-        "daemon_set_status": S("status") >> Bend(KubernetesDaemonSetStatus.mapping),
+class KubernetesContainerStateRunning:
+    kind: ClassVar[str] = "kubernetes_container_state_running"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "started_at": OptionalS("startedAt"),
     }
+    started_at: Optional[datetime] = field(default=None)
 
-    daemon_set_status: Optional[KubernetesDaemonSetStatus] = None
+
+@dataclass
+class KubernetesContainerStateTerminated:
+    kind: ClassVar[str] = "kubernetes_container_state_terminated"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "container_id": OptionalS("containerID"),
+        "exit_code": OptionalS("exitCode"),
+        "finished_at": OptionalS("finishedAt"),
+        "message": OptionalS("message"),
+        "reason": OptionalS("reason"),
+        "signal": OptionalS("signal"),
+        "started_at": OptionalS("startedAt"),
+    }
+    container_id: Optional[str] = field(default=None)
+    exit_code: Optional[int] = field(default=None)
+    finished_at: Optional[datetime] = field(default=None)
+    message: Optional[str] = field(default=None)
+    reason: Optional[str] = field(default=None)
+    signal: Optional[int] = field(default=None)
+    started_at: Optional[datetime] = field(default=None)
+
+
+@dataclass
+class KubernetesContainerStateWaiting:
+    kind: ClassVar[str] = "kubernetes_container_state_waiting"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "message": OptionalS("message"),
+        "reason": OptionalS("reason"),
+    }
+    message: Optional[str] = field(default=None)
+    reason: Optional[str] = field(default=None)
+
+
+@dataclass
+class KubernetesContainerState:
+    kind: ClassVar[str] = "kubernetes_container_state"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "running": OptionalS("running", default={}) >> Bend(KubernetesContainerStateRunning.mapping),
+        "terminated": OptionalS("terminated", default={}) >> Bend(KubernetesContainerStateTerminated.mapping),
+        "waiting": OptionalS("waiting", default={}) >> Bend(KubernetesContainerStateWaiting.mapping),
+    }
+    running: Optional[KubernetesContainerStateRunning] = field(default=None)
+    terminated: Optional[KubernetesContainerStateTerminated] = field(default=None)
+    waiting: Optional[KubernetesContainerStateWaiting] = field(default=None)
+
+
+@dataclass
+class KubernetesContainerStatus:
+    kind: ClassVar[str] = "kubernetes_container_status"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "container_id": OptionalS("containerID"),
+        "image": OptionalS("image"),
+        "image_id": OptionalS("imageID"),
+        "last_state": OptionalS("lastState", default={}) >> Bend(KubernetesContainerState.mapping),
+        "name": OptionalS("name"),
+        "ready": OptionalS("ready"),
+        "restart_count": OptionalS("restartCount"),
+        "started": OptionalS("started"),
+        "state": OptionalS("state", default={}) >> Bend(KubernetesContainerState.mapping),
+    }
+    container_id: Optional[str] = field(default=None)
+    image: Optional[str] = field(default=None)
+    image_id: Optional[str] = field(default=None)
+    last_state: Optional[KubernetesContainerState] = field(default=None)
+    name: Optional[str] = field(default=None)
+    ready: Optional[bool] = field(default=None)
+    restart_count: Optional[int] = field(default=None)
+    started: Optional[bool] = field(default=None)
+    state: Optional[KubernetesContainerState] = field(default=None)
+
+
+@dataclass
+class KubernetesPodIPs:
+    kind: ClassVar[str] = "kubernetes_pod_ips"
+    mapping: ClassVar[Dict[str, Bender]] = {"ip": OptionalS("ip")}
+    ip: Optional[str] = field(default=None)
+
+
+@dataclass
+class KubernetesPodStatus:
+    kind: ClassVar[str] = "kubernetes_pod_status"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "conditions": OptionalS("conditions", default=[]) >> ForallBend(KubernetesPodStatusConditions.mapping),
+        "container_statuses": OptionalS("containerStatuses", default=[])
+        >> ForallBend(KubernetesContainerStatus.mapping),
+        "ephemeral_container_statuses": OptionalS("ephemeralContainerStatuses", default=[])
+        >> ForallBend(KubernetesContainerState.mapping),
+        "host_ip": OptionalS("hostIP"),
+        "init_container_statuses": OptionalS("initContainerStatuses", default=[])
+        >> ForallBend(KubernetesContainerStatus.mapping),
+        "message": OptionalS("message"),
+        "nominated_node_name": OptionalS("nominatedNodeName"),
+        "phase": OptionalS("phase"),
+        "pod_ip": OptionalS("podIP"),
+        "pod_ips": OptionalS("podIPs", default=[]) >> ForallBend(KubernetesPodIPs.mapping),
+        "qos_class": OptionalS("qosClass"),
+        "reason": OptionalS("reason"),
+        "start_time": OptionalS("startTime"),
+    }
+    conditions: List[KubernetesPodStatusConditions] = field(default_factory=list)
+    container_statuses: List[KubernetesContainerStatus] = field(default_factory=list)
+    ephemeral_container_statuses: List[KubernetesContainerState] = field(default_factory=list)
+    host_ip: Optional[str] = field(default=None)
+    init_container_statuses: List[KubernetesContainerStatus] = field(default_factory=list)
+    message: Optional[str] = field(default=None)
+    nominated_node_name: Optional[str] = field(default=None)
+    phase: Optional[str] = field(default=None)
+    pod_ip: Optional[str] = field(default=None)
+    pod_i_ps: List[KubernetesPodIPs] = field(default_factory=list)
+    qos_class: Optional[str] = field(default=None)
+    reason: Optional[str] = field(default=None)
+    start_time: Optional[datetime] = field(default=None)
+
+
+@dataclass
+class KubernetesPod(KubernetesResource):
+    kind: ClassVar[str] = "kubernetes_pod"
+    mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
+        "pod_status": OptionalS("status", default={}) >> Bend(KubernetesPodStatus.mapping),
+    }
+    pod_status: Optional[KubernetesPodStatus] = field(default=None)
+
+
+# endregion
+
+# region persistent volume claim
+@dataclass
+class KubernetesPersistentVolumeClaimStatusConditions:
+    kind: ClassVar[str] = "kubernetes_persistent_volume_claim_status_conditions"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "last_probe_time": OptionalS("lastProbeTime"),
+        "last_transition_time": OptionalS("lastTransitionTime"),
+        "message": OptionalS("message"),
+        "reason": OptionalS("reason"),
+        "status": OptionalS("status"),
+        "type": OptionalS("type"),
+    }
+    last_probe_time: Optional[datetime] = field(default=None)
+    last_transition_time: Optional[datetime] = field(default=None)
+    message: Optional[str] = field(default=None)
+    reason: Optional[str] = field(default=None)
+    status: Optional[str] = field(default=None)
+    type: Optional[str] = field(default=None)
+
+
+@dataclass
+class KubernetesPersistentVolumeClaimStatus:
+    kind: ClassVar[str] = "kubernetes_persistent_volume_claim_status"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "access_modes": OptionalS("accessModes", default=[]),
+        "allocated_resources": OptionalS("allocatedResources"),
+        "conditions": OptionalS("conditions", default=[])
+        >> ForallBend(KubernetesPersistentVolumeClaimStatusConditions.mapping),
+        "phase": OptionalS("phase"),
+        "resize_status": OptionalS("resizeStatus"),
+    }
+    access_modes: List[str] = field(default_factory=list)
+    allocated_resources: Optional[str] = field(default=None)
+    conditions: List[KubernetesPersistentVolumeClaimStatusConditions] = field(default_factory=list)
+    phase: Optional[str] = field(default=None)
+    resize_status: Optional[str] = field(default=None)
+
+
+@dataclass
+class KubernetesPersistentVolumeClaim(KubernetesResource):
+    kind: ClassVar[str] = "kubernetes_persistent_volume_claim"
+    mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
+        "persistent_volume_claim_status": OptionalS("status", default={})
+        >> Bend(KubernetesPersistentVolumeClaimStatus.mapping),
+    }
+    persistent_volume_claim_status: Optional[KubernetesPersistentVolumeClaimStatus] = field(default=None)
+
+
+# endregion
+
+# region service
+
+
+@dataclass
+class KubernetesLoadbalancerIngressPorts:
+    kind: ClassVar[str] = "kubernetes_loadbalancer_ingress_ports"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "error": OptionalS("error"),
+        "port": OptionalS("port"),
+        "protocol": OptionalS("protocol"),
+    }
+    error: Optional[str] = field(default=None)
+    port: Optional[int] = field(default=None)
+    protocol: Optional[str] = field(default=None)
+
+
+@dataclass
+class KubernetesLoadbalancerIngress:
+    kind: ClassVar[str] = "kubernetes_loadbalancer_ingress"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "hostname": OptionalS("hostname"),
+        "ip": OptionalS("ip"),
+        "ports": OptionalS("ports", default=[]) >> ForallBend(KubernetesLoadbalancerIngressPorts.mapping),
+    }
+    hostname: Optional[str] = field(default=None)
+    ip: Optional[str] = field(default=None)
+    ports: List[KubernetesLoadbalancerIngressPorts] = field(default_factory=list)
+
+
+@dataclass
+class KubernetesLoadbalancerStatus:
+    kind: ClassVar[str] = "kubernetes_loadbalancer_status"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "ingress": OptionalS("ingress", default=[]) >> ForallBend(KubernetesLoadbalancerIngress.mapping),
+    }
+    ingress: List[KubernetesLoadbalancerIngress] = field(default_factory=list)
+
+
+@dataclass
+class KubernetesServiceStatusConditions:
+    kind: ClassVar[str] = "kubernetes_service_status_conditions"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "last_transition_time": OptionalS("lastTransitionTime"),
+        "message": OptionalS("message"),
+        "observed_generation": OptionalS("observedGeneration"),
+        "reason": OptionalS("reason"),
+        "status": OptionalS("status"),
+        "type": OptionalS("type"),
+    }
+    last_transition_time: Optional[datetime] = field(default=None)
+    message: Optional[str] = field(default=None)
+    observed_generation: Optional[int] = field(default=None)
+    reason: Optional[str] = field(default=None)
+    status: Optional[str] = field(default=None)
+    type: Optional[str] = field(default=None)
+
+
+@dataclass
+class KubernetesServiceStatus:
+    kind: ClassVar[str] = "kubernetes_service_status"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "conditions": OptionalS("conditions", default=[]) >> ForallBend(KubernetesServiceStatusConditions.mapping),
+        "load_balancer": OptionalS("loadBalancer", default={}) >> Bend(KubernetesLoadbalancerStatus.mapping),
+    }
+    conditions: List[KubernetesServiceStatusConditions] = field(default_factory=list)
+    load_balancer: Optional[KubernetesLoadbalancerStatus] = field(default=None)
+
+
+@dataclass
+class KubernetesService(KubernetesResource):
+    kind: ClassVar[str] = "kubernetes_service"
+    mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
+        "service_status": OptionalS("status", default={}) >> Bend(KubernetesServiceStatus.mapping),
+    }
+    service_status: Optional[KubernetesServiceStatus] = field(default=None)
+
+
+# endregion
+
+
+@dataclass
+class KubernetesPodTemplate(KubernetesResource):
+    kind: ClassVar[str] = "kubernetes_pod_template"
 
 
 @dataclass
@@ -318,12 +582,265 @@ class KubernetesCluster(BaseAccount, KubernetesResource):
 
 
 @dataclass
-class KubernetesDeploymentCondition(KubernetesCondition):
-    kind: ClassVar[str] = "kubernetes_deployment_condition"
-    mapping: ClassVar[Dict[str, Bender]] = KubernetesCondition.mapping | {
-        "last_update_time": OptionalS("lastUpdateTime"),
+class KubernetesConfigMap(KubernetesResource):
+    kind: ClassVar[str] = "kubernetes_config_map"
+
+
+@dataclass
+class KubernetesEndpoints(KubernetesResource):
+    kind: ClassVar[str] = "kubernetes_endpoints"
+
+
+@dataclass
+class KubernetesEndpointSlice(KubernetesResource):
+    kind: ClassVar[str] = "kubernetes_endpoint_slice"
+
+
+@dataclass
+class KubernetesEvent(KubernetesResource):
+    kind: ClassVar[str] = "kubernetes_event"
+
+
+@dataclass
+class KubernetesLimitRange(KubernetesResource):
+    kind: ClassVar[str] = "kubernetes_limit_range"
+
+
+@dataclass
+class KubernetesNamespaceStatusConditions:
+    kind: ClassVar[str] = "kubernetes_namespace_status_conditions"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "last_transition_time": OptionalS("lastTransitionTime"),
+        "message": OptionalS("message"),
+        "reason": OptionalS("reason"),
+        "status": OptionalS("status"),
+        "type": OptionalS("type"),
     }
-    last_update_time: Optional[datetime]
+    last_transition_time: Optional[datetime] = field(default=None)
+    message: Optional[str] = field(default=None)
+    reason: Optional[str] = field(default=None)
+    status: Optional[str] = field(default=None)
+    type: Optional[str] = field(default=None)
+
+
+@dataclass
+class KubernetesNamespaceStatus:
+    kind: ClassVar[str] = "kubernetes_namespace_status"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "conditions": OptionalS("conditions", default=[]) >> ForallBend(KubernetesNamespaceStatusConditions.mapping),
+        "phase": OptionalS("phase"),
+    }
+    conditions: List[KubernetesNamespaceStatusConditions] = field(default_factory=list)
+    phase: Optional[str] = field(default=None)
+
+
+@dataclass
+class KubernetesNamespace(KubernetesResource, BaseRegion):
+    kind: ClassVar[str] = "kubernetes_namespace"
+    mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
+        "namespace_status": OptionalS("status", default={}) >> Bend(KubernetesNamespaceStatus.mapping),
+    }
+    namespace_status: Optional[KubernetesNamespaceStatus] = field(default=None)
+
+
+@dataclass
+class KubernetesPersistentVolumeStatus:
+    kind: ClassVar[str] = "kubernetes_persistent_volume_status"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "message": OptionalS("message"),
+        "phase": OptionalS("phase"),
+        "reason": OptionalS("reason"),
+    }
+    message: Optional[str] = field(default=None)
+    phase: Optional[str] = field(default=None)
+    reason: Optional[str] = field(default=None)
+
+
+@dataclass
+class KubernetesPersistentVolume(KubernetesResource, BaseVolume):
+    kind: ClassVar[str] = "kubernetes_persistent_volume"
+    mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
+        "persistent_volume_status": OptionalS("status", default={}) >> Bend(KubernetesPersistentVolumeStatus.mapping),
+        "volume_size": OptionalS("spec", "capacity", "storage", default="0") >> StringToUnitNumber("GB"),
+        "volume_type": OptionalS("spec", "storageClassName"),
+        "volume_status": OptionalS("status", "phase"),
+    }
+    persistent_volume_status: Optional[KubernetesPersistentVolumeStatus] = field(default=None)
+
+    def _volume_status_getter(self) -> str:
+        return self._volume_status
+
+    def _volume_status_setter(self, value: Optional[str]) -> None:
+        self._volume_status = value
+
+
+KubernetesPersistentVolume.volume_status = property(
+    KubernetesPersistentVolume._volume_status_getter, KubernetesPersistentVolume._volume_status_setter
+)
+
+
+@dataclass
+class KubernetesReplicationControllerStatusConditions:
+    kind: ClassVar[str] = "kubernetes_replication_controller_status_conditions"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "last_transition_time": OptionalS("lastTransitionTime"),
+        "message": OptionalS("message"),
+        "reason": OptionalS("reason"),
+        "status": OptionalS("status"),
+        "type": OptionalS("type"),
+    }
+    last_transition_time: Optional[datetime] = field(default=None)
+    message: Optional[str] = field(default=None)
+    reason: Optional[str] = field(default=None)
+    status: Optional[str] = field(default=None)
+    type: Optional[str] = field(default=None)
+
+
+@dataclass
+class KubernetesReplicationControllerStatus:
+    kind: ClassVar[str] = "kubernetes_replication_controller_status"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "available_replicas": OptionalS("availableReplicas"),
+        "conditions": OptionalS("conditions", default=[])
+        >> ForallBend(KubernetesReplicationControllerStatusConditions.mapping),
+        "fully_labeled_replicas": OptionalS("fullyLabeledReplicas"),
+        "observed_generation": OptionalS("observedGeneration"),
+        "ready_replicas": OptionalS("readyReplicas"),
+        "replicas": OptionalS("replicas"),
+    }
+    available_replicas: Optional[int] = field(default=None)
+    conditions: List[KubernetesReplicationControllerStatusConditions] = field(default_factory=list)
+    fully_labeled_replicas: Optional[int] = field(default=None)
+    observed_generation: Optional[int] = field(default=None)
+    ready_replicas: Optional[int] = field(default=None)
+    replicas: Optional[int] = field(default=None)
+
+
+@dataclass
+class KubernetesReplicationController(KubernetesResource):
+    kind: ClassVar[str] = "kubernetes_replication_controller"
+    mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
+        "replication_controller_status": OptionalS("status", default={})
+        >> Bend(KubernetesReplicationControllerStatus.mapping),
+    }
+    replication_controller_status: Optional[KubernetesReplicationControllerStatus] = field(default=None)
+
+
+@dataclass
+class KubernetesResourceQuotaStatus:
+    kind: ClassVar[str] = "kubernetes_resource_quota_status"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "hard": OptionalS("hard"),
+        "used": OptionalS("used"),
+    }
+    hard: Optional[Any] = field(default=None)
+    used: Optional[Any] = field(default=None)
+
+
+@dataclass
+class KubernetesResourceQuota(KubernetesResource, BaseQuota):
+    kind: ClassVar[str] = "kubernetes_resource_quota"
+    mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
+        "resource_quota_status": OptionalS("status", default={}) >> Bend(KubernetesResourceQuotaStatus.mapping),
+    }
+    resource_quota_status: Optional[KubernetesResourceQuotaStatus] = field(default=None)
+
+
+@dataclass
+class KubernetesSecret(KubernetesResource):
+    kind: ClassVar[str] = "kubernetes_secret"
+
+
+@dataclass
+class KubernetesServiceAccount(KubernetesResource):
+    kind: ClassVar[str] = "kubernetes_service_account"
+
+
+@dataclass
+class KubernetesMutatingWebhookConfiguration(KubernetesResource):
+    kind: ClassVar[str] = "kubernetes_mutating_webhook_configuration"
+
+
+@dataclass
+class KubernetesValidatingWebhookConfiguration(KubernetesResource):
+    kind: ClassVar[str] = "kubernetes_validating_webhook_configuration"
+
+
+@dataclass
+class KubernetesControllerRevision(KubernetesResource):
+    kind: ClassVar[str] = "kubernetes_controller_revision"
+
+
+@dataclass
+class KubernetesDaemonSetStatusConditions:
+    kind: ClassVar[str] = "kubernetes_daemon_set_status_conditions"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "last_transition_time": OptionalS("lastTransitionTime"),
+        "message": OptionalS("message"),
+        "reason": OptionalS("reason"),
+        "status": OptionalS("status"),
+        "type": OptionalS("type"),
+    }
+    last_transition_time: Optional[datetime] = field(default=None)
+    message: Optional[str] = field(default=None)
+    reason: Optional[str] = field(default=None)
+    status: Optional[str] = field(default=None)
+    type: Optional[str] = field(default=None)
+
+
+@dataclass
+class KubernetesDaemonSetStatus:
+    kind: ClassVar[str] = "kubernetes_daemon_set_status"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "collision_count": OptionalS("collisionCount"),
+        "conditions": OptionalS("conditions", default=[]) >> ForallBend(KubernetesDaemonSetStatusConditions.mapping),
+        "current_number_scheduled": OptionalS("currentNumberScheduled"),
+        "desired_number_scheduled": OptionalS("desiredNumberScheduled"),
+        "number_available": OptionalS("numberAvailable"),
+        "number_misscheduled": OptionalS("numberMisscheduled"),
+        "number_ready": OptionalS("numberReady"),
+        "number_unavailable": OptionalS("numberUnavailable"),
+        "observed_generation": OptionalS("observedGeneration"),
+        "updated_number_scheduled": OptionalS("updatedNumberScheduled"),
+    }
+    collision_count: Optional[int] = field(default=None)
+    conditions: List[KubernetesDaemonSetStatusConditions] = field(default_factory=list)
+    current_number_scheduled: Optional[int] = field(default=None)
+    desired_number_scheduled: Optional[int] = field(default=None)
+    number_available: Optional[int] = field(default=None)
+    number_misscheduled: Optional[int] = field(default=None)
+    number_ready: Optional[int] = field(default=None)
+    number_unavailable: Optional[int] = field(default=None)
+    observed_generation: Optional[int] = field(default=None)
+    updated_number_scheduled: Optional[int] = field(default=None)
+
+
+@dataclass
+class KubernetesDaemonSet(KubernetesResource):
+    kind: ClassVar[str] = "kubernetes_daemon_set"
+    mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
+        "daemon_set_status": OptionalS("status", default={}) >> Bend(KubernetesDaemonSetStatus.mapping),
+    }
+    daemon_set_status: Optional[KubernetesDaemonSetStatus] = field(default=None)
+
+
+@dataclass
+class KubernetesDeploymentStatusCondition:
+    kind: ClassVar[str] = "kubernetes_deployment_status_condition"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "last_transition_time": OptionalS("lastTransitionTime"),
+        "last_update_time": OptionalS("lastUpdateTime"),
+        "message": OptionalS("message"),
+        "reason": OptionalS("reason"),
+        "status": OptionalS("status"),
+        "type": OptionalS("type"),
+    }
+    last_transition_time: Optional[datetime] = field(default=None)
+    last_update_time: Optional[datetime] = field(default=None)
+    message: Optional[str] = field(default=None)
+    reason: Optional[str] = field(default=None)
+    status: Optional[str] = field(default=None)
+    type: Optional[str] = field(default=None)
 
 
 @dataclass
@@ -332,85 +849,679 @@ class KubernetesDeploymentStatus:
     mapping: ClassVar[Dict[str, Bender]] = {
         "available_replicas": OptionalS("availableReplicas"),
         "collision_count": OptionalS("collisionCount"),
+        "conditions": OptionalS("conditions", default=[]) >> ForallBend(KubernetesDeploymentStatusCondition.mapping),
         "observed_generation": OptionalS("observedGeneration"),
         "ready_replicas": OptionalS("readyReplicas"),
         "replicas": OptionalS("replicas"),
         "unavailable_replicas": OptionalS("unavailableReplicas"),
         "updated_replicas": OptionalS("updatedReplicas"),
-        "conditions": OptionalS("conditions") >> ForallBend(KubernetesDeploymentCondition.mapping),
     }
-
-    available_replicas: Optional[int]
-    collision_count: Optional[int]
-    observed_generation: Optional[int]
-    ready_replicas: Optional[int]
-    replicas: Optional[int]
-    unavailable_replicas: Optional[int]
-    updated_replicas: Optional[int]
-    conditions: List[KubernetesDeploymentCondition] = field(default_factory=list)
+    available_replicas: Optional[int] = field(default=None)
+    collision_count: Optional[int] = field(default=None)
+    conditions: List[KubernetesDeploymentStatusCondition] = field(default_factory=list)
+    observed_generation: Optional[int] = field(default=None)
+    ready_replicas: Optional[int] = field(default=None)
+    replicas: Optional[int] = field(default=None)
+    unavailable_replicas: Optional[int] = field(default=None)
+    updated_replicas: Optional[int] = field(default=None)
 
 
 @dataclass
 class KubernetesDeployment(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_deployment"
-    k8s_name: ClassVar[str] = "Deployment"
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
-        "deployment_status": S("status") >> Bend(KubernetesDeploymentStatus.mapping),
+        "deployment_status": OptionalS("status", default={}) >> Bend(KubernetesDeploymentStatus.mapping),
     }
-    deployment_status: Optional[KubernetesDeploymentStatus] = None
-
-
-# endregion
+    deployment_status: Optional[KubernetesDeploymentStatus] = field(default=None)
 
 
 @dataclass
-class KubernetesControllerRevision(KubernetesResource):
-    kind: ClassVar[str] = "kubernetes_controller_revision"
-    k8s_name: ClassVar[str] = "ControllerRevision"
+class KubernetesReplicaSetStatusCondition:
+    kind: ClassVar[str] = "kubernetes_replica_set_status_conditions"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "last_transition_time": OptionalS("lastTransitionTime"),
+        "message": OptionalS("message"),
+        "reason": OptionalS("reason"),
+        "status": OptionalS("status"),
+        "type": OptionalS("type"),
+    }
+    last_transition_time: Optional[datetime] = field(default=None)
+    message: Optional[str] = field(default=None)
+    reason: Optional[str] = field(default=None)
+    status: Optional[str] = field(default=None)
+    type: Optional[str] = field(default=None)
+
+
+@dataclass
+class KubernetesReplicaSetStatus:
+    kind: ClassVar[str] = "kubernetes_replica_set_status"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "available_replicas": OptionalS("availableReplicas"),
+        "conditions": OptionalS("conditions", default=[]) >> ForallBend(KubernetesReplicaSetStatusCondition.mapping),
+        "fully_labeled_replicas": OptionalS("fullyLabeledReplicas"),
+        "observed_generation": OptionalS("observedGeneration"),
+        "ready_replicas": OptionalS("readyReplicas"),
+        "replicas": OptionalS("replicas"),
+    }
+    available_replicas: Optional[int] = field(default=None)
+    conditions: List[KubernetesReplicaSetStatusCondition] = field(default_factory=list)
+    fully_labeled_replicas: Optional[int] = field(default=None)
+    observed_generation: Optional[int] = field(default=None)
+    ready_replicas: Optional[int] = field(default=None)
+    replicas: Optional[int] = field(default=None)
+
+
+@dataclass
+class KubernetesReplicaSet(KubernetesResource):
+    kind: ClassVar[str] = "kubernetes_replica_set"
+    mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
+        "replica_set_status": OptionalS("status", default={}) >> Bend(KubernetesReplicaSetStatus.mapping),
+    }
+    replica_set_status: Optional[KubernetesReplicaSetStatus] = field(default=None)
+
+
+@dataclass
+class KubernetesStatefulSetStatusCondition:
+    kind: ClassVar[str] = "kubernetes_stateful_set_status_condition"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "last_transition_time": OptionalS("lastTransitionTime"),
+        "message": OptionalS("message"),
+        "reason": OptionalS("reason"),
+        "status": OptionalS("status"),
+        "type": OptionalS("type"),
+    }
+    last_transition_time: Optional[datetime] = field(default=None)
+    message: Optional[str] = field(default=None)
+    reason: Optional[str] = field(default=None)
+    status: Optional[str] = field(default=None)
+    type: Optional[str] = field(default=None)
+
+
+@dataclass
+class KubernetesStatefulSetStatus:
+    kind: ClassVar[str] = "kubernetes_stateful_set_status"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "available_replicas": OptionalS("availableReplicas"),
+        "collision_count": OptionalS("collisionCount"),
+        "conditions": OptionalS("conditions", default=[]) >> ForallBend(KubernetesStatefulSetStatusCondition.mapping),
+        "current_replicas": OptionalS("currentReplicas"),
+        "current_revision": OptionalS("currentRevision"),
+        "observed_generation": OptionalS("observedGeneration"),
+        "ready_replicas": OptionalS("readyReplicas"),
+        "replicas": OptionalS("replicas"),
+        "update_revision": OptionalS("updateRevision"),
+        "updated_replicas": OptionalS("updatedReplicas"),
+    }
+    available_replicas: Optional[int] = field(default=None)
+    collision_count: Optional[int] = field(default=None)
+    conditions: List[KubernetesStatefulSetStatusCondition] = field(default_factory=list)
+    current_replicas: Optional[int] = field(default=None)
+    current_revision: Optional[str] = field(default=None)
+    observed_generation: Optional[int] = field(default=None)
+    ready_replicas: Optional[int] = field(default=None)
+    replicas: Optional[int] = field(default=None)
+    update_revision: Optional[str] = field(default=None)
+    updated_replicas: Optional[int] = field(default=None)
+
+
+@dataclass
+class KubernetesStatefulSet(KubernetesResource):
+    kind: ClassVar[str] = "kubernetes_stateful_set"
+    mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
+        "stateful_set_status": OptionalS("status", default={}) >> Bend(KubernetesStatefulSetStatus.mapping),
+    }
+    stateful_set_status: Optional[KubernetesStatefulSetStatus] = field(default=None)
+
+
+@dataclass
+class KubernetesHorizontalPodAutoscalerStatus:
+    kind: ClassVar[str] = "kubernetes_horizontal_pod_autoscaler_status"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "current_cpu_utilization_percentage": OptionalS("currentCPUUtilizationPercentage"),
+        "current_replicas": OptionalS("currentReplicas"),
+        "desired_replicas": OptionalS("desiredReplicas"),
+        "last_scale_time": OptionalS("lastScaleTime"),
+        "observed_generation": OptionalS("observedGeneration"),
+    }
+    current_cpu_utilization_percentage: Optional[int] = field(default=None)
+    current_replicas: Optional[int] = field(default=None)
+    desired_replicas: Optional[int] = field(default=None)
+    last_scale_time: Optional[datetime] = field(default=None)
+    observed_generation: Optional[int] = field(default=None)
 
 
 @dataclass
 class KubernetesHorizontalPodAutoscaler(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_horizontal_pod_autoscaler"
-    k8s_name: ClassVar[str] = "HorizontalPodAutoscaler"
-
-    max_replicas: int = 0
-    min_replicas: int = 0
-
-
-@dataclass
-class KubernetesReplicaSet(KubernetesResource, BaseResource):
-    kind: ClassVar[str] = "kubernetes_replica_set"
-    k8s_name: ClassVar[str] = "ReplicaSet"
-
-    replicas: int = 0
+    mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
+        "horizontal_pod_autoscaler_status": OptionalS("status", default={})
+        >> Bend(KubernetesHorizontalPodAutoscalerStatus.mapping),
+    }
+    horizontal_pod_autoscaler_status: Optional[KubernetesHorizontalPodAutoscalerStatus] = field(default=None)
 
 
 @dataclass
-class KubernetesStatefulSet(KubernetesResource, BaseResource):
-    kind: ClassVar[str] = "kubernetes_stateful_set"
-    k8s_name: ClassVar[str] = "StatefulSet"
+class KubernetesCronJobStatusActive:
+    kind: ClassVar[str] = "kubernetes_cron_job_status_active"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "api_version": OptionalS("apiVersion"),
+        "field_path": OptionalS("fieldPath"),
+        "name": OptionalS("name"),
+        "namespace": OptionalS("namespace"),
+        "resource_version": OptionalS("resourceVersion"),
+        "uid": OptionalS("uid"),
+    }
+    api_version: Optional[str] = field(default=None)
+    field_path: Optional[str] = field(default=None)
+    name: Optional[str] = field(default=None)
+    namespace: Optional[str] = field(default=None)
+    resource_version: Optional[str] = field(default=None)
+    uid: Optional[str] = field(default=None)
 
 
-all_k8s_resources: List[Type[KubernetesResource]] = [
-    KubernetesCluster,
+@dataclass
+class KubernetesCronJobStatus:
+    kind: ClassVar[str] = "kubernetes_cron_job_status"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "active": OptionalS("active", default=[]) >> ForallBend(KubernetesCronJobStatusActive.mapping),
+        "last_schedule_time": OptionalS("lastScheduleTime"),
+        "last_successful_time": OptionalS("lastSuccessfulTime"),
+    }
+    active: List[KubernetesCronJobStatusActive] = field(default_factory=list)
+    last_schedule_time: Optional[datetime] = field(default=None)
+    last_successful_time: Optional[datetime] = field(default=None)
+
+
+@dataclass
+class KubernetesCronJob(KubernetesResource):
+    kind: ClassVar[str] = "kubernetes_cron_job"
+    mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
+        "cron_job_status": OptionalS("status", default={}) >> Bend(KubernetesCronJobStatus.mapping),
+    }
+    cron_job_status: Optional[KubernetesCronJobStatus] = field(default=None)
+
+
+@dataclass
+class KubernetesJobStatusConditions:
+    kind: ClassVar[str] = "kubernetes_job_status_conditions"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "last_probe_time": OptionalS("lastProbeTime"),
+        "last_transition_time": OptionalS("lastTransitionTime"),
+        "message": OptionalS("message"),
+        "reason": OptionalS("reason"),
+        "status": OptionalS("status"),
+        "type": OptionalS("type"),
+    }
+    last_probe_time: Optional[datetime] = field(default=None)
+    last_transition_time: Optional[datetime] = field(default=None)
+    message: Optional[str] = field(default=None)
+    reason: Optional[str] = field(default=None)
+    status: Optional[str] = field(default=None)
+    type: Optional[str] = field(default=None)
+
+
+@dataclass
+class KubernetesJobStatus:
+    kind: ClassVar[str] = "kubernetes_job_status"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "active": OptionalS("active"),
+        "completed_indexes": OptionalS("completedIndexes"),
+        "completion_time": OptionalS("completionTime"),
+        "conditions": OptionalS("conditions", default=[]) >> ForallBend(KubernetesJobStatusConditions.mapping),
+        "failed": OptionalS("failed"),
+        "ready": OptionalS("ready"),
+        "start_time": OptionalS("startTime"),
+        "succeeded": OptionalS("succeeded"),
+    }
+    active: Optional[int] = field(default=None)
+    completed_indexes: Optional[str] = field(default=None)
+    completion_time: Optional[datetime] = field(default=None)
+    conditions: List[KubernetesJobStatusConditions] = field(default_factory=list)
+    failed: Optional[int] = field(default=None)
+    ready: Optional[int] = field(default=None)
+    start_time: Optional[datetime] = field(default=None)
+    succeeded: Optional[int] = field(default=None)
+
+
+@dataclass
+class KubernetesJob(KubernetesResource):
+    kind: ClassVar[str] = "kubernetes_job"
+    mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
+        "job_status": OptionalS("status", default={}) >> Bend(KubernetesJobStatus.mapping),
+    }
+    job_status: Optional[KubernetesJobStatus] = field(default=None)
+
+
+@dataclass
+class KubernetesCertificateSigningRequestStatusConditions:
+    kind: ClassVar[str] = "kubernetes_certificate_signing_request_status_conditions"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "last_transition_time": OptionalS("lastTransitionTime"),
+        "last_update_time": OptionalS("lastUpdateTime"),
+        "message": OptionalS("message"),
+        "reason": OptionalS("reason"),
+        "status": OptionalS("status"),
+        "type": OptionalS("type"),
+    }
+    last_transition_time: Optional[datetime] = field(default=None)
+    last_update_time: Optional[datetime] = field(default=None)
+    message: Optional[str] = field(default=None)
+    reason: Optional[str] = field(default=None)
+    status: Optional[str] = field(default=None)
+    type: Optional[str] = field(default=None)
+
+
+@dataclass
+class KubernetesFlowSchemaStatusConditions:
+    kind: ClassVar[str] = "kubernetes_flow_schema_status_conditions"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "last_transition_time": OptionalS("lastTransitionTime"),
+        "message": OptionalS("message"),
+        "reason": OptionalS("reason"),
+        "status": OptionalS("status"),
+        "type": OptionalS("type"),
+    }
+    last_transition_time: Optional[datetime] = field(default=None)
+    message: Optional[str] = field(default=None)
+    reason: Optional[str] = field(default=None)
+    status: Optional[str] = field(default=None)
+    type: Optional[str] = field(default=None)
+
+
+@dataclass
+class KubernetesFlowSchemaStatus:
+    kind: ClassVar[str] = "kubernetes_flow_schema_status"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "conditions": OptionalS("conditions", default=[]) >> ForallBend(KubernetesFlowSchemaStatusConditions.mapping),
+    }
+    conditions: List[KubernetesFlowSchemaStatusConditions] = field(default_factory=list)
+
+
+@dataclass
+class KubernetesFlowSchema(KubernetesResource):
+    kind: ClassVar[str] = "kubernetes_flow_schema"
+    mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
+        "flow_schema_status": OptionalS("status", default={}) >> Bend(KubernetesFlowSchemaStatus.mapping),
+    }
+    flow_schema_status: Optional[KubernetesFlowSchemaStatus] = field(default=None)
+
+
+@dataclass
+class KubernetesPriorityLevelConfigurationStatusConditions:
+    kind: ClassVar[str] = "kubernetes_priority_level_configuration_status_conditions"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "last_transition_time": OptionalS("lastTransitionTime"),
+        "message": OptionalS("message"),
+        "reason": OptionalS("reason"),
+        "status": OptionalS("status"),
+        "type": OptionalS("type"),
+    }
+    last_transition_time: Optional[datetime] = field(default=None)
+    message: Optional[str] = field(default=None)
+    reason: Optional[str] = field(default=None)
+    status: Optional[str] = field(default=None)
+    type: Optional[str] = field(default=None)
+
+
+@dataclass
+class KubernetesPriorityLevelConfigurationStatus:
+    kind: ClassVar[str] = "kubernetes_priority_level_configuration_status"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "conditions": OptionalS("conditions", default=[])
+        >> ForallBend(KubernetesPriorityLevelConfigurationStatusConditions.mapping),
+    }
+    conditions: List[KubernetesPriorityLevelConfigurationStatusConditions] = field(default_factory=list)
+
+
+@dataclass
+class KubernetesPriorityLevelConfiguration(KubernetesResource):
+    kind: ClassVar[str] = "kubernetes_priority_level_configuration"
+    mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
+        "priority_level_configuration_status": OptionalS("status", default={})
+        >> Bend(KubernetesPriorityLevelConfigurationStatus.mapping),
+    }
+    priority_level_configuration_status: Optional[KubernetesPriorityLevelConfigurationStatus] = field(default=None)
+
+
+@dataclass
+class KubernetesIngressStatusLoadbalancerIngressPorts:
+    kind: ClassVar[str] = "kubernetes_ingress_status_loadbalancer_ingress_ports"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "error": OptionalS("error"),
+        "port": OptionalS("port"),
+        "protocol": OptionalS("protocol"),
+    }
+    error: Optional[str] = field(default=None)
+    port: Optional[int] = field(default=None)
+    protocol: Optional[str] = field(default=None)
+
+
+@dataclass
+class KubernetesIngressStatusLoadbalancerIngress:
+    kind: ClassVar[str] = "kubernetes_ingress_status_loadbalancer_ingress"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "hostname": OptionalS("hostname"),
+        "ip": OptionalS("ip"),
+        "ports": OptionalS("ports", default=[]) >> ForallBend(KubernetesIngressStatusLoadbalancerIngressPorts.mapping),
+    }
+    hostname: Optional[str] = field(default=None)
+    ip: Optional[str] = field(default=None)
+    ports: List[KubernetesIngressStatusLoadbalancerIngressPorts] = field(default_factory=list)
+
+
+@dataclass
+class KubernetesIngressStatusLoadbalancer:
+    kind: ClassVar[str] = "kubernetes_ingress_status_loadbalancer"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "ingress": OptionalS("ingress", default=[]) >> ForallBend(KubernetesIngressStatusLoadbalancerIngress.mapping),
+    }
+    ingress: List[KubernetesIngressStatusLoadbalancerIngress] = field(default_factory=list)
+
+
+@dataclass
+class KubernetesIngressStatus:
+    kind: ClassVar[str] = "kubernetes_ingress_status"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "load_balancer": OptionalS("loadBalancer", default={}) >> Bend(KubernetesIngressStatusLoadbalancer.mapping),
+    }
+    load_balancer: Optional[KubernetesIngressStatusLoadbalancer] = field(default=None)
+
+
+@dataclass
+class KubernetesIngress(KubernetesResource):
+    kind: ClassVar[str] = "kubernetes_ingress"
+    mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
+        "ingress_status": OptionalS("status", default={}) >> Bend(KubernetesIngressStatus.mapping),
+    }
+    ingress_status: Optional[KubernetesIngressStatus] = field(default=None)
+
+
+@dataclass
+class KubernetesIngressClass(KubernetesResource):
+    kind: ClassVar[str] = "kubernetes_ingress_class"
+    mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {}
+
+
+@dataclass
+class KubernetesNetworkPolicyStatusConditions:
+    kind: ClassVar[str] = "kubernetes_network_policy_status_conditions"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "last_transition_time": OptionalS("lastTransitionTime"),
+        "message": OptionalS("message"),
+        "observed_generation": OptionalS("observedGeneration"),
+        "reason": OptionalS("reason"),
+        "status": OptionalS("status"),
+        "type": OptionalS("type"),
+    }
+    last_transition_time: Optional[datetime] = field(default=None)
+    message: Optional[str] = field(default=None)
+    observed_generation: Optional[int] = field(default=None)
+    reason: Optional[str] = field(default=None)
+    status: Optional[str] = field(default=None)
+    type: Optional[str] = field(default=None)
+
+
+@dataclass
+class KubernetesNetworkPolicyStatus:
+    kind: ClassVar[str] = "kubernetes_network_policy_status"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "conditions": OptionalS("conditions", default=[])
+        >> ForallBend(KubernetesNetworkPolicyStatusConditions.mapping),
+    }
+    conditions: List[KubernetesNetworkPolicyStatusConditions] = field(default_factory=list)
+
+
+@dataclass
+class KubernetesNetworkPolicy(KubernetesResource):
+    kind: ClassVar[str] = "kubernetes_network_policy"
+    mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
+        "network_policy_status": OptionalS("status", default={}) >> Bend(KubernetesNetworkPolicyStatus.mapping),
+    }
+    network_policy_status: Optional[KubernetesNetworkPolicyStatus] = field(default=None)
+
+
+@dataclass
+class KubernetesRuntimeClass(KubernetesResource):
+    kind: ClassVar[str] = "kubernetes_runtime_class"
+    mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {}
+
+
+@dataclass
+class KubernetesPodDisruptionBudgetStatusConditions:
+    kind: ClassVar[str] = "kubernetes_pod_disruption_budget_status_conditions"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "last_transition_time": OptionalS("lastTransitionTime"),
+        "message": OptionalS("message"),
+        "observed_generation": OptionalS("observedGeneration"),
+        "reason": OptionalS("reason"),
+        "status": OptionalS("status"),
+        "type": OptionalS("type"),
+    }
+    last_transition_time: Optional[datetime] = field(default=None)
+    message: Optional[str] = field(default=None)
+    observed_generation: Optional[int] = field(default=None)
+    reason: Optional[str] = field(default=None)
+    status: Optional[str] = field(default=None)
+    type: Optional[str] = field(default=None)
+
+
+@dataclass
+class KubernetesPodDisruptionBudgetStatus:
+    kind: ClassVar[str] = "kubernetes_pod_disruption_budget_status"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "conditions": OptionalS("conditions", default=[])
+        >> ForallBend(KubernetesPodDisruptionBudgetStatusConditions.mapping),
+        "current_healthy": OptionalS("currentHealthy"),
+        "desired_healthy": OptionalS("desiredHealthy"),
+        "disrupted_pods": OptionalS("disruptedPods"),
+        "disruptions_allowed": OptionalS("disruptionsAllowed"),
+        "expected_pods": OptionalS("expectedPods"),
+        "observed_generation": OptionalS("observedGeneration"),
+    }
+    conditions: List[KubernetesPodDisruptionBudgetStatusConditions] = field(default_factory=list)
+    current_healthy: Optional[int] = field(default=None)
+    desired_healthy: Optional[int] = field(default=None)
+    disrupted_pods: Optional[Any] = field(default=None)
+    disruptions_allowed: Optional[int] = field(default=None)
+    expected_pods: Optional[int] = field(default=None)
+    observed_generation: Optional[int] = field(default=None)
+
+
+@dataclass
+class KubernetesPodDisruptionBudget(KubernetesResource):
+    kind: ClassVar[str] = "kubernetes_pod_disruption_budget"
+    mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
+        "pod_disruption_budget_status": OptionalS("status", default={})
+        >> Bend(KubernetesPodDisruptionBudgetStatus.mapping),
+    }
+    pod_disruption_budget_status: Optional[KubernetesPodDisruptionBudgetStatus] = field(default=None)
+
+
+@dataclass
+class KubernetesClusterRole(KubernetesResource):
+    kind: ClassVar[str] = "kubernetes_cluster_role"
+
+
+@dataclass
+class KubernetesClusterRoleBinding(KubernetesResource):
+    kind: ClassVar[str] = "kubernetes_cluster_role_binding"
+
+
+@dataclass
+class KubernetesRole(KubernetesResource):
+    kind: ClassVar[str] = "kubernetes_role"
+
+
+@dataclass
+class KubernetesRoleBinding(KubernetesResource):
+    kind: ClassVar[str] = "kubernetes_role_binding"
+
+
+@dataclass
+class KubernetesPriorityClass(KubernetesResource):
+    kind: ClassVar[str] = "kubernetes_priority_class"
+
+
+@dataclass
+class KubernetesCSIDriver(KubernetesResource):
+    kind: ClassVar[str] = "kubernetes_csi_driver"
+
+
+@dataclass
+class KubernetesCSINode(KubernetesResource):
+    kind: ClassVar[str] = "kubernetes_csi_node"
+
+
+@dataclass
+class KubernetesCSIStorageCapacity(KubernetesResource):
+    kind: ClassVar[str] = "kubernetes_csi_storage_capacity"
+
+
+@dataclass
+class KubernetesStorageClass(KubernetesResource):
+    kind: ClassVar[str] = "kubernetes_storage_class"
+
+
+@dataclass
+class KubernetesVolumeAttachmentStatusAttacherror:
+    kind: ClassVar[str] = "kubernetes_volume_attachment_status_attacherror"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "message": OptionalS("message"),
+        "time": OptionalS("time"),
+    }
+    message: Optional[str] = field(default=None)
+    time: Optional[datetime] = field(default=None)
+
+
+@dataclass
+class KubernetesVolumeAttachmentStatusDetacherror:
+    kind: ClassVar[str] = "kubernetes_volume_attachment_status_detacherror"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "message": OptionalS("message"),
+        "time": OptionalS("time"),
+    }
+    message: Optional[str] = field(default=None)
+    time: Optional[datetime] = field(default=None)
+
+
+@dataclass
+class KubernetesVolumeAttachmentStatus:
+    kind: ClassVar[str] = "kubernetes_volume_attachment_status"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "attach_error": OptionalS("attachError", default={})
+        >> Bend(KubernetesVolumeAttachmentStatusAttacherror.mapping),
+        "attached": OptionalS("attached"),
+        "attachment_metadata": OptionalS("attachmentMetadata"),
+        "detach_error": OptionalS("detachError", default={})
+        >> Bend(KubernetesVolumeAttachmentStatusDetacherror.mapping),
+    }
+    attach_error: Optional[KubernetesVolumeAttachmentStatusAttacherror] = field(default=None)
+    attached: Optional[bool] = field(default=None)
+    attachment_metadata: Optional[Any] = field(default=None)
+    detach_error: Optional[KubernetesVolumeAttachmentStatusDetacherror] = field(default=None)
+
+
+@dataclass
+class KubernetesVolumeAttachment(KubernetesResource):
+    kind: ClassVar[str] = "kubernetes_volume_attachment"
+    mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
+        "volume_attachment_status": OptionalS("status", default={}) >> Bend(KubernetesVolumeAttachmentStatus.mapping),
+    }
+    volume_attachment_status: Optional[KubernetesVolumeAttachmentStatus] = field(default=None)
+
+
+workload_resources: List[Type[KubernetesResource]] = [
     KubernetesControllerRevision,
+    KubernetesCronJob,
     KubernetesDaemonSet,
     KubernetesDeployment,
     KubernetesHorizontalPodAutoscaler,
-    KubernetesNamespace,
-    KubernetesNode,
+    KubernetesJob,
     KubernetesPod,
+    KubernetesPodTemplate,
+    KubernetesPriorityClass,
     KubernetesReplicaSet,
+    KubernetesReplicationController,
     KubernetesStatefulSet,
 ]
+service_resources: List[Type[KubernetesResource]] = [
+    KubernetesEndpointSlice,
+    KubernetesEndpoints,
+    KubernetesIngress,
+    KubernetesIngressClass,
+    KubernetesService,
+]
+config_storage_resources: List[Type[KubernetesResource]] = [
+    KubernetesCSIDriver,
+    KubernetesCSINode,
+    KubernetesCSIStorageCapacity,
+    KubernetesConfigMap,
+    KubernetesPersistentVolume,
+    KubernetesPersistentVolumeClaim,
+    KubernetesSecret,
+    KubernetesStorageClass,
+    # KubernetesVolume,
+    KubernetesVolumeAttachment,
+]
+authentication_resources: List[Type[KubernetesResource]] = [
+    # KubernetesCertificateSigningRequest,
+    # KubernetesTokenRequest,
+    # KubernetesTokenReview,
+    KubernetesServiceAccount,
+]
+authorization_resources: List[Type[KubernetesResource]] = [
+    # KubernetesLocalSubjectAccessReview,
+    # KubernetesSelfSubjectAccessReview,
+    # KubernetesSelfSubjectRulesReview,
+    # KubernetesSubjectAccessReview,
+    KubernetesClusterRole,
+    KubernetesClusterRoleBinding,
+    KubernetesRole,
+    KubernetesRoleBinding,
+]
+policy_resources: List[Type[KubernetesResource]] = [
+    # KubernetesPodSecurityPolicy
+    KubernetesLimitRange,
+    KubernetesNetworkPolicy,
+    KubernetesPodDisruptionBudget,
+    KubernetesResourceQuota,
+]
+extend_resources: List[Type[KubernetesResource]] = [
+    # KubernetesCustomResourceDefinition,
+    KubernetesMutatingWebhookConfiguration,
+    KubernetesValidatingWebhookConfiguration,
+]
+cluster_resources: List[Type[KubernetesResource]] = [
+    # KubernetesApiService,
+    # KubernetesBinding
+    # KubernetesLease,
+    # KubernetesComponentStatus,
+    KubernetesEvent,
+    KubernetesFlowSchema,
+    KubernetesNamespace,
+    KubernetesNode,
+    KubernetesPriorityLevelConfiguration,
+    KubernetesRuntimeClass,
+]
+
+all_k8s_resources: List[Type[KubernetesResource]] = (
+    workload_resources
+    + service_resources
+    + config_storage_resources
+    + authentication_resources
+    + authorization_resources
+    + policy_resources
+    + extend_resources
+    + cluster_resources
+)
 
 all_k8s_resources_by_k8s_name = {a.k8s_name: a for a in all_k8s_resources}
 all_k8s_resources_by_resoto_name = {a.kind: a for a in all_k8s_resources}
+
 
 # Work around jsons: it tries to deserialize class vars - it should ignore them.
 def no_json(js: Json, tp: type = object, **kwargs: object) -> None:
     return None
 
 
-set_deserializer(no_json, ClassVar)
+set_deserializer(no_json, ClassVar)  # type: ignore

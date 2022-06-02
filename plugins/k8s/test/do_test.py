@@ -19,5 +19,5 @@ def test_show() -> None:
     # deploy = client.call_api("/apis/apps/v1/deployments", "GET", auth_settings=["BearerToken"], response_type="object")
 
     versions = client.apis()
-    vs = [v.kind for v in versions]
-    print(vs)
+    vs = {v.path.rsplit("/", 1)[0] for v in versions}
+    print("\n".join(vs))

@@ -5,6 +5,24 @@ from prance import ResolvingParser
 
 # base = "https://raw.githubusercontent.com/kubernetes/kubernetes/master/api/openapi-spec/v3/"
 base = "/Users/matthias/Documents/Work/someeng/kubernetes/api/openapi-spec/v3/"
+api_specs_to_parse = [
+    "api__v1_openapi.json",
+    "apis__admissionregistration.k8s.io__v1_openapi.json",
+    "apis__apps__v1_openapi.json",
+    "apis__autoscaling__v1_openapi.json",
+    "apis__batch__v1_openapi.json",
+    "apis__certificates.k8s.io__v1_openapi.json",
+    "apis__coordination.k8s.io__v1_openapi.json",
+    "apis__discovery.k8s.io__v1_openapi.json",
+    "apis__events.k8s.io__v1_openapi.json",
+    "apis__flowcontrol.apiserver.k8s.io__v1beta1_openapi.json",
+    "apis__networking.k8s.io__v1_openapi.json",
+    "apis__node.k8s.io__v1_openapi.json",
+    "apis__policy__v1_openapi.json",
+    "apis__rbac.authorization.k8s.io__v1_openapi.json",
+    "apis__scheduling.k8s.io__v1_openapi.json",
+    "apis__storage.k8s.io__v1_openapi.json",
+]
 
 top_level = {
     "ComponentStatus",
@@ -193,6 +211,7 @@ class ModelCreator:
 
     def parse(self) -> None:
         for spec in self.specs:
+            print(f"Parsing {spec}")
             parser = ResolvingParser(spec)
             schemas = parser.specification["components"]["schemas"]
             for fqn, schema in schemas.items():
@@ -202,7 +221,7 @@ class ModelCreator:
 
 
 if __name__ == "__main__":
-    mc = ModelCreator([f"{base}/apis__apps__v1_openapi.json"])
+    mc = ModelCreator([f"{base}/{a}" for a in api_specs_to_parse])
     mc.parse()
     for name, content in mc.classes.items():
         print(content)
