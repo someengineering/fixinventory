@@ -23,7 +23,6 @@ from resotolib.types import Json
 @dataclass
 class KubernetesResource(BaseResource):
     kind: ClassVar[str] = "kubernetes_resource"
-    k8s_name: ClassVar[str] = "unknown"
 
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("metadata", "uid"),
@@ -72,6 +71,10 @@ class KubernetesResource(BaseResource):
     def from_json(cls: Type["KubernetesResource"], json: Json) -> "KubernetesResource":
         mapped = bend(cls.mapping, json)
         return jsons.load(mapped, cls)
+
+    @classmethod
+    def k8s_name(cls: Type["KubernetesResource"]) -> str:
+        return cls.__name__.removeprefix("Kubernetes")
 
     def update_tag(self, key, value) -> bool:
         raise NotImplementedError
@@ -575,10 +578,18 @@ class KubernetesPodTemplate(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_pod_template"
 
 
-@dataclass
+@dataclass()
+class KubernetesClusterInfo:
+    kind: ClassVar[str] = "kubernetes_cluster_info"
+    major: str
+    minor: str
+    platform: str
+
+
+@dataclass(unsafe_hash=True)
 class KubernetesCluster(BaseAccount, KubernetesResource):
     kind: ClassVar[str] = "kubernetes_cluster"
-    k8s_name: ClassVar[str] = "Cluster"
+    cluster_info: Optional[KubernetesClusterInfo] = None
 
 
 @dataclass
@@ -1093,25 +1104,6 @@ class KubernetesJob(KubernetesResource):
 
 
 @dataclass
-class KubernetesCertificateSigningRequestStatusConditions:
-    kind: ClassVar[str] = "kubernetes_certificate_signing_request_status_conditions"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "last_transition_time": OptionalS("lastTransitionTime"),
-        "last_update_time": OptionalS("lastUpdateTime"),
-        "message": OptionalS("message"),
-        "reason": OptionalS("reason"),
-        "status": OptionalS("status"),
-        "type": OptionalS("type"),
-    }
-    last_transition_time: Optional[datetime] = field(default=None)
-    last_update_time: Optional[datetime] = field(default=None)
-    message: Optional[str] = field(default=None)
-    reason: Optional[str] = field(default=None)
-    status: Optional[str] = field(default=None)
-    type: Optional[str] = field(default=None)
-
-
-@dataclass
 class KubernetesFlowSchemaStatusConditions:
     kind: ClassVar[str] = "kubernetes_flow_schema_status_conditions"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1515,8 +1507,8 @@ all_k8s_resources: List[Type[KubernetesResource]] = (
     + cluster_resources
 )
 
-all_k8s_resources_by_k8s_name = {a.k8s_name: a for a in all_k8s_resources}
-all_k8s_resources_by_resoto_name = {a.kind: a for a in all_k8s_resources}
+all_k8s_resources_by_k8s_name: Dict[str, Type[KubernetesResource]] = {a.k8s_name(): a for a in all_k8s_resources}
+all_k8s_resources_by_resoto_name: Dict[str, Type[KubernetesResource]] = {a.kind: a for a in all_k8s_resources}
 
 
 # Work around jsons: it tries to deserialize class vars - it should ignore them.

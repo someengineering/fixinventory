@@ -1,11 +1,15 @@
 from dataclasses import dataclass
 from typing import List, Type, TypeVar
 
-import jsons
 import resotolib.logger
 from kubernetes.client import Configuration, ApiClient
 from resoto_plugin_k8s.config import K8sConfig
-from resoto_plugin_k8s.resources import KubernetesCluster, all_k8s_resources_by_k8s_name
+from resoto_plugin_k8s.resources import (
+    KubernetesCluster,
+    all_k8s_resources_by_k8s_name,
+    KubernetesClusterInfo,
+    KubernetesResource,
+)
 from resotolib.graph import Graph
 from resotolib.types import Json
 
@@ -32,6 +36,9 @@ class K8sClient:
         )
         return result
 
+    def version(self) -> Json:
+        return self.get("/version")
+
     def apis(self) -> List[K8sResource]:
         result: List[K8sResource] = []
 
@@ -54,9 +61,9 @@ class K8sClient:
 
         return result
 
-    def list_resources(self, resource: K8sResource, clazz: Type[T]) -> List[T]:
+    def list_resources(self, resource: K8sResource, clazz: Type[KubernetesResource]) -> List[T]:
         result = self.get(resource.path)
-        return [jsons.loads(r, clazz) for r in result["resources"]]
+        return [clazz.from_json(r) for r in result.get("items", [])]
 
 
 class KubernetesCollector:
@@ -71,20 +78,26 @@ class KubernetesCollector:
     containing all K8S resources.
     """
 
-    def __init__(self, k8s_config: K8sConfig, cluster: KubernetesCluster, cluster_config: Configuration) -> None:
-        """
-        Args:
-            cluster: The K8S cluster resource object this cluster collector
-                is going to collect.
-        """
+    def __init__(self, k8s_config: K8sConfig, cluster_id: str, cluster_config: Configuration) -> None:
         self.k8s_config = k8s_config
-        self.cluster = cluster
+        self.cluster_id = cluster_id
         self.config = cluster_config
         self.client = K8sClient(ApiClient(self.config))
-        self.graph = Graph(root=self.cluster)
+        # self.graph = Graph(root=self.cluster())
+        self.graph = Graph()
+
+    def cluster(self) -> KubernetesCluster:
+        v = self.client.version()
+        return KubernetesCluster(
+            id=self.cluster_id,
+            name=self.config.host,
+            cluster_info=KubernetesClusterInfo(v.get("major", ""), v.get("minor", ""), v.get("platform", "")),
+        )
 
     def collect(self) -> None:
         for resource in self.client.apis():
             known = all_k8s_resources_by_k8s_name.get(resource.kind)
             if known and self.k8s_config.is_allowed(resource.kind):
                 resources = self.client.list_resources(resource, known)
+            else:
+                print("not known: ", resource.kind)

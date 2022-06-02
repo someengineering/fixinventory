@@ -14,7 +14,7 @@ log = resotolib.logger.getLogger("resoto." + __name__)
 class K8sConfig:
     kind: ClassVar[str] = "k8s"
     context: List[str] = field(default_factory=list, metadata={"description": "Context(s)"})
-    config: Optional[List[str]] = field(default=None, metadata={"description": "Config file(s)"})
+    config: Optional[str] = field(default=None, metadata={"description": "Config file(s)"})
     cluster: List[str] = field(default_factory=list, metadata={"description": "Cluster name(s)"})
     apiserver: List[str] = field(default_factory=list, metadata={"description": "API Server(s)"})
     token: List[str] = field(default_factory=list, metadata={"description": "Token(s)"})

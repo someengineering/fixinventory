@@ -77,27 +77,29 @@ class KubernetesCollectorPlugin(BaseCollectorPlugin):
         descriptors we are passing the already parsed `args` Namespace() to this
         method.
         """
-        cluster = KubernetesCluster(cluster_id, {})
-        collector_name = f"k8s_{cluster.id}"
-        resotolib.proc.set_thread_name(collector_name)
+        resotolib.proc.set_thread_name(f"k8s_{cluster_id}")
 
         if args is not None:
             ArgumentParser.args = args
         if running_config is not None:
             Config.running_config.apply(running_config)
 
-        log.debug(f"Starting new collect process for {cluster.rtdname}")
+        log.debug(f"Starting new collect process for {cluster_id}")
 
         try:
-            kc = KubernetesCollector(Config.k8s, cluster, cluster_config)
+            kc = KubernetesCollector(Config.k8s, cluster_id, cluster_config)
             kc.collect()
         except ApiException as e:
             if e.reason == "Unauthorized":
-                log.error(f"Unable to authenticate with {cluster.rtdname}")
+                log.error(f"Unable to authenticate with {cluster_id}")
             else:
-                log.exception(f"An unhandled error occurred while collecting {cluster.rtdname}")
-        except Exception:
-            log.exception(f"An unhandled error occurred while collecting {cluster.rtdname}")
+                log.exception(f"An unhandled error occurred while collecting {cluster_id}")
+            # TODO: remove raise
+            raise
+        except Exception as e:
+            log.exception(f"An unhandled error occurred while collecting {cluster_id}")
+            # TODO: remove raise
+            raise
         else:
             return kc.graph
 
