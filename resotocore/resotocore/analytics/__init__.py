@@ -21,6 +21,7 @@ class CoreEvent:
     NodesDesiredUpdated = "graphdb.nodes-desired-updated"
     NodesMetadataUpdated = "graphdb.nodes-metadata-updated"
     NodeDeleted = "graphdb.node-deleted"
+    EdgeCreated = "graphdb.edge-created"
     GraphMerged = "graphdb.graph-merged"
     BatchUpdateGraphMerged = "graphdb.batch-update-graph-merged"
     BatchUpdateCommitted = "graphdb.batch-update-committed"

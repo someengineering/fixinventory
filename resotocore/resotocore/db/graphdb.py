@@ -46,6 +46,10 @@ class GraphDB(ABC):
         pass
 
     @abstractmethod
+    async def create_edge(self, model: Model, from_id: str, to_id: str, edge_type: str) -> None:
+        pass
+
+    @abstractmethod
     async def update_node(
         self, model: Model, node_id: str, patch_or_replace: Json, replace: bool, section: Optional[str]
     ) -> Json:
@@ -161,6 +165,17 @@ class ArangoGraphDB(GraphDB):
             await tx.insert(edge_collection, edge_inserts[0])
             trafo = self.document_to_instance_fn(model)
             return trafo(result["new"])
+
+    async def create_edge(self, model: Model, from_id: str, to_id: str, edge_type: str) -> None:
+        graph = GraphBuilder(model)
+        graph.add_edge(from_id, to_id, edge_type)
+        access = GraphAccess(graph.graph, "root", {from_id, to_id})
+        _, edge_inserts, _ = self.prepare_edges(access, [], edge_type)
+        assert len(edge_inserts) == 1
+        edge_collection = self.edge_collection(edge_type)
+        async with self.db.begin_transaction(write=[self.vertex_name, edge_collection]) as tx:
+            await tx.insert(edge_collection, edge_inserts[0])
+            return None
 
     async def update_node(
         self, model: Model, node_id: str, patch_or_replace: Json, replace: bool, section: Optional[str]
@@ -1019,6 +1034,10 @@ class EventGraphDB(GraphDB):
         result = await self.real.create_node(model, node_id, data, under_node_id)
         await self.event_sender.core_event(CoreEvent.NodeCreated, {"graph": self.graph_name})
         return result
+
+    async def create_edge(self, model: Model, from_id: str, to_id: str, edge_type: str) -> None:
+        await self.real.create_edge(model, from_id, to_id, edge_type)
+        await self.event_sender.core_event(CoreEvent.EdgeCreated)
 
     async def update_node(
         self, model: Model, node_id: str, patch_or_replace: Json, replace: bool, section: Optional[str]

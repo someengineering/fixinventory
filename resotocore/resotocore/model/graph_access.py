@@ -103,8 +103,17 @@ class Direction:
 EdgeKey = namedtuple("EdgeKey", ["from_node", "to_node", "edge_type"])
 
 
-SearchCriteria = str
-NodeSelector = Union[str, SearchCriteria]
+@dataclass
+class BySearchCriteria:
+    query: str
+
+
+@dataclass
+class ByNodeId:
+    value: str
+
+
+NodeSelector = Union[ByNodeId, BySearchCriteria]
 
 
 @dataclass
@@ -138,9 +147,9 @@ class GraphBuilder:
 
             def parse_selector(js: Json) -> NodeSelector:
                 if "node_id" in js:
-                    return from_js(js["node_id"], str)
+                    return ByNodeId(from_js(js["node_id"], str))
                 elif "search_criterea" in js:
-                    return from_js(js["search_criteria"], str)
+                    return BySearchCriteria(from_js(js["search_criteria"], str))
                 else:
                     raise AttributeError(f"can't parse edge selector! Got {json.dumps(js)}")
 
