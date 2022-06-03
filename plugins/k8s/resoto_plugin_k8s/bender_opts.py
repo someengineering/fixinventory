@@ -1,4 +1,4 @@
-from typing import Dict, Any, Type, Union
+from typing import Dict, Any, Type, Union, Optional
 
 from resotolib.types import Json
 from resotolib.units import parse
@@ -10,8 +10,8 @@ class Bend(Bender):
         super().__init__(**kwargs)
         self._mappings = mappings
 
-    def execute(self, value: Json) -> Any:
-        return bend(self._mappings, value)
+    def execute(self, value: Optional[Json]) -> Any:
+        return bend(self._mappings, value) if value else None
 
 
 class MapValue(Bender):

@@ -257,7 +257,9 @@ def get_node_attributes(node: BaseResource) -> Dict:
         return attributes
 
     if hasattr(node, "to_json"):
-        return node.to_json()
+        result = node.to_json()
+        result["kind"] = node.kind
+        return result
     elif is_dataclass(node):
         return create_dict()
     else:

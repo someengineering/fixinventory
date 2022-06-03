@@ -226,4 +226,5 @@ def round_trip(resource_class: Type[KubernetesResource], json: Json) -> None:
         resource = resource_class.from_json(js)
         js = resource.to_json()
         again = jsons.load(js, type(resource))
-        assert resource == again
+        js_again = again.to_json()
+        assert js == js_again
