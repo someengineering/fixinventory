@@ -76,16 +76,12 @@ class CoreActions(threading.Thread):
             sslopt = None
             if self.tls_data:
                 sslopt = {"ca_certs": self.tls_data.ca_cert_path}
-            self.ws.run_forever(
-                sslopt=sslopt, ping_interval=30, ping_timeout=10, ping_payload="ping"
-            )
+            self.ws.run_forever(sslopt=sslopt, ping_interval=30, ping_timeout=10, ping_payload="ping")
         finally:
             self.ws = None
 
     def shutdown(self, event: Event = None) -> None:
-        log.debug(
-            "Received shutdown event - shutting down resotocore message bus listener"
-        )
+        log.debug("Received shutdown event - shutting down resotocore message bus listener")
         self.shutdown_event.set()
         for core_action in self.actions.keys():
             try:
@@ -103,9 +99,7 @@ class CoreActions(threading.Thread):
         log.debug(f"{self.identifier} unregistering from {action} actions ({data})")
         return self.registration(action, requests.delete, data)
 
-    def registration(
-        self, action: str, client: Callable, data: Optional[Dict] = None
-    ) -> bool:
+    def registration(self, action: str, client: Callable, data: Optional[Dict] = None) -> bool:
         url = f"{self.resotocore_uri}/subscriber/{self.identifier}/{action}"
         headers = {"accept": "application/json"}
 
@@ -118,10 +112,7 @@ class CoreActions(threading.Thread):
 
         r = client(url, headers=headers, params=data, verify=verify)
         if r.status_code != 200:
-            raise RuntimeError(
-                f'Error during (un)registration for "{action}"'
-                f" actions: {r.content.decode('utf-8')}"
-            )
+            raise RuntimeError(f'Error during (un)registration for "{action}"' f" actions: {r.content.decode('utf-8')}")
         return True
 
     def dispatch_event(self, message: Dict) -> bool:

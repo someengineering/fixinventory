@@ -41,10 +41,7 @@ def test_jwt():
     with pytest.raises(InvalidSignatureError) as e:
         decode_jwt(j1, "wrongpsk")
     assert str(e.value) == "Signature verification failed"
-    assert (
-        decode_jwt(expired_jwt, psk, options={"verify_exp": False}).get("Hello")
-        == "World"
-    )
+    assert decode_jwt(expired_jwt, psk, options={"verify_exp": False}).get("Hello") == "World"
     with pytest.raises(ExpiredSignatureError) as e:
         decode_jwt(expired_jwt, psk)
     assert str(e.value) == "Signature has expired"

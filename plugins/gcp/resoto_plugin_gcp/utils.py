@@ -79,13 +79,9 @@ def load_credentials(sa_data: str):
     if len(sa_data) == 0:
         return None
     if os.path.isfile(sa_data):
-        return service_account.Credentials.from_service_account_file(
-            sa_data, scopes=SCOPES
-        )
+        return service_account.Credentials.from_service_account_file(sa_data, scopes=SCOPES)
     else:
-        return service_account.Credentials.from_service_account_info(
-            json.loads(sa_data), scopes=SCOPES
-        )
+        return service_account.Credentials.from_service_account_info(json.loads(sa_data), scopes=SCOPES)
 
 
 @retry(
@@ -95,9 +91,7 @@ def load_credentials(sa_data: str):
     retry_on_exception=retry_on_error,
 )
 def gcp_client(service: str, version: str, credentials: str):
-    client = discovery.build(
-        service, version, credentials=credentials, cache=MemoryCache()
-    )
+    client = discovery.build(service, version, credentials=credentials, cache=MemoryCache())
     return client
 
 
@@ -120,10 +114,7 @@ def list_credential_projects(credentials) -> List:
             ret.append(p)
     except GoogleApiClientHttpError:
         log.error(
-            (
-                "Unable to load projects from cloudresourcemanager"
-                " - falling back to local credentials information"
-            )
+            ("Unable to load projects from cloudresourcemanager" " - falling back to local credentials information")
         )
         p = {
             "id": credentials.project_id,

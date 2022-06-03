@@ -107,9 +107,7 @@ def main():
                 Bucket=bucket, MaxKeys=max_keys, Prefix=prefix, KeyMarker=key_marker
             )
         else:
-            version_list = client.list_object_versions(
-                Bucket=bucket, MaxKeys=max_keys, Prefix=prefix
-            )
+            version_list = client.list_object_versions(Bucket=bucket, MaxKeys=max_keys, Prefix=prefix)
         is_truncated = version_list.get("IsTruncated", False)
         key_marker = version_list.get("NextKeyMarker")
         version_id_marker = version_list.get("NextVersionIdMarker")
@@ -124,18 +122,13 @@ def main():
             object_mtime = make_valid_timestamp(v["LastModified"])
 
             if mtime and object_mtime > mtime:
-                log.debug(
-                    f"Object {object_key} with mtime {object_mtime} newer than mtime {mtime}"
-                )
+                log.debug(f"Object {object_key} with mtime {object_mtime} newer than mtime {mtime}")
                 continue
             if (
                 ArgumentParser.args.aws_s3_pattern
-                and bool(re.search(ArgumentParser.args.aws_s3_pattern, str(object_key)))
-                is False
+                and bool(re.search(ArgumentParser.args.aws_s3_pattern, str(object_key))) is False
             ):
-                log.debug(
-                    f"Object {object_key} does not match {ArgumentParser.args.aws_s3_pattern}"
-                )
+                log.debug(f"Object {object_key} does not match {ArgumentParser.args.aws_s3_pattern}")
                 continue
             log.info(
                 (
@@ -159,9 +152,7 @@ def main():
                 if confirm_delete is None:
                     sys.exit(0)
                 elif confirm_delete is True:
-                    response = client.delete_objects(
-                        Bucket=bucket, Delete={"Objects": delete_objects}
-                    )
+                    response = client.delete_objects(Bucket=bucket, Delete={"Objects": delete_objects})
                     log.info(f"Delete response {response}")
         except Exception:
             log.exception("Something went wrong trying to delete")

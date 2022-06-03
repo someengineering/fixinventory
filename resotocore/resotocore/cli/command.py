@@ -1935,9 +1935,9 @@ class FormatCommand(CLICommand, OutputTransformer):
             ArgInfo(expects_value=True, help_text="format definition with {} placeholders", option_group="output"),
         ]
 
-    formats = {
+    formats: Dict[str, Callable[[AsyncIterator[JsonElement]], AsyncIterator[JsonElement]]] = {
         "ndjson": respond_ndjson,
-        "json": respond_json,
+        "json": partial(respond_json, indent=2),
         "text": respond_text,
         "yaml": respond_yaml,
         "cytoscape": respond_cytoscape,

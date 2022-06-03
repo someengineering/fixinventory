@@ -29,9 +29,7 @@ def dependent_node_iterator(
             # add all nodes as visited
             visited.update(to_emit)
             # get all successors
-            to_emit = {
-                succ for nid in to_emit for succ in g.successors(nid) if allowed(succ)
-            }
+            to_emit = {succ for nid in to_emit for succ in g.successors(nid) if allowed(succ)}
 
     if isinstance(in_graph, MultiDiGraph):
         raise RuntimeError("MultiDiGraph not supported")

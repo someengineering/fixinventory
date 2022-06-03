@@ -68,15 +68,8 @@ class PluginLoader:
         """Returns the list of Plugins of a certain PluginType"""
         if not initialized:
             self.find_plugins()
-        if (
-            plugin_type == PluginType.COLLECTOR
-            and len(Config.resotoworker.collector) > 0
-        ):
-            return [
-                plugin
-                for plugin in plugins.get(plugin_type, [])
-                if plugin.cloud in Config.resotoworker.collector
-            ]
+        if plugin_type == PluginType.COLLECTOR and len(Config.resotoworker.collector) > 0:
+            return [plugin for plugin in plugins.get(plugin_type, []) if plugin.cloud in Config.resotoworker.collector]
         return plugins.get(plugin_type, [])
 
     def add_plugin_args(self, arg_parser: ArgumentParser) -> None:
@@ -86,9 +79,7 @@ class PluginLoader:
         log.debug("Adding plugin args")
         for type_plugins in plugins.values():  # iterate over all PluginTypes
             for Plugin in type_plugins:  # iterate over each Plugin of each PluginType
-                Plugin.add_args(
-                    arg_parser
-                )  # add that Plugin's args to the ArgumentParser
+                Plugin.add_args(arg_parser)  # add that Plugin's args to the ArgumentParser
 
     def add_plugin_config(self, config: Config) -> None:
         """Add plugin config to the config object"""

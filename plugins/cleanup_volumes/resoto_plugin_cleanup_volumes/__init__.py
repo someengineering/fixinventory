@@ -34,9 +34,7 @@ class CleanupVolumesPlugin(BaseActionPlugin):
             self.age = parse_delta(Config.plugin_cleanup_volumes.min_age)
             log.debug(f"Volume Cleanup Plugin Age {self.age}")
         except ValueError:
-            log.error(
-                f"Error while parsing Volume Cleanup Age {Config.plugin_cleanup_volumes.min_age}"
-            )
+            log.error(f"Error while parsing Volume Cleanup Age {Config.plugin_cleanup_volumes.min_age}")
             raise
 
     def volumes_cleanup(self, graph: Graph):

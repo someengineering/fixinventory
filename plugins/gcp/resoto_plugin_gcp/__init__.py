@@ -42,9 +42,7 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
             return
 
         max_workers = (
-            len(credentials)
-            if len(credentials) < Config.gcp.project_pool_size
-            else Config.gcp.project_pool_size
+            len(credentials) if len(credentials) < Config.gcp.project_pool_size else Config.gcp.project_pool_size
         )
         pool_args = {"max_workers": max_workers}
         if Config.gcp.fork_process:
@@ -54,9 +52,7 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
             collect_args = {
                 "args": ArgumentParser.args,
                 "running_config": Config.running_config,
-                "credentials": credentials
-                if all(v is None for v in credentials.values())
-                else None,
+                "credentials": credentials if all(v is None for v in credentials.values()) else None,
             }
         else:
             pool_executor = futures.ThreadPoolExecutor
@@ -114,9 +110,7 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
             gpc = GCPProjectCollector(project)
             gpc.collect()
         except Exception:
-            log.exception(
-                f"An unhandled error occurred while collecting {project.rtdname}"
-            )
+            log.exception(f"An unhandled error occurred while collecting {project.rtdname}")
         else:
             return gpc.graph
 

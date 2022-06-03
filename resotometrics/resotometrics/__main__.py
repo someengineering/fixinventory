@@ -49,9 +49,7 @@ def main() -> None:
     resotolib.proc.parent_pid = os.getpid()
 
     add_event_listener(EventType.SHUTDOWN, shutdown)
-    arg_parser = ArgumentParser(
-        description="resoto metrics exporter", env_args_prefix="RESOTOMETRICS_"
-    )
+    arg_parser = ArgumentParser(description="resoto metrics exporter", env_args_prefix="RESOTOMETRICS_")
     add_args(arg_parser)
     Config.add_args(arg_parser)
     resotocore_add_args(arg_parser)
@@ -128,9 +126,7 @@ def main() -> None:
     sys.exit(0)
 
 
-def core_actions_processor(
-    metrics: Metrics, search_uri: str, tls_data: TLSData, message: dict
-) -> None:
+def core_actions_processor(metrics: Metrics, search_uri: str, tls_data: TLSData, message: dict) -> None:
     if not isinstance(message, dict):
         log.error(f"Invalid message: {message}")
         return
@@ -162,9 +158,7 @@ def core_actions_processor(
 
 
 @metrics_update_metrics.time()
-def update_metrics(
-    metrics: Metrics, search_uri: str, tls_data: Optional[TLSData] = None
-) -> None:
+def update_metrics(metrics: Metrics, search_uri: str, tls_data: Optional[TLSData] = None) -> None:
     metrics_descriptions = Config.resotometrics.metrics
     for _, data in metrics_descriptions.items():
         if shutdown_event.is_set():
@@ -185,9 +179,7 @@ def update_metrics(
                 labels = get_labels_from_result(result)
                 label_values = get_label_values_from_result(result, labels)
 
-                for metric_name, metric_value in get_metrics_from_result(
-                    result
-                ).items():
+                for metric_name, metric_value in get_metrics_from_result(result).items():
                     if metric_name not in metrics.staging:
                         log.debug(f"Adding metric {metric_name} of type {metric_type}")
                         if metric_type == "gauge":

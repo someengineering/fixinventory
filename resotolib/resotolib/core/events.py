@@ -61,14 +61,10 @@ class CoreEvents(threading.Thread):
         sslopt = None
         if self.tls_data:
             sslopt = {"ca_certs": self.tls_data.ca_cert_path}
-        self.ws.run_forever(
-            sslopt=sslopt, ping_interval=30, ping_timeout=10, ping_payload="ping"
-        )
+        self.ws.run_forever(sslopt=sslopt, ping_interval=30, ping_timeout=10, ping_payload="ping")
 
     def shutdown(self, event: Event = None) -> None:
-        log.debug(
-            "Received shutdown event - shutting down resotocore event bus listener"
-        )
+        log.debug("Received shutdown event - shutting down resotocore event bus listener")
         self.shutdown_event.set()
         if self.ws:
             self.ws.close()

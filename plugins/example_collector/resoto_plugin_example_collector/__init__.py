@@ -37,14 +37,10 @@ class ExampleCollectorPlugin(BaseCollectorPlugin):
         account = ExampleAccount("Example Account")
         self.graph.add_resource(self.graph.root, account)
 
-        region1 = ExampleRegion(
-            "us-west", name="US West", tags={"Some Tag": "Some Value"}
-        )
+        region1 = ExampleRegion("us-west", name="US West", tags={"Some Tag": "Some Value"})
         self.graph.add_resource(account, region1)
 
-        region2 = ExampleRegion(
-            "us-east", name="US East", tags={"Some Tag": "Some Value"}
-        )
+        region2 = ExampleRegion("us-east", name="US East", tags={"Some Tag": "Some Value"})
         self.graph.add_resource(account, region2)
 
         network1 = ExampleNetwork("someNetwork1", tags={"Name": "Example Network 1"})
@@ -79,16 +75,12 @@ class ExampleCollectorPlugin(BaseCollectorPlugin):
         self.graph.add_resource(network2, instance2)
         self.graph.add_resource(network2, instance2, edge_type=EdgeType.delete)
 
-        volume1 = ExampleVolume(
-            "someVolume1", tags={"Name": "Example Volume 1"}, volume_status="in-use"
-        )
+        volume1 = ExampleVolume("someVolume1", tags={"Name": "Example Volume 1"}, volume_status="in-use")
         self.graph.add_resource(region1, volume1)
         self.graph.add_edge(instance1, volume1)
         self.graph.add_edge(volume1, instance1, edge_type=EdgeType.delete)
 
-        volume2 = ExampleVolume(
-            "someVolume2", tags={"Name": "Example Volume 2"}, volume_status="available"
-        )
+        volume2 = ExampleVolume("someVolume2", tags={"Name": "Example Volume 2"}, volume_status="available")
         self.graph.add_resource(region2, volume2)
         self.graph.add_edge(instance2, volume2)
         self.graph.add_edge(volume2, instance2, edge_type=EdgeType.delete)
@@ -138,9 +130,7 @@ class ExampleConfig:
     """
 
     kind: ClassVar[str] = "example"
-    region: Optional[List[str]] = field(
-        default=None, metadata={"description": "Example Region"}
-    )
+    region: Optional[List[str]] = field(default=None, metadata={"description": "Example Region"})
 
 
 @dataclass(eq=False)
@@ -176,9 +166,7 @@ class ExampleResource:
 
     def delete(self, graph: Graph) -> bool:
         """Delete a resource in the cloud"""
-        log.debug(
-            f"Deleting resource {self.id} in account {self.account(graph).id} region {self.region(graph).id}"
-        )
+        log.debug(f"Deleting resource {self.id} in account {self.account(graph).id} region {self.region(graph).id}")
         return True
 
     def update_tag(self, key, value) -> bool:
@@ -218,9 +206,7 @@ class ExampleInstance(ExampleResource, BaseInstance):
         for the corresponding instance status and assign it or
         InstanceStatus.UNKNOWN.
         """
-        self._instance_status = self.instance_status_map.get(
-            value, InstanceStatus.UNKNOWN
-        )
+        self._instance_status = self.instance_status_map.get(value, InstanceStatus.UNKNOWN)
 
 
 # Because we are using dataclasses and allow to supply the `instance_status`
@@ -249,9 +235,7 @@ class ExampleVolume(ExampleResource, BaseVolume):
         self._volume_status = self.volume_status_map.get(value, VolumeStatus.UNKNOWN)
 
 
-ExampleVolume.volume_status = property(
-    ExampleVolume._volume_status_getter, ExampleVolume._volume_status_setter
-)
+ExampleVolume.volume_status = property(ExampleVolume._volume_status_getter, ExampleVolume._volume_status_setter)
 
 
 @dataclass(eq=False)

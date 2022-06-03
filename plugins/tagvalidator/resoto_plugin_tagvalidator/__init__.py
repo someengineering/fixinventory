@@ -49,26 +49,17 @@ class TagValidatorPlugin(BaseActionPlugin):
             if node.protected or node._resotocore_query_tag != query_tag:
                 continue
             update_node_tag = False
-            max_expiration = (
-                self.config["accounts"]
-                .get(cloud.id, {})
-                .get(account.id, {})
-                .get("expiration")
-            )
+            max_expiration = self.config["accounts"].get(cloud.id, {}).get(account.id, {}).get("expiration")
             max_expiration_str = delta_to_str(max_expiration)
             node_expiration_str = node.tags.get("expiration")
             try:
                 node_expiration = parse_delta(node_expiration_str)
             except (AssertionError, ValueError):
                 log_msg = (
-                    f"Invalid expiration tag value {node_expiration_str}"
-                    f" - updating tag to {max_expiration_str}"
+                    f"Invalid expiration tag value {node_expiration_str}" f" - updating tag to {max_expiration_str}"
                 )
                 node.log(log_msg)
-                log.error(
-                    f"{log_msg} on {node.rtdname} in {cloud.rtdname}"
-                    f" {account.rtdname} {region.rtdname}"
-                )
+                log.error(f"{log_msg} on {node.rtdname} in {cloud.rtdname}" f" {account.rtdname} {region.rtdname}")
                 update_node_tag = True
             else:
                 if max_expiration < node_expiration:

@@ -17,11 +17,7 @@ setup(
     packages=find_packages(),
     long_description=read("README.md"),
     long_description_content_type="text/markdown",
-    entry_points={
-        "resoto.plugins": [
-            "cleanup_expired = resoto_plugin_cleanup_expired:CleanupExpiredPlugin"
-        ]
-    },
+    entry_points={"resoto.plugins": ["cleanup_expired = resoto_plugin_cleanup_expired:CleanupExpiredPlugin"]},
     include_package_data=True,
     zip_safe=False,
     install_requires=requirements,

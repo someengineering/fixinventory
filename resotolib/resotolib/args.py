@@ -72,10 +72,7 @@ class ArgumentParser(argparse.ArgumentParser):
             env_name = None
             for option_string in action.option_strings:
                 if option_string.startswith("--"):
-                    env_name = (
-                        self.env_args_prefix
-                        + option_string[2:].replace("-", "_").upper()
-                    )
+                    env_name = self.env_args_prefix + option_string[2:].replace("-", "_").upper()
                     break
             if env_name is not None and action.default != argparse.SUPPRESS:
                 new_default = None
@@ -118,9 +115,7 @@ def get_arg_parser(
     description: str = "resoto",
     env_args_prefix: str = DEFAULT_ENV_ARGS_PREFIX,
 ) -> ArgumentParser:
-    arg_parser = ArgumentParser(
-        description=description, add_help=add_help, env_args_prefix=env_args_prefix
-    )
+    arg_parser = ArgumentParser(description=description, add_help=add_help, env_args_prefix=env_args_prefix)
     return arg_parser
 
 
@@ -147,9 +142,7 @@ def convert(value: Any, type_goal: Union[type, Callable]) -> Any:
         return type_goal(value)
 
 
-def args_dispatcher(
-    dispatch_to: List, use_which: bool = False, argv: List = sys.argv[1:]
-) -> Dict[str, List[str]]:
+def args_dispatcher(dispatch_to: List, use_which: bool = False, argv: List = sys.argv[1:]) -> Dict[str, List[str]]:
     dispatch_args = defaultdict(list)
     prog_args = defaultdict(list)
 

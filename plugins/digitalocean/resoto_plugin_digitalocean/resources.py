@@ -21,8 +21,8 @@ from resotolib.baseresources import (
     BaseEndpoint,
     BaseCertificate,
     BaseKeyPair,
-    BaseDomain,
-    BaseDomainRecord,
+    BaseDNSZone,
+    BaseDNSRecord,
 )
 from resotolib.graph import Graph
 
@@ -55,15 +55,11 @@ class DigitalOceanResource(BaseResource):
         """Delete a resource in the cloud"""
         delete_uri_path = self.delete_uri_path()
         if delete_uri_path:
-            log.debug(
-                f"Deleting resource {self.id} in account {self.account(graph).id} region {self.region(graph).id}"
-            )
+            log.debug(f"Deleting resource {self.id} in account {self.account(graph).id} region {self.region(graph).id}")
             team = self.account(graph)
             credentials = get_team_credentials(team.id)
             if credentials is None:
-                raise RuntimeError(
-                    f"Cannot delete resource {self.id}, credentials not found for team {team.id}"
-                )
+                raise RuntimeError(f"Cannot delete resource {self.id}, credentials not found for team {team.id}")
             client = StreamingWrapper(
                 credentials.api_token,
                 credentials.spaces_access_key,
@@ -82,9 +78,7 @@ class DigitalOceanResource(BaseResource):
             team = self._account
             credentials = get_team_credentials(team.id)
             if credentials is None:
-                raise RuntimeError(
-                    f"Cannot update tag on resource {self.id}, credentials not found for team {team.id}"
-                )
+                raise RuntimeError(f"Cannot update tag on resource {self.id}, credentials not found for team {team.id}")
             client = StreamingWrapper(
                 credentials.api_token,
                 credentials.spaces_access_key,
@@ -118,9 +112,7 @@ class DigitalOceanResource(BaseResource):
             team = self._account
             credentials = get_team_credentials(team.id)
             if credentials is None:
-                raise RuntimeError(
-                    f"Cannot update tag on resource {self.id}, credentials not found for team {team.id}"
-                )
+                raise RuntimeError(f"Cannot update tag on resource {self.id}, credentials not found for team {team.id}")
             client = StreamingWrapper(
                 credentials.api_token,
                 credentials.spaces_access_key,
@@ -287,9 +279,7 @@ class DigitalOceanDroplet(DigitalOceanResource, BaseInstance):
         for the corresponding instance status and assign it or
         InstanceStatus.UNKNOWN.
         """
-        self._instance_status = self.instance_status_map.get(
-            value, InstanceStatus.UNKNOWN
-        )
+        self._instance_status = self.instance_status_map.get(value, InstanceStatus.UNKNOWN)
 
     def tag_resource_name(self) -> Optional[str]:
         return "droplet"
@@ -457,15 +447,11 @@ class DigitalOceanFloatingIP(DigitalOceanResource, BaseIPAddress):
     is_locked: Optional[bool] = None
 
     def delete(self, graph: Graph) -> bool:
-        log.debug(
-            f"Deleting resource {self.id} in account {self.account(graph).id} region {self.region(graph).id}"
-        )
+        log.debug(f"Deleting resource {self.id} in account {self.account(graph).id} region {self.region(graph).id}")
         team = self.account(graph)
         credentials = get_team_credentials(team.id)
         if credentials is None:
-            raise RuntimeError(
-                f"Cannot delete resource {self.id}, credentials not found for team {team.id}"
-            )
+            raise RuntimeError(f"Cannot delete resource {self.id}, credentials not found for team {team.id}")
         client = StreamingWrapper(
             credentials.api_token,
             credentials.spaces_access_key,
@@ -509,15 +495,11 @@ class DigitalOceanSpace(DigitalOceanResource, BaseBucket):
     kind: ClassVar[str] = "digitalocean_space"
 
     def delete(self, graph: Graph) -> bool:
-        log.debug(
-            f"Deleting space {self.id} in account {self.account(graph).id} region {self.region(graph).id}"
-        )
+        log.debug(f"Deleting space {self.id} in account {self.account(graph).id} region {self.region(graph).id}")
         team = self.account(graph)
         credentials = get_team_credentials(team.id)
         if credentials is None:
-            raise RuntimeError(
-                f"Cannot delete resource {self.id}, credentials not found for team {team.id}"
-            )
+            raise RuntimeError(f"Cannot delete resource {self.id}, credentials not found for team {team.id}")
         client = StreamingWrapper(
             credentials.api_token,
             credentials.spaces_access_key,
@@ -587,15 +569,11 @@ class DigitalOceanContainerRegistry(DigitalOceanResource, BaseResource):
     def delete(self, graph: Graph) -> bool:
         """Delete the container registry from the cloud"""
 
-        log.debug(
-            f"Deleting registry {self.id} in account {self.account(graph).id} region {self.region(graph).id}"
-        )
+        log.debug(f"Deleting registry {self.id} in account {self.account(graph).id} region {self.region(graph).id}")
         team = self.account(graph)
         credentials = get_team_credentials(team.id)
         if credentials is None:
-            raise RuntimeError(
-                f"Cannot delete resource {self.id}, credentials not found for team {team.id}"
-            )
+            raise RuntimeError(f"Cannot delete resource {self.id}, credentials not found for team {team.id}")
         client = StreamingWrapper(
             credentials.api_token,
             credentials.spaces_access_key,
@@ -630,9 +608,7 @@ class DigitalOceanContainerRegistryRepositoryTag(DigitalOceanResource, BaseResou
     size_bytes: Optional[int] = None
 
     def delete_uri_path(self) -> Optional[str]:
-        return (
-            f"/registry/{self.registry_name}/repositories/{self.repository_name}/tags"
-        )
+        return f"/registry/{self.registry_name}/repositories/{self.repository_name}/tags"
 
 
 @dataclass(eq=False)
@@ -658,7 +634,7 @@ class DigitalOceanTag(DigitalOceanResource, BaseResource):
 
 
 @dataclass(eq=False)
-class DigitalOceanDomain(DigitalOceanResource, BaseDomain):
+class DigitalOceanDomain(DigitalOceanResource, BaseDNSZone):
     """DigitalOcean domain"""
 
     kind = "digitalocean_domain"
@@ -666,13 +642,15 @@ class DigitalOceanDomain(DigitalOceanResource, BaseDomain):
         "default": ["digitalocean_domain_record"],
         "delete": [],
     }
+    ttl: Optional[int] = None
+    zone_file: Optional[str] = None
 
     def delete_uri_path(self) -> Optional[str]:
         return "/domains"
 
 
 @dataclass(eq=False)
-class DigitalOceanDomainRecord(DigitalOceanResource, BaseDomainRecord):
+class DigitalOceanDomainRecord(DigitalOceanResource, BaseDNSRecord):
     """DigitalOcean domain record"""
 
     kind = "digitalocean_domain_record"

@@ -605,22 +605,28 @@ class Api:
     async def merge_graph(self, request: Request) -> StreamResponse:
         log.info("Received merge_graph request")
         graph_id = request.match_info.get("graph_id", "resoto")
+        task_id: Optional[TaskId] = None
+        if tid := request.headers.get("Resoto-Worker-Task-Id"):
+            task_id = TaskId(tid)
         db = self.db.get_graph_db(graph_id)
         it = self.to_line_generator(request)
         info = await merge_graph_process(
-            db, self.event_sender, self.config, it, self.config.graph_update.merge_max_wait_time(), None
+            db, self.event_sender, self.config, it, self.config.graph_update.merge_max_wait_time(), None, task_id
         )
         return web.json_response(to_js(info))
 
     async def update_merge_graph_batch(self, request: Request) -> StreamResponse:
         log.info("Received put_sub_graph_batch request")
         graph_id = request.match_info.get("graph_id", "resoto")
+        task_id: Optional[TaskId] = None
+        if tid := request.headers.get("Resoto-Worker-Task-Id"):
+            task_id = TaskId(tid)
         db = self.db.get_graph_db(graph_id)
         rnd = "".join(SystemRandom().choice(string.ascii_letters) for _ in range(12))
         batch_id = request.query.get("batch_id", rnd)
         it = self.to_line_generator(request)
         info = await merge_graph_process(
-            db, self.event_sender, self.config, it, self.config.graph_update.merge_max_wait_time(), batch_id
+            db, self.event_sender, self.config, it, self.config.graph_update.merge_max_wait_time(), batch_id, task_id
         )
         return web.json_response(to_json(info), headers={"BatchId": batch_id})
 

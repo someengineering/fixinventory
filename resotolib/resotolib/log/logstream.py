@@ -34,9 +34,7 @@ class EventStreamer:
         self.connection_args = dict(params=params, headers=headers, ssl=ssl)
         self.buffer: deque[str] = deque(maxlen=max_outstanding)
         self.queue = asyncio.Queue()
-        self.periodic = Periodic(
-            "flush log messages", self.__shuffle_messages, frequency
-        )
+        self.periodic = Periodic("flush log messages", self.__shuffle_messages, frequency)
         self.task: Optional[Task] = None
 
     async def start(self) -> None:
@@ -63,15 +61,11 @@ class EventStreamer:
             while True:
                 try:
                     log.debug("Try to connect to log streamer")
-                    async with session.ws_connect(
-                        self.url, **self.connection_args
-                    ) as ws:
+                    async with session.ws_connect(self.url, **self.connection_args) as ws:
                         await self.__send_with_connection(ws)
                 except Exception as e:
                     await asyncio.sleep(3)
-                    log.warning(
-                        f"Could not send log messages to resotoeventlog. Retry. {e}"
-                    )
+                    log.warning(f"Could not send log messages to resotoeventlog. Retry. {e}")
 
     async def __send_with_connection(self, ws: ClientWebSocketResponse) -> None:
         while True:
@@ -185,16 +179,12 @@ class EventStreamSyncService(EventStreamBase, EventStreamSync):
     def start(self) -> None:
         if self.start_future is None:
             loop = asyncio.get_event_loop()
-            self.start_future = asyncio.run_coroutine_threadsafe(
-                self.streamer.start(), loop
-            )
+            self.start_future = asyncio.run_coroutine_threadsafe(self.streamer.start(), loop)
 
     def stop(self) -> None:
         if self.start_future is not None:
             loop = asyncio.get_event_loop()
-            self.stop_future = asyncio.run_coroutine_threadsafe(
-                self.streamer.stop(), loop
-            )
+            self.stop_future = asyncio.run_coroutine_threadsafe(self.streamer.stop(), loop)
             self.start_future = None
 
 

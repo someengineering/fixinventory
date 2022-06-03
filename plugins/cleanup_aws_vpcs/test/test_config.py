@@ -7,6 +7,4 @@ def test_config():
     CleanupAWSVPCsPlugin.add_config(config)
     Config.init_default_config()
     assert Config.plugin_cleanup_aws_vpcs.enabled is False
-    assert (
-        Config.plugin_cleanup_aws_vpcs.validate(Config.plugin_cleanup_aws_vpcs) is True
-    )
+    assert Config.plugin_cleanup_aws_vpcs.validate(Config.plugin_cleanup_aws_vpcs) is True

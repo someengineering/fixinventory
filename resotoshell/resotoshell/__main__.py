@@ -22,9 +22,7 @@ def main() -> None:
     resotolib.proc.parent_pid = os.getpid()
     resotolib.proc.initializer()
     setup_logger("resotoshell", json_format=False)
-    arg_parser = ArgumentParser(
-        description="resoto shell", env_args_prefix="RESOTOSHELL_"
-    )
+    arg_parser = ArgumentParser(description="resoto shell", env_args_prefix="RESOTOSHELL_")
     core_add_args(arg_parser)
     add_args(arg_parser)
     logging_add_args(arg_parser)

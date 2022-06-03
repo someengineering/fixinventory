@@ -173,9 +173,7 @@ class DigitalOceanTeamCollector:
 
         # Mandatory collectors are always collected regardless of whether
         # they were included by --do-collect or excluded by --do-no-collect
-        self.mandatory_collectors: List[Tuple[str, Callable[..., None]]] = [
-            ("regions", self.collect_regions)
-        ]
+        self.mandatory_collectors: List[Tuple[str, Callable[..., None]]] = [("regions", self.collect_regions)]
         # Global collectors are resources that are either specified on a global level
         # as opposed to a per zone or per region level or they are zone/region
         # resources that provide a aggregatedList() function returning all resources
@@ -220,12 +218,7 @@ class DigitalOceanTeamCollector:
         self.graph = Graph(root=self.team)
         collectors = set(self.collector_set)
 
-        log.debug(
-            (
-                f"Running the following collectors in {self.team.rtdname}:"
-                f" {', '.join(collectors)}"
-            )
-        )
+        log.debug((f"Running the following collectors in {self.team.rtdname}:" f" {', '.join(collectors)}"))
 
         for collector_name, collector in self.mandatory_collectors:
             if collector_name in collectors:
@@ -237,12 +230,7 @@ class DigitalOceanTeamCollector:
         for region in regions:
             for collector_name, collector in self.region_collectors:
                 if collector_name in collectors:
-                    log.info(
-                        (
-                            f"Collecting {collector_name} in {region.rtdname}"
-                            f" {self.team.rtdname}"
-                        )
-                    )
+                    log.info((f"Collecting {collector_name} in {region.rtdname}" f" {self.team.rtdname}"))
                     collector(region=region)
 
         for collector_name, collector in self.global_collectors:
@@ -254,9 +242,7 @@ class DigitalOceanTeamCollector:
 
         def rmnodes(cls: Any) -> None:
             for node in self.graph.nodes:
-                if isinstance(node, cls) and not any(
-                    True for _ in self.graph.successors(node)
-                ):
+                if isinstance(node, cls) and not any(True for _ in self.graph.successors(node)):
                     remove_nodes.add(node)
             for node in remove_nodes:
                 self.graph.remove_node(node)
@@ -326,11 +312,7 @@ class DigitalOceanTeamCollector:
                     if map_to not in search_results:
                         search_results[map_to] = []
                     search_results[map_to].append(search_result)
-            if (
-                map_to not in kwargs
-                and map_to in search_results
-                and not str(map_to).startswith("__")
-            ):
+            if map_to not in kwargs and map_to in search_results and not str(map_to).startswith("__"):
                 search_result = search_results[map_to]
                 if len(search_result) == 1:
                     kwargs[map_to] = search_result[0]
@@ -341,11 +323,7 @@ class DigitalOceanTeamCollector:
         # region based on the zone information we found.
         # E.g. if we know a disk is in zone us-central1-a then we can find
         # the region us-central1 from that.
-        if (
-            "_zone" in kwargs
-            and "_region" not in kwargs
-            and isinstance(kwargs["_zone"], BaseResource)
-        ):
+        if "_zone" in kwargs and "_region" not in kwargs and isinstance(kwargs["_zone"], BaseResource):
             region = kwargs["_zone"].region(self.graph)
             if region:
                 kwargs["_region"] = region
@@ -374,18 +352,14 @@ class DigitalOceanTeamCollector:
         parent_map = {True: predecessors, False: successors}
 
         for resource_json in resources:
-            kwargs, search_results = self.default_attributes(
-                resource_json, attr_map=attr_map, search_map=search_map
-            )
+            kwargs, search_results = self.default_attributes(resource_json, attr_map=attr_map, search_map=search_map)
             resource_instance = resource_class(**kwargs)
             log.debug(f"Adding {resource_instance.rtdname} to the graph")
             if dump_resource:
                 log.debug(f"Resource Dump: {pformat(resource_json)}")
 
             pr = kwargs.get("_region", self.graph.root)
-            log.debug(
-                f"Parent resource for {resource_instance.rtdname} automatically set to {pr.rtdname}"
-            )
+            log.debug(f"Parent resource for {resource_instance.rtdname} automatically set to {pr.rtdname}")
             self.graph.add_resource(pr, resource_instance, edge_type=EdgeType.default)
 
             def add_deferred_connection(
@@ -413,12 +387,7 @@ class DigitalOceanTeamCollector:
                             attr, value, is_parent, edge_type=edge_type  # type: ignore
                         )
                     else:
-                        log.error(
-                            (
-                                "Unable to add deferred connection for"
-                                f" value {value} of type {type(value)}"
-                            )
-                        )
+                        log.error(("Unable to add deferred connection for" f" value {value} of type {type(value)}"))
 
             def add_edge(search_map_key: str, is_parent: bool) -> None:
                 srs = search_results[search_map_key]
@@ -438,13 +407,9 @@ class DigitalOceanTeamCollector:
                             add_edge(search_result_name, is_parent)
                         else:
                             if search_result_name in search_map:
-                                add_deferred_connection(
-                                    search_map, search_result_name, is_parent, edge_type
-                                )
+                                add_deferred_connection(search_map, search_result_name, is_parent, edge_type)
                             else:
-                                log.error(
-                                    f"Key {search_result_name} is missing in search_map"
-                                )
+                                log.error(f"Key {search_result_name} is missing in search_map")
 
     @metrics_collect_intances.time()  # type: ignore
     def collect_instances(self) -> None:
@@ -478,9 +443,7 @@ class DigitalOceanTeamCollector:
                 "is_public": "public",
                 "min_disk_size": "min_disk_size",
                 "image_type": "type",
-                "size_gigabytes": lambda image: int(
-                    math.ceil(image.get("size_gigabytes"))
-                ),
+                "size_gigabytes": lambda image: int(math.ceil(image.get("size_gigabytes"))),
                 "description": "description",
                 "image_status": "status",
             },
@@ -488,9 +451,7 @@ class DigitalOceanTeamCollector:
                 "_region": ["urn", lambda image: region_id(image["region"])],
                 "__tags": [
                     "urn",
-                    lambda image: list(
-                        map(lambda tag: tag_id(tag), image.get("tags", []) or [])
-                    ),
+                    lambda image: list(map(lambda tag: tag_id(tag), image.get("tags", []) or [])),
                 ],
             },
             predecessors={
@@ -506,9 +467,7 @@ class DigitalOceanTeamCollector:
                 "instance_status": "status",
                 "instance_cores": "vcpus",
                 "instance_memory": lambda d: d["memory"] / 1024.0,
-                "droplet_backup_ids": lambda d: list(
-                    map(str, d.get("backup_ids", []) or [])
-                ),
+                "droplet_backup_ids": lambda d: list(map(str, d.get("backup_ids", []) or [])),
                 "is_locked": "locked",
                 "droplet_features": "features",
                 "droplet_image": lambda d: d["image"]["slug"],
@@ -571,9 +530,7 @@ class DigitalOceanTeamCollector:
             search_map={
                 "__users": [
                     "urn",
-                    lambda vol: list(
-                        map(lambda id: droplet_id(id), vol["droplet_ids"])
-                    ),
+                    lambda vol: list(map(lambda id: droplet_id(id), vol["droplet_ids"])),
                 ],
                 "__tags": [
                     "urn",
@@ -630,9 +587,7 @@ class DigitalOceanTeamCollector:
                 "__vpcs": ["urn", lambda db: vpc_id(db["private_network_uuid"])],
                 "__tags": [
                     "urn",
-                    lambda db: list(
-                        map(lambda tag: tag_id(tag), db.get("tags", []) or [])
-                    ),
+                    lambda db: list(map(lambda tag: tag_id(tag), db.get("tags", []) or [])),
                 ],
             },
             predecessors={
@@ -665,10 +620,7 @@ class DigitalOceanTeamCollector:
             return cast(str, resource["urn"])
 
         projects = self.client.list_projects()
-        project_resources = [
-            list(map(get_resource_id, self.client.list_project_resources(p["id"])))
-            for p in projects
-        ]
+        project_resources = [list(map(get_resource_id, self.client.list_project_resources(p["id"]))) for p in projects]
 
         for project, resource_ids in zip(projects, project_resources):
             project["resource_ids"] = resource_ids
@@ -747,9 +699,7 @@ class DigitalOceanTeamCollector:
                 "id": lambda s: str(s["id"]),
                 "urn": lambda s: snapshot_id(s["id"]),
                 "volume_size": lambda vol: vol["min_disk_size"],
-                "snapshot_size_gigabytes": lambda vol: int(
-                    math.ceil(vol.get("size_gigabytes"))
-                ),
+                "snapshot_size_gigabytes": lambda vol: int(math.ceil(vol.get("size_gigabytes"))),
                 "resource_id": "resource_id",
                 "resource_type": "resource_type",
             },
@@ -761,9 +711,7 @@ class DigitalOceanTeamCollector:
                 "__resource": ["urn", lambda s: get_resource_id(s)],
                 "__tags": [
                     "urn",
-                    lambda s: list(
-                        map(lambda tag: tag_id(tag), s.get("tags", []) or [])
-                    ),
+                    lambda s: list(map(lambda tag: tag_id(tag), s.get("tags", []) or [])),
                 ],
             },
             predecessors={EdgeType.default: ["__resource", "__tags"]},
@@ -803,9 +751,7 @@ class DigitalOceanTeamCollector:
                 "__vpcs": ["urn", lambda lb: vpc_id(lb["vpc_uuid"])],
                 "__droplets": [
                     "urn",
-                    lambda lb: list(
-                        map(lambda id: droplet_id(id), lb.get("droplet_ids", []) or [])
-                    ),
+                    lambda lb: list(map(lambda id: droplet_id(id), lb.get("droplet_ids", []) or [])),
                 ],
             },
             predecessors={EdgeType.default: ["__vpcs"], EdgeType.delete: ["__vpcs"]},
@@ -860,9 +806,7 @@ class DigitalOceanTeamCollector:
         apps = self.client.list_apps()
 
         def extract_region(app: Json) -> Optional[str]:
-            region_slug = next(
-                iter(app.get("region", {}).get("data_centers", [])), None
-            )
+            region_slug = next(iter(app.get("region", {}).get("data_centers", [])), None)
             if region_slug is None:
                 return None
             return region_id(region_slug)
@@ -949,9 +893,7 @@ class DigitalOceanTeamCollector:
                 resource_class=DigitalOceanContainerRegistryRepository,
                 attr_map={
                     "id": "name",
-                    "urn": lambda r: container_registry_repository_id(
-                        r["registry_name"], r["name"]
-                    ),
+                    "urn": lambda r: container_registry_repository_id(r["registry_name"], r["name"]),
                     "name": "name",
                     "tag_count": "tag_count",
                     "manifest_count": "manifest_count",
@@ -968,9 +910,7 @@ class DigitalOceanTeamCollector:
             tags = [
                 tag
                 for repository in repositories
-                for tag in self.client.list_registry_repository_tags(
-                    registry["name"], repository["name"]
-                )
+                for tag in self.client.list_registry_repository_tags(registry["name"], repository["name"])
             ]
 
             self.collect_resource(
@@ -991,9 +931,7 @@ class DigitalOceanTeamCollector:
                 search_map={
                     "__repository": [
                         "urn",
-                        lambda t: container_registry_repository_id(
-                            t["registry_name"], t["repository"]
-                        ),
+                        lambda t: container_registry_repository_id(t["registry_name"], t["repository"]),
                     ],
                     "__registry": [
                         "urn",
@@ -1057,10 +995,10 @@ class DigitalOceanTeamCollector:
             resource_class=DigitalOceanDomainRecord,
             attr_map={
                 "id": lambda r: str(r["id"]),
+                "name": "name",
                 "urn": lambda r: domain_record_id(r["id"]),
                 "domain_name": "domain_name",
                 "record_type": "type",
-                "record_name": "name",
                 "record_data": "data",
                 "record_priority": "priority",
                 "record_port": "port",
@@ -1089,9 +1027,7 @@ class DigitalOceanTeamCollector:
             search_map={
                 "__droplets": [
                     "urn",
-                    lambda f: list(
-                        map(lambda id: droplet_id(id), f.get("droplet_ids", []) or [])
-                    ),
+                    lambda f: list(map(lambda id: droplet_id(id), f.get("droplet_ids", []) or [])),
                 ],
                 "__tags": [
                     "urn",

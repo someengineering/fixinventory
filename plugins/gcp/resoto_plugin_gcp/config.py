@@ -6,12 +6,8 @@ from typing import List, ClassVar
 @dataclass
 class GcpConfig:
     kind: ClassVar[str] = "gcp"
-    service_account: List[str] = field(
-        default_factory=list, metadata={"description": "GCP service account file(s)"}
-    )
-    project: List[str] = field(
-        default_factory=list, metadata={"description": "GCP project(s)"}
-    )
+    service_account: List[str] = field(default_factory=list, metadata={"description": "GCP service account file(s)"})
+    project: List[str] = field(default_factory=list, metadata={"description": "GCP project(s)"})
     collect: List[str] = field(
         default_factory=list,
         metadata={"description": "GCP services to collect (default: all)"},

@@ -97,9 +97,7 @@ class GCPResource:
             and self.region().name != "undefined"
             and self.kind in regional_resources
         ):
-            self._client_method = (
-                "region" + self._client_method[0].upper() + self._client_method[1:]
-            )
+            self._client_method = "region" + self._client_method[0].upper() + self._client_method[1:]
 
     def delete(self, graph) -> bool:
         return delete_resource(self)
@@ -272,9 +270,7 @@ class GCPDisk(GCPResource, BaseVolume):
         self._volume_status = self.volume_status_map.get(value, VolumeStatus.UNKNOWN)
 
 
-GCPDisk.volume_status = property(
-    GCPDisk._volume_status_getter, GCPDisk._volume_status_setter
-)
+GCPDisk.volume_status = property(GCPDisk._volume_status_getter, GCPDisk._volume_status_setter)
 
 
 @dataclass(eq=False)
@@ -305,17 +301,13 @@ class GCPInstance(GCPResource, BaseInstance):
     machine_type_link: InitVar[str] = None
     machine_type: InitVar[BaseInstanceType] = None
 
-    def __post_init__(
-        self, machine_type_link: str, machine_type: BaseInstanceType
-    ) -> None:
+    def __post_init__(self, machine_type_link: str, machine_type: BaseInstanceType) -> None:
         super().__post_init__()
         self._machine_type_link = machine_type_link
         self._machine_type = machine_type
 
     def _instance_status_setter(self, value: str) -> None:
-        self._instance_status = self.instance_status_map.get(
-            value, InstanceStatus.UNKNOWN
-        )
+        self._instance_status = self.instance_status_map.get(value, InstanceStatus.UNKNOWN)
         if self._instance_status == InstanceStatus.TERMINATED:
             self._cleaned = True
 
@@ -333,9 +325,7 @@ class GCPInstance(GCPResource, BaseInstance):
             self.instance_type = value.name
 
 
-GCPInstance.instance_status = property(
-    GCPInstance._instance_status_getter, GCPInstance._instance_status_setter
-)
+GCPInstance.instance_status = property(GCPInstance._instance_status_getter, GCPInstance._instance_status_setter)
 
 
 @dataclass(eq=False)
@@ -792,9 +782,7 @@ class GCPBucket(GCPResource, BaseBucket):
             items_name="items",
             **kwargs,
         ):
-            log.debug(
-                f"Removing {document['name']} in {self.rtdname} before resource cleanup"
-            )
+            log.debug(f"Removing {document['name']} in {self.rtdname} before resource cleanup")
             request = gs.objects().delete(object=document["name"], **kwargs)
             request.execute()
         return True
@@ -887,9 +875,7 @@ class GCPServiceSKU(GCPResource, PhantomBaseResource):
             self.geo_taxonomy_regions = []
         self.usage_unit_nanos = -1
         if len(self.pricing_info) > 0:
-            tiered_rates = (
-                self.pricing_info[0].get("pricingExpression", {}).get("tieredRates", [])
-            )
+            tiered_rates = self.pricing_info[0].get("pricingExpression", {}).get("tieredRates", [])
             cost = -1
             if len(tiered_rates) == 1:
                 cost = tiered_rates[0].get("unitPrice", {}).get("nanos", -1)
@@ -930,9 +916,7 @@ class GCPGKECluster(GCPResource, BaseResource):
     }
 
     def _cluster_status_setter(self, value: str) -> None:
-        self._cluster_status = self.cluster_status_map.get(
-            value, InstanceStatus.UNKNOWN
-        )
+        self._cluster_status = self.cluster_status_map.get(value, InstanceStatus.UNKNOWN)
         if self._cluster_status == InstanceStatus.TERMINATED:
             self._cleaned = True
 
@@ -940,6 +924,4 @@ class GCPGKECluster(GCPResource, BaseResource):
         return self._cluster_status.value
 
 
-GCPGKECluster.cluster_status = property(
-    GCPGKECluster._cluster_status_getter, GCPGKECluster._cluster_status_setter
-)
+GCPGKECluster.cluster_status = property(GCPGKECluster._cluster_status_getter, GCPGKECluster._cluster_status_setter)

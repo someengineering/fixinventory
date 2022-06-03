@@ -657,8 +657,8 @@ async def test_system_backup_command(cli: CLI) -> None:
             async for s in streamer:
                 assert isinstance(s, str)
                 assert os.path.exists(s)
-                # backup should have size between 30k and 200k (adjust size if necessary)
-                assert 30000 < os.path.getsize(s) < 200000
+                # backup should have size between 30k and 250k (adjust size if necessary)
+                assert 30000 < os.path.getsize(s) < 250000
                 assert only_one
                 only_one = False
 

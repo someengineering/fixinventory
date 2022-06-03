@@ -6,9 +6,7 @@ from typing import Union, Callable, Any, Dict, Optional, Tuple
 log = logging.getLogger("resoto." + __name__)
 
 
-def get_result_data(
-    result: Dict[str, Any], value: Union[str, Callable[..., Any]]
-) -> Any:
+def get_result_data(result: Dict[str, Any], value: Union[str, Callable[..., Any]]) -> Any:
     """Returns data from a DO API call result dict.
 
     Args:
@@ -116,9 +114,7 @@ def container_registry_repository_id(registry_id: str, repository_id: str) -> st
     return f"do:crr:{registry_id}/{repository_id}"
 
 
-def container_registry_repository_tag_id(
-    registry_id: str, repository_id: str, tag: str
-) -> str:
+def container_registry_repository_tag_id(registry_id: str, repository_id: str, tag: str) -> str:
     return f"do:crrt:{registry_id}/{repository_id}:{tag}"
 
 

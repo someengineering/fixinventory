@@ -36,9 +36,7 @@ async def app_with_auth() -> Application:
 async def test_correct_psk(aiohttp_client: Any, app_with_auth: Application) -> None:
     client: TestClient = await aiohttp_client(app_with_auth)
     jwt = encode_jwt({"foo": "bla"}, "test")
-    resp = await client.get(
-        "/", headers=CIMultiDict({"Authorization": f"Bearer {jwt}"})
-    )
+    resp = await client.get("/", headers=CIMultiDict({"Authorization": f"Bearer {jwt}"}))
     assert resp.status == 200
 
 
@@ -46,9 +44,7 @@ async def test_correct_psk(aiohttp_client: Any, app_with_auth: Application) -> N
 async def test_wrong_psk(aiohttp_client: Any, app_with_auth: Application) -> None:
     client: TestClient = await aiohttp_client(app_with_auth)
     jwt = encode_jwt({"foo": "bla"}, "wrong!")
-    resp = await client.get(
-        "/", headers=CIMultiDict({"Authorization": f"Bearer {jwt}"})
-    )
+    resp = await client.get("/", headers=CIMultiDict({"Authorization": f"Bearer {jwt}"}))
     assert resp.status == 401
 
 

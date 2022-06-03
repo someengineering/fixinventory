@@ -6,7 +6,8 @@ import logging
 import re
 from collections import namedtuple, defaultdict
 from functools import reduce
-from typing import Optional, Generator, Any, Dict, List, Set, Tuple
+from typing import Optional, Generator, Any, Dict, List, Set, Tuple, Union
+from dataclasses import dataclass
 
 from networkx import DiGraph, MultiDiGraph, all_shortest_paths, is_directed_acyclic_graph
 
@@ -14,6 +15,8 @@ from resotocore.model.model import Model, Kind, AnyKind, ComplexKind, ArrayKind,
 from resotocore.model.resolve_in_graph import GraphResolver, NodePath, ResolveProp
 from resotocore.types import Json
 from resotocore.util import utc, utc_str, value_in_path, set_value_in_path, value_in_path_get
+from resotocore.model.typed_model import from_js
+
 
 log = logging.getLogger(__name__)
 
@@ -100,12 +103,24 @@ class Direction:
 EdgeKey = namedtuple("EdgeKey", ["from_node", "to_node", "edge_type"])
 
 
+SearchCriteria = str
+NodeSelector = Union[str, SearchCriteria]
+
+
+@dataclass
+class DeferredEdge:
+    from_node: NodeSelector
+    to_node: NodeSelector
+    edge_type: str
+
+
 class GraphBuilder:
     def __init__(self, model: Model):
         self.model = model
         self.graph = MultiDiGraph()
         self.nodes = 0
         self.edges = 0
+        self.deferred_edges: List[DeferredEdge] = []
 
     def add_from_json(self, js: Json) -> None:
         if "id" in js and Section.reported in js:
@@ -119,6 +134,21 @@ class GraphBuilder:
             )
         elif "from" in js and "to" in js:
             self.add_edge(js["from"], js["to"], js.get("edge_type", EdgeType.default))
+        elif "from_selector" in js and "to_selector" in js:
+
+            def parse_selector(js: Json) -> NodeSelector:
+                if "node_id" in js:
+                    return from_js(js["node_id"], str)
+                elif "search_criterea" in js:
+                    return from_js(js["search_criteria"], str)
+                else:
+                    raise AttributeError(f"can't parse edge selector! Got {json.dumps(js)}")
+
+            self.add_deferred_connection(
+                parse_selector(js["from_selector"]),
+                parse_selector(js["to_selector"]),
+                js.get("edge_type", EdgeType.default),
+            )
         else:
             raise AttributeError(f"Format not understood! Got {json.dumps(js)} which is neither vertex nor edge.")
 
@@ -158,6 +188,9 @@ class GraphBuilder:
         self.edges += 1
         key = GraphAccess.edge_key(from_node, to_node, edge_type)
         self.graph.add_edge(from_node, to_node, key, edge_type=edge_type)
+
+    def add_deferred_connection(self, from_selector: NodeSelector, to_selector: NodeSelector, edge_type: str) -> None:
+        self.deferred_edges.append(DeferredEdge(from_selector, to_selector, edge_type))
 
     @staticmethod
     def content_hash(js: Json, desired: Optional[Json] = None, metadata: Optional[Json] = None) -> str:
@@ -208,7 +241,7 @@ class GraphBuilder:
         for node_id, node in self.graph.nodes(data=True):
             assert node.get(Section.reported), f"{node_id} was used in an edge definition but not provided as vertex!"
 
-        edge_types = {edge[2] for edge in self.graph.edges(data="edge_type")}
+        edge_types: Set[str] = {edge[2] for edge in self.graph.edges(data="edge_type")}
         al = EdgeType.all
         assert not edge_types.difference(al), f"Graph contains unknown edge types! Given: {edge_types}. Known: {al}"
         # make sure there is only one root node

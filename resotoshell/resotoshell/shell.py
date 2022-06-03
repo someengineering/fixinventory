@@ -63,9 +63,7 @@ class Shell:
                         self.handle_result(response)
                     elif response.status_code == 424 and not upload:
                         required = response.json().get("required", [])
-                        to_upload = validate_paths(
-                            {fp["name"]: fp["path"] for fp in required}
-                        )
+                        to_upload = validate_paths({fp["name"]: fp["path"] for fp in required})
                         mp: Response = self.client.cli_execute_raw(
                             command=command,
                             files=to_upload,
@@ -98,9 +96,7 @@ class Shell:
         except Exception as ex:
             print(f"Error performing command: `{command}`\nReason: {ex}")
 
-    def handle_result(
-        self, part: Union[Response, BodyPart], first: bool = True
-    ) -> None:
+    def handle_result(self, part: Union[Response, BodyPart], first: bool = True) -> None:
         # store the file from the part inside the given directory
         def store_file(directory: str) -> Tuple[str, str]:
             disposition = part.headers.get("Content-Disposition", "")
@@ -134,22 +130,15 @@ class Shell:
                 print(part.text)
         # File is sent in order to edit and return it.
         # We expect the command to define what should happen with the edited file.
-        elif (
-            content_type == "application/octet-stream" and action == "edit" and command
-        ):
+        elif content_type == "application/octet-stream" and action == "edit" and command:
             with TemporaryDirectory() as tmp:
                 filename, filepath = store_file(tmp)
                 original_shasum = sha256sum(filepath)
                 call([os.environ.get("EDITOR", "vi"), filepath])
                 new_shasum = sha256sum(filepath)
-                log.debug(
-                    f"Original config sha256: {original_shasum},"
-                    f" new sha256: {new_shasum}"
-                )
+                log.debug(f"Original config sha256: {original_shasum}," f" new sha256: {new_shasum}")
                 if new_shasum != original_shasum:
-                    self.handle_command(
-                        f"{command} {filename}", {}, {filename: filepath}
-                    )
+                    self.handle_command(f"{command} {filename}", {}, {filename: filepath})
                 else:
                     print("No change made while editing the file. Update aborted.")
         # File is sent: save it to local disk

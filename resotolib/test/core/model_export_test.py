@@ -29,9 +29,7 @@ class DataClassBase:
     tags: Dict[str, str] = field(metadata={"description": "Description of tags"})
     _private_prop: dict
     __dunder_prop: list
-    ctime: Optional[datetime] = field(
-        metadata={"synthetic": {"age": "trafo.duration_to_datetime"}}
-    )
+    ctime: Optional[datetime] = field(metadata={"synthetic": {"age": "trafo.duration_to_datetime"}})
 
 
 @dataclass
@@ -55,9 +53,7 @@ class DataClassExample(DataClassBase):
     simple_list: list
     weird_list: List[Dict[str, Dict[str, Dict[str, Dict[str, DataClassProp]]]]]
     weird_dict: Dict[str, Dict[str, Dict[str, Dict[str, DataClassProp]]]]
-    optionally_weird_dict: Optional[
-        Optional[Dict[str, Dict[str, Dict[str, Dict[Union[str, int], DataClassProp]]]]]
-    ]
+    optionally_weird_dict: Optional[Optional[Dict[str, Dict[str, Dict[str, Dict[Union[str, int], DataClassProp]]]]]]
     some_enum: ExampleEnum
     optional_enum: Optional[ExampleEnum]
 
@@ -184,9 +180,7 @@ class GcpConfigConfig:
 def test_config_export():
     # Let's assume a dynamic top level object of name Config
     # The properties are defined by name and related type.
-    result = dynamic_object_to_resotocore_model(
-        "config", {"aws": AwsConfig, "gcp": GcpConfigConfig}
-    )
+    result = dynamic_object_to_resotocore_model("config", {"aws": AwsConfig, "gcp": GcpConfigConfig})
     result_dict = {a["fqn"]: a for a in result}
     assert len(result_dict["gcp_config"]["properties"]) == 1
     assert len(result_dict["aws_config"]["properties"]) == 2

@@ -13,8 +13,7 @@ class CleanupAWSVPCsConfig:
         default_factory=lambda: {"aws": ["1234567", "567890"]},
         metadata={
             "description": (
-                "Dictionary of key cloud with list of account IDs"
-                " for which the plugin should be active as value"
+                "Dictionary of key cloud with list of account IDs" " for which the plugin should be active as value"
             )
         },
     )
