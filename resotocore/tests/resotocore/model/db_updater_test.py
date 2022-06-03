@@ -57,7 +57,7 @@ async def test_merge_process(
         graph_db, event_sender, config, iterator(), timedelta(seconds=30), None, TaskId("test_task_123")
     )
     assert result == GraphUpdate(112, 1, 0, 212, 0, 0)
-    elem = graph_db.db.collection("deferred_outer_edges").all().next()
+    elem = graph_db.db.collection("deferred_outer_edges").get("test_task_123")
     assert elem["_key"] == "test_task_123"
     assert elem["task_id"] == "test_task_123"
-    assert elem["edges"][0] == {"from_node": "id_123", "to_node": "id_456", "edge_type": "delete"}
+    assert elem["edges"][0] == {"from_node": {"value": "id_123"}, "to_node": {"value": "id_456"}, "edge_type": "delete"}
