@@ -253,7 +253,10 @@ class Kind(ABC):
             bases: Optional[List[str]] = js.get("bases")
             allow_unknown_props = js.get("allow_unknown_props", False)
             successor_kinds = js.get("successor_kinds")
-            return ComplexKind(js["fqn"], bases if bases else [], props, allow_unknown_props, successor_kinds)
+            aggregate_root = js.get("aggregate_root", True)
+            return ComplexKind(
+                js["fqn"], bases if bases else [], props, allow_unknown_props, successor_kinds, aggregate_root
+            )
         else:
             raise JSONDecodeError("Given type can not be read.", json.dumps(js), 0)
 
@@ -760,12 +763,14 @@ class ComplexKind(Kind):
         allow_unknown_props: bool = False,
         # EdgeType -> possible list of successor kinds
         successor_kinds: Optional[Dict[str, List[str]]] = None,
+        aggregate_root: bool = True,
     ):
         super().__init__(fqn)
         self.bases = bases
         self.properties = properties
         self.allow_unknown_props = allow_unknown_props
         self.successor_kinds = successor_kinds or {}
+        self.aggregate_root = aggregate_root
         self.__prop_by_name = {prop.name: prop for prop in properties}
         self.__resolved = False
         self.__resolved_kinds: Dict[str, Tuple[Property, Kind]] = {}
@@ -1033,7 +1038,12 @@ class Model:
         self.__property_kind_by_path: List[ResolvedProperty] = list(
             # several complex kinds might have the same property
             # reduce the list by hash over the path.
-            {r.path: r for c in kinds.values() if isinstance(c, ComplexKind) for r in c.resolved_properties()}.values()
+            {
+                r.path: r
+                for c in kinds.values()
+                if isinstance(c, ComplexKind) and c.aggregate_root
+                for r in c.resolved_properties()
+            }.values()
         )
 
     def __contains__(self, name_or_object: Union[str, Json]) -> bool:
@@ -1158,8 +1168,8 @@ class Model:
 
         # check if no property path is overlapping
         def check_no_overlap() -> None:
-            existing_complex = [c for c in self.kinds.values() if isinstance(c, ComplexKind)]
-            update_complex = [c for c in to_update if isinstance(c, ComplexKind)]
+            existing_complex = [c for c in self.kinds.values() if isinstance(c, ComplexKind) and c.aggregate_root]
+            update_complex = [c for c in to_update if isinstance(c, ComplexKind) and c.aggregate_root]
             ex = {p.path: p for k in existing_complex for p in k.resolved_properties()}
             up = {p.path: p for k in update_complex for p in k.resolved_properties()}
 

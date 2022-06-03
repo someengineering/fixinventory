@@ -468,9 +468,6 @@ class BaseResource(ABC):
             return cloud
         return UnknownLocation("undefined", {})
 
-    def to_json(self) -> str:
-        return self.__repr__()
-
     def add_deferred_connection(
         self, search: Dict, parent: bool = True, edge_type: EdgeType = EdgeType.default
     ) -> None:
@@ -664,8 +661,8 @@ class BaseInstanceQuota(BaseQuota):
     kind: ClassVar[str] = "instance_quota"
     instance_type: Optional[str] = None
 
-    def __post_init__(self, *args, **kwargs) -> None:
-        super().__post_init__(*args, **kwargs)
+    def __post_init__(self) -> None:
+        super().__post_init__()
         self.instance_type = self.id
         self.quota_type = "standard"
 
@@ -684,7 +681,7 @@ class BaseInstanceType(BaseType):
         *args,
         **kwargs,
     ) -> None:
-        super().__post_init__(*args, **kwargs)
+        super().__post_init__()
         if self.instance_type is None:
             self.instance_type = self.id
         if self.reservations is not None:
@@ -761,8 +758,8 @@ class BaseVolumeType(BaseType):
     volume_type: str = ""
     ondemand_cost: float = 0.0
 
-    def __post_init__(self, *args, **kwargs) -> None:
-        super().__post_init__(*args, **kwargs)
+    def __post_init__(self) -> None:
+        super().__post_init__()
         self.volume_type = self.id
 
 

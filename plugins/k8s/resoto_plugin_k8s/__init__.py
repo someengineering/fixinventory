@@ -1,3 +1,4 @@
+import logging
 import multiprocessing
 from argparse import Namespace
 from concurrent import futures
@@ -15,7 +16,7 @@ from resotolib.baseplugin import BaseCollectorPlugin
 from resotolib.config import Config, RunningConfig
 from resotolib.graph import Graph
 
-log = resotolib.logger.getLogger("resoto." + __name__)
+log = logging.getLogger("resoto.plugins.k8s")
 
 
 class KubernetesCollectorPlugin(BaseCollectorPlugin):

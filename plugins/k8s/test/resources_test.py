@@ -224,6 +224,6 @@ def test_PriorityLevelConfiguration(json_file: Json) -> None:
 def round_trip(resource_class: Type[KubernetesResource], json: Json) -> None:
     for js in json["items"]:
         resource = resource_class.from_json(js)
-        js = resource.to_js()
+        js = resource.to_json()
         again = jsons.load(js, type(resource))
         assert resource == again

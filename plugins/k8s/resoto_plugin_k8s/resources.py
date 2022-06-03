@@ -1,4 +1,3 @@
-import json
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import ClassVar, Optional, Dict, Type, List, Any
@@ -21,6 +20,7 @@ from resotolib.baseresources import (
 )
 from resotolib.graph import Graph
 from resotolib.types import Json
+from resoto_plugin_k8s import log
 
 
 @dataclass(eq=False)
@@ -45,7 +45,7 @@ class KubernetesResource(BaseResource):
     # private: holds all the owner references
     _owner_references: List[Json] = field(default_factory=list)
 
-    def to_js(self) -> Json:
+    def to_json(self) -> Json:
         return jsons.dump(  # type: ignore
             self,
             strip_privates=True,
@@ -58,6 +58,7 @@ class KubernetesResource(BaseResource):
                 "usage_percentage",
                 "dname",
                 "kdname",
+                "rtdname",
                 "changes",
                 "event_log",
                 "str_event_log",
@@ -70,11 +71,17 @@ class KubernetesResource(BaseResource):
                 "protected",
                 "_graph",
                 "graph",
+                "max_graph_depth",
+                "resource_type",
+                "age",
+                "last_access",
+                "last_update",
+                "clean",
+                "cleaned",
+                "protected",
+                "uuid",
             ),
         )
-
-    def to_json(self) -> str:
-        return json.dumps(self.to_js())
 
     @classmethod
     def from_json(cls: Type["KubernetesResource"], json: Json) -> "KubernetesResource":
@@ -109,11 +116,14 @@ class GraphBuilder:
                 return n
         return None
 
-    def add_edge(self, from_node: KubernetesResource, edge_type: EdgeType, **to_node: any) -> None:
+    def add_edge(
+        self, from_node: KubernetesResource, edge_type: EdgeType, reverse: bool = False, **to_node: any
+    ) -> None:
         to_n = self.node(**to_node)
         if to_n:
-            print(f"ADD EDGE FROM {from_node.name}:{from_node.k8s_name()} -> {to_n.name}:{to_n.k8s_name()}")
-            self.graph.add_edge(from_node, to_n, edge_type=edge_type)
+            start, end = (to_n, from_node) if reverse else (from_node, to_n)
+            log.debug(f"Add edge: {start.name}:{start.k8s_name()} -> {end.name}:{end.k8s_name()}")
+            self.graph.add_edge(start, end, edge_type=edge_type)
 
     def add_edges_from_selector(
         self,
@@ -125,7 +135,7 @@ class GraphBuilder:
         for to_n in self.graph:
             is_clazz = isinstance(to_n, clazz) if clazz else True
             if is_clazz and to_n != from_node and selector.items() <= to_n.labels.items():
-                print(f"ADD EDGE FROM {from_node.name}:{from_node.k8s_name()} -> {to_n.name}:{to_n.k8s_name()}")
+                log.debug(f"Add edge: {from_node.name}:{from_node.k8s_name()} -> {to_n.name}:{to_n.k8s_name()}")
                 self.graph.add_edge(from_node, to_n, edge_type=edge_type)
 
     def connect_volumes(self, from_node: KubernetesResource, volumes: List[Json]) -> None:
@@ -494,7 +504,7 @@ class KubernetesPodStatus:
     nominated_node_name: Optional[str] = field(default=None)
     phase: Optional[str] = field(default=None)
     pod_ip: Optional[str] = field(default=None)
-    pod_i_ps: List[KubernetesPodIPs] = field(default_factory=list)
+    pod_ips: List[KubernetesPodIPs] = field(default_factory=list)
     qos_class: Optional[str] = field(default=None)
     reason: Optional[str] = field(default=None)
     start_time: Optional[datetime] = field(default=None)

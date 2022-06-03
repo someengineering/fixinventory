@@ -2,7 +2,7 @@ from dataclasses import is_dataclass, fields, Field
 from datetime import datetime, date, timedelta, timezone
 from functools import lru_cache, reduce
 from pydoc import locate
-from typing import List, MutableSet, Union, Tuple, Dict, Set, Any, TypeVar, Type
+from typing import List, MutableSet, Union, Tuple, Dict, Set, Any, TypeVar, Type, Optional
 from resotolib.baseresources import BaseResource
 from resotolib.utils import type_str, str2timedelta, str2timezone
 from typing import get_args, get_origin
@@ -99,7 +99,7 @@ simple_type = tuple(lookup.keys())
 
 
 # Model name from the internal python class name
-def model_name(clazz: type) -> str:
+def model_name(clazz: Union[type, Tuple[Any]]) -> str:
     to_check = get_args(clazz)[0] if is_optional(clazz) else clazz
     if is_collection(to_check):
         return f"{model_name(type_arg(to_check))}[]"
@@ -120,9 +120,7 @@ def model_name(clazz: type) -> str:
     elif is_dataclass(to_check):
         name = getattr(to_check, "kind", None)
         if not name:
-            raise AttributeError(
-                f"dataclass {to_check} need to define a ClassVar kind!"
-            )
+            raise AttributeError(f"dataclass {to_check} need to define a ClassVar kind!")
         return name
     else:
         return "any"
@@ -135,7 +133,7 @@ def should_export(field: Field) -> bool:
 
 
 def dataclasses_to_resotocore_model(
-    classes: Set[type], allow_unknown_props: bool = False
+    classes: Set[type], allow_unknown_props: bool = False, aggregate_root: Optional[type] = None
 ) -> List[Json]:
     """
     Analyze all transitive dataclasses and create the model
@@ -145,6 +143,7 @@ def dataclasses_to_resotocore_model(
 
     :param classes: all dataclasses to analyze.
     :param allow_unknown_props: allow properties in json that are not defined in the model.
+    :param aggregate_root: if a type is a subtype of this type, it will be considered an aggregate root.
     :return: the model definition in the resotocore json format.
     """
 
@@ -160,9 +159,7 @@ def dataclasses_to_resotocore_model(
         synthetic = field.metadata.get("synthetic")
         synthetic = synthetic if synthetic else {}
 
-        def json(
-            name: str, kind_str: str, required: bool, description: str, **kwargs: Any
-        ) -> Json:
+        def json(name: str, kind_str: str, required: bool, description: str, **kwargs: Any) -> Json:
             return {
                 "name": name,
                 "kind": kind_str,
@@ -190,15 +187,9 @@ def dataclasses_to_resotocore_model(
     def export_data_class(clazz: type) -> None:
         bases = [base for base in clazz.__bases__ if is_dataclass(base)]
         base_names = [model_name(base) for base in bases]
-        base_props: Set[Field] = reduce(
-            lambda result, base: result | set(fields(base)), bases, set()
-        )
-        props = [
-            p
-            for field in fields(clazz)
-            if field not in base_props and should_export(field)
-            for p in prop(field)
-        ]
+        base_props: Set[Field] = reduce(lambda result, base: result | set(fields(base)), bases, set())
+        props = [p for field in fields(clazz) if field not in base_props and should_export(field) for p in prop(field)]
+        root = any(sup == aggregate_root for sup in clazz.mro()) if aggregate_root else True
         model.append(
             {
                 "fqn": model_name(clazz),
@@ -206,6 +197,7 @@ def dataclasses_to_resotocore_model(
                 "properties": props,
                 "allow_unknown_props": allow_unknown_props,
                 "successor_kinds": getattr(clazz, "successor_kinds", None),
+                "aggregate_root": root,
             }
         )
 
@@ -213,9 +205,7 @@ def dataclasses_to_resotocore_model(
         # The name of the enum literal is taken not the value.
         # This matches jsons handling of enumeration marshalling.
         enum_values = [literal.name for literal in clazz]
-        model.append(
-            {"fqn": model_name(clazz), "runtime_kind": "string", "enum": enum_values}
-        )
+        model.append({"fqn": model_name(clazz), "runtime_kind": "string", "enum": enum_values})
 
     for cls in transitive_classes(classes):
         if is_dataclass(cls):
@@ -229,9 +219,7 @@ def dataclasses_to_resotocore_model(
 
 # Use this model exporter, if a dynamic object is exported
 # with given name and properties.
-def dynamic_object_to_resotocore_model(
-    name: str, properties: Dict[str, type]
-) -> List[Json]:
+def dynamic_object_to_resotocore_model(name: str, properties: Dict[str, type]) -> List[Json]:
     dependant = dataclasses_to_resotocore_model(set(properties.values()))
     # append definition for top level object
     dependant.append(
@@ -256,23 +244,27 @@ def format_value_for_export(value: Any) -> Any:
 
 
 def get_node_attributes(node: BaseResource) -> Dict:
-    attributes: Dict = {"kind": node.kind}
-    if not is_dataclass(node):
-        raise ValueError(f"Node {node.rtdname} is no dataclass")
-    for field in fields(node):
-        if field.name.startswith("_"):
-            continue
-        value = getattr(node, field.name, None)
-        if value is None:
-            continue
-        value = format_value_for_export(value)
-        attributes.update({field.name: value})
-    return attributes
+    def create_dict() -> Json:
+        attributes: Dict = {"kind": node.kind}
+        for field in fields(node):
+            if field.name.startswith("_"):
+                continue
+            value = getattr(node, field.name, None)
+            if value is None:
+                continue
+            value = format_value_for_export(value)
+            attributes.update({field.name: value})
+        return attributes
+
+    if hasattr(node, "to_json"):
+        return node.to_json()
+    elif is_dataclass(node):
+        return create_dict()
+    else:
+        raise ValueError(f"Node {node.rtdname} is neither a dataclass nor has a to_json method")
 
 
-def node_to_dict(
-    node: BaseResource, changes_only: bool = False, include_revision: bool = False
-) -> Dict:
+def node_to_dict(node: BaseResource, changes_only: bool = False, include_revision: bool = False) -> Dict:
     node_dict = {"id": node._resotocore_id if node._resotocore_id else node.chksum}
     if changes_only:
         node_dict.update(node.changes.get())
@@ -310,9 +302,7 @@ def locate_python_type(python_type: str) -> Any:
     return locate(python_type)
 
 
-def node_from_dict(
-    node_data: Dict, include_select_ancestors: bool = False
-) -> BaseResource:
+def node_from_dict(node_data: Dict, include_select_ancestors: bool = False) -> BaseResource:
     """Create a resource from resotocore graph node data
 
     If include_select_ancestors is True, the resource will be created with
@@ -392,14 +382,8 @@ def restore_node_field_types(node_type: BaseResource, node_data_reported: Dict):
                 datetime_str = datetime_str[:-1] + "+00:00"
             node_data_reported[field.name] = datetime.fromisoformat(datetime_str)
         elif field_type == date:
-            node_data_reported[field.name] = date.fromisoformat(
-                node_data_reported[field.name]
-            )
+            node_data_reported[field.name] = date.fromisoformat(node_data_reported[field.name])
         elif field_type == timedelta:
-            node_data_reported[field.name] = str2timedelta(
-                node_data_reported[field.name]
-            )
+            node_data_reported[field.name] = str2timedelta(node_data_reported[field.name])
         elif field_type == timezone:
-            node_data_reported[field.name] = str2timezone(
-                node_data_reported[field.name]
-            )
+            node_data_reported[field.name] = str2timezone(node_data_reported[field.name])
