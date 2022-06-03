@@ -53,12 +53,12 @@ class MergeOuterEdgesHandler:
             async def find_node_id(selector: NodeSelector) -> Optional[str]:
                 if isinstance(selector, ByNodeId):
                     node = await graph_db.get_node(model, selector.value)
-                    return node["id"] if node else None
+                    return node.get("id") if node else None
                 else:
                     query = self.parse_query(selector.query)
                     async with await graph_db.search_list(QueryModel(query, model)) as cursor:
                         async for node in cursor:
-                            return node["id"]
+                            return node.get("id", None)  # type: ignore
                     return None
 
             for edge in pending_edges.edges:

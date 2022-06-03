@@ -44,6 +44,7 @@ from resotocore.message_bus import MessageBus
 from resotocore.model.model_handler import ModelHandlerDB
 from resotocore.model.typed_model import to_json, class_fqn
 from resotocore.query.template_expander import DBTemplateExpander
+from resotocore.query.query_parser import parse_query
 from resotocore.task.scheduler import Scheduler
 from resotocore.task.subscribers import SubscriptionHandler
 from resotocore.task.task_handler import TaskHandlerService
@@ -152,7 +153,7 @@ def with_config(
         db.running_task_db, db.job_db, message_bus, event_sender, subscriptions, scheduler, cli, config
     )
     core_config_handler = CoreConfigHandler(config, message_bus, worker_task_queue, config_handler)
-    merge_outer_edges_handler = MergeOuterEdgesHandler(message_bus, subscriptions, task_handler)
+    merge_outer_edges_handler = MergeOuterEdgesHandler(message_bus, subscriptions, task_handler, db, model, parse_query)
     cli_deps.extend(task_handler=task_handler)
     api = Api(
         db,
