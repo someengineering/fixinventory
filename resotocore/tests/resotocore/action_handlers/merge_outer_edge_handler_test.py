@@ -129,6 +129,7 @@ async def test_merge_outer_edges(
     await graph_db.wipe()
     await graph_db.create_node(foo_model, "id1", to_json(Foo("id1", "foo")), "root")
     await graph_db.create_node(foo_model, "id2", to_json(Bla("id2", "bla")), "root")
+    await db_access.pending_outer_edge_db.create_update_schema()
 
     await db_access.get_pending_outer_edge_db().update(
         PendingDeferredEdges(
