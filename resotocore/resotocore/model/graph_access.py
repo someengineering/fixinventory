@@ -153,7 +153,7 @@ class GraphBuilder:
                 else:
                     raise AttributeError(f"can't parse edge selector! Got {json.dumps(js)}")
 
-            self.add_deferred_connection(
+            self.store_deferred_connection(
                 parse_selector(js["from_selector"]),
                 parse_selector(js["to_selector"]),
                 js.get("edge_type", EdgeType.default),
@@ -198,7 +198,7 @@ class GraphBuilder:
         key = GraphAccess.edge_key(from_node, to_node, edge_type)
         self.graph.add_edge(from_node, to_node, key, edge_type=edge_type)
 
-    def add_deferred_connection(self, from_selector: NodeSelector, to_selector: NodeSelector, edge_type: str) -> None:
+    def store_deferred_connection(self, from_selector: NodeSelector, to_selector: NodeSelector, edge_type: str) -> None:
         self.deferred_edges.append(DeferredEdge(from_selector, to_selector, edge_type))
 
     @staticmethod

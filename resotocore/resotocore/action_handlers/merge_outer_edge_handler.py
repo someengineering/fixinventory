@@ -3,7 +3,7 @@ from resotocore.message_bus import MessageBus, Action
 import logging
 import asyncio
 from asyncio import Task, Future
-from typing import Callable, Optional
+from typing import Callable, Optional, Tuple, List
 from contextlib import suppress
 from datetime import timedelta
 from resotocore.model.graph_access import ByNodeId, NodeSelector
@@ -43,7 +43,7 @@ class MergeOuterEdgesHandler:
         self.parse_query = parse_query
 
     async def merge_outer_edges(self, task_id: TaskId) -> None:
-        pending_outer_edge_db = self.db_access.get_pending_outer_edge_db()
+        pending_outer_edge_db = self.db_access.get_pending_deferred_edge_db()
         pending_edges = await pending_outer_edge_db.get(task_id)
         model = await self.model_handler.load_model()
         created_edges = 0
@@ -67,11 +67,14 @@ class MergeOuterEdgesHandler:
 
                         return next(iter(results), {}).get("id", None)  # type: ignore
 
+            edges: List[Tuple[str, str, str]] = []
             for edge in pending_edges.edges:
                 from_id = await find_node_id(edge.from_node)
                 to_id = await find_node_id(edge.to_node)
                 if from_id and to_id:
-                    await graph_db.create_edge(model, from_id, to_id, edge.edge_type)
+                    edges.append((from_id, to_id, edge.edge_type))
+
+            await graph_db.update_deferred_edges(edges)
 
             log.info(
                 f"MergeOuterEdgesHandler: created {created_edges}/{len(pending_edges.edges)} edges in task id {task_id}"
@@ -80,7 +83,7 @@ class MergeOuterEdgesHandler:
             log.info(f"MergeOuterEdgesHandler: no pending edges for task id {task_id} found.")
 
     async def mark_done(self, task_id: TaskId) -> None:
-        pending_outer_edge_db = self.db_access.get_pending_outer_edge_db()
+        pending_outer_edge_db = self.db_access.get_pending_deferred_edge_db()
         await pending_outer_edge_db.delete(task_id)
 
     async def __handle_events(self, subscription_done: Future[None]) -> None:

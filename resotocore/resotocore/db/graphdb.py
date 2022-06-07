@@ -3,7 +3,7 @@ import logging
 import uuid
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from functools import partial
 from numbers import Number
 from typing import Optional, Callable, AsyncGenerator, Any, Iterable, Dict, List, Tuple, cast
@@ -46,7 +46,7 @@ class GraphDB(ABC):
         pass
 
     @abstractmethod
-    async def create_edge(self, model: Model, from_id: str, to_id: str, edge_type: str) -> None:
+    async def update_deferred_edges(self, edges: List[Tuple[str, str, str]]) -> None:
         pass
 
     @abstractmethod
@@ -166,16 +166,30 @@ class ArangoGraphDB(GraphDB):
             trafo = self.document_to_instance_fn(model)
             return trafo(result["new"])
 
-    async def create_edge(self, model: Model, from_id: str, to_id: str, edge_type: str) -> None:
-        graph = GraphBuilder(model)
-        graph.add_edge(from_id, to_id, edge_type)
-        access = GraphAccess(graph.graph, "root", {from_id, to_id})
-        _, edge_inserts, _ = self.prepare_edges(access, [], edge_type)
-        assert len(edge_inserts) == 1
-        edge_collection = self.edge_collection(edge_type)
-        async with self.db.begin_transaction(write=[self.vertex_name, edge_collection]) as tx:
-            await tx.insert(edge_collection, edge_inserts[0])
-            return None
+    async def update_deferred_edges(self, edges: List[Tuple[str, str, str]]) -> None:
+
+        default_edges: List[Json] = []
+        delete_edges: List[Json] = []
+
+        now = datetime.now(tz=timezone.utc)
+
+        for from_node, to_node, edge_type in edges:
+            json_node = self.edge_to_json(from_node, to_node, None)
+            json_node["outer_edge_ts"] = now.isoformat()  # must be kept in sync with an index
+            if edge_type == EdgeType.default:
+                default_edges.append(json_node)
+            else:
+                delete_edges.append(json_node)
+
+        if default_edges:
+            edge_collection = self.edge_collection(EdgeType.default)
+            async with self.db.begin_transaction(write=[self.vertex_name, edge_collection]) as tx:
+                await tx.insert_many(edge_collection, default_edges)
+
+        if delete_edges:
+            edge_collection = self.edge_collection(EdgeType.delete)
+            async with self.db.begin_transaction(write=[self.vertex_name, edge_collection]) as tx:
+                await tx.insert_many(edge_collection, delete_edges)
 
     async def update_node(
         self, model: Model, node_id: str, patch_or_replace: Json, replace: bool, section: Optional[str]
@@ -575,6 +589,16 @@ class ArangoGraphDB(GraphDB):
             insert_node(not_visited)
         return info, resource_inserts, resource_updates, resource_deletes
 
+    def edge_to_json(self, from_node: str, to_node: str, refs: Optional[List[str]]) -> Json:
+        key = self.db_edge_key(from_node, to_node)
+        js = {
+            "_key": key,
+            "_from": f"{self.vertex_name}/{from_node}",
+            "_to": f"{self.vertex_name}/{to_node}",
+            "refs": refs,
+        }
+        return js
+
     def prepare_edges(
         self, access: GraphAccess, edge_cursor: Iterable[Json], edge_type: str
     ) -> Tuple[GraphUpdate, List[Json], List[Json]]:
@@ -584,7 +608,6 @@ class ArangoGraphDB(GraphDB):
         edges_deletes: List[Json] = []
 
         def insert_edge(from_node: str, to_node: str) -> None:
-            key = self.db_edge_key(from_node, to_node)
             # Take the refs with the lower number of entries (or none):
             # Lower number of entries means closer to the root.
             # Ownership is maintained as self-contained subgraph.
@@ -594,12 +617,7 @@ class ArangoGraphDB(GraphDB):
             from_refs = access.nodes[from_node].get("refs")
             refs = (to_refs if len(to_refs) < len(from_refs) else from_refs) if to_refs and from_refs else None
 
-            js = {
-                "_key": key,
-                "_from": f"{self.vertex_name}/{from_node}",
-                "_to": f"{self.vertex_name}/{to_node}",
-                "refs": refs,
-            }
+            js = self.edge_to_json(from_node, to_node, refs)
             edges_inserts.append(js)
             info.edges_created += 1
 
@@ -867,6 +885,10 @@ class ArangoGraphDB(GraphDB):
                     sparse=False,
                     name="update_edges_ref_id",
                 )
+            outer_edge_ts_index_name = "outer_edge_timestamp_index"
+            if outer_edge_ts_index_name not in edge_idxes:
+                log.info(f"Add index {outer_edge_ts_index_name} on {edges.name}")
+                edges.add_persistent_index(["outer_edge_ts"], sparse=True, name=outer_edge_ts_index_name)
 
         async def create_collection(name: str) -> StandardCollection:
             return db.collection(name) if await db.has_collection(name) else await db.create_collection(name)
@@ -1035,8 +1057,8 @@ class EventGraphDB(GraphDB):
         await self.event_sender.core_event(CoreEvent.NodeCreated, {"graph": self.graph_name})
         return result
 
-    async def create_edge(self, model: Model, from_id: str, to_id: str, edge_type: str) -> None:
-        await self.real.create_edge(model, from_id, to_id, edge_type)
+    async def update_deferred_edges(self, edges: List[Tuple[str, str, str]]) -> None:
+        await self.real.update_deferred_edges(edges)
         await self.event_sender.core_event(CoreEvent.EdgeCreated)
 
     async def update_node(

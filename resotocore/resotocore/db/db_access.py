@@ -80,9 +80,7 @@ class DbAccess(ABC):
         await self.configs_model_db.create_update_schema()
         await self.template_entity_db.create_update_schema()
         await self.pending_deferred_edge_db.create_update_schema()
-        self.pending_deferred_edge_db.db.collection(self.pending_deferred_edge_db.collection_name).add_ttl_index(
-            ["created_at"], TWO_HOURS, "deferred_edges_expiration_index"
-        )
+        self.update_deferred_edge_db_index()
         for graph in self.database.graphs():
             log.info(f'Found graph: {graph["name"]}')
             db = self.get_graph_db(graph["name"])
@@ -126,8 +124,15 @@ class DbAccess(ABC):
     def get_model_db(self) -> ModelDb:
         return self.model_db
 
-    def get_pending_outer_edge_db(self) -> PendingDeferredEdgeDb:
+    def get_pending_deferred_edge_db(self) -> PendingDeferredEdgeDb:
         return self.pending_deferred_edge_db
+
+    def update_deferred_edge_db_index(self) -> None:
+        ttl_index_name = "deferred_edges_expiration_index"
+        collection = self.pending_deferred_edge_db.db.collection(self.pending_deferred_edge_db.collection_name)
+        if ttl_index_name not in {idx["name"] for idx in collection.indexes()}:
+            log.info(f"Add index {index_name} on {collection.name}")
+            collection.add_ttl_index(["created_at"], TWO_HOURS, "deferred_edges_expiration_index")
 
     async def check_outdated_updates(self) -> None:
         now = datetime.now(timezone.utc)
