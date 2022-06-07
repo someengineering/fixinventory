@@ -156,7 +156,7 @@ class Graph(networkx.MultiDiGraph):
             key = EdgeKey(src=src, dst=dst, edge_type=edge_type)
 
         if self.has_edge(src, dst, key=key):
-            log.error(f"Edge from {src} to {dst} already exists in graph")
+            log.debug(f"Edge from {src} to {dst} already exists in graph")
             return
         return_key = super().add_edge(src, dst, key=key, **attr)
         if self._log_edge_creation and isinstance(src, BaseResource) and isinstance(dst, BaseResource):

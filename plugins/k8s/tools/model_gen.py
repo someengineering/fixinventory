@@ -104,7 +104,7 @@ top_level = {
     "CiliumClusterwideNetworkPolicy",
 }
 
-allowed_top_level_props = {"status"}
+allowed_top_level_props = {"spec"}
 type_map = {
     "string": "str",
     "integer": "int",
@@ -152,17 +152,16 @@ class ModelCreator:
         if tpe == "array":
             kind, is_complex = kind_name(prop_spec["items"])
             prop = f"{snake_name}: List[{kind}] = field(default_factory=list)"
-            mapping = f'"{snake_name}": OptionalS("{name}", default=[])"'
+            mapping = f'"{snake_name}": OptionalS("{name}", default=[])'
             if is_complex:
-                mapping += f'" >> ForallBend({kind}.mapping)'
+                mapping += f" >> ForallBend({kind}.mapping)"
         elif tpe == "object" or tpe is None:
             kind, is_complex = kind_name(prop_spec)
             prop = f"{snake_name}: Optional[{kind}] = field(default=None)"
             if is_complex:
-                mapping = f'"{snake_name}": OptionalS("{name}", default={{}}) >> Bend({kind}.mapping)'
+                mapping = f'"{snake_name}": OptionalS("{name}") >> Bend({kind}.mapping)'
             else:
                 mapping = f'"{snake_name}": OptionalS("{name}")'
-
         elif tpe in type_map:
             prop = f"{snake_name}: Optional[{type_map[prop_spec['type']]}] = field(default=None)"
             mapping = f'"{snake_name}": OptionalS("{name}")'
