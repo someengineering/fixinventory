@@ -21,7 +21,7 @@ from resotocore.db.entitydb import EventEntityDb
 from resotocore.db.graphdb import ArangoGraphDB, GraphDB, EventGraphDB
 from resotocore.db.jobdb import job_db
 from resotocore.db.modeldb import ModelDb, model_db
-from resotocore.db.deferred_edge_db import OuterEdgeDb, outer_edge_db
+from resotocore.db.deferred_edge_db import PendingDeferredEdgeDb, pending_deferred_edge_db
 from resotocore.db.runningtaskdb import running_task_db
 from resotocore.db.subscriberdb import subscriber_db
 from resotocore.db.templatedb import template_entity_db
@@ -31,6 +31,9 @@ from resotocore.model.typed_model import from_js, to_js
 from resotocore.util import Periodic, utc, shutdown_process, uuid_str
 
 log = logging.getLogger(__name__)
+
+
+TWO_HOURS = 7200
 
 
 class DbAccess(ABC):
@@ -57,7 +60,7 @@ class DbAccess(ABC):
         self.model_db = EventEntityDb(model_db(self.db, model_name), event_sender, model_name)
         self.subscribers_db = EventEntityDb(subscriber_db(self.db, subscriber_name), event_sender, subscriber_name)
         self.running_task_db = running_task_db(self.db, running_task_name)
-        self.pending_outer_edge_db = outer_edge_db(self.db, deferred_edge_name)
+        self.pending_deferred_edge_db = pending_deferred_edge_db(self.db, deferred_edge_name)
         self.job_db = job_db(self.db, job_name)
         self.config_entity_db = config_entity_db(self.db, config_entity)
         self.config_validation_entity_db = config_validation_entity_db(self.db, config_validation_entity)
@@ -76,7 +79,10 @@ class DbAccess(ABC):
         await self.config_validation_entity_db.create_update_schema()
         await self.configs_model_db.create_update_schema()
         await self.template_entity_db.create_update_schema()
-        await self.pending_outer_edge_db.create_update_schema()
+        await self.pending_deferred_edge_db.create_update_schema()
+        self.pending_deferred_edge_db.db.collection(self.pending_deferred_edge_db.collection_name).add_ttl_index(
+            ["created_at"], TWO_HOURS, "deferred_edges_expiration_index"
+        )
         for graph in self.database.graphs():
             log.info(f'Found graph: {graph["name"]}')
             db = self.get_graph_db(graph["name"])
@@ -120,8 +126,8 @@ class DbAccess(ABC):
     def get_model_db(self) -> ModelDb:
         return self.model_db
 
-    def get_pending_outer_edge_db(self) -> OuterEdgeDb:
-        return self.pending_outer_edge_db
+    def get_pending_outer_edge_db(self) -> PendingDeferredEdgeDb:
+        return self.pending_deferred_edge_db
 
     async def check_outdated_updates(self) -> None:
         now = datetime.now(timezone.utc)

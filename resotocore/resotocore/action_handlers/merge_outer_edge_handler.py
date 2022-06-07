@@ -55,11 +55,17 @@ class MergeOuterEdgesHandler:
                     node = await graph_db.get_node(model, selector.value)
                     return node.get("id") if node else None
                 else:
-                    query = self.parse_query(selector.query)
+                    query = self.parse_query(selector.query).with_limit(2)
                     async with await graph_db.search_list(QueryModel(query, model)) as cursor:
-                        async for node in cursor:
-                            return node.get("id", None)  # type: ignore
-                    return None
+                        results = [node async for node in cursor]
+                        if len(results) != 1:
+                            log.warn(
+                                f"task_id: {task_id}: node selector {selector.query} returned more than one node."
+                                "The edge was not created."
+                            )
+                            return None
+
+                        return next(iter(results), {}).get("id", None)  # type: ignore
 
             for edge in pending_edges.edges:
                 from_id = await find_node_id(edge.from_node)
@@ -73,6 +79,10 @@ class MergeOuterEdgesHandler:
         else:
             log.info(f"MergeOuterEdgesHandler: no pending edges for task id {task_id} found.")
 
+    async def mark_done(self, task_id: TaskId) -> None:
+        pending_outer_edge_db = self.db_access.get_pending_outer_edge_db()
+        await pending_outer_edge_db.delete(task_id)
+
     async def __handle_events(self, subscription_done: Future[None]) -> None:
         async with self.message_bus.subscribe(subscriber_id, [merge_outer_edges]) as events:
             subscription_done.set_result(None)
@@ -80,6 +90,7 @@ class MergeOuterEdgesHandler:
                 event = await events.get()
                 if isinstance(event, Action) and event.message_type == merge_outer_edges:
                     await self.merge_outer_edges(event.task_id)
+                    await self.mark_done(event.task_id)
                     await self.task_handler_service.handle_action_done(event.done(subscriber_id))
 
     async def start(self) -> None:

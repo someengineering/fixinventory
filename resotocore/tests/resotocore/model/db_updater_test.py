@@ -13,7 +13,7 @@ from resotocore.ids import TaskId
 from resotocore.model.db_updater import merge_graph_process
 from resotocore.model.model import Kind
 from resotocore.model.typed_model import to_js
-from resotocore.db.deferred_edge_db import outer_edge_db
+from resotocore.db.deferred_edge_db import pending_deferred_edge_db
 
 # noinspection PyUnresolvedReferences
 from tests.resotocore.analytics import event_sender
@@ -39,7 +39,7 @@ async def test_merge_process(
     # create sample graph data to insert
     graph = create_graph("test")
 
-    await outer_edge_db(graph_db.db, "deferred_outer_edges").create_update_schema()
+    await pending_deferred_edge_db(graph_db.db, "deferred_outer_edges").create_update_schema()
 
     async def iterator() -> AsyncGenerator[bytes, None]:
         for node in graph.nodes():
