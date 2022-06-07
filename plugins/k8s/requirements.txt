@@ -1,3 +1,2 @@
 resotolib==2.3.0a0
 kubernetes==23.3.0
-jsonbender==0.9.3
