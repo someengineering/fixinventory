@@ -28,6 +28,7 @@ class KubernetesCollectorPlugin(BaseCollectorPlugin):
         cluster_access = k8s.cluster_access_configs()
 
         if len(cluster_access) == 0:
+            log.warning("Kubernetes plugin enabled, but no clusters configured. Ignore.")
             return
 
         max_workers = len(cluster_access) if len(cluster_access) < k8s.pool_size else k8s.pool_size
@@ -64,14 +65,8 @@ class KubernetesCollectorPlugin(BaseCollectorPlugin):
         args: Namespace,
         running_config: RunningConfig,
     ) -> Graph:
-        """Collects an individual Kubernetes Cluster.
-
-        Is being called in collect() and either run within a thread or a spawned
-        process. Depending on whether `k8s.fork_process` was specified or not.
-
-        Because the spawned process does not inherit any of our memory or file
-        descriptors we are passing the already parsed `args` Namespace() to this
-        method.
+        """
+        Collects an individual Kubernetes Cluster.
         """
         resotolib.proc.set_thread_name(f"k8s_{cluster_id}")
 
@@ -90,11 +85,9 @@ class KubernetesCollectorPlugin(BaseCollectorPlugin):
                 log.error(f"Unable to authenticate with {cluster_id}")
             else:
                 log.exception(f"An unhandled error occurred while collecting {cluster_id}: {e}")
-            # TODO: remove raise
             raise
         except Exception as e:
             log.exception(f"An unhandled error occurred while collecting {cluster_id}: {e}")
-            # TODO: remove raise
             raise
         else:
             return kc.graph

@@ -11,6 +11,7 @@ log = logging.getLogger("resoto." + __name__)
 
 @dataclass
 class K8sConfig:
+    # TODO: replicate the kubernetes config file structure
     kind: ClassVar[str] = "k8s"
     context: List[str] = field(default_factory=list, metadata={"description": "Context(s)"})
     config: Optional[str] = field(default=None, metadata={"description": "Config file(s)"})

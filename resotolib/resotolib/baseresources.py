@@ -139,8 +139,8 @@ class BaseResource(ABC):
 
         E.g. instance -> aws -> 123457 -> us-east-1 -> us-east-1b -> i-987654 -> myServer
         """
-        # if self._graph is None:
-        #     raise RuntimeError(f"_keys() called on {self.rtdname} before resource was added to graph")
+        if self._graph is None:
+            raise RuntimeError(f"_keys() called on {self.rtdname} before resource was added to graph")
         return (
             self.kind,
             self.cloud().id,
