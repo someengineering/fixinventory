@@ -1,7 +1,7 @@
+import logging
 from dataclasses import dataclass
 from typing import List, Type, TypeVar, Optional
 
-import resotolib.logger
 from kubernetes.client import Configuration, ApiClient
 from resoto_plugin_k8s.config import K8sConfig
 from resoto_plugin_k8s.resources import (
@@ -16,7 +16,7 @@ from resotolib.baseresources import EdgeType
 from resotolib.graph import Graph
 from resotolib.types import Json
 
-log = resotolib.logger.getLogger("resoto." + __name__)
+log = logging.getLogger("resoto." + __name__)
 
 T = TypeVar("T")
 
@@ -37,7 +37,7 @@ class K8sClient:
         result, code, header = self.api_client.call_api(
             path, "GET", auth_settings=["BearerToken"], response_type="object"
         )
-        return result
+        return result  # type: ignore
 
     def version(self) -> Json:
         return self.get("/version")
@@ -45,7 +45,7 @@ class K8sClient:
     def apis(self) -> List[K8sResource]:
         result: List[K8sResource] = []
 
-        def add_resource(part: str, js: Json):
+        def add_resource(part: str, js: Json) -> None:
             name = js["name"]
             verbs = js["verbs"]
             if "/" not in name and "list" in verbs:
@@ -68,7 +68,7 @@ class K8sClient:
         self, resource: K8sResource, clazz: Type[KubernetesResource], path: Optional[str] = None
     ) -> List[T]:
         result = self.get(path or resource.path)
-        return [clazz.from_json(r) for r in result.get("items", [])]
+        return [clazz.from_json(r) for r in result.get("items", [])]  # type: ignore
 
 
 class KubernetesCollector:
@@ -104,7 +104,7 @@ class KubernetesCollector:
         for resource in self.client.apis():
             known = all_k8s_resources_by_k8s_name.get(resource.kind)
             if known and self.k8s_config.is_allowed(resource.kind):
-                resources = self.client.list_resources(resource, known)
+                resources: List[KubernetesResource] = self.client.list_resources(resource, known)
                 for r in resources:
                     self.graph.add_node(r)
             else:
@@ -117,10 +117,10 @@ class KubernetesCollector:
             if isinstance(node, KubernetesCluster):  # ignore the root
                 continue
             elif isinstance(node, KubernetesNamespace):  # connect to cluster
-                self.graph.add_edge(self.graph.root, node, edge_type=EdgeType.default)
+                self.graph.add_edge(self.graph.root, node, edge_type=EdgeType.default)  # type: ignore
             else:  # namespaces resources get linked to the namespace, otherwise the cluster
                 base = namespaces[node.namespace] if node.namespace else self.graph.root
-                self.graph.add_edge(base, node, edge_type=EdgeType.default)
+                self.graph.add_edge(base, node, edge_type=EdgeType.default)  # type: ignore
             # connect owner references
             # https://kubernetes.io/docs/concepts/overview/working-with-objects/owners-dependents/
             for owner_ref in node.owner_references():

@@ -1,13 +1,12 @@
+import logging
 from dataclasses import dataclass, field
 from typing import List, ClassVar, Optional, Dict
 
-import resotolib.logger
-import resotolib.proc
 from kubernetes import client, config
 from kubernetes.client import Configuration
 from resotolib.utils import num_default_threads
 
-log = resotolib.logger.getLogger("resoto." + __name__)
+log = logging.getLogger("resoto." + __name__)
 
 
 @dataclass

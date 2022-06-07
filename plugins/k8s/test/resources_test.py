@@ -1,4 +1,13 @@
+import json
+import os
+
 import pytest
+from _pytest.fixtures import SubRequest
+from resotolib.types import Json
+
+from typing import Type
+import pytest
+import jsons
 
 # noinspection PyUnresolvedReferences
 from fixtures import json_file
@@ -7,7 +16,7 @@ from resotolib.types import Json
 
 
 @pytest.mark.json_file("apis_apps_v1_controllerrevisions.json")
-def test_ControllerRevision(json_file: Json) -> None:
+def test_controller_revision(json_file: Json) -> None:
     round_trip(KubernetesControllerRevision, json_file)
 
 
@@ -17,12 +26,12 @@ def test_ControllerRevision(json_file: Json) -> None:
 
 
 @pytest.mark.json_file("apis_apps_v1_daemonsets.json")
-def test_DaemonSet(json_file: Json) -> None:
+def test_daemon_set(json_file: Json) -> None:
     round_trip(KubernetesDaemonSet, json_file)
 
 
 @pytest.mark.json_file("apis_apps_v1_deplpoyments.json")
-def test_Deployment(json_file: Json) -> None:
+def test_deployment(json_file: Json) -> None:
     round_trip(KubernetesDeployment, json_file)
 
 
@@ -37,7 +46,7 @@ def test_Deployment(json_file: Json) -> None:
 
 
 @pytest.mark.json_file("api_v1_pods.json")
-def test_Pod(json_file: Json) -> None:
+def test_pod(json_file: Json) -> None:
     round_trip(KubernetesPod, json_file)
 
 
@@ -47,12 +56,12 @@ def test_Pod(json_file: Json) -> None:
 
 
 @pytest.mark.json_file("apis_scheduling.k8s.io_v1_priorityclasses.json")
-def test_PriorityClass(json_file: Json) -> None:
+def test_priority_class(json_file: Json) -> None:
     round_trip(KubernetesPriorityClass, json_file)
 
 
 @pytest.mark.json_file("apis_apps_v1_replicasets.json")
-def test_ReplicaSet(json_file: Json) -> None:
+def test_replica_set(json_file: Json) -> None:
     round_trip(KubernetesReplicaSet, json_file)
 
 
@@ -62,17 +71,17 @@ def test_ReplicaSet(json_file: Json) -> None:
 
 
 @pytest.mark.json_file("apis_apps_v1_statefulsets.json")
-def test_StatefulSet(json_file: Json) -> None:
+def test_stateful_set(json_file: Json) -> None:
     round_trip(KubernetesStatefulSet, json_file)
 
 
 @pytest.mark.json_file("apis_discovery.k8s.io_v1_endpointslices.json")
-def test_EndpointSlice(json_file: Json) -> None:
+def test_endpoint_slice(json_file: Json) -> None:
     round_trip(KubernetesEndpointSlice, json_file)
 
 
 @pytest.mark.json_file("api_v1_endpoints.json")
-def test_Endpoints(json_file: Json) -> None:
+def test_endpoints(json_file: Json) -> None:
     round_trip(KubernetesEndpoints, json_file)
 
 
@@ -87,17 +96,17 @@ def test_Endpoints(json_file: Json) -> None:
 
 
 @pytest.mark.json_file("api_v1_services.json")
-def test_Service(json_file: Json) -> None:
+def test_service(json_file: Json) -> None:
     round_trip(KubernetesService, json_file)
 
 
 @pytest.mark.json_file("apis_storage.k8s.io_v1_csidrivers.json")
-def test_CSIDriver(json_file: Json) -> None:
+def test_csi_driver(json_file: Json) -> None:
     round_trip(KubernetesCSIDriver, json_file)
 
 
 @pytest.mark.json_file("apis_storage.k8s.io_v1_csinodes.json")
-def test_CSINode(json_file: Json) -> None:
+def test_csi_node(json_file: Json) -> None:
     round_trip(KubernetesCSINode, json_file)
 
 
@@ -107,57 +116,57 @@ def test_CSINode(json_file: Json) -> None:
 
 
 @pytest.mark.json_file("api_v1_configmaps.json")
-def test_ConfigMap(json_file: Json) -> None:
+def test_config_map(json_file: Json) -> None:
     round_trip(KubernetesConfigMap, json_file)
 
 
 @pytest.mark.json_file("api_v1_persistentvolumes.json")
-def test_PersistentVolume(json_file: Json) -> None:
+def test_persistent_volume(json_file: Json) -> None:
     round_trip(KubernetesPersistentVolume, json_file)
 
 
 @pytest.mark.json_file("api_v1_persistentvolumeclaims.json")
-def test_PersistentVolumeClaim(json_file: Json) -> None:
+def test_persistent_volume_claim(json_file: Json) -> None:
     round_trip(KubernetesPersistentVolumeClaim, json_file)
 
 
 @pytest.mark.json_file("api_v1_secrets.json")
-def test_Secret(json_file: Json) -> None:
+def test_secret(json_file: Json) -> None:
     round_trip(KubernetesSecret, json_file)
 
 
 @pytest.mark.json_file("apis_storage.k8s.io_v1_storageclasses.json")
-def test_StorageClass(json_file: Json) -> None:
+def test_storage_class(json_file: Json) -> None:
     round_trip(KubernetesStorageClass, json_file)
 
 
 @pytest.mark.json_file("apis_storage.k8s.io_v1_volumeattachments.json")
-def test_VolumeAttachment(json_file: Json) -> None:
+def test_volume_attachment(json_file: Json) -> None:
     round_trip(KubernetesVolumeAttachment, json_file)
 
 
 @pytest.mark.json_file("api_v1_serviceaccounts.json")
-def test_ServiceAccount(json_file: Json) -> None:
+def test_service_account(json_file: Json) -> None:
     round_trip(KubernetesServiceAccount, json_file)
 
 
 @pytest.mark.json_file("apis_rbac.authorization.k8s.io_v1_clusterroles.json")
-def test_ClusterRole(json_file: Json) -> None:
+def test_cluster_role(json_file: Json) -> None:
     round_trip(KubernetesClusterRole, json_file)
 
 
 @pytest.mark.json_file("apis_rbac.authorization.k8s.io_v1_clusterrolebindings.json")
-def test_ClusterRoleBinding(json_file: Json) -> None:
+def test_cluster_role_binding(json_file: Json) -> None:
     round_trip(KubernetesClusterRoleBinding, json_file)
 
 
 @pytest.mark.json_file("apis_rbac.authorization.k8s.io_v1_roles.json")
-def test_Role(json_file: Json) -> None:
+def test_role(json_file: Json) -> None:
     round_trip(KubernetesRole, json_file)
 
 
 @pytest.mark.json_file("apis_rbac.authorization.k8s.io_v1_rolebindings.json")
-def test_RoleBinding(json_file: Json) -> None:
+def test_role_binding(json_file: Json) -> None:
     round_trip(KubernetesRoleBinding, json_file)
 
 
@@ -172,7 +181,7 @@ def test_RoleBinding(json_file: Json) -> None:
 
 
 @pytest.mark.json_file("apis_policy_v1_poddisruptionbudgets.json")
-def test_PodDisruptionBudget(json_file: Json) -> None:
+def test_pod_disruption_budget(json_file: Json) -> None:
     round_trip(KubernetesPodDisruptionBudget, json_file)
 
 
@@ -182,12 +191,12 @@ def test_PodDisruptionBudget(json_file: Json) -> None:
 
 
 @pytest.mark.json_file("apis_admissionregistration.k8s.io_v1_mutatingwebhookconfigurations.json")
-def test_MutatingWebhookConfiguration(json_file: Json) -> None:
+def test_mutating_webhook_configuration(json_file: Json) -> None:
     round_trip(KubernetesMutatingWebhookConfiguration, json_file)
 
 
 @pytest.mark.json_file("apis_admissionregistration.k8s.io_v1_validatingwebhookconfigurations.json")
-def test_ValidatingWebhookConfiguration(json_file: Json) -> None:
+def test_validating_webhook_configuration(json_file: Json) -> None:
     round_trip(KubernetesValidatingWebhookConfiguration, json_file)
 
 
@@ -197,28 +206,35 @@ def test_ValidatingWebhookConfiguration(json_file: Json) -> None:
 
 
 @pytest.mark.json_file("apis_flowcontrol.apiserver.k8s.io_v1beta1_flowschemas.json")
-def test_FlowSchema(json_file: Json) -> None:
+def test_flow_schema(json_file: Json) -> None:
     round_trip(KubernetesFlowSchema, json_file)
 
 
 @pytest.mark.json_file("api_v1_namespaces.json")
-def test_Namespace(json_file: Json) -> None:
+def test_namespace(json_file: Json) -> None:
     round_trip(KubernetesNamespace, json_file)
 
 
 @pytest.mark.json_file("api_v1_nodes.json")
-def test_Node(json_file: Json) -> None:
+def test_node(json_file: Json) -> None:
     round_trip(KubernetesNode, json_file)
 
 
 @pytest.mark.json_file("apis_flowcontrol.apiserver.k8s.io_v1beta1_prioritylevelconfigurations.json")
-def test_PriorityLevelConfiguration(json_file: Json) -> None:
+def test_priority_level_configuration(json_file: Json) -> None:
     round_trip(KubernetesPriorityLevelConfiguration, json_file)
 
 
 # @pytest.mark.json_file("apis_node.k8s.io_v1_runtimeclasses.json")
 # def test_RuntimeClass(json_file: Json) -> None:
 #     round_trip(KubernetesRuntimeClass, json_file)
+
+
+def test_show() -> None:
+    # Config.k8s = K8sConfig(config="/Users/matthias/.kube/configs/tmp/dev_resoto")
+    # plugin = KubernetesCollectorPlugin()
+    # plugin.collect()
+    pass
 
 
 def round_trip(resource_class: Type[KubernetesResource], json: Json) -> None:

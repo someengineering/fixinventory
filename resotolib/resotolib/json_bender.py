@@ -1,6 +1,7 @@
+from __future__ import annotations
 import logging
 from abc import ABC
-from typing import Dict, Any, Type, Union, Optional
+from typing import Dict, Any, Type, Union, Optional, Callable
 
 from resotolib.types import Json
 from resotolib.units import parse
@@ -8,71 +9,65 @@ from resotolib.units import parse
 log = logging.getLogger("resoto." + __name__)
 
 
-# Idea stolen from: https://github.com/Onyo/jsonbender
-class Bender:
-
+# General idea and basic implementation is taken from: https://github.com/Onyo/jsonbender
+class Bender(ABC):
     """
-    Base bending class. All selectors and transformations should directly or
-    indirectly derive from this. Should not be instantiated.
-
-    Whenever a bender is activated (by the bend() function), the execute()
-    method is called with the source as it's single argument.
-    All bending logic should be there.
+    Base bending class.
     """
 
-    def __call__(self, source):
+    def __call__(self, source: Any) -> Any:
         return self.raw_execute(source).value
 
-    def raw_execute(self, source):
+    def raw_execute(self, source: Any) -> Any:
         transport = Transport.from_source(source)
         return Transport(self.execute(transport.value), transport.context)
 
-    def execute(self, source):
+    def execute(self, source: Any) -> Any:
         return source
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> Bender:  # type: ignore
         return Eq(self, other)
 
-    def __ne__(self, other):
+    def __ne__(self, other: Any) -> Bender:  # type: ignore
         return Ne(self, other)
 
-    def __and__(self, other):
+    def __and__(self, other: Any) -> Bender:
         return And(self, other)
 
-    def __or__(self, other):
+    def __or__(self, other: Any) -> Bender:
         return Or(self, other)
 
-    def __invert__(self):
+    def __invert__(self: Any) -> Bender:
         return Invert(self)
 
-    def __add__(self, other):
+    def __add__(self, other: Any) -> Bender:
         return Add(self, other)
 
-    def __sub__(self, other):
+    def __sub__(self, other: Any) -> Bender:
         return Sub(self, other)
 
-    def __mul__(self, other):
+    def __mul__(self, other: Any) -> Bender:
         return Mul(self, other)
 
-    def __div__(self, other):
+    def __div__(self, other: Any) -> Bender:
         return Div(self, other)
 
-    def __neg__(self):
+    def __neg__(self) -> Bender:
         return Neg(self)
 
-    def __truediv__(self, other):
+    def __truediv__(self, other: Any) -> Bender:
         return Div(self, other)
 
-    def __floordiv__(self, other):
+    def __floordiv__(self, other: Any) -> Bender:
         return Div(self, other)
 
-    def __rshift__(self, other):
+    def __rshift__(self, other: Any) -> Bender:
         return Compose(self, other)
 
-    def __lshift__(self, other):
+    def __lshift__(self, other: Any) -> Bender:
         return Compose(other, self)
 
-    def __getitem__(self, index):
+    def __getitem__(self, index: Any) -> Bender:
         if isinstance(index, int):
             return self >> GetItem(index)
         elif isinstance(index, str):
@@ -81,14 +76,25 @@ class Bender:
             raise AttributeError(f"Invalid index type: {index}")
 
 
+class BendingError(Exception):
+    pass
+
+
+Mapping = Union[Bender, Dict[str, Bender]]
+
+
 class S(Bender):
-    def __init__(self, *path, **kwargs):
+    """
+    Retrieve a value from a JSON object under given path.
+    """
+
+    def __init__(self, *path: str, default: Optional[Any] = None):
         if not path:
             raise ValueError("No path given")
         self._path = path
-        self._default = kwargs.get("default")
+        self._default = default
 
-    def execute(self, source):
+    def execute(self, source: Any) -> Any:
         try:
             for key in self._path:
                 source = source[key]
@@ -102,11 +108,11 @@ class K(Bender):
     Selects a constant value.
     """
 
-    def __init__(self, value, *args, **kwargs):
+    def __init__(self, value: Any, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
         self._val = value
 
-    def execute(self, source):
+    def execute(self, source: Any) -> Any:
         return self._val
 
 
@@ -116,8 +122,6 @@ class F(Bender):
     The extra positional and named parameters are passed to the function at
     bending time after the given value.
 
-    `func` is a callable
-
     Example:
     ```
     f = F(sorted, key=lambda d: d['id'])
@@ -125,38 +129,55 @@ class F(Bender):
     ```
     """
 
-    def __init__(self, func, *args, **kwargs):
+    def __init__(self, func: Callable[[Any, ...], Any], *args: Any, **kwargs: Any):  # type: ignore
         super().__init__(*args, **kwargs)
         self._func = func
         self._args = args
         self._kwargs = kwargs
 
-    def execute(self, value):
+    def execute(self, value: Any) -> Any:
         return self._func(value, *self._args, **self._kwargs)
 
 
 class GetItem(Bender):
-    def __init__(self, index):
+    """
+    Can be applied to a list or dict bender via `[index]`.
+    List: GetItem(0) -> first element
+    Dictionary: GetItem('key') -> value of key
+    """
+
+    def __init__(self, index: Union[str, int]):
         self._index = index
 
-    def execute(self, source):
-        return source[self._index] if isinstance(source, list) and len(source) > abs(self._index) else None
+    def execute(self, source: Any) -> Any:
+        if isinstance(source, list) and isinstance(self._index, int):
+            return source[self._index] and isinstance(source, list) and len(source) > abs(self._index)
+        elif isinstance(source, dict) and isinstance(self._index, str):
+            return source.get(self._index)
+        elif source is not None:
+            raise AttributeError(f"Invalid source type: {source}")
+        else:
+            return None
 
 
 class Compose(Bender):
-    def __init__(self, first, second):
+    """
+    Compose two benders.
+    Use `>>` instead of calling `Compose` directly.
+    """
+
+    def __init__(self, first: Bender, second: Bender):
         self._first = first
         self._second = second
 
-    def raw_execute(self, source):
+    def raw_execute(self, source: Any) -> Any:
         first = self._first.raw_execute(source)
         return self._second.raw_execute(first) if first is not None else None
 
 
 class UnaryOperator(Bender):
     """
-    Base class for unary bending operators. Should not be directly
-    instantiated.
+    Base class for unary bending operators.
 
     Whenever a unary op is activated, the op() method is called with the
     *value* (that is, the bender is implicitly activated).
@@ -165,32 +186,31 @@ class UnaryOperator(Bender):
     should return the desired result.
     """
 
-    def __init__(self, bender):
+    def __init__(self, bender: Bender):
         self.bender = bender
 
-    def op(self, v):
+    def op(self, v: Any) -> Any:
         raise NotImplementedError()
 
-    def raw_execute(self, source):
+    def raw_execute(self, source: Any) -> Any:
         source = Transport.from_source(source)
         val = self.op(self.bender(source))
         return Transport(val, source.context)
 
 
 class Neg(UnaryOperator):
-    def op(self, v):
+    def op(self, v: Any) -> Any:
         return -v
 
 
 class Invert(UnaryOperator):
-    def op(self, v):
+    def op(self, v: Any) -> Any:
         return not v
 
 
 class BinaryOperator(Bender):
     """
-    Base class for binary bending operators. Should not be directly
-    instantiated.
+    Base class for binary bending operators.
 
     Whenever a bin op is activated, the op() method is called with both
     *values* (that is, the benders are implicitly activated).
@@ -199,121 +219,80 @@ class BinaryOperator(Bender):
     should return the desired result.
     """
 
-    def __init__(self, bender1, bender2):
+    def __init__(self, bender1: Bender, bender2: Bender):
         self._bender1 = bender1
         self._bender2 = bender2
 
-    def op(self, v1, v2):
+    def op(self, v1: Any, v2: Any) -> Any:
         raise NotImplementedError()
 
-    def raw_execute(self, source):
+    def raw_execute(self, source: Any) -> Any:
         source = Transport.from_source(source)
         val = self.op(self._bender1(source), self._bender2(source))
         return Transport(val, source.context)
 
 
 class Add(BinaryOperator):
-    def op(self, v1, v2):
+    def op(self, v1: Any, v2: Any) -> Any:
         return v1 + v2
 
 
 class Sub(BinaryOperator):
-    def op(self, v1, v2):
+    def op(self, v1: Any, v2: Any) -> Any:
         return v1 - v2
 
 
 class Mul(BinaryOperator):
-    def op(self, v1, v2):
+    def op(self, v1: Any, v2: Any) -> Any:
         return v1 * v2
 
 
 class Div(BinaryOperator):
-    def op(self, v1, v2):
+    def op(self, v1: Any, v2: Any) -> Any:
         return float(v1) / float(v2)
 
 
 class Eq(BinaryOperator):
-    def op(self, v1, v2):
+    def op(self, v1: Any, v2: Any) -> Any:
         return v1 == v2
 
 
 class Ne(BinaryOperator):
-    def op(self, v1, v2):
+    def op(self, v1: Any, v2: Any) -> Any:
         return v1 != v2
 
 
 class And(BinaryOperator):
-    def op(self, v1, v2):
+    def op(self, v1: Any, v2: Any) -> Any:
         return v1 and v2
 
 
 class Or(BinaryOperator):
-    def op(self, v1, v2):
+    def op(self, v1: Any, v2: Any) -> Any:
         return v1 or v2
 
 
 class Context(Bender):
-    def raw_execute(self, source):
+    def raw_execute(self, source: Any) -> Any:
         transport = Transport.from_source(source)
         return Transport(transport.context, transport.context)
 
 
-class BendingException(Exception):
-    pass
-
-
 class Transport:
-    def __init__(self, value, context):
+    def __init__(self, value: Any, context: Dict[str, Any]):
         self.value = value
         self.context = context
 
     @classmethod
-    def from_source(cls, source):
+    def from_source(cls, source: Any) -> Transport:
         if isinstance(source, cls):
             return source
         else:
             return cls(source, {})
 
 
-def bend(mapping: Dict[str, Bender], source: Any, context=None) -> Any:
-    """
-    The main bending function.
-
-    mapping: the map of benders
-    source: a dict to be bent
-
-    returns a new dict according to the provided map.
-    """
-    context = {} if context is None else context
-    transport = Transport(source, context)
-    return _bend(mapping, transport)
-
-
-def _bend(mapping, transport):
-    if isinstance(mapping, list):
-        return [_bend(v, transport) for v in mapping]
-
-    elif isinstance(mapping, dict):
-        res = {}
-        for k, v in mapping.items():
-            try:
-                value = _bend(v, transport)
-                res[k] = value
-            except Exception as e:
-                log.error(e, exc_info=True)
-                m = "Error for key {}: {}".format(k, str(e))
-                raise BendingException(m)
-        return res
-
-    elif isinstance(mapping, Bender):
-        return mapping(transport)
-
-    else:
-        return mapping
-
-
 class Bend(Bender):
-    def __init__(self, mappings: Dict[str, Bender], **kwargs):
+    def __init__(self, mappings: Mapping, **kwargs: Any):
         super().__init__(**kwargs)
         self._mappings = mappings
 
@@ -322,13 +301,13 @@ class Bend(Bender):
 
 
 class ListOp(Bender, ABC):
-    def __init__(self, *args, **kwargs):
-        self._func = None
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        self._func: Callable[[Any], Any] = lambda x: x
 
-    def op(self, func, vals):
+    def op(self, func: Callable[[Any], Any], vals: Any) -> Any:
         raise NotImplementedError()
 
-    def execute(self, source):
+    def execute(self, source: Any) -> Any:
         return self.op(self._func, source)
 
 
@@ -344,11 +323,11 @@ class Forall(ListOp):
     ```
     """
 
-    def op(self, func, vals):
+    def op(self, func: Callable[[Any], Any], vals: Any) -> Any:
         return list(map(func, vals))
 
     @classmethod
-    def bend(cls, mapping, context=None):
+    def bend(cls, mapping: Mapping, context: Optional[Dict[str, Any]] = None) -> Any:
         """
         Return a ForallBend instance that bends each element of the list with the
         given mapping.
@@ -379,12 +358,12 @@ class ForallBend(Forall):
              to the one passed to the outer mapping.
     """
 
-    def __init__(self, mapping, context=None, *args, **kwargs):
+    def __init__(self, mapping: Mapping, context: Optional[Dict[str, Any]] = None, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
         self._mapping = mapping
         self._context = context
 
-    def raw_execute(self, source):
+    def raw_execute(self, source: Any) -> Any:
         transport = Transport.from_source(source)
         context = self._context or transport.context
         # ListOp.execute assumes the func is saved on self._func
@@ -393,7 +372,7 @@ class ForallBend(Forall):
 
 
 class MapValue(Bender):
-    def __init__(self, lookup: Dict[str, Any], default: Any = None, **kwargs):
+    def __init__(self, lookup: Dict[str, Any], default: Any = None, **kwargs: Any):
         super().__init__(**kwargs)
         self._lookup = lookup
         self._default = default
@@ -403,7 +382,7 @@ class MapValue(Bender):
 
 
 class StringToUnitNumber(Bender):
-    def __init__(self, unit: str, expected: Type[Union[int, float]] = float, **kwargs):
+    def __init__(self, unit: str, expected: Type[Union[int, float]] = float, **kwargs: Any):
         super().__init__(**kwargs)
         self._unit = unit
         self._expected = expected
@@ -415,3 +394,39 @@ class StringToUnitNumber(Bender):
 class CPUCoresToNumber(Bender):
     def execute(self, source: str) -> float:
         return float(source[:-1]) / 1000 if source.endswith("m") else float(source)
+
+
+def bend(mapping: Mapping, source: Any, context: Optional[Dict[str, Any]] = None) -> Any:
+    """
+    The main bending function.
+
+    mapping: the map of benders
+    source: a dict to be bent
+
+    returns a new dict according to the provided map.
+    """
+
+    def bend_with_context(inner: Mapping, transport: Transport) -> Any:
+        if isinstance(inner, list):
+            return [bend_with_context(v, transport) for v in inner]
+
+        elif isinstance(inner, dict):
+            res = {}
+            for k, v in inner.items():
+                try:
+                    value = bend_with_context(v, transport)
+                    res[k] = value
+                except Exception as e:
+                    log.error(e, exc_info=True)
+                    m = "Error for key {}: {}".format(k, str(e))
+                    raise BendingError(m)
+            return res
+
+        elif isinstance(inner, Bender):
+            return inner(transport)
+
+        else:
+            return inner
+
+    context = {} if context is None else context
+    return bend_with_context(mapping, Transport(source, context))

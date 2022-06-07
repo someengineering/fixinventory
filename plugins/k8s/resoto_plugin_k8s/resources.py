@@ -5,7 +5,7 @@ from typing import ClassVar, Optional, Dict, Type, List, Any, Union
 
 import jsons
 from jsons import set_deserializer
-from resoto_plugin_k8s.json_bender import StringToUnitNumber, CPUCoresToNumber, Bend, S, K, F, bend, Bender, ForallBend
+from resotolib.json_bender import StringToUnitNumber, CPUCoresToNumber, Bend, S, K, bend, ForallBend, Bender
 from resotolib.baseresources import (
     BaseAccount,
     BaseResource,
@@ -89,19 +89,19 @@ class KubernetesResource(BaseResource):
     @classmethod
     def from_json(cls: Type["KubernetesResource"], json: Json) -> "KubernetesResource":
         mapped = bend(cls.mapping, json)
-        return jsons.load(mapped, cls)
+        return jsons.load(mapped, cls)  # type: ignore
 
     @classmethod
     def k8s_name(cls: Type["KubernetesResource"]) -> str:
         return cls.__name__.removeprefix("Kubernetes")
 
-    def update_tag(self, key, value) -> bool:
+    def update_tag(self, key: str, value: str) -> bool:
         raise NotImplementedError
 
-    def delete_tag(self, key) -> bool:
+    def delete_tag(self, key: str) -> bool:
         raise NotImplementedError
 
-    def delete(self, graph) -> bool:
+    def delete(self, graph: Graph) -> bool:
         raise NotImplementedError
 
     def owner_references(self) -> List[Json]:
@@ -112,15 +112,15 @@ class GraphBuilder:
     def __init__(self, graph: Graph):
         self.graph = graph
 
-    def node(self, clazz: Optional[type] = None, **node: Any) -> Optional[KubernetesResource]:
+    def node(self, clazz: Optional[Type[KubernetesResource]] = None, **node: Any) -> Optional[KubernetesResource]:
         for n in self.graph:
             is_clazz = isinstance(n, clazz) if clazz else True
             if is_clazz and all(getattr(n, k, None) == v for k, v in node.items()):
-                return n
+                return n  # type: ignore
         return None
 
     def add_edge(
-        self, from_node: KubernetesResource, edge_type: EdgeType, reverse: bool = False, **to_node: any
+        self, from_node: KubernetesResource, edge_type: EdgeType, reverse: bool = False, **to_node: Any
     ) -> None:
         to_n = self.node(**to_node)
         if to_n:
@@ -367,7 +367,7 @@ class KubernetesNodeSpec:
     unschedulable: Optional[bool] = field(default=None)
 
 
-instance_status_map: ClassVar[Dict[str, str]] = {
+instance_status_map: Dict[str, InstanceStatus] = {
     "Pending": InstanceStatus.BUSY,
     "Running": InstanceStatus.RUNNING,
     "Failed": InstanceStatus.TERMINATED,
@@ -400,7 +400,7 @@ class KubernetesNode(KubernetesResource, BaseInstance):
 
 
 # noinspection PyProtectedMember
-KubernetesNode.instance_status = property(
+KubernetesNode.instance_status = property(  # type: ignore
     KubernetesNode._instance_status_getter, KubernetesNode._instance_status_setter
 )
 # endregion
@@ -1044,25 +1044,6 @@ class KubernetesServicePort:
 
 
 @dataclass
-class KubernetesServicePort:
-    kind: ClassVar[str] = "kubernetes_service_port"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "app_protocol": S("appProtocol"),
-        "name": S("name"),
-        "node_port": S("nodePort"),
-        "port": S("port"),
-        "protocol": S("protocol"),
-        "target_port": S("targetPort"),
-    }
-    app_protocol: Optional[str] = field(default=None)
-    name: Optional[str] = field(default=None)
-    node_port: Optional[int] = field(default=None)
-    port: Optional[int] = field(default=None)
-    protocol: Optional[str] = field(default=None)
-    target_port: Optional[Union[str, int]] = field(default=None)
-
-
-@dataclass
 class KubernetesServiceSpec:
     kind: ClassVar[str] = "kubernetes_service_spec"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1350,7 +1331,7 @@ class KubernetesPersistentVolume(KubernetesResource, BaseVolume):
     def _volume_status_getter(self) -> str:
         return self._volume_status
 
-    def _volume_status_setter(self, value: Optional[str]) -> None:
+    def _volume_status_setter(self, value: str) -> None:
         self._volume_status = value
 
     def connect_in_graph(self, builder: GraphBuilder) -> None:
@@ -1358,7 +1339,7 @@ class KubernetesPersistentVolume(KubernetesResource, BaseVolume):
             builder.add_edge(self, EdgeType.default, id=self._claim_reference)
 
 
-KubernetesPersistentVolume.volume_status = property(
+KubernetesPersistentVolume.volume_status = property(  # type: ignore
     KubernetesPersistentVolume._volume_status_getter, KubernetesPersistentVolume._volume_status_setter
 )
 
@@ -2166,8 +2147,7 @@ class KubernetesIngress(KubernetesResource, BaseLoadBalancer):
     kind: ClassVar[str] = "kubernetes_ingress"
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
         "ingress_status": S("status") >> Bend(KubernetesIngressStatus.mapping),
-        "public_ip_address": S("status", "loadBalancer", "ingress", default=[])
-        >> F(lambda x: x[0].get("ip") if x else None),
+        "public_ip_address": S("status", "loadBalancer", "ingress", default=[])[0]["ip"],
         # take the public ip of the first load balancer
         "ingress_spec": S("spec") >> Bend(KubernetesIngressSpec.mapping),
     }
@@ -2477,4 +2457,5 @@ def no_json(js: Json, tp: type = object, **kwargs: object) -> None:
     return None
 
 
-set_deserializer(no_json, ClassVar)  # type: ignore
+# noinspection PyTypeChecker
+set_deserializer(no_json, ClassVar)

@@ -13,4 +13,5 @@ def json_file(request: SubRequest) -> Json:
         with open(path) as f:
             content = f.read()
             ks = json.loads(content)
-            return ks
+            return ks  # type: ignore
+    raise Exception("No json_file mark found")

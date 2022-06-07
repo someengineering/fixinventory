@@ -3,7 +3,7 @@ from resotolib.config import Config
 from resoto_plugin_k8s import KubernetesCollectorPlugin
 
 
-def test_config():
+def test_config() -> None:
     config = Config("dummy", "dummy")
     KubernetesCollectorPlugin.add_config(config)
     config.init_default_config()
