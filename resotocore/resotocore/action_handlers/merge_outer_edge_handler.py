@@ -74,7 +74,7 @@ class MergeOuterEdgesHandler:
                 if from_id and to_id:
                     edges.append((from_id, to_id, edge.edge_type))
 
-            await graph_db.update_deferred_edges(edges)
+            await graph_db.update_deferred_edges(edges, pending_edges.created_at)
 
             log.info(
                 f"MergeOuterEdgesHandler: created {created_edges}/{len(pending_edges.edges)} edges in task id {task_id}"

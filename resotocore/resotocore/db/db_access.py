@@ -131,7 +131,7 @@ class DbAccess(ABC):
         ttl_index_name = "deferred_edges_expiration_index"
         collection = self.pending_deferred_edge_db.db.collection(self.pending_deferred_edge_db.collection_name)
         if ttl_index_name not in {idx["name"] for idx in collection.indexes()}:
-            log.info(f"Add index {index_name} on {collection.name}")
+            log.info(f"Add index {ttl_index_name} on {collection.name}")
             collection.add_ttl_index(["created_at"], TWO_HOURS, "deferred_edges_expiration_index")
 
     async def check_outdated_updates(self) -> None:

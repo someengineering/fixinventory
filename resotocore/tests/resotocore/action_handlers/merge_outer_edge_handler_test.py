@@ -149,6 +149,26 @@ async def test_merge_outer_edges(
     graph = await graph_db.search_graph(QueryModel(parse_query("is(graph_root) -default[0:]->"), foo_model))
     assert graph.has_edge("id1", "id2")
 
+    # deletion test
+
+    new_now = now + timedelta(minutes=10)
+
+    await db_access.get_pending_deferred_edge_db().update(
+        PendingDeferredEdges(
+            TaskId("task456"),
+            new_now,
+            graph_db.name,
+            [
+                DeferredEdge(ByNodeId("id2"), ByNodeId("id1"), EdgeType.default),
+            ],
+        )
+    )
+    await merge_handler.merge_outer_edges(TaskId("task456"))
+
+    graph = await graph_db.search_graph(QueryModel(parse_query("is(graph_root) -default[0:]->"), foo_model))
+    assert not graph.has_edge("id1", "id2")
+    assert graph.has_edge("id2", "id1")
+
 
 def to_json(obj: BaseResource) -> Json:
     return {"kind": obj.kind(), **to_js(obj)}

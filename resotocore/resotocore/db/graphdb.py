@@ -3,7 +3,7 @@ import logging
 import uuid
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from functools import partial
 from numbers import Number
 from typing import Optional, Callable, AsyncGenerator, Any, Iterable, Dict, List, Tuple, cast
@@ -46,7 +46,7 @@ class GraphDB(ABC):
         pass
 
     @abstractmethod
-    async def update_deferred_edges(self, edges: List[Tuple[str, str, str]]) -> None:
+    async def update_deferred_edges(self, edges: List[Tuple[str, str, str]], ts: datetime) -> None:
         pass
 
     @abstractmethod
@@ -166,30 +166,38 @@ class ArangoGraphDB(GraphDB):
             trafo = self.document_to_instance_fn(model)
             return trafo(result["new"])
 
-    async def update_deferred_edges(self, edges: List[Tuple[str, str, str]]) -> None:
+    async def update_deferred_edges(self, edges: List[Tuple[str, str, str]], ts: datetime) -> None:
 
         default_edges: List[Json] = []
         delete_edges: List[Json] = []
 
-        now = datetime.now(tz=timezone.utc)
-
         for from_node, to_node, edge_type in edges:
             json_node = self.edge_to_json(from_node, to_node, None)
-            json_node["outer_edge_ts"] = now.isoformat()  # must be kept in sync with an index
+            json_node["outer_edge_ts"] = ts.isoformat()  # must be kept in sync with an index
             if edge_type == EdgeType.default:
                 default_edges.append(json_node)
             else:
                 delete_edges.append(json_node)
 
+        def deletion_query(edge_collection: str) -> str:
+            return f"""
+            FOR edge IN {edge_collection}
+                FILTER edge.outer_edge_ts != null &&  edge.outer_edge_ts < "{ts.isoformat()}"
+                REMOVE edge in {edge_collection}
+            """
+
         if default_edges:
             edge_collection = self.edge_collection(EdgeType.default)
             async with self.db.begin_transaction(write=[self.vertex_name, edge_collection]) as tx:
                 await tx.insert_many(edge_collection, default_edges)
+                query = deletion_query(edge_collection)
+                await tx.aql(query)
 
         if delete_edges:
             edge_collection = self.edge_collection(EdgeType.delete)
             async with self.db.begin_transaction(write=[self.vertex_name, edge_collection]) as tx:
-                await tx.insert_many(edge_collection, delete_edges)
+                query = deletion_query(edge_collection)
+                await tx.aql(query)
 
     async def update_node(
         self, model: Model, node_id: str, patch_or_replace: Json, replace: bool, section: Optional[str]
@@ -1057,8 +1065,8 @@ class EventGraphDB(GraphDB):
         await self.event_sender.core_event(CoreEvent.NodeCreated, {"graph": self.graph_name})
         return result
 
-    async def update_deferred_edges(self, edges: List[Tuple[str, str, str]]) -> None:
-        await self.real.update_deferred_edges(edges)
+    async def update_deferred_edges(self, edges: List[Tuple[str, str, str]], ts: datetime) -> None:
+        await self.real.update_deferred_edges(edges, ts)
         await self.event_sender.core_event(CoreEvent.EdgeCreated)
 
     async def update_node(
