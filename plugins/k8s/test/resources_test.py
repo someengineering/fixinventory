@@ -5,7 +5,7 @@ import pytest
 from _pytest.fixtures import SubRequest
 from resotolib.types import Json
 
-from typing import Type
+from typing import Type, Tuple, TypeVar, List
 import pytest
 import jsons
 
@@ -13,6 +13,7 @@ import jsons
 from fixtures import json_file
 from resoto_plugin_k8s.resources import *
 from resotolib.types import Json
+from resotolib.graph import Graph
 
 
 @pytest.mark.json_file("apis_apps_v1_controllerrevisions.json")
@@ -237,10 +238,23 @@ def test_show() -> None:
     pass
 
 
-def round_trip(resource_class: Type[KubernetesResource], json: Json) -> None:
-    for js in json["items"]:
-        resource = resource_class.from_json(js)
+def connect_in_graph(resources: List[Tuple[KubernetesResourceType, Json]]) -> Graph:
+    builder = GraphBuilder(Graph())
+    for resource, js in resources:
+        resource.connect_in_graph(builder, js)
+    return builder.graph
+
+
+def round_trip(
+    resource_class: Type[KubernetesResourceType], source: Json
+) -> Tuple[List[Tuple[KubernetesResourceType, Json]], Graph]:
+    result = []
+    for js in source["items"]:
+        resource: KubernetesResourceType = resource_class.from_json(js)  # type: ignore
+        result.append((resource, js))
         js = resource.to_json()
         again = jsons.load(js, type(resource))
         js_again = again.to_json()
         assert js == js_again
+    graph = connect_in_graph(result)
+    return result, graph

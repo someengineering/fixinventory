@@ -1,7 +1,7 @@
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import ClassVar, Optional, Dict, Type, List, Any, Union
+from typing import ClassVar, Optional, Dict, Type, List, Any, Union, TypeVar
 
 import jsons
 from jsons import set_deserializer
@@ -36,15 +36,11 @@ class KubernetesResource(BaseResource):
         "resource_version": S("metadata", "resourceVersion"),
         "namespace": S("metadata", "namespace"),
         "labels": S("metadata", "labels", default={}),
-        "_owner_references": S("metadata", "ownerReferences", default=[]),
     }
 
     resource_version: Optional[str] = None
     namespace: Optional[str] = None
     labels: Dict[str, str] = field(default_factory=dict)
-
-    # private: holds all the owner references
-    _owner_references: List[Json] = field(default_factory=list)
 
     def to_json(self) -> Json:
         return jsons.dump(  # type: ignore
@@ -96,16 +92,30 @@ class KubernetesResource(BaseResource):
         return cls.__name__.removeprefix("Kubernetes")
 
     def update_tag(self, key: str, value: str) -> bool:
-        raise NotImplementedError
+        return False
 
     def delete_tag(self, key: str) -> bool:
-        raise NotImplementedError
+        return False
 
     def delete(self, graph: Graph) -> bool:
-        raise NotImplementedError
+        return False
 
-    def owner_references(self) -> List[Json]:
-        return self._owner_references
+    def connect_in_graph(self, builder: "GraphBuilder", source: Json) -> None:
+        # https://kubernetes.io/docs/concepts/overview/working-with-objects/owners-dependents/
+        for ref in bend(S("metadata", "ownerReferences", default=[]), source):
+            owner = builder.node(id=ref["uid"])
+            block_owner_deletion = ref.get("blockOwnerDeletion", False)
+            if owner:
+                log.debug(f"Add owner reference from {owner} -> {self}")
+                builder.graph.add_edge(owner, self, edge_type=EdgeType.default)
+                if block_owner_deletion:
+                    builder.graph.add_edge(self, owner, edge_type=EdgeType.delete)
+
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}[{self.name}]"
+
+
+KubernetesResourceType = TypeVar("KubernetesResourceType", bound=KubernetesResource)
 
 
 class GraphBuilder:
@@ -138,7 +148,7 @@ class GraphBuilder:
         for to_n in self.graph:
             is_clazz = isinstance(to_n, clazz) if clazz else True
             if is_clazz and to_n != from_node and selector.items() <= to_n.labels.items():
-                log.debug(f"Add edge: {from_node.name}:{from_node.k8s_name()} -> {to_n.name}:{to_n.k8s_name()}")
+                log.debug(f"Add edge: {from_node} -> {to_n}")
                 self.graph.add_edge(from_node, to_n, edge_type=edge_type)
 
     def connect_volumes(self, from_node: KubernetesResource, volumes: List[Json]) -> None:
@@ -849,15 +859,14 @@ class KubernetesPod(KubernetesResource):
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
         "pod_status": S("status") >> Bend(KubernetesPodStatus.mapping),
         "pod_spec": S("spec") >> Bend(KubernetesPodSpec.mapping),
-        "_volumes": S("spec", "volumes", default=[]),
     }
     pod_status: Optional[KubernetesPodStatus] = field(default=None)
     pod_spec: Optional[KubernetesPodSpec] = field(default=None)
-    # private fields for lookup
-    _volumes: List[Json] = field(default_factory=list)
 
-    def connect_in_graph(self, builder: GraphBuilder) -> None:
-        builder.connect_volumes(self, self._volumes)
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        super().connect_in_graph(builder, source)
+        volumes = bend(S("spec", "volumes", default=[]), source)
+        builder.connect_volumes(self, volumes)
 
 
 # endregion
@@ -1090,15 +1099,15 @@ class KubernetesService(KubernetesResource):
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
         "service_status": S("status") >> Bend(KubernetesServiceStatus.mapping),
         "service_spec": S("spec") >> Bend(KubernetesServiceSpec.mapping),
-        "_selector": S("spec", "selector"),
     }
     service_status: Optional[KubernetesServiceStatus] = field(default=None)
     service_spec: Optional[KubernetesServiceSpec] = field(default=None)
-    _selector: Optional[Dict[str, str]] = field(default=None)
 
-    def connect_in_graph(self, builder: GraphBuilder) -> None:
-        if self._selector:
-            builder.add_edges_from_selector(self, EdgeType.default, self._selector, KubernetesPod)
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        super().connect_in_graph(builder, source)
+        selector = bend(S("spec", "selector"), source)
+        if selector:
+            builder.add_edges_from_selector(self, EdgeType.default, selector, KubernetesPod)
 
 
 # endregion
@@ -1179,7 +1188,8 @@ class KubernetesEndpoints(KubernetesResource):
 
     subsets: List[KubernetesEndpointSubset] = field(default_factory=list)
 
-    def connect_in_graph(self, builder: GraphBuilder) -> None:
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        super().connect_in_graph(builder, source)
         for subset in self.subsets:
             for address in subset.addresses:
                 if address.target_ref():
@@ -1322,11 +1332,9 @@ class KubernetesPersistentVolume(KubernetesResource, BaseVolume):
         "volume_size": S("spec", "capacity", "storage", default="0") >> StringToUnitNumber("GB"),
         "volume_type": S("spec", "storageClassName"),
         "volume_status": S("status", "phase"),
-        "_claim_reference": S("spec", "claimRef", "uid"),
     }
     persistent_volume_status: Optional[KubernetesPersistentVolumeStatus] = field(default=None)
     persistent_volume_spec: Optional[KubernetesPersistentVolumeSpec] = field(default=None)
-    _claim_reference: Optional[str] = field(default=None)
 
     def _volume_status_getter(self) -> str:
         return self._volume_status
@@ -1334,9 +1342,11 @@ class KubernetesPersistentVolume(KubernetesResource, BaseVolume):
     def _volume_status_setter(self, value: str) -> None:
         self._volume_status = value
 
-    def connect_in_graph(self, builder: GraphBuilder) -> None:
-        if self._claim_reference:
-            builder.add_edge(self, EdgeType.default, id=self._claim_reference)
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        super().connect_in_graph(builder, source)
+        claim_ref = bend(S("spec", "claimRef", "uid"), source)
+        if claim_ref:
+            builder.add_edge(self, EdgeType.default, id=claim_ref, reverse=True)
 
 
 KubernetesPersistentVolume.volume_status = property(  # type: ignore
@@ -1433,14 +1443,10 @@ class KubernetesSecret(KubernetesResource):
 @dataclass(eq=False)
 class KubernetesServiceAccount(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_service_account"
-    mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
-        "_secrets": S("secrets", default=[]),
-    }
 
-    _secrets: List[Json] = field(default_factory=list)
-
-    def connect_in_graph(self, builder: GraphBuilder) -> None:
-        for secret in self._secrets:
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        super().connect_in_graph(builder, source)
+        for secret in bend(S("secrets", default=[]), source):
             if name := secret.get("name", None):
                 builder.add_edge(self, EdgeType.default, clazz=KubernetesSecret, name=name)
 
@@ -1632,15 +1638,15 @@ class KubernetesDeployment(KubernetesResource):
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
         "deployment_status": S("status") >> Bend(KubernetesDeploymentStatus.mapping),
         "deployment_spec": S("spec") >> Bend(KubernetesDeploymentSpec.mapping),
-        "_selector": S("spec", "selector", "matchLabels"),
     }
     deployment_status: Optional[KubernetesDeploymentStatus] = field(default=None)
     deployment_spec: Optional[KubernetesDeploymentSpec] = field(default=None)
-    _selector: Optional[Dict[str, str]] = field(default=None)
 
-    def connect_in_graph(self, builder: GraphBuilder) -> None:
-        if self._selector:
-            builder.add_edges_from_selector(self, EdgeType.default, self._selector)
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        super().connect_in_graph(builder, source)
+        selector = bend(S("spec", "selector", "matchLabels"), source)
+        if selector:
+            builder.add_edges_from_selector(self, EdgeType.default, selector)
 
 
 @dataclass(eq=False)

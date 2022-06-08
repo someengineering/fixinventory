@@ -1,6 +1,6 @@
 import logging
 from dataclasses import dataclass
-from typing import List, Type, TypeVar, Optional
+from typing import List, Type, Optional, Tuple
 
 from kubernetes.client import Configuration, ApiClient
 from resoto_plugin_k8s.config import K8sConfig
@@ -8,17 +8,15 @@ from resoto_plugin_k8s.resources import (
     KubernetesCluster,
     all_k8s_resources_by_k8s_name,
     KubernetesClusterInfo,
-    KubernetesResource,
     KubernetesNamespace,
     GraphBuilder,
+    KubernetesResourceType,
 )
 from resotolib.baseresources import EdgeType
 from resotolib.graph import Graph
 from resotolib.types import Json
 
 log = logging.getLogger("resoto." + __name__)
-
-T = TypeVar("T")
 
 
 @dataclass
@@ -45,11 +43,11 @@ class K8sClient:
     def apis(self) -> List[K8sResource]:
         result: List[K8sResource] = []
 
-        def add_resource(part: str, js: Json) -> None:
+        def add_resource(base: str, js: Json) -> None:
             name = js["name"]
             verbs = js["verbs"]
             if "/" not in name and "list" in verbs:
-                result.append(K8sResource(part + "/" + name, js["kind"], js["namespaced"], verbs))
+                result.append(K8sResource(base + "/" + name, js["kind"], js["namespaced"], verbs))
 
         old_apis = self.get("/api/v1")
         for resource in old_apis["resources"]:
@@ -65,10 +63,10 @@ class K8sClient:
         return result
 
     def list_resources(
-        self, resource: K8sResource, clazz: Type[KubernetesResource], path: Optional[str] = None
-    ) -> List[T]:
+        self, resource: K8sResource, clazz: Type[KubernetesResourceType], path: Optional[str] = None
+    ) -> List[Tuple[KubernetesResourceType, Json]]:
         result = self.get(path or resource.path)
-        return [clazz.from_json(r) for r in result.get("items", [])]  # type: ignore
+        return [(clazz.from_json(r), r) for r in result.get("items", [])]  # type: ignore
 
 
 class KubernetesCollector:
@@ -104,15 +102,14 @@ class KubernetesCollector:
         for resource in self.client.apis():
             known = all_k8s_resources_by_k8s_name.get(resource.kind)
             if known and self.k8s_config.is_allowed(resource.kind):
-                resources: List[KubernetesResource] = self.client.list_resources(resource, known)
-                for r in resources:
-                    self.graph.add_node(r)
+                for res, source in self.client.list_resources(resource, known):
+                    self.graph.add_node(res, source=source)
             else:
                 log.debug("Don't know how to collect %s", resource.kind)
 
         # connect all resources
         namespaces = {node.name: node for node in self.graph.nodes if isinstance(node, KubernetesNamespace)}
-        for node in list(self.graph.nodes):
+        for node, data in list(self.graph.nodes(data=True)):
             # connects resource to either namespace or cluster.
             if isinstance(node, KubernetesCluster):  # ignore the root
                 continue
@@ -121,15 +118,5 @@ class KubernetesCollector:
             else:  # namespaces resources get linked to the namespace, otherwise the cluster
                 base = namespaces[node.namespace] if node.namespace else self.graph.root
                 self.graph.add_edge(base, node, edge_type=EdgeType.default)  # type: ignore
-            # connect owner references
-            # https://kubernetes.io/docs/concepts/overview/working-with-objects/owners-dependents/
-            for owner_ref in node.owner_references():
-                owner = self.builder.node(id=owner_ref["uid"])
-                block_owner_deletion = owner_ref.get("blockOwnerDeletion", False)
-                if owner:
-                    self.graph.add_edge(owner, node, edge_type=EdgeType.default)
-                    if block_owner_deletion:
-                        self.graph.add_edge(node, owner, edge_type=EdgeType.delete)
             # resource specific connects
-            if (fn := getattr(node, "connect_in_graph", None)) and callable(fn):
-                fn(self.builder)
+            node.connect_in_graph(self.builder, data["source"])

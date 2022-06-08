@@ -68,12 +68,7 @@ class Bender(ABC):
         return Compose(other, self)
 
     def __getitem__(self, index: Any) -> Bender:
-        if isinstance(index, int):
-            return self >> GetItem(index)
-        elif isinstance(index, str):
-            return self >> S(index)
-        else:
-            raise AttributeError(f"Invalid index type: {index}")
+        return self >> GetItem(index)
 
 
 class BendingError(Exception):
@@ -151,11 +146,9 @@ class GetItem(Bender):
 
     def execute(self, source: Any) -> Any:
         if isinstance(source, list) and isinstance(self._index, int):
-            return source[self._index] and isinstance(source, list) and len(source) > abs(self._index)
+            return source[self._index] if len(source) > abs(self._index) else None
         elif isinstance(source, dict) and isinstance(self._index, str):
             return source.get(self._index)
-        elif source is not None:
-            raise AttributeError(f"Invalid source type: {source}")
         else:
             return None
 
