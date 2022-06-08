@@ -18,7 +18,7 @@ from resotocore.db.graphdb import ArangoGraphDB, GraphDB, EventGraphDB
 from resotocore.db.model import QueryModel, GraphUpdate
 from resotocore.error import ConflictingChangeInProgress, NoSuchChangeError, InvalidBatchUpdate
 from resotocore.model.adjust_node import NoAdjust
-from resotocore.model.graph_access import GraphAccess, EdgeType, Section
+from resotocore.model.graph_access import EdgeType, GraphAccess, EdgeTypes, Section
 from resotocore.model.model import Model, ComplexKind, Property, Kind, SyntheticProperty
 from resotocore.model.typed_model import from_js, to_js
 from resotocore.query.model import Query, P, Navigation
@@ -86,7 +86,7 @@ class Bla(BaseResource):
 def create_graph(bla_text: str, width: int = 10) -> MultiDiGraph:
     graph = MultiDiGraph()
 
-    def add_edge(from_node: str, to_node: str, edge_type: str = EdgeType.default) -> None:
+    def add_edge(from_node: str, to_node: str, edge_type: EdgeType = EdgeTypes.default) -> None:
         key = GraphAccess.edge_key(from_node, to_node, edge_type)
         graph.add_edge(from_node, to_node, key, edge_type=edge_type)
 
@@ -117,14 +117,14 @@ def create_graph(bla_text: str, width: int = 10) -> MultiDiGraph:
             iid = f"{o}_{i}"
             add_node(iid, "bla", node=to_json(Bla(iid, name=bla_text)))
             add_edge(oid, iid)
-            add_edge(iid, oid, EdgeType.delete)
+            add_edge(iid, oid, EdgeTypes.delete)
     return graph
 
 
 def create_multi_collector_graph(width: int = 3) -> MultiDiGraph:
     graph = MultiDiGraph()
 
-    def add_edge(from_node: str, to_node: str, edge_type: str = EdgeType.default) -> None:
+    def add_edge(from_node: str, to_node: str, edge_type: EdgeType = EdgeTypes.default) -> None:
         key = GraphAccess.edge_key(from_node, to_node, edge_type)
         graph.add_edge(from_node, to_node, key, edge_type=edge_type)
 
@@ -152,22 +152,22 @@ def create_multi_collector_graph(width: int = 3) -> MultiDiGraph:
             aid = f"{cloud_num}:{account_num}"
             account = add_node(NodeId(f"account_{aid}"), NodeId("account"))
             add_edge(cloud, account)
-            add_edge(account, cloud, EdgeType.delete)
+            add_edge(account, cloud, EdgeTypes.delete)
             for region_num in range(0, 2):
                 rid = f"{aid}:{region_num}"
                 region = add_node(NodeId(f"region_{rid}"), NodeId("region"), replace=True)
                 add_edge(account, region)
-                add_edge(region, account, EdgeType.delete)
+                add_edge(region, account, EdgeTypes.delete)
                 for parent_num in range(0, width):
                     pid = f"{rid}:{parent_num}"
                     parent = add_node(NodeId(f"parent_{pid}"), NodeId("parent"))
                     add_edge(region, parent)
-                    add_edge(parent, region, EdgeType.delete)
+                    add_edge(parent, region, EdgeTypes.delete)
                     for child_num in range(0, width):
                         cid = f"{pid}:{child_num}"
                         child = add_node(NodeId(f"child_{cid}"), NodeId("child"))
                         add_edge(parent, child)
-                        add_edge(child, parent, EdgeType.delete)
+                        add_edge(child, parent, EdgeTypes.delete)
 
     return graph
 
@@ -194,7 +194,7 @@ def foo_kinds() -> List[Kind]:
             Property("ctime", "datetime"),
             Property("age", "trafo.duration_to_datetime", False, SyntheticProperty(["ctime"])),
         ],
-        successor_kinds={EdgeType.default: ["bla"]},
+        successor_kinds={EdgeTypes.default: ["bla"]},
     )
     bla = ComplexKind(
         "bla",
@@ -205,7 +205,7 @@ def foo_kinds() -> List[Kind]:
             Property("f", "int32"),
             Property("g", "int32[]"),
         ],
-        successor_kinds={EdgeType.default: ["bla"]},
+        successor_kinds={EdgeTypes.default: ["bla"]},
     )
     cloud = ComplexKind("cloud", ["foo"], [])
     account = ComplexKind("account", ["foo"], [])

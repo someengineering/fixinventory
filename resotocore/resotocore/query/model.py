@@ -9,7 +9,7 @@ from typing import Mapping, Union, Optional, Any, ClassVar, Dict, List, Tuple, C
 
 from jsons import set_deserializer
 
-from resotocore.model.graph_access import EdgeType, Direction
+from resotocore.model.graph_access import EdgeType, EdgeTypes, Direction
 from resotocore.model.resolve_in_graph import GraphResolver
 from resotocore.model.typed_model import to_js_str
 from resotocore.types import Json, JsonElement
@@ -406,13 +406,13 @@ class Navigation:
 
     start: int = 1
     until: int = 1
-    maybe_edge_types: Optional[List[str]] = None
+    maybe_edge_types: Optional[List[EdgeType]] = None
     direction: str = Direction.outbound
-    maybe_two_directional_outbound_edge_type: Optional[List[str]] = None
+    maybe_two_directional_outbound_edge_type: Optional[List[EdgeType]] = None
 
     @property
-    def edge_types(self) -> List[str]:
-        return self.maybe_edge_types or [EdgeType.default]
+    def edge_types(self) -> List[EdgeType]:
+        return self.maybe_edge_types or [EdgeTypes.default]
 
     def __str__(self) -> str:
         start = self.start
@@ -431,10 +431,10 @@ class Navigation:
 
 
 NavigateUntilRoot = Navigation(
-    start=1, until=Navigation.Max, maybe_edge_types=[EdgeType.default], direction=Direction.inbound
+    start=1, until=Navigation.Max, maybe_edge_types=[EdgeTypes.default], direction=Direction.inbound
 )
 NavigateUntilLeaf = Navigation(
-    start=1, until=Navigation.Max, maybe_edge_types=[EdgeType.default], direction=Direction.outbound
+    start=1, until=Navigation.Max, maybe_edge_types=[EdgeTypes.default], direction=Direction.outbound
 )
 
 
@@ -800,17 +800,17 @@ class Query:
         first_part = replace(self.parts[0], with_clause=clause)
         return replace(self, parts=[first_part, *self.parts[1:]])
 
-    def traverse_out(self, start: int = 1, until: int = 1, edge_type: str = EdgeType.default) -> Query:
+    def traverse_out(self, start: int = 1, until: int = 1, edge_type: EdgeType = EdgeTypes.default) -> Query:
         return self.traverse(start, until, edge_type, Direction.outbound)
 
-    def traverse_in(self, start: int = 1, until: int = 1, edge_type: str = EdgeType.default) -> Query:
+    def traverse_in(self, start: int = 1, until: int = 1, edge_type: EdgeType = EdgeTypes.default) -> Query:
         return self.traverse(start, until, edge_type, Direction.inbound)
 
-    def traverse_inout(self, start: int = 1, until: int = 1, edge_type: str = EdgeType.default) -> Query:
+    def traverse_inout(self, start: int = 1, until: int = 1, edge_type: EdgeType = EdgeTypes.default) -> Query:
         return self.traverse(start, until, edge_type, Direction.any)
 
     def traverse(
-        self, start: int, until: int, edge_type: str = EdgeType.default, direction: str = Direction.outbound
+        self, start: int, until: int, edge_type: EdgeType = EdgeTypes.default, direction: str = Direction.outbound
     ) -> Query:
         parts = self.parts.copy()
         p0 = parts[0]

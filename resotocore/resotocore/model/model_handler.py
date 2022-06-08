@@ -8,6 +8,7 @@ from plantuml import PlantUML
 
 from resotocore.async_extensions import run_async
 from resotocore.db.modeldb import ModelDb
+from resotocore.model.graph_access import EdgeType
 from resotocore.model.model import Model, Kind, ComplexKind
 from resotocore.util import exist
 
@@ -29,7 +30,7 @@ class ModelHandler(ABC):
         with_inheritance: bool = True,
         with_base_classes: bool = False,
         with_subclasses: bool = False,
-        dependency_edges: Optional[Set[str]] = None,
+        dependency_edges: Optional[Set[EdgeType]] = None,
         with_predecessors: bool = False,
         with_successors: bool = False,
         with_properties: bool = True,
@@ -108,14 +109,14 @@ class ModelHandlerDB(ModelHandler):
         with_inheritance: bool = True,
         with_base_classes: bool = False,
         with_subclasses: bool = False,
-        dependency_edges: Optional[Set[str]] = None,
+        dependency_edges: Optional[Set[EdgeType]] = None,
         with_predecessors: bool = False,
         with_successors: bool = False,
         with_properties: bool = True,
         link_classes: bool = False,
         filter_aggregate_roots: bool = False,
     ) -> bytes:
-        allowed_edge_types: Set[str] = dependency_edges or set()
+        allowed_edge_types: Set[EdgeType] = dependency_edges or set()
         assert output in ("svg", "png"), "Only svg and png is supported!"
         model = await self.load_model()
         graph = model.graph()

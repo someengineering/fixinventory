@@ -13,7 +13,20 @@ from datetime import timedelta
 from functools import partial
 from pathlib import Path
 from random import SystemRandom
-from typing import AsyncGenerator, Any, Optional, Sequence, Union, List, Dict, AsyncIterator, Tuple, Callable, Awaitable
+from typing import (
+    AsyncGenerator,
+    Any,
+    Optional,
+    Sequence,
+    Set,
+    Union,
+    List,
+    Dict,
+    AsyncIterator,
+    Tuple,
+    Callable,
+    Awaitable,
+)
 
 import prometheus_client
 import yaml
@@ -51,7 +64,7 @@ from resotocore.db.graphdb import GraphDB
 from resotocore.db.model import QueryModel
 from resotocore.message_bus import MessageBus, Message, ActionDone, Action, ActionError
 from resotocore.model.db_updater import merge_graph_process
-from resotocore.model.graph_access import Section
+from resotocore.model.graph_access import EdgeType, EdgeTypes, Section
 from resotocore.model.model import Kind
 from resotocore.model.model_handler import ModelHandler
 from resotocore.model.typed_model import to_json, from_js, to_js_str, to_js
@@ -507,7 +520,7 @@ class Api:
             with_inheritance=with_inheritance,
             with_base_classes=with_base_classes,
             with_subclasses=with_subclasses,
-            dependency_edges=dependency,
+            dependency_edges=dependency,  # type: ignore
             with_predecessors=with_predecessors,
             with_successors=with_successors,
             with_properties=with_properties,

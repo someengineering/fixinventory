@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone, date
 from json import JSONDecodeError
 from typing import Union, Any, Optional, Callable, Type, Sequence, Dict, List, Set, cast, Tuple
+from resotocore.model.graph_access import EdgeType
 
 import yaml
 from dateutil.parser import parse
@@ -762,7 +763,7 @@ class ComplexKind(Kind):
         properties: List[Property],
         allow_unknown_props: bool = False,
         # EdgeType -> possible list of successor kinds
-        successor_kinds: Optional[Dict[str, List[str]]] = None,
+        successor_kinds: Optional[Dict[EdgeType, List[str]]] = None,
         aggregate_root: bool = True,
     ):
         super().__init__(fqn)

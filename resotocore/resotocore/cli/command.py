@@ -73,7 +73,7 @@ from resotocore.config import ConfigEntity
 from resotocore.db.model import QueryModel
 from resotocore.dependencies import system_info
 from resotocore.error import CLIParseError, ClientError, CLIExecutionError
-from resotocore.model.graph_access import Section, EdgeType
+from resotocore.model.graph_access import EdgeType, Section, EdgeTypes
 from resotocore.model.model import Model, Kind, ComplexKind, DictionaryKind, SimpleKind, Property
 from resotocore.model.resolve_in_graph import NodePath
 from resotocore.model.typed_model import to_json, to_js
@@ -462,16 +462,18 @@ class PredecessorsPart(SearchCLIPart):
         ]
 
     @staticmethod
-    def parse_args(arg: Optional[str], ctx: CLIContext) -> Tuple[int, str]:
+    def parse_args(arg: Optional[str], ctx: CLIContext) -> Tuple[int, EdgeType]:
         def valid_edge_type(name: str) -> str:
-            if name in EdgeType.all:
+            if name in EdgeTypes.all:
                 return name
             else:
-                raise AttributeError(f'Given name is not a valid edge type: {name}. {", ".join(EdgeType.all)}')
+                raise AttributeError(f'Given name is not a valid edge type: {name}. {", ".join(EdgeTypes.all)}')
 
         parser = NoExitArgumentParser()
         parser.add_argument("--with-origin", dest="origin", default=1, action="store_const", const=0)
-        parser.add_argument("edge", default=ctx.env.get("edge_type", EdgeType.default), type=valid_edge_type, nargs="?")
+        parser.add_argument(
+            "edge", default=ctx.env.get("edge_type", EdgeTypes.default), type=valid_edge_type, nargs="?"
+        )
         parsed = parser.parse_args(arg.split() if arg else [])
         return parsed.origin, parsed.edge
 
@@ -1591,7 +1593,7 @@ class KindsCommand(CLICommand, PreserveOutputFormat):
                     {
                         cpl.fqn
                         for cpl in model.complex_kinds()
-                        if kind.fqn in cpl.successor_kinds.get(EdgeType.default, [])
+                        if kind.fqn in cpl.successor_kinds.get(EdgeTypes.default, [])
                     }
                 )
                 return {
@@ -1599,7 +1601,7 @@ class KindsCommand(CLICommand, PreserveOutputFormat):
                     "bases": list(kind.kind_hierarchy() - {kind.fqn}),
                     "properties": {p.name: kind_name(p) for p in props},
                     "predecessors": predecessors,
-                    "successors": kind.successor_kinds.get(EdgeType.default, []),
+                    "successors": kind.successor_kinds.get(EdgeTypes.default, []),
                 }
             else:
                 return {"name": kind.fqn}

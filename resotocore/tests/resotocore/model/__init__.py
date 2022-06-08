@@ -2,6 +2,7 @@ from typing import Optional, List, Set
 
 from resotocore.model.model import Model, Kind
 from resotocore.model.model_handler import ModelHandler
+from resotocore.model.graph_access import EdgeType
 
 
 class ModelHandlerStatic(ModelHandler):
@@ -20,7 +21,7 @@ class ModelHandlerStatic(ModelHandler):
         with_inheritance: bool = True,
         with_base_classes: bool = False,
         with_subclasses: bool = False,
-        dependency_edges: Optional[Set[str]] = None,
+        dependency_edges: Optional[Set[EdgeType]] = None,
         with_predecessors: bool = False,
         with_successors: bool = False,
         with_properties: bool = True,
