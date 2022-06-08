@@ -262,7 +262,7 @@ async def force_gen(gen: AsyncIterator[AnyT]) -> AsyncIterator[AnyT]:
             yield a
 
     try:
-        return with_first(await gen.__anext__())
+        return with_first(await gen.__anext__())  # pylint: disable=unnecessary-dunder-call
     except StopAsyncIteration:
         return gen
 
