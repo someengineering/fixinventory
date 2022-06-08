@@ -4,6 +4,8 @@ from resoto_plugin_k8s import KubernetesCollectorPlugin
 
 
 def test_config() -> None:
+    # make sure the running config is empty
+    Config.running_config.data.clear()
     config = Config("dummy", "dummy")
     KubernetesCollectorPlugin.add_config(config)
     config.init_default_config()

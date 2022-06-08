@@ -1,12 +1,14 @@
-import json
-import os
-
+# noinspection PyUnresolvedReferences
 import pytest
-from _pytest.fixtures import SubRequest
+
+# noinspection PyUnresolvedReferences
 from resotolib.types import Json
 
+# noinspection PyUnresolvedReferences
 from typing import Type, Tuple, TypeVar, List
 import pytest
+
+# noinspection PyUnresolvedReferences
 import jsons
 
 # noinspection PyUnresolvedReferences
@@ -229,13 +231,6 @@ def test_priority_level_configuration(json_file: Json) -> None:
 # @pytest.mark.json_file("apis_node.k8s.io_v1_runtimeclasses.json")
 # def test_RuntimeClass(json_file: Json) -> None:
 #     round_trip(KubernetesRuntimeClass, json_file)
-
-
-def test_show() -> None:
-    # Config.k8s = K8sConfig(config="/Users/matthias/.kube/configs/tmp/dev_resoto")
-    # plugin = KubernetesCollectorPlugin()
-    # plugin.collect()
-    pass
 
 
 def connect_in_graph(resources: List[Tuple[KubernetesResourceType, Json]]) -> Graph:
