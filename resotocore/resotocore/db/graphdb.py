@@ -47,7 +47,7 @@ class GraphDB(ABC):
         pass
 
     @abstractmethod
-    async def update_deferred_edges(self, edges: List[Tuple[str, str, str]], ts: datetime) -> None:
+    async def update_deferred_edges(self, edges: List[Tuple[NodeId, NodeId, str]], ts: datetime) -> None:
         pass
 
     @abstractmethod
@@ -169,7 +169,7 @@ class ArangoGraphDB(GraphDB):
             trafo = self.document_to_instance_fn(model)
             return trafo(result["new"])
 
-    async def update_deferred_edges(self, edges: List[Tuple[str, str, str]], ts: datetime) -> None:
+    async def update_deferred_edges(self, edges: List[Tuple[NodeId, NodeId, str]], ts: datetime) -> None:
 
         default_edges: List[Json] = []
         delete_edges: List[Json] = []
@@ -1068,7 +1068,7 @@ class EventGraphDB(GraphDB):
         await self.event_sender.core_event(CoreEvent.NodeCreated, {"graph": self.graph_name})
         return result
 
-    async def update_deferred_edges(self, edges: List[Tuple[str, str, str]], ts: datetime) -> None:
+    async def update_deferred_edges(self, edges: List[Tuple[NodeId, NodeId, str]], ts: datetime) -> None:
         await self.real.update_deferred_edges(edges, ts)
         await self.event_sender.core_event(CoreEvent.EdgeCreated)
 

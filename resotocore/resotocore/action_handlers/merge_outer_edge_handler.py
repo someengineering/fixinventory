@@ -9,7 +9,7 @@ from datetime import timedelta
 from resotocore.model.graph_access import ByNodeId, NodeSelector
 from resotocore.query.model import Query
 from resotocore.task.model import Subscriber
-from resotocore.ids import SubscriberId
+from resotocore.ids import NodeId, SubscriberId
 from resotocore.task.task_handler import TaskHandlerService
 from resotocore.ids import TaskId
 from resotocore.task.subscribers import SubscriptionHandler
@@ -50,7 +50,7 @@ class MergeOuterEdgesHandler:
         if pending_edges:
             graph_db = self.db_access.get_graph_db(pending_edges.graph)
 
-            async def find_node_id(selector: NodeSelector) -> Optional[str]:
+            async def find_node_id(selector: NodeSelector) -> Optional[NodeId]:
                 if isinstance(selector, ByNodeId):
                     node = await graph_db.get_node(model, selector.value)
                     return node.get("id") if node else None
@@ -67,7 +67,7 @@ class MergeOuterEdgesHandler:
 
                         return next(iter(results), {}).get("id", None)  # type: ignore
 
-            edges: List[Tuple[str, str, str]] = []
+            edges: List[Tuple[NodeId, NodeId, str]] = []
             for edge in pending_edges.edges:
                 from_id = await find_node_id(edge.from_node)
                 to_id = await find_node_id(edge.to_node)

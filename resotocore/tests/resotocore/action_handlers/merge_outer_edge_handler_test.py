@@ -21,7 +21,7 @@ from resotocore.model.typed_model import to_js
 from resotocore.types import Json
 
 from typing import AsyncGenerator
-from resotocore.ids import TaskId
+from resotocore.ids import TaskId, NodeId
 
 # noinspection PyUnresolvedReferences
 from tests.resotocore.task.task_handler_test import task_handler
@@ -129,9 +129,12 @@ async def test_merge_outer_edges(
 
     now = datetime.now()
 
+    id1 = NodeId("id1")
+    id2 = NodeId("id2")
+
     await graph_db.wipe()
-    await graph_db.create_node(foo_model, "id1", to_json(Foo("id1", "foo")), "root")
-    await graph_db.create_node(foo_model, "id2", to_json(Bla("id2", "bla")), "root")
+    await graph_db.create_node(foo_model, id1, to_json(Foo("id1", "foo")), NodeId("root"))
+    await graph_db.create_node(foo_model, id2, to_json(Bla("id2", "bla")), NodeId("root"))
     await db_access.pending_deferred_edge_db.create_update_schema()
 
     await db_access.get_pending_deferred_edge_db().update(
@@ -140,7 +143,7 @@ async def test_merge_outer_edges(
             now,
             graph_db.name,
             [
-                DeferredEdge(ByNodeId("id1"), BySearchCriteria("is(bla)"), EdgeType.default),
+                DeferredEdge(ByNodeId(id1), BySearchCriteria("is(bla)"), EdgeType.default),
             ],
         )
     )
@@ -159,7 +162,7 @@ async def test_merge_outer_edges(
             new_now,
             graph_db.name,
             [
-                DeferredEdge(ByNodeId("id2"), ByNodeId("id1"), EdgeType.default),
+                DeferredEdge(ByNodeId(id2), ByNodeId(id1), EdgeType.default),
             ],
         )
     )

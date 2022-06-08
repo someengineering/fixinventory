@@ -111,7 +111,7 @@ class BySearchCriteria:
 
 @dataclass
 class ByNodeId:
-    value: str
+    value: NodeId
 
 
 NodeSelector = Union[ByNodeId, BySearchCriteria]
@@ -148,7 +148,7 @@ class GraphBuilder:
 
             def parse_selector(js: Json) -> NodeSelector:
                 if "node_id" in js:
-                    return ByNodeId(from_js(js["node_id"], str))
+                    return ByNodeId(NodeId(from_js(js["node_id"], str)))
                 elif "search_criterea" in js:
                     return BySearchCriteria(from_js(js["search_criteria"], str))
                 else:
