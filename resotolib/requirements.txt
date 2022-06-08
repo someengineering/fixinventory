@@ -9,3 +9,4 @@ PyJWT==2.4.0
 CherryPy==18.6.1
 cryptography==37.0.2
 aiohttp[speedups]==3.8.1
+Pint==0.19.2

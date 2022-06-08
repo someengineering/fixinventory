@@ -34,6 +34,7 @@ class ModelHandler(ABC):
         with_successors: bool = False,
         with_properties: bool = True,
         link_classes: bool = False,
+        filter_aggregate_roots: bool = False,
     ) -> bytes:
         """
         Generate a PlantUML image of the model.
@@ -49,6 +50,7 @@ class ModelHandler(ABC):
         :param with_successors: include successors for all matching classes to show in the diagram
         :param with_properties: include properties for all matching classes to show in the diagram
         :param link_classes: add anchor links to all classes
+        :param filter_aggregate_roots: if the list of classes should be filtered for aggregate roots
         :return: the generated image
         """
 
@@ -111,6 +113,7 @@ class ModelHandlerDB(ModelHandler):
         with_successors: bool = False,
         with_properties: bool = True,
         link_classes: bool = False,
+        filter_aggregate_roots: bool = False,
     ) -> bytes:
         allowed_edge_types: Set[str] = dependency_edges or set()
         assert output in ("svg", "png"), "Only svg and png is supported!"
@@ -125,12 +128,13 @@ class ModelHandlerDB(ModelHandler):
 
         def node_visible(key: str) -> bool:
             k: Kind = graph.nodes[key]["data"]
+            ar_visible = not filter_aggregate_roots or getattr(k, "aggregate_root", True)
             if hide and exist(lambda r: r.fullmatch(k.fqn), hide):
                 return False
             if show is None:
-                return True
+                return ar_visible
             else:
-                return exist(lambda r: r.fullmatch(k.fqn), show)
+                return ar_visible and exist(lambda r: r.fullmatch(k.fqn), show)
 
         def class_node(cpx: ComplexKind) -> str:
             props = "\n".join([f"**{p.name}**: {p.kind}" for p in cpx.properties]) if with_properties else ""

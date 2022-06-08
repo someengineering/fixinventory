@@ -56,10 +56,7 @@ def test_json_marshalling() -> None:
         Property("i", "int32"),
         Property("other", "SomeComposite"),
     ]
-    successor_kinds = {
-        EdgeType.default: ["Base", "Test"],
-        EdgeType.delete: ["Base"],
-    }
+    successor_kinds = {EdgeType.default: ["Base", "Test"], EdgeType.delete: ["Base"]}
     roundtrip(ComplexKind("Test", ["Base"], props), Kind)
     roundtrip(ComplexKind("Test", [], props, True), Kind)
     roundtrip(ComplexKind("Test", [], props, True, successor_kinds), Kind)
@@ -323,17 +320,7 @@ def test_property_path_on_model(person_model: Model) -> None:
 
 def test_update(person_model: Model) -> None:
     with pytest.raises(AttributeError) as not_allowed:  # update city with different type
-        person_model.update_kinds(
-            [
-                ComplexKind(
-                    "Address",
-                    ["Base"],
-                    [
-                        Property("city", "int32", required=True),
-                    ],
-                )
-            ]
-        )
+        person_model.update_kinds([ComplexKind("Address", ["Base"], [Property("city", "int32", required=True)])])
     assert (
         str(not_allowed.value)
         == "Update not possible: following properties would be non unique having the same path but different type: "

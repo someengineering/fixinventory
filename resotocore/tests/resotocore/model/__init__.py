@@ -25,6 +25,7 @@ class ModelHandlerStatic(ModelHandler):
         with_successors: bool = False,
         with_properties: bool = True,
         link_classes: bool = False,
+        filter_aggregate_roots: bool = False,
     ) -> bytes:
         raise NotImplemented
 
