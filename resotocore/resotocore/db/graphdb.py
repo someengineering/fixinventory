@@ -600,7 +600,7 @@ class ArangoGraphDB(GraphDB):
             insert_node(not_visited)
         return info, resource_inserts, resource_updates, resource_deletes
 
-    def edge_to_json(self, from_node: str, to_node: str, refs: Optional[List[str]]) -> Json:
+    def edge_to_json(self, from_node: str, to_node: str, refs: Optional[Dict[str, str]]) -> Json:
         key = self.db_edge_key(from_node, to_node)
         js = {
             "_key": key,
