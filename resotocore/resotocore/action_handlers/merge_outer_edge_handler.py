@@ -59,7 +59,7 @@ class MergeOuterEdgesHandler:
                     async with await graph_db.search_list(QueryModel(query, model)) as cursor:
                         results = [node async for node in cursor]
                         if len(results) != 1:
-                            log.warn(
+                            log.warning(
                                 f"task_id: {task_id}: node selector {selector.query} returned more than one node."
                                 "The edge was not created."
                             )
