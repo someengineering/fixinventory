@@ -4,6 +4,7 @@ import warnings
 from resotolib.logger import log
 from resotolib.args import ArgumentParser
 from urllib.parse import urlparse, ParseResult
+from typing import Optional
 
 
 def add_args(arg_parser: ArgumentParser) -> None:
@@ -49,14 +50,16 @@ def wait_for_resotocore(resotocore_uri: str, timeout: int = 300) -> None:
 
 
 class ResotocoreURI:
-    def __init__(self, resotocore_uri: str = None) -> None:
+    def __init__(self, resotocore_uri: Optional[str] = None) -> None:
         self.resotocore_uri = resotocore_uri
 
     @property
     def uri(self) -> ParseResult:
         if self.resotocore_uri is None:
             resotocore_uri = getattr(ArgumentParser.args, "resotocore_uri", None)
-            if resotocore_uri is None:
+            if resotocore_uri is not None:
+                resotocore_uri = str(resotocore_uri).rstrip("/")
+            else:
                 resotocore_uri = "https://localhost:8900"
         else:
             resotocore_uri = self.resotocore_uri
