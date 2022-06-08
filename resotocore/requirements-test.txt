@@ -3,6 +3,6 @@ pytest==7.1.2
 pytest-cov==3.0.0
 pytest-runner==6.0.0
 pytest-asyncio==0.18.3
-deepdiff==5.8.0
-hypothesis==6.46.2
+deepdiff==5.8.1
+hypothesis==6.47.0
 resotoclient>=0.1.11
