@@ -14,6 +14,7 @@ from networkx import DiGraph, MultiDiGraph, all_shortest_paths, is_directed_acyc
 from resotocore.model.model import Model, Kind, AnyKind, ComplexKind, ArrayKind, DateTimeKind, DictionaryKind
 from resotocore.model.resolve_in_graph import GraphResolver, NodePath, ResolveProp
 from resotocore.types import Json
+from resotocore.ids import NodeId
 from resotocore.util import utc, utc_str, value_in_path, set_value_in_path, value_in_path_get
 from resotocore.model.typed_model import from_js
 
@@ -154,7 +155,7 @@ class GraphBuilder:
 
     def add_node(
         self,
-        node_id: str,
+        node_id: NodeId,
         reported: Json,
         desired: Optional[Json] = None,
         metadata: Optional[Json] = None,
@@ -272,13 +273,13 @@ class GraphAccess:
         self,
         sub: MultiDiGraph,
         maybe_root_id: Optional[str] = None,
-        visited_nodes: Optional[Set[Any]] = None,
+        visited_nodes: Optional[Set[NodeId]] = None,
         visited_edges: Optional[Set[EdgeKey]] = None,
     ):
         super().__init__()
         self.g = sub
         self.nodes = sub.nodes()
-        self.visited_nodes: Set[object] = visited_nodes if visited_nodes else set()
+        self.visited_nodes: Set[NodeId] = visited_nodes if visited_nodes else set()
         self.visited_edges: Set[EdgeKey] = visited_edges if visited_edges else set()
         self.at = utc()
         self.at_json = utc_str(self.at)
@@ -288,7 +289,7 @@ class GraphAccess:
     def root(self) -> str:
         return self.maybe_root_id if self.maybe_root_id else GraphAccess.root_id(self.g)
 
-    def node(self, node_id: str) -> Optional[Json]:
+    def node(self, node_id: NodeId) -> Optional[Json]:
         self.visited_nodes.add(node_id)
         if self.g.has_node(node_id):
             n = self.nodes[node_id]
@@ -315,11 +316,11 @@ class GraphAccess:
     def __resolve_count_descendants(self) -> None:
         visited: Set[str] = set()
 
-        def count_successors_by(node_id: str, edge_type: str, path: List[str]) -> Dict[str, int]:
+        def count_successors_by(node_id: NodeId, edge_type: str, path: List[str]) -> Dict[str, int]:
             result: Dict[str, int] = {}
             to_visit = list(self.successors(node_id, edge_type))
             while to_visit:
-                visit_next: List[str] = []
+                visit_next: List[NodeId] = []
                 for elem_id in to_visit:
                     if elem_id not in visited:
                         visited.add(elem_id)
@@ -347,7 +348,7 @@ class GraphAccess:
                     total = reduce(lambda l, r: l + r, summary.values(), 0)
                     set_value_in_path(total, NodePath.descendant_count, node)
 
-    def __resolve(self, node_id: str, node: Json) -> Json:
+    def __resolve(self, node_id: NodeId, node: Json) -> Json:
         def with_ancestor(ancestor: Json, prop: ResolveProp) -> None:
             extracted = value_in_path(ancestor, prop.extract_path)
             if extracted:
@@ -363,29 +364,29 @@ class GraphAccess:
                         with_ancestor(anc, res)
         return node
 
-    def dump(self, node_id: str, node: Json) -> Json:
+    def dump(self, node_id: NodeId, node: Json) -> Json:
         kind = node.get("kind", AnyKind())
         return self.dump_direct(node_id, node, kind)
 
-    def predecessors(self, node_id: str, edge_type: str) -> Generator[str, Any, None]:
+    def predecessors(self, node_id: NodeId, edge_type: str) -> Generator[NodeId, Any, None]:
         for pred_id in self.g.predecessors(node_id):
             # direction from parent node to provided node
             if self.g.has_edge(pred_id, node_id, self.edge_key(pred_id, node_id, edge_type)):
                 yield pred_id
 
-    def successors(self, node_id: str, edge_type: str) -> Generator[str, Any, None]:
+    def successors(self, node_id: NodeId, edge_type: str) -> Generator[NodeId, Any, None]:
         for succ_id in self.g.successors(node_id):
             # direction from provided node to successor node
             if self.g.has_edge(node_id, succ_id, self.edge_key(node_id, succ_id, edge_type)):
                 yield succ_id
 
-    def ancestor_of(self, node_id: str, edge_type: str, kind: str) -> Optional[Json]:
+    def ancestor_of(self, node_id: NodeId, edge_type: str, kind: str) -> Optional[Json]:
         # note: we are using breadth first search here on purpose.
         # if there is an ancestor with less distance to this node, we should use this one
         next_level = [node_id]
 
         while next_level:
-            parents: List[str] = []
+            parents: List[NodeId] = []
             for p_id in next_level:
                 p: Json = self.nodes[p_id]
                 kinds: Optional[List[str]] = value_in_path(p, NodePath.kinds)
@@ -415,7 +416,7 @@ class GraphAccess:
         return True
 
     @staticmethod
-    def dump_direct(node_id: str, node: Json, kind: Kind, recompute: bool = False) -> Json:
+    def dump_direct(node_id: NodeId, node: Json, kind: Kind, recompute: bool = False) -> Json:
         reported = node[Section.reported]
         desired: Optional[Json] = node.get(Section.desired, None)
         metadata: Optional[Json] = node.get(Section.metadata, None)
@@ -442,9 +443,9 @@ class GraphAccess:
         return EdgeKey(from_node, to_node, edge_type)
 
     @staticmethod
-    def root_id(graph: DiGraph) -> str:
+    def root_id(graph: DiGraph) -> NodeId:
         # noinspection PyTypeChecker
-        roots: List[str] = [n for n, d in graph.in_degree if d == 0]
+        roots: List[NodeId] = [n for n, d in graph.in_degree if d == 0]
         assert len(roots) == 1, f"Given subgraph has more than one root: {roots}"
         return roots[0]
 
@@ -473,20 +474,24 @@ class GraphAccess:
 
         # Find replace nodes: all nodes that are marked as replace node.
         # This method returns all replace roots as key, with the respective predecessors nodes as value.
-        def replace_roots() -> Dict[str, Set[str]]:
+        def replace_roots() -> Dict[NodeId, Set[NodeId]]:
             graph_root = GraphAccess.root_id(graph)
-            replace_nodes = {node_id: data for node_id, data in graph.nodes(data=True) if data.get("replace", False)}
+            replace_nodes: Dict[NodeId, Json] = {
+                node_id: data for node_id, data in graph.nodes(data=True) if data.get("replace", False)
+            }
             assert (
                 len(replace_nodes) > 0
             ), "No replace nodes provided in the graph. Mark at least one node with replace=true!"
-            result: Dict[str, Set[str]] = {}
+            result: Dict[NodeId, Set[NodeId]] = {}
             for node, data in replace_nodes.items():
                 kind = GraphResolver.resolved_kind(data)
                 assert (
                     kind is not None
                 ), f"Node {node} is marked as replace node, but the kind is not resolved during import!"
                 # compute the shortest path from root to here
-                pres: Set[str] = reduce(lambda res, p: {*res, *p}, all_shortest_paths(graph, graph_root, node), set())
+                pres: Set[NodeId] = reduce(
+                    lambda res, p: {*res, *p}, all_shortest_paths(graph, graph_root, node), set[NodeId]()
+                )
                 result[node] = pres
             # make sure there is no replace node beyond another replace node
             rs = result.copy()
@@ -499,15 +504,15 @@ class GraphAccess:
 
         # Walk the graph from given starting node and return all successors.
         # A successor which is also a predecessors is not followed.
-        def sub_graph_nodes(from_node: str, parent_ids: Set[str]) -> Set[str]:
+        def sub_graph_nodes(from_node: NodeId, parent_ids: Set[NodeId]) -> Set[NodeId]:
             to_visit = [from_node]
-            visited: Set[str] = {from_node}
+            visited: Set[NodeId] = {from_node}
 
-            def successors(node: str) -> List[str]:
+            def successors(node: NodeId) -> List[NodeId]:
                 return [a for a in graph.successors(node) if a not in visited and a not in parent_ids]
 
             while to_visit:
-                to_visit = reduce(lambda li, node: li + successors(node), to_visit, [])
+                to_visit = reduce(lambda li, node: li + successors(node), to_visit, list[NodeId]())
                 visited.update(to_visit)
             return visited
 
@@ -519,11 +524,11 @@ class GraphAccess:
         # This way it is possible to have nodes in the graph that will not be touched by the update
         # while edges will be created from successors of the merge node to predecessors of the merge node.
         def merge_sub_graphs(
-            root_nodes: Dict[str, Set[str]], parent_nodes: Set[str], parent_edges: Set[EdgeKey]
-        ) -> Generator[Tuple[str, GraphAccess], None, None]:
-            all_successors: Set[str] = set()
+            root_nodes: Dict[NodeId, Set[NodeId]], parent_nodes: Set[NodeId], parent_edges: Set[EdgeKey]
+        ) -> Generator[Tuple[NodeId, GraphAccess], None, None]:
+            all_successors: Set[NodeId] = set()
             for root, predecessors in root_nodes.items():
-                successors: Set[str] = sub_graph_nodes(root, predecessors)
+                successors: Set[NodeId] = sub_graph_nodes(root, predecessors)
                 # make sure nodes are not "mixed" between different merge nodes
                 overlap = successors & all_successors
                 if overlap:
@@ -535,7 +540,7 @@ class GraphAccess:
 
         GraphAccess(graph).resolve()  # resolve graph references
         roots = replace_roots()
-        parents: Set[str] = reduce(lambda res, ps: {*res, *ps}, roots.values(), set())
+        parents: Set[NodeId] = reduce(lambda res, ps: {*res, *ps}, roots.values(), set[NodeId]())
         parent_graph = graph.subgraph(parents)
         graphs = merge_sub_graphs(roots, parents, set(parent_graph.edges(data="edge_type")))
         return list(roots.keys()), GraphAccess(parent_graph, GraphAccess.root_id(graph)), graphs
