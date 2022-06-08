@@ -6,7 +6,7 @@ from abc import ABC
 from asyncio import Task
 from contextlib import suppress
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import timedelta, datetime
 from multiprocessing import Process, Queue
 from queue import Empty
 from typing import Optional, Union, AsyncGenerator, Any, Generator, List
@@ -145,10 +145,12 @@ class DbUpdaterProcess(Process):
             log.debug("Graph read into memory")
             builder.check_complete()
             graphdb = db.get_graph_db(nxt.graph)
-            outer_edge_db = db.get_pending_outer_edge_db()
+            outer_edge_db = db.pending_deferred_edge_db
             _, result = await graphdb.merge_graph(builder.graph, model, nxt.change_id, nxt.is_batch)
             if nxt.task_id and builder.deferred_edges:
-                await outer_edge_db.update(PendingDeferredEdges(nxt.task_id, nxt.graph, builder.deferred_edges))
+                await outer_edge_db.update(
+                    PendingDeferredEdges(nxt.task_id, datetime.now(), nxt.graph, builder.deferred_edges)
+                )
                 log.debug(f"Updated {len(builder.deferred_edges)} pending outer edges for collect task {nxt.task_id}")
             return result
 

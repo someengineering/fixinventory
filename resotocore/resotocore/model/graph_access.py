@@ -104,8 +104,17 @@ class Direction:
 EdgeKey = namedtuple("EdgeKey", ["from_node", "to_node", "edge_type"])
 
 
-SearchCriteria = str
-NodeSelector = Union[str, SearchCriteria]
+@dataclass
+class BySearchCriteria:
+    query: str
+
+
+@dataclass
+class ByNodeId:
+    value: NodeId
+
+
+NodeSelector = Union[ByNodeId, BySearchCriteria]
 
 
 @dataclass
@@ -139,13 +148,13 @@ class GraphBuilder:
 
             def parse_selector(js: Json) -> NodeSelector:
                 if "node_id" in js:
-                    return from_js(js["node_id"], str)
+                    return ByNodeId(NodeId(from_js(js["node_id"], str)))
                 elif "search_criterea" in js:
-                    return from_js(js["search_criteria"], str)
+                    return BySearchCriteria(from_js(js["search_criteria"], str))
                 else:
                     raise AttributeError(f"can't parse edge selector! Got {json.dumps(js)}")
 
-            self.add_deferred_connection(
+            self.store_deferred_connection(
                 parse_selector(js["from_selector"]),
                 parse_selector(js["to_selector"]),
                 js.get("edge_type", EdgeType.default),
@@ -190,7 +199,7 @@ class GraphBuilder:
         key = GraphAccess.edge_key(from_node, to_node, edge_type)
         self.graph.add_edge(from_node, to_node, key, edge_type=edge_type)
 
-    def add_deferred_connection(self, from_selector: NodeSelector, to_selector: NodeSelector, edge_type: str) -> None:
+    def store_deferred_connection(self, from_selector: NodeSelector, to_selector: NodeSelector, edge_type: str) -> None:
         self.deferred_edges.append(DeferredEdge(from_selector, to_selector, edge_type))
 
     @staticmethod
