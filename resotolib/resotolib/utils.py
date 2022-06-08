@@ -775,31 +775,55 @@ def _badlink(info: TarInfo, base: str) -> bool:
     return _badpath(info.linkname, base=tip)
 
 
-def current_version(component: str = "resotolib") -> str:
+def component_version(component: str = "resotolib") -> str:
     return pkg_resources.get_distribution(component).version
 
 
-def update_check(component: str = "resotolib", version: Optional[str] = None) -> Optional[str]:
-    if version is None:
-        version = current_version(component)
-    latest_release_uri = "https://api.github.com/repos/someengineering/resoto/releases/latest"
-    headers = {"Accept": "application/vnd.github.v3+json"}
-    latest_release_response = requests.get(latest_release_uri, headers=headers)
-    if latest_release_response.status_code != 200:
-        raise RuntimeError(
-            f"Unable to get latest release from {latest_release_uri}:" f" {latest_release_response.status_code}"
-        )
-    latest_version = latest_release_response.json()["tag_name"]
-    latest_version_ctime = make_valid_timestamp(
-        datetime.strptime(latest_release_response.json()["published_at"], "%Y-%m-%dT%H:%M:%SZ")
-    )
-    # now = make_valid_timestamp(datetime.utcnow())
-    # latest_version_age = now - latest_version_ctime
-    if pkg_resources.parse_version(version) >= pkg_resources.parse_version(latest_version):
-        return None
-    msg = f"Current version {version} is out of date. Latest version is {latest_version}!"
+def update_check(
+    package_name: str = "resotolib",
+    current_version: Optional[str] = None,
+    no_prerelease: bool = True,
+    github_project: str = "someengineering/resoto",
+) -> Optional[str]:
+    """Check for new Resoto releases.
 
-    current_release_uri = f"https://api.github.com/repos/someengineering/resoto/releases/tags/{version}"
+    :param package_name: The name of the Python package to retrieve the version number for.
+    :param current_version: Alternatively define a version number to check against.
+    :param no_prerelease: If True, only stable releases will be considered.
+    :param github_project: The name of the GitHub project to check for new releases.
+    :return: None if no new release was found or an info string if a new release was found.
+    """
+    if current_version is None:
+        current_version = component_version(package_name)
+
+    # We are assuming that there is a stable release within the first 100 releases returned.
+    # If that is not the case need to implement paging.
+    releases_uri = f"https://api.github.com/repos/{github_project}/releases?per_page=100"
+    headers = {"Accept": "application/vnd.github.v3+json"}
+    releases_response = requests.get(releases_uri, headers=headers)
+    if releases_response.status_code != 200:
+        raise RuntimeError(f"Unable to get releases from {releases_uri}:" f" {releases_response.status_code}")
+    latest_version = None
+    latest_version_ctime = None
+    for release in releases_response.json():
+        release_tag = release["tag_name"]
+        release_date = make_valid_timestamp(datetime.strptime(release["published_at"], "%Y-%m-%dT%H:%M:%SZ"))
+        if not no_prerelease or not pkg_resources.parse_version(release_tag).is_prerelease:
+            latest_version = release_tag
+            latest_version_ctime = release_date
+            break
+
+    if latest_version is None:
+        release_kind = "stable " if no_prerelease else ""
+        raise RuntimeError(f"Unable to find a {release_kind}release for {github_project}")
+
+    # If the current version is equal or newer than the remote version return None
+    if pkg_resources.parse_version(current_version) >= pkg_resources.parse_version(latest_version):
+        return None
+
+    msg = f"Current version {current_version} is out of date. Latest version is {latest_version}!"
+
+    current_release_uri = f"https://api.github.com/repos/someengineering/resoto/releases/tags/{current_version}"
     current_release_response = requests.get(current_release_uri, headers=headers)
     if current_release_response.status_code == 200:
         current_version_ctime = make_valid_timestamp(
@@ -807,7 +831,7 @@ def update_check(component: str = "resotolib", version: Optional[str] = None) ->
         )
         current_version_age = latest_version_ctime - current_version_ctime
         msg = (
-            f"Current version {version} is {current_version_age.days} days out of date."
+            f"Current version {current_version} is {current_version_age.days} days out of date."
             f" Latest version is {latest_version}!"
         )
 

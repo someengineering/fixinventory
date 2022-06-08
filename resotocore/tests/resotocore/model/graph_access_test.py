@@ -13,6 +13,7 @@ from resotocore.model.graph_access import GraphAccess, GraphBuilder, EdgeType, E
 from resotocore.model.model import Model, AnyKind
 from resotocore.model.typed_model import to_json
 from resotocore.types import Json
+from resotocore.ids import NodeId
 from resotocore.util import AccessJson, AccessNone
 from tests.resotocore.db.graphdb_test import Foo
 
@@ -68,7 +69,7 @@ def test_access_node() -> None:
         "g": 1.234567,
         "kind": "foo",
     }
-    assert access.node("2") is None
+    assert access.node(NodeId("2")) is None
 
 
 def test_marshal_unmarshal() -> None:
@@ -98,8 +99,8 @@ def test_root(graph_access: GraphAccess) -> None:
 
 
 def test_not_visited(graph_access: GraphAccess) -> None:
-    graph_access.node("1")
-    graph_access.node("3")
+    graph_access.node(NodeId("1"))
+    graph_access.node(NodeId("3"))
     not_visited = list(graph_access.not_visited_nodes())
     assert len(not_visited) == 2
     assert not_visited[0]["hash"] == "0546994698f57ed4a7a4463b0353397ebe4acc7196b9e9ca1dd7bc0b72245be6"
@@ -130,7 +131,7 @@ def test_flatten() -> None:
     assert flat == "blub 2021-06-18T10:31:34Z 0 hello one two"
 
 
-def node(access: GraphAccess, node_id: str) -> Optional[Json]:
+def node(access: GraphAccess, node_id: NodeId) -> Optional[Json]:
     res = access.node(node_id)
     if res:
         return res
@@ -166,7 +167,7 @@ def test_reassign_root(person_model: Model) -> None:
     builder.check_complete()
     access = GraphAccess(builder.graph)
     assert access.root() == "root"
-    assert set(access.successors("root", EdgeType.default)) == {"2", "3"}
+    assert set(access.successors(NodeId("root"), EdgeType.default)) == {"2", "3"}
 
 
 def test_replace_nodes(person_model: Model) -> None:
@@ -189,9 +190,9 @@ def test_replace_nodes(person_model: Model) -> None:
 
 def multi_cloud_graph(replace_on: str) -> MultiDiGraph:
     g = MultiDiGraph()
-    root = "root"
+    root = NodeId("root")
 
-    def add_node(node_id: str) -> None:
+    def add_node(node_id: NodeId) -> None:
         kind = re.sub("_.*$", "", node_id)
         reported = {
             "id": f"id_{node_id}",
@@ -218,26 +219,26 @@ def multi_cloud_graph(replace_on: str) -> MultiDiGraph:
 
     add_node(root)
     for cloud_d in ["aws", "gcp"]:
-        cloud = f"cloud_{cloud_d}"
+        cloud = NodeId(f"cloud_{cloud_d}")
         add_node(cloud)
         add_edge(root, cloud)
         for account_d in range(0, 3):
-            account = f"account_{cloud}_{account_d}"
+            account = NodeId(f"account_{cloud}_{account_d}")
             add_node(account)
             add_edge(cloud, account)
             add_edge(account, cloud, EdgeType.delete)
             for region_d in ["europe", "america", "asia", "africa", "antarctica", "australia"]:
-                region = f"region_{account}_{region_d}"
+                region = NodeId(f"region_{account}_{region_d}")
                 add_node(region)
                 add_edge(account, region)
                 add_edge(region, account, EdgeType.delete)
                 for parent_d in range(0, 3):
-                    parent = f"parent_{region}_{parent_d}"
+                    parent = NodeId(f"parent_{region}_{parent_d}")
                     add_node(parent)
                     add_edge(region, parent)
                     add_edge(parent, region, EdgeType.delete)
                     for children_d in range(0, 3):
-                        children = f"child_{parent}_{children_d}"
+                        children = NodeId(f"child_{parent}_{children_d}")
                         add_node(children)
                         add_edge(parent, children)
                         add_edge(children, parent, EdgeType.delete)
@@ -301,9 +302,9 @@ def test_acyclic() -> None:
 
 def test_predecessors() -> None:
     graph = GraphAccess(multi_cloud_graph("account"))
-    child = "child_parent_region_account_cloud_gcp_2_europe_1_0"
-    parent = "parent_region_account_cloud_gcp_2_europe_1"
-    region = "region_account_cloud_gcp_2_europe"
+    child = NodeId("child_parent_region_account_cloud_gcp_2_europe_1_0")
+    parent = NodeId("parent_region_account_cloud_gcp_2_europe_1")
+    region = NodeId("region_account_cloud_gcp_2_europe")
 
     # default: region -> parent -> child
     assert list(graph.predecessors(child, EdgeType.default)) == [parent]
@@ -319,7 +320,7 @@ def test_predecessors() -> None:
 
 
 def test_ancestor_of() -> None:
-    nid1 = "child_parent_region_account_cloud_gcp_1_europe_1_0"
+    nid1 = NodeId("child_parent_region_account_cloud_gcp_1_europe_1_0")
     acc1 = "account_cloud_gcp_1"
     acc2 = "account_cloud_gcp_2"
     g = multi_cloud_graph("account")
