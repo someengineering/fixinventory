@@ -2807,26 +2807,24 @@ class TagCommand(SendWorkerTaskCommand):
         ns, rest = p.parse_known_args(arg_tokens)
         variables: Optional[Set[str]] = None
 
+        def change_tag(jfn: Callable[[Json], Json]) -> Callable[[Json], Tuple[str, Dict[str, str], Json]]:
+            def update_single(item: Json) -> Tuple[str, Dict[str, str], Json]:
+                return (
+                    WorkerTaskName.tag,
+                    self.carz_from_node(item),
+                    jfn(item),
+                )
+
+            return update_single
+
         if arg_tokens[0] == "delete" and len(rest) == 2:
-            fn: Callable[[Json], Tuple[str, Dict[str, str], Json]] = lambda item: (
-                WorkerTaskName.tag,
-                self.carz_from_node(item),
-                {"delete": [rest[1]], "node": item},
-            )  # noqa: E731
+            fn = change_tag(lambda item: {"delete": [rest[1]], "node": item})
         elif arg_tokens[0] == "update" and len(rest) == 3:
             _, tag, vin = rest
             formatter, variables = ctx.formatter_with_variables(double_quoted_or_simple_string_dp.parse(vin))
-            fn = lambda item: (  # noqa: E731
-                WorkerTaskName.tag,
-                self.carz_from_node(item),
-                {"update": {tag: formatter(item)}, "node": item},
-            )
+            fn = change_tag(lambda item: {"update": {tag: formatter(item)}, "node": item})
         elif arg_tokens[0] == "update" and len(rest) == 2:
-            fn = lambda item: (  # noqa: E731
-                WorkerTaskName.tag,
-                self.carz_from_node(item),
-                {"update": {rest[1]: None}, "node": item},
-            )
+            fn = change_tag(lambda item: {"update": {rest[1]: None}, "node": item})
         else:
             raise AttributeError("Expect update tag_key tag_value or delete tag_key")
 
