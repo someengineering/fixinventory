@@ -3,11 +3,10 @@ from resotocore.message_bus import MessageBus, Action
 import logging
 import asyncio
 from asyncio import Task, Future
-from typing import Callable, Optional, Tuple, List
+from typing import Optional, Tuple, List
 from contextlib import suppress
 from datetime import timedelta
 from resotocore.model.graph_access import ByNodeId, NodeSelector
-from resotocore.query.model import Query
 from resotocore.task.model import Subscriber
 from resotocore.ids import NodeId, SubscriberId
 from resotocore.task.task_handler import TaskHandlerService
@@ -15,6 +14,7 @@ from resotocore.ids import TaskId
 from resotocore.task.subscribers import SubscriptionHandler
 from resotocore.db.db_access import DbAccess
 from resotocore.model.model_handler import ModelHandler
+from resotocore.query.query_parser import parse_query
 
 
 log = logging.getLogger(__name__)
@@ -31,7 +31,6 @@ class MergeOuterEdgesHandler:
         task_handler_service: TaskHandlerService,
         db_access: DbAccess,
         model_handler: ModelHandler,
-        parse_query: Callable[[str], Query],
     ):
         self.message_bus = message_bus
         self.merge_outer_edges_listener: Optional[Task[None]] = None
@@ -40,10 +39,9 @@ class MergeOuterEdgesHandler:
         self.task_handler_service = task_handler_service
         self.db_access = db_access
         self.model_handler = model_handler
-        self.parse_query = parse_query
 
     async def merge_outer_edges(self, task_id: TaskId) -> None:
-        pending_outer_edge_db = self.db_access.get_pending_deferred_edge_db()
+        pending_outer_edge_db = self.db_access.pending_deferred_edge_db
         pending_edges = await pending_outer_edge_db.get(task_id)
         model = await self.model_handler.load_model()
         created_edges = 0
@@ -55,17 +53,17 @@ class MergeOuterEdgesHandler:
                     node = await graph_db.get_node(model, selector.value)
                     return node.get("id") if node else None
                 else:
-                    query = self.parse_query(selector.query).with_limit(2)
+                    query = parse_query(selector.query).with_limit(2)
                     async with await graph_db.search_list(QueryModel(query, model)) as cursor:
                         results = [node async for node in cursor]
-                        if len(results) != 1:
+                        if len(results) > 1:
                             log.warning(
                                 f"task_id: {task_id}: node selector {selector.query} returned more than one node."
                                 "The edge was not created."
                             )
                             return None
 
-                        return next(iter(results), {}).get("id", None)  # type: ignore
+                    return next(iter(results), {}).get("id", None)  # type: ignore
 
             edges: List[Tuple[NodeId, NodeId, str]] = []
             for edge in pending_edges.edges:
@@ -83,7 +81,7 @@ class MergeOuterEdgesHandler:
             log.info(f"MergeOuterEdgesHandler: no pending edges for task id {task_id} found.")
 
     async def mark_done(self, task_id: TaskId) -> None:
-        pending_outer_edge_db = self.db_access.get_pending_deferred_edge_db()
+        pending_outer_edge_db = self.db_access.pending_deferred_edge_db
         await pending_outer_edge_db.delete(task_id)
 
     async def __handle_events(self, subscription_done: Future[None]) -> None:

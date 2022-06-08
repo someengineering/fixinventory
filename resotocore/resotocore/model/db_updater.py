@@ -145,7 +145,7 @@ class DbUpdaterProcess(Process):
             log.debug("Graph read into memory")
             builder.check_complete()
             graphdb = db.get_graph_db(nxt.graph)
-            outer_edge_db = db.get_pending_deferred_edge_db()
+            outer_edge_db = db.pending_deferred_edge_db
             _, result = await graphdb.merge_graph(builder.graph, model, nxt.change_id, nxt.is_batch)
             if nxt.task_id and builder.deferred_edges:
                 await outer_edge_db.update(

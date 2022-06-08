@@ -21,7 +21,7 @@ from resotocore.db.entitydb import EventEntityDb
 from resotocore.db.graphdb import ArangoGraphDB, GraphDB, EventGraphDB
 from resotocore.db.jobdb import job_db
 from resotocore.db.modeldb import ModelDb, model_db
-from resotocore.db.deferred_edge_db import PendingDeferredEdgeDb, pending_deferred_edge_db
+from resotocore.db.deferred_edge_db import pending_deferred_edge_db
 from resotocore.db.runningtaskdb import running_task_db
 from resotocore.db.subscriberdb import subscriber_db
 from resotocore.db.templatedb import template_entity_db
@@ -31,9 +31,6 @@ from resotocore.model.typed_model import from_js, to_js
 from resotocore.util import Periodic, utc, shutdown_process, uuid_str
 
 log = logging.getLogger(__name__)
-
-
-TWO_HOURS = 7200
 
 
 class DbAccess(ABC):
@@ -80,7 +77,6 @@ class DbAccess(ABC):
         await self.configs_model_db.create_update_schema()
         await self.template_entity_db.create_update_schema()
         await self.pending_deferred_edge_db.create_update_schema()
-        self.update_deferred_edge_db_index()
         for graph in self.database.graphs():
             log.info(f'Found graph: {graph["name"]}')
             db = self.get_graph_db(graph["name"])
@@ -123,16 +119,6 @@ class DbAccess(ABC):
 
     def get_model_db(self) -> ModelDb:
         return self.model_db
-
-    def get_pending_deferred_edge_db(self) -> PendingDeferredEdgeDb:
-        return self.pending_deferred_edge_db
-
-    def update_deferred_edge_db_index(self) -> None:
-        ttl_index_name = "deferred_edges_expiration_index"
-        collection = self.pending_deferred_edge_db.db.collection(self.pending_deferred_edge_db.collection_name)
-        if ttl_index_name not in {idx["name"] for idx in collection.indexes()}:
-            log.info(f"Add index {ttl_index_name} on {collection.name}")
-            collection.add_ttl_index(["created_at"], TWO_HOURS, "deferred_edges_expiration_index")
 
     async def check_outdated_updates(self) -> None:
         now = datetime.now(timezone.utc)

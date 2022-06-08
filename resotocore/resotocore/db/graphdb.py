@@ -47,7 +47,7 @@ class GraphDB(ABC):
         pass
 
     @abstractmethod
-    async def update_deferred_edges(self, edges: List[Tuple[NodeId, NodeId, str]], ts: datetime) -> None:
+    async def update_deferred_edges(self, edges: List[Tuple[NodeId, NodeId, str]], ts: datetime) -> Tuple[int, int]:
         pass
 
     @abstractmethod
@@ -169,7 +169,7 @@ class ArangoGraphDB(GraphDB):
             trafo = self.document_to_instance_fn(model)
             return trafo(result["new"])
 
-    async def update_deferred_edges(self, edges: List[Tuple[NodeId, NodeId, str]], ts: datetime) -> None:
+    async def update_deferred_edges(self, edges: List[Tuple[NodeId, NodeId, str]], ts: datetime) -> Tuple[int, int]:
 
         default_edges: List[Json] = []
         delete_edges: List[Json] = []
@@ -189,18 +189,26 @@ class ArangoGraphDB(GraphDB):
                 REMOVE edge in {edge_collection}
             """
 
+        updated_edges = 0
+        deleted_edges = 0
+
         if default_edges:
             edge_collection = self.edge_collection(EdgeType.default)
             async with self.db.begin_transaction(write=[self.vertex_name, edge_collection]) as tx:
                 await tx.insert_many(edge_collection, default_edges)
+                updated_edges += len(default_edges)
                 query = deletion_query(edge_collection)
-                await tx.aql(query)
+                with await tx.aql(query, count=True) as cursor:
+                    deleted_edges += cursor.count() or 0
 
         if delete_edges:
             edge_collection = self.edge_collection(EdgeType.delete)
             async with self.db.begin_transaction(write=[self.vertex_name, edge_collection]) as tx:
                 query = deletion_query(edge_collection)
-                await tx.aql(query)
+                with await tx.aql(query, count=True) as cursor:
+                    deleted_edges += cursor.count() or 0
+
+        return updated_edges, deleted_edges
 
     async def update_node(
         self, model: Model, node_id: NodeId, patch_or_replace: Json, replace: bool, section: Optional[str]
@@ -1068,9 +1076,10 @@ class EventGraphDB(GraphDB):
         await self.event_sender.core_event(CoreEvent.NodeCreated, {"graph": self.graph_name})
         return result
 
-    async def update_deferred_edges(self, edges: List[Tuple[NodeId, NodeId, str]], ts: datetime) -> None:
-        await self.real.update_deferred_edges(edges, ts)
-        await self.event_sender.core_event(CoreEvent.EdgeCreated)
+    async def update_deferred_edges(self, edges: List[Tuple[NodeId, NodeId, str]], ts: datetime) -> Tuple[int, int]:
+        updated, deleted = await self.real.update_deferred_edges(edges, ts)
+        await self.event_sender.core_event(CoreEvent.DeferredEdgesUpdated, updated=updated, deleted=deleted)
+        return updated, deleted
 
     async def update_node(
         self, model: Model, node_id: NodeId, patch_or_replace: Json, replace: bool, section: Optional[str]

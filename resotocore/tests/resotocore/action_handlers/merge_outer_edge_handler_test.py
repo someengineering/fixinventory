@@ -85,9 +85,7 @@ async def merge_handler(
     foo_model: Model,
 ) -> AsyncGenerator[MergeOuterEdgesHandler, None]:
     model_handler = ModelHandlerStatic(foo_model)
-    handler = MergeOuterEdgesHandler(
-        message_bus, subscription_handler, task_handler, db_access, model_handler, parse_query
-    )
+    handler = MergeOuterEdgesHandler(message_bus, subscription_handler, task_handler, db_access, model_handler)
     await handler.start()
     yield handler
     await handler.stop()
@@ -137,7 +135,7 @@ async def test_merge_outer_edges(
     await graph_db.create_node(foo_model, id2, to_json(Bla("id2", "bla")), NodeId("root"))
     await db_access.pending_deferred_edge_db.create_update_schema()
 
-    await db_access.get_pending_deferred_edge_db().update(
+    await db_access.pending_deferred_edge_db.update(
         PendingDeferredEdges(
             TaskId("task123"),
             now,
@@ -156,7 +154,7 @@ async def test_merge_outer_edges(
 
     new_now = now + timedelta(minutes=10)
 
-    await db_access.get_pending_deferred_edge_db().update(
+    await db_access.pending_deferred_edge_db.update(
         PendingDeferredEdges(
             TaskId("task456"),
             new_now,
