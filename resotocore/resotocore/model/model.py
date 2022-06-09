@@ -8,7 +8,6 @@ from dataclasses import dataclass
 from datetime import datetime, timezone, date
 from json import JSONDecodeError
 from typing import Union, Any, Optional, Callable, Type, Sequence, Dict, List, Set, cast, Tuple
-from resotocore.model.graph_access import EdgeType
 
 import yaml
 from dateutil.parser import parse
@@ -20,7 +19,7 @@ from resotocore.durations import duration_parser, DurationRe
 from resotocore.model.transform_kind_convert import converters
 from resotocore.model.typed_model import from_js
 from resotocore.parse_util import make_parser
-from resotocore.types import Json, JsonElement, ValidationResult, ValidationFn
+from resotocore.types import Json, JsonElement, ValidationResult, ValidationFn, EdgeType
 from resotocore.util import if_set, utc, duration, first
 from resotocore.compat import remove_suffix
 

@@ -9,10 +9,10 @@ from typing import Mapping, Union, Optional, Any, ClassVar, Dict, List, Tuple, C
 
 from jsons import set_deserializer
 
-from resotocore.model.graph_access import EdgeType, EdgeTypes, Direction
+from resotocore.model.graph_access import EdgeTypes, Direction
 from resotocore.model.resolve_in_graph import GraphResolver
 from resotocore.model.typed_model import to_js_str
-from resotocore.types import Json, JsonElement
+from resotocore.types import Json, JsonElement, EdgeType
 from resotocore.util import combine_optional
 
 PathRoot = "/"

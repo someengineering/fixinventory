@@ -6,14 +6,14 @@ import logging
 import re
 from collections import namedtuple, defaultdict
 from functools import reduce
-from typing import Literal, Optional, Generator, Any, Dict, List, Set, Tuple, Union
+from typing import Optional, Generator, Any, Dict, List, Set, Tuple, Union
 from dataclasses import dataclass
 
 from networkx import DiGraph, MultiDiGraph, all_shortest_paths, is_directed_acyclic_graph
 
 from resotocore.model.model import Model, Kind, AnyKind, ComplexKind, ArrayKind, DateTimeKind, DictionaryKind
 from resotocore.model.resolve_in_graph import GraphResolver, NodePath, ResolveProp
-from resotocore.types import Json
+from resotocore.types import Json, EdgeType
 from resotocore.ids import NodeId
 from resotocore.util import utc, utc_str, value_in_path, set_value_in_path, value_in_path_get
 from resotocore.model.typed_model import from_js
@@ -72,9 +72,6 @@ class Section:
     @classmethod
     def without_section(cls, path: str) -> str:
         return cls.__no_section.sub("", path, 1)
-
-
-EdgeType = Literal["default", "delete"]
 
 
 class EdgeTypes:

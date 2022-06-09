@@ -2,7 +2,7 @@ from typing import Optional, List, Set
 
 from resotocore.model.model import Model, Kind
 from resotocore.model.model_handler import ModelHandler
-from resotocore.model.graph_access import EdgeType
+from resotocore.types import EdgeType
 
 
 class ModelHandlerStatic(ModelHandler):

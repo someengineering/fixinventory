@@ -9,10 +9,10 @@ from networkx import MultiDiGraph
 from pytest import fixture
 from typing import Optional
 
-from resotocore.model.graph_access import EdgeType, GraphAccess, GraphBuilder, EdgeTypes, EdgeKey
+from resotocore.model.graph_access import GraphAccess, GraphBuilder, EdgeTypes, EdgeKey
 from resotocore.model.model import Model, AnyKind
 from resotocore.model.typed_model import to_json
-from resotocore.types import Json
+from resotocore.types import Json, EdgeType
 from resotocore.ids import NodeId
 from resotocore.util import AccessJson, AccessNone
 from tests.resotocore.db.graphdb_test import Foo

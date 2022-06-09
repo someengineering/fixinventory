@@ -73,7 +73,7 @@ from resotocore.config import ConfigEntity
 from resotocore.db.model import QueryModel
 from resotocore.dependencies import system_info
 from resotocore.error import CLIParseError, ClientError, CLIExecutionError
-from resotocore.model.graph_access import EdgeType, Section, EdgeTypes
+from resotocore.model.graph_access import Section, EdgeTypes
 from resotocore.model.model import Model, Kind, ComplexKind, DictionaryKind, SimpleKind, Property
 from resotocore.model.resolve_in_graph import NodePath
 from resotocore.model.typed_model import to_json, to_js
@@ -92,7 +92,7 @@ from resotocore.query.model import Query, P, Template, NavigateUntilRoot, IsTerm
 from resotocore.query.query_parser import parse_query
 from resotocore.query.template_expander import tpl_props_p
 from resotocore.task.task_description import Job, TimeTrigger, EventTrigger, ExecuteCommand, Workflow
-from resotocore.types import Json, JsonElement
+from resotocore.types import Json, JsonElement, EdgeType
 from resotocore.util import (
     uuid_str,
     value_in_path_get,

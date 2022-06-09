@@ -18,7 +18,6 @@ from typing import (
     Any,
     Optional,
     Sequence,
-    Set,
     Union,
     List,
     Dict,
@@ -64,7 +63,7 @@ from resotocore.db.graphdb import GraphDB
 from resotocore.db.model import QueryModel
 from resotocore.message_bus import MessageBus, Message, ActionDone, Action, ActionError
 from resotocore.model.db_updater import merge_graph_process
-from resotocore.model.graph_access import EdgeType, EdgeTypes, Section
+from resotocore.model.graph_access import Section
 from resotocore.model.model import Kind
 from resotocore.model.model_handler import ModelHandler
 from resotocore.model.typed_model import to_json, from_js, to_js_str, to_js

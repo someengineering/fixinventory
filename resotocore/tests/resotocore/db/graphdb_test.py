@@ -18,12 +18,12 @@ from resotocore.db.graphdb import ArangoGraphDB, GraphDB, EventGraphDB
 from resotocore.db.model import QueryModel, GraphUpdate
 from resotocore.error import ConflictingChangeInProgress, NoSuchChangeError, InvalidBatchUpdate
 from resotocore.model.adjust_node import NoAdjust
-from resotocore.model.graph_access import EdgeType, GraphAccess, EdgeTypes, Section
+from resotocore.model.graph_access import GraphAccess, EdgeTypes, Section
 from resotocore.model.model import Model, ComplexKind, Property, Kind, SyntheticProperty
 from resotocore.model.typed_model import from_js, to_js
 from resotocore.query.model import Query, P, Navigation
 from resotocore.query.query_parser import parse_query
-from resotocore.types import JsonElement
+from resotocore.types import JsonElement, EdgeType
 from resotocore.util import AccessJson, utc, value_in_path, AccessNone
 from resotocore.ids import NodeId
 

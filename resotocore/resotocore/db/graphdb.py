@@ -21,11 +21,11 @@ from resotocore.db.async_arangodb import AsyncArangoDB, AsyncArangoTransactionDB
 from resotocore.db.model import GraphUpdate, QueryModel
 from resotocore.error import InvalidBatchUpdate, ConflictingChangeInProgress, NoSuchChangeError, OptimisticLockingFailed
 from resotocore.model.adjust_node import AdjustNode
-from resotocore.model.graph_access import EdgeType, GraphAccess, GraphBuilder, EdgeTypes, Section
+from resotocore.model.graph_access import GraphAccess, GraphBuilder, EdgeTypes, Section
 from resotocore.model.model import Model, ComplexKind, TransformKind
 from resotocore.model.resolve_in_graph import NodePath, GraphResolver
 from resotocore.query.model import Query
-from resotocore.types import JsonElement
+from resotocore.types import JsonElement, EdgeType
 from resotocore.util import first, value_in_path_get, utc_str, uuid_str, value_in_path, json_hash, set_value_in_path
 from resotocore.ids import NodeId
 
@@ -696,8 +696,8 @@ class ArangoGraphDB(GraphDB):
         def merge_edges(merge_node: str, merge_node_kind: str, edge_type: EdgeType) -> Tuple[str, Json]:
             return self.query_update_edges(edge_type, merge_node_kind), {"update_id": merge_node}
 
-        K = TypeVar("K")
-        V = TypeVar("V")
+        K = TypeVar("K")  # noqa: N806
+        V = TypeVar("V")  # noqa: N806
 
         def combine_dict(left: Dict[K, List[V]], right: Dict[K, List[V]]) -> Dict[K, List[V]]:
             result = dict(left)

@@ -8,7 +8,7 @@ from plantuml import PlantUML
 
 from resotocore.async_extensions import run_async
 from resotocore.db.modeldb import ModelDb
-from resotocore.model.graph_access import EdgeType
+from resotocore.types import EdgeType
 from resotocore.model.model import Model, Kind, ComplexKind
 from resotocore.util import exist
 
