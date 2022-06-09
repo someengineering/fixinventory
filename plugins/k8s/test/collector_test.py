@@ -13,5 +13,5 @@ def test_collect() -> None:
     plugin = KubernetesCollectorPlugin()
     # start a collect: use the static file client to get the static json files
     plugin.collect(client_factory=StaticFileClient.static)
-    assert len(plugin.graph.nodes) == 522
-    assert len(plugin.graph.edges) == 742
+    assert len(plugin.graph.nodes) == 561
+    assert len(plugin.graph.edges) == 813
