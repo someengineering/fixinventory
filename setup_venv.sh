@@ -26,7 +26,7 @@ declare branch=main
 main() {
     echo "resoto bootstrapper"
 
-    if grep "url =.*resoto.git" "$PWD/.git/config" > /dev/null 2>&1; then
+    if [ -f .git/config -a -d resotocore ]; then
         install_path="$PWD"
     fi
     local end_of_opt
