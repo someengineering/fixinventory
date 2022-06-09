@@ -6,7 +6,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from functools import partial
 from numbers import Number
-from typing import Optional, Callable, AsyncGenerator, Any, Iterable, Dict, List, Tuple, cast
+from typing import DefaultDict, Optional, Callable, AsyncGenerator, Any, Iterable, Dict, List, Tuple, TypeVar, cast
 
 from arango import AnalyzerGetError
 from arango.collection import VertexCollection, StandardCollection, EdgeCollection
@@ -21,11 +21,11 @@ from resotocore.db.async_arangodb import AsyncArangoDB, AsyncArangoTransactionDB
 from resotocore.db.model import GraphUpdate, QueryModel
 from resotocore.error import InvalidBatchUpdate, ConflictingChangeInProgress, NoSuchChangeError, OptimisticLockingFailed
 from resotocore.model.adjust_node import AdjustNode
-from resotocore.model.graph_access import GraphAccess, GraphBuilder, EdgeType, Section
+from resotocore.model.graph_access import GraphAccess, GraphBuilder, EdgeTypes, Section
 from resotocore.model.model import Model, ComplexKind, TransformKind
 from resotocore.model.resolve_in_graph import NodePath, GraphResolver
 from resotocore.query.model import Query
-from resotocore.types import JsonElement
+from resotocore.types import JsonElement, EdgeType
 from resotocore.util import first, value_in_path_get, utc_str, uuid_str, value_in_path, json_hash, set_value_in_path
 from resotocore.ids import NodeId
 
@@ -146,7 +146,7 @@ class ArangoGraphDB(GraphDB):
     def name(self) -> str:
         return self._name
 
-    def edge_collection(self, edge_type: str) -> str:
+    def edge_collection(self, edge_type: EdgeType) -> str:
         return f"{self.name}_{edge_type}"
 
     async def get_node(self, model: Model, node_id: NodeId) -> Optional[Json]:
@@ -156,13 +156,13 @@ class ArangoGraphDB(GraphDB):
     async def create_node(self, model: Model, node_id: NodeId, data: Json, under_node_id: NodeId) -> Json:
         graph = GraphBuilder(model)
         graph.add_node(node_id, data)
-        graph.add_edge(under_node_id, node_id, EdgeType.default)
+        graph.add_edge(under_node_id, node_id, EdgeTypes.default)
         access = GraphAccess(graph.graph, node_id, {under_node_id})
         _, node_inserts, _, _ = self.prepare_nodes(access, [], model)
-        _, edge_inserts, _ = self.prepare_edges(access, [], EdgeType.default)
+        _, edge_inserts, _ = self.prepare_edges(access, [], EdgeTypes.default)
         assert len(node_inserts) == 1
         assert len(edge_inserts) == 1
-        edge_collection = self.edge_collection(EdgeType.default)
+        edge_collection = self.edge_collection(EdgeTypes.default)
         async with self.db.begin_transaction(write=[self.vertex_name, edge_collection]) as tx:
             result: Json = await tx.insert(self.vertex_name, node_inserts[0], return_new=True)
             await tx.insert(edge_collection, edge_inserts[0])
@@ -177,7 +177,7 @@ class ArangoGraphDB(GraphDB):
         for from_node, to_node, edge_type in edges:
             json_node = self.edge_to_json(from_node, to_node, None)
             json_node["outer_edge_ts"] = ts.isoformat()  # must be kept in sync with an index
-            if edge_type == EdgeType.default:
+            if edge_type == EdgeTypes.default:
                 default_edges.append(json_node)
             else:
                 delete_edges.append(json_node)
@@ -193,7 +193,7 @@ class ArangoGraphDB(GraphDB):
         deleted_edges = 0
 
         if default_edges:
-            edge_collection = self.edge_collection(EdgeType.default)
+            edge_collection = self.edge_collection(EdgeTypes.default)
             async with self.db.begin_transaction(write=[self.vertex_name, edge_collection]) as tx:
                 await tx.insert_many(edge_collection, default_edges)
                 updated_edges += len(default_edges)
@@ -202,7 +202,7 @@ class ArangoGraphDB(GraphDB):
                     deleted_edges += cursor.count() or 0
 
         if delete_edges:
-            edge_collection = self.edge_collection(EdgeType.delete)
+            edge_collection = self.edge_collection(EdgeTypes.delete)
             async with self.db.begin_transaction(write=[self.vertex_name, edge_collection]) as tx:
                 query = deletion_query(edge_collection)
                 with await tx.aql(query, count=True) as cursor:
@@ -413,7 +413,7 @@ class ArangoGraphDB(GraphDB):
 
     async def wipe(self) -> None:
         await self.db.truncate(self.vertex_name)
-        for edge_type in EdgeType.all:
+        for edge_type in EdgeTypes.all:
             await self.db.truncate(self.edge_collection(edge_type))
         await self.insert_genesis_data()
 
@@ -492,12 +492,12 @@ class ArangoGraphDB(GraphDB):
         edge_inserts = [
             f'for e in {temp_name} filter e.action=="edge_insert" and e.edge_type=="{a}" '
             f'insert e.data in {self.edge_collection(a)} OPTIONS {{overwriteMode: "replace"}}'
-            for a in EdgeType.all
+            for a in EdgeTypes.all
         ]
         edge_deletes = [
             f'for e in {temp_name} filter e.action=="edge_delete" and e.edge_type=="{a}" '
             f"remove e.data in {self.edge_collection(a)}"
-            for a in EdgeType.all
+            for a in EdgeTypes.all
         ]
         updates = "\n".join(
             map(
@@ -517,7 +517,7 @@ class ArangoGraphDB(GraphDB):
         await self.db.execute_transaction(
             f'function () {{\nvar db=require("@arangodb").db;\n{updates}\n}}',
             read=[temp_name],
-            write=[self.edge_collection(a) for a in EdgeType.all] + [self.vertex_name, self.in_progress],
+            write=[self.edge_collection(a) for a in EdgeTypes.all] + [self.vertex_name, self.in_progress],
         )
         log.info(f"Move temp->proper data: change_id={change_id} done.")
 
@@ -619,7 +619,7 @@ class ArangoGraphDB(GraphDB):
         return js
 
     def prepare_edges(
-        self, access: GraphAccess, edge_cursor: Iterable[Json], edge_type: str
+        self, access: GraphAccess, edge_cursor: Iterable[Json], edge_type: EdgeType
     ) -> Tuple[GraphUpdate, List[Json], List[Json]]:
         log.info(f"Prepare edges of type {edge_type} for subgraph {access.root()}")
         info = GraphUpdate()
@@ -661,8 +661,10 @@ class ArangoGraphDB(GraphDB):
         change_id = maybe_change_id if maybe_change_id else uuid_str()
 
         async def prepare_graph(
-            sub: GraphAccess, node_query: Tuple[str, Json], edge_query: Callable[[str], Tuple[str, Json]]
-        ) -> Tuple[GraphUpdate, List[Json], List[Json], List[Json], Dict[str, List[Json]], Dict[str, List[Json]]]:
+            sub: GraphAccess, node_query: Tuple[str, Json], edge_query: Callable[[EdgeType], Tuple[str, Json]]
+        ) -> Tuple[
+            GraphUpdate, List[Json], List[Json], List[Json], Dict[EdgeType, List[Json]], Dict[EdgeType, List[Json]]
+        ]:
             graph_info = GraphUpdate()
             # check all nodes for this subgraph
             query, bind = node_query
@@ -672,9 +674,9 @@ class ArangoGraphDB(GraphDB):
                 graph_info += node_info
 
             # check all edges in all relevant edge-collections
-            edge_inserts = defaultdict(list)
-            edge_deletes = defaultdict(list)
-            for edge_type in EdgeType.all:
+            edge_inserts: DefaultDict[EdgeType, List[Json]] = defaultdict(list)
+            edge_deletes: DefaultDict[EdgeType, List[Json]] = defaultdict(list)
+            for edge_type in EdgeTypes.all:
                 query, bind = edge_query(edge_type)
                 log.debug(f"Query for edges of type {edge_type}: {sub.root()}")
                 with await self.db.aql(query, bind_vars=bind, batch_size=50000) as ec:
@@ -687,14 +689,17 @@ class ArangoGraphDB(GraphDB):
         roots, parent, graphs = GraphAccess.merge_graphs(graph_to_merge)
         logging.info(f"merge_graph {len(roots)} merge nodes found. change_id={change_id}, is_batch={is_batch}.")
 
-        def parent_edges(edge_type: str) -> Tuple[str, Json]:
+        def parent_edges(edge_type: EdgeType) -> Tuple[str, Json]:
             edge_ids = [self.db_edge_key(f, t) for f, t, et in parent.g.edges(data="edge_type") if et == edge_type]
             return self.query_update_edges_by_ids(edge_type), {"ids": edge_ids}
 
-        def merge_edges(merge_node: str, merge_node_kind: str, edge_type: str) -> Tuple[str, Json]:
+        def merge_edges(merge_node: str, merge_node_kind: str, edge_type: EdgeType) -> Tuple[str, Json]:
             return self.query_update_edges(edge_type, merge_node_kind), {"update_id": merge_node}
 
-        def combine_dict(left: Dict[str, List[Any]], right: Dict[str, List[Any]]) -> Dict[str, List[Any]]:
+        K = TypeVar("K")  # noqa: N806
+        V = TypeVar("V")  # noqa: N806
+
+        def combine_dict(left: Dict[K, List[V]], right: Dict[K, List[V]]) -> Dict[K, List[V]]:
             result = dict(left)
             for key, right_values in right.items():
                 left_values = left.get(key)
@@ -741,8 +746,8 @@ class ArangoGraphDB(GraphDB):
         resource_inserts: List[Json],
         resource_updates: List[Json],
         resource_deletes: List[Json],
-        edge_inserts: Dict[str, List[Json]],
-        edge_deletes: Dict[str, List[Json]],
+        edge_inserts: Dict[EdgeType, List[Json]],
+        edge_deletes: Dict[EdgeType, List[Json]],
     ) -> None:
         async def execute_many_async(
             async_fn: Callable[[str, List[Json]], Any], name: str, array: List[Json], **kwargs: Any
@@ -766,7 +771,7 @@ class ArangoGraphDB(GraphDB):
 
         async def update_directly() -> None:
             log.debug(f"Persist the changes directly ({info.all_changes()} changes).")
-            edge_collections = [self.edge_collection(a) for a in EdgeType.all]
+            edge_collections = [self.edge_collection(a) for a in EdgeTypes.all]
             update_many_no_merge = partial(self.db.update_many, merge=False)
             async with self.db.begin_transaction(write=edge_collections + [self.vertex_name, self.in_progress]) as tx:
                 # note: all requests are done sequentially on purpose
@@ -949,14 +954,14 @@ class ArangoGraphDB(GraphDB):
                     },
                 )
 
-        for edge_type in EdgeType.all:
+        for edge_type in EdgeTypes.all:
             edge_type_name = self.edge_collection(edge_type)
             await create_update_graph(self.name, self.vertex_name, edge_type_name)
 
         vertex = db.graph(self.name).vertex_collection(self.vertex_name)
         in_progress = await create_collection(self.in_progress)
         create_update_collection_indexes(vertex, in_progress)
-        for edge_type in EdgeType.all:
+        for edge_type in EdgeTypes.all:
             edge_collection = db.graph(self.name).edge_collection(self.edge_collection(edge_type))
             create_update_edge_indexes(edge_collection)
 
@@ -984,7 +989,7 @@ class ArangoGraphDB(GraphDB):
         RETURN {{_key: a._key, hash:a.hash, created:a.created}}
         """
 
-    def query_update_edges(self, edge_type: str, merge_node_kind: str) -> str:
+    def query_update_edges(self, edge_type: EdgeType, merge_node_kind: str) -> str:
         collection = self.edge_collection(edge_type)
         return f"""
         FOR a IN {collection}
@@ -999,7 +1004,7 @@ class ArangoGraphDB(GraphDB):
         RETURN {{_key: a._key, hash:a.hash, created:a.created}}
         """
 
-    def query_update_edges_by_ids(self, edge_type: str) -> str:
+    def query_update_edges_by_ids(self, edge_type: EdgeType) -> str:
         collection = self.edge_collection(edge_type)
         return f"""
         FOR a IN {collection}
@@ -1009,7 +1014,7 @@ class ArangoGraphDB(GraphDB):
 
     def query_update_parent_linked(self) -> str:
         return f"""
-        FOR a IN {self.edge_collection(EdgeType.default)}
+        FOR a IN {self.edge_collection(EdgeTypes.default)}
         FILTER a._from==@from and a._to==@to
         RETURN true
         """
@@ -1033,7 +1038,7 @@ class ArangoGraphDB(GraphDB):
     def query_count_direct_children(self) -> str:
         return f"""
         FOR pn in {self.vertex_name} FILTER pn._key==@rid LIMIT 1
-        FOR c IN 1..1 OUTBOUND pn {self.edge_collection(EdgeType.default)} COLLECT WITH COUNT INTO length
+        FOR c IN 1..1 OUTBOUND pn {self.edge_collection(EdgeTypes.default)} COLLECT WITH COUNT INTO length
         RETURN length
         """
 

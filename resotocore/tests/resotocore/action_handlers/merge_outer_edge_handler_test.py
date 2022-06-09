@@ -12,7 +12,7 @@ from resotocore.task.subscribers import SubscriptionHandler
 from resotocore.db.db_access import DbAccess
 from resotocore.analytics import NoEventSender
 from resotocore.model.adjust_node import NoAdjust
-from resotocore.model.graph_access import ByNodeId, BySearchCriteria, DeferredEdge, EdgeType
+from resotocore.model.graph_access import ByNodeId, BySearchCriteria, DeferredEdge, EdgeTypes
 from resotocore.dependencies import empty_config
 from resotocore.model.model import Model
 from resotocore.query.query_parser import parse_query
@@ -141,7 +141,7 @@ async def test_merge_outer_edges(
             now,
             graph_db.name,
             [
-                DeferredEdge(ByNodeId(id1), BySearchCriteria("is(bla)"), EdgeType.default),
+                DeferredEdge(ByNodeId(id1), BySearchCriteria("is(bla)"), EdgeTypes.default),
             ],
         )
     )
@@ -160,7 +160,7 @@ async def test_merge_outer_edges(
             new_now,
             graph_db.name,
             [
-                DeferredEdge(ByNodeId(id2), ByNodeId(id1), EdgeType.default),
+                DeferredEdge(ByNodeId(id2), ByNodeId(id1), EdgeTypes.default),
             ],
         )
     )

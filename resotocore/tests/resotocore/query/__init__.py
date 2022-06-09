@@ -10,7 +10,7 @@ from hypothesis.strategies import (
     tuples,
 )
 
-from resotocore.model.graph_access import EdgeType, Direction
+from resotocore.model.graph_access import EdgeTypes, Direction
 from tests.resotocore.hypothesis_extension import Drawer, optional, UD, any_string
 from resotocore.query.model import (
     IsTerm,
@@ -42,7 +42,7 @@ query_operations = sampled_from(["==", ">=", "<=", ">", "<"])
 query_values = sampled_from(["test", 23, True, False, None])
 combine_term = sampled_from(["and", "or"])
 edge_direction = sampled_from(list(Direction.all))
-edge_type = sampled_from(list(EdgeType.all))
+edge_type = sampled_from(list(EdgeTypes.all))
 sort_order = sampled_from([SortOrder.Asc, SortOrder.Desc])
 aggregate_functions = sampled_from(["sum", "count", "min", "max", "avg"])
 is_term = builds(IsTerm, lists(kind, min_size=1, max_size=2))

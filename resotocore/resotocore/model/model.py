@@ -19,7 +19,7 @@ from resotocore.durations import duration_parser, DurationRe
 from resotocore.model.transform_kind_convert import converters
 from resotocore.model.typed_model import from_js
 from resotocore.parse_util import make_parser
-from resotocore.types import Json, JsonElement, ValidationResult, ValidationFn
+from resotocore.types import Json, JsonElement, ValidationResult, ValidationFn, EdgeType
 from resotocore.util import if_set, utc, duration, first
 from resotocore.compat import remove_suffix
 
@@ -762,7 +762,7 @@ class ComplexKind(Kind):
         properties: List[Property],
         allow_unknown_props: bool = False,
         # EdgeType -> possible list of successor kinds
-        successor_kinds: Optional[Dict[str, List[str]]] = None,
+        successor_kinds: Optional[Dict[EdgeType, List[str]]] = None,
         aggregate_root: bool = True,
     ):
         super().__init__(fqn)

@@ -13,7 +13,19 @@ from datetime import timedelta
 from functools import partial
 from pathlib import Path
 from random import SystemRandom
-from typing import AsyncGenerator, Any, Optional, Sequence, Union, List, Dict, AsyncIterator, Tuple, Callable, Awaitable
+from typing import (
+    AsyncGenerator,
+    Any,
+    Optional,
+    Sequence,
+    Union,
+    List,
+    Dict,
+    AsyncIterator,
+    Tuple,
+    Callable,
+    Awaitable,
+)
 
 import prometheus_client
 import yaml
@@ -507,7 +519,7 @@ class Api:
             with_inheritance=with_inheritance,
             with_base_classes=with_base_classes,
             with_subclasses=with_subclasses,
-            dependency_edges=dependency,
+            dependency_edges=dependency,  # type: ignore
             with_predecessors=with_predecessors,
             with_successors=with_successors,
             with_properties=with_properties,
