@@ -88,7 +88,6 @@ class K8sConfig:
                 """
                 Configure access via kubeconfig files.
                 Structure:
-                Structure:
                   - path: "/path/to/kubeconfig"
                     all_contexts: false
                     contexts: ["context1", "context2"]
