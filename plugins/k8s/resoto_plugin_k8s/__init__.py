@@ -8,6 +8,8 @@ import resotolib.logger
 import resotolib.proc
 from kubernetes.client import ApiException
 from kubernetes.client import Configuration
+
+from resoto_plugin_k8s.client import K8sApiClient, K8sClient
 from resoto_plugin_k8s.collector import KubernetesCollector
 from resoto_plugin_k8s.config import K8sConfig
 from resotolib.args import ArgumentParser, Namespace
@@ -21,7 +23,7 @@ log = logging.getLogger("resoto.plugins.k8s")
 class KubernetesCollectorPlugin(BaseCollectorPlugin):
     cloud = "k8s"
 
-    def collect(self) -> None:
+    def collect(self, **kwargs: Any) -> None:
         log.debug("plugin: Kubernetes collecting resources")
 
         k8s: K8sConfig = Config.k8s
@@ -48,6 +50,7 @@ class KubernetesCollectorPlugin(BaseCollectorPlugin):
                     cluster_config,
                     ArgumentParser.args,
                     Config.running_config,
+                    **kwargs,
                 )
                 for cluster_id, cluster_config in cluster_access.items()
             ]
@@ -60,10 +63,7 @@ class KubernetesCollectorPlugin(BaseCollectorPlugin):
 
     @staticmethod
     def collect_cluster(
-        cluster_id: str,
-        cluster_config: Configuration,
-        args: Namespace,
-        running_config: RunningConfig,
+        cluster_id: str, cluster_config: Configuration, args: Namespace, running_config: RunningConfig, **kwargs: Any
     ) -> Graph:
         """
         Collects an individual Kubernetes Cluster.
@@ -78,7 +78,8 @@ class KubernetesCollectorPlugin(BaseCollectorPlugin):
         log.debug(f"Starting new collect process for {cluster_id}")
 
         try:
-            kc = KubernetesCollector(Config.k8s, cluster_id, cluster_config)
+            k8s_client: K8sClient = kwargs.get("client_factory", K8sApiClient.from_config)(cluster_config)
+            kc = KubernetesCollector(Config.k8s, cluster_id, cluster_config, k8s_client)
             kc.collect()
         except ApiException as e:
             if e.reason == "Unauthorized":
