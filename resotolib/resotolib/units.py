@@ -11,6 +11,7 @@ reg.define("Ti = 1 TiB")
 reg.define("Gi = 1 GiB")
 reg.define("Mi = 1 MiB")
 reg.define("Ki = 1 KiB")
+reg.define("KB = 1000 B")
 
 # globally define or register units
 

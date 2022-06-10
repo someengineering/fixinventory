@@ -381,12 +381,12 @@ class StringToUnitNumber(Bender):
         self._expected = expected
 
     def execute(self, value: str) -> Union[int, float]:
-        return self._expected(parse(value).to(self._unit))
+        return self._expected(parse(value).to(self._unit).magnitude)
 
 
 class CPUCoresToNumber(Bender):
     def execute(self, source: str) -> float:
-        return float(source[:-1]) / 1000 if source.endswith("m") else float(source)
+        return float(source[:-1]) / 1000 if isinstance(source, str) and source.endswith("m") else float(source)
 
 
 def bend(mapping: Mapping, source: Any, context: Optional[Dict[str, Any]] = None) -> Any:
