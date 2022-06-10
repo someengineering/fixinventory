@@ -1330,8 +1330,11 @@ class FlattenCommand(CLICommand):
         return []
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
+        def iterable(it: Any) -> bool:
+            return False if isinstance(it, str) else isinstance(it, Iterable)
+
         def iterate(it: Any) -> Stream:
-            return stream.iterate(it) if is_async_iterable(it) or isinstance(it, Iterable) else stream.just(it)
+            return stream.iterate(it) if is_async_iterable(it) or iterable(it) else stream.just(it)
 
         return CLIFlow(lambda in_stream: stream.flatmap(in_stream, iterate))
 
@@ -1455,7 +1458,7 @@ class JqCommand(CLICommand, OutputTransformer):
             ArgInfo(expects_value=True, help_text="The filter definition to create a jq program."),
         ]
 
-    path_re = re.compile("[.](/?[A-Za-z]+)[A-Za-z0-9\\[\\].]*")
+    path_re = re.compile("[.](/?[A-Za-z]+)[A-Za-z0-9_\\[\\].]*")
 
     @staticmethod
     def rewrite_props(arg: str, ctx: CLIContext) -> str:
@@ -2811,11 +2814,7 @@ class TagCommand(SendWorkerTaskCommand):
 
         def change_tag(jfn: Callable[[Json], Json]) -> Callable[[Json], Tuple[str, Dict[str, str], Json]]:
             def update_single(item: Json) -> Tuple[str, Dict[str, str], Json]:
-                return (
-                    WorkerTaskName.tag,
-                    self.carz_from_node(item),
-                    jfn(item),
-                )
+                return WorkerTaskName.tag, self.carz_from_node(item), jfn(item)
 
             return update_single
 
