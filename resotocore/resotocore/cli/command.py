@@ -73,7 +73,7 @@ from resotocore.config import ConfigEntity
 from resotocore.db.model import QueryModel
 from resotocore.dependencies import system_info
 from resotocore.error import CLIParseError, ClientError, CLIExecutionError
-from resotocore.model.graph_access import Section, EdgeType
+from resotocore.model.graph_access import Section, EdgeTypes
 from resotocore.model.model import Model, Kind, ComplexKind, DictionaryKind, SimpleKind, Property
 from resotocore.model.resolve_in_graph import NodePath
 from resotocore.model.typed_model import to_json, to_js
@@ -92,7 +92,7 @@ from resotocore.query.model import Query, P, Template, NavigateUntilRoot, IsTerm
 from resotocore.query.query_parser import parse_query
 from resotocore.query.template_expander import tpl_props_p
 from resotocore.task.task_description import Job, TimeTrigger, EventTrigger, ExecuteCommand, Workflow
-from resotocore.types import Json, JsonElement
+from resotocore.types import Json, JsonElement, EdgeType
 from resotocore.util import (
     uuid_str,
     value_in_path_get,
@@ -462,16 +462,18 @@ class PredecessorsPart(SearchCLIPart):
         ]
 
     @staticmethod
-    def parse_args(arg: Optional[str], ctx: CLIContext) -> Tuple[int, str]:
+    def parse_args(arg: Optional[str], ctx: CLIContext) -> Tuple[int, EdgeType]:
         def valid_edge_type(name: str) -> str:
-            if name in EdgeType.all:
+            if name in EdgeTypes.all:
                 return name
             else:
-                raise AttributeError(f'Given name is not a valid edge type: {name}. {", ".join(EdgeType.all)}')
+                raise AttributeError(f'Given name is not a valid edge type: {name}. {", ".join(EdgeTypes.all)}')
 
         parser = NoExitArgumentParser()
         parser.add_argument("--with-origin", dest="origin", default=1, action="store_const", const=0)
-        parser.add_argument("edge", default=ctx.env.get("edge_type", EdgeType.default), type=valid_edge_type, nargs="?")
+        parser.add_argument(
+            "edge", default=ctx.env.get("edge_type", EdgeTypes.default), type=valid_edge_type, nargs="?"
+        )
         parsed = parser.parse_args(arg.split() if arg else [])
         return parsed.origin, parsed.edge
 
@@ -1328,8 +1330,11 @@ class FlattenCommand(CLICommand):
         return []
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
+        def iterable(it: Any) -> bool:
+            return False if isinstance(it, str) else isinstance(it, Iterable)
+
         def iterate(it: Any) -> Stream:
-            return stream.iterate(it) if is_async_iterable(it) or isinstance(it, Iterable) else stream.just(it)
+            return stream.iterate(it) if is_async_iterable(it) or iterable(it) else stream.just(it)
 
         return CLIFlow(lambda in_stream: stream.flatmap(in_stream, iterate))
 
@@ -1453,7 +1458,7 @@ class JqCommand(CLICommand, OutputTransformer):
             ArgInfo(expects_value=True, help_text="The filter definition to create a jq program."),
         ]
 
-    path_re = re.compile("[.](/?[A-Za-z]+)[A-Za-z0-9\\[\\].]*")
+    path_re = re.compile("[.](/?[A-Za-z]+)[A-Za-z0-9_\\[\\].]*")
 
     @staticmethod
     def rewrite_props(arg: str, ctx: CLIContext) -> str:
@@ -1591,7 +1596,7 @@ class KindsCommand(CLICommand, PreserveOutputFormat):
                     {
                         cpl.fqn
                         for cpl in model.complex_kinds()
-                        if kind.fqn in cpl.successor_kinds.get(EdgeType.default, [])
+                        if kind.fqn in cpl.successor_kinds.get(EdgeTypes.default, [])
                     }
                 )
                 return {
@@ -1599,7 +1604,7 @@ class KindsCommand(CLICommand, PreserveOutputFormat):
                     "bases": list(kind.kind_hierarchy() - {kind.fqn}),
                     "properties": {p.name: kind_name(p) for p in props},
                     "predecessors": predecessors,
-                    "successors": kind.successor_kinds.get(EdgeType.default, []),
+                    "successors": kind.successor_kinds.get(EdgeTypes.default, []),
                 }
             else:
                 return {"name": kind.fqn}
@@ -2809,11 +2814,7 @@ class TagCommand(SendWorkerTaskCommand):
 
         def change_tag(jfn: Callable[[Json], Json]) -> Callable[[Json], Tuple[str, Dict[str, str], Json]]:
             def update_single(item: Json) -> Tuple[str, Dict[str, str], Json]:
-                return (
-                    WorkerTaskName.tag,
-                    self.carz_from_node(item),
-                    jfn(item),
-                )
+                return WorkerTaskName.tag, self.carz_from_node(item), jfn(item)
 
             return update_single
 

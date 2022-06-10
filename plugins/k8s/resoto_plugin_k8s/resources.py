@@ -394,7 +394,7 @@ class KubernetesNode(KubernetesResource, BaseInstance):
         "node_spec": S("spec") >> Bend(KubernetesNodeSpec.mapping),
         "provider_id": S("spec", "providerID"),
         "instance_cores": S("status", "capacity", "cpu") >> CPUCoresToNumber(),
-        "instance_memory": S("status", "capacity", "memory") >> StringToUnitNumber("GB"),
+        "instance_memory": S("status", "capacity", "memory") >> StringToUnitNumber("GiB"),
         "instance_type": K("kubernetes_node"),
         "instance_status": K(InstanceStatus.RUNNING.value),
     }

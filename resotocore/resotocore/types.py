@@ -1,4 +1,4 @@
-from typing import Any, Optional, Callable, Dict, Sequence, Union, Mapping
+from typing import Any, Optional, Callable, Dict, Sequence, Union, Mapping, Literal
 
 JsonElement = Union[str, int, float, bool, None, Mapping[str, Any], Sequence[Any]]
 JsonArray = Sequence[JsonElement]
@@ -8,3 +8,5 @@ Json = Dict[str, Any]
 
 ValidationResult = Optional[Any]
 ValidationFn = Callable[[Any], ValidationResult]
+
+EdgeType = Literal["default", "delete"]

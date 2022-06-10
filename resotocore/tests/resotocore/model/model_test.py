@@ -11,7 +11,7 @@ from networkx import DiGraph
 
 from resotocore.cli.model import CLIContext
 from resotocore.console_renderer import ConsoleRenderer, ConsoleColorSystem
-from resotocore.model.graph_access import EdgeType
+from resotocore.model.graph_access import EdgeTypes
 from resotocore.model.model import (
     StringKind,
     Kind,
@@ -56,7 +56,7 @@ def test_json_marshalling() -> None:
         Property("i", "int32"),
         Property("other", "SomeComposite"),
     ]
-    successor_kinds = {EdgeType.default: ["Base", "Test"], EdgeType.delete: ["Base"]}
+    successor_kinds = {EdgeTypes.default: ["Base", "Test"], EdgeTypes.delete: ["Base"]}
     roundtrip(ComplexKind("Test", ["Base"], props), Kind)
     roundtrip(ComplexKind("Test", [], props, True), Kind)
     roundtrip(ComplexKind("Test", [], props, True, successor_kinds), Kind)
@@ -356,7 +356,7 @@ def test_load(model_json: str) -> None:
 def test_graph(person_model: Model) -> None:
     graph: DiGraph = person_model.graph()
     assert len(graph.nodes()) == 11
-    assert len(graph.edges()) == 8
+    assert len(graph.edges()) == 9
 
 
 def roundtrip(obj: Any, clazz: Type[object]) -> None:

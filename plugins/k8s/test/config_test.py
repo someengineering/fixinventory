@@ -30,6 +30,8 @@ def test_setup_config() -> None:
 
 
 def test_empty_config() -> None:
+    # make sure the running config is empty
+    Config.running_config.data.clear()
     config = Config("dummy", "dummy")
     KubernetesCollectorPlugin.add_config(config)
     config.init_default_config()

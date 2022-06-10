@@ -8,6 +8,7 @@ from plantuml import PlantUML
 
 from resotocore.async_extensions import run_async
 from resotocore.db.modeldb import ModelDb
+from resotocore.types import EdgeType
 from resotocore.model.model import Model, Kind, ComplexKind
 from resotocore.util import exist
 
@@ -29,12 +30,12 @@ class ModelHandler(ABC):
         with_inheritance: bool = True,
         with_base_classes: bool = False,
         with_subclasses: bool = False,
-        dependency_edges: Optional[Set[str]] = None,
+        dependency_edges: Optional[Set[EdgeType]] = None,
         with_predecessors: bool = False,
         with_successors: bool = False,
         with_properties: bool = True,
         link_classes: bool = False,
-        filter_aggregate_roots: bool = False,
+        only_aggregate_roots: bool = True,
     ) -> bytes:
         """
         Generate a PlantUML image of the model.
@@ -50,7 +51,7 @@ class ModelHandler(ABC):
         :param with_successors: include successors for all matching classes to show in the diagram
         :param with_properties: include properties for all matching classes to show in the diagram
         :param link_classes: add anchor links to all classes
-        :param filter_aggregate_roots: if the list of classes should be filtered for aggregate roots
+        :param only_aggregate_roots: if the list of classes should be filtered for aggregate roots
         :return: the generated image
         """
 
@@ -108,15 +109,15 @@ class ModelHandlerDB(ModelHandler):
         with_inheritance: bool = True,
         with_base_classes: bool = False,
         with_subclasses: bool = False,
-        dependency_edges: Optional[Set[str]] = None,
+        dependency_edges: Optional[Set[EdgeType]] = None,
         with_predecessors: bool = False,
         with_successors: bool = False,
         with_properties: bool = True,
         link_classes: bool = False,
-        filter_aggregate_roots: bool = False,
+        only_aggregate_roots: bool = True,
     ) -> bytes:
-        allowed_edge_types: Set[str] = dependency_edges or set()
-        assert output in ("svg", "png"), "Only svg and png is supported!"
+        allowed_edge_types: Set[EdgeType] = dependency_edges or set()
+        assert output in ("svg", "png", "puml"), "Only svg, png and puml is supported!"
         model = await self.load_model()
         graph = model.graph()
         show = [re.compile(s) for s in show_packages] if show_packages else None
@@ -128,7 +129,7 @@ class ModelHandlerDB(ModelHandler):
 
         def node_visible(key: str) -> bool:
             k: Kind = graph.nodes[key]["data"]
-            ar_visible = not filter_aggregate_roots or getattr(k, "aggregate_root", True)
+            ar_visible = not only_aggregate_roots or getattr(k, "aggregate_root", False)
             if hide and exist(lambda r: r.fullmatch(k.fqn), hide):
                 return False
             if show is None:
@@ -159,6 +160,14 @@ class ModelHandlerDB(ModelHandler):
                 else set()
             )
 
+        def complex_property_kinds(cpx: ComplexKind) -> Set[str]:
+            result: Set[str] = set()
+            for _, k in cpx.property_with_kinds():
+                for cpl in k.nested_complex_kinds():
+                    result.add(cpl.fqn)
+                    result.update(complex_property_kinds(cpl))
+            return result
+
         visible_kinds = [node["data"] for nid, node in graph.nodes(data=True) if node_visible(nid)]
         visible = {v.fqn for v in visible_kinds}
 
@@ -174,6 +183,8 @@ class ModelHandlerDB(ModelHandler):
             add_visible(predecessors)
         if with_successors:
             add_visible(successors)
+        if with_properties:
+            add_visible(complex_property_kinds)
 
         nodes = "\n".join([class_node(node["data"]) for nid, node in graph.nodes(data=True) if nid in visible])
         edges = ""
@@ -183,9 +194,15 @@ class ModelHandlerDB(ModelHandler):
                     edges += f"{to} <|--- {fr}\n"
                 elif data["type"] == "successor" and data["edge_type"] in allowed_edge_types:
                     edges += f"{fr} -[#1A83AF]-> {to}\n"
+                elif data["type"] == "property" and with_properties:
+                    edges += f"{fr} --> {to}\n"
 
-        puml = PlantUML(f"{self.plantuml_server}/{output}/")
-        return await run_async(puml.processes, f"@startuml\n{PlantUmlAttrs}\n{nodes}\n{edges}\n@enduml")  # type: ignore
+        puml = f"@startuml\n{PlantUmlAttrs}\n{nodes}\n{edges}\n@enduml"
+        if output == "puml":
+            return puml.encode("utf-8")
+        else:
+            plant_uml = PlantUML(f"{self.plantuml_server}/{output}/")
+            return await run_async(plant_uml.processes, puml)  # type: ignore
 
     async def update_model(self, kinds: List[Kind]) -> Model:
         # load existing model
