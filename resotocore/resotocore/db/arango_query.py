@@ -12,7 +12,7 @@ from resotocore.db import EstimatedSearchCost, EstimatedQueryCostRating as Ratin
 from resotocore.db.arangodb_functions import as_arangodb_function
 from resotocore.db.model import QueryModel
 from resotocore.model.graph_access import Section, Direction
-from resotocore.model.model import SyntheticProperty, ResolvedProperty
+from resotocore.model.model import SyntheticProperty, ResolvedSimpleProperty
 from resotocore.model.resolve_in_graph import GraphResolver
 from resotocore.query.model import (
     Predicate,
@@ -110,7 +110,7 @@ def query_string(
     def next_bind_var_name() -> str:
         return f'b{next_counter("bind_vars")}'
 
-    def prop_name_kind(path: str) -> Tuple[str, ResolvedProperty, Optional[str]]:  # prop_name, prop, merge_name
+    def prop_name_kind(path: str) -> Tuple[str, ResolvedSimpleProperty, Optional[str]]:  # prop_name, prop, merge_name
         merge_name = first(lambda name: path.startswith(name + "."), merge_names)
         # remove merge_name and section part (if existent) from the path
         lookup = Section.without_section(path[len(merge_name) + 1 :] if merge_name else path)  # noqa: E203
@@ -154,10 +154,7 @@ def query_string(
         group_result = f'"group":{{{agg_vars}}},' if a.group_by else ""
         aggregate_term = f"collect {variables} aggregate {funcs}"
         return_result = f"{{{group_result} {agg_funcs}}}"
-        return (
-            "aggregated",
-            f"LET aggregated = (for {cursor} in {in_cursor} {aggregate_term} RETURN {return_result})",
-        )
+        return "aggregated", f"LET aggregated = (for {cursor} in {in_cursor} {aggregate_term} RETURN {return_result})"
 
     def predicate(cursor: str, p: Predicate) -> str:
         extra = ""

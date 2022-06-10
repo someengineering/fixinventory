@@ -498,7 +498,7 @@ class Api:
         with_predecessors = request.query.get("with_predecessors", "false") != "false"
         with_successors = request.query.get("with_successors", "false") != "false"
         with_properties = request.query.get("with_properties", "true") != "false"
-        aggregate_roots = request.query.get("aggregate_roots", "false") != "false"
+        aggregate_roots = request.query.get("aggregate_roots", "true") != "false"
         link_classes = request.query.get("link_classes", "false") != "false"
         result = await self.model_handler.uml_image(
             output=output,
@@ -512,10 +512,10 @@ class Api:
             with_successors=with_successors,
             with_properties=with_properties,
             link_classes=link_classes,
-            filter_aggregate_roots=aggregate_roots,
+            only_aggregate_roots=aggregate_roots,
         )
         response = web.StreamResponse()
-        mt = {"svg": "image/svg+xml", "png": "image/png"}
+        mt = {"svg": "image/svg+xml", "png": "image/png", "puml": "text/plain"}
         response.headers["Content-Type"] = mt[output]
         await response.prepare(request)
         await response.write_eof(result)

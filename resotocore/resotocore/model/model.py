@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime, timezone, date
 from json import JSONDecodeError
-from typing import Union, Any, Optional, Callable, Type, Sequence, Dict, List, Set, cast, Tuple
+from typing import Union, Any, Optional, Callable, Type, Sequence, Dict, List, Set, cast, Tuple, Iterable
 
 import yaml
 from dateutil.parser import parse
@@ -167,7 +167,7 @@ EmptyPath = PropertyPath([], "")
 
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
-class ResolvedProperty:
+class ResolvedSimpleProperty:
     # The path of the resolved property in a complex kind
     path: PropertyPath
     # The metadata of the property (name etc.)
@@ -278,6 +278,16 @@ class Kind(ABC):
             return dict(sorted(js.items()))
         else:
             return js
+
+    def nested_complex_kinds(self) -> List[ComplexKind]:
+        if isinstance(self, ComplexKind):
+            return [self]
+        elif isinstance(self, ArrayKind):
+            return self.inner.nested_complex_kinds()
+        elif isinstance(self, DictionaryKind):
+            return self.key_kind.nested_complex_kinds() + self.value_kind.nested_complex_kinds()
+        else:
+            return []
 
 
 simple_kind_to_type: Dict[str, Type[Union[str, int, float, bool]]] = {
@@ -776,8 +786,8 @@ class ComplexKind(Kind):
         self.__resolved_kinds: Dict[str, Tuple[Property, Kind]] = {}
         self.__all_props: List[Property] = list(self.properties)
         self.__resolved_hierarchy: Set[str] = {fqn}
-        self.__property_by_path: List[ResolvedProperty] = []
-        self.__synthetic_props: List[ResolvedProperty] = []
+        self.__property_by_path: List[ResolvedSimpleProperty] = []
+        self.__synthetic_props: List[ResolvedSimpleProperty] = []
 
     def resolve(self, model: Dict[str, Kind]) -> None:
         if not self.__resolved:
@@ -835,19 +845,22 @@ class ComplexKind(Kind):
     def property_with_kind_of(self, name: str) -> Optional[Tuple[Property, Kind]]:
         return self.__resolved_kinds.get(name)
 
+    def property_with_kinds(self) -> Iterable[Tuple[Property, Kind]]:
+        return self.__resolved_kinds.values()
+
     def is_root(self) -> bool:
         return not self.bases or (len(self.bases) == 1 and self.bases[0] == self.fqn)
 
     def kind_hierarchy(self) -> Set[str]:
         return self.__resolved_hierarchy
 
-    def resolved_properties(self) -> List[ResolvedProperty]:
+    def resolved_properties(self) -> List[ResolvedSimpleProperty]:
         return self.__property_by_path
 
     def all_props(self) -> List[Property]:
         return self.__all_props
 
-    def synthetic_props(self) -> List[ResolvedProperty]:
+    def synthetic_props(self) -> List[ResolvedSimpleProperty]:
         return self.__synthetic_props
 
     def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
@@ -959,14 +972,16 @@ class ComplexKind(Kind):
         return walk_element(elem, self, initial_level)
 
     @staticmethod
-    def resolve_properties(complex_kind: ComplexKind, from_path: PropertyPath = EmptyPath) -> List[ResolvedProperty]:
+    def resolve_properties(
+        complex_kind: ComplexKind, from_path: PropertyPath = EmptyPath
+    ) -> List[ResolvedSimpleProperty]:
         def path_for(
             prop: Property, kind: Kind, path: PropertyPath, array: bool = False, add_prop_to_path: bool = True
-        ) -> List[ResolvedProperty]:
+        ) -> List[ResolvedSimpleProperty]:
             arr = "[]" if array else ""
             relative = path.child(f"{prop.name}{arr}") if add_prop_to_path else path
             if isinstance(kind, SimpleKind):
-                return [ResolvedProperty(relative if add_prop_to_path else path, prop, kind)]
+                return [ResolvedSimpleProperty(relative if add_prop_to_path else path, prop, kind)]
             elif isinstance(kind, ArrayKind):
                 return path_for(prop, kind.inner, path, True)
             elif isinstance(kind, DictionaryKind):
@@ -976,7 +991,7 @@ class ComplexKind(Kind):
             else:
                 return []
 
-        result: List[ResolvedProperty] = []
+        result: List[ResolvedSimpleProperty] = []
         for x in complex_kind.properties:
             result.extend(path_for(x, complex_kind.__resolved_kinds[x.name][1], from_path))
 
@@ -1035,7 +1050,7 @@ class Model:
 
     def __init__(self, kinds: Dict[str, Kind]):
         self.kinds = kinds
-        self.__property_kind_by_path: List[ResolvedProperty] = list(
+        self.__property_kind_by_path: List[ResolvedSimpleProperty] = list(
             # several complex kinds might have the same property
             # reduce the list by hash over the path.
             {
@@ -1076,11 +1091,13 @@ class Model:
     def complex_kinds(self) -> List[ComplexKind]:
         return [k for k in self.kinds.values() if isinstance(k, ComplexKind)]
 
-    def property_by_path(self, path_: str) -> ResolvedProperty:
+    def property_by_path(self, path_: str) -> ResolvedSimpleProperty:
         path = PropertyPath.from_path(path_)
-        found: Optional[ResolvedProperty] = first(lambda prop: prop.path.same_as(path), self.__property_kind_by_path)
+        found: Optional[ResolvedSimpleProperty] = first(
+            lambda prop: prop.path.same_as(path), self.__property_kind_by_path
+        )
         # if the path is not known according to known model: it could be anything.
-        return found if found else ResolvedProperty(path, Property.any_prop(), AnyKind())
+        return found if found else ResolvedSimpleProperty(path, Property.any_prop(), AnyKind())
 
     def kind_by_path(self, path_: str) -> SimpleKind:
         return self.property_by_path(path_).kind
@@ -1107,21 +1124,27 @@ class Model:
         graph = MultiDiGraph()
 
         def handle_complex(cx: ComplexKind) -> None:
+            # do not handle the same complex kind more than once
+            if cx.fqn in graph and "data" in graph.nodes[cx.fqn]:
+                return
+
             graph.add_node(cx.fqn, data=cx)
             # inheritance
             if not cx.is_root():
                 for base in cx.bases:
                     graph.add_edge(cx.fqn, base, f"inheritance_{cx.fqn}_{base}", type="inheritance")
 
+            # properties
+            for _, prop_kind in cx.property_with_kinds():
+                for cpl in prop_kind.nested_complex_kinds():
+                    graph.add_edge(cx.fqn, cpl.fqn, f"property_{cx.fqn}_{cpl.fqn}", type="property")
+                    handle_complex(cpl)
+
             # dependency
             for name, successors in cx.successor_kinds.items():
                 for successor in successors or []:
                     graph.add_edge(
-                        cx.fqn,
-                        successor,
-                        f"successor_{cx.fqn}_{successor}_{name}",
-                        type="successor",
-                        edge_type=name,
+                        cx.fqn, successor, f"successor_{cx.fqn}_{successor}_{name}", type="successor", edge_type=name
                     )
 
         for kind in self.kinds.values():
