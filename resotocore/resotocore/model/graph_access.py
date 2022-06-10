@@ -149,7 +149,7 @@ class GraphBuilder:
             def parse_selector(js: Json) -> NodeSelector:
                 if "node_id" in js:
                     return ByNodeId(NodeId(from_js(js["node_id"], str)))
-                elif "search_criterea" in js:
+                elif "search_criteria" in js:
                     return BySearchCriteria(from_js(js["search_criteria"], str))
                 else:
                     raise AttributeError(f"can't parse edge selector! Got {json.dumps(js)}")
