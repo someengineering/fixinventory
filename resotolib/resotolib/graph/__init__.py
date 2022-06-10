@@ -30,14 +30,29 @@ from resotolib.event import (
     remove_event_listener,
 )
 from prometheus_client import Summary
-from typing import Dict, Iterator, List, Tuple, Any, Optional
+from typing import Dict, Iterator, List, Tuple, Any, Optional, Union
 from io import BytesIO
 from dataclasses import fields
 from typeguard import check_type
 from time import time
 from collections import defaultdict, namedtuple
+from dataclasses import dataclass
 
 Json = Dict[str, Any]
+
+
+@dataclass
+class BySearchCriteria:
+    query: str
+
+
+@dataclass
+class ByNodeId:
+    value: str
+
+
+NodeSelector = Union[ByNodeId, BySearchCriteria]
+
 
 metrics_graph_search = Summary("resoto_graph_search_seconds", "Time it took the Graph search() method")
 metrics_graph_searchall = Summary("resoto_graph_searchall_seconds", "Time it took the Graph searchall() method")
@@ -82,8 +97,9 @@ class Graph(networkx.MultiDiGraph):
         if isinstance(root, BaseResource):
             self.root = root
             self.add_node(self.root, label=self.root.name, **get_resource_attributes(self.root))
+        self.deferred_edges: List[Tuple[NodeSelector, NodeSelector, EdgeType]] = []
 
-    def merge(self, graph: networkx.MultiDiGraph):
+    def merge(self, graph: Graph):
         """Merge another graph into ourselves
 
         If the other graph has a graph.root an edge will be created between
@@ -98,6 +114,7 @@ class Graph(networkx.MultiDiGraph):
         try:
             self._log_edge_creation = False
             self.update(edges=graph.edges, nodes=graph.nodes)
+            self.deferred_edges.extend(graph.deferred_edges)
         finally:
             self._log_edge_creation = True
         self.resolve_deferred_connections()
@@ -177,6 +194,9 @@ class Graph(networkx.MultiDiGraph):
                     )
                 )
         return return_key
+
+    def add_deferred_edge(self, src: NodeSelector, dst: NodeSelector, edge_type: EdgeType) -> None:
+        self.deferred_edges.append((src, dst, edge_type))
 
     def remove_node(self, node: BaseResource):
         super().remove_node(node)
@@ -793,6 +813,20 @@ class GraphExportIterator:
                         edge_dict["edge_type"] = key.edge_type.value
                 edge_json = json.dumps(edge_dict) + "\n"
                 self.tempfile.write(edge_json.encode())
+                self.total_lines += 1
+            for from_selector, to_selector, edge_type in self.graph.deferred_edges:
+                deferred_edge_dict = {}
+                if isinstance(from_selector, ByNodeId):
+                    deferred_edge_dict["from_selector"] = {"node_id": from_selector.value}
+                else:
+                    deferred_edge_dict["from_selector"] = {"search_criteria": from_selector.query}
+                if isinstance(to_selector, ByNodeId):
+                    deferred_edge_dict["to_selector"] = {"node_id": to_selector.value}
+                else:
+                    deferred_edge_dict["to_selector"] = {"search_criteria": to_selector.query}
+                deferred_edge_dict["edge_type"] = edge_type.value
+                deferred_edge_json = json.dumps(deferred_edge_dict) + "\n"
+                self.tempfile.write(deferred_edge_json.encode())
                 self.total_lines += 1
             elapsed_edges = time() - start_time
             log.debug(f"Exported {self.number_of_edges} edges in {elapsed_edges:.4f}s")
