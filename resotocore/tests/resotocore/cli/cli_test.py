@@ -29,7 +29,7 @@ from resotocore.dependencies import empty_config
 from resotocore.error import CLIParseError
 from resotocore.message_bus import MessageBus
 from resotocore.model.adjust_node import NoAdjust
-from resotocore.model.graph_access import EdgeType
+from resotocore.model.graph_access import EdgeTypes
 from resotocore.model.model import Model
 from resotocore.query.template_expander import TemplateExpander
 from resotocore.util import utc, from_utc
@@ -222,14 +222,14 @@ async def test_parse_env_vars(cli: CLI) -> None:
 
 def test_parse_predecessor_successor_ancestor_descendant_args() -> None:
     plain = CLIContext()
-    w_delete = CLIContext(env={"edge_type": EdgeType.delete})
-    assert PredecessorsPart.parse_args(None, w_delete) == (1, EdgeType.delete)
-    assert PredecessorsPart.parse_args(None, plain) == (1, EdgeType.default)
-    assert PredecessorsPart.parse_args("--with-origin", plain) == (0, EdgeType.default)
-    assert PredecessorsPart.parse_args("--with-origin", w_delete) == (0, EdgeType.delete)
-    assert PredecessorsPart.parse_args("--with-origin delete", plain) == (0, EdgeType.delete)
-    assert PredecessorsPart.parse_args("--with-origin delete", w_delete) == (0, EdgeType.delete)
-    assert PredecessorsPart.parse_args("delete", w_delete) == (1, EdgeType.delete)
+    w_delete = CLIContext(env={"edge_type": EdgeTypes.delete})
+    assert PredecessorsPart.parse_args(None, w_delete) == (1, EdgeTypes.delete)
+    assert PredecessorsPart.parse_args(None, plain) == (1, EdgeTypes.default)
+    assert PredecessorsPart.parse_args("--with-origin", plain) == (0, EdgeTypes.default)
+    assert PredecessorsPart.parse_args("--with-origin", w_delete) == (0, EdgeTypes.delete)
+    assert PredecessorsPart.parse_args("--with-origin delete", plain) == (0, EdgeTypes.delete)
+    assert PredecessorsPart.parse_args("--with-origin delete", w_delete) == (0, EdgeTypes.delete)
+    assert PredecessorsPart.parse_args("delete", w_delete) == (1, EdgeTypes.delete)
 
 
 @pytest.mark.asyncio

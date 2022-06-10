@@ -32,7 +32,7 @@ from resotocore.query.model import (
     Limit,
     NotTerm,
 )
-from resotocore.model.graph_access import EdgeType, Direction
+from resotocore.model.graph_access import EdgeTypes, Direction
 from parsy import Parser, ParseError
 from resotocore.query.query_parser import (
     predicate_term,
@@ -157,7 +157,7 @@ def test_navigation_default() -> None:
 
 
 def test_navigation() -> None:
-    for edge_type in EdgeType.all:
+    for edge_type in EdgeTypes.all:
         # the default edge type is not rendered, so we set it explicitly to make the mapping homogeneous
         for start, until in [(0, 0), (1, 1), (5, 5), (1, 10), (1, Navigation.Max), (10, Navigation.Max)]:
             assert_round_trip(navigation_parser, Navigation(start, until, [edge_type], Direction.any, [edge_type]))
@@ -167,11 +167,11 @@ def test_navigation() -> None:
 
 def test_part() -> None:
     assert_round_trip(part_parser, Part(P.of_kind("test")))
-    assert_round_trip(part_parser, Part(P.of_kind("test"), navigation=Navigation(1, 10, [EdgeType.delete])))
-    assert_round_trip(part_parser, Part(P.of_kind("test"), "red", navigation=Navigation(1, 10, [EdgeType.delete])))
-    with_clause = WithClause(WithClauseFilter("==", 0), Navigation(maybe_edge_types=[EdgeType.delete]))
+    assert_round_trip(part_parser, Part(P.of_kind("test"), navigation=Navigation(1, 10, [EdgeTypes.delete])))
+    assert_round_trip(part_parser, Part(P.of_kind("test"), "red", navigation=Navigation(1, 10, [EdgeTypes.delete])))
+    with_clause = WithClause(WithClauseFilter("==", 0), Navigation(maybe_edge_types=[EdgeTypes.delete]))
     assert_round_trip(
-        part_parser, Part(P.of_kind("test"), "green", with_clause, navigation=Navigation(1, 10, [EdgeType.delete]))
+        part_parser, Part(P.of_kind("test"), "green", with_clause, navigation=Navigation(1, 10, [EdgeTypes.delete]))
     )
 
 
@@ -302,7 +302,7 @@ def test_with_clause() -> None:
 
     def edge(wc: WithClause) -> WithClause:
         wcr = replace(wc, with_clause=edge(wc.with_clause)) if wc.with_clause else wc
-        return replace(wcr, navigation=replace(wcr.navigation, maybe_edge_types=[EdgeType.default]))
+        return replace(wcr, navigation=replace(wcr.navigation, maybe_edge_types=[EdgeTypes.default]))
 
     assert_round_trip(with_clause_parser, WithClause(clause_filter, nav, term, WithClause(clause_filter, nav)), edge)
     assert_round_trip(with_clause_parser, WithClause(clause_filter, nav), edge)

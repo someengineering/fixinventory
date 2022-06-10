@@ -13,7 +13,7 @@ from networkx import DiGraph, MultiDiGraph, all_shortest_paths, is_directed_acyc
 
 from resotocore.model.model import Model, Kind, AnyKind, ComplexKind, ArrayKind, DateTimeKind, DictionaryKind
 from resotocore.model.resolve_in_graph import GraphResolver, NodePath, ResolveProp
-from resotocore.types import Json
+from resotocore.types import Json, EdgeType
 from resotocore.ids import NodeId
 from resotocore.util import utc, utc_str, value_in_path, set_value_in_path, value_in_path_get
 from resotocore.model.typed_model import from_js
@@ -74,19 +74,19 @@ class Section:
         return cls.__no_section.sub("", path, 1)
 
 
-class EdgeType:
+class EdgeTypes:
     # This edge type defines the default relationship between resources.
     # It is the main edge type and is assumed, if no edge type is given.
     # The related graph is also used as source of truth for graph updates.
-    default: str = "default"
+    default: EdgeType = "default"
 
     # This edge type defines the order of delete operations.
     # A resource can be deleted, if all outgoing resources are deleted.
-    delete: str = "delete"
+    delete: EdgeType = "delete"
 
     # The set of all allowed edge types.
     # Note: the database schema has to be adapted to support additional edge types.
-    all: Set[str] = {default, delete}
+    all: Set[EdgeType] = {default, delete}
 
 
 class Direction:
@@ -143,7 +143,7 @@ class GraphBuilder:
                 js.get("replace", False) is True,
             )
         elif "from" in js and "to" in js:
-            self.add_edge(js["from"], js["to"], js.get("edge_type", EdgeType.default))
+            self.add_edge(js["from"], js["to"], js.get("edge_type", EdgeTypes.default))
         elif "from_selector" in js and "to_selector" in js:
 
             def parse_selector(js: Json) -> NodeSelector:
@@ -157,7 +157,7 @@ class GraphBuilder:
             self.store_deferred_connection(
                 parse_selector(js["from_selector"]),
                 parse_selector(js["to_selector"]),
-                js.get("edge_type", EdgeType.default),
+                js.get("edge_type", EdgeTypes.default),
             )
         else:
             raise AttributeError(f"Format not understood! Got {json.dumps(js)} which is neither vertex nor edge.")
@@ -194,7 +194,7 @@ class GraphBuilder:
             replace=replace | metadata.get("replace", False) is True if metadata else False,
         )
 
-    def add_edge(self, from_node: str, to_node: str, edge_type: str) -> None:
+    def add_edge(self, from_node: str, to_node: str, edge_type: EdgeType) -> None:
         self.edges += 1
         key = GraphAccess.edge_key(from_node, to_node, edge_type)
         self.graph.add_edge(from_node, to_node, key, edge_type=edge_type)
@@ -252,7 +252,7 @@ class GraphBuilder:
             assert node.get(Section.reported), f"{node_id} was used in an edge definition but not provided as vertex!"
 
         edge_types: Set[str] = {edge[2] for edge in self.graph.edges(data="edge_type")}
-        al = EdgeType.all
+        al = EdgeTypes.all
         assert not edge_types.difference(al), f"Graph contains unknown edge types! Given: {edge_types}. Known: {al}"
         # make sure there is only one root node
         rid = GraphAccess.root_id(self.graph)
@@ -266,7 +266,7 @@ class GraphBuilder:
             self.graph.add_node("root", **root_node)
 
             for succ in list(self.graph.successors(rid)):
-                for edge_type in EdgeType.all:
+                for edge_type in EdgeTypes.all:
                     key = GraphAccess.edge_key(rid, succ, edge_type)
                     if self.graph.has_edge(rid, succ, key):
                         self.graph.remove_edge(rid, succ, key)
@@ -306,7 +306,7 @@ class GraphAccess:
         else:
             return None
 
-    def has_edge(self, from_id: object, to_id: object, edge_type: str) -> bool:
+    def has_edge(self, from_id: object, to_id: object, edge_type: EdgeType) -> bool:
         key = self.edge_key(from_id, to_id, edge_type)
         result: bool = self.g.has_edge(from_id, to_id, key)
         if result:
@@ -325,7 +325,7 @@ class GraphAccess:
     def __resolve_count_descendants(self) -> None:
         visited: Set[str] = set()
 
-        def count_successors_by(node_id: NodeId, edge_type: str, path: List[str]) -> Dict[str, int]:
+        def count_successors_by(node_id: NodeId, edge_type: EdgeType, path: List[str]) -> Dict[str, int]:
             result: Dict[str, int] = {}
             to_visit = list(self.successors(node_id, edge_type))
             while to_visit:
@@ -352,7 +352,7 @@ class GraphAccess:
             for node_id, node in self.g.nodes(data=True):
                 kinds = node.get("kinds_set")
                 if kinds and on_kind in kinds:
-                    summary = count_successors_by(node_id, EdgeType.default, prop.extract_path)
+                    summary = count_successors_by(node_id, EdgeTypes.default, prop.extract_path)
                     set_value_in_path(summary, prop.to_path, node)
                     total = reduce(lambda l, r: l + r, summary.values(), 0)
                     set_value_in_path(total, NodePath.descendant_count, node)
@@ -365,7 +365,7 @@ class GraphAccess:
 
         for resolver in GraphResolver.to_resolve:
             # search for ancestor that matches filter criteria
-            anc = self.ancestor_of(node_id, EdgeType.default, resolver.kind)
+            anc = self.ancestor_of(node_id, EdgeTypes.default, resolver.kind)
             if anc:
                 on_self = anc.get("id") == node_id
                 for res in resolver.resolve:
@@ -377,19 +377,19 @@ class GraphAccess:
         kind = node.get("kind", AnyKind())
         return self.dump_direct(node_id, node, kind)
 
-    def predecessors(self, node_id: NodeId, edge_type: str) -> Generator[NodeId, Any, None]:
+    def predecessors(self, node_id: NodeId, edge_type: EdgeType) -> Generator[NodeId, Any, None]:
         for pred_id in self.g.predecessors(node_id):
             # direction from parent node to provided node
             if self.g.has_edge(pred_id, node_id, self.edge_key(pred_id, node_id, edge_type)):
                 yield pred_id
 
-    def successors(self, node_id: NodeId, edge_type: str) -> Generator[NodeId, Any, None]:
+    def successors(self, node_id: NodeId, edge_type: EdgeType) -> Generator[NodeId, Any, None]:
         for succ_id in self.g.successors(node_id):
             # direction from provided node to successor node
             if self.g.has_edge(node_id, succ_id, self.edge_key(node_id, succ_id, edge_type)):
                 yield succ_id
 
-    def ancestor_of(self, node_id: NodeId, edge_type: str, kind: str) -> Optional[Json]:
+    def ancestor_of(self, node_id: NodeId, edge_type: EdgeType, kind: str) -> Optional[Json]:
         # note: we are using breadth first search here on purpose.
         # if there is an ancestor with less distance to this node, we should use this one
         next_level = [node_id]
@@ -442,13 +442,13 @@ class GraphAccess:
     def not_visited_nodes(self) -> Generator[Json, None, None]:
         return (self.dump(nid, self.nodes[nid]) for nid in self.g.nodes if nid not in self.visited_nodes)
 
-    def not_visited_edges(self, edge_type: str) -> Generator[Tuple[str, str], None, None]:
+    def not_visited_edges(self, edge_type: EdgeType) -> Generator[Tuple[str, str], None, None]:
         # edge collection with (from, to, type): filter and drop type -> (from, to)
         edges = self.g.edges(data="edge_type")
         return (edge[:2] for edge in edges if edge[2] == edge_type and edge not in self.visited_edges)
 
     @staticmethod
-    def edge_key(from_node: object, to_node: object, edge_type: str) -> EdgeKey:
+    def edge_key(from_node: object, to_node: object, edge_type: EdgeType) -> EdgeKey:
         return EdgeKey(from_node, to_node, edge_type)
 
     @staticmethod
