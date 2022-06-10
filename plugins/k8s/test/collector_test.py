@@ -1,12 +1,12 @@
 from fixtures import StaticFileClient
-from resoto_plugin_k8s.config import K8sConfig
+from resoto_plugin_k8s.config import K8sConfig, K8sAccess
 from resoto_plugin_k8s import KubernetesCollectorPlugin
 from resotolib.config import Config
 
 
 def test_collect() -> None:
     # create a config with a single cluster: the values do not matter
-    cfg = K8sConfig(cluster=["test"], apiserver=["test"], token=["test"], cacert=["test"])
+    cfg = K8sConfig(configs=[K8sAccess(name="test", certificate_authority_data="test", server="test", token="test")])
     Config.add_config(K8sConfig)
     Config.running_config.data["k8s"] = cfg
 
