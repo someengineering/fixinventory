@@ -52,7 +52,8 @@ class KubernetesCollectorPlugin(BaseCollectorPlugin):
                         cluster_config,
                         ArgumentParser.args,
                         Config.running_config,
-                    **kwargs,)
+                        **kwargs,
+                    )
                     for cluster_id, cluster_config in cluster_access.items()
                 ]
                 for future in futures.as_completed(wait_for):
