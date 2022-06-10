@@ -356,7 +356,7 @@ def test_load(model_json: str) -> None:
 def test_graph(person_model: Model) -> None:
     graph: DiGraph = person_model.graph()
     assert len(graph.nodes()) == 11
-    assert len(graph.edges()) == 8
+    assert len(graph.edges()) == 9
 
 
 def roundtrip(obj: Any, clazz: Type[object]) -> None:
