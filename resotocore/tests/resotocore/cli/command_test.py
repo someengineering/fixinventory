@@ -623,6 +623,11 @@ async def test_jq_command(cli: CLI) -> None:
     # no replacement after pipe
     assert JqCommand.rewrite_props("map(.color) | {a:.a, b:.b}", ctx) == "map(.reported.color) | {a:.a, b:.b}"
 
+    assert (
+        JqCommand.rewrite_props(".pod_status.container_statuses[].image_id", ctx)
+        == ".reported.pod_status.container_statuses[].image_id"
+    )
+
     result = await cli.execute_cli_command('json {"a":{"b":1}} | jq ".a.b"', stream.list)
     assert len(result[0]) == 1
     assert result[0][0] == 1
@@ -836,8 +841,7 @@ async def test_http_command(cli: CLI, echo_http_server: Tuple[int, List[Tuple[Re
 async def test_discord_alias(cli: CLI, echo_http_server: Tuple[int, List[Tuple[Request, Json]]]) -> None:
     port, requests = echo_http_server
     result = await cli.execute_cli_command(
-        f'search is(bla) | discord webhook="http://localhost:{port}/success" title=test',
-        stream.list,
+        f'search is(bla) | discord webhook="http://localhost:{port}/success" title=test', stream.list
     )
     # 100 times bla, discord allows 25 fields -> 4 requests
     assert result == [["4 requests with status 200 sent."]]

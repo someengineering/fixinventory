@@ -18,7 +18,7 @@ from parsy import regex, string, Parser
 from resotocore.durations import duration_parser, DurationRe
 from resotocore.model.transform_kind_convert import converters
 from resotocore.model.typed_model import from_js
-from resotocore.parse_util import make_parser
+from resotocore.parse_util import make_parser, variable_dp_backtick, dot_dp
 from resotocore.types import Json, JsonElement, ValidationResult, ValidationFn, EdgeType
 from resotocore.util import if_set, utc, duration, first
 from resotocore.compat import remove_suffix
@@ -120,10 +120,17 @@ class Property:
         return Property("any", "any")
 
 
+# Split a variable path into its path parts.
+# foo.bla -> [foo, bla]
+# foo.`bla.bar` -> [foo, bla.bar]
+prop_path_parser = (regex("[^`.]+") | variable_dp_backtick).sep_by(dot_dp)
+
+
 class PropertyPath:
     @staticmethod
     def from_path(path: str) -> PropertyPath:
-        return PropertyPath(path.split("."), path)
+        prop_path_parser.parse(path)
+        return PropertyPath(prop_path_parser.parse(path), path)
 
     def __init__(self, path: Sequence[Optional[str]], str_rep: Optional[str] = None):
         self.path = path
@@ -1117,11 +1124,7 @@ class Model:
             for name, successors in cx.successor_kinds.items():
                 for successor in successors or []:
                     graph.add_edge(
-                        cx.fqn,
-                        successor,
-                        f"successor_{cx.fqn}_{successor}_{name}",
-                        type="successor",
-                        edge_type=name,
+                        cx.fqn, successor, f"successor_{cx.fqn}_{successor}_{name}", type="successor", edge_type=name
                     )
 
         for kind in self.kinds.values():

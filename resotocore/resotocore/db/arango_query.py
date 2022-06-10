@@ -154,10 +154,7 @@ def query_string(
         group_result = f'"group":{{{agg_vars}}},' if a.group_by else ""
         aggregate_term = f"collect {variables} aggregate {funcs}"
         return_result = f"{{{group_result} {agg_funcs}}}"
-        return (
-            "aggregated",
-            f"LET aggregated = (for {cursor} in {in_cursor} {aggregate_term} RETURN {return_result})",
-        )
+        return "aggregated", f"LET aggregated = (for {cursor} in {in_cursor} {aggregate_term} RETURN {return_result})"
 
     def predicate(cursor: str, p: Predicate) -> str:
         extra = ""
@@ -167,10 +164,13 @@ def query_string(
         if "filter" in p.args:
             arr_filter = p.args["filter"]
             extra = f" {arr_filter} "
-            path = f"{p.name}[]"
+            path = f"{p.name}[*]"
         elif "[*]" in p.name:
-            extra = " any " if "[*]" in p.name else " "
-            path = p.name.replace("[*]", "[]")
+            extra = " any "
+            path = p.name
+        elif "[]" in p.name:
+            extra = " any "
+            path = p.name.replace("[]", "[*]")
 
         prop_name, prop, merge_name = prop_name_kind(path)
         bvn = next_bind_var_name()
