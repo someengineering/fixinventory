@@ -51,7 +51,8 @@ class DigitalOceanCollectorPlugin(BaseCollectorPlugin):
         for token, space_key_tuple in zip(tokens, spaces_keys):
             client = StreamingWrapper(token, space_key_tuple[0], space_key_tuple[1])
             team_graph = self.collect_team(client)
-            self.graph.merge(team_graph)
+            if team_graph:
+                self.graph.merge(team_graph)
 
     def collect_team(self, client: StreamingWrapper) -> Optional[Graph]:
         """Collects an individual team."""
