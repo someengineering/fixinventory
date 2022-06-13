@@ -1364,7 +1364,7 @@ class KubernetesPersistentVolumeSpec:
     cephfs: Optional[str] = field(default=None)
     cinder: Optional[str] = field(default=None)
     claim_ref: Optional[str] = field(default=None)
-    csi: Optional[str] = field(default=None)
+    csi: Optional[Any] = field(default=None)
     fc: Optional[str] = field(default=None)
     flex_volume: Optional[str] = field(default=None)
     flocker: Optional[str] = field(default=None)

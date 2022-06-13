@@ -7,6 +7,7 @@ from resoto_plugin_k8s.config import K8sConfig
 from resoto_plugin_k8s.resources import (
     KubernetesCluster,
     KubernetesNode,
+    KubernetesPersistentVolume,
     KubernetesResource,
     KubernetesService,
     all_k8s_resources_by_k8s_name,
@@ -63,12 +64,28 @@ class KubernetesCollector:
         if isinstance(resource, KubernetesService):
             if lb_id := resource.tags.get("kubernetes.digitalocean.com/load-balancer-id"):
                 self.graph.add_deferred_edge(
-                    BySearchCriteria(f"is(digitalocean_load_balancer) and reported.id=s{lb_id}"),
+                    BySearchCriteria(f"is(digitalocean_load_balancer) and reported.id={lb_id}"),
                     ByNodeId(resource.chksum),
                 )
 
+    def do_volume_to_pv(self, resource: KubernetesResource) -> None:
+        if isinstance(resource, KubernetesPersistentVolume):
+            if (
+                (spec := resource.persistent_volume_spec)
+                and (csi := spec.csi)
+                and (csi.get("driver") == "dobs.csi.digitalocean.com")
+                and (vol_id := csi.get("volumeHandle"))
+            ):
+                self.graph.add_deferred_edge(
+                    BySearchCriteria(f"is(digitalocean_volume) and reported.id={vol_id}"), ByNodeId(resource.chksum)
+                )
+
     def collect(self) -> None:
-        kind_to_handler = {"Node": self.do_droplet_to_node, "Service": self.do_lb_to_service}
+        kind_to_handler = {
+            "Node": self.do_droplet_to_node,
+            "Service": self.do_lb_to_service,
+            "PersistentVolume": self.do_volume_to_pv,
+        }
         # collect all resources
         for resource in self.client.apis():
             known = all_k8s_resources_by_k8s_name.get(resource.kind)
