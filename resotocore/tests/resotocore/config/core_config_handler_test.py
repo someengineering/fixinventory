@@ -1,9 +1,9 @@
 import asyncio
+from typing import AsyncIterator
 
 import pytest
 from jsons import DeserializationError
 from pytest import fixture
-from typing_extensions import AsyncIterator
 
 from resotocore.analytics import InMemoryEventSender, AnalyticsEvent, CoreEvent
 from resotocore.config import ConfigHandler, ConfigEntity
