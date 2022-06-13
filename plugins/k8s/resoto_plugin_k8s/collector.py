@@ -8,6 +8,7 @@ from resoto_plugin_k8s.resources import (
     KubernetesCluster,
     KubernetesNode,
     KubernetesResource,
+    KubernetesService,
     all_k8s_resources_by_k8s_name,
     KubernetesClusterInfo,
     KubernetesNamespace,
@@ -58,8 +59,16 @@ class KubernetesCollector:
                     ByNodeId(resource.chksum),
                 )
 
+    def do_lb_to_service(self, resource: KubernetesResource) -> None:
+        if isinstance(resource, KubernetesService):
+            if lb_id := resource.tags.get("kubernetes.digitalocean.com/load-balancer-id"):
+                self.graph.add_deferred_edge(
+                    BySearchCriteria(f"is(digitalocean_load_balancer) and reported.id=s{lb_id}"),
+                    ByNodeId(resource.chksum),
+                )
+
     def collect(self) -> None:
-        kind_to_handler = {"Node": self.do_droplet_to_node}
+        kind_to_handler = {"Node": self.do_droplet_to_node, "Service": self.do_lb_to_service}
         # collect all resources
         for resource in self.client.apis():
             known = all_k8s_resources_by_k8s_name.get(resource.kind)

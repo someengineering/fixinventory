@@ -15,4 +15,4 @@ def test_collect() -> None:
     plugin.collect(client_factory=StaticFileClient.static)
     assert len(plugin.graph.nodes) == 561
     assert len(plugin.graph.edges) == 813
-    assert len((plugin.graph.deferred_edges)) == 3
+    assert len(plugin.graph.deferred_edges) == 4
