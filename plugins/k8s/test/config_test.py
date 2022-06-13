@@ -5,7 +5,7 @@ import yaml
 from resotolib.utils import num_default_threads
 from resotolib.config import Config
 from resoto_plugin_k8s import KubernetesCollectorPlugin
-from resoto_plugin_k8s.config import K8sConfig, K8sAccess, K8sConfigFile
+from resoto_plugin_k8s.base import K8sConfig, K8sAccess, K8sConfigFile
 
 
 def test_k8s_access() -> None:

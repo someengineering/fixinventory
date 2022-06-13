@@ -1,14 +1,12 @@
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import ClassVar, Optional, Dict, Type, List, Any, Union, TypeVar, Tuple
+from typing import ClassVar, Optional, Dict, Type, List, Any, Union, Tuple
 
-import jsons
 from jsons import set_deserializer
-from resotolib.json_bender import StringToUnitNumber, CPUCoresToNumber, Bend, S, K, bend, ForallBend, Bender
+from resoto_plugin_k8s.base import KubernetesResource
 from resotolib.baseresources import (
     BaseAccount,
-    BaseResource,
     BaseInstance,
     BaseRegion,
     InstanceStatus,
@@ -18,104 +16,10 @@ from resotolib.baseresources import (
     EdgeType,
 )
 from resotolib.graph import Graph
+from resotolib.json_bender import StringToUnitNumber, CPUCoresToNumber, Bend, S, K, bend, ForallBend, Bender
 from resotolib.types import Json
 
 log = logging.getLogger("resoto.plugins.k8s")
-
-
-@dataclass(eq=False)
-class KubernetesResource(BaseResource):
-    kind: ClassVar[str] = "kubernetes_resource"
-
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("metadata", "uid"),
-        "tags": S("metadata", "annotations", default={}),
-        "name": S("metadata", "name"),
-        "ctime": S("metadata", "creationTimestamp"),
-        "mtime": S("status", "conditions")[-1]["lastTransitionTime"],
-        "resource_version": S("metadata", "resourceVersion"),
-        "namespace": S("metadata", "namespace"),
-        "labels": S("metadata", "labels", default={}),
-    }
-
-    resource_version: Optional[str] = None
-    namespace: Optional[str] = None
-    labels: Dict[str, str] = field(default_factory=dict)
-
-    def to_json(self) -> Json:
-        return jsons.dump(  # type: ignore
-            self,
-            strip_privates=True,
-            strip_nulls=True,
-            strip_attr=(
-                "k8s_name",
-                "mapping",
-                "phantom",
-                "successor_kinds",
-                "parent_resource",
-                "usage_percentage",
-                "dname",
-                "kdname",
-                "rtdname",
-                "changes",
-                "event_log",
-                "str_event_log",
-                "chksum",
-                "age",
-                "last_access",
-                "last_update",
-                "clean",
-                "cleaned",
-                "protected",
-                "_graph",
-                "graph",
-                "max_graph_depth",
-                "resource_type",
-                "age",
-                "last_access",
-                "last_update",
-                "clean",
-                "cleaned",
-                "protected",
-                "uuid",
-                "kind",
-            ),
-        )
-
-    @classmethod
-    def from_json(cls: Type["KubernetesResource"], json: Json) -> "KubernetesResource":
-        mapped = bend(cls.mapping, json)
-        return jsons.load(mapped, cls)  # type: ignore
-
-    @classmethod
-    def k8s_name(cls: Type["KubernetesResource"]) -> str:
-        return cls.__name__.removeprefix("Kubernetes")
-
-    def update_tag(self, key: str, value: str) -> bool:
-        return False
-
-    def delete_tag(self, key: str) -> bool:
-        return False
-
-    def delete(self, graph: Graph) -> bool:
-        return False
-
-    def connect_in_graph(self, builder: "GraphBuilder", source: Json) -> None:
-        # https://kubernetes.io/docs/concepts/overview/working-with-objects/owners-dependents/
-        for ref in bend(S("metadata", "ownerReferences", default=[]), source):
-            owner = builder.node(id=ref["uid"])
-            block_owner_deletion = ref.get("blockOwnerDeletion", False)
-            if owner:
-                log.debug(f"Add owner reference from {owner} -> {self}")
-                builder.graph.add_edge(owner, self, edge_type=EdgeType.default)
-                if block_owner_deletion:
-                    builder.graph.add_edge(self, owner, edge_type=EdgeType.delete)
-
-    def __str__(self) -> str:
-        return f"{self.__class__.__name__}[{self.name}]"
-
-
-KubernetesResourceType = TypeVar("KubernetesResourceType", bound=KubernetesResource)
 
 
 class GraphBuilder:
