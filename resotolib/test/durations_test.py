@@ -1,15 +1,37 @@
 from datetime import timedelta
 from itertools import chain
+from typing import Callable, Any, cast, Optional, TypeVar
 
 from hypothesis import given
-from hypothesis.strategies import sampled_from, tuples, integers, composite, lists
+from hypothesis.strategies import sampled_from, tuples, integers, composite, lists, SearchStrategy, just
 
 from resotolib.durations import time_unit_parser, time_units, parse_duration, DurationRe
-from tests.resotocore.hypothesis_extension import UD, Drawer
 
 units_gen = sampled_from(list(chain.from_iterable(names for _, names, _ in time_units)))
 combines_gen = sampled_from(["", ", ", " and "])
 duration_gen = tuples(integers(1000, 1000), units_gen).map(lambda x: f"{x[0]}{x[1]}")
+
+T = TypeVar("T")
+UD = Callable[[SearchStrategy[Any]], Any]
+
+
+def optional(st: SearchStrategy[T]) -> SearchStrategy[Optional[T]]:
+    return st | just(None)
+
+
+class Drawer:
+    """
+    Only here for getting a drawer for typed drawings.
+    """
+
+    def __init__(self, hypo_drawer: Callable[[SearchStrategy[Any]], Any]):
+        self._drawer = hypo_drawer
+
+    def draw(self, st: SearchStrategy[T]) -> T:
+        return cast(T, self._drawer(st))
+
+    def optional(self, st: SearchStrategy[T]) -> Optional[T]:
+        return self.draw(optional(st))
 
 
 @composite
