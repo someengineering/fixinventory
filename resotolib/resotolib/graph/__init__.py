@@ -781,7 +781,8 @@ class GraphExportIterator:
         elapsed = time() - start_time
         log.info(
             f"Sent {lines_sent}/{self.total_lines},"
-            f" {self.number_of_nodes} nodes, {self.number_of_edges} edges and {self.number_of_deferred_edges} deferred edges"
+            f" {self.number_of_nodes} nodes, {self.number_of_edges} edges"
+            f" and {self.number_of_deferred_edges} deferred edges"
             f" in {elapsed:.4f}s"
         )
 
