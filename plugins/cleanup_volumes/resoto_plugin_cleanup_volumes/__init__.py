@@ -4,7 +4,7 @@ from resotolib.core.search import CoreGraph
 from resotolib.graph import Graph
 from resotolib.baseresources import BaseVolume
 from resotolib.config import Config
-from resotolib.utils import parse_delta
+from resotolib.durations import parse_duration
 from .config import CleanupVolumesConfig
 from typing import Dict
 
@@ -31,7 +31,7 @@ class CleanupVolumesPlugin(BaseActionPlugin):
 
     def update_age(self) -> None:
         try:
-            self.age = parse_delta(Config.plugin_cleanup_volumes.min_age)
+            self.age = parse_duration(Config.plugin_cleanup_volumes.min_age)
             log.debug(f"Volume Cleanup Plugin Age {self.age}")
         except ValueError:
             log.error(f"Error while parsing Volume Cleanup Age {Config.plugin_cleanup_volumes.min_age}")

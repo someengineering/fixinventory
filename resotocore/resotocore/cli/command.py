@@ -33,6 +33,17 @@ from aiostream.core import Stream
 from parsy import Parser, string
 from resotolib.x509 import write_cert_to_file, write_key_to_file
 from resotolib.utils import safe_members_in_tarfile
+from resotolib.parse_util import (
+    double_quoted_or_simple_string_dp,
+    space_dp,
+    make_parser,
+    variable_dp,
+    literal_dp,
+    comma_p,
+    variable_p,
+    equals_p,
+    json_value_p,
+)
 from rich.padding import Padding
 from rich.panel import Panel
 from rich.table import Table
@@ -77,17 +88,6 @@ from resotocore.model.graph_access import Section, EdgeTypes
 from resotocore.model.model import Model, Kind, ComplexKind, DictionaryKind, SimpleKind, Property
 from resotocore.model.resolve_in_graph import NodePath
 from resotocore.model.typed_model import to_json, to_js
-from resotocore.parse_util import (
-    double_quoted_or_simple_string_dp,
-    space_dp,
-    make_parser,
-    variable_dp,
-    literal_dp,
-    comma_p,
-    variable_p,
-    equals_p,
-    json_value_p,
-)
 from resotocore.query.model import Query, P, Template, NavigateUntilRoot, IsTerm
 from resotocore.query.query_parser import parse_query
 from resotocore.query.template_expander import tpl_props_p

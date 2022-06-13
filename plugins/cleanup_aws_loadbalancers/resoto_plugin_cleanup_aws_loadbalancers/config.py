@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from typing import ClassVar
-from resotolib.utils import parse_delta
+from resotolib.durations import parse_duration
 
 
 @dataclass
@@ -20,5 +20,5 @@ class CleanupAWSLoadbalancersConfig:
 
     @staticmethod
     def validate(config: "CleanupAWSLoadbalancersConfig") -> bool:
-        parse_delta(config.min_age)
+        parse_duration(config.min_age)
         return True
