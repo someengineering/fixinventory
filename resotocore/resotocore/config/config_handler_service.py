@@ -10,7 +10,7 @@ from resotocore.db.modeldb import ModelDb
 from resotocore.message_bus import MessageBus, CoreMessage
 from resotocore.model.model import Model, Kind, ComplexKind
 from resotocore.types import Json
-from resotocore.util import uuid_str
+from resotocore.util import uuid_str, deep_merge
 from resotocore.worker_task_queue import WorkerTaskQueue, WorkerTask, WorkerTaskName
 from resotocore.ids import TaskId, ConfigId
 
@@ -76,7 +76,7 @@ class ConfigHandlerService(ConfigHandler):
     async def patch_config(self, cfg: ConfigEntity) -> ConfigEntity:
         current = await self.cfg_db.get(cfg.id)
         current_config = current.config if current else {}
-        coerced = await self.coerce_and_check_model(cfg.id, {**current_config, **cfg.config})
+        coerced = await self.coerce_and_check_model(cfg.id, deep_merge(current_config, cfg.config))
         result = await self.cfg_db.update(ConfigEntity(cfg.id, coerced, current.revision if current else None))
         await self.message_bus.emit_event(CoreMessage.ConfigUpdated, dict(id=result.id, revision=result.revision))
         return result

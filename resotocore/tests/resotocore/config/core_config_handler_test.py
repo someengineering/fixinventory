@@ -1,17 +1,14 @@
 import asyncio
+from typing import AsyncIterator
 
 import pytest
 from jsons import DeserializationError
 from pytest import fixture
 
-from resotocore.config import ConfigHandler
+from resotocore.analytics import InMemoryEventSender, AnalyticsEvent, CoreEvent
+from resotocore.config import ConfigHandler, ConfigEntity
 from resotocore.config.core_config_handler import CoreConfigHandler
-from resotocore.core_config import (
-    ResotoCoreConfigId,
-    ResotoCoreRoot,
-    ResotoCoreCommandsRoot,
-    CustomCommandsConfig,
-)
+from resotocore.core_config import ResotoCoreConfigId, ResotoCoreRoot, ResotoCoreCommandsRoot, CustomCommandsConfig
 from resotocore.dependencies import empty_config
 from resotocore.message_bus import MessageBus, CoreMessage
 from resotocore.worker_task_queue import WorkerTaskQueue
@@ -29,14 +26,22 @@ config_handler_exits = []
 
 
 @fixture
-def core_config_handler(
+async def core_config_handler(
     message_bus: MessageBus, task_queue: WorkerTaskQueue, config_handler: ConfigHandler
 ) -> CoreConfigHandler:
     def on_exit() -> None:
         config_handler_exits.append(True)
 
     config = empty_config()
-    return CoreConfigHandler(config, message_bus, task_queue, config_handler, on_exit)
+    sender = InMemoryEventSender()
+    return CoreConfigHandler(config, message_bus, task_queue, config_handler, sender, on_exit)
+
+
+@fixture
+async def core_config_handler_started(core_config_handler: CoreConfigHandler) -> AsyncIterator[CoreConfigHandler]:
+    await core_config_handler.start()
+    yield core_config_handler
+    await core_config_handler.stop()
 
 
 @pytest.mark.asyncio
@@ -90,3 +95,19 @@ async def test_validation() -> None:
     pytest.raises(DeserializationError, validate, {"config": {ResotoCoreCommandsRoot: {"commands": 23}}})
     # valid entry can be read
     assert validate({"config": {ResotoCoreCommandsRoot: CustomCommandsConfig().json()}}) is None
+
+
+@pytest.mark.asyncio
+async def test_detect_usage_metrics_turned_off(
+    config_handler: ConfigHandler, core_config_handler_started: CoreConfigHandler
+) -> None:
+    # make sure usage metrics are enabled
+    core_config_handler_started.config.runtime.usage_metrics = True
+    # disable usage metrics
+    await config_handler.patch_config(
+        ConfigEntity(ResotoCoreConfigId, {ResotoCoreRoot: {"runtime": {"usage_metrics": False}}})
+    )
+    await asyncio.sleep(0)
+    events: List[AnalyticsEvent] = core_config_handler_started.event_sender.events  # type: ignore # in-memory sender
+    assert len(events) == 1
+    assert events[0].kind == CoreEvent.UsageMetricsTurnedOff

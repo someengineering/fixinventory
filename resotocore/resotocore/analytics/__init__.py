@@ -36,6 +36,7 @@ class CoreEvent:
     TaskCompleted = "task-handler.task-completed"
     ClientError = "error.client"
     ServerError = "error.server"
+    UsageMetricsTurnedOff = "usage-metrics.turned-off"
 
 
 @dataclass(frozen=True)
