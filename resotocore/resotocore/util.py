@@ -32,7 +32,7 @@ from typing import (
 from dateutil.parser import isoparse
 from resotolib.asynchronous import periodic
 
-from resotocore.durations import parse_duration
+from resotolib.durations import parse_duration
 from resotocore.error import RestartService
 from resotocore.types import JsonElement, Json
 

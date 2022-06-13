@@ -1,7 +1,7 @@
 import pytest
 from parsy import ParseError
 
-from resotocore.parse_util import (
+from resotolib.parse_util import (
     integer_dp,
     float_dp,
     json_value_p,

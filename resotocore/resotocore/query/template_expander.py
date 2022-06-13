@@ -8,7 +8,7 @@ from ustache import default_getter, default_virtuals, render, PropertyGetter, Ta
 
 from resotocore.db.templatedb import TemplateEntityDb
 from resotocore.error import NoSuchTemplateError
-from resotocore.parse_util import (
+from resotolib.parse_util import (
     double_quote_dp,
     single_quote_dp,
     double_quoted_string_part_or_esc_dp,

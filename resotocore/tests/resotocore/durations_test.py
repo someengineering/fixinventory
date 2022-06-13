@@ -4,7 +4,7 @@ from itertools import chain
 from hypothesis import given
 from hypothesis.strategies import sampled_from, tuples, integers, composite, lists
 
-from resotocore.durations import time_unit_parser, time_units, parse_duration, DurationRe
+from resotolib.durations import time_unit_parser, time_units, parse_duration, DurationRe
 from tests.resotocore.hypothesis_extension import UD, Drawer
 
 units_gen = sampled_from(list(chain.from_iterable(names for _, names, _ in time_units)))

@@ -77,7 +77,7 @@ from resotocore.model.graph_access import Section, EdgeTypes
 from resotocore.model.model import Model, Kind, ComplexKind, DictionaryKind, SimpleKind, Property
 from resotocore.model.resolve_in_graph import NodePath
 from resotocore.model.typed_model import to_json, to_js
-from resotocore.parse_util import (
+from resotolib.parse_util import (
     double_quoted_or_simple_string_dp,
     space_dp,
     make_parser,

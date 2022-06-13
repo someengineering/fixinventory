@@ -8,7 +8,7 @@ from typing import Union, List
 import parsy
 from parsy import string, Parser
 
-from resotocore.parse_util import lexeme, float_p, integer_p
+from resotolib.parse_util import lexeme, float_p, integer_p
 
 
 # See https://en.wikipedia.org/wiki/Unit_of_time for reference

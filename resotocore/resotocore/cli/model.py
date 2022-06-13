@@ -24,7 +24,7 @@ from resotocore.db.db_access import DbAccess
 from resotocore.error import CLIParseError
 from resotocore.console_renderer import ConsoleRenderer, ConsoleColorSystem
 from resotocore.message_bus import MessageBus
-from resotocore.parse_util import l_curly_dp, r_curly_dp
+from resotolib.parse_util import l_curly_dp, r_curly_dp
 from resotocore.model.model_handler import ModelHandler
 from resotocore.query.model import Query, variable_to_absolute, PathRoot
 from resotocore.query.template_expander import TemplateExpander, render_template

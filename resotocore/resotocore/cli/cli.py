@@ -58,7 +58,7 @@ from resotocore.cli.model import (
 from resotocore.console_renderer import ConsoleRenderer
 from resotocore.error import CLIParseError
 from resotocore.model.typed_model import class_fqn
-from resotocore.parse_util import make_parser, pipe_p, semicolon_p
+from resotolib.parse_util import make_parser, pipe_p, semicolon_p
 from resotocore.query.model import (
     Query,
     Navigation,

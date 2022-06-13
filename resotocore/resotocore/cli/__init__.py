@@ -5,7 +5,7 @@ from aiostream.core import Stream
 from parsy import Parser, regex
 
 from resotocore.model.graph_access import Section
-from resotocore.parse_util import (
+from resotolib.parse_util import (
     make_parser,
     literal_dp,
     equals_dp,

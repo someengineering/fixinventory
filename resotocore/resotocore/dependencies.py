@@ -28,7 +28,7 @@ from resotocore.analytics import AnalyticsEventSender
 from resotocore.core_config import CoreConfig, parse_config, git_hash_from_file, inside_docker
 from resotocore.db.db_access import DbAccess
 from resotocore.model.adjust_node import DirectAdjuster
-from resotocore.parse_util import make_parser, variable_p, equals_p, comma_p, json_value_dp
+from resotolib.parse_util import make_parser, variable_p, equals_p, comma_p, json_value_dp
 from resotocore.types import JsonElement
 from resotocore.util import utc
 
