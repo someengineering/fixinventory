@@ -6,8 +6,6 @@ from typing import Any, ByteString, Union, Iterable, Tuple, List, Optional, cast
 from parsy import string, Parser, regex, any_char
 from ustache import default_getter, default_virtuals, render, PropertyGetter, TagsTuple, default_tags
 
-from resotocore.db.templatedb import TemplateEntityDb
-from resotocore.error import NoSuchTemplateError
 from resotolib.parse_util import (
     double_quote_dp,
     single_quote_dp,
@@ -23,6 +21,9 @@ from resotolib.parse_util import (
     equals_p,
     json_value_p,
 )
+
+from resotocore.db.templatedb import TemplateEntityDb
+from resotocore.error import NoSuchTemplateError
 from resotocore.query import query_parser, QueryParser
 from resotocore.query.model import Query, Expandable, Template
 from resotocore.types import Json

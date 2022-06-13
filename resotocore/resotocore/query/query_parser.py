@@ -5,8 +5,6 @@ from typing import List
 import parsy
 from parsy import string, Parser, regex
 
-from resotocore.error import ParseError
-from resotocore.model.graph_access import EdgeTypes, Direction
 from resotolib.parse_util import (
     lparen_p,
     lexeme,
@@ -44,6 +42,9 @@ from resotolib.parse_util import (
     double_quoted_string_dp,
     float_dp,
 )
+
+from resotocore.error import ParseError
+from resotocore.model.graph_access import EdgeTypes, Direction
 from resotocore.query.model import (
     Predicate,
     CombinedTerm,

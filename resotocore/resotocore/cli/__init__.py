@@ -4,7 +4,6 @@ from typing import TypeVar, Union, Any, Callable, AsyncIterator, NoReturn, Optio
 from aiostream.core import Stream
 from parsy import Parser, regex
 
-from resotocore.model.graph_access import Section
 from resotolib.parse_util import (
     make_parser,
     literal_dp,
@@ -18,6 +17,7 @@ from resotolib.parse_util import (
     any_non_white_space_string,
     comma_p,
 )
+from resotocore.model.graph_access import Section
 from resotocore.types import JsonElement
 
 T = TypeVar("T")

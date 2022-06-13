@@ -16,9 +16,9 @@ from networkx import MultiDiGraph
 from parsy import regex, string, Parser
 
 from resotolib.durations import duration_parser, DurationRe
+from resotolib.parse_util import make_parser, variable_dp_backtick, dot_dp
 from resotocore.model.transform_kind_convert import converters
 from resotocore.model.typed_model import from_js
-from resotolib.parse_util import make_parser, variable_dp_backtick, dot_dp
 from resotocore.types import Json, JsonElement, ValidationResult, ValidationFn, EdgeType
 from resotocore.util import if_set, utc, duration, first
 from resotocore.compat import remove_suffix

@@ -19,6 +19,7 @@ from parsy import Parser
 from rich.padding import Padding
 from tzlocal import get_localzone
 
+from resotolib.parse_util import make_parser, pipe_p, semicolon_p
 from resotocore import version
 from resotocore.analytics import CoreEvent
 from resotocore.cli import cmd_with_args_parser, key_values_parser, T, Sink
@@ -58,7 +59,6 @@ from resotocore.cli.model import (
 from resotocore.console_renderer import ConsoleRenderer
 from resotocore.error import CLIParseError
 from resotocore.model.typed_model import class_fqn
-from resotolib.parse_util import make_parser, pipe_p, semicolon_p
 from resotocore.query.model import (
     Query,
     Navigation,
