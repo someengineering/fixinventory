@@ -10,9 +10,9 @@ import resotolib.proc
 from kubernetes.client import ApiException
 from kubernetes.client import Configuration
 
-from resoto_plugin_k8s.client import K8sApiClient, K8sClient
+from resoto_plugin_k8s.base import K8sApiClient, K8sClient
 from resoto_plugin_k8s.collector import KubernetesCollector
-from resoto_plugin_k8s.config import K8sConfig
+from resoto_plugin_k8s.base import K8sConfig
 from resotolib.args import ArgumentParser, Namespace
 from resotolib.baseplugin import BaseCollectorPlugin
 from resotolib.config import Config, RunningConfig
@@ -80,8 +80,8 @@ class KubernetesCollectorPlugin(BaseCollectorPlugin):
         log.debug(f"Starting new collect process for {cluster_id}")
 
         try:
-            k8s_client: K8sClient = kwargs.get("client_factory", K8sApiClient.from_config)(cluster_config)
-            kc = KubernetesCollector(Config.k8s, cluster_id, cluster_config, k8s_client)
+            k8s_client: K8sClient = kwargs.get("client_factory", K8sApiClient.from_config)(cluster_id, cluster_config)
+            kc = KubernetesCollector(Config.k8s, k8s_client)
             kc.collect()
         except ApiException as e:
             if e.reason == "Unauthorized":
