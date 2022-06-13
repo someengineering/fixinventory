@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from typing import ClassVar, Dict, Union, List
-from resotolib.utils import parse_delta
+from resotolib.durations import parse_duration
 
 
 default_config = {
@@ -65,14 +65,14 @@ class TagValidatorConfig:
 
         default_expiration = config.get("default", {}).get("expiration")
         if default_expiration is not None:
-            default_expiration = parse_delta(default_expiration)
+            default_expiration = parse_duration(default_expiration)
 
         for cloud_id, account in config["accounts"].items():
             for account_id, account_data in account.items():
                 if "name" not in account_data:
                     raise ValueError(f"Missing 'name' for account '{cloud_id}/{account_id}")
                 if "expiration" in account_data:
-                    account_data["expiration"] = parse_delta(account_data["expiration"])
+                    account_data["expiration"] = parse_duration(account_data["expiration"])
                 else:
                     if default_expiration is None:
                         raise ValueError(
