@@ -195,7 +195,7 @@ class Graph(networkx.MultiDiGraph):
                 )
         return return_key
 
-    def add_deferred_edge(self, src: NodeSelector, dst: NodeSelector, edge_type: EdgeType) -> None:
+    def add_deferred_edge(self, src: NodeSelector, dst: NodeSelector, edge_type: EdgeType = EdgeType.default) -> None:
         self.deferred_edges.append((src, dst, edge_type))
 
     def remove_node(self, node: BaseResource):
@@ -752,6 +752,7 @@ class GraphExportIterator:
         self.total_lines = 0
         self.number_of_nodes = int(graph.number_of_nodes())
         self.number_of_edges = int(graph.number_of_edges())
+        self.number_of_deferred_edges = len(graph.deferred_edges)
 
     def __del__(self):
         try:
@@ -780,7 +781,7 @@ class GraphExportIterator:
         elapsed = time() - start_time
         log.info(
             f"Sent {lines_sent}/{self.total_lines},"
-            f" {self.number_of_nodes} nodes and {self.number_of_edges} edges"
+            f" {self.number_of_nodes} nodes, {self.number_of_edges} edges and {self.number_of_deferred_edges} deferred edges"
             f" in {elapsed:.4f}s"
         )
 

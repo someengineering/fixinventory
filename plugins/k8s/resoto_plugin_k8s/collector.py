@@ -6,13 +6,15 @@ from resoto_plugin_k8s.client import K8sClient
 from resoto_plugin_k8s.config import K8sConfig
 from resoto_plugin_k8s.resources import (
     KubernetesCluster,
+    KubernetesNode,
+    KubernetesResource,
     all_k8s_resources_by_k8s_name,
     KubernetesClusterInfo,
     KubernetesNamespace,
     GraphBuilder,
 )
 from resotolib.baseresources import EdgeType
-from resotolib.graph import Graph
+from resotolib.graph import ByNodeId, BySearchCriteria, Graph
 
 log = logging.getLogger("resoto." + __name__)
 
@@ -47,13 +49,25 @@ class KubernetesCollector:
             cluster_info=KubernetesClusterInfo(v.get("major", ""), v.get("minor", ""), v.get("platform", "")),
         )
 
+    def do_droplet_to_node(self, resource: KubernetesResource) -> None:
+        if isinstance(resource, KubernetesNode):
+            if (ns := resource.node_spec) and (pid := ns.provider_id) and (pid.startswith("digitalocean://")):
+                _, droplet_id = pid.split("digitalocean://")
+                self.graph.add_deferred_edge(
+                    BySearchCriteria(f"is(digitalocean_droplet) and reported.id={droplet_id}"),
+                    ByNodeId(resource.chksum),
+                )
+
     def collect(self) -> None:
+        kind_to_handler = {"Node": self.do_droplet_to_node}
         # collect all resources
         for resource in self.client.apis():
             known = all_k8s_resources_by_k8s_name.get(resource.kind)
             if known and self.k8s_config.is_allowed(resource.kind):
                 for res, source in self.client.list_resources(resource, known):
                     self.graph.add_node(res, source=source)
+                    if handler := kind_to_handler.get(resource.kind):
+                        handler(res)
             else:
                 log.debug("Don't know how to collect %s", resource.kind)
 
