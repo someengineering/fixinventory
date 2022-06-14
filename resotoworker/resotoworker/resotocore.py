@@ -9,6 +9,7 @@ from resotolib.graph import Graph, GraphExportIterator
 from resotolib.config import Config
 from resotolib.core import resotocore
 from typing import Callable, Optional
+from tenacity import Retrying, stop_after_attempt, wait_fixed
 
 
 class Resotocore:
@@ -57,11 +58,14 @@ class Resotocore:
         }
         if getattr(ArgumentParser.args, "psk", None):
             encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)
-        request = requests.Request(method="POST", url=graph_uri, data="", headers=headers)
-        r = self._send_request(request)
-        if r.status_code != 200:
-            log.error(r.content)
-            raise RuntimeError(f"Failed to create graph: {r.content}")
+
+        for attempt in Retrying(reraise=True, stop=stop_after_attempt(3), wait=wait_fixed(10)):
+            with attempt:
+                request = requests.Request(method="POST", url=graph_uri, data="", headers=headers)
+                r = self._send_request(request)
+                if r.status_code != 200:
+                    log.error(r.content)
+                    raise RuntimeError(f"Failed to create graph: {r.content}")
 
     def update_model(
         self,
@@ -87,17 +91,17 @@ class Resotocore:
                 log.info(f"Writing model json to file {model_outfile.name}")
                 model_outfile.write(model_json.encode())
 
-        headers = {
-            "Content-Type": "application/json",
-        }
+        headers = {"Content-Type": "application/json"}
         if getattr(ArgumentParser.args, "psk", None):
             encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)
 
-        request = requests.Request(method="PATCH", url=model_uri, data=model_json, headers=headers)
-        r = self._send_request(request)
-        if r.status_code != 200:
-            log.error(r.content)
-            raise RuntimeError(f"Failed to create model: {r.content}")
+        for attempt in Retrying(reraise=True, stop=stop_after_attempt(3), wait=wait_fixed(10)):
+            with attempt:
+                request = requests.Request(method="PATCH", url=model_uri, data=model_json, headers=headers)
+                r = self._send_request(request)
+                if r.status_code != 200:
+                    log.error(r.content)
+                    raise RuntimeError(f"Failed to create model: {r.content}")
 
     def send_graph(
         self,
@@ -119,10 +123,12 @@ class Resotocore:
         if getattr(ArgumentParser.args, "psk", None):
             encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)
 
-        request = requests.Request(method="POST", url=merge_uri, data=graph_export_iterator, headers=headers)
-        r = self._send_request(request)
-        if r.status_code != 200:
-            log.error(r.content)
-            raise RuntimeError(f"Failed to send graph: {r.content}")
+        for attempt in Retrying(reraise=True, stop=stop_after_attempt(3), wait=wait_fixed(10)):
+            with attempt:
+                request = requests.Request(method="POST", url=merge_uri, data=graph_export_iterator, headers=headers)
+                r = self._send_request(request)
+                if r.status_code != 200:
+                    log.error(r.content)
+                    raise RuntimeError(f"Failed to send graph: {r.content}")
         log.debug(f"resotocore reply: {r.content.decode()}")
         log.debug(f"Sent {graph_export_iterator.total_lines} items to resotocore")

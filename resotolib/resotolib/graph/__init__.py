@@ -768,6 +768,7 @@ class GraphExportIterator:
         percent = 0
         report_every = round(self.total_lines / 10)
 
+        self.tempfile.seek(0)
         while line := self.tempfile.readline():
             lines_sent += 1
             if report_every > 0 and lines_sent > 0 and lines_sent % report_every == 0:
@@ -776,7 +777,6 @@ class GraphExportIterator:
                 log.debug(f"Sent {lines_sent}/{self.total_lines} nodes and edges ({percent}%) - {elapsed:.4f}s")
                 last_sent = time()
             yield line
-        self.tempfile.seek(0)
         elapsed = time() - start_time
         log.info(
             f"Sent {lines_sent}/{self.total_lines},"
