@@ -20,7 +20,14 @@ from resotoshell.promptsession import (
 )
 
 known_kinds = ["account", "instance", "instance_type", "network"]
-known_props = ["age", "instance_memory", "instance_status"]
+known_props = [
+    "age",
+    "instance_memory",
+    "instance_status",
+    "some.nested.prop",
+    "some.nested.other.prop",
+    "some.nested.array[*].other[*].prop.foo",
+]
 known_commands = [
     CommandInfo("aggregate", source=False, args=[ArgInfo(None, True, value_hint="aggregate")]),
     CommandInfo(
@@ -137,11 +144,11 @@ def test_complete_command() -> None:
 def test_property() -> None:
     n = SearchCompleter(known_kinds, known_props)
     # /ancestors.xxx handling
-    assert complete("/anc", n) == {"/ancestors."}
+    assert complete("/anc", n) == {"/ancestors"}
     assert len(complete("/ancestors.", n)) == len(known_kinds)
     assert complete("/ancestors.account.", n) == {"reported", "desired", "metadata"}
     assert len(complete("/ancestors.account.reported.", n)) >= len(known_props)
-    assert complete("is(volume) and /anc", n) == {"/ancestors."}
+    assert complete("is(volume) and /anc", n) == {"/ancestors"}
     assert len(complete("is(volume) and /ancestors.", n)) == len(known_kinds)
     assert complete("is(volume) and /ancestors.account.", n) == {
         "reported",
@@ -150,15 +157,22 @@ def test_property() -> None:
     }
     assert len(complete("is(volume) and /ancestors.account.reported.", n)) >= len(known_props)
     # /reported handling
-    assert complete("/repo", n) == {"/reported."}
+    assert complete("/repo", n) == {"/reported"}
     assert len(complete("/reported.", n)) >= len(known_props)
+
+    assert complete("some.nested.", n) == {
+        "some.nested.array[*].other[*].prop.foo",
+        "some.nested.other.prop",
+        "some.nested.prop",
+    }
+    assert complete("some.nested.array[", n) == {"some.nested.array[*].other[*].prop.foo"}
 
 
 def test_property_list() -> None:
     n = PropertyListCompleter(known_kinds, known_props)
-    assert complete("/anc", n) == {"/ancestors."}
-    assert complete("foo, /anc", n) == {"/ancestors."}
-    assert complete("foo as bla, /anc", n) == {"/ancestors."}
+    assert complete("/anc", n) == {"/ancestors"}
+    assert complete("foo, /anc", n) == {"/ancestors"}
+    assert complete("foo as bla, /anc", n) == {"/ancestors"}
     assert complete("foo as bla, ins", n) == {"instance_memory", "instance_status"}
     assert len(complete("foo as ", n)) == 1  # suggest name
 

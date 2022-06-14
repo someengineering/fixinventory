@@ -5,6 +5,7 @@ import hashlib
 import json
 import logging
 import random
+import re
 import string
 import sys
 import uuid
@@ -13,6 +14,7 @@ from collections import defaultdict
 from collections.abc import Iterable
 from contextlib import suppress
 from datetime import timedelta, datetime, timezone
+from functools import lru_cache
 from typing import (
     Any,
     Callable,
@@ -179,6 +181,23 @@ def value_in_path_get(element: JsonElement, path_or_name: Union[List[str], str],
     return result if result and isinstance(result, type(if_none)) else if_none
 
 
+path_array_index_parser = re.compile(r"([^[]+)\[([^]]*)]")
+
+
+@lru_cache(maxsize=8192)
+def parse_path_index(path: str) -> Tuple[str, Union[bool, int]]:
+    mm = path_array_index_parser.match(path)
+    if mm:
+        if mm.group(2) in ("*", ""):
+            return mm.group(1), True
+        elif mm.group(2).isdigit():
+            return mm.group(1), int(mm.group(2))
+        else:
+            raise ValueError(f"Invalid path index: {path}")
+    else:
+        return path, False
+
+
 def value_in_path(element: JsonElement, path_or_name: Union[List[str], str]) -> Optional[Any]:
     path = path_or_name if isinstance(path_or_name, list) else path_or_name.split(".")
     at = len(path)
@@ -186,10 +205,20 @@ def value_in_path(element: JsonElement, path_or_name: Union[List[str], str]) -> 
     def at_idx(current: JsonElement, idx: int) -> Optional[Any]:
         if at == idx:
             return current
-        elif current is None or not isinstance(current, dict) or path[idx] not in current:
+        prop, index = parse_path_index(path[idx])
+        if current is None or not isinstance(current, dict) or prop not in current:
             return None
         else:
-            return at_idx(current[path[idx]], idx + 1)
+            child = current[prop]
+            if isinstance(child, list):
+                if index is True:
+                    return [at_idx(e, idx + 1) for e in child]
+                elif index < len(child):
+                    return at_idx(child[index], idx + 1)
+                else:
+                    return None
+            else:
+                return at_idx(child, idx + 1)
 
     return at_idx(element, 0)
 
