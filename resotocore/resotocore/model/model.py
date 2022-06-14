@@ -980,13 +980,23 @@ class ComplexKind(Kind):
 
     @staticmethod
     def resolve_properties(
-        complex_kind: ComplexKind, from_path: PropertyPath = EmptyPath
+        complex_kind: ComplexKind,
+        from_path: PropertyPath = EmptyPath,
+        maybe_visited: Optional[Dict[str, PropertyPath]] = None,
     ) -> List[ResolvedSimpleProperty]:
+        visited = maybe_visited or {}
+
         def path_for(
             prop: Property, kind: Kind, path: PropertyPath, array: bool = False, add_prop_to_path: bool = True
         ) -> List[ResolvedSimpleProperty]:
-            arr = "[]" if array else ""
-            relative = path.child(f"{prop.name}{arr}") if add_prop_to_path else path
+            prop_name = f"{prop.name}[]" if array else prop.name
+            # Detect object cycles: remember the path when we have visited this property.
+            # More complex cycles can be detected that way - leave it simple for now.
+            key = f"{prop_name}:{prop.kind}"
+            if key in visited and prop_name in visited[key].path:
+                return []
+            visited[key] = path
+            relative = path.child(prop_name) if add_prop_to_path else path
             if isinstance(kind, SimpleKind):
                 return [ResolvedSimpleProperty(relative if add_prop_to_path else path, prop, kind)]
             elif isinstance(kind, ArrayKind):
@@ -994,7 +1004,7 @@ class ComplexKind(Kind):
             elif isinstance(kind, DictionaryKind):
                 return path_for(prop, kind.value_kind, relative.child(None), add_prop_to_path=False)
             elif isinstance(kind, ComplexKind):
-                return ComplexKind.resolve_properties(kind, relative)
+                return ComplexKind.resolve_properties(kind, relative, visited)
             else:
                 return []
 

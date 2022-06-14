@@ -167,7 +167,7 @@ def query_string(
         if "filter" in p.args:
             arr_filter = p.args["filter"]
             extra = f" {arr_filter} "
-            path = f"{p.name}[*]"
+            path = p.name if p.name.endswith("[*]") or p.name.endswith("[]") else f"{p.name}[*]"
         elif p.name.endswith("[*]"):
             extra = " any "
             path = p.name
@@ -327,12 +327,21 @@ def query_string(
             crsr = next_crs()
             filtered_out = next_crs("filter")
             md = f"NOT_NULL({crsr}.metadata, {{}})"
-            f_res = f'MERGE({crsr}, {{metadata:MERGE({md}, {{"query_tag": "{p.tag}"}})}})' if p.tag else crsr
             limited = f" LIMIT {limit.offset}, {limit.length} " if limit else " "
-            sort_by = sort(crsr, p.sort) if p.sort else " "
             pre, term_string = term(crsr, part_term)
             pre_string = pre + " FILTER" if pre else "FILTER"
-            for_stmt = f"FOR {crsr} in {current_cursor} {pre_string} {term_string}{sort_by}{limited}"
+            for_stmt = f"FOR {crsr} in {current_cursor} {pre_string} {term_string}"
+            # in case nested properties get unfolded, we need to make the list distinct again
+            if pre:
+                nested_distinct = next_crs("nested_distinct")
+                for_stmt = f"LET {nested_distinct} = ({for_stmt} RETURN DISTINCT {crsr})"
+                crsr = next_crs()
+                sort_by = sort(crsr, p.sort) if p.sort else " "
+                for_stmt = f"{for_stmt} FOR {crsr} in {nested_distinct}{sort_by}{limited} "
+            else:
+                sort_by = sort(crsr, p.sort) if p.sort else " "
+                for_stmt = f"{for_stmt}{sort_by}{limited}"
+            f_res = f'MERGE({crsr}, {{metadata:MERGE({md}, {{"query_tag": "{p.tag}"}})}})' if p.tag else crsr
             return_stmt = f"RETURN {f_res}"
             reverse = "REVERSE" if p.reverse_result else ""
             query_part += f"LET {filtered_out} = {reverse}({for_stmt}{return_stmt})"
