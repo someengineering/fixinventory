@@ -1,5 +1,7 @@
+import re
 from argparse import ArgumentParser
-from typing import TypeVar, Union, Any, Callable, AsyncIterator, NoReturn, Optional, Awaitable
+from functools import lru_cache
+from typing import TypeVar, Union, Any, Callable, AsyncIterator, NoReturn, Optional, Awaitable, Tuple, List
 
 from aiostream.core import Stream
 from parsy import Parser, regex
@@ -19,6 +21,7 @@ from resotocore.parse_util import (
     comma_p,
 )
 from resotocore.types import JsonElement
+from resotocore.util import AnyT
 
 T = TypeVar("T")
 # Allow the function to return either a coroutine or the result directly
@@ -91,3 +94,52 @@ class NoExitArgumentParser(ArgumentParser):
     def exit(self, status: int = 0, message: Optional[str] = None) -> NoReturn:
         msg = message if message else "unknown"
         raise AttributeError(f"Could not parse arguments: {msg}")
+
+
+path_array_index_parser = re.compile(r"([^[]+)\[([^]]*)]")
+
+
+@lru_cache(maxsize=8192)
+def parse_path_index(path: str) -> Tuple[str, Union[bool, int, None]]:
+    mm = path_array_index_parser.match(path)
+    if mm:
+        if mm.group(2) in ("*", ""):
+            return mm.group(1), True
+        elif mm.group(2).isdigit():
+            return mm.group(1), int(mm.group(2))
+        else:
+            raise ValueError(f"Invalid path index: {path}")
+    else:
+        return path, None
+
+
+def js_value_get(element: JsonElement, path_or_name: Union[List[str], str], if_none: AnyT) -> AnyT:
+    result = js_value_at(element, path_or_name)
+    return result if result and isinstance(result, type(if_none)) else if_none
+
+
+def js_value_at(element: JsonElement, path_or_name: Union[List[str], str]) -> Optional[Any]:
+    path = path_or_name if isinstance(path_or_name, list) else path_or_name.split(".")
+    at = len(path)
+
+    def at_idx(current: JsonElement, idx: int) -> Optional[Any]:
+        if at == idx:
+            return current
+        prop, index = parse_path_index(path[idx])
+        if current is None or not isinstance(current, dict) or prop not in current:
+            return None
+        else:
+            child = current[prop]
+            if isinstance(child, list):
+                if index is None:
+                    return child
+                elif index is True:
+                    return [at_idx(e, idx + 1) for e in child]
+                elif index < len(child):
+                    return at_idx(child[index], idx + 1)
+                else:
+                    return None
+            else:
+                return at_idx(child, idx + 1)
+
+    return at_idx(element, 0)

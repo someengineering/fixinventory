@@ -49,6 +49,8 @@ from resotocore.cli import (
     is_edge,
     args_parts_unquoted_parser,
     args_parts_parser,
+    js_value_at,
+    js_value_get,
 )
 from resotocore.ids import ConfigId, TaskId
 from resotocore.cli.model import (
@@ -95,8 +97,6 @@ from resotocore.task.task_description import Job, TimeTrigger, EventTrigger, Exe
 from resotocore.types import Json, JsonElement, EdgeType
 from resotocore.util import (
     uuid_str,
-    value_in_path_get,
-    value_in_path,
     utc,
     if_set,
     duration,
@@ -867,7 +867,7 @@ class CountCommand(SearchCLIPart):
         def inc_prop(o: JsonElement) -> None:
             nonlocal matched
             nonlocal unmatched
-            value = value_in_path(o, get_path)  # type:ignore
+            value = js_value_at(o, get_path)  # type:ignore
             if value is not None:
                 if isinstance(value, str):
                     pass
@@ -1081,8 +1081,8 @@ class AggregateToCountCommand(CLICommand, InternalPart):
             in_streamer = in_stream if isinstance(in_stream, Stream) else stream.iterate(in_stream)
             async with in_streamer.stream() as streamer:
                 async for elem in streamer:
-                    name = value_in_path(elem, name_path)
-                    count = value_in_path_get(elem, count_path, 0)
+                    name = js_value_at(elem, name_path)
+                    count = js_value_get(elem, count_path, 0)
                     if name is None:
                         null_value = count
                     else:
@@ -1753,10 +1753,10 @@ class CleanCommand(SetDesiredStateBase):
     ) -> AsyncIterator[JsonElement]:
         reason = f"Reason: {strip_quotes(arg)}" if arg else "No reason provided."
         async for elem in super().set_desired(arg, graph_name, patch, items):
-            uid = value_in_path(elem, NodePath.node_id)
-            r_id = value_in_path_get(elem, NodePath.reported_id, "<no id>")
-            r_name = value_in_path_get(elem, NodePath.reported_name, "<no name>")
-            r_kind = value_in_path_get(elem, NodePath.reported_kind, "<no kind>")
+            uid = js_value_at(elem, NodePath.node_id)
+            r_id = js_value_get(elem, NodePath.reported_id, "<no id>")
+            r_name = js_value_get(elem, NodePath.reported_name, "<no name>")
+            r_kind = js_value_get(elem, NodePath.reported_kind, "<no kind>")
             log.info(f"Node id={r_id}, name={r_name}, kind={r_kind} marked for cleanup. {reason}. ({uid})")
             yield elem
 
@@ -2262,7 +2262,7 @@ class ListCommand(CLICommand, OutputTransformer):
                 result = ""
                 first = True
                 for prop_path, name in props_to_show:
-                    value = value_in_path(elem, prop_path)
+                    value = js_value_at(elem, prop_path)
                     if value is not None:
                         delim = "" if first else ", "
                         result += f"{delim}{to_str(name, value)}"
@@ -2293,7 +2293,7 @@ class ListCommand(CLICommand, OutputTransformer):
                     if is_node(elem):
                         result = []
                         for prop_path, _ in props_to_show:
-                            value = value_in_path(elem, prop_path)
+                            value = js_value_at(elem, prop_path)
                             result.append(value)
                         yield to_csv_string(result)
 
@@ -2307,7 +2307,7 @@ class ListCommand(CLICommand, OutputTransformer):
             def extract_values(elem: JsonElement) -> List[Any | None]:
                 result = []
                 for idx, prop_path in enumerate(props_to_show):
-                    value = value_in_path(elem, prop_path[0])
+                    value = js_value_at(elem, prop_path[0])
                     columns_padding[idx] = max(columns_padding[idx], len(str(value)))
                     result.append(value)
                 return result
@@ -2677,7 +2677,7 @@ class SendWorkerTaskCommand(CLICommand, ABC):
     def carz_from_node(cls, node: Json) -> Json:
         result = {}
         for name, path in cls.cloud_account_region_zone.items():
-            value = value_in_path(node, path)
+            value = js_value_at(node, path)
             if value:
                 result[name] = value
         return result
@@ -2779,7 +2779,7 @@ class TagCommand(SendWorkerTaskCommand):
 
     def handle_result(self, model: Model, **env: str) -> Callable[[WorkerTask, Future[Json]], Awaitable[Json]]:
         async def to_result(task: WorkerTask, future_result: Future[Json]) -> Json:
-            nid = value_in_path(task.data, ["node", "id"])
+            nid = js_value_at(task.data, ["node", "id"])
             try:
                 result = await future_result
                 if is_node(result):

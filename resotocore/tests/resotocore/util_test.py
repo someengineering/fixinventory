@@ -63,11 +63,6 @@ def test_value_in_path() -> None:
     assert value_in_path(js, ["foo", "bla", "bar"]) is None
     assert value_in_path_get(js, ["foo", "bla", "bar"], "foo") == "foo"
 
-    assert value_in_path(js, "b[0].a") == 1
-    assert value_in_path(js, "b[*].a") == [1, 2]
-    assert value_in_path(js, "b[*].b[*]") == [[1, 2, 3], [1, 2, 3]]
-    assert value_in_path(js, "b[*].b[2]") == [3, 3]
-
 
 def test_set_value_in_path() -> None:
     js = {"foo": {"bla": {"test": 123}}}
