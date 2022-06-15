@@ -124,13 +124,15 @@ class Property:
 # foo.bla -> [foo, bla]
 # foo.`bla.bar` -> [foo, bla.bar]
 prop_path_parser = (regex("[^`.]+") | variable_dp_backtick).sep_by(dot_dp)
+array_index_re = re.compile(r"\[(\d+|\*)]")
 
 
 class PropertyPath:
     @staticmethod
     def from_path(path: str) -> PropertyPath:
-        prop_path_parser.parse(path)
-        return PropertyPath(prop_path_parser.parse(path), path)
+        # remove index accesses from the path (e.g. [23] -> "[]", [*] -> "[]")
+        no_index = array_index_re.sub("[]", path)
+        return PropertyPath(prop_path_parser.parse(no_index), no_index)
 
     def __init__(self, path: Sequence[Optional[str]], str_rep: Optional[str] = None):
         self.path = path
