@@ -533,7 +533,11 @@ async def test_kinds_command(cli: CLI, foo_model: Model) -> None:
     result = await cli.execute_cli_command("kind string", stream.list)
     assert result[0][0] == {"name": "string", "runtime_kind": "string"}
     result = await cli.execute_cli_command("kind -p reported.ctime", stream.list)
-    assert result[0][0] == {"name": "datetime", "runtime_kind": "datetime"}
+    assert result[0][0] == {
+        "name": "datetime",
+        "runtime_kind": "datetime",
+        "appears_in": ["base", "foo", "bla", "cloud", "account", "region", "parent", "child", "predefined_properties"],
+    }
     with pytest.raises(Exception):
         await cli.execute_cli_command("kind foo bla bar", stream.list)
 

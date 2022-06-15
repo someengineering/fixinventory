@@ -67,7 +67,7 @@ class Section:
     all = set(all_ordered)
 
     # remove the section plus dot if it exists in the string: reported.foo => foo
-    __no_section = re.compile("^(" + "|".join(f"({s})" for s in content_ordered) + ")[.]")
+    __no_section = re.compile("^/?(" + "|".join(f"({s})" for s in content_ordered) + ")[.]")
 
     @classmethod
     def without_section(cls, path: str) -> str:

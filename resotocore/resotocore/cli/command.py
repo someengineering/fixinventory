@@ -76,7 +76,16 @@ from resotocore.db.model import QueryModel
 from resotocore.dependencies import system_info
 from resotocore.error import CLIParseError, ClientError, CLIExecutionError
 from resotocore.model.graph_access import Section, EdgeTypes
-from resotocore.model.model import Model, Kind, ComplexKind, DictionaryKind, SimpleKind, Property, ArrayKind
+from resotocore.model.model import (
+    Model,
+    Kind,
+    ComplexKind,
+    DictionaryKind,
+    SimpleKind,
+    Property,
+    ArrayKind,
+    PropertyPath,
+)
 from resotocore.model.resolve_in_graph import NodePath
 from resotocore.model.typed_model import to_json, to_js
 from resotocore.parse_util import (
@@ -1616,6 +1625,14 @@ class KindsCommand(CLICommand, PreserveOutputFormat):
             else:
                 return {"name": kind.fqn}
 
+        def property_defined_in(model: Model, path_: str) -> List[str]:
+            path = PropertyPath.from_path(path_)
+            return [
+                kind.fqn
+                for kind in model.complex_kinds()
+                if any(p for p in kind.resolved_properties() if p.path.same_as(path))
+            ]
+
         async def source() -> Tuple[int, Stream]:
             model = await self.dependencies.model_handler.load_model()
             if args.name:
@@ -1623,7 +1640,10 @@ class KindsCommand(CLICommand, PreserveOutputFormat):
                 result = kind_to_js(model, model[kind]) if kind in model else f"No kind with this name: {kind}"
                 return 1, stream.just(result)
             elif args.property_path:
-                result = kind_to_js(model, model.kind_by_path(Section.without_section(args.property_path)))
+                no_section = Section.without_section(args.property_path)
+                result = kind_to_js(model, model.kind_by_path(no_section))
+                if appears_in := property_defined_in(model, no_section):
+                    result["appears_in"] = appears_in
                 return 1, stream.just(result)
             else:
                 result = sorted([model.fqn for model in model.kinds.values() if isinstance(model, ComplexKind)])
