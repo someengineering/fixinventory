@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import ClassVar, Optional, Dict, Type, List, Any, Union, Tuple
 
 from jsons import set_deserializer
-from resoto_plugin_k8s.base import KubernetesResource
+from resoto_plugin_k8s.base import KubernetesResource, SortTransitionTime
 from resotolib.baseresources import (
     BaseAccount,
     BaseInstance,
@@ -16,18 +16,7 @@ from resotolib.baseresources import (
     EdgeType,
 )
 from resotolib.graph import Graph
-from resotolib.json_bender import (
-    StringToUnitNumber,
-    CPUCoresToNumber,
-    Bend,
-    S,
-    K,
-    bend,
-    ForallBend,
-    Bender,
-    Sort,
-    AsDate,
-)
+from resotolib.json_bender import StringToUnitNumber, CPUCoresToNumber, Bend, S, K, bend, ForallBend, Bender
 from resotolib.types import Json
 
 log = logging.getLogger("resoto.plugins.k8s")
@@ -236,9 +225,7 @@ class KubernetesNodeStatus:
     kind: ClassVar[str] = "kubernetes_node_status"
     mapping: ClassVar[Dict[str, Bender]] = {
         "addresses": S("addresses", default=[]) >> ForallBend(KubernetesNodeStatusAddresses.mapping),
-        "conditions": S("conditions", default=[])
-        >> Sort(S("lastTransitionTime") >> AsDate())
-        >> ForallBend(KubernetesNodeCondition.mapping),
+        "conditions": S("conditions", default=[]) >> SortTransitionTime >> ForallBend(KubernetesNodeCondition.mapping),
         "config": S("config") >> Bend(KubernetesNodeStatusConfig.mapping),
         "capacity": S("capacity"),
         "daemon_endpoints": S("daemonEndpoints") >> Bend(KubernetesNodeDaemonEndpoint.mapping),
@@ -447,7 +434,7 @@ class KubernetesPodStatus:
     kind: ClassVar[str] = "kubernetes_pod_status"
     mapping: ClassVar[Dict[str, Bender]] = {
         "conditions": S("conditions", default=[])
-        >> Sort(S("lastTransitionTime") >> AsDate())
+        >> SortTransitionTime
         >> ForallBend(KubernetesPodStatusConditions.mapping),
         "container_statuses": S("containerStatuses", default=[]) >> ForallBend(KubernetesContainerStatus.mapping),
         "ephemeral_container_statuses": S("ephemeralContainerStatuses", default=[])
@@ -824,7 +811,7 @@ class KubernetesPersistentVolumeClaimStatus:
         "access_modes": S("accessModes", default=[]),
         "allocated_resources": S("allocatedResources"),
         "conditions": S("conditions", default=[])
-        >> Sort(S("lastTransitionTime") >> AsDate())
+        >> SortTransitionTime
         >> ForallBend(KubernetesPersistentVolumeClaimStatusConditions.mapping),
         "phase": S("phase"),
         "resize_status": S("resizeStatus"),
@@ -956,7 +943,7 @@ class KubernetesServiceStatus:
     kind: ClassVar[str] = "kubernetes_service_status"
     mapping: ClassVar[Dict[str, Bender]] = {
         "conditions": S("conditions", default=[])
-        >> Sort(S("lastTransitionTime") >> AsDate())
+        >> SortTransitionTime
         >> ForallBend(KubernetesServiceStatusConditions.mapping),
         "load_balancer": S("loadBalancer") >> Bend(KubernetesLoadbalancerStatus.mapping),
     }
@@ -1191,7 +1178,7 @@ class KubernetesNamespaceStatus:
     kind: ClassVar[str] = "kubernetes_namespace_status"
     mapping: ClassVar[Dict[str, Bender]] = {
         "conditions": S("conditions", default=[])
-        >> Sort(S("lastTransitionTime") >> AsDate())
+        >> SortTransitionTime
         >> ForallBend(KubernetesNamespaceStatusConditions.mapping),
         "phase": S("phase"),
     }
@@ -1366,7 +1353,7 @@ class KubernetesReplicationControllerStatus:
     mapping: ClassVar[Dict[str, Bender]] = {
         "available_replicas": S("availableReplicas"),
         "conditions": S("conditions", default=[])
-        >> Sort(S("lastTransitionTime") >> AsDate())
+        >> SortTransitionTime
         >> ForallBend(KubernetesReplicationControllerStatusConditions.mapping),
         "fully_labeled_replicas": S("fullyLabeledReplicas"),
         "observed_generation": S("observedGeneration"),
@@ -1484,7 +1471,7 @@ class KubernetesDaemonSetStatus:
     mapping: ClassVar[Dict[str, Bender]] = {
         "collision_count": S("collisionCount"),
         "conditions": S("conditions", default=[])
-        >> Sort(S("lastTransitionTime") >> AsDate())
+        >> SortTransitionTime
         >> ForallBend(KubernetesDaemonSetStatusConditions.mapping),
         "current_number_scheduled": S("currentNumberScheduled"),
         "desired_number_scheduled": S("desiredNumberScheduled"),
@@ -1573,7 +1560,7 @@ class KubernetesDeploymentStatus:
         "available_replicas": S("availableReplicas"),
         "collision_count": S("collisionCount"),
         "conditions": S("conditions", default=[])
-        >> Sort(S("lastTransitionTime") >> AsDate())
+        >> SortTransitionTime
         >> ForallBend(KubernetesDeploymentStatusCondition.mapping),
         "observed_generation": S("observedGeneration"),
         "ready_replicas": S("readyReplicas"),
@@ -1680,7 +1667,7 @@ class KubernetesReplicaSetStatus:
     mapping: ClassVar[Dict[str, Bender]] = {
         "available_replicas": S("availableReplicas"),
         "conditions": S("conditions", default=[])
-        >> Sort(S("lastTransitionTime") >> AsDate())
+        >> SortTransitionTime
         >> ForallBend(KubernetesReplicaSetStatusCondition.mapping),
         "fully_labeled_replicas": S("fullyLabeledReplicas"),
         "observed_generation": S("observedGeneration"),
@@ -1750,7 +1737,7 @@ class KubernetesStatefulSetStatus:
         "available_replicas": S("availableReplicas"),
         "collision_count": S("collisionCount"),
         "conditions": S("conditions", default=[])
-        >> Sort(S("lastTransitionTime") >> AsDate())
+        >> SortTransitionTime
         >> ForallBend(KubernetesStatefulSetStatusCondition.mapping),
         "current_replicas": S("currentReplicas"),
         "current_revision": S("currentRevision"),
@@ -1996,7 +1983,7 @@ class KubernetesJobStatus:
         "completed_indexes": S("completedIndexes"),
         "completion_time": S("completionTime"),
         "conditions": S("conditions", default=[])
-        >> Sort(S("lastTransitionTime") >> AsDate())
+        >> SortTransitionTime
         >> ForallBend(KubernetesJobStatusConditions.mapping),
         "failed": S("failed"),
         "ready": S("ready"),
@@ -2048,7 +2035,7 @@ class KubernetesFlowSchemaStatus:
     kind: ClassVar[str] = "kubernetes_flow_schema_status"
     mapping: ClassVar[Dict[str, Bender]] = {
         "conditions": S("conditions", default=[])
-        >> Sort(S("lastTransitionTime") >> AsDate())
+        >> SortTransitionTime
         >> ForallBend(KubernetesFlowSchemaStatusConditions.mapping),
     }
     conditions: List[KubernetesFlowSchemaStatusConditions] = field(default_factory=list)
@@ -2085,7 +2072,7 @@ class KubernetesPriorityLevelConfigurationStatus:
     kind: ClassVar[str] = "kubernetes_priority_level_configuration_status"
     mapping: ClassVar[Dict[str, Bender]] = {
         "conditions": S("conditions", default=[])
-        >> Sort(S("lastTransitionTime") >> AsDate())
+        >> SortTransitionTime
         >> ForallBend(KubernetesPriorityLevelConfigurationStatusConditions.mapping),
     }
     conditions: List[KubernetesPriorityLevelConfigurationStatusConditions] = field(default_factory=list)
@@ -2222,7 +2209,7 @@ class KubernetesNetworkPolicyStatus:
     kind: ClassVar[str] = "kubernetes_network_policy_status"
     mapping: ClassVar[Dict[str, Bender]] = {
         "conditions": S("conditions", default=[])
-        >> Sort(S("lastTransitionTime") >> AsDate())
+        >> SortTransitionTime
         >> ForallBend(KubernetesNetworkPolicyStatusConditions.mapping),
     }
     conditions: List[KubernetesNetworkPolicyStatusConditions] = field(default_factory=list)
@@ -2267,7 +2254,7 @@ class KubernetesPodDisruptionBudgetStatus:
     kind: ClassVar[str] = "kubernetes_pod_disruption_budget_status"
     mapping: ClassVar[Dict[str, Bender]] = {
         "conditions": S("conditions", default=[])
-        >> Sort(S("lastTransitionTime") >> AsDate())
+        >> SortTransitionTime
         >> ForallBend(KubernetesPodDisruptionBudgetStatusConditions.mapping),
         "current_healthy": S("currentHealthy"),
         "desired_healthy": S("desiredHealthy"),

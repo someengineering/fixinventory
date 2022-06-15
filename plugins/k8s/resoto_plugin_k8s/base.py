@@ -20,6 +20,8 @@ from resotolib.utils import num_default_threads
 
 log = logging.getLogger("resoto.plugins.k8s")
 
+SortTransitionTime = Sort(S("lastTransitionTime") >> AsDate())
+
 
 @dataclass(eq=False)
 class KubernetesResource(BaseResource):
@@ -30,7 +32,7 @@ class KubernetesResource(BaseResource):
         "tags": S("metadata", "annotations", default={}),
         "name": S("metadata", "name"),
         "ctime": S("metadata", "creationTimestamp"),
-        "mtime": (S("status", "conditions") >> Sort(S("lastTransitionTime") >> AsDate()))[-1]["lastTransitionTime"],
+        "mtime": (S("status", "conditions") >> SortTransitionTime)[-1]["lastTransitionTime"],
         "resource_version": S("metadata", "resourceVersion"),
         "namespace": S("metadata", "namespace"),
         "labels": S("metadata", "labels", default={}),
