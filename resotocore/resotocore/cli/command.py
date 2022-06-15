@@ -76,7 +76,7 @@ from resotocore.db.model import QueryModel
 from resotocore.dependencies import system_info
 from resotocore.error import CLIParseError, ClientError, CLIExecutionError
 from resotocore.model.graph_access import Section, EdgeTypes
-from resotocore.model.model import Model, Kind, ComplexKind, DictionaryKind, SimpleKind, Property
+from resotocore.model.model import Model, Kind, ComplexKind, DictionaryKind, SimpleKind, Property, ArrayKind
 from resotocore.model.resolve_in_graph import NodePath
 from resotocore.model.typed_model import to_json, to_js
 from resotocore.parse_util import (
@@ -1584,12 +1584,18 @@ class KindsCommand(CLICommand, PreserveOutputFormat):
                 return {"name": kind.fqn, "runtime_kind": kind.runtime_kind}
             elif isinstance(kind, DictionaryKind):
                 return {"name": kind.fqn, "key": kind.key_kind.fqn, "value": kind.value_kind.fqn}
+            elif isinstance(kind, ArrayKind):
+                return {"is_array": True, **kind_to_js(model, kind.inner)}
             elif isinstance(kind, ComplexKind):
                 synth = {k.prop.name: k for k in kind.synthetic_props() if len(k.path.path) == 1}
 
                 def kind_name(p: Property) -> str:
                     # in case of synthetic property
-                    return (synth[p.name].kind.runtime_kind if p.name in synth else p.kind) if p.synthetic else p.kind
+                    return (
+                        (synth[p.name].simple_kind.runtime_kind if p.name in synth else p.kind)
+                        if p.synthetic
+                        else p.kind
+                    )
 
                 props = sorted(kind.all_props(), key=lambda k: k.name)
                 predecessors = list(
@@ -1599,13 +1605,14 @@ class KindsCommand(CLICommand, PreserveOutputFormat):
                         if kind.fqn in cpl.successor_kinds.get(EdgeTypes.default, [])
                     }
                 )
-                return {
-                    "name": kind.fqn,
-                    "bases": list(kind.kind_hierarchy() - {kind.fqn}),
-                    "properties": {p.name: kind_name(p) for p in props},
-                    "predecessors": predecessors,
-                    "successors": kind.successor_kinds.get(EdgeTypes.default, []),
-                }
+                js = {"name": kind.fqn, "properties": {p.name: kind_name(p) for p in props}}
+                if bases := list(kind.kind_hierarchy() - {kind.fqn}):
+                    js["bases"] = bases
+                if predecessors:
+                    js["predecessors"] = predecessors
+                if successors := kind.successor_kinds.get(EdgeTypes.default, []):
+                    js["successors"] = successors
+                return js
             else:
                 return {"name": kind.fqn}
 

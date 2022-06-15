@@ -12,7 +12,7 @@ from resotocore.db import EstimatedSearchCost, EstimatedQueryCostRating as Ratin
 from resotocore.db.arangodb_functions import as_arangodb_function
 from resotocore.db.model import QueryModel
 from resotocore.model.graph_access import Section, Direction
-from resotocore.model.model import SyntheticProperty, ResolvedSimpleProperty
+from resotocore.model.model import SyntheticProperty, ResolvedProperty
 from resotocore.model.resolve_in_graph import GraphResolver
 from resotocore.query.model import (
     Predicate,
@@ -112,7 +112,7 @@ def query_string(
     def next_bind_var_name() -> str:
         return f'b{next_counter("bind_vars")}'
 
-    def prop_name_kind(path: str) -> Tuple[str, ResolvedSimpleProperty, Optional[str]]:  # prop_name, prop, merge_name
+    def prop_name_kind(path: str) -> Tuple[str, ResolvedProperty, Optional[str]]:  # prop_name, prop, merge_name
         merge_name = first(lambda name: path.startswith(name + "."), merge_names)
         # remove merge_name and section part (if existent) from the path
         lookup = Section.without_section(path[len(merge_name) + 1 :] if merge_name else path)  # noqa: E203
@@ -186,7 +186,7 @@ def query_string(
             cursor = nxt_crs
 
         bvn = next_bind_var_name()
-        op = lgt_ops[p.op] if prop.kind.reverse_order and p.op in lgt_ops else p.op
+        op = lgt_ops[p.op] if prop.simple_kind.reverse_order and p.op in lgt_ops else p.op
         if op in ["in", "not in"] and isinstance(p.value, list):
             bind_vars[bvn] = [prop.kind.coerce(a) for a in p.value]
         else:
@@ -487,7 +487,7 @@ def query_string(
     def sort(cursor: str, so: List[Sort]) -> str:
         def single_sort(single: Sort) -> str:
             prop_name, resolved, _ = prop_name_kind(single.name)
-            order = SortOrder.reverse(single.order) if resolved.kind.reverse_order else single.order
+            order = SortOrder.reverse(single.order) if resolved.simple_kind.reverse_order else single.order
             return f"{cursor}.{prop_name} {order}"
 
         sorts = ", ".join(single_sort(s) for s in so)

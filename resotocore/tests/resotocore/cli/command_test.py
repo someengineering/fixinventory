@@ -528,7 +528,6 @@ async def test_kinds_command(cli: CLI, foo_model: Model) -> None:
             "some_int": "int32",
             "some_string": "string",
         },
-        "predecessors": [],
         "successors": ["bla"],
     }
     result = await cli.execute_cli_command("kind string", stream.list)
