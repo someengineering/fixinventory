@@ -1,6 +1,7 @@
 from __future__ import annotations
 import logging
 from abc import ABC
+from datetime import datetime
 from typing import Dict, Any, Type, Union, Optional, Callable
 
 from resotolib.types import Json
@@ -291,6 +292,36 @@ class Bend(Bender):
 
     def execute(self, value: Optional[Json]) -> Any:
         return bend(self._mappings, value) if value else None
+
+
+class Sort(Bender):
+    """
+    Sort a list based on given extractor bender.
+    """
+
+    def __init__(self, extractor: Bender, **kwargs: Any):
+        super().__init__(**kwargs)
+        self._extractor = extractor
+
+    def execute(self, source: Any) -> Any:
+        if isinstance(source, list):
+            return sorted(source, key=lambda x: bend(self._extractor, x))
+        else:
+            return source
+
+
+class AsDate(Bender):
+    """
+    Parse a given input string as date.
+    The format of the date needs to be defined.
+    """
+
+    def __init__(self, date_format: str = "%Y-%m-%dT%H:%M:%SZ", **kwargs: Any):
+        super().__init__(**kwargs)
+        self._format = date_format
+
+    def execute(self, source: Any) -> Any:
+        return datetime.strptime(source, self._format) if isinstance(source, str) else source
 
 
 class ListOp(Bender, ABC):
