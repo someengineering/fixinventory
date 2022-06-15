@@ -73,7 +73,7 @@ class StaticFileClient(K8sClient):
     @cached_property
     def apis(self) -> List[K8sApiResource]:
         js = self.get("apis")
-        return jsons.load(js, List[K8sApiResource])  # type: ignore
+        return self.filter_apis(jsons.load(js, List[K8sApiResource]))
 
     def list_resources(
         self, resource: K8sApiResource, clazz: Type[KubernetesResourceType], path: Optional[str] = None
