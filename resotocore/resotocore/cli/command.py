@@ -60,6 +60,8 @@ from resotocore.cli import (
     is_edge,
     args_parts_unquoted_parser,
     args_parts_parser,
+    js_value_at,
+    js_value_get,
 )
 from resotocore.ids import ConfigId, TaskId
 from resotocore.cli.model import (
@@ -85,7 +87,16 @@ from resotocore.db.model import QueryModel
 from resotocore.dependencies import system_info
 from resotocore.error import CLIParseError, ClientError, CLIExecutionError
 from resotocore.model.graph_access import Section, EdgeTypes
-from resotocore.model.model import Model, Kind, ComplexKind, DictionaryKind, SimpleKind, Property
+from resotocore.model.model import (
+    Model,
+    Kind,
+    ComplexKind,
+    DictionaryKind,
+    SimpleKind,
+    Property,
+    ArrayKind,
+    PropertyPath,
+)
 from resotocore.model.resolve_in_graph import NodePath
 from resotocore.model.typed_model import to_json, to_js
 from resotocore.query.model import Query, P, Template, NavigateUntilRoot, IsTerm
@@ -95,8 +106,6 @@ from resotocore.task.task_description import Job, TimeTrigger, EventTrigger, Exe
 from resotocore.types import Json, JsonElement, EdgeType
 from resotocore.util import (
     uuid_str,
-    value_in_path_get,
-    value_in_path,
     utc,
     if_set,
     duration,
@@ -867,7 +876,7 @@ class CountCommand(SearchCLIPart):
         def inc_prop(o: JsonElement) -> None:
             nonlocal matched
             nonlocal unmatched
-            value = value_in_path(o, get_path)  # type:ignore
+            value = js_value_at(o, get_path)  # type:ignore
             if value is not None:
                 if isinstance(value, str):
                     pass
@@ -1081,8 +1090,8 @@ class AggregateToCountCommand(CLICommand, InternalPart):
             in_streamer = in_stream if isinstance(in_stream, Stream) else stream.iterate(in_stream)
             async with in_streamer.stream() as streamer:
                 async for elem in streamer:
-                    name = value_in_path(elem, name_path)
-                    count = value_in_path_get(elem, count_path, 0)
+                    name = js_value_at(elem, name_path)
+                    count = js_value_get(elem, count_path, 0)
                     if name is None:
                         null_value = count
                     else:
@@ -1584,12 +1593,18 @@ class KindsCommand(CLICommand, PreserveOutputFormat):
                 return {"name": kind.fqn, "runtime_kind": kind.runtime_kind}
             elif isinstance(kind, DictionaryKind):
                 return {"name": kind.fqn, "key": kind.key_kind.fqn, "value": kind.value_kind.fqn}
+            elif isinstance(kind, ArrayKind):
+                return {"is_array": True, **kind_to_js(model, kind.inner)}
             elif isinstance(kind, ComplexKind):
                 synth = {k.prop.name: k for k in kind.synthetic_props() if len(k.path.path) == 1}
 
                 def kind_name(p: Property) -> str:
                     # in case of synthetic property
-                    return (synth[p.name].kind.runtime_kind if p.name in synth else p.kind) if p.synthetic else p.kind
+                    return (
+                        (synth[p.name].simple_kind.runtime_kind if p.name in synth else p.kind)
+                        if p.synthetic
+                        else p.kind
+                    )
 
                 props = sorted(kind.all_props(), key=lambda k: k.name)
                 predecessors = list(
@@ -1599,15 +1614,24 @@ class KindsCommand(CLICommand, PreserveOutputFormat):
                         if kind.fqn in cpl.successor_kinds.get(EdgeTypes.default, [])
                     }
                 )
-                return {
-                    "name": kind.fqn,
-                    "bases": list(kind.kind_hierarchy() - {kind.fqn}),
-                    "properties": {p.name: kind_name(p) for p in props},
-                    "predecessors": predecessors,
-                    "successors": kind.successor_kinds.get(EdgeTypes.default, []),
-                }
+                js = {"name": kind.fqn, "properties": {p.name: kind_name(p) for p in props}}
+                if bases := list(kind.kind_hierarchy() - {kind.fqn}):
+                    js["bases"] = bases
+                if predecessors:
+                    js["predecessors"] = predecessors
+                if successors := kind.successor_kinds.get(EdgeTypes.default, []):
+                    js["successors"] = successors
+                return js
             else:
                 return {"name": kind.fqn}
+
+        def property_defined_in(model: Model, path_: str) -> List[str]:
+            path = PropertyPath.from_path(path_)
+            return [
+                kind.fqn
+                for kind in model.complex_kinds()
+                if any(p for p in kind.resolved_properties() if p.path.same_as(path))
+            ]
 
         async def source() -> Tuple[int, Stream]:
             model = await self.dependencies.model_handler.load_model()
@@ -1616,7 +1640,10 @@ class KindsCommand(CLICommand, PreserveOutputFormat):
                 result = kind_to_js(model, model[kind]) if kind in model else f"No kind with this name: {kind}"
                 return 1, stream.just(result)
             elif args.property_path:
-                result = kind_to_js(model, model.kind_by_path(Section.without_section(args.property_path)))
+                no_section = Section.without_section(args.property_path)
+                result = kind_to_js(model, model.kind_by_path(no_section))
+                if appears_in := property_defined_in(model, no_section):
+                    result["appears_in"] = appears_in
                 return 1, stream.just(result)
             else:
                 result = sorted([model.fqn for model in model.kinds.values() if isinstance(model, ComplexKind)])
@@ -1753,10 +1780,10 @@ class CleanCommand(SetDesiredStateBase):
     ) -> AsyncIterator[JsonElement]:
         reason = f"Reason: {strip_quotes(arg)}" if arg else "No reason provided."
         async for elem in super().set_desired(arg, graph_name, patch, items):
-            uid = value_in_path(elem, NodePath.node_id)
-            r_id = value_in_path_get(elem, NodePath.reported_id, "<no id>")
-            r_name = value_in_path_get(elem, NodePath.reported_name, "<no name>")
-            r_kind = value_in_path_get(elem, NodePath.reported_kind, "<no kind>")
+            uid = js_value_at(elem, NodePath.node_id)
+            r_id = js_value_get(elem, NodePath.reported_id, "<no id>")
+            r_name = js_value_get(elem, NodePath.reported_name, "<no name>")
+            r_kind = js_value_get(elem, NodePath.reported_kind, "<no kind>")
             log.info(f"Node id={r_id}, name={r_name}, kind={r_kind} marked for cleanup. {reason}. ({uid})")
             yield elem
 
@@ -2262,7 +2289,7 @@ class ListCommand(CLICommand, OutputTransformer):
                 result = ""
                 first = True
                 for prop_path, name in props_to_show:
-                    value = value_in_path(elem, prop_path)
+                    value = js_value_at(elem, prop_path)
                     if value is not None:
                         delim = "" if first else ", "
                         result += f"{delim}{to_str(name, value)}"
@@ -2293,7 +2320,7 @@ class ListCommand(CLICommand, OutputTransformer):
                     if is_node(elem):
                         result = []
                         for prop_path, _ in props_to_show:
-                            value = value_in_path(elem, prop_path)
+                            value = js_value_at(elem, prop_path)
                             result.append(value)
                         yield to_csv_string(result)
 
@@ -2307,7 +2334,7 @@ class ListCommand(CLICommand, OutputTransformer):
             def extract_values(elem: JsonElement) -> List[Any | None]:
                 result = []
                 for idx, prop_path in enumerate(props_to_show):
-                    value = value_in_path(elem, prop_path[0])
+                    value = js_value_at(elem, prop_path[0])
                     columns_padding[idx] = max(columns_padding[idx], len(str(value)))
                     result.append(value)
                 return result
@@ -2677,7 +2704,7 @@ class SendWorkerTaskCommand(CLICommand, ABC):
     def carz_from_node(cls, node: Json) -> Json:
         result = {}
         for name, path in cls.cloud_account_region_zone.items():
-            value = value_in_path(node, path)
+            value = js_value_at(node, path)
             if value:
                 result[name] = value
         return result
@@ -2779,7 +2806,7 @@ class TagCommand(SendWorkerTaskCommand):
 
     def handle_result(self, model: Model, **env: str) -> Callable[[WorkerTask, Future[Json]], Awaitable[Json]]:
         async def to_result(task: WorkerTask, future_result: Future[Json]) -> Json:
-            nid = value_in_path(task.data, ["node", "id"])
+            nid = js_value_at(task.data, ["node", "id"])
             try:
                 result = await future_result
                 if is_node(result):

@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 import pytest
 import asyncio
 from pytest import fixture
@@ -22,6 +22,8 @@ from resotocore.types import Json
 
 from typing import AsyncGenerator
 from resotocore.ids import TaskId, NodeId
+
+from resotocore.util import utc
 
 # noinspection PyUnresolvedReferences
 from tests.resotocore.task.task_handler_test import task_handler
@@ -125,7 +127,7 @@ async def test_merge_outer_edges(
     merge_handler: MergeOuterEdgesHandler, graph_db: ArangoGraphDB, foo_model: Model, db_access: DbAccess
 ) -> None:
 
-    now = datetime.now()
+    now = utc()
 
     id1 = NodeId("id1")
     id2 = NodeId("id2")
