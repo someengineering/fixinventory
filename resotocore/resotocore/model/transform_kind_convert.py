@@ -1,4 +1,4 @@
-from resotocore.durations import parse_duration, time_units
+from resotolib.durations import parse_duration, time_units
 from resotocore.util import utc, utc_str, from_utc
 
 

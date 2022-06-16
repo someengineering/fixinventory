@@ -21,6 +21,7 @@ class CoreEvent:
     NodesDesiredUpdated = "graphdb.nodes-desired-updated"
     NodesMetadataUpdated = "graphdb.nodes-metadata-updated"
     NodeDeleted = "graphdb.node-deleted"
+    DeferredEdgesUpdated = "graphdb.deferred-edges-updated"
     GraphMerged = "graphdb.graph-merged"
     BatchUpdateGraphMerged = "graphdb.batch-update-graph-merged"
     BatchUpdateCommitted = "graphdb.batch-update-committed"
@@ -35,6 +36,7 @@ class CoreEvent:
     TaskCompleted = "task-handler.task-completed"
     ClientError = "error.client"
     ServerError = "error.server"
+    UsageMetricsTurnedOff = "usage-metrics.turned-off"
 
 
 @dataclass(frozen=True)

@@ -31,14 +31,7 @@ from resotocore.config.core_config_handler import CoreConfigHandler
 from resotocore.core_config import config_from_db, CoreConfig, RunConfig
 from resotocore.db import SystemData
 from resotocore.db.db_access import DbAccess
-from resotocore.dependencies import (
-    db_access,
-    setup_process,
-    parse_args,
-    system_info,
-    reconfigure_logging,
-    event_stream,
-)
+from resotocore.dependencies import db_access, setup_process, parse_args, system_info, reconfigure_logging, event_stream
 from resotocore.error import RestartService
 from resotocore.message_bus import MessageBus
 from resotocore.model.model_handler import ModelHandlerDB
@@ -151,8 +144,8 @@ def with_config(
     task_handler = TaskHandlerService(
         db.running_task_db, db.job_db, message_bus, event_sender, subscriptions, scheduler, cli, config
     )
-    core_config_handler = CoreConfigHandler(config, message_bus, worker_task_queue, config_handler)
-    merge_outer_edges_handler = MergeOuterEdgesHandler(message_bus, subscriptions, task_handler)
+    core_config_handler = CoreConfigHandler(config, message_bus, worker_task_queue, config_handler, event_sender)
+    merge_outer_edges_handler = MergeOuterEdgesHandler(message_bus, subscriptions, task_handler, db, model)
     cli_deps.extend(task_handler=task_handler)
     api = Api(
         db,

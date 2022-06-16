@@ -9,10 +9,10 @@ from typing import Mapping, Union, Optional, Any, ClassVar, Dict, List, Tuple, C
 
 from jsons import set_deserializer
 
-from resotocore.model.graph_access import EdgeType, Direction
+from resotocore.model.graph_access import EdgeTypes, Direction
 from resotocore.model.resolve_in_graph import GraphResolver
 from resotocore.model.typed_model import to_js_str
-from resotocore.types import Json, JsonElement
+from resotocore.types import Json, JsonElement, EdgeType
 from resotocore.util import combine_optional
 
 PathRoot = "/"
@@ -260,6 +260,30 @@ class Term(abc.ABC):
         else:
             return None
 
+    def find_terms(self, fn: Callable[[Term], bool]) -> List[Term]:
+        if fn(self):
+            return [self]
+        if isinstance(self, CombinedTerm):
+            return self.left.find_terms(fn) + self.right.find_terms(fn)
+        elif isinstance(self, NotTerm):
+            return self.term.find_terms(fn)
+        elif isinstance(self, MergeTerm):
+
+            def walk_merge_queries(mt: MergeTerm) -> List[Term]:
+                result = []
+                for mq in mt.merge:
+                    for p in mq.query.parts:
+                        result.extend(p.term.find_terms(fn))
+                return result
+
+            return (
+                self.pre_filter.find_terms(fn)
+                or (self.post_filter.find_terms(fn) if self.post_filter else None)
+                or walk_merge_queries(self)
+            )
+        else:
+            return []
+
     def contains_term_type(self, clazz: type) -> bool:
         return self.find_term(lambda x: isinstance(x, clazz)) is not None
 
@@ -406,13 +430,13 @@ class Navigation:
 
     start: int = 1
     until: int = 1
-    maybe_edge_types: Optional[List[str]] = None
+    maybe_edge_types: Optional[List[EdgeType]] = None
     direction: str = Direction.outbound
-    maybe_two_directional_outbound_edge_type: Optional[List[str]] = None
+    maybe_two_directional_outbound_edge_type: Optional[List[EdgeType]] = None
 
     @property
-    def edge_types(self) -> List[str]:
-        return self.maybe_edge_types or [EdgeType.default]
+    def edge_types(self) -> List[EdgeType]:
+        return self.maybe_edge_types or [EdgeTypes.default]
 
     def __str__(self) -> str:
         start = self.start
@@ -431,10 +455,10 @@ class Navigation:
 
 
 NavigateUntilRoot = Navigation(
-    start=1, until=Navigation.Max, maybe_edge_types=[EdgeType.default], direction=Direction.inbound
+    start=1, until=Navigation.Max, maybe_edge_types=[EdgeTypes.default], direction=Direction.inbound
 )
 NavigateUntilLeaf = Navigation(
-    start=1, until=Navigation.Max, maybe_edge_types=[EdgeType.default], direction=Direction.outbound
+    start=1, until=Navigation.Max, maybe_edge_types=[EdgeTypes.default], direction=Direction.outbound
 )
 
 
@@ -623,6 +647,10 @@ class Part:
         else:
             return self
 
+    @property
+    def predicates(self) -> List[Predicate]:
+        return self.term.find_terms(lambda x: isinstance(x, Predicate))  # type: ignore
+
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
 class AggregateVariableName:
@@ -800,17 +828,17 @@ class Query:
         first_part = replace(self.parts[0], with_clause=clause)
         return replace(self, parts=[first_part, *self.parts[1:]])
 
-    def traverse_out(self, start: int = 1, until: int = 1, edge_type: str = EdgeType.default) -> Query:
+    def traverse_out(self, start: int = 1, until: int = 1, edge_type: EdgeType = EdgeTypes.default) -> Query:
         return self.traverse(start, until, edge_type, Direction.outbound)
 
-    def traverse_in(self, start: int = 1, until: int = 1, edge_type: str = EdgeType.default) -> Query:
+    def traverse_in(self, start: int = 1, until: int = 1, edge_type: EdgeType = EdgeTypes.default) -> Query:
         return self.traverse(start, until, edge_type, Direction.inbound)
 
-    def traverse_inout(self, start: int = 1, until: int = 1, edge_type: str = EdgeType.default) -> Query:
+    def traverse_inout(self, start: int = 1, until: int = 1, edge_type: EdgeType = EdgeTypes.default) -> Query:
         return self.traverse(start, until, edge_type, Direction.any)
 
     def traverse(
-        self, start: int, until: int, edge_type: str = EdgeType.default, direction: str = Direction.outbound
+        self, start: int, until: int, edge_type: EdgeType = EdgeTypes.default, direction: str = Direction.outbound
     ) -> Query:
         parts = self.parts.copy()
         p0 = parts[0]
@@ -941,24 +969,7 @@ class Query:
         """
         Returns a list of all predicates in this query.
         """
-        result = []
-
-        def walk(term: Term) -> None:
-            if isinstance(term, Predicate):
-                result.append(term)
-            elif isinstance(term, CombinedTerm):
-                walk(term.left)
-                walk(term.right)
-            elif isinstance(term, MergeTerm):
-                walk(term.pre_filter)
-                if term.post_filter:
-                    walk(term.post_filter)
-            elif isinstance(term, NotTerm):
-                walk(term.term)
-
-        for part in self.parts:
-            walk(part.term)
-        return result
+        return [pred for part in self.parts for pred in part.predicates]
 
     def analytics(self) -> Tuple[Dict[str, int], Dict[str, List[str]]]:
         counters: Dict[str, int] = defaultdict(lambda: 0)

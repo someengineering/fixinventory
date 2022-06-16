@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime, timezone, date
 from json import JSONDecodeError
-from typing import Union, Any, Optional, Callable, Type, Sequence, Dict, List, Set, cast, Tuple
+from typing import Union, Any, Optional, Callable, Type, Sequence, Dict, List, Set, cast, Tuple, Iterable
 
 import yaml
 from dateutil.parser import parse
@@ -15,11 +15,11 @@ from jsons import set_deserializer, set_serializer
 from networkx import MultiDiGraph
 from parsy import regex, string, Parser
 
-from resotocore.durations import duration_parser, DurationRe
+from resotolib.durations import duration_parser, DurationRe
+from resotolib.parse_util import make_parser, variable_dp_backtick, dot_dp
 from resotocore.model.transform_kind_convert import converters
 from resotocore.model.typed_model import from_js
-from resotocore.parse_util import make_parser
-from resotocore.types import Json, JsonElement, ValidationResult, ValidationFn
+from resotocore.types import Json, JsonElement, ValidationResult, ValidationFn, EdgeType
 from resotocore.util import if_set, utc, duration, first
 from resotocore.compat import remove_suffix
 
@@ -120,10 +120,19 @@ class Property:
         return Property("any", "any")
 
 
+# Split a variable path into its path parts.
+# foo.bla -> [foo, bla]
+# foo.`bla.bar` -> [foo, bla.bar]
+prop_path_parser = (regex("[^`.]+") | variable_dp_backtick).sep_by(dot_dp)
+array_index_re = re.compile(r"\[(\d+|\*)]")
+
+
 class PropertyPath:
     @staticmethod
     def from_path(path: str) -> PropertyPath:
-        return PropertyPath(path.split("."), path)
+        # remove index accesses from the path (e.g. [23] -> "[]", [*] -> "[]")
+        no_index = array_index_re.sub("[]", path)
+        return PropertyPath(prop_path_parser.parse(no_index), no_index)
 
     def __init__(self, path: Sequence[Optional[str]], str_rep: Optional[str] = None):
         self.path = path
@@ -137,6 +146,10 @@ class PropertyPath:
         update = list(self.path)
         update.append(part)
         return PropertyPath(update)
+
+    @property
+    def last_part(self) -> Optional[str]:
+        return self.path[-1] if self.path else None
 
     def same_as(self, other: PropertyPath) -> bool:
         """
@@ -173,7 +186,11 @@ class ResolvedProperty:
     # The metadata of the property (name etc.)
     prop: Property
     # the resolved kind of this property
-    kind: SimpleKind
+    kind: Kind
+
+    @property
+    def simple_kind(self) -> SimpleKind:
+        return self.kind if isinstance(self.kind, SimpleKind) else AnyKind()
 
 
 class Kind(ABC):
@@ -253,7 +270,10 @@ class Kind(ABC):
             bases: Optional[List[str]] = js.get("bases")
             allow_unknown_props = js.get("allow_unknown_props", False)
             successor_kinds = js.get("successor_kinds")
-            return ComplexKind(js["fqn"], bases if bases else [], props, allow_unknown_props, successor_kinds)
+            aggregate_root = js.get("aggregate_root", True)
+            return ComplexKind(
+                js["fqn"], bases if bases else [], props, allow_unknown_props, successor_kinds, aggregate_root
+            )
         else:
             raise JSONDecodeError("Given type can not be read.", json.dumps(js), 0)
 
@@ -275,6 +295,16 @@ class Kind(ABC):
             return dict(sorted(js.items()))
         else:
             return js
+
+    def nested_complex_kinds(self) -> List[ComplexKind]:
+        if isinstance(self, ComplexKind):
+            return [self]
+        elif isinstance(self, ArrayKind):
+            return self.inner.nested_complex_kinds()
+        elif isinstance(self, DictionaryKind):
+            return self.key_kind.nested_complex_kinds() + self.value_kind.nested_complex_kinds()
+        else:
+            return []
 
 
 simple_kind_to_type: Dict[str, Type[Union[str, int, float, bool]]] = {
@@ -759,13 +789,15 @@ class ComplexKind(Kind):
         properties: List[Property],
         allow_unknown_props: bool = False,
         # EdgeType -> possible list of successor kinds
-        successor_kinds: Optional[Dict[str, List[str]]] = None,
+        successor_kinds: Optional[Dict[EdgeType, List[str]]] = None,
+        aggregate_root: bool = True,
     ):
         super().__init__(fqn)
         self.bases = bases
         self.properties = properties
         self.allow_unknown_props = allow_unknown_props
         self.successor_kinds = successor_kinds or {}
+        self.aggregate_root = aggregate_root
         self.__prop_by_name = {prop.name: prop for prop in properties}
         self.__resolved = False
         self.__resolved_kinds: Dict[str, Tuple[Property, Kind]] = {}
@@ -829,6 +861,9 @@ class ComplexKind(Kind):
 
     def property_with_kind_of(self, name: str) -> Optional[Tuple[Property, Kind]]:
         return self.__resolved_kinds.get(name)
+
+    def property_with_kinds(self) -> Iterable[Tuple[Property, Kind]]:
+        return self.__resolved_kinds.values()
 
     def is_root(self) -> bool:
         return not self.bases or (len(self.bases) == 1 and self.bases[0] == self.fqn)
@@ -954,41 +989,72 @@ class ComplexKind(Kind):
         return walk_element(elem, self, initial_level)
 
     @staticmethod
-    def resolve_properties(complex_kind: ComplexKind, from_path: PropertyPath = EmptyPath) -> List[ResolvedProperty]:
+    def resolve_properties(
+        complex_kind: ComplexKind,
+        from_path: PropertyPath = EmptyPath,
+        maybe_visited: Optional[Dict[str, PropertyPath]] = None,
+    ) -> List[ResolvedProperty]:
+        visited = maybe_visited or {}
+        result: List[ResolvedProperty] = []
+
         def path_for(
             prop: Property, kind: Kind, path: PropertyPath, array: bool = False, add_prop_to_path: bool = True
-        ) -> List[ResolvedProperty]:
-            arr = "[]" if array else ""
-            relative = path.child(f"{prop.name}{arr}") if add_prop_to_path else path
+        ) -> None:
+            prop_name = f"{prop.name}[]" if array else prop.name
+            # Detect object cycles: remember the path when we have visited this property.
+            # More complex cycles can be detected that way - leave it simple for now.
+            key = f"{prop_name}:{prop.kind}"
+            if key in visited and prop_name in visited[key].path:
+                return
+            visited[key] = path
+            relative = path.child(prop_name) if add_prop_to_path else path
             if isinstance(kind, SimpleKind):
-                return [ResolvedProperty(relative if add_prop_to_path else path, prop, kind)]
+                result.append(ResolvedProperty(relative, prop, kind))
             elif isinstance(kind, ArrayKind):
-                return path_for(prop, kind.inner, path, True)
+                if name := relative.last_part:
+                    result.append(ResolvedProperty(relative, Property(name, kind.fqn), kind))
+                path_for(prop, kind.inner, path, True)
             elif isinstance(kind, DictionaryKind):
-                return path_for(prop, kind.value_kind, relative.child(None), add_prop_to_path=False)
+                child = relative.child(None)
+                if name := relative.last_part:
+                    result.append(ResolvedProperty(relative, Property(name, kind.fqn), kind))
+                    # Any child path accessing this dictionary will get a property of value kind.
+                    value = kind.value_kind
+                    result.append(ResolvedProperty(child, Property("any", value.fqn), value))
+                path_for(prop, kind.value_kind, child, add_prop_to_path=False)
             elif isinstance(kind, ComplexKind):
-                return ComplexKind.resolve_properties(kind, relative)
-            else:
-                return []
+                if name := relative.last_part:
+                    result.append(ResolvedProperty(relative, Property(name, kind.fqn), kind))
+                result.extend(ComplexKind.resolve_properties(kind, relative, visited))
 
-        result: List[ResolvedProperty] = []
         for x in complex_kind.properties:
-            result.extend(path_for(x, complex_kind.__resolved_kinds[x.name][1], from_path))
+            path_for(x, complex_kind.__resolved_kinds[x.name][1], from_path)
 
         return result
 
 
+string_kind = StringKind("string")
+int32_kind = NumberKind("int32", "int32")
+int64_kind = NumberKind("int64", "int64")
+float_kind = NumberKind("float", "float")
+double_kind = NumberKind("double", "double")
+any_kind = AnyKind()
+boolean_kind = BooleanKind("boolean")
+date_kind = DateKind("date")
+datetime_kind = DateTimeKind("datetime")
+duration_kind = DurationKind("duration")
+
 predefined_kinds = [
-    StringKind("string"),
-    NumberKind("int32", "int32"),
-    NumberKind("int64", "int64"),
-    NumberKind("float", "float"),
-    NumberKind("double", "double"),
-    AnyKind(),
-    BooleanKind("boolean"),
-    DateKind("date"),
-    DateTimeKind("datetime"),
-    DurationKind("duration"),
+    string_kind,
+    int32_kind,
+    int64_kind,
+    float_kind,
+    double_kind,
+    any_kind,
+    boolean_kind,
+    date_kind,
+    datetime_kind,
+    duration_kind,
     TransformKind("trafo.duration_to_datetime", "duration", "datetime", "duration_to_datetime", reverse_order=True),
     ComplexKind(
         "graph_root",
@@ -1033,7 +1099,12 @@ class Model:
         self.__property_kind_by_path: List[ResolvedProperty] = list(
             # several complex kinds might have the same property
             # reduce the list by hash over the path.
-            {r.path: r for c in kinds.values() if isinstance(c, ComplexKind) for r in c.resolved_properties()}.values()
+            {
+                r.path: r
+                for c in kinds.values()
+                if isinstance(c, ComplexKind) and c.aggregate_root
+                for r in c.resolved_properties()
+            }.values()
         )
 
     def __contains__(self, name_or_object: Union[str, Json]) -> bool:
@@ -1072,7 +1143,7 @@ class Model:
         # if the path is not known according to known model: it could be anything.
         return found if found else ResolvedProperty(path, Property.any_prop(), AnyKind())
 
-    def kind_by_path(self, path_: str) -> SimpleKind:
+    def kind_by_path(self, path_: str) -> Kind:
         return self.property_by_path(path_).kind
 
     def coerce(self, js: Json) -> Json:
@@ -1097,21 +1168,27 @@ class Model:
         graph = MultiDiGraph()
 
         def handle_complex(cx: ComplexKind) -> None:
+            # do not handle the same complex kind more than once
+            if cx.fqn in graph and "data" in graph.nodes[cx.fqn]:
+                return
+
             graph.add_node(cx.fqn, data=cx)
             # inheritance
             if not cx.is_root():
                 for base in cx.bases:
                     graph.add_edge(cx.fqn, base, f"inheritance_{cx.fqn}_{base}", type="inheritance")
 
+            # properties
+            for _, prop_kind in cx.property_with_kinds():
+                for cpl in prop_kind.nested_complex_kinds():
+                    graph.add_edge(cx.fqn, cpl.fqn, f"property_{cx.fqn}_{cpl.fqn}", type="property")
+                    handle_complex(cpl)
+
             # dependency
             for name, successors in cx.successor_kinds.items():
                 for successor in successors or []:
                     graph.add_edge(
-                        cx.fqn,
-                        successor,
-                        f"successor_{cx.fqn}_{successor}_{name}",
-                        type="successor",
-                        edge_type=name,
+                        cx.fqn, successor, f"successor_{cx.fqn}_{successor}_{name}", type="successor", edge_type=name
                     )
 
         for kind in self.kinds.values():
@@ -1158,8 +1235,8 @@ class Model:
 
         # check if no property path is overlapping
         def check_no_overlap() -> None:
-            existing_complex = [c for c in self.kinds.values() if isinstance(c, ComplexKind)]
-            update_complex = [c for c in to_update if isinstance(c, ComplexKind)]
+            existing_complex = [c for c in self.kinds.values() if isinstance(c, ComplexKind) and c.aggregate_root]
+            update_complex = [c for c in to_update if isinstance(c, ComplexKind) and c.aggregate_root]
             ex = {p.path: p for k in existing_complex for p in k.resolved_properties()}
             up = {p.path: p for k in update_complex for p in k.resolved_properties()}
 

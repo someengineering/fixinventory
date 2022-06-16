@@ -20,7 +20,9 @@ def test_adjust_expired() -> None:
         elif isinstance(expires, str):
             assert value_in_path(result, ["metadata", "expires"]) == expires
         elif isinstance(expires, Pattern):
-            assert expires.fullmatch(value_in_path(result, ["metadata", "expires"]))
+            value = value_in_path(result, ["metadata", "expires"])
+            assert value is not None
+            assert expires.fullmatch(value)
 
     # test iso datetime
     expect_expires({"tags": {"resoto:expires": utc_str(expires_at)}}, "2022-02-15T13:00:00Z")

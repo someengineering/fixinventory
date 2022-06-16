@@ -3,7 +3,7 @@ from dataclasses import dataclass, field, InitVar
 from datetime import datetime
 from typing import ClassVar, Dict, List, Optional
 from resotolib.baseplugin import BaseCollectorPlugin
-from resotolib.graph import Graph, EdgeType
+from resotolib.graph import ByNodeId, Graph, EdgeType, BySearchCriteria
 from resotolib.args import ArgumentParser
 from resotolib.config import Config
 from resotolib.baseresources import (
@@ -84,6 +84,12 @@ class ExampleCollectorPlugin(BaseCollectorPlugin):
         self.graph.add_resource(region2, volume2)
         self.graph.add_edge(instance2, volume2)
         self.graph.add_edge(volume2, instance2, edge_type=EdgeType.delete)
+
+        self.graph.add_deferred_edge(
+            ByNodeId(instance1.chksum),
+            BySearchCriteria(f"is(instance) and reported.id = {instance2.id}"),
+            EdgeType.default,
+        )
 
         custom_resource = ExampleCustomResource(
             "someExampleResource",

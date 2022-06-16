@@ -7,6 +7,7 @@ from typing import Optional, List, Callable
 
 import yaml
 
+from resotocore.analytics import AnalyticsEventSender, CoreEvent
 from resotocore.config import ConfigHandler, ConfigEntity, ConfigValidation
 from resotocore.core_config import (
     CoreConfig,
@@ -25,7 +26,7 @@ from resotocore.message_bus import MessageBus, CoreMessage
 from resotocore.model.model import Kind
 from resotocore.model.typed_model import from_js
 from resotocore.types import Json
-from resotocore.util import deep_merge, restart_service, value_in_path
+from resotocore.util import deep_merge, restart_service, value_in_path, value_in_path_get
 from resotocore.worker_task_queue import WorkerTaskQueue, WorkerTaskDescription, WorkerTaskName, WorkerTask
 
 log = logging.getLogger(__name__)
@@ -38,6 +39,7 @@ class CoreConfigHandler:
         message_bus: MessageBus,
         worker_task_queue: WorkerTaskQueue,
         config_handler: ConfigHandler,
+        event_sender: AnalyticsEventSender,
         exit_fn: Callable[[], None] = partial(restart_service, "resotocore config changed."),
     ):
         self.message_bus = message_bus
@@ -46,6 +48,7 @@ class CoreConfigHandler:
         self.config_validator: Optional[Task[None]] = None
         self.config = config
         self.config_handler = config_handler
+        self.event_sender = event_sender
         self.exit_fn = exit_fn
 
     @staticmethod
@@ -97,6 +100,13 @@ class CoreConfigHandler:
                     log.warning("Error processing validate configuration task", exc_info=ex)
                     await self.worker_task_queue.error_task(worker_id, task.id, str(ex))
 
+    async def __detect_usage_metrics_turned_off(self) -> None:
+        loaded = await self.config_handler.get_config(ResotoCoreConfigId)
+        if loaded:
+            enabled = value_in_path_get(loaded.config, [ResotoCoreRoot, "runtime", "usage_metrics"], True)
+            if self.config.runtime.usage_metrics and not enabled:
+                await self.event_sender.core_event(CoreEvent.UsageMetricsTurnedOff)
+
     async def __handle_events(self) -> None:
         subscriber_id = SubscriberId("resotocore.config.update")
         async with self.message_bus.subscribe(subscriber_id, [CoreMessage.ConfigUpdated]) as events:
@@ -105,6 +115,7 @@ class CoreConfigHandler:
                 event_id = event.data.get("id")
                 if event_id in (ResotoCoreConfigId, ResotoCoreCommandsConfigId):
                     log.info(f"Core config was updated: {event_id} Restart to take effect.")
+                    await self.__detect_usage_metrics_turned_off()
                     # stop the process and rely on os to restart the service
                     self.exit_fn()
 

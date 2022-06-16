@@ -30,12 +30,28 @@ from resotolib.event import (
     remove_event_listener,
 )
 from prometheus_client import Summary
-from typing import Dict, List, Tuple
+from typing import Dict, Iterator, List, Tuple, Any, Optional, Union
 from io import BytesIO
 from dataclasses import fields
 from typeguard import check_type
 from time import time
 from collections import defaultdict, namedtuple
+from dataclasses import dataclass
+
+Json = Dict[str, Any]
+
+
+@dataclass
+class BySearchCriteria:
+    query: str
+
+
+@dataclass
+class ByNodeId:
+    value: str
+
+
+NodeSelector = Union[ByNodeId, BySearchCriteria]
 
 
 metrics_graph_search = Summary("resoto_graph_search_seconds", "Time it took the Graph search() method")
@@ -81,8 +97,9 @@ class Graph(networkx.MultiDiGraph):
         if isinstance(root, BaseResource):
             self.root = root
             self.add_node(self.root, label=self.root.name, **get_resource_attributes(self.root))
+        self.deferred_edges: List[Tuple[NodeSelector, NodeSelector, EdgeType]] = []
 
-    def merge(self, graph: networkx.MultiDiGraph):
+    def merge(self, graph: Graph):
         """Merge another graph into ourselves
 
         If the other graph has a graph.root an edge will be created between
@@ -97,6 +114,7 @@ class Graph(networkx.MultiDiGraph):
         try:
             self._log_edge_creation = False
             self.update(edges=graph.edges, nodes=graph.nodes)
+            self.deferred_edges.extend(graph.deferred_edges)
         finally:
             self._log_edge_creation = True
         self.resolve_deferred_connections()
@@ -155,7 +173,7 @@ class Graph(networkx.MultiDiGraph):
             key = EdgeKey(src=src, dst=dst, edge_type=edge_type)
 
         if self.has_edge(src, dst, key=key):
-            log.error(f"Edge from {src} to {dst} already exists in graph")
+            log.debug(f"Edge from {src} to {dst} already exists in graph")
             return
         return_key = super().add_edge(src, dst, key=key, **attr)
         if self._log_edge_creation and isinstance(src, BaseResource) and isinstance(dst, BaseResource):
@@ -176,6 +194,9 @@ class Graph(networkx.MultiDiGraph):
                     )
                 )
         return return_key
+
+    def add_deferred_edge(self, src: NodeSelector, dst: NodeSelector, edge_type: EdgeType) -> None:
+        self.deferred_edges.append((src, dst, edge_type))
 
     def remove_node(self, node: BaseResource):
         super().remove_node(node)
@@ -323,12 +344,12 @@ class Graph(networkx.MultiDiGraph):
             if isinstance(node, BaseResource):
                 node.resolve_deferred_connections(self)
 
-    def export_model(self) -> List:
+    def export_model(self) -> List[Json]:
         """Return the graph node dataclass model in resotocore format"""
         classes = set()
         for node in self.nodes:
             classes.add(type(node))
-        model = dataclasses_to_resotocore_model(classes)
+        model = dataclasses_to_resotocore_model(classes, aggregate_root=BaseResource)
 
         # fixme: workaround to report kind
         for resource_model in model:
@@ -708,7 +729,7 @@ class GraphExportIterator:
         self,
         graph: Graph,
         delete_tempfile: bool = True,
-        tempdir: str = None,
+        tempdir: Optional[str] = None,
         graph_merge_kind: GraphMergeKind = GraphMergeKind.cloud,
     ):
         self.graph = graph
@@ -738,7 +759,7 @@ class GraphExportIterator:
         except Exception:
             pass
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[bytes]:
         if not self.graph_exported:
             self.export_graph()
         start_time = time()
@@ -747,6 +768,7 @@ class GraphExportIterator:
         percent = 0
         report_every = round(self.total_lines / 10)
 
+        self.tempfile.seek(0)
         while line := self.tempfile.readline():
             lines_sent += 1
             if report_every > 0 and lines_sent > 0 and lines_sent % report_every == 0:
@@ -755,7 +777,6 @@ class GraphExportIterator:
                 log.debug(f"Sent {lines_sent}/{self.total_lines} nodes and edges ({percent}%) - {elapsed:.4f}s")
                 last_sent = time()
             yield line
-        self.tempfile.seek(0)
         elapsed = time() - start_time
         log.info(
             f"Sent {lines_sent}/{self.total_lines},"
@@ -792,6 +813,20 @@ class GraphExportIterator:
                         edge_dict["edge_type"] = key.edge_type.value
                 edge_json = json.dumps(edge_dict) + "\n"
                 self.tempfile.write(edge_json.encode())
+                self.total_lines += 1
+            for from_selector, to_selector, edge_type in self.graph.deferred_edges:
+                deferred_edge_dict = {}
+                if isinstance(from_selector, ByNodeId):
+                    deferred_edge_dict["from_selector"] = {"node_id": from_selector.value}
+                else:
+                    deferred_edge_dict["from_selector"] = {"search_criteria": from_selector.query}
+                if isinstance(to_selector, ByNodeId):
+                    deferred_edge_dict["to_selector"] = {"node_id": to_selector.value}
+                else:
+                    deferred_edge_dict["to_selector"] = {"search_criteria": to_selector.query}
+                deferred_edge_dict["edge_type"] = edge_type.value
+                deferred_edge_json = json.dumps(deferred_edge_dict) + "\n"
+                self.tempfile.write(deferred_edge_json.encode())
                 self.total_lines += 1
             elapsed_edges = time() - start_time
             log.debug(f"Exported {self.number_of_edges} edges in {elapsed_edges:.4f}s")

@@ -2,7 +2,7 @@ from dataclasses import is_dataclass, fields, Field
 from datetime import datetime, date, timedelta, timezone
 from functools import lru_cache, reduce
 from pydoc import locate
-from typing import List, MutableSet, Union, Tuple, Dict, Set, Any, TypeVar, Type
+from typing import List, MutableSet, Union, Tuple, Dict, Set, Any, TypeVar, Type, Optional
 from resotolib.baseresources import BaseResource
 from resotolib.utils import type_str, str2timedelta, str2timezone
 from typing import get_args, get_origin
@@ -99,7 +99,7 @@ simple_type = tuple(lookup.keys())
 
 
 # Model name from the internal python class name
-def model_name(clazz: type) -> str:
+def model_name(clazz: Union[type, Tuple[Any]]) -> str:
     to_check = get_args(clazz)[0] if is_optional(clazz) else clazz
     if is_collection(to_check):
         return f"{model_name(type_arg(to_check))}[]"
@@ -132,7 +132,9 @@ def should_export(field: Field) -> bool:
     return not field.name.startswith("_")
 
 
-def dataclasses_to_resotocore_model(classes: Set[type], allow_unknown_props: bool = False) -> List[Json]:
+def dataclasses_to_resotocore_model(
+    classes: Set[type], allow_unknown_props: bool = False, aggregate_root: Optional[type] = None
+) -> List[Json]:
     """
     Analyze all transitive dataclasses and create the model
     definition as understood by resotocore.
@@ -141,6 +143,7 @@ def dataclasses_to_resotocore_model(classes: Set[type], allow_unknown_props: boo
 
     :param classes: all dataclasses to analyze.
     :param allow_unknown_props: allow properties in json that are not defined in the model.
+    :param aggregate_root: if a type is a subtype of this type, it will be considered an aggregate root.
     :return: the model definition in the resotocore json format.
     """
 
@@ -186,6 +189,7 @@ def dataclasses_to_resotocore_model(classes: Set[type], allow_unknown_props: boo
         base_names = [model_name(base) for base in bases]
         base_props: Set[Field] = reduce(lambda result, base: result | set(fields(base)), bases, set())
         props = [p for field in fields(clazz) if field not in base_props and should_export(field) for p in prop(field)]
+        root = any(sup == aggregate_root for sup in clazz.mro()) if aggregate_root else True
         model.append(
             {
                 "fqn": model_name(clazz),
@@ -193,6 +197,7 @@ def dataclasses_to_resotocore_model(classes: Set[type], allow_unknown_props: boo
                 "properties": props,
                 "allow_unknown_props": allow_unknown_props,
                 "successor_kinds": getattr(clazz, "successor_kinds", None),
+                "aggregate_root": root,
             }
         )
 
@@ -239,18 +244,26 @@ def format_value_for_export(value: Any) -> Any:
 
 
 def get_node_attributes(node: BaseResource) -> Dict:
-    attributes: Dict = {"kind": node.kind}
-    if not is_dataclass(node):
-        raise ValueError(f"Node {node.rtdname} is no dataclass")
-    for field in fields(node):
-        if field.name.startswith("_"):
-            continue
-        value = getattr(node, field.name, None)
-        if value is None:
-            continue
-        value = format_value_for_export(value)
-        attributes.update({field.name: value})
-    return attributes
+    def create_dict() -> Json:
+        attributes: Dict = {"kind": node.kind}
+        for field in fields(node):
+            if field.name.startswith("_"):
+                continue
+            value = getattr(node, field.name, None)
+            if value is None:
+                continue
+            value = format_value_for_export(value)
+            attributes.update({field.name: value})
+        return attributes
+
+    if hasattr(node, "to_json"):
+        result = node.to_json()
+        result["kind"] = node.kind
+        return result
+    elif is_dataclass(node):
+        return create_dict()
+    else:
+        raise ValueError(f"Node {node.rtdname} is neither a dataclass nor has a to_json method")
 
 
 def node_to_dict(node: BaseResource, changes_only: bool = False, include_revision: bool = False) -> Dict:

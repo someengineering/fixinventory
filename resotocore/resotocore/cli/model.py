@@ -16,6 +16,7 @@ from aiostream.core import Stream
 from rich.jupyter import JupyterMixin
 from parsy import test_char, string
 
+from resotolib.parse_util import l_curly_dp, r_curly_dp
 from resotocore.analytics import AnalyticsEventSender
 from resotocore.cli import JsGen, T, Sink
 from resotocore.config import ConfigHandler
@@ -24,7 +25,6 @@ from resotocore.db.db_access import DbAccess
 from resotocore.error import CLIParseError
 from resotocore.console_renderer import ConsoleRenderer, ConsoleColorSystem
 from resotocore.message_bus import MessageBus
-from resotocore.parse_util import l_curly_dp, r_curly_dp
 from resotocore.model.model_handler import ModelHandler
 from resotocore.query.model import Query, variable_to_absolute, PathRoot
 from resotocore.query.template_expander import TemplateExpander, render_template

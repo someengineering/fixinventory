@@ -13,7 +13,19 @@ from datetime import timedelta
 from functools import partial
 from pathlib import Path
 from random import SystemRandom
-from typing import AsyncGenerator, Any, Optional, Sequence, Union, List, Dict, AsyncIterator, Tuple, Callable, Awaitable
+from typing import (
+    AsyncGenerator,
+    Any,
+    Optional,
+    Sequence,
+    Union,
+    List,
+    Dict,
+    AsyncIterator,
+    Tuple,
+    Callable,
+    Awaitable,
+)
 
 import prometheus_client
 import yaml
@@ -42,7 +54,7 @@ from resotocore.cli.model import (
     InternalPart,
     AliasTemplate,
 )
-from resotocore.ids import TaskId, ConfigId
+from resotocore.ids import TaskId, ConfigId, NodeId
 from resotocore.config import ConfigHandler, ConfigValidation, ConfigEntity
 from resotocore.console_renderer import ConsoleColorSystem, ConsoleRenderer
 from resotocore.core_config import CoreConfig
@@ -498,6 +510,7 @@ class Api:
         with_predecessors = request.query.get("with_predecessors", "false") != "false"
         with_successors = request.query.get("with_successors", "false") != "false"
         with_properties = request.query.get("with_properties", "true") != "false"
+        aggregate_roots = request.query.get("aggregate_roots", "true") != "false"
         link_classes = request.query.get("link_classes", "false") != "false"
         result = await self.model_handler.uml_image(
             output=output,
@@ -506,14 +519,15 @@ class Api:
             with_inheritance=with_inheritance,
             with_base_classes=with_base_classes,
             with_subclasses=with_subclasses,
-            dependency_edges=dependency,
+            dependency_edges=dependency,  # type: ignore
             with_predecessors=with_predecessors,
             with_successors=with_successors,
             with_properties=with_properties,
             link_classes=link_classes,
+            only_aggregate_roots=aggregate_roots,
         )
         response = web.StreamResponse()
-        mt = {"svg": "image/svg+xml", "png": "image/png"}
+        mt = {"svg": "image/svg+xml", "png": "image/png", "puml": "text/plain"}
         response.headers["Content-Type"] = mt[output]
         await response.prepare(request)
         await response.write_eof(result)
@@ -531,7 +545,7 @@ class Api:
 
     async def get_node(self, request: Request) -> StreamResponse:
         graph_id = request.match_info.get("graph_id", "resoto")
-        node_id = request.match_info.get("node_id", "root")
+        node_id = NodeId(request.match_info.get("node_id", "root"))
         graph = self.db.get_graph_db(graph_id)
         model = await self.model_handler.load_model()
         node = await graph.get_node(model, node_id)
@@ -542,8 +556,8 @@ class Api:
 
     async def create_node(self, request: Request) -> StreamResponse:
         graph_id = request.match_info.get("graph_id", "resoto")
-        node_id = request.match_info.get("node_id", "some_existing")
-        parent_node_id = request.match_info.get("parent_node_id", "root")
+        node_id = NodeId(request.match_info.get("node_id", "some_existing"))
+        parent_node_id = NodeId(request.match_info.get("parent_node_id", "root"))
         graph = self.db.get_graph_db(graph_id)
         item = await self.json_from_request(request)
         md = await self.model_handler.load_model()
@@ -552,7 +566,7 @@ class Api:
 
     async def update_node(self, request: Request) -> StreamResponse:
         graph_id = request.match_info.get("graph_id", "resoto")
-        node_id = request.match_info.get("node_id", "some_existing")
+        node_id = NodeId(request.match_info.get("node_id", "some_existing"))
         section = section_of(request)
         graph = self.db.get_graph_db(graph_id)
         patch = await self.json_from_request(request)
@@ -562,7 +576,7 @@ class Api:
 
     async def delete_node(self, request: Request) -> StreamResponse:
         graph_id = request.match_info.get("graph_id", "resoto")
-        node_id = request.match_info.get("node_id", "some_existing")
+        node_id = NodeId(request.match_info.get("node_id", "some_existing"))
         if node_id == "root":
             raise AttributeError("Root node can not be deleted!")
         graph = self.db.get_graph_db(graph_id)
@@ -572,7 +586,7 @@ class Api:
     async def update_nodes(self, request: Request) -> StreamResponse:
         graph_id = request.match_info.get("graph_id", "resoto")
         allowed = {*Section.content, "id", "revision"}
-        updates: Dict[str, Json] = {}
+        updates: Dict[NodeId, Json] = {}
         async for elem in self.to_json_generator(request):
             keys = set(elem.keys())
             assert keys.issubset(allowed), f"Invalid json. Allowed keys are: {allowed}"
@@ -597,28 +611,34 @@ class Api:
             raise AttributeError("Graph name should not have underscores!")
         graph = await self.db.create_graph(graph_id)
         model = await self.model_handler.load_model()
-        root = await graph.get_node(model, "root")
+        root = await graph.get_node(model, NodeId("root"))
         return web.json_response(root)
 
     async def merge_graph(self, request: Request) -> StreamResponse:
         log.info("Received merge_graph request")
         graph_id = request.match_info.get("graph_id", "resoto")
+        task_id: Optional[TaskId] = None
+        if tid := request.headers.get("Resoto-Worker-Task-Id"):
+            task_id = TaskId(tid)
         db = self.db.get_graph_db(graph_id)
         it = self.to_line_generator(request)
         info = await merge_graph_process(
-            db, self.event_sender, self.config, it, self.config.graph_update.merge_max_wait_time(), None
+            db, self.event_sender, self.config, it, self.config.graph_update.merge_max_wait_time(), None, task_id
         )
         return web.json_response(to_js(info))
 
     async def update_merge_graph_batch(self, request: Request) -> StreamResponse:
         log.info("Received put_sub_graph_batch request")
         graph_id = request.match_info.get("graph_id", "resoto")
+        task_id: Optional[TaskId] = None
+        if tid := request.headers.get("Resoto-Worker-Task-Id"):
+            task_id = TaskId(tid)
         db = self.db.get_graph_db(graph_id)
         rnd = "".join(SystemRandom().choice(string.ascii_letters) for _ in range(12))
         batch_id = request.query.get("batch_id", rnd)
         it = self.to_line_generator(request)
         info = await merge_graph_process(
-            db, self.event_sender, self.config, it, self.config.graph_update.merge_max_wait_time(), batch_id
+            db, self.event_sender, self.config, it, self.config.graph_update.merge_max_wait_time(), batch_id, task_id
         )
         return web.json_response(to_json(info), headers={"BatchId": batch_id})
 

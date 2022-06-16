@@ -74,6 +74,8 @@ ancestor_merges = {
     f"ancestors.{p.to_path[1]}" for r in GraphResolver.to_resolve for p in r.resolve if p.to_path[0] == "ancestors"
 }
 
+array_marker_in_path_regexp = re.compile(r"\[]|\[[*]](?=[.])")
+
 
 def to_query(db: Any, query_model: QueryModel, with_edges: bool = False) -> Tuple[str, Json]:
     count: Dict[str, int] = defaultdict(lambda: 0)
@@ -154,36 +156,45 @@ def query_string(
         group_result = f'"group":{{{agg_vars}}},' if a.group_by else ""
         aggregate_term = f"collect {variables} aggregate {funcs}"
         return_result = f"{{{group_result} {agg_funcs}}}"
-        return (
-            "aggregated",
-            f"LET aggregated = (for {cursor} in {in_cursor} {aggregate_term} RETURN {return_result})",
-        )
+        return "aggregated", f"LET aggregated = (for {cursor} in {in_cursor} {aggregate_term} RETURN {return_result})"
 
-    def predicate(cursor: str, p: Predicate) -> str:
+    def predicate(cursor: str, p: Predicate) -> Tuple[Optional[str], str]:
+        pre = ""
         extra = ""
         path = p.name
 
-        # handle that property is an array
+        # handle that the final property is an array: a.b.c[*]
         if "filter" in p.args:
             arr_filter = p.args["filter"]
             extra = f" {arr_filter} "
-            path = f"{p.name}[]"
-        elif "[*]" in p.name:
-            extra = " any " if "[*]" in p.name else " "
-            path = p.name.replace("[*]", "[]")
+            path = p.name if p.name.endswith("[*]") or p.name.endswith("[]") else f"{p.name}[*]"
+        elif p.name.endswith("[*]"):
+            extra = " any "
+            path = p.name
+        elif p.name.endswith("[]"):
+            extra = " any "
+            path = p.name.replace("[]", "[*]")
 
-        prop_name, prop, merge_name = prop_name_kind(path)
+        prop_name, prop, _ = prop_name_kind(path)
+
+        # nested prop access needs to be unfolded via separate for loops: a.b[*].c[*].d
+        ars = [a.lstrip(".") for a in array_marker_in_path_regexp.split(prop_name)]
+        prop_name = ars.pop()
+        for ar in ars:
+            nxt_crs = next_crs("pre")
+            pre += f" FOR {nxt_crs} IN TO_ARRAY({cursor}.{ar})"
+            cursor = nxt_crs
+
         bvn = next_bind_var_name()
-        op = lgt_ops[p.op] if prop.kind.reverse_order and p.op in lgt_ops else p.op
+        op = lgt_ops[p.op] if prop.simple_kind.reverse_order and p.op in lgt_ops else p.op
         if op in ["in", "not in"] and isinstance(p.value, list):
             bind_vars[bvn] = [prop.kind.coerce(a) for a in p.value]
         else:
             bind_vars[bvn] = prop.kind.coerce(p.value)
-        # in case of section: add the section if the predicate does not belong to a merge attribute
-        var_name = f"{cursor}.{prop_name}" if merge_name else f"{cursor}.{prop_name}"
+        var_name = f"{cursor}.{prop_name}"
         p_term = f"{var_name}{extra} {op} @{bvn}"
         # null check is required, since x<anything evaluates to true if x is null!
-        return f"({var_name}!=null and {p_term})" if op in arangodb_matches_null_ops else p_term
+        return pre, f"({var_name}!=null and {p_term})" if op in arangodb_matches_null_ops else p_term
 
     def with_id(cursor: str, t: IdTerm) -> str:
         bvn = next_bind_var_name()
@@ -210,28 +221,30 @@ def query_string(
         bind_vars[bvn] = dl.pattern.join(f"{re.escape(w)}" for w in dl.split(t.text))
         return f"REGEX_TEST({cursor}.flat, @{bvn}, true)"
 
-    def not_term(cursor: str, t: NotTerm) -> str:
-        return f"NOT ({term(cursor, t.term)})"
+    def not_term(cursor: str, t: NotTerm) -> Tuple[Optional[str], str]:
+        pre, term_string = term(cursor, t.term)
+        return pre, f"NOT ({term_string})"
 
-    def term(cursor: str, ab_term: Term) -> str:
+    def term(cursor: str, ab_term: Term) -> Tuple[Optional[str], str]:
         if isinstance(ab_term, AllTerm):
-            return "true"
+            return None, "true"
         if isinstance(ab_term, Predicate):
             return predicate(cursor, ab_term)
         elif isinstance(ab_term, FunctionTerm):
-            return as_arangodb_function(cursor, bind_vars, ab_term, query_model)
+            return None, as_arangodb_function(cursor, bind_vars, ab_term, query_model)
         elif isinstance(ab_term, IdTerm):
-            return with_id(cursor, ab_term)
+            return None, with_id(cursor, ab_term)
         elif isinstance(ab_term, IsTerm):
-            return is_term(cursor, ab_term)
+            return None, is_term(cursor, ab_term)
         elif isinstance(ab_term, NotTerm):
             return not_term(cursor, ab_term)
         elif isinstance(ab_term, FulltextTerm):
-            return fulltext_term(cursor, ab_term)
+            return None, fulltext_term(cursor, ab_term)
         elif isinstance(ab_term, CombinedTerm):
-            left = term(cursor, ab_term.left)
-            right = term(cursor, ab_term.right)
-            return f"({left}) {ab_term.op} ({right})"
+            pre_left, left = term(cursor, ab_term.left)
+            pre_right, right = term(cursor, ab_term.right)
+            pre = pre_left + " " + pre_right if pre_left and pre_right else pre_left if pre_left else pre_right
+            return pre, f"({left}) {ab_term.op} ({right})"
         else:
             raise AttributeError(f"Do not understand: {ab_term}")
 
@@ -314,10 +327,21 @@ def query_string(
             crsr = next_crs()
             filtered_out = next_crs("filter")
             md = f"NOT_NULL({crsr}.metadata, {{}})"
-            f_res = f'MERGE({crsr}, {{metadata:MERGE({md}, {{"query_tag": "{p.tag}"}})}})' if p.tag else crsr
             limited = f" LIMIT {limit.offset}, {limit.length} " if limit else " "
-            sort_by = sort(crsr, p.sort) if p.sort else " "
-            for_stmt = f"FOR {crsr} in {current_cursor} FILTER {term(crsr, part_term)}{sort_by}{limited}"
+            pre, term_string = term(crsr, part_term)
+            pre_string = pre + " FILTER" if pre else "FILTER"
+            for_stmt = f"FOR {crsr} in {current_cursor} {pre_string} {term_string}"
+            # in case nested properties get unfolded, we need to make the list distinct again
+            if pre:
+                nested_distinct = next_crs("nested_distinct")
+                for_stmt = f"LET {nested_distinct} = ({for_stmt} RETURN DISTINCT {crsr})"
+                crsr = next_crs()
+                sort_by = sort(crsr, p.sort) if p.sort else " "
+                for_stmt = f"{for_stmt} FOR {crsr} in {nested_distinct}{sort_by}{limited} "
+            else:
+                sort_by = sort(crsr, p.sort) if p.sort else " "
+                for_stmt = f"{for_stmt}{sort_by}{limited}"
+            f_res = f'MERGE({crsr}, {{metadata:MERGE({md}, {{"query_tag": "{p.tag}"}})}})' if p.tag else crsr
             return_stmt = f"RETURN {f_res}"
             reverse = "REVERSE" if p.reverse_result else ""
             query_part += f"LET {filtered_out} = {reverse}({for_stmt}{return_stmt})"
@@ -356,14 +380,16 @@ def query_string(
                 crsr = cursor_in(depth)
                 direction = "OUTBOUND" if nav.direction == Direction.outbound else "INBOUND"
                 unique = "uniqueEdges: 'path'" if with_edges else "uniqueVertices: 'global'"
-                filter_clause = f"({term(crsr, cl.term)})" if cl.term else "true"
+                pre, term_string = term(crsr, cl.term) if cl.term else (None, "true")
+                pre_string = pre + " FILTER" if pre else "FILTER"
+                filter_clause = f"({term_string})"
                 inner = traversal_filter(cl.with_clause, crsr, depth + 1) if cl.with_clause else ""
                 filter_root = f"({l0crsr}._key=={crsr}._key) or " if depth > 0 else ""
                 edge_type_traversals = f", {direction} ".join(db.edge_collection(et) for et in nav.edge_types)
                 return (
                     f"FOR {crsr} IN 0..{nav.until} {direction} {in_crs} "
                     f"{edge_type_traversals} OPTIONS {{ bfs: true, {unique} }} "
-                    f"FILTER {filter_root}{filter_clause} "
+                    f"{pre_string} {filter_root}{filter_clause} "
                 ) + inner
 
             def collect_filter(cl: WithClause, depth: int) -> str:
@@ -460,11 +486,9 @@ def query_string(
 
     def sort(cursor: str, so: List[Sort]) -> str:
         def single_sort(single: Sort) -> str:
-            prop_name, resolved, merge_name = prop_name_kind(single.name)
-            # in case of section: add the section if the predicate does not belong to a merge attribute
-            var_name = f"{cursor}.{prop_name}" if merge_name else f"{cursor}.{prop_name}"
-            order = SortOrder.reverse(single.order) if resolved.kind.reverse_order else single.order
-            return f"{var_name} {order}"
+            prop_name, resolved, _ = prop_name_kind(single.name)
+            order = SortOrder.reverse(single.order) if resolved.simple_kind.reverse_order else single.order
+            return f"{cursor}.{prop_name} {order}"
 
         sorts = ", ".join(single_sort(s) for s in so)
         return f" SORT {sorts} "

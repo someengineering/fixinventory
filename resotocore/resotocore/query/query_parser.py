@@ -5,9 +5,7 @@ from typing import List
 import parsy
 from parsy import string, Parser, regex
 
-from resotocore.error import ParseError
-from resotocore.model.graph_access import EdgeType, Direction
-from resotocore.parse_util import (
+from resotolib.parse_util import (
     lparen_p,
     lexeme,
     rparen_p,
@@ -44,6 +42,9 @@ from resotocore.parse_util import (
     double_quoted_string_dp,
     float_dp,
 )
+
+from resotocore.error import ParseError
+from resotocore.model.graph_access import EdgeTypes, Direction
 from resotocore.query.model import (
     Predicate,
     CombinedTerm,
@@ -96,7 +97,7 @@ json_value_in_query_p = lexeme(
     | false_dp
     | null_dp
     # use stop words to not read navigations as strings: a <--, a <-default-, a <-delete-
-    | unquoted_string_parser("--", *[f"-{a}" for a in EdgeType.all])
+    | unquoted_string_parser("--", *[f"-{a}" for a in EdgeTypes.all])
     | float_dp
     | integer_dp
 )
@@ -211,7 +212,7 @@ edge_type_p = lexeme(regex("[A-Za-z][A-Za-z0-9_]*"))
 def edge_type_parser() -> Parser:
     edge_types = yield edge_type_p.sep_by(comma_p).map(set)
     for et in edge_types:
-        if et not in EdgeType.all:
+        if et not in EdgeTypes.all:
             raise AttributeError(f"Given EdgeType is not known: {et}")
     return list(edge_types)
 
@@ -442,10 +443,10 @@ def parse_query(query: str, **env: str) -> Query:
     try:
         parsed: Query = query_parser.parse(query.strip())
         pre = parsed.preamble
-        ets: List[str] = pre.get("edge_type", env.get("edge_type", EdgeType.default)).split(",")  # type: ignore
+        ets: List[str] = pre.get("edge_type", env.get("edge_type", EdgeTypes.default)).split(",")  # type: ignore
         for et in ets:
-            if et not in EdgeType.all:
-                raise AttributeError(f"Given edge_type {et} is not available. Use one of {EdgeType.all}")
+            if et not in EdgeTypes.all:
+                raise AttributeError(f"Given edge_type {et} is not available. Use one of {EdgeTypes.all}")
 
         adapted = [set_edge_type_if_not_set(part, ets) for part in parsed.parts]
         # remove values from preamble, that are only used at parsing time

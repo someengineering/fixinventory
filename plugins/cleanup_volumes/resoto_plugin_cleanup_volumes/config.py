@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from typing import ClassVar
-from resotolib.utils import parse_delta
+from resotolib.durations import parse_duration
 
 
 @dataclass
@@ -20,5 +20,5 @@ class CleanupVolumesConfig:
 
     @staticmethod
     def validate(config: "CleanupVolumesConfig") -> bool:
-        parse_delta(config.min_age)
+        parse_duration(config.min_age)
         return True

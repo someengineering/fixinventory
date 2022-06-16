@@ -19,7 +19,7 @@ from resotolib.core.ca import TLSData
 from resotolib.core.actions import CoreActions
 from resotolib.core.tasks import CoreTasks
 from resotoworker.pluginloader import PluginLoader
-from resotoworker.collect import collect_and_send
+from resotoworker.collect import Collector
 from resotoworker.cleanup import cleanup
 from resotoworker.tag import core_tag_tasks_processor
 from resotolib.event import (
@@ -27,6 +27,8 @@ from resotolib.event import (
     Event,
     EventType,
 )
+from resotoworker.resotocore import Resotocore
+import requests
 
 
 # This will be used in main() and shutdown()
@@ -86,6 +88,18 @@ def main() -> None:
     plugin_loader.add_plugin_config(config)
     config.load_config()
 
+    def send_request(request: requests.Request) -> requests.Response:
+        prepared = request.prepare()
+        s = requests.Session()
+        verify = None
+        if tls_data:
+            verify = tls_data.verify
+        return s.send(request=prepared, verify=verify)
+
+    core = Resotocore(send_request, config)
+
+    collector = Collector(core.send_to_resotocore, config)
+
     # Handle Ctrl+c and other means of termination/shutdown
     resotolib.proc.initializer()
     add_event_listener(EventType.SHUTDOWN, shutdown, blocking=False)
@@ -122,7 +136,7 @@ def main() -> None:
                 "wait_for_completion": True,
             },
         },
-        message_processor=partial(core_actions_processor, plugin_loader, tls_data),
+        message_processor=partial(core_actions_processor, plugin_loader, tls_data, collector),
         tls_data=tls_data,
     )
 
@@ -158,7 +172,7 @@ def main() -> None:
     os._exit(0)
 
 
-def core_actions_processor(plugin_loader: PluginLoader, tls_data: TLSData, message: Dict) -> None:
+def core_actions_processor(plugin_loader: PluginLoader, tls_data: TLSData, collector: Collector, message: Dict) -> None:
     collectors: List[BaseCollectorPlugin] = plugin_loader.plugins(PluginType.COLLECTOR)
     if not isinstance(message, dict):
         log.error(f"Invalid message: {message}")
@@ -166,12 +180,13 @@ def core_actions_processor(plugin_loader: PluginLoader, tls_data: TLSData, messa
     kind = message.get("kind")
     message_type = message.get("message_type")
     data = message.get("data")
+    task_id = data.get("task")
     log.debug(f"Received message of kind {kind}, type {message_type}, data: {data}")
     if kind == "action":
         try:
             if message_type == "collect":
                 start_time = time.time()
-                collect_and_send(collectors, tls_data=tls_data)
+                collector.collect_and_send(collectors, task_id=task_id)
                 run_time = int(time.time() - start_time)
                 log.info(f"Collect ran for {run_time} seconds")
             elif message_type == "cleanup":

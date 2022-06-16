@@ -32,7 +32,7 @@ from typing import (
 from dateutil.parser import isoparse
 from resotolib.asynchronous import periodic
 
-from resotocore.durations import parse_duration
+from resotolib.durations import parse_duration
 from resotocore.error import RestartService
 from resotocore.types import JsonElement, Json
 
@@ -176,7 +176,7 @@ def if_set(x: Optional[AnyT], func: Callable[[AnyT], Any], if_not: Any = None) -
 
 def value_in_path_get(element: JsonElement, path_or_name: Union[List[str], str], if_none: AnyT) -> AnyT:
     result = value_in_path(element, path_or_name)
-    return result if result and isinstance(result, type(if_none)) else if_none
+    return result if result is not None and isinstance(result, type(if_none)) else if_none
 
 
 def value_in_path(element: JsonElement, path_or_name: Union[List[str], str]) -> Optional[Any]:
@@ -209,7 +209,7 @@ def deep_merge(left: Json, right: Json) -> Json:
             left_value = left_value if isinstance(left_value, dict) else {}
             # noinspection PyTypeChecker
             return deep_merge(left_value, right_value)
-        elif right_value:
+        elif right_value is not None:
             return right_value
         else:
             return left_value
@@ -262,7 +262,7 @@ async def force_gen(gen: AsyncIterator[AnyT]) -> AsyncIterator[AnyT]:
             yield a
 
     try:
-        return with_first(await gen.__anext__())
+        return with_first(await gen.__anext__())  # pylint: disable=unnecessary-dunder-call
     except StopAsyncIteration:
         return gen
 

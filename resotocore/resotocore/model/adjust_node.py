@@ -2,7 +2,7 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Optional, List
 
-from resotocore.durations import DurationRe
+from resotolib.durations import DurationRe
 from resotocore.model.graph_access import Section
 from resotocore.model.model import DateTimeKind
 from resotocore.model.resolve_in_graph import NodePath

@@ -11,6 +11,7 @@ from resotocore.model.model import Model, Kind
 from resotocore.model.typed_model import from_js, to_js
 from resotocore.task.model import Subscriber, Subscription
 from resotocore.types import Json, JsonElement
+from resotocore.ids import NodeId
 from resotocore.util import AccessJson
 
 
@@ -55,7 +56,7 @@ class ApiClient:
             # root node
             return await response.text()
 
-    async def create_node(self, graph: str, parent_node_id: str, node_id: str, node: Json) -> AccessJson:
+    async def create_node(self, graph: str, parent_node_id: NodeId, node_id: NodeId, node: Json) -> AccessJson:
         async with self.session.post(
             self.base_path + f"/graph/{graph}/node/{node_id}/under/{parent_node_id}", json=node
         ) as response:
@@ -64,7 +65,7 @@ class ApiClient:
             else:
                 raise AttributeError(await response.text())
 
-    async def patch_node(self, graph: str, node_id: str, node: Json, section: Optional[str] = None) -> AccessJson:
+    async def patch_node(self, graph: str, node_id: NodeId, node: Json, section: Optional[str] = None) -> AccessJson:
         section_path = f"/section/{section}" if section else ""
         async with self.session.patch(
             self.base_path + f"/graph/{graph}/node/{node_id}{section_path}", json=node
@@ -74,14 +75,14 @@ class ApiClient:
             else:
                 raise AttributeError(await response.text())
 
-    async def get_node(self, graph: str, node_id: str) -> AccessJson:
+    async def get_node(self, graph: str, node_id: NodeId) -> AccessJson:
         async with self.session.get(self.base_path + f"/graph/{graph}/node/{node_id}") as response:
             if response.status == 200:
                 return AccessJson(await response.json())
             else:
                 raise AttributeError(await response.text())
 
-    async def delete_node(self, graph: str, node_id: str) -> None:
+    async def delete_node(self, graph: str, node_id: NodeId) -> None:
         async with self.session.delete(self.base_path + f"/graph/{graph}/node/{node_id}") as response:
             if response.status == 204:
                 return None
