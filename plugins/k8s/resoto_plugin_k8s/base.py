@@ -126,7 +126,7 @@ class KubernetesResource(BaseResource):
                     builder.graph.add_edge(self, owner, edge_type=EdgeType.delete)
 
     def __str__(self) -> str:
-        return f"{self.__class__.__name__}[{self.name}]"
+        return f"{self.kind}:{self.name}"
 
 
 KubernetesResourceType = TypeVar("KubernetesResourceType", bound=KubernetesResource)
@@ -445,7 +445,7 @@ class K8sApiClient(K8sClient):
             body=body,
             header_params=headers,
         )
-        log.debug(f"Response from {method} {path} is: {result}")
+        log.debug(f"Response from {method} {path} {code}: {header}")
         return result  # type: ignore
 
     @property

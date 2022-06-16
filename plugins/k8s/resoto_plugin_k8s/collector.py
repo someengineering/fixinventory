@@ -37,8 +37,10 @@ class KubernetesCollector:
         v = self.client.version()
         return KubernetesCluster(
             id=self.client.cluster_id,
-            name=self.client.host,
-            cluster_info=KubernetesClusterInfo(v.get("major", ""), v.get("minor", ""), v.get("platform", "")),
+            name=self.client.cluster_id,
+            cluster_info=KubernetesClusterInfo(
+                v.get("major", ""), v.get("minor", ""), v.get("platform", ""), self.client.host
+            ),
         )
 
     def collect(self) -> None:
@@ -47,7 +49,7 @@ class KubernetesCollector:
             known = all_k8s_resources_by_k8s_name.get(resource.kind)
             if known and self.k8s_config.is_allowed(resource.kind):
                 for res, source in self.client.list_resources(resource, known):
-                    self.graph.add_node(res, source=source)
+                    self.builder.add_node(res, source=source)
             else:
                 log.debug("Don't know how to collect %s", resource.kind)
 
@@ -58,10 +60,10 @@ class KubernetesCollector:
             if isinstance(node, KubernetesCluster):  # ignore the root
                 continue
             elif isinstance(node, KubernetesNamespace):  # connect to cluster
-                self.graph.add_edge(self.graph.root, node, edge_type=EdgeType.default)  # type: ignore
+                self.builder.add_edge(self.graph.root, edge_type=EdgeType.default, node=node)  # type: ignore
             else:  # namespaces resources get linked to the namespace, otherwise the cluster
                 base = namespaces[node.namespace] if node.namespace else self.graph.root
-                self.graph.add_edge(base, node, edge_type=EdgeType.default)  # type: ignore
+                self.builder.add_edge(base, edge_type=EdgeType.default, node=node)  # type: ignore
             # resource specific connects
             node.connect_in_graph(self.builder, data["source"])
 

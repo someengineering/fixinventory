@@ -24,7 +24,9 @@ def config_map_in_graph() -> Tuple[KubernetesConfigMap, Graph, StaticFileClient]
     cfg._clients = {"test": client}
 
     # create a cluster with id test
-    cluster = KubernetesCluster(id="test", name="test", cluster_info=KubernetesClusterInfo("test", "test", "test"))
+    cluster = KubernetesCluster(
+        id="test", name="test", cluster_info=KubernetesClusterInfo("test", "test", "test", "test")
+    )
     graph = Graph(root=cluster)
 
     # create a config map
