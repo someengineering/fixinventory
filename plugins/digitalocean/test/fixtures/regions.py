@@ -1,4 +1,6 @@
-regions = [
+from typing import List, Dict, Any
+
+regions: List[Dict[str, Any]] = [
     {
         "name": "New York 1",
         "slug": "nyc1",
