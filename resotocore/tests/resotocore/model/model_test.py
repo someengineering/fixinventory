@@ -337,11 +337,20 @@ def test_update(person_model: Model) -> None:
 
     updated = person_model.update_kinds([StringKind("Foo")])
     assert updated["Foo"].fqn == "Foo"
+    # update simple type Foo as Complex is forbidden
     with pytest.raises(AttributeError) as simple:
         updated.update_kinds([ComplexKind("Foo", [], [])])
     assert str(simple.value) == "Update Foo changes an existing property type Foo"
     with pytest.raises(AttributeError) as duplicate:
         updated.update_kinds([ComplexKind("Bla", [], [Property("id", "int32")])])
+
+    # update the test property of any_foo from string to an enumeration
+    updated.update_kinds(
+        [
+            StringKind("test_enum", enum={"a", "b", "c"}),
+            ComplexKind("any_foo", ["Base"], [Property("test", "test_enum", description="Some test value.")]),
+        ]
+    )
     assert (
         str(duplicate.value)
         == "Update not possible: following properties would be non unique having the same path but different type: "

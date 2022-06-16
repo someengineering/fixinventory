@@ -1241,9 +1241,12 @@ class Model:
             up = {p.path: p for k in update_complex for p in k.resolved_properties()}
 
             def simple_kind_incompatible(p: PropertyPath) -> bool:
-                left = ex[p].kind
-                right = up[p].kind
-                return (left.fqn != right.fqn) and not (isinstance(left, AnyKind) or isinstance(right, AnyKind))
+                left = ex[p].simple_kind
+                right = up[p].simple_kind
+                # consider valid as long as the runtime kind stays the same
+                return (left.runtime_kind != right.runtime_kind) and not (
+                    isinstance(left, AnyKind) or isinstance(right, AnyKind)
+                )
 
             # Filter out duplicates that have the same kind or any side is any
             non_unique = [a for a in ex.keys() & up.keys() if simple_kind_incompatible(a)]
