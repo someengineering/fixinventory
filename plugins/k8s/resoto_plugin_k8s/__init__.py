@@ -2,6 +2,7 @@ import logging
 import multiprocessing
 from concurrent import futures
 from concurrent.futures import Executor
+from tempfile import TemporaryDirectory
 from typing import Dict, Any, Type
 
 import resotolib.logger
@@ -9,9 +10,9 @@ import resotolib.proc
 from kubernetes.client import ApiException
 from kubernetes.client import Configuration
 
-from resoto_plugin_k8s.client import K8sApiClient, K8sClient
+from resoto_plugin_k8s.base import K8sApiClient, K8sClient
 from resoto_plugin_k8s.collector import KubernetesCollector
-from resoto_plugin_k8s.config import K8sConfig
+from resoto_plugin_k8s.base import K8sConfig
 from resotolib.args import ArgumentParser, Namespace
 from resotolib.baseplugin import BaseCollectorPlugin
 from resotolib.config import Config, RunningConfig
@@ -27,39 +28,40 @@ class KubernetesCollectorPlugin(BaseCollectorPlugin):
         log.debug("plugin: Kubernetes collecting resources")
 
         k8s: K8sConfig = Config.k8s
-        cluster_access = k8s.cluster_access_configs()
+        with TemporaryDirectory() as tmpdir:
+            cluster_access = k8s.cluster_access_configs(tmpdir)
 
-        if len(cluster_access) == 0:
-            log.warning("Kubernetes plugin enabled, but no clusters configured. Ignore.")
-            return
+            if len(cluster_access) == 0:
+                log.warning("Kubernetes plugin enabled, but no clusters configured. Ignore.")
+                return
 
-        max_workers = len(cluster_access) if len(cluster_access) < k8s.pool_size else k8s.pool_size
-        pool_args: Dict[str, Any] = {"max_workers": max_workers}
-        if k8s.fork_process:
-            pool_args["mp_context"] = multiprocessing.get_context("spawn")
-            pool_args["initializer"] = resotolib.proc.initializer
-            pool_executor: Type[Executor] = futures.ProcessPoolExecutor
-        else:
-            pool_executor = futures.ThreadPoolExecutor
+            max_workers = len(cluster_access) if len(cluster_access) < k8s.pool_size else k8s.pool_size
+            pool_args: Dict[str, Any] = {"max_workers": max_workers}
+            if k8s.fork_process:
+                pool_args["mp_context"] = multiprocessing.get_context("spawn")
+                pool_args["initializer"] = resotolib.proc.initializer
+                pool_executor: Type[Executor] = futures.ProcessPoolExecutor
+            else:
+                pool_executor = futures.ThreadPoolExecutor
 
-        with pool_executor(**pool_args) as executor:
-            wait_for = [
-                executor.submit(
-                    self.collect_cluster,
-                    cluster_id,
-                    cluster_config,
-                    ArgumentParser.args,
-                    Config.running_config,
-                    **kwargs,
-                )
-                for cluster_id, cluster_config in cluster_access.items()
-            ]
-            for future in futures.as_completed(wait_for):
-                cluster_graph = future.result()
-                if not isinstance(cluster_graph, Graph):
-                    log.error(f"Skipping invalid cluster_graph {type(cluster_graph)}")
-                    continue
-                self.graph.merge(cluster_graph)
+            with pool_executor(**pool_args) as executor:
+                wait_for = [
+                    executor.submit(
+                        self.collect_cluster,
+                        cluster_id,
+                        cluster_config,
+                        ArgumentParser.args,
+                        Config.running_config,
+                        **kwargs,
+                    )
+                    for cluster_id, cluster_config in cluster_access.items()
+                ]
+                for future in futures.as_completed(wait_for):
+                    cluster_graph = future.result()
+                    if not isinstance(cluster_graph, Graph):
+                        log.error(f"Skipping invalid cluster_graph {type(cluster_graph)}")
+                        continue
+                    self.graph.merge(cluster_graph)
 
     @staticmethod
     def collect_cluster(
@@ -78,8 +80,8 @@ class KubernetesCollectorPlugin(BaseCollectorPlugin):
         log.debug(f"Starting new collect process for {cluster_id}")
 
         try:
-            k8s_client: K8sClient = kwargs.get("client_factory", K8sApiClient.from_config)(cluster_config)
-            kc = KubernetesCollector(Config.k8s, cluster_id, cluster_config, k8s_client)
+            k8s_client: K8sClient = kwargs.get("client_factory", K8sApiClient.from_config)(cluster_id, cluster_config)
+            kc = KubernetesCollector(Config.k8s, k8s_client)
             kc.collect()
         except ApiException as e:
             if e.reason == "Unauthorized":

@@ -13,6 +13,7 @@ import jsons
 
 # noinspection PyUnresolvedReferences
 from fixtures import json_file
+from resoto_plugin_k8s.base import KubernetesResourceType
 from resoto_plugin_k8s.resources import *
 from resotolib.types import Json
 from resotolib.graph import Graph

@@ -1,6 +1,7 @@
 import asyncio
 import string
 from abc import ABC
+from dataclasses import dataclass
 from datetime import date, datetime
 from random import SystemRandom
 from typing import List, Optional
@@ -43,41 +44,42 @@ class BaseResource(ABC):
         pass
 
 
+@dataclass
 class Foo(BaseResource):
-    def __init__(
-        self,
-        identifier: str,
-        name: Optional[str] = None,
-        some_int: int = 0,
-        some_string: str = "hello",
-        now_is: datetime = utc(),
-        ctime: Optional[datetime] = None,
-    ) -> None:
-        super().__init__(identifier)
-        self.name = name
-        self.some_int = some_int
-        self.some_string = some_string
-        self.now_is = now_is
-        self.ctime = ctime
+    identifier: str
+    name: Optional[str] = None
+    some_int: int = 0
+    some_string: str = "hello"
+    now_is: datetime = utc()
+    ctime: Optional[datetime] = None
 
     def kind(self) -> str:
         return "foo"
 
 
+@dataclass
+class Inner:
+    name: str
+    inner: List["Inner"]
+
+
+@dataclass
 class Bla(BaseResource):
-    def __init__(
-        self,
-        identifier: str,
-        name: Optional[str] = None,
-        now: date = date.today(),
-        f: int = 23,
-        g: Optional[List[int]] = None,
-    ) -> None:
-        super().__init__(identifier)
-        self.name = name
-        self.now = now
-        self.f = f
-        self.g = g if g is not None else list(range(0, 5))
+    identifier: str
+    name: Optional[str] = None
+    now: date = date.today()
+    f: int = 23
+    g: Optional[List[int]] = None
+    h: Optional[Inner] = None
+
+    def __post_init__(self) -> None:
+        self.g = self.g if self.g is not None else list(range(0, 5))
+        if self.h is None:
+
+            def nested(idx: int, level: int) -> Inner:
+                return Inner(f"in_{level}_{idx}", [] if level == 0 else [nested(idx, level - 1) for idx in range(0, 2)])
+
+            self.h = nested(0, 2)
 
     def kind(self) -> str:
         return "bla"
@@ -196,6 +198,7 @@ def foo_kinds() -> List[Kind]:
         ],
         successor_kinds={EdgeTypes.default: ["bla"]},
     )
+    inner = ComplexKind("inner", [], [Property("name", "string"), Property("inner", "inner[]")])
     bla = ComplexKind(
         "bla",
         ["base"],
@@ -204,6 +207,7 @@ def foo_kinds() -> List[Kind]:
             Property("now", "date"),
             Property("f", "int32"),
             Property("g", "int32[]"),
+            Property("h", "inner"),
         ],
         successor_kinds={EdgeTypes.default: ["bla"]},
     )
@@ -212,7 +216,7 @@ def foo_kinds() -> List[Kind]:
     region = ComplexKind("region", ["foo"], [])
     parent = ComplexKind("parent", ["foo"], [])
     child = ComplexKind("child", ["foo"], [])
-    return [base, foo, bla, cloud, account, region, parent, child]
+    return [base, foo, bla, cloud, account, region, parent, child, inner]
 
 
 @pytest.fixture
@@ -420,6 +424,25 @@ async def test_query_graph(filled_graph_db: ArangoGraphDB, foo_model: Model) -> 
     await assert_result("is(foo) and reported.identifier==9 <-delete[0:]-", 11, 10)
     await assert_result("is(foo) and reported.identifier==9 <-default[0:]-", 4, 3)
     await assert_result("is(foo) and reported.identifier==9 -delete[0:]->", 1, 0)
+
+
+@pytest.mark.asyncio
+async def test_query_nested(filled_graph_db: ArangoGraphDB, foo_model: Model) -> None:
+    async def assert_count(query: str, count: int) -> None:
+        q = parse_query(query).on_section("reported")
+        async with await filled_graph_db.search_list(QueryModel(q, foo_model), with_count=True) as gen:
+            assert gen.cursor.count() == count
+            assert len([a async for a in gen]) == count
+
+    await assert_count("is(bla) and h.inner[*].inner[*].name=in_0_1", 100)
+    await assert_count("is(bla) and h.inner[*].inner[*].inner == []", 100)
+    await assert_count("is(bla) and g[*] = 2", 100)
+    await assert_count("is(bla) and g any = 2", 100)
+    await assert_count("is(bla) and g all = 2", 0)
+    await assert_count("is(bla) and g none = 2", 0)
+    await assert_count("is(bla) and g[*] any = 2", 100)
+    await assert_count("is(bla) and g[*] all = 2", 0)
+    await assert_count("is(bla) and g[*] none = 2", 0)
 
 
 @pytest.mark.asyncio

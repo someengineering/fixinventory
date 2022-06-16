@@ -258,7 +258,7 @@ async def merge_graph_process(
             log.warning(f"Process is still alive after terminate. Kill process {updater.pid}")
             with suppress(Exception):
                 updater.kill()
-            await asyncio.sleep(3)
+            await run_async(updater.join)
         if not updater.is_alive():
             with suppress(Exception):
                 updater.close()

@@ -236,7 +236,7 @@ class Config(metaclass=MetaConfig):
 
     @staticmethod
     def dict() -> Dict:
-        return jsons.dump(Config.running_config.data, strip_attr="kind", strip_properties=True)
+        return jsons.dump(Config.running_config.data, strip_attr="kind", strip_properties=True, strip_privates=True)
 
     def save_config(self) -> None:
         update_config_model(self.model, resotocore_uri=self.resotocore_uri, verify=self.verify)

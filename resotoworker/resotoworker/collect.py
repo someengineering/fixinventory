@@ -66,7 +66,9 @@ class Collector:
             sanitize(graph)
             return graph
 
-        self._send_to_resotocore(collect(collectors), task_id)
+        collected = collect(collectors)
+
+        self._send_to_resotocore(collected, task_id)
 
 
 def collect_plugin_graph(

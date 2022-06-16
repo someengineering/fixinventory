@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from typing import ClassVar, Dict, Union, List
-from resotolib.utils import parse_delta
+from resotolib.durations import parse_duration
 
 default_config = {
     "default": {"age": "2h"},
@@ -70,14 +70,14 @@ class CleanupUntaggedConfig:
 
         default_age = config.get("default", {}).get("age")
         if default_age is not None:
-            default_age = parse_delta(default_age)
+            default_age = parse_duration(default_age)
 
         for cloud_id, account in config["accounts"].items():
             for account_id, account_data in account.items():
                 if "name" not in account_data:
                     raise ValueError(f"Missing 'name' for account '{cloud_id}/{account_id}")
                 if "age" in account_data:
-                    account_data["age"] = parse_delta(account_data["age"])
+                    account_data["age"] = parse_duration(account_data["age"])
                 else:
                     if default_age is None:
                         raise ValueError(

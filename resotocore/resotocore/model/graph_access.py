@@ -67,7 +67,7 @@ class Section:
     all = set(all_ordered)
 
     # remove the section plus dot if it exists in the string: reported.foo => foo
-    __no_section = re.compile("^(" + "|".join(f"({s})" for s in content_ordered) + ")[.]")
+    __no_section = re.compile("^/?(" + "|".join(f"({s})" for s in content_ordered) + ")[.]")
 
     @classmethod
     def without_section(cls, path: str) -> str:
@@ -149,7 +149,7 @@ class GraphBuilder:
             def parse_selector(js: Json) -> NodeSelector:
                 if "node_id" in js:
                     return ByNodeId(NodeId(from_js(js["node_id"], str)))
-                elif "search_criterea" in js:
+                elif "search_criteria" in js:
                     return BySearchCriteria(from_js(js["search_criteria"], str))
                 else:
                     raise AttributeError(f"can't parse edge selector! Got {json.dumps(js)}")

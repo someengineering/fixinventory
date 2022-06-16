@@ -1,14 +1,12 @@
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import ClassVar, Optional, Dict, Type, List, Any, Union, TypeVar
+from typing import ClassVar, Optional, Dict, Type, List, Any, Union, Tuple
 
-import jsons
 from jsons import set_deserializer
-from resotolib.json_bender import StringToUnitNumber, CPUCoresToNumber, Bend, S, K, bend, ForallBend, Bender
+from resoto_plugin_k8s.base import KubernetesResource
 from resotolib.baseresources import (
     BaseAccount,
-    BaseResource,
     BaseInstance,
     BaseRegion,
     InstanceStatus,
@@ -18,104 +16,10 @@ from resotolib.baseresources import (
     EdgeType,
 )
 from resotolib.graph import Graph
+from resotolib.json_bender import StringToUnitNumber, CPUCoresToNumber, Bend, S, K, bend, ForallBend, Bender
 from resotolib.types import Json
 
 log = logging.getLogger("resoto.plugins.k8s")
-
-
-@dataclass(eq=False)
-class KubernetesResource(BaseResource):
-    kind: ClassVar[str] = "kubernetes_resource"
-
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("metadata", "uid"),
-        "tags": S("metadata", "annotations", default={}),
-        "name": S("metadata", "name"),
-        "ctime": S("metadata", "creationTimestamp"),
-        "mtime": S("status", "conditions")[-1]["lastTransitionTime"],
-        "resource_version": S("metadata", "resourceVersion"),
-        "namespace": S("metadata", "namespace"),
-        "labels": S("metadata", "labels", default={}),
-    }
-
-    resource_version: Optional[str] = None
-    namespace: Optional[str] = None
-    labels: Dict[str, str] = field(default_factory=dict)
-
-    def to_json(self) -> Json:
-        return jsons.dump(  # type: ignore
-            self,
-            strip_privates=True,
-            strip_nulls=True,
-            strip_attr=(
-                "k8s_name",
-                "mapping",
-                "phantom",
-                "successor_kinds",
-                "parent_resource",
-                "usage_percentage",
-                "dname",
-                "kdname",
-                "rtdname",
-                "changes",
-                "event_log",
-                "str_event_log",
-                "chksum",
-                "age",
-                "last_access",
-                "last_update",
-                "clean",
-                "cleaned",
-                "protected",
-                "_graph",
-                "graph",
-                "max_graph_depth",
-                "resource_type",
-                "age",
-                "last_access",
-                "last_update",
-                "clean",
-                "cleaned",
-                "protected",
-                "uuid",
-                "kind",
-            ),
-        )
-
-    @classmethod
-    def from_json(cls: Type["KubernetesResource"], json: Json) -> "KubernetesResource":
-        mapped = bend(cls.mapping, json)
-        return jsons.load(mapped, cls)  # type: ignore
-
-    @classmethod
-    def k8s_name(cls: Type["KubernetesResource"]) -> str:
-        return cls.__name__.removeprefix("Kubernetes")
-
-    def update_tag(self, key: str, value: str) -> bool:
-        return False
-
-    def delete_tag(self, key: str) -> bool:
-        return False
-
-    def delete(self, graph: Graph) -> bool:
-        return False
-
-    def connect_in_graph(self, builder: "GraphBuilder", source: Json) -> None:
-        # https://kubernetes.io/docs/concepts/overview/working-with-objects/owners-dependents/
-        for ref in bend(S("metadata", "ownerReferences", default=[]), source):
-            owner = builder.node(id=ref["uid"])
-            block_owner_deletion = ref.get("blockOwnerDeletion", False)
-            if owner:
-                log.debug(f"Add owner reference from {owner} -> {self}")
-                builder.graph.add_edge(owner, self, edge_type=EdgeType.default)
-                if block_owner_deletion:
-                    builder.graph.add_edge(self, owner, edge_type=EdgeType.delete)
-
-    def __str__(self) -> str:
-        return f"{self.__class__.__name__}[{self.name}]"
-
-
-KubernetesResourceType = TypeVar("KubernetesResourceType", bound=KubernetesResource)
 
 
 class GraphBuilder:
@@ -143,7 +47,7 @@ class GraphBuilder:
         from_node: KubernetesResource,
         edge_type: EdgeType,
         selector: Dict[str, str],
-        clazz: Optional[type] = None,
+        clazz: Optional[Union[type, Tuple[type, ...]]] = None,
     ) -> None:
         for to_n in self.graph:
             is_clazz = isinstance(to_n, clazz) if clazz else True
@@ -394,10 +298,12 @@ class KubernetesNode(KubernetesResource, BaseInstance):
         "node_spec": S("spec") >> Bend(KubernetesNodeSpec.mapping),
         "provider_id": S("spec", "providerID"),
         "instance_cores": S("status", "capacity", "cpu") >> CPUCoresToNumber(),
-        "instance_memory": S("status", "capacity", "memory") >> StringToUnitNumber("GB"),
+        "instance_memory": S("status", "capacity", "memory") >> StringToUnitNumber("GiB"),
         "instance_type": K("kubernetes_node"),
         "instance_status": K(InstanceStatus.RUNNING.value),
     }
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {"default": ["kubernetes_csi_node"], "delete": []}
+
     provider_id: Optional[str] = None
     node_status: Optional[KubernetesNodeStatus] = field(default=None)
     node_spec: Optional[KubernetesNodeSpec] = field(default=None)
@@ -860,6 +766,11 @@ class KubernetesPod(KubernetesResource):
         "pod_status": S("status") >> Bend(KubernetesPodStatus.mapping),
         "pod_spec": S("spec") >> Bend(KubernetesPodSpec.mapping),
     }
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["kubernetes_secret", "kubernetes_persistent_volume_claim", "kubernetes_config_map"],
+        "delete": ["kubernetes_stateful_set", "kubernetes_replica_set", "kubernetes_job", "kubernetes_daemon_set"],
+    }
+
     pod_status: Optional[KubernetesPodStatus] = field(default=None)
     pod_spec: Optional[KubernetesPodSpec] = field(default=None)
 
@@ -960,6 +871,8 @@ class KubernetesPersistentVolumeClaim(KubernetesResource):
         "persistent_volume_claim_status": S("status") >> Bend(KubernetesPersistentVolumeClaimStatus.mapping),
         "persistent_volume_claim_spec": S("spec") >> Bend(KubernetesPersistentVolumeClaimSpec.mapping),
     }
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {"default": ["kubernetes_persistent_volume"], "delete": []}
+
     persistent_volume_claim_status: Optional[KubernetesPersistentVolumeClaimStatus] = field(default=None)
     persistent_volume_claim_spec: Optional[KubernetesPersistentVolumeClaimSpec] = field(default=None)
 
@@ -1100,6 +1013,10 @@ class KubernetesService(KubernetesResource):
         "service_status": S("status") >> Bend(KubernetesServiceStatus.mapping),
         "service_spec": S("spec") >> Bend(KubernetesServiceSpec.mapping),
     }
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["kubernetes_pod", "kubernetes_endpoint_slice"],
+        "delete": [],
+    }
     service_status: Optional[KubernetesServiceStatus] = field(default=None)
     service_spec: Optional[KubernetesServiceSpec] = field(default=None)
 
@@ -1129,6 +1046,26 @@ class KubernetesClusterInfo:
 @dataclass(eq=False)
 class KubernetesCluster(KubernetesResource, BaseAccount):
     kind: ClassVar[str] = "kubernetes_cluster"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": [
+            "kubernetes_volume_attachment",
+            "kubernetes_validating_webhook_configuration",
+            "kubernetes_storage_class",
+            "kubernetes_priority_level_configuration",
+            "kubernetes_priority_class",
+            "kubernetes_persistent_volume",
+            "kubernetes_node",
+            "kubernetes_namespace",
+            "kubernetes_mutating_webhook_configuration",
+            "kubernetes_flow_schema",
+            "kubernetes_csi_node",
+            "kubernetes_csi_driver",
+            "kubernetes_cluster_role_binding",
+            "kubernetes_cluster_role",
+        ],
+        "delete": [],
+    }
+
     cluster_info: Optional[KubernetesClusterInfo] = None
 
 
@@ -1185,6 +1122,10 @@ class KubernetesEndpoints(KubernetesResource):
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
         "subsets": S("subsets", default=[]) >> ForallBend(KubernetesEndpointSubset.mapping),
     }
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["kubernetes_pod", "kubernetes_node", "kubernetes_endpoint_slice"],
+        "delete": [],
+    }
 
     subsets: List[KubernetesEndpointSubset] = field(default_factory=list)
 
@@ -1199,6 +1140,10 @@ class KubernetesEndpoints(KubernetesResource):
 @dataclass(eq=False)
 class KubernetesEndpointSlice(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_endpoint_slice"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": [],
+        "delete": ["kubernetes_service", "kubernetes_endpoint"],
+    }
 
 
 @dataclass(eq=False)
@@ -1240,6 +1185,30 @@ class KubernetesNamespace(KubernetesResource, BaseRegion):
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
         "namespace_status": S("status") >> Bend(KubernetesNamespaceStatus.mapping),
     }
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": [
+            "kubernetes_stateful_set",
+            "kubernetes_service",
+            "kubernetes_secret",
+            "kubernetes_role_binding",
+            "kubernetes_role",
+            "kubernetes_replica_set",
+            "kubernetes_pod_disruption_budget",
+            "kubernetes_pod",
+            "kubernetes_job",
+            "kubernetes_endpoint_slice",
+            "kubernetes_service_account",
+            "kubernetes_endpoint",
+            "kubernetes_deployment",
+            "kubernetes_persistent_volume_claim",
+            "kubernetes_daemon_set",
+            "kubernetes_cron_job",
+            "kubernetes_controller_revision",
+            "kubernetes_config_map",
+        ],
+        "delete": [],
+    }
+
     namespace_status: Optional[KubernetesNamespaceStatus] = field(default=None)
 
 
@@ -1443,6 +1412,7 @@ class KubernetesSecret(KubernetesResource):
 @dataclass(eq=False)
 class KubernetesServiceAccount(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_service_account"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {"default": ["kubernetes_secret"], "delete": []}
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
@@ -1464,6 +1434,10 @@ class KubernetesValidatingWebhookConfiguration(KubernetesResource):
 @dataclass(eq=False)
 class KubernetesControllerRevision(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_controller_revision"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": [],
+        "delete": ["kubernetes_stateful_set", "kubernetes_daemon_set"],
+    }
 
 
 @dataclass(eq=False)
@@ -1541,6 +1515,11 @@ class KubernetesDaemonSet(KubernetesResource):
         "daemon_set_status": S("status") >> Bend(KubernetesDaemonSetStatus.mapping),
         "daemon_set_spec": S("spec") >> Bend(KubernetesDaemonSetSpec.mapping),
     }
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["kubernetes_pod", "kubernetes_controller_revision"],
+        "delete": [],
+    }
+
     daemon_set_status: Optional[KubernetesDaemonSetStatus] = field(default=None)
     daemon_set_spec: Optional[KubernetesDaemonSetSpec] = field(default=None)
 
@@ -1639,6 +1618,10 @@ class KubernetesDeployment(KubernetesResource):
         "deployment_status": S("status") >> Bend(KubernetesDeploymentStatus.mapping),
         "deployment_spec": S("spec") >> Bend(KubernetesDeploymentSpec.mapping),
     }
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["kubernetes_replica_set", "kubernetes_pod"],
+        "delete": [],
+    }
     deployment_status: Optional[KubernetesDeploymentStatus] = field(default=None)
     deployment_spec: Optional[KubernetesDeploymentSpec] = field(default=None)
 
@@ -1646,7 +1629,7 @@ class KubernetesDeployment(KubernetesResource):
         super().connect_in_graph(builder, source)
         selector = bend(S("spec", "selector", "matchLabels"), source)
         if selector:
-            builder.add_edges_from_selector(self, EdgeType.default, selector)
+            builder.add_edges_from_selector(self, EdgeType.default, selector, (KubernetesPod, KubernetesReplicaSet))
 
 
 @dataclass(eq=False)
@@ -1707,6 +1690,11 @@ class KubernetesReplicaSet(KubernetesResource):
         "replica_set_status": S("status") >> Bend(KubernetesReplicaSetStatus.mapping),
         "replica_set_spec": S("spec") >> Bend(KubernetesReplicaSetSpec.mapping),
     }
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["kubernetes_pod"],
+        "delete": ["kubernetes_deployment"],
+    }
+
     replica_set_status: Optional[KubernetesReplicaSetStatus] = field(default=None)
     replica_set_spec: Optional[KubernetesReplicaSetSpec] = field(default=None)
 
@@ -1783,6 +1771,11 @@ class KubernetesStatefulSet(KubernetesResource):
         "stateful_set_status": S("status") >> Bend(KubernetesStatefulSetStatus.mapping),
         "stateful_set_spec": S("spec") >> Bend(KubernetesStatefulSetSpec.mapping),
     }
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["kubernetes_pod", "kubernetes_controller_revision"],
+        "delete": [],
+    }
+
     stateful_set_status: Optional[KubernetesStatefulSetStatus] = field(default=None)
     stateful_set_spec: Optional[KubernetesStatefulSetSpec] = field(default=None)
 
@@ -1941,6 +1934,8 @@ class KubernetesCronJob(KubernetesResource):
         "cron_job_status": S("status") >> Bend(KubernetesCronJobStatus.mapping),
         "cron_job_spec": S("spec") >> Bend(KubernetesCronJobSpec.mapping),
     }
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {"default": ["kubernetes_job"], "delete": []}
+
     cron_job_status: Optional[KubernetesCronJobStatus] = field(default=None)
     cron_job_spec: Optional[KubernetesCronJobSpec] = field(default=None)
 
@@ -1994,6 +1989,8 @@ class KubernetesJob(KubernetesResource):
         "job_status": S("status") >> Bend(KubernetesJobStatus.mapping),
         "job_spec": S("spec") >> Bend(KubernetesJobSpec.mapping),
     }
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {"default": ["kubernetes_pod"], "delete": ["kubernetes_cron_job"]}
+
     job_status: Optional[KubernetesJobStatus] = field(default=None)
     job_spec: Optional[KubernetesJobSpec] = field(default=None)
 

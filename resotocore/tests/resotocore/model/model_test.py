@@ -29,6 +29,7 @@ from resotocore.model.model import (
     TransformKind,
     DurationKind,
     SyntheticProperty,
+    string_kind,
 )
 from resotocore.model.typed_model import to_json, from_js
 from resotocore.types import Json
@@ -298,7 +299,7 @@ def test_property_path_on_model(person_model: Model) -> None:
     # complex based property path
     person: ComplexKind = cast(ComplexKind, person_model["Person"])
     person_path = {p.path: p for p in person.resolved_properties()}
-    assert len(person_path) == 13
+    assert len(person_path) == 20
     assert person_path[PropertyPath(["name"])].kind == person_model["string"]
     assert person_path[PropertyPath(["name"])].prop.name == "name"
     assert person_path[PropertyPath(["list[]"])].kind == person_model["string"]
@@ -316,6 +317,13 @@ def test_property_path_on_model(person_model: Model) -> None:
     assert person_model.kind_by_path("tags.bla") == person_model["string"]
     assert person_model.kind_by_path("other_addresses.bla.zip") == person_model["zip"]
     assert person_model.kind_by_path("address.zip") == person_model["zip"]
+
+    # access complex types (user.addresses)
+    assert person_model.kind_by_path("addresses") == ArrayKind(person_model["Address"])
+    assert person_model.kind_by_path("addresses[23]") == person_model["Address"]
+    assert person_model.kind_by_path("addresses[23].zip") == person_model["zip"]
+    assert person_model.kind_by_path("other_addresses") == DictionaryKind(string_kind, person_model["Address"])
+    assert person_model.kind_by_path("other_addresses.test") == person_model["Address"]
 
 
 def test_update(person_model: Model) -> None:
@@ -356,7 +364,7 @@ def test_load(model_json: str) -> None:
 def test_graph(person_model: Model) -> None:
     graph: DiGraph = person_model.graph()
     assert len(graph.nodes()) == 11
-    assert len(graph.edges()) == 8
+    assert len(graph.edges()) == 9
 
 
 def roundtrip(obj: Any, clazz: Type[object]) -> None:

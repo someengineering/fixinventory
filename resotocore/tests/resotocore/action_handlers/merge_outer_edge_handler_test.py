@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 import pytest
 import asyncio
 from pytest import fixture
@@ -22,6 +22,8 @@ from resotocore.types import Json
 
 from typing import AsyncGenerator
 from resotocore.ids import TaskId, NodeId
+
+from resotocore.util import utc
 
 # noinspection PyUnresolvedReferences
 from tests.resotocore.task.task_handler_test import task_handler
@@ -125,13 +127,15 @@ async def test_merge_outer_edges(
     merge_handler: MergeOuterEdgesHandler, graph_db: ArangoGraphDB, foo_model: Model, db_access: DbAccess
 ) -> None:
 
-    now = datetime.now()
+    now = utc()
 
     id1 = NodeId("id1")
     id2 = NodeId("id2")
+    id3 = NodeId("id3")
 
     await graph_db.wipe()
     await graph_db.create_node(foo_model, id1, to_json(Foo("id1", "foo")), NodeId("root"))
+    await graph_db.create_node(foo_model, id3, to_json(Foo("id3", "foo")), NodeId("root"))
     await graph_db.create_node(foo_model, id2, to_json(Bla("id2", "bla")), NodeId("root"))
     await db_access.pending_deferred_edge_db.create_update_schema()
 
@@ -149,6 +153,7 @@ async def test_merge_outer_edges(
 
     graph = await graph_db.search_graph(QueryModel(parse_query("is(graph_root) -default[0:]->"), foo_model))
     assert graph.has_edge("id1", "id2")
+    assert graph.has_edge("root", "id3")
 
     # deletion test
 
@@ -169,6 +174,7 @@ async def test_merge_outer_edges(
     graph = await graph_db.search_graph(QueryModel(parse_query("is(graph_root) -default[0:]->"), foo_model))
     assert not graph.has_edge("id1", "id2")
     assert graph.has_edge("id2", "id1")
+    assert graph.has_edge("root", "id3")
 
 
 def to_json(obj: BaseResource) -> Json:

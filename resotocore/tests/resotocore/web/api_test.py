@@ -43,7 +43,7 @@ async def core_client(
           The fixture ensures that the underlying process has entered the ready state.
           It also ensures to clean up the process, when the test is done.
     """
-
+    port = 28900  # use a different port than the default one
     # wipe and cleanly import the test model
     test_db.collection("model").truncate()
     test_db.collection("model").insert_many([{"_key": elem.fqn, **to_js(elem)} for elem in foo_kinds])
@@ -60,6 +60,8 @@ async def core_client(
                 "test",
                 "--debug",
                 "--no-tls",
+                "--override",
+                f"resotocore.api.web_port={port}",
             ],
         ),
     )
@@ -69,12 +71,12 @@ async def core_client(
     while not ready:
         await sleep(0.5)
         with suppress(Exception):
-            async with client_session.get("http://localhost:8900/system/ready"):
+            async with client_session.get(f"http://localhost:{port}/system/ready"):
                 ready = True
                 count -= 1
                 if count == 0:
                     raise AssertionError("Process does not came up as expected")
-    yield ApiClient("http://localhost:8900", None)
+    yield ApiClient(f"http://localhost:{port}", None)
     # terminate the process
     process.terminate()
     process.join(5)
@@ -93,10 +95,10 @@ async def test_system_api(core_client: ApiClient, client_session: ClientSession)
     assert core_client.ping() == "pong"
     assert core_client.ready() == "ok"
     # make sure we get redirected to the api docs
-    async with client_session.get("http://localhost:8900", allow_redirects=False) as r:
+    async with client_session.get(core_client.resotocore_url, allow_redirects=False) as r:
         assert r.headers["location"] == "api-doc"
     # static api docs get served
-    async with client_session.get("http://localhost:8900") as r:
+    async with client_session.get(core_client.resotocore_url) as r:
         assert r.content_type == "text/html"
 
 
