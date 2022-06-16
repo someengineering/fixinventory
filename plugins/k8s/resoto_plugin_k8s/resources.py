@@ -302,7 +302,10 @@ class KubernetesNode(KubernetesResource, BaseInstance):
         "instance_type": K("kubernetes_node"),
         "instance_status": K(InstanceStatus.RUNNING.value),
     }
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {"default": ["kubernetes_csi_node"], "delete": []}
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["kubernetes_csi_node", "kubernetes_pod"],
+        "delete": [],
+    }
 
     provider_id: Optional[str] = None
     node_status: Optional[KubernetesNodeStatus] = field(default=None)
@@ -778,6 +781,8 @@ class KubernetesPod(KubernetesResource):
         super().connect_in_graph(builder, source)
         volumes = bend(S("spec", "volumes", default=[]), source)
         builder.connect_volumes(self, volumes)
+        if node_name := bend(S("spec", "nodeName"), source):
+            builder.add_edge(self, EdgeType.default, True, clazz=KubernetesNode, name=node_name)
 
 
 # endregion
