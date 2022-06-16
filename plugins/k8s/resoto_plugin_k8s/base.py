@@ -14,11 +14,13 @@ from kubernetes.config import load_kube_config, list_kube_config_contexts
 from resotolib.baseresources import BaseResource, EdgeType
 from resotolib.config import Config
 from resotolib.graph import Graph
-from resotolib.json_bender import S, bend, Bender
+from resotolib.json_bender import S, bend, Bender, Sort, AsDate
 from resotolib.types import Json
 from resotolib.utils import num_default_threads
 
 log = logging.getLogger("resoto.plugins.k8s")
+
+SortTransitionTime = Sort(S("lastTransitionTime") >> AsDate())
 
 
 @dataclass(eq=False)
@@ -30,7 +32,7 @@ class KubernetesResource(BaseResource):
         "tags": S("metadata", "annotations", default={}),
         "name": S("metadata", "name"),
         "ctime": S("metadata", "creationTimestamp"),
-        "mtime": S("status", "conditions")[-1]["lastTransitionTime"],
+        "mtime": (S("status", "conditions") >> SortTransitionTime)[-1]["lastTransitionTime"],
         "resource_version": S("metadata", "resourceVersion"),
         "namespace": S("metadata", "namespace"),
         "labels": S("metadata", "labels", default={}),
