@@ -58,27 +58,28 @@ class GraphBuilder:
     def connect_volumes(self, from_node: KubernetesResource, volumes: List[Json]) -> None:
         for volume in volumes:
             if "persistentVolumeClaim" in volume:
-                name = volume["persistentVolumeClaim"]["claimName"]
-                self.add_edge(
-                    from_node,
-                    EdgeType.default,
-                    name=name,
-                    namespace=from_node.namespace,
-                    clazz=KubernetesPersistentVolumeClaim,
-                )
+                if name := bend(S("persistentVolumeClaim", "claimName"), volume):
+                    self.add_edge(
+                        from_node,
+                        EdgeType.default,
+                        name=name,
+                        namespace=from_node.namespace,
+                        clazz=KubernetesPersistentVolumeClaim,
+                    )
             elif "configMap" in volume:
-                name = volume["configMap"]["name"]
-                self.add_edge(
-                    from_node, EdgeType.default, name=name, namespace=from_node.namespace, clazz=KubernetesConfigMap
-                )
+                if name := bend(S("configMap", "name"), volume):
+                    self.add_edge(
+                        from_node, EdgeType.default, name=name, namespace=from_node.namespace, clazz=KubernetesConfigMap
+                    )
             elif "secret" in volume:
-                name = volume["secret"]["secretName"]
-                self.add_edge(
-                    from_node, EdgeType.default, name=name, namespace=from_node.namespace, clazz=KubernetesSecret
-                )
+                if name := bend(S("secret", "secretName"), volume):
+                    self.add_edge(
+                        from_node, EdgeType.default, name=name, namespace=from_node.namespace, clazz=KubernetesSecret
+                    )
             elif "projected" in volume:
-                # iterate all projected volumes
-                self.connect_volumes(from_node, volume["projected"]["sources"])
+                if sources := bend(S("projected", "sources"), volume):
+                    # iterate all projected volumes
+                    self.connect_volumes(from_node, sources)
 
 
 # region node

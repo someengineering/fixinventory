@@ -10,7 +10,7 @@ from typing import ClassVar, TypeVar, Any, Callable
 from typing import List, Type, Optional, Tuple, Dict
 
 import jsons
-from kubernetes.client import ApiClient, Configuration
+from kubernetes.client import ApiClient, Configuration, ApiException
 from kubernetes.config import load_kube_config, list_kube_config_contexts
 
 from resotolib.baseresources import BaseResource, EdgeType
@@ -473,17 +473,23 @@ class K8sApiClient(K8sClient):
         apis = self.get("/apis")
         for group in apis["groups"]:
             part = f'/apis/{group["preferredVersion"]["groupVersion"]}'
-            resources = self.get(part)
-            for resource in resources["resources"]:
-                add_resource(part, resource)
+            try:
+                resources = self.get(part)
+                for resource in resources["resources"]:
+                    add_resource(part, resource)
+            except ApiException as ex:
+                log.warning(f"Failed to retrieve resource APIs for {part}. Reason: {ex}. Ignore.")
 
         return self.filter_apis(result)
 
     def list_resources(
         self, resource: K8sApiResource, clazz: Type[KubernetesResourceType], path: Optional[str] = None
     ) -> List[Tuple[KubernetesResourceType, Json]]:
-        result = self.get(path or resource.list_path)
-        return [(clazz.from_json(r), r) for r in result.get("items", [])]  # type: ignore
+        try:
+            result = self.get(path or resource.list_path)
+            return [(clazz.from_json(r), r) for r in result.get("items", [])]  # type: ignore
+        except ApiException as ex:
+            log.warning(f"Failed to list resources: {resource.kind} on {resource.base}. Reason: {ex}. Ignore.")
 
     @staticmethod
     def from_config(cluster_id: str, cluster_config: Configuration) -> "K8sApiClient":
