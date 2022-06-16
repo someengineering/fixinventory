@@ -490,6 +490,7 @@ class K8sApiClient(K8sClient):
             return [(clazz.from_json(r), r) for r in result.get("items", [])]  # type: ignore
         except ApiException as ex:
             log.warning(f"Failed to list resources: {resource.kind} on {resource.base}. Reason: {ex}. Ignore.")
+            return []
 
     @staticmethod
     def from_config(cluster_id: str, cluster_config: Configuration) -> "K8sApiClient":
