@@ -2,6 +2,8 @@ import os
 from dataclasses import dataclass, field
 from typing import Dict, ClassVar, Optional
 from yaml import load
+from enum import Enum
+
 
 try:
     from yaml import CLoader as Loader
@@ -9,12 +11,17 @@ except ImportError:
     from yaml import Loader
 
 
+class MetricType(Enum):
+    gauge = "gauge"
+    counter = "counter"
+
+
 @dataclass
 class Metric:
     kind: ClassVar[str] = "metric"
     help: str = field(metadata={"description": "Metric help text"})
     search: str = field(metadata={"description": "Aggregation search to run"})
-    type: str = field(metadata={"description": "Type of metric (gauge or counter)"})
+    type: MetricType = field(default=MetricType.gauge, metadata={"description": "Type of metric (gauge or counter)"})
 
 
 def _load_default_metrics() -> Dict[str, Metric]:
