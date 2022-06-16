@@ -1,8 +1,9 @@
 from resotolib.logger import log
 from resotolib.core.model_export import node_from_dict, node_to_dict
+from resotolib.types import Json
 
 
-def core_tag_tasks_processor(message: dict) -> None:
+def core_tag_tasks_processor(message: dict) -> Json:
     task_id = message.get("task_id")
     # task_name = message.get("task_name")
     # task_attrs = message.get("attrs", {})
@@ -26,7 +27,7 @@ def core_tag_tasks_processor(message: dict) -> None:
     except Exception as e:
         log.exception("Error while updating tags")
         result = "error"
-        extra_data["error"] = repr(e)
+        extra_data["error"] = str(e)
 
     reply_message = {
         "task_id": task_id,

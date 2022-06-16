@@ -1,7 +1,9 @@
-from typing import Tuple
+from typing import Tuple, List
+
+import jsons
 
 from fixtures import StaticFileClient
-from resoto_plugin_k8s.base import K8sConfig, K8sAccess
+from resoto_plugin_k8s.base import K8sConfig, K8sAccess, K8sApiResource, K8sClient
 from resoto_plugin_k8s import KubernetesCollectorPlugin
 from resoto_plugin_k8s.resources import KubernetesCluster, KubernetesClusterInfo, KubernetesConfigMap
 from resotolib.config import Config
@@ -19,10 +21,12 @@ def config_map_in_graph() -> Tuple[KubernetesConfigMap, Graph, StaticFileClient]
     # define the static client for the "test" account
     client = StaticFileClient("test", None)
     # noinspection PyProtectedMember
-    cfg._clients["test"] = client
+    cfg._clients = {"test": client}
 
     # create a cluster with id test
-    cluster = KubernetesCluster(id="test", name="test", cluster_info=KubernetesClusterInfo("test", "test", "test"))
+    cluster = KubernetesCluster(
+        id="test", name="test", cluster_info=KubernetesClusterInfo("test", "test", "test", "test")
+    )
     graph = Graph(root=cluster)
 
     # create a config map
@@ -65,3 +69,10 @@ def test_resource_delete(config_map_in_graph: Tuple[KubernetesConfigMap, Graph, 
     cm.delete(graph)
     assert len(client.deletes) == 1
     assert client.deletes[0] == (KubernetesConfigMap, "ns1", "cm1")
+
+
+def test_filter_beta_apis(config_map_in_graph: Tuple[KubernetesConfigMap, Graph, StaticFileClient]) -> None:
+    _, _, client = config_map_in_graph
+    apis = jsons.load(client.get("apis"), List[K8sApiResource])
+    filtered = K8sClient.filter_apis(apis)
+    assert len(filtered) == len(apis) - 2  # Event and Ingress is filtered out

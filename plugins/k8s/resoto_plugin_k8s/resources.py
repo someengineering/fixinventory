@@ -25,13 +25,20 @@ log = logging.getLogger("resoto.plugins.k8s")
 class GraphBuilder:
     def __init__(self, graph: Graph):
         self.graph = graph
+        self.name = getattr(graph.root, "name", "unknown")
 
     def node(self, clazz: Optional[Type[KubernetesResource]] = None, **node: Any) -> Optional[KubernetesResource]:
+        if isinstance(nd := node.get("node"), KubernetesResource):
+            return nd
         for n in self.graph:
             is_clazz = isinstance(n, clazz) if clazz else True
             if is_clazz and all(getattr(n, k, None) == v for k, v in node.items()):
                 return n  # type: ignore
         return None
+
+    def add_node(self, node: KubernetesResource, **kwargs: Any) -> None:
+        log.debug(f"{self.name}: add node {node}")
+        self.graph.add_node(node, **kwargs)
 
     def add_edge(
         self, from_node: KubernetesResource, edge_type: EdgeType, reverse: bool = False, **to_node: Any
@@ -39,7 +46,7 @@ class GraphBuilder:
         to_n = self.node(**to_node)
         if to_n:
             start, end = (to_n, from_node) if reverse else (from_node, to_n)
-            log.debug(f"Add edge: {start.name}:{start.k8s_name()} -> {end.name}:{end.k8s_name()}")
+            log.debug(f"{self.name}: add edge: {start} -> {end}")
             self.graph.add_edge(start, end, edge_type=edge_type)
 
     def add_edges_from_selector(
@@ -52,33 +59,34 @@ class GraphBuilder:
         for to_n in self.graph:
             is_clazz = isinstance(to_n, clazz) if clazz else True
             if is_clazz and to_n != from_node and selector.items() <= to_n.labels.items():
-                log.debug(f"Add edge: {from_node} -> {to_n}")
+                log.debug(f"{self.name}: add edge from selector: {from_node} -> {to_n}")
                 self.graph.add_edge(from_node, to_n, edge_type=edge_type)
 
     def connect_volumes(self, from_node: KubernetesResource, volumes: List[Json]) -> None:
         for volume in volumes:
             if "persistentVolumeClaim" in volume:
-                name = volume["persistentVolumeClaim"]["claimName"]
-                self.add_edge(
-                    from_node,
-                    EdgeType.default,
-                    name=name,
-                    namespace=from_node.namespace,
-                    clazz=KubernetesPersistentVolumeClaim,
-                )
+                if name := bend(S("persistentVolumeClaim", "claimName"), volume):
+                    self.add_edge(
+                        from_node,
+                        EdgeType.default,
+                        name=name,
+                        namespace=from_node.namespace,
+                        clazz=KubernetesPersistentVolumeClaim,
+                    )
             elif "configMap" in volume:
-                name = volume["configMap"]["name"]
-                self.add_edge(
-                    from_node, EdgeType.default, name=name, namespace=from_node.namespace, clazz=KubernetesConfigMap
-                )
+                if name := bend(S("configMap", "name"), volume):
+                    self.add_edge(
+                        from_node, EdgeType.default, name=name, namespace=from_node.namespace, clazz=KubernetesConfigMap
+                    )
             elif "secret" in volume:
-                name = volume["secret"]["secretName"]
-                self.add_edge(
-                    from_node, EdgeType.default, name=name, namespace=from_node.namespace, clazz=KubernetesSecret
-                )
+                if name := bend(S("secret", "secretName"), volume):
+                    self.add_edge(
+                        from_node, EdgeType.default, name=name, namespace=from_node.namespace, clazz=KubernetesSecret
+                    )
             elif "projected" in volume:
-                # iterate all projected volumes
-                self.connect_volumes(from_node, volume["projected"]["sources"])
+                if sources := bend(S("projected", "sources"), volume):
+                    # iterate all projected volumes
+                    self.connect_volumes(from_node, sources)
 
 
 # region node
@@ -1051,6 +1059,7 @@ class KubernetesClusterInfo:
     major: str
     minor: str
     platform: str
+    server_url: str
 
 
 @dataclass(eq=False)
@@ -1636,7 +1645,7 @@ class KubernetesDeployment(KubernetesResource):
         "deployment_spec": S("spec") >> Bend(KubernetesDeploymentSpec.mapping),
     }
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["kubernetes_replica_set", "kubernetes_pod"],
+        "default": ["kubernetes_replica_set"],
         "delete": [],
     }
     deployment_status: Optional[KubernetesDeploymentStatus] = field(default=None)
@@ -1646,7 +1655,7 @@ class KubernetesDeployment(KubernetesResource):
         super().connect_in_graph(builder, source)
         selector = bend(S("spec", "selector", "matchLabels"), source)
         if selector:
-            builder.add_edges_from_selector(self, EdgeType.default, selector, (KubernetesPod, KubernetesReplicaSet))
+            builder.add_edges_from_selector(self, EdgeType.default, selector, KubernetesReplicaSet)
 
 
 @dataclass(eq=False)
