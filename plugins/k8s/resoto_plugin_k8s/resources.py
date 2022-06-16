@@ -1628,7 +1628,7 @@ class KubernetesDeployment(KubernetesResource):
         "deployment_spec": S("spec") >> Bend(KubernetesDeploymentSpec.mapping),
     }
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["kubernetes_replica_set", "kubernetes_pod"],
+        "default": ["kubernetes_replica_set"],
         "delete": [],
     }
     deployment_status: Optional[KubernetesDeploymentStatus] = field(default=None)
@@ -1638,7 +1638,7 @@ class KubernetesDeployment(KubernetesResource):
         super().connect_in_graph(builder, source)
         selector = bend(S("spec", "selector", "matchLabels"), source)
         if selector:
-            builder.add_edges_from_selector(self, EdgeType.default, selector, (KubernetesPod, KubernetesReplicaSet))
+            builder.add_edges_from_selector(self, EdgeType.default, selector, KubernetesReplicaSet)
 
 
 @dataclass(eq=False)
