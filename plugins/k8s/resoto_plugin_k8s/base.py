@@ -136,18 +136,21 @@ KubernetesResourceType = TypeVar("KubernetesResourceType", bound=KubernetesResou
 class K8sAccess:
     kind: ClassVar[str] = "k8s_access"
     name: str = field(metadata={"description": "The name of the kubernetes cluster."})
-    certificate_authority_data: str = field(metadata={"description": "The CA certificate string."})
     server: str = field(metadata={"description": "The url of the server to connect to."})
     token: str = field(metadata={"description": "The user access token to use to access this cluster."})
+    certificate_authority_data: Optional[str] = field(
+        default=None, metadata={"description": "Optional CA certificate string."}
+    )
 
     def to_yaml(self) -> str:
+        ca = f"certificate-authority-data: {self.certificate_authority_data}" if self.certificate_authority_data else ""
         return dedent(
             f"""
              apiVersion: v1
              clusters:
              - cluster:
-                 certificate-authority-data: {self.certificate_authority_data}
                  server: {self.server}
+                 {ca}
                name: {self.name}
              contexts:
              - context:
