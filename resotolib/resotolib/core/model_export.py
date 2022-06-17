@@ -282,6 +282,8 @@ def node_to_dict(node: BaseResource, changes_only: bool = False, include_revisio
                 },
             }
         )
+        if node.collected is not None:
+            node_dict["metadata"]["collected"] = format_value_for_export(node.collected)
         if node.clean:
             node_dict.update(
                 {
@@ -361,6 +363,11 @@ def node_from_dict(node_data: Dict, include_select_ancestors: bool = False) -> B
     node._raise_tags_exceptions = True
     node._protected = node_data_metadata.get("protected", False)
     node._cleaned = node_data_metadata.get("cleaned", False)
+    collected = node_data_metadata.get("collected", None)
+    if collected is not None:
+        if collected.endswith("Z"):
+            collected = collected[:-1] + "+00:00"
+        node._collected = datetime.fromisoformat(collected)
     node._clean = node_data_desired.get("clean", False)
     return node
 

@@ -107,6 +107,7 @@ class BaseResource(ABC):
         self._clean: bool = False
         self._cleaned: bool = False
         self._protected: bool = False
+        self._collected = None
         self._changes: ResourceChanges = ResourceChanges(self)
         self._deferred_connections: List = []
         self.__graph = None
@@ -230,21 +231,18 @@ class BaseResource(ABC):
 
     @property
     def age(self) -> Optional[timedelta]:
-        now = datetime.utcnow().replace(tzinfo=timezone.utc)
         if self.ctime is not None:
-            return now - self.ctime
+            return datetime.utcnow().replace(tzinfo=timezone.utc) - self.ctime
 
     @property
     def last_access(self) -> Optional[timedelta]:
-        now = datetime.utcnow().replace(tzinfo=timezone.utc)
         if self.atime is not None:
-            return now - self.atime
+            return datetime.utcnow().replace(tzinfo=timezone.utc) - self.atime
 
     @property
     def last_update(self) -> Optional[timedelta]:
-        now = datetime.utcnow().replace(tzinfo=timezone.utc)
         if self.mtime is not None:
-            return now - self.mtime
+            return datetime.utcnow().replace(tzinfo=timezone.utc) - self.mtime
 
     def _ctime_getter(self) -> Optional[datetime]:
         if "resoto:ctime" in self.tags:
@@ -291,6 +289,10 @@ class BaseResource(ABC):
     @property
     def cleaned(self) -> bool:
         return self._cleaned
+
+    @property
+    def collected(self) -> bool:
+        return self._collected
 
     @property
     def protected(self) -> bool:
@@ -704,6 +706,10 @@ class BaseAccount(BaseResource):
 
     def account(self, graph=None):
         return self
+
+    def __post_init__(self) -> None:
+        super().__post_init__()
+        self._collected = datetime.utcnow().replace(tzinfo=timezone.utc)
 
 
 @dataclass(eq=False)
