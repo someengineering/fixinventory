@@ -89,7 +89,7 @@ class Shell:
         except ConnectionError:
             err = (
                 "Error: Could not communicate with resotocore"
-                f" at {urlsplit(self.client.base_url).netloc}."
+                f" at {urlsplit(self.client.resotocore_url).netloc}."
                 " Is it up and reachable?"
             )
             print(err, file=sys.stderr)
