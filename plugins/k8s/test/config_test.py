@@ -57,19 +57,34 @@ def test_config_roundtrip() -> None:
 
 def test_config_migrate_from_v1() -> None:
     js = dict(
-        context=["a", "b", "c"],
-        config=["a", "b", "c"],
-        cluster=["a", "b", "c"],
-        apiserver=["a", "b", "c"],
-        token=["a", "b", "c"],
-        cacert=["a", "b", "c"],
-        collect=["a", "b", "c"],
-        no_collect=["a", "b", "c"],
+        context=["ctx_a", "ctx_b", "ctx_c"],
+        config=["cfg_a", "cfg_b", "cfg_c"],
+        cluster=["cls_a", "cls_b", "cls_c"],
+        apiserver=["api_a", "api_b", "api_c"],
+        token=["tkn_a", "tkn_b", "tkn_c"],
+        cacert=["ca_a", "ca_b", "ca_c"],
+        collect=["c_a", "c_b", "c_c"],
+        no_collect=["n_a", "n_b", "n_c"],
         pool_size=23,
         fork_process=True,
         all_contexts=True,
     )
     config = K8sConfig.from_json(js)
+    assert len(config.configs) == 3
+    assert len(config.config_files) == 3
+    config.configs[0] = K8sAccess("cls_a", "api_a", "tkn_a", "ca_a")
+    config.config_files[0] = K8sConfigFile("cfg_a", ["c_a", "n_a"], True)
+
+    # can parse partial data
+    js["apiserver"] = []
+    K8sConfig.from_json(js)
+    assert len(config.configs) == 3
+    assert len(config.config_files) == 3
+
+    # accepts missing data
+    del js["apiserver"]
+    del js["cacert"]
+    K8sConfig.from_json(js)
     assert len(config.configs) == 3
     assert len(config.config_files) == 3
 
