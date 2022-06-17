@@ -47,7 +47,7 @@ def test_collect() -> None:
     # start a collect: use the static file client to get the static json files
     plugin.collect(client_factory=StaticFileClient.static)
     assert len(plugin.graph.nodes) == 561
-    assert len(plugin.graph.edges) == 846
+    assert len(plugin.graph.edges) == 850
 
 
 def test_tag_update(config_map_in_graph: Tuple[KubernetesConfigMap, Graph, StaticFileClient]) -> None:
