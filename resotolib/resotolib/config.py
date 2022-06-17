@@ -125,7 +125,10 @@ class Config(metaclass=MetaConfig):
                 for config_id, config_data in config.items():
                     if config_id in Config.running_config.classes:
                         log.debug(f"Loading config section {config_id}")
-                        new_config[config_id] = jsons.load(config_data, Config.running_config.classes[config_id])
+                        clazz: type = Config.running_config.classes.get(config_id, Any)
+                        # use the from_json class from config, if available
+                        loader = getattr(clazz, "from_json", jsons.load)
+                        new_config[config_id] = loader(config_data)
                     else:
                         log.warning(f"Unknown config section {config_id}")
                 if reload and self.restart_required(new_config):

@@ -2,6 +2,7 @@ import pickle
 from dataclasses import replace
 from tempfile import TemporaryDirectory
 
+import jsons
 import yaml
 
 from resotolib.utils import num_default_threads
@@ -41,6 +42,36 @@ def test_setup_config() -> None:
         cfg = K8sConfig(configs, files)
         result = cfg.cluster_access_configs(tmpdir)
         assert result.keys() == {"a", "b", "c", "d", "e", "f"}
+
+
+def test_config_roundtrip() -> None:
+    cfg = K8sConfig(
+        [K8sAccess(name=n, certificate_authority_data=n, server=n, token=n) for n in ["d", "e", "f"]],
+        [K8sConfigFile(n, ["foo"]) for n in ["d", "e", "f"]],
+    )
+    js = jsons.dump(cfg, strip_attr="kind", strip_properties=True, strip_privates=True)
+    # noinspection PyTypeChecker
+    again = K8sConfig.from_json(js)
+    assert cfg.configs == again.configs and cfg.config_files == again.config_files
+
+
+def test_config_migrate_from_v1() -> None:
+    js = dict(
+        context=["a", "b", "c"],
+        config=["a", "b", "c"],
+        cluster=["a", "b", "c"],
+        apiserver=["a", "b", "c"],
+        token=["a", "b", "c"],
+        cacert=["a", "b", "c"],
+        collect=["a", "b", "c"],
+        no_collect=["a", "b", "c"],
+        pool_size=23,
+        fork_process=True,
+        all_contexts=True,
+    )
+    config = K8sConfig.from_json(js)
+    assert len(config.configs) == 3
+    assert len(config.config_files) == 3
 
 
 def test_empty_config() -> None:
