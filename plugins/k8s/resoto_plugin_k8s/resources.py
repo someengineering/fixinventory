@@ -801,9 +801,9 @@ class KubernetesPod(KubernetesResource):
                 if value_from is None:
                     continue
                 elif ref := value_from.get("secretKeyRef", None):
-                    builder.add_edge(self, EdgeType.default, True, clazz=KubernetesSecret, name=ref["name"])
+                    builder.add_edge(self, EdgeType.default, clazz=KubernetesSecret, name=ref["name"])
                 elif ref := value_from.get("configMapKeyRef", None):
-                    builder.add_edge(self, EdgeType.default, True, clazz=KubernetesConfigMap, name=ref["name"])
+                    builder.add_edge(self, EdgeType.default, clazz=KubernetesConfigMap, name=ref["name"])
 
 
 # endregion
