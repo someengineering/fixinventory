@@ -226,9 +226,9 @@ class K8sConfig:
 
     def __getstate__(self) -> Dict[str, Any]:
         d = self.__dict__.copy()
-        del d["_lock"]
-        del d["_temp_dir"]
-        del d["_clients"]
+        d.pop("_lock", None)
+        d.pop("_temp_dir", None)
+        d.pop("_clients", None)
         return d
 
     def __setstate__(self, d: Dict[str, Any]) -> None:

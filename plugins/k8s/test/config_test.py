@@ -1,3 +1,5 @@
+import pickle
+from dataclasses import replace
 from tempfile import TemporaryDirectory
 
 import yaml
@@ -12,6 +14,18 @@ def test_k8s_access() -> None:
     config = K8sAccess(name="test", certificate_authority_data="test", server="test", token="test")
     yaml_string = config.to_yaml()
     yaml.safe_load(yaml_string)
+
+
+def test_k8s_config_pickle() -> None:
+    access = K8sAccess(name="test", certificate_authority_data="test", server="test", token="test")
+    file = K8sConfigFile("test", ["bla"], True)
+    base = K8sConfig([access], [file])
+
+    for config in [base, replace(base, _clients={}, _temp_dir=TemporaryDirectory())]:
+        pickled = pickle.dumps(config)
+        again = pickle.loads(pickled)
+        assert config.configs == again.configs
+        assert config.config_files == again.config_files
 
 
 def test_setup_config() -> None:
