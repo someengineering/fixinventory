@@ -341,7 +341,10 @@ class SearchPart(SearchCLIPart):
         return "Search the graph."
 
     def args_info(self) -> ArgsInfo:
-        return [ArgInfo(expects_value=True, value_hint="search")]
+        return [
+            ArgInfo(expects_value=True, value_hint="search"),
+            ArgInfo("--with-edges", help_text="include edges in result"),
+        ]
 
 
 class SortPart(SearchCLIPart):

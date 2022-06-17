@@ -793,6 +793,17 @@ class KubernetesPod(KubernetesResource):
         builder.connect_volumes(self, volumes)
         if node_name := bend(S("spec", "nodeName"), source):
             builder.add_edge(self, EdgeType.default, True, clazz=KubernetesNode, name=node_name)
+        container_array = bend(
+            S("spec", "containers") >> ForallBend(S("env", default=[]) >> ForallBend(S("valueFrom"))), source
+        )
+        for from_array in container_array:
+            for value_from in from_array:
+                if value_from is None:
+                    continue
+                elif ref := value_from.get("secretKeyRef", None):
+                    builder.add_edge(self, EdgeType.default, clazz=KubernetesSecret, name=ref["name"])
+                elif ref := value_from.get("configMapKeyRef", None):
+                    builder.add_edge(self, EdgeType.default, clazz=KubernetesConfigMap, name=ref["name"])
 
 
 # endregion
