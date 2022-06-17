@@ -315,7 +315,7 @@ class K8sConfig:
             config = json.get("config", [])
             cluster = json.get("cluster", [])
             apiserver = json.get("apiserver", [])
-            token = json.get("apiserver", [])
+            token = json.get("token", [])
             cacert = json.get("cacert", [])
             context = json.get("context", [])
             access = [
