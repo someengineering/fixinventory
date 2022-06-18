@@ -5,6 +5,7 @@ from tempfile import TemporaryDirectory
 import jsons
 import yaml
 
+from resotolib.types import Json
 from resotolib.utils import num_default_threads
 from resotolib.config import Config
 from resoto_plugin_k8s import KubernetesCollectorPlugin
@@ -88,7 +89,7 @@ def test_config_migrate_from_v1() -> None:
     assert len(config.configs) == 3
     assert len(config.config_files) == 3
 
-    fresh_20_config = {
+    fresh_20_config: Json = {
         "context": [],
         "config": None,
         "cluster": [],
