@@ -101,7 +101,9 @@ def test_config_migrate_from_v1() -> None:
         "fork_process": False,
         "all_contexts": False,
     }
-    K8sConfig.from_json(fresh_20_config)
+    fresh = K8sConfig.from_json(fresh_20_config)
+    assert len(fresh.configs) == 0
+    assert len(fresh.config_files) == 0
 
 
 def test_empty_config() -> None:
