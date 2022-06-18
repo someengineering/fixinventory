@@ -88,6 +88,21 @@ def test_config_migrate_from_v1() -> None:
     assert len(config.configs) == 3
     assert len(config.config_files) == 3
 
+    fresh_20_config = {
+        "context": [],
+        "config": None,
+        "cluster": [],
+        "apiserver": [],
+        "token": [],
+        "cacert": [],
+        "collect": [],
+        "no_collect": [],
+        "pool_size": 8,
+        "fork_process": False,
+        "all_contexts": False,
+    }
+    K8sConfig.from_json(fresh_20_config)
+
 
 def test_empty_config() -> None:
     # make sure the running config is empty

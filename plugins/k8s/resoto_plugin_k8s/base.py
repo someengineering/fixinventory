@@ -312,12 +312,12 @@ class K8sConfig:
 
         if any(k in json for k in v1):
             log.info("Migrate k8s configuration from v1")
-            config = json.get("config", [])
-            cluster = json.get("cluster", [])
-            apiserver = json.get("apiserver", [])
-            token = json.get("token", [])
-            cacert = json.get("cacert", [])
-            context = json.get("context", [])
+            config = json.get("config", []) or []
+            cluster = json.get("cluster", []) or []
+            apiserver = json.get("apiserver", []) or []
+            token = json.get("token", []) or []
+            cacert = json.get("cacert", []) or []
+            context = json.get("context", []) or []
             access = [
                 K8sAccess(at(cluster, i), at(apiserver, i), at(token, i), at(cacert, i)) for i in range(len(cluster))
             ]
