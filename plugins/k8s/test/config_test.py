@@ -2,8 +2,10 @@ import pickle
 from dataclasses import replace
 from tempfile import TemporaryDirectory
 
+import jsons
 import yaml
 
+from resotolib.types import Json
 from resotolib.utils import num_default_threads
 from resotolib.config import Config
 from resoto_plugin_k8s import KubernetesCollectorPlugin
@@ -41,6 +43,68 @@ def test_setup_config() -> None:
         cfg = K8sConfig(configs, files)
         result = cfg.cluster_access_configs(tmpdir)
         assert result.keys() == {"a", "b", "c", "d", "e", "f"}
+
+
+def test_config_roundtrip() -> None:
+    cfg = K8sConfig(
+        [K8sAccess(name=n, certificate_authority_data=n, server=n, token=n) for n in ["d", "e", "f"]],
+        [K8sConfigFile(n, ["foo"]) for n in ["d", "e", "f"]],
+    )
+    js = jsons.dump(cfg, strip_attr="kind", strip_properties=True, strip_privates=True)
+    # noinspection PyTypeChecker
+    again = K8sConfig.from_json(js)
+    assert cfg.configs == again.configs and cfg.config_files == again.config_files
+
+
+def test_config_migrate_from_v1() -> None:
+    js = dict(
+        context=["ctx_a", "ctx_b", "ctx_c"],
+        config=["cfg_a", "cfg_b", "cfg_c"],
+        cluster=["cls_a", "cls_b", "cls_c"],
+        apiserver=["api_a", "api_b", "api_c"],
+        token=["tkn_a", "tkn_b", "tkn_c"],
+        cacert=["ca_a", "ca_b", "ca_c"],
+        collect=["c_a", "c_b", "c_c"],
+        no_collect=["n_a", "n_b", "n_c"],
+        pool_size=23,
+        fork_process=True,
+        all_contexts=True,
+    )
+    config = K8sConfig.from_json(js)
+    assert len(config.configs) == 3
+    assert len(config.config_files) == 3
+    config.configs[0] = K8sAccess("cls_a", "api_a", "tkn_a", "ca_a")
+    config.config_files[0] = K8sConfigFile("cfg_a", ["c_a", "n_a"], True)
+
+    # can parse partial data
+    js["apiserver"] = []
+    K8sConfig.from_json(js)
+    assert len(config.configs) == 3
+    assert len(config.config_files) == 3
+
+    # accepts missing data
+    del js["apiserver"]
+    del js["cacert"]
+    K8sConfig.from_json(js)
+    assert len(config.configs) == 3
+    assert len(config.config_files) == 3
+
+    fresh_20_config: Json = {
+        "context": [],
+        "config": None,
+        "cluster": [],
+        "apiserver": [],
+        "token": [],
+        "cacert": [],
+        "collect": [],
+        "no_collect": [],
+        "pool_size": 8,
+        "fork_process": False,
+        "all_contexts": False,
+    }
+    fresh = K8sConfig.from_json(fresh_20_config)
+    assert len(fresh.configs) == 0
+    assert len(fresh.config_files) == 0
 
 
 def test_empty_config() -> None:

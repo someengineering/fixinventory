@@ -220,20 +220,6 @@ class K8sConfig:
             ).strip()
         },
     )
-    _clients: Optional[Dict[str, "K8sClient"]] = None
-    _temp_dir: Optional[TemporaryDirectory[str]] = None
-    _lock: RLock = field(default_factory=RLock)
-
-    def __getstate__(self) -> Dict[str, Any]:
-        d = self.__dict__.copy()
-        d.pop("_lock", None)
-        d.pop("_temp_dir", None)
-        d.pop("_clients", None)
-        return d
-
-    def __setstate__(self, d: Dict[str, Any]) -> None:
-        d["_lock"] = RLock()
-        self.__dict__.update(d)
 
     collect: List[str] = field(
         default_factory=list,
@@ -251,6 +237,21 @@ class K8sConfig:
         default=False,
         metadata={"description": "Fork collector process instead of using threads"},
     )
+
+    _clients: Optional[Dict[str, "K8sClient"]] = None
+    _temp_dir: Optional[TemporaryDirectory[str]] = None
+    _lock: RLock = field(default_factory=RLock)
+
+    def __getstate__(self) -> Dict[str, Any]:
+        d = self.__dict__.copy()
+        d.pop("_lock", None)
+        d.pop("_temp_dir", None)
+        d.pop("_clients", None)
+        return d
+
+    def __setstate__(self, d: Dict[str, Any]) -> None:
+        d["_lock"] = RLock()
+        self.__dict__.update(d)
 
     def is_allowed(self, kind: str) -> bool:
         return (not self.collect or kind in self.collect) and kind not in self.no_collect
@@ -301,6 +302,39 @@ class K8sConfig:
         if isinstance(cfg, K8sConfig):
             return cfg
         return None
+
+    @staticmethod
+    def from_json(json: Json) -> "K8sConfig":
+        v1 = ["token", "context", "cluster", "apiserver", "config"]
+
+        def at(ls: List[str], idx: int) -> str:
+            return ls[idx] if len(ls) > idx else ""
+
+        if any(k in json for k in v1):
+            log.info("Migrate k8s configuration from v1")
+            config = json.get("config", []) or []
+            cluster = json.get("cluster", []) or []
+            apiserver = json.get("apiserver", []) or []
+            token = json.get("token", []) or []
+            cacert = json.get("cacert", []) or []
+            context = json.get("context", []) or []
+            access = [
+                K8sAccess(at(cluster, i), at(apiserver, i), at(token, i), at(cacert, i)) for i in range(len(cluster))
+            ]
+            files = [
+                K8sConfigFile(at(config, i), [at(context, i)], json.get("all_contexts", False))
+                for i in range(len(config))
+            ]
+            return K8sConfig(
+                configs=access,
+                config_files=files,
+                collect=json.get("collect", []),
+                no_collect=json.get("no_collect", []),
+                pool_size=json.get("pool_size", num_default_threads()),
+                fork_process=json.get("fork_process", False),
+            )
+        else:
+            return jsons.load(json, K8sConfig)  # type: ignore
 
 
 @dataclass
