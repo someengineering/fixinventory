@@ -4,17 +4,13 @@ from resoto_plugin_k8s.base import K8sClient
 from resoto_plugin_k8s.base import K8sConfig
 from resoto_plugin_k8s.resources import (
     KubernetesCluster,
-    KubernetesNode,
-    KubernetesPersistentVolume,
-    KubernetesResource,
-    KubernetesService,
     all_k8s_resources_by_k8s_name,
     KubernetesClusterInfo,
     KubernetesNamespace,
     GraphBuilder,
 )
 from resotolib.baseresources import EdgeType
-from resotolib.graph import ByNodeId, BySearchCriteria, Graph
+from resotolib.graph import Graph
 
 log = logging.getLogger("resoto.plugins.k8s")
 
@@ -48,7 +44,6 @@ class KubernetesCollector:
         )
 
     def collect(self) -> None:
-
         # collect all resources
         for resource in self.client.apis:
             known = all_k8s_resources_by_k8s_name.get(resource.kind)

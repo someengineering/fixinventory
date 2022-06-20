@@ -48,7 +48,6 @@ def test_collect() -> None:
     plugin.collect(client_factory=StaticFileClient.static)
     assert len(plugin.graph.nodes) == 562
     assert len(plugin.graph.edges) == 850
-    assert len(plugin.graph.deferred_edges) == 6
 
 
 def test_tag_update(config_map_in_graph: Tuple[KubernetesConfigMap, Graph, StaticFileClient]) -> None:
