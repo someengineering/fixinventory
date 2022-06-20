@@ -11,7 +11,7 @@ from resoto_plugin_aws.resources import (
 )
 from resotolib.config import Config
 from .config import CleanupAWSLoadbalancersConfig
-from resotolib.utils import parse_delta
+from resotolib.durations import parse_duration
 from typing import Dict
 
 
@@ -37,7 +37,7 @@ class CleanupAWSLoadbalancersPlugin(BaseActionPlugin):
 
     def update_age(self) -> None:
         try:
-            self.age = parse_delta(Config.plugin_cleanup_aws_loadbalancers.min_age)
+            self.age = parse_duration(Config.plugin_cleanup_aws_loadbalancers.min_age)
             log.debug(f"Cleanup AWS Load balancers minimum age is {self.age}")
         except ValueError:
             log.error(

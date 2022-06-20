@@ -81,30 +81,34 @@ def collect_plugin_graph(
     args: Namespace = None,
     running_config: RunningConfig = None,
 ) -> Optional[Graph]:
-    collector: BaseCollectorPlugin = collector_plugin()
-    collector_name = f"collector_{collector.cloud}"
-    resotolib.proc.set_thread_name(collector_name)
+    try:
+        collector: BaseCollectorPlugin = collector_plugin()
+        collector_name = f"collector_{collector.cloud}"
+        resotolib.proc.set_thread_name(collector_name)
 
-    if args is not None:
-        ArgumentParser.args = args
-        setup_logger("resotoworker")
-    if running_config is not None:
-        Config.running_config.apply(running_config)
+        if args is not None:
+            ArgumentParser.args = args
+            setup_logger("resotoworker")
+        if running_config is not None:
+            Config.running_config.apply(running_config)
 
-    log.debug(f"Starting new collect process for {collector.cloud}")
-    start_time = time()
-    collector.start()
-    collector.join(Config.resotoworker.timeout)
-    elapsed = time() - start_time
-    if not collector.is_alive():  # The plugin has finished its work
-        if not collector.finished:
-            log.error(f"Plugin {collector.cloud} did not finish collection" " - ignoring plugin results")
+        log.debug(f"Starting new collect process for {collector.cloud}")
+        start_time = time()
+        collector.start()
+        collector.join(Config.resotoworker.timeout)
+        elapsed = time() - start_time
+        if not collector.is_alive():  # The plugin has finished its work
+            if not collector.finished:
+                log.error(f"Plugin {collector.cloud} did not finish collection" " - ignoring plugin results")
+                return None
+            if not collector.graph.is_dag_per_edge_type():
+                log.error(f"Graph of plugin {collector.cloud} is not acyclic" " - ignoring plugin results")
+                return None
+            log.info(f"Collector of plugin {collector.cloud} finished in {elapsed:.4f}s")
+            return collector.graph
+        else:
+            log.error(f"Plugin {collector.cloud} timed out - discarding plugin graph")
             return None
-        if not collector.graph.is_dag_per_edge_type():
-            log.error(f"Graph of plugin {collector.cloud} is not acyclic" " - ignoring plugin results")
-            return None
-        log.info(f"Collector of plugin {collector.cloud} finished in {elapsed:.4f}s")
-        return collector.graph
-    else:
-        log.error(f"Plugin {collector.cloud} timed out - discarding Plugin graph")
+    except Exception as e:
+        log.exception(f"Unhandled exception in {collector_plugin}: {e} - ignoring plugin")
         return None

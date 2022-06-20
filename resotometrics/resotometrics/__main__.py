@@ -164,7 +164,7 @@ def update_metrics(metrics: Metrics, search_uri: str, tls_data: Optional[TLSData
         if shutdown_event.is_set():
             return
         metrics_search = data.search
-        metric_type = data.type
+        metric_type = data.type.value
         metric_help = data.help
 
         if metrics_search is None:

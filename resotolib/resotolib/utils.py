@@ -172,7 +172,7 @@ def str2timezone(tz: str) -> timezone:
 def delta_to_str(delta: timedelta) -> str:
     """Convert a timedelta to a string format which is reversable.
     Takes a datetime.timedelta object and converts it into a string
-    that is parseable by parse_delta
+    that is parseable by resotolib.durations.parse_duration
     """
     # NOTE: Rounds up to nearest minute)
     units = [("m", 60), ("h", 60), ("d", 24), ("w", 7)]
@@ -218,38 +218,6 @@ def delta_to_str(delta: timedelta) -> str:
     delta_str = "{}{}{}".format(remaining, units[-1][0], delta_str)
 
     return add_negative()
-
-
-def parse_delta(delta: str) -> timedelta:
-    """Parse a timedelta string format into a python timedelta object.
-    Takes a delta string like that constructed in delta_to_str and converts
-    it into a datetime.timedelta object
-    """
-    assert delta != "never"
-    possible_args = ["weeks", "days", "hours", "minutes"]
-
-    # Find all the <count> <unit> patterns, expand the count + units to build a
-    # timedelta.
-    chunk_regex = r"(\d+)\s*(\D+)\s*"
-    kwargs = {}
-    for count, unit in re.findall(chunk_regex, delta, re.I):
-        unit = unit.strip()
-        int_count = int(count)
-        found_unit = False
-        # match so that units can be given as single letters instead of whole words
-        for arg in possible_args:
-            if arg.startswith(unit):
-                kwargs[arg] = int_count
-                found_unit = True
-                break
-
-        if not found_unit:
-            raise ValueError(f"Unknown unit '{unit}' when parsing '{delta}'")
-
-    if len(kwargs) == 0:
-        raise ValueError(f"Unable to parse '{delta}'")
-
-    return timedelta(**kwargs)
 
 
 def chunks(items: List, n: int) -> List:

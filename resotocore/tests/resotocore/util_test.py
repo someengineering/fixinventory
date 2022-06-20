@@ -55,7 +55,7 @@ def test_random_str() -> None:
 
 
 def test_value_in_path() -> None:
-    js = {"foo": {"bla": {"test": 123}}}
+    js = {"foo": {"bla": {"test": 123}}, "b": [{"a": 1, "b": [1, 2, 3]}, {"a": 2, "b": [1, 2, 3]}]}
     assert value_in_path(js, ["foo", "bla", "test"]) == 123
     assert value_in_path_get(js, ["foo", "bla", "test"], "foo") == "foo"  # expected string got int -> default value
     assert value_in_path(js, ["foo", "bla", "test", "bar"]) is None

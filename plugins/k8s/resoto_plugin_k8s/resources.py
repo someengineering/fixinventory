@@ -1,14 +1,12 @@
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import ClassVar, Optional, Dict, Type, List, Any, Union, TypeVar, Tuple
+from typing import ClassVar, Optional, Dict, Type, List, Any, Union, Tuple
 
-import jsons
 from jsons import set_deserializer
-from resotolib.json_bender import StringToUnitNumber, CPUCoresToNumber, Bend, S, K, bend, ForallBend, Bender
+from resoto_plugin_k8s.base import KubernetesResource, SortTransitionTime
 from resotolib.baseresources import (
     BaseAccount,
-    BaseResource,
     BaseInstance,
     BaseRegion,
     InstanceStatus,
@@ -18,116 +16,29 @@ from resotolib.baseresources import (
     EdgeType,
 )
 from resotolib.graph import Graph
+from resotolib.json_bender import StringToUnitNumber, CPUCoresToNumber, Bend, S, K, bend, ForallBend, Bender
 from resotolib.types import Json
 
 log = logging.getLogger("resoto.plugins.k8s")
 
 
-@dataclass(eq=False)
-class KubernetesResource(BaseResource):
-    kind: ClassVar[str] = "kubernetes_resource"
-
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("metadata", "uid"),
-        "tags": S("metadata", "annotations", default={}),
-        "name": S("metadata", "name"),
-        "ctime": S("metadata", "creationTimestamp"),
-        "mtime": S("status", "conditions")[-1]["lastTransitionTime"],
-        "resource_version": S("metadata", "resourceVersion"),
-        "namespace": S("metadata", "namespace"),
-        "labels": S("metadata", "labels", default={}),
-    }
-
-    resource_version: Optional[str] = None
-    namespace: Optional[str] = None
-    labels: Dict[str, str] = field(default_factory=dict)
-
-    def to_json(self) -> Json:
-        return jsons.dump(  # type: ignore
-            self,
-            strip_privates=True,
-            strip_nulls=True,
-            strip_attr=(
-                "k8s_name",
-                "mapping",
-                "phantom",
-                "successor_kinds",
-                "parent_resource",
-                "usage_percentage",
-                "dname",
-                "kdname",
-                "rtdname",
-                "changes",
-                "event_log",
-                "str_event_log",
-                "chksum",
-                "age",
-                "last_access",
-                "last_update",
-                "clean",
-                "cleaned",
-                "protected",
-                "_graph",
-                "graph",
-                "max_graph_depth",
-                "resource_type",
-                "age",
-                "last_access",
-                "last_update",
-                "clean",
-                "cleaned",
-                "protected",
-                "uuid",
-                "kind",
-            ),
-        )
-
-    @classmethod
-    def from_json(cls: Type["KubernetesResource"], json: Json) -> "KubernetesResource":
-        mapped = bend(cls.mapping, json)
-        return jsons.load(mapped, cls)  # type: ignore
-
-    @classmethod
-    def k8s_name(cls: Type["KubernetesResource"]) -> str:
-        return cls.__name__.removeprefix("Kubernetes")
-
-    def update_tag(self, key: str, value: str) -> bool:
-        return False
-
-    def delete_tag(self, key: str) -> bool:
-        return False
-
-    def delete(self, graph: Graph) -> bool:
-        return False
-
-    def connect_in_graph(self, builder: "GraphBuilder", source: Json) -> None:
-        # https://kubernetes.io/docs/concepts/overview/working-with-objects/owners-dependents/
-        for ref in bend(S("metadata", "ownerReferences", default=[]), source):
-            owner = builder.node(id=ref["uid"])
-            block_owner_deletion = ref.get("blockOwnerDeletion", False)
-            if owner:
-                log.debug(f"Add owner reference from {owner} -> {self}")
-                builder.graph.add_edge(owner, self, edge_type=EdgeType.default)
-                if block_owner_deletion:
-                    builder.graph.add_edge(self, owner, edge_type=EdgeType.delete)
-
-    def __str__(self) -> str:
-        return f"{self.__class__.__name__}[{self.name}]"
-
-
-KubernetesResourceType = TypeVar("KubernetesResourceType", bound=KubernetesResource)
-
-
 class GraphBuilder:
     def __init__(self, graph: Graph):
         self.graph = graph
+        self.name = getattr(graph.root, "name", "unknown")
 
     def node(self, clazz: Optional[Type[KubernetesResource]] = None, **node: Any) -> Optional[KubernetesResource]:
+        if isinstance(nd := node.get("node"), KubernetesResource):
+            return nd
         for n in self.graph:
             is_clazz = isinstance(n, clazz) if clazz else True
             if is_clazz and all(getattr(n, k, None) == v for k, v in node.items()):
                 return n  # type: ignore
         return None
+
+    def add_node(self, node: KubernetesResource, **kwargs: Any) -> None:
+        log.debug(f"{self.name}: add node {node}")
+        self.graph.add_node(node, **kwargs)
 
     def add_edge(
         self, from_node: KubernetesResource, edge_type: EdgeType, reverse: bool = False, **to_node: Any
@@ -135,7 +46,7 @@ class GraphBuilder:
         to_n = self.node(**to_node)
         if to_n:
             start, end = (to_n, from_node) if reverse else (from_node, to_n)
-            log.debug(f"Add edge: {start.name}:{start.k8s_name()} -> {end.name}:{end.k8s_name()}")
+            log.debug(f"{self.name}: add edge: {start} -> {end}")
             self.graph.add_edge(start, end, edge_type=edge_type)
 
     def add_edges_from_selector(
@@ -148,33 +59,34 @@ class GraphBuilder:
         for to_n in self.graph:
             is_clazz = isinstance(to_n, clazz) if clazz else True
             if is_clazz and to_n != from_node and selector.items() <= to_n.labels.items():
-                log.debug(f"Add edge: {from_node} -> {to_n}")
+                log.debug(f"{self.name}: add edge from selector: {from_node} -> {to_n}")
                 self.graph.add_edge(from_node, to_n, edge_type=edge_type)
 
     def connect_volumes(self, from_node: KubernetesResource, volumes: List[Json]) -> None:
         for volume in volumes:
             if "persistentVolumeClaim" in volume:
-                name = volume["persistentVolumeClaim"]["claimName"]
-                self.add_edge(
-                    from_node,
-                    EdgeType.default,
-                    name=name,
-                    namespace=from_node.namespace,
-                    clazz=KubernetesPersistentVolumeClaim,
-                )
+                if name := bend(S("persistentVolumeClaim", "claimName"), volume):
+                    self.add_edge(
+                        from_node,
+                        EdgeType.default,
+                        name=name,
+                        namespace=from_node.namespace,
+                        clazz=KubernetesPersistentVolumeClaim,
+                    )
             elif "configMap" in volume:
-                name = volume["configMap"]["name"]
-                self.add_edge(
-                    from_node, EdgeType.default, name=name, namespace=from_node.namespace, clazz=KubernetesConfigMap
-                )
+                if name := bend(S("configMap", "name"), volume):
+                    self.add_edge(
+                        from_node, EdgeType.default, name=name, namespace=from_node.namespace, clazz=KubernetesConfigMap
+                    )
             elif "secret" in volume:
-                name = volume["secret"]["secretName"]
-                self.add_edge(
-                    from_node, EdgeType.default, name=name, namespace=from_node.namespace, clazz=KubernetesSecret
-                )
+                if name := bend(S("secret", "secretName"), volume):
+                    self.add_edge(
+                        from_node, EdgeType.default, name=name, namespace=from_node.namespace, clazz=KubernetesSecret
+                    )
             elif "projected" in volume:
-                # iterate all projected volumes
-                self.connect_volumes(from_node, volume["projected"]["sources"])
+                if sources := bend(S("projected", "sources"), volume):
+                    # iterate all projected volumes
+                    self.connect_volumes(from_node, sources)
 
 
 # region node
@@ -321,7 +233,7 @@ class KubernetesNodeStatus:
     kind: ClassVar[str] = "kubernetes_node_status"
     mapping: ClassVar[Dict[str, Bender]] = {
         "addresses": S("addresses", default=[]) >> ForallBend(KubernetesNodeStatusAddresses.mapping),
-        "conditions": S("conditions", default=[]) >> ForallBend(KubernetesNodeCondition.mapping),
+        "conditions": S("conditions", default=[]) >> SortTransitionTime >> ForallBend(KubernetesNodeCondition.mapping),
         "config": S("config") >> Bend(KubernetesNodeStatusConfig.mapping),
         "capacity": S("capacity"),
         "daemon_endpoints": S("daemonEndpoints") >> Bend(KubernetesNodeDaemonEndpoint.mapping),
@@ -398,7 +310,10 @@ class KubernetesNode(KubernetesResource, BaseInstance):
         "instance_type": K("kubernetes_node"),
         "instance_status": K(InstanceStatus.RUNNING.value),
     }
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {"default": ["kubernetes_csi_node"], "delete": []}
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["kubernetes_csi_node", "kubernetes_pod"],
+        "delete": [],
+    }
 
     provider_id: Optional[str] = None
     node_status: Optional[KubernetesNodeStatus] = field(default=None)
@@ -529,7 +444,9 @@ class KubernetesPodIPs:
 class KubernetesPodStatus:
     kind: ClassVar[str] = "kubernetes_pod_status"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "conditions": S("conditions", default=[]) >> ForallBend(KubernetesPodStatusConditions.mapping),
+        "conditions": S("conditions", default=[])
+        >> SortTransitionTime
+        >> ForallBend(KubernetesPodStatusConditions.mapping),
         "container_statuses": S("containerStatuses", default=[]) >> ForallBend(KubernetesContainerStatus.mapping),
         "ephemeral_container_statuses": S("ephemeralContainerStatuses", default=[])
         >> ForallBend(KubernetesContainerState.mapping),
@@ -874,6 +791,19 @@ class KubernetesPod(KubernetesResource):
         super().connect_in_graph(builder, source)
         volumes = bend(S("spec", "volumes", default=[]), source)
         builder.connect_volumes(self, volumes)
+        if node_name := bend(S("spec", "nodeName"), source):
+            builder.add_edge(self, EdgeType.default, True, clazz=KubernetesNode, name=node_name)
+        container_array = bend(
+            S("spec", "containers") >> ForallBend(S("env", default=[]) >> ForallBend(S("valueFrom"))), source
+        )
+        for from_array in container_array:
+            for value_from in from_array:
+                if value_from is None:
+                    continue
+                elif ref := value_from.get("secretKeyRef", None):
+                    builder.add_edge(self, EdgeType.default, clazz=KubernetesSecret, name=ref["name"])
+                elif ref := value_from.get("configMapKeyRef", None):
+                    builder.add_edge(self, EdgeType.default, clazz=KubernetesConfigMap, name=ref["name"])
 
 
 # endregion
@@ -905,6 +835,7 @@ class KubernetesPersistentVolumeClaimStatus:
         "access_modes": S("accessModes", default=[]),
         "allocated_resources": S("allocatedResources"),
         "conditions": S("conditions", default=[])
+        >> SortTransitionTime
         >> ForallBend(KubernetesPersistentVolumeClaimStatusConditions.mapping),
         "phase": S("phase"),
         "resize_status": S("resizeStatus"),
@@ -1035,7 +966,9 @@ class KubernetesServiceStatusConditions:
 class KubernetesServiceStatus:
     kind: ClassVar[str] = "kubernetes_service_status"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "conditions": S("conditions", default=[]) >> ForallBend(KubernetesServiceStatusConditions.mapping),
+        "conditions": S("conditions", default=[])
+        >> SortTransitionTime
+        >> ForallBend(KubernetesServiceStatusConditions.mapping),
         "load_balancer": S("loadBalancer") >> Bend(KubernetesLoadbalancerStatus.mapping),
     }
     conditions: List[KubernetesServiceStatusConditions] = field(default_factory=list)
@@ -1137,6 +1070,7 @@ class KubernetesClusterInfo:
     major: str
     minor: str
     platform: str
+    server_url: str
 
 
 @dataclass(eq=False)
@@ -1268,7 +1202,9 @@ class KubernetesNamespaceStatusConditions:
 class KubernetesNamespaceStatus:
     kind: ClassVar[str] = "kubernetes_namespace_status"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "conditions": S("conditions", default=[]) >> ForallBend(KubernetesNamespaceStatusConditions.mapping),
+        "conditions": S("conditions", default=[])
+        >> SortTransitionTime
+        >> ForallBend(KubernetesNamespaceStatusConditions.mapping),
         "phase": S("phase"),
     }
     conditions: List[KubernetesNamespaceStatusConditions] = field(default_factory=list)
@@ -1442,6 +1378,7 @@ class KubernetesReplicationControllerStatus:
     mapping: ClassVar[Dict[str, Bender]] = {
         "available_replicas": S("availableReplicas"),
         "conditions": S("conditions", default=[])
+        >> SortTransitionTime
         >> ForallBend(KubernetesReplicationControllerStatusConditions.mapping),
         "fully_labeled_replicas": S("fullyLabeledReplicas"),
         "observed_generation": S("observedGeneration"),
@@ -1558,7 +1495,9 @@ class KubernetesDaemonSetStatus:
     kind: ClassVar[str] = "kubernetes_daemon_set_status"
     mapping: ClassVar[Dict[str, Bender]] = {
         "collision_count": S("collisionCount"),
-        "conditions": S("conditions", default=[]) >> ForallBend(KubernetesDaemonSetStatusConditions.mapping),
+        "conditions": S("conditions", default=[])
+        >> SortTransitionTime
+        >> ForallBend(KubernetesDaemonSetStatusConditions.mapping),
         "current_number_scheduled": S("currentNumberScheduled"),
         "desired_number_scheduled": S("desiredNumberScheduled"),
         "number_available": S("numberAvailable"),
@@ -1645,7 +1584,9 @@ class KubernetesDeploymentStatus:
     mapping: ClassVar[Dict[str, Bender]] = {
         "available_replicas": S("availableReplicas"),
         "collision_count": S("collisionCount"),
-        "conditions": S("conditions", default=[]) >> ForallBend(KubernetesDeploymentStatusCondition.mapping),
+        "conditions": S("conditions", default=[])
+        >> SortTransitionTime
+        >> ForallBend(KubernetesDeploymentStatusCondition.mapping),
         "observed_generation": S("observedGeneration"),
         "ready_replicas": S("readyReplicas"),
         "replicas": S("replicas"),
@@ -1715,7 +1656,7 @@ class KubernetesDeployment(KubernetesResource):
         "deployment_spec": S("spec") >> Bend(KubernetesDeploymentSpec.mapping),
     }
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["kubernetes_replica_set", "kubernetes_pod"],
+        "default": ["kubernetes_replica_set"],
         "delete": [],
     }
     deployment_status: Optional[KubernetesDeploymentStatus] = field(default=None)
@@ -1725,7 +1666,7 @@ class KubernetesDeployment(KubernetesResource):
         super().connect_in_graph(builder, source)
         selector = bend(S("spec", "selector", "matchLabels"), source)
         if selector:
-            builder.add_edges_from_selector(self, EdgeType.default, selector, (KubernetesPod, KubernetesReplicaSet))
+            builder.add_edges_from_selector(self, EdgeType.default, selector, KubernetesReplicaSet)
 
 
 @dataclass(eq=False)
@@ -1750,7 +1691,9 @@ class KubernetesReplicaSetStatus:
     kind: ClassVar[str] = "kubernetes_replica_set_status"
     mapping: ClassVar[Dict[str, Bender]] = {
         "available_replicas": S("availableReplicas"),
-        "conditions": S("conditions", default=[]) >> ForallBend(KubernetesReplicaSetStatusCondition.mapping),
+        "conditions": S("conditions", default=[])
+        >> SortTransitionTime
+        >> ForallBend(KubernetesReplicaSetStatusCondition.mapping),
         "fully_labeled_replicas": S("fullyLabeledReplicas"),
         "observed_generation": S("observedGeneration"),
         "ready_replicas": S("readyReplicas"),
@@ -1818,7 +1761,9 @@ class KubernetesStatefulSetStatus:
     mapping: ClassVar[Dict[str, Bender]] = {
         "available_replicas": S("availableReplicas"),
         "collision_count": S("collisionCount"),
-        "conditions": S("conditions", default=[]) >> ForallBend(KubernetesStatefulSetStatusCondition.mapping),
+        "conditions": S("conditions", default=[])
+        >> SortTransitionTime
+        >> ForallBend(KubernetesStatefulSetStatusCondition.mapping),
         "current_replicas": S("currentReplicas"),
         "current_revision": S("currentRevision"),
         "observed_generation": S("observedGeneration"),
@@ -2062,7 +2007,9 @@ class KubernetesJobStatus:
         "active": S("active"),
         "completed_indexes": S("completedIndexes"),
         "completion_time": S("completionTime"),
-        "conditions": S("conditions", default=[]) >> ForallBend(KubernetesJobStatusConditions.mapping),
+        "conditions": S("conditions", default=[])
+        >> SortTransitionTime
+        >> ForallBend(KubernetesJobStatusConditions.mapping),
         "failed": S("failed"),
         "ready": S("ready"),
         "start_time": S("startTime"),
@@ -2112,7 +2059,9 @@ class KubernetesFlowSchemaStatusConditions:
 class KubernetesFlowSchemaStatus:
     kind: ClassVar[str] = "kubernetes_flow_schema_status"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "conditions": S("conditions", default=[]) >> ForallBend(KubernetesFlowSchemaStatusConditions.mapping),
+        "conditions": S("conditions", default=[])
+        >> SortTransitionTime
+        >> ForallBend(KubernetesFlowSchemaStatusConditions.mapping),
     }
     conditions: List[KubernetesFlowSchemaStatusConditions] = field(default_factory=list)
 
@@ -2148,6 +2097,7 @@ class KubernetesPriorityLevelConfigurationStatus:
     kind: ClassVar[str] = "kubernetes_priority_level_configuration_status"
     mapping: ClassVar[Dict[str, Bender]] = {
         "conditions": S("conditions", default=[])
+        >> SortTransitionTime
         >> ForallBend(KubernetesPriorityLevelConfigurationStatusConditions.mapping),
     }
     conditions: List[KubernetesPriorityLevelConfigurationStatusConditions] = field(default_factory=list)
@@ -2283,7 +2233,9 @@ class KubernetesNetworkPolicyStatusConditions:
 class KubernetesNetworkPolicyStatus:
     kind: ClassVar[str] = "kubernetes_network_policy_status"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "conditions": S("conditions", default=[]) >> ForallBend(KubernetesNetworkPolicyStatusConditions.mapping),
+        "conditions": S("conditions", default=[])
+        >> SortTransitionTime
+        >> ForallBend(KubernetesNetworkPolicyStatusConditions.mapping),
     }
     conditions: List[KubernetesNetworkPolicyStatusConditions] = field(default_factory=list)
 
@@ -2326,7 +2278,9 @@ class KubernetesPodDisruptionBudgetStatusConditions:
 class KubernetesPodDisruptionBudgetStatus:
     kind: ClassVar[str] = "kubernetes_pod_disruption_budget_status"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "conditions": S("conditions", default=[]) >> ForallBend(KubernetesPodDisruptionBudgetStatusConditions.mapping),
+        "conditions": S("conditions", default=[])
+        >> SortTransitionTime
+        >> ForallBend(KubernetesPodDisruptionBudgetStatusConditions.mapping),
         "current_healthy": S("currentHealthy"),
         "desired_healthy": S("desiredHealthy"),
         "disrupted_pods": S("disruptedPods"),

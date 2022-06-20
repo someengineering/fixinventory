@@ -4,7 +4,8 @@ from resotolib.baseplugin import BaseActionPlugin
 from resotolib.config import Config
 from .config import TagValidatorConfig
 from resotolib.core.search import CoreGraph
-from resotolib.utils import parse_delta, delta_to_str
+from resotolib.utils import delta_to_str
+from resotolib.durations import parse_duration
 from typing import Dict
 
 
@@ -53,7 +54,7 @@ class TagValidatorPlugin(BaseActionPlugin):
             max_expiration_str = delta_to_str(max_expiration)
             node_expiration_str = node.tags.get("expiration")
             try:
-                node_expiration = parse_delta(node_expiration_str)
+                node_expiration = parse_duration(node_expiration_str)
             except (AssertionError, ValueError):
                 log_msg = (
                     f"Invalid expiration tag value {node_expiration_str}" f" - updating tag to {max_expiration_str}"

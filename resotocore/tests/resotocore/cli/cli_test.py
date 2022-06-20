@@ -7,7 +7,7 @@ from aiostream import stream
 from pytest import fixture
 
 from resotocore.analytics import InMemoryEventSender
-from resotocore.cli import strip_quotes
+from resotocore.cli import strip_quotes, js_value_at
 from resotocore.cli.cli import CLI, multi_command_parser, CIKeyDict
 from resotocore.cli.command import (
     ExecuteSearchCommand,
@@ -313,3 +313,13 @@ def test_ci_dict() -> None:
     assert d == dict(a=1, b=2, c=4)
     d.update({"a": 2, "c": 5})
     assert d == dict(a=2, b=2, c=5)
+
+
+def test_js_value_at() -> None:
+    js = {"foo": {"bla": {"test": 123}}, "b": [{"a": 1, "b": [1, 2, 3]}, {"a": 2, "b": [1, 2, 3]}]}
+    assert js_value_at(js, "b[0].a") == 1
+    assert js_value_at(js, "b[0].b") == [1, 2, 3]
+    assert js_value_at(js, "b[*].a") == [1, 2]
+    assert js_value_at(js, "b[*].b[*]") == [[1, 2, 3], [1, 2, 3]]
+    assert js_value_at(js, "b[*].b[2]") == [3, 3]
+    assert js_value_at(js, "b[1].b[2]") == 3

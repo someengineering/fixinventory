@@ -260,6 +260,30 @@ class Term(abc.ABC):
         else:
             return None
 
+    def find_terms(self, fn: Callable[[Term], bool]) -> List[Term]:
+        if fn(self):
+            return [self]
+        if isinstance(self, CombinedTerm):
+            return self.left.find_terms(fn) + self.right.find_terms(fn)
+        elif isinstance(self, NotTerm):
+            return self.term.find_terms(fn)
+        elif isinstance(self, MergeTerm):
+
+            def walk_merge_queries(mt: MergeTerm) -> List[Term]:
+                result = []
+                for mq in mt.merge:
+                    for p in mq.query.parts:
+                        result.extend(p.term.find_terms(fn))
+                return result
+
+            return (
+                self.pre_filter.find_terms(fn)
+                or (self.post_filter.find_terms(fn) if self.post_filter else None)
+                or walk_merge_queries(self)
+            )
+        else:
+            return []
+
     def contains_term_type(self, clazz: type) -> bool:
         return self.find_term(lambda x: isinstance(x, clazz)) is not None
 
@@ -623,6 +647,10 @@ class Part:
         else:
             return self
 
+    @property
+    def predicates(self) -> List[Predicate]:
+        return self.term.find_terms(lambda x: isinstance(x, Predicate))  # type: ignore
+
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
 class AggregateVariableName:
@@ -941,24 +969,7 @@ class Query:
         """
         Returns a list of all predicates in this query.
         """
-        result = []
-
-        def walk(term: Term) -> None:
-            if isinstance(term, Predicate):
-                result.append(term)
-            elif isinstance(term, CombinedTerm):
-                walk(term.left)
-                walk(term.right)
-            elif isinstance(term, MergeTerm):
-                walk(term.pre_filter)
-                if term.post_filter:
-                    walk(term.post_filter)
-            elif isinstance(term, NotTerm):
-                walk(term.term)
-
-        for part in self.parts:
-            walk(part.term)
-        return result
+        return [pred for part in self.parts for pred in part.predicates]
 
     def analytics(self) -> Tuple[Dict[str, int], Dict[str, List[str]]]:
         counters: Dict[str, int] = defaultdict(lambda: 0)

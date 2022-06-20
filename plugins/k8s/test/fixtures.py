@@ -1,14 +1,14 @@
 import json
 import os
-from typing import Type, Optional, List, Tuple
+from functools import cached_property
+from typing import Type, Optional, List, Tuple, Dict, Any
 
 import jsons
 import pytest
 from _pytest.fixtures import SubRequest
 from kubernetes.client import Configuration
-
-from resoto_plugin_k8s.client import K8sResource, K8sClient
-from resoto_plugin_k8s.resources import KubernetesResourceType
+from resoto_plugin_k8s.base import K8sApiResource, K8sClient
+from resoto_plugin_k8s.base import KubernetesResourceType
 from resotolib.types import Json
 
 
@@ -34,25 +34,56 @@ def json_file(request: SubRequest) -> Json:
 
 
 class StaticFileClient(K8sClient):
-    def get(self, path: str) -> Json:
+    def __init__(self, cluster_id: str, config: Any = None):
+        self._cluster_id = cluster_id
+        self._config = config
+        self.patches: List[Tuple[type, Optional[str], Optional[str], Json]] = []
+        self.deletes: List[Tuple[type, Optional[str], Optional[str]]] = []
+
+    def call_api(
+        self, method: str, path: str, body: Optional[Json] = None, headers: Optional[Dict[str, str]] = None
+    ) -> Json:
+        if method != "GET":
+            raise AttributeError("Only GET is supported")
         return from_file(path.lstrip("/").replace("/", "_") + ".json") or {}
+
+    def patch_resource(
+        self, clazz: Type[KubernetesResourceType], namespace: Optional[str], name: Optional[str], patch: Json
+    ) -> Optional[KubernetesResourceType]:
+        self.patches.append((clazz, namespace, name, patch))
+        return None
+
+    def delete_resource(
+        self, clazz: Type[KubernetesResourceType], namespace: Optional[str], name: Optional[str]
+    ) -> None:
+        self.deletes.append((clazz, namespace, name))
+        return None
+
+    @property
+    def cluster_id(self) -> str:
+        return self._cluster_id
+
+    @property
+    def host(self) -> str:
+        return "http://localhost:8080"
 
     def version(self) -> Json:
         return {"buildDate": "2022-03-16T14:02:06Z", "major": "1", "minor": "21", "platform": "linux/amd64"}
 
-    def apis(self) -> List[K8sResource]:
+    @cached_property
+    def apis(self) -> List[K8sApiResource]:
         js = self.get("apis")
-        return jsons.load(js, List[K8sResource])  # type: ignore
+        return self.filter_apis(jsons.load(js, List[K8sApiResource]))
 
     def list_resources(
-        self, resource: K8sResource, clazz: Type[KubernetesResourceType], path: Optional[str] = None
+        self, resource: K8sApiResource, clazz: Type[KubernetesResourceType], path: Optional[str] = None
     ) -> List[Tuple[KubernetesResourceType, Json]]:
-        result = self.get(path or resource.path)
+        result = self.get(path or resource.list_path)
         if result:
             return [(clazz.from_json(r), r) for r in result.get("items", [])]  # type: ignore
         else:
             return []
 
     @staticmethod
-    def static(_: Configuration) -> K8sClient:
-        return StaticFileClient()
+    def static(cluster_id: str, config: Configuration) -> K8sClient:
+        return StaticFileClient(cluster_id, config)

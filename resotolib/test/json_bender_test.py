@@ -1,4 +1,6 @@
-from resotolib.json_bender import StringToUnitNumber, bend, CPUCoresToNumber, MapValue
+from datetime import datetime
+
+from resotolib.json_bender import StringToUnitNumber, bend, CPUCoresToNumber, MapValue, AsDate, Sort, S
 
 
 def test_map_value() -> None:
@@ -31,3 +33,12 @@ def test_cpu_cores_to_number() -> None:
     assert bend(CPUCoresToNumber(), 1) == 1
     assert bend(CPUCoresToNumber(), "1000m") == 1
     assert bend(CPUCoresToNumber(), "3500m") == 3.5
+
+
+def test_as_date() -> None:
+    assert bend(AsDate(), "2022-06-07T14:43:49Z") == datetime(2022, 6, 7, 14, 43, 49)
+    assert bend(AsDate(), None) is None
+
+
+def test_sort() -> None:
+    assert bend(Sort(S("i")), [{"i": 2}, {"i": 3}, {"i": 1}]) == [{"i": 1}, {"i": 2}, {"i": 3}]
