@@ -2,7 +2,7 @@ import multiprocessing
 import resotolib.proc
 from time import time
 from concurrent import futures
-from resotolib.baseplugin import BaseCollectorPlugin
+from resotolib.baseplugin import BaseCollectorPlugin, BasePostCollectPlugin
 from resotolib.baseresources import GraphRoot
 from resotolib.graph import Graph, sanitize
 from resotolib.logger import log, setup_logger
@@ -22,6 +22,7 @@ class Collector:
     def collect_and_send(
         self,
         collectors: List[BaseCollectorPlugin],
+        post_collectors: List[BasePostCollectPlugin],
         task_id: str,
     ) -> None:
         def collect(collectors: List[BaseCollectorPlugin]) -> Graph:
@@ -67,6 +68,10 @@ class Collector:
             return graph
 
         collected = collect(collectors)
+
+        for post_collector_class in post_collectors:
+            instance = post_collector_class()
+            collected = instance.post_collect(collected)
 
         self._send_to_resotocore(collected, task_id)
 
