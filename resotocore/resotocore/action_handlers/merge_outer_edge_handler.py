@@ -49,21 +49,25 @@ class MergeOuterEdgesHandler:
             graph_db = self.db_access.get_graph_db(pending_edges.graph)
 
             async def find_node_id(selector: NodeSelector) -> Optional[NodeId]:
-                if isinstance(selector, ByNodeId):
-                    node = await graph_db.get_node(model, selector.value)
-                    return node.get("id") if node else None
-                else:
-                    query = parse_query(selector.query).with_limit(2)
-                    async with await graph_db.search_list(QueryModel(query, model)) as cursor:
-                        results = [node async for node in cursor]
-                        if len(results) > 1:
-                            log.warning(
-                                f"task_id: {task_id}: node selector {selector.query} returned more than one node."
-                                "The edge was not created."
-                            )
-                            return None
+                try:
+                    if isinstance(selector, ByNodeId):
+                        node = await graph_db.get_node(model, selector.value)
+                        return node.get("id") if node else None
+                    else:
+                        query = parse_query(selector.query).with_limit(2)
+                        async with await graph_db.search_list(QueryModel(query, model)) as cursor:
+                            results = [node async for node in cursor]
+                            if len(results) > 1:
+                                log.warning(
+                                    f"task_id: {task_id}: node selector {selector.query} returned more than one node."
+                                    "The edge was not created."
+                                )
+                                return None
 
-                    return next(iter(results), {}).get("id", None)  # type: ignore
+                        return next(iter(results), {}).get("id", None)  # type: ignore
+                except Exception as e:
+                    log.warning(f"task_id: {task_id}: Error {e} when finding node {selector}")
+                    return None
 
             edges: List[Tuple[NodeId, NodeId, str]] = []
             for edge in pending_edges.edges:

@@ -4,7 +4,7 @@ from resotolib.logger import log
 from typing import List, Optional
 from resotolib.args import ArgumentParser
 from resotolib.config import Config
-from resotolib.baseplugin import BasePlugin, BaseActionPlugin, PluginType
+from resotolib.baseplugin import BasePlugin, BaseActionPlugin, BasePostCollectPlugin, PluginType
 
 
 plugins = {}
@@ -56,7 +56,7 @@ class PluginLoader:
         if (
             inspect.isclass(plugin)
             and not inspect.isabstract(plugin)
-            and issubclass(plugin, (BasePlugin, BaseActionPlugin))
+            and issubclass(plugin, (BasePlugin, BaseActionPlugin, BasePostCollectPlugin))
             and plugin.plugin_type in plugins
         ):
             log.debug(f"Found plugin {plugin} ({plugin.plugin_type.name})")

@@ -9,7 +9,7 @@ from resotoworker.config import add_config
 from resotolib.config import Config
 from resotolib.logger import log, setup_logger, add_args as logging_add_args
 from resotolib.jwt import add_args as jwt_add_args
-from resotolib.baseplugin import BaseCollectorPlugin, PluginType
+from resotolib.baseplugin import BaseCollectorPlugin, BasePostCollectPlugin, PluginType
 from resotolib.web import WebServer
 from resotolib.web.metrics import WebApp
 from resotolib.utils import log_stats, increase_limits
@@ -174,6 +174,7 @@ def main() -> None:
 
 def core_actions_processor(plugin_loader: PluginLoader, tls_data: TLSData, collector: Collector, message: Dict) -> None:
     collectors: List[BaseCollectorPlugin] = plugin_loader.plugins(PluginType.COLLECTOR)
+    post_collectors: List[BasePostCollectPlugin] = plugin_loader.plugins(PluginType.POST_COLLECT)
     if not isinstance(message, dict):
         log.error(f"Invalid message: {message}")
         return
@@ -186,7 +187,7 @@ def core_actions_processor(plugin_loader: PluginLoader, tls_data: TLSData, colle
         try:
             if message_type == "collect":
                 start_time = time.time()
-                collector.collect_and_send(collectors, task_id=task_id)
+                collector.collect_and_send(collectors, post_collectors, task_id=task_id)
                 run_time = int(time.time() - start_time)
                 log.info(f"Collect ran for {run_time} seconds")
             elif message_type == "cleanup":
