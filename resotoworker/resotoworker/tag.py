@@ -1,19 +1,19 @@
 from resotolib.logger import log
 from resotolib.core.model_export import node_from_dict, node_to_dict
 from resotolib.types import Json
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 
 def core_tag_tasks_processor(message: Dict[str, Any]) -> Json:
     task_id = message.get("task_id")
     # task_name = message.get("task_name")
     # task_attrs = message.get("attrs", {})
-    task_data: Dict[str, Dict[str, Any]] = message.get("data", {})
-    delete_tags = task_data.get("delete", [])
-    update_tags = task_data.get("update", {})
-    node_data = task_data.get("node")
+    task_data: Dict[str, Any] = message.get("data", {})
+    delete_tags: List[str] = task_data.get("delete", [])
+    update_tags: Dict[str, str] = task_data.get("update", {})
+    node_data: Dict[str, Any] = task_data.get("node", {})
     result = "done"
-    extra_data = {}
+    extra_data: Dict[str, Any] = {}
 
     try:
         node = node_from_dict(node_data, include_select_ancestors=True)

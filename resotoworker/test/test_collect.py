@@ -5,7 +5,7 @@ from resotolib.config import Config
 from test.fakeconfig import FakeConfig
 
 
-def test_collect_and_send():
+def test_collect_and_send() -> None:
 
     sent_task_id: Optional[str] = None
 

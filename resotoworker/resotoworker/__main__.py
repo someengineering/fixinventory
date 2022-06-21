@@ -1,4 +1,5 @@
 from functools import partial
+from signal import SIGTERM
 import time
 import os
 import sys
@@ -75,12 +76,12 @@ def main() -> None:
     tls_data: Optional[TLSData] = None
     if resotocore.is_secure:
         tls_data = TLSData(
-            common_name=ArgumentParser.args.subscriber_id,  # type: ignore
+            common_name=ArgumentParser.args.subscriber_id,
             resotocore_uri=resotocore.http_uri,
         )
         tls_data.start()
     config = Config(
-        ArgumentParser.args.subscriber_id,  # type: ignore
+        ArgumentParser.args.subscriber_id,
         resotocore_uri=resotocore.http_uri,
         tls_data=tls_data,
     )
@@ -155,7 +156,7 @@ def main() -> None:
     core_tasks.start()
 
     for Plugin in plugin_loader.plugins(PluginType.ACTION):
-        Plugin = cast(Type[BaseActionPlugin], Plugin)
+        assert issubclass(Plugin, BaseActionPlugin)
         try:
             log.debug(f"Starting action plugin {Plugin}")
             plugin = Plugin(tls_data=tls_data)
@@ -166,20 +167,19 @@ def main() -> None:
     # We wait for the shutdown Event to be set() and then end the program
     # While doing so we print the list of active threads once per 15 minutes
     shutdown_event.wait()
-    web_server.shutdown()
+    web_server.shutdown()  # type: ignore
     time.sleep(1)  # everything gets 1000ms to shutdown gracefully before we force it
-    resotolib.proc.kill_children(resotolib.proc.SIGTERM, ensure_death=True)
+    resotolib.proc.kill_children(SIGTERM, ensure_death=True)
     log.info("Shutdown complete")
-    os._exit(0)  # type: ignore
+    os._exit(0)
 
 
 def core_actions_processor(
     plugin_loader: PluginLoader, tls_data: Optional[TLSData], collector: Collector, message: Dict[str, Any]
 ) -> Optional[Dict[str, Any]]:
-    collectors = plugin_loader.plugins(PluginType.COLLECTOR)
-    collectors = cast(List[Type[BaseCollectorPlugin]], collectors)
+    collectors: List[Type[BaseCollectorPlugin]] = plugin_loader.plugins(PluginType.COLLECTOR)  # type: ignore
     # todo: clean this up
-    if not isinstance(message, dict):  # type: ignore
+    if not isinstance(message, dict):
         log.error(f"Invalid message: {message}")
         return None
     kind = message.get("kind")
@@ -218,14 +218,15 @@ def core_actions_processor(
             "data": data,
         }
         return reply_message
+    return None
 
 
 def shutdown(event: Event) -> None:
-    reason = event.data.get("reason")  # type: ignore
-    emergency = event.data.get("emergency")  # type: ignore
+    reason = event.data.get("reason")
+    emergency = event.data.get("emergency")
 
     if emergency:
-        resotolib.proc.emergency_shutdown(reason)  # type: ignore
+        resotolib.proc.emergency_shutdown(reason)
 
     current_pid = os.getpid()
     if current_pid != resotolib.proc.parent_pid:
@@ -241,7 +242,7 @@ def force_shutdown(delay: int = 10) -> None:
     time.sleep(delay)
     log_stats()
     log.error(("Some child process or thread timed out during shutdown" " - forcing shutdown completion"))
-    os._exit(0)  # type: ignore
+    os._exit(0)
 
 
 def add_args(arg_parser: ArgumentParser) -> None:

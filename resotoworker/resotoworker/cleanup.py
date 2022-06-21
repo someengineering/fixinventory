@@ -1,7 +1,7 @@
 from resotolib.logger import log
 from resotolib.core.search import CoreGraph
 from resotolib.core.ca import TLSData
-from networkx import DiGraph
+from networkx import DiGraph  # type: ignore
 from resotolib.graph import Graph
 from resotolib.baseresources import BaseResource, EdgeType
 from resotolib.graph.graph_extensions import dependent_node_iterator
@@ -15,7 +15,7 @@ from typing import Optional, cast, List
 metrics_cleanup = Summary("resoto_cleanup_seconds", "Time it took the cleanup() method")
 
 
-def cleanup(tls_data: Optional[TLSData] = None):
+def cleanup(tls_data: Optional[TLSData] = None) -> None:
     """Run resource cleanup"""
 
     log.info("Running cleanup")
@@ -49,19 +49,19 @@ class Cleaner:
 
         log.info("Running cleanup")
         # create a subgraph of all the nodes that have a delete edge
-        delete_graph = DiGraph(self.graph.edge_type_subgraph(EdgeType.delete))  # type: ignore
+        delete_graph = DiGraph(self.graph.edge_type_subgraph(EdgeType.delete))
         # from that graph delete all the nodes not marked for cleanup
-        for node in list(delete_graph.nodes):  # type: ignore
+        for node in list(delete_graph.nodes):
             node = cast(BaseResource, node)
             if not node.clean:
-                delete_graph.remove_node(node)  # type: ignore
+                delete_graph.remove_node(node)
         # add all the nodes that are supposed to be cleaned
         # but do not have a delete edge so weren't part of the
         # subgraph
-        for node in self.graph.nodes:  # type: ignore
+        for node in self.graph.nodes:
             node = cast(BaseResource, node)
             if node.clean and node not in delete_graph:
-                delete_graph.add_node(node)  # type: ignore
+                delete_graph.add_node(node)
         cleanup_nodes: List[BaseResource] = list(delete_graph.nodes)
 
         for node in cleanup_nodes:
@@ -96,7 +96,7 @@ class Cleaner:
 
         log.info(f"{log_prefix}, calling pre cleanup method")
         try:
-            node.pre_cleanup(self.graph)  # type: ignore
+            node.pre_cleanup(self.graph)
         except Exception:
             log.exception(("An exception occurred when running resource pre cleanup on" f" {node.rtdname}"))
 
@@ -108,6 +108,6 @@ class Cleaner:
 
         log.info(f"{log_prefix}, calling cleanup method")
         try:
-            node.cleanup(self.graph)  # type: ignore
+            node.cleanup(self.graph)
         except Exception:
             log.exception(f"An exception occurred when running resource cleanup on {node.rtdname}")

@@ -64,8 +64,7 @@ class PluginLoader:
         if not self._initialized:
             self.find_plugins()
         if plugin_type == PluginType.COLLECTOR and len(Config.resotoworker.collector) > 0:
-            plugins = self._plugins.get(plugin_type, [])
-            plugins = cast(List[Type[BaseCollectorPlugin]], plugins)
+            plugins: List[Type[BaseCollectorPlugin]] = self._plugins.get(plugin_type, [])  # type: ignore
             return [plugin for plugin in plugins if plugin.cloud in Config.resotoworker.collector]
         return self._plugins.get(plugin_type, [])
 
