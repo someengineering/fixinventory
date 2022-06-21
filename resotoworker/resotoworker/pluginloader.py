@@ -40,16 +40,14 @@ class PluginLoader:
         app_plugin() which validates that the package resource is a subclass of
         BasePlugin.
         """
-        global initialized
         log.debug("Finding plugins")
         for entry_point in pkg_resources.iter_entry_points("resoto.plugins"):
             plugin = entry_point.load()
             self.add_plugin(plugin)
-        initialized = True
+        self._initialized = True
 
     def add_plugin(self, plugin: Union[Type[BasePlugin], Type[BaseActionPlugin]]) -> bool:
         """Adds a Plugin class to the list of Plugins"""
-        global plugins
         if (
             inspect.isclass(plugin)
             and not inspect.isabstract(plugin)
@@ -63,7 +61,7 @@ class PluginLoader:
 
     def plugins(self, plugin_type: PluginType) -> List[Union[Type[BasePlugin], Type[BaseActionPlugin]]]:
         """Returns the list of Plugins of a certain PluginType"""
-        if not initialized:
+        if not self._initialized:
             self.find_plugins()
         if plugin_type == PluginType.COLLECTOR and len(Config.resotoworker.collector) > 0:
             plugins = self._plugins.get(plugin_type, [])
@@ -73,7 +71,7 @@ class PluginLoader:
 
     def add_plugin_args(self, arg_parser: ArgumentParser) -> None:
         """Add args to the arg parser"""
-        if not initialized:
+        if not self._initialized:
             self.find_plugins()
         log.debug("Adding plugin args")
         for type_plugins in self._plugins.values():  # iterate over all PluginTypes
@@ -82,7 +80,7 @@ class PluginLoader:
 
     def add_plugin_config(self, config: Config) -> None:
         """Add plugin config to the config object"""
-        if not initialized:
+        if not self._initialized:
             self.find_plugins()
         log.debug("Adding plugin config")
         for type_plugins in self._plugins.values():  # iterate over all PluginTypes
