@@ -70,8 +70,11 @@ class Collector:
         collected = collect(collectors)
 
         for post_collector_class in post_collectors:
-            instance = post_collector_class()
-            collected = instance.post_collect(collected)
+            try:
+                instance = post_collector_class()
+                collected = instance.post_collect(collected)
+            except Exception as e:
+                log.warn(f"collector {post_collector_class.name} was not able to collect external edges: {e}")
 
         self._send_to_resotocore(collected, task_id)
 
