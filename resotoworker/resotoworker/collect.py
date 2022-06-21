@@ -8,7 +8,7 @@ from resotolib.graph import Graph, sanitize
 from resotolib.logger import log, setup_logger
 from resotolib.args import ArgumentParser
 from argparse import Namespace
-from typing import List, Optional, Callable
+from typing import List, Optional, Callable, Type
 from resotolib.config import Config, RunningConfig
 
 TaskId = str
@@ -21,10 +21,10 @@ class Collector:
 
     def collect_and_send(
         self,
-        collectors: List[BaseCollectorPlugin],
+        collectors: List[Type[BaseCollectorPlugin]],
         task_id: str,
     ) -> None:
-        def collect(collectors: List[BaseCollectorPlugin]) -> Graph:
+        def collect(collectors: List[Type[BaseCollectorPlugin]]) -> Optional[Graph]:
             graph = Graph(root=GraphRoot("root", {}))
 
             max_workers = (
@@ -34,7 +34,7 @@ class Collector:
             )
             if max_workers == 0:
                 log.error("No workers configured or no collector plugins loaded - skipping collect")
-                return
+                return None
             pool_args = {"max_workers": max_workers}
             if self._config.resotoworker.fork_process:
                 pool_args["mp_context"] = multiprocessing.get_context("spawn")
@@ -67,14 +67,14 @@ class Collector:
             return graph
 
         collected = collect(collectors)
-
-        self._send_to_resotocore(collected, task_id)
+        if collected:
+            self._send_to_resotocore(collected, task_id)
 
 
 def collect_plugin_graph(
-    collector_plugin: BaseCollectorPlugin,
-    args: Namespace = None,
-    running_config: RunningConfig = None,
+    collector_plugin: Type[BaseCollectorPlugin],
+    args: Optional[Namespace] = None,
+    running_config: Optional[RunningConfig] = None,
 ) -> Optional[Graph]:
     try:
         collector: BaseCollectorPlugin = collector_plugin()
