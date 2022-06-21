@@ -36,6 +36,7 @@ class PluginType(Enum):
     ACTION = auto()
     PERSISTENT = auto()
     CLI = auto()
+    POST_COLLECT = auto()
 
 
 class BasePlugin(ABC, Thread):
@@ -212,3 +213,34 @@ class BaseCollectorPlugin(BasePlugin):
 
     def go(self) -> None:
         self.collect()
+
+
+class BasePostCollectPlugin(ABC):
+    """A resoto Post Collect plugin is a thread that runs after collection is done.
+
+    Whenever the thread is started the post_collect() method is run. The post_collect() method
+    is expected take the graph and perform operations on it, e.g. add the external edges or
+    enritch the graph in some other way.
+    """
+
+    plugin_type = PluginType.POST_COLLECT  # Type of the Plugin
+    name: str = NotImplemented  # Name of the cloud this plugin implements
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.name = self.name
+
+    @abstractmethod
+    def post_collect(self, graph: Graph) -> Graph:
+        """Process the collected graph"""
+        pass
+
+    @staticmethod
+    def add_args(arg_parser: ArgumentParser) -> None:
+        """Adds Plugin specific arguments to the global arg parser"""
+        pass
+
+    @staticmethod
+    def add_config(config: Config) -> None:
+        """Adds Plugin specific config options"""
+        pass

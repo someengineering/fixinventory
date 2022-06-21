@@ -4,7 +4,7 @@ from resotolib.logger import log
 from typing import List, Optional, Type, Union, Dict
 from resotolib.args import ArgumentParser
 from resotolib.config import Config
-from resotolib.baseplugin import BaseCollectorPlugin, BasePlugin, BaseActionPlugin, PluginType
+from resotolib.baseplugin import BaseCollectorPlugin, BasePostCollectPlugin, BasePlugin, BaseActionPlugin, PluginType
 
 
 class PluginLoader:
@@ -51,7 +51,7 @@ class PluginLoader:
         if (
             inspect.isclass(plugin)
             and not inspect.isabstract(plugin)
-            and issubclass(plugin, (BasePlugin, BaseActionPlugin))
+            and issubclass(plugin, (BasePlugin, BaseActionPlugin, BasePostCollectPlugin))
             and plugin.plugin_type in self._plugins
         ):
             log.debug(f"Found plugin {plugin} ({plugin.plugin_type.name})")
@@ -59,14 +59,16 @@ class PluginLoader:
                 self._plugins[plugin.plugin_type].append(plugin)
         return True
 
-    def plugins(self, plugin_type: PluginType) -> List[Union[Type[BasePlugin], Type[BaseActionPlugin]]]:
+    def plugins(
+        self, plugin_type: PluginType
+    ) -> List[Union[Type[BasePlugin], Type[BaseActionPlugin], Type[BasePostCollectPlugin]]]:
         """Returns the list of Plugins of a certain PluginType"""
         if not self._initialized:
             self.find_plugins()
         if plugin_type == PluginType.COLLECTOR and len(Config.resotoworker.collector) > 0:
             plugins: List[Type[BaseCollectorPlugin]] = self._plugins.get(plugin_type, [])  # type: ignore
             return [plugin for plugin in plugins if plugin.cloud in Config.resotoworker.collector]
-        return self._plugins.get(plugin_type, [])
+        return self._plugins.get(plugin_type, [])  # type: ignore
 
     def add_plugin_args(self, arg_parser: ArgumentParser) -> None:
         """Add args to the arg parser"""
