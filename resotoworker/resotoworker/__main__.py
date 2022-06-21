@@ -4,12 +4,12 @@ import os
 import sys
 import threading
 import resotolib.proc
-from typing import List, Dict
+from typing import List, Dict, Type, cast, Optional, Any
 from resotoworker.config import add_config
 from resotolib.config import Config
 from resotolib.logger import log, setup_logger, add_args as logging_add_args
 from resotolib.jwt import add_args as jwt_add_args
-from resotolib.baseplugin import BaseCollectorPlugin, PluginType
+from resotolib.baseplugin import BaseActionPlugin, BaseCollectorPlugin, PluginType
 from resotolib.web import WebServer
 from resotolib.web.metrics import WebApp
 from resotolib.utils import log_stats, increase_limits
@@ -72,15 +72,15 @@ def main() -> None:
         log.fatal(f"Failed to connect to resotocore: {e}")
         sys.exit(1)
 
-    tls_data = None
+    tls_data: Optional[TLSData] = None
     if resotocore.is_secure:
         tls_data = TLSData(
-            common_name=ArgumentParser.args.subscriber_id,
+            common_name=ArgumentParser.args.subscriber_id,  # type: ignore
             resotocore_uri=resotocore.http_uri,
         )
         tls_data.start()
     config = Config(
-        ArgumentParser.args.subscriber_id,
+        ArgumentParser.args.subscriber_id,  # type: ignore
         resotocore_uri=resotocore.http_uri,
         tls_data=tls_data,
     )
@@ -155,6 +155,7 @@ def main() -> None:
     core_tasks.start()
 
     for Plugin in plugin_loader.plugins(PluginType.ACTION):
+        Plugin = cast(Type[BaseActionPlugin], Plugin)
         try:
             log.debug(f"Starting action plugin {Plugin}")
             plugin = Plugin(tls_data=tls_data)
@@ -169,18 +170,22 @@ def main() -> None:
     time.sleep(1)  # everything gets 1000ms to shutdown gracefully before we force it
     resotolib.proc.kill_children(resotolib.proc.SIGTERM, ensure_death=True)
     log.info("Shutdown complete")
-    os._exit(0)
+    os._exit(0)  # type: ignore
 
 
-def core_actions_processor(plugin_loader: PluginLoader, tls_data: TLSData, collector: Collector, message: Dict) -> None:
-    collectors: List[BaseCollectorPlugin] = plugin_loader.plugins(PluginType.COLLECTOR)
-    if not isinstance(message, dict):
+def core_actions_processor(
+    plugin_loader: PluginLoader, tls_data: Optional[TLSData], collector: Collector, message: Dict[str, Any]
+) -> Optional[Dict[str, Any]]:
+    collectors = plugin_loader.plugins(PluginType.COLLECTOR)
+    collectors = cast(List[Type[BaseCollectorPlugin]], collectors)
+    # todo: clean this up
+    if not isinstance(message, dict):  # type: ignore
         log.error(f"Invalid message: {message}")
-        return
+        return None
     kind = message.get("kind")
     message_type = message.get("message_type")
     data = message.get("data")
-    task_id = data.get("task")
+    task_id = data.get("task")  # type: ignore
     log.debug(f"Received message of kind {kind}, type {message_type}, data: {data}")
     if kind == "action":
         try:
@@ -216,11 +221,11 @@ def core_actions_processor(plugin_loader: PluginLoader, tls_data: TLSData, colle
 
 
 def shutdown(event: Event) -> None:
-    reason = event.data.get("reason")
-    emergency = event.data.get("emergency")
+    reason = event.data.get("reason")  # type: ignore
+    emergency = event.data.get("emergency")  # type: ignore
 
     if emergency:
-        resotolib.proc.emergency_shutdown(reason)
+        resotolib.proc.emergency_shutdown(reason)  # type: ignore
 
     current_pid = os.getpid()
     if current_pid != resotolib.proc.parent_pid:
@@ -236,7 +241,7 @@ def force_shutdown(delay: int = 10) -> None:
     time.sleep(delay)
     log_stats()
     log.error(("Some child process or thread timed out during shutdown" " - forcing shutdown completion"))
-    os._exit(0)
+    os._exit(0)  # type: ignore
 
 
 def add_args(arg_parser: ArgumentParser) -> None:
