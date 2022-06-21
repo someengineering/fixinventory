@@ -25,6 +25,6 @@ def test_collect_and_send():
 
     collector = Collector(send_to_resotocore, config)
 
-    collector.collect_and_send([], "task_123")
+    collector.collect_and_send([], [], "task_123")
 
     assert sent_task_id == "task_123"
