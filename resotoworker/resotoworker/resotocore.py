@@ -57,7 +57,7 @@ class Resotocore:
             "Content-Type": "application/json",
         }
         if getattr(ArgumentParser.args, "psk", None):
-            encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)
+            encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)  # type: ignore
 
         for attempt in Retrying(reraise=True, stop=stop_after_attempt(3), wait=wait_fixed(10)):
             with attempt:
@@ -93,7 +93,7 @@ class Resotocore:
 
         headers = {"Content-Type": "application/json"}
         if getattr(ArgumentParser.args, "psk", None):
-            encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)
+            encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)  # type: ignore
 
         for attempt in Retrying(reraise=True, stop=stop_after_attempt(3), wait=wait_fixed(10)):
             with attempt:
@@ -121,7 +121,7 @@ class Resotocore:
             "Resoto-Worker-Task-Id": task_id,
         }
         if getattr(ArgumentParser.args, "psk", None):
-            encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)
+            encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)  # type: ignore
 
         for attempt in Retrying(reraise=True, stop=stop_after_attempt(3), wait=wait_fixed(10)):
             with attempt:
@@ -130,5 +130,5 @@ class Resotocore:
                 if r.status_code != 200:
                     log.error(r.content)
                     raise RuntimeError(f"Failed to send graph: {r.content}")
-        log.debug(f"resotocore reply: {r.content.decode()}")
+                log.debug(f"resotocore reply: {r.content.decode()}")
         log.debug(f"Sent {graph_export_iterator.total_lines} items to resotocore")
