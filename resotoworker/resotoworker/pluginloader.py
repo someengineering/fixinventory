@@ -1,14 +1,10 @@
 import pkg_resources
 import inspect
 from resotolib.logger import log
-from typing import List, Optional
+from typing import List, Optional, Type, Union, Dict, cast
 from resotolib.args import ArgumentParser
 from resotolib.config import Config
-from resotolib.baseplugin import BasePlugin, BaseActionPlugin, PluginType
-
-
-plugins = {}
-initialized = False
+from resotolib.baseplugin import BaseCollectorPlugin, BasePlugin, BaseActionPlugin, PluginType
 
 
 class PluginLoader:
@@ -24,16 +20,17 @@ class PluginLoader:
         #   PluginType.CLI: [CliDebugPlugin]
         #   PluginType.PERSISTENT: [SlackNotificationPlugin, VolumeCleanupPlugin]
         # }
-        global plugins
+        self._plugins: Dict[PluginType, List[Union[Type[BasePlugin], Type[BaseActionPlugin]]]] = {}
+        self._initialized = False
 
         if plugin_type is not None:
             log.debug(f"Only loading plugins of type {plugin_type}")
-            plugins[plugin_type] = []
+            self._plugins[plugin_type] = []
         else:
             for plugin_type in PluginType:
-                if plugin_type not in plugins:
+                if plugin_type not in self._plugins:
                     log.debug(f"Loading plugins of type {plugin_type}")
-                    plugins[plugin_type] = []
+                    self._plugins[plugin_type] = []
 
     def find_plugins(self) -> None:
         """Finds resoto plugins
@@ -50,42 +47,44 @@ class PluginLoader:
             self.add_plugin(plugin)
         initialized = True
 
-    def add_plugin(self, plugin) -> bool:
+    def add_plugin(self, plugin: Union[Type[BasePlugin], Type[BaseActionPlugin]]) -> bool:
         """Adds a Plugin class to the list of Plugins"""
         global plugins
         if (
             inspect.isclass(plugin)
             and not inspect.isabstract(plugin)
             and issubclass(plugin, (BasePlugin, BaseActionPlugin))
-            and plugin.plugin_type in plugins
+            and plugin.plugin_type in self._plugins
         ):
             log.debug(f"Found plugin {plugin} ({plugin.plugin_type.name})")
-            if plugin not in plugins[plugin.plugin_type]:
-                plugins[plugin.plugin_type].append(plugin)
+            if plugin not in self._plugins[plugin.plugin_type]:
+                self._plugins[plugin.plugin_type].append(plugin)
         return True
 
-    def plugins(self, plugin_type: PluginType) -> List:
+    def plugins(self, plugin_type: PluginType) -> List[Union[Type[BasePlugin], Type[BaseActionPlugin]]]:
         """Returns the list of Plugins of a certain PluginType"""
         if not initialized:
             self.find_plugins()
         if plugin_type == PluginType.COLLECTOR and len(Config.resotoworker.collector) > 0:
-            return [plugin for plugin in plugins.get(plugin_type, []) if plugin.cloud in Config.resotoworker.collector]
-        return plugins.get(plugin_type, [])
+            plugins = self._plugins.get(plugin_type, [])
+            plugins = cast(List[Type[BaseCollectorPlugin]], plugins)
+            return [plugin for plugin in plugins if plugin.cloud in Config.resotoworker.collector]
+        return self._plugins.get(plugin_type, [])
 
     def add_plugin_args(self, arg_parser: ArgumentParser) -> None:
         """Add args to the arg parser"""
         if not initialized:
             self.find_plugins()
         log.debug("Adding plugin args")
-        for type_plugins in plugins.values():  # iterate over all PluginTypes
-            for Plugin in type_plugins:  # iterate over each Plugin of each PluginType
-                Plugin.add_args(arg_parser)  # add that Plugin's args to the ArgumentParser
+        for type_plugins in self._plugins.values():  # iterate over all PluginTypes
+            for plugin in type_plugins:  # iterate over each Plugin of each PluginType
+                plugin.add_args(arg_parser)  # add that Plugin's args to the ArgumentParser
 
     def add_plugin_config(self, config: Config) -> None:
         """Add plugin config to the config object"""
         if not initialized:
             self.find_plugins()
         log.debug("Adding plugin config")
-        for type_plugins in plugins.values():  # iterate over all PluginTypes
-            for Plugin in type_plugins:  # iterate over each Plugin of each PluginType
-                Plugin.add_config(config)
+        for type_plugins in self._plugins.values():  # iterate over all PluginTypes
+            for plugin in type_plugins:  # iterate over each Plugin of each PluginType
+                plugin.add_config(config)
