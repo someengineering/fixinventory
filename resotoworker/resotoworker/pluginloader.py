@@ -1,7 +1,7 @@
 import pkg_resources
 import inspect
 from resotolib.logger import log
-from typing import List, Optional, Type, Union, Dict, cast
+from typing import List, Optional, Type, Union, Dict
 from resotolib.args import ArgumentParser
 from resotolib.config import Config
 from resotolib.baseplugin import BaseCollectorPlugin, BasePlugin, BaseActionPlugin, PluginType

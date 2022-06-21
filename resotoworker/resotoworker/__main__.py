@@ -5,7 +5,7 @@ import os
 import sys
 import threading
 import resotolib.proc
-from typing import List, Dict, Type, cast, Optional, Any
+from typing import List, Dict, Type, Optional, Any
 from resotoworker.config import add_config
 from resotolib.config import Config
 from resotolib.logger import log, setup_logger, add_args as logging_add_args
