@@ -7,8 +7,8 @@ import functools
 from typing import cast, Any
 
 
-def rgetattr(obj: Any, attr: str, *args: Any):
-    def _getattr(obj: Any, attr: str):
+def rgetattr(obj: Any, attr: str, *args: Any) -> Any:
+    def _getattr(obj: Any, attr: str) -> Any:
         return getattr(obj, attr, *args)
 
     return functools.reduce(_getattr, [obj] + attr.split("."))
@@ -49,7 +49,7 @@ class DigitalOceanK8sCollectorPlugin(BasePostCollectPlugin):
     name = "digitalocean_k8s"
 
     def post_collect(self, graph: Graph) -> Graph:
-        log.info(f"plugin: collecting DigitalOcean to k8s edges")
+        log.info("plugin: collecting DigitalOcean to k8s edges")
         for node in graph.nodes:
             node = cast(BaseResource, node)
             link_do_droplet_to_node(graph, node)
