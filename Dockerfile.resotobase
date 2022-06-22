@@ -4,9 +4,6 @@
 # are required for all resoto packages. That's why size wise it made sense to
 # use the same base package for all containers.
 ARG UI_IMAGE_TAG=latest
-FROM ghcr.io/someengineering/resoto-ui:${UI_IMAGE_TAG} as resoto-ui-env
-FROM docker.io/arangodb/arangodb:3.9.1-noavx as arangodb-amd64-env
-FROM docker.io/programmador/arangodb:3.9.0-devel as arangodb-arm64-env
 
 FROM ubuntu:20.04 as build-env
 ENV DEBIAN_FRONTEND=noninteractive
@@ -19,7 +16,6 @@ ARG PYPY_VERSION=7.3.9
 
 ENV PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 RUN echo "I am running on ${BUILDPLATFORM}, building for ${TARGETPLATFORM}"
-COPY --from=resoto-ui-env /usr/local/resoto/ui /usr/local/resoto/ui
 # Install Build dependencies
 RUN apt-get update
 RUN apt-get -y dist-upgrade
@@ -86,7 +82,6 @@ RUN . /usr/local/resoto-venv-pypy3/bin/activate && pypy3 -m pip wheel -w /build-
 # Build resotocore
 COPY resotocore /usr/src/resotocore
 WORKDIR /usr/src/resotocore
-#RUN if [ "X${TESTS:-false}" = Xtrue ]; then nohup bash -c "/usr/local/db/bin/arangod --database.directory /tmp --server.endpoint tcp://127.0.0.1:8529 --database.password root &"; sleep 5; tox; fi
 RUN . /usr/local/resoto-venv-pypy3/bin/activate && pypy3 -m pip wheel -w /build-pypy -f /build-pypy .
 
 # Install all wheels
