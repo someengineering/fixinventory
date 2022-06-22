@@ -2,13 +2,6 @@ name: Build Docker Images
 
 on:
   push:
-  pull_request:
-    paths:
-      - "Dockerfile"
-      - "docker/**"
-      - "dockerV2/**"
-      - ".github/workflows/docker-build.yml"
-  workflow_dispatch:
 
 jobs:
 
