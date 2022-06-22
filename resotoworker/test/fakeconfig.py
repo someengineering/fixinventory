@@ -6,9 +6,9 @@ from typing import Dict, Any
 class FakeConfig:
     values: Dict[str, Any]
 
-    def __getattr__(self, name: str):
+    def __getattr__(self, name: str) -> Any:
         value = self.values[name]
         if isinstance(value, dict):
-            return FakeConfig(value)  # type: ignore
+            return FakeConfig(value)
         else:
             return value

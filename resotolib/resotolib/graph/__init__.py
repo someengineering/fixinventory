@@ -786,7 +786,7 @@ class GraphExportIterator:
             f" in {elapsed:.4f}s"
         )
 
-    def export_graph(self):
+    def export_graph(self) -> None:
         with self.export_lock:
             start_time = time()
             for node in self.graph.nodes:

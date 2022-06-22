@@ -3,7 +3,7 @@ from resotoworker.__main__ import add_args
 from resotolib.core import add_args as core_add_args, resotocore
 
 
-def test_args():
+def test_args() -> None:
     arg_parser = ArgumentParser(
         description="resoto worker",
         env_args_prefix="RESOTOWORKER_",
