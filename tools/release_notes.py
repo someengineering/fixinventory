@@ -69,7 +69,7 @@ def parse_commit(row: list[str]) -> Commit:
 
 def show_log(from_tag: str, to_tag: str):
     grouped: Dict[str, List[Commit]] = group_by(
-        lambda c: c.path,
+        lambda c: c.group,
         [parse_commit(row) for row in csv.reader(git_commits(from_tag, to_tag), delimiter="§")],
     )
 
