@@ -8,7 +8,7 @@ from resotolib.graph import Graph, sanitize
 from resotolib.logger import log, setup_logger
 from resotolib.args import ArgumentParser
 from argparse import Namespace
-from typing import List, Optional, Callable
+from typing import List, Optional, Callable, Type, Dict, Any
 from resotolib.config import Config, RunningConfig
 
 TaskId = str
@@ -21,11 +21,11 @@ class Collector:
 
     def collect_and_send(
         self,
-        collectors: List[BaseCollectorPlugin],
-        post_collectors: List[BasePostCollectPlugin],
+        collectors: List[Type[BaseCollectorPlugin]],
+        post_collectors: List[Type[BasePostCollectPlugin]],
         task_id: str,
     ) -> None:
-        def collect(collectors: List[BaseCollectorPlugin]) -> Graph:
+        def collect(collectors: List[Type[BaseCollectorPlugin]]) -> Optional[Graph]:
             graph = Graph(root=GraphRoot("root", {}))
 
             max_workers = (
@@ -35,8 +35,10 @@ class Collector:
             )
             if max_workers == 0:
                 log.error("No workers configured or no collector plugins loaded - skipping collect")
-                return
+                return None
             pool_args = {"max_workers": max_workers}
+            pool_executor: Type[futures.Executor]
+            collect_args: Dict[str, Any]
             if self._config.resotoworker.fork_process:
                 pool_args["mp_context"] = multiprocessing.get_context("spawn")
                 pool_args["initializer"] = resotolib.proc.initializer
@@ -69,20 +71,21 @@ class Collector:
 
         collected = collect(collectors)
 
-        for post_collector_class in post_collectors:
-            try:
-                instance = post_collector_class()
-                collected = instance.post_collect(collected)
-            except Exception as e:
-                log.warn(f"collector {post_collector_class.name} was not able to collect external edges: {e}")
+        if collected:
+            for post_collector_class in post_collectors:
+                try:
+                    instance = post_collector_class()
+                    collected = instance.post_collect(collected)
+                except Exception as e:
+                    log.warn(f"collector {post_collector_class.name} was not able to collect external edges: {e}")
 
-        self._send_to_resotocore(collected, task_id)
+            self._send_to_resotocore(collected, task_id)
 
 
 def collect_plugin_graph(
-    collector_plugin: BaseCollectorPlugin,
-    args: Namespace = None,
-    running_config: RunningConfig = None,
+    collector_plugin: Type[BaseCollectorPlugin],
+    args: Optional[Namespace] = None,
+    running_config: Optional[RunningConfig] = None,
 ) -> Optional[Graph]:
     try:
         collector: BaseCollectorPlugin = collector_plugin()
@@ -90,7 +93,7 @@ def collect_plugin_graph(
         resotolib.proc.set_thread_name(collector_name)
 
         if args is not None:
-            ArgumentParser.args = args
+            ArgumentParser.args = args  # type: ignore
             setup_logger("resotoworker")
         if running_config is not None:
             Config.running_config.apply(running_config)

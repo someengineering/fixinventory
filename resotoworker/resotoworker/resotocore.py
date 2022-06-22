@@ -9,7 +9,9 @@ from resotolib.graph import Graph, GraphExportIterator
 from resotolib.config import Config
 from resotolib.core import resotocore
 from typing import Callable, Optional
-from tenacity import Retrying, stop_after_attempt, wait_fixed
+from tenacity import Retrying
+from tenacity.stop import stop_after_attempt
+from tenacity.wait import wait_fixed
 
 
 class Resotocore:
@@ -21,9 +23,9 @@ class Resotocore:
         self._send_request = send_request
         self._config = config
 
-    def send_to_resotocore(self, graph: Graph, task_id: str):
+    def send_to_resotocore(self, graph: Graph, task_id: str) -> None:
         if not ArgumentParser.args.resotocore_uri:
-            return
+            return None
 
         log.info("resotocore Event Handler called")
 
@@ -47,7 +49,7 @@ class Resotocore:
         graph_export_iterator.export_graph()
         self.send_graph(graph_export_iterator, base_uri, resotocore_graph, task_id)
 
-    def create_graph(self, resotocore_base_uri: str, resotocore_graph: str):
+    def create_graph(self, resotocore_base_uri: str, resotocore_graph: str) -> None:
         graph_uri = f"{resotocore_base_uri}/graph/{resotocore_graph}"
 
         log.debug(f"Creating graph {resotocore_graph} via {graph_uri}")
@@ -65,7 +67,7 @@ class Resotocore:
                 r = self._send_request(request)
                 if r.status_code != 200:
                     log.error(r.content)
-                    raise RuntimeError(f"Failed to create graph: {r.content}")
+                    raise RuntimeError(f"Failed to create graph: {r.content}")  # type: ignore
 
     def update_model(
         self,
@@ -101,7 +103,7 @@ class Resotocore:
                 r = self._send_request(request)
                 if r.status_code != 200:
                     log.error(r.content)
-                    raise RuntimeError(f"Failed to create model: {r.content}")
+                    raise RuntimeError(f"Failed to create model: {r.content}")  # type: ignore
 
     def send_graph(
         self,
@@ -129,6 +131,6 @@ class Resotocore:
                 r = self._send_request(request)
                 if r.status_code != 200:
                     log.error(r.content)
-                    raise RuntimeError(f"Failed to send graph: {r.content}")
-        log.debug(f"resotocore reply: {r.content.decode()}")
+                    raise RuntimeError(f"Failed to send graph: {r.content}")  # type: ignore
+                log.debug(f"resotocore reply: {r.content.decode()}")
         log.debug(f"Sent {graph_export_iterator.total_lines} items to resotocore")

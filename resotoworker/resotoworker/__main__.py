@@ -1,15 +1,16 @@
 from functools import partial
+from signal import SIGTERM
 import time
 import os
 import sys
 import threading
 import resotolib.proc
-from typing import List, Dict
+from typing import List, Dict, Type, Optional, Any
 from resotoworker.config import add_config
 from resotolib.config import Config
 from resotolib.logger import log, setup_logger, add_args as logging_add_args
 from resotolib.jwt import add_args as jwt_add_args
-from resotolib.baseplugin import BaseCollectorPlugin, BasePostCollectPlugin, PluginType
+from resotolib.baseplugin import BaseActionPlugin, BasePostCollectPlugin, BaseCollectorPlugin, PluginType
 from resotolib.web import WebServer
 from resotolib.web.metrics import WebApp
 from resotolib.utils import log_stats, increase_limits
@@ -72,7 +73,7 @@ def main() -> None:
         log.fatal(f"Failed to connect to resotocore: {e}")
         sys.exit(1)
 
-    tls_data = None
+    tls_data: Optional[TLSData] = None
     if resotocore.is_secure:
         tls_data = TLSData(
             common_name=ArgumentParser.args.subscriber_id,
@@ -155,6 +156,7 @@ def main() -> None:
     core_tasks.start()
 
     for Plugin in plugin_loader.plugins(PluginType.ACTION):
+        assert issubclass(Plugin, BaseActionPlugin)
         try:
             log.debug(f"Starting action plugin {Plugin}")
             plugin = Plugin(tls_data=tls_data)
@@ -165,23 +167,26 @@ def main() -> None:
     # We wait for the shutdown Event to be set() and then end the program
     # While doing so we print the list of active threads once per 15 minutes
     shutdown_event.wait()
-    web_server.shutdown()
+    web_server.shutdown()  # type: ignore
     time.sleep(1)  # everything gets 1000ms to shutdown gracefully before we force it
-    resotolib.proc.kill_children(resotolib.proc.SIGTERM, ensure_death=True)
+    resotolib.proc.kill_children(SIGTERM, ensure_death=True)
     log.info("Shutdown complete")
     os._exit(0)
 
 
-def core_actions_processor(plugin_loader: PluginLoader, tls_data: TLSData, collector: Collector, message: Dict) -> None:
-    collectors: List[BaseCollectorPlugin] = plugin_loader.plugins(PluginType.COLLECTOR)
-    post_collectors: List[BasePostCollectPlugin] = plugin_loader.plugins(PluginType.POST_COLLECT)
+def core_actions_processor(
+    plugin_loader: PluginLoader, tls_data: Optional[TLSData], collector: Collector, message: Dict[str, Any]
+) -> Optional[Dict[str, Any]]:
+    collectors: List[Type[BaseCollectorPlugin]] = plugin_loader.plugins(PluginType.COLLECTOR)  # type: ignore
+    post_collectors: List[Type[BasePostCollectPlugin]] = plugin_loader.plugins(PluginType.POST_COLLECT)  # type: ignore
+    # todo: clean this up
     if not isinstance(message, dict):
         log.error(f"Invalid message: {message}")
-        return
+        return None
     kind = message.get("kind")
     message_type = message.get("message_type")
     data = message.get("data")
-    task_id = data.get("task")
+    task_id = data.get("task")  # type: ignore
     log.debug(f"Received message of kind {kind}, type {message_type}, data: {data}")
     if kind == "action":
         try:
@@ -214,6 +219,7 @@ def core_actions_processor(plugin_loader: PluginLoader, tls_data: TLSData, colle
             "data": data,
         }
         return reply_message
+    return None
 
 
 def shutdown(event: Event) -> None:

@@ -1,7 +1,7 @@
 from resotolib.logger import log
 from resotolib.core.search import CoreGraph
 from resotolib.core.ca import TLSData
-from networkx import DiGraph
+from networkx import DiGraph  # type: ignore
 from resotolib.graph import Graph
 from resotolib.baseresources import BaseResource, EdgeType
 from resotolib.graph.graph_extensions import dependent_node_iterator
@@ -9,13 +9,13 @@ from resotolib.utils import ordinal
 from resotolib.config import Config
 from concurrent.futures import ThreadPoolExecutor
 from prometheus_client import Summary
-from typing import Optional
+from typing import Optional, List
 
 
 metrics_cleanup = Summary("resoto_cleanup_seconds", "Time it took the cleanup() method")
 
 
-def cleanup(tls_data: Optional[TLSData] = None):
+def cleanup(tls_data: Optional[TLSData] = None) -> None:
     """Run resource cleanup"""
 
     log.info("Running cleanup")
@@ -41,7 +41,7 @@ class Cleaner:
     def __init__(self, graph: Graph) -> None:
         self.graph = graph
 
-    @metrics_cleanup.time()
+    @metrics_cleanup.time()  # type: ignore
     def cleanup(self) -> None:
         if not Config.resotoworker.cleanup:
             log.debug(("Cleanup called but resotoworker.cleanup not configured" " - ignoring call"))
@@ -60,7 +60,7 @@ class Cleaner:
         for node in self.graph.nodes:
             if node.clean and node not in delete_graph:
                 delete_graph.add_node(node)
-        cleanup_nodes = list(delete_graph.nodes)
+        cleanup_nodes: List[BaseResource] = list(delete_graph.nodes)
 
         for node in cleanup_nodes:
             log.debug(f"Adding {node.rtdname} to cleanup plan")

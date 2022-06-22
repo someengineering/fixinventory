@@ -7,7 +7,7 @@ from test.fakeconfig import FakeConfig
 from resotolib.config import Config
 
 
-def test_resotocore():
+def test_resotocore() -> None:
 
     recorded_headers: Dict[str, str] = {}
 
