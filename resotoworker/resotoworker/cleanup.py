@@ -9,7 +9,7 @@ from resotolib.utils import ordinal
 from resotolib.config import Config
 from concurrent.futures import ThreadPoolExecutor
 from prometheus_client import Summary
-from typing import Optional, cast, List
+from typing import Optional, List
 
 
 metrics_cleanup = Summary("resoto_cleanup_seconds", "Time it took the cleanup() method")
@@ -52,14 +52,12 @@ class Cleaner:
         delete_graph = DiGraph(self.graph.edge_type_subgraph(EdgeType.delete))
         # from that graph delete all the nodes not marked for cleanup
         for node in list(delete_graph.nodes):
-            node = cast(BaseResource, node)
             if not node.clean:
                 delete_graph.remove_node(node)
         # add all the nodes that are supposed to be cleaned
         # but do not have a delete edge so weren't part of the
         # subgraph
         for node in self.graph.nodes:
-            node = cast(BaseResource, node)
             if node.clean and node not in delete_graph:
                 delete_graph.add_node(node)
         cleanup_nodes: List[BaseResource] = list(delete_graph.nodes)
