@@ -148,9 +148,7 @@ class DbUpdaterProcess(Process):
             outer_edge_db = db.pending_deferred_edge_db
             _, result = await graphdb.merge_graph(builder.graph, model, nxt.change_id, nxt.is_batch)
             if nxt.task_id and builder.deferred_edges:
-                await outer_edge_db.update(
-                    PendingDeferredEdges(nxt.task_id, datetime.now(), nxt.graph, builder.deferred_edges)
-                )
+                await outer_edge_db.update(PendingDeferredEdges(nxt.task_id, utc(), nxt.graph, builder.deferred_edges))
                 log.debug(f"Updated {len(builder.deferred_edges)} pending outer edges for collect task {nxt.task_id}")
             return result
 
