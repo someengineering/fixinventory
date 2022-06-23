@@ -13,19 +13,7 @@ from datetime import timedelta
 from functools import partial
 from pathlib import Path
 from random import SystemRandom
-from typing import (
-    AsyncGenerator,
-    Any,
-    Optional,
-    Sequence,
-    Union,
-    List,
-    Dict,
-    AsyncIterator,
-    Tuple,
-    Callable,
-    Awaitable,
-)
+from typing import AsyncGenerator, Any, Optional, Sequence, Union, List, Dict, AsyncIterator, Tuple, Callable, Awaitable
 
 import prometheus_client
 import yaml
@@ -103,7 +91,7 @@ def section_of(request: Request) -> Optional[str]:
     return section
 
 
-AlwaysAllowed = {"/metrics", "/api-doc.*", "/system/.*", "/ui.*", "/ca/cert"}
+AlwaysAllowed = {"/", "/metrics", "/api-doc.*", "/system/.*", "/ui.*", "/ca/cert"}
 
 
 class Api:
@@ -213,7 +201,7 @@ class Api:
                 web.get(prefix + "/work/create", self.create_work),
                 web.get(prefix + "/work/list", self.list_work),
                 # Serve static filed
-                web.get(prefix, self.redirect_to_api_doc),
+                web.get(prefix, self.forward("/ui/index.html")),
                 web.static(prefix + "/static", static_path),
                 # metrics
                 web.get(prefix + "/metrics", self.metrics),

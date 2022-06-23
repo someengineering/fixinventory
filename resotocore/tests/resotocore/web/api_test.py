@@ -96,10 +96,7 @@ async def test_system_api(core_client: ApiClient, client_session: ClientSession)
     assert core_client.ready() == "ok"
     # make sure we get redirected to the api docs
     async with client_session.get(core_client.resotocore_url, allow_redirects=False) as r:
-        assert r.headers["location"] == "api-doc"
-    # static api docs get served
-    async with client_session.get(core_client.resotocore_url) as r:
-        assert r.content_type == "text/html"
+        assert r.headers["location"] == "/ui/index.html"
 
 
 @pytest.mark.asyncio
