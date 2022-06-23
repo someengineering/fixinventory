@@ -20,6 +20,6 @@ def test_post_collect() -> None:
     node = KubernetesNode("123")
 
     graph = Graph(root=node)
-    graph = plugin.post_collect(graph)
+    plugin.post_collect(graph)
 
     assert len(graph.deferred_edges) == 1

@@ -79,13 +79,16 @@ class Collector:
                 pool_args["mp_context"] = multiprocessing.get_context("spawn")
                 pool_args["initializer"] = resotolib.proc.initializer
                 pool_executor = futures.ProcessPoolExecutor
-
+                collect_args = {
+                    "args": ArgumentParser.args,
+                    "running_config": self._config.running_config,
+                }
             else:
                 pool_executor = futures.ThreadPoolExecutor
 
             with pool_executor(**pool_args) as executor:
                 for post_collector in post_collectors:
-                    future = executor.submit(run_post_collect_plugin, post_collector, graph)
+                    future = executor.submit(run_post_collect_plugin, post_collector, graph, **collect_args)
                     try:
                         new_graph = future.result(Config.resotoworker.timeout)
                     except TimeoutError as e:
@@ -109,19 +112,30 @@ class Collector:
             self._send_to_resotocore(collected, task_id)
 
 
-def run_post_collect_plugin(post_collector_plugin: Type[BasePostCollectPlugin], graph: Graph) -> Optional[Graph]:
+def run_post_collect_plugin(
+    post_collector_plugin: Type[BasePostCollectPlugin],
+    graph: Graph,
+    args: Optional[Namespace] = None,
+    running_config: Optional[RunningConfig] = None,
+) -> Optional[Graph]:
     try:
         post_collector: BasePostCollectPlugin = post_collector_plugin()
 
+        if args is not None:
+            ArgumentParser.args = args  # type: ignore
+            setup_logger("resotoworker")
+        if running_config is not None:
+            Config.running_config.apply(running_config)
+
         log.debug(f"starting new post-collect process for {post_collector.name}")
         start_time = time()
-        new_graph = post_collector.post_collect(graph)
+        post_collector.post_collect(graph)
         elapsed = time() - start_time
-        if not new_graph.is_dag_per_edge_type():
+        if not graph.is_dag_per_edge_type():
             log.error(f"Graph of plugin {post_collector.name} is not acyclic" " - ignoring plugin results")
             return None
         log.info(f"Collector of plugin {post_collector.name} finished in {elapsed:.4f}s")
-        return new_graph
+        return graph
     except Exception as e:
         log.exception(f"Unhandled exception in {post_collector_plugin}: {e} - ignoring plugin")
         return None

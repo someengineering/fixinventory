@@ -5,7 +5,6 @@ from resotolib.graph import BySearchCriteria, ByNodeId, Graph
 from resotolib.logger import log
 import functools
 from typing import cast, Any
-from copy import deepcopy
 
 
 def rgetattr(obj: Any, attr: str, *args: Any) -> Any:
@@ -49,12 +48,10 @@ def link_do_volume_to_pv(graph: Graph, resource: BaseResource) -> None:
 class DigitalOceanK8sCollectorPlugin(BasePostCollectPlugin):
     name = "digitalocean_k8s"
 
-    def post_collect(self, graph: Graph) -> Graph:
+    def post_collect(self, graph: Graph) -> None:
         log.info("plugin: collecting DigitalOcean to k8s edges")
-        _graph = deepcopy(graph)
         for node in graph.nodes:
             node = cast(BaseResource, node)
-            link_do_droplet_to_node(_graph, node)
-            link_do_lb_to_service(_graph, node)
-            link_do_volume_to_pv(_graph, node)
-        return _graph
+            link_do_droplet_to_node(graph, node)
+            link_do_lb_to_service(graph, node)
+            link_do_volume_to_pv(graph, node)
