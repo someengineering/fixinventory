@@ -401,8 +401,11 @@ jobs:
           echo ::set-output name=tag::${tags[0]}
           if [[ ${{ github.ref }} =~ ^refs/tags/[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             prev_release=$(echo $(curl -sL https://api.github.com/repos/someengineering/resoto/releases/latest) | jq -r '.tag_name')
-            date=$(date +'%Y-%m-%d')
-            file="resoto.com/news/${date}-v${tags[0]}.md"
+            year=$(date +'%Y')
+            date=$(date +'%m-%d')
+            dir="resoto.com/news/${year}"
+            file="${dir}/${date}-v${tags[0]}.md"
+            mkdir -p $dir
             python tools/release_notes.py ${prev_release} ${tags[0]} > $file
             cat $file
             echo ::set-output name=file::$file
