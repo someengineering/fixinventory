@@ -231,7 +231,7 @@ class BasePostCollectPlugin(ABC):
         self.name = self.name
 
     @abstractmethod
-    def post_collect(self, graph: Graph) -> Graph:
+    def post_collect(self, graph: Graph) -> None:
         """Process the collected graph"""
         pass
 

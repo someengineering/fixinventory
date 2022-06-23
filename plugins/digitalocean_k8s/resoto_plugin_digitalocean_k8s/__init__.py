@@ -48,11 +48,10 @@ def link_do_volume_to_pv(graph: Graph, resource: BaseResource) -> None:
 class DigitalOceanK8sCollectorPlugin(BasePostCollectPlugin):
     name = "digitalocean_k8s"
 
-    def post_collect(self, graph: Graph) -> Graph:
+    def post_collect(self, graph: Graph) -> None:
         log.info("plugin: collecting DigitalOcean to k8s edges")
         for node in graph.nodes:
             node = cast(BaseResource, node)
             link_do_droplet_to_node(graph, node)
             link_do_lb_to_service(graph, node)
             link_do_volume_to_pv(graph, node)
-        return graph
