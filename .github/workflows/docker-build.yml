@@ -120,7 +120,6 @@ jobs:
         id: sha
         run: echo "::set-output name=short::${GITHUB_SHA::7}"
 
-
       - name: Set build platforms
         id: platform
         run: |
@@ -365,6 +364,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Determine release type
+        id: release_type
+        shell: bash
+        run: |
+          if [[ ${{ github.ref }} =~ ^refs/tags/[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo ::set-output name=prerelease::false
+          else
+            echo ::set-output name=prerelease::true
+          fi
+
       - name: Check out repository
         uses: actions/checkout@v3
         with:
@@ -372,6 +381,7 @@ jobs:
 
       - name: Check out someengineering/resoto.com
         uses: actions/checkout@v3
+        if: steps.release_type.outputs.prerelease == 'false'
         with:
           repository: someengineering/resoto.com
           path: resoto.com
@@ -379,6 +389,7 @@ jobs:
 
       - name: Set up Python
         uses: actions/setup-python@v2
+        if: steps.release_type.outputs.prerelease == 'false'
         with:
           python-version: 3.x
 
@@ -386,21 +397,25 @@ jobs:
         id: release_notes
         shell: bash
         run: |
-          mapfile -t tags < <(echo $(curl -sL https://api.github.com/repos/someengineering/resoto/tags?per_page=2) | jq -r '(.[] | .name)')
-          file="resoto.com/news/$(date +'%Y-%m-%d')-v${tags[0]}.md"
-          link="https://resoto.com/news/$(date +'%Y/%m/%d')/v${tags[0]}"
-          python tools/release_notes.py ${tags[1]} ${tags[0]} > $file
-          cp resotocore/resotocore/static/api-doc.yaml resoto.com/openapi/resotocore.yml
+          mapfile -t tags < <(echo $(curl -sL https://api.github.com/repos/someengineering/resoto/tags?per_page=1) | jq -r '(.[] | .name)')
           echo ::set-output name=tag::${tags[0]}
-          echo ::set-output name=file::$file
-          echo ::set-output name=link::$link
+          if [[ ${{ github.ref }} =~ ^refs/tags/[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            prev_release=$(echo $(curl -sL https://api.github.com/repos/someengineering/resoto/releases/latest) | jq -r '.tag_name')
+            date=$(date +'%Y-%m-%d')
+            file="resoto.com/news/${date}-v${tags[0]}.md"
+            python tools/release_notes.py ${prev_release} ${tags[0]} > $file
+            cat $file
+            echo ::set-output name=file::$file
+          fi
 
       - name: Modify resotocore API YAML
         uses: mikefarah/yq@master
+        if: steps.release_type.outputs.prerelease == 'false'
         with:
           cmd: yq e -i '.servers[0].url = "http://localhost:8900" | del(.servers[0].description)' resoto.com/openapi/resotocore.yml
 
       - name: Format
+        if: steps.release_type.outputs.prerelease == 'false'
         working-directory: ./resoto.com
         run: |
           yarn install --frozen-lockfile
@@ -408,6 +423,7 @@ jobs:
 
       - name: Create pull request
         uses: peter-evans/create-pull-request@v4
+        if: steps.release_type.outputs.prerelease == 'false'
         env:
           HUSKY: 0
         with:
@@ -428,6 +444,7 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          prerelease: ${{steps.release_type.outputs.prerelease}}
           body: |
             ### Release Notes
 
