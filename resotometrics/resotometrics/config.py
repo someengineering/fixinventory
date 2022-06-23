@@ -1,6 +1,8 @@
 import os
 from dataclasses import dataclass, field
 from typing import Dict, ClassVar, Optional
+
+import jsons
 from yaml import load
 from enum import Enum
 
@@ -25,14 +27,13 @@ class Metric:
 
 
 def _load_default_metrics() -> Dict[str, Metric]:
-    default_metrics = {}
     local_path = os.path.abspath(os.path.dirname(__file__))
     default_metrics_file = f"{local_path}/default_metrics.yaml"
     if not os.path.isfile(default_metrics_file):
         raise RuntimeError(f"Could not find default metrics file {default_metrics_file}")
     with open(default_metrics_file, "r") as f:
         default_metrics = load(f, Loader=Loader)
-    return {metric_name: Metric(**metric_data) for metric_name, metric_data in default_metrics.items()}
+    return {metric_name: jsons.load(metric_data, Metric) for metric_name, metric_data in default_metrics.items()}
 
 
 @dataclass
