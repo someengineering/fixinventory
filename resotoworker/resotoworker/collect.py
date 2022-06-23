@@ -79,7 +79,7 @@ class Collector:
                 pool_args["mp_context"] = multiprocessing.get_context("spawn")
                 pool_args["initializer"] = resotolib.proc.initializer
                 pool_executor = futures.ProcessPoolExecutor
-                collect_args = {
+                collect_args: Dict[str, Any] = {
                     "args": ArgumentParser.args,
                     "running_config": self._config.running_config,
                 }
