@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from enum import Enum, auto
+from multiprocessing import Queue
 from resotolib.core.ca import TLSData
 from resotolib.graph import Graph
 from resotolib.core import resotocore

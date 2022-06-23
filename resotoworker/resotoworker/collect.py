@@ -69,17 +69,62 @@ class Collector:
             sanitize(graph)
             return graph
 
+        def post_collect(graph: Graph, post_collectors: List[Type[BasePostCollectPlugin]]) -> Graph:
+            if len(post_collectors) == 0:
+                log.error("No workers configured or no collector plugins loaded - skipping collect")
+                return graph
+            pool_args: Dict[str, Any] = {"max_workers": 1}
+            pool_executor: Type[futures.Executor]
+            if self._config.resotoworker.fork_process:
+                pool_args["mp_context"] = multiprocessing.get_context("spawn")
+                pool_args["initializer"] = resotolib.proc.initializer
+                pool_executor = futures.ProcessPoolExecutor
+
+            else:
+                pool_executor = futures.ThreadPoolExecutor
+
+            with pool_executor(**pool_args) as executor:
+                for post_collector in post_collectors:
+                    future = executor.submit(run_post_collect_plugin, post_collector, graph)
+                    try:
+                        new_graph = future.result(Config.resotoworker.timeout)
+                    except TimeoutError as e:
+                        log.exception(f"Unhandled exception in {post_collector}: {e} - ignoring plugin")
+                        continue
+                    except Exception as e:
+                        log.exception(f"Unhandled exception in {post_collector}: {e} - ignoring plugin")
+                        continue
+
+                    if new_graph is None:
+                        continue
+                    graph = new_graph
+
+                sanitize(graph)
+                return graph
+
         collected = collect(collectors)
 
         if collected:
-            for post_collector_class in post_collectors:
-                try:
-                    instance = post_collector_class()
-                    collected = instance.post_collect(collected)
-                except Exception as e:
-                    log.warn(f"collector {post_collector_class.name} was not able to collect external edges: {e}")
-
+            collected = post_collect(collected, post_collectors)
             self._send_to_resotocore(collected, task_id)
+
+
+def run_post_collect_plugin(post_collector_plugin: Type[BasePostCollectPlugin], graph: Graph) -> Optional[Graph]:
+    try:
+        post_collector: BasePostCollectPlugin = post_collector_plugin()
+
+        log.debug(f"starting new post-collect process for {post_collector.name}")
+        start_time = time()
+        new_graph = post_collector.post_collect(graph)
+        elapsed = time() - start_time
+        if not new_graph.is_dag_per_edge_type():
+            log.error(f"Graph of plugin {post_collector.name} is not acyclic" " - ignoring plugin results")
+            return None
+        log.info(f"Collector of plugin {post_collector.name} finished in {elapsed:.4f}s")
+        return new_graph
+    except Exception as e:
+        log.exception(f"Unhandled exception in {post_collector_plugin}: {e} - ignoring plugin")
+        return None
 
 
 def collect_plugin_graph(
