@@ -1,5 +1,5 @@
 name:  Publish resotobundle
-on: workflow_dispatch:
+on: workflow_dispatch
 
 jobs:
   resotobundle:
