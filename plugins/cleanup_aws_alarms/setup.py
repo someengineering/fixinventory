@@ -11,7 +11,7 @@ def read(fname):
 
 setup(
     name="resoto-plugin-cleanup-aws-alarms",
-    version="2.3.1",
+    version="2.3.2",
     description="AWS Cloudwatch Alarms Cleaner Plugin",
     license="Apache 2.0",
     packages=find_packages(),

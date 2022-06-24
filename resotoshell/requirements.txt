@@ -1,5 +1,5 @@
 prompt-toolkit==3.0.29
 requests-toolbelt==0.9.1
 rich==12.4.4
-resotolib==2.3.1
+resotolib==2.3.2
 resotoclient==0.1.12

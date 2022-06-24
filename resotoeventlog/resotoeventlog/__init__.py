@@ -11,7 +11,7 @@ __description__ = "resoto  event log aggregator."
 __author__ = "Some Engineering Inc."
 __license__ = "Apache 2.0"
 __copyright__ = "Copyright © 2022 Some Engineering Inc."
-__version__ = "2.3.1"
+__version__ = "2.3.2"
 
 
 def version() -> str:
