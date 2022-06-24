@@ -44,7 +44,6 @@ class MergeOuterEdgesHandler:
         pending_outer_edge_db = self.db_access.pending_deferred_edge_db
         pending_edges = await pending_outer_edge_db.get(task_id)
         model = await self.model_handler.load_model()
-        created_edges = 0
         if pending_edges:
             graph_db = self.db_access.get_graph_db(pending_edges.graph)
 
@@ -76,10 +75,11 @@ class MergeOuterEdgesHandler:
                 if from_id and to_id:
                     edges.append((from_id, to_id, edge.edge_type))
 
-            await graph_db.update_deferred_edges(edges, pending_edges.created_at)
+            updated, deleted = await graph_db.update_deferred_edges(edges, pending_edges.created_at)
 
             log.info(
-                f"MergeOuterEdgesHandler: created {created_edges}/{len(pending_edges.edges)} edges in task id {task_id}"
+                f"MergeOuterEdgesHandler: updated {updated}/{len(pending_edges.edges)},"
+                f"  deleted {deleted} edges in task id {task_id}"
             )
         else:
             log.info(f"MergeOuterEdgesHandler: no pending edges for task id {task_id} found.")
