@@ -176,6 +176,27 @@ async def test_merge_outer_edges(
     assert graph.has_edge("id2", "id1")
     assert graph.has_edge("root", "id3")
 
+    # it is possible to overwrite the same edge with a new value
+
+    new_now_2 = now + timedelta(minutes=10)
+
+    await db_access.pending_deferred_edge_db.update(
+        PendingDeferredEdges(
+            TaskId("task789"),
+            new_now_2,
+            graph_db.name,
+            [
+                DeferredEdge(ByNodeId(id2), ByNodeId(id1), EdgeTypes.default),
+            ],
+        )
+    )
+    await merge_handler.merge_outer_edges(TaskId("task789"))
+
+    graph = await graph_db.search_graph(QueryModel(parse_query("is(graph_root) -default[0:]->"), foo_model))
+    assert not graph.has_edge("id1", "id2")
+    assert graph.has_edge("id2", "id1")
+    assert graph.has_edge("root", "id3")
+
 
 def to_json(obj: BaseResource) -> Json:
     return {"kind": obj.kind(), **to_js(obj)}
