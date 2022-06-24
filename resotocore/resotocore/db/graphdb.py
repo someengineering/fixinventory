@@ -176,7 +176,7 @@ class ArangoGraphDB(GraphDB):
 
         for from_node, to_node, edge_type in edges:
             json_node = self.edge_to_json(from_node, to_node, None)
-            json_node["outer_edge_ts"] = ts.isoformat()  # must be kept in sync with an index
+            json_node["outer_edge_ts"] = utc_str(ts)  # must be kept in sync with an index
             if edge_type == EdgeTypes.default:
                 default_edges.append(json_node)
             else:
@@ -185,7 +185,7 @@ class ArangoGraphDB(GraphDB):
         def deletion_query(edge_collection: str) -> str:
             return f"""
             FOR edge IN {edge_collection}
-                FILTER edge.outer_edge_ts != null &&  edge.outer_edge_ts < "{ts.isoformat()}"
+                FILTER edge.outer_edge_ts != null &&  edge.outer_edge_ts < "{utc_str(ts)}"
                 REMOVE edge in {edge_collection}
             """
 
@@ -194,7 +194,7 @@ class ArangoGraphDB(GraphDB):
 
         if default_edges:
             edge_collection = self.edge_collection(EdgeTypes.default)
-            async with self.db.begin_transaction(write=[self.vertex_name, edge_collection]) as tx:
+            async with self.db.begin_transaction(write=[edge_collection]) as tx:
                 await tx.insert_many(edge_collection, default_edges, overwrite=True)
                 updated_edges += len(default_edges)
                 query = deletion_query(edge_collection)
@@ -203,7 +203,7 @@ class ArangoGraphDB(GraphDB):
 
         if delete_edges:
             edge_collection = self.edge_collection(EdgeTypes.delete)
-            async with self.db.begin_transaction(write=[self.vertex_name, edge_collection]) as tx:
+            async with self.db.begin_transaction(write=[edge_collection]) as tx:
                 await tx.insert_many(edge_collection, delete_edges, overwrite=True)
                 updated_edges += len(default_edges)
                 query = deletion_query(edge_collection)
