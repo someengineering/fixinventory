@@ -190,8 +190,11 @@ async def test_merge_outer_edges(
             ],
         )
     )
-    await merge_handler.merge_outer_edges(TaskId("task789"))
-
+    updated, deleted = await merge_handler.merge_outer_edges(TaskId("task789"))
+    # here we also implicitly test that the timestamp was updated, because otherwise the edge
+    # would have an old timestamp and would be deleted
+    assert updated == 1
+    assert deleted == 0
     graph = await graph_db.search_graph(QueryModel(parse_query("is(graph_root) -default[0:]->"), foo_model))
     assert not graph.has_edge("id1", "id2")
     assert graph.has_edge("id2", "id1")
