@@ -205,7 +205,7 @@ class ArangoGraphDB(GraphDB):
             edge_collection = self.edge_collection(EdgeTypes.delete)
             async with self.db.begin_transaction(write=[edge_collection]) as tx:
                 await tx.insert_many(edge_collection, delete_edges, overwrite=True)
-                updated_edges += len(default_edges)
+                updated_edges += len(delete_edges)
                 query = deletion_query(edge_collection)
                 with await tx.aql(query, count=True) as cursor:
                     deleted_edges += cursor.count() or 0
