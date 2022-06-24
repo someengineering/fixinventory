@@ -195,20 +195,20 @@ class ArangoGraphDB(GraphDB):
         if default_edges:
             edge_collection = self.edge_collection(EdgeTypes.default)
             async with self.db.begin_transaction(write=[self.vertex_name, edge_collection]) as tx:
+                await tx.insert_many(edge_collection, default_edges, overwrite=True)
+                updated_edges += len(default_edges)
                 query = deletion_query(edge_collection)
                 with await tx.aql(query, count=True) as cursor:
                     deleted_edges += cursor.count() or 0
-                await tx.insert_many(edge_collection, default_edges)
-                updated_edges += len(default_edges)
 
         if delete_edges:
             edge_collection = self.edge_collection(EdgeTypes.delete)
             async with self.db.begin_transaction(write=[self.vertex_name, edge_collection]) as tx:
+                await tx.insert_many(edge_collection, delete_edges, overwrite=True)
+                updated_edges += len(default_edges)
                 query = deletion_query(edge_collection)
                 with await tx.aql(query, count=True) as cursor:
                     deleted_edges += cursor.count() or 0
-                await tx.insert_many(edge_collection, delete_edges)
-                updated_edges += len(default_edges)
 
         return updated_edges, deleted_edges
 
