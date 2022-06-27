@@ -23,7 +23,6 @@ from prompt_toolkit.completion import (
 from prompt_toolkit.document import Document
 from prompt_toolkit.history import FileHistory
 from prompt_toolkit.styles import Style
-from prompt_toolkit.shortcuts.prompt import CompleteStyle
 from resotoclient import ResotoClient
 from resotoclient.models import Property
 
