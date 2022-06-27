@@ -3,6 +3,8 @@ import re
 from abc import ABC
 from dataclasses import dataclass, field
 from re import Pattern
+from math import floor
+from shutil import get_terminal_size
 from typing import Iterable, Optional, List, Dict, Union, Tuple, Callable, Any
 
 import jsons
@@ -21,6 +23,7 @@ from prompt_toolkit.completion import (
 from prompt_toolkit.document import Document
 from prompt_toolkit.history import FileHistory
 from prompt_toolkit.styles import Style
+from prompt_toolkit.shortcuts.prompt import CompleteStyle
 from resotoclient import ResotoClient
 from resotoclient.models import Property
 
@@ -738,8 +741,13 @@ class PromptSession:
     ):
         history = FileHistory(history_file)
         cmds, kinds, props = self.__core_metadata(client)
+        _, tty_rows = get_terminal_size(fallback=(80, 25))
+        reserved_row_ratio = 4
+        min_reserved_rows = 4
+        max_reserved_rows = 12
+        reserved_space_for_menu = max(min_reserved_rows, min(floor(tty_rows / reserved_row_ratio), max_reserved_rows))
         self.completer = CommandLineCompleter.create_completer(cmds, kinds, props)
-        self.session: PTSession[str] = PTSession(history=history)
+        self.session: PTSession[str] = PTSession(history=history, reserve_space_for_menu=reserved_space_for_menu)
 
     def prompt(self) -> str:
         return self.session.prompt(
