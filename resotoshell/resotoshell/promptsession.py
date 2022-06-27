@@ -741,7 +741,7 @@ class PromptSession:
         history = FileHistory(history_file)
         cmds, kinds, props = self.__core_metadata(client)
         _, tty_rows = get_terminal_size(fallback=(80, 25))
-        reserved_row_ratio = 1/4
+        reserved_row_ratio = 1 / 4
         min_reserved_rows = 4
         max_reserved_rows = 12
         reserved_space_for_menu = max(min_reserved_rows, min(floor(tty_rows * reserved_row_ratio), max_reserved_rows))
