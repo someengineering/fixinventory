@@ -1,7 +1,7 @@
 import boto3
 import boto3.session
 import uuid
-from typing import Iterable, List, Dict
+from typing import Iterable, List, Dict, Optional
 from resotolib.config import Config
 from resotolib.baseresources import BaseRegion, BaseResource
 from resotolib.graph import Graph
@@ -9,6 +9,8 @@ from retrying import retry
 from prometheus_client import Counter
 from botocore.exceptions import ConnectionClosedError, CredentialRetrievalError
 
+from resotolib.json_bender import Bender
+from resotolib.types import Json
 
 metrics_session_exceptions = Counter(
     "resoto_plugin_aws_session_exceptions_total",
@@ -93,3 +95,18 @@ def arn_partition(region: BaseRegion):
 
 def tags_as_dict(tags: List) -> Dict:
     return {tag["Key"]: tag["Value"] for tag in tags or []}
+
+
+class TagsToDict(Bender):
+    def execute(self, source: List[Json]) -> Dict[str, str]:
+        return {k.get("Key", "Key"): k.get("Value", "") for k in source}
+
+
+class TagsValue(Bender):
+    def __init__(self, name: str):
+        self.name = name
+
+    def execute(self, source: List[Json]) -> Optional[str]:
+        for k in source:
+            if k.get("Key") == self.name:
+                return k.get("Value", "")
