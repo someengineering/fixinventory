@@ -2,7 +2,7 @@ import logging
 from re import RegexFlag, fullmatch
 from typing import Optional, Callable, Awaitable
 
-from aiohttp.hdrs import METH_OPTIONS
+from aiohttp.hdrs import METH_OPTIONS, METH_GET, METH_HEAD, METH_POST, METH_PUT, METH_DELETE, METH_PATCH
 from aiohttp.web import HTTPRedirection, HTTPNotFound, HTTPBadRequest, HTTPException, HTTPNoContent
 from aiohttp.web_exceptions import HTTPServiceUnavailable
 from aiohttp.web_middlewares import middleware
@@ -35,6 +35,12 @@ async def on_response_prepare(request: Request, response: StreamResponse) -> Non
     # In case of a CORS request: a response header to allow the origin is required
     if request.headers.get("sec-fetch-mode") == "cors":
         response.headers["Access-Control-Allow-Origin"] = request.headers.get("origin", "*")
+
+    if request.method in (METH_GET, METH_HEAD, METH_POST, METH_PUT, METH_DELETE, METH_PATCH):
+        response.headers["Access-Control-Allow-Origin"] = request.headers.get("origin", "*")
+        response.headers["Access-Control-Allow-Methods"] = request.headers.get("access-control-request-method", "*")
+        response.headers["Access-Control-Allow-Headers"] = request.headers.get("access-control-request-headers", "*")
+        response.headers["Access-Control-Max-Age"] = "86400"
 
 
 @middleware
