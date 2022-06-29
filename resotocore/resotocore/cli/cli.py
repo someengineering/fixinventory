@@ -158,7 +158,7 @@ class HelpCommand(CLICommand):
                  and chain multiple commands using the semicolon (;).
 
                  Use `help <command>` to show help for a specific command. \\
-                 Uee `help placeholders` to see the list of available placeholders.
+                 Use `help placeholders` to see the list of available placeholders.
                  """
             )
             headline = ctx.render_console(f"# resotocore CLI ({version()})")
