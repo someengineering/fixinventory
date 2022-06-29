@@ -37,7 +37,7 @@ class AWSProperty:
         if self.is_array and self.is_complex:
             base += f", default=[]) >> ForallBend({self.type}.mapping)"
         elif self.is_array:
-            base += f", default=[])"
+            base += ", default=[])"
         elif self.is_complex:
             base += f") >> Bend({self.type}.mapping)"
         else:

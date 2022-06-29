@@ -5,8 +5,7 @@ from typing import ClassVar, Dict, Optional, List, Type
 from resoto_plugin_aws.resource.base import AWSResource, GraphBuilder
 from resoto_plugin_aws.utils import TagsToDict, TagsValue
 
-# noinspection PyUnresolvedReferences
-from resotolib.baseresources import BaseInstance, EdgeType, BaseVolume, BaseInstanceType, BaseAccount
+from resotolib.baseresources import BaseInstance, EdgeType, BaseVolume, BaseInstanceType, BaseAccount  # noqa: F401
 from resotolib.json_bender import Bender, S, Bend, ForallBend, K, bend
 from resotolib.types import Json
 
