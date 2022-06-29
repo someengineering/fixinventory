@@ -413,7 +413,6 @@ class AWSEC2Instance(AWSResource, BaseInstance):
         "instance_cores": S("CpuOptions", "CoreCount"),
         "instance_ami_launch_index": S("AmiLaunchIndex"),
         "instance_image_id": S("ImageId"),
-        "instance_instance_id": S("InstanceId"),
         "instance_instance_type": S("InstanceType"),
         "instance_kernel_id": S("KernelId"),
         "instance_key_name": S("KeyName"),
@@ -430,7 +429,7 @@ class AWSEC2Instance(AWSResource, BaseInstance):
         "instance_state": S("State") >> Bend(AWSEC2InstanceState.mapping),
         "instance_state_transition_reason": S("StateTransitionReason"),
         "instance_subnet_id": S("SubnetId"),
-        "instance_vpc_id": S("VpcId"),
+        # "instance_vpc_id": S("VpcId"), # TODO: add link
         "instance_architecture": S("Architecture"),
         "instance_block_device_mappings": S("BlockDeviceMappings", default=[])
         >> ForallBend(AWSEC2InstanceBlockDeviceMapping.mapping),
@@ -475,7 +474,6 @@ class AWSEC2Instance(AWSResource, BaseInstance):
     }
     instance_ami_launch_index: Optional[int] = field(default=None)
     instance_image_id: Optional[str] = field(default=None)
-    instance_instance_id: Optional[str] = field(default=None)
     instance_instance_type: Optional[str] = field(default=None)
     instance_kernel_id: Optional[str] = field(default=None)
     instance_key_name: Optional[str] = field(default=None)
@@ -492,7 +490,6 @@ class AWSEC2Instance(AWSResource, BaseInstance):
     instance_state: Optional[AWSEC2InstanceState] = field(default=None)
     instance_state_transition_reason: Optional[str] = field(default=None)
     instance_subnet_id: Optional[str] = field(default=None)
-    instance_vpc_id: Optional[str] = field(default=None)
     instance_architecture: Optional[str] = field(default=None)
     instance_block_device_mappings: List[AWSEC2InstanceBlockDeviceMapping] = field(default_factory=list)
     instance_client_token: Optional[str] = field(default=None)
@@ -693,8 +690,8 @@ class AWSEC2NetworkAcl(AWSResource):
         "acl_associations": S("Associations", default=[]) >> ForallBend(AWSEC2NetworkAclAssociation.mapping),
         "acl_entries": S("Entries", default=[]) >> ForallBend(AWSEC2NetworkAclEntry.mapping),
         "is_default": S("IsDefault"),
-        # "vpc_id": S("VpcId"),
-        # "owner_id": S("OwnerId")
+        # "vpc_id": S("VpcId"), # TODO: add link
+        # "owner_id": S("OwnerId") # TODO: add link
     }
     acl_associations: List[AWSEC2NetworkAclAssociation] = field(default_factory=list)
     acl_entries: List[AWSEC2NetworkAclEntry] = field(default_factory=list)
