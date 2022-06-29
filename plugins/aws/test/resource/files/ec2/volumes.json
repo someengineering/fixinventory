@@ -1,0 +1,119 @@
+{
+    "Volumes": [
+        {
+            "Attachments": [
+                {
+                    "AttachTime": "2020-05-08T23:31:57+00:00",
+                    "Device": "/dev/sda1",
+                    "InstanceId": "i-123",
+                    "State": "attached",
+                    "VolumeId": "vol-123",
+                    "DeleteOnTermination": false
+                }
+            ],
+            "AvailabilityZone": "us-west-2d",
+            "CreateTime": "2020-05-08T23:31:57.560000+00:00",
+            "Encrypted": false,
+            "Size": 300,
+            "SnapshotId": "snap-123",
+            "State": "in-use",
+            "VolumeId": "vol-123",
+            "Iops": 900,
+            "Tags": [
+                {
+                    "Key": "eks:nodegroup-name",
+                    "Value": "main"
+                },
+                {
+                    "Key": "alpha.eksctl.io/nodegroup-name",
+                    "Value": "main"
+                },
+                {
+                    "Key": "Name",
+                    "Value": "management-bootstrap-main-Node"
+                },
+                {
+                    "Key": "eks:cluster-name",
+                    "Value": "management-bootstrap"
+                },
+                {
+                    "Key": "alpha.eksctl.io/nodegroup-type",
+                    "Value": "managed"
+                }
+            ],
+            "VolumeType": "gp2",
+            "MultiAttachEnabled": false,
+            "FastRestored": false,
+            "KmsKeyId": "123",
+            "OutpostArn": "arn:aws:outposts:us-west-2:123:outpost:123:outpost-id",
+            "Throughput": 123
+        },
+        {
+            "Attachments": [
+                {
+                    "AttachTime": "2022-01-17T14:30:50+00:00",
+                    "Device": "/dev/xvda",
+                    "InstanceId": "i-123",
+                    "State": "attached",
+                    "VolumeId": "vol-123",
+                    "DeleteOnTermination": true
+                }
+            ],
+            "AvailabilityZone": "us-west-2d",
+            "CreateTime": "2022-01-17T14:30:51.024000+00:00",
+            "Encrypted": false,
+            "Size": 8,
+            "SnapshotId": "snap-123",
+            "State": "in-use",
+            "VolumeId": "vol-234",
+            "Iops": 100,
+            "VolumeType": "gp2",
+            "MultiAttachEnabled": false
+        },
+        {
+            "Attachments": [
+                {
+                    "AttachTime": "2022-05-31T09:28:55+00:00",
+                    "Device": "/dev/xvda",
+                    "InstanceId": "i-123",
+                    "State": "attached",
+                    "VolumeId": "vol-123",
+                    "DeleteOnTermination": true
+                }
+            ],
+            "AvailabilityZone": "us-west-2d",
+            "CreateTime": "2022-05-31T09:28:55.829000+00:00",
+            "Encrypted": false,
+            "Size": 80,
+            "SnapshotId": "snap-0133fa40dec8ee41b",
+            "State": "in-use",
+            "VolumeId": "vol-345",
+            "Iops": 3000,
+            "Tags": [
+                {
+                    "Key": "eks:nodegroup-name",
+                    "Value": "main"
+                },
+                {
+                    "Key": "alpha.eksctl.io/nodegroup-name",
+                    "Value": "main"
+                },
+                {
+                    "Key": "Name",
+                    "Value": "management-bootstrap-main-Node"
+                },
+                {
+                    "Key": "eks:cluster-name",
+                    "Value": "management-bootstrap"
+                },
+                {
+                    "Key": "alpha.eksctl.io/nodegroup-type",
+                    "Value": "managed"
+                }
+            ],
+            "VolumeType": "gp3",
+            "MultiAttachEnabled": false,
+            "Throughput": 125
+        }
+    ]
+}

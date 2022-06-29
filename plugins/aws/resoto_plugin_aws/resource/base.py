@@ -1,6 +1,6 @@
 import logging
 from dataclasses import dataclass
-from typing import ClassVar, Dict, Optional, List, Type, Any
+from typing import ClassVar, Dict, Optional, List, Type, Any, TypeVar
 
 import jsons
 
@@ -16,16 +16,18 @@ log = logging.getLogger("resoto.plugins.aws")
 @dataclass(eq=False)
 class AWSResource(BaseResource):
     mapping: ClassVar[Dict[str, Bender]] = {}
-
-    def update_tag(self, key, value) -> bool:
-        pass
-
-    def delete_tag(self, key) -> bool:
-        pass
-
     kind: ClassVar[str] = "aws_resource"
     arn: Optional[str] = None
 
+    # TODO: implement me
+    def update_tag(self, key, value) -> bool:
+        pass
+
+    # TODO: implement me
+    def delete_tag(self, key) -> bool:
+        pass
+
+    # TODO: implement me
     def delete(self, graph) -> bool:
         return False
 
@@ -73,6 +75,11 @@ class AWSResource(BaseResource):
         return jsons.load(json, cls)  # type: ignore
 
     @classmethod
+    def from_api(cls: Type["AWSResource"], json: Json) -> "AWSResource":
+        mapped = bend(cls.mapping, json)
+        return cls.from_json(mapped)
+
+    @classmethod
     def collect(cls: Type["AWSResource"], json: List[Json], builder: "GraphBuilder") -> None:
         # Default behavior: iterate over json snippets and for each:
         # - bend the json
@@ -80,8 +87,7 @@ class AWSResource(BaseResource):
         # - add the resource to the graph
         # In case additional work needs to be done, override this method.
         for js in json:
-            mapped = bend(cls.mapping, js)
-            instance = jsons.load(mapped, cls)  # type: ignore
+            instance = cls.from_api(js)
             builder.add_node(instance, js)
 
     def connect_in_graph(self, builder: "GraphBuilder", source: Json) -> None:
@@ -90,6 +96,9 @@ class AWSResource(BaseResource):
 
     def __str__(self) -> str:
         return f"{self.kind}:{self.name}"
+
+
+AWSResourceType = TypeVar("AWSResourceType", bound=AWSResource)
 
 
 class GraphBuilder:
@@ -125,4 +134,5 @@ class GraphBuilder:
             self.graph.add_edge(start, end, edge_type=edge_type)
 
     def instance_type(self, instance_type: str) -> Optional[AWSEC2InstanceType]:
+        # TODO: implement me
         return None

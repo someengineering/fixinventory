@@ -1,0 +1,359 @@
+{
+    "Reservations": [
+        {
+            "Groups": [],
+            "Instances": [
+                {
+                    "AmiLaunchIndex": 0,
+                    "ImageId": "ami-1123",
+                    "InstanceId": "i-02351c11905d123",
+                    "InstanceType": "m5.xlarge",
+                    "KernelId": "123",
+                    "Platform": "test",
+                    "KeyName": "prod",
+                    "LaunchTime": "2018-05-08T11:03:46+00:00",
+                    "Monitoring": {
+                        "State": "disabled"
+                    },
+                    "Placement": {
+                        "AvailabilityZone": "us-west-2a",
+                        "GroupName": "",
+                        "Tenancy": "default"
+                    },
+                    "PrivateDnsName": "ip-10-10-1-1.us-west-2.compute.internal",
+                    "PrivateIpAddress": "10.10.1.1",
+                    "ProductCodes": [
+                        {
+                            "ProductCodeId": "sdkfhjsdjfhs",
+                            "ProductCodeType": "marketplace"
+                        }
+                    ],
+                    "PublicDnsName": "ec2-123-123-123-123.us-west-2.compute.amazonaws.com",
+                    "PublicIpAddress": "123.123.123.123",
+                    "RamdiskId": "123",
+                    "InstanceLifecycle": "test",
+                    "OutpostArn": "test",
+                    "SpotInstanceRequestId": "test",
+                    "SriovNetSupport": "test",
+                    "CapacityReservationId": "test",
+                    "BootMode": "test",
+                    "PrivateDnsNameOptions": {
+                        "HostnameType": true,
+                        "EnableResourceNameDnsAAAARecord": true
+                    },
+                    "State": {
+                        "Code": 80,
+                        "Name": "stopped"
+                    },
+                    "StateTransitionReason": "User initiated (2021-04-07 06:51:57 GMT)",
+                    "SubnetId": "subnet-123",
+                    "VpcId": "vpc-123",
+                    "Architecture": "x86_64",
+                    "BlockDeviceMappings": [
+                        {
+                            "DeviceName": "/dev/sda1",
+                            "Ebs": {
+                                "AttachTime": "2018-05-08T11:03:47+00:00",
+                                "DeleteOnTermination": true,
+                                "Status": "attached",
+                                "VolumeId": "vol-123"
+                            }
+                        },
+                        {
+                            "DeviceName": "/dev/xvdf",
+                            "Ebs": {
+                                "AttachTime": "2018-05-08T11:04:53+00:00",
+                                "DeleteOnTermination": true,
+                                "Status": "attached",
+                                "VolumeId": "vol-123"
+                            }
+                        },
+                        {
+                            "DeviceName": "/dev/xvdh",
+                            "Ebs": {
+                                "AttachTime": "2018-05-08T11:05:07+00:00",
+                                "DeleteOnTermination": true,
+                                "Status": "attached",
+                                "VolumeId": "vol-123"
+                            }
+                        }
+                    ],
+                    "ClientToken": "",
+                    "EbsOptimized": false,
+                    "EnaSupport": true,
+                    "Hypervisor": "xen",
+                    "IamInstanceProfile": {
+                        "Arn": "arn:aws:iam::123:instance-profile/prod-role",
+                        "Id": "AAAA"
+                    },
+                    "Ipv6Address": "::1",
+                    "TpmSupport": "test",
+                    "NetworkInterfaces": [
+                        {
+                            "Attachment": {
+                                "AttachTime": "2018-05-08T11:03:46+00:00",
+                                "AttachmentId": "eni-attach-123",
+                                "DeleteOnTermination": true,
+                                "DeviceIndex": 0,
+                                "Status": "attached",
+                                "NetworkCardIndex": 0
+                            },
+                            "Description": "",
+                            "Groups": [
+                                {
+                                    "GroupName": "prod-master",
+                                    "GroupId": "sg-123"
+                                }
+                            ],
+                            "Ipv6Addresses": [],
+                            "MacAddress": "02:9b:7e:3d:26:0e",
+                            "NetworkInterfaceId": "eni-123",
+                            "OwnerId": "123",
+                            "PrivateDnsName": "ip-10-10-1-1.us-west-2.compute.internal",
+                            "PrivateIpAddress": "10.10.1.1",
+                            "PrivateIpAddresses": [
+                                {
+                                    "Primary": true,
+                                    "PrivateDnsName": "ip-10-10-1-1.us-west-2.compute.internal",
+                                    "PrivateIpAddress": "10.10.1.1"
+                                }
+                            ],
+                            "SourceDestCheck": true,
+                            "Status": "in-use",
+                            "SubnetId": "subnet-123",
+                            "VpcId": "vpc-123",
+                            "InterfaceType": "interface"
+                        }
+                    ],
+                    "RootDeviceName": "/dev/sda1",
+                    "RootDeviceType": "ebs",
+                    "SecurityGroups": [
+                        {
+                            "GroupName": "prod-master",
+                            "GroupId": "sg-123"
+                        }
+                    ],
+                    "SourceDestCheck": true,
+                    "StateReason": {
+                        "Code": "Client.UserInitiatedShutdown",
+                        "Message": "Client.UserInitiatedShutdown: User initiated shutdown"
+                    },
+                    "Tags": [
+                        {
+                            "Key": "Name",
+                            "Value": "m4.test.com"
+                        },
+                        {
+                            "Key": "expiration",
+                            "Value": "never"
+                        },
+                        {
+                            "Key": "owner",
+                            "Value": "mv"
+                        }
+                    ],
+                    "VirtualizationType": "hvm",
+                    "CpuOptions": {
+                        "CoreCount": 2,
+                        "ThreadsPerCore": 2
+                    },
+                    "CapacityReservationSpecification": {
+                        "CapacityReservationPreference": "open"
+                    },
+                    "HibernationOptions": {
+                        "Configured": false
+                    },
+                    "MetadataOptions": {
+                        "State": "applied",
+                        "HttpTokens": "optional",
+                        "HttpPutResponseHopLimit": 1,
+                        "HttpEndpoint": "enabled",
+                        "HttpProtocolIpv6": "disabled",
+                        "InstanceMetadataTags": "disabled"
+                    },
+                    "EnclaveOptions": {
+                        "Enabled": false
+                    },
+                    "PlatformDetails": "Linux/UNIX",
+                    "UsageOperation": "RunInstances",
+                    "UsageOperationUpdateTime": "2018-05-08T11:03:46+00:00",
+                    "MaintenanceOptions": {
+                        "AutoRecovery": "default"
+                    }
+                }
+            ],
+            "OwnerId": "123",
+            "ReservationId": "r-123"
+        },
+        {
+            "Groups": [],
+            "Instances": [
+                {
+                    "AmiLaunchIndex": 0,
+                    "ImageId": "ami-123",
+                    "InstanceId": "i-123",
+                    "InstanceType": "m5.xlarge",
+                    "KeyName": "prod",
+                    "LaunchTime": "2018-05-08T11:03:44+00:00",
+                    "Monitoring": {
+                        "State": "disabled"
+                    },
+                    "Placement": {
+                        "AvailabilityZone": "us-west-2a",
+                        "GroupName": "",
+                        "Tenancy": "default"
+                    },
+                    "PrivateDnsName": "ip-10-20-1-11.us-west-2.compute.internal",
+                    "PrivateIpAddress": "10.20.1.11",
+                    "ProductCodes": [
+                        {
+                            "ProductCodeId": "123",
+                            "ProductCodeType": "marketplace"
+                        }
+                    ],
+                    "PublicDnsName": "",
+                    "State": {
+                        "Code": 80,
+                        "Name": "stopped"
+                    },
+                    "StateTransitionReason": "User initiated (2021-04-07 06:51:57 GMT)",
+                    "SubnetId": "subnet-123",
+                    "VpcId": "vpc-123",
+                    "Architecture": "x86_64",
+                    "BlockDeviceMappings": [
+                        {
+                            "DeviceName": "/dev/sda1",
+                            "Ebs": {
+                                "AttachTime": "2018-05-08T11:03:45+00:00",
+                                "DeleteOnTermination": true,
+                                "Status": "attached",
+                                "VolumeId": "vol-123"
+                            }
+                        },
+                        {
+                            "DeviceName": "/dev/xvdf",
+                            "Ebs": {
+                                "AttachTime": "2018-05-08T11:04:32+00:00",
+                                "DeleteOnTermination": true,
+                                "Status": "attached",
+                                "VolumeId": "vol-123"
+                            }
+                        },
+                        {
+                            "DeviceName": "/dev/xvdh",
+                            "Ebs": {
+                                "AttachTime": "2018-05-08T11:04:46+00:00",
+                                "DeleteOnTermination": true,
+                                "Status": "attached",
+                                "VolumeId": "vol-123"
+                            }
+                        }
+                    ],
+                    "ClientToken": "",
+                    "EbsOptimized": false,
+                    "EnaSupport": true,
+                    "Hypervisor": "xen",
+                    "IamInstanceProfile": {
+                        "Arn": "arn:aws:iam::123:instance-profile/prod1-master-role",
+                        "Id": "AIPA"
+                    },
+                    "NetworkInterfaces": [
+                        {
+                            "Attachment": {
+                                "AttachTime": "2018-05-08T11:03:44+00:00",
+                                "AttachmentId": "eni-attach-123",
+                                "DeleteOnTermination": true,
+                                "DeviceIndex": 0,
+                                "Status": "attached",
+                                "NetworkCardIndex": 0
+                            },
+                            "Description": "",
+                            "Groups": [
+                                {
+                                    "GroupName": "prod1-master",
+                                    "GroupId": "sg-123"
+                                }
+                            ],
+                            "Ipv6Addresses": [],
+                            "MacAddress": "02:97:77:fb:0d:bc",
+                            "NetworkInterfaceId": "eni-123",
+                            "OwnerId": "123",
+                            "PrivateDnsName": "ip-10-20-1-11.us-west-2.compute.internal",
+                            "PrivateIpAddress": "10.20.1.11",
+                            "PrivateIpAddresses": [
+                                {
+                                    "Primary": true,
+                                    "PrivateDnsName": "ip-10-20-1-11.us-west-2.compute.internal",
+                                    "PrivateIpAddress": "10.20.1.11"
+                                }
+                            ],
+                            "SourceDestCheck": true,
+                            "Status": "in-use",
+                            "SubnetId": "subnet-123",
+                            "VpcId": "vpc-123",
+                            "InterfaceType": "interface"
+                        }
+                    ],
+                    "RootDeviceName": "/dev/sda1",
+                    "RootDeviceType": "ebs",
+                    "SecurityGroups": [
+                        {
+                            "GroupName": "prod-master",
+                            "GroupId": "sg-123"
+                        }
+                    ],
+                    "SourceDestCheck": true,
+                    "StateReason": {
+                        "Code": "Client.UserInitiatedShutdown",
+                        "Message": "Client.UserInitiatedShutdown: User initiated shutdown"
+                    },
+                    "Tags": [
+                        {
+                            "Key": "Name",
+                            "Value": "m1.test.com"
+                        },
+                        {
+                            "Key": "expiration",
+                            "Value": "never"
+                        },
+                        {
+                            "Key": "owner",
+                            "Value": "mv"
+                        }
+                    ],
+                    "VirtualizationType": "hvm",
+                    "CpuOptions": {
+                        "CoreCount": 2,
+                        "ThreadsPerCore": 2
+                    },
+                    "CapacityReservationSpecification": {
+                        "CapacityReservationPreference": "open"
+                    },
+                    "HibernationOptions": {
+                        "Configured": false
+                    },
+                    "MetadataOptions": {
+                        "State": "applied",
+                        "HttpTokens": "optional",
+                        "HttpPutResponseHopLimit": 1,
+                        "HttpEndpoint": "enabled",
+                        "HttpProtocolIpv6": "disabled",
+                        "InstanceMetadataTags": "disabled"
+                    },
+                    "EnclaveOptions": {
+                        "Enabled": false
+                    },
+                    "PlatformDetails": "Linux/UNIX",
+                    "UsageOperation": "RunInstances",
+                    "UsageOperationUpdateTime": "2018-05-08T11:03:44+00:00",
+                    "PrivateDnsNameOptions": {},
+                    "MaintenanceOptions": {
+                        "AutoRecovery": "default"
+                    }
+                }
+            ],
+            "OwnerId": "139475575661",
+            "ReservationId": "r-08bd978b0eef5e27f"
+        }
+    ]
+}

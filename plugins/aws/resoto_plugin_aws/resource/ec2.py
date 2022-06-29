@@ -2,13 +2,26 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import ClassVar, Dict, Optional, List, Type
 
-from resoto_plugin_aws.base import AWSResource, GraphBuilder
-from resoto_plugin_aws.resources import AWSEC2InstanceType
+from resoto_plugin_aws.resource.base import AWSResource, GraphBuilder
 from resoto_plugin_aws.utils import TagsToDict, TagsValue
-from resotolib.baseresources import BaseInstance, BaseAccount, EdgeType, BaseVolume
+
+# noinspection PyUnresolvedReferences
+from resotolib.baseresources import BaseInstance, EdgeType, BaseVolume, BaseInstanceType, BaseAccount
 from resotolib.json_bender import Bender, S, Bend, ForallBend, K, bend
 from resotolib.types import Json
 
+
+# region InstanceType
+@dataclass(eq=False)
+class AWSEC2InstanceType(AWSResource, BaseInstanceType):
+    kind: ClassVar[str] = "aws_ec2_instance_type"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["aws_ec2_instance"],
+        "delete": [],
+    }
+
+
+# endregion
 
 # region Volume
 
@@ -100,12 +113,9 @@ class AWSEC2KeyPair(AWSResource):
         "public_key": S("PublicKey"),
         "ctime": S("CreateTime"),
     }
-    key_pair_id: Optional[str] = field(default=None)
     key_fingerprint: Optional[str] = field(default=None)
-    key_name: Optional[str] = field(default=None)
     key_type: Optional[str] = field(default=None)
     public_key: Optional[str] = field(default=None)
-    create_time: Optional[datetime] = field(default=None)
 
 
 # endregion
@@ -402,124 +412,127 @@ class AWSEC2Instance(AWSResource, BaseInstance):
         "mtime": K(None),
         "instance_status": S("State", "Name"),
         "instance_cores": S("CpuOptions", "CoreCount"),
-        # "instance_memory": cores and memory are set from the instance type
-        # specific properties
-        "ami_launch_index": S("AmiLaunchIndex"),
-        "image_id": S("ImageId"),
-        "instance_id": S("InstanceId"),
-        "instance_type": S("InstanceType"),
-        "kernel_id": S("KernelId"),
-        "key_name": S("KeyName"),
-        "launch_time": S("LaunchTime"),
-        "monitoring": S("Monitoring", "State"),
-        "placement": S("Placement") >> Bend(AWSEC2Placement.mapping),
-        "platform": S("Platform"),
-        "private_dns_name": S("PrivateDnsName"),
-        "private_ip_address": S("PrivateIpAddress"),
-        "product_codes": S("ProductCodes", default=[]) >> ForallBend(AWSEC2ProductCode.mapping),
-        "public_dns_name": S("PublicDnsName"),
-        "public_ip_address": S("PublicIpAddress"),
-        "ramdisk_id": S("RamdiskId"),
-        "state": S("State") >> Bend(AWSEC2InstanceState.mapping),
-        "state_transition_reason": S("StateTransitionReason"),
-        "subnet_id": S("SubnetId"),
-        "vpc_id": S("VpcId"),
-        "architecture": S("Architecture"),
-        "block_device_mappings": S("BlockDeviceMappings", default=[])
+        "instance_ami_launch_index": S("AmiLaunchIndex"),
+        "instance_image_id": S("ImageId"),
+        "instance_instance_id": S("InstanceId"),
+        "instance_instance_type": S("InstanceType"),
+        "instance_kernel_id": S("KernelId"),
+        "instance_key_name": S("KeyName"),
+        "instance_launch_time": S("LaunchTime"),
+        "instance_monitoring": S("Monitoring", "State"),
+        "instance_placement": S("Placement") >> Bend(AWSEC2Placement.mapping),
+        "instance_platform": S("Platform"),
+        "instance_private_dns_name": S("PrivateDnsName"),
+        "instance_private_ip_address": S("PrivateIpAddress"),
+        "instance_product_codes": S("ProductCodes", default=[]) >> ForallBend(AWSEC2ProductCode.mapping),
+        "instance_public_dns_name": S("PublicDnsName"),
+        "instance_public_ip_address": S("PublicIpAddress"),
+        "instance_ramdisk_id": S("RamdiskId"),
+        "instance_state": S("State") >> Bend(AWSEC2InstanceState.mapping),
+        "instance_state_transition_reason": S("StateTransitionReason"),
+        "instance_subnet_id": S("SubnetId"),
+        "instance_vpc_id": S("VpcId"),
+        "instance_architecture": S("Architecture"),
+        "instance_block_device_mappings": S("BlockDeviceMappings", default=[])
         >> ForallBend(AWSEC2InstanceBlockDeviceMapping.mapping),
-        "client_token": S("ClientToken"),
-        "ebs_optimized": S("EbsOptimized"),
-        "ena_support": S("EnaSupport"),
-        "hypervisor": S("Hypervisor"),
-        "iam_instance_profile": S("IamInstanceProfile") >> Bend(AWSEC2IamInstanceProfile.mapping),
+        "instance_client_token": S("ClientToken"),
+        "instance_ebs_optimized": S("EbsOptimized"),
+        "instance_ena_support": S("EnaSupport"),
+        "instance_hypervisor": S("Hypervisor"),
+        "instance_iam_instance_profile": S("IamInstanceProfile") >> Bend(AWSEC2IamInstanceProfile.mapping),
         "instance_lifecycle": S("InstanceLifecycle"),
-        "elastic_gpu_associations": S("ElasticGpuAssociations", default=[])
+        "instance_elastic_gpu_associations": S("ElasticGpuAssociations", default=[])
         >> ForallBend(AWSEC2ElasticGpuAssociation.mapping),
-        "elastic_inference_accelerator_associations": S("ElasticInferenceAcceleratorAssociations", default=[])
+        "instance_elastic_inference_accelerator_associations": S("ElasticInferenceAcceleratorAssociations", default=[])
         >> ForallBend(AWSEC2ElasticInferenceAcceleratorAssociation.mapping),
-        "network_interfaces": S("NetworkInterfaces", default=[]) >> ForallBend(AWSEC2InstanceNetworkInterface.mapping),
-        "outpost_arn": S("OutpostArn"),
-        "root_device_name": S("RootDeviceName"),
-        "root_device_type": S("RootDeviceType"),
-        "security_groups": S("SecurityGroups", default=[]) >> ForallBend(AWSEC2GroupIdentifier.mapping),
-        "source_dest_check": S("SourceDestCheck"),
-        "spot_instance_request_id": S("SpotInstanceRequestId"),
-        "sriov_net_support": S("SriovNetSupport"),
-        "state_reason": S("StateReason") >> Bend(AWSEC2StateReason.mapping),
-        "virtualization_type": S("VirtualizationType"),
-        "cpu_options": S("CpuOptions") >> Bend(AWSEC2CpuOptions.mapping),
-        "capacity_reservation_id": S("CapacityReservationId"),
-        "capacity_reservation_specification": S("CapacityReservationSpecification")
+        "instance_network_interfaces": S("NetworkInterfaces", default=[])
+        >> ForallBend(AWSEC2InstanceNetworkInterface.mapping),
+        "instance_outpost_arn": S("OutpostArn"),
+        "instance_root_device_name": S("RootDeviceName"),
+        "instance_root_device_type": S("RootDeviceType"),
+        "instance_security_groups": S("SecurityGroups", default=[]) >> ForallBend(AWSEC2GroupIdentifier.mapping),
+        "instance_source_dest_check": S("SourceDestCheck"),
+        "instance_spot_instance_request_id": S("SpotInstanceRequestId"),
+        "instance_sriov_net_support": S("SriovNetSupport"),
+        "instance_state_reason": S("StateReason") >> Bend(AWSEC2StateReason.mapping),
+        "instance_virtualization_type": S("VirtualizationType"),
+        "instance_cpu_options": S("CpuOptions") >> Bend(AWSEC2CpuOptions.mapping),
+        "instance_capacity_reservation_id": S("CapacityReservationId"),
+        "instance_capacity_reservation_specification": S("CapacityReservationSpecification")
         >> Bend(AWSEC2CapacityReservationSpecificationResponse.mapping),
-        "hibernation_options": S("HibernationOptions", "Configured"),
-        "licenses": S("Licenses", default=[]) >> ForallBend(S("LicenseConfigurationArn")),
-        "metadata_options": S("MetadataOptions") >> Bend(AWSEC2InstanceMetadataOptionsResponse.mapping),
-        "enclave_options": S("EnclaveOptions", "Enabled"),
-        "boot_mode": S("BootMode"),
-        "platform_details": S("PlatformDetails"),
-        "usage_operation": S("UsageOperation"),
-        "usage_operation_update_time": S("UsageOperationUpdateTime"),
-        "private_dns_name_options": S("PrivateDnsNameOptions") >> Bend(AWSEC2PrivateDnsNameOptionsResponse.mapping),
-        "ipv6_address": S("Ipv6Address"),
-        "tpm_support": S("TpmSupport"),
-        "maintenance_options": S("MaintenanceOptions", "AutoRecovery"),
+        "instance_hibernation_options": S("HibernationOptions", "Configured"),
+        "instance_licenses": S("Licenses", default=[]) >> ForallBend(S("LicenseConfigurationArn")),
+        "instance_metadata_options": S("MetadataOptions") >> Bend(AWSEC2InstanceMetadataOptionsResponse.mapping),
+        "instance_enclave_options": S("EnclaveOptions", "Enabled"),
+        "instance_boot_mode": S("BootMode"),
+        "instance_platform_details": S("PlatformDetails"),
+        "instance_usage_operation": S("UsageOperation"),
+        "instance_usage_operation_update_time": S("UsageOperationUpdateTime"),
+        "instance_private_dns_name_options": S("PrivateDnsNameOptions")
+        >> Bend(AWSEC2PrivateDnsNameOptionsResponse.mapping),
+        "instance_ipv6_address": S("Ipv6Address"),
+        "instance_tpm_support": S("TpmSupport"),
+        "instance_maintenance_options": S("MaintenanceOptions", "AutoRecovery"),
     }
-    ami_launch_index: Optional[int] = field(default=None)
-    image_id: Optional[str] = field(default=None)
-    instance_type: Optional[str] = field(default=None)
-    kernel_id: Optional[str] = field(default=None)
-    key_name: Optional[str] = field(default=None)
-    launch_time: Optional[datetime] = field(default=None)
-    monitoring: Optional[str] = field(default=None)
-    placement: Optional[AWSEC2Placement] = field(default=None)
-    platform: Optional[str] = field(default=None)
-    private_dns_name: Optional[str] = field(default=None)
-    private_ip_address: Optional[str] = field(default=None)
-    product_codes: List[AWSEC2ProductCode] = field(default_factory=list)
-    public_dns_name: Optional[str] = field(default=None)
-    public_ip_address: Optional[str] = field(default=None)
-    ramdisk_id: Optional[str] = field(default=None)
-    state: Optional[AWSEC2InstanceState] = field(default=None)
-    state_transition_reason: Optional[str] = field(default=None)
-    subnet_id: Optional[str] = field(default=None)
-    vpc_id: Optional[str] = field(default=None)
-    architecture: Optional[str] = field(default=None)
-    block_device_mappings: List[AWSEC2InstanceBlockDeviceMapping] = field(default_factory=list)
-    client_token: Optional[str] = field(default=None)
-    ebs_optimized: Optional[bool] = field(default=None)
-    ena_support: Optional[bool] = field(default=None)
-    hypervisor: Optional[str] = field(default=None)
-    iam_instance_profile: Optional[AWSEC2IamInstanceProfile] = field(default=None)
+    instance_ami_launch_index: Optional[int] = field(default=None)
+    instance_image_id: Optional[str] = field(default=None)
+    instance_instance_id: Optional[str] = field(default=None)
+    instance_instance_type: Optional[str] = field(default=None)
+    instance_kernel_id: Optional[str] = field(default=None)
+    instance_key_name: Optional[str] = field(default=None)
+    instance_launch_time: Optional[datetime] = field(default=None)
+    instance_monitoring: Optional[str] = field(default=None)
+    instance_placement: Optional[AWSEC2Placement] = field(default=None)
+    instance_platform: Optional[str] = field(default=None)
+    instance_private_dns_name: Optional[str] = field(default=None)
+    instance_private_ip_address: Optional[str] = field(default=None)
+    instance_product_codes: List[AWSEC2ProductCode] = field(default_factory=list)
+    instance_public_dns_name: Optional[str] = field(default=None)
+    instance_public_ip_address: Optional[str] = field(default=None)
+    instance_ramdisk_id: Optional[str] = field(default=None)
+    instance_state: Optional[AWSEC2InstanceState] = field(default=None)
+    instance_state_transition_reason: Optional[str] = field(default=None)
+    instance_subnet_id: Optional[str] = field(default=None)
+    instance_vpc_id: Optional[str] = field(default=None)
+    instance_architecture: Optional[str] = field(default=None)
+    instance_block_device_mappings: List[AWSEC2InstanceBlockDeviceMapping] = field(default_factory=list)
+    instance_client_token: Optional[str] = field(default=None)
+    instance_ebs_optimized: Optional[bool] = field(default=None)
+    instance_ena_support: Optional[bool] = field(default=None)
+    instance_hypervisor: Optional[str] = field(default=None)
+    instance_iam_instance_profile: Optional[AWSEC2IamInstanceProfile] = field(default=None)
     instance_lifecycle: Optional[str] = field(default=None)
-    elastic_gpu_associations: List[AWSEC2ElasticGpuAssociation] = field(default_factory=list)
-    elastic_inference_accelerator_associations: List[AWSEC2ElasticInferenceAcceleratorAssociation] = field(
+    instance_elastic_gpu_associations: List[AWSEC2ElasticGpuAssociation] = field(default_factory=list)
+    instance_elastic_inference_accelerator_associations: List[AWSEC2ElasticInferenceAcceleratorAssociation] = field(
         default_factory=list
     )
-    network_interfaces: List[AWSEC2InstanceNetworkInterface] = field(default_factory=list)
-    outpost_arn: Optional[str] = field(default=None)
-    root_device_name: Optional[str] = field(default=None)
-    root_device_type: Optional[str] = field(default=None)
-    security_groups: List[AWSEC2GroupIdentifier] = field(default_factory=list)
-    source_dest_check: Optional[bool] = field(default=None)
-    spot_instance_request_id: Optional[str] = field(default=None)
-    sriov_net_support: Optional[str] = field(default=None)
-    state_reason: Optional[AWSEC2StateReason] = field(default=None)
-    virtualization_type: Optional[str] = field(default=None)
-    cpu_options: Optional[AWSEC2CpuOptions] = field(default=None)
-    capacity_reservation_id: Optional[str] = field(default=None)
-    capacity_reservation_specification: Optional[AWSEC2CapacityReservationSpecificationResponse] = field(default=None)
-    hibernation_options: Optional[bool] = field(default=None)
-    licenses: List[str] = field(default_factory=list)
-    metadata_options: Optional[AWSEC2InstanceMetadataOptionsResponse] = field(default=None)
-    enclave_options: Optional[bool] = field(default=None)
-    boot_mode: Optional[str] = field(default=None)
-    platform_details: Optional[str] = field(default=None)
-    usage_operation: Optional[str] = field(default=None)
-    usage_operation_update_time: Optional[datetime] = field(default=None)
-    private_dns_name_options: Optional[AWSEC2PrivateDnsNameOptionsResponse] = field(default=None)
-    ipv6_address: Optional[str] = field(default=None)
-    tpm_support: Optional[str] = field(default=None)
-    maintenance_options: Optional[str] = field(default=None)
+    instance_network_interfaces: List[AWSEC2InstanceNetworkInterface] = field(default_factory=list)
+    instance_outpost_arn: Optional[str] = field(default=None)
+    instance_root_device_name: Optional[str] = field(default=None)
+    instance_root_device_type: Optional[str] = field(default=None)
+    instance_security_groups: List[AWSEC2GroupIdentifier] = field(default_factory=list)
+    instance_source_dest_check: Optional[bool] = field(default=None)
+    instance_spot_instance_request_id: Optional[str] = field(default=None)
+    instance_sriov_net_support: Optional[str] = field(default=None)
+    instance_state_reason: Optional[AWSEC2StateReason] = field(default=None)
+    instance_virtualization_type: Optional[str] = field(default=None)
+    instance_cpu_options: Optional[AWSEC2CpuOptions] = field(default=None)
+    instance_capacity_reservation_id: Optional[str] = field(default=None)
+    instance_capacity_reservation_specification: Optional[AWSEC2CapacityReservationSpecificationResponse] = field(
+        default=None
+    )
+    instance_hibernation_options: Optional[bool] = field(default=None)
+    instance_licenses: List[str] = field(default_factory=list)
+    instance_metadata_options: Optional[AWSEC2InstanceMetadataOptionsResponse] = field(default=None)
+    instance_enclave_options: Optional[bool] = field(default=None)
+    instance_boot_mode: Optional[str] = field(default=None)
+    instance_platform_details: Optional[str] = field(default=None)
+    instance_usage_operation: Optional[str] = field(default=None)
+    instance_usage_operation_update_time: Optional[datetime] = field(default=None)
+    instance_private_dns_name_options: Optional[AWSEC2PrivateDnsNameOptionsResponse] = field(default=None)
+    instance_ipv6_address: Optional[str] = field(default=None)
+    instance_tpm_support: Optional[str] = field(default=None)
+    instance_maintenance_options: Optional[str] = field(default=None)
 
     def _instance_status_getter(self) -> str:
         return self._instance_status
@@ -542,13 +555,151 @@ class AWSEC2Instance(AWSResource, BaseInstance):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
         builder.add_edge(self, EdgeType.default, reverse=True, clazz=AWSEC2InstanceType, name=self.instance_type)
-        if self.key_name:
-            builder.add_edge(self, EdgeType.default, clazz=AWSEC2KeyPair, name=self.key_name)
-            builder.add_edge(self, EdgeType.delete, reverse=True, clazz=AWSEC2KeyPair, name=self.key_name)
+        if self.instance_key_name:
+            builder.add_edge(self, EdgeType.default, clazz=AWSEC2KeyPair, name=self.instance_key_name)
+            builder.add_edge(self, EdgeType.delete, reverse=True, clazz=AWSEC2KeyPair, name=self.instance_key_name)
 
 
 AWSEC2Instance.instance_status = property(
     AWSEC2Instance._instance_status_getter, AWSEC2Instance._instance_status_setter
 )
+
+# endregion
+
+# region ReservedInstances
+
+
+@dataclass(eq=False)
+class AWSEC2RecurringCharge:
+    kind: ClassVar[str] = "aws_ec2_recurring_charge"
+    mapping: ClassVar[Dict[str, Bender]] = {"amount": S("Amount"), "frequency": S("Frequency")}
+    amount: Optional[float] = field(default=None)
+    frequency: Optional[str] = field(default=None)
+
+
+@dataclass(eq=False)
+class AWSEC2ReservedInstances(AWSResource):
+    kind: ClassVar[str] = "aws_ec2_reserved_instances"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("ReservedInstancesId"),
+        "tags": S("Tags", default=[]) >> TagsToDict(),
+        "name": S("Tags", default=[]) >> TagsValue("Name"),
+        "availability_zone": S("AvailabilityZone"),
+        "reservation_duration": S("Duration"),
+        "reservation_end": S("End"),
+        "reservation_fixed_price": S("FixedPrice"),
+        "reservation_instance_count": S("InstanceCount"),
+        "reservation_instance_type": S("InstanceType"),
+        "reservation_product_description": S("ProductDescription"),
+        "reservation_reserved_instances_id": S("ReservedInstancesId"),
+        "reservation_start": S("Start"),
+        "reservation_state": S("State"),
+        "reservation_usage_price": S("UsagePrice"),
+        "reservation_currency_code": S("CurrencyCode"),
+        "reservation_instance_tenancy": S("InstanceTenancy"),
+        "reservation_offering_class": S("OfferingClass"),
+        "reservation_offering_type": S("OfferingType"),
+        "reservation_recurring_charges": S("RecurringCharges", default=[]) >> ForallBend(AWSEC2RecurringCharge.mapping),
+        "reservation_scope": S("Scope"),
+    }
+    availability_zone: Optional[str] = field(default=None)
+    reservation_duration: Optional[int] = field(default=None)
+    reservation_end: Optional[datetime] = field(default=None)
+    reservation_fixed_price: Optional[float] = field(default=None)
+    reservation_instance_count: Optional[int] = field(default=None)
+    reservation_instance_type: Optional[str] = field(default=None)
+    reservation_product_description: Optional[str] = field(default=None)
+    reservation_reserved_instances_id: Optional[str] = field(default=None)
+    reservation_start: Optional[datetime] = field(default=None)
+    reservation_state: Optional[str] = field(default=None)
+    reservation_usage_price: Optional[float] = field(default=None)
+    reservation_currency_code: Optional[str] = field(default=None)
+    reservation_instance_tenancy: Optional[str] = field(default=None)
+    reservation_offering_class: Optional[str] = field(default=None)
+    reservation_offering_type: Optional[str] = field(default=None)
+    reservation_recurring_charges: List[AWSEC2RecurringCharge] = field(default_factory=list)
+    reservation_scope: Optional[str] = field(default=None)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        super().connect_in_graph(builder, source)
+        builder.add_edge(
+            self, EdgeType.default, reverse=True, clazz=AWSEC2InstanceType, name=self.reservation_instance_type
+        )
+
+
+# endregion
+
+# region Network ACLs
+
+
+@dataclass(eq=False)
+class AWSEC2NetworkAclAssociation:
+    kind: ClassVar[str] = "aws_ec2_network_acl_association"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "network_acl_association_id": S("NetworkAclAssociationId"),
+        "network_acl_id": S("NetworkAclId"),
+        "subnet_id": S("SubnetId"),
+    }
+    network_acl_association_id: Optional[str] = field(default=None)
+    network_acl_id: Optional[str] = field(default=None)
+    subnet_id: Optional[str] = field(default=None)
+
+
+@dataclass(eq=False)
+class AWSEC2IcmpTypeCode:
+    kind: ClassVar[str] = "aws_ec2_icmp_type_code"
+    mapping: ClassVar[Dict[str, Bender]] = {"code": S("Code"), "type": S("Type")}
+    code: Optional[int] = field(default=None)
+    type: Optional[int] = field(default=None)
+
+
+@dataclass(eq=False)
+class AWSEC2PortRange:
+    kind: ClassVar[str] = "aws_ec2_port_range"
+    mapping: ClassVar[Dict[str, Bender]] = {"from_range": S("From"), "to_range": S("To")}
+    from_range: Optional[int] = field(default=None)
+    to_range: Optional[int] = field(default=None)
+
+
+@dataclass(eq=False)
+class AWSEC2NetworkAclEntry:
+    kind: ClassVar[str] = "aws_ec2_network_acl_entry"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "cidr_block": S("CidrBlock"),
+        "egress": S("Egress"),
+        "icmp_type_code": S("IcmpTypeCode") >> Bend(AWSEC2IcmpTypeCode.mapping),
+        "ipv6_cidr_block": S("Ipv6CidrBlock"),
+        "port_range": S("PortRange") >> Bend(AWSEC2PortRange.mapping),
+        "protocol": S("Protocol"),
+        "rule_action": S("RuleAction"),
+        "rule_number": S("RuleNumber"),
+    }
+    cidr_block: Optional[str] = field(default=None)
+    egress: Optional[bool] = field(default=None)
+    icmp_type_code: Optional[AWSEC2IcmpTypeCode] = field(default=None)
+    ipv6_cidr_block: Optional[str] = field(default=None)
+    port_range: Optional[AWSEC2PortRange] = field(default=None)
+    protocol: Optional[str] = field(default=None)
+    rule_action: Optional[str] = field(default=None)
+    rule_number: Optional[int] = field(default=None)
+
+
+@dataclass(eq=False)
+class AWSEC2NetworkAcl(AWSResource):
+    kind: ClassVar[str] = "aws_ec2_network_acl"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("NetworkAclId"),
+        "tags": S("Tags", default=[]) >> TagsToDict(),
+        "name": S("Tags", default=[]) >> TagsValue("Name"),
+        "acl_associations": S("Associations", default=[]) >> ForallBend(AWSEC2NetworkAclAssociation.mapping),
+        "acl_entries": S("Entries", default=[]) >> ForallBend(AWSEC2NetworkAclEntry.mapping),
+        "is_default": S("IsDefault"),
+        # "vpc_id": S("VpcId"),
+        # "owner_id": S("OwnerId")
+    }
+    acl_associations: List[AWSEC2NetworkAclAssociation] = field(default_factory=list)
+    acl_entries: List[AWSEC2NetworkAclEntry] = field(default_factory=list)
+    is_default: Optional[bool] = field(default=None)
+
 
 # endregion

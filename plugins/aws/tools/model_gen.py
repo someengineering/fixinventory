@@ -80,9 +80,10 @@ class AWSResotoModel:
     api_action: str  # action to perform on the client
     result_property: str  # this property holds the resulting list
     result_shape: str  # the shape of the result according to the service specification
+    prefix: Optional[str] = None  # prefix for the resources
+    prop_prefix: Optional[str] = None  # prefix for the attributes
     name: Optional[str] = None  # name of the clazz - uses the shape name by default
     base: Optional[str] = None  # the base class to use, BaseResource otherwise
-    prefix: Optional[str] = None  # prefix for the resources
 
 
 def to_snake(name: str) -> str:
@@ -118,6 +119,7 @@ def clazz_model(
     shape: Shape,
     visited: Set[str],
     prefix: Optional[str] = None,
+    prop_prefix: Optional[str] = None,
     clazz_name: Optional[str] = None,
     base_class: Optional[str] = None,
     aggregate_root: bool = False,
@@ -151,22 +153,23 @@ def clazz_model(
     result: List[AWSModel] = []
     props = []
     prefix = prefix or ""
+    prop_prefix = prop_prefix or ""
     if isinstance(shape, StructureShape):
         for name, prop_shape in shape.members.items():
             prop = to_snake(name)
             if prop in ignore_props:
                 continue
             if simple := simple_shape(prop_shape):
-                props.append(AWSProperty(prop, name, simple, prop_shape.documentation))
+                props.append(AWSProperty(prop_prefix + prop, name, simple, prop_shape.documentation))
             elif isinstance(prop_shape, ListShape):
                 inner = prop_shape.member
                 if simple := simple_shape(inner):
-                    props.append(AWSProperty(prop, name, simple, prop_shape.documentation, is_array=True))
+                    props.append(AWSProperty(prop_prefix + prop, name, simple, prop_shape.documentation, is_array=True))
                 elif simple_path := complex_simple_shape(inner):
                     prop_name, prop_type = simple_path
                     props.append(
                         AWSProperty(
-                            prop,
+                            prop_prefix + prop,
                             [name, prop_name],
                             prop_type,
                             prop_shape.documentation,
@@ -179,7 +182,7 @@ def clazz_model(
                     result.extend(clazz_model(model, inner, visited, prefix))
                     props.append(
                         AWSProperty(
-                            prop,
+                            prop_prefix + prop,
                             name,
                             type_name(inner),
                             prop_shape.documentation,
@@ -192,16 +195,22 @@ def clazz_model(
                 assert key_type, f"Key type must be a simple type: {prop_shape.key.name}"
                 value_type = type_name(prop_shape.value)
                 result.extend(clazz_model(model, prop_shape.value, visited, prefix))
-                props.append(AWSProperty(prop, name, f"Dict[{key_type}, {value_type}]", prop_shape.documentation))
+                props.append(
+                    AWSProperty(prop_prefix + prop, name, f"Dict[{key_type}, {value_type}]", prop_shape.documentation)
+                )
 
             elif isinstance(prop_shape, StructureShape):
                 if maybe_simple := complex_simple_shape(prop_shape):
                     s_prop_name, s_prop_type = maybe_simple
-                    props.append(AWSProperty(prop, [name, s_prop_name], s_prop_type, prop_shape.documentation))
+                    props.append(
+                        AWSProperty(prop_prefix + prop, [name, s_prop_name], s_prop_type, prop_shape.documentation)
+                    )
                 else:
                     result.extend(clazz_model(model, prop_shape, visited, prefix))
                     props.append(
-                        AWSProperty(prop, name, type_name(prop_shape), prop_shape.documentation, is_complex=True)
+                        AWSProperty(
+                            prop_prefix + prop, name, type_name(prop_shape), prop_shape.documentation, is_complex=True
+                        )
                     )
             else:
                 raise NotImplementedError(f"Unsupported shape: {prop_shape}")
@@ -226,6 +235,7 @@ def all_models() -> List[AWSModel]:
                     aggregate_root=True,
                     clazz_name=ep.name,
                     base_class=ep.base,
+                    prop_prefix=ep.prop_prefix,
                     prefix=ep.prefix,
                 )
             )
@@ -323,11 +333,25 @@ models: Dict[str, List[AWSResotoModel]] = {
         # ),
     ],
     "ec2": [
-        # AWSResotoModel("describe-instances", "Reservations", "Instance", base="BaseInstance", prefix="EC2"),
+        # AWSResotoModel(
+        #     "describe-instances",
+        #     "Reservations",
+        #     "Instance",
+        #     base="BaseInstance",
+        #     prefix="EC2",
+        #     prop_prefix="instance_",
+        # ),
         # AWSResotoModel("describe-key-pairs", "KeyPairs", "KeyPairInfo", prefix="EC2"),
-        AWSResotoModel("describe-volumes", "Volumes", "Volume", base="BaseVolume", prefix="EC2"),
+        # AWSResotoModel("describe-volumes", "Volumes", "Volume", base="BaseVolume", prefix="EC2"),
         # AWSResotoModel("describe_addresses", "Addresses", "Address", prefix="EC2"),
-        # AWSResotoModel("describe_reserved_instances", "ReservedInstances", "ReservedInstances", prefix="EC2"),
+        # AWSResotoModel(
+        #     "describe_reserved_instances",
+        #     "ReservedInstances",
+        #     "ReservedInstances",
+        #     prefix="EC2",
+        #     prop_prefix="reservation_",
+        # ),
+        AWSResotoModel("describe-network-acls", "NetworkAcls", "NetworkAcl", prefix="EC2"),
     ],
     "route53": [
         # AWSResotoModel("list_hosted_zones", "HostedZones", "HostedZone", prefix="Route53"),

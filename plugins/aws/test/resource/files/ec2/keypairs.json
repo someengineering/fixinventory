@@ -1,0 +1,31 @@
+{
+  "KeyPairs": [
+    {
+      "KeyPairId": "key-123",
+      "KeyFingerprint": "11:d5:c3:eb:15:d5:56:bf:1a:82:18:87:22:71:49:e7",
+      "KeyName": "ad-foo",
+      "KeyType": "rsa",
+      "Tags": [
+        {
+          "Key": "somedate",
+          "Value": "2021-09-30T15:42:59.946836+00:00"
+        }
+      ],
+      "CreateTime": "2021-09-29T15:54:26+00:00",
+      "PublicKey": "1232345"
+    },
+    {
+      "KeyPairId": "key-234",
+      "KeyFingerprint": "ab:12:d5:d3:5d:a7:13:a2:97:a4:b5:5c:4a:e9:3d:23",
+      "KeyName": "april-june",
+      "KeyType": "rsa",
+      "Tags": [
+        {
+          "Key": "somedate",
+          "Value": "2020-05-17T14:33:11.860872+00:00"
+        }
+      ],
+      "CreateTime": "2020-04-04T01:55:36+00:00"
+    }
+  ]
+}

@@ -1,0 +1,122 @@
+{
+  "NetworkAcls": [
+    {
+      "Associations": [
+        {
+          "NetworkAclAssociationId": "aclassoc-123",
+          "NetworkAclId": "acl-123",
+          "SubnetId": "subnet-123"
+        },
+        {
+          "NetworkAclAssociationId": "aclassoc-234",
+          "NetworkAclId": "acl-234",
+          "SubnetId": "subnet-234"
+        },
+        {
+          "NetworkAclAssociationId": "aclassoc-345",
+          "NetworkAclId": "acl-345",
+          "SubnetId": "subnet-345"
+        }
+      ],
+      "Entries": [
+        {
+          "CidrBlock": "0.0.0.0/0",
+          "Egress": true,
+          "Protocol": "-1",
+          "RuleAction": "allow",
+          "RuleNumber": 100
+        },
+        {
+          "CidrBlock": "0.0.0.0/0",
+          "Egress": true,
+          "Protocol": "-1",
+          "RuleAction": "deny",
+          "RuleNumber": 32767
+        },
+        {
+          "CidrBlock": "0.0.0.0/0",
+          "Egress": false,
+          "Protocol": "-1",
+          "RuleAction": "allow",
+          "RuleNumber": 100
+        },
+        {
+          "CidrBlock": "0.0.0.0/0",
+          "Egress": false,
+          "Protocol": "-1",
+          "RuleAction": "deny",
+          "RuleNumber": 32767
+        }
+      ],
+      "IsDefault": true,
+      "NetworkAclId": "acl-123",
+      "Tags": [
+        {
+          "Key": "time",
+          "Value": "2020-06-03T23:11:40.350133+00:00"
+        }
+      ],
+      "VpcId": "vpc-123",
+      "OwnerId": "123"
+    },
+    {
+      "Associations": [
+        {
+          "NetworkAclAssociationId": "aclassoc-321",
+          "NetworkAclId": "acl-321",
+          "SubnetId": "subnet-321"
+        },
+        {
+          "NetworkAclAssociationId": "aclassoc=432",
+          "NetworkAclId": "acl-432",
+          "SubnetId": "subnet-432"
+        },
+        {
+          "NetworkAclAssociationId": "aclassoc-324",
+          "NetworkAclId": "acl-324",
+          "SubnetId": "subnet-324"
+        }
+      ],
+      "Entries": [
+        {
+          "CidrBlock": "0.0.0.0/0",
+          "Egress": true,
+          "Protocol": "-1",
+          "RuleAction": "allow",
+          "RuleNumber": 100
+        },
+        {
+          "CidrBlock": "0.0.0.0/0",
+          "Egress": true,
+          "Protocol": "-1",
+          "RuleAction": "deny",
+          "RuleNumber": 32767
+        },
+        {
+          "CidrBlock": "0.0.0.0/0",
+          "Egress": false,
+          "Protocol": "-1",
+          "RuleAction": "allow",
+          "RuleNumber": 100
+        },
+        {
+          "CidrBlock": "0.0.0.0/0",
+          "Egress": false,
+          "Protocol": "-1",
+          "RuleAction": "deny",
+          "RuleNumber": 32767
+        }
+      ],
+      "IsDefault": true,
+      "NetworkAclId": "acl-432",
+      "Tags": [
+        {
+          "Key": "time",
+          "Value": "2020-06-03T23:11:40.350133+00:00"
+        }
+      ],
+      "VpcId": "vpc-123",
+      "OwnerId": "123"
+    }
+  ]
+}
