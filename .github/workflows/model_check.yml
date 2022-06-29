@@ -20,6 +20,7 @@ on:
       - 'plugins/slack/**'
       - 'plugins/vsphere/**'
       - '.github/**'
+  workflow_dispatch:
 
 jobs:
   aws:
