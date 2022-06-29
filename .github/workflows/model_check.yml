@@ -1,6 +1,4 @@
-# Note: this workflow is automatically generated via the `create_pr` script in the same folder.
-# Please do not change the file, but the script!
-
+# Check the model of all collector plugins for consistency.
 name: Model Check
 on:
   push:
