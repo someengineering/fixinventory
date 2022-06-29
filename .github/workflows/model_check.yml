@@ -21,8 +21,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  aws:
-    name: "aws"
+  model:
+    name: "model"
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
