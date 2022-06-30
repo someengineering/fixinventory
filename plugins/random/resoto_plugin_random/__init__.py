@@ -14,6 +14,7 @@ from .resources import (
     instance_statuses,
     instance_types,
     volume_statuses,
+    region_templates,
     RandomAccount,
     RandomRegion,
     RandomNetwork,
@@ -70,20 +71,6 @@ def add_accounts(graph: Graph) -> None:
         account = RandomAccount(account_id, {}, name=f"Random Account {account_num}")
         graph.add_resource(graph.root, account)
         add_regions(graph, [account], account=account)
-
-
-region_templates = {
-    "ap-northeast-": "Asia Pacific North East",
-    "ap-southeast-": "Asia Pacific South East",
-    "ap-south-": "Asia Pacific South",
-    "ca-central-": "Canada Central",
-    "eu-central-": "EU Central",
-    "eu-north-": "EU North",
-    "eu-west-": "EU West",
-    "sa-east-": "South America East",
-    "us-east-": "US East",
-    "us-west-": "US West",
-}
 
 
 def add_regions(graph: Graph, parents: List[BaseResource], account: BaseResource = None) -> None:

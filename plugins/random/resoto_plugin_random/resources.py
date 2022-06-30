@@ -362,3 +362,17 @@ instance_types = {
 
 
 volume_statuses = ["creating", "available", "in-use", "deleting", "deleted", "error"]
+
+
+region_templates = {
+    "ap-northeast-": "Asia Pacific North East",
+    "ap-southeast-": "Asia Pacific South East",
+    "ap-south-": "Asia Pacific South",
+    "ca-central-": "Canada Central",
+    "eu-central-": "EU Central",
+    "eu-north-": "EU North",
+    "eu-west-": "EU West",
+    "sa-east-": "South America East",
+    "us-east-": "US East",
+    "us-west-": "US West",
+}
