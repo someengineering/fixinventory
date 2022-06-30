@@ -71,7 +71,6 @@ class AWSEC2Volume(AWSResource, BaseVolume):
     volume_encrypted: Optional[bool] = field(default=None)
     volume_kms_key_id: Optional[str] = field(default=None)
     volume_outpost_arn: Optional[str] = field(default=None)
-    volume_size: Optional[int] = field(default=None)
     volume_snapshot_id: Optional[str] = field(default=None)
     volume_iops: Optional[int] = field(default=None)
     volume_fast_restored: Optional[bool] = field(default=None)
@@ -92,7 +91,9 @@ class AWSEC2Volume(AWSResource, BaseVolume):
             builder.add_edge(self, EdgeType.delete, reverse=True, clazz=AWSEC2Instance, id=attachment.instance_id)
 
 
-AWSEC2Volume.volume_status = property(AWSEC2Volume._volume_status_getter, AWSEC2Volume._volume_status_setter)
+AWSEC2Volume.volume_status = property(  # type: ignore
+    AWSEC2Volume._volume_status_getter, AWSEC2Volume._volume_status_setter
+)
 
 
 # endregion
@@ -556,7 +557,7 @@ class AWSEC2Instance(AWSResource, BaseInstance):
             builder.add_edge(self, EdgeType.delete, reverse=True, clazz=AWSEC2KeyPair, name=self.instance_key_name)
 
 
-AWSEC2Instance.instance_status = property(
+AWSEC2Instance.instance_status = property(  # type: ignore
     AWSEC2Instance._instance_status_getter, AWSEC2Instance._instance_status_setter
 )
 

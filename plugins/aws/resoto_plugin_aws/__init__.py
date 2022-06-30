@@ -1,3 +1,5 @@
+import logging
+
 import botocore.exceptions
 import multiprocessing
 import resotolib.proc
@@ -5,7 +7,7 @@ import resotolib.logger
 from resotolib.logger import log, setup_logger
 from concurrent import futures
 from resotolib.args import ArgumentParser
-from argparse import Namespace
+from resotolib.args import Namespace
 from resotolib.config import Config, RunningConfig
 from resotolib.graph import Graph
 from resotolib.utils import log_runtime
@@ -18,7 +20,7 @@ from prometheus_client import Summary, Counter
 from typing import List
 
 
-resotolib.logger.getLogger("boto").setLevel(resotolib.logger.CRITICAL)
+logging.getLogger("boto").setLevel(logging.CRITICAL)
 
 metrics_collect = Summary("resoto_plugin_aws_collect_seconds", "Time it took the collect() method")
 metrics_unhandled_account_exceptions = Counter(
@@ -33,13 +35,13 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
 
     def __init__(self) -> None:
         super().__init__()
-        self.__regions = []
+        self.__regions: List[str] = []
 
     @staticmethod
-    def add_config(config: Config) -> None:
-        config.add_config(AwsConfig)
+    def add_config(cfg: Config) -> None:
+        cfg.add_config(AwsConfig)
 
-    @metrics_collect.time()
+    @metrics_collect.time()  # type: ignore
     def collect(self) -> None:
         log.debug("plugin: AWS collecting resources")
         if not self.authenticated:
@@ -72,7 +74,7 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
             pool_args["initializer"] = resotolib.proc.initializer
             pool_executor = futures.ProcessPoolExecutor
         else:
-            pool_executor = futures.ThreadPoolExecutor
+            pool_executor = futures.ThreadPoolExecutor  # type: ignore
 
         with pool_executor(**pool_args) as executor:
             wait_for = [
@@ -93,7 +95,7 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
                 self.graph.merge(account_graph)
 
     @property
-    def regions(self) -> List:
+    def regions(self) -> List[str]:
         if len(self.__regions) == 0:
             if not Config.aws.region or (isinstance(Config.aws.region, list) and len(Config.aws.region) == 0):
                 log.debug("AWS region not specified, assuming all regions")
@@ -122,12 +124,12 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
         return True
 
 
-def current_account_id():
+def current_account_id() -> str:
     session = aws_session()
-    return session.client("sts").get_caller_identity().get("Account")
+    return session.client("sts").get_caller_identity().get("Account")  # type: ignore
 
 
-def get_org_accounts(filter_current_account=False):
+def get_org_accounts(filter_current_account: bool = False) -> List[str]:
     session = aws_session()
     client = session.client("organizations")
     accounts = []
@@ -150,19 +152,19 @@ def get_org_accounts(filter_current_account=False):
     return accounts
 
 
-def all_regions() -> List:
+def all_regions() -> List[str]:
     session = aws_session()
     ec2 = session.client("ec2", region_name="us-east-1")
     regions = ec2.describe_regions()
     return [r["RegionName"] for r in regions["Regions"]]
 
 
-@log_runtime
+@log_runtime  # type: ignore
 def collect_account(
     account: AWSAccount,
-    regions: List,
-    args: Namespace = None,
-    running_config: RunningConfig = None,
+    regions: List[str],
+    args: Namespace,
+    running_config: RunningConfig,
 ) -> Graph:
     collector_name = f"aws_{account.id}"
     resotolib.proc.set_thread_name(collector_name)
@@ -185,4 +187,4 @@ def collect_account(
         log.exception(f"An unhandled error occurred while collecting AWS account {account.dname}")
         metrics_unhandled_account_exceptions.labels(account=account.dname).inc()
 
-    return aac.graph
+    return aac.graph  # type: ignore
