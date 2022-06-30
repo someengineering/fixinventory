@@ -48,6 +48,15 @@ class ExampleCollectorPlugin(BaseCollectorPlugin):
         self.graph.add_resource(region1, network1)
         self.graph.add_resource(region2, network2)
 
+        instance_status_map: Dict[str, InstanceStatus] = {
+            "pending": InstanceStatus.BUSY,
+            "running": InstanceStatus.RUNNING,
+            "shutting-down": InstanceStatus.BUSY,
+            "terminated": InstanceStatus.TERMINATED,
+            "stopping": InstanceStatus.BUSY,
+            "stopped": InstanceStatus.STOPPED,
+        }
+
         instance1 = ExampleInstance(
             "someInstance1",
             tags={"Name": "Example Instance 1", "expiration": "2d", "owner": "lukas"},
@@ -56,7 +65,7 @@ class ExampleCollectorPlugin(BaseCollectorPlugin):
             mtime=datetime.utcnow(),
             instance_cores=4,
             instance_memory=32,
-            instance_status="running",
+            instance_status=instance_status_map.get("running", InstanceStatus.UNKNOWN),
         )
         self.graph.add_resource(region1, instance1)
         self.graph.add_resource(network1, instance1)
@@ -69,7 +78,7 @@ class ExampleCollectorPlugin(BaseCollectorPlugin):
                 "expiration": "36h",
                 "resoto:ctime": "2019-09-05T10:40:11+00:00",
             },
-            instance_status="stopped",
+            instance_status=instance_status_map.get("stopped", InstanceStatus.UNKNOWN),
         )
         self.graph.add_resource(region2, instance2)
         self.graph.add_resource(network2, instance2)
@@ -188,39 +197,9 @@ class ExampleResource:
 
 @dataclass(eq=False)
 class ExampleInstance(ExampleResource, BaseInstance):
-    """An Example Instance Resource
-
-    Instances have a class variable `instance_status_map` which contains
-    a mapping from the instance status string the cloud API returns
-    to our internal InstanceStatus state.
-    """
+    """An Example Instance Resource"""
 
     kind: ClassVar[str] = "example_instance"
-    instance_status_map: ClassVar[Dict[str, InstanceStatus]] = {
-        "pending": InstanceStatus.BUSY,
-        "running": InstanceStatus.RUNNING,
-        "shutting-down": InstanceStatus.BUSY,
-        "terminated": InstanceStatus.TERMINATED,
-        "stopping": InstanceStatus.BUSY,
-        "stopped": InstanceStatus.STOPPED,
-    }
-
-    def _instance_status_setter(self, value: str) -> None:
-        """Setter that looks up the instance status
-
-        Based on the string that was give we're doing a dict lookup
-        for the corresponding instance status and assign it or
-        InstanceStatus.UNKNOWN.
-        """
-        self._instance_status = self.instance_status_map.get(value, InstanceStatus.UNKNOWN)
-
-
-# Because we are using dataclasses and allow to supply the `instance_status`
-# string to the constructor we can not use the normal @property decorator.
-# Instead we assign the property once the class has been fully defined.
-ExampleInstance.instance_status = property(
-    ExampleInstance._instance_status_getter, ExampleInstance._instance_status_setter
-)
 
 
 @dataclass(eq=False)
