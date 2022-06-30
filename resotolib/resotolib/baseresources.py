@@ -774,20 +774,10 @@ class BaseInstance(BaseResource):
     instance_cores: float = 0.0
     instance_memory: float = 0.0
     instance_type: Optional[str] = ""
-    instance_status: Optional[str] = ""
+    instance_status: Optional[InstanceStatus] = ""
 
     def instance_type_info(self, graph) -> BaseInstanceType:
         return graph.search_first_parent_class(self, BaseInstanceType)
-
-    def _instance_status_getter(self) -> str:
-        return self._instance_status.value
-
-    @abstractmethod
-    def _instance_status_setter(self, value: str) -> None:
-        raise NotImplementedError
-
-
-BaseInstance.instance_status = property(BaseInstance._instance_status_getter, BaseInstance._instance_status_setter)
 
 
 @dataclass(eq=False)
