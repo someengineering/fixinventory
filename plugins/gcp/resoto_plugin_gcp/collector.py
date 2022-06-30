@@ -3,7 +3,7 @@ import socket
 from pprint import pformat
 from retrying import retry
 from typing import Callable, List, Dict, Type, Union
-from resotolib.baseresources import BaseResource, EdgeType
+from resotolib.baseresources import BaseResource, EdgeType, InstanceStatus
 from resotolib.config import Config
 from resotolib.graph import Graph
 from resotolib.utils import except_log_and_pass
@@ -742,6 +742,8 @@ class GCPProjectCollector:
             instances of the same machine type.
             """
             if resource.instance_type == "" and "custom" in resource._machine_type_link:
+                if resource.instance_status == InstanceStatus.TERMINATED:
+                    resource._cleaned = True
                 log.debug(f"Fetching custom instance type for {resource.rtdname}")
                 machine_type = GCPMachineType(
                     resource._machine_type_link.split("/")[-1],
@@ -765,6 +767,21 @@ class GCPProjectCollector:
                 self.post_process_machine_type(machine_type, graph)
                 resource._machine_type = machine_type
 
+        instance_status_map: Dict[str, InstanceStatus] = {
+            "PROVISIONING": InstanceStatus.BUSY,
+            "STAGING": InstanceStatus.BUSY,
+            "RUNNING": InstanceStatus.RUNNING,
+            "STOPPING": InstanceStatus.BUSY,
+            "SUSPENDING": InstanceStatus.BUSY,
+            "SUSPENDED": InstanceStatus.STOPPED,
+            "REPAIRING": InstanceStatus.BUSY,
+            "TERMINATED": InstanceStatus.TERMINATED,
+            "busy": InstanceStatus.BUSY,
+            "running": InstanceStatus.RUNNING,
+            "stopped": InstanceStatus.STOPPED,
+            "terminated": InstanceStatus.TERMINATED,
+        }
+
         self.collect_something(
             paginate_method_name="aggregatedList",
             resource_class=GCPInstance,
@@ -781,7 +798,7 @@ class GCPProjectCollector:
                 "machine_type": ["link", "machineType"],
             },
             attr_map={
-                "instance_status": "status",
+                "instance_status": lambda i: instance_status_map.get(i["status"], InstanceStatus.UNKNOWN),
                 "machine_type_link": "machineType",
             },
             predecessors={
