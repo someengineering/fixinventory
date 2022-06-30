@@ -344,3 +344,21 @@ purposes = [
     ["cloud", "Cloud"],
     ["host", "Hosting"],
 ]
+
+
+instance_statuses = ["pending", "running", "shutting-down", "terminated", "stopping", "stopped"]
+
+
+instance_types = {
+    "rnd2.tiny": [2, 2],
+    "rnd2.micro": [2, 4],
+    "rnd2.medium": [4, 8],
+    "rnd2.large": [8, 16],
+    "rnd2.xlarge": [8, 32],
+    "rnd2.2xlarge": [16, 64],
+    "rnd2.mega": [32, 128],
+    "rnd2.ultra": [64, 256],
+}
+
+
+volume_statuses = ["creating", "available", "in-use", "deleting", "deleted", "error"]
