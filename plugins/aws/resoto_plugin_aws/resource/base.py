@@ -2,11 +2,10 @@ import logging
 from dataclasses import dataclass
 from typing import ClassVar, Dict, Optional, List, Type, Any, TypeVar
 
-import jsons
-
 from resoto_plugin_aws.resources import AWSRegion, AWSEC2InstanceType, AWSAccount
 from resotolib.baseresources import BaseResource, EdgeType, Cloud
 from resotolib.graph import Graph
+from resotolib.json import to_json as to_js, from_json as from_js
 from resotolib.json_bender import Bender, bend
 from resotolib.types import Json
 
@@ -32,10 +31,8 @@ class AWSResource(BaseResource):
         return False
 
     def to_json(self) -> Json:
-        return jsons.dump(  # type: ignore
+        return to_js(
             self,
-            strip_privates=True,
-            strip_nulls=True,
             strip_attr=(
                 "mapping",
                 "phantom",
@@ -72,7 +69,7 @@ class AWSResource(BaseResource):
 
     @classmethod
     def from_json(cls: Type["AWSResource"], json: Json) -> "AWSResource":
-        return jsons.load(json, cls)  # type: ignore
+        return from_js(json, cls)
 
     @classmethod
     def from_api(cls: Type["AWSResource"], json: Json) -> "AWSResource":

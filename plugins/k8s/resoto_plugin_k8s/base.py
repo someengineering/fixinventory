@@ -9,7 +9,7 @@ from threading import RLock
 from typing import ClassVar, TypeVar, Any, Callable
 from typing import List, Type, Optional, Tuple, Dict
 
-import jsons
+from resotolib.json import to_json as to_js, from_json as from_js
 from kubernetes.client import ApiClient, Configuration, ApiException
 from kubernetes.config import load_kube_config, list_kube_config_contexts
 
@@ -46,10 +46,8 @@ class KubernetesResource(BaseResource):
     labels: Dict[str, str] = field(default_factory=dict)
 
     def to_json(self) -> Json:
-        return jsons.dump(  # type: ignore
+        return to_js(
             self,
-            strip_privates=True,
-            strip_nulls=True,
             strip_attr=(
                 "k8s_name",
                 "mapping",
@@ -70,7 +68,6 @@ class KubernetesResource(BaseResource):
                 "clean",
                 "cleaned",
                 "protected",
-                "_graph",
                 "graph",
                 "max_graph_depth",
                 "resource_type",
@@ -88,7 +85,7 @@ class KubernetesResource(BaseResource):
     @classmethod
     def from_json(cls: Type["KubernetesResource"], json: Json) -> "KubernetesResource":
         mapped = bend(cls.mapping, json)
-        return jsons.load(mapped, cls)  # type: ignore
+        return from_js(mapped, cls)
 
     @classmethod
     def k8s_name(cls: Type["KubernetesResource"]) -> str:
@@ -335,7 +332,7 @@ class K8sConfig:
                 fork_process=json.get("fork_process", False),
             )
         else:
-            return jsons.load(json, K8sConfig)  # type: ignore
+            return from_js(json, K8sConfig)
 
 
 @dataclass
