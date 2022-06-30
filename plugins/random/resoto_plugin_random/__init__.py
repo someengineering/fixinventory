@@ -197,7 +197,13 @@ def add_instances(
 
     volume_status = random.choices(volume_statuses, weights=[2, 15, 80, 1, 1, 1], k=1)[0]
     volume_tags = kwargs.get("tags", {})
-    child_kwargs = {"tags": volume_tags, "volume_status": volume_status}
+    volume_size = random.choices([20, 100, 200, 400, 800, 1000, 4000], weights=[70, 40, 30, 5, 5, 20, 1], k=1)[0]
+    child_kwargs = {
+        "tags": volume_tags,
+        "volume_status": volume_status,
+        "volume_type": "ssd",
+        "volume_size": volume_size,
+    }
 
     add_resources(
         graph=graph,
