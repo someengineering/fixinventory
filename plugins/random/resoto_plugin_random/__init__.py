@@ -1,3 +1,4 @@
+from audioop import add
 from lib2to3.pytree import Base
 import random
 import hashlib
@@ -10,9 +11,11 @@ from resotolib.config import Config
 from .config import RandomConfig
 from .resources import (
     first_names,
+    purposes,
     RandomAccount,
     RandomRegion,
     RandomNetwork,
+    RandomLoadBalancer,
     RandomInstance,
     RandomVolume,
 )
@@ -110,9 +113,9 @@ def add_networks(
     add_resources(
         graph=graph,
         parents=parents,
-        children=[add_instances],
+        children=[add_instance_groups],
         cls=RandomNetwork,
-        short_prefix="net-",
+        short_prefix="rndnet-",
         long_prefix="Network",
         min=1,
         max=4,
@@ -137,15 +140,22 @@ instance_types = {
 employees = random.choices(first_names, k=random.randint(5, 30))
 
 
-def add_instances(
+def add_instance_groups(
     graph: Graph, parents: List[BaseResource], id_path: str, account: BaseResource = None, region: BaseResource = None
 ) -> None:
+    num_groups = random.randint(5, 50)
+    log.debug(f"Adding {num_groups} instance groups in {region.rtdname}")
     instance_status = random.choices(instance_statuses, weights=[1, 85, 1, 11, 1, 1], k=1)[0]
     instance_type = random.choices(list(instance_types), weights=[10, 10, 20, 50, 20, 10, 5, 5], k=1)[0]
     tags = {}
+    long_prefix = f"Instance"
+    purpose = random.choice(purposes)
+    tags["costCenter"] = purpose[0]
     has_owner = random.randrange(100) < 90
     if has_owner:
-        tags["owner"] = random.choice(employees)
+        owner = random.choice(employees)
+        tags["owner"] = owner
+        long_prefix = purpose[1]
     kwargs = {
         "tags": tags,
         "instance_status": instance_status,
@@ -153,13 +163,36 @@ def add_instances(
         "instance_cores": instance_types[instance_type][0],
         "instance_memory": instance_types[instance_type][1],
     }
+    add_instances(
+        graph=graph,
+        parents=parents,
+        id_path=id_path,
+        long_prefix=long_prefix,
+        account=account,
+        region=region,
+        kwargs=kwargs,
+    )
+
+
+def add_instances(
+    graph: Graph,
+    parents: List[BaseResource],
+    id_path: str,
+    long_prefix: str,
+    account: BaseResource = None,
+    region: BaseResource = None,
+    kwargs: Optional[Dict] = None,
+) -> None:
+    if long_prefix.startswith("Webserver"):
+        lb = add_loadbalancer(graph=graph, id_path=id_path, account=account, region=region, kwargs=kwargs)
+        parents.append(lb)
     add_resources(
         graph=graph,
         parents=parents,
         children=[add_volumes],
         cls=RandomInstance,
-        short_prefix="i-",
-        long_prefix="Instance",
+        short_prefix="rndi-",
+        long_prefix=long_prefix,
         min=0,
         max=100,
         id_path=id_path,
@@ -183,7 +216,7 @@ def add_volumes(
         parents=parents,
         children=[],
         cls=RandomVolume,
-        short_prefix="vol-",
+        short_prefix="rndvol-",
         long_prefix="Volume",
         min=1,
         max=5,
@@ -218,7 +251,8 @@ def add_resources(
         resource_id_path = f"{id_path}/{short_prefix}{resource_num}"
         log.debug(f"Adding {long_prefix} {resource_num} resource ({id_path})")
         resource_id = short_prefix + get_id(resource_id_path)
-        resource = cls(resource_id, name=f"{long_prefix} {resource_num}", _account=account, _region=region, **kwargs)
+        name = f"{long_prefix} {resource_num}"
+        resource = cls(resource_id, name=name, _account=account, _region=region, **kwargs)
         graph.add_node(resource)
         for parent in parents:
             graph.add_edge(parent, resource)
@@ -227,3 +261,22 @@ def add_resources(
             child_parents.append(region)
         for child in children:
             child(graph=graph, parents=child_parents, id_path=resource_id_path, account=account, region=region)
+
+
+def add_loadbalancer(
+    graph: Graph,
+    id_path: str,
+    account: BaseResource = None,
+    region: BaseResource = None,
+    kwargs: Optional[Dict] = None,
+) -> BaseResource:
+    resource_id_path = f"{id_path}/lb"
+    log.debug(f"Adding load balancer resource ({id_path}) ({kwargs})")
+    if kwargs is None:
+        tags = {}
+    else:
+        tags = kwargs.get("tags", {})
+    resource_id = "rndlb-" + get_id(resource_id_path)
+    lb = RandomLoadBalancer(resource_id, tags=tags, name="LoadBalancer", _account=account, _region=region)
+    graph.add_resource(region, lb)
+    return lb

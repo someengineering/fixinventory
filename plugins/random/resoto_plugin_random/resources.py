@@ -9,6 +9,7 @@ from resotolib.baseresources import (
     BaseInstance,
     BaseNetwork,
     BaseVolume,
+    BaseLoadBalancer,
     InstanceStatus,
     VolumeStatus,
 )
@@ -102,6 +103,11 @@ RandomVolume.volume_status = property(RandomVolume._volume_status_getter, Random
 @dataclass(eq=False)
 class RandomNetwork(RandomResource, BaseNetwork):
     kind: ClassVar[str] = "random_network"
+
+
+@dataclass(eq=False)
+class RandomLoadBalancer(RandomResource, BaseLoadBalancer):
+    kind: ClassVar[str] = "random_load_balancer"
 
 
 first_names = [
@@ -311,4 +317,30 @@ first_names = [
     "Zoe",
     "Zoey",
     "Zofia",
+]
+
+
+purposes = [
+    ["bus", "Business"],
+    ["edu", "Education"],
+    ["ent", "Entertainment"],
+    ["fin", "Finance"],
+    ["game", "Gaming"],
+    ["gov", "Government"],
+    ["news", "News"],
+    ["office", "Office"],
+    ["misc", "Other"],
+    ["priv", "Personal"],
+    ["shop", "Shopping"],
+    ["soc", "Social"],
+    ["sprt", "Sports"],
+    ["trvl", "Travel"],
+    ["wrk", "Work"],
+    ["dev", "Development"],
+    ["res", "Research"],
+    ["web", "Webserver"],
+    ["db", "Database"],
+    ["stor", "Storage"],
+    ["cloud", "Cloud"],
+    ["host", "Hosting"],
 ]
