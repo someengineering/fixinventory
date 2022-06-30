@@ -5,6 +5,8 @@ import ssl
 import slack_sdk
 from typing import List
 from retrying import retry
+
+from resotolib.utils import utc_str
 from .resources import (
     SlackRegion,
     SlackTeam,
@@ -238,7 +240,7 @@ class SlackBotPlugin(BasePlugin):
 
                 event_log_text = ""
                 for event in node.event_log:
-                    event_log_text += f"{event['timestamp'].isoformat()} {event['msg']}" + "\n"
+                    event_log_text += f"{utc_str(event['timestamp'])} {event['msg']}" + "\n"
                 slack_message = (
                     f"Hello {destination.first_name}, your cloud resource `{node.dname}` in "
                     f"cloud `{cloud.name}` account `{account.dname}` region `{region.name}`"
