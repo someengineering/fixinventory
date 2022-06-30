@@ -1,6 +1,6 @@
 from resotolib.graph import GraphMergeKind
 from resotolib.config import Config
-from resotolib.utils import num_default_threads
+from resotolib.proc import num_default_threads
 from dataclasses import dataclass, field
 from typing import ClassVar, Optional, List
 

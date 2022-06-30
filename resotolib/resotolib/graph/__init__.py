@@ -17,6 +17,7 @@ from resotolib.baseresources import (
     BaseResource,
     EdgeType,
 )
+from resotolib.types import Json
 from resotolib.utils import json_default, get_resource_attributes
 from resotolib.args import ArgumentParser
 from resotolib.core.model_export import (
@@ -37,8 +38,6 @@ from typeguard import check_type
 from time import time
 from collections import defaultdict, namedtuple
 from dataclasses import dataclass
-
-Json = Dict[str, Any]
 
 
 @dataclass

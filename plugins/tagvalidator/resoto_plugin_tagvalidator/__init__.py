@@ -4,8 +4,7 @@ from resotolib.baseplugin import BaseActionPlugin
 from resotolib.config import Config
 from .config import TagValidatorConfig
 from resotolib.core.search import CoreGraph
-from resotolib.utils import delta_to_str
-from resotolib.durations import parse_duration
+from resotolib.durations import parse_duration, duration_str
 from typing import Dict
 
 
@@ -51,7 +50,7 @@ class TagValidatorPlugin(BaseActionPlugin):
                 continue
             update_node_tag = False
             max_expiration = self.config["accounts"].get(cloud.id, {}).get(account.id, {}).get("expiration")
-            max_expiration_str = delta_to_str(max_expiration)
+            max_expiration_str = duration_str(max_expiration, down_to_unit="min")
             node_expiration_str = node.tags.get("expiration")
             try:
                 node_expiration = parse_duration(node_expiration_str)

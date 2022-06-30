@@ -1,7 +1,7 @@
 import os
 import time
 from resotolib.logger import log
-from resotolib.utils import RWLock
+from resotolib.lock import RWLock
 from collections import defaultdict
 from threading import Thread, Lock
 from typing import Callable, Iterable

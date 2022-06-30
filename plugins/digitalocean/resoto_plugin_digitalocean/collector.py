@@ -7,6 +7,7 @@ from prometheus_client import Summary
 
 from resotolib.baseresources import BaseResource, EdgeType
 from resotolib.graph import Graph
+from resotolib.types import Json
 from .client import StreamingWrapper
 from .resources import (
     DigitalOceanDroplet,
@@ -64,8 +65,6 @@ from .utils import (
     alert_policy_id,
     parse_tag,
 )
-
-Json = Dict[str, Any]
 
 log = logging.getLogger("resoto." + __name__)
 

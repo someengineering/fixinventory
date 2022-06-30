@@ -4,7 +4,7 @@ import socket
 from resotolib.baseresources import BaseResource
 from resotolib.config import Config
 from resotolib.graph import Graph
-from resotolib.utils import RWLock
+from resotolib.lock import RWLock
 import resotolib.logger
 from typing import Iterable, List, Union, Callable, Any, Dict
 from googleapiclient import discovery

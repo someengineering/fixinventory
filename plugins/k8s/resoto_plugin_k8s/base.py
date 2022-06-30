@@ -18,7 +18,8 @@ from resotolib.config import Config
 from resotolib.graph import Graph
 from resotolib.json_bender import S, bend, Bender, Sort, AsDate
 from resotolib.types import Json
-from resotolib.utils import num_default_threads, rnd_str
+from resotolib.proc import num_default_threads
+from resotolib.utils import rnd_str
 
 log = logging.getLogger("resoto.plugins.k8s")
 

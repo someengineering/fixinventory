@@ -9,7 +9,7 @@ import weakref
 from resotolib.logger import log
 from enum import Enum
 from typing import Dict, Iterator, List, ClassVar, Optional
-from resotolib.utils import make_valid_timestamp, ResourceChanges
+from resotolib.utils import make_valid_timestamp
 from prometheus_client import Counter, Summary
 from dataclasses import dataclass, field
 
@@ -52,6 +52,44 @@ class EdgeType(Enum):
         except ValueError:
             pass
         return EdgeType.default
+
+
+class ResourceChanges:
+    def __init__(self, node) -> None:
+        self.node = node
+        self.reported = set()
+        self.desired = set()
+        self.metadata = set()
+        self.changed = False
+
+    def add(self, property: str) -> None:
+        if property in ("tags"):
+            self.reported.add(property)
+        elif property in ("clean"):
+            self.desired.add(property)
+        elif property in ("cleaned", "protected"):
+            self.metadata.add(property)
+        elif property == "log":
+            pass
+        else:
+            raise ValueError(f"Unknown property {property}")
+        self.changed = True
+
+    def get(self) -> Dict:
+        changes = {}
+        for section in ("reported", "desired", "metadata"):
+            for attribute in getattr(self, section, []):
+                if section not in changes:
+                    changes[section] = {}
+                try:
+                    changes[section][attribute] = getattr(self.node, attribute)
+                except AttributeError:
+                    log.error(f"Resource {self.node.rtdname} has no attribute {attribute}")
+        if len(self.node.event_log) > 0:
+            if "metadata" not in changes:
+                changes[section] = {}
+            changes["metadata"]["event_log"] = self.node.str_event_log
+        return changes
 
 
 @dataclass(eq=False)
