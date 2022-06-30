@@ -530,12 +530,6 @@ class AWSEC2Instance(AWSResource, BaseInstance):
     instance_tpm_support: Optional[str] = field(default=None)
     instance_maintenance_options: Optional[str] = field(default=None)
 
-    def _instance_status_getter(self) -> str:
-        return self._instance_status
-
-    def _instance_status_setter(self, value: str) -> None:
-        self._instance_status = value
-
     @classmethod
     def collect(cls: Type[AWSResource], json: List[Json], builder: GraphBuilder) -> None:
         for reservation in json:
@@ -555,10 +549,6 @@ class AWSEC2Instance(AWSResource, BaseInstance):
             builder.add_edge(self, EdgeType.default, clazz=AWSEC2KeyPair, name=self.instance_key_name)
             builder.add_edge(self, EdgeType.delete, reverse=True, clazz=AWSEC2KeyPair, name=self.instance_key_name)
 
-
-AWSEC2Instance.instance_status = property(
-    AWSEC2Instance._instance_status_getter, AWSEC2Instance._instance_status_setter
-)
 
 # endregion
 

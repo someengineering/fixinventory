@@ -152,21 +152,6 @@ class AWSEC2Instance(AWSResource, BaseInstance):
         ],
     }
 
-    instance_status_map: ClassVar[Dict[str, InstanceStatus]] = {
-        "pending": InstanceStatus.BUSY,
-        "running": InstanceStatus.RUNNING,
-        "shutting-down": InstanceStatus.BUSY,
-        "terminated": InstanceStatus.TERMINATED,
-        "stopping": InstanceStatus.BUSY,
-        "stopped": InstanceStatus.STOPPED,
-        "busy": InstanceStatus.BUSY,
-    }
-
-    def _instance_status_setter(self, value: str) -> None:
-        self._instance_status = self.instance_status_map.get(value, InstanceStatus.UNKNOWN)
-        if self._instance_status == InstanceStatus.TERMINATED:
-            self._cleaned = True
-
     def delete(self, graph: Graph) -> bool:
         if self.instance_status == InstanceStatus.TERMINATED.value:
             log.debug(
@@ -195,11 +180,6 @@ class AWSEC2Instance(AWSResource, BaseInstance):
         instance = ec2.Instance(self.id)
         instance.delete_tags(Tags=[{"Key": key}])
         return True
-
-
-AWSEC2Instance.instance_status = property(
-    AWSEC2Instance._instance_status_getter, AWSEC2Instance._instance_status_setter
-)
 
 
 @dataclass(eq=False)

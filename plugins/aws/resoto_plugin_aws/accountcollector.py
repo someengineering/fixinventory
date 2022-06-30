@@ -10,7 +10,7 @@ from threading import Lock
 from collections.abc import Mapping
 from resotolib.config import Config
 from resotolib.graph import Graph
-from resotolib.baseresources import EdgeType
+from resotolib.baseresources import EdgeType, InstanceStatus
 from resotolib.utils import make_valid_timestamp, chunks, rrdata_as_dict
 from .utils import aws_session, paginate, arn_partition, tags_as_dict
 from .resources import *
@@ -1198,23 +1198,36 @@ class AWSAccountCollector:
 
     @metrics_collect_instances.time()
     def collect_instances(self, region: AWSRegion, graph: Graph) -> None:
+        instance_status_map: Dict[str, InstanceStatus] = {
+            "pending": InstanceStatus.BUSY,
+            "running": InstanceStatus.RUNNING,
+            "shutting-down": InstanceStatus.BUSY,
+            "terminated": InstanceStatus.TERMINATED,
+            "stopping": InstanceStatus.BUSY,
+            "stopped": InstanceStatus.STOPPED,
+            "busy": InstanceStatus.BUSY,
+        }
         log.info(f"Collecting AWS EC2 Instances in account {self.account.dname} region {region.id}")
         session = aws_session(self.account.id, self.account.role)
         ec2 = session.resource("ec2", region_name=region.id)
         for instance in ec2.instances.all():
             try:
+
                 i = AWSEC2Instance(
                     instance.id,
                     tags_as_dict(instance.tags),
                     _account=self.account,
                     _region=region,
                     ctime=instance.launch_time,
+                    instance_status=instance_status_map.get(instance.state["Name"], InstanceStatus.UNKNOWN),
                 )
+
+                if i.instance_status == InstanceStatus.TERMINATED:
+                    i._cleaned = True
                 instance_name = i.tags.get("Name")
                 if instance_name:
                     i.name = instance_name
                 i.instance_type = instance.instance_type
-                i.instance_status = instance.state["Name"]
                 if isinstance(instance.iam_instance_profile, Mapping) and instance.iam_instance_profile.get("Arn"):
                     log.debug(
                         (
