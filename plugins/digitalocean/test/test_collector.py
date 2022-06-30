@@ -28,7 +28,7 @@ from .fixtures import (
     alerts,
 )
 from resotolib.graph import sanitize
-from resotolib.baseresources import Cloud, EdgeType, GraphRoot
+from resotolib.baseresources import Cloud, EdgeType, GraphRoot, InstanceStatus
 from resotolib.graph import Graph
 import datetime
 from typing import Dict, Any, List
@@ -171,7 +171,7 @@ def test_collect_droplets() -> None:
     assert droplet.name == "ubuntu-s-1vcpu-1gb-fra1-01"
     assert droplet.instance_memory == 1
     assert droplet.instance_cores == 1
-    assert droplet.instance_status == "running"
+    assert droplet.instance_status == InstanceStatus.RUNNING
     assert droplet.region().urn == "do:region:fra1"
     assert droplet.droplet_image == "ubuntu-20-04-x64"
     assert droplet.droplet_backup_ids == ["42"]
