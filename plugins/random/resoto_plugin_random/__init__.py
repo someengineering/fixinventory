@@ -1,5 +1,3 @@
-from audioop import add
-from lib2to3.pytree import Base
 import random
 import hashlib
 from resotolib.baseresources import BaseResource
@@ -184,7 +182,9 @@ def add_instances(
     kwargs: Optional[Dict] = None,
 ) -> None:
     if long_prefix.startswith("Webserver"):
-        lb = add_loadbalancer(graph=graph, id_path=id_path, account=account, region=region, kwargs=kwargs)
+        lb = add_loadbalancer(
+            graph=graph, id_path=id_path, parents=parents, account=account, region=region, kwargs=kwargs
+        )
         parents.append(lb)
     add_resources(
         graph=graph,
@@ -237,13 +237,14 @@ def add_resources(
     min: int,
     max: int,
     id_path: str,
+    fluctuation: int = 0,
     account: BaseResource = None,
     region: BaseResource = None,
     kwargs: Optional[Dict] = None,
 ) -> None:
     if kwargs is None:
         kwargs = {"tags": {}}
-    num_resources = random.randint(min, max)
+    num_resources = random.randint(min, max) + fluctuation
     log.debug(
         f"Adding {num_resources} {long_prefix} resources in {account.rtdname} {region.rtdname} with parents: {parents}, children: {children}"
     )
@@ -266,6 +267,7 @@ def add_resources(
 def add_loadbalancer(
     graph: Graph,
     id_path: str,
+    parents: List[BaseResource],
     account: BaseResource = None,
     region: BaseResource = None,
     kwargs: Optional[Dict] = None,
@@ -278,5 +280,7 @@ def add_loadbalancer(
         tags = kwargs.get("tags", {})
     resource_id = "rndlb-" + get_id(resource_id_path)
     lb = RandomLoadBalancer(resource_id, tags=tags, name="LoadBalancer", _account=account, _region=region)
-    graph.add_resource(region, lb)
+    graph.add_node(lb)
+    for parent in parents:
+        graph.add_edge(parent, lb)
     return lb
