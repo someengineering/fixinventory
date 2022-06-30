@@ -21,6 +21,17 @@ def rnd_str(str_len: int = 10) -> str:
     return "".join(random.choice(string.ascii_uppercase + string.digits) for _ in range(str_len))
 
 
+UTC_Date_Format = "%Y-%m-%dT%H:%M:%SZ"
+
+
+def utc() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def utc_str(dt: datetime = utc()) -> str:
+    return dt.strftime(UTC_Date_Format)
+
+
 def make_valid_timestamp(timestamp: datetime) -> Optional[datetime]:
     if not isinstance(timestamp, datetime) and isinstance(timestamp, date):
         timestamp = datetime.combine(timestamp, datetime.min.time()).replace(tzinfo=timezone.utc)
@@ -111,7 +122,7 @@ def json_default(o):
     if hasattr(o, "to_json"):
         return o.to_json()
     elif isinstance(o, (date, datetime)):
-        return o.isoformat()
+        return utc_str(o)
     elif isinstance(o, Exception):
         return pformat(o)
     raise TypeError(f"Object of type {o.__class__.__name__} is not JSON serializable")

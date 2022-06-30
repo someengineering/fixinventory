@@ -9,7 +9,7 @@ import weakref
 from resotolib.logger import log
 from enum import Enum
 from typing import Dict, Iterator, List, ClassVar, Optional
-from resotolib.utils import make_valid_timestamp
+from resotolib.utils import make_valid_timestamp, utc_str
 from prometheus_client import Counter, Summary
 from dataclasses import dataclass, field
 
@@ -244,7 +244,7 @@ class BaseResource(ABC):
     def str_event_log(self) -> List:
         return [
             {
-                "timestamp": le["timestamp"].isoformat(),
+                "timestamp": utc_str(le["timestamp"]),
                 "msg": le["msg"],
                 "exception": le["exception"],
             }

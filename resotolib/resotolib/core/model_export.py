@@ -5,7 +5,7 @@ from pydoc import locate
 from typing import List, MutableSet, Union, Tuple, Dict, Set, Any, TypeVar, Type, Optional
 from resotolib.baseresources import BaseResource
 from resotolib.types import Json
-from resotolib.utils import type_str, str2timedelta, str2timezone
+from resotolib.utils import type_str, str2timedelta, str2timezone, utc_str
 from typing import get_args, get_origin
 from enum import Enum
 import re
@@ -236,7 +236,7 @@ def dynamic_object_to_resotocore_model(name: str, properties: Dict[str, type]) -
 
 def format_value_for_export(value: Any) -> Any:
     if isinstance(value, (date, datetime)):
-        return value.isoformat()
+        return utc_str(value)
     elif isinstance(value, (timedelta, timezone)):
         return str(value)
     return value
