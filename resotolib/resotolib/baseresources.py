@@ -774,7 +774,7 @@ class BaseInstance(BaseResource):
     instance_cores: float = 0.0
     instance_memory: float = 0.0
     instance_type: Optional[str] = ""
-    instance_status: Optional[InstanceStatus] = ""
+    instance_status: Optional[InstanceStatus] = None
 
     def instance_type_info(self, graph) -> BaseInstanceType:
         return graph.search_first_parent_class(self, BaseInstanceType)
