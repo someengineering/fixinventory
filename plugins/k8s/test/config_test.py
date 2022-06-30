@@ -6,7 +6,7 @@ import jsons
 import yaml
 
 from resotolib.types import Json
-from resotolib.utils import num_default_threads
+from resotolib.proc import num_default_threads
 from resotolib.config import Config
 from resoto_plugin_k8s import KubernetesCollectorPlugin
 from resoto_plugin_k8s.base import K8sConfig, K8sAccess, K8sConfigFile

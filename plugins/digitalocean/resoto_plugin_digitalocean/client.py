@@ -1,15 +1,17 @@
 import logging
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import Dict, List, Any, Optional, Union, TypeVar, Callable
+from typing import List, Any, Optional, Union, TypeVar, Callable
 
 import boto3
 import requests
 from botocore.exceptions import EndpointConnectionError, HTTPClientError
+from retrying import retry as retry_decorator
+
 from resoto_plugin_digitalocean.utils import RetryableHttpError
 from resoto_plugin_digitalocean.utils import retry_on_error
 from resotolib.config import Config
-from retrying import retry as retry_decorator
+from resotolib.types import Json
 
 F = TypeVar("F", bound=Callable[..., Any])
 
@@ -24,8 +26,6 @@ def retry(func: F) -> F:
 
 
 log = logging.getLogger("resoto." + __name__)
-
-Json = Dict[str, Any]
 
 Failure = str
 

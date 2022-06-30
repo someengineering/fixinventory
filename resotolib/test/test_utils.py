@@ -3,7 +3,8 @@ import threading
 import time
 import copy
 from tempfile import TemporaryDirectory
-from resotolib.utils import RWLock, ordinal, sha256sum, rrdata_as_dict
+from resotolib.lock import RWLock
+from resotolib.utils import ordinal, sha256sum, rrdata_as_dict
 from resotolib.baseresources import BaseResource
 from dataclasses import dataclass
 from typing import ClassVar

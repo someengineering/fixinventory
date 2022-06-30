@@ -1,4 +1,4 @@
-from resotolib.utils import num_default_threads
+from resotolib.proc import num_default_threads
 from dataclasses import dataclass, field
 from typing import List, ClassVar, Optional
 

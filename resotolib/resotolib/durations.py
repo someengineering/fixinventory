@@ -3,7 +3,7 @@ from datetime import timedelta
 from functools import reduce
 import re
 from itertools import chain
-from typing import Union, List
+from typing import Union, List, Optional
 
 import parsy
 from parsy import string, Parser
@@ -54,3 +54,32 @@ duration_parser = single_duration_parser.sep_by(time_unit_combination.optional()
 
 def parse_duration(ds: str) -> timedelta:
     return timedelta(seconds=duration_parser.parse(ds))
+
+
+def duration_str(duration: timedelta, precision: Optional[int] = 0, down_to_unit: Optional[str] = None) -> str:
+    """
+    Convert a timedelta to a string representing the duration human-readable short unit syntax.
+    Examples: 3d2h, 2min42s
+    :param duration: the duration to convert
+    :param precision: the number of units to use to represent the duration.
+    :param down_to_unit: use all units starting from the biggest one until the given unit.
+    :return: string representing the duration
+    """
+    seconds = duration.total_seconds()
+    found = False
+    count = 0
+    result = ""
+    for unit, _, factor in time_units:
+        if unit:
+            if seconds > factor:
+                found = True
+                num = int(seconds / factor)
+                seconds = seconds - (num * factor)
+                result += f"{num}{unit}"
+            if found:
+                count += 1
+            if precision and count >= precision or unit == down_to_unit:
+                break
+
+    # in case the duration is less than one second
+    return result if result else ("0s" if down_to_unit is None else f"0{down_to_unit}")

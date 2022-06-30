@@ -13,7 +13,7 @@ from resotolib.jwt import add_args as jwt_add_args
 from resotolib.baseplugin import BaseActionPlugin, BasePostCollectPlugin, BaseCollectorPlugin, PluginType
 from resotolib.web import WebServer
 from resotolib.web.metrics import WebApp
-from resotolib.utils import log_stats, increase_limits
+from resotolib.proc import log_stats, increase_limits
 from resotolib.args import ArgumentParser
 from resotolib.core import add_args as core_add_args, resotocore, wait_for_resotocore
 from resotolib.core.ca import TLSData

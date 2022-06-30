@@ -1,4 +1,4 @@
-from resotolib.utils import num_default_threads
+from resotolib.proc import num_default_threads
 from resotolib.config import Config
 from resoto_plugin_gcp import GCPCollectorPlugin
 

@@ -31,3 +31,4 @@ resotoshell/backup_*
 resotocore/tools/Assets
 out/
 *.iml
+**/.hypothesis/

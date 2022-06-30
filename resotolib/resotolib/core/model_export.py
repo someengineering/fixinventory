@@ -4,12 +4,11 @@ from functools import lru_cache, reduce
 from pydoc import locate
 from typing import List, MutableSet, Union, Tuple, Dict, Set, Any, TypeVar, Type, Optional
 from resotolib.baseresources import BaseResource
+from resotolib.types import Json
 from resotolib.utils import type_str, str2timedelta, str2timezone
 from typing import get_args, get_origin
 from enum import Enum
 import re
-
-Json = Dict[str, Any]
 
 
 # List[X] -> list, list -> list

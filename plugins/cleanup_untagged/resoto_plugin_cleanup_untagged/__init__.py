@@ -1,11 +1,11 @@
 from copy import deepcopy
 from resotolib.baseplugin import BaseActionPlugin
+from resotolib.durations import duration_str
 from resotolib.logger import log
 from resotolib.core.search import CoreGraph
 from resotolib.core.model_export import node_from_dict
 from resotolib.config import Config
 from .config import CleanupUntaggedConfig
-from resotolib.utils import delta_to_str
 from typing import Dict
 
 
@@ -25,7 +25,7 @@ class CleanupUntaggedPlugin(BaseActionPlugin):
         account_parts = []
         for cloud_id, account in config["accounts"].items():
             for account_id, account_data in account.items():
-                age = delta_to_str(account_data.get("age"))
+                age = duration_str(account_data.get("age"), down_to_unit="min")
                 account_part = (
                     f'(/ancestors.cloud.id == "{cloud_id}" and '
                     f'/ancestors.account.id == "{account_id}" and '

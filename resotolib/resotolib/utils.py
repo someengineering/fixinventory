@@ -1,133 +1,20 @@
-import string
-import threading
 import hashlib
-import socket
-import re
 import os
-import gc as garbage_collector
-import sys
 import random
-import pkg_resources
-
-if sys.platform == "linux":
-    import resource
+import re
+import socket
+import string
 import time
-import json
-import requests
-from resotolib.logger import log
-from functools import wraps
-from tarfile import TarFile, TarInfo
-from pprint import pformat
-from typing import Any, Callable, Dict, List, Tuple, Optional
 from datetime import date, datetime, timezone, timedelta
+from functools import wraps
+from pprint import pformat
+from tarfile import TarFile, TarInfo
+from typing import Dict, List, Tuple, Optional
 
-try:
-    from psutil import cpu_count
-except ImportError:
-    from os import cpu_count
+import pkg_resources
+import requests
 
-
-class RWLock:
-    """Synchronization object used in a solution of so-called second
-    readers-writers problem. In this problem, many readers can simultaneously
-    access a share, and a writer has an exclusive access to this share.
-    Additionally, the following constraints should be met:
-    1) no reader should be kept waiting if the share is currently opened for
-        reading unless a writer is also waiting for the share,
-    2) no writer should be kept waiting for the share longer than absolutely
-        necessary.
-
-    The implementation is based on [1, secs. 4.2.2, 4.2.6, 4.2.7]
-    with a modification -- adding an additional lock (C{self.__readers_queue})
-    -- in accordance with [2].
-
-    Sources:
-    [1] A.B. Downey: "The little book of semaphores", Version 2.1.5, 2008
-    [2] P.J. Courtois, F. Heymans, D.L. Parnas:
-        "Concurrent Control with 'Readers' and 'Writers'",
-        Communications of the ACM, 1971 (via [3])
-    [3] http://en.wikipedia.org/wiki/Readers-writers_problem
-
-    This code is a derivative of the code from ActiveState Code service at: http://
-    code.activestate.com/recipes/577803-reader-writer-lock-with-priority-for-writers
-    and is licensed under the MIT license.
-    """
-
-    def __init__(self):
-        self.__read_switch = _LightSwitch()
-        self.__write_switch = _LightSwitch()
-        self.__no_readers = threading.Lock()
-        self.__no_writers = threading.Lock()
-        self.__readers_queue = threading.Lock()
-        """A lock giving an even higher priority to the writer in certain
-        cases (see [2] for a discussion)"""
-
-        class _ReadAccess:
-            def __init__(self, rwlock: RWLock):
-                self.rwlock = rwlock
-
-            def __enter__(self):
-                self.rwlock.reader_acquire()
-                return self.rwlock
-
-            def __exit__(self, typ, value, tb):
-                self.rwlock.reader_release()
-
-        self.read_access = _ReadAccess(self)
-
-        class _WriteAccess:
-            def __init__(self, rwlock: RWLock):
-                self.rwlock = rwlock
-
-            def __enter__(self):
-                self.rwlock.writer_acquire()
-                return self.rwlock
-
-            def __exit__(self, typ, value, tb):
-                self.rwlock.writer_release()
-
-        self.write_access = _WriteAccess(self)
-
-    def reader_acquire(self):
-        self.__readers_queue.acquire()
-        self.__no_readers.acquire()
-        self.__read_switch.acquire(self.__no_writers)
-        self.__no_readers.release()
-        self.__readers_queue.release()
-
-    def reader_release(self):
-        self.__read_switch.release(self.__no_writers)
-
-    def writer_acquire(self):
-        self.__write_switch.acquire(self.__no_readers)
-        self.__no_writers.acquire()
-
-    def writer_release(self):
-        self.__no_writers.release()
-        self.__write_switch.release(self.__no_readers)
-
-
-class _LightSwitch:
-    """An auxiliary "light switch"-like object. The first thread turns on the
-    "switch", the last one turns it off (see [1, sec. 4.2.2] for details)."""
-
-    def __init__(self):
-        self.__counter = 0
-        self.__mutex = threading.Lock()
-
-    def acquire(self, lock):
-        self.__mutex.acquire()
-        self.__counter += 1
-        if self.__counter == 1:
-            lock.acquire()
-        self.__mutex.release()
-
-    def release(self, lock):
-        self.__mutex.acquire()
-        self.__counter -= 1
-        if self.__counter == 0:
-            lock.release()
-        self.__mutex.release()
+from resotolib.logger import log
 
 
 def rnd_str(str_len: int = 10) -> str:
@@ -169,57 +56,6 @@ def str2timezone(tz: str) -> timezone:
     return timezone(offset=timedelta(hours=hours, minutes=minutes))
 
 
-def delta_to_str(delta: timedelta) -> str:
-    """Convert a timedelta to a string format which is reversable.
-    Takes a datetime.timedelta object and converts it into a string
-    that is parseable by resotolib.durations.parse_duration
-    """
-    # NOTE: Rounds up to nearest minute)
-    units = [("m", 60), ("h", 60), ("d", 24), ("w", 7)]
-
-    remaining = delta.total_seconds()
-
-    delta_str = ""
-
-    negative = remaining < 0
-
-    def add_negative():
-        return "-" + delta_str if negative else delta_str
-
-    # Only handle things in the future for simplicity in testing.
-    if negative:
-        remaining = -remaining
-
-    # Print 0 minutes as the base case.
-    if remaining == 0:
-        return "0m"
-
-    for i in range(0, len(units)):
-        _, count = units[i]
-
-        remainder = int(remaining % count)
-        remaining = int(remaining // count)
-
-        # Round up the first unit (seconds) into minutes.
-        if i == 0:
-            if remainder > 0:
-                remaining += 1
-        else:
-            assert i > 0
-            if remainder != 0:
-                delta_str = "{}{}{}".format(remainder, units[i - 1][0], delta_str)
-
-        # No need to go further / captured it all, so long as we've printed at
-        # least minutes.
-        if remaining == 0 and i > 0:
-            return add_negative()
-
-    # Print the last unit with all the remaining count.
-    delta_str = "{}{}{}".format(remaining, units[-1][0], delta_str)
-
-    return add_negative()
-
-
 def chunks(items: List, n: int) -> List:
     """Split a list of items into multiple lists of size n and yield each chunk"""
     for s in range(0, len(items), n):
@@ -246,152 +82,6 @@ def split_esc(s, delim):
             continue  # add more to buf
         res.append(buf + s[i : j - d])
         i, buf = j + len(delim), ""  # start after delim
-
-
-def get_stats(graph=None) -> Dict:
-    try:
-        stats = {
-            "active_threads": threading.active_count(),
-            "thread_names": [thread.name for thread in threading.enumerate()],
-            "garbage_collector": garbage_collector.get_stats(),
-            "process": get_all_process_info(),
-        }
-        if sys.platform == "linux":
-            stats.update(
-                {
-                    "maxrss_parent_bytes": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024,
-                    "maxrss_children_bytes": resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss * 1024,
-                }
-            )
-        else:
-            stats.update({"maxrss_parent_bytes": 0, "maxrss_children_bytes": 0})
-        stats["maxrss_total_bytes"] = stats["maxrss_parent_bytes"] + stats["maxrss_children_bytes"]
-        num_fds_parent = stats["process"].get("parent", {}).get("num_file_descriptors", 0)
-        num_fds_children = sum([v["num_file_descriptors"] for v in stats["process"].get("children", {}).values()])
-        stats.update(
-            {
-                "maxrss_parent_human_readable": iec_size_format(stats["maxrss_parent_bytes"]),
-                "maxrss_children_human_readable": iec_size_format(stats["maxrss_children_bytes"]),
-                "maxrss_total_human_readable": iec_size_format(stats["maxrss_total_bytes"]),
-                "num_fds_parent": num_fds_parent,
-                "num_fds_children": num_fds_children,
-                "num_fds_total": num_fds_parent + num_fds_children,
-            }
-        )
-    except Exception:
-        log.exception("Error while trying to get stats")
-        return {}
-    else:
-        return stats
-
-
-def get_all_process_info(pid: int = None, proc: str = "/proc") -> Dict:
-    if sys.platform != "linux":
-        return {}
-    if pid is None:
-        pid = os.getpid()
-    process_info = {}
-    process_info["parent"] = get_process_info(pid)
-    process_info["parent"]["file_descriptors"] = get_file_descriptor_info(pid, proc)
-    process_info["parent"]["num_file_descriptors"] = len(process_info["parent"]["file_descriptors"])
-    process_info["children"] = get_child_process_info(pid, proc)
-    for pid in process_info["children"]:
-        process_info["children"][pid]["file_descriptors"] = get_file_descriptor_info(pid, proc)
-        process_info["children"][pid]["num_file_descriptors"] = len(process_info["children"][pid]["file_descriptors"])
-    return process_info
-
-
-def get_child_process_info(parent_pid: int = None, proc: str = "/proc") -> Dict:
-    if sys.platform != "linux":
-        return {}
-    if parent_pid is None:
-        parent_pid = os.getpid()
-    child_process_info = {}
-    for pid in get_pid_list(proc):
-        process_info = get_process_info(pid)
-        if process_info.get("ppid") == str(parent_pid):
-            child_process_info[pid] = dict(process_info)
-    return child_process_info
-
-
-def get_pid_list(proc: str = "/proc") -> List:
-    if sys.platform != "linux":
-        return []
-    pids = []
-    for entry in os.listdir(proc):
-        try:
-            if os.path.isdir(os.path.join(proc, entry)) and entry.isdigit():
-                pids.append(int(entry))
-        except (PermissionError, FileNotFoundError):
-            pass
-    return pids
-
-
-def get_process_info(pid: int = None, proc: str = "/proc") -> Dict:
-    if sys.platform != "linux":
-        return {}
-    if pid is None:
-        pid = os.getpid()
-    process_info = {}
-    try:
-        with open(os.path.join(proc, str(pid), "status"), "r") as status:
-            for line in status:
-                k, v = line.split(":", 1)
-                v = re.sub("[ \t]+", " ", v.strip())
-                process_info[k.lower()] = v
-        for limit_name in ("NOFILE", "NPROC"):
-            process_info[f"RLIMIT_{limit_name}".lower()] = resource.getrlimit(getattr(resource, f"RLIMIT_{limit_name}"))
-    except (PermissionError, FileNotFoundError):
-        pass
-    return process_info
-
-
-def get_file_descriptor_info(pid: int = None, proc: str = "/proc") -> Dict:
-    if sys.platform != "linux":
-        return {}
-    if pid is None:
-        pid = os.getpid()
-    pid = str(pid)
-    file_descriptor_info = {}
-    try:
-        for entry in os.listdir(os.path.join(proc, pid, "fd")):
-            entry_path = os.path.join(proc, pid, "fd", entry)
-            if os.path.islink(entry_path):
-                file_descriptor_info[entry] = {}
-                target = os.readlink(entry_path)
-                file_descriptor_info[entry]["target"] = target
-    except (PermissionError, FileNotFoundError):
-        pass
-    return file_descriptor_info
-
-
-def log_stats(graph=None, garbage_collector_stats: bool = False) -> None:
-    stats = get_stats(graph)
-    try:
-        log.debug(
-            f"Stats: max rss parent: {stats['maxrss_parent_human_readable']},"
-            f" children: {stats['maxrss_children_human_readable']},"
-            f" fds: {stats['num_fds_total']}/"
-            f"{stats['process'].get('parent', {}).get('rlimit_nofile', [0])[0]}"
-            f" active threads {stats['active_threads']}:"
-            f" {', '.join([thread for thread in stats['thread_names']])}"
-        )
-        if graph:
-            log.debug(f"Graph Stats: {stats['graph_size_human_readable']}")
-        if garbage_collector_stats:
-            gc_stats = " | ".join(
-                [
-                    (
-                        f"Gen {i}: collections {data.get('collections')}, "
-                        f"collected {data.get('collected')}, "
-                        f"uncollectable {data.get('uncollectable')}"
-                    )
-                    for i, data in enumerate(stats["garbage_collector"])
-                ]
-            )
-            log.debug(f"Garbage Collector Stats: {gc_stats}")
-    except Exception:
-        log.exception("Error while trying to log stats")
 
 
 # via https://stackoverflow.com/a/1094933
@@ -466,31 +156,6 @@ def except_log_and_pass(do_raise: Optional[Tuple] = None):
     return acallable
 
 
-def fmt_json(value) -> str:
-    return json.dumps(
-        value,
-        default=json_default,
-        skipkeys=True,
-        indent=4,
-        separators=(",", ": "),
-        sort_keys=True,
-    )
-
-
-def increase_limits() -> None:
-    if sys.platform != "linux":
-        return
-    for limit_name in ("RLIMIT_NOFILE", "RLIMIT_NPROC"):
-        soft_limit, hard_limit = resource.getrlimit(getattr(resource, limit_name))
-        log.debug(f"Current {limit_name} soft: {soft_limit} hard: {hard_limit}")
-        try:
-            if soft_limit < hard_limit:
-                log.debug(f"Increasing {limit_name} {soft_limit} -> {hard_limit}")
-                resource.setrlimit(getattr(resource, limit_name), (hard_limit, hard_limit))
-        except (ValueError):
-            log.error(f"Failed to increase {limit_name} {soft_limit} -> {hard_limit}")
-
-
 resource_attributes_blacklist = ["event_log"]
 
 
@@ -554,90 +219,12 @@ def get_resource_attributes(resource, exclude_private: bool = True, keep_data_st
     return attributes
 
 
-def resource2dict(item, exclude_private=True, graph=None) -> Dict:
-    out = get_resource_attributes(item, exclude_private=exclude_private, keep_data_structures=True)
-    cloud = item.cloud(graph)
-    account = item.account(graph)
-    region = item.region(graph)
-    location = item.location(graph)
-    zone = item.zone(graph)
-    out["cloud_id"] = cloud.id
-    out["account_id"] = account.id
-    out["region_id"] = region.id
-    out["location_id"] = location.id
-    out["zone_id"] = zone.id
-    out["cloud_name"] = cloud.name
-    out["account_name"] = account.name
-    out["region_name"] = region.name
-    out["location_name"] = location.name
-    out["zone_name"] = zone.name
-    out["event_log"] = item.event_log
-    out["predecessors"] = [i.chksum for i in item.predecessors(graph)]
-    out["successors"] = [i.chksum for i in item.successors(graph)]
-    return out
-
-
 def type_str(o):
     cls = o.__class__
     module = cls.__module__
     if module == "builtins":
         return cls.__qualname__
     return module + "." + cls.__qualname__
-
-
-class defaultlist(list):  # noqa: N801
-    def __init__(self, func: Callable) -> None:
-        self._func = func
-
-    def _fill(self, index: int) -> None:
-        while len(self) <= index:
-            self.append(self._func())
-
-    def __setitem__(self, index: int, value: Any) -> None:
-        self._fill(index)
-        list.__setitem__(self, index, value)
-
-    def __getitem__(self, index: int) -> Any:
-        self._fill(index)
-        return list.__getitem__(self, index)
-
-
-class ResourceChanges:
-    def __init__(self, node) -> None:
-        self.node = node
-        self.reported = set()
-        self.desired = set()
-        self.metadata = set()
-        self.changed = False
-
-    def add(self, property: str) -> None:
-        if property in ("tags"):
-            self.reported.add(property)
-        elif property in ("clean"):
-            self.desired.add(property)
-        elif property in ("cleaned", "protected"):
-            self.metadata.add(property)
-        elif property == "log":
-            pass
-        else:
-            raise ValueError(f"Unknown property {property}")
-        self.changed = True
-
-    def get(self) -> Dict:
-        changes = {}
-        for section in ("reported", "desired", "metadata"):
-            for attribute in getattr(self, section, []):
-                if section not in changes:
-                    changes[section] = {}
-                try:
-                    changes[section][attribute] = getattr(self.node, attribute)
-                except AttributeError:
-                    log.error(f"Resource {self.node.rtdname} has no attribute {attribute}")
-        if len(self.node.event_log) > 0:
-            if "metadata" not in changes:
-                changes[section] = {}
-            changes["metadata"]["event_log"] = self.node.str_event_log
-        return changes
 
 
 def get_local_ip_addresses(
@@ -716,33 +303,6 @@ def ordinal(num: int) -> str:
     return f"{num}{suffix}"
 
 
-def num_default_threads(num_min_threads: int = 4) -> int:
-    count = num_min_threads
-    try:
-        # try to get the number of usable cores first
-        count = len(os.sched_getaffinity(0))
-    except AttributeError:
-        try:
-            count = cpu_count()
-        except Exception:
-            pass
-    if not isinstance(count, int):
-        count = num_min_threads
-    return max(count, num_min_threads)
-
-
-# via vmware/pyvcloud/vcd/utils.py
-def _badpath(path: str, base: str) -> bool:
-    # joinpath will ignore base if path is absolute
-    return not os.path.realpath(os.path.abspath(os.path.join(base, path))).startswith(base)
-
-
-def _badlink(info: TarInfo, base: str) -> bool:
-    # Links are interpreted relative to the directory containing the link
-    tip = os.path.realpath(os.path.abspath(os.path.join(base, os.path.dirname(info.name))))
-    return _badpath(info.linkname, base=tip)
-
-
 def component_version(component: str = "resotolib") -> str:
     return pkg_resources.get_distribution(component).version
 
@@ -807,15 +367,25 @@ def update_check(
 
 
 def safe_members_in_tarfile(tarfile: TarFile) -> List:
+    # via vmware/pyvcloud/vcd/utils.py
+    def badpath(path: str, base: str) -> bool:
+        # joinpath will ignore base if path is absolute
+        return not os.path.realpath(os.path.abspath(os.path.join(base, path))).startswith(base)
+
+    def badlink(info: TarInfo, base: str) -> bool:
+        # Links are interpreted relative to the directory containing the link
+        tip = os.path.realpath(os.path.abspath(os.path.join(base, os.path.dirname(info.name))))
+        return badpath(info.linkname, base=tip)
+
     base = os.path.realpath(os.path.abspath((".")))
     basename = os.path.basename(tarfile.name)
     result = []
     for tar_info in tarfile.getmembers():
-        if _badpath(tar_info.name, base):
+        if badpath(tar_info.name, base):
             log.error(f"Error in {basename}, {tar_info.name} is blocked: illegal path")
-        elif tar_info.issym() and _badlink(tar_info, base):
+        elif tar_info.issym() and badlink(tar_info, base):
             log.error(f"Error in {basename}, {tar_info.name} is blocked:" f" symlink to {tar_info.linkname}")
-        elif tar_info.islnk() and _badlink(tar_info, base):
+        elif tar_info.islnk() and badlink(tar_info, base):
             log.error(f"Error in {basename}, {tar_info.name} is blocked:" f" hard link to {tar_info.linkname}")
         else:
             result.append(tar_info)
