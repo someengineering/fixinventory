@@ -42,15 +42,6 @@ class VSphereResource:
 class VSphereInstance(BaseInstance, VSphereResource):
     kind: ClassVar[str] = "vsphere_instance"
 
-    instance_status_map: ClassVar[Dict[str, InstanceStatus]] = {
-        "pending": InstanceStatus.BUSY,
-        "running": InstanceStatus.RUNNING,
-        "shutting-down": InstanceStatus.BUSY,
-        "terminated": InstanceStatus.TERMINATED,
-        "stopping": InstanceStatus.BUSY,
-        "notRunning": InstanceStatus.STOPPED,
-    }
-
     def _vm(self):
         return self._vsphere_client().get_object([vim.VirtualMachine], self.name)
 
@@ -80,11 +71,3 @@ class VSphereInstance(BaseInstance, VSphereResource):
         log.debug(f"Deleting tag {key} on resource {self.id}")
         self._vm().setCustomValue(key, "")
         return True
-
-    def _instance_status_setter(self, value: str) -> None:
-        self._instance_status = self.instance_status_map.get(value, InstanceStatus.UNKNOWN)
-
-
-VSphereInstance.instance_status = property(
-    VSphereInstance._instance_status_getter, VSphereInstance._instance_status_setter
-)
