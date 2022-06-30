@@ -2,8 +2,14 @@ import resotolib.logger
 from collections import defaultdict
 from paramiko import SSHClient
 from .resources import OnpremInstance
+from resotolib.baseresources import InstanceStatus
 
 log = resotolib.logger.getLogger("resoto." + __name__)
+
+
+instance_status_map = {
+    "running": InstanceStatus.RUNNING,
+}
 
 
 def instance_from_ssh(
@@ -39,11 +45,12 @@ def instance_from_ssh(
     cpuinfo = get_proc_cpuinfo(client)
     netdev, ip4, ip6 = get_net_info(client)
     client.close()
+
     s = OnpremInstance(
         id=hostname,
         instance_cores=len(cpuinfo),
         instance_memory=round(meminfo.get("MemTotal", 0) / 1024**2),
-        instance_status="running",
+        instance_status=instance_status_map.get("running", InstanceStatus.UNKNOWN),
         instance_type=cpuinfo.get("0", {}).get("model name"),
         network_device=netdev,
         network_ip4=ip4,
