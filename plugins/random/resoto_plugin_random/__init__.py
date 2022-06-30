@@ -59,7 +59,9 @@ def get_id(input: str, digest_size: int = 10) -> str:
 
 def add_random_resources(graph: Graph) -> None:
     global employees
-    employees = random.choices(first_names, k=random.randint(5, 30))
+    min_employees = round(Config.random.size * 5)
+    max_employees = round(Config.random.size * 30)
+    employees = random.choices(first_names, k=random.randint(min_employees, max_employees))
     add_accounts(graph)
 
 
@@ -74,7 +76,9 @@ def add_accounts(graph: Graph) -> None:
 
 
 def add_regions(graph: Graph, parents: List[BaseResource], account: BaseResource = None) -> None:
-    num_total_regions = random.randint(10, 100)
+    min_num_total_regions = round(Config.random.size * 10)
+    max_num_total_regions = round(Config.random.size * 100)
+    num_total_regions = random.randint(min_num_total_regions, max_num_total_regions)
     all_regions = {}
     r_num = 1
     i = 0
@@ -88,7 +92,9 @@ def add_regions(graph: Graph, parents: List[BaseResource], account: BaseResource
                 break
         r_num += 1
 
-    num_regions = random.randint(1, 4)
+    min_num_regions = round(Config.random.size * 1)
+    max_num_regions = round(Config.random.size * 4)
+    num_regions = random.randint(min_num_regions, max_num_regions)
     regions = random.sample(sorted(all_regions), num_regions)
     log.debug(f"Adding {num_regions} regions {regions} in {account.rtdname}")
     for r in regions:
@@ -134,7 +140,9 @@ def add_instance_groups(
     region: BaseResource = None,
     kwargs: Optional[Dict] = None,
 ) -> None:
-    num_groups = random.randint(5, 50)
+    min_num_groups = round(Config.random.size * 5)
+    max_num_groups = round(Config.random.size * 50)
+    num_groups = random.randint(min_num_groups, max_num_groups)
     log.debug(f"Adding {num_groups} instance groups in {region.rtdname}")
     instance_status = random.choices(instance_statuses, weights=[1, 85, 1, 11, 1, 1], k=1)[0]
     instance_type = random.choices(list(instance_types), weights=[10, 10, 20, 50, 20, 10, 5, 5], k=1)[0]
@@ -261,6 +269,8 @@ def add_resources(
     if num:
         num_resources = num
     else:
+        min = round(Config.random.size * min)
+        max = round(Config.random.size * max)
         num_resources = random.randint(min, max) + jitter
     log.debug(
         f"Adding {num_resources} {long_prefix} resources in {account.rtdname} {region.rtdname} with parents: {parents}, children: {children}"
