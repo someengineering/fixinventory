@@ -14,9 +14,10 @@ from resotolib.baseresources import (
     BaseQuota,
     BaseLoadBalancer,
     EdgeType,
+    VolumeStatus,
 )
 from resotolib.graph import Graph
-from resotolib.json_bender import StringToUnitNumber, CPUCoresToNumber, Bend, S, K, bend, ForallBend, Bender
+from resotolib.json_bender import StringToUnitNumber, CPUCoresToNumber, Bend, S, K, F, bend, ForallBend, Bender
 from resotolib.types import Json
 
 log = logging.getLogger("resoto.plugins.k8s")
@@ -1312,6 +1313,9 @@ class KubernetesPersistentVolumeSpec:
     vsphere_volume: Optional[str] = field(default=None)
 
 
+valid_volume_statuses = {s.value for s in VolumeStatus}
+
+
 @dataclass(eq=False)
 class KubernetesPersistentVolume(KubernetesResource, BaseVolume):
     kind: ClassVar[str] = "kubernetes_persistent_volume"
@@ -1320,27 +1324,17 @@ class KubernetesPersistentVolume(KubernetesResource, BaseVolume):
         "persistent_volume_spec": S("spec") >> Bend(KubernetesPersistentVolumeSpec.mapping),
         "volume_size": S("spec", "capacity", "storage", default="0") >> StringToUnitNumber("GB"),
         "volume_type": S("spec", "storageClassName"),
-        "volume_status": S("status", "phase"),
+        "volume_status": S("status", "phase")
+        >> F(lambda s: s if (s in valid_volume_statuses) else VolumeStatus.UNKNOWN.value),
     }
     persistent_volume_status: Optional[KubernetesPersistentVolumeStatus] = field(default=None)
     persistent_volume_spec: Optional[KubernetesPersistentVolumeSpec] = field(default=None)
-
-    def _volume_status_getter(self) -> str:
-        return self._volume_status
-
-    def _volume_status_setter(self, value: str) -> None:
-        self._volume_status = value
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
         claim_ref = bend(S("spec", "claimRef", "uid"), source)
         if claim_ref:
             builder.add_edge(self, EdgeType.default, id=claim_ref, reverse=True)
-
-
-KubernetesPersistentVolume.volume_status = property(  # type: ignore
-    KubernetesPersistentVolume._volume_status_getter, KubernetesPersistentVolume._volume_status_setter
-)
 
 
 @dataclass(eq=False)
