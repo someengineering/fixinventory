@@ -1,6 +1,6 @@
-from lib2to3.pytree import Base
 import random
 import hashlib
+import time
 from resotolib.baseresources import BaseResource
 from resotolib.logger import log
 from resotolib.baseplugin import BaseCollectorPlugin
@@ -10,13 +10,21 @@ from resotolib.config import Config
 from .config import RandomConfig
 from .resources import (
     first_names,
+    purposes,
+    instance_statuses,
+    instance_types,
+    volume_statuses,
+    region_templates,
     RandomAccount,
     RandomRegion,
     RandomNetwork,
+    RandomLoadBalancer,
     RandomInstance,
     RandomVolume,
 )
 from typing import List, Callable, Dict, Optional
+
+employees = []
 
 
 class RandomCollectorPlugin(BaseCollectorPlugin):
@@ -50,6 +58,10 @@ def get_id(input: str, digest_size: int = 10) -> str:
 
 
 def add_random_resources(graph: Graph) -> None:
+    global employees
+    min_employees = round(Config.random.size * 5)
+    max_employees = round(Config.random.size * 30)
+    employees = random.choices(first_names, k=random.randint(min_employees, max_employees))
     add_accounts(graph)
 
 
@@ -63,22 +75,10 @@ def add_accounts(graph: Graph) -> None:
         add_regions(graph, [account], account=account)
 
 
-region_templates = {
-    "ap-northeast-": "Asia Pacific North East",
-    "ap-southeast-": "Asia Pacific South East",
-    "ap-south-": "Asia Pacific South",
-    "ca-central-": "Canada Central",
-    "eu-central-": "EU Central",
-    "eu-north-": "EU North",
-    "eu-west-": "EU West",
-    "sa-east-": "South America East",
-    "us-east-": "US East",
-    "us-west-": "US West",
-}
-
-
 def add_regions(graph: Graph, parents: List[BaseResource], account: BaseResource = None) -> None:
-    num_total_regions = random.randint(10, 100)
+    min_num_total_regions = round(Config.random.size * 10)
+    max_num_total_regions = round(Config.random.size * 100)
+    num_total_regions = random.randint(min_num_total_regions, max_num_total_regions)
     all_regions = {}
     r_num = 1
     i = 0
@@ -92,7 +92,9 @@ def add_regions(graph: Graph, parents: List[BaseResource], account: BaseResource
                 break
         r_num += 1
 
-    num_regions = random.randint(1, 4)
+    min_num_regions = round(Config.random.size * 1)
+    max_num_regions = round(Config.random.size * 4)
+    num_regions = random.randint(min_num_regions, max_num_regions)
     regions = random.sample(sorted(all_regions), num_regions)
     log.debug(f"Adding {num_regions} regions {regions} in {account.rtdname}")
     for r in regions:
@@ -105,47 +107,54 @@ def add_regions(graph: Graph, parents: List[BaseResource], account: BaseResource
 
 
 def add_networks(
-    graph: Graph, parents: List[BaseResource], id_path: str, account: BaseResource = None, region: BaseResource = None
+    graph: Graph,
+    parents: List[BaseResource],
+    id_path: str,
+    num: Optional[int] = None,
+    account: BaseResource = None,
+    region: BaseResource = None,
+    kwargs: Optional[Dict] = None,
 ) -> None:
     add_resources(
         graph=graph,
         parents=parents,
-        children=[add_instances],
+        children=[add_instance_groups],
         cls=RandomNetwork,
-        short_prefix="net-",
+        short_prefix="rndnet-",
         long_prefix="Network",
         min=1,
         max=4,
+        num=num,
         id_path=id_path,
         account=account,
         region=region,
     )
 
 
-instance_statuses = ["pending", "running", "shutting-down", "terminated", "stopping", "stopped"]
-instance_types = {
-    "rnd2.tiny": [2, 2],
-    "rnd2.micro": [2, 4],
-    "rnd2.medium": [4, 8],
-    "rnd2.large": [8, 16],
-    "rnd2.xlarge": [8, 32],
-    "rnd2.2xlarge": [16, 64],
-    "rnd2.mega": [32, 128],
-    "rnd2.ultra": [64, 256],
-}
-
-employees = random.choices(first_names, k=random.randint(5, 30))
-
-
-def add_instances(
-    graph: Graph, parents: List[BaseResource], id_path: str, account: BaseResource = None, region: BaseResource = None
+def add_instance_groups(
+    graph: Graph,
+    parents: List[BaseResource],
+    id_path: str,
+    num: Optional[int] = None,
+    account: BaseResource = None,
+    region: BaseResource = None,
+    kwargs: Optional[Dict] = None,
 ) -> None:
+    min_num_groups = round(Config.random.size * 5)
+    max_num_groups = round(Config.random.size * 50)
+    num_groups = random.randint(min_num_groups, max_num_groups)
+    log.debug(f"Adding {num_groups} instance groups in {region.rtdname}")
     instance_status = random.choices(instance_statuses, weights=[1, 85, 1, 11, 1, 1], k=1)[0]
     instance_type = random.choices(list(instance_types), weights=[10, 10, 20, 50, 20, 10, 5, 5], k=1)[0]
     tags = {}
+    long_prefix = f"Instance"
+    purpose = random.choice(purposes)
+    tags["costCenter"] = purpose[0]
     has_owner = random.randrange(100) < 90
     if has_owner:
-        tags["owner"] = random.choice(employees)
+        owner = random.choice(employees)
+        tags["owner"] = owner
+        long_prefix = purpose[1]
     kwargs = {
         "tags": tags,
         "instance_status": instance_status,
@@ -153,40 +162,83 @@ def add_instances(
         "instance_cores": instance_types[instance_type][0],
         "instance_memory": instance_types[instance_type][1],
     }
-    add_resources(
+    add_instances(
         graph=graph,
         parents=parents,
-        children=[add_volumes],
-        cls=RandomInstance,
-        short_prefix="i-",
-        long_prefix="Instance",
-        min=0,
-        max=100,
         id_path=id_path,
+        num=num,
+        long_prefix=long_prefix,
         account=account,
         region=region,
         kwargs=kwargs,
     )
 
 
-volume_statuses = ["creating", "available", "in-use", "deleting", "deleted", "error"]
+def add_instances(
+    graph: Graph,
+    parents: List[BaseResource],
+    id_path: str,
+    long_prefix: str,
+    num: Optional[int] = None,
+    account: BaseResource = None,
+    region: BaseResource = None,
+    kwargs: Optional[Dict] = None,
+) -> None:
+    if long_prefix.startswith("Webserver"):
+        lb = add_loadbalancer(
+            graph=graph, id_path=id_path, parents=parents, account=account, region=region, kwargs=kwargs
+        )
+        parents.append(lb)
+
+    volume_status = random.choices(volume_statuses, weights=[2, 15, 80, 1, 1, 1], k=1)[0]
+    volume_tags = kwargs.get("tags", {})
+    volume_size = random.choices([20, 100, 200, 400, 800, 1000, 4000], weights=[70, 40, 30, 5, 5, 20, 1], k=1)[0]
+    child_kwargs = {
+        "tags": volume_tags,
+        "volume_status": volume_status,
+        "volume_type": "ssd",
+        "volume_size": volume_size,
+    }
+
+    add_resources(
+        graph=graph,
+        parents=parents,
+        children=[add_volumes],
+        cls=RandomInstance,
+        short_prefix="rndi-",
+        long_prefix=long_prefix,
+        min=0,
+        max=50,
+        num=num,
+        num_children=random.randint(1, 5),
+        jitter=int(time.time() % 3),
+        id_path=id_path,
+        account=account,
+        region=region,
+        kwargs=kwargs,
+        child_kwargs=child_kwargs,
+    )
 
 
 def add_volumes(
-    graph: Graph, parents: List[BaseResource], id_path: str, account: BaseResource = None, region: BaseResource = None
+    graph: Graph,
+    parents: List[BaseResource],
+    id_path: str,
+    num: Optional[int] = None,
+    account: BaseResource = None,
+    region: BaseResource = None,
+    kwargs: Optional[Dict] = None,
 ) -> None:
-    volume_status = random.choices(volume_statuses, weights=[2, 15, 80, 1, 1, 1], k=1)[0]
-    tags = {}
-    kwargs = {"tags": tags, "volume_status": volume_status}
     add_resources(
         graph=graph,
         parents=parents,
         children=[],
         cls=RandomVolume,
-        short_prefix="vol-",
+        short_prefix="rndvol-",
         long_prefix="Volume",
         min=1,
         max=5,
+        num=num,
         id_path=id_path,
         account=account,
         region=region,
@@ -204,13 +256,22 @@ def add_resources(
     min: int,
     max: int,
     id_path: str,
+    jitter: int = 0,
+    num: Optional[int] = None,
+    num_children: Optional[int] = None,
     account: BaseResource = None,
     region: BaseResource = None,
     kwargs: Optional[Dict] = None,
+    child_kwargs: Optional[Dict] = None,
 ) -> None:
     if kwargs is None:
         kwargs = {"tags": {}}
-    num_resources = random.randint(min, max)
+    if num:
+        num_resources = num
+    else:
+        min = round(Config.random.size * min)
+        max = round(Config.random.size * max)
+        num_resources = random.randint(min, max) + jitter
     log.debug(
         f"Adding {num_resources} {long_prefix} resources in {account.rtdname} {region.rtdname} with parents: {parents}, children: {children}"
     )
@@ -218,7 +279,8 @@ def add_resources(
         resource_id_path = f"{id_path}/{short_prefix}{resource_num}"
         log.debug(f"Adding {long_prefix} {resource_num} resource ({id_path})")
         resource_id = short_prefix + get_id(resource_id_path)
-        resource = cls(resource_id, name=f"{long_prefix} {resource_num}", _account=account, _region=region, **kwargs)
+        name = f"{long_prefix} {resource_num}"
+        resource = cls(resource_id, name=name, _account=account, _region=region, **kwargs)
         graph.add_node(resource)
         for parent in parents:
             graph.add_edge(parent, resource)
@@ -226,4 +288,34 @@ def add_resources(
         if region != resource:
             child_parents.append(region)
         for child in children:
-            child(graph=graph, parents=child_parents, id_path=resource_id_path, account=account, region=region)
+            child(
+                graph=graph,
+                parents=child_parents,
+                id_path=resource_id_path,
+                account=account,
+                region=region,
+                num=num_children,
+                kwargs=child_kwargs,
+            )
+
+
+def add_loadbalancer(
+    graph: Graph,
+    id_path: str,
+    parents: List[BaseResource],
+    account: BaseResource = None,
+    region: BaseResource = None,
+    kwargs: Optional[Dict] = None,
+) -> BaseResource:
+    resource_id_path = f"{id_path}/lb"
+    log.debug(f"Adding load balancer resource ({id_path}) ({kwargs})")
+    if kwargs is None:
+        tags = {}
+    else:
+        tags = kwargs.get("tags", {})
+    resource_id = "rndlb-" + get_id(resource_id_path)
+    lb = RandomLoadBalancer(resource_id, tags=tags, name="LoadBalancer", _account=account, _region=region)
+    graph.add_node(lb)
+    for parent in parents:
+        graph.add_edge(parent, lb)
+    return lb

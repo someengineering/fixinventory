@@ -9,6 +9,7 @@ from resotolib.baseresources import (
     BaseInstance,
     BaseNetwork,
     BaseVolume,
+    BaseLoadBalancer,
     InstanceStatus,
     VolumeStatus,
 )
@@ -102,6 +103,11 @@ RandomVolume.volume_status = property(RandomVolume._volume_status_getter, Random
 @dataclass(eq=False)
 class RandomNetwork(RandomResource, BaseNetwork):
     kind: ClassVar[str] = "random_network"
+
+
+@dataclass(eq=False)
+class RandomLoadBalancer(RandomResource, BaseLoadBalancer):
+    kind: ClassVar[str] = "random_load_balancer"
 
 
 first_names = [
@@ -312,3 +318,61 @@ first_names = [
     "Zoey",
     "Zofia",
 ]
+
+
+purposes = [
+    ["bus", "Business"],
+    ["edu", "Education"],
+    ["ent", "Entertainment"],
+    ["fin", "Finance"],
+    ["game", "Gaming"],
+    ["gov", "Government"],
+    ["news", "News"],
+    ["office", "Office"],
+    ["misc", "Other"],
+    ["priv", "Personal"],
+    ["shop", "Shopping"],
+    ["soc", "Social"],
+    ["sprt", "Sports"],
+    ["trvl", "Travel"],
+    ["wrk", "Work"],
+    ["dev", "Development"],
+    ["res", "Research"],
+    ["web", "Webserver"],
+    ["db", "Database"],
+    ["stor", "Storage"],
+    ["cloud", "Cloud"],
+    ["host", "Hosting"],
+]
+
+
+instance_statuses = ["pending", "running", "shutting-down", "terminated", "stopping", "stopped"]
+
+
+instance_types = {
+    "rnd2.tiny": [2, 2],
+    "rnd2.micro": [2, 4],
+    "rnd2.medium": [4, 8],
+    "rnd2.large": [8, 16],
+    "rnd2.xlarge": [8, 32],
+    "rnd2.2xlarge": [16, 64],
+    "rnd2.mega": [32, 128],
+    "rnd2.ultra": [64, 256],
+}
+
+
+volume_statuses = ["creating", "available", "in-use", "deleting", "deleted", "error"]
+
+
+region_templates = {
+    "ap-northeast-": "Asia Pacific North East",
+    "ap-southeast-": "Asia Pacific South East",
+    "ap-south-": "Asia Pacific South",
+    "ca-central-": "Canada Central",
+    "eu-central-": "EU Central",
+    "eu-north-": "EU North",
+    "eu-west-": "EU West",
+    "sa-east-": "South America East",
+    "us-east-": "US East",
+    "us-west-": "US West",
+}
