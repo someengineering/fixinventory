@@ -2,11 +2,10 @@ import logging
 from dataclasses import dataclass
 from typing import ClassVar, Dict, Optional, List, Type, Any, TypeVar
 
-import jsons
-
 from resoto_plugin_aws.resources import AWSRegion, AWSEC2InstanceType, AWSAccount
 from resotolib.baseresources import BaseResource, EdgeType, Cloud
 from resotolib.graph import Graph
+from resotolib.json import to_json as to_js, from_json as from_js
 from resotolib.json_bender import Bender, bend
 from resotolib.types import Json
 
@@ -20,22 +19,20 @@ class AWSResource(BaseResource):
     arn: Optional[str] = None
 
     # TODO: implement me
-    def update_tag(self, key, value) -> bool:
+    def update_tag(self, key: str, value: str) -> bool:
         pass
 
     # TODO: implement me
-    def delete_tag(self, key) -> bool:
+    def delete_tag(self, key: str) -> bool:
         pass
 
     # TODO: implement me
-    def delete(self, graph) -> bool:
+    def delete(self, graph: Graph) -> bool:
         return False
 
     def to_json(self) -> Json:
-        return jsons.dump(  # type: ignore
+        return to_js(
             self,
-            strip_privates=True,
-            strip_nulls=True,
             strip_attr=(
                 "mapping",
                 "phantom",
@@ -71,11 +68,11 @@ class AWSResource(BaseResource):
         )
 
     @classmethod
-    def from_json(cls: Type["AWSResource"], json: Json) -> "AWSResource":
-        return jsons.load(json, cls)  # type: ignore
+    def from_json(cls: Type["AWSResourceType"], json: Json) -> "AWSResourceType":
+        return from_js(json, cls)
 
     @classmethod
-    def from_api(cls: Type["AWSResource"], json: Json) -> "AWSResource":
+    def from_api(cls: Type["AWSResourceType"], json: Json) -> "AWSResourceType":
         mapped = bend(cls.mapping, json)
         return cls.from_json(mapped)
 
@@ -133,6 +130,6 @@ class GraphBuilder:
             log.debug(f"{self.name}: add edge: {start} -> {end}")
             self.graph.add_edge(start, end, edge_type=edge_type)
 
-    def instance_type(self, instance_type: str) -> Optional[AWSEC2InstanceType]:
+    def instance_type(self, instance_type: Optional[str]) -> Optional[AWSEC2InstanceType]:
         # TODO: implement me
         return None

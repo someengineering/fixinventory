@@ -39,4 +39,4 @@ def round_trip(file: str, cls: Type[AWSResourceType], root: str) -> AWSResourceT
         assert again.to_json() == as_js
     first = next(iter(builder.graph.nodes))
     all_props_set(first)
-    return first
+    return first  # type: ignore

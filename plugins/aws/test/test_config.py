@@ -3,7 +3,7 @@ from resotolib.config import Config
 from resoto_plugin_aws import AWSCollectorPlugin
 
 
-def test_args():
+def test_args() -> None:
     config = Config("dummy", "dummy")
     AWSCollectorPlugin.add_config(config)
     Config.init_default_config()

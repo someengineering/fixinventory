@@ -2,10 +2,9 @@ import re
 from dataclasses import dataclass
 from typing import List, Dict, Tuple, Type
 
-import jsons
-
 from resotolib.baseresources import BaseResource
 from resotolib.core.model_export import dataclasses_to_resotocore_model
+from resotolib.json import from_json
 
 
 @dataclass
@@ -57,7 +56,7 @@ def check_overlap(*base: Type[BaseResource]) -> None:
         aggregate_root=BaseResource,
     )
 
-    classes = {model["fqn"]: jsons.load(model, CheckClass) for model in models if "properties" in model}
+    classes = {model["fqn"]: from_json(model, CheckClass) for model in models if "properties" in model}
     all_paths: Dict[str, Tuple[CheckClass, str]] = {}
 
     def is_compatible(left: str, right: str) -> bool:
