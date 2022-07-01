@@ -7,7 +7,6 @@ from resotolib.baseresources import (
     BaseRegion,
     BaseInstance,
     BaseNetwork,
-    InstanceStatus,
 )
 
 log = resotolib.logger.getLogger("resoto." + __name__)

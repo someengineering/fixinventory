@@ -4,10 +4,9 @@ from resotolib.baseresources import (
     BaseAccount,
     BaseRegion,
     BaseInstance,
-    InstanceStatus,
 )
 from dataclasses import dataclass
-from typing import ClassVar, Dict
+from typing import ClassVar
 from pyVmomi import vim
 from .vsphere_client import get_vsphere_client, VSphereClient
 

@@ -15,7 +15,6 @@ from resotolib.baseresources import (
     BaseResource,
     BaseSnapshot,
     BaseVolume,
-    InstanceStatus,
     VolumeStatus,
     BaseBucket,
     BaseEndpoint,
