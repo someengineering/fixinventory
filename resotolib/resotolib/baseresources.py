@@ -805,24 +805,14 @@ class BaseVolume(BaseResource):
     kind: ClassVar[str] = "volume"
     volume_size: int = 0
     volume_type: str = ""
-    volume_status: str = ""
+    volume_status: Optional[VolumeStatus] = None
     volume_iops: Optional[int] = None
     volume_throughput: Optional[int] = None
     volume_encrypted: Optional[bool] = None
     snapshot_before_delete: bool = False
 
-    def _volume_status_getter(self) -> str:
-        return self._volume_status.value
-
-    @abstractmethod
-    def _volume_status_setter(self, value: str) -> None:
-        raise NotImplementedError
-
     def volume_type_info(self, graph) -> BaseVolumeType:
         return graph.search_first_parent_class(self, BaseVolumeType)
-
-
-BaseVolume.volume_status = property(BaseVolume._volume_status_getter, BaseVolume._volume_status_setter)
 
 
 @dataclass(eq=False)
