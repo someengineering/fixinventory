@@ -8,10 +8,11 @@ import uuid
 import weakref
 from resotolib.logger import log
 from enum import Enum
-from typing import Dict, Iterator, List, ClassVar, Optional
+from typing import Dict, Iterator, List, ClassVar, Optional, Type
 from resotolib.utils import make_valid_timestamp, utc_str
 from prometheus_client import Counter, Summary
 from dataclasses import dataclass, field
+import jsons
 
 
 metrics_resource_pre_cleanup_exceptions = Counter(
@@ -768,6 +769,13 @@ class InstanceStatus(Enum):
     UNKNOWN = "unknown"
 
 
+def serialize_enum(obj, **kwargs):
+    return obj.value
+
+
+jsons.set_serializer(serialize_enum, InstanceStatus)
+
+
 @dataclass(eq=False)
 class BaseInstance(BaseResource):
     kind: ClassVar[str] = "instance"
@@ -798,6 +806,9 @@ class VolumeStatus(Enum):
     ERROR = "error"
     DELETED = "deleted"
     UNKNOWN = "unknown"
+
+
+jsons.set_serializer(serialize_enum, VolumeStatus)
 
 
 @dataclass(eq=False)
