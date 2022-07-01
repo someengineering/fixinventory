@@ -222,20 +222,6 @@ class GCPDisk(GCPResource, BaseVolume):
     }
     api_identifier: ClassVar[str] = "disk"
 
-    volume_status_map: ClassVar[Dict[str, VolumeStatus]] = {
-        "CREATING": VolumeStatus.BUSY,
-        "RESTORING": VolumeStatus.BUSY,
-        "FAILED": VolumeStatus.ERROR,
-        "READY": VolumeStatus.IN_USE,
-        "AVAILABLE": VolumeStatus.AVAILABLE,
-        "DELETING": VolumeStatus.BUSY,
-        "busy": VolumeStatus.BUSY,
-        "in-use": VolumeStatus.IN_USE,
-        "available": VolumeStatus.AVAILABLE,
-        "error": VolumeStatus.ERROR,
-        "deleted": VolumeStatus.DELETED,
-    }
-
     last_attach_timestamp: Optional[datetime] = None
     last_detach_timestamp: Optional[datetime] = None
 
@@ -265,12 +251,6 @@ class GCPDisk(GCPResource, BaseVolume):
     def last_detach(self) -> timedelta:
         now = datetime.utcnow().replace(tzinfo=timezone.utc)
         return now - self.last_detach_timestamp
-
-    def _volume_status_setter(self, value: str) -> None:
-        self._volume_status = self.volume_status_map.get(value, VolumeStatus.UNKNOWN)
-
-
-GCPDisk.volume_status = property(GCPDisk._volume_status_getter, GCPDisk._volume_status_setter)
 
 
 @dataclass(eq=False)
