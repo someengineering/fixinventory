@@ -8,3 +8,4 @@ def test_config():
     Config.init_default_config()
 
     assert Config.random.seed == 0
+    assert Config.random.size == 1.0

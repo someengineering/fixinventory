@@ -147,7 +147,7 @@ def add_instance_groups(
     instance_status = random.choices(instance_statuses, weights=[1, 85, 1, 11, 1, 1], k=1)[0]
     instance_type = random.choices(list(instance_types), weights=[10, 10, 20, 50, 20, 10, 5, 5], k=1)[0]
     tags = {}
-    long_prefix = f"Instance"
+    long_prefix = "Instance"
     purpose = random.choice(purposes)
     tags["costCenter"] = purpose[0]
     has_owner = random.randrange(100) < 90
@@ -273,7 +273,8 @@ def add_resources(
         max = round(Config.random.size * max)
         num_resources = random.randint(min, max) + jitter
     log.debug(
-        f"Adding {num_resources} {long_prefix} resources in {account.rtdname} {region.rtdname} with parents: {parents}, children: {children}"
+        f"Adding {num_resources} {long_prefix} resources in {account.rtdname} {region.rtdname} with"
+        f" parents: {parents}, children: {children}"
     )
     for resource_num in range(num_resources):
         resource_id_path = f"{id_path}/{short_prefix}{resource_num}"
