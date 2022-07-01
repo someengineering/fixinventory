@@ -77,23 +77,12 @@ class AWSEC2Volume(AWSResource, BaseVolume):
     volume_multi_attach_enabled: Optional[bool] = field(default=None)
     volume_throughput: Optional[int] = field(default=None)
 
-    def _volume_status_getter(self) -> str:
-        return self._volume_status
-
-    def _volume_status_setter(self, value: str) -> None:
-        self._volume_status = value
-
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
         builder.add_edge(self, EdgeType.default, reverse=True, name=self.volume_type)
         for attachment in self.volume_attachments:
             builder.add_edge(self, EdgeType.default, clazz=AWSEC2Instance, id=attachment.instance_id)
             builder.add_edge(self, EdgeType.delete, reverse=True, clazz=AWSEC2Instance, id=attachment.instance_id)
-
-
-AWSEC2Volume.volume_status = property(  # type: ignore
-    AWSEC2Volume._volume_status_getter, AWSEC2Volume._volume_status_setter
-)
 
 
 # endregion
