@@ -19,15 +19,15 @@ class AWSResource(BaseResource):
     arn: Optional[str] = None
 
     # TODO: implement me
-    def update_tag(self, key, value) -> bool:
+    def update_tag(self, key: str, value: str) -> bool:
         pass
 
     # TODO: implement me
-    def delete_tag(self, key) -> bool:
+    def delete_tag(self, key: str) -> bool:
         pass
 
     # TODO: implement me
-    def delete(self, graph) -> bool:
+    def delete(self, graph: Graph) -> bool:
         return False
 
     def to_json(self) -> Json:
@@ -68,11 +68,11 @@ class AWSResource(BaseResource):
         )
 
     @classmethod
-    def from_json(cls: Type["AWSResource"], json: Json) -> "AWSResource":
+    def from_json(cls: Type["AWSResourceType"], json: Json) -> "AWSResourceType":
         return from_js(json, cls)
 
     @classmethod
-    def from_api(cls: Type["AWSResource"], json: Json) -> "AWSResource":
+    def from_api(cls: Type["AWSResourceType"], json: Json) -> "AWSResourceType":
         mapped = bend(cls.mapping, json)
         return cls.from_json(mapped)
 
@@ -130,6 +130,6 @@ class GraphBuilder:
             log.debug(f"{self.name}: add edge: {start} -> {end}")
             self.graph.add_edge(start, end, edge_type=edge_type)
 
-    def instance_type(self, instance_type: str) -> Optional[AWSEC2InstanceType]:
+    def instance_type(self, instance_type: Optional[str]) -> Optional[AWSEC2InstanceType]:
         # TODO: implement me
         return None
