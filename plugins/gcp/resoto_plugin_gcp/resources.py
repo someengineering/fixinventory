@@ -8,7 +8,6 @@ from resotolib.baseresources import (
     BaseAccount,
     BaseLoadBalancer,
     BaseRegion,
-    VolumeStatus,
     BaseVolume,
     BaseVolumeType,
     BaseZone,

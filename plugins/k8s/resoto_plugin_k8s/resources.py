@@ -1325,7 +1325,7 @@ class KubernetesPersistentVolume(KubernetesResource, BaseVolume):
         "volume_size": S("spec", "capacity", "storage", default="0") >> StringToUnitNumber("GB"),
         "volume_type": S("spec", "storageClassName"),
         "volume_status": S("status", "phase")
-        >> F(lambda s: s if (s in valid_volume_statuses) else VolumeStatus.UNKNOWN.value),
+        >> F(lambda s: s if (s in valid_volume_statuses) else VolumeStatus.UNKNOWN.value),  # type: ignore
     }
     persistent_volume_status: Optional[KubernetesPersistentVolumeStatus] = field(default=None)
     persistent_volume_spec: Optional[KubernetesPersistentVolumeSpec] = field(default=None)
