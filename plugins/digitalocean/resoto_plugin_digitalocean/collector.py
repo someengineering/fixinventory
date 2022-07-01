@@ -5,7 +5,7 @@ from typing import Tuple, Type, List, Dict, Callable, Any, Optional, cast
 
 from prometheus_client import Summary
 
-from resotolib.baseresources import BaseResource, EdgeType
+from resotolib.baseresources import BaseResource, EdgeType, InstanceStatus
 from resotolib.graph import Graph
 from resotolib.types import Json
 from .client import StreamingWrapper
@@ -457,13 +457,19 @@ class DigitalOceanTeamCollector:
                 EdgeType.default: ["__tags"],
             },
         )
+        instance_status_map: Dict[str, InstanceStatus] = {
+            "new": InstanceStatus.BUSY,
+            "active": InstanceStatus.RUNNING,
+            "off": InstanceStatus.TERMINATED,
+            "archive": InstanceStatus.TERMINATED,
+        }
         self.collect_resource(
             instances,
             resource_class=DigitalOceanDroplet,
             attr_map={
                 "id": lambda i: str(i["id"]),
                 "urn": lambda d: droplet_id(d["id"]),
-                "instance_status": "status",
+                "instance_status": lambda d: instance_status_map.get(d["status"], InstanceStatus.UNKNOWN),
                 "instance_cores": "vcpus",
                 "instance_memory": lambda d: d["memory"] / 1024.0,
                 "droplet_backup_ids": lambda d: list(map(str, d.get("backup_ids", []) or [])),

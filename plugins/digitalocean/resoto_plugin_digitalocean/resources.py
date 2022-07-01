@@ -15,7 +15,6 @@ from resotolib.baseresources import (
     BaseResource,
     BaseSnapshot,
     BaseVolume,
-    InstanceStatus,
     VolumeStatus,
     BaseBucket,
     BaseEndpoint,
@@ -258,12 +257,6 @@ class DigitalOceanDroplet(DigitalOceanResource, BaseInstance):
         "delete": [],
     }
 
-    instance_status_map: ClassVar[Dict[str, InstanceStatus]] = {
-        "new": InstanceStatus.BUSY,
-        "active": InstanceStatus.RUNNING,
-        "off": InstanceStatus.TERMINATED,
-        "archive": InstanceStatus.TERMINATED,
-    }
     droplet_backup_ids: Optional[List[str]] = None
     is_locked: Optional[bool] = None
     droplet_features: Optional[List[str]] = None
@@ -272,26 +265,8 @@ class DigitalOceanDroplet(DigitalOceanResource, BaseInstance):
     def delete_uri_path(self) -> Optional[str]:
         return "/droplets"
 
-    def _instance_status_setter(self, value: str) -> None:
-        """Setter that looks up the instance status
-
-        Based on the string that was give we're doing a dict lookup
-        for the corresponding instance status and assign it or
-        InstanceStatus.UNKNOWN.
-        """
-        self._instance_status = self.instance_status_map.get(value, InstanceStatus.UNKNOWN)
-
     def tag_resource_name(self) -> Optional[str]:
         return "droplet"
-
-
-# Because we are using dataclasses and allow to supply the `instance_status`
-# string to the constructor we can not use the normal @property decorator.
-# Instead we assign the property once the class has been fully defined.
-DigitalOceanDroplet.instance_status = property(  # type: ignore
-    DigitalOceanDroplet._instance_status_getter,
-    DigitalOceanDroplet._instance_status_setter,
-)
 
 
 @dataclass(eq=False)

@@ -3,11 +3,12 @@ from datetime import datetime
 import resotolib.logger
 from resotolib.config import Config
 from resotolib.baseplugin import BaseCollectorPlugin
-from resotolib.baseresources import BaseResource
+from resotolib.baseresources import BaseResource, InstanceStatus
 
 from .vsphere_client import get_vsphere_client
 from .resources import VSphereCluster, VSphereInstance, VSphereDataCenter
 from .config import VSphereConfig
+from typing import Dict
 
 from pyVmomi import vim
 
@@ -65,6 +66,14 @@ class VSphereCollectorPlugin(BaseCollectorPlugin):
 
         keys = self.get_keymap_from_vmlist(vms)
 
+        instance_status_map: Dict[str, InstanceStatus] = {
+            "pending": InstanceStatus.BUSY,
+            "running": InstanceStatus.RUNNING,
+            "shutting-down": InstanceStatus.BUSY,
+            "terminated": InstanceStatus.TERMINATED,
+            "stopping": InstanceStatus.BUSY,
+            "notRunning": InstanceStatus.STOPPED,
+        }
         # loop over the list of VMs
         for list_vm in vms:
             try:
@@ -79,7 +88,7 @@ class VSphereCollectorPlugin(BaseCollectorPlugin):
                     instance_memory=int(list_vm.config.hardware.memoryMB / 1024),
                     tags=tags,
                     ctime=ctime,
-                    instance_status=list_vm.guest.guestState,
+                    instance_status=instance_status_map.get(list_vm.guest.guestState, InstanceStatus.UNKNOWN),
                 )
             except Exception:
                 log.exception(f"Error while collecting {list_vm}")

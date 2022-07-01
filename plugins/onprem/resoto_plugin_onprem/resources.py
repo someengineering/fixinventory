@@ -7,7 +7,6 @@ from resotolib.baseresources import (
     BaseRegion,
     BaseInstance,
     BaseNetwork,
-    InstanceStatus,
 )
 
 log = resotolib.logger.getLogger("resoto." + __name__)
@@ -49,18 +48,6 @@ class OnpremInstance(OnpremResource, BaseInstance):
     network_device: Optional[str] = None
     network_ip4: Optional[str] = None
     network_ip6: Optional[str] = None
-
-    instance_status_map = {
-        "running": InstanceStatus.RUNNING,
-    }
-
-    def _instance_status_setter(self, value: str) -> None:
-        self._instance_status = self.instance_status_map.get(value, InstanceStatus.UNKNOWN)
-
-
-OnpremInstance.instance_status = property(
-    OnpremInstance._instance_status_getter, OnpremInstance._instance_status_setter
-)
 
 
 @dataclass(eq=False)

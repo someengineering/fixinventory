@@ -319,18 +319,6 @@ class KubernetesNode(KubernetesResource, BaseInstance):
     node_status: Optional[KubernetesNodeStatus] = field(default=None)
     node_spec: Optional[KubernetesNodeSpec] = field(default=None)
 
-    def _instance_status_getter(self) -> str:
-        return self._instance_status
-
-    def _instance_status_setter(self, value: str) -> None:
-        self._instance_status = value
-
-
-# noinspection PyProtectedMember
-KubernetesNode.instance_status = property(  # type: ignore
-    KubernetesNode._instance_status_getter, KubernetesNode._instance_status_setter
-)
-# endregion
 
 # region pod
 

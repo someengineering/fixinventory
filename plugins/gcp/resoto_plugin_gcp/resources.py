@@ -282,21 +282,6 @@ class GCPInstance(GCPResource, BaseInstance):
     }
     api_identifier: ClassVar[str] = "instance"
 
-    instance_status_map: ClassVar[Dict[str, InstanceStatus]] = {
-        "PROVISIONING": InstanceStatus.BUSY,
-        "STAGING": InstanceStatus.BUSY,
-        "RUNNING": InstanceStatus.RUNNING,
-        "STOPPING": InstanceStatus.BUSY,
-        "SUSPENDING": InstanceStatus.BUSY,
-        "SUSPENDED": InstanceStatus.STOPPED,
-        "REPAIRING": InstanceStatus.BUSY,
-        "TERMINATED": InstanceStatus.TERMINATED,
-        "busy": InstanceStatus.BUSY,
-        "running": InstanceStatus.RUNNING,
-        "stopped": InstanceStatus.STOPPED,
-        "terminated": InstanceStatus.TERMINATED,
-    }
-
     network_interfaces: Optional[str] = None
     machine_type_link: InitVar[str] = None
     machine_type: InitVar[BaseInstanceType] = None
@@ -305,11 +290,6 @@ class GCPInstance(GCPResource, BaseInstance):
         super().__post_init__()
         self._machine_type_link = machine_type_link
         self._machine_type = machine_type
-
-    def _instance_status_setter(self, value: str) -> None:
-        self._instance_status = self.instance_status_map.get(value, InstanceStatus.UNKNOWN)
-        if self._instance_status == InstanceStatus.TERMINATED:
-            self._cleaned = True
 
     @property
     def _machine_type(self) -> Optional[BaseInstanceType]:
@@ -323,9 +303,6 @@ class GCPInstance(GCPResource, BaseInstance):
             self.instance_cores = value.instance_cores
             self.instance_memory = value.instance_memory
             self.instance_type = value.name
-
-
-GCPInstance.instance_status = property(GCPInstance._instance_status_getter, GCPInstance._instance_status_setter)
 
 
 @dataclass(eq=False)
