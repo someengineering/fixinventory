@@ -60,12 +60,18 @@ class AwsAccountCollector:
         ) as executor:
             # collect all resources as parallel as possible
             futures: List[Future[None]] = [executor.submit(self.update_account)]
+            # all regions
             for region in self.regions:
                 client = self.client.for_region(region.name)
                 builder = GraphBuilder(self.graph, self.cloud, self.account, region, client)
                 for resource in regional_resources:
                     if self.config.should_collect(resource.resource.kind):
                         futures.append(executor.submit(resource.collect, builder))
+            # all global resources
+            builder = GraphBuilder(self.graph, self.cloud, self.account, self.global_region, self.client)
+            for resource in global_resources:
+                if self.config.should_collect(resource.resource.kind):
+                    futures.append(executor.submit(resource.collect, builder))
 
             # wait until all futures are complete
             for future in concurrent.futures.as_completed(futures):
@@ -74,7 +80,6 @@ class AwsAccountCollector:
                 except Exception:
                     log.exception(f"Unhandled exception in account {self.account.name} region {region.name}")
 
-            builder = GraphBuilder(self.graph, self.cloud, self.account, self.global_region, self.client)
             # connect account to all regions
             for region in self.regions:
                 builder.add_edge(self.account, EdgeType.default, node=region)
