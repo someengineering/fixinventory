@@ -351,11 +351,12 @@ models: Dict[str, List[AWSResotoModel]] = {
         #     prefix="EC2",
         #     prop_prefix="reservation_",
         # ),
-        AWSResotoModel("describe-network-acls", "NetworkAcls", "NetworkAcl", prefix="EC2"),
+        # AWSResotoModel("describe-network-acls", "NetworkAcls", "NetworkAcl", prefix="EC2"),
     ],
     "route53": [
         # AWSResotoModel("list_hosted_zones", "HostedZones", "HostedZone", prefix="Route53"),
     ],
+    "iam": [],
 }
 
 

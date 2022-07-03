@@ -1,9 +1,10 @@
 from resotolib.proc import num_default_threads
 from resotolib.config import Config
 from resoto_plugin_aws import AWSCollectorPlugin
+from resoto_plugin_aws.config import AwsConfig
 
 
-def test_args() -> None:
+def test_default_config() -> None:
     config = Config("dummy", "dummy")
     AWSCollectorPlugin.add_config(config)
     Config.init_default_config()
@@ -23,3 +24,10 @@ def test_args() -> None:
     assert Config.aws.parallel_api_requests == 10
     assert len(Config.aws.collect) == 0
     assert len(Config.aws.no_collect) == 0
+
+
+def test_session() -> None:
+    config = AwsConfig("test", "test", "test")
+    # direct session
+    assert config.sessions.session("1234", aws_role=None) == config.sessions.session("1234", aws_role=None)
+    # no test for sts session, since this requires sts setup
