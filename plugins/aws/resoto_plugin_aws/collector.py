@@ -60,13 +60,15 @@ class AwsAccountCollector:
         ) as executor:
             # collect all resources as parallel as possible
             futures: List[Future[None]] = [executor.submit(self.update_account)]
-            # all regions
+
+            # all regional resources for all configured regions
             for region in self.regions:
                 client = self.client.for_region(region.name)
                 builder = GraphBuilder(self.graph, self.cloud, self.account, region, client)
                 for resource in regional_resources:
                     if self.config.should_collect(resource.resource.kind):
                         futures.append(executor.submit(resource.collect, builder))
+
             # all global resources
             builder = GraphBuilder(self.graph, self.cloud, self.account, self.global_region, self.client)
             for resource in global_resources:
