@@ -66,7 +66,6 @@ class AwsAccountCollector:
                 for resource in regional_resources:
                     if self.config.should_collect(resource.resource.kind):
                         futures.append(executor.submit(resource.collect, builder))
-                    futures.append(executor.submit(resource.collect, builder))
 
             # wait until all futures are complete
             for future in concurrent.futures.as_completed(futures):

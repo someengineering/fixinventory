@@ -13,5 +13,5 @@ def test_collect() -> None:
     collector.collect()
     for node in collector.graph.nodes:
         assert isinstance(node, AWSResource)
-    assert len(collector.graph.nodes) == 20
-    assert len(collector.graph.edges) == 32
+    assert len(collector.graph.nodes) == 11
+    assert len(collector.graph.edges) == 17
