@@ -11,6 +11,7 @@ from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.config import AwsConfig
 from resoto_plugin_aws.resource.base import AWSRegion, AWSAccount, AWSResource, GraphBuilder
 from resoto_plugin_aws.resource.ec2 import AWSEC2Instance, AWSEC2KeyPair, AWSEC2Volume, AWSEC2NetworkAcl
+from resoto_plugin_aws.resource.iam import AWSIAMServerCertificate, AWSIAMPolicy, AWSIAMGroup, AWSIAMRole, AWSIAMUser
 from resotolib.baseresources import Cloud, EdgeType
 from resotolib.graph import Graph
 
@@ -35,7 +36,13 @@ class AwsResourceSpec:
             raise
 
 
-global_resources: List[AwsResourceSpec] = []  # iam, s3, route53, etc.
+global_resources: List[AwsResourceSpec] = [
+    AwsResourceSpec(AWSIAMServerCertificate, "iam", "list-server-certificates", "ServerCertificateMetadataList"),
+    AwsResourceSpec(AWSIAMPolicy, "iam", "list-policies", "Policies"),
+    AwsResourceSpec(AWSIAMGroup, "iam", "list-groups", "Groups"),
+    AwsResourceSpec(AWSIAMRole, "iam", "list-roles", "Roles"),
+    AwsResourceSpec(AWSIAMUser, "iam", "list-users", "Users"),
+]  # iam, s3, route53, etc.
 regional_resources: List[AwsResourceSpec] = [
     AwsResourceSpec(AWSEC2Instance, "ec2", "describe-instances", "Reservations"),
     AwsResourceSpec(AWSEC2KeyPair, "ec2", "describe-key-pairs", "KeyPairs"),
@@ -79,8 +86,9 @@ class AwsAccountCollector:
             for future in concurrent.futures.as_completed(futures):
                 try:
                     future.result()
-                except Exception:
-                    log.exception(f"Unhandled exception in account {self.account.name} region {region.name}")
+                except Exception as ex:
+                    log.exception(f"Unhandled exception in account {self.account.name} region {region.name}: {ex}")
+                    raise
 
             # connect account to all regions
             for region in self.regions:
@@ -98,9 +106,7 @@ class AwsAccountCollector:
     def update_account(self) -> None:
         # account alias
         try:
-            result = self.client.call("iam", "list_account_aliases")
-            account_aliases = result.get("AccountAliases", [])
-            if account_aliases:
+            if account_aliases := self.client.list("iam", "list_account_aliases", "AccountAliases"):
                 self.account.name = self.account.account_alias = account_aliases[0]
         except ClientError as e:
             log.debug(f"Could not get account aliases: {e}")

@@ -1,0 +1,16 @@
+{
+    "AccessKeyMetadata": [
+        {
+            "UserName": "test_user",
+            "AccessKeyId": "ak_test",
+            "Status": "Inactive",
+            "CreateDate": "2018-07-26T10:58:35+00:00"
+        },
+        {
+            "UserName": "test_user",
+            "AccessKeyId": "ak_test2",
+            "Status": "Active",
+            "CreateDate": "2019-04-01T16:57:47+00:00"
+        }
+    ]
+}

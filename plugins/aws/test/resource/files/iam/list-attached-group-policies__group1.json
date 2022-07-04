@@ -1,0 +1,8 @@
+{
+    "AttachedPolicies": [
+        {
+            "PolicyName": "Billing",
+            "PolicyArn": "arn:aws:iam::aws:policy/job-function/Billing"
+        }
+    ]
+}

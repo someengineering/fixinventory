@@ -32,7 +32,7 @@ from resotolib.event import (
     remove_event_listener,
 )
 from prometheus_client import Summary
-from typing import Dict, Iterator, List, Tuple, Any, Optional, Union
+from typing import Dict, Iterator, List, Tuple, Optional, Union
 from io import BytesIO
 from dataclasses import fields
 from typeguard import check_type
@@ -154,6 +154,13 @@ class Graph(networkx.MultiDiGraph):
             # We hand a reference to ourselves to the added BaseResource
             # which stores it as a weakref.
             node_for_adding._graph = self
+
+    def has_edge(
+        self, src: BaseResource, dst: BaseResource, key: Optional[EdgeKey] = None, edge_type: Optional[str] = None
+    ) -> bool:
+        edge_type = edge_type or EdgeType.default
+        key = key or EdgeKey(src=src, dst=dst, edge_type=edge_type)
+        return super().has_edge(src, dst, key=key)
 
     def add_edge(
         self,

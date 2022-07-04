@@ -32,11 +32,11 @@ def to_json_str(node: Any, json_kwargs: Optional[Dict[str, object]] = None, **kw
     return json.dumps(to_json(node, **kwargs), **(json_kwargs or {}))
 
 
-def from_json(json: JsonElement, clazz: Type[AnyT]) -> AnyT:
+def from_json(json: JsonElement, clazz: Type[AnyT], **kwargs: Any) -> AnyT:
     """
     Loads a json object into a python object.
     :param json: the json object to load.
     :param clazz: the type of the python object.
     :return: the loaded python object.
     """
-    return jsons.load(json, cls=clazz) if clazz != dict else json  # type: ignore
+    return jsons.load(json, clazz, **kwargs) if clazz != dict else json  # type: ignore

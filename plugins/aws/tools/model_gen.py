@@ -356,7 +356,57 @@ models: Dict[str, List[AWSResotoModel]] = {
     "route53": [
         # AWSResotoModel("list_hosted_zones", "HostedZones", "HostedZone", prefix="Route53"),
     ],
-    "iam": [],
+    "iam": [
+        # AWSResotoModel(
+        #     "list-server-certificates",
+        #     "ServerCertificateMetadataList",
+        #     "ServerCertificateMetadata",
+        #     prefix="IAM",
+        #     prop_prefix="server_certificate_",
+        # ),
+        # AWSResotoModel(
+        #     "list-policies",
+        #     "Policies",
+        #     "Policy",
+        #     prefix="IAM",
+        #     prop_prefix="policy_",
+        # ),
+        # AWSResotoModel(
+        #     "list-groups",
+        #     "Groups",
+        #     "Group",
+        #     prefix="IAM",
+        #     prop_prefix="group_",
+        # ),
+        # AWSResotoModel(
+        #     "list-roles",
+        #     "Roles",
+        #     "Role",
+        #     prefix="IAM",
+        #     prop_prefix="role_",
+        # ),
+        # AWSResotoModel(
+        #     "list-users",
+        #     "Users",
+        #     "User",
+        #     prefix="IAM",
+        #     prop_prefix="user_",
+        # ),
+        # AWSResotoModel(
+        #     "list-access-keys",
+        #     "AccessKeyMetadata",
+        #     "AccessKeyMetadata",
+        #     prefix="IAM",
+        #     prop_prefix="access_key_",
+        # ),
+        AWSResotoModel(
+            "list-access-keys-last-user",
+            "AccessKeyLastUsed",
+            "AccessKeyLastUsed",
+            prefix="IAM",
+            prop_prefix="access_key_",
+        ),
+    ],
 }
 
 

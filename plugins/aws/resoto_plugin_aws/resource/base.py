@@ -12,8 +12,6 @@ from resotolib.types import Json
 
 log = logging.getLogger("resoto.plugins.aws")
 
-default_ctime = datetime(2006, 3, 19, tzinfo=timezone.utc)  # AWS public launch date
-
 
 @dataclass(eq=False)
 class AWSResource(BaseResource):
@@ -130,6 +128,9 @@ class AWSAccount(BaseAccount, AWSResource):
     hard_expiry: Optional[bool] = None
 
 
+default_ctime = datetime(2006, 3, 19, tzinfo=timezone.utc)  # AWS public launch date
+
+
 @dataclass(eq=False)
 class AWSRegion(BaseRegion, AWSResource):
     kind: ClassVar[str] = "aws_region"
@@ -176,6 +177,18 @@ class GraphBuilder:
             start, end = (to_n, from_node) if reverse else (from_node, to_n)
             log.debug(f"{self.name}: add edge: {start} -> {end}")
             self.graph.add_edge(start, end, edge_type=edge_type)
+
+    def dependant_node(
+        self, from_node: BaseResource, reverse: bool = False, delete_reverse: bool = False, **to_node: Any
+    ) -> None:
+        to_n = self.node(**to_node)
+        if isinstance(from_node, AWSResource) and isinstance(to_n, AWSResource):
+            start, end = (to_n, from_node) if reverse else (from_node, to_n)
+            log.debug(f"{self.name}: add dependant edge: {start} -> {end}")
+            self.graph.add_edge(start, end, edge_type=EdgeType.default)
+            if delete_reverse:
+                start, end = end, start
+            self.graph.add_edge(end, start, edge_type=EdgeType.delete)
 
     def instance_type(self, instance_type: Optional[str]) -> Optional[AWSEC2InstanceType]:
         # TODO: implement me

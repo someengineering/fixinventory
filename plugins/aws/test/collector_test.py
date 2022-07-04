@@ -1,5 +1,5 @@
-from resoto_plugin_aws.config import AwsConfig
 from resoto_plugin_aws.collector import AwsAccountCollector
+from resoto_plugin_aws.config import AwsConfig
 from resoto_plugin_aws.resource.base import AWSAccount, AWSResource
 from resotolib.baseresources import Cloud
 from test.resource import BotoFileBasedSession
@@ -13,5 +13,5 @@ def test_collect() -> None:
     collector.collect()
     for node in collector.graph.nodes:
         assert isinstance(node, AWSResource)
-    assert len(collector.graph.nodes) == 11
-    assert len(collector.graph.edges) == 17
+    assert len(collector.graph.nodes) == 24
+    assert len(collector.graph.edges) == 33
