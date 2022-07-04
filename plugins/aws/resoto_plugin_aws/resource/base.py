@@ -16,6 +16,10 @@ log = logging.getLogger("resoto.plugins.aws")
 
 @dataclass
 class AwsApiSpec:
+    """
+    Specifications for the AWS API to call and the expected response.
+    """
+
     service: str
     api_action: str
     result_property: str
@@ -23,9 +27,19 @@ class AwsApiSpec:
 
 @dataclass(eq=False)
 class AwsResource(BaseResource):
-    mapping: ClassVar[Dict[str, Bender]] = {}
+    """
+    Base class for all AWS resources.
+    Override kind, mapping and api_spec for every resource that is collected in AWS.
+    """
+
+    # The name of the kind of all resources. Needs to be globally unique.
     kind: ClassVar[str] = "aws_resource"
+    # The mapping to transform the incoming API json into the internal representation.
+    mapping: ClassVar[Dict[str, Bender]] = {}
+    # Which API to call and what to expect in the result.
     api_spec: ClassVar[Optional[AwsApiSpec]] = None
+
+    # The AWS specific identifier of the resource. Not available for all resources.
     arn: Optional[str] = None
 
     # TODO: implement me
