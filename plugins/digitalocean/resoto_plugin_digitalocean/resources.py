@@ -319,16 +319,8 @@ class DigitalOceanVolume(DigitalOceanResource, BaseVolume):
     def delete_uri_path(self) -> Optional[str]:
         return "/volumes"
 
-    def _volume_status_setter(self, value: str) -> None:
-        self._volume_status = self.volume_status_map.get(value, VolumeStatus.UNKNOWN)
-
     def tag_resource_name(self) -> Optional[str]:
         return "volume"
-
-
-DigitalOceanVolume.volume_status = property(  # type: ignore
-    DigitalOceanVolume._volume_status_getter, DigitalOceanVolume._volume_status_setter
-)
 
 
 @dataclass(eq=False)

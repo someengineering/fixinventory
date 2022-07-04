@@ -6,6 +6,7 @@ from datetime import datetime
 import threading
 import pickle
 import json
+import jsons
 import re
 import tempfile
 from resotolib.logger import log
@@ -795,7 +796,7 @@ class GraphExportIterator:
                     if "metadata" not in node_dict or not isinstance(node_dict["metadata"], dict):
                         node_dict["metadata"] = {}
                     node_dict["metadata"]["replace"] = True
-                node_json = json.dumps(node_dict) + "\n"
+                node_json = jsons.dumps(node_dict) + "\n"
                 self.tempfile.write(node_json.encode())
                 self.total_lines += 1
             elapsed_nodes = time() - start_time

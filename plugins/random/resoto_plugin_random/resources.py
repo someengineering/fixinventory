@@ -1,6 +1,6 @@
 from resotolib.logger import log
 from dataclasses import dataclass
-from typing import ClassVar, Dict
+from typing import ClassVar
 from resotolib.graph import Graph
 
 from resotolib.baseresources import (
@@ -10,8 +10,6 @@ from resotolib.baseresources import (
     BaseNetwork,
     BaseVolume,
     BaseLoadBalancer,
-    InstanceStatus,
-    VolumeStatus,
 )
 
 
@@ -61,43 +59,11 @@ class RandomResource:
 @dataclass(eq=False)
 class RandomInstance(RandomResource, BaseInstance):
     kind: ClassVar[str] = "random_instance"
-    instance_status_map: ClassVar[Dict[str, InstanceStatus]] = {
-        "pending": InstanceStatus.BUSY,
-        "running": InstanceStatus.RUNNING,
-        "shutting-down": InstanceStatus.BUSY,
-        "terminated": InstanceStatus.TERMINATED,
-        "stopping": InstanceStatus.BUSY,
-        "stopped": InstanceStatus.STOPPED,
-    }
-
-    def _instance_status_setter(self, value: str) -> None:
-        self._instance_status = self.instance_status_map.get(value, InstanceStatus.UNKNOWN)
-
-
-RandomInstance.instance_status = property(
-    RandomInstance._instance_status_getter, RandomInstance._instance_status_setter
-)
 
 
 @dataclass(eq=False)
 class RandomVolume(RandomResource, BaseVolume):
     kind: ClassVar[str] = "random_volume"
-
-    volume_status_map: ClassVar[Dict[str, VolumeStatus]] = {
-        "creating": VolumeStatus.BUSY,
-        "available": VolumeStatus.AVAILABLE,
-        "in-use": VolumeStatus.IN_USE,
-        "deleting": VolumeStatus.BUSY,
-        "deleted": VolumeStatus.DELETED,
-        "error": VolumeStatus.ERROR,
-        "busy": VolumeStatus.BUSY,
-    }
-
-    def _volume_status_setter(self, value: str) -> None:
-        self._volume_status = self.volume_status_map.get(value, VolumeStatus.UNKNOWN)
-
-
-RandomVolume.volume_status = property(RandomVolume._volume_status_getter, RandomVolume._volume_status_setter)
 
 
 @dataclass(eq=False)

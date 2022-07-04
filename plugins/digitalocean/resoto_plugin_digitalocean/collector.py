@@ -5,7 +5,7 @@ from typing import Tuple, Type, List, Dict, Callable, Any, Optional, cast
 
 from prometheus_client import Summary
 
-from resotolib.baseresources import BaseResource, EdgeType, InstanceStatus
+from resotolib.baseresources import BaseResource, EdgeType, InstanceStatus, VolumeStatus
 from resotolib.graph import Graph
 from resotolib.types import Json
 from .client import StreamingWrapper
@@ -516,9 +516,9 @@ class DigitalOceanTeamCollector:
     def collect_volumes(self) -> None:
         volumes = self.client.list_volumes()
 
-        def extract_volume_status(volume: Json) -> str:
+        def extract_volume_status(volume: Json) -> VolumeStatus:
             in_use = len(volume.get("droplet_ids", []) or []) > 0
-            return "in-use" if in_use else "available"
+            return VolumeStatus.IN_USE if in_use else VolumeStatus.AVAILABLE
 
         self.collect_resource(
             volumes,

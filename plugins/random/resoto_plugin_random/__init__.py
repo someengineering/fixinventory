@@ -1,7 +1,7 @@
 import random
 import hashlib
 import time
-from resotolib.baseresources import BaseResource
+from resotolib.baseresources import BaseResource, VolumeStatus, InstanceStatus
 from resotolib.logger import log
 from resotolib.baseplugin import BaseCollectorPlugin
 from resotolib.graph import Graph
@@ -22,7 +22,7 @@ from .resources import (
     RandomInstance,
     RandomVolume,
 )
-from typing import List, Callable, Dict, Optional
+from typing import List, Callable, Dict, Optional, Type
 
 employees = []
 
@@ -199,6 +199,17 @@ def add_instances(
         "volume_type": "ssd",
         "volume_size": volume_size,
     }
+    instance_status_map: Dict[str, InstanceStatus] = {
+        "pending": InstanceStatus.BUSY,
+        "running": InstanceStatus.RUNNING,
+        "shutting-down": InstanceStatus.BUSY,
+        "terminated": InstanceStatus.TERMINATED,
+        "stopping": InstanceStatus.BUSY,
+        "stopped": InstanceStatus.STOPPED,
+    }
+
+    if kwargs:
+        kwargs["instance_status"] = instance_status_map.get(kwargs.get("instance_status", ""), InstanceStatus.UNKNOWN)
 
     add_resources(
         graph=graph,
@@ -229,6 +240,20 @@ def add_volumes(
     region: BaseResource = None,
     kwargs: Optional[Dict] = None,
 ) -> None:
+
+    volume_status_map: Dict[str, VolumeStatus] = {
+        "creating": VolumeStatus.BUSY,
+        "available": VolumeStatus.AVAILABLE,
+        "in-use": VolumeStatus.IN_USE,
+        "deleting": VolumeStatus.BUSY,
+        "deleted": VolumeStatus.DELETED,
+        "error": VolumeStatus.ERROR,
+        "busy": VolumeStatus.BUSY,
+    }
+
+    if kwargs:
+        kwargs["volume_status"] = volume_status_map.get(kwargs.get("volume_status", ""), VolumeStatus.UNKNOWN)
+
     add_resources(
         graph=graph,
         parents=parents,
@@ -250,7 +275,7 @@ def add_resources(
     graph: Graph,
     parents: List[BaseResource],
     children: List[Callable],
-    cls: BaseResource,
+    cls: Type[BaseResource],
     short_prefix: str,
     long_prefix: str,
     min: int,

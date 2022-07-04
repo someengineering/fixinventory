@@ -28,7 +28,7 @@ from .fixtures import (
     alerts,
 )
 from resotolib.graph import sanitize
-from resotolib.baseresources import Cloud, EdgeType, GraphRoot, InstanceStatus
+from resotolib.baseresources import Cloud, EdgeType, GraphRoot, InstanceStatus, VolumeStatus
 from resotolib.graph import Graph
 import datetime
 from typing import Dict, Any, List
@@ -200,7 +200,7 @@ def test_collect_volumes() -> None:
     assert volume.filesystem_type == "ext4"
     assert volume.filesystem_label == "label"
     assert volume.volume_size == 1
-    assert volume.volume_status == "in-use"
+    assert volume.volume_status == VolumeStatus.IN_USE
 
 
 def test_collect_database() -> None:

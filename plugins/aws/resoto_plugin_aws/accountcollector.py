@@ -536,6 +536,15 @@ class AWSAccountCollector:
         ec2 = session.resource("ec2", region_name=region.id)
         volumes = []
         now = datetime.utcnow().replace(tzinfo=timezone.utc)
+        volume_status_map: Dict[str, VolumeStatus] = {
+            "creating": VolumeStatus.BUSY,
+            "available": VolumeStatus.AVAILABLE,
+            "in-use": VolumeStatus.IN_USE,
+            "deleting": VolumeStatus.BUSY,
+            "deleted": VolumeStatus.DELETED,
+            "error": VolumeStatus.ERROR,
+            "busy": VolumeStatus.BUSY,
+        }
         for volume in ec2.volumes.all():
             try:
                 v = AWSEC2Volume(
@@ -545,6 +554,7 @@ class AWSAccountCollector:
                     _region=region,
                     ctime=volume.create_time,
                     atime=now,
+                    volume_status=volume_status_map.get(volume.status, VolumeStatus.UNKNOWN),
                 )
                 v.name = v.tags.get("Name") or v.id
                 v.volume_size = volume.size

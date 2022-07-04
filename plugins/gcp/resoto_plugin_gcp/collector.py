@@ -3,7 +3,7 @@ import socket
 from pprint import pformat
 from retrying import retry
 from typing import Callable, List, Dict, Type, Union
-from resotolib.baseresources import BaseResource, EdgeType, InstanceStatus
+from resotolib.baseresources import BaseResource, EdgeType, InstanceStatus, VolumeStatus
 from resotolib.config import Config
 from resotolib.graph import Graph
 from resotolib.utils import except_log_and_pass
@@ -704,11 +704,26 @@ class GCPProjectCollector:
 
     @metrics_collect_disks.time()
     def collect_disks(self):
+        volume_status_map: Dict[str, VolumeStatus] = {
+            "CREATING": VolumeStatus.BUSY,
+            "RESTORING": VolumeStatus.BUSY,
+            "FAILED": VolumeStatus.ERROR,
+            "READY": VolumeStatus.IN_USE,
+            "AVAILABLE": VolumeStatus.AVAILABLE,
+            "DELETING": VolumeStatus.BUSY,
+            "busy": VolumeStatus.BUSY,
+            "in-use": VolumeStatus.IN_USE,
+            "available": VolumeStatus.AVAILABLE,
+            "error": VolumeStatus.ERROR,
+            "deleted": VolumeStatus.DELETED,
+        }
+
         def volume_status(result):
             status = result.get("status")
             num_users = len(result.get("users", []))
             if num_users == 0 and status == "READY":
                 status = "AVAILABLE"
+            status = volume_status_map.get(status, VolumeStatus.UNKNOWN)
             return status
 
         self.collect_something(

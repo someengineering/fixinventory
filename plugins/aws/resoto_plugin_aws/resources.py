@@ -228,19 +228,6 @@ class AWSEC2Volume(AWSResource, BaseVolume):
     volume_outpost_arn: Optional[str] = None
     volume_snapshot_id: Optional[str] = None
 
-    volume_status_map: ClassVar[Dict[str, VolumeStatus]] = {
-        "creating": VolumeStatus.BUSY,
-        "available": VolumeStatus.AVAILABLE,
-        "in-use": VolumeStatus.IN_USE,
-        "deleting": VolumeStatus.BUSY,
-        "deleted": VolumeStatus.DELETED,
-        "error": VolumeStatus.ERROR,
-        "busy": VolumeStatus.BUSY,
-    }
-
-    def _volume_status_setter(self, value: str) -> None:
-        self._volume_status = self.volume_status_map.get(value, VolumeStatus.UNKNOWN)
-
     def delete(
         self,
         graph: Graph,
@@ -305,9 +292,6 @@ class AWSEC2Volume(AWSResource, BaseVolume):
         ec2 = aws_client(self, "ec2")
         ec2.delete_tags(Resources=[self.id], Tags=[{"Key": key}])
         return True
-
-
-AWSEC2Volume.volume_status = property(AWSEC2Volume._volume_status_getter, AWSEC2Volume._volume_status_setter)
 
 
 @dataclass(eq=False)
