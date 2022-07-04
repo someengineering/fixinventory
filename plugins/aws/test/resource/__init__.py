@@ -7,7 +7,7 @@ from boto3 import Session
 
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.config import AwsConfig
-from resoto_plugin_aws.resource.base import GraphBuilder, AWSResourceType, AWSAccount, AWSRegion, AWSResource
+from resoto_plugin_aws.resource.base import GraphBuilder, AWSResourceType, AwsAccount, AwsRegion, AwsResource
 from resotolib.baseresources import Cloud
 from resotolib.graph import Graph
 
@@ -79,13 +79,13 @@ def round_trip(
     config = AwsConfig()
     config.sessions.session_class_factory = BotoFileBasedSession
     client = AwsClient(config, "123456789012", "role", "us-east-1")
-    builder = GraphBuilder(Graph(), Cloud("test"), AWSAccount("test"), AWSRegion("test"), client)
+    builder = GraphBuilder(Graph(), Cloud("test"), AwsAccount("test"), AwsRegion("test"), client)
     with open(path) as f:
         js = json.load(f)
         cls.collect(js[root], builder)
     assert len(builder.graph.nodes) > 0
     for node, data in builder.graph.nodes(data=True):
-        assert isinstance(node, AWSResource), f"Expect AWSResource but got: {type(node)}: {node}"
+        assert isinstance(node, AwsResource), f"Expect AWSResource but got: {type(node)}: {node}"
         node.connect_in_graph(builder, data["source"])
         as_js = node.to_json()
         again = type(node).from_json(as_js)

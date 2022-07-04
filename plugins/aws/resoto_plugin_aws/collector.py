@@ -1,66 +1,57 @@
 import concurrent
 import logging
 from concurrent.futures import ThreadPoolExecutor, Future
-from dataclasses import dataclass
-from typing import List, Type
+from typing import List, Type, Any
 
 from boto3.exceptions import Boto3Error
 from botocore.exceptions import ClientError
 
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.config import AwsConfig
-from resoto_plugin_aws.resource.base import AWSRegion, AWSAccount, AWSResource, GraphBuilder
-from resoto_plugin_aws.resource.ec2 import AWSEC2Instance, AWSEC2KeyPair, AWSEC2Volume, AWSEC2NetworkAcl
-from resoto_plugin_aws.resource.iam import AWSIAMServerCertificate, AWSIAMPolicy, AWSIAMGroup, AWSIAMRole, AWSIAMUser
+from resoto_plugin_aws.resource import iam, ec2
+from resoto_plugin_aws.resource.base import AwsRegion, AwsAccount, AwsResource, GraphBuilder, AwsApiSpec
 from resotolib.baseresources import Cloud, EdgeType
 from resotolib.graph import Graph
 
 log = logging.getLogger("resoto.plugins.aws")
 
 
-@dataclass
-class AwsResourceSpec:
-    resource: Type[AWSResource]
-    service: str
-    api_action: str
-    result_property: str
-
-    def collect(self, builder: GraphBuilder) -> None:
-        log.debug(f"Collecting {self.resource.__name__} in region {builder.region.name}")
-        try:
-            items = builder.client.list(self.service, self.api_action, self.result_property)
-            self.resource.collect(items, builder)
-        except Boto3Error as e:
-            log.error(f"Error while collecting {self.resource.__name__} in region {builder.region.name}: {e}")
-            raise
-
-
-global_resources: List[AwsResourceSpec] = [
-    AwsResourceSpec(AWSIAMServerCertificate, "iam", "list-server-certificates", "ServerCertificateMetadataList"),
-    AwsResourceSpec(AWSIAMPolicy, "iam", "list-policies", "Policies"),
-    AwsResourceSpec(AWSIAMGroup, "iam", "list-groups", "Groups"),
-    AwsResourceSpec(AWSIAMRole, "iam", "list-roles", "Roles"),
-    AwsResourceSpec(AWSIAMUser, "iam", "list-users", "Users"),
-]  # iam, s3, route53, etc.
-regional_resources: List[AwsResourceSpec] = [
-    AwsResourceSpec(AWSEC2Instance, "ec2", "describe-instances", "Reservations"),
-    AwsResourceSpec(AWSEC2KeyPair, "ec2", "describe-key-pairs", "KeyPairs"),
-    AwsResourceSpec(AWSEC2Volume, "ec2", "describe-volumes", "Volumes"),
-    AwsResourceSpec(AWSEC2NetworkAcl, "ec2", "describe-network-acls", "NetworkAcls"),
-]
+global_resources: List[Type[AwsResource]] = iam.resources
+regional_resources: List[Type[AwsResource]] = ec2.resources
+all_resources: List[Type[AwsResource]] = global_resources + regional_resources
 
 
 class AwsAccountCollector:
-    def __init__(self, config: AwsConfig, cloud: Cloud, account: AWSAccount, regions: List[str]) -> None:
+    def __init__(self, config: AwsConfig, cloud: Cloud, account: AwsAccount, regions: List[str]) -> None:
         self.config = config
         self.cloud = cloud
         self.account = account
-        self.global_region = AWSRegion("us-east-1", {}, name="global", _account=account)
-        self.regions = [AWSRegion(region, {}, _account=account) for region in regions]
+        self.global_region = AwsRegion("us-east-1", {}, name="global", _account=account)
+        self.regions = [AwsRegion(region, {}, _account=account) for region in regions]
         self.graph = Graph(root=self.account)
         self.client = AwsClient(config, account.id, account.role)
 
+    @staticmethod
+    def collect_resource(resource: Type[AwsResource], spec: AwsApiSpec, builder: GraphBuilder) -> None:
+        log.debug(f"Collecting {resource.__name__} in region {builder.region.name}")
+        try:
+            items = builder.client.list(spec.service, spec.api_action, spec.result_property)
+            resource.collect(items, builder)
+        except Boto3Error as e:
+            log.error(f"Error while collecting {resource.__name__} in region {builder.region.name}: {e}")
+            raise
+
     def collect(self) -> None:
+        def wait_for_futures(fs: List[Future[Any]]) -> None:
+            # wait until all futures are complete
+            for future in concurrent.futures.as_completed(fs):
+                try:
+                    future.result()
+                except Exception as ex:
+                    log.exception(f"Unhandled exception in account {self.account.name}: {ex}")
+                    raise
+            fs.clear()
+
         with ThreadPoolExecutor(
             max_workers=self.config.region_pool_size, thread_name_prefix=f"aws_{self.account.id}"
         ) as executor:
@@ -72,35 +63,35 @@ class AwsAccountCollector:
                 client = self.client.for_region(region.name)
                 builder = GraphBuilder(self.graph, self.cloud, self.account, region, client)
                 for resource in regional_resources:
-                    if self.config.should_collect(resource.resource.kind):
-                        futures.append(executor.submit(resource.collect, builder))
+                    if (spec := resource.api_spec) and self.config.should_collect(resource.kind):
+                        futures.append(executor.submit(self.collect_resource, resource, spec, builder))
 
             # all global resources
             builder = GraphBuilder(self.graph, self.cloud, self.account, self.global_region, self.client)
             for resource in global_resources:
-                if self.config.should_collect(resource.resource.kind):
-                    futures.append(executor.submit(resource.collect, builder))
+                if (spec := resource.api_spec) and self.config.should_collect(resource.kind):
+                    futures.append(executor.submit(self.collect_resource, resource, spec, builder))
 
-            # wait until all futures are complete
-            for future in concurrent.futures.as_completed(futures):
-                try:
-                    future.result()
-                except Exception as ex:
-                    log.exception(f"Unhandled exception in account {self.account.name} region {region.name}: {ex}")
-                    raise
+            # wait for all futures to finish
+            wait_for_futures(futures)
 
             # connect account to all regions
             for region in self.regions:
                 builder.add_edge(self.account, EdgeType.default, node=region)
 
-            # connect nodes
-            for node, data in list(self.graph.nodes(data=True)):
-                if isinstance(node, AWSResource):
+            # connect nodes as parallel as possible
+            for idx, (node, data) in enumerate(list(self.graph.nodes(data=True))):
+                if isinstance(node, AwsResource):
                     if rg := node.region():
                         builder.add_edge(rg, EdgeType.default, node=node)
-                    node.connect_in_graph(builder, data.get("source", {}))
+                    futures.append(executor.submit(node.connect_in_graph, builder, data.get("source", {})))
+                    if idx % 100 == 0:  # only spawn 100 futures at a time
+                        wait_for_futures(futures)
                 else:
                     raise Exception("Only AWS resources expected")
+
+            # wait for all futures to finish
+            wait_for_futures(futures)
 
     def update_account(self) -> None:
         # account alias

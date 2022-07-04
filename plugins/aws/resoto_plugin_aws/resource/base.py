@@ -1,10 +1,11 @@
+from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import ClassVar, Dict, Optional, List, Type, Any, TypeVar
 
 from resoto_plugin_aws.aws_client import AwsClient
-from resotolib.baseresources import BaseResource, EdgeType, Cloud, BaseAccount, BaseRegion, BaseInstanceType
+from resotolib.baseresources import BaseResource, EdgeType, Cloud, BaseAccount, BaseRegion
 from resotolib.graph import Graph
 from resotolib.json import to_json as to_js, from_json as from_js
 from resotolib.json_bender import Bender, bend
@@ -13,10 +14,18 @@ from resotolib.types import Json
 log = logging.getLogger("resoto.plugins.aws")
 
 
+@dataclass
+class AwsApiSpec:
+    service: str
+    api_action: str
+    result_property: str
+
+
 @dataclass(eq=False)
-class AWSResource(BaseResource):
+class AwsResource(BaseResource):
     mapping: ClassVar[Dict[str, Bender]] = {}
     kind: ClassVar[str] = "aws_resource"
+    api_spec: ClassVar[Optional[AwsApiSpec]] = None
     arn: Optional[str] = None
 
     # TODO: implement me
@@ -65,20 +74,21 @@ class AWSResource(BaseResource):
                 "protected",
                 "uuid",
                 "kind",
+                "api_spec",
             ),
         )
 
     @classmethod
-    def from_json(cls: Type["AWSResourceType"], json: Json) -> "AWSResourceType":
+    def from_json(cls: Type[AWSResourceType], json: Json) -> AWSResourceType:
         return from_js(json, cls)
 
     @classmethod
-    def from_api(cls: Type["AWSResourceType"], json: Json) -> "AWSResourceType":
+    def from_api(cls: Type[AWSResourceType], json: Json) -> AWSResourceType:
         mapped = bend(cls.mapping, json)
         return cls.from_json(mapped)
 
     @classmethod
-    def collect(cls: Type["AWSResource"], json: List[Json], builder: "GraphBuilder") -> None:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         # Default behavior: iterate over json snippets and for each:
         # - bend the json
         # - transform the result into a resource
@@ -88,7 +98,7 @@ class AWSResource(BaseResource):
             instance = cls.from_api(js)
             builder.add_node(instance, js)
 
-    def connect_in_graph(self, builder: "GraphBuilder", source: Json) -> None:
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         # Default behavior: add resource to the namespace
         pass
 
@@ -96,12 +106,12 @@ class AWSResource(BaseResource):
         return f"{self.kind}:{self.name}"
 
 
-AWSResourceType = TypeVar("AWSResourceType", bound=AWSResource)
+AWSResourceType = TypeVar("AWSResourceType", bound=AwsResource)
 
 
 # derived from https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-template-resource-type-ref.html
 @dataclass(eq=False)
-class AWSAccount(BaseAccount, AWSResource):
+class AwsAccount(BaseAccount, AwsResource):
     kind: ClassVar[str] = "aws_account"
     account_alias: Optional[str] = ""
     role: Optional[str] = None
@@ -132,22 +142,13 @@ default_ctime = datetime(2006, 3, 19, tzinfo=timezone.utc)  # AWS public launch 
 
 
 @dataclass(eq=False)
-class AWSRegion(BaseRegion, AWSResource):
+class AwsRegion(BaseRegion, AwsResource):
     kind: ClassVar[str] = "aws_region"
     ctime: Optional[datetime] = default_ctime
 
 
-@dataclass(eq=False)
-class AWSEC2InstanceType(AWSResource, BaseInstanceType):
-    kind: ClassVar[str] = "aws_ec2_instance_type"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["aws_ec2_instance"],
-        "delete": [],
-    }
-
-
 class GraphBuilder:
-    def __init__(self, graph: Graph, cloud: Cloud, account: AWSAccount, region: AWSRegion, client: AwsClient) -> None:
+    def __init__(self, graph: Graph, cloud: Cloud, account: AwsAccount, region: AwsRegion, client: AwsClient) -> None:
         self.graph = graph
         self.cloud = cloud
         self.account = account
@@ -155,8 +156,8 @@ class GraphBuilder:
         self.client = client
         self.name = f"AWS:{account.name}:{region.name}"
 
-    def node(self, clazz: Optional[Type[AWSResource]] = None, **node: Any) -> Optional[AWSResource]:
-        if isinstance(nd := node.get("node"), AWSResource):
+    def node(self, clazz: Optional[Type[AwsResource]] = None, **node: Any) -> Optional[AwsResource]:
+        if isinstance(nd := node.get("node"), AwsResource):
             return nd
         for n in self.graph:
             is_clazz = isinstance(n, clazz) if clazz else True
@@ -164,7 +165,7 @@ class GraphBuilder:
                 return n  # type: ignore
         return None
 
-    def add_node(self, node: AWSResource, source: Json) -> None:
+    def add_node(self, node: AwsResource, source: Json) -> None:
         log.debug(f"{self.name}: add node {node}")
         node._cloud = self.cloud
         node._account = self.account
@@ -173,7 +174,7 @@ class GraphBuilder:
 
     def add_edge(self, from_node: BaseResource, edge_type: EdgeType, reverse: bool = False, **to_node: Any) -> None:
         to_n = self.node(**to_node)
-        if isinstance(from_node, AWSResource) and isinstance(to_n, AWSResource):
+        if isinstance(from_node, AwsResource) and isinstance(to_n, AwsResource):
             start, end = (to_n, from_node) if reverse else (from_node, to_n)
             log.debug(f"{self.name}: add edge: {start} -> {end}")
             self.graph.add_edge(start, end, edge_type=edge_type)
@@ -182,7 +183,7 @@ class GraphBuilder:
         self, from_node: BaseResource, reverse: bool = False, delete_reverse: bool = False, **to_node: Any
     ) -> None:
         to_n = self.node(**to_node)
-        if isinstance(from_node, AWSResource) and isinstance(to_n, AWSResource):
+        if isinstance(from_node, AwsResource) and isinstance(to_n, AwsResource):
             start, end = (to_n, from_node) if reverse else (from_node, to_n)
             log.debug(f"{self.name}: add dependant edge: {start} -> {end}")
             self.graph.add_edge(start, end, edge_type=EdgeType.default)
@@ -190,6 +191,6 @@ class GraphBuilder:
                 start, end = end, start
             self.graph.add_edge(end, start, edge_type=EdgeType.delete)
 
-    def instance_type(self, instance_type: Optional[str]) -> Optional[AWSEC2InstanceType]:
+    def instance_type(self, instance_type: Optional[str]) -> Optional[Any]:
         # TODO: implement me
         return None
