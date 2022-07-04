@@ -28,8 +28,7 @@ class AwsResourceSpec:
     def collect(self, builder: GraphBuilder) -> None:
         log.debug(f"Collecting {self.resource.__name__} in region {builder.region.name}")
         try:
-            response = builder.client.call(self.service, self.api_action)
-            items = response.get(self.result_property, [])
+            items = builder.client.list(self.service, self.api_action, self.result_property)
             self.resource.collect(items, builder)
         except Boto3Error as e:
             log.error(f"Error while collecting {self.resource.__name__} in region {builder.region.name}: {e}")
@@ -112,8 +111,7 @@ class AwsAccountCollector:
             log.debug(f"Could not get account aliases: {e}")
 
         log.info(f"Collecting AWS IAM Account Summary in account {self.account.dname}")
-        response_as = self.client.call("iam", "get_account_summary")
-        sm = response_as.get("SummaryMap", {})
+        sm = self.client.get("iam", "get_account_summary", "SummaryMap") or {}
         self.account.users = int(sm.get("Users", 0))
         self.account.groups = int(sm.get("Groups", 0))
         self.account.account_mfa_enabled = int(sm.get("AccountMFAEnabled", 0))
@@ -128,8 +126,7 @@ class AwsAccountCollector:
 
         # boto will fail, when there is no Custom PasswordPolicy defined (only AWS Default). This is intended behaviour.
         try:
-            response_app = self.client.call("iam", "get_account_password_policy")
-            app = response_app.get("PasswordPolicy", {})
+            app = self.client.get("iam", "get_account_password_policy", "PasswordPolicy") or {}
             self.account.minimum_password_length = int(app.get("MinimumPasswordLength", 0))
             self.account.require_symbols = bool(app.get("RequireSymbols", None))
             self.account.require_numbers = bool(app.get("RequireNumbers", None))

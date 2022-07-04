@@ -24,6 +24,10 @@ class BotoFileClient:
     def __init__(self, service: str) -> None:
         self.service = service
 
+    @staticmethod
+    def can_paginate(_: str) -> bool:
+        return False
+
     def __getattr__(self, action_name: str) -> Callable[[], Any]:
         def call_action(*args: Any, **kwargs: Any) -> Any:
             assert not args, "No arguments allowed!"
