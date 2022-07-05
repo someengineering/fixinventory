@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from attrs import define
 from datetime import datetime
 from resotocore.db.async_arangodb import AsyncArangoDB
 from resotocore.db.entitydb import ArangoEntityDb
@@ -8,7 +8,7 @@ from typing import List
 import logging
 
 
-@dataclass
+@define
 class PendingDeferredEdges:
     task_id: TaskId
     created_at: datetime  # update the corresponding TTL index when changing this name

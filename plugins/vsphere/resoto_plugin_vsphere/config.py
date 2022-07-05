@@ -1,8 +1,8 @@
-from dataclasses import dataclass, field
+from attrs import define, field
 from typing import ClassVar, Optional
 
 
-@dataclass
+@define
 class VSphereConfig:
     kind: ClassVar[str] = "vsphere"
     user: Optional[str] = field(default=None, metadata={"description": "User name"})

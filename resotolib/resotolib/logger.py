@@ -1,5 +1,5 @@
 import json
-from dataclasses import dataclass, field
+from attrs import define, field
 from typing import ClassVar, Optional, Dict, Mapping
 import sys
 import os
@@ -45,7 +45,7 @@ def add_config(config) -> None:
     config.add_config(LoggingConfig)
 
 
-@dataclass
+@define
 class LoggingConfig:
     kind: ClassVar[str] = "logging"
     verbose: Optional[bool] = field(default=False, metadata={"description": "Verbose logging"})

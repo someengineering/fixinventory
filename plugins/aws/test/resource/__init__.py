@@ -1,6 +1,6 @@
 import json
 import os
-from dataclasses import fields
+from attrs import fields
 from typing import Type
 
 from resoto_plugin_aws.resource.base import GraphBuilder, AWSResourceType

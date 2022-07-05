@@ -1,5 +1,5 @@
 import pytest
-from dataclasses import dataclass, field
+from attrs import define, field
 from typing import ClassVar, Dict
 from resotolib.config import Config, ConfigNotFoundError
 from resotolib.args import get_arg_parser, ArgumentParser
@@ -76,20 +76,20 @@ def test_config_override():
     }
 
 
-@dataclass
+@define
 class NestedConfigTest:
     kind: ClassVar[str] = "nested_config_test"
     myint: int = field(default=0, metadata={"description": "My Int"})
     mystr: str = field(default="Hello", metadata={"description": "My String"})
-    mydict: Dict[str, str] = field(default_factory=lambda: {"foo": "bar", "abc": {"def": "ghi"}})
+    mydict: Dict[str, str] = field(factory=lambda: {"foo": "bar", "abc": {"def": "ghi"}})
 
 
-@dataclass
+@define
 class ConfigTest:
     kind: ClassVar[str] = "configtest"
     testvar1: str = field(default="testing123", metadata={"description": "A test string"})
     testvar2: int = field(default=12345, metadata={"description": "A test integer"})
     testvar3: NestedConfigTest = field(
-        default_factory=lambda: NestedConfigTest(),
+        factory=lambda: NestedConfigTest(),
         metadata={"description": "A test of nested config"},
     )

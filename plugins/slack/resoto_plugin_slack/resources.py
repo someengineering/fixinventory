@@ -8,10 +8,10 @@ from resotolib.baseresources import (
     BaseGroup,
     BaseResource,
 )
-from dataclasses import dataclass, field
+from attrs import define, field
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class SlackResource:
     kind: ClassVar[str] = "slack_resource"
 
@@ -19,7 +19,7 @@ class SlackResource:
         return False
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class SlackTeam(SlackResource, BaseAccount):
     kind: ClassVar[str] = "slack_team"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -42,7 +42,7 @@ class SlackTeam(SlackResource, BaseAccount):
         )
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class SlackRegion(SlackResource, BaseRegion):
     kind = "slack_region"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -51,7 +51,7 @@ class SlackRegion(SlackResource, BaseRegion):
     }
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class SlackUser(SlackResource, BaseUser):
     kind: ClassVar[str] = "slack_user"
 
@@ -138,7 +138,7 @@ class SlackUser(SlackResource, BaseUser):
         )
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class SlackUsergroup(SlackResource, BaseGroup):
     kind: ClassVar[str] = "slack_usergroup"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -158,9 +158,9 @@ class SlackUsergroup(SlackResource, BaseGroup):
     team_id: Optional[str] = None
     updated_by: Optional[str] = None
     user_count: Optional[int] = None
-    _users: List = field(default_factory=list, repr=False)
-    _channels: List = field(default_factory=list, repr=False)
-    _groups: List = field(default_factory=list, repr=False)
+    _users: List = field(factory=list, repr=False)
+    _channels: List = field(factory=list, repr=False)
+    _groups: List = field(factory=list, repr=False)
 
     @staticmethod
     def new(usergroup: Dict) -> BaseGroup:
@@ -188,7 +188,7 @@ class SlackUsergroup(SlackResource, BaseGroup):
         )
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class SlackConversation(SlackResource, BaseResource):
     kind: ClassVar[str] = "slack_conversation"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -213,9 +213,9 @@ class SlackConversation(SlackResource, BaseResource):
     num_members: Optional[int] = None
     parent_conversation: Optional[str] = None
     pending_connected_team_ids: List[str] = None
-    pending_shared: List[str] = field(default_factory=list)
-    previous_names: List[str] = field(default_factory=list)
-    shared_team_ids: List[str] = field(default_factory=list)
+    pending_shared: List[str] = field(factory=list)
+    previous_names: List[str] = field(factory=list)
+    shared_team_ids: List[str] = field(factory=list)
     unlinked: Optional[int] = None
     topic: Optional[str] = None
     topic_creator: Optional[str] = None

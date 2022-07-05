@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from attrs import define, field
 from datetime import datetime
 from enum import Enum
 from typing import List, Optional, Dict, Union, ClassVar
@@ -21,7 +21,7 @@ class ExampleEnum(Enum):
     earth = "earth"
 
 
-@dataclass
+@define
 class DataClassBase:
     kind: ClassVar[str] = "base"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {"default": [], "delete": []}
@@ -32,14 +32,14 @@ class DataClassBase:
     ctime: Optional[datetime] = field(metadata={"synthetic": {"age": "trafo.duration_to_datetime"}})
 
 
-@dataclass
+@define
 class DataClassProp:
     kind: ClassVar[str] = "prop"
     key: Optional[str]
     value: Union[str, int, float]
 
 
-@dataclass
+@define
 class DataClassExample(DataClassBase):
     kind: ClassVar[str] = "example"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -58,7 +58,7 @@ class DataClassExample(DataClassBase):
     optional_enum: Optional[ExampleEnum]
 
 
-@dataclass
+@define
 class DataClassOther(DataClassBase):
     kind: ClassVar[str] = "other"
     something: str
@@ -164,14 +164,14 @@ def test_dataclasses_to_resotocore_model() -> None:
             assert r["enum"] == [e.value for e in ExampleEnum]
 
 
-@dataclass
+@define
 class AwsConfig:
     kind: ClassVar[str] = "aws_config"
     access_key: str = field(metadata={"description": "The AWS access key."})
     secret_key: str = field(metadata={"description": "The secret part of the key."})
 
 
-@dataclass
+@define
 class GcpConfigConfig:
     kind: ClassVar[str] = "gcp_config"
     foo: int = field(metadata={"description": "Some foo value."})

@@ -1,5 +1,5 @@
 import resotolib.logger
-from dataclasses import dataclass, field, InitVar
+from attrs import define, field, InitVar
 from datetime import datetime
 from typing import ClassVar, Dict, List, Optional
 from resotolib.baseplugin import BaseCollectorPlugin
@@ -137,7 +137,7 @@ class ExampleCollectorPlugin(BaseCollectorPlugin):
         pass
 
 
-@dataclass
+@define
 class ExampleConfig:
     """Example of how to use the resotocore config service
 
@@ -148,7 +148,7 @@ class ExampleConfig:
     region: Optional[List[str]] = field(default=None, metadata={"description": "Example Region"})
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class ExampleAccount(BaseAccount):
     """Some example account"""
 
@@ -158,7 +158,7 @@ class ExampleAccount(BaseAccount):
         return NotImplemented
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class ExampleRegion(BaseRegion):
     """Some example region"""
 
@@ -169,7 +169,7 @@ class ExampleRegion(BaseRegion):
         return NotImplemented
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class ExampleResource:
     """A class that implements the abstract method delete() as well as update_tag()
     and delete_tag().
@@ -195,19 +195,19 @@ class ExampleResource:
         return True
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class ExampleInstance(ExampleResource, BaseInstance):
     """An Example Instance Resource"""
 
     kind: ClassVar[str] = "example_instance"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class ExampleVolume(ExampleResource, BaseVolume):
     kind: ClassVar[str] = "example_volume"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class ExampleNetwork(ExampleResource, BaseNetwork):
     """Some example network
 
@@ -217,7 +217,7 @@ class ExampleNetwork(ExampleResource, BaseNetwork):
     kind: ClassVar[str] = "example_network"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class ExampleCustomResource(ExampleResource, BaseResource):
     """An example custom resource that only inherits the collectors
     ExampleResource class as well as the BaseResource base class.
@@ -231,11 +231,11 @@ class ExampleCustomResource(ExampleResource, BaseResource):
     custom_string_attribute: str = ""
     custom_int_attribute: int = 0
     custom_optional_float_attribute: Optional[float] = None
-    custom_dict_attribute: Dict[str, str] = field(default_factory=dict)
-    custom_list_attribute: List[str] = field(default_factory=list)
+    custom_dict_attribute: Dict[str, str] = field(factory=dict)
+    custom_list_attribute: List[str] = field(factory=list)
     init_only_attribute: InitVar[Optional[str]] = None
 
-    def __post_init__(self, init_only_attribute: str) -> None:
-        super().__post_init__()
+    def __attrs_post_init__(self, init_only_attribute: str) -> None:
+        super().__attrs_post_init__()
         if init_only_attribute is not None:
             self.some_other_var = init_only_attribute

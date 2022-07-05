@@ -4,7 +4,7 @@ import re
 from argparse import Namespace
 from contextlib import suppress
 from copy import deepcopy
-from dataclasses import dataclass, field
+from attrs import define, field
 from datetime import timedelta
 from pathlib import Path
 from typing import Optional, List, ClassVar, Dict, Union
@@ -78,25 +78,23 @@ class ConfigObject:
         return validate_config(to_js(self), type(self))
 
 
-@dataclass()
+@define()
 class CertificateConfig(ConfigObject):
     kind: ClassVar[str] = f"{ResotoCoreRoot}_certificate_config"
     common_name: str = field(default="some.engineering", metadata={"description": "The common name of the certificate"})
     include_loopback: bool = field(default=True, metadata={"description": "Include loopback in certificate"})
-    san_dns_names: List[str] = field(
-        default_factory=list, metadata={"description": "List of DNS names to include in CSR"}
-    )
+    san_dns_names: List[str] = field(factory=list, metadata={"description": "List of DNS names to include in CSR"})
     san_ip_addresses: List[str] = field(
-        default_factory=list, metadata={"description": "List of IP addresses to include in CSR"}
+        factory=list, metadata={"description": "List of IP addresses to include in CSR"}
     )
 
 
-@dataclass()
+@define()
 class ApiConfig(ConfigObject):
     kind: ClassVar[str] = f"{ResotoCoreRoot}_api_config"
 
     web_hosts: List[str] = field(
-        default_factory=default_hosts, metadata={"description": f"TCP host(s) to bind on (default: {default_hosts()})"}
+        factory=default_hosts, metadata={"description": f"TCP host(s) to bind on (default: {default_hosts()})"}
     )
     web_port: int = field(default=8900, metadata={"description": "TCP port to bind on (default: 8900)"})
     web_path: str = field(
@@ -115,7 +113,7 @@ class ApiConfig(ConfigObject):
         metadata={"description": "The directory where the UI is installed. This directory will be served under "},
     )
     host_certificate: CertificateConfig = field(
-        default_factory=CertificateConfig, metadata={"description": "The certificate configuration for this server."}
+        factory=CertificateConfig, metadata={"description": "The certificate configuration for this server."}
     )
 
 
@@ -129,7 +127,7 @@ schema_registry.add(
 )
 
 
-@dataclass()
+@define()
 class DatabaseConfig(ConfigObject):
     kind: ClassVar[str] = f"{ResotoCoreRoot}_database_config"
     server: str = field(
@@ -152,7 +150,7 @@ class DatabaseConfig(ConfigObject):
     request_timeout: int = field(default=900, metadata={"description": "Request timeout in seconds (default: 900)"})
 
 
-@dataclass(order=True, unsafe_hash=True, frozen=True)
+@define(order=True, hash=True, frozen=True)
 class AliasTemplateParameterConfig(ConfigObject):
     kind: ClassVar[str] = f"{ResotoCoreRoot}_cli_alias_template_parameter"
     name: str = field(metadata=dict(description="The name of the parameter."))
@@ -166,14 +164,14 @@ class AliasTemplateParameterConfig(ConfigObject):
     )
 
 
-@dataclass(order=True, unsafe_hash=True, frozen=True)
+@define(order=True, hash=True, frozen=True)
 class AliasTemplateConfig(ConfigObject):
     kind: ClassVar[str] = f"{ResotoCoreRoot}_cli_alias_template"
     name: str = field(metadata=dict(description="The name of the alias to execute."))
     info: str = field(metadata=dict(description="A one line sentence that describes the effect of this command."))
     template: str = field(metadata=dict(description="The command to execute which can have template parameters."))
     parameters: List[AliasTemplateParameterConfig] = field(
-        default_factory=list, metadata=dict(description="All template parameters.")
+        factory=list, metadata=dict(description="All template parameters.")
     )
 
 
@@ -203,7 +201,7 @@ def alias_templates() -> List[AliasTemplateConfig]:
     ]
 
 
-@dataclass()
+@define()
 class CLIConfig(ConfigObject):
     kind: ClassVar[str] = f"{ResotoCoreRoot}_cli_config"
     default_graph: str = field(
@@ -223,11 +221,11 @@ class CLIConfig(ConfigObject):
 schema_registry.add(schema_name(CLIConfig), {})
 
 
-@dataclass()
+@define()
 class CustomCommandsConfig(ConfigObject):
     kind: ClassVar[str] = ResotoCoreCommandsRoot
     commands: List[AliasTemplateConfig] = field(
-        default_factory=alias_templates,
+        factory=alias_templates,
         metadata={"description": "Here you can define all custom commands for the CLI."},
     )
 
@@ -239,7 +237,7 @@ class CustomCommandsConfig(ConfigObject):
 schema_registry.add(schema_name(CustomCommandsConfig), {})
 
 
-@dataclass()
+@define()
 class GraphUpdateConfig(ConfigObject):
     kind: ClassVar[str] = f"{ResotoCoreRoot}_graph_update_config"
     merge_max_wait_time_seconds: int = field(
@@ -267,7 +265,7 @@ schema_registry.add(
 )
 
 
-@dataclass()
+@define()
 class RuntimeConfig(ConfigObject):
     kind: ClassVar[str] = f"{ResotoCoreRoot}_runtime_config"
     debug: bool = field(default=False, metadata={"description": "Enable debug logging and exception tracing."})
@@ -297,7 +295,7 @@ schema_registry.add(
 )
 
 
-@dataclass()
+@define()
 class WorkflowConfig(ConfigObject):
     kind: ClassVar[str] = f"{ResotoCoreRoot}_workflow_config"
     schedule: str = field(metadata={"description": "Cron expression as schedule for the workflow to run."})
@@ -309,13 +307,13 @@ schema_registry.add(
 )
 
 
-@dataclass()
+@define()
 class RunConfig(ConfigObject):
     temp_dir: Path = Path("/tmp")  # set to random temp directory during start of process
     verify: Union[bool, str, None] = None
 
 
-@dataclass()
+@define()
 class CoreConfig(ConfigObject):
     api: ApiConfig
     cli: CLIConfig
@@ -338,27 +336,27 @@ class CoreConfig(ConfigObject):
         return self.editable.validate()
 
 
-@dataclass()
+@define()
 class EditableConfig(ConfigObject):
     kind: ClassVar[str] = ResotoCoreRoot
     api: ApiConfig = field(
-        default_factory=ApiConfig,
+        factory=ApiConfig,
         metadata={"description": "API related properties."},
     )
     cli: CLIConfig = field(
-        default_factory=CLIConfig,
+        factory=CLIConfig,
         metadata={"description": "CLI related properties."},
     )
     graph_update: GraphUpdateConfig = field(
-        default_factory=GraphUpdateConfig,
+        factory=GraphUpdateConfig,
         metadata={"description": "Properties for updating the graph."},
     )
     runtime: RuntimeConfig = field(
-        default_factory=RuntimeConfig,
+        factory=RuntimeConfig,
         metadata={"description": "Runtime related properties."},
     )
     workflows: Dict[str, WorkflowConfig] = field(
-        default_factory=lambda: {"collect_and_cleanup": WorkflowConfig(schedule="0 * * * *")},
+        factory=lambda: {"collect_and_cleanup": WorkflowConfig(schedule="0 * * * *")},
         metadata={"description": "Workflow related properties."},
     )
 

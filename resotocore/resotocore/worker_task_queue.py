@@ -5,8 +5,7 @@ import logging
 from asyncio import Queue, Future
 from collections import defaultdict
 from contextlib import asynccontextmanager
-from dataclasses import dataclass
-from dataclasses import field
+from attrs import define, field
 from datetime import timedelta, datetime
 from functools import reduce
 from typing import Any, Optional, AsyncGenerator, Dict, List
@@ -23,7 +22,7 @@ class WorkerTaskName:
     validate_config = "validate_config"
 
 
-@dataclass(eq=False, frozen=True)
+@define(eq=False, frozen=True)
 class WorkerTask:
     id: TaskId  # the unique id of the task
     name: str  # the well known name of the task to perform: the worker attaches to this name
@@ -42,7 +41,7 @@ class WorkerTask:
         return {"task_id": self.id, "task_name": self.name, "data": self.data, "attrs": self.attrs}
 
 
-@dataclass(order=True, unsafe_hash=True)
+@define(order=True, hash=True)
 class WorkerTaskResult:
     task_id: TaskId
     result: str
@@ -50,7 +49,7 @@ class WorkerTaskResult:
     error: Optional[str] = None
 
 
-@dataclass(order=True, unsafe_hash=True)
+@define(order=True, hash=True)
 class WorkerTaskInProgress:
     task: WorkerTask
     worker: WorkerTaskSubscription
@@ -58,20 +57,20 @@ class WorkerTaskInProgress:
     deadline: datetime
 
 
-@dataclass(order=True, unsafe_hash=True)
+@define(order=True, hash=True)
 class WorkerTaskOnHold:
     task: WorkerTask
     retry_counter: int
     deadline: datetime
 
 
-@dataclass(order=True, unsafe_hash=True, frozen=True)
+@define(order=True, hash=True, frozen=True)
 class WorkerTaskDescription:
     name: str
-    filter: Dict[str, List[str]] = field(default_factory=dict)
+    filter: Dict[str, List[str]] = field(factory=dict)
 
 
-@dataclass(order=True, unsafe_hash=True, frozen=True)
+@define(order=True, hash=True, frozen=True)
 class WorkerTaskSubscription:
     worker_id: WorkerId
     task: WorkerTaskDescription

@@ -5,7 +5,7 @@ import logging
 from asyncio import Task, CancelledError
 from contextlib import suppress
 from copy import copy
-from dataclasses import replace
+from attrs import evolve
 from datetime import timedelta
 from typing import Optional, Any, Callable, Union, Sequence, Dict, List, Tuple
 
@@ -416,7 +416,7 @@ class TaskHandlerService(TaskHandler):
                         await self.message_bus.emit(command.message)
                         results[command] = None
                     elif isinstance(command, ExecuteOnCLI):
-                        ctx = replace(self.cli_context, env={**command.env, **wi.descriptor.environment})
+                        ctx = evolve(self.cli_context, env={**command.env, **wi.descriptor.environment})
                         result = await self.cli.execute_cli_command(command.command, stream.list, ctx)
                         results[command] = result
                     else:

@@ -1,4 +1,4 @@
-from dataclasses import replace
+from attrs import evolve
 from functools import reduce
 from typing import List
 
@@ -430,15 +430,15 @@ def parse_query(query: str, **env: str) -> Query:
         def set_in_with_clause(wc: WithClause) -> WithClause:
             nav = wc.navigation
             if wc.navigation and not wc.navigation.maybe_edge_types:
-                nav = replace(nav, maybe_edge_types=edge_types)
+                nav = evolve(nav, maybe_edge_types=edge_types)
             inner = set_in_with_clause(wc.with_clause) if wc.with_clause else wc.with_clause
-            return replace(wc, navigation=nav, with_clause=inner)
+            return evolve(wc, navigation=nav, with_clause=inner)
 
         nav = part.navigation
         if part.navigation and not part.navigation.maybe_edge_types:
-            nav = replace(nav, maybe_edge_types=edge_types)
+            nav = evolve(nav, maybe_edge_types=edge_types)
         adapted_wc = set_in_with_clause(part.with_clause) if part.with_clause else part.with_clause
-        return replace(part, navigation=nav, with_clause=adapted_wc)
+        return evolve(part, navigation=nav, with_clause=adapted_wc)
 
     try:
         parsed: Query = query_parser.parse(query.strip())

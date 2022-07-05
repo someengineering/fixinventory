@@ -1,4 +1,5 @@
-from dataclasses import is_dataclass, fields, Field
+import attrs
+from attrs import Attribute
 from datetime import datetime, date, timedelta, timezone
 from functools import lru_cache, reduce
 from pydoc import locate
@@ -68,13 +69,13 @@ def transitive_classes(classes: Set[type]) -> Set[type]:
             check(value_type)
         elif is_collection(clazz):
             check(type_arg(to_check))
-        elif is_dataclass(clazz):
+        elif attrs.has(clazz):
             all_classes.add(clazz)
             for mro_clazz in clazz.mro()[1:]:
                 check(mro_clazz)
             for subclass in clazz.__subclasses__():
                 check(subclass)
-            for field in fields(clazz):
+            for field in attrs.fields(clazz):
                 check(field.type)
         elif is_enum(clazz):
             all_classes.add(clazz)
@@ -116,7 +117,7 @@ def model_name(clazz: Union[type, Tuple[Any]]) -> str:
         return model_name(get_args(to_check))
     elif isinstance(to_check, type) and issubclass(to_check, simple_type):
         return lookup[to_check]
-    elif is_dataclass(to_check):
+    elif attrs.has(to_check):
         name = getattr(to_check, "kind", None)
         if not name:
             raise AttributeError(f"dataclass {to_check} need to define a ClassVar kind!")
@@ -127,7 +128,7 @@ def model_name(clazz: Union[type, Tuple[Any]]) -> str:
 
 # define if a field should be exported or not.
 # Use python default: hide props starting with underscore.
-def should_export(field: Field) -> bool:
+def should_export(field: Attribute) -> bool:
     return not field.name.startswith("_")
 
 
@@ -146,7 +147,7 @@ def dataclasses_to_resotocore_model(
     :return: the model definition in the resotocore json format.
     """
 
-    def prop(field: Field) -> List[Json]:
+    def prop(field: Attribute) -> List[Json]:
         # the field itself can define the type via a type hint
         # this is useful for int and float in python where the representation can not be
         # detected by the type itself. Example: int32/int64 or float/double
@@ -184,10 +185,12 @@ def dataclasses_to_resotocore_model(
     model: List[Json] = []
 
     def export_data_class(clazz: type) -> None:
-        bases = [base for base in clazz.__bases__ if is_dataclass(base)]
+        bases = [base for base in clazz.__bases__ if attrs.has(base)]
         base_names = [model_name(base) for base in bases]
-        base_props: Set[Field] = reduce(lambda result, base: result | set(fields(base)), bases, set())
-        props = [p for field in fields(clazz) if field not in base_props and should_export(field) for p in prop(field)]
+        base_props: Set[Attribute] = reduce(lambda result, base: result | set(attrs.fields(base)), bases, set())
+        props = [
+            p for field in attrs.fields(clazz) if field not in base_props and should_export(field) for p in prop(field)
+        ]
         root = any(sup == aggregate_root for sup in clazz.mro()) if aggregate_root else True
         model.append(
             {
@@ -207,7 +210,7 @@ def dataclasses_to_resotocore_model(
         model.append({"fqn": model_name(clazz), "runtime_kind": "string", "enum": enum_values})
 
     for cls in transitive_classes(classes):
-        if is_dataclass(cls):
+        if attrs.has(cls):
             export_data_class(cls)
         elif is_enum(cls):
             export_enum(cls)  # type: ignore
@@ -245,7 +248,7 @@ def format_value_for_export(value: Any) -> Any:
 def get_node_attributes(node: BaseResource) -> Dict:
     def create_dict() -> Json:
         attributes: Dict = {"kind": node.kind}
-        for field in fields(node):
+        for field in attrs.fields(type(node)):
             if field.name.startswith("_"):
                 continue
             value = getattr(node, field.name, None)
@@ -259,7 +262,7 @@ def get_node_attributes(node: BaseResource) -> Dict:
         result = node.to_json()
         result["kind"] = node.kind
         return result
-    elif is_dataclass(node):
+    elif attrs.has(node):
         return create_dict()
     else:
         raise ValueError(f"Node {node.rtdname} is neither a dataclass nor has a to_json method")
@@ -365,14 +368,14 @@ def node_from_dict(node_data: Dict, include_select_ancestors: bool = False) -> B
 
 
 def cleanup_node_field_types(node_type: BaseResource, node_data_reported: Dict):
-    valid_fields = set(field.name for field in fields(node_type))
+    valid_fields = set(field.name for field in attrs.fields(node_type))
     for field_name in list(node_data_reported.keys()):
         if field_name not in valid_fields:
             del node_data_reported[field_name]
 
 
 def restore_node_field_types(node_type: BaseResource, node_data_reported: Dict):
-    for field in fields(node_type):
+    for field in attrs.fields(node_type):
         if field.name not in node_data_reported:
             continue
         field_type = optional_origin(field.type)

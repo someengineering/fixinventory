@@ -1,7 +1,7 @@
 import asyncio
 import string
 from abc import ABC
-from dataclasses import dataclass
+from attrs import define
 from datetime import date, datetime
 from random import SystemRandom
 from typing import List, Optional
@@ -44,7 +44,7 @@ class BaseResource(ABC):
         pass
 
 
-@dataclass
+@define
 class Foo(BaseResource):
     identifier: str
     name: Optional[str] = None
@@ -57,13 +57,13 @@ class Foo(BaseResource):
         return "foo"
 
 
-@dataclass
+@define
 class Inner:
     name: str
     inner: List["Inner"]
 
 
-@dataclass
+@define
 class Bla(BaseResource):
     identifier: str
     name: Optional[str] = None
@@ -72,7 +72,7 @@ class Bla(BaseResource):
     g: Optional[List[int]] = None
     h: Optional[Inner] = None
 
-    def __post_init__(self) -> None:
+    def __attrs_post_init__(self) -> None:
         self.g = self.g if self.g is not None else list(range(0, 5))
         if self.h is None:
 

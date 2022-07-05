@@ -2,10 +2,10 @@ from resotolib.baseplugin import BaseCollectorPlugin
 from resotolib.args import ArgumentParser
 from resotolib.baseresources import BaseResource
 from typing import ClassVar
-from dataclasses import dataclass
+from attrs import define
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class SomeTestResource(BaseResource):
     kind: ClassVar[str] = "some_test_resource"
 

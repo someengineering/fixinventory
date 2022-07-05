@@ -1,10 +1,10 @@
-from dataclasses import dataclass
+from attrs import define
 from typing import Optional, ClassVar, Union
 
 from resotolib.json import to_json, from_json, to_json_str
 
 
-@dataclass
+@define
 class Foo:
     static: ClassVar[str] = "static"
     a: str

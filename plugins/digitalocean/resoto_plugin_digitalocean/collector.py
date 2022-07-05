@@ -352,7 +352,13 @@ class DigitalOceanTeamCollector:
 
         for resource_json in resources:
             kwargs, search_results = self.default_attributes(resource_json, attr_map=attr_map, search_map=search_map)
-            resource_instance = resource_class(**kwargs)
+            kwargs_no_underscore = {}
+            for key, value in kwargs.items():
+                if key.startswith("_"):
+                    kwargs_no_underscore[key[1:]] = value
+                else:
+                    kwargs_no_underscore[key] = value
+            resource_instance = resource_class(**kwargs_no_underscore)
             log.debug(f"Adding {resource_instance.rtdname} to the graph")
             if dump_resource:
                 log.debug(f"Resource Dump: {pformat(resource_json)}")

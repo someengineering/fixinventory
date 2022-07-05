@@ -4,7 +4,7 @@ import inspect
 import json
 from abc import ABC, abstractmethod
 from asyncio import Queue, Task, iscoroutine
-from dataclasses import dataclass, field
+from attrs import define, field
 from enum import Enum
 from operator import attrgetter
 from textwrap import dedent
@@ -58,12 +58,12 @@ double_curly_close_dp = string("}}")
 l_or_r_curly_dp = string("{") | string("}")
 
 
-@dataclass(frozen=True)
+@define(frozen=True)
 class CLIContext:
-    env: Dict[str, str] = field(default_factory=dict)
-    uploaded_files: Dict[str, str] = field(default_factory=dict)  # id -> path
+    env: Dict[str, str] = field(factory=dict)
+    uploaded_files: Dict[str, str] = field(factory=dict)  # id -> path
     query: Optional[Query] = None
-    query_options: Dict[str, Any] = field(default_factory=dict)
+    query_options: Dict[str, Any] = field(factory=dict)
     console_renderer: Optional[ConsoleRenderer] = None
     source: Optional[str] = None  # who is calling
 
@@ -201,12 +201,12 @@ class CLIDependencies:
             await self.http_session.close()
 
 
-@dataclass
+@define
 class CLICommandRequirement:
     name: str
 
 
-@dataclass
+@define
 class CLIFileRequirement(CLICommandRequirement):
     path: str  # local client path
 
@@ -285,7 +285,7 @@ class CLIFlow(CLIAction):
         return self.make_stream(await gen if iscoroutine(gen) else gen)
 
 
-@dataclass
+@define
 class ArgInfo:
     # If the argument has a name. It is quite common that arguments do not have a name
     # but are expected at some position.
@@ -298,7 +298,7 @@ class ArgInfo:
     expects_value: bool = False
     # If the value has to be picked from a list of values (enumeration).
     # Example: `--format svg|png|jpg`
-    possible_values: List[str] = field(default_factory=list)
+    possible_values: List[str] = field(factory=list)
     # If this argument is allowed to be specified multiple times
     can_occur_multiple_times: bool = False
     # Give a type hint for the argument value.
@@ -363,7 +363,7 @@ class CLICommand(ABC):
         pass
 
 
-@dataclass(order=True, unsafe_hash=True, frozen=True)
+@define(order=True, hash=True, frozen=True)
 class AliasTemplateParameter:
     name: str
     description: str
@@ -373,12 +373,12 @@ class AliasTemplateParameter:
         return self.default if self.default else f"test_{self.name}"
 
 
-@dataclass(order=True, unsafe_hash=True, frozen=True)
+@define(order=True, hash=True, frozen=True)
 class AliasTemplate:
     name: str
     info: str
     template: str
-    parameters: List[AliasTemplateParameter] = field(default_factory=list)
+    parameters: List[AliasTemplateParameter] = field(factory=list)
 
     def render(self, props: Json) -> str:
         return render_template(self.template, props)
@@ -453,19 +453,19 @@ class NoTerminalOutput(ABC):
     """
 
 
-@dataclass
+@define
 class ParsedCommand:
     cmd: str
     args: Optional[str] = None
 
 
-@dataclass
+@define
 class ParsedCommands:
     commands: List[ParsedCommand]
-    env: Json = field(default_factory=dict)
+    env: Json = field(factory=dict)
 
 
-@dataclass
+@define
 class ExecutableCommand:
     name: str  # the name of the command or alias
     command: CLICommand
@@ -473,7 +473,7 @@ class ExecutableCommand:
     action: CLIAction
 
 
-@dataclass
+@define
 class ParsedCommandLine:
     """
     The parsed command line holds:
@@ -488,7 +488,7 @@ class ParsedCommandLine:
     unmet_requirements: List[CLICommandRequirement]
     envelope: Dict[str, str]
 
-    def __post_init__(self) -> None:
+    def __attrs_post_init__(self) -> None:
         def expect_action(cmd: ExecutableCommand, expected: Type[T]) -> T:
             action = cmd.action
             if isinstance(action, expected):

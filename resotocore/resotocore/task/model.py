@@ -1,22 +1,22 @@
 from __future__ import annotations
-from dataclasses import dataclass, field
+from attrs import define, field
 from typing import Dict, List
 
 from datetime import timedelta
 from resotocore.ids import SubscriberId
 
 
-@dataclass(order=True, unsafe_hash=True, frozen=True)
+@define(order=True, hash=True, frozen=True)
 class Subscription:
     message_type: str
     wait_for_completion: bool = field(default=True)
     timeout: timedelta = field(default=timedelta(seconds=60))
 
 
-@dataclass(order=True, unsafe_hash=True, frozen=True)
+@define(order=True, hash=True, frozen=True)
 class Subscriber:
     id: SubscriberId
-    subscriptions: Dict[str, Subscription] = field(default_factory=dict)
+    subscriptions: Dict[str, Subscription] = field(factory=dict)
 
     @staticmethod
     def from_list(uid: SubscriberId, subscriptions: List[Subscription]) -> Subscriber:

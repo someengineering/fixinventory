@@ -6,7 +6,7 @@ from tempfile import TemporaryDirectory
 from resotolib.lock import RWLock
 from resotolib.utils import ordinal, sha256sum, rrdata_as_dict
 from resotolib.baseresources import BaseResource
-from dataclasses import dataclass
+from attrs import define
 from typing import ClassVar
 
 
@@ -176,12 +176,12 @@ class RWLockTestCase(unittest.TestCase):
             t.join()
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class SomeTestResource(BaseResource):
     kind: ClassVar[str] = "some_test_resource"
 
-    def __post_init__(self) -> None:
-        super().__post_init__()
+    def __attrs_post_init__(self) -> None:
+        super().__attrs_post_init__()
         self.key = None
         self.value = None
 

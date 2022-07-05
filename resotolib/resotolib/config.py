@@ -14,7 +14,7 @@ from resotolib.core.config import (
 )
 from resotolib.core.events import CoreEvents
 from typing import Dict, Any, List, Optional, Type
-from dataclasses import fields
+from attrs import fields
 
 
 class RunningConfig:

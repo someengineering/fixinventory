@@ -1,6 +1,8 @@
+from cmath import e
 import logging
 from abc import ABC, abstractmethod
-from dataclasses import is_dataclass, replace
+import attrs
+
 from typing import AsyncGenerator, Generic, TypeVar, Optional, Type, Callable, List
 
 from arango import DocumentUpdateError, DocumentRevisionError
@@ -95,8 +97,8 @@ class ArangoEntityDb(EntityDb[K, T], ABC):
             else:
                 raise ex
         if hasattr(t, "revision") and "_rev" in result:
-            if is_dataclass(t):
-                t = replace(t, revision=result["_rev"])
+            if attrs.has(type(t)):
+                t = attrs.evolve(t, revision=result["_rev"])
             else:
                 setattr(t, "revision", result["_rev"])
         return t

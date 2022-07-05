@@ -1,8 +1,8 @@
-from dataclasses import dataclass, field
+from attrs import define, field
 from typing import ClassVar, Optional
 
 
-@dataclass
+@define
 class OneloginConfig:
     kind: ClassVar[str] = "onelogin"
     region: str = field(default="us", metadata={"description": "Onelogin region"})

@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from attrs import define, field
 from typing import ClassVar, Dict, Union, List
 from resotolib.durations import parse_duration
 
@@ -34,7 +34,7 @@ default_config = {
 }
 
 
-@dataclass
+@define
 class CleanupUntaggedConfig:
     kind: ClassVar[str] = "plugin_cleanup_untagged"
     enabled: bool = field(
@@ -42,7 +42,7 @@ class CleanupUntaggedConfig:
         metadata={"description": "Enable plugin?", "restart_required": True},
     )
     config: Dict[str, Union[Dict, List]] = field(
-        default_factory=lambda: default_config,
+        factory=lambda: default_config,
         metadata={
             "description": (
                 "Configuration for the plugin\n"

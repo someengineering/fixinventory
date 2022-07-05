@@ -1,7 +1,7 @@
 from resotolib.graph import GraphMergeKind
 from resotolib.config import Config
 from resotolib.proc import num_default_threads
-from dataclasses import dataclass, field
+from attrs import define, field
 from typing import ClassVar, Optional, List
 
 
@@ -9,11 +9,11 @@ def add_config(config: Config) -> None:
     config.add_config(ResotoWorkerConfig)
 
 
-@dataclass
+@define
 class ResotoWorkerConfig:
     kind: ClassVar[str] = "resotoworker"
     collector: Optional[List[str]] = field(
-        default_factory=lambda: ["example"],
+        factory=lambda: ["example"],
         metadata={"description": "List of collectors to run"},
     )
     graph: Optional[str] = field(
@@ -35,7 +35,7 @@ class ResotoWorkerConfig:
     tempdir: Optional[str] = field(default=None, metadata={"description": "Directory to create temporary files in"})
     cleanup: Optional[bool] = field(default=False, metadata={"description": "Enable cleanup of resources"})
     cleanup_pool_size: Optional[int] = field(
-        default_factory=lambda: num_default_threads() * 2,
+        factory=lambda: num_default_threads() * 2,
         metadata={"description": "How many cleanup threads to run in parallel"},
     )
     cleanup_dry_run: Optional[bool] = field(

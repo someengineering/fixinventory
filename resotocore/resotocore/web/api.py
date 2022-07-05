@@ -8,7 +8,7 @@ import string
 import tempfile
 import uuid
 from asyncio import Future
-from dataclasses import replace
+from attrs import evolve
 from datetime import timedelta
 from functools import partial
 from pathlib import Path
@@ -780,7 +780,7 @@ class Api:
                     with open(path, "wb") as writer:
                         while not part.at_eof():
                             writer.write(await part.read_chunk())
-                ctx = replace(ctx, uploaded_files=files)
+                ctx = evolve(ctx, uploaded_files=files)
             else:
                 raise AttributeError(f"Not able to handle: {request.content_type}")
 

@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from attrs import define, field
 from datetime import datetime
 from typing import ClassVar, Dict, Optional, List, Type
 
@@ -11,7 +11,7 @@ from resotolib.types import Json
 
 
 # region InstanceType
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSEC2InstanceType(AWSResource, BaseInstanceType):
     kind: ClassVar[str] = "aws_ec2_instance_type"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -25,7 +25,7 @@ class AWSEC2InstanceType(AWSResource, BaseInstanceType):
 # region Volume
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSEC2VolumeAttachment:
     kind: ClassVar[str] = "aws_ec2_volume_attachment"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -44,7 +44,7 @@ class AWSEC2VolumeAttachment:
     delete_on_termination: Optional[bool] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSEC2Volume(AWSResource, BaseVolume):
     kind: ClassVar[str] = "aws_ec2_volume"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -66,7 +66,7 @@ class AWSEC2Volume(AWSResource, BaseVolume):
         "volume_fast_restored": S("FastRestored"),
         "volume_multi_attach_enabled": S("MultiAttachEnabled"),
     }
-    volume_attachments: List[AWSEC2VolumeAttachment] = field(default_factory=list)
+    volume_attachments: List[AWSEC2VolumeAttachment] = field(factory=list)
     availability_zone: Optional[str] = field(default=None)
     volume_encrypted: Optional[bool] = field(default=None)
     volume_kms_key_id: Optional[str] = field(default=None)
@@ -90,7 +90,7 @@ class AWSEC2Volume(AWSResource, BaseVolume):
 # region KeyPair
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSEC2KeyPair(AWSResource):
     kind: ClassVar[str] = "aws_ec2_key_pair_info"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -112,7 +112,7 @@ class AWSEC2KeyPair(AWSResource):
 # region Instance
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSEC2Placement:
     kind: ClassVar[str] = "aws_ec2_placement"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -135,7 +135,7 @@ class AWSEC2Placement:
     host_resource_group_arn: Optional[str] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSEC2ProductCode:
     kind: ClassVar[str] = "aws_ec2_product_code"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -146,7 +146,7 @@ class AWSEC2ProductCode:
     product_code_type: Optional[str] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSEC2InstanceState:
     kind: ClassVar[str] = "aws_ec2_instance_state"
     mapping: ClassVar[Dict[str, Bender]] = {"code": S("Code"), "name": S("Name")}
@@ -154,7 +154,7 @@ class AWSEC2InstanceState:
     name: Optional[str] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSEC2EbsInstanceBlockDevice:
     kind: ClassVar[str] = "aws_ec2_ebs_instance_block_device"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -169,7 +169,7 @@ class AWSEC2EbsInstanceBlockDevice:
     volume_id: Optional[str] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSEC2InstanceBlockDeviceMapping:
     kind: ClassVar[str] = "aws_ec2_instance_block_device_mapping"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -180,7 +180,7 @@ class AWSEC2InstanceBlockDeviceMapping:
     ebs: Optional[AWSEC2EbsInstanceBlockDevice] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSEC2IamInstanceProfile:
     kind: ClassVar[str] = "aws_ec2_iam_instance_profile"
     mapping: ClassVar[Dict[str, Bender]] = {"arn": S("Arn"), "id": S("Id")}
@@ -188,7 +188,7 @@ class AWSEC2IamInstanceProfile:
     id: Optional[str] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSEC2ElasticGpuAssociation:
     kind: ClassVar[str] = "aws_ec2_elastic_gpu_association"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -203,7 +203,7 @@ class AWSEC2ElasticGpuAssociation:
     elastic_gpu_association_time: Optional[str] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSEC2ElasticInferenceAcceleratorAssociation:
     kind: ClassVar[str] = "aws_ec2_elastic_inference_accelerator_association"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -218,7 +218,7 @@ class AWSEC2ElasticInferenceAcceleratorAssociation:
     elastic_inference_accelerator_association_time: Optional[datetime] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSEC2InstanceNetworkInterfaceAssociation:
     kind: ClassVar[str] = "aws_ec2_instance_network_interface_association"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -235,7 +235,7 @@ class AWSEC2InstanceNetworkInterfaceAssociation:
     public_ip: Optional[str] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSEC2InstanceNetworkInterfaceAttachment:
     kind: ClassVar[str] = "aws_ec2_instance_network_interface_attachment"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -254,7 +254,7 @@ class AWSEC2InstanceNetworkInterfaceAttachment:
     network_card_index: Optional[int] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSEC2GroupIdentifier:
     kind: ClassVar[str] = "aws_ec2_group_identifier"
     mapping: ClassVar[Dict[str, Bender]] = {"group_name": S("GroupName"), "group_id": S("GroupId")}
@@ -262,7 +262,7 @@ class AWSEC2GroupIdentifier:
     group_id: Optional[str] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSEC2InstancePrivateIpAddress:
     kind: ClassVar[str] = "aws_ec2_instance_private_ip_address"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -277,7 +277,7 @@ class AWSEC2InstancePrivateIpAddress:
     private_ip_address: Optional[str] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSEC2InstanceNetworkInterface:
     kind: ClassVar[str] = "aws_ec2_instance_network_interface"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -304,21 +304,21 @@ class AWSEC2InstanceNetworkInterface:
     association: Optional[AWSEC2InstanceNetworkInterfaceAssociation] = field(default=None)
     attachment: Optional[AWSEC2InstanceNetworkInterfaceAttachment] = field(default=None)
     description: Optional[str] = field(default=None)
-    groups: List[AWSEC2GroupIdentifier] = field(default_factory=list)
-    ipv6_addresses: List[str] = field(default_factory=list)
+    groups: List[AWSEC2GroupIdentifier] = field(factory=list)
+    ipv6_addresses: List[str] = field(factory=list)
     mac_address: Optional[str] = field(default=None)
     network_interface_id: Optional[str] = field(default=None)
     private_dns_name: Optional[str] = field(default=None)
     private_ip_address: Optional[str] = field(default=None)
-    private_ip_addresses: List[AWSEC2InstancePrivateIpAddress] = field(default_factory=list)
+    private_ip_addresses: List[AWSEC2InstancePrivateIpAddress] = field(factory=list)
     source_dest_check: Optional[bool] = field(default=None)
     status: Optional[str] = field(default=None)
     interface_type: Optional[str] = field(default=None)
-    ipv4_prefixes: List[str] = field(default_factory=list)
-    ipv6_prefixes: List[str] = field(default_factory=list)
+    ipv4_prefixes: List[str] = field(factory=list)
+    ipv6_prefixes: List[str] = field(factory=list)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSEC2StateReason:
     kind: ClassVar[str] = "aws_ec2_state_reason"
     mapping: ClassVar[Dict[str, Bender]] = {"code": S("Code"), "message": S("Message")}
@@ -326,7 +326,7 @@ class AWSEC2StateReason:
     message: Optional[str] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSEC2CpuOptions:
     kind: ClassVar[str] = "aws_ec2_cpu_options"
     mapping: ClassVar[Dict[str, Bender]] = {"core_count": S("CoreCount"), "threads_per_core": S("ThreadsPerCore")}
@@ -334,7 +334,7 @@ class AWSEC2CpuOptions:
     threads_per_core: Optional[int] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSEC2CapacityReservationTargetResponse:
     kind: ClassVar[str] = "aws_ec2_capacity_reservation_target_response"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -345,7 +345,7 @@ class AWSEC2CapacityReservationTargetResponse:
     capacity_reservation_resource_group_arn: Optional[str] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSEC2CapacityReservationSpecificationResponse:
     kind: ClassVar[str] = "aws_ec2_capacity_reservation_specification_response"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -357,7 +357,7 @@ class AWSEC2CapacityReservationSpecificationResponse:
     capacity_reservation_target: Optional[AWSEC2CapacityReservationTargetResponse] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSEC2InstanceMetadataOptionsResponse:
     kind: ClassVar[str] = "aws_ec2_instance_metadata_options_response"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -376,7 +376,7 @@ class AWSEC2InstanceMetadataOptionsResponse:
     instance_metadata_tags: Optional[str] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSEC2PrivateDnsNameOptionsResponse:
     kind: ClassVar[str] = "aws_ec2_private_dns_name_options_response"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -389,7 +389,7 @@ class AWSEC2PrivateDnsNameOptionsResponse:
     enable_resource_name_dns_aaaa_record: Optional[bool] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSEC2Instance(AWSResource, BaseInstance):
     kind: ClassVar[str] = "aws_ec2_instance"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -473,7 +473,7 @@ class AWSEC2Instance(AWSResource, BaseInstance):
     instance_platform: Optional[str] = field(default=None)
     instance_private_dns_name: Optional[str] = field(default=None)
     instance_private_ip_address: Optional[str] = field(default=None)
-    instance_product_codes: List[AWSEC2ProductCode] = field(default_factory=list)
+    instance_product_codes: List[AWSEC2ProductCode] = field(factory=list)
     instance_public_dns_name: Optional[str] = field(default=None)
     instance_public_ip_address: Optional[str] = field(default=None)
     instance_ramdisk_id: Optional[str] = field(default=None)
@@ -481,22 +481,22 @@ class AWSEC2Instance(AWSResource, BaseInstance):
     instance_state_transition_reason: Optional[str] = field(default=None)
     instance_subnet_id: Optional[str] = field(default=None)
     instance_architecture: Optional[str] = field(default=None)
-    instance_block_device_mappings: List[AWSEC2InstanceBlockDeviceMapping] = field(default_factory=list)
+    instance_block_device_mappings: List[AWSEC2InstanceBlockDeviceMapping] = field(factory=list)
     instance_client_token: Optional[str] = field(default=None)
     instance_ebs_optimized: Optional[bool] = field(default=None)
     instance_ena_support: Optional[bool] = field(default=None)
     instance_hypervisor: Optional[str] = field(default=None)
     instance_iam_instance_profile: Optional[AWSEC2IamInstanceProfile] = field(default=None)
     instance_lifecycle: Optional[str] = field(default=None)
-    instance_elastic_gpu_associations: List[AWSEC2ElasticGpuAssociation] = field(default_factory=list)
+    instance_elastic_gpu_associations: List[AWSEC2ElasticGpuAssociation] = field(factory=list)
     instance_elastic_inference_accelerator_associations: List[AWSEC2ElasticInferenceAcceleratorAssociation] = field(
-        default_factory=list
+        factory=list
     )
-    instance_network_interfaces: List[AWSEC2InstanceNetworkInterface] = field(default_factory=list)
+    instance_network_interfaces: List[AWSEC2InstanceNetworkInterface] = field(factory=list)
     instance_outpost_arn: Optional[str] = field(default=None)
     instance_root_device_name: Optional[str] = field(default=None)
     instance_root_device_type: Optional[str] = field(default=None)
-    instance_security_groups: List[AWSEC2GroupIdentifier] = field(default_factory=list)
+    instance_security_groups: List[AWSEC2GroupIdentifier] = field(factory=list)
     instance_source_dest_check: Optional[bool] = field(default=None)
     instance_spot_instance_request_id: Optional[str] = field(default=None)
     instance_sriov_net_support: Optional[str] = field(default=None)
@@ -508,7 +508,7 @@ class AWSEC2Instance(AWSResource, BaseInstance):
         default=None
     )
     instance_hibernation_options: Optional[bool] = field(default=None)
-    instance_licenses: List[str] = field(default_factory=list)
+    instance_licenses: List[str] = field(factory=list)
     instance_metadata_options: Optional[AWSEC2InstanceMetadataOptionsResponse] = field(default=None)
     instance_enclave_options: Optional[bool] = field(default=None)
     instance_boot_mode: Optional[str] = field(default=None)
@@ -545,7 +545,7 @@ class AWSEC2Instance(AWSResource, BaseInstance):
 # region ReservedInstances
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSEC2RecurringCharge:
     kind: ClassVar[str] = "aws_ec2_recurring_charge"
     mapping: ClassVar[Dict[str, Bender]] = {"amount": S("Amount"), "frequency": S("Frequency")}
@@ -553,7 +553,7 @@ class AWSEC2RecurringCharge:
     frequency: Optional[str] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSEC2ReservedInstances(AWSResource):
     kind: ClassVar[str] = "aws_ec2_reserved_instances"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -593,7 +593,7 @@ class AWSEC2ReservedInstances(AWSResource):
     reservation_instance_tenancy: Optional[str] = field(default=None)
     reservation_offering_class: Optional[str] = field(default=None)
     reservation_offering_type: Optional[str] = field(default=None)
-    reservation_recurring_charges: List[AWSEC2RecurringCharge] = field(default_factory=list)
+    reservation_recurring_charges: List[AWSEC2RecurringCharge] = field(factory=list)
     reservation_scope: Optional[str] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
@@ -608,7 +608,7 @@ class AWSEC2ReservedInstances(AWSResource):
 # region Network ACLs
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSEC2NetworkAclAssociation:
     kind: ClassVar[str] = "aws_ec2_network_acl_association"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -621,7 +621,7 @@ class AWSEC2NetworkAclAssociation:
     subnet_id: Optional[str] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSEC2IcmpTypeCode:
     kind: ClassVar[str] = "aws_ec2_icmp_type_code"
     mapping: ClassVar[Dict[str, Bender]] = {"code": S("Code"), "type": S("Type")}
@@ -629,7 +629,7 @@ class AWSEC2IcmpTypeCode:
     type: Optional[int] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSEC2PortRange:
     kind: ClassVar[str] = "aws_ec2_port_range"
     mapping: ClassVar[Dict[str, Bender]] = {"from_range": S("From"), "to_range": S("To")}
@@ -637,7 +637,7 @@ class AWSEC2PortRange:
     to_range: Optional[int] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSEC2NetworkAclEntry:
     kind: ClassVar[str] = "aws_ec2_network_acl_entry"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -660,7 +660,7 @@ class AWSEC2NetworkAclEntry:
     rule_number: Optional[int] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSEC2NetworkAcl(AWSResource):
     kind: ClassVar[str] = "aws_ec2_network_acl"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -673,8 +673,8 @@ class AWSEC2NetworkAcl(AWSResource):
         # "vpc_id": S("VpcId"), # TODO: add link
         # "owner_id": S("OwnerId") # TODO: add link
     }
-    acl_associations: List[AWSEC2NetworkAclAssociation] = field(default_factory=list)
-    acl_entries: List[AWSEC2NetworkAclEntry] = field(default_factory=list)
+    acl_associations: List[AWSEC2NetworkAclAssociation] = field(factory=list)
+    acl_entries: List[AWSEC2NetworkAclEntry] = field(factory=list)
     is_default: Optional[bool] = field(default=None)
 
 

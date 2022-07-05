@@ -2,14 +2,14 @@ import pytest
 from resotolib.graph import Graph, GraphContainer, GraphExportIterator
 from resotolib.baseresources import BaseResource, EdgeType, GraphRoot
 import resotolib.logger as logger
-from dataclasses import dataclass
+from attrs import define
 from typing import ClassVar
 from sys import getrefcount
 
 logger.getLogger("resoto").setLevel(logger.DEBUG)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class SomeTestResource(BaseResource):
     kind: ClassVar[str] = "some_test_resource"
 

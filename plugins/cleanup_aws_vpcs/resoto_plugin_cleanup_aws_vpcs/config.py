@@ -1,8 +1,8 @@
-from dataclasses import dataclass, field
+from attrs import define, field
 from typing import ClassVar, Dict, List
 
 
-@dataclass
+@define
 class CleanupAWSVPCsConfig:
     kind: ClassVar[str] = "plugin_cleanup_aws_vpcs"
     enabled: bool = field(
@@ -10,7 +10,7 @@ class CleanupAWSVPCsConfig:
         metadata={"description": "Enable plugin?", "restart_required": True},
     )
     config: Dict[str, List[str]] = field(
-        default_factory=lambda: {"aws": ["1234567", "567890"]},
+        factory=lambda: {"aws": ["1234567", "567890"]},
         metadata={
             "description": (
                 "Dictionary of key cloud with list of account IDs" " for which the plugin should be active as value"

@@ -1,5 +1,5 @@
 import resotolib.logger
-from dataclasses import dataclass
+from attrs import define
 from typing import Optional, ClassVar
 from resotolib.graph import Graph
 from resotolib.baseresources import (
@@ -12,7 +12,7 @@ from resotolib.baseresources import (
 log = resotolib.logger.getLogger("resoto." + __name__)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class OnpremLocation(BaseAccount):
     kind: ClassVar[str] = "onprem_location"
 
@@ -20,7 +20,7 @@ class OnpremLocation(BaseAccount):
         return False
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class OnpremRegion(BaseRegion):
     kind: ClassVar[str] = "onprem_region"
 
@@ -28,7 +28,7 @@ class OnpremRegion(BaseRegion):
         return False
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class OnpremResource:
     kind: ClassVar[str] = "onprem_resource"
 
@@ -42,7 +42,7 @@ class OnpremResource:
         return False
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class OnpremInstance(OnpremResource, BaseInstance):
     kind: ClassVar[str] = "onprem_instance"
     network_device: Optional[str] = None
@@ -50,6 +50,6 @@ class OnpremInstance(OnpremResource, BaseInstance):
     network_ip6: Optional[str] = None
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class OnpremNetwork(OnpremResource, BaseNetwork):
     kind: ClassVar[str] = "onprem_network"

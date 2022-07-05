@@ -15,7 +15,7 @@ from asyncio import Future, Task
 from asyncio.subprocess import Process
 from collections import defaultdict
 from contextlib import suppress
-from dataclasses import dataclass
+from attrs import define
 from datetime import timedelta
 from functools import partial
 from itertools import dropwhile, chain
@@ -3341,7 +3341,7 @@ class TemplatesCommand(CLICommand, PreserveOutputFormat):
             raise CLIParseError(f"Can not parse arguments: {arg}")
 
 
-@dataclass
+@define
 class HttpRequestTemplate:
     method: str
     url: str

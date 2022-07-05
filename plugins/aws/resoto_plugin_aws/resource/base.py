@@ -1,5 +1,5 @@
 import logging
-from dataclasses import dataclass
+from attrs import define
 from typing import ClassVar, Dict, Optional, List, Type, Any, TypeVar
 
 from resoto_plugin_aws.resources import AWSRegion, AWSEC2InstanceType, AWSAccount
@@ -12,7 +12,7 @@ from resotolib.types import Json
 log = logging.getLogger("resoto.plugins.aws")
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSResource(BaseResource):
     mapping: ClassVar[Dict[str, Bender]] = {}
     kind: ClassVar[str] = "aws_resource"

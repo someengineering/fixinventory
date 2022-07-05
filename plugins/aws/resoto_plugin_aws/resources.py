@@ -8,7 +8,7 @@ from resotolib.graph import Graph
 from resotolib.utils import make_valid_timestamp
 from .utils import aws_client, aws_resource, tags_as_dict
 from typing import ClassVar, Any, Optional, Union
-from dataclasses import dataclass
+from attrs import define
 from resotolib.logger import log
 
 
@@ -16,7 +16,7 @@ default_ctime = make_valid_timestamp(date(2006, 3, 19))  # AWS public launch dat
 
 
 # derived from https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-template-resource-type-ref.html
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSAccount(BaseAccount):
     kind: ClassVar[str] = "aws_account"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -52,7 +52,7 @@ class AWSAccount(BaseAccount):
         return False
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSRegion(BaseRegion):
     kind: ClassVar[str] = "aws_region"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -106,7 +106,7 @@ class AWSRegion(BaseRegion):
         return False
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSResource:
     kind: ClassVar[str] = "aws_resource"
     arn: Optional[str] = None
@@ -115,7 +115,7 @@ class AWSResource:
         return False
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSEC2InstanceType(AWSResource, BaseInstanceType):
     kind: ClassVar[str] = "aws_ec2_instance_type"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -124,7 +124,7 @@ class AWSEC2InstanceType(AWSResource, BaseInstanceType):
     }
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSEC2InstanceQuota(AWSResource, BaseInstanceQuota):
     kind: ClassVar[str] = "aws_ec2_instance_quota"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -133,7 +133,7 @@ class AWSEC2InstanceQuota(AWSResource, BaseInstanceQuota):
     }
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSEC2Instance(AWSResource, BaseInstance):
     kind: ClassVar[str] = "aws_ec2_instance"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -182,7 +182,7 @@ class AWSEC2Instance(AWSResource, BaseInstance):
         return True
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSEC2KeyPair(AWSResource, BaseKeyPair):
     kind: ClassVar[str] = "aws_ec2_keypair"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -206,7 +206,7 @@ class AWSEC2KeyPair(AWSResource, BaseKeyPair):
         return True
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSEC2VolumeType(AWSResource, BaseVolumeType):
     kind: ClassVar[str] = "aws_ec2_volume_type"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -215,7 +215,7 @@ class AWSEC2VolumeType(AWSResource, BaseVolumeType):
     }
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSEC2Volume(AWSResource, BaseVolume):
     kind: ClassVar[str] = "aws_ec2_volume"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -294,7 +294,7 @@ class AWSEC2Volume(AWSResource, BaseVolume):
         return True
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSEC2Snapshot(AWSResource, BaseSnapshot):
     kind: ClassVar[str] = "aws_ec2_snapshot"
 
@@ -315,7 +315,7 @@ class AWSEC2Snapshot(AWSResource, BaseSnapshot):
         return True
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSEC2Subnet(AWSResource, BaseSubnet):
     kind: ClassVar[str] = "aws_ec2_subnet"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -354,7 +354,7 @@ class AWSEC2Subnet(AWSResource, BaseSubnet):
         return True
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSEC2ElasticIP(AWSResource, BaseIPAddress):
     kind: ClassVar[str] = "aws_ec2_elastic_ip"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -395,7 +395,7 @@ class AWSEC2ElasticIP(AWSResource, BaseIPAddress):
         return True
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSVPC(AWSResource, BaseNetwork):
     kind: ClassVar[str] = "aws_vpc"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -454,7 +454,7 @@ class AWSVPC(AWSResource, BaseNetwork):
         return True
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSVPCQuota(AWSResource, BaseNetworkQuota):
     kind: ClassVar[str] = "aws_vpc_quota"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -463,7 +463,7 @@ class AWSVPCQuota(AWSResource, BaseNetworkQuota):
     }
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSS3Bucket(AWSResource, BaseBucket):
     kind: ClassVar[str] = "aws_s3_bucket"
 
@@ -521,7 +521,7 @@ class AWSS3Bucket(AWSResource, BaseBucket):
         self.tags = self.get_tags()
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSS3BucketQuota(AWSResource, BaseBucketQuota):
     kind: ClassVar[str] = "aws_s3_bucket_quota"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -530,7 +530,7 @@ class AWSS3BucketQuota(AWSResource, BaseBucketQuota):
     }
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSELB(AWSResource, BaseLoadBalancer):
     kind: ClassVar[str] = "aws_elb"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -555,7 +555,7 @@ class AWSELB(AWSResource, BaseLoadBalancer):
         return True
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSALB(AWSResource, BaseLoadBalancer):
     kind: ClassVar[str] = "aws_alb"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -580,7 +580,7 @@ class AWSALB(AWSResource, BaseLoadBalancer):
         return True
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSALBTargetGroup(AWSResource, BaseResource):
     kind: ClassVar[str] = "aws_alb_target_group"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -607,7 +607,7 @@ class AWSALBTargetGroup(AWSResource, BaseResource):
         return True
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSELBQuota(AWSResource, BaseLoadBalancerQuota):
     kind: ClassVar[str] = "aws_elb_quota"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -616,7 +616,7 @@ class AWSELBQuota(AWSResource, BaseLoadBalancerQuota):
     }
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSALBQuota(AWSResource, BaseLoadBalancerQuota):
     kind: ClassVar[str] = "aws_alb_quota"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -625,7 +625,7 @@ class AWSALBQuota(AWSResource, BaseLoadBalancerQuota):
     }
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSEC2InternetGateway(AWSResource, BaseGateway):
     kind: ClassVar[str] = "aws_ec2_internet_gateway"
 
@@ -657,7 +657,7 @@ class AWSEC2InternetGateway(AWSResource, BaseGateway):
         return True
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSEC2NATGateway(AWSResource, BaseGateway):
     kind: ClassVar[str] = "aws_ec2_nat_gateway"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -683,7 +683,7 @@ class AWSEC2NATGateway(AWSResource, BaseGateway):
         return True
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSEC2InternetGatewayQuota(AWSResource, BaseGatewayQuota):
     kind: ClassVar[str] = "aws_ec2_internet_gateway_quota"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -692,7 +692,7 @@ class AWSEC2InternetGatewayQuota(AWSResource, BaseGatewayQuota):
     }
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSEC2SecurityGroup(AWSResource, BaseSecurityGroup):
     kind: ClassVar[str] = "aws_ec2_security_group"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -748,7 +748,7 @@ class AWSEC2SecurityGroup(AWSResource, BaseSecurityGroup):
         return True
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSEC2RouteTable(AWSResource, BaseRoutingTable):
     kind: ClassVar[str] = "aws_ec2_route_table"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -784,7 +784,7 @@ class AWSEC2RouteTable(AWSResource, BaseRoutingTable):
         return True
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSVPCPeeringConnection(AWSResource, BasePeeringConnection):
     kind: ClassVar[str] = "aws_vpc_peering_connection"
     vpc_peering_connection_status: str = ""
@@ -805,7 +805,7 @@ class AWSVPCPeeringConnection(AWSResource, BasePeeringConnection):
         return True
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSVPCEndpoint(AWSResource, BaseEndpoint):
     kind: ClassVar[str] = "aws_vpc_endpoint"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -831,7 +831,7 @@ class AWSVPCEndpoint(AWSResource, BaseEndpoint):
         return True
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSEC2NetworkAcl(AWSResource, BaseNetworkAcl):
     kind: ClassVar[str] = "aws_ec2_network_acl"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -856,7 +856,7 @@ class AWSEC2NetworkAcl(AWSResource, BaseNetworkAcl):
         return True
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSEC2NetworkInterface(AWSResource, BaseNetworkInterface):
     kind: ClassVar[str] = "aws_ec2_network_interface"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -881,20 +881,20 @@ class AWSEC2NetworkInterface(AWSResource, BaseNetworkInterface):
         return True
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSRDSInstance(AWSResource, BaseDatabase):
     kind: ClassVar[str] = "aws_rds_instance"
     volume_kms_key_id: Optional[str] = None
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSIAMUser(AWSResource, BaseUser):
     kind: ClassVar[str] = "aws_iam_user"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
         "default": ["aws_iam_access_key"],
         "delete": ["aws_iam_policy"],
     }
-    user_policies: List = field(default_factory=list)
+    user_policies: List = field(factory=list)
 
     def pre_delete(self, graph: Graph) -> bool:
         iam = aws_resource(self, "iam", graph)
@@ -924,14 +924,14 @@ class AWSIAMUser(AWSResource, BaseUser):
         return True
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSIAMGroup(AWSResource, BaseGroup):
     kind: ClassVar[str] = "aws_iam_group"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
         "default": ["aws_iam_user"],
         "delete": ["aws_iam_policy"],
     }
-    group_policies: List = field(default_factory=list)
+    group_policies: List = field(factory=list)
 
     def pre_delete(self, graph: Graph) -> bool:
         iam = aws_resource(self, "iam", graph)
@@ -961,7 +961,7 @@ class AWSIAMGroup(AWSResource, BaseGroup):
         return True
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSIAMRole(AWSResource, BaseRole):
     kind: ClassVar[str] = "aws_iam_role"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -969,7 +969,7 @@ class AWSIAMRole(AWSResource, BaseRole):
         "delete": ["aws_iam_policy", "aws_iam_instance_profile", "aws_eks_cluster"],
     }
 
-    role_policies: List = field(default_factory=list)
+    role_policies: List = field(factory=list)
 
     def pre_delete(self, graph: Graph) -> bool:
         iam = aws_resource(self, "iam", graph)
@@ -999,7 +999,7 @@ class AWSIAMRole(AWSResource, BaseRole):
         return True
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSIAMPolicy(AWSResource, BasePolicy):
     kind: ClassVar[str] = "aws_iam_policy"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -1014,7 +1014,7 @@ class AWSIAMPolicy(AWSResource, BasePolicy):
         return True
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSIAMInstanceProfile(AWSResource, BaseInstanceProfile):
     kind: ClassVar[str] = "aws_iam_instance_profile"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -1040,7 +1040,7 @@ class AWSIAMInstanceProfile(AWSResource, BaseInstanceProfile):
         return True
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSIAMAccessKey(AWSResource, BaseAccessKey):
     kind: ClassVar[str] = "aws_iam_access_key"
 
@@ -1055,7 +1055,7 @@ class AWSIAMAccessKey(AWSResource, BaseAccessKey):
         return True
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSIAMServerCertificate(AWSResource, BaseCertificate):
     kind: ClassVar[str] = "aws_iam_server_certificate"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -1071,7 +1071,7 @@ class AWSIAMServerCertificate(AWSResource, BaseCertificate):
         return True
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSIAMServerCertificateQuota(AWSResource, BaseCertificateQuota):
     kind: ClassVar[str] = "aws_iam_server_certificate_quota"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -1080,7 +1080,7 @@ class AWSIAMServerCertificateQuota(AWSResource, BaseCertificateQuota):
     }
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSCloudFormationStack(AWSResource, BaseStack):
     kind: ClassVar[str] = "aws_cloudformation_stack"
 
@@ -1148,7 +1148,7 @@ class AWSCloudFormationStack(AWSResource, BaseStack):
         return stack
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSEKSCluster(AWSResource, BaseResource):
     kind: ClassVar[str] = "aws_eks_cluster"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -1174,7 +1174,7 @@ class AWSEKSCluster(AWSResource, BaseResource):
         return True
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSEKSNodegroup(AWSResource, BaseResource):
     kind: ClassVar[str] = "aws_eks_nodegroup"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -1201,7 +1201,7 @@ class AWSEKSNodegroup(AWSResource, BaseResource):
         return True
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSAutoScalingGroup(AWSResource, BaseAutoScalingGroup):
     kind: ClassVar[str] = "aws_autoscaling_group"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -1245,7 +1245,7 @@ class AWSAutoScalingGroup(AWSResource, BaseAutoScalingGroup):
         return True
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSCloudwatchAlarm(AWSResource, BaseResource):
     kind: ClassVar[str] = "aws_cloudwatch_alarm"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -1255,14 +1255,14 @@ class AWSCloudwatchAlarm(AWSResource, BaseResource):
 
     actions_enabled: bool = False
     alarm_description: Optional[str] = None
-    alarm_actions: Optional[List] = field(default_factory=list)
+    alarm_actions: Optional[List] = field(factory=list)
     comparison_operator: Optional[str] = None
-    dimensions: Optional[List] = field(default_factory=list)
+    dimensions: Optional[List] = field(factory=list)
     evaluation_periods: Optional[int] = 0
-    insufficient_data_actions: Optional[List] = field(default_factory=list)
+    insufficient_data_actions: Optional[List] = field(factory=list)
     metric_name: Optional[str] = None
     namespace: Optional[str] = None
-    ok_actions: Optional[List] = field(default_factory=list)
+    ok_actions: Optional[List] = field(factory=list)
     period: Optional[int] = 0
     state_value: Optional[str] = None
     statistic: Optional[str] = None
@@ -1285,20 +1285,20 @@ class AWSCloudwatchAlarm(AWSResource, BaseResource):
         return True
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSCloudFormationStackSet(AWSResource, BaseResource):
     kind: ClassVar[str] = "aws_cloudformation_stack_set"
     description: Optional[str] = None
     stack_set_status: Optional[str] = None
-    stack_set_parameters: Dict = field(default_factory=dict)
-    stack_set_capabilities: Optional[List[str]] = field(default_factory=list)
+    stack_set_parameters: Dict = field(factory=dict)
+    stack_set_capabilities: Optional[List[str]] = field(factory=list)
     stack_set_administration_role_arn: Optional[str] = None
     stack_set_execution_role_name: Optional[str] = None
-    stack_set_drift_detection_details: Optional[Dict[str, Any]] = field(default_factory=dict)
+    stack_set_drift_detection_details: Optional[Dict[str, Any]] = field(factory=dict)
     stack_set_last_drift_check_timestamp: Optional[datetime] = None
-    stack_set_auto_deployment: Optional[Dict[str, bool]] = field(default_factory=dict)
+    stack_set_auto_deployment: Optional[Dict[str, bool]] = field(factory=dict)
     stack_set_permission_model: Optional[str] = None
-    stack_set_organizational_unit_ids: Optional[List[str]] = field(default_factory=list)
+    stack_set_organizational_unit_ids: Optional[List[str]] = field(factory=list)
     stack_set_managed_execution_active: Optional[bool] = None
 
     def delete(self, graph: Graph) -> bool:
@@ -1349,7 +1349,7 @@ class AWSCloudFormationStackSet(AWSResource, BaseResource):
         return True
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSRoute53Zone(AWSResource, BaseDNSZone):
     kind: ClassVar[str] = "aws_route53_zone"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -1363,7 +1363,7 @@ class AWSRoute53Zone(AWSResource, BaseDNSZone):
     zone_linked_service: Optional[Dict[str, str]] = None
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSRoute53ResourceRecordSet(AWSResource, BaseDNSRecordSet):
     kind: ClassVar[str] = "aws_route53_resource_record_set"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -1380,7 +1380,7 @@ class AWSRoute53ResourceRecordSet(AWSResource, BaseDNSRecordSet):
     record_traffic_policy_instance_id: Optional[str] = None
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AWSRoute53ResourceRecord(AWSResource, BaseDNSRecord):
     kind: ClassVar[str] = "aws_route53_resource_record"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {

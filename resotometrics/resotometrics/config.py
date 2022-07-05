@@ -1,5 +1,5 @@
 import os
-from dataclasses import dataclass, field
+from attrs import define, field
 from typing import Dict, ClassVar, Optional
 
 import jsons
@@ -18,7 +18,7 @@ class MetricType(Enum):
     counter = "counter"
 
 
-@dataclass
+@define
 class Metric:
     kind: ClassVar[str] = "metric"
     help: str = field(metadata={"description": "Metric help text"})
@@ -36,7 +36,7 @@ def _load_default_metrics() -> Dict[str, Metric]:
     return {metric_name: jsons.load(metric_data, Metric) for metric_name, metric_data in default_metrics.items()}
 
 
-@dataclass
+@define
 class ResotoMetricsConfig:
     kind: ClassVar[str] = "resotometrics"
     graph: Optional[str] = field(
@@ -45,7 +45,7 @@ class ResotoMetricsConfig:
     )
     timeout: Optional[int] = field(default=300, metadata={"description": "Metrics generation timeout in seconds"})
     metrics: Optional[Dict[str, Metric]] = field(
-        default_factory=_load_default_metrics,
+        factory=_load_default_metrics,
         metadata={
             "description": ("Metrics config\n" "See https://resoto.com/docs/reference/cli/aggregate for syntax details")
         },

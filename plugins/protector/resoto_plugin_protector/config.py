@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from attrs import define, field
 from typing import ClassVar, Dict, List
 
 
@@ -11,7 +11,7 @@ default_config = {
 }
 
 
-@dataclass
+@define
 class ProtectorConfig:
     kind: ClassVar[str] = "plugin_protector"
     enabled: bool = field(
@@ -19,7 +19,7 @@ class ProtectorConfig:
         metadata={"description": "Enable plugin?", "restart_required": True},
     )
     config: Dict[str, Dict[str, Dict[str, Dict[str, List[str]]]]] = field(
-        default_factory=lambda: default_config,
+        factory=lambda: default_config,
         metadata={
             "description": (
                 "Configuration for the plugin\n"
