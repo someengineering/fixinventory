@@ -36,7 +36,7 @@ from .utils import (
     gcp_resource,
     common_resource_kwargs,
 )
-from attrs import define, field, InitVar
+from attrs import define, field
 
 
 log = resotolib.logger.getLogger("resoto." + __name__)
@@ -192,7 +192,6 @@ class GCPRegion(GCPResource, BaseRegion):
     }
     api_identifier: ClassVar[str] = "region"
     region_status: Optional[str] = None
-    quotas: InitVar[List[str]] = None
 
     def __attrs_post_init__(self, quotas: List[str]) -> None:
         super().__attrs_post_init__()
@@ -262,8 +261,6 @@ class GCPInstance(GCPResource, BaseInstance):
     api_identifier: ClassVar[str] = "instance"
 
     network_interfaces: Optional[str] = None
-    machine_type_link: InitVar[str] = None
-    machine_type: InitVar[BaseInstanceType] = None
 
     def __attrs_post_init__(self, machine_type_link: str, machine_type: BaseInstanceType) -> None:
         super().__attrs_post_init__()

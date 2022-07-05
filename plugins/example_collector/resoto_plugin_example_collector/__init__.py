@@ -1,5 +1,5 @@
 import resotolib.logger
-from attrs import define, field, InitVar
+from attrs import define, field
 from datetime import datetime
 from typing import ClassVar, Dict, List, Optional
 from resotolib.baseplugin import BaseCollectorPlugin
@@ -233,7 +233,6 @@ class ExampleCustomResource(ExampleResource, BaseResource):
     custom_optional_float_attribute: Optional[float] = None
     custom_dict_attribute: Dict[str, str] = field(factory=dict)
     custom_list_attribute: List[str] = field(factory=list)
-    init_only_attribute: InitVar[Optional[str]] = None
 
     def __attrs_post_init__(self, init_only_attribute: str) -> None:
         super().__attrs_post_init__()

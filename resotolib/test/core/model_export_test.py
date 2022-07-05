@@ -21,7 +21,7 @@ class ExampleEnum(Enum):
     earth = "earth"
 
 
-@define
+@define(slots=False)
 class DataClassBase:
     kind: ClassVar[str] = "base"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {"default": [], "delete": []}
@@ -39,7 +39,7 @@ class DataClassProp:
     value: Union[str, int, float]
 
 
-@define
+@define(slots=False)
 class DataClassExample(DataClassBase):
     kind: ClassVar[str] = "example"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -58,7 +58,7 @@ class DataClassExample(DataClassBase):
     optional_enum: Optional[ExampleEnum]
 
 
-@define
+@define(slots=False)
 class DataClassOther(DataClassBase):
     kind: ClassVar[str] = "other"
     something: str
