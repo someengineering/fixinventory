@@ -74,7 +74,7 @@ class DigitalOceanResource(BaseResource):
         if tag_resource_name:
 
             log.debug(f"Updating tag {key} on resource {self.id}")
-            team = self._account
+            team = self.account()
             credentials = get_team_credentials(team.id)
             if credentials is None:
                 raise RuntimeError(f"Cannot update tag on resource {self.id}, credentials not found for team {team.id}")
@@ -108,7 +108,7 @@ class DigitalOceanResource(BaseResource):
         tag_resource_name = self.tag_resource_name()
         if tag_resource_name:
             log.debug(f"Deleting tag {key} on resource {self.id}")
-            team = self._account
+            team = self.account()
             credentials = get_team_credentials(team.id)
             if credentials is None:
                 raise RuntimeError(f"Cannot update tag on resource {self.id}, credentials not found for team {team.id}")
