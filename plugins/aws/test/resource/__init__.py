@@ -1,10 +1,38 @@
 import json
 import os
 from attrs import fields
-from typing import Type
+from typing import Type, Any, Callable
 
-from resoto_plugin_aws.resource.base import GraphBuilder, AWSResourceType
+from boto3 import Session
+
+from resoto_plugin_aws.aws_client import AwsClient
+from resoto_plugin_aws.config import AwsConfig
+from resoto_plugin_aws.resource.base import GraphBuilder, AWSResourceType, AWSAccount, AWSRegion
+from resotolib.baseresources import Cloud
 from resotolib.graph import Graph
+
+
+class BotoFileClient:
+    def __init__(self, service: str) -> None:
+        self.service = service
+
+    def __getattr__(self, action_name: str) -> Callable[[], Any]:
+        def call_action() -> Any:
+            action = action_name.replace("_", "-")
+            path = os.path.abspath(os.path.dirname(__file__) + f"/files/{self.service}/{action}.json")
+            if os.path.exists(path):
+                with open(path) as f:
+                    return json.load(f)
+            else:
+                return {}
+
+        return call_action
+
+
+# use this factory in tests, to rely on API responses from file system
+class BotoFileBasedSession(Session):  # type: ignore
+    def client(self, service_name: str, **kwargs: Any) -> Any:
+        return BotoFileClient(service_name)
 
 
 def all_props_set(obj: Type[AWSResourceType]) -> None:
@@ -27,7 +55,8 @@ def all_props_set(obj: Type[AWSResourceType]) -> None:
 
 def round_trip(file: str, cls: Type[AWSResourceType], root: str) -> AWSResourceType:
     path = os.path.abspath(os.path.dirname(__file__) + "/files/" + file)
-    builder = GraphBuilder(Graph(), None, None, None)  # type: ignore
+    client = AwsClient(AwsConfig(), "123456789012", "role", "us-east-1")
+    builder = GraphBuilder(Graph(), Cloud("test"), AWSAccount("test"), AWSRegion("test"), client)
     with open(path) as f:
         js = json.load(f)
         cls.collect(js[root], builder)
