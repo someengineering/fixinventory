@@ -1,5 +1,5 @@
 import pickle
-from dataclasses import replace
+from attrs import evolve
 from tempfile import TemporaryDirectory
 
 import jsons
@@ -23,7 +23,7 @@ def test_k8s_config_pickle() -> None:
     file = K8sConfigFile("test", ["bla"], True)
     base = K8sConfig([access], [file])
 
-    for config in [base, replace(base, _clients={}, _temp_dir=TemporaryDirectory())]:
+    for config in [base, evolve(base, clients={}, temp_dir=TemporaryDirectory())]:
         pickled = pickle.dumps(config)
         again = pickle.loads(pickled)
         assert config.configs == again.configs

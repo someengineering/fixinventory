@@ -119,7 +119,7 @@ class BaseResource(ABC):
     tags: Dict[str, Optional[str]] = None
     name: str = None
     _cloud: object = field(default=None, repr=False)
-    _account: "BaseAccount" = field(default=None, repr=False)
+    _account: Optional["BaseAccount"] = field(default=None, repr=False)
     _region: object = field(default=None, repr=False)
     _zone: object = field(default=None, repr=False)
     _resotocore_id: Optional[str] = field(default=None, repr=False)

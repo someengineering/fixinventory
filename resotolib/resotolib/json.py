@@ -1,6 +1,7 @@
 import json
 
 import jsons
+import cattrs
 from typing import TypeVar, Any, Type, Optional, Dict
 
 from resotolib.types import Json, JsonElement
@@ -13,6 +14,7 @@ def to_json(node: Any, **kwargs: Any) -> Json:
     Use this method, if the given node is known as complex object,
     so the result will be a json object.
     """
+    node = cattrs.unstructure(node)
     return jsons.dump(  # type: ignore
         node,
         strip_privates=True,
