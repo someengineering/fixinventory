@@ -5,8 +5,16 @@ from typing import ClassVar, Dict, Optional, List, Type
 from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
 from resoto_plugin_aws.utils import TagsToDict, TagsValue
 
-from resotolib.baseresources import BaseInstance, EdgeType, BaseVolume, BaseInstanceType, BaseAccount  # noqa: F401
-from resotolib.json_bender import Bender, S, Bend, ForallBend, K, bend
+from resotolib.baseresources import (  # noqa: F401
+    BaseInstance,
+    EdgeType,
+    BaseVolume,
+    BaseInstanceType,
+    BaseAccount,
+    VolumeStatus,
+    InstanceStatus,
+)
+from resotolib.json_bender import Bender, S, Bend, ForallBend, bend, MapEnum
 from resotolib.types import Json
 
 
@@ -44,6 +52,16 @@ class AwsEc2VolumeAttachment:
     delete_on_termination: Optional[bool] = field(default=None)
 
 
+VolumeStatusMapping = {
+    "creating": VolumeStatus.BUSY,
+    "available": VolumeStatus.AVAILABLE,
+    "in-use": VolumeStatus.IN_USE,
+    "deleting": VolumeStatus.DELETED,
+    "deleted": VolumeStatus.DELETED,
+    "error": VolumeStatus.ERROR,
+}
+
+
 @dataclass(eq=False)
 class AwsEc2Volume(AwsResource, BaseVolume):
     kind: ClassVar[str] = "aws_ec2_volume"
@@ -55,7 +73,7 @@ class AwsEc2Volume(AwsResource, BaseVolume):
         "ctime": S("CreateTime"),
         "volume_size": S("Size"),
         "volume_type": S("VolumeType"),
-        "volume_status": S("State"),
+        "volume_status": S("State") >> MapEnum(VolumeStatusMapping, default=VolumeStatus.UNKNOWN),
         "volume_iops": S("Iops"),
         "volume_throughput": S("Throughput"),
         "volume_encrypted": S("Encrypted"),
@@ -391,6 +409,16 @@ class AwsEc2PrivateDnsNameOptionsResponse:
     enable_resource_name_dns_aaaa_record: Optional[bool] = field(default=None)
 
 
+InstanceStatusMapping = {
+    "pending": InstanceStatus.BUSY,
+    "running": InstanceStatus.RUNNING,
+    "shutting-down": InstanceStatus.STOPPED,
+    "terminated": InstanceStatus.TERMINATED,
+    "stopping": InstanceStatus.STOPPED,
+    "stopped": InstanceStatus.STOPPED,
+}
+
+
 @dataclass(eq=False)
 class AwsEc2Instance(AwsResource, BaseInstance):
     kind: ClassVar[str] = "aws_ec2_instance"
@@ -401,8 +429,7 @@ class AwsEc2Instance(AwsResource, BaseInstance):
         "tags": S("Tags", default=[]) >> TagsToDict(),
         "name": S("Tags", default=[]) >> TagsValue("Name"),
         "ctime": S("LaunchTime"),
-        "mtime": K(None),
-        "instance_status": S("State", "Name"),
+        "instance_status": S("State", "Name") >> MapEnum(InstanceStatusMapping, default=InstanceStatus.UNKNOWN),
         "instance_cores": S("CpuOptions", "CoreCount"),
         "instance_ami_launch_index": S("AmiLaunchIndex"),
         "instance_image_id": S("ImageId"),

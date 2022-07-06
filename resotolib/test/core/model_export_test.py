@@ -16,9 +16,9 @@ from resotolib.core.model_export import (
 
 
 class ExampleEnum(Enum):
-    moon = "moon"
-    sun = "sun"
-    earth = "earth"
+    Moon = "moon"
+    Sun = "sun"
+    Earth = "earth"
 
 
 @dataclass
