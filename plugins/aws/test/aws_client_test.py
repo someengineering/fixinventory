@@ -1,6 +1,6 @@
 from resoto_plugin_aws.config import AwsConfig
 from resoto_plugin_aws.aws_client import AwsClient
-from test.resource import BotoFileBasedSession
+from test.resources import BotoFileBasedSession
 
 
 def test_region() -> None:

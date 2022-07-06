@@ -2,7 +2,7 @@ from resoto_plugin_aws.collector import AwsAccountCollector
 from resoto_plugin_aws.config import AwsConfig
 from resoto_plugin_aws.resource.base import AwsAccount, AwsResource
 from resotolib.baseresources import Cloud
-from test.resource import BotoFileBasedSession
+from test.resources import BotoFileBasedSession
 
 
 def test_collect() -> None:

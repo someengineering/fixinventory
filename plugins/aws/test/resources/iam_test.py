@@ -6,7 +6,7 @@ from resoto_plugin_aws.resource.iam import (
     AwsIamUser,
     AwsIamAccessKey,
 )
-from test.resource import round_trip
+from test.resources import round_trip
 
 
 def test_groups() -> None:

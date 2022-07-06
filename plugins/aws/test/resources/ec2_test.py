@@ -1,5 +1,5 @@
 from resoto_plugin_aws.resource.ec2 import AwsEc2Instance, AwsEc2KeyPair, AwsEc2Volume, AwsEc2NetworkAcl
-from test.resource import round_trip
+from test.resources import round_trip
 
 
 def test_volumes() -> None:

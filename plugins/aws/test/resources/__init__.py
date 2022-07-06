@@ -5,8 +5,8 @@ from typing import Type, Any, Callable, Optional, Set, Tuple
 
 from boto3 import Session
 
-from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.config import AwsConfig
+from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import GraphBuilder, AWSResourceType, AwsAccount, AwsRegion, AwsResource
 from resotolib.baseresources import Cloud
 from resotolib.graph import Graph
