@@ -1,13 +1,16 @@
+import logging
 import threading
 import time
 import uuid
 from dataclasses import dataclass, field
-from functools import cached_property, lru_cache
-from typing import List, ClassVar, Optional, Type, Any
+from functools import lru_cache
+from typing import List, ClassVar, Optional, Type, Any, Dict
 
 from boto3.session import Session as BotoSession
 
 from resotolib.proc import num_default_threads
+
+log = logging.getLogger("resoto.plugins.aws")
 
 
 @dataclass(unsafe_hash=True)
@@ -18,6 +21,7 @@ class AwsSessionHolder:
     role_override: bool = False
     # Only here to override in tests
     session_class_factory: Type[BotoSession] = BotoSession
+    kind: ClassVar[str] = "aws_session_holder"
 
     # noinspection PyUnusedLocal
     @lru_cache(maxsize=128)
@@ -119,11 +123,28 @@ class AwsConfig:
             return name not in self.no_collect
         return True
 
-    @cached_property
+    _lock: threading.RLock = field(default_factory=threading.RLock)
+    _holder: Optional[AwsSessionHolder] = field(default=None)
+
+    def __getstate__(self) -> Dict[str, Any]:
+        d = self.__dict__.copy()
+        d.pop("_lock", None)
+        d.pop("_holder", None)
+        return d
+
+    def __setstate__(self, d: Dict[str, Any]) -> None:
+        d["_lock"] = threading.RLock()
+        self.__dict__.update(d)
+
     def sessions(self) -> AwsSessionHolder:
-        return AwsSessionHolder(
-            access_key_id=self.access_key_id,
-            secret_access_key=self.secret_access_key,
-            role=self.role,
-            role_override=self.role_override,
-        )
+        if self._holder is None:
+            with self._lock:
+                if self._holder is None:
+                    log.info("Create a new AWS session holder")
+                    self._holder = AwsSessionHolder(
+                        access_key_id=self.access_key_id,
+                        secret_access_key=self.secret_access_key,
+                        role=self.role,
+                        role_override=self.role_override,
+                    )
+        return self._holder

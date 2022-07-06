@@ -77,7 +77,7 @@ def round_trip(
 ) -> Tuple[AWSResourceType, GraphBuilder]:
     path = os.path.abspath(os.path.dirname(__file__) + "/files/" + file)
     config = AwsConfig()
-    config.sessions.session_class_factory = BotoFileBasedSession
+    config.sessions().session_class_factory = BotoFileBasedSession
     client = AwsClient(config, "123456789012", "role", "us-east-1")
     builder = GraphBuilder(Graph(), Cloud("test"), AwsAccount("test"), AwsRegion("test"), client)
     with open(path) as f:
