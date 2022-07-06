@@ -153,7 +153,7 @@ class AWSEC2Instance(AWSResource, BaseInstance):
     }
 
     def delete(self, graph: Graph) -> bool:
-        if self.instance_status == InstanceStatus.TERMINATED.value:
+        if self.instance_status == InstanceStatus.TERMINATED:
             log.debug(
                 (
                     f"AWS EC2 Instance {self.dname} in"
