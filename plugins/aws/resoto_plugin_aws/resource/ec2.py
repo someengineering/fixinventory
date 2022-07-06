@@ -12,7 +12,7 @@ from resotolib.types import Json
 
 # region InstanceType
 @dataclass(eq=False)
-class AwsEC2InstanceType(AwsResource, BaseInstanceType):
+class AwsEc2InstanceType(AwsResource, BaseInstanceType):
     kind: ClassVar[str] = "aws_ec2_instance_type"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
         "default": ["aws_ec2_instance"],
@@ -26,7 +26,7 @@ class AwsEC2InstanceType(AwsResource, BaseInstanceType):
 
 
 @dataclass(eq=False)
-class AwsEC2VolumeAttachment:
+class AwsEc2VolumeAttachment:
     kind: ClassVar[str] = "aws_ec2_volume_attachment"
     mapping: ClassVar[Dict[str, Bender]] = {
         "attach_time": S("AttachTime"),
@@ -45,7 +45,7 @@ class AwsEC2VolumeAttachment:
 
 
 @dataclass(eq=False)
-class AwsEC2Volume(AwsResource, BaseVolume):
+class AwsEc2Volume(AwsResource, BaseVolume):
     kind: ClassVar[str] = "aws_ec2_volume"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-volumes", "Volumes")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -59,7 +59,7 @@ class AwsEC2Volume(AwsResource, BaseVolume):
         "volume_iops": S("Iops"),
         "volume_throughput": S("Throughput"),
         "volume_encrypted": S("Encrypted"),
-        "volume_attachments": S("Attachments", default=[]) >> ForallBend(AwsEC2VolumeAttachment.mapping),
+        "volume_attachments": S("Attachments", default=[]) >> ForallBend(AwsEc2VolumeAttachment.mapping),
         "availability_zone": S("AvailabilityZone"),
         "volume_kms_key_id": S("KmsKeyId"),
         "volume_outpost_arn": S("OutpostArn"),
@@ -67,7 +67,7 @@ class AwsEC2Volume(AwsResource, BaseVolume):
         "volume_fast_restored": S("FastRestored"),
         "volume_multi_attach_enabled": S("MultiAttachEnabled"),
     }
-    volume_attachments: List[AwsEC2VolumeAttachment] = field(default_factory=list)
+    volume_attachments: List[AwsEc2VolumeAttachment] = field(default_factory=list)
     availability_zone: Optional[str] = field(default=None)
     volume_encrypted: Optional[bool] = field(default=None)
     volume_kms_key_id: Optional[str] = field(default=None)
@@ -82,8 +82,8 @@ class AwsEC2Volume(AwsResource, BaseVolume):
         super().connect_in_graph(builder, source)
         builder.add_edge(self, EdgeType.default, reverse=True, name=self.volume_type)
         for attachment in self.volume_attachments:
-            builder.add_edge(self, EdgeType.default, clazz=AwsEC2Instance, id=attachment.instance_id)
-            builder.add_edge(self, EdgeType.delete, reverse=True, clazz=AwsEC2Instance, id=attachment.instance_id)
+            builder.add_edge(self, EdgeType.default, clazz=AwsEc2Instance, id=attachment.instance_id)
+            builder.add_edge(self, EdgeType.delete, reverse=True, clazz=AwsEc2Instance, id=attachment.instance_id)
 
 
 # endregion
@@ -92,7 +92,7 @@ class AwsEC2Volume(AwsResource, BaseVolume):
 
 
 @dataclass(eq=False)
-class AwsEC2KeyPair(AwsResource):
+class AwsEc2KeyPair(AwsResource):
     kind: ClassVar[str] = "aws_ec2_key_pair_info"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-key-pairs", "KeyPairs")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -115,7 +115,7 @@ class AwsEC2KeyPair(AwsResource):
 
 
 @dataclass(eq=False)
-class AwsEC2Placement:
+class AwsEc2Placement:
     kind: ClassVar[str] = "aws_ec2_placement"
     mapping: ClassVar[Dict[str, Bender]] = {
         "availability_zone": S("AvailabilityZone"),
@@ -138,7 +138,7 @@ class AwsEC2Placement:
 
 
 @dataclass(eq=False)
-class AwsEC2ProductCode:
+class AwsEc2ProductCode:
     kind: ClassVar[str] = "aws_ec2_product_code"
     mapping: ClassVar[Dict[str, Bender]] = {
         "product_code_id": S("ProductCodeId"),
@@ -149,7 +149,7 @@ class AwsEC2ProductCode:
 
 
 @dataclass(eq=False)
-class AwsEC2InstanceState:
+class AwsEc2InstanceState:
     kind: ClassVar[str] = "aws_ec2_instance_state"
     mapping: ClassVar[Dict[str, Bender]] = {"code": S("Code"), "name": S("Name")}
     code: Optional[int] = field(default=None)
@@ -157,7 +157,7 @@ class AwsEC2InstanceState:
 
 
 @dataclass(eq=False)
-class AwsSEC2EbsInstanceBlockDevice:
+class AwsEc2EbsInstanceBlockDevice:
     kind: ClassVar[str] = "aws_ec2_ebs_instance_block_device"
     mapping: ClassVar[Dict[str, Bender]] = {
         "attach_time": S("AttachTime"),
@@ -172,18 +172,18 @@ class AwsSEC2EbsInstanceBlockDevice:
 
 
 @dataclass(eq=False)
-class AwsEC2InstanceBlockDeviceMapping:
+class AwsEc2InstanceBlockDeviceMapping:
     kind: ClassVar[str] = "aws_ec2_instance_block_device_mapping"
     mapping: ClassVar[Dict[str, Bender]] = {
         "device_name": S("DeviceName"),
-        "ebs": S("Ebs") >> Bend(AwsSEC2EbsInstanceBlockDevice.mapping),
+        "ebs": S("Ebs") >> Bend(AwsEc2EbsInstanceBlockDevice.mapping),
     }
     device_name: Optional[str] = field(default=None)
-    ebs: Optional[AwsSEC2EbsInstanceBlockDevice] = field(default=None)
+    ebs: Optional[AwsEc2EbsInstanceBlockDevice] = field(default=None)
 
 
 @dataclass(eq=False)
-class AwsEC2IamInstanceProfile:
+class AwsEc2IamInstanceProfile:
     kind: ClassVar[str] = "aws_ec2_iam_instance_profile"
     mapping: ClassVar[Dict[str, Bender]] = {"arn": S("Arn"), "id": S("Id")}
     arn: Optional[str] = field(default=None)
@@ -191,7 +191,7 @@ class AwsEC2IamInstanceProfile:
 
 
 @dataclass(eq=False)
-class AwsEC2ElasticGpuAssociation:
+class AwsEc2ElasticGpuAssociation:
     kind: ClassVar[str] = "aws_ec2_elastic_gpu_association"
     mapping: ClassVar[Dict[str, Bender]] = {
         "elastic_gpu_id": S("ElasticGpuId"),
@@ -206,7 +206,7 @@ class AwsEC2ElasticGpuAssociation:
 
 
 @dataclass(eq=False)
-class AwsEC2ElasticInferenceAcceleratorAssociation:
+class AwsEc2ElasticInferenceAcceleratorAssociation:
     kind: ClassVar[str] = "aws_ec2_elastic_inference_accelerator_association"
     mapping: ClassVar[Dict[str, Bender]] = {
         "elastic_inference_accelerator_arn": S("ElasticInferenceAcceleratorArn"),
@@ -221,7 +221,7 @@ class AwsEC2ElasticInferenceAcceleratorAssociation:
 
 
 @dataclass(eq=False)
-class AwsEC2InstanceNetworkInterfaceAssociation:
+class AwsEc2InstanceNetworkInterfaceAssociation:
     kind: ClassVar[str] = "aws_ec2_instance_network_interface_association"
     mapping: ClassVar[Dict[str, Bender]] = {
         "carrier_ip": S("CarrierIp"),
@@ -238,7 +238,7 @@ class AwsEC2InstanceNetworkInterfaceAssociation:
 
 
 @dataclass(eq=False)
-class AwsEC2InstanceNetworkInterfaceAttachment:
+class AwsEc2InstanceNetworkInterfaceAttachment:
     kind: ClassVar[str] = "aws_ec2_instance_network_interface_attachment"
     mapping: ClassVar[Dict[str, Bender]] = {
         "attach_time": S("AttachTime"),
@@ -257,7 +257,7 @@ class AwsEC2InstanceNetworkInterfaceAttachment:
 
 
 @dataclass(eq=False)
-class AwsEC2GroupIdentifier:
+class AwsEc2GroupIdentifier:
     kind: ClassVar[str] = "aws_ec2_group_identifier"
     mapping: ClassVar[Dict[str, Bender]] = {"group_name": S("GroupName"), "group_id": S("GroupId")}
     group_name: Optional[str] = field(default=None)
@@ -265,28 +265,28 @@ class AwsEC2GroupIdentifier:
 
 
 @dataclass(eq=False)
-class AwsEC2InstancePrivateIpAddress:
+class AwsEc2InstancePrivateIpAddress:
     kind: ClassVar[str] = "aws_ec2_instance_private_ip_address"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "association": S("Association") >> Bend(AwsEC2InstanceNetworkInterfaceAssociation.mapping),
+        "association": S("Association") >> Bend(AwsEc2InstanceNetworkInterfaceAssociation.mapping),
         "primary": S("Primary"),
         "private_dns_name": S("PrivateDnsName"),
         "private_ip_address": S("PrivateIpAddress"),
     }
-    association: Optional[AwsEC2InstanceNetworkInterfaceAssociation] = field(default=None)
+    association: Optional[AwsEc2InstanceNetworkInterfaceAssociation] = field(default=None)
     primary: Optional[bool] = field(default=None)
     private_dns_name: Optional[str] = field(default=None)
     private_ip_address: Optional[str] = field(default=None)
 
 
 @dataclass(eq=False)
-class AwsEC2InstanceNetworkInterface:
+class AwsEc2InstanceNetworkInterface:
     kind: ClassVar[str] = "aws_ec2_instance_network_interface"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "association": S("Association") >> Bend(AwsEC2InstanceNetworkInterfaceAssociation.mapping),
-        "attachment": S("Attachment") >> Bend(AwsEC2InstanceNetworkInterfaceAttachment.mapping),
+        "association": S("Association") >> Bend(AwsEc2InstanceNetworkInterfaceAssociation.mapping),
+        "attachment": S("Attachment") >> Bend(AwsEc2InstanceNetworkInterfaceAttachment.mapping),
         "description": S("Description"),
-        "groups": S("Groups", default=[]) >> ForallBend(AwsEC2GroupIdentifier.mapping),
+        "groups": S("Groups", default=[]) >> ForallBend(AwsEc2GroupIdentifier.mapping),
         "ipv6_addresses": S("Ipv6Addresses", default=[]) >> ForallBend(S("Ipv6Address")),
         "mac_address": S("MacAddress"),
         "network_interface_id": S("NetworkInterfaceId"),
@@ -294,7 +294,7 @@ class AwsEC2InstanceNetworkInterface:
         "private_dns_name": S("PrivateDnsName"),
         "private_ip_address": S("PrivateIpAddress"),
         "private_ip_addresses": S("PrivateIpAddresses", default=[])
-        >> ForallBend(AwsEC2InstancePrivateIpAddress.mapping),
+        >> ForallBend(AwsEc2InstancePrivateIpAddress.mapping),
         "source_dest_check": S("SourceDestCheck"),
         "status": S("Status"),
         # "subnet_id": S("SubnetId"),
@@ -303,16 +303,16 @@ class AwsEC2InstanceNetworkInterface:
         "ipv4_prefixes": S("Ipv4Prefixes", default=[]) >> ForallBend(S("Ipv4Prefix")),
         "ipv6_prefixes": S("Ipv6Prefixes", default=[]) >> ForallBend(S("Ipv6Prefix")),
     }
-    association: Optional[AwsEC2InstanceNetworkInterfaceAssociation] = field(default=None)
-    attachment: Optional[AwsEC2InstanceNetworkInterfaceAttachment] = field(default=None)
+    association: Optional[AwsEc2InstanceNetworkInterfaceAssociation] = field(default=None)
+    attachment: Optional[AwsEc2InstanceNetworkInterfaceAttachment] = field(default=None)
     description: Optional[str] = field(default=None)
-    groups: List[AwsEC2GroupIdentifier] = field(default_factory=list)
+    groups: List[AwsEc2GroupIdentifier] = field(default_factory=list)
     ipv6_addresses: List[str] = field(default_factory=list)
     mac_address: Optional[str] = field(default=None)
     network_interface_id: Optional[str] = field(default=None)
     private_dns_name: Optional[str] = field(default=None)
     private_ip_address: Optional[str] = field(default=None)
-    private_ip_addresses: List[AwsEC2InstancePrivateIpAddress] = field(default_factory=list)
+    private_ip_addresses: List[AwsEc2InstancePrivateIpAddress] = field(default_factory=list)
     source_dest_check: Optional[bool] = field(default=None)
     status: Optional[str] = field(default=None)
     interface_type: Optional[str] = field(default=None)
@@ -321,7 +321,7 @@ class AwsEC2InstanceNetworkInterface:
 
 
 @dataclass(eq=False)
-class AwsEC2StateReason:
+class AwsEc2StateReason:
     kind: ClassVar[str] = "aws_ec2_state_reason"
     mapping: ClassVar[Dict[str, Bender]] = {"code": S("Code"), "message": S("Message")}
     code: Optional[str] = field(default=None)
@@ -329,7 +329,7 @@ class AwsEC2StateReason:
 
 
 @dataclass(eq=False)
-class AwsEC2CpuOptions:
+class AwsEc2CpuOptions:
     kind: ClassVar[str] = "aws_ec2_cpu_options"
     mapping: ClassVar[Dict[str, Bender]] = {"core_count": S("CoreCount"), "threads_per_core": S("ThreadsPerCore")}
     core_count: Optional[int] = field(default=None)
@@ -337,7 +337,7 @@ class AwsEC2CpuOptions:
 
 
 @dataclass(eq=False)
-class AwsEC2CapacityReservationTargetResponse:
+class AwsEc2CapacityReservationTargetResponse:
     kind: ClassVar[str] = "aws_ec2_capacity_reservation_target_response"
     mapping: ClassVar[Dict[str, Bender]] = {
         "capacity_reservation_id": S("CapacityReservationId"),
@@ -348,19 +348,19 @@ class AwsEC2CapacityReservationTargetResponse:
 
 
 @dataclass(eq=False)
-class AwsEC2CapacityReservationSpecificationResponse:
+class AwsEc2CapacityReservationSpecificationResponse:
     kind: ClassVar[str] = "aws_ec2_capacity_reservation_specification_response"
     mapping: ClassVar[Dict[str, Bender]] = {
         "capacity_reservation_preference": S("CapacityReservationPreference"),
         "capacity_reservation_target": S("CapacityReservationTarget")
-        >> Bend(AwsEC2CapacityReservationTargetResponse.mapping),
+        >> Bend(AwsEc2CapacityReservationTargetResponse.mapping),
     }
     capacity_reservation_preference: Optional[str] = field(default=None)
-    capacity_reservation_target: Optional[AwsEC2CapacityReservationTargetResponse] = field(default=None)
+    capacity_reservation_target: Optional[AwsEc2CapacityReservationTargetResponse] = field(default=None)
 
 
 @dataclass(eq=False)
-class AwsEC2InstanceMetadataOptionsResponse:
+class AwsEc2InstanceMetadataOptionsResponse:
     kind: ClassVar[str] = "aws_ec2_instance_metadata_options_response"
     mapping: ClassVar[Dict[str, Bender]] = {
         "state": S("State"),
@@ -379,7 +379,7 @@ class AwsEC2InstanceMetadataOptionsResponse:
 
 
 @dataclass(eq=False)
-class AwsEC2PrivateDnsNameOptionsResponse:
+class AwsEc2PrivateDnsNameOptionsResponse:
     kind: ClassVar[str] = "aws_ec2_private_dns_name_options_response"
     mapping: ClassVar[Dict[str, Bender]] = {
         "hostname_type": S("HostnameType"),
@@ -392,7 +392,7 @@ class AwsEC2PrivateDnsNameOptionsResponse:
 
 
 @dataclass(eq=False)
-class AwsEC2Instance(AwsResource, BaseInstance):
+class AwsEc2Instance(AwsResource, BaseInstance):
     kind: ClassVar[str] = "aws_ec2_instance"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-instances", "Reservations")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -411,56 +411,56 @@ class AwsEC2Instance(AwsResource, BaseInstance):
         "instance_key_name": S("KeyName"),
         "instance_launch_time": S("LaunchTime"),
         "instance_monitoring": S("Monitoring", "State"),
-        "instance_placement": S("Placement") >> Bend(AwsEC2Placement.mapping),
+        "instance_placement": S("Placement") >> Bend(AwsEc2Placement.mapping),
         "instance_platform": S("Platform"),
         "instance_private_dns_name": S("PrivateDnsName"),
         "instance_private_ip_address": S("PrivateIpAddress"),
-        "instance_product_codes": S("ProductCodes", default=[]) >> ForallBend(AwsEC2ProductCode.mapping),
+        "instance_product_codes": S("ProductCodes", default=[]) >> ForallBend(AwsEc2ProductCode.mapping),
         "instance_public_dns_name": S("PublicDnsName"),
         "instance_public_ip_address": S("PublicIpAddress"),
         "instance_ramdisk_id": S("RamdiskId"),
-        "instance_state": S("State") >> Bend(AwsEC2InstanceState.mapping),
+        "instance_state": S("State") >> Bend(AwsEc2InstanceState.mapping),
         "instance_state_transition_reason": S("StateTransitionReason"),
         "instance_subnet_id": S("SubnetId"),
         # "instance_vpc_id": S("VpcId"), # TODO: add link
         "instance_architecture": S("Architecture"),
         "instance_block_device_mappings": S("BlockDeviceMappings", default=[])
-        >> ForallBend(AwsEC2InstanceBlockDeviceMapping.mapping),
+        >> ForallBend(AwsEc2InstanceBlockDeviceMapping.mapping),
         "instance_client_token": S("ClientToken"),
         "instance_ebs_optimized": S("EbsOptimized"),
         "instance_ena_support": S("EnaSupport"),
         "instance_hypervisor": S("Hypervisor"),
-        "instance_iam_instance_profile": S("IamInstanceProfile") >> Bend(AwsEC2IamInstanceProfile.mapping),
+        "instance_iam_instance_profile": S("IamInstanceProfile") >> Bend(AwsEc2IamInstanceProfile.mapping),
         "instance_lifecycle": S("InstanceLifecycle"),
         "instance_elastic_gpu_associations": S("ElasticGpuAssociations", default=[])
-        >> ForallBend(AwsEC2ElasticGpuAssociation.mapping),
+        >> ForallBend(AwsEc2ElasticGpuAssociation.mapping),
         "instance_elastic_inference_accelerator_associations": S("ElasticInferenceAcceleratorAssociations", default=[])
-        >> ForallBend(AwsEC2ElasticInferenceAcceleratorAssociation.mapping),
+        >> ForallBend(AwsEc2ElasticInferenceAcceleratorAssociation.mapping),
         "instance_network_interfaces": S("NetworkInterfaces", default=[])
-        >> ForallBend(AwsEC2InstanceNetworkInterface.mapping),
+        >> ForallBend(AwsEc2InstanceNetworkInterface.mapping),
         "instance_outpost_arn": S("OutpostArn"),
         "instance_root_device_name": S("RootDeviceName"),
         "instance_root_device_type": S("RootDeviceType"),
-        "instance_security_groups": S("SecurityGroups", default=[]) >> ForallBend(AwsEC2GroupIdentifier.mapping),
+        "instance_security_groups": S("SecurityGroups", default=[]) >> ForallBend(AwsEc2GroupIdentifier.mapping),
         "instance_source_dest_check": S("SourceDestCheck"),
         "instance_spot_instance_request_id": S("SpotInstanceRequestId"),
         "instance_sriov_net_support": S("SriovNetSupport"),
-        "instance_state_reason": S("StateReason") >> Bend(AwsEC2StateReason.mapping),
+        "instance_state_reason": S("StateReason") >> Bend(AwsEc2StateReason.mapping),
         "instance_virtualization_type": S("VirtualizationType"),
-        "instance_cpu_options": S("CpuOptions") >> Bend(AwsEC2CpuOptions.mapping),
+        "instance_cpu_options": S("CpuOptions") >> Bend(AwsEc2CpuOptions.mapping),
         "instance_capacity_reservation_id": S("CapacityReservationId"),
         "instance_capacity_reservation_specification": S("CapacityReservationSpecification")
-        >> Bend(AwsEC2CapacityReservationSpecificationResponse.mapping),
+        >> Bend(AwsEc2CapacityReservationSpecificationResponse.mapping),
         "instance_hibernation_options": S("HibernationOptions", "Configured"),
         "instance_licenses": S("Licenses", default=[]) >> ForallBend(S("LicenseConfigurationArn")),
-        "instance_metadata_options": S("MetadataOptions") >> Bend(AwsEC2InstanceMetadataOptionsResponse.mapping),
+        "instance_metadata_options": S("MetadataOptions") >> Bend(AwsEc2InstanceMetadataOptionsResponse.mapping),
         "instance_enclave_options": S("EnclaveOptions", "Enabled"),
         "instance_boot_mode": S("BootMode"),
         "instance_platform_details": S("PlatformDetails"),
         "instance_usage_operation": S("UsageOperation"),
         "instance_usage_operation_update_time": S("UsageOperationUpdateTime"),
         "instance_private_dns_name_options": S("PrivateDnsNameOptions")
-        >> Bend(AwsEC2PrivateDnsNameOptionsResponse.mapping),
+        >> Bend(AwsEc2PrivateDnsNameOptionsResponse.mapping),
         "instance_ipv6_address": S("Ipv6Address"),
         "instance_tpm_support": S("TpmSupport"),
         "instance_maintenance_options": S("MaintenanceOptions", "AutoRecovery"),
@@ -472,53 +472,53 @@ class AwsEC2Instance(AwsResource, BaseInstance):
     instance_key_name: Optional[str] = field(default=None)
     instance_launch_time: Optional[datetime] = field(default=None)
     instance_monitoring: Optional[str] = field(default=None)
-    instance_placement: Optional[AwsEC2Placement] = field(default=None)
+    instance_placement: Optional[AwsEc2Placement] = field(default=None)
     instance_platform: Optional[str] = field(default=None)
     instance_private_dns_name: Optional[str] = field(default=None)
     instance_private_ip_address: Optional[str] = field(default=None)
-    instance_product_codes: List[AwsEC2ProductCode] = field(default_factory=list)
+    instance_product_codes: List[AwsEc2ProductCode] = field(default_factory=list)
     instance_public_dns_name: Optional[str] = field(default=None)
     instance_public_ip_address: Optional[str] = field(default=None)
     instance_ramdisk_id: Optional[str] = field(default=None)
-    instance_state: Optional[AwsEC2InstanceState] = field(default=None)
+    instance_state: Optional[AwsEc2InstanceState] = field(default=None)
     instance_state_transition_reason: Optional[str] = field(default=None)
     instance_subnet_id: Optional[str] = field(default=None)
     instance_architecture: Optional[str] = field(default=None)
-    instance_block_device_mappings: List[AwsEC2InstanceBlockDeviceMapping] = field(default_factory=list)
+    instance_block_device_mappings: List[AwsEc2InstanceBlockDeviceMapping] = field(default_factory=list)
     instance_client_token: Optional[str] = field(default=None)
     instance_ebs_optimized: Optional[bool] = field(default=None)
     instance_ena_support: Optional[bool] = field(default=None)
     instance_hypervisor: Optional[str] = field(default=None)
-    instance_iam_instance_profile: Optional[AwsEC2IamInstanceProfile] = field(default=None)
+    instance_iam_instance_profile: Optional[AwsEc2IamInstanceProfile] = field(default=None)
     instance_lifecycle: Optional[str] = field(default=None)
-    instance_elastic_gpu_associations: List[AwsEC2ElasticGpuAssociation] = field(default_factory=list)
-    instance_elastic_inference_accelerator_associations: List[AwsEC2ElasticInferenceAcceleratorAssociation] = field(
+    instance_elastic_gpu_associations: List[AwsEc2ElasticGpuAssociation] = field(default_factory=list)
+    instance_elastic_inference_accelerator_associations: List[AwsEc2ElasticInferenceAcceleratorAssociation] = field(
         default_factory=list
     )
-    instance_network_interfaces: List[AwsEC2InstanceNetworkInterface] = field(default_factory=list)
+    instance_network_interfaces: List[AwsEc2InstanceNetworkInterface] = field(default_factory=list)
     instance_outpost_arn: Optional[str] = field(default=None)
     instance_root_device_name: Optional[str] = field(default=None)
     instance_root_device_type: Optional[str] = field(default=None)
-    instance_security_groups: List[AwsEC2GroupIdentifier] = field(default_factory=list)
+    instance_security_groups: List[AwsEc2GroupIdentifier] = field(default_factory=list)
     instance_source_dest_check: Optional[bool] = field(default=None)
     instance_spot_instance_request_id: Optional[str] = field(default=None)
     instance_sriov_net_support: Optional[str] = field(default=None)
-    instance_state_reason: Optional[AwsEC2StateReason] = field(default=None)
+    instance_state_reason: Optional[AwsEc2StateReason] = field(default=None)
     instance_virtualization_type: Optional[str] = field(default=None)
-    instance_cpu_options: Optional[AwsEC2CpuOptions] = field(default=None)
+    instance_cpu_options: Optional[AwsEc2CpuOptions] = field(default=None)
     instance_capacity_reservation_id: Optional[str] = field(default=None)
-    instance_capacity_reservation_specification: Optional[AwsEC2CapacityReservationSpecificationResponse] = field(
+    instance_capacity_reservation_specification: Optional[AwsEc2CapacityReservationSpecificationResponse] = field(
         default=None
     )
     instance_hibernation_options: Optional[bool] = field(default=None)
     instance_licenses: List[str] = field(default_factory=list)
-    instance_metadata_options: Optional[AwsEC2InstanceMetadataOptionsResponse] = field(default=None)
+    instance_metadata_options: Optional[AwsEc2InstanceMetadataOptionsResponse] = field(default=None)
     instance_enclave_options: Optional[bool] = field(default=None)
     instance_boot_mode: Optional[str] = field(default=None)
     instance_platform_details: Optional[str] = field(default=None)
     instance_usage_operation: Optional[str] = field(default=None)
     instance_usage_operation_update_time: Optional[datetime] = field(default=None)
-    instance_private_dns_name_options: Optional[AwsEC2PrivateDnsNameOptionsResponse] = field(default=None)
+    instance_private_dns_name_options: Optional[AwsEc2PrivateDnsNameOptionsResponse] = field(default=None)
     instance_ipv6_address: Optional[str] = field(default=None)
     instance_tpm_support: Optional[str] = field(default=None)
     instance_maintenance_options: Optional[str] = field(default=None)
@@ -528,7 +528,7 @@ class AwsEC2Instance(AwsResource, BaseInstance):
         for reservation in json:
             for instance_in in reservation["Instances"]:
                 mapped = bend(cls.mapping, instance_in)
-                instance = AwsEC2Instance.from_json(mapped)
+                instance = AwsEc2Instance.from_json(mapped)
                 # copy data from the instance type
                 if instance_type := builder.instance_type(instance.instance_type):
                     instance.instance_cores = instance_type.instance_cores
@@ -537,10 +537,10 @@ class AwsEC2Instance(AwsResource, BaseInstance):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
-        builder.add_edge(self, EdgeType.default, reverse=True, clazz=AwsEC2InstanceType, name=self.instance_type)
+        builder.add_edge(self, EdgeType.default, reverse=True, clazz=AwsEc2InstanceType, name=self.instance_type)
         if self.instance_key_name:
-            builder.add_edge(self, EdgeType.default, clazz=AwsEC2KeyPair, name=self.instance_key_name)
-            builder.add_edge(self, EdgeType.delete, reverse=True, clazz=AwsEC2KeyPair, name=self.instance_key_name)
+            builder.add_edge(self, EdgeType.default, clazz=AwsEc2KeyPair, name=self.instance_key_name)
+            builder.add_edge(self, EdgeType.delete, reverse=True, clazz=AwsEc2KeyPair, name=self.instance_key_name)
 
 
 # endregion
@@ -549,7 +549,7 @@ class AwsEC2Instance(AwsResource, BaseInstance):
 
 
 @dataclass(eq=False)
-class AwsEC2RecurringCharge:
+class AwsEc2RecurringCharge:
     kind: ClassVar[str] = "aws_ec2_recurring_charge"
     mapping: ClassVar[Dict[str, Bender]] = {"amount": S("Amount"), "frequency": S("Frequency")}
     amount: Optional[float] = field(default=None)
@@ -557,7 +557,7 @@ class AwsEC2RecurringCharge:
 
 
 @dataclass(eq=False)
-class AwsEC2ReservedInstances(AwsResource):
+class AwsEc2ReservedInstances(AwsResource):
     kind: ClassVar[str] = "aws_ec2_reserved_instances"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe_reserved_instances", "ReservedInstances")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -579,7 +579,7 @@ class AwsEC2ReservedInstances(AwsResource):
         "reservation_instance_tenancy": S("InstanceTenancy"),
         "reservation_offering_class": S("OfferingClass"),
         "reservation_offering_type": S("OfferingType"),
-        "reservation_recurring_charges": S("RecurringCharges", default=[]) >> ForallBend(AwsEC2RecurringCharge.mapping),
+        "reservation_recurring_charges": S("RecurringCharges", default=[]) >> ForallBend(AwsEc2RecurringCharge.mapping),
         "reservation_scope": S("Scope"),
     }
     availability_zone: Optional[str] = field(default=None)
@@ -597,13 +597,13 @@ class AwsEC2ReservedInstances(AwsResource):
     reservation_instance_tenancy: Optional[str] = field(default=None)
     reservation_offering_class: Optional[str] = field(default=None)
     reservation_offering_type: Optional[str] = field(default=None)
-    reservation_recurring_charges: List[AwsEC2RecurringCharge] = field(default_factory=list)
+    reservation_recurring_charges: List[AwsEc2RecurringCharge] = field(default_factory=list)
     reservation_scope: Optional[str] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
         builder.add_edge(
-            self, EdgeType.default, reverse=True, clazz=AwsEC2InstanceType, name=self.reservation_instance_type
+            self, EdgeType.default, reverse=True, clazz=AwsEc2InstanceType, name=self.reservation_instance_type
         )
 
 
@@ -613,7 +613,7 @@ class AwsEC2ReservedInstances(AwsResource):
 
 
 @dataclass(eq=False)
-class AwsEC2NetworkAclAssociation:
+class AwsEc2NetworkAclAssociation:
     kind: ClassVar[str] = "aws_ec2_network_acl_association"
     mapping: ClassVar[Dict[str, Bender]] = {
         "network_acl_association_id": S("NetworkAclAssociationId"),
@@ -626,7 +626,7 @@ class AwsEC2NetworkAclAssociation:
 
 
 @dataclass(eq=False)
-class AwsEC2IcmpTypeCode:
+class AwsEc2IcmpTypeCode:
     kind: ClassVar[str] = "aws_ec2_icmp_type_code"
     mapping: ClassVar[Dict[str, Bender]] = {"code": S("Code"), "type": S("Type")}
     code: Optional[int] = field(default=None)
@@ -634,7 +634,7 @@ class AwsEC2IcmpTypeCode:
 
 
 @dataclass(eq=False)
-class AwsEC2PortRange:
+class AwsEc2PortRange:
     kind: ClassVar[str] = "aws_ec2_port_range"
     mapping: ClassVar[Dict[str, Bender]] = {"from_range": S("From"), "to_range": S("To")}
     from_range: Optional[int] = field(default=None)
@@ -642,54 +642,54 @@ class AwsEC2PortRange:
 
 
 @dataclass(eq=False)
-class AwsEC2NetworkAclEntry:
+class AwsEc2NetworkAclEntry:
     kind: ClassVar[str] = "aws_ec2_network_acl_entry"
     mapping: ClassVar[Dict[str, Bender]] = {
         "cidr_block": S("CidrBlock"),
         "egress": S("Egress"),
-        "icmp_type_code": S("IcmpTypeCode") >> Bend(AwsEC2IcmpTypeCode.mapping),
+        "icmp_type_code": S("IcmpTypeCode") >> Bend(AwsEc2IcmpTypeCode.mapping),
         "ipv6_cidr_block": S("Ipv6CidrBlock"),
-        "port_range": S("PortRange") >> Bend(AwsEC2PortRange.mapping),
+        "port_range": S("PortRange") >> Bend(AwsEc2PortRange.mapping),
         "protocol": S("Protocol"),
         "rule_action": S("RuleAction"),
         "rule_number": S("RuleNumber"),
     }
     cidr_block: Optional[str] = field(default=None)
     egress: Optional[bool] = field(default=None)
-    icmp_type_code: Optional[AwsEC2IcmpTypeCode] = field(default=None)
+    icmp_type_code: Optional[AwsEc2IcmpTypeCode] = field(default=None)
     ipv6_cidr_block: Optional[str] = field(default=None)
-    port_range: Optional[AwsEC2PortRange] = field(default=None)
+    port_range: Optional[AwsEc2PortRange] = field(default=None)
     protocol: Optional[str] = field(default=None)
     rule_action: Optional[str] = field(default=None)
     rule_number: Optional[int] = field(default=None)
 
 
 @dataclass(eq=False)
-class AwsEC2NetworkAcl(AwsResource):
+class AwsEc2NetworkAcl(AwsResource):
     kind: ClassVar[str] = "aws_ec2_network_acl"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-network-acls", "NetworkAcls")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("NetworkAclId"),
         "tags": S("Tags", default=[]) >> TagsToDict(),
         "name": S("Tags", default=[]) >> TagsValue("Name"),
-        "acl_associations": S("Associations", default=[]) >> ForallBend(AwsEC2NetworkAclAssociation.mapping),
-        "acl_entries": S("Entries", default=[]) >> ForallBend(AwsEC2NetworkAclEntry.mapping),
+        "acl_associations": S("Associations", default=[]) >> ForallBend(AwsEc2NetworkAclAssociation.mapping),
+        "acl_entries": S("Entries", default=[]) >> ForallBend(AwsEc2NetworkAclEntry.mapping),
         "is_default": S("IsDefault"),
         # "vpc_id": S("VpcId"), # TODO: add link
         # "owner_id": S("OwnerId") # TODO: add link
     }
-    acl_associations: List[AwsEC2NetworkAclAssociation] = field(default_factory=list)
-    acl_entries: List[AwsEC2NetworkAclEntry] = field(default_factory=list)
+    acl_associations: List[AwsEc2NetworkAclAssociation] = field(default_factory=list)
+    acl_entries: List[AwsEc2NetworkAclEntry] = field(default_factory=list)
     is_default: Optional[bool] = field(default=None)
 
 
 # endregion
 
 resources: List[Type[AwsResource]] = [
-    AwsEC2Instance,
-    AwsEC2InstanceType,
-    AwsEC2NetworkAcl,
-    AwsEC2ReservedInstances,
-    AwsEC2KeyPair,
-    AwsEC2Volume,
+    AwsEc2Instance,
+    AwsEc2InstanceType,
+    AwsEc2NetworkAcl,
+    AwsEc2ReservedInstances,
+    AwsEc2KeyPair,
+    AwsEc2Volume,
 ]
