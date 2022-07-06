@@ -1,6 +1,6 @@
 import os
 from dataclasses import dataclass, field
-from typing import Dict, ClassVar, Optional
+from typing import Dict, ClassVar
 
 import jsons
 from yaml import load
