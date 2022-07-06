@@ -181,23 +181,21 @@ def alias_templates() -> List[AliasTemplateConfig]:
     return [
         AliasTemplateConfig(
             "discord",
-            "Send result of a search to discord",
+            "Send the result of a search to Discord",
             # defines the fields to show in the message
             "jq {name:{{key}}, value:{{value}}} | "
             # discord limit: https://discord.com/developers/docs/resources/channel#embed-object-embed-limits
             "chunk 25 | "
             # define the discord webhook json
-            'jq {content: "{{message}}", embeds: [{title: "{{title}}", fields:.}]} | '
+            'jq {embeds: [{title: "{{title}}", description: "{{message}}", fields:.}]} | '
             # call the api
             "http POST {{webhook}}",
             [
-                AliasTemplateParameterConfig("key", "The field of the resource to show as key", ".kind"),
-                AliasTemplateParameterConfig("value", "The field of the resource to show as value", ".name"),
-                AliasTemplateParameterConfig(
-                    "message", "User defined message of the post.", "🔥🔥🔥 Resoto found stuff! 🔥🔥🔥"
-                ),
-                AliasTemplateParameterConfig("title", "The title of the post."),
-                AliasTemplateParameterConfig("webhook", "The complete webhook url.", None),
+                AliasTemplateParameterConfig("key", "Resource field to show as key", ".kind"),
+                AliasTemplateParameterConfig("value", "Resource field to show as value", ".name"),
+                AliasTemplateParameterConfig("message", "Alert message"),
+                AliasTemplateParameterConfig("title", "Alert title"),
+                AliasTemplateParameterConfig("webhook", "Discord Webhook URL"),
             ],
         )
     ]
