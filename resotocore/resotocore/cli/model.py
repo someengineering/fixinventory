@@ -373,6 +373,7 @@ class AliasTemplateParameter:
         return self.default if self.default else f"test_{self.name}"
 
 
+# pylint: disable=not-an-iterable
 @define(order=True, hash=True, frozen=True)
 class AliasTemplate:
     name: str

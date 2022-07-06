@@ -505,6 +505,7 @@ class Limit:
         return f" limit {self.length}" if self.offset == 0 else f" limit {self.offset}, {self.length}"
 
 
+# pylint: disable=not-an-iterable
 @define(order=True, hash=True, frozen=True)
 class Part:
     term: Term

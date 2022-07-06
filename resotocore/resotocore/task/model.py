@@ -36,7 +36,7 @@ class Subscriber:
         return Subscriber(self.id, subs)
 
     def __contains__(self, message_type: str) -> bool:
-        return message_type in self.subscriptions
+        return message_type in self.subscriptions  # pylint: disable=unsupported-membership-test
 
     def __getitem__(self, message_type: str) -> Subscription:
         return self.subscriptions[message_type]
