@@ -1,6 +1,9 @@
 from datetime import datetime
 
-from resotolib.json_bender import StringToUnitNumber, bend, CPUCoresToNumber, MapValue, AsDate, Sort, S
+import pytest
+
+from resotolib.baseresources import InstanceStatus
+from resotolib.json_bender import StringToUnitNumber, bend, CPUCoresToNumber, MapValue, AsDate, Sort, S, MapEnum
 
 
 def test_map_value() -> None:
@@ -8,6 +11,13 @@ def test_map_value() -> None:
     assert bend(MapValue(dict(a=1, b=2)), "b") == 2
     assert bend(MapValue(dict(a=1, b=2)), "c") is None
     assert bend(MapValue(dict(a=1, b=2), default=3), "c") == 3
+
+
+def test_map_enum() -> None:
+    assert bend(MapEnum(dict(foo=InstanceStatus.BUSY)), "foo") == InstanceStatus.BUSY.value
+    assert bend(MapEnum(dict(), InstanceStatus.BUSY), "foo") == InstanceStatus.BUSY.value
+    with pytest.raises(AttributeError):
+        bend(MapEnum(dict(foo="bla")), "foo")
 
 
 def test_string_to_unit() -> None:

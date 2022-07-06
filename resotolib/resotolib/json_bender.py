@@ -2,6 +2,7 @@ from __future__ import annotations
 import logging
 from abc import ABC
 from datetime import datetime
+from enum import Enum
 from typing import Dict, Any, Type, Union, Optional, Callable
 
 from resotolib.types import Json
@@ -403,6 +404,15 @@ class MapValue(Bender):
 
     def execute(self, value: str) -> Any:
         return self._lookup.get(value, self._default)
+
+
+class MapEnum(MapValue):
+    def execute(self, value: str) -> Any:
+        enum = super().execute(value)
+        if isinstance(enum, Enum):
+            return enum.value
+        else:
+            raise AttributeError(f"Mapping did not return an enumeration: in:{value} out:{enum}")
 
 
 class StringToUnitNumber(Bender):

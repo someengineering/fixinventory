@@ -1,6 +1,6 @@
 from resoto_plugin_aws.config import AwsConfig
 from resoto_plugin_aws.aws_client import AwsClient
-from test.resource import BotoFileBasedSession
+from test.resources import BotoFileBasedSession
 
 
 def test_region() -> None:
@@ -17,6 +17,5 @@ def test_call() -> None:
     config = AwsConfig(access_key_id="foo", secret_access_key="bar")
     config.sessions.session_class_factory = BotoFileBasedSession
     client = AwsClient(config, "test")
-    reservations = client.call("ec2", "describe-instances")
-    instances = reservations.get("Reservations", [])
+    instances = client.list("ec2", "describe-instances", "Reservations")
     assert len(instances) == 2

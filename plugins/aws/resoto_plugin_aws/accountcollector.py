@@ -554,12 +554,11 @@ class AWSAccountCollector:
                     _region=region,
                     ctime=volume.create_time,
                     atime=now,
-                    volume_status=volume_status_map.get(volume.status, VolumeStatus.UNKNOWN),
+                    volume_status=volume_status_map.get(volume.state, VolumeStatus.UNKNOWN),
                 )
                 v.name = v.tags.get("Name") or v.id
                 v.volume_size = volume.size
                 v.volume_type = volume.volume_type
-                v.volume_status = volume.state
                 v.volume_encrypted = volume.encrypted
                 v.volume_throughput = volume.throughput
                 v.volume_iops = volume.iops

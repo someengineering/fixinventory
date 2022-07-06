@@ -1,0 +1,12 @@
+{
+    "AttachedPolicies": [
+        {
+            "PolicyName": "salt-rexray",
+            "PolicyArn": "arn:aws:iam::test:policy/salt-rexray"
+        },
+        {
+            "PolicyName": "salt-k8s",
+            "PolicyArn": "arn:aws:iam::test:policy/salt-k8s"
+        }
+    ]
+}

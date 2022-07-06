@@ -204,9 +204,7 @@ def dataclasses_to_resotocore_model(
         )
 
     def export_enum(clazz: Type[Enum]) -> None:
-        # The name of the enum literal is taken not the value.
-        # This matches jsons handling of enumeration marshalling.
-        enum_values = [literal.name for literal in clazz]
+        enum_values = [literal.value for literal in clazz]
         model.append({"fqn": model_name(clazz), "runtime_kind": "string", "enum": enum_values})
 
     for cls in transitive_classes(classes):

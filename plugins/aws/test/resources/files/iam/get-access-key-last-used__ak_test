@@ -1,0 +1,8 @@
+{
+    "UserName": "test_user",
+    "AccessKeyLastUsed": {
+        "LastUsedDate": "2022-04-01T00:00:00+00:00",
+        "ServiceName": "sts",
+        "Region": "us-east-1"
+    }
+}

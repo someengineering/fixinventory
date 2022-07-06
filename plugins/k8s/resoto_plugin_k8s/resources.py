@@ -17,7 +17,7 @@ from resotolib.baseresources import (
     VolumeStatus,
 )
 from resotolib.graph import Graph
-from resotolib.json_bender import StringToUnitNumber, CPUCoresToNumber, Bend, S, K, F, bend, ForallBend, Bender
+from resotolib.json_bender import StringToUnitNumber, CPUCoresToNumber, Bend, S, K, bend, ForallBend, Bender, MapEnum
 from resotolib.types import Json
 
 log = logging.getLogger("resoto.plugins.k8s")
@@ -1313,7 +1313,12 @@ class KubernetesPersistentVolumeSpec:
     vsphere_volume: Optional[str] = field(default=None)
 
 
-valid_volume_statuses = {s.value for s in VolumeStatus}
+VolumeStatusMapping = {
+    "Available": VolumeStatus.AVAILABLE,
+    "Bound": VolumeStatus.IN_USE,
+    "Released": VolumeStatus.BUSY,
+    "Failed": VolumeStatus.ERROR,
+}
 
 
 @define(eq=False, slots=False)
@@ -1324,8 +1329,7 @@ class KubernetesPersistentVolume(KubernetesResource, BaseVolume):
         "persistent_volume_spec": S("spec") >> Bend(KubernetesPersistentVolumeSpec.mapping),
         "volume_size": S("spec", "capacity", "storage", default="0") >> StringToUnitNumber("GB"),
         "volume_type": S("spec", "storageClassName"),
-        "volume_status": S("status", "phase")
-        >> F(lambda s: s if (s in valid_volume_statuses) else VolumeStatus.UNKNOWN.value),  # type: ignore
+        "volume_status": S("status", "phase") >> MapEnum(VolumeStatusMapping, VolumeStatus.UNKNOWN),
     }
     persistent_volume_status: Optional[KubernetesPersistentVolumeStatus] = field(default=None)
     persistent_volume_spec: Optional[KubernetesPersistentVolumeSpec] = field(default=None)
