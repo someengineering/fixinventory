@@ -1,2 +1,2 @@
 resotolib==2.4.0a0
-paramiko==2.10.4
+paramiko==2.11.0
