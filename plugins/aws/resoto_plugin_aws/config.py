@@ -9,7 +9,7 @@ from boto3.session import Session as BotoSession
 from resotolib.proc import num_default_threads
 
 
-@define(hash=True)
+@define(hash=True, slots=False)
 class AwsSessionHolder:
     access_key_id: Optional[str]
     secret_access_key: Optional[str]
@@ -54,7 +54,7 @@ class AwsSessionHolder:
             return self.__sts_session(aws_account, aws_role, int(time.time() / 600))
 
 
-@define
+@define(slots=False)
 class AwsConfig:
     kind: ClassVar[str] = "aws"
     access_key_id: Optional[str] = field(

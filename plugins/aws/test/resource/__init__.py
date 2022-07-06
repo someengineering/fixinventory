@@ -35,8 +35,8 @@ class BotoFileBasedSession(Session):  # type: ignore
         return BotoFileClient(service_name)
 
 
-def all_props_set(obj: Type[AWSResourceType]) -> None:
-    for field in fields(obj):
+def all_props_set(obj: AWSResourceType) -> None:
+    for field in fields(type(obj)):
         prop = field.name
         if not prop.startswith("_") and prop not in [
             "account",
