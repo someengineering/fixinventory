@@ -3,6 +3,7 @@ import time
 import websocket
 import requests
 import json
+from concurrent.futures import ThreadPoolExecutor
 from resotolib.logger import log
 from resotolib.event import EventType, remove_event_listener, add_event_listener, Event
 from resotolib.args import ArgumentParser
@@ -20,6 +21,7 @@ class CoreActions(threading.Thread):
         actions: Dict,
         message_processor: Optional[Callable] = None,
         tls_data: Optional[TLSData] = None,
+        max_concurrent_actions: int = 5,
     ) -> None:
         super().__init__()
         self.identifier = identifier
@@ -30,9 +32,7 @@ class CoreActions(threading.Thread):
         self.ws = None
         self.tls_data = tls_data
         self.shutdown_event = threading.Event()
-
-    def __del__(self):
-        remove_event_listener(EventType.SHUTDOWN, self.shutdown)
+        self.executor = ThreadPoolExecutor(max_workers=max_concurrent_actions, thread_name_prefix=self.identifier)
 
     def run(self) -> None:
         self.name = self.identifier
@@ -47,7 +47,7 @@ class CoreActions(threading.Thread):
 
     def wait_for_ws(self, timeout: int = 10) -> bool:
         start = time.time()
-        while self.ws is None and time.time() - start < timeout:
+        while self.ws is None and time.time() - start < timeout and not self.shutdown_event.is_set():
             time.sleep(0.1)
         return self.ws is not None
 
@@ -81,6 +81,7 @@ class CoreActions(threading.Thread):
             self.ws = None
 
     def shutdown(self, event: Event = None) -> None:
+        remove_event_listener(EventType.SHUTDOWN, self.shutdown)
         log.debug("Received shutdown event - shutting down resotocore message bus listener")
         self.shutdown_event.set()
         for core_action in self.actions.keys():
@@ -88,6 +89,7 @@ class CoreActions(threading.Thread):
                 self.unregister(core_action)
             except Exception as e:
                 log.error(e)
+        self.executor.shutdown(wait=False, cancel_futures=True)
         if self.ws:
             self.ws.close()
 
@@ -124,6 +126,9 @@ class CoreActions(threading.Thread):
         return True
 
     def on_message(self, ws, message):
+        self.executor.submit(self.process_message, message)
+
+    def process_message(self, message) -> None:
         try:
             message: Dict = json.loads(message)
         except json.JSONDecodeError:
