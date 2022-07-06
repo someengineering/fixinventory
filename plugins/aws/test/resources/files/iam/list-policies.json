@@ -1,0 +1,41 @@
+{
+    "Policies": [
+        {
+            "PolicyName": "AWSLambdaBasicExecutionRole-123",
+            "PolicyId": "test123",
+            "Arn": "arn:aws:iam::test:policy/service-role/AWSLambdaBasicExecutionRole-123",
+            "Path": "/service-role/",
+            "DefaultVersionId": "v1",
+            "AttachmentCount": 1,
+            "PermissionsBoundaryUsageCount": 0,
+            "IsAttachable": true,
+            "CreateDate": "2021-05-07T16:31:30+00:00",
+            "UpdateDate": "2021-05-07T16:31:30+00:00",
+            "Description": "Description of this policy"
+        },
+        {
+            "PolicyName": "AWS_Events_Invoke_Action_On_EBS_Volume_123",
+            "PolicyId": "42132",
+            "Arn": "arn:aws:iam::test:policy/service-role/AWS_Events_Invoke_Action_On_EBS_Volume_123",
+            "Path": "/service-role/",
+            "DefaultVersionId": "v1",
+            "AttachmentCount": 1,
+            "PermissionsBoundaryUsageCount": 0,
+            "IsAttachable": true,
+            "CreateDate": "2021-08-12T14:22:23+00:00",
+            "UpdateDate": "2021-08-12T14:22:23+00:00"
+        },
+        {
+            "PolicyName": "bucket_public_acl_packages",
+            "PolicyId": "12345",
+            "Arn": "arn:aws:iam::test:policy/bucket_public_acl_packages",
+            "Path": "/",
+            "DefaultVersionId": "v1",
+            "AttachmentCount": 1,
+            "PermissionsBoundaryUsageCount": 0,
+            "IsAttachable": true,
+            "CreateDate": "2019-08-12T13:20:44+00:00",
+            "UpdateDate": "2019-08-12T13:20:44+00:00"
+        }
+    ]
+}

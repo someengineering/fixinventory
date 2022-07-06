@@ -1,0 +1,22 @@
+{
+    "Users": [
+        {
+            "Path": "/",
+            "UserName": "test_user",
+            "UserId": "1234",
+            "Arn": "arn:aws:iam::test:user/ReposSync",
+            "CreateDate": "2018-08-16T13:32:10+00:00",
+            "PermissionsBoundary": {
+                "PermissionsBoundaryType": "OrganizationalUnit",
+                "PermissionsBoundaryArn": "arn:aws:iam::test:ou/ReposSync"
+            }
+        },
+        {
+            "Path": "/",
+            "UserName": "SaltCloud",
+            "UserId": "2456",
+            "Arn": "arn:aws:iam::test:user/SaltCloud",
+            "CreateDate": "2022-05-07T13:12:46+00:00"
+        }
+    ]
+}

@@ -1,0 +1,11 @@
+{
+    "Groups": [
+        {
+            "Path": "/",
+            "GroupName": "group1",
+            "GroupId": "2134",
+            "Arn": "arn:aws:iam::test:group/billing-view",
+            "CreateDate": "2017-09-19T23:51:05+00:00"
+        }
+    ]
+}

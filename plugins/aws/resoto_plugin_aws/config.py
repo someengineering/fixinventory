@@ -1,8 +1,9 @@
+import threading
 import time
 import uuid
 from dataclasses import dataclass, field
 from functools import cached_property, lru_cache
-from typing import List, ClassVar, Optional, Type
+from typing import List, ClassVar, Optional, Type, Any
 
 from boto3.session import Session as BotoSession
 
@@ -18,8 +19,9 @@ class AwsSessionHolder:
     # Only here to override in tests
     session_class_factory: Type[BotoSession] = BotoSession
 
-    @cached_property
-    def __direct_session(self) -> BotoSession:
+    # noinspection PyUnusedLocal
+    @lru_cache(maxsize=128)
+    def __direct_session(self, thread_id: Any) -> BotoSession:
         return self.session_class_factory(
             aws_access_key_id=self.access_key_id,
             aws_secret_access_key=self.secret_access_key,
@@ -27,7 +29,7 @@ class AwsSessionHolder:
 
     # noinspection PyUnusedLocal
     @lru_cache(maxsize=128)
-    def __sts_session(self, aws_account: str, aws_role: str, cache_key: int) -> BotoSession:
+    def __sts_session(self, aws_account: str, aws_role: str, thread_id: Any, cache_key: int) -> BotoSession:
         role = self.role if self.role_override else aws_role
         role_arn = f"arn:aws:iam::{aws_account}:role/{role}"
         session = self.session_class_factory(
@@ -45,13 +47,16 @@ class AwsSessionHolder:
         )
 
     def session(self, aws_account: str, aws_role: Optional[str] = None) -> BotoSession:
+        # sessions should not be shared across threads
+        # https://boto3.amazonaws.com/v1/documentation/api/1.14.31/guide/session.html#multithreading-or-multiprocessing-with-sessions
+        thread_id = threading.current_thread().ident
         if aws_role is None:
-            return self.__direct_session
+            return self.__direct_session(thread_id)
         else:
             # Use sts to create a temporary token for the given account and role
             # Sts session is at least valid for 900 seconds (default 1 hour)
             # let's renew the session after 10 minutes
-            return self.__sts_session(aws_account, aws_role, int(time.time() / 600))
+            return self.__sts_session(aws_account, aws_role, thread_id, int(time.time() / 600))
 
 
 @dataclass

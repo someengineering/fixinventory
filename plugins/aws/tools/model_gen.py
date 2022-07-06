@@ -7,7 +7,7 @@ from botocore.model import ServiceModel, StringShape, ListShape, Shape, Structur
 
 
 @dataclass
-class AWSProperty:
+class AwsProperty:
     name: str
     from_name: Union[str, List[str]]
     type: str
@@ -47,16 +47,22 @@ class AWSProperty:
 
 
 @dataclass
-class AWSModel:
+class AwsModel:
     name: str
-    props: List[AWSProperty]
+    props: List[AwsProperty]
     aggregate_root: bool
     base_class: Optional[str] = None
+    api_info: Optional[Tuple[str, str, str]] = None
 
     def to_class(self) -> str:
         bc = ", " + self.base_class if self.base_class else ""
-        base = f"(AWSResource{bc}):" if self.aggregate_root else ":"
+        base = f"(AwsResource{bc}):" if self.aggregate_root else ":"
         kind = f'    kind: ClassVar[str] = "aws_{to_snake(self.name[3:])}"'
+        if self.api_info:
+            srv, act, res = self.api_info
+            api = f'    api_info: ClassVar[AwsApiSpec] = AwsApiSpec("{srv}", "{act}", "{res}")\n'
+        else:
+            api = ""
         base_mapping = {
             "id": 'S("id")',
             "tags": 'S("Tags", default=[]) >> TagsToDict()',
@@ -72,11 +78,11 @@ class AWSModel:
         mapping += ",\n".join(f"        {p.mapping()}" for p in self.props)
         mapping += "\n    }"
         props = "\n".join(f"    {p.name}: {p.type_string()} = {p.assignment()}" for p in self.props)
-        return f"@dataclass(eq=False)\nclass {self.name}{base}\n{kind}\n{mapping}\n{props}\n"
+        return f"@dataclass(eq=False)\nclass {self.name}{base}\n{kind}\n{api}{mapping}\n{props}\n"
 
 
 @dataclass
-class AWSResotoModel:
+class AwsResotoModel:
     api_action: str  # action to perform on the client
     result_property: str  # this property holds the resulting list
     result_shape: str  # the shape of the result according to the service specification
@@ -123,10 +129,11 @@ def clazz_model(
     clazz_name: Optional[str] = None,
     base_class: Optional[str] = None,
     aggregate_root: bool = False,
-) -> List[AWSModel]:
+    api_info: Optional[Tuple[str, str, str]] = None,
+) -> List[AwsModel]:
     def type_name(s: Shape) -> str:
         spl = simple_shape(s)
-        return spl if spl else f"AWS{prefix}{s.name}"
+        return spl if spl else f"Aws{prefix}{s.name}"
 
     def simple_shape(s: Shape) -> Optional[str]:
         if isinstance(s, StringShape):
@@ -150,7 +157,7 @@ def clazz_model(
     if type_name(shape) in visited:
         return []
     visited.add(type_name(shape))
-    result: List[AWSModel] = []
+    result: List[AwsModel] = []
     props = []
     prefix = prefix or ""
     prop_prefix = prop_prefix or ""
@@ -160,15 +167,15 @@ def clazz_model(
             if prop in ignore_props:
                 continue
             if simple := simple_shape(prop_shape):
-                props.append(AWSProperty(prop_prefix + prop, name, simple, prop_shape.documentation))
+                props.append(AwsProperty(prop_prefix + prop, name, simple, prop_shape.documentation))
             elif isinstance(prop_shape, ListShape):
                 inner = prop_shape.member
                 if simple := simple_shape(inner):
-                    props.append(AWSProperty(prop_prefix + prop, name, simple, prop_shape.documentation, is_array=True))
+                    props.append(AwsProperty(prop_prefix + prop, name, simple, prop_shape.documentation, is_array=True))
                 elif simple_path := complex_simple_shape(inner):
                     prop_name, prop_type = simple_path
                     props.append(
-                        AWSProperty(
+                        AwsProperty(
                             prop_prefix + prop,
                             [name, prop_name],
                             prop_type,
@@ -181,7 +188,7 @@ def clazz_model(
                 else:
                     result.extend(clazz_model(model, inner, visited, prefix))
                     props.append(
-                        AWSProperty(
+                        AwsProperty(
                             prop_prefix + prop,
                             name,
                             type_name(inner),
@@ -196,19 +203,19 @@ def clazz_model(
                 value_type = type_name(prop_shape.value)
                 result.extend(clazz_model(model, prop_shape.value, visited, prefix))
                 props.append(
-                    AWSProperty(prop_prefix + prop, name, f"Dict[{key_type}, {value_type}]", prop_shape.documentation)
+                    AwsProperty(prop_prefix + prop, name, f"Dict[{key_type}, {value_type}]", prop_shape.documentation)
                 )
 
             elif isinstance(prop_shape, StructureShape):
                 if maybe_simple := complex_simple_shape(prop_shape):
                     s_prop_name, s_prop_type = maybe_simple
                     props.append(
-                        AWSProperty(prop_prefix + prop, [name, s_prop_name], s_prop_type, prop_shape.documentation)
+                        AwsProperty(prop_prefix + prop, [name, s_prop_name], s_prop_type, prop_shape.documentation)
                     )
                 else:
                     result.extend(clazz_model(model, prop_shape, visited, prefix))
                     props.append(
-                        AWSProperty(
+                        AwsProperty(
                             prop_prefix + prop, name, type_name(prop_shape), prop_shape.documentation, is_complex=True
                         )
                     )
@@ -216,13 +223,13 @@ def clazz_model(
                 raise NotImplementedError(f"Unsupported shape: {prop_shape}")
 
         clazz_name = clazz_name if clazz_name else type_name(shape)
-        result.append(AWSModel(clazz_name, props, aggregate_root, base_class))
+        result.append(AwsModel(clazz_name, props, aggregate_root, base_class, api_info))
     return result
 
 
-def all_models() -> List[AWSModel]:
+def all_models() -> List[AwsModel]:
     visited: Set[str] = set()
-    result: List[AWSModel] = []
+    result: List[AwsModel] = []
     for name, endpoint in models.items():
         sm = service_model(name)
         for ep in endpoint:
@@ -237,78 +244,79 @@ def all_models() -> List[AWSModel]:
                     base_class=ep.base,
                     prop_prefix=ep.prop_prefix,
                     prefix=ep.prefix,
+                    api_info=(name, ep.api_action, ep.result_property),
                 )
             )
 
     return result
 
 
-models: Dict[str, List[AWSResotoModel]] = {
+models: Dict[str, List[AwsResotoModel]] = {
     "accessanalyzer": [
-        # AWSResotoModel("list-analyzers", "analyzers", "AnalyzerSummary", prefix="AccessAnalyzer"),
+        # AwsResotoModel("list-analyzers", "analyzers", "AnalyzerSummary", prefix="AccessAnalyzer"),
     ],
     "acm": [
-        # AWSResotoModel("list-certificates", "CertificateSummaryList", "CertificateSummary", prefix="ACM"),
+        # AwsResotoModel("list-certificates", "CertificateSummaryList", "CertificateSummary", prefix="ACM"),
     ],
     "acm-pca": [
-        # AWSResotoModel(
+        # AwsResotoModel(
         #     "list-certificate-authorities", "CertificateAuthorities", "CertificateAuthority", prefix="ACMPCA"
         # ),
     ],
     "alexaforbusiness": [],  # TODO: implement
     "amp": [
-        # AWSResotoModel("list-workspaces", "workspaces", "WorkspaceSummary", prefix="Amp"),
+        # AwsResotoModel("list-workspaces", "workspaces", "WorkspaceSummary", prefix="Amp"),
     ],
     "amplify": [
-        # AWSResotoModel("list-apps", "apps", "App", prefix="Amplify"),
+        # AwsResotoModel("list-apps", "apps", "App", prefix="Amplify"),
     ],
     "apigateway": [
-        # AWSResotoModel("get-vpc-links", "items", "VpcLink", prefix="ApiGateway"),
-        # AWSResotoModel("get-sdk-types", "items", "SdkType", prefix="ApiGateway"),
-        # AWSResotoModel("get-rest-apis", "items", "RestApi", prefix="ApiGateway"),
-        # AWSResotoModel("get-domain-names", "items", "DomainName", prefix="ApiGateway"),
-        # AWSResotoModel("get-client-certificates", "items", "ClientCertificate", prefix="ApiGateway"),
+        # AwsResotoModel("get-vpc-links", "items", "VpcLink", prefix="ApiGateway"),
+        # AwsResotoModel("get-sdk-types", "items", "SdkType", prefix="ApiGateway"),
+        # AwsResotoModel("get-rest-apis", "items", "RestApi", prefix="ApiGateway"),
+        # AwsResotoModel("get-domain-names", "items", "DomainName", prefix="ApiGateway"),
+        # AwsResotoModel("get-client-certificates", "items", "ClientCertificate", prefix="ApiGateway"),
     ],
     "apigatewayv2": [
-        # AWSResotoModel("get-domain-names", "Items", "DomainName", prefix="ApiGatewayV2"),
-        # AWSResotoModel("get-apis", "Items", "Api", prefix="ApiGatewayV2"),
+        # AwsResotoModel("get-domain-names", "Items", "DomainName", prefix="ApiGatewayV2"),
+        # AwsResotoModel("get-apis", "Items", "Api", prefix="ApiGatewayV2"),
     ],
     "appconfig": [
-        # AWSResotoModel("list-applications", "Items", "Application", prefix="AppConfig"),
+        # AwsResotoModel("list-applications", "Items", "Application", prefix="AppConfig"),
     ],
     "appflow": [
-        # AWSResotoModel("list-flows", "flows", "FlowDefinition", prefix="Appflow"),
-        # AWSResotoModel("list-connectors", "connectors", "ConnectorDetail", prefix="Appflow"),
+        # AwsResotoModel("list-flows", "flows", "FlowDefinition", prefix="Appflow"),
+        # AwsResotoModel("list-connectors", "connectors", "ConnectorDetail", prefix="Appflow"),
     ],
     "appintegrations": [
-        # AWSResotoModel(
+        # AwsResotoModel(
         #     "list-data-integrations", "DataIntegrations", "DataIntegrationSummary", prefix="AppIntegrations"
         # ),
-        # AWSResotoModel("list-event-integrations", "EventIntegrations", "EventIntegration", prefix="AppIntegrations"),
+        # AwsResotoModel("list-event-integrations", "EventIntegrations", "EventIntegration", prefix="AppIntegrations"),
     ],
     "application-insights": [
-        # AWSResotoModel("list-applications", "ApplicationInfoList", "ApplicationInfo", prefix="ApplicationInsights"),
-        # AWSResotoModel("list-problems", "ProblemList", "Problem", prefix="ApplicationInsights"),
+        # AwsResotoModel("list-applications", "ApplicationInfoList", "ApplicationInfo", prefix="ApplicationInsights"),
+        # AwsResotoModel("list-problems", "ProblemList", "Problem", prefix="ApplicationInsights"),
     ],
     "applicationcostprofiler": [
-        # AWSResotoModel(
+        # AwsResotoModel(
         #     "list-report-definitions", "reportDefinitions", "ReportDefinition", prefix="ApplicationCostProfiler"
         # ),
     ],
     "appmesh": [
-        # AWSResotoModel("list-meshes", "meshes", "MeshRef", prefix="AppMesh"),
+        # AwsResotoModel("list-meshes", "meshes", "MeshRef", prefix="AppMesh"),
     ],
     "apprunner": [
-        # AWSResotoModel("list-services", "ServiceSummaryList", "ServiceSummary", prefix="AppRunner"),
-        # AWSResotoModel("list-vpc-connectors", "VpcConnectors", "VpcConnector", prefix="AppRunner"),
-        # AWSResotoModel("list-connections", "ConnectionSummaryList", "ConnectionSummary", prefix="AppRunner"),
-        # AWSResotoModel(
+        # AwsResotoModel("list-services", "ServiceSummaryList", "ServiceSummary", prefix="AppRunner"),
+        # AwsResotoModel("list-vpc-connectors", "VpcConnectors", "VpcConnector", prefix="AppRunner"),
+        # AwsResotoModel("list-connections", "ConnectionSummaryList", "ConnectionSummary", prefix="AppRunner"),
+        # AwsResotoModel(
         #     "list-auto-scaling-configurations",
         #     "AutoScalingConfigurationSummaryList",
         #     "AutoScalingConfigurationSummary",
         #     prefix="AppRunner",
         # ),
-        # AWSResotoModel(
+        # AwsResotoModel(
         #     "list-observability-configurations ",
         #     "ObservabilityConfigurationSummaryList",
         #     "ObservabilityConfigurationSummary",
@@ -316,47 +324,97 @@ models: Dict[str, List[AWSResotoModel]] = {
         # ),
     ],
     "appstream": [
-        # AWSResotoModel("describe-fleets", "Fleets", "Fleet", prefix="AppStream"),
-        # AWSResotoModel("describe-stacks", "Stacks", "Stack", prefix="AppStream"),
-        # AWSResotoModel("describe-images", "Images", "Image", prefix="AppStream"),
+        # AwsResotoModel("describe-fleets", "Fleets", "Fleet", prefix="AppStream"),
+        # AwsResotoModel("describe-stacks", "Stacks", "Stack", prefix="AppStream"),
+        # AwsResotoModel("describe-images", "Images", "Image", prefix="AppStream"),
     ],
     "appsync": [
-        # AWSResotoModel("list-graphql-apis", "graphqlApis", "GraphqlApi", prefix="AppSync"),
-        # AWSResotoModel("list-domain-names", "domainNameConfigs", "DomainNameConfig", prefix="AppSync"),
+        # AwsResotoModel("list-graphql-apis", "graphqlApis", "GraphqlApi", prefix="AppSync"),
+        # AwsResotoModel("list-domain-names", "domainNameConfigs", "DomainNameConfig", prefix="AppSync"),
     ],
     "athena": [
-        # AWSResotoModel("list-data-catalogs", "DataCatalogsSummary", "DataCatalogSummary", prefix="Athena"),
+        # AwsResotoModel("list-data-catalogs", "DataCatalogsSummary", "DataCatalogSummary", prefix="Athena"),
     ],
     "autoscaling": [
-        # AWSResotoModel(
+        # AwsResotoModel(
         #     "describe_auto_scaling_groups", "AutoScalingGroupName", "AutoScalingGroup", prefix="AutoScaling"
         # ),
     ],
     "ec2": [
-        # AWSResotoModel(
+        # AwsResotoModel(
         #     "describe-instances",
         #     "Reservations",
         #     "Instance",
         #     base="BaseInstance",
-        #     prefix="EC2",
+        #     prefix="Ec2",
         #     prop_prefix="instance_",
         # ),
-        # AWSResotoModel("describe-key-pairs", "KeyPairs", "KeyPairInfo", prefix="EC2"),
-        # AWSResotoModel("describe-volumes", "Volumes", "Volume", base="BaseVolume", prefix="EC2"),
-        # AWSResotoModel("describe_addresses", "Addresses", "Address", prefix="EC2"),
-        # AWSResotoModel(
+        # AwsResotoModel("describe-key-pairs", "KeyPairs", "KeyPairInfo", prefix="Ec2"),
+        # AwsResotoModel("describe-volumes", "Volumes", "Volume", base="BaseVolume", prefix="Ec2"),
+        # AwsResotoModel("describe_addresses", "Addresses", "Address", prefix="Ec2"),
+        # AwsResotoModel(
         #     "describe_reserved_instances",
         #     "ReservedInstances",
         #     "ReservedInstances",
-        #     prefix="EC2",
+        #     prefix="Ec2",
         #     prop_prefix="reservation_",
         # ),
-        # AWSResotoModel("describe-network-acls", "NetworkAcls", "NetworkAcl", prefix="EC2"),
+        # AwsResotoModel("describe-network-acls", "NetworkAcls", "NetworkAcl", prefix="Ec2"),
     ],
     "route53": [
-        # AWSResotoModel("list_hosted_zones", "HostedZones", "HostedZone", prefix="Route53"),
+        # AwsResotoModel("list_hosted_zones", "HostedZones", "HostedZone", prefix="Route53"),
     ],
-    "iam": [],
+    "iam": [
+        # AwsResotoModel(
+        #     "list-server-certificates",
+        #     "ServerCertificateMetadataList",
+        #     "ServerCertificateMetadata",
+        #     prefix="Iam",
+        #     prop_prefix="server_certificate_",
+        # ),
+        # AwsResotoModel(
+        #     "list-policies",
+        #     "Policies",
+        #     "Policy",
+        #     prefix="Iam",
+        #     prop_prefix="policy_",
+        # ),
+        # AwsResotoModel(
+        #     "list-groups",
+        #     "Groups",
+        #     "Group",
+        #     prefix="Iam",
+        #     prop_prefix="group_",
+        # ),
+        # AwsResotoModel(
+        #     "list-roles",
+        #     "Roles",
+        #     "Role",
+        #     prefix="Iam",
+        #     prop_prefix="role_",
+        # ),
+        # AwsResotoModel(
+        #     "list-users",
+        #     "Users",
+        #     "User",
+        #     prefix="Iam",
+        #     prop_prefix="user_",
+        # ),
+        AwsResotoModel(
+            "list-access-keys",
+            "AccessKeyMetadata",
+            "AccessKeyMetadata",
+            prefix="Iam",
+            prop_prefix="access_key_",
+        ),
+        # AwsResotoModel(
+        #     "list-access-keys-last-user",
+        #     "AccessKeyLastUsed",
+        #     "AccessKeyLastUsed",
+        #     prefix="Iam",
+        #     prop_prefix="access_key_",
+        # ),
+    ],
 }
 
 
