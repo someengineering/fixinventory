@@ -850,7 +850,6 @@ async def test_discord_alias(cli: CLI, echo_http_server: Tuple[int, List[Tuple[R
     assert result == [["4 requests with status 200 sent."]]
     assert len(requests) == 4
     assert requests[0][1] == {
-        "content": "🔥🔥🔥 Resoto found stuff! 🔥🔥🔥",
         "embeds": [{"title": "test", "fields": [{"name": "bla", "value": "yes or no"} for _ in range(0, 25)]}],
     }
 
