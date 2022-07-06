@@ -201,8 +201,7 @@ def dataclasses_to_resotocore_model(
         )
 
     def export_enum(clazz: Type[Enum]) -> None:
-        # Highly opinionated version to handle enums:
-        # In case this enumeration uses strings as values, we use the values otherwise the literal names.
+        # Only allow string based enumerations.
         def literal_name(en: Enum) -> str:
             if isinstance(en.value, str):
                 return en.value
