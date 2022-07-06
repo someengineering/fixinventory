@@ -7,7 +7,7 @@ from test.resources import BotoFileBasedSession
 
 def test_collect() -> None:
     config = AwsConfig("test", "test", "test")
-    config.sessions.session_class_factory = BotoFileBasedSession
+    config.sessions().session_class_factory = BotoFileBasedSession
     account = AwsAccount("123")
     collector = AwsAccountCollector(config, Cloud("aws"), account, ["us-east-1"])
     collector.collect()

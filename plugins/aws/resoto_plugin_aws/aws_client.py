@@ -25,7 +25,7 @@ class AwsClient:
 
     def call(self, service: str, action: str, result_name: str, **kwargs: Any) -> JsonElement:
         py_action = action.replace("-", "_")
-        session = self.config.sessions.session(self.account_id, self.account_role)
+        session = self.config.sessions().session(self.account_id, self.account_role)
         client = session.client(service, region_name=self.region)
         if client.can_paginate(py_action):
             paginator = client.get_paginator(py_action)

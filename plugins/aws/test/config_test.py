@@ -29,5 +29,5 @@ def test_default_config() -> None:
 def test_session() -> None:
     config = AwsConfig("test", "test", "test")
     # direct session
-    assert config.sessions.session("1234", aws_role=None) == config.sessions.session("1234", aws_role=None)
+    assert config.sessions().session("1234", aws_role=None) == config.sessions().session("1234", aws_role=None)
     # no test for sts session, since this requires sts setup
