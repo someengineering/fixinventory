@@ -32,7 +32,7 @@ class CoreActions(threading.Thread):
         self.ws = None
         self.tls_data = tls_data
         self.shutdown_event = threading.Event()
-        self.executor = ThreadPoolExecutor(max_workers=max_concurrent_actions, thread_name_prefix=f"processor")
+        self.executor = ThreadPoolExecutor(max_workers=max_concurrent_actions, thread_name_prefix=self.identifier)
 
     def run(self) -> None:
         self.name = self.identifier
