@@ -39,32 +39,32 @@ def _load_default_metrics() -> Dict[str, Metric]:
 @dataclass
 class ResotoMetricsConfig:
     kind: ClassVar[str] = "resotometrics"
-    graph: Optional[str] = field(
+    graph: str = field(
         default="resoto",
         metadata={"description": "Name of the graph to run aggregation searches on"},
     )
-    timeout: Optional[int] = field(default=300, metadata={"description": "Metrics generation timeout in seconds"})
-    metrics: Optional[Dict[str, Metric]] = field(
+    timeout: int = field(default=300, metadata={"description": "Metrics generation timeout in seconds"})
+    metrics: Dict[str, Metric] = field(
         default_factory=_load_default_metrics,
         metadata={
             "description": ("Metrics config\n" "See https://resoto.com/docs/reference/cli/aggregate for syntax details")
         },
     )
-    web_host: Optional[str] = field(
+    web_host: str = field(
         default="::",
         metadata={
             "description": "IP address to bind the web server to",
             "restart_required": True,
         },
     )
-    web_port: Optional[int] = field(
+    web_port: int = field(
         default=9955,
         metadata={
             "description": "Web server tcp port to listen on",
             "restart_required": True,
         },
     )
-    web_path: Optional[str] = field(
+    web_path: str = field(
         default="/",
         metadata={
             "description": "Web root in browser (change if running behind an ingress proxy)",
