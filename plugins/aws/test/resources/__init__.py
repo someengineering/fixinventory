@@ -1,6 +1,6 @@
 import json
 import os
-from dataclasses import fields
+from attrs import fields
 from typing import Type, Any, Callable, Optional, Set, Tuple
 
 from boto3 import Session
@@ -49,8 +49,8 @@ class BotoFileBasedSession(Session):  # type: ignore
         return BotoDummyStsClient() if service_name == "sts" else BotoFileClient(service_name)
 
 
-def all_props_set(obj: Type[AWSResourceType], ignore_props: Set[str]) -> None:
-    for field in fields(obj):
+def all_props_set(obj: AWSResourceType, ignore_props: Set[str]) -> None:
+    for field in fields(type(obj)):
         prop = field.name
         if (
             not prop.startswith("_")

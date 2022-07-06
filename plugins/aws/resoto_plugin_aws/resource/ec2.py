@@ -85,7 +85,7 @@ class AwsEc2Volume(AwsResource, BaseVolume):
         "volume_fast_restored": S("FastRestored"),
         "volume_multi_attach_enabled": S("MultiAttachEnabled"),
     }
-    volume_attachments: List[AwsEc2VolumeAttachment] = field(default_factory=list)
+    volume_attachments: List[AwsEc2VolumeAttachment] = field(factory=list)
     availability_zone: Optional[str] = field(default=None)
     volume_encrypted: Optional[bool] = field(default=None)
     volume_kms_key_id: Optional[str] = field(default=None)
@@ -324,13 +324,13 @@ class AwsEc2InstanceNetworkInterface:
     association: Optional[AwsEc2InstanceNetworkInterfaceAssociation] = field(default=None)
     attachment: Optional[AwsEc2InstanceNetworkInterfaceAttachment] = field(default=None)
     description: Optional[str] = field(default=None)
-    groups: List[AwsEc2GroupIdentifier] = field(default_factory=list)
-    ipv6_addresses: List[str] = field(default_factory=list)
+    groups: List[AwsEc2GroupIdentifier] = field(factory=list)
+    ipv6_addresses: List[str] = field(factory=list)
     mac_address: Optional[str] = field(default=None)
     network_interface_id: Optional[str] = field(default=None)
     private_dns_name: Optional[str] = field(default=None)
     private_ip_address: Optional[str] = field(default=None)
-    private_ip_addresses: List[AwsEc2InstancePrivateIpAddress] = field(default_factory=list)
+    private_ip_addresses: List[AwsEc2InstancePrivateIpAddress] = field(factory=list)
     source_dest_check: Optional[bool] = field(default=None)
     status: Optional[str] = field(default=None)
     interface_type: Optional[str] = field(default=None)
@@ -503,7 +503,7 @@ class AwsEc2Instance(AwsResource, BaseInstance):
     instance_platform: Optional[str] = field(default=None)
     instance_private_dns_name: Optional[str] = field(default=None)
     instance_private_ip_address: Optional[str] = field(default=None)
-    instance_product_codes: List[AwsEc2ProductCode] = field(default_factory=list)
+    instance_product_codes: List[AwsEc2ProductCode] = field(factory=list)
     instance_public_dns_name: Optional[str] = field(default=None)
     instance_public_ip_address: Optional[str] = field(default=None)
     instance_ramdisk_id: Optional[str] = field(default=None)
@@ -511,22 +511,22 @@ class AwsEc2Instance(AwsResource, BaseInstance):
     instance_state_transition_reason: Optional[str] = field(default=None)
     instance_subnet_id: Optional[str] = field(default=None)
     instance_architecture: Optional[str] = field(default=None)
-    instance_block_device_mappings: List[AwsEc2InstanceBlockDeviceMapping] = field(default_factory=list)
+    instance_block_device_mappings: List[AwsEc2InstanceBlockDeviceMapping] = field(factory=list)
     instance_client_token: Optional[str] = field(default=None)
     instance_ebs_optimized: Optional[bool] = field(default=None)
     instance_ena_support: Optional[bool] = field(default=None)
     instance_hypervisor: Optional[str] = field(default=None)
     instance_iam_instance_profile: Optional[AwsEc2IamInstanceProfile] = field(default=None)
     instance_lifecycle: Optional[str] = field(default=None)
-    instance_elastic_gpu_associations: List[AwsEc2ElasticGpuAssociation] = field(default_factory=list)
+    instance_elastic_gpu_associations: List[AwsEc2ElasticGpuAssociation] = field(factory=list)
     instance_elastic_inference_accelerator_associations: List[AwsEc2ElasticInferenceAcceleratorAssociation] = field(
-        default_factory=list
+        factory=list
     )
-    instance_network_interfaces: List[AwsEc2InstanceNetworkInterface] = field(default_factory=list)
+    instance_network_interfaces: List[AwsEc2InstanceNetworkInterface] = field(factory=list)
     instance_outpost_arn: Optional[str] = field(default=None)
     instance_root_device_name: Optional[str] = field(default=None)
     instance_root_device_type: Optional[str] = field(default=None)
-    instance_security_groups: List[AwsEc2GroupIdentifier] = field(default_factory=list)
+    instance_security_groups: List[AwsEc2GroupIdentifier] = field(factory=list)
     instance_source_dest_check: Optional[bool] = field(default=None)
     instance_spot_instance_request_id: Optional[str] = field(default=None)
     instance_sriov_net_support: Optional[str] = field(default=None)
@@ -538,7 +538,7 @@ class AwsEc2Instance(AwsResource, BaseInstance):
         default=None
     )
     instance_hibernation_options: Optional[bool] = field(default=None)
-    instance_licenses: List[str] = field(default_factory=list)
+    instance_licenses: List[str] = field(factory=list)
     instance_metadata_options: Optional[AwsEc2InstanceMetadataOptionsResponse] = field(default=None)
     instance_enclave_options: Optional[bool] = field(default=None)
     instance_boot_mode: Optional[str] = field(default=None)
@@ -624,7 +624,7 @@ class AwsEc2ReservedInstances(AwsResource):
     reservation_instance_tenancy: Optional[str] = field(default=None)
     reservation_offering_class: Optional[str] = field(default=None)
     reservation_offering_type: Optional[str] = field(default=None)
-    reservation_recurring_charges: List[AwsEc2RecurringCharge] = field(default_factory=list)
+    reservation_recurring_charges: List[AwsEc2RecurringCharge] = field(factory=list)
     reservation_scope: Optional[str] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
@@ -705,8 +705,8 @@ class AwsEc2NetworkAcl(AwsResource):
         # "vpc_id": S("VpcId"), # TODO: add link
         # "owner_id": S("OwnerId") # TODO: add link
     }
-    acl_associations: List[AwsEc2NetworkAclAssociation] = field(default_factory=list)
-    acl_entries: List[AwsEc2NetworkAclEntry] = field(default_factory=list)
+    acl_associations: List[AwsEc2NetworkAclAssociation] = field(factory=list)
+    acl_entries: List[AwsEc2NetworkAclEntry] = field(factory=list)
     is_default: Optional[bool] = field(default=None)
 
 

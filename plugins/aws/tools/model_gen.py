@@ -78,7 +78,7 @@ class AwsModel:
         mapping += ",\n".join(f"        {p.mapping()}" for p in self.props)
         mapping += "\n    }"
         props = "\n".join(f"    {p.name}: {p.type_string()} = {p.assignment()}" for p in self.props)
-        return f"@dataclass(eq=False)\nclass {self.name}{base}\n{kind}\n{api}{mapping}\n{props}\n"
+        return f"@define(eq=False, slots=False)\nclass {self.name}{base}\n{kind}\n{api}{mapping}\n{props}\n"
 
 
 @define
