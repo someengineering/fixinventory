@@ -1044,7 +1044,7 @@ class BaseDNSZone(BaseResource):
 class BaseDNSRecordSet(BaseResource):
     kind: ClassVar[str] = "dns_record_set"
 
-    record_ttl: int = -1
+    record_ttl: Optional[int] = None
     record_type: str = ""
     record_values: List[str] = field(factory=list)
 

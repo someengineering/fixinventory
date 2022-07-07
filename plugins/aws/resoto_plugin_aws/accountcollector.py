@@ -2215,6 +2215,7 @@ class AWSAccountCollector:
                     record_ttl = record_set.get("TTL")
                     record_type = record_set.get("Type")
                     record_values = [rr.get("Value") for rr in record_set.get("ResourceRecords", [])]
+                    record_alias_target = record_set.get("AliasTarget")
                     rs = AWSRoute53ResourceRecordSet(
                         record_name,
                         {},
@@ -2223,6 +2224,7 @@ class AWSAccountCollector:
                         record_ttl=record_ttl,
                         record_type=record_type,
                         record_values=record_values,
+                        record_alias_target=record_alias_target,
                     )
                     log.debug(f"Found {rs.rtdname} type {rs.record_type}")
                     graph.add_resource(z, rs)

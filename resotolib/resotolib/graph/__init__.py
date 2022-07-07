@@ -726,8 +726,8 @@ def sanitize(graph: Graph, root: GraphRoot = None) -> None:
 
 
 class GraphMergeKind(Enum):
-    cloud = BaseCloud
-    account = BaseAccount
+    cloud = "cloud"
+    account = "account"
 
 
 class GraphExportIterator:
@@ -748,11 +748,19 @@ class GraphExportIterator:
         )
         if not delete_tempfile:
             log.info(f"Writing graph json to file {self.tempfile.name}")
-        if isinstance(graph_merge_kind, GraphMergeKind):
-            self.graph_merge_kind = graph_merge_kind
-        else:
+
+        if not isinstance(graph_merge_kind, GraphMergeKind):
             log.error(f"Graph merge kind is wrong type {type(graph_merge_kind)}")
-            self.graph_merge_kind = GraphMergeKind.cloud
+            graph_merge_kind = GraphMergeKind.cloud
+
+        if graph_merge_kind == GraphMergeKind.cloud:
+            self.graph_merge_kind = BaseCloud
+        elif graph_merge_kind == GraphMergeKind.account:
+            self.graph_merge_kind = BaseAccount
+        else:
+            log.error(f"Graph merge kind has unknown value {graph_merge_kind} - defaulting to 'cloud'")
+            self.graph_merge_kind = BaseCloud
+
         self.graph_exported = False
         self.export_lock = threading.Lock()
         self.total_lines = 0
@@ -797,7 +805,7 @@ class GraphExportIterator:
             start_time = time()
             for node in self.graph.nodes:
                 node_dict = node_to_dict(node)
-                if isinstance(node, self.graph_merge_kind.value):
+                if isinstance(node, self.graph_merge_kind):
                     log.debug(f"Replacing sub graph below {node.rtdname}")
                     if "metadata" not in node_dict or not isinstance(node_dict["metadata"], dict):
                         node_dict["metadata"] = {}

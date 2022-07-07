@@ -204,7 +204,14 @@ def dataclasses_to_resotocore_model(
         )
 
     def export_enum(clazz: Type[Enum]) -> None:
-        enum_values = [literal.value for literal in clazz]
+        # Only allow string based enumerations.
+        def literal_name(en: Enum) -> str:
+            if isinstance(en.value, str):
+                return en.value
+            else:
+                raise AttributeError(f"Enumeration {clazz} does not use string as values!")
+
+        enum_values = [literal_name(literal) for literal in clazz]
         model.append({"fqn": model_name(clazz), "runtime_kind": "string", "enum": enum_values})
 
     for cls in transitive_classes(classes):
