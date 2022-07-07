@@ -187,13 +187,14 @@ def alias_templates() -> List[AliasTemplateConfig]:
             # discord limit: https://discord.com/developers/docs/resources/channel#embed-object-embed-limits
             "chunk 25 | "
             # define the discord webhook json
-            'jq {embeds: [{title: "{{title}}", description: "{{message}}", fields:.}]} | '
+            'jq {embeds: [{type: "rich", title: "{{title}}", {{#message}}description: "{{message}}",{{/message}} '
+            'fields:., footer:{text: "Message created by Resoto"}}]} | '
             # call the api
             "http POST {{webhook}}",
             [
                 AliasTemplateParameterConfig("key", "Resource field to show as key", ".kind"),
                 AliasTemplateParameterConfig("value", "Resource field to show as value", ".name"),
-                AliasTemplateParameterConfig("message", "Alert message"),
+                AliasTemplateParameterConfig("message", "Alert message", ""),
                 AliasTemplateParameterConfig("title", "Alert title"),
                 AliasTemplateParameterConfig("webhook", "Discord Webhook URL"),
             ],
