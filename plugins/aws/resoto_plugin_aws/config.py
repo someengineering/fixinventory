@@ -123,7 +123,7 @@ class AwsConfig:
             return name not in self.no_collect
         return True
 
-    _lock: threading.RLock = field(default_factory=threading.RLock)
+    _lock: threading.RLock = field(factory=threading.RLock)
     _holder: Optional[AwsSessionHolder] = field(default=None)
 
     def __getstate__(self) -> Dict[str, Any]:
