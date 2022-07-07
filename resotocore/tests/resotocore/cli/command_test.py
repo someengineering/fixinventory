@@ -844,14 +844,23 @@ async def test_http_command(cli: CLI, echo_http_server: Tuple[int, List[Tuple[Re
 async def test_discord_alias(cli: CLI, echo_http_server: Tuple[int, List[Tuple[Request, Json]]]) -> None:
     port, requests = echo_http_server
     result = await cli.execute_cli_command(
-        f'search is(bla) | discord webhook="http://localhost:{port}/success" title=test', stream.list
+        f'search is(bla) | discord webhook="http://localhost:{port}/success" title=test message="test message"',
+        stream.list,
     )
     # 100 times bla, discord allows 25 fields -> 4 requests
     assert result == [["4 requests with status 200 sent."]]
     assert len(requests) == 4
+    print(requests[0][1])
     assert requests[0][1] == {
-        "content": "🔥🔥🔥 Resoto found stuff! 🔥🔥🔥",
-        "embeds": [{"title": "test", "fields": [{"name": "bla", "value": "yes or no"} for _ in range(0, 25)]}],
+        "embeds": [
+            {
+                "type": "rich",
+                "title": "test",
+                "description": "test message",
+                "fields": [{"name": "bla", "value": "yes or no"} for _ in range(0, 25)],
+                "footer": {"text": "Message created by Resoto"},
+            }
+        ],
     }
 
 
