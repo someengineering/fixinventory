@@ -255,7 +255,7 @@ CollectorFn = Callable[[AWSRegion, Graph], None]
 
 class AWSAccountCollector:
     def __init__(self, regions: List[str], account: AWSAccount) -> None:
-        self.regions = [AWSRegion(region, {}, _account=account) for region in regions]
+        self.regions = [AWSRegion(region, {}, account=account) for region in regions]
         self.account = account
         self.root = self.account
         self.graph = Graph(root=self.account)
@@ -318,7 +318,7 @@ class AWSAccountCollector:
         log.debug(f"Running the following collectors in account {self.account.dname}: {', '.join(collectors)}")
 
         # Collect global resources like IAM and S3 first
-        global_region = AWSRegion("us-east-1", {}, name="global", _account=self.account)
+        global_region = AWSRegion("us-east-1", {}, name="global", account=self.account)
         graph = self.collect_resources(self.global_collectors, global_region)
         log.debug(f"Adding graph of region {global_region.name} to account graph")
         self.graph.merge(graph)
@@ -550,8 +550,8 @@ class AWSAccountCollector:
                 v = AWSEC2Volume(
                     volume.id,
                     tags_as_dict(volume.tags),
-                    _account=self.account,
-                    _region=region,
+                    account=self.account,
+                    region=region,
                     ctime=volume.create_time,
                     atime=now,
                     volume_status=volume_status_map.get(volume.state, VolumeStatus.UNKNOWN),
@@ -831,7 +831,7 @@ class AWSAccountCollector:
     @metrics_collect_iam_server_certificates.time()  # type: ignore
     def collect_iam_server_certificates(self, region: AWSRegion, graph: Graph) -> None:
         log.info(f"Collecting AWS IAM Server Certificates in account {self.account.dname} region {region.id}")
-        cq = AWSIAMServerCertificateQuota("iam_server_certificates_quota", {}, _account=self.account, _region=region)
+        cq = AWSIAMServerCertificateQuota("iam_server_certificates_quota", {}, account=self.account, region=region)
         cq.quota = self.get_iam_service_quotas(region).get("server_certificates", -1.0)
         graph.add_resource(region, cq)
         session = aws_session(self.account.id, self.account.role)
@@ -847,8 +847,8 @@ class AWSAccountCollector:
             c = AWSIAMServerCertificate(
                 certificate["ServerCertificateId"],
                 {},
-                _account=self.account,
-                _region=region,
+                account=self.account,
+                region=region,
                 ctime=certificate.get("UploadDate"),
             )
             c.path = certificate.get("Path")
@@ -881,8 +881,8 @@ class AWSAccountCollector:
             p = AWSIAMPolicy(
                 policy["PolicyId"],
                 {},
-                _account=self.account,
-                _region=region,
+                account=self.account,
+                region=region,
                 ctime=policy.get("CreateDate"),
             )
             p.name = policy.get("PolicyName")
@@ -913,8 +913,8 @@ class AWSAccountCollector:
             g = AWSIAMGroup(
                 group["GroupId"],
                 {},
-                _account=self.account,
-                _region=region,
+                account=self.account,
+                region=region,
                 ctime=group.get("CreateDate"),
             )
             g.name = group.get("GroupName")
@@ -973,8 +973,8 @@ class AWSAccountCollector:
             ip = AWSIAMInstanceProfile(
                 instance_profile["InstanceProfileId"],
                 {},
-                _account=self.account,
-                _region=region,
+                account=self.account,
+                region=region,
                 ctime=instance_profile.get("CreateDate"),
             )
             ip.name = instance_profile.get("InstanceProfileName")
@@ -998,8 +998,8 @@ class AWSAccountCollector:
             r = AWSIAMRole(
                 role["RoleId"],
                 tags_as_dict(role.get("Tags", [])),
-                _account=self.account,
-                _region=region,
+                account=self.account,
+                region=region,
                 ctime=role.get("CreateDate"),
                 atime=role.get("RoleLastUsed", {}).get("LastUsedDate"),
             )
@@ -1073,8 +1073,8 @@ class AWSAccountCollector:
             u = AWSIAMUser(
                 user["UserId"],
                 tags_as_dict(user.get("Tags", [])),
-                _account=self.account,
-                _region=region,
+                account=self.account,
+                region=region,
                 ctime=user.get("CreateDate"),
             )
             u.name = user.get("UserName")
@@ -1127,8 +1127,8 @@ class AWSAccountCollector:
                         access_key["AccessKeyId"],
                         {},
                         user_name=u.name,
-                        _account=self.account,
-                        _region=region,
+                        account=self.account,
+                        region=region,
                         ctime=access_key.get("CreateDate"),
                     )
                     ak.access_key_status = access_key.get("Status")
@@ -1204,8 +1204,8 @@ class AWSAccountCollector:
                 i = AWSEC2Instance(
                     instance.id,
                     tags_as_dict(instance.tags),
-                    _account=self.account,
-                    _region=region,
+                    account=self.account,
+                    region=region,
                     ctime=instance.launch_time,
                     instance_status=instance_status_map.get(instance.state["Name"], InstanceStatus.UNKNOWN),
                 )
@@ -1256,8 +1256,8 @@ class AWSAccountCollector:
             asg = AWSAutoScalingGroup(
                 name,
                 tags,
-                _account=self.account,
-                _region=region,
+                account=self.account,
+                region=region,
                 ctime=autoscaling_group.get("CreatedTime"),
             )
             asg.arn = autoscaling_group.get("AutoScalingGroupARN")
@@ -1279,7 +1279,7 @@ class AWSAccountCollector:
             vpc_id = network_acl.get("VpcId")
             tags = tags_as_dict(network_acl.get("Tags", []))
             acl_name = tags.get("Name", acl_id)
-            acl = AWSEC2NetworkAcl(acl_id, tags, name=acl_name, _account=self.account, _region=region)
+            acl = AWSEC2NetworkAcl(acl_id, tags, name=acl_name, account=self.account, region=region)
             acl.is_default = network_acl.get("IsDefault", False)
             log.debug(f"Found Network ACL {acl.name}")
             graph.add_resource(region, acl)
@@ -1311,8 +1311,8 @@ class AWSAccountCollector:
                 ngw_id,
                 tags,
                 name=ngw_name,
-                _account=self.account,
-                _region=region,
+                account=self.account,
+                region=region,
                 ctime=nat_gw.get("CreateTime"),
             )
             ngw.nat_gateway_status = nat_gw.get("State")
@@ -1348,8 +1348,8 @@ class AWSAccountCollector:
                 snap_id,
                 tags,
                 name=snap_name,
-                _account=self.account,
-                _region=region,
+                account=self.account,
+                region=region,
                 ctime=snapshot.get("StartTime"),
             )
             snap.snapshot_status = snapshot.get("State", "")
@@ -1376,7 +1376,7 @@ class AWSAccountCollector:
             pc_id = peering_connection["VpcPeeringConnectionId"]
             tags = tags_as_dict(peering_connection.get("Tags", []))
             pc_name = tags.get("Name", pc_id)
-            pc = AWSVPCPeeringConnection(pc_id, tags, name=pc_name, _account=self.account, _region=region)
+            pc = AWSVPCPeeringConnection(pc_id, tags, name=pc_name, account=self.account, region=region)
             pc.vpc_peering_connection_status = peering_connection.get("Status", {}).get("Code")
             log.debug(f"Found AWS VPC Peering Connection {pc.name}")
             graph.add_resource(region, pc)
@@ -1408,8 +1408,8 @@ class AWSAccountCollector:
                 ep_id,
                 tags,
                 name=ep_name,
-                _account=self.account,
-                _region=region,
+                account=self.account,
+                region=region,
                 ctime=endpoint.get("CreationTimestamp"),
             )
             ep.vpc_endpoint_status = endpoint.get("State", "")
@@ -1457,8 +1457,8 @@ class AWSAccountCollector:
             kp = AWSEC2KeyPair(
                 keypair_id,
                 tags,
-                _account=self.account,
-                _region=region,
+                account=self.account,
+                region=region,
                 name=keypair_name,
             )
             kp.fingerprint = keypair.get("KeyFingerprint")
@@ -1482,8 +1482,8 @@ class AWSAccountCollector:
             d = AWSRDSInstance(
                 db["DbiResourceId"],
                 {},
-                _account=self.account,
-                _region=region,
+                account=self.account,
+                region=region,
                 ctime=db.get("InstanceCreateTime"),
             )
             d.name = db.get("DBInstanceIdentifier", db["DbiResourceId"])
@@ -1526,7 +1526,7 @@ class AWSAccountCollector:
     @metrics_collect_s3_buckets.time()
     def collect_s3_buckets(self, region: AWSRegion, graph: Graph) -> None:
         log.info(f"Collecting AWS S3 Buckets in account {self.account.dname} region {region.id}")
-        bq = AWSS3BucketQuota("s3_quota", {}, _account=self.account, _region=region)
+        bq = AWSS3BucketQuota("s3_quota", {}, account=self.account, region=region)
         bq.quota = self.get_s3_service_quotas(region).get("s3", -1.0)
         graph.add_resource(region, bq)
         session = aws_session(self.account.id, self.account.role)
@@ -1538,8 +1538,8 @@ class AWSAccountCollector:
                     bucket.name,
                     tags={},
                     arn=f"arn:{arn_partition(region)}:s3:::{bucket.name}",
-                    _account=self.account,
-                    _region=region,
+                    account=self.account,
+                    region=region,
                     ctime=bucket.creation_date,
                 )
                 buckets.append(b)
@@ -1574,8 +1574,8 @@ class AWSAccountCollector:
             tg = AWSALBTargetGroup(
                 target_group["TargetGroupName"],
                 tags,
-                _account=self.account,
-                _region=region,
+                account=self.account,
+                region=region,
             )
             tg.arn = arn
             tg.target_type = target_group["TargetType"]
@@ -1612,7 +1612,7 @@ class AWSAccountCollector:
     @metrics_collect_albs.time()
     def collect_albs(self, region: AWSRegion, graph: Graph) -> None:
         log.info(f"Collecting AWS ALBs in account {self.account.dname} region {region.id}")
-        aq = AWSALBQuota("alb_quota", {}, _account=self.account, _region=region)
+        aq = AWSALBQuota("alb_quota", {}, account=self.account, region=region)
         aq.quota = self.get_elb_service_quotas(region).get("alb", -1.0)
         graph.add_resource(region, aq)
 
@@ -1634,8 +1634,8 @@ class AWSAccountCollector:
                 a = AWSALB(
                     alb["LoadBalancerName"],
                     tags,
-                    _account=self.account,
-                    _region=region,
+                    account=self.account,
+                    region=region,
                     ctime=alb.get("CreatedTime"),
                 )
                 a.arn = arn
@@ -1685,7 +1685,7 @@ class AWSAccountCollector:
     @metrics_collect_elbs.time()
     def collect_elbs(self, region: AWSRegion, graph: Graph) -> None:
         log.info(f"Collecting AWS ELBs in account {self.account.dname} region {region.id}")
-        eq = AWSELBQuota("elb_quota", {}, _account=self.account, _region=region)
+        eq = AWSELBQuota("elb_quota", {}, account=self.account, region=region)
         eq.quota = self.get_elb_service_quotas(region).get("elb", -1.0)
         graph.add_resource(region, eq)
 
@@ -1706,8 +1706,8 @@ class AWSAccountCollector:
                 e = AWSELB(
                     elb["DNSName"],
                     tags,
-                    _account=self.account,
-                    _region=region,
+                    account=self.account,
+                    region=region,
                     ctime=elb.get("CreatedTime"),
                 )
                 e.name = elb["LoadBalancerName"]
@@ -1758,7 +1758,7 @@ class AWSAccountCollector:
     @metrics_collect_vpcs.time()
     def collect_vpcs(self, region: AWSRegion, graph: Graph) -> None:
         log.info(f"Collecting AWS VPCs in account {self.account.dname} region {region.id}")
-        vq = AWSVPCQuota("vpc_quota", {}, _account=self.account, _region=region)
+        vq = AWSVPCQuota("vpc_quota", {}, account=self.account, region=region)
         vq.quota = self.get_vpc_service_quotas(region).get("vpc", -1.0)
         graph.add_resource(region, vq)
         session = aws_session(self.account.id, self.account.role)
@@ -1772,8 +1772,8 @@ class AWSAccountCollector:
                     vpc_tags,
                     name=vpc_name,
                     is_default=vpc.is_default,
-                    _account=self.account,
-                    _region=region,
+                    account=self.account,
+                    region=region,
                 )
                 if v.is_default:
                     # Protect the default VPC from being cleaned
@@ -1797,8 +1797,8 @@ class AWSAccountCollector:
                     subnet.id,
                     tags,
                     name=subnet_name,
-                    _account=self.account,
-                    _region=region,
+                    account=self.account,
+                    region=region,
                 )
                 log.debug(f"Found subnet {s.id}")
                 graph.add_resource(region, s)
@@ -1814,7 +1814,7 @@ class AWSAccountCollector:
     @metrics_collect_internet_gateways.time()
     def collect_internet_gateways(self, region: AWSRegion, graph: Graph) -> None:
         log.info(f"Collecting AWS Internet Gateways in account {self.account.dname} region {region.id}")
-        igwq = AWSEC2InternetGatewayQuota("igw_quota", {}, _account=self.account, _region=region)
+        igwq = AWSEC2InternetGatewayQuota("igw_quota", {}, account=self.account, region=region)
         igwq.quota = self.get_vpc_service_quotas(region).get("igw", -1.0)
         graph.add_resource(region, igwq)
         session = aws_session(self.account.id, self.account.role)
@@ -1823,7 +1823,7 @@ class AWSAccountCollector:
             try:
                 tags = tags_as_dict(igw.tags)
                 igw_name = tags.get("Name", igw.id)
-                i = AWSEC2InternetGateway(igw.id, tags, name=igw_name, _account=self.account, _region=region)
+                i = AWSEC2InternetGateway(igw.id, tags, name=igw_name, account=self.account, region=region)
                 log.debug(f"Found Internet Gateway {i.id}")
                 graph.add_resource(region, i)
                 graph.add_edge(igwq, i)
@@ -1849,8 +1849,8 @@ class AWSAccountCollector:
                     sg.id,
                     tags_as_dict(sg.tags),
                     name=sg.group_name,
-                    _account=self.account,
-                    _region=region,
+                    account=self.account,
+                    region=region,
                 )
                 log.debug(f"Found Security Group {s.id}")
                 graph.add_resource(region, s)
@@ -1872,7 +1872,7 @@ class AWSAccountCollector:
             try:
                 tags = tags_as_dict(rt.tags)
                 rt_name = tags.get("Name", rt.id)
-                r = AWSEC2RouteTable(rt.id, tags, name=rt_name, _account=self.account, _region=region)
+                r = AWSEC2RouteTable(rt.id, tags, name=rt_name, account=self.account, region=region)
                 log.debug(f"Found Route Table {r.id}")
                 graph.add_resource(region, r)
                 if rt.vpc_id:
@@ -1894,8 +1894,8 @@ class AWSAccountCollector:
                 n = AWSEC2NetworkInterface(
                     ni.id,
                     tags_as_dict(ni.tag_set),
-                    _account=self.account,
-                    _region=region,
+                    account=self.account,
+                    region=region,
                 )
                 n.network_interface_status = ni.status
                 n.network_interface_type = ni.interface_type
@@ -1960,8 +1960,8 @@ class AWSAccountCollector:
             s = AWSCloudFormationStack(
                 stack["StackId"],
                 tags_as_dict(stack["Tags"]),
-                _account=self.account,
-                _region=region,
+                account=self.account,
+                region=region,
                 ctime=stack.get("CreationTime"),
             )
             s.name = stack["StackName"]
@@ -1992,8 +1992,8 @@ class AWSAccountCollector:
                 stack_set["StackSetId"],
                 tags_as_dict(stack_set.get("Tags", [])),
                 name=stack_set.get("StackSetName"),
-                _account=self.account,
-                _region=region,
+                account=self.account,
+                region=region,
                 stack_set_status=stack_set.get("Status"),
                 stack_set_parameters=self.parameters_as_dict(stack_set.get("Parameters", [])),
                 stack_set_capabilities=stack_set.get("Capabilities", []),
@@ -2047,8 +2047,8 @@ class AWSAccountCollector:
             c = AWSEKSCluster(
                 cluster["arn"],
                 cluster.get("tags", {}),
-                _account=self.account,
-                _region=region,
+                account=self.account,
+                region=region,
                 ctime=cluster.get("createdAt"),
             )
             c.name = cluster.get("name")
@@ -2079,7 +2079,7 @@ class AWSAccountCollector:
             ip_address = public_ip if public_ip is not None else private_ip_address
             tags = tags_as_dict(address.get("Tags", []))
             name = tags.get("Name", allocation_id)
-            ip = AWSEC2ElasticIP(allocation_id, tags, name=name, _account=self.account, _region=region)
+            ip = AWSEC2ElasticIP(allocation_id, tags, name=name, account=self.account, region=region)
             ip.ip_address = ip_address
             ip.allocation_id = allocation_id
             ip.association_id = address.get("AssociationId")
@@ -2121,8 +2121,8 @@ class AWSAccountCollector:
             n = AWSEKSNodegroup(
                 nodegroup["nodegroupArn"],
                 nodegroup.get("tags", {}),
-                _account=self.account,
-                _region=region,
+                account=self.account,
+                region=region,
                 ctime=nodegroup.get("createdAt"),
             )
             n.name = nodegroup.get("nodegroupName")
@@ -2158,8 +2158,8 @@ class AWSAccountCollector:
             cwa = AWSCloudwatchAlarm(
                 name,
                 tags,
-                _account=self.account,
-                _region=region,
+                account=self.account,
+                region=region,
                 ctime=cloudwatch_alarm.get("CreatedTime"),
             )
             cwa.arn = cloudwatch_alarm.get("AlarmArn")
@@ -2199,8 +2199,8 @@ class AWSAccountCollector:
                 zone["Id"],
                 {},
                 name=zone["Name"],
-                _account=self.account,
-                _region=region,
+                account=self.account,
+                region=region,
                 zone_config=zone.get("Config"),
                 zone_resource_record_set_count=zone.get("ResourceRecordSetCount"),
                 zone_caller_reference=zone.get("CallerReference"),
@@ -2219,8 +2219,8 @@ class AWSAccountCollector:
                     rs = AWSRoute53ResourceRecordSet(
                         record_name,
                         {},
-                        _account=self.account,
-                        _region=region,
+                        account=self.account,
+                        region=region,
                         record_ttl=record_ttl,
                         record_type=record_type,
                         record_values=record_values,
@@ -2232,8 +2232,8 @@ class AWSAccountCollector:
                         rr = AWSRoute53ResourceRecord(
                             record_name,
                             {},
-                            _account=self.account,
-                            _region=region,
+                            account=self.account,
+                            region=region,
                             record_ttl=record_ttl,
                             record_type=record_type,
                             record_data=resource_record,
@@ -2376,7 +2376,7 @@ class AWSAccountCollector:
                     )
                 )
                 return None
-            node = AWSEC2InstanceType(instance_type, {}, _account=self.account, _region=region)
+            node = AWSEC2InstanceType(instance_type, {}, account=self.account, region=region)
             node.instance_cores = price_info[instance_type]["cores"]
             node.instance_memory = price_info[instance_type]["memory"]
             node.ondemand_cost = price_info[instance_type]["tenancy"]["default"]
@@ -2399,7 +2399,7 @@ class AWSAccountCollector:
             quota_node_name = quota_name + "_quota"
             quota_node = graph.search_first("name", quota_node_name)
             if not isinstance(quota_node, BaseQuota):
-                quota_node = AWSEC2InstanceQuota(quota_node_name, {}, _account=self.account, _region=region)
+                quota_node = AWSEC2InstanceQuota(quota_node_name, {}, account=self.account, region=region)
                 quota_node.quota = self.get_ec2_instance_type_quota(region, quota_name)
                 quota_node.quota_type = quota_type
                 graph.add_resource(region, quota_node)
@@ -2473,7 +2473,7 @@ class AWSAccountCollector:
                 price_info = price
                 if price_info > 0:
                     break
-            node = AWSEC2VolumeType(volume_type, {}, _account=self.account, _region=region)
+            node = AWSEC2VolumeType(volume_type, {}, account=self.account, region=region)
             node.ondemand_cost = price_info
             node.quota = self.get_ebs_volume_type_quota(region, volume_type)
             self._price_info["ebs"][region.id][volume_type] = node
