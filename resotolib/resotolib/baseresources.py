@@ -11,9 +11,8 @@ from enum import Enum
 from typing import Dict, Iterator, List, ClassVar, Optional, Type
 from resotolib.utils import make_valid_timestamp, utc_str
 from prometheus_client import Counter, Summary
-from dataclasses import dataclass, field
+from attrs import define, field
 import jsons
-
 
 metrics_resource_pre_cleanup_exceptions = Counter(
     "resource_pre_cleanup_exceptions_total",
@@ -93,7 +92,7 @@ class ResourceChanges:
         return changes
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class BaseResource(ABC):
     """A BaseResource is any node we're connecting to the Graph()
 
@@ -120,7 +119,7 @@ class BaseResource(ABC):
     tags: Dict[str, Optional[str]] = None
     name: str = None
     _cloud: object = field(default=None, repr=False)
-    _account: "BaseAccount" = field(default=None, repr=False)
+    _account: Optional["BaseAccount"] = field(default=None, repr=False)
     _region: object = field(default=None, repr=False)
     _zone: object = field(default=None, repr=False)
     _resotocore_id: Optional[str] = field(default=None, repr=False)
@@ -139,7 +138,7 @@ class BaseResource(ABC):
         metadata={"synthetic": {"last_access": "trafo.duration_to_datetime"}},
     )
 
-    def __post_init__(self) -> None:
+    def __attrs_post_init__(self) -> None:
         if self.name is None:
             self.name = self.id
         self.uuid = uuid.uuid4().hex
@@ -228,10 +227,6 @@ class BaseResource(ABC):
         }
         self.__log.append(log_entry)
         self._changes.add("log")
-
-    @property
-    def resource_type(self) -> str:
-        return self.kind
 
     @property
     def changes(self) -> ResourceChanges:
@@ -658,7 +653,7 @@ class ResourceTagsDict(dict):
         return super().__reduce__()
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class PhantomBaseResource(BaseResource):
     kind: ClassVar[str] = "phantom_resource"
     phantom: ClassVar[bool] = True
@@ -668,15 +663,15 @@ class PhantomBaseResource(BaseResource):
         return False
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class BaseQuota(PhantomBaseResource):
     kind: ClassVar[str] = "quota"
     quota: Optional[float] = None
     usage: Optional[float] = None
     quota_type: Optional[str] = None
 
-    def __post_init__(self) -> None:
-        super().__post_init__()
+    def __attrs_post_init__(self) -> None:
+        super().__attrs_post_init__()
         if self.quota is not None:
             self.quota = float(self.quota)
         if self.usage is not None:
@@ -690,23 +685,23 @@ class BaseQuota(PhantomBaseResource):
             return 0.0
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class BaseType(BaseQuota):
     kind: ClassVar[str] = "type"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class BaseInstanceQuota(BaseQuota):
     kind: ClassVar[str] = "instance_quota"
     instance_type: Optional[str] = None
 
-    def __post_init__(self) -> None:
-        super().__post_init__()
+    def __attrs_post_init__(self) -> None:
+        super().__attrs_post_init__()
         self.instance_type = self.id
         self.quota_type = "standard"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class BaseInstanceType(BaseType):
     kind: ClassVar[str] = "instance_type"
     instance_type: Optional[str] = None
@@ -715,12 +710,12 @@ class BaseInstanceType(BaseType):
     ondemand_cost: Optional[float] = None
     reservations: Optional[int] = None
 
-    def __post_init__(
+    def __attrs_post_init__(
         self,
         *args,
         **kwargs,
     ) -> None:
-        super().__post_init__()
+        super().__attrs_post_init__()
         if self.instance_type is None:
             self.instance_type = self.id
         if self.reservations is not None:
@@ -729,7 +724,7 @@ class BaseInstanceType(BaseType):
             self.ondemand_cost = float(self.ondemand_cost)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class BaseCloud(BaseResource):
     kind: ClassVar[str] = "base_cloud"
 
@@ -737,7 +732,7 @@ class BaseCloud(BaseResource):
         return self
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class BaseAccount(BaseResource):
     kind: ClassVar[str] = "account"
 
@@ -745,7 +740,7 @@ class BaseAccount(BaseResource):
         return self
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class BaseRegion(BaseResource):
     kind: ClassVar[str] = "region"
 
@@ -753,7 +748,7 @@ class BaseRegion(BaseResource):
         return self
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class BaseZone(BaseResource):
     kind: ClassVar[str] = "zone"
 
@@ -776,7 +771,7 @@ def serialize_enum(obj, **kwargs):
 jsons.set_serializer(serialize_enum, InstanceStatus)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class BaseInstance(BaseResource):
     kind: ClassVar[str] = "instance"
     instance_cores: float = 0.0
@@ -788,14 +783,14 @@ class BaseInstance(BaseResource):
         return graph.search_first_parent_class(self, BaseInstanceType)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class BaseVolumeType(BaseType):
     kind: ClassVar[str] = "volume_type"
     volume_type: str = ""
     ondemand_cost: float = 0.0
 
-    def __post_init__(self) -> None:
-        super().__post_init__()
+    def __attrs_post_init__(self) -> None:
+        super().__attrs_post_init__()
         self.volume_type = self.id
 
 
@@ -811,7 +806,7 @@ class VolumeStatus(Enum):
 jsons.set_serializer(serialize_enum, VolumeStatus)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class BaseVolume(BaseResource):
     kind: ClassVar[str] = "volume"
     volume_size: int = 0
@@ -826,7 +821,7 @@ class BaseVolume(BaseResource):
         return graph.search_first_parent_class(self, BaseVolumeType)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class BaseSnapshot(BaseResource):
     kind: ClassVar[str] = "snapshot"
     snapshot_status: str = ""
@@ -838,7 +833,7 @@ class BaseSnapshot(BaseResource):
     owner_alias: str = ""
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class Cloud(BaseCloud):
     kind: ClassVar[str] = "cloud"
 
@@ -846,7 +841,7 @@ class Cloud(BaseCloud):
         return False
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class GraphRoot(PhantomBaseResource):
     kind: ClassVar[str] = "graph_root"
 
@@ -854,33 +849,33 @@ class GraphRoot(PhantomBaseResource):
         return False
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class BaseBucket(BaseResource):
     kind: ClassVar[str] = "bucket"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class BaseKeyPair(BaseResource):
     kind: ClassVar[str] = "keypair"
     fingerprint: str = ""
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class BaseBucketQuota(BaseQuota):
     kind: ClassVar[str] = "bucket_quota"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class BaseNetwork(BaseResource):
     kind: ClassVar[str] = "network"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class BaseNetworkQuota(BaseQuota):
     kind: ClassVar[str] = "network_quota"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class BaseDatabase(BaseResource):
     kind: ClassVar[str] = "database"
     db_type: str = ""
@@ -894,108 +889,108 @@ class BaseDatabase(BaseResource):
     volume_encrypted: Optional[bool] = None
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class BaseLoadBalancer(BaseResource):
     kind: ClassVar[str] = "load_balancer"
     lb_type: str = ""
     public_ip_address: Optional[str] = None
-    backends: List[str] = field(default_factory=list)
+    backends: List[str] = field(factory=list)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class BaseLoadBalancerQuota(BaseQuota):
     kind: ClassVar[str] = "load_balancer_quota"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class BaseSubnet(BaseResource):
     kind: ClassVar[str] = "subnet"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class BaseGateway(BaseResource):
     kind: ClassVar[str] = "gateway"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class BaseTunnel(BaseResource):
     kind: ClassVar[str] = "tunnel"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class BaseGatewayQuota(BaseQuota):
     kind: ClassVar[str] = "gateway_quota"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class BaseSecurityGroup(BaseResource):
     kind: ClassVar[str] = "security_group"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class BaseRoutingTable(BaseResource):
     kind: ClassVar[str] = "routing_table"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class BaseNetworkAcl(BaseResource):
     kind: ClassVar[str] = "network_acl"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class BasePeeringConnection(BaseResource):
     kind: ClassVar[str] = "peering_connection"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class BaseEndpoint(BaseResource):
     kind: ClassVar[str] = "endpoint"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class BaseNetworkInterface(BaseResource):
     kind: ClassVar[str] = "network_interface"
     network_interface_status: str = ""
     network_interface_type: str = ""
     mac: str = ""
-    private_ips: List[str] = field(default_factory=list)
-    public_ips: List[str] = field(default_factory=list)
-    v6_ips: List[str] = field(default_factory=list)
+    private_ips: List[str] = field(factory=list)
+    public_ips: List[str] = field(factory=list)
+    v6_ips: List[str] = field(factory=list)
     description: str = ""
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class BaseUser(BaseResource):
     kind: ClassVar[str] = "user"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class BaseGroup(BaseResource):
     kind: ClassVar[str] = "group"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class BasePolicy(BaseResource):
     kind: ClassVar[str] = "policy"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class BaseRole(BaseResource):
     kind: ClassVar[str] = "role"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class BaseInstanceProfile(BaseResource):
     kind: ClassVar[str] = "instance_profile"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class BaseAccessKey(BaseResource):
     kind: ClassVar[str] = "access_key"
     access_key_status: str = ""
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class BaseCertificate(BaseResource):
     kind: ClassVar[str] = "certificate"
     expires: Optional[datetime] = None
@@ -1003,34 +998,34 @@ class BaseCertificate(BaseResource):
     sha1_fingerprint: Optional[str] = None
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class BaseCertificateQuota(BaseQuota):
     kind: ClassVar[str] = "certificate_quota"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class BaseStack(BaseResource):
     kind: ClassVar[str] = "stack"
     stack_status: str = ""
     stack_status_reason: str = ""
-    stack_parameters: Dict = field(default_factory=dict)
+    stack_parameters: Dict = field(factory=dict)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class BaseAutoScalingGroup(BaseResource):
     kind: ClassVar[str] = "autoscaling_group"
     min_size: int = -1
     max_size: int = -1
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class BaseIPAddress(BaseResource):
     kind: ClassVar[str] = "ip_address"
     ip_address: str = ""
     ip_address_family: str = ""
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class BaseHealthCheck(BaseResource):
     kind: ClassVar[str] = "health_check"
     check_interval: int = -1
@@ -1040,21 +1035,21 @@ class BaseHealthCheck(BaseResource):
     health_check_type: str = ""
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class BaseDNSZone(BaseResource):
     kind: ClassVar[str] = "dns_zone"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class BaseDNSRecordSet(BaseResource):
     kind: ClassVar[str] = "dns_record_set"
 
     record_ttl: Optional[int] = None
     record_type: str = ""
-    record_values: List[str] = field(default_factory=list)
+    record_values: List[str] = field(factory=list)
 
-    def __post_init__(self) -> None:
-        super().__post_init__()
+    def __attrs_post_init__(self) -> None:
+        super().__attrs_post_init__()
         self.record_type = self.record_type.upper()
 
     def _keys(self) -> tuple:
@@ -1072,7 +1067,7 @@ class BaseDNSRecordSet(BaseResource):
         )
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class BaseDNSRecord(BaseResource):
     kind: ClassVar[str] = "dns_record"
 
@@ -1093,8 +1088,8 @@ class BaseDNSRecord(BaseResource):
     record_expire: Optional[int] = None
     record_minimum: Optional[int] = None
 
-    def __post_init__(self) -> None:
-        super().__post_init__()
+    def __attrs_post_init__(self) -> None:
+        super().__attrs_post_init__()
         self.record_type = self.record_type.upper()
 
     def _keys(self) -> tuple:
@@ -1113,7 +1108,7 @@ class BaseDNSRecord(BaseResource):
         )
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class UnknownCloud(BaseCloud):
     kind: ClassVar[str] = "unknown_cloud"
 
@@ -1121,7 +1116,7 @@ class UnknownCloud(BaseCloud):
         return False
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class UnknownAccount(BaseAccount):
     kind: ClassVar[str] = "unknown_account"
 
@@ -1129,7 +1124,7 @@ class UnknownAccount(BaseAccount):
         return False
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class UnknownRegion(BaseRegion):
     kind: ClassVar[str] = "unknown_region"
 
@@ -1137,7 +1132,7 @@ class UnknownRegion(BaseRegion):
         return False
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class UnknownZone(BaseZone):
     kind: ClassVar[str] = "unknown_zone"
 
@@ -1145,7 +1140,7 @@ class UnknownZone(BaseZone):
         return False
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class UnknownLocation(BaseResource):
     kind: ClassVar[str] = "unknown_location"
 

@@ -5,7 +5,7 @@ import calendar
 import logging
 from asyncio import Task
 from contextlib import suppress
-from dataclasses import replace
+from attrs import evolve
 from datetime import timedelta
 from itertools import takewhile
 from operator import attrgetter
@@ -351,7 +351,7 @@ class CLI:
                 query = query.traverse_out(origin, Navigation.Max, edge)
             elif isinstance(part, AggregatePart):
                 group_vars, group_function_vars = aggregate_parameter_parser.parse(arg)
-                query = replace(query, aggregate=Aggregate(group_vars, group_function_vars))
+                query = evolve(query, aggregate=Aggregate(group_vars, group_function_vars))
             elif isinstance(part, CountCommand):
                 # count command followed by a query: make it an aggregation
                 # since the output of aggregation is not exactly the same as count
@@ -362,7 +362,7 @@ class CLI:
                 # If the query should be explained, we want the output as is
                 if "explain" not in parsed_options:
                     additional_commands.append(self.command("aggregate_to_count", None, ctx))
-                query = replace(query, aggregate=aggregate)
+                query = evolve(query, aggregate=aggregate)
                 query = query.set_sort(Sort(f"{PathRoot}count"))
             elif isinstance(part, HeadCommand):
                 size = HeadCommand.parse_size(arg)
@@ -386,9 +386,9 @@ class CLI:
                     query = query.with_limit(size)
                     p = query.current_part
                     # the limit might have created a new part - make sure there is a sort order
-                    p = p if p.sort else replace(p, sort=DefaultSort)
+                    p = p if p.sort else evolve(p, sort=DefaultSort)
                     # reverse the sort order -> limit -> reverse the result
-                    query.parts[0] = replace(p, sort=[s.reversed() for s in p.sort], reverse_result=True)
+                    query.parts[0] = evolve(p, sort=[s.reversed() for s in p.sort], reverse_result=True)
             else:
                 raise AttributeError(f"Do not understand: {part} of type: {class_fqn(part)}")
 
@@ -403,8 +403,8 @@ class CLI:
             # Define default sort order, if not already defined
             # A sort order is required to always return the result in a deterministic way to the user.
             # Deterministic order is required for head/tail to work
-            parts = [pt if pt.sort else replace(pt, sort=DefaultSort) for pt in query.parts]
-            query = replace(query, parts=parts)
+            parts = [pt if pt.sort else evolve(pt, sort=DefaultSort) for pt in query.parts]
+            query = evolve(query, parts=parts)
 
         # If the last part is a navigation, we need to add sort which will ingest a new part.
         with_sort = query.set_sort(*DefaultSort) if query.current_part.navigation else query
@@ -424,7 +424,7 @@ class CLI:
             parts = list(takewhile(lambda x: isinstance(x.command, SearchCLIPart), commands))
             if parts:
                 query, options, query_parts = await self.create_query(parts, ctx)
-                ctx_wq = replace(ctx, query=query, query_options=options)
+                ctx_wq = evolve(ctx, query=query, query_options=options)
                 # re-evaluate remaining commands - to take the adapted context into account
                 remaining = [self.command(c.name, c.arg, ctx_wq) for c in commands[len(parts) :]]  # noqa: E203
                 return ctx_wq, [*query_parts, *remaining]
@@ -432,12 +432,12 @@ class CLI:
 
         def adjust_context(parsed: ParsedCommands) -> CLIContext:
             cmd_env = {**self.cli_env, **context.env, **parsed.env}
-            ctx = replace(context, env=cmd_env)
+            ctx = evolve(context, env=cmd_env)
             last_command = self.commands.get(parsed.commands[-1].cmd) if parsed.commands else None
             if isinstance(last_command, NoTerminalOutput) and ctx.console_renderer:
-                return replace(ctx, env=cmd_env, console_renderer=ConsoleRenderer.default_renderer())
+                return evolve(ctx, env=cmd_env, console_renderer=ConsoleRenderer.default_renderer())
             else:
-                return replace(context, env=cmd_env)
+                return evolve(context, env=cmd_env)
 
         async def parse_line(parsed: ParsedCommands) -> ParsedCommandLine:
             ctx = adjust_context(parsed)

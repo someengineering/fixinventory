@@ -24,7 +24,7 @@ try:
     from resotocore.model.resolve_in_graph import NodePath
     from resotocore.util import uuid_str, utc
     from collections import defaultdict
-    from dataclasses import dataclass
+    from attrs import define
     from posthog import Client
     import subprocess
     from pathlib import Path
@@ -63,7 +63,7 @@ kind_colors = {
 }
 
 
-@dataclass
+@define
 class ResourceDescription:
     uid: str
     name: str

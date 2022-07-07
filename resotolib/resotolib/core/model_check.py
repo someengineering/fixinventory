@@ -1,5 +1,5 @@
 import re
-from dataclasses import dataclass
+from attrs import define
 from typing import List, Dict, Tuple, Type
 
 from resotolib.baseresources import BaseResource
@@ -7,13 +7,13 @@ from resotolib.core.model_export import dataclasses_to_resotocore_model
 from resotolib.json import from_json
 
 
-@dataclass
+@define
 class CheckProp:
     name: str
     kind: str
 
 
-@dataclass
+@define
 class CheckClass:
     fqn: str
     aggregate_root: bool

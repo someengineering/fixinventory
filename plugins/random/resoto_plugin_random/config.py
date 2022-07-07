@@ -1,8 +1,8 @@
-from dataclasses import dataclass, field
+from attrs import define, field
 from typing import ClassVar
 
 
-@dataclass
+@define
 class RandomConfig:
     kind: ClassVar[str] = "random"
     seed: int = field(default=0, metadata={"description": "Random seed"})

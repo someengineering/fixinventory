@@ -1,7 +1,7 @@
 import pathlib
 import re
 from abc import ABC
-from dataclasses import dataclass, field
+from attrs import define, field
 from re import Pattern
 from math import floor
 from shutil import get_terminal_size
@@ -50,11 +50,11 @@ def cut_document_last(document: Document, last_part: str) -> Document:
         return document
 
 
-@dataclass
+@define
 class ArgInfo:
     name: Optional[str]
     expects_value: bool = False
-    possible_values: List[str] = field(default_factory=list)
+    possible_values: List[str] = field(factory=list)
     can_occur_multiple_times: bool = False
     value_hint: Optional[str] = None
     help_text: Optional[str] = None
@@ -75,16 +75,16 @@ ArgsInfo = Union[
 ]
 
 
-@dataclass
+@define
 class CommandInfo:
     name: str
-    args: ArgsInfo = field(default_factory=dict)  # type: ignore
+    args: ArgsInfo = field(factory=dict)  # type: ignore
     source: bool = True
     info: str = ""
     help: str = ""
 
 
-@dataclass
+@define
 class ArgCompleter(Completer):
     arg: ArgInfo
     completer: Optional[Completer]
@@ -96,7 +96,7 @@ class ArgCompleter(Completer):
             return []
 
 
-@dataclass
+@define
 class CommandCompleter(Completer):
     cmd: CommandInfo
     completer: Optional[Completer]

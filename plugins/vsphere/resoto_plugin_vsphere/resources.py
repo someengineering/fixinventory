@@ -5,7 +5,7 @@ from resotolib.baseresources import (
     BaseRegion,
     BaseInstance,
 )
-from dataclasses import dataclass
+from attrs import define
 from typing import ClassVar
 from pyVmomi import vim
 from .vsphere_client import get_vsphere_client, VSphereClient
@@ -13,7 +13,7 @@ from .vsphere_client import get_vsphere_client, VSphereClient
 log = resotolib.logger.getLogger("resoto." + __name__)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class VSphereCluster(BaseAccount):
     kind: ClassVar[str] = "vsphere_cluster"
 
@@ -21,7 +21,7 @@ class VSphereCluster(BaseAccount):
         return NotImplemented
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class VSphereDataCenter(BaseRegion):
     kind: ClassVar[str] = "vsphere_data_center"
 
@@ -29,7 +29,7 @@ class VSphereDataCenter(BaseRegion):
         return NotImplemented
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class VSphereResource:
     kind: ClassVar[str] = "vsphere_resource"
 
@@ -37,7 +37,7 @@ class VSphereResource:
         return get_vsphere_client()
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class VSphereInstance(BaseInstance, VSphereResource):
     kind: ClassVar[str] = "vsphere_instance"
 

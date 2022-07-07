@@ -2,7 +2,7 @@ import json
 import logging
 import re
 from collections import defaultdict
-from dataclasses import replace
+from attrs import evolve
 from typing import Union, List, Tuple, Any, Optional, Dict, Set
 
 from arango.typings import Json
@@ -511,7 +511,7 @@ def query_string(
                 raise AttributeError(f"Do not understand: {ab_term}")
 
         # Since fulltext filtering is handled separately, we replace the remaining filter term in the first part
-        query_parts[0] = replace(query_parts[0], term=filter_term)
+        query_parts[0] = evolve(query_parts[0], term=filter_term)
         crs = next_crs()
         doc = f"search_{db.vertex_name}"
         ftt = ft_term("ft", ft_part)
@@ -604,7 +604,7 @@ def fulltext_term_combine(term_in: Term) -> Tuple[Optional[Term], Term]:
             return NotTerm(ft), remaining if isinstance(remaining, AllTerm) else NotTerm(remaining)
         elif isinstance(term, MergeTerm):
             ft, remaining = combine_fulltext(term.pre_filter)
-            return ft, replace(term, pre_filter=remaining)
+            return ft, evolve(term, pre_filter=remaining)
         else:
             raise AttributeError(f"Can not handle term of type: {type(term)} ({term})")
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import abc
 from collections import defaultdict
-from dataclasses import dataclass, field, replace
+from attrs import define, field, evolve
 from functools import reduce, partial, cached_property
 from itertools import chain
 from typing import Mapping, Union, Optional, Any, ClassVar, Dict, List, Tuple, Callable, Set, Iterable
@@ -42,7 +42,7 @@ def is_ancestor_descendant(name: str) -> bool:
     )
 
 
-@dataclass(order=True, unsafe_hash=True, frozen=True)
+@define(order=True, hash=True, frozen=True)
 class Template:
     """
     A template has a name and a template string.
@@ -53,7 +53,7 @@ class Template:
     template: str  # the template string with placeholders
 
 
-@dataclass(order=True, unsafe_hash=True, frozen=True)
+@define(order=True, hash=True, frozen=True)
 class Expandable:
     """
     An expandable refers to a template with a given name
@@ -160,7 +160,7 @@ class PArray:
         return P(self.name, filter="all")
 
 
-@dataclass(order=True, unsafe_hash=True, frozen=True)
+@define(order=True, hash=True, frozen=True)
 class Term(abc.ABC):
     """
     @startuml
@@ -320,7 +320,7 @@ class AllTerm(Term):
         return "all"
 
 
-@dataclass(order=True, unsafe_hash=True, frozen=True)
+@define(order=True, hash=True, frozen=True)
 class NotTerm(Term):
     term: Term
 
@@ -328,7 +328,7 @@ class NotTerm(Term):
         return f"not({self.term})"
 
 
-@dataclass(order=True, unsafe_hash=True, frozen=True)
+@define(order=True, hash=True, frozen=True)
 class FulltextTerm(Term):
     text: str
 
@@ -336,7 +336,7 @@ class FulltextTerm(Term):
         return f'"{self.text}"'
 
 
-@dataclass(order=True, unsafe_hash=True, frozen=True)
+@define(order=True, hash=True, frozen=True)
 class Predicate(Term):
     name: str
     op: str
@@ -357,7 +357,7 @@ class Predicate(Term):
         return to_js_str(value)
 
 
-@dataclass(order=True, unsafe_hash=True, frozen=True)
+@define(order=True, hash=True, frozen=True)
 class CombinedTerm(Term):
     left: Term
     op: str
@@ -367,7 +367,7 @@ class CombinedTerm(Term):
         return f"({self.left} {self.op} {self.right})"
 
 
-@dataclass(order=True, unsafe_hash=True, frozen=True)
+@define(order=True, hash=True, frozen=True)
 class IdTerm(Term):
     id: str
 
@@ -375,7 +375,7 @@ class IdTerm(Term):
         return f'id("{self.id}")'
 
 
-@dataclass(order=True, unsafe_hash=True, frozen=True)
+@define(order=True, hash=True, frozen=True)
 class IsTerm(Term):
     kinds: List[str]
 
@@ -385,7 +385,7 @@ class IsTerm(Term):
         return f"is({kinds})"
 
 
-@dataclass(order=True, unsafe_hash=True, frozen=True)
+@define(order=True, hash=True, frozen=True)
 class FunctionTerm(Term):
     fn: str
     property_path: str
@@ -397,7 +397,7 @@ class FunctionTerm(Term):
         return f"{self.fn}({self.property_path}{sep}{args})"
 
 
-@dataclass(order=True, unsafe_hash=True, frozen=True)
+@define(order=True, hash=True, frozen=True)
 class MergeQuery:
     name: str
     query: Query
@@ -408,10 +408,10 @@ class MergeQuery:
         return f"{self.name}{arr}: {self.query}"
 
     def change_variable(self, fn: Callable[[str], str]) -> MergeQuery:
-        return replace(self, name=fn(self.name), query=self.query.change_variable(fn))
+        return evolve(self, name=fn(self.name), query=self.query.change_variable(fn))
 
 
-@dataclass(order=True, unsafe_hash=True, frozen=True)
+@define(order=True, hash=True, frozen=True)
 class MergeTerm(Term):
     pre_filter: Term
     merge: List[MergeQuery]
@@ -423,7 +423,7 @@ class MergeTerm(Term):
         return f"{self.pre_filter} {{{merge}}}{post}"
 
 
-@dataclass(order=True, unsafe_hash=True, frozen=True)
+@define(order=True, hash=True, frozen=True)
 class Navigation:
     # Define the maximum level of navigation
     Max: ClassVar[int] = 250
@@ -462,7 +462,7 @@ NavigateUntilLeaf = Navigation(
 )
 
 
-@dataclass(order=True, unsafe_hash=True, frozen=True)
+@define(order=True, hash=True, frozen=True)
 class WithClauseFilter:
     op: str
     num: int
@@ -476,7 +476,7 @@ class WithClauseFilter:
             return f"count{self.op}{self.num}"
 
 
-@dataclass(order=True, unsafe_hash=True, frozen=True)
+@define(order=True, hash=True, frozen=True)
 class WithClause:
     with_filter: WithClauseFilter
     navigation: Navigation
@@ -484,7 +484,7 @@ class WithClause:
     with_clause: Optional[WithClause] = None
 
     def change_variable(self, fn: Callable[[str], str]) -> WithClause:
-        return replace(
+        return evolve(
             self,
             term=self.term.change_variable(fn) if self.term else None,
             with_clause=self.with_clause.change_variable(fn) if self.with_clause else None,
@@ -496,7 +496,7 @@ class WithClause:
         return f"with({self.with_filter}, {self.navigation}{term}{with_clause})"
 
 
-@dataclass(order=True, unsafe_hash=True, frozen=True)
+@define(order=True, hash=True, frozen=True)
 class Limit:
     offset: int
     length: int
@@ -505,12 +505,13 @@ class Limit:
         return f" limit {self.length}" if self.offset == 0 else f" limit {self.offset}, {self.length}"
 
 
-@dataclass(order=True, unsafe_hash=True, frozen=True)
+# pylint: disable=not-an-iterable
+@define(order=True, hash=True, frozen=True)
 class Part:
     term: Term
     tag: Optional[str] = None
     with_clause: Optional[WithClause] = None
-    sort: List[Sort] = field(default_factory=list)
+    sort: List[Sort] = field(factory=list)
     limit: Optional[Limit] = None
     navigation: Optional[Navigation] = None
     reverse_result: bool = False
@@ -525,7 +526,7 @@ class Part:
         return f"{self.term}{with_clause}{tag}{sort}{limit}{reverse}{nav}"
 
     def change_variable(self, fn: Callable[[str], str]) -> Part:
-        return replace(
+        return evolve(
             self,
             term=self.term.change_variable(fn),
             with_clause=self.with_clause.change_variable(fn) if self.with_clause else None,
@@ -643,7 +644,7 @@ class Part:
             walk_term(self.term)
             # Create a dict here instead of a set only to ensure ordering (dict remembers order, set is not)'b
             queries = self.merge_queries_for({p.name: 1 for p in ancestor_descendant_predicates(after_merge)})
-            return replace(self, term=MergeTerm(before_merge, queries, after_merge))
+            return evolve(self, term=MergeTerm(before_merge, queries, after_merge))
         else:
             return self
 
@@ -652,7 +653,7 @@ class Part:
         return self.term.find_terms(lambda x: isinstance(x, Predicate))  # type: ignore
 
 
-@dataclass(order=True, unsafe_hash=True, frozen=True)
+@define(order=True, hash=True, frozen=True)
 class AggregateVariableName:
     name: str
 
@@ -663,7 +664,7 @@ class AggregateVariableName:
         return AggregateVariableName(fn(self.name))
 
 
-@dataclass(order=True, unsafe_hash=True, frozen=True)
+@define(order=True, hash=True, frozen=True)
 class AggregateVariableCombined:
     parts: List[Union[str, AggregateVariableName]]
 
@@ -677,7 +678,7 @@ class AggregateVariableCombined:
         )
 
 
-@dataclass(order=True, unsafe_hash=True, frozen=True)
+@define(order=True, hash=True, frozen=True)
 class AggregateVariable:
     # name is either a simple variable name or some combination of strings and variables like "foo_{var1}_{var2}_bla"
     name: Union[AggregateVariableName, AggregateVariableCombined]
@@ -694,7 +695,7 @@ class AggregateVariable:
         return self.as_name if self.as_name else from_name()
 
     def change_variable(self, fn: Callable[[str], str]) -> AggregateVariable:
-        return replace(self, name=self.name.change_variable(fn))
+        return evolve(self, name=self.name.change_variable(fn))
 
     def property_paths(self) -> Set[str]:
         if isinstance(self.name, AggregateVariableName):
@@ -703,11 +704,11 @@ class AggregateVariable:
             return {name.name for name in self.name.parts if isinstance(name, AggregateVariableName)}
 
 
-@dataclass(order=True, unsafe_hash=True, frozen=True)
+@define(order=True, hash=True, frozen=True)
 class AggregateFunction:
     function: str
     name: Union[str, int]
-    ops: List[Tuple[str, Union[int, float]]] = field(default_factory=list)
+    ops: List[Tuple[str, Union[int, float]]] = field(factory=list)
     as_name: Optional[str] = None
 
     def __str__(self) -> str:
@@ -722,13 +723,13 @@ class AggregateFunction:
         return self.as_name if self.as_name else f"{self.function}_of_{self.name}"
 
     def change_variable(self, fn: Callable[[str], str]) -> AggregateFunction:
-        return replace(self, name=fn(self.name)) if isinstance(self.name, str) else self
+        return evolve(self, name=fn(self.name)) if isinstance(self.name, str) else self
 
     def property_paths(self) -> Set[str]:
         return {self.name} if isinstance(self.name, str) else set()
 
 
-@dataclass(order=True, unsafe_hash=True, frozen=True)
+@define(order=True, hash=True, frozen=True)
 class Aggregate:
     group_by: List[AggregateVariable]
     group_func: List[AggregateFunction]
@@ -764,7 +765,7 @@ class SortOrder:
         return cls.Asc if order == cls.Desc else cls.Desc
 
 
-@dataclass(order=True, unsafe_hash=True, frozen=True)
+@define(order=True, hash=True, frozen=True)
 class Sort:
     name: str
     order: str = SortOrder.Asc
@@ -773,19 +774,19 @@ class Sort:
         return f"{self.name} {self.order}"
 
     def change_variable(self, fn: Callable[[str], str]) -> Sort:
-        return replace(self, name=fn(self.name))
+        return evolve(self, name=fn(self.name))
 
     def reversed(self) -> Sort:
         return Sort(self.name, SortOrder.Asc if self.order == SortOrder.Desc else SortOrder.Desc)
 
 
-@dataclass(order=True, unsafe_hash=True, frozen=True)
+@define(order=True, hash=True, frozen=True, slots=False)
 class Query:
     parts: List[Part]
-    preamble: Dict[str, SimpleValue] = field(default_factory=dict)
+    preamble: Dict[str, SimpleValue] = field(factory=dict)
     aggregate: Optional[Aggregate] = None
 
-    def __post_init__(self) -> None:
+    def __attrs_post_init__(self) -> None:
         if self.parts is None or len(self.parts) == 0:
             raise AttributeError(f"Expected non empty parts but got {self.parts}")
 
@@ -822,11 +823,11 @@ class Query:
         else:
             # put to the start
             parts.insert(0, Part(res))
-        return replace(self, parts=parts)
+        return evolve(self, parts=parts)
 
     def filter_with(self, clause: WithClause) -> Query:
-        first_part = replace(self.parts[0], with_clause=clause)
-        return replace(self, parts=[first_part, *self.parts[1:]])
+        first_part = evolve(self.parts[0], with_clause=clause)
+        return evolve(self, parts=[first_part, *self.parts[1:]])
 
     def traverse_out(self, start: int = 1, until: int = 1, edge_type: EdgeType = EdgeTypes.default) -> Query:
         return self.traverse(start, until, edge_type, Direction.outbound)
@@ -847,48 +848,48 @@ class Query:
             if edge_type in p0.navigation.edge_types and p0.navigation.direction == direction:
                 start_m = min(Navigation.Max, start + p0.navigation.start)
                 until_m = min(Navigation.Max, until + p0.navigation.until)
-                parts[0] = replace(p0, navigation=replace(p0.navigation, start=start_m, until=until_m))
+                parts[0] = evolve(p0, navigation=evolve(p0.navigation, start=start_m, until=until_m))
             # this is another traversal: so we need to start a new part
             else:
                 parts.insert(0, Part(AllTerm(), navigation=Navigation(start, until, [edge_type], direction)))
         else:
-            parts[0] = replace(p0, navigation=Navigation(start, until, [edge_type], direction))
-        return replace(self, parts=parts)
+            parts[0] = evolve(p0, navigation=Navigation(start, until, [edge_type], direction))
+        return evolve(self, parts=parts)
 
     def group_by(self, variables: List[AggregateVariable], funcs: List[AggregateFunction]) -> Query:
         aggregate = Aggregate(variables, funcs)
-        return replace(self, aggregate=aggregate)
+        return evolve(self, aggregate=aggregate)
 
     def set_sort(self, *sort: Sort) -> Query:
-        return self.__change_current_part(lambda p: replace(p, sort=list(sort)))
+        return self.__change_current_part(lambda p: evolve(p, sort=list(sort)))
 
     def add_sort(self, *sort: Sort) -> Query:
-        return self.__change_current_part(lambda p: replace(p, sort=[*p.sort, *sort]))
+        return self.__change_current_part(lambda p: evolve(p, sort=[*p.sort, *sort]))
 
     def with_limit(self, num: Union[Limit, int]) -> Query:
         limit = num if isinstance(num, Limit) else Limit(0, num)
-        return self.__change_current_part(lambda p: replace(p, limit=limit))
+        return self.__change_current_part(lambda p: evolve(p, limit=limit))
 
     def merge_preamble(self, preamble: Dict[str, SimpleValue]) -> Query:
         updated = {**self.preamble, **preamble} if self.preamble else preamble
-        return replace(self, preamble=updated)
+        return evolve(self, preamble=updated)
 
     def merge_with(self, path: str, navigation: Navigation, term: Term) -> Query:
         parts = self.parts.copy()
         first_part = parts[0]
         merge = MergeQuery(path, Query([Part(term), Part(AllTerm(), navigation=navigation)]))
         term = (
-            replace(first_part.term, merge=[*first_part.term.merge, merge])
+            evolve(first_part.term, merge=[*first_part.term.merge, merge])
             if isinstance(first_part.term, MergeTerm)
             else MergeTerm(first_part.term, [merge])
         )
-        parts[0] = replace(first_part, term=term)
-        return replace(self, parts=parts)
+        parts[0] = evolve(first_part, term=term)
+        return evolve(self, parts=parts)
 
     def change_variable(self, fn: Callable[[str], str]) -> Query:
         aggregate = self.aggregate.change_variable(fn) if self.aggregate else None
         parts = [p.change_variable(fn) for p in self.parts]
-        return replace(self, aggregate=aggregate, parts=parts)
+        return evolve(self, aggregate=aggregate, parts=parts)
 
     def rewrite_for_ancestors_descendants(self, additional_paths_to_select: Optional[Iterable[str]] = None) -> Query:
         def rewrite_for_additional_paths(parts: List[Part]) -> None:
@@ -903,12 +904,12 @@ class Query:
                     if isinstance(current.term, MergeTerm)
                     else MergeTerm(current.term, queries)
                 )
-                parts[0] = replace(current, term=merge_term)
+                parts[0] = evolve(current, term=merge_term)
 
         adapted = [part.rewrite_for_ancestors_descendants() for part in self.parts]
         if self.aggregate or additional_paths_to_select:
             rewrite_for_additional_paths(adapted)
-        return replace(self, parts=adapted)
+        return evolve(self, parts=adapted)
 
     def on_section(self, section: Optional[str] = PathRoot) -> Query:
         root_or_section = None if section is None or section == PathRoot else section
@@ -919,7 +920,7 @@ class Query:
         return self.change_variable(partial(variable_to_relative, section)) if section != PathRoot else self
 
     def tag(self, name: str) -> Query:
-        return self.__change_current_part(lambda p: replace(p, tag=name))
+        return self.__change_current_part(lambda p: evolve(p, tag=name))
 
     @property
     def current_part(self) -> Part:
@@ -935,7 +936,7 @@ class Query:
         else:
             part = parts[0]
         parts[0] = fn(part)
-        return replace(self, parts=parts)
+        return evolve(self, parts=parts)
 
     def combine(self, other: Query) -> Query:
         preamble = {**self.preamble, **other.preamble}

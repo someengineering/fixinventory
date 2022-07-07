@@ -1,9 +1,9 @@
-from dataclasses import dataclass, field
+from attrs import define, field
 from typing import ClassVar
 from resotolib.durations import parse_duration
 
 
-@dataclass
+@define
 class CleanupVolumesConfig:
     kind: ClassVar[str] = "plugin_cleanup_volumes"
     enabled: bool = field(

@@ -1,12 +1,12 @@
 import re
-from dataclasses import dataclass
+from attrs import define
 from typing import List, Set, Optional, Tuple, Union, Dict
 
 import boto3
 from botocore.model import ServiceModel, StringShape, ListShape, Shape, StructureShape, MapShape
 
 
-@dataclass
+@define
 class AwsProperty:
     name: str
     from_name: Union[str, List[str]]
@@ -18,7 +18,7 @@ class AwsProperty:
     extractor: Optional[str] = None
 
     def assignment(self) -> str:
-        default = self.field_default or ("default_factory=list" if self.is_array else "default=None")
+        default = self.field_default or ("factory=list" if self.is_array else "default=None")
         return f"field({default})"
 
     def type_string(self) -> str:
@@ -46,7 +46,7 @@ class AwsProperty:
         return base
 
 
-@dataclass
+@define
 class AwsModel:
     name: str
     props: List[AwsProperty]
@@ -78,10 +78,10 @@ class AwsModel:
         mapping += ",\n".join(f"        {p.mapping()}" for p in self.props)
         mapping += "\n    }"
         props = "\n".join(f"    {p.name}: {p.type_string()} = {p.assignment()}" for p in self.props)
-        return f"@dataclass(eq=False)\nclass {self.name}{base}\n{kind}\n{api}{mapping}\n{props}\n"
+        return f"@define(eq=False, slots=False)\nclass {self.name}{base}\n{kind}\n{api}{mapping}\n{props}\n"
 
 
-@dataclass
+@define
 class AwsResotoModel:
     api_action: str  # action to perform on the client
     result_property: str  # this property holds the resulting list

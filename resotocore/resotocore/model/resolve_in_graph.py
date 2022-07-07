@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from attrs import define
 from typing import Optional, List
 
 from resotocore.types import Json
@@ -27,7 +27,7 @@ class NodePath:
     ancestor_account_name = ["ancestors", "account", "reported", "name"]
 
 
-@dataclass(frozen=True)
+@define(frozen=True)
 class ResolveProp:
     # Path to the property that needs to be extracted
     extract_path: List[str]
@@ -44,7 +44,7 @@ class ResolveProp:
         return ".".join(self.to_path)
 
 
-@dataclass(frozen=True)
+@define(frozen=True)
 class ResolveAncestor:
     # kind of ancestor. Stop at first occurrence.
     kind: str

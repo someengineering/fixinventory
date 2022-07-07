@@ -151,7 +151,7 @@ class ModelCreator:
         mapping = ""
         if tpe == "array":
             kind, is_complex = kind_name(prop_spec["items"])
-            prop = f"{snake_name}: List[{kind}] = field(default_factory=list)"
+            prop = f"{snake_name}: List[{kind}] = field(factory=list)"
             mapping = f'"{snake_name}": OptionalS("{name}", default=[])'
             if is_complex:
                 mapping += f" >> ForallBend({kind}.mapping)"
@@ -189,14 +189,14 @@ class ModelCreator:
     def create_inner_class(self, name: str, schema: dict) -> None:
         if name in self.classes or not schema.get("properties", {}):
             return
-        result = "@dataclass\n"
+        result = "@define\n"
         result += f"class {name}:\n"
         result += f'  kind: ClassVar[str] = "{to_snake(name)}"\n'
         result += self.props(name, schema)
         self.classes[name] = result
 
     def create_resource_class(self, name: str, schema: dict) -> None:
-        result = "@dataclass\n"
+        result = "@define\n"
         result += f"class Kubernetes{name}(KubernetesResource):\n"
         result += f'  kind: ClassVar[str] = "{to_snake("kubernetes_"+name)}"\n'
         result += self.props(

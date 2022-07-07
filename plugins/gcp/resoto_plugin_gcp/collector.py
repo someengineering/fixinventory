@@ -682,9 +682,9 @@ class GCPProjectCollector:
                         {},
                         quota=quota["limit"],
                         usage=quota["usage"],
-                        _region=resource.region(),
-                        _account=resource.account(),
-                        _zone=resource.zone(),
+                        region=resource.region(),
+                        account=resource.account(),
+                        zone=resource.zone(),
                         ctime=resource.ctime,
                     )
                     graph.add_resource(resource, q, edge_type=EdgeType.default)
@@ -763,8 +763,8 @@ class GCPProjectCollector:
                 machine_type = GCPMachineType(
                     resource._machine_type_link.split("/")[-1],
                     {},
-                    _zone=resource.zone(graph),
-                    _account=resource.account(graph),
+                    zone=resource.zone(graph),
+                    account=resource.account(graph),
                     link=resource._machine_type_link,
                 )
                 resource._machine_type_link = None
@@ -1483,9 +1483,9 @@ class GCPProjectCollector:
                     geo_taxonomy_type=r.get("geoTaxonomy", {}).get("type"),
                     geo_taxonomy_regions=r.get("geoTaxonomy", {}).get("regions"),
                     link=(f"https://{service.client}.googleapis.com/" f"{service.api_version}/{r.get('name')}"),
-                    _account=service.account(graph),
-                    _region=service.region(graph),
-                    _zone=service.zone(graph),
+                    account=service.account(graph),
+                    region=service.region(graph),
+                    zone=service.zone(graph),
                 )
                 graph.add_resource(service, sku, edge_type=EdgeType.default)
 

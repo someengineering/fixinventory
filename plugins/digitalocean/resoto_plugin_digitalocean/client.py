@@ -1,5 +1,5 @@
 import logging
-from dataclasses import dataclass
+from attrs import define
 from functools import lru_cache
 from typing import List, Any, Optional, Union, TypeVar, Callable
 
@@ -331,7 +331,7 @@ class StreamingWrapper:
 TeamId = str
 
 
-@dataclass()
+@define()
 class TeamCredentials:
     team_id: TeamId
     api_token: str

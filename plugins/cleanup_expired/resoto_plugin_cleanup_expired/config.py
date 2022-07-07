@@ -1,8 +1,8 @@
-from dataclasses import dataclass, field
+from attrs import define, field
 from typing import ClassVar
 
 
-@dataclass
+@define
 class CleanupExpiredConfig:
     kind: ClassVar[str] = "plugin_cleanup_expired"
     enabled: bool = field(

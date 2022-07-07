@@ -1,5 +1,5 @@
 from resotolib.logger import log
-from dataclasses import dataclass
+from attrs import define
 from typing import ClassVar
 from resotolib.graph import Graph
 
@@ -13,7 +13,7 @@ from resotolib.baseresources import (
 )
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class RandomAccount(BaseAccount):
     kind: ClassVar[str] = "random_account"
 
@@ -21,7 +21,7 @@ class RandomAccount(BaseAccount):
         return NotImplemented
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class RandomRegion(BaseRegion):
     kind: ClassVar[str] = "random_region"
 
@@ -30,7 +30,7 @@ class RandomRegion(BaseRegion):
         return NotImplemented
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class RandomResource:
     """A class that implements the abstract method delete() as well as update_tag()
     and delete_tag().
@@ -56,22 +56,22 @@ class RandomResource:
         return True
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class RandomInstance(RandomResource, BaseInstance):
     kind: ClassVar[str] = "random_instance"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class RandomVolume(RandomResource, BaseVolume):
     kind: ClassVar[str] = "random_volume"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class RandomNetwork(RandomResource, BaseNetwork):
     kind: ClassVar[str] = "random_network"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class RandomLoadBalancer(RandomResource, BaseLoadBalancer):
     kind: ClassVar[str] = "random_load_balancer"
 

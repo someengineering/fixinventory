@@ -1,5 +1,5 @@
 import logging
-from dataclasses import dataclass, field
+from attrs import define, field
 from datetime import datetime
 from typing import ClassVar, Optional, Dict, Type, List, Any, Union, Tuple
 
@@ -93,7 +93,7 @@ class GraphBuilder:
 # region node
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesNodeStatusAddresses:
     kind: ClassVar[str] = "kubernetes_node_status_addresses"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -104,7 +104,7 @@ class KubernetesNodeStatusAddresses:
     type: Optional[str] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesNodeCondition:
     kind: ClassVar[str] = "kubernetes_node_status_conditions"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -123,7 +123,7 @@ class KubernetesNodeCondition:
     type: Optional[str] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesNodeStatusConfigSource:
     kind: ClassVar[str] = "kubernetes_node_status_config_active_configmap"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -140,7 +140,7 @@ class KubernetesNodeStatusConfigSource:
     uid: Optional[str] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesNodeConfigSource:
     kind: ClassVar[str] = "kubernetes_node_status_config_active"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -149,7 +149,7 @@ class KubernetesNodeConfigSource:
     config_map: Optional[KubernetesNodeStatusConfigSource] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesNodeStatusConfig:
     kind: ClassVar[str] = "kubernetes_node_status_config"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -162,7 +162,7 @@ class KubernetesNodeStatusConfig:
     error: Optional[str] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesDaemonEndpoint:
     kind: ClassVar[str] = "kubernetes_daemon_endpoint"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -171,7 +171,7 @@ class KubernetesDaemonEndpoint:
     port: Optional[int] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesNodeDaemonEndpoint:
     kind: ClassVar[str] = "kubernetes_node_daemon_endpoint"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -180,18 +180,18 @@ class KubernetesNodeDaemonEndpoint:
     kubelet_endpoint: Optional[KubernetesDaemonEndpoint] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesNodeStatusImages:
     kind: ClassVar[str] = "kubernetes_node_status_images"
     mapping: ClassVar[Dict[str, Bender]] = {
         "names": S("names", default=[]),
         "size_bytes": S("sizeBytes", default=0),
     }
-    names: List[str] = field(default_factory=list)
+    names: List[str] = field(factory=list)
     size_bytes: Optional[int] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesNodeSystemInfo:
     kind: ClassVar[str] = "kubernetes_node_system_info"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -218,7 +218,7 @@ class KubernetesNodeSystemInfo:
     system_uuid: Optional[str] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesAttachedVolume:
     kind: ClassVar[str] = "kubernetes_attached_volume"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -229,7 +229,7 @@ class KubernetesAttachedVolume:
     name: Optional[str] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesNodeStatus:
     kind: ClassVar[str] = "kubernetes_node_status"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -244,19 +244,19 @@ class KubernetesNodeStatus:
         "volumes_attached": S("volumesAttached", default=[]) >> ForallBend(KubernetesAttachedVolume.mapping),
         "volumes_in_use": S("volumesInUse", default=[]),
     }
-    addresses: List[KubernetesNodeStatusAddresses] = field(default_factory=list)
+    addresses: List[KubernetesNodeStatusAddresses] = field(factory=list)
     capacity: Optional[Any] = field(default=None)
-    conditions: List[KubernetesNodeCondition] = field(default_factory=list)
+    conditions: List[KubernetesNodeCondition] = field(factory=list)
     config: Optional[KubernetesNodeStatusConfig] = field(default=None)
     daemon_endpoints: Optional[KubernetesNodeDaemonEndpoint] = field(default=None)
-    images: List[KubernetesNodeStatusImages] = field(default_factory=list)
+    images: List[KubernetesNodeStatusImages] = field(factory=list)
     node_info: Optional[KubernetesNodeSystemInfo] = field(default=None)
     phase: Optional[str] = field(default=None)
-    volumes_attached: List[KubernetesAttachedVolume] = field(default_factory=list)
-    volumes_in_use: List[str] = field(default_factory=list)
+    volumes_attached: List[KubernetesAttachedVolume] = field(factory=list)
+    volumes_in_use: List[str] = field(factory=list)
 
 
-@dataclass
+@define
 class KubernetesTaint:
     kind: ClassVar[str] = "kubernetes_taint"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -271,7 +271,7 @@ class KubernetesTaint:
     value: Optional[str] = field(default=None)
 
 
-@dataclass
+@define
 class KubernetesNodeSpec:
     kind: ClassVar[str] = "kubernetes_node_spec"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -284,9 +284,9 @@ class KubernetesNodeSpec:
     }
     external_id: Optional[str] = field(default=None)
     pod_cidr: Optional[str] = field(default=None)
-    pod_cidrs: List[str] = field(default_factory=list)
+    pod_cidrs: List[str] = field(factory=list)
     provider_id: Optional[str] = field(default=None)
-    taints: List[KubernetesTaint] = field(default_factory=list)
+    taints: List[KubernetesTaint] = field(factory=list)
     unschedulable: Optional[bool] = field(default=None)
 
 
@@ -299,7 +299,7 @@ instance_status_map: Dict[str, InstanceStatus] = {
 }
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesNode(KubernetesResource, BaseInstance):
     kind: ClassVar[str] = "kubernetes_node"
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
@@ -324,7 +324,7 @@ class KubernetesNode(KubernetesResource, BaseInstance):
 # region pod
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesPodStatusConditions:
     kind: ClassVar[str] = "kubernetes_pod_status_conditions"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -343,7 +343,7 @@ class KubernetesPodStatusConditions:
     type: Optional[str] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesContainerStateRunning:
     kind: ClassVar[str] = "kubernetes_container_state_running"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -352,7 +352,7 @@ class KubernetesContainerStateRunning:
     started_at: Optional[datetime] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesContainerStateTerminated:
     kind: ClassVar[str] = "kubernetes_container_state_terminated"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -373,7 +373,7 @@ class KubernetesContainerStateTerminated:
     started_at: Optional[datetime] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesContainerStateWaiting:
     kind: ClassVar[str] = "kubernetes_container_state_waiting"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -384,7 +384,7 @@ class KubernetesContainerStateWaiting:
     reason: Optional[str] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesContainerState:
     kind: ClassVar[str] = "kubernetes_container_state"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -397,7 +397,7 @@ class KubernetesContainerState:
     waiting: Optional[KubernetesContainerStateWaiting] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesContainerStatus:
     kind: ClassVar[str] = "kubernetes_container_status"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -422,14 +422,14 @@ class KubernetesContainerStatus:
     state: Optional[KubernetesContainerState] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesPodIPs:
     kind: ClassVar[str] = "kubernetes_pod_ips"
     mapping: ClassVar[Dict[str, Bender]] = {"ip": S("ip")}
     ip: Optional[str] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesPodStatus:
     kind: ClassVar[str] = "kubernetes_pod_status"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -451,22 +451,22 @@ class KubernetesPodStatus:
         "reason": S("reason"),
         "start_time": S("startTime"),
     }
-    conditions: List[KubernetesPodStatusConditions] = field(default_factory=list)
-    container_statuses: List[KubernetesContainerStatus] = field(default_factory=list)
-    ephemeral_container_statuses: List[KubernetesContainerState] = field(default_factory=list)
+    conditions: List[KubernetesPodStatusConditions] = field(factory=list)
+    container_statuses: List[KubernetesContainerStatus] = field(factory=list)
+    ephemeral_container_statuses: List[KubernetesContainerState] = field(factory=list)
     host_ip: Optional[str] = field(default=None)
-    init_container_statuses: List[KubernetesContainerStatus] = field(default_factory=list)
+    init_container_statuses: List[KubernetesContainerStatus] = field(factory=list)
     message: Optional[str] = field(default=None)
     nominated_node_name: Optional[str] = field(default=None)
     phase: Optional[str] = field(default=None)
     pod_ip: Optional[str] = field(default=None)
-    pod_ips: List[KubernetesPodIPs] = field(default_factory=list)
+    pod_ips: List[KubernetesPodIPs] = field(factory=list)
     qos_class: Optional[str] = field(default=None)
     reason: Optional[str] = field(default=None)
     start_time: Optional[datetime] = field(default=None)
 
 
-@dataclass
+@define
 class KubernetesContainerPort:
     kind: ClassVar[str] = "kubernetes_container_port"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -483,7 +483,7 @@ class KubernetesContainerPort:
     protocol: Optional[str] = field(default=None)
 
 
-@dataclass
+@define
 class KubernetesResourceRequirements:
     kind: ClassVar[str] = "kubernetes_resource_requirements"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -494,7 +494,7 @@ class KubernetesResourceRequirements:
     requests: Optional[Any] = field(default=None)
 
 
-@dataclass
+@define
 class KubernetesSecurityContext:
     kind: ClassVar[str] = "kubernetes_security_context"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -521,7 +521,7 @@ class KubernetesSecurityContext:
     windows_options: Optional[Any] = field(default=None)
 
 
-@dataclass
+@define
 class KubernetesVolumeDevice:
     kind: ClassVar[str] = "kubernetes_volume_device"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -532,7 +532,7 @@ class KubernetesVolumeDevice:
     name: Optional[str] = field(default=None)
 
 
-@dataclass
+@define
 class KubernetesVolumeMount:
     kind: ClassVar[str] = "kubernetes_volume_mount"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -551,7 +551,7 @@ class KubernetesVolumeMount:
     sub_path_expr: Optional[str] = field(default=None)
 
 
-@dataclass
+@define
 class KubernetesContainer:
     kind: ClassVar[str] = "kubernetes_container"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -572,12 +572,12 @@ class KubernetesContainer:
         "volume_mounts": S("volumeMounts", default=[]) >> ForallBend(KubernetesVolumeMount.mapping),
         "working_dir": S("workingDir"),
     }
-    args: List[str] = field(default_factory=list)
-    command: List[str] = field(default_factory=list)
+    args: List[str] = field(factory=list)
+    command: List[str] = field(factory=list)
     image: Optional[str] = field(default=None)
     image_pull_policy: Optional[str] = field(default=None)
     name: Optional[str] = field(default=None)
-    ports: List[KubernetesContainerPort] = field(default_factory=list)
+    ports: List[KubernetesContainerPort] = field(factory=list)
     resources: Optional[KubernetesResourceRequirements] = field(default=None)
     security_context: Optional[KubernetesSecurityContext] = field(default=None)
     stdin: Optional[bool] = field(default=None)
@@ -585,12 +585,12 @@ class KubernetesContainer:
     termination_message_path: Optional[str] = field(default=None)
     termination_message_policy: Optional[str] = field(default=None)
     tty: Optional[bool] = field(default=None)
-    volume_devices: List[KubernetesVolumeDevice] = field(default_factory=list)
-    volume_mounts: List[KubernetesVolumeMount] = field(default_factory=list)
+    volume_devices: List[KubernetesVolumeDevice] = field(factory=list)
+    volume_mounts: List[KubernetesVolumeMount] = field(factory=list)
     working_dir: Optional[str] = field(default=None)
 
 
-@dataclass
+@define
 class KubernetesPodSecurityContext:
     kind: ClassVar[str] = "kubernetes_pod_security_context"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -611,11 +611,11 @@ class KubernetesPodSecurityContext:
     run_as_user: Optional[int] = field(default=None)
     se_linux_options: Optional[Any] = field(default=None)
     seccomp_profile: Optional[Any] = field(default=None)
-    supplemental_groups: List[int] = field(default_factory=list)
+    supplemental_groups: List[int] = field(factory=list)
     windows_options: Optional[Any] = field(default=None)
 
 
-@dataclass
+@define
 class KubernetesToleration:
     kind: ClassVar[str] = "kubernetes_toleration"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -632,7 +632,7 @@ class KubernetesToleration:
     value: Optional[str] = field(default=None)
 
 
-@dataclass
+@define
 class KubernetesVolume:
     kind: ClassVar[str] = "kubernetes_volume"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -699,7 +699,7 @@ class KubernetesVolume:
     vsphere_volume: Optional[Any] = field(default=None)
 
 
-@dataclass
+@define
 class KubernetesPodSpec:
     kind: ClassVar[str] = "kubernetes_pod_spec"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -734,15 +734,15 @@ class KubernetesPodSpec:
     }
     active_deadline_seconds: Optional[int] = field(default=None)
     automount_service_account_token: Optional[bool] = field(default=None)
-    containers: List[KubernetesContainer] = field(default_factory=list)
+    containers: List[KubernetesContainer] = field(factory=list)
     dns_policy: Optional[str] = field(default=None)
     enable_service_links: Optional[bool] = field(default=None)
-    ephemeral_containers: List[KubernetesContainer] = field(default_factory=list)
+    ephemeral_containers: List[KubernetesContainer] = field(factory=list)
     host_ipc: Optional[bool] = field(default=None)
     host_network: Optional[bool] = field(default=None)
     host_pid: Optional[bool] = field(default=None)
     hostname: Optional[str] = field(default=None)
-    init_containers: List[KubernetesContainer] = field(default_factory=list)
+    init_containers: List[KubernetesContainer] = field(factory=list)
     node_name: Optional[str] = field(default=None)
     preemption_policy: Optional[str] = field(default=None)
     priority: Optional[int] = field(default=None)
@@ -757,11 +757,11 @@ class KubernetesPodSpec:
     share_process_namespace: Optional[bool] = field(default=None)
     subdomain: Optional[str] = field(default=None)
     termination_grace_period_seconds: Optional[int] = field(default=None)
-    tolerations: List[KubernetesToleration] = field(default_factory=list)
-    volumes: List[KubernetesVolume] = field(default_factory=list)
+    tolerations: List[KubernetesToleration] = field(factory=list)
+    volumes: List[KubernetesVolume] = field(factory=list)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesPod(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_pod"
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
@@ -798,7 +798,7 @@ class KubernetesPod(KubernetesResource):
 # endregion
 
 # region persistent volume claim
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesPersistentVolumeClaimStatusConditions:
     kind: ClassVar[str] = "kubernetes_persistent_volume_claim_status_conditions"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -817,7 +817,7 @@ class KubernetesPersistentVolumeClaimStatusConditions:
     type: Optional[str] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesPersistentVolumeClaimStatus:
     kind: ClassVar[str] = "kubernetes_persistent_volume_claim_status"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -829,14 +829,14 @@ class KubernetesPersistentVolumeClaimStatus:
         "phase": S("phase"),
         "resize_status": S("resizeStatus"),
     }
-    access_modes: List[str] = field(default_factory=list)
+    access_modes: List[str] = field(factory=list)
     allocated_resources: Optional[str] = field(default=None)
-    conditions: List[KubernetesPersistentVolumeClaimStatusConditions] = field(default_factory=list)
+    conditions: List[KubernetesPersistentVolumeClaimStatusConditions] = field(factory=list)
     phase: Optional[str] = field(default=None)
     resize_status: Optional[str] = field(default=None)
 
 
-@dataclass
+@define
 class KubernetesLabelSelectorRequirement:
     kind: ClassVar[str] = "kubernetes_label_selector_requirement"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -846,10 +846,10 @@ class KubernetesLabelSelectorRequirement:
     }
     key: Optional[str] = field(default=None)
     operator: Optional[str] = field(default=None)
-    values: List[str] = field(default_factory=list)
+    values: List[str] = field(factory=list)
 
 
-@dataclass
+@define
 class KubernetesLabelSelector:
     kind: ClassVar[str] = "kubernetes_label_selector"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -857,11 +857,11 @@ class KubernetesLabelSelector:
         >> ForallBend(KubernetesLabelSelectorRequirement.mapping),
         "match_labels": S("matchLabels"),
     }
-    match_expressions: List[KubernetesLabelSelectorRequirement] = field(default_factory=list)
+    match_expressions: List[KubernetesLabelSelectorRequirement] = field(factory=list)
     match_labels: Optional[Dict[str, str]] = field(default=None)
 
 
-@dataclass
+@define
 class KubernetesPersistentVolumeClaimSpec:
     kind: ClassVar[str] = "kubernetes_persistent_volume_claim_spec"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -872,7 +872,7 @@ class KubernetesPersistentVolumeClaimSpec:
         "volume_mode": S("volumeMode"),
         "volume_name": S("volumeName"),
     }
-    access_modes: List[str] = field(default_factory=list)
+    access_modes: List[str] = field(factory=list)
     resources: Optional[KubernetesResourceRequirements] = field(default=None)
     selector: Optional[KubernetesLabelSelector] = field(default=None)
     storage_class_name: Optional[str] = field(default=None)
@@ -880,7 +880,7 @@ class KubernetesPersistentVolumeClaimSpec:
     volume_name: Optional[str] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesPersistentVolumeClaim(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_persistent_volume_claim"
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
@@ -897,7 +897,7 @@ class KubernetesPersistentVolumeClaim(KubernetesResource):
 # region service
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesLoadbalancerIngressPorts:
     kind: ClassVar[str] = "kubernetes_loadbalancer_ingress_ports"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -910,7 +910,7 @@ class KubernetesLoadbalancerIngressPorts:
     protocol: Optional[str] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesLoadbalancerIngress:
     kind: ClassVar[str] = "kubernetes_loadbalancer_ingress"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -920,19 +920,19 @@ class KubernetesLoadbalancerIngress:
     }
     hostname: Optional[str] = field(default=None)
     ip: Optional[str] = field(default=None)
-    ports: List[KubernetesLoadbalancerIngressPorts] = field(default_factory=list)
+    ports: List[KubernetesLoadbalancerIngressPorts] = field(factory=list)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesLoadbalancerStatus:
     kind: ClassVar[str] = "kubernetes_loadbalancer_status"
     mapping: ClassVar[Dict[str, Bender]] = {
         "ingress": S("ingress", default=[]) >> ForallBend(KubernetesLoadbalancerIngress.mapping),
     }
-    ingress: List[KubernetesLoadbalancerIngress] = field(default_factory=list)
+    ingress: List[KubernetesLoadbalancerIngress] = field(factory=list)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesServiceStatusConditions:
     kind: ClassVar[str] = "kubernetes_service_status_conditions"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -951,7 +951,7 @@ class KubernetesServiceStatusConditions:
     type: Optional[str] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesServiceStatus:
     kind: ClassVar[str] = "kubernetes_service_status"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -960,11 +960,11 @@ class KubernetesServiceStatus:
         >> ForallBend(KubernetesServiceStatusConditions.mapping),
         "load_balancer": S("loadBalancer") >> Bend(KubernetesLoadbalancerStatus.mapping),
     }
-    conditions: List[KubernetesServiceStatusConditions] = field(default_factory=list)
+    conditions: List[KubernetesServiceStatusConditions] = field(factory=list)
     load_balancer: Optional[KubernetesLoadbalancerStatus] = field(default=None)
 
 
-@dataclass
+@define
 class KubernetesServicePort:
     kind: ClassVar[str] = "kubernetes_service_port"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -983,7 +983,7 @@ class KubernetesServicePort:
     target_port: Optional[Union[str, int]] = field(default=None)
 
 
-@dataclass
+@define
 class KubernetesServiceSpec:
     kind: ClassVar[str] = "kubernetes_service_spec"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1007,24 +1007,24 @@ class KubernetesServiceSpec:
     }
     allocate_load_balancer_node_ports: Optional[bool] = field(default=None)
     cluster_ip: Optional[str] = field(default=None)
-    cluster_ips: List[str] = field(default_factory=list)
-    external_ips: List[str] = field(default_factory=list)
+    cluster_ips: List[str] = field(factory=list)
+    external_ips: List[str] = field(factory=list)
     external_name: Optional[str] = field(default=None)
     external_traffic_policy: Optional[str] = field(default=None)
     health_check_node_port: Optional[int] = field(default=None)
     internal_traffic_policy: Optional[str] = field(default=None)
-    ip_families: List[str] = field(default_factory=list)
+    ip_families: List[str] = field(factory=list)
     ip_family_policy: Optional[str] = field(default=None)
     load_balancer_class: Optional[str] = field(default=None)
     load_balancer_ip: Optional[str] = field(default=None)
-    load_balancer_source_ranges: List[str] = field(default_factory=list)
-    ports: List[KubernetesServicePort] = field(default_factory=list)
+    load_balancer_source_ranges: List[str] = field(factory=list)
+    ports: List[KubernetesServicePort] = field(factory=list)
     publish_not_ready_addresses: Optional[bool] = field(default=None)
     session_affinity: Optional[str] = field(default=None)
     type: Optional[str] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesService(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_service"
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
@@ -1048,12 +1048,12 @@ class KubernetesService(KubernetesResource):
 # endregion
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesPodTemplate(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_pod_template"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesClusterInfo:
     kind: ClassVar[str] = "kubernetes_cluster_info"
     major: str
@@ -1062,7 +1062,7 @@ class KubernetesClusterInfo:
     server_url: str
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesCluster(KubernetesResource, BaseAccount):
     kind: ClassVar[str] = "kubernetes_cluster"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -1088,12 +1088,12 @@ class KubernetesCluster(KubernetesResource, BaseAccount):
     cluster_info: Optional[KubernetesClusterInfo] = None
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesConfigMap(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_config_map"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesEndpointAddress:
     kind: ClassVar[str] = "kubernetes_endpoint_address"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1110,7 +1110,7 @@ class KubernetesEndpointAddress:
         return self._target_ref
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesEndpointPort:
     kind: ClassVar[str] = "kubernetes_endpoint_port"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1124,18 +1124,18 @@ class KubernetesEndpointPort:
     protocol: Optional[str] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesEndpointSubset:
     kind: ClassVar[str] = "kubernetes_endpoint_subset"
     mapping: ClassVar[Dict[str, Bender]] = {
         "addresses": S("addresses", default=[]) >> ForallBend(KubernetesEndpointAddress.mapping),
         "ports": S("ports", default=[]) >> ForallBend(KubernetesEndpointPort.mapping),
     }
-    addresses: List[KubernetesEndpointAddress] = field(default_factory=list)
-    ports: List[KubernetesEndpointPort] = field(default_factory=list)
+    addresses: List[KubernetesEndpointAddress] = field(factory=list)
+    ports: List[KubernetesEndpointPort] = field(factory=list)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesEndpoints(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_endpoint"
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
@@ -1146,7 +1146,7 @@ class KubernetesEndpoints(KubernetesResource):
         "delete": [],
     }
 
-    subsets: List[KubernetesEndpointSubset] = field(default_factory=list)
+    subsets: List[KubernetesEndpointSubset] = field(factory=list)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
@@ -1156,7 +1156,7 @@ class KubernetesEndpoints(KubernetesResource):
                     builder.add_edge(self, EdgeType.default, id=address.target_ref())
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesEndpointSlice(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_endpoint_slice"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -1165,12 +1165,12 @@ class KubernetesEndpointSlice(KubernetesResource):
     }
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesLimitRange(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_limit_range"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesNamespaceStatusConditions:
     kind: ClassVar[str] = "kubernetes_namespace_status_conditions"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1187,7 +1187,7 @@ class KubernetesNamespaceStatusConditions:
     type: Optional[str] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesNamespaceStatus:
     kind: ClassVar[str] = "kubernetes_namespace_status"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1196,11 +1196,11 @@ class KubernetesNamespaceStatus:
         >> ForallBend(KubernetesNamespaceStatusConditions.mapping),
         "phase": S("phase"),
     }
-    conditions: List[KubernetesNamespaceStatusConditions] = field(default_factory=list)
+    conditions: List[KubernetesNamespaceStatusConditions] = field(factory=list)
     phase: Optional[str] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesNamespace(KubernetesResource, BaseRegion):
     kind: ClassVar[str] = "kubernetes_namespace"
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
@@ -1233,7 +1233,7 @@ class KubernetesNamespace(KubernetesResource, BaseRegion):
     namespace_status: Optional[KubernetesNamespaceStatus] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesPersistentVolumeStatus:
     kind: ClassVar[str] = "kubernetes_persistent_volume_status"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1246,7 +1246,7 @@ class KubernetesPersistentVolumeStatus:
     reason: Optional[str] = field(default=None)
 
 
-@dataclass
+@define
 class KubernetesPersistentVolumeSpec:
     kind: ClassVar[str] = "kubernetes_persistent_volume_spec"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1281,7 +1281,7 @@ class KubernetesPersistentVolumeSpec:
         "volume_mode": S("volumeMode"),
         "vsphere_volume": S("vsphereVolume"),
     }
-    access_modes: List[str] = field(default_factory=list)
+    access_modes: List[str] = field(factory=list)
     aws_elastic_block_store: Optional[str] = field(default=None)
     azure_disk: Optional[str] = field(default=None)
     azure_file: Optional[str] = field(default=None)
@@ -1298,7 +1298,7 @@ class KubernetesPersistentVolumeSpec:
     host_path: Optional[str] = field(default=None)
     iscsi: Optional[str] = field(default=None)
     local: Optional[str] = field(default=None)
-    mount_options: List[str] = field(default_factory=list)
+    mount_options: List[str] = field(factory=list)
     nfs: Optional[str] = field(default=None)
     node_affinity: Optional[str] = field(default=None)
     persistent_volume_reclaim_policy: Optional[str] = field(default=None)
@@ -1321,7 +1321,7 @@ VolumeStatusMapping = {
 }
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesPersistentVolume(KubernetesResource, BaseVolume):
     kind: ClassVar[str] = "kubernetes_persistent_volume"
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
@@ -1341,7 +1341,7 @@ class KubernetesPersistentVolume(KubernetesResource, BaseVolume):
             builder.add_edge(self, EdgeType.default, id=claim_ref, reverse=True)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesReplicationControllerStatusConditions:
     kind: ClassVar[str] = "kubernetes_replication_controller_status_conditions"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1358,7 +1358,7 @@ class KubernetesReplicationControllerStatusConditions:
     type: Optional[str] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesReplicationControllerStatus:
     kind: ClassVar[str] = "kubernetes_replication_controller_status"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1372,14 +1372,14 @@ class KubernetesReplicationControllerStatus:
         "replicas": S("replicas"),
     }
     available_replicas: Optional[int] = field(default=None)
-    conditions: List[KubernetesReplicationControllerStatusConditions] = field(default_factory=list)
+    conditions: List[KubernetesReplicationControllerStatusConditions] = field(factory=list)
     fully_labeled_replicas: Optional[int] = field(default=None)
     observed_generation: Optional[int] = field(default=None)
     ready_replicas: Optional[int] = field(default=None)
     replicas: Optional[int] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesReplicationController(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_replication_controller"
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
@@ -1388,7 +1388,7 @@ class KubernetesReplicationController(KubernetesResource):
     replication_controller_status: Optional[KubernetesReplicationControllerStatus] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesResourceQuotaStatus:
     kind: ClassVar[str] = "kubernetes_resource_quota_status"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1399,7 +1399,7 @@ class KubernetesResourceQuotaStatus:
     used: Optional[Any] = field(default=None)
 
 
-@dataclass
+@define
 class KubernetesResourceQuotaSpec:
     kind: ClassVar[str] = "kubernetes_resource_quota_spec"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1409,10 +1409,10 @@ class KubernetesResourceQuotaSpec:
     }
     hard: Optional[Any] = field(default=None)
     scope_selector: Optional[Any] = field(default=None)
-    scopes: List[str] = field(default_factory=list)
+    scopes: List[str] = field(factory=list)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesResourceQuota(KubernetesResource, BaseQuota):
     kind: ClassVar[str] = "kubernetes_resource_quota"
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
@@ -1423,12 +1423,12 @@ class KubernetesResourceQuota(KubernetesResource, BaseQuota):
     resource_quota_spec: Optional[KubernetesResourceQuotaSpec] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesSecret(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_secret"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesServiceAccount(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_service_account"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {"default": ["kubernetes_secret"], "delete": []}
@@ -1440,17 +1440,17 @@ class KubernetesServiceAccount(KubernetesResource):
                 builder.add_edge(self, EdgeType.default, clazz=KubernetesSecret, name=name)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesMutatingWebhookConfiguration(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_mutating_webhook_configuration"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesValidatingWebhookConfiguration(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_validating_webhook_configuration"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesControllerRevision(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_controller_revision"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -1459,7 +1459,7 @@ class KubernetesControllerRevision(KubernetesResource):
     }
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesDaemonSetStatusConditions:
     kind: ClassVar[str] = "kubernetes_daemon_set_status_conditions"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1476,7 +1476,7 @@ class KubernetesDaemonSetStatusConditions:
     type: Optional[str] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesDaemonSetStatus:
     kind: ClassVar[str] = "kubernetes_daemon_set_status"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1494,7 +1494,7 @@ class KubernetesDaemonSetStatus:
         "updated_number_scheduled": S("updatedNumberScheduled"),
     }
     collision_count: Optional[int] = field(default=None)
-    conditions: List[KubernetesDaemonSetStatusConditions] = field(default_factory=list)
+    conditions: List[KubernetesDaemonSetStatusConditions] = field(factory=list)
     current_number_scheduled: Optional[int] = field(default=None)
     desired_number_scheduled: Optional[int] = field(default=None)
     number_available: Optional[int] = field(default=None)
@@ -1505,7 +1505,7 @@ class KubernetesDaemonSetStatus:
     updated_number_scheduled: Optional[int] = field(default=None)
 
 
-@dataclass
+@define
 class KubernetesPodTemplateSpec:
     kind: ClassVar[str] = "kubernetes_pod_template_spec"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1514,7 +1514,7 @@ class KubernetesPodTemplateSpec:
     spec: Optional[KubernetesPodSpec] = field(default=None)
 
 
-@dataclass
+@define
 class KubernetesDaemonSetSpec:
     kind: ClassVar[str] = "kubernetes_daemon_set_spec"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1529,7 +1529,7 @@ class KubernetesDaemonSetSpec:
     template: Optional[KubernetesPodTemplateSpec] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesDaemonSet(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_daemon_set"
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
@@ -1545,7 +1545,7 @@ class KubernetesDaemonSet(KubernetesResource):
     daemon_set_spec: Optional[KubernetesDaemonSetSpec] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesDeploymentStatusCondition:
     kind: ClassVar[str] = "kubernetes_deployment_status_condition"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1564,7 +1564,7 @@ class KubernetesDeploymentStatusCondition:
     type: Optional[str] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesDeploymentStatus:
     kind: ClassVar[str] = "kubernetes_deployment_status"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1581,7 +1581,7 @@ class KubernetesDeploymentStatus:
     }
     available_replicas: Optional[int] = field(default=None)
     collision_count: Optional[int] = field(default=None)
-    conditions: List[KubernetesDeploymentStatusCondition] = field(default_factory=list)
+    conditions: List[KubernetesDeploymentStatusCondition] = field(factory=list)
     observed_generation: Optional[int] = field(default=None)
     ready_replicas: Optional[int] = field(default=None)
     replicas: Optional[int] = field(default=None)
@@ -1589,7 +1589,7 @@ class KubernetesDeploymentStatus:
     updated_replicas: Optional[int] = field(default=None)
 
 
-@dataclass
+@define
 class KubernetesRollingUpdateDeployment:
     kind: ClassVar[str] = "kubernetes_rolling_update_deployment"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1600,7 +1600,7 @@ class KubernetesRollingUpdateDeployment:
     max_unavailable: Optional[Union[str, int]] = field(default=None)
 
 
-@dataclass
+@define
 class KubernetesDeploymentStrategy:
     kind: ClassVar[str] = "kubernetes_deployment_strategy"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1611,7 +1611,7 @@ class KubernetesDeploymentStrategy:
     type: Optional[str] = field(default=None)
 
 
-@dataclass
+@define
 class KubernetesDeploymentSpec:
     kind: ClassVar[str] = "kubernetes_deployment_spec"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1634,7 +1634,7 @@ class KubernetesDeploymentSpec:
     template: Optional[KubernetesPodTemplateSpec] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesDeployment(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_deployment"
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
@@ -1655,7 +1655,7 @@ class KubernetesDeployment(KubernetesResource):
             builder.add_edges_from_selector(self, EdgeType.default, selector, KubernetesReplicaSet)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesReplicaSetStatusCondition:
     kind: ClassVar[str] = "kubernetes_replica_set_status_conditions"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1672,7 +1672,7 @@ class KubernetesReplicaSetStatusCondition:
     type: Optional[str] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesReplicaSetStatus:
     kind: ClassVar[str] = "kubernetes_replica_set_status"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1686,14 +1686,14 @@ class KubernetesReplicaSetStatus:
         "replicas": S("replicas"),
     }
     available_replicas: Optional[int] = field(default=None)
-    conditions: List[KubernetesReplicaSetStatusCondition] = field(default_factory=list)
+    conditions: List[KubernetesReplicaSetStatusCondition] = field(factory=list)
     fully_labeled_replicas: Optional[int] = field(default=None)
     observed_generation: Optional[int] = field(default=None)
     ready_replicas: Optional[int] = field(default=None)
     replicas: Optional[int] = field(default=None)
 
 
-@dataclass
+@define
 class KubernetesReplicaSetSpec:
     kind: ClassVar[str] = "kubernetes_replica_set_spec"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1708,7 +1708,7 @@ class KubernetesReplicaSetSpec:
     template: Optional[KubernetesPodTemplateSpec] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesReplicaSet(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_replica_set"
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
@@ -1724,7 +1724,7 @@ class KubernetesReplicaSet(KubernetesResource):
     replica_set_spec: Optional[KubernetesReplicaSetSpec] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesStatefulSetStatusCondition:
     kind: ClassVar[str] = "kubernetes_stateful_set_status_condition"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1741,7 +1741,7 @@ class KubernetesStatefulSetStatusCondition:
     type: Optional[str] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesStatefulSetStatus:
     kind: ClassVar[str] = "kubernetes_stateful_set_status"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1760,7 +1760,7 @@ class KubernetesStatefulSetStatus:
     }
     available_replicas: Optional[int] = field(default=None)
     collision_count: Optional[int] = field(default=None)
-    conditions: List[KubernetesStatefulSetStatusCondition] = field(default_factory=list)
+    conditions: List[KubernetesStatefulSetStatusCondition] = field(factory=list)
     current_replicas: Optional[int] = field(default=None)
     current_revision: Optional[str] = field(default=None)
     observed_generation: Optional[int] = field(default=None)
@@ -1770,7 +1770,7 @@ class KubernetesStatefulSetStatus:
     updated_replicas: Optional[int] = field(default=None)
 
 
-@dataclass
+@define
 class KubernetesStatefulSetSpec:
     kind: ClassVar[str] = "kubernetes_stateful_set_spec"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1791,7 +1791,7 @@ class KubernetesStatefulSetSpec:
     template: Optional[KubernetesPodTemplateSpec] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesStatefulSet(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_stateful_set"
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
@@ -1807,7 +1807,7 @@ class KubernetesStatefulSet(KubernetesResource):
     stateful_set_spec: Optional[KubernetesStatefulSetSpec] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesHorizontalPodAutoscalerStatus:
     kind: ClassVar[str] = "kubernetes_horizontal_pod_autoscaler_status"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1824,7 +1824,7 @@ class KubernetesHorizontalPodAutoscalerStatus:
     observed_generation: Optional[int] = field(default=None)
 
 
-@dataclass
+@define
 class KubernetesCrossVersionObjectReference:
     kind: ClassVar[str] = "kubernetes_cross_object_reference"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1837,7 +1837,7 @@ class KubernetesCrossVersionObjectReference:
     name: Optional[str] = field(default=None)
 
 
-@dataclass
+@define
 class KubernetesHorizontalPodAutoscalerSpec:
     kind: ClassVar[str] = "kubernetes_horizontal_pod_autoscaler_spec"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1852,7 +1852,7 @@ class KubernetesHorizontalPodAutoscalerSpec:
     target_cpu_utilization_percentage: Optional[int] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesHorizontalPodAutoscaler(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_horizontal_pod_autoscaler"
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
@@ -1863,7 +1863,7 @@ class KubernetesHorizontalPodAutoscaler(KubernetesResource):
     horizontal_pod_autoscaler_spec: Optional[KubernetesHorizontalPodAutoscalerSpec] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesCronJobStatusActive:
     kind: ClassVar[str] = "kubernetes_cron_job_status_active"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1882,7 +1882,7 @@ class KubernetesCronJobStatusActive:
     uid: Optional[str] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesCronJobStatus:
     kind: ClassVar[str] = "kubernetes_cron_job_status"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1890,12 +1890,12 @@ class KubernetesCronJobStatus:
         "last_schedule_time": S("lastScheduleTime"),
         "last_successful_time": S("lastSuccessfulTime"),
     }
-    active: List[KubernetesCronJobStatusActive] = field(default_factory=list)
+    active: List[KubernetesCronJobStatusActive] = field(factory=list)
     last_schedule_time: Optional[datetime] = field(default=None)
     last_successful_time: Optional[datetime] = field(default=None)
 
 
-@dataclass
+@define
 class KubernetesJobSpec:
     kind: ClassVar[str] = "kubernetes_job_spec"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1922,7 +1922,7 @@ class KubernetesJobSpec:
     ttl_seconds_after_finished: Optional[int] = field(default=None)
 
 
-@dataclass
+@define
 class KubernetesJobTemplateSpec:
     kind: ClassVar[str] = "kubernetes_job_template_spec"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1931,7 +1931,7 @@ class KubernetesJobTemplateSpec:
     spec: Optional[KubernetesJobSpec] = field(default=None)
 
 
-@dataclass
+@define
 class KubernetesCronJobSpec:
     kind: ClassVar[str] = "kubernetes_cron_job_spec"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1954,7 +1954,7 @@ class KubernetesCronJobSpec:
     time_zone: Optional[str] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesCronJob(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_cron_job"
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
@@ -1967,7 +1967,7 @@ class KubernetesCronJob(KubernetesResource):
     cron_job_spec: Optional[KubernetesCronJobSpec] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesJobStatusConditions:
     kind: ClassVar[str] = "kubernetes_job_status_conditions"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1986,7 +1986,7 @@ class KubernetesJobStatusConditions:
     type: Optional[str] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesJobStatus:
     kind: ClassVar[str] = "kubernetes_job_status"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -2004,14 +2004,14 @@ class KubernetesJobStatus:
     active: Optional[int] = field(default=None)
     completed_indexes: Optional[str] = field(default=None)
     completion_time: Optional[datetime] = field(default=None)
-    conditions: List[KubernetesJobStatusConditions] = field(default_factory=list)
+    conditions: List[KubernetesJobStatusConditions] = field(factory=list)
     failed: Optional[int] = field(default=None)
     ready: Optional[int] = field(default=None)
     start_time: Optional[datetime] = field(default=None)
     succeeded: Optional[int] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesJob(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_job"
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
@@ -2024,7 +2024,7 @@ class KubernetesJob(KubernetesResource):
     job_spec: Optional[KubernetesJobSpec] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesFlowSchemaStatusConditions:
     kind: ClassVar[str] = "kubernetes_flow_schema_status_conditions"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -2041,7 +2041,7 @@ class KubernetesFlowSchemaStatusConditions:
     type: Optional[str] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesFlowSchemaStatus:
     kind: ClassVar[str] = "kubernetes_flow_schema_status"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -2049,10 +2049,10 @@ class KubernetesFlowSchemaStatus:
         >> SortTransitionTime
         >> ForallBend(KubernetesFlowSchemaStatusConditions.mapping),
     }
-    conditions: List[KubernetesFlowSchemaStatusConditions] = field(default_factory=list)
+    conditions: List[KubernetesFlowSchemaStatusConditions] = field(factory=list)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesFlowSchema(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_flow_schema"
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
@@ -2061,7 +2061,7 @@ class KubernetesFlowSchema(KubernetesResource):
     flow_schema_status: Optional[KubernetesFlowSchemaStatus] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesPriorityLevelConfigurationStatusConditions:
     kind: ClassVar[str] = "kubernetes_priority_level_configuration_status_conditions"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -2078,7 +2078,7 @@ class KubernetesPriorityLevelConfigurationStatusConditions:
     type: Optional[str] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesPriorityLevelConfigurationStatus:
     kind: ClassVar[str] = "kubernetes_priority_level_configuration_status"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -2086,10 +2086,10 @@ class KubernetesPriorityLevelConfigurationStatus:
         >> SortTransitionTime
         >> ForallBend(KubernetesPriorityLevelConfigurationStatusConditions.mapping),
     }
-    conditions: List[KubernetesPriorityLevelConfigurationStatusConditions] = field(default_factory=list)
+    conditions: List[KubernetesPriorityLevelConfigurationStatusConditions] = field(factory=list)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesPriorityLevelConfiguration(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_priority_level_configuration"
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
@@ -2098,7 +2098,7 @@ class KubernetesPriorityLevelConfiguration(KubernetesResource):
     priority_level_configuration_status: Optional[KubernetesPriorityLevelConfigurationStatus] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesIngressStatusLoadbalancerIngressPorts:
     kind: ClassVar[str] = "kubernetes_ingress_status_loadbalancer_ingress_ports"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -2111,7 +2111,7 @@ class KubernetesIngressStatusLoadbalancerIngressPorts:
     protocol: Optional[str] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesIngressStatusLoadbalancerIngress:
     kind: ClassVar[str] = "kubernetes_ingress_status_loadbalancer_ingress"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -2121,19 +2121,19 @@ class KubernetesIngressStatusLoadbalancerIngress:
     }
     hostname: Optional[str] = field(default=None)
     ip: Optional[str] = field(default=None)
-    ports: List[KubernetesIngressStatusLoadbalancerIngressPorts] = field(default_factory=list)
+    ports: List[KubernetesIngressStatusLoadbalancerIngressPorts] = field(factory=list)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesIngressStatusLoadbalancer:
     kind: ClassVar[str] = "kubernetes_ingress_status_loadbalancer"
     mapping: ClassVar[Dict[str, Bender]] = {
         "ingress": S("ingress", default=[]) >> ForallBend(KubernetesIngressStatusLoadbalancerIngress.mapping),
     }
-    ingress: List[KubernetesIngressStatusLoadbalancerIngress] = field(default_factory=list)
+    ingress: List[KubernetesIngressStatusLoadbalancerIngress] = field(factory=list)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesIngressStatus:
     kind: ClassVar[str] = "kubernetes_ingress_status"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -2142,7 +2142,7 @@ class KubernetesIngressStatus:
     load_balancer: Optional[KubernetesIngressStatusLoadbalancer] = field(default=None)
 
 
-@dataclass
+@define
 class KubernetesIngressRule:
     kind: ClassVar[str] = "kubernetes_ingress_rule"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -2153,18 +2153,18 @@ class KubernetesIngressRule:
     http: Optional[Any] = field(default=None)
 
 
-@dataclass
+@define
 class KubernetesIngressTLS:
     kind: ClassVar[str] = "kubernetes_ingress_tls"
     mapping: ClassVar[Dict[str, Bender]] = {
         "hosts": S("hosts", default=[]),
         "secret_name": S("secretName"),
     }
-    hosts: List[str] = field(default_factory=list)
+    hosts: List[str] = field(factory=list)
     secret_name: Optional[str] = field(default=None)
 
 
-@dataclass
+@define
 class KubernetesIngressSpec:
     kind: ClassVar[str] = "kubernetes_ingress_spec"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -2173,11 +2173,11 @@ class KubernetesIngressSpec:
         "tls": S("tls", default=[]) >> ForallBend(KubernetesIngressTLS.mapping),
     }
     ingress_class_name: Optional[str] = field(default=None)
-    rules: List[KubernetesIngressRule] = field(default_factory=list)
-    tls: List[KubernetesIngressTLS] = field(default_factory=list)
+    rules: List[KubernetesIngressRule] = field(factory=list)
+    tls: List[KubernetesIngressTLS] = field(factory=list)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesIngress(KubernetesResource, BaseLoadBalancer):
     kind: ClassVar[str] = "kubernetes_ingress"
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
@@ -2190,13 +2190,13 @@ class KubernetesIngress(KubernetesResource, BaseLoadBalancer):
     ingress_spec: Optional[KubernetesIngressSpec] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesIngressClass(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_ingress_class"
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {}
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesNetworkPolicyStatusConditions:
     kind: ClassVar[str] = "kubernetes_network_policy_status_conditions"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -2215,7 +2215,7 @@ class KubernetesNetworkPolicyStatusConditions:
     type: Optional[str] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesNetworkPolicyStatus:
     kind: ClassVar[str] = "kubernetes_network_policy_status"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -2223,10 +2223,10 @@ class KubernetesNetworkPolicyStatus:
         >> SortTransitionTime
         >> ForallBend(KubernetesNetworkPolicyStatusConditions.mapping),
     }
-    conditions: List[KubernetesNetworkPolicyStatusConditions] = field(default_factory=list)
+    conditions: List[KubernetesNetworkPolicyStatusConditions] = field(factory=list)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesNetworkPolicy(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_network_policy"
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
@@ -2235,13 +2235,13 @@ class KubernetesNetworkPolicy(KubernetesResource):
     network_policy_status: Optional[KubernetesNetworkPolicyStatus] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesRuntimeClass(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_runtime_class"
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {}
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesPodDisruptionBudgetStatusConditions:
     kind: ClassVar[str] = "kubernetes_pod_disruption_budget_status_conditions"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -2260,7 +2260,7 @@ class KubernetesPodDisruptionBudgetStatusConditions:
     type: Optional[str] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesPodDisruptionBudgetStatus:
     kind: ClassVar[str] = "kubernetes_pod_disruption_budget_status"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -2274,7 +2274,7 @@ class KubernetesPodDisruptionBudgetStatus:
         "expected_pods": S("expectedPods"),
         "observed_generation": S("observedGeneration"),
     }
-    conditions: List[KubernetesPodDisruptionBudgetStatusConditions] = field(default_factory=list)
+    conditions: List[KubernetesPodDisruptionBudgetStatusConditions] = field(factory=list)
     current_healthy: Optional[int] = field(default=None)
     desired_healthy: Optional[int] = field(default=None)
     disrupted_pods: Optional[Any] = field(default=None)
@@ -2283,7 +2283,7 @@ class KubernetesPodDisruptionBudgetStatus:
     observed_generation: Optional[int] = field(default=None)
 
 
-@dataclass
+@define
 class KubernetesPodDisruptionBudgetSpec:
     kind: ClassVar[str] = "kubernetes_pod_disruption_budget_spec"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -2296,7 +2296,7 @@ class KubernetesPodDisruptionBudgetSpec:
     selector: Optional[KubernetesLabelSelector] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesPodDisruptionBudget(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_pod_disruption_budget"
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
@@ -2307,52 +2307,52 @@ class KubernetesPodDisruptionBudget(KubernetesResource):
     pod_disruption_budget_spec: Optional[KubernetesPodDisruptionBudgetSpec] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesClusterRole(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_cluster_role"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesClusterRoleBinding(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_cluster_role_binding"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesRole(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_role"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesRoleBinding(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_role_binding"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesPriorityClass(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_priority_class"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesCSIDriver(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_csi_driver"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesCSINode(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_csi_node"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesCSIStorageCapacity(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_csi_storage_capacity"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesStorageClass(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_storage_class"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesVolumeError:
     kind: ClassVar[str] = "kubernetes_volume_error"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -2363,7 +2363,7 @@ class KubernetesVolumeError:
     time: Optional[datetime] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesVolumeAttachmentStatus:
     kind: ClassVar[str] = "kubernetes_volume_attachment_status"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -2378,7 +2378,7 @@ class KubernetesVolumeAttachmentStatus:
     detach_error: Optional[KubernetesVolumeError] = field(default=None)
 
 
-@dataclass
+@define
 class KubernetesVolumeAttachmentSpec:
     kind: ClassVar[str] = "kubernetes_volume_attachment_spec"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -2391,7 +2391,7 @@ class KubernetesVolumeAttachmentSpec:
     source: Optional[Any] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesVolumeAttachment(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_volume_attachment"
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {

@@ -1,22 +1,22 @@
 from __future__ import annotations
-from dataclasses import dataclass, field
+from attrs import define, field
 from typing import Dict, List
 
 from datetime import timedelta
 from resotocore.ids import SubscriberId
 
 
-@dataclass(order=True, unsafe_hash=True, frozen=True)
+@define(order=True, hash=True, frozen=True)
 class Subscription:
     message_type: str
     wait_for_completion: bool = field(default=True)
     timeout: timedelta = field(default=timedelta(seconds=60))
 
 
-@dataclass(order=True, unsafe_hash=True, frozen=True)
+@define(order=True, hash=True, frozen=True)
 class Subscriber:
     id: SubscriberId
-    subscriptions: Dict[str, Subscription] = field(default_factory=dict)
+    subscriptions: Dict[str, Subscription] = field(factory=dict)
 
     @staticmethod
     def from_list(uid: SubscriberId, subscriptions: List[Subscription]) -> Subscriber:
@@ -36,7 +36,7 @@ class Subscriber:
         return Subscriber(self.id, subs)
 
     def __contains__(self, message_type: str) -> bool:
-        return message_type in self.subscriptions
+        return message_type in self.subscriptions  # pylint: disable=unsupported-membership-test
 
     def __getitem__(self, message_type: str) -> Subscription:
         return self.subscriptions[message_type]

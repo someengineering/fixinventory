@@ -7,10 +7,10 @@ from test.fakeconfig import FakeConfig
 from resotolib.baseplugin import BaseCollectorPlugin
 from resotolib.baseresources import BaseAccount
 from typing import ClassVar
-from dataclasses import dataclass
+from attrs import define
 
 
-@dataclass(eq=False)
+@define(eq=False)
 class ExampleAccount(BaseAccount):
     kind: ClassVar[str] = "example_account"
 

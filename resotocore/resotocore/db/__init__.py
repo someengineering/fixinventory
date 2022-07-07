@@ -1,9 +1,9 @@
-from dataclasses import dataclass
+from attrs import define
 from datetime import datetime
 from enum import Enum
 
 
-@dataclass
+@define
 class SystemData:
     system_id: str
     created_at: datetime
@@ -16,7 +16,7 @@ class EstimatedQueryCostRating(Enum):
     bad = 3
 
 
-@dataclass
+@define
 class EstimatedSearchCost:
     # Absolute number that shows the cost of this query. See rating for an interpreted number.
     estimated_cost: int

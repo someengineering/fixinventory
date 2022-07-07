@@ -2,7 +2,7 @@ import logging
 import threading
 import time
 import uuid
-from dataclasses import dataclass, field
+from attrs import define, field
 from functools import lru_cache
 from typing import List, ClassVar, Optional, Type, Any, Dict
 
@@ -13,7 +13,7 @@ from resotolib.proc import num_default_threads
 log = logging.getLogger("resoto.plugins.aws")
 
 
-@dataclass(unsafe_hash=True)
+@define(hash=True, slots=False)
 class AwsSessionHolder:
     access_key_id: Optional[str]
     secret_access_key: Optional[str]
@@ -63,7 +63,7 @@ class AwsSessionHolder:
             return self.__sts_session(aws_account, aws_role, thread_id, int(time.time() / 600))
 
 
-@dataclass
+@define(slots=False)
 class AwsConfig:
     kind: ClassVar[str] = "aws"
     access_key_id: Optional[str] = field(
@@ -93,13 +93,13 @@ class AwsConfig:
         metadata={"description": "Fork collector process instead of using threads"},
     )
     scrape_exclude_account: List[str] = field(
-        default_factory=list,
+        factory=list,
         metadata={"description": "List of accounts to exclude when scraping the org"},
     )
     assume_current: bool = field(default=False, metadata={"description": "Assume given role in current account"})
     do_not_scrape_current: bool = field(default=False, metadata={"description": "Do not scrape current account"})
     account_pool_size: int = field(
-        default_factory=num_default_threads,
+        factory=num_default_threads,
         metadata={"description": "Account thread/process pool size"},
     )
     region_pool_size: int = field(default=20, metadata={"description": "Region thread pool size"})
@@ -108,11 +108,11 @@ class AwsConfig:
         metadata={"description": "Maximum number of parallel API requests per account/region"},
     )
     collect: List[str] = field(
-        default_factory=list,
+        factory=list,
         metadata={"description": "List of AWS services to collect (default: all)"},
     )
     no_collect: List[str] = field(
-        default_factory=list,
+        factory=list,
         metadata={"description": "List of AWS services to exclude (default: none)"},
     )
 
@@ -123,7 +123,7 @@ class AwsConfig:
             return name not in self.no_collect
         return True
 
-    _lock: threading.RLock = field(default_factory=threading.RLock)
+    _lock: threading.RLock = field(factory=threading.RLock)
     _holder: Optional[AwsSessionHolder] = field(default=None)
 
     def __getstate__(self) -> Dict[str, Any]:

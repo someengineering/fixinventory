@@ -1,8 +1,8 @@
-from dataclasses import dataclass, field
+from attrs import define, field
 from typing import ClassVar, Optional
 
 
-@dataclass
+@define
 class SlackConfig:
     kind: ClassVar[str] = "slack"
     bot_token: Optional[str] = field(default=None, metadata={"description": "Bot token"})

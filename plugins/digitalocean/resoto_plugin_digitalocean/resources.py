@@ -1,5 +1,5 @@
 import logging
-from dataclasses import dataclass
+from attrs import define
 from typing import ClassVar, Dict, List, Optional
 
 from resoto_plugin_digitalocean.client import StreamingWrapper
@@ -30,7 +30,7 @@ from .utils import dump_tag
 log = logging.getLogger("resoto." + __name__)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class DigitalOceanResource(BaseResource):
     """A class that implements the abstract method delete() as well as update_tag()
     and delete_tag().
@@ -74,7 +74,7 @@ class DigitalOceanResource(BaseResource):
         if tag_resource_name:
 
             log.debug(f"Updating tag {key} on resource {self.id}")
-            team = self._account
+            team = self.account()
             credentials = get_team_credentials(team.id)
             if credentials is None:
                 raise RuntimeError(f"Cannot update tag on resource {self.id}, credentials not found for team {team.id}")
@@ -108,7 +108,7 @@ class DigitalOceanResource(BaseResource):
         tag_resource_name = self.tag_resource_name()
         if tag_resource_name:
             log.debug(f"Deleting tag {key} on resource {self.id}")
-            team = self._account
+            team = self.account()
             credentials = get_team_credentials(team.id)
             if credentials is None:
                 raise RuntimeError(f"Cannot update tag on resource {self.id}, credentials not found for team {team.id}")
@@ -134,7 +134,7 @@ class DigitalOceanResource(BaseResource):
             raise NotImplementedError(f"resource {self.kind} does not support tagging")
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class DigitalOceanTeam(DigitalOceanResource, BaseAccount):
     """DigitalOcean Team"""
 
@@ -171,7 +171,7 @@ class DigitalOceanTeam(DigitalOceanResource, BaseAccount):
     }
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class DigitalOceanRegion(DigitalOceanResource, BaseRegion):
     """DigitalOcean region"""
 
@@ -199,7 +199,7 @@ class DigitalOceanRegion(DigitalOceanResource, BaseRegion):
     do_region_droplet_sizes: Optional[List[str]] = None
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class DigitalOceanProject(DigitalOceanResource, BaseResource):
     """DigitalOcean project"""
 
@@ -238,7 +238,7 @@ class DigitalOceanProject(DigitalOceanResource, BaseResource):
         return "/projects"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class DigitalOceanDroplet(DigitalOceanResource, BaseInstance):
     """A DigitalOcean Droplet Resource
 
@@ -269,7 +269,7 @@ class DigitalOceanDroplet(DigitalOceanResource, BaseInstance):
         return "droplet"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class DigitalOceanKubernetesCluster(DigitalOceanResource, BaseResource):
     """DigitalOcean Kubernetes Cluster"""
 
@@ -294,7 +294,7 @@ class DigitalOceanKubernetesCluster(DigitalOceanResource, BaseResource):
         return "/kubernetes/clusters"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class DigitalOceanVolume(DigitalOceanResource, BaseVolume):
     kind: ClassVar[str] = "digitalocean_volume"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -323,7 +323,7 @@ class DigitalOceanVolume(DigitalOceanResource, BaseVolume):
         return "volume"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class DigitalOceanDatabase(DigitalOceanResource, BaseDatabase):
     kind: ClassVar[str] = "digitalocean_database"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -338,7 +338,7 @@ class DigitalOceanDatabase(DigitalOceanResource, BaseDatabase):
         return "database"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class DigitalOceanVPC(DigitalOceanResource, BaseNetwork):
     """DigitalOcean network
 
@@ -368,14 +368,14 @@ class DigitalOceanVPC(DigitalOceanResource, BaseNetwork):
         return "/vpcs"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class DigitalOceanSnapshot(DigitalOceanResource, BaseSnapshot):
     """DigitalOcean snapshot"""
 
     kind: ClassVar[str] = "digitalocean_snapshot"
     snapshot_size_gigabytes: Optional[int] = None
     resource_id: Optional[str] = None
-    resource_type: Optional[str] = None  # type: ignore
+    resource_type: Optional[str] = None
 
     def delete_uri_path(self) -> Optional[str]:
         return "/snapshots"
@@ -384,7 +384,7 @@ class DigitalOceanSnapshot(DigitalOceanResource, BaseSnapshot):
         return "volume_snapshot"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class DigitalOceanLoadBalancer(DigitalOceanResource, BaseLoadBalancer):
     """DigitalOcean load balancer"""
 
@@ -405,7 +405,7 @@ class DigitalOceanLoadBalancer(DigitalOceanResource, BaseLoadBalancer):
         return "/load_balancers"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class DigitalOceanFloatingIP(DigitalOceanResource, BaseIPAddress):
     """DigitalOcean floating IP"""
 
@@ -429,7 +429,7 @@ class DigitalOceanFloatingIP(DigitalOceanResource, BaseIPAddress):
         return client.delete("/floating_ips", self.id)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class DigitalOceanImage(DigitalOceanResource, BaseResource):
     """DigitalOcean image"""
 
@@ -455,7 +455,7 @@ class DigitalOceanImage(DigitalOceanResource, BaseResource):
         return "image"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class DigitalOceanSpace(DigitalOceanResource, BaseBucket):
     """DigitalOcean space"""
 
@@ -475,7 +475,7 @@ class DigitalOceanSpace(DigitalOceanResource, BaseBucket):
         return client.delete_space(self.region(graph).id, self.id)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class DigitalOceanApp(DigitalOceanResource, BaseResource):
     """DigitalOcean app"""
 
@@ -491,7 +491,7 @@ class DigitalOceanApp(DigitalOceanResource, BaseResource):
         return "/apps"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class DigitalOceanCdnEndpoint(DigitalOceanResource, BaseEndpoint):
     """DigitalOcean CDN endpoint"""
 
@@ -507,7 +507,7 @@ class DigitalOceanCdnEndpoint(DigitalOceanResource, BaseEndpoint):
         return "/cdn/endpoints"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class DigitalOceanCertificate(DigitalOceanResource, BaseCertificate):
     """DigitalOcean certificate"""
 
@@ -520,7 +520,7 @@ class DigitalOceanCertificate(DigitalOceanResource, BaseCertificate):
         return "/certificates"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class DigitalOceanContainerRegistry(DigitalOceanResource, BaseResource):
     """DigitalOcean container registry"""
 
@@ -549,7 +549,7 @@ class DigitalOceanContainerRegistry(DigitalOceanResource, BaseResource):
         return client.delete("/registry", None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class DigitalOceanContainerRegistryRepository(DigitalOceanResource, BaseResource):
     """DigitalOcean container registry repository"""
 
@@ -563,7 +563,7 @@ class DigitalOceanContainerRegistryRepository(DigitalOceanResource, BaseResource
     manifest_count: Optional[int] = None
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class DigitalOceanContainerRegistryRepositoryTag(DigitalOceanResource, BaseResource):
     """DigitalOcean container registry repository tag"""
 
@@ -578,7 +578,7 @@ class DigitalOceanContainerRegistryRepositoryTag(DigitalOceanResource, BaseResou
         return f"/registry/{self.registry_name}/repositories/{self.repository_name}/tags"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class DigitalOceanSSHKey(DigitalOceanResource, BaseKeyPair):
     """DigitalOcean ssh key"""
 
@@ -590,7 +590,7 @@ class DigitalOceanSSHKey(DigitalOceanResource, BaseKeyPair):
         return "/account/keys"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class DigitalOceanTag(DigitalOceanResource, BaseResource):
     """DigitalOcean tag"""
 
@@ -600,7 +600,7 @@ class DigitalOceanTag(DigitalOceanResource, BaseResource):
         return "/tags"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class DigitalOceanDomain(DigitalOceanResource, BaseDNSZone):
     """DigitalOcean domain"""
 
@@ -616,7 +616,7 @@ class DigitalOceanDomain(DigitalOceanResource, BaseDNSZone):
         return "/domains"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class DigitalOceanDomainRecord(DigitalOceanResource, BaseDNSRecord):
     """DigitalOcean domain record"""
 
@@ -627,7 +627,7 @@ class DigitalOceanDomainRecord(DigitalOceanResource, BaseDNSRecord):
         return f"/domains/{self.domain_name}/records"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class DigitalOceanFirewall(DigitalOceanResource, BaseResource):
     """DigitalOcean firewall"""
 
@@ -643,7 +643,7 @@ class DigitalOceanFirewall(DigitalOceanResource, BaseResource):
         return "/firewalls"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class DigitalOceanAlertPolicy(DigitalOceanResource, BaseResource):
     """DigitalOcean alert policy"""
 

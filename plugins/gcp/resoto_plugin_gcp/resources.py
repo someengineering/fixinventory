@@ -36,7 +36,7 @@ from .utils import (
     gcp_resource,
     common_resource_kwargs,
 )
-from dataclasses import dataclass, field, InitVar
+from attrs import define, field
 
 
 log = resotolib.logger.getLogger("resoto." + __name__)
@@ -60,7 +60,7 @@ regional_resources = (
 )
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class GCPResource:
     kind: ClassVar[str] = "gcp_resource"
     api_identifier: ClassVar[str] = NotImplemented
@@ -71,8 +71,8 @@ class GCPResource:
     link: Optional[str] = None
     label_fingerprint: Optional[str] = None
 
-    def __post_init__(self) -> None:
-        super().__post_init__()
+    def __attrs_post_init__(self) -> None:
+        super().__attrs_post_init__()
         self._client_method = self.api_identifier + "s"
         self._get_identifier = self.api_identifier
         self._list_identifier = self.api_identifier
@@ -108,7 +108,7 @@ class GCPResource:
         return update_label(self, key, None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class GCPProject(GCPResource, BaseAccount):
     kind: ClassVar[str] = "gcp_project"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -137,7 +137,7 @@ class GCPProject(GCPResource, BaseAccount):
     api_identifier: ClassVar[str] = "project"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class GCPZone(GCPResource, BaseZone):
     kind: ClassVar[str] = "gcp_zone"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -160,7 +160,7 @@ class GCPZone(GCPResource, BaseZone):
     zone_status: Optional[str] = None
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class GCPRegion(GCPResource, BaseRegion):
     kind: ClassVar[str] = "gcp_region"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -192,17 +192,16 @@ class GCPRegion(GCPResource, BaseRegion):
     }
     api_identifier: ClassVar[str] = "region"
     region_status: Optional[str] = None
-    quotas: InitVar[List[str]] = None
 
-    def __post_init__(self, quotas: List[str]) -> None:
-        super().__post_init__()
+    def __attrs_post_init__(self, quotas: List[str]) -> None:
+        super().__attrs_post_init__()
         if quotas is not None:
             self._quotas = quotas
         else:
             self._quotas = []
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class GCPDiskType(GCPResource, BaseVolumeType):
     kind: ClassVar[str] = "gcp_disk_type"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -212,7 +211,7 @@ class GCPDiskType(GCPResource, BaseVolumeType):
     api_identifier: ClassVar[str] = "diskType"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class GCPDisk(GCPResource, BaseVolume):
     kind: ClassVar[str] = "gcp_disk"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -224,8 +223,8 @@ class GCPDisk(GCPResource, BaseVolume):
     last_attach_timestamp: Optional[datetime] = None
     last_detach_timestamp: Optional[datetime] = None
 
-    def __post_init__(self) -> None:
-        super().__post_init__()
+    def __attrs_post_init__(self) -> None:
+        super().__attrs_post_init__()
         self._set_label_identifier = "resource"
         self.last_attach_timestamp = make_valid_timestamp(self.last_attach_timestamp)
         self.last_detach_timestamp = make_valid_timestamp(self.last_detach_timestamp)
@@ -252,7 +251,7 @@ class GCPDisk(GCPResource, BaseVolume):
         return now - self.last_detach_timestamp
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class GCPInstance(GCPResource, BaseInstance):
     kind: ClassVar[str] = "gcp_instance"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -262,11 +261,9 @@ class GCPInstance(GCPResource, BaseInstance):
     api_identifier: ClassVar[str] = "instance"
 
     network_interfaces: Optional[str] = None
-    machine_type_link: InitVar[str] = None
-    machine_type: InitVar[BaseInstanceType] = None
 
-    def __post_init__(self, machine_type_link: str, machine_type: BaseInstanceType) -> None:
-        super().__post_init__()
+    def __attrs_post_init__(self, machine_type_link: str, machine_type: BaseInstanceType) -> None:
+        super().__attrs_post_init__()
         self._machine_type_link = machine_type_link
         self._machine_type = machine_type
 
@@ -284,7 +281,7 @@ class GCPInstance(GCPResource, BaseInstance):
             self.instance_type = value.name
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class GCPNetwork(GCPResource, BaseNetwork):
     kind: ClassVar[str] = "gcp_network"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -314,7 +311,7 @@ class GCPNetwork(GCPResource, BaseNetwork):
     api_identifier: ClassVar[str] = "network"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class GCPSubnetwork(GCPResource, BaseSubnet):
     kind: ClassVar[str] = "gcp_subnetwork"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -334,7 +331,7 @@ class GCPSubnetwork(GCPResource, BaseSubnet):
     api_identifier: ClassVar[str] = "subnetwork"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class GCPVPNTunnel(GCPResource, BaseTunnel):
     kind: ClassVar[str] = "gcp_vpn_tunnel"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -345,13 +342,13 @@ class GCPVPNTunnel(GCPResource, BaseTunnel):
     api_identifier: ClassVar[str] = "vpnTunnel"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class GCPVPNGateway(GCPResource, BaseGateway):
     kind: ClassVar[str] = "gcp_vpn_gateway"
     api_identifier: ClassVar[str] = "vpnGateway"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class GCPTargetVPNGateway(GCPResource, BaseGateway):
     kind: ClassVar[str] = "gcp_target_vpn_gateway"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -361,48 +358,48 @@ class GCPTargetVPNGateway(GCPResource, BaseGateway):
     api_identifier: ClassVar[str] = "targetVpnGateway"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class GCPRouter(GCPResource, BaseGateway):
     kind: ClassVar[str] = "gcp_router"
     api_identifier: ClassVar[str] = "router"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class GCPRoute(GCPResource, BaseResource):
     kind: ClassVar[str] = "gcp_route"
     api_identifier: ClassVar[str] = "route"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class GCPInstanceTemplate(GCPResource, BaseResource):
     kind: ClassVar[str] = "gcp_instance_template"
     api_identifier: ClassVar[str] = "instanceTemplate"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class GCPSecurityPolicy(GCPResource, BasePolicy):
     kind: ClassVar[str] = "gcp_security_policy"
     api_identifier: ClassVar[str] = "securityPolicy"
 
-    def __post_init__(self) -> None:
-        super().__post_init__()
+    def __attrs_post_init__(self) -> None:
+        super().__attrs_post_init__()
         self._client_method = "securityPolicies"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class GCPSnapshot(GCPResource, BaseSnapshot):
     kind: ClassVar[str] = "gcp_snapshot"
     api_identifier: ClassVar[str] = "snapshot"
 
     storage_bytes: int = 0
 
-    def __post_init__(self) -> None:
-        super().__post_init__()
+    def __attrs_post_init__(self) -> None:
+        super().__attrs_post_init__()
         if isinstance(self.volume_id, BaseResource):
             self.volume_id = self.volume_id.name
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class GCPSSLCertificate(GCPResource, BaseCertificate):
     kind: ClassVar[str] = "gcp_ssl_certificate"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -422,7 +419,7 @@ class GCPSSLCertificate(GCPResource, BaseCertificate):
     subject_alternative_names: Optional[List[str]] = None
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class GCPMachineType(GCPResource, BaseInstanceType):
     kind: ClassVar[str] = "gcp_machine_type"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -431,12 +428,12 @@ class GCPMachineType(GCPResource, BaseInstanceType):
     }
     api_identifier: ClassVar[str] = "machineType"
 
-    def __post_init__(self) -> None:
-        super().__post_init__()
+    def __attrs_post_init__(self) -> None:
+        super().__attrs_post_init__()
         self.instance_type = self.name
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class GCPNetworkEndpointGroup(GCPResource, BaseResource):
     kind: ClassVar[str] = "gcp_network_endpoint_group"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -449,7 +446,7 @@ class GCPNetworkEndpointGroup(GCPResource, BaseResource):
     neg_type: str = ""
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class GCPGlobalNetworkEndpointGroup(GCPResource, BaseResource):
     kind: ClassVar[str] = "gcp_global_network_endpoint_group"
     api_identifier: ClassVar[str] = "globalNetworkEndpointGroup"
@@ -458,7 +455,7 @@ class GCPGlobalNetworkEndpointGroup(GCPResource, BaseResource):
     neg_type: str = ""
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class GCPInstanceGroup(GCPResource, BaseResource):
     kind: ClassVar[str] = "gcp_instance_group"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -468,7 +465,7 @@ class GCPInstanceGroup(GCPResource, BaseResource):
     api_identifier: ClassVar[str] = "instanceGroup"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class GCPInstanceGroupManager(GCPResource, BaseResource):
     kind: ClassVar[str] = "gcp_instance_group_manager"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -481,7 +478,7 @@ class GCPInstanceGroupManager(GCPResource, BaseResource):
     api_identifier: ClassVar[str] = "instanceGroupManager"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class GCPAutoscaler(GCPResource, BaseAutoScalingGroup):
     kind: ClassVar[str] = "gcp_autoscaler"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -491,7 +488,7 @@ class GCPAutoscaler(GCPResource, BaseAutoScalingGroup):
     api_identifier: ClassVar[str] = "autoscaler"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class GCPHealthCheck(GCPResource, BaseHealthCheck):
     kind: ClassVar[str] = "gcp_health_check"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -505,7 +502,7 @@ class GCPHealthCheck(GCPResource, BaseHealthCheck):
     api_identifier: ClassVar[str] = "healthCheck"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class GCPHTTPHealthCheck(GCPResource, BaseHealthCheck):
     """Deprecated by gcp. GCPHealthCheck is the new standard."""
 
@@ -522,7 +519,7 @@ class GCPHTTPHealthCheck(GCPResource, BaseHealthCheck):
     port: int = -1
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class GCPHTTPSHealthCheck(GCPHTTPHealthCheck):
     kind: ClassVar[str] = "gcp_https_health_check"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -536,7 +533,7 @@ class GCPHTTPSHealthCheck(GCPHTTPHealthCheck):
     api_identifier: ClassVar[str] = "httpsHealthCheck"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class GCPUrlMap(GCPResource, BaseResource):
     kind: ClassVar[str] = "gcp_url_map"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -550,7 +547,7 @@ class GCPUrlMap(GCPResource, BaseResource):
     api_identifier: ClassVar[str] = "urlMap"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class GCPTargetPool(GCPResource, BaseResource):
     kind: ClassVar[str] = "gcp_target_pool"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -563,7 +560,7 @@ class GCPTargetPool(GCPResource, BaseResource):
     failover_ratio: float = -1.0
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class GCPTargetHttpProxy(GCPResource, BaseResource):
     kind: ClassVar[str] = "gcp_target_http_proxy"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -572,13 +569,13 @@ class GCPTargetHttpProxy(GCPResource, BaseResource):
     }
     api_identifier: ClassVar[str] = "targetHttpProxy"
 
-    def __post_init__(self) -> None:
-        super().__post_init__()
+    def __attrs_post_init__(self) -> None:
+        super().__attrs_post_init__()
         self._client_method = "targetHttpProxies"
         self._check_region_resource()
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class GCPTargetHttpsProxy(GCPResource, BaseResource):
     kind: ClassVar[str] = "gcp_target_https_proxy"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -591,13 +588,13 @@ class GCPTargetHttpsProxy(GCPResource, BaseResource):
     }
     api_identifier: ClassVar[str] = "targetHttpsProxy"
 
-    def __post_init__(self) -> None:
-        super().__post_init__()
+    def __attrs_post_init__(self) -> None:
+        super().__attrs_post_init__()
         self._client_method = "targetHttpsProxies"
         self._check_region_resource()
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class GCPTargetSslProxy(GCPResource, BaseResource):
     kind: ClassVar[str] = "gcp_target_ssl_proxy"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -606,12 +603,12 @@ class GCPTargetSslProxy(GCPResource, BaseResource):
     }
     api_identifier: ClassVar[str] = "targetSslProxy"
 
-    def __post_init__(self) -> None:
-        super().__post_init__()
+    def __attrs_post_init__(self) -> None:
+        super().__attrs_post_init__()
         self._client_method = "targetSslProxies"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class GCPTargetTcpProxy(GCPResource, BaseResource):
     kind: ClassVar[str] = "gcp_target_tcp_proxy"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -620,12 +617,12 @@ class GCPTargetTcpProxy(GCPResource, BaseResource):
     }
     api_identifier: ClassVar[str] = "targetTcpProxy"
 
-    def __post_init__(self) -> None:
-        super().__post_init__()
+    def __attrs_post_init__(self) -> None:
+        super().__attrs_post_init__()
         self._client_method = "targetTcpProxies"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class GCPTargetGrpcProxy(GCPResource, BaseResource):
     kind: ClassVar[str] = "gcp_target_grpc_proxy"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -634,12 +631,12 @@ class GCPTargetGrpcProxy(GCPResource, BaseResource):
     }
     api_identifier: ClassVar[str] = "targetGrpcProxy"
 
-    def __post_init__(self) -> None:
-        super().__post_init__()
+    def __attrs_post_init__(self) -> None:
+        super().__attrs_post_init__()
         self._client_method = "targetGrpcProxies"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class GCPTargetInstance(GCPResource, BaseResource):
     kind: ClassVar[str] = "gcp_target_instance"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -648,13 +645,13 @@ class GCPTargetInstance(GCPResource, BaseResource):
     api_identifier: ClassVar[str] = "targetInstance"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class GCPQuota(GCPResource, BaseQuota):
     kind: ClassVar[str] = "gcp_quota"
     api_identifier: ClassVar[str] = "dummy"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class GCPBackendService(GCPResource, BaseResource):
     kind: ClassVar[str] = "gcp_backend_service"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -672,7 +669,7 @@ class GCPBackendService(GCPResource, BaseResource):
     api_identifier: ClassVar[str] = "backendService"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class GCPForwardingRule(GCPResource, BaseLoadBalancer):
     kind: ClassVar[str] = "gcp_forwarding_rule"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -695,12 +692,12 @@ class GCPForwardingRule(GCPResource, BaseLoadBalancer):
     network_tier: str = ""
     port_range: str = ""
 
-    def __post_init__(self) -> None:
-        super().__post_init__()
+    def __attrs_post_init__(self) -> None:
+        super().__attrs_post_init__()
         self.lb_type = "gcp"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class GCPGlobalForwardingRule(GCPForwardingRule):
     kind: ClassVar[str] = "gcp_global_forwarding_rule"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -718,7 +715,7 @@ class GCPGlobalForwardingRule(GCPForwardingRule):
     api_identifier: ClassVar[str] = "globalForwardingRule"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class GCPBucket(GCPResource, BaseBucket):
     kind: ClassVar[str] = "gcp_bucket"
     api_identifier: ClassVar[str] = "bucket"
@@ -764,7 +761,7 @@ class GCPBucket(GCPResource, BaseBucket):
         return self.update_tag(key, None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class GCPDatabase(GCPResource, BaseDatabase):
     kind: ClassVar[str] = "gcp_database"
     api_identifier: ClassVar[str] = "instance"
@@ -788,7 +785,7 @@ class GCPDatabase(GCPResource, BaseDatabase):
         return self.update_tag(key, None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class GCPService(GCPResource, PhantomBaseResource):
     kind: ClassVar[str] = "gcp_service"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -802,7 +799,7 @@ class GCPService(GCPResource, PhantomBaseResource):
     resource_args: ClassVar[List[str]] = []
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class GCPServiceSKU(GCPResource, PhantomBaseResource):
     kind: ClassVar[str] = "gcp_service_sku"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
@@ -818,13 +815,13 @@ class GCPServiceSKU(GCPResource, PhantomBaseResource):
     resource_family: Optional[str] = ""
     resource_group: Optional[str] = ""
     usage_type: Optional[str] = ""
-    pricing_info: List = field(default_factory=list)
+    pricing_info: List = field(factory=list)
     service_provider_name: Optional[str] = ""
     geo_taxonomy_type: Optional[str] = None
-    geo_taxonomy_regions: List = field(default_factory=list)
+    geo_taxonomy_regions: List = field(factory=list)
 
-    def __post_init__(self) -> None:
-        super().__post_init__()
+    def __attrs_post_init__(self) -> None:
+        super().__attrs_post_init__()
         if self.pricing_info is None:
             self.pricing_info = []
         if self.geo_taxonomy_regions is None:
@@ -844,7 +841,7 @@ class GCPServiceSKU(GCPResource, PhantomBaseResource):
                 self.usage_unit_nanos = cost
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class GCPGKECluster(GCPResource, BaseResource):
     kind: ClassVar[str] = "gcp_gke_cluster"
     api_identifier: ClassVar[str] = "cluster"

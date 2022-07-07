@@ -34,19 +34,18 @@ from resotolib.event import (
 from prometheus_client import Summary
 from typing import Dict, Iterator, List, Tuple, Optional, Union
 from io import BytesIO
-from dataclasses import fields
 from typeguard import check_type
 from time import time
 from collections import defaultdict, namedtuple
-from dataclasses import dataclass
+from attrs import define, fields
 
 
-@dataclass
+@define
 class BySearchCriteria:
     query: str
 
 
-@dataclass
+@define
 class ByNodeId:
     value: str
 
@@ -631,7 +630,7 @@ def graph2pajek(graph):
 
 
 def validate_dataclass(node: BaseResource):
-    for field in fields(node):
+    for field in fields(type(node)):
         value = getattr(node, field.name)
         try:
             check_type(str(value), value, field.type)

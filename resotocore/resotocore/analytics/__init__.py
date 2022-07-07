@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from attrs import define
 from datetime import datetime
 from typing import Optional, Mapping, List, Union
 
@@ -39,7 +39,7 @@ class CoreEvent:
     UsageMetricsTurnedOff = "usage-metrics.turned-off"
 
 
-@dataclass(frozen=True)
+@define(frozen=True)
 class AnalyticsEvent:
     system: str  # e.g. creator of the event: resotocore, resotoui, resotosh, etc.
     kind: str  # kind of the event. Every kind has a specific set of data and context vars

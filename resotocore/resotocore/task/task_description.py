@@ -7,7 +7,7 @@ from datetime import timedelta
 from enum import Enum
 from typing import Optional, Any, Sequence, MutableSequence, Callable, Dict, List, Set, Tuple
 
-from dataclasses import dataclass
+from attrs import define
 
 from asyncio import Task
 
@@ -87,26 +87,26 @@ class RestartAgainStepAction(StepAction):
     pass
 
 
-@dataclass(order=True, unsafe_hash=True, frozen=True)
+@define(order=True, hash=True, frozen=True)
 class PerformAction(StepAction):
     # Perform an action by emitting an action message and wait for all subscribers to respond.
     message_type: str
 
 
-@dataclass(order=True, unsafe_hash=True, frozen=True)
+@define(order=True, hash=True, frozen=True)
 class EmitEvent(StepAction):
     # Emit this event
     event: Event
 
 
-@dataclass(order=True, unsafe_hash=True, frozen=True)
+@define(order=True, hash=True, frozen=True)
 class WaitForEvent(StepAction):
     # Wait for this event to arrive
     wait_for_message_type: str
     filter_data: Optional[Json] = None
 
 
-@dataclass(order=True, unsafe_hash=True, frozen=True)
+@define(order=True, hash=True, frozen=True)
 class ExecuteCommand(RestartAgainStepAction):
     # Execute this command in the command interpreter.
     command: str
@@ -131,12 +131,12 @@ class TaskCommand(ABC):
             raise AttributeError(f"Can not deserialize {json} into TaskCommand!")
 
 
-@dataclass(order=True, unsafe_hash=True, frozen=True)
+@define(order=True, hash=True, frozen=True)
 class SendMessage(TaskCommand):
     message: Message
 
 
-@dataclass(order=True, unsafe_hash=True, frozen=True)
+@define(order=True, hash=True, frozen=True)
 class ExecuteOnCLI(TaskCommand):
     command: str
     # noinspection PyUnresolvedReferences
@@ -160,17 +160,17 @@ class Trigger(ABC):
             raise AttributeError(f"Can not deserialize {json} into StepAction!")
 
 
-@dataclass(order=True, unsafe_hash=True, frozen=True)
+@define(order=True, hash=True, frozen=True)
 class EventTrigger(Trigger):
     message_type: str
     filter_data: Optional[Json] = None
 
 
-@dataclass(order=True, unsafe_hash=True, frozen=True)
+@define(order=True, hash=True, frozen=True)
 class TimeTrigger(Trigger):
     cron_expression: str
 
-    def __post_init__(self) -> None:
+    def __attrs_post_init__(self) -> None:
         # make sure the time trigger is valid
         CronTrigger.from_crontab(self.cron_expression)
 

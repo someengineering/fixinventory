@@ -1,8 +1,8 @@
-from dataclasses import dataclass
+from attrs import define
 from typing import Dict, Any
 
 
-@dataclass
+@define
 class FakeConfig:
     values: Dict[str, Any]
 

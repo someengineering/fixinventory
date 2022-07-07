@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from abc import abstractmethod
-from dataclasses import dataclass, field
+from attrs import define, field
 from datetime import datetime
 from typing import Sequence, Optional
 
@@ -18,7 +18,7 @@ from resotocore.util import utc
 log = logging.getLogger(__name__)
 
 
-@dataclass(order=True, unsafe_hash=True, frozen=True)
+@define(order=True, hash=True, frozen=True)
 class RunningTaskData:
     # id of the related task
     id: TaskId
@@ -27,15 +27,15 @@ class RunningTaskData:
     # name of the related task descriptor
     task_descriptor_name: str
     # all messages that have been received by this task
-    received_messages: Sequence[Message] = field(default_factory=list)
+    received_messages: Sequence[Message] = field(factory=list)
     # the name of the current state inside the finite state machine
     current_state_name: str = field(default="start")
     # the state of the current state exported as json
-    current_state_snapshot: Json = field(default_factory=dict)
+    current_state_snapshot: Json = field(factory=dict)
     # the timestamp when the step has been started
-    task_started_at: datetime = field(default_factory=utc)
+    task_started_at: datetime = field(factory=utc)
     # the timestamp when the step has been started
-    step_started_at: datetime = field(default_factory=utc)
+    step_started_at: datetime = field(factory=utc)
 
     @staticmethod
     def data(wi: RunningTask) -> RunningTaskData:

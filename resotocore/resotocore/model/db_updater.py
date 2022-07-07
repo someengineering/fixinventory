@@ -5,7 +5,7 @@ import logging
 from abc import ABC
 from asyncio import Task
 from contextlib import suppress
-from dataclasses import dataclass
+from attrs import define
 from datetime import timedelta
 from multiprocessing import Process, Queue
 from queue import Empty
@@ -39,7 +39,7 @@ class ProcessAction(ABC):
     """
 
 
-@dataclass
+@define
 class ReadElement(ProcessAction):
     """
     Read an incoming element:
@@ -55,7 +55,7 @@ class ReadElement(ProcessAction):
         return (e if isinstance(e, dict) else json.loads(e) for e in self.elements)
 
 
-@dataclass
+@define
 class MergeGraph(ProcessAction):
     """
     Merge the graph that has been read so far.
@@ -68,7 +68,7 @@ class MergeGraph(ProcessAction):
     task_id: Optional[TaskId] = None
 
 
-@dataclass
+@define
 class EmitAnalyticsEvent(ProcessAction):
     """
     Emit this message to the event sender.
@@ -85,7 +85,7 @@ class PoisonPill(ProcessAction):
     """
 
 
-@dataclass
+@define
 class Result(ProcessAction):
     result: Union[GraphUpdate, str]
 

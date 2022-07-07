@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import deque, defaultdict
 from contextlib import contextmanager
-from dataclasses import dataclass
+from attrs import define
 from enum import Enum
 from functools import lru_cache
 from typing import Optional, Union, Literal, Dict, Generator, ClassVar
@@ -77,7 +77,7 @@ class ConsolePool:
         self.consoles[system].append(console)
 
 
-@dataclass
+@define
 class ConsoleRenderer:
     width: Optional[int] = None
     height: Optional[int] = None

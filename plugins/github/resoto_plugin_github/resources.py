@@ -1,6 +1,6 @@
 from datetime import datetime
 import resotolib.logger
-from dataclasses import dataclass
+from attrs import define
 from typing import Optional, ClassVar
 from resotolib.graph import Graph
 from resotolib.baseresources import (
@@ -14,7 +14,7 @@ import github
 log = resotolib.logger.getLogger("resoto." + __name__)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class GithubAccount(BaseAccount):
     kind: ClassVar[str] = "github_account"
 
@@ -22,7 +22,7 @@ class GithubAccount(BaseAccount):
         return False
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class GithubRegion(BaseRegion):
     kind: ClassVar[str] = "github_region"
 
@@ -30,7 +30,7 @@ class GithubRegion(BaseRegion):
         return False
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class GithubResource:
     kind: ClassVar[str] = "github_resource"
 
@@ -44,7 +44,7 @@ class GithubResource:
         return False
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class GithubOrg(GithubResource, BaseResource):
     kind: ClassVar[str] = "github_org"
 
@@ -128,7 +128,7 @@ class GithubOrg(GithubResource, BaseResource):
         )
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class GithubUser(GithubResource, BaseUser):
     kind: ClassVar[str] = "github_user"
 
@@ -226,7 +226,7 @@ class GithubUser(GithubResource, BaseUser):
         )
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class GithubRepo(GithubResource, BaseResource):
     kind: ClassVar[str] = "github_repo"
 

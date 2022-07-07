@@ -1,7 +1,7 @@
 from typing import Callable, Optional, Any
 
 import pytest
-from dataclasses import replace
+from attrs import evolve
 
 from deepdiff import DeepDiff
 from hypothesis import given, settings, HealthCheck
@@ -301,8 +301,8 @@ def test_with_clause() -> None:
     nav = Navigation()
 
     def edge(wc: WithClause) -> WithClause:
-        wcr = replace(wc, with_clause=edge(wc.with_clause)) if wc.with_clause else wc
-        return replace(wcr, navigation=replace(wcr.navigation, maybe_edge_types=[EdgeTypes.default]))
+        wcr = evolve(wc, with_clause=edge(wc.with_clause)) if wc.with_clause else wc
+        return evolve(wcr, navigation=evolve(wcr.navigation, maybe_edge_types=[EdgeTypes.default]))
 
     assert_round_trip(with_clause_parser, WithClause(clause_filter, nav, term, WithClause(clause_filter, nav)), edge)
     assert_round_trip(with_clause_parser, WithClause(clause_filter, nav), edge)

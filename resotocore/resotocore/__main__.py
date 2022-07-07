@@ -7,7 +7,7 @@ import warnings
 from argparse import Namespace
 from asyncio import Queue
 from contextlib import suppress
-from dataclasses import replace
+from attrs import evolve
 from datetime import timedelta
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -102,7 +102,7 @@ def run_process(args: Namespace) -> None:
             config = config_from_db(args, sdb)
             cert_handler = CertificateHandler.lookup(config, sdb, temp)
             verify: Union[bool, str] = False if args.graphdb_no_ssl_verify else str(cert_handler.ca_bundle)
-            config = replace(config, run=RunConfig(temp, verify))
+            config = evolve(config, run=RunConfig(temp, verify))
         # in case of tls: connect again with the correct certificate settings
         use_tls = args.graphdb_server.startswith("https://")
         db_client = DbAccess.connect(args, timedelta(seconds=30), verify=verify)[2] if use_tls else sdb

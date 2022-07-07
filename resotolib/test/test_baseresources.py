@@ -1,9 +1,9 @@
 from typing import ClassVar
-from dataclasses import dataclass
+from attrs import define
 from resotolib.baseresources import BaseResource
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class SomeTestResource(BaseResource):
     kind: ClassVar[str] = "some_test_resource"
 

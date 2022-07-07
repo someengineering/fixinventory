@@ -1,7 +1,6 @@
 import logging
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
-from dataclasses import field
+from attrs import define, field
 from functools import cached_property
 from tempfile import TemporaryDirectory
 from textwrap import dedent
@@ -26,7 +25,7 @@ log = logging.getLogger("resoto.plugins.k8s")
 SortTransitionTime = Sort(S("lastTransitionTime") >> AsDate())
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class KubernetesResource(BaseResource):
     kind: ClassVar[str] = "kubernetes_resource"
 
@@ -43,7 +42,7 @@ class KubernetesResource(BaseResource):
 
     resource_version: Optional[str] = None
     namespace: Optional[str] = None
-    labels: Dict[str, str] = field(default_factory=dict)
+    labels: Dict[str, str] = field(factory=dict)
 
     def to_json(self) -> Json:
         return to_js(
@@ -132,7 +131,7 @@ class KubernetesResource(BaseResource):
 KubernetesResourceType = TypeVar("KubernetesResourceType", bound=KubernetesResource)
 
 
-@dataclass
+@define
 class K8sAccess:
     kind: ClassVar[str] = "k8s_access"
     name: str = field(metadata={"description": "The name of the kubernetes cluster."})
@@ -169,12 +168,12 @@ class K8sAccess:
         )
 
 
-@dataclass
+@define
 class K8sConfigFile:
     kind: ClassVar[str] = "k8s_config_file"
     path: str = field(metadata={"description": "Path to the kubeconfig file."})
     contexts: List[str] = field(
-        default_factory=list,
+        factory=list,
         metadata={
             "description": "The contexts to use in the specified config file.\n"
             "You can also set all_contexts to true to use all contexts."
@@ -186,11 +185,11 @@ class K8sConfigFile:
     )
 
 
-@dataclass
+@define(slots=False)
 class K8sConfig:
     kind: ClassVar[str] = "k8s"
     configs: List[K8sAccess] = field(
-        default_factory=list,
+        factory=list,
         metadata={
             "description": dedent(
                 """
@@ -205,7 +204,7 @@ class K8sConfig:
         },
     )
     config_files: List[K8sConfigFile] = field(
-        default_factory=list,
+        factory=list,
         metadata={
             "description": dedent(
                 """
@@ -220,15 +219,15 @@ class K8sConfig:
     )
 
     collect: List[str] = field(
-        default_factory=list,
+        factory=list,
         metadata={"description": "Objects to collect (default: all)"},
     )
     no_collect: List[str] = field(
-        default_factory=list,
+        factory=list,
         metadata={"description": "Objects to exclude (default: none)"},
     )
     pool_size: int = field(
-        default_factory=num_default_threads,
+        factory=num_default_threads,
         metadata={"description": "Thread/process pool size"},
     )
     fork_process: bool = field(
@@ -238,7 +237,7 @@ class K8sConfig:
 
     _clients: Optional[Dict[str, "K8sClient"]] = None
     _temp_dir: Optional[TemporaryDirectory[str]] = None
-    _lock: RLock = field(default_factory=RLock)
+    _lock: RLock = field(factory=RLock)
 
     def __getstate__(self) -> Dict[str, Any]:
         d = self.__dict__.copy()
@@ -335,7 +334,7 @@ class K8sConfig:
             return from_js(json, K8sConfig)
 
 
-@dataclass
+@define
 class K8sApiResource:
     base: str
     name: str

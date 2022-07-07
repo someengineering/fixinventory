@@ -7,7 +7,7 @@ import re
 from collections import namedtuple, defaultdict
 from functools import reduce
 from typing import Optional, Generator, Any, Dict, List, Set, Tuple, Union
-from dataclasses import dataclass
+from attrs import define
 
 from networkx import DiGraph, MultiDiGraph, all_shortest_paths, is_directed_acyclic_graph
 
@@ -104,12 +104,12 @@ class Direction:
 EdgeKey = namedtuple("EdgeKey", ["from_node", "to_node", "edge_type"])
 
 
-@dataclass
+@define
 class BySearchCriteria:
     query: str
 
 
-@dataclass
+@define
 class ByNodeId:
     value: NodeId
 
@@ -117,7 +117,7 @@ class ByNodeId:
 NodeSelector = Union[ByNodeId, BySearchCriteria]
 
 
-@dataclass
+@define
 class DeferredEdge:
     from_node: NodeSelector
     to_node: NodeSelector

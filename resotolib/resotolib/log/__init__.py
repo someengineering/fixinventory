@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from attrs import define
 from enum import Enum
 
 from resotolib.types import Json
@@ -12,7 +12,7 @@ class Severity(Enum):
     critical = "critical"
 
 
-@dataclass
+@define
 class Event:
     # who created this message
     origin: str

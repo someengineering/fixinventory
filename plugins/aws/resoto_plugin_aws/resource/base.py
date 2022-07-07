@@ -1,6 +1,6 @@
 from __future__ import annotations
 import logging
-from dataclasses import dataclass
+from attrs import define
 from datetime import datetime, timezone
 from typing import ClassVar, Dict, Optional, List, Type, Any, TypeVar
 
@@ -14,7 +14,7 @@ from resotolib.types import Json
 log = logging.getLogger("resoto.plugins.aws")
 
 
-@dataclass
+@define
 class AwsApiSpec:
     """
     Specifications for the AWS API to call and the expected response.
@@ -25,7 +25,7 @@ class AwsApiSpec:
     result_property: str
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AwsResource(BaseResource):
     """
     Base class for all AWS resources.
@@ -124,7 +124,7 @@ AWSResourceType = TypeVar("AWSResourceType", bound=AwsResource)
 
 
 # derived from https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-template-resource-type-ref.html
-@dataclass(eq=False)
+@define(eq=False)
 class AwsAccount(BaseAccount, AwsResource):
     kind: ClassVar[str] = "aws_account"
     account_alias: Optional[str] = ""
@@ -155,7 +155,7 @@ class AwsAccount(BaseAccount, AwsResource):
 default_ctime = datetime(2006, 3, 19, tzinfo=timezone.utc)  # AWS public launch date
 
 
-@dataclass(eq=False)
+@define(eq=False)
 class AwsRegion(BaseRegion, AwsResource):
     kind: ClassVar[str] = "aws_region"
     ctime: Optional[datetime] = default_ctime

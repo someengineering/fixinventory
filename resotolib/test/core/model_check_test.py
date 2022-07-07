@@ -1,6 +1,6 @@
 import os
 from abc import ABC
-from dataclasses import dataclass
+from attrs import define
 from typing import ClassVar
 
 import pytest
@@ -10,7 +10,7 @@ from resotolib.baseresources import BaseResource
 from resotolib.core.model_check import check_overlap
 
 
-@dataclass
+@define(slots=False)
 class BreakingResource(BaseResource, ABC):
     kind: ClassVar[str] = "breaking"
     volume_size: str = ""
@@ -22,5 +22,5 @@ def test_check() -> None:
     with raises(Exception):
         check_overlap()
     # hacky way to "delete" the fields - the exporter will not see the field any longer.
-    BreakingResource.__dataclass_fields__ = {}
+    BreakingResource.__attrs_attrs__ = {}
     check_overlap()

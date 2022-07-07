@@ -1,5 +1,5 @@
 from contextlib import suppress
-from dataclasses import dataclass, field
+from attrs import define, field
 from datetime import datetime
 from typing import ClassVar, Dict, Optional, Type, List, cast
 
@@ -22,7 +22,7 @@ from resotolib.json_bender import Bender, S, Bend, AsDate, Sort, bend
 from resotolib.types import Json
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AwsIamAttachedPermissionsBoundary:
     kind: ClassVar[str] = "aws_iam_attached_permissions_boundary"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -33,7 +33,7 @@ class AwsIamAttachedPermissionsBoundary:
     permissions_boundary_arn: Optional[str] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AwsIamRoleLastUsed:
     kind: ClassVar[str] = "aws_iam_role_last_used"
     mapping: ClassVar[Dict[str, Bender]] = {"last_used_date": S("LastUsedDate"), "region": S("Region")}
@@ -41,7 +41,7 @@ class AwsIamRoleLastUsed:
     region: Optional[str] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AwsIamRole(AwsResource):
     kind: ClassVar[str] = "aws_iam_role"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("iam", "list-roles", "Roles")
@@ -65,7 +65,7 @@ class AwsIamRole(AwsResource):
     role_max_session_duration: Optional[int] = field(default=None)
     role_permissions_boundary: Optional[AwsIamAttachedPermissionsBoundary] = field(default=None)
     role_last_used: Optional[AwsIamRoleLastUsed] = field(default=None)
-    role_policies: List[str] = field(default_factory=list)
+    role_policies: List[str] = field(factory=list)
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
@@ -89,7 +89,7 @@ class AwsIamRole(AwsResource):
             builder.dependant_node(self, arn=profile["PolicyArn"])
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AwsIamServerCertificate(AwsResource, BaseCertificate):
     kind: ClassVar[str] = "aws_iam_server_certificate"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("iam", "list-server-certificates", "ServerCertificateMetadataList")
@@ -105,7 +105,7 @@ class AwsIamServerCertificate(AwsResource, BaseCertificate):
     path: Optional[str] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AwsIamPolicy(AwsResource, BasePolicy):
     kind: ClassVar[str] = "aws_iam_policy"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("iam", "list-policies", "Policies")
@@ -131,7 +131,7 @@ class AwsIamPolicy(AwsResource, BasePolicy):
     policy_description: Optional[str] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AwsIamGroup(AwsResource, BaseGroup):
     kind: ClassVar[str] = "aws_iam_group"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("iam", "list-groups", "Groups")
@@ -163,7 +163,7 @@ class AwsIamGroup(AwsResource, BaseGroup):
                 builder.dependant_node(self, clazz=AwsIamPolicy, arn=policy.get("PolicyArn"))
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AwsIamAccessKeyLastUsed:
     kind: ClassVar[str] = "aws_iam_access_key_last_used"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -181,7 +181,7 @@ class AwsIamAccessKeyLastUsed:
         return from_json(mapped, AwsIamAccessKeyLastUsed)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AwsIamAccessKey(AwsResource, BaseAccessKey):
     kind: ClassVar[str] = "aws_iam_access_key_metadata"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -194,7 +194,7 @@ class AwsIamAccessKey(AwsResource, BaseAccessKey):
     access_key_last_used: Optional[AwsIamAccessKeyLastUsed] = field(default=None)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class AwsIamUser(AwsResource, BaseUser):
     kind: ClassVar[str] = "aws_iam_user"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("iam", "list-users", "Users")
@@ -210,7 +210,7 @@ class AwsIamUser(AwsResource, BaseUser):
     }
     path: Optional[str] = field(default=None)
     user_permissions_boundary: Optional[AwsIamAttachedPermissionsBoundary] = field(default=None)
-    user_policies: List[str] = field(default_factory=list)
+    user_policies: List[str] = field(factory=list)
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:

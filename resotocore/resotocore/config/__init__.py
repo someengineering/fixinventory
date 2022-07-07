@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from attrs import define
 from typing import Optional, AsyncIterator, List
 
 from jsons import set_deserializer, set_serializer
@@ -11,7 +11,7 @@ from resotocore.types import Json
 from resotocore.ids import ConfigId
 
 
-@dataclass(order=True, unsafe_hash=True, frozen=True)
+@define(order=True, hash=True, frozen=True)
 class ConfigEntity:
     id: ConfigId
     config: Json
@@ -31,7 +31,7 @@ class ConfigEntity:
         return dict(id=o.id, config=o.config, _rev=o.revision)
 
 
-@dataclass(order=True, unsafe_hash=True, frozen=True)
+@define(order=True, hash=True, frozen=True)
 class ConfigValidation:
     id: str
     external_validation: bool = False

@@ -4,7 +4,7 @@ import json
 import re
 import sys
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from attrs import define
 from datetime import datetime, timezone, date
 from json import JSONDecodeError
 from typing import Union, Any, Optional, Callable, Type, Sequence, Dict, List, Set, cast, Tuple, Iterable
@@ -60,7 +60,7 @@ def validate_fn(*fns: Optional[ValidationFn]) -> ValidationFn:
     return check_defined if defined else always_valid
 
 
-@dataclass(order=True, unsafe_hash=True, frozen=True)
+@define(order=True, hash=True, frozen=True)
 class SyntheticProperty:
     path: List[str]
     """
@@ -71,7 +71,7 @@ class SyntheticProperty:
     """
 
 
-@dataclass(order=True, unsafe_hash=True, frozen=True)
+@define(order=True, hash=True, frozen=True)
 class Property:
     name: str
     kind: str
@@ -79,7 +79,7 @@ class Property:
     synthetic: Optional[SyntheticProperty] = None
     description: Optional[str] = None
 
-    def __post_init__(self) -> None:
+    def __attrs_post_init__(self) -> None:
         assert self.synthetic is None or not self.required, "Synthetic properties can not be required!"
 
     def resolve(self, model: Dict[str, Kind]) -> Kind:
@@ -179,7 +179,7 @@ class PropertyPath:
 EmptyPath = PropertyPath([], "")
 
 
-@dataclass(order=True, unsafe_hash=True, frozen=True)
+@define(order=True, hash=True, frozen=True)
 class ResolvedProperty:
     # The path of the resolved property in a complex kind
     path: PropertyPath

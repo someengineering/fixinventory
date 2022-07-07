@@ -7,14 +7,14 @@ from resotolib.config import Config
 from resotolib.utils import make_valid_timestamp
 from resotolib.baseresources import BaseAccount, BaseRegion, BaseUser
 from resotolib.graph import Graph
-from dataclasses import dataclass, field
+from attrs import define, field
 from typing import ClassVar, Optional, Dict, List
 from .config import OneloginConfig
 
 log = resotolib.logger.getLogger("resoto." + __name__)
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class OneLoginResource:
     kind: ClassVar[str] = "onelogin_resource"
 
@@ -22,17 +22,17 @@ class OneLoginResource:
         return False
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class OneLoginAccount(OneLoginResource, BaseAccount):
     kind: ClassVar[str] = "onelogin_account"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class OneLoginRegion(OneLoginResource, BaseRegion):
     kind: ClassVar[str] = "onelogin_region"
 
 
-@dataclass(eq=False)
+@define(eq=False, slots=False)
 class OneLoginUser(OneLoginResource, BaseUser):
     kind: ClassVar[str] = "onelogin_user"
     user_id: Optional[int] = field(default=None, metadata={"description": "User ID"})

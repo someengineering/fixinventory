@@ -1,6 +1,10 @@
 import json
 
 import jsons
+import cattrs
+from cattrs import override
+from cattrs.gen import make_dict_unstructure_fn
+import attrs
 from typing import TypeVar, Any, Type, Optional, Dict
 
 from resotolib.types import Json, JsonElement
@@ -8,14 +12,31 @@ from resotolib.types import Json, JsonElement
 AnyT = TypeVar("AnyT")
 
 
+converter = cattrs.Converter()
+converter.register_unstructure_hook_factory(
+    attrs.has,
+    lambda cls: make_dict_unstructure_fn(
+        cls, converter, **{a.name: override(omit=True) for a in attrs.fields(cls) if a.name.startswith("_")}
+    ),
+)
+
+
 def to_json(node: Any, **kwargs: Any) -> Json:
     """
     Use this method, if the given node is known as complex object,
     so the result will be a json object.
     """
-    return jsons.dump(  # type: ignore
-        node,
-        strip_privates=True,
+    unstructured = converter.unstructure(node)
+    if strip_attr := kwargs.get("strip_attr"):
+        if isinstance(strip_attr, str):
+            if unstructured.get(strip_attr):
+                del unstructured[strip_attr]
+        else:
+            for field in strip_attr:
+                if unstructured.get(field):
+                    del unstructured[field]
+    result = jsons.dump(  # type: ignore
+        unstructured,
         strip_microseconds=True,
         strip_nulls=True,
         # class variables have to stripped manually via strip_attr=
@@ -23,6 +44,7 @@ def to_json(node: Any, **kwargs: Any) -> Json:
         # strip_class_variables=True,
         **kwargs,
     )
+    return result
 
 
 def to_json_str(node: Any, json_kwargs: Optional[Dict[str, object]] = None, **kwargs: Any) -> str:
