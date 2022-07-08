@@ -1,3 +1,4 @@
+import warnings
 from datetime import datetime
 from typing import Callable, Any, List
 
@@ -8,6 +9,12 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 
 from resotolib.utils import get_local_tzinfo
+
+
+warnings.filterwarnings(
+    "ignore",
+    message="The localize method is no longer necessary, as this time zone supports the fold attribute",
+)
 
 
 class Scheduler:
