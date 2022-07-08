@@ -31,18 +31,22 @@ def retry_on_session_error(e: Exception) -> bool:
     wait_random_max=6000,
     retry_on_exception=retry_on_session_error,
 )
-def aws_session(aws_account: Optional[str] = None, aws_role: Optional[str] = None) -> BotoSession:
+def aws_session(
+    account: Optional[str] = None, role: Optional[str] = None, profile: Optional[str] = None
+) -> BotoSession:
     if Config.aws.role_override:
-        aws_role = Config.aws.role
-    if aws_role and aws_account:
-        role_arn = f"arn:aws:iam::{aws_account}:role/{aws_role}"
+        role = Config.aws.role
+    if profile:
+        return BotoSession(profile_name=profile)
+    elif role and account:
+        role_arn = f"arn:aws:iam::{account}:role/{role}"
         session = BotoSession(
             aws_access_key_id=Config.aws.access_key_id,
             aws_secret_access_key=Config.aws.secret_access_key,
             region_name="us-east-1",
         )
         sts = session.client("sts")
-        token = sts.assume_role(RoleArn=role_arn, RoleSessionName=f"{aws_account}-{str(uuid.uuid4())}")
+        token = sts.assume_role(RoleArn=role_arn, RoleSessionName=f"{account}-{str(uuid.uuid4())}")
         credentials = token["Credentials"]
         return BotoSession(
             aws_access_key_id=credentials["AccessKeyId"],
@@ -58,12 +62,12 @@ def aws_session(aws_account: Optional[str] = None, aws_role: Optional[str] = Non
 
 def aws_client(resource: BaseResource, service: str, graph: Optional[Graph] = None) -> BotoSession:
     ac = resource.account(graph)
-    return aws_session(ac.id, ac.role).client(service, region_name=resource.region(graph).id)  # type: ignore
+    return aws_session(ac.id, ac.role, ac.profile).client(service, region_name=resource.region(graph).id)  # type: ignore
 
 
 def aws_resource(resource: BaseResource, service: str, graph: Optional[Graph] = None) -> BotoSession:
     ac = resource.account(graph)
-    return aws_session(ac.id, ac.role).resource(service, region_name=resource.region(graph).id)  # type: ignore
+    return aws_session(ac.id, ac.role, ac.profile).resource(service, region_name=resource.region(graph).id)  # type: ignore
 
 
 def paginate(method: Callable[[], List[Any]], **kwargs: Any) -> Iterable[Any]:

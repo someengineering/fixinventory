@@ -17,7 +17,7 @@ from .utils import aws_session
 from .resources import AWSAccount
 from .accountcollector import AWSAccountCollector
 from prometheus_client import Summary, Counter
-from typing import List
+from typing import List, Optional
 
 
 logging.getLogger("boto").setLevel(logging.CRITICAL)
@@ -54,7 +54,11 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
                 "This will result in the same account being scraped twice and is likely not what you want."
             )
 
-        if Config.aws.role and Config.aws.scrape_org:
+        if isinstance(Config.aws.profiles, list) and len(Config.aws.profiles) > 0:
+            accounts = [
+                AWSAccount(current_account_id(profile=profile), {}, profile=profile) for profile in Config.aws.profiles
+            ]
+        elif Config.aws.role and Config.aws.scrape_org:
             accounts = [
                 AWSAccount(id=aws_account_id, tags={}, role=Config.aws.role)
                 for aws_account_id in get_org_accounts(filter_current_account=not Config.aws.assume_current)
@@ -83,7 +87,7 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
                 executor.submit(
                     collect_account,
                     account,
-                    self.regions,
+                    self.regions(profile=account.profile),
                     ArgumentParser.args,
                     Config.running_config,
                 )
@@ -96,12 +100,11 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
                     continue
                 self.graph.merge(account_graph)
 
-    @property
-    def regions(self) -> List[str]:
+    def regions(self, profile: Optional[str] = None) -> List[str]:
         if len(self.__regions) == 0:
             if not Config.aws.region or (isinstance(Config.aws.region, list) and len(Config.aws.region) == 0):
                 log.debug("AWS region not specified, assuming all regions")
-                self.__regions = all_regions()
+                self.__regions = all_regions(profile=profile)
             else:
                 self.__regions = list(Config.aws.region)
         return self.__regions
@@ -126,8 +129,8 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
         return True
 
 
-def current_account_id() -> str:
-    session = aws_session()
+def current_account_id(profile: Optional[str] = None) -> str:
+    session = aws_session(profile=profile)
     return session.client("sts").get_caller_identity().get("Account")  # type: ignore
 
 
@@ -154,8 +157,8 @@ def get_org_accounts(filter_current_account: bool = False) -> List[str]:
     return accounts
 
 
-def all_regions() -> List[str]:
-    session = aws_session()
+def all_regions(profile: Optional[str] = None) -> List[str]:
+    session = aws_session(profile=profile)
     ec2 = session.client("ec2", region_name="us-east-1")
     regions = ec2.describe_regions()
     return [r["RegionName"] for r in regions["Regions"]]
