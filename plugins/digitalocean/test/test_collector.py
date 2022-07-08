@@ -1,5 +1,5 @@
 from resoto_plugin_digitalocean.collector import DigitalOceanTeamCollector
-from resoto_plugin_digitalocean.resources import DigitalOceanTeam
+from resoto_plugin_digitalocean.resources import DigitalOceanTeam, DigitalOceanDropletSize
 from resoto_plugin_digitalocean.client import StreamingWrapper
 from .fixtures import (
     droplets,
@@ -31,7 +31,7 @@ from resotolib.graph import sanitize
 from resotolib.baseresources import Cloud, EdgeType, GraphRoot, InstanceStatus, VolumeStatus
 from resotolib.graph import Graph
 import datetime
-from typing import Dict, Any, List
+from typing import Dict, Any, List, cast
 
 
 class ClientMock(StreamingWrapper, object):
@@ -152,6 +152,7 @@ def test_collect_droplets() -> None:
         delete=True,
     )
     check_edges(graph, "do:image:101111514", "do:droplet:289110074")
+    check_edges(graph, "do:size:s-1vcpu-1gb", "do:droplet:289110074")
     check_edges(graph, "do:tag:image_tag", "do:image:101111514")
     check_edges(graph, "do:tag:droplet_tag", "do:droplet:289110074")
     image = graph.search_first("urn", "do:image:101111514")
@@ -165,6 +166,13 @@ def test_collect_droplets() -> None:
     assert image.min_disk_size == 15
     assert image.image_status == "available"
     assert image.tags == {"image_tag": None}
+
+    size = cast(DigitalOceanDropletSize, graph.search_first("urn", "do:size:s-1vcpu-1gb"))
+    assert size.urn == "do:size:s-1vcpu-1gb"
+    assert size.instance_type == "s-1vcpu-1gb"
+    assert size.instance_cores == 1
+    assert size.instance_memory == 1
+    assert size.ondemand_cost == 0.00744
 
     droplet = graph.search_first("urn", "do:droplet:289110074")
     assert droplet.urn == "do:droplet:289110074"
