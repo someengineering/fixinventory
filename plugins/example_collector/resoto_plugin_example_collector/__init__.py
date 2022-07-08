@@ -104,7 +104,6 @@ class ExampleCollectorPlugin(BaseCollectorPlugin):
             "someExampleResource",
             custom_optional_float_attribute=10.0,
             custom_list_attribute=["foo", "bar"],
-            init_only_attribute="Some Text",
         )
         self.graph.add_resource(region1, custom_resource)
 
@@ -233,8 +232,3 @@ class ExampleCustomResource(ExampleResource, BaseResource):
     custom_optional_float_attribute: Optional[float] = None
     custom_dict_attribute: Dict[str, str] = field(factory=dict)
     custom_list_attribute: List[str] = field(factory=list)
-
-    def __attrs_post_init__(self, init_only_attribute: str) -> None:
-        super().__attrs_post_init__()
-        if init_only_attribute is not None:
-            self.some_other_var = init_only_attribute
