@@ -21,7 +21,7 @@ from resotolib.log.logstream import (
     NoEventStreamAsync,
 )
 from resotolib.logger import setup_logger
-from resotolib.utils import iec_size_format
+from resotolib.utils import iec_size_format, get_local_tzinfo
 from resotolib.parse_util import make_parser, variable_p, equals_p, comma_p, json_value_dp
 
 from resotocore import async_extensions, version
@@ -35,7 +35,8 @@ from resotocore.util import utc
 log = logging.getLogger(__name__)
 
 SystemInfo = namedtuple(
-    "SystemInfo", ["version", "git_hash", "cpus", "mem_available", "mem_total", "inside_docker", "started_at"]
+    "SystemInfo",
+    ["version", "git_hash", "cpus", "mem_available", "mem_total", "inside_docker", "time_zone", "started_at"],
 )
 started_at = utc()
 
@@ -57,6 +58,7 @@ def system_info() -> SystemInfo:
         mem_available=iec_size_format(mem.available),
         mem_total=iec_size_format(mem.total),
         inside_docker=inside_docker(),
+        time_zone=get_local_tzinfo().key,
         started_at=started_at,
     )
 

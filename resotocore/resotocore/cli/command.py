@@ -32,7 +32,7 @@ from aiostream.aiter_utils import is_async_iterable
 from aiostream.core import Stream
 from parsy import Parser, string
 from resotolib.x509 import write_cert_to_file, write_key_to_file
-from resotolib.utils import safe_members_in_tarfile
+from resotolib.utils import safe_members_in_tarfile, get_local_tzinfo
 from resotolib.parse_util import (
     double_quoted_or_simple_string_dp,
     space_dp,
@@ -2528,6 +2528,10 @@ class JobsCommand(CLICommand, PreserveOutputFormat):
 
     def info(self) -> str:
         return "Manage all jobs."
+
+    def help(self) -> str:
+        extra_info = f"## Time Zone\nThe default time zone for new jobs is {get_local_tzinfo().key}."
+        return super().help() + "\n" + extra_info
 
     def args_info(self) -> ArgsInfo:
         return {
