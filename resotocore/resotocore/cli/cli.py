@@ -17,9 +17,9 @@ from aiostream import stream
 from aiostream.core import Stream
 from parsy import Parser
 from rich.padding import Padding
-from tzlocal import get_localzone
 
 from resotolib.parse_util import make_parser, pipe_p, semicolon_p
+from resotolib.utils import get_local_tzinfo
 from resotocore import version
 from resotocore.analytics import CoreEvent
 from resotocore.cli import cmd_with_args_parser, key_values_parser, T, Sink
@@ -515,7 +515,7 @@ class CLI:
         ut = from_utc(now_string) if now_string else utc()
         t = ut.date()
         try:
-            n = ut.astimezone(get_localzone())
+            n = ut.astimezone(get_local_tzinfo())
         except Exception:
             n = ut
         return CIKeyDict(

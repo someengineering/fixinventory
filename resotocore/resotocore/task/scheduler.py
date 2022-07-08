@@ -6,7 +6,8 @@ from apscheduler.job import Job
 from apscheduler.jobstores.memory import MemoryJobStore
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
-from pytz import utc
+
+from resotolib.utils import get_local_tzinfo
 
 
 class Scheduler:
@@ -18,7 +19,7 @@ class Scheduler:
             # max_instances: allowed parallel instances for one job
             # misfire_grace_time: seconds after the designated runtime that the job is still allowed to be run
             job_defaults={"coalesce": True, "max_instances": 32, "misfire_grace_time": 3600},
-            timezone=utc,
+            timezone=get_local_tzinfo(),
         )
 
     async def start(self) -> None:
