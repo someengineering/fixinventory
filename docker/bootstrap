@@ -34,8 +34,9 @@ apply_permissions() {
         "$TSDB_DATABASE_DIRECTORY" \
         "$GRAPHDB_DATABASE_DIRECTORY"
 
-    chown -R resoto:resoto \
+    chown resoto:resoto \
         /home/resoto \
+    chown -R resoto:resoto \
         "$TSDB_DATABASE_DIRECTORY" \
         "$GRAPHDB_DATABASE_DIRECTORY"
 }
