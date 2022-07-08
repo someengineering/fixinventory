@@ -16,8 +16,8 @@ from resotolib.graph import Graph
 log = logging.getLogger("resoto.plugins.aws")
 
 
-global_resources: List[Type[AwsResource]] = iam.resources
-regional_resources: List[Type[AwsResource]] = ec2.resources + route53.resources
+global_resources: List[Type[AwsResource]] = iam.resources + route53.resources
+regional_resources: List[Type[AwsResource]] = ec2.resources
 all_resources: List[Type[AwsResource]] = global_resources + regional_resources
 
 
