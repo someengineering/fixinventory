@@ -1,14 +1,11 @@
-from contextlib import suppress
-from attrs import define, field
 from datetime import datetime
-from typing import ClassVar, Dict, Optional, Type, List, cast
+from typing import ClassVar, Dict, Optional, Type, List, Any
 
-from botocore.exceptions import ClientError
+from attrs import define, field
 
 from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
 from resoto_plugin_aws.utils import TagsToDict
 
-# noinspection PyUnresolvedReferences
 from resotolib.baseresources import (  # noqa: F401
     BaseCertificate,
     BasePolicy,
@@ -18,8 +15,16 @@ from resotolib.baseresources import (  # noqa: F401
     BaseUser,
 )
 from resotolib.json import from_json
-from resotolib.json_bender import Bender, S, Bend, AsDate, Sort, bend
+from resotolib.json_bender import Bender, S, Bend, AsDate, Sort, bend, ForallBend
 from resotolib.types import Json
+
+
+@define(eq=False, slots=False)
+class AwsIamPolicyDetail:
+    kind: ClassVar[str] = "aws_iam_policy_detail"
+    mapping: ClassVar[Dict[str, Bender]] = {"policy_name": S("PolicyName"), "policy_document": S("PolicyDocument")}
+    policy_name: Optional[str] = field(default=None)
+    policy_document: Optional[str] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -43,8 +48,8 @@ class AwsIamRoleLastUsed:
 
 @define(eq=False, slots=False)
 class AwsIamRole(AwsResource):
+    # Note: this resource is collected via AwsIamUser.collect.
     kind: ClassVar[str] = "aws_iam_role"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("iam", "list-roles", "Roles")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("RoleId"),
         "tags": S("Tags", default=[]) >> TagsToDict(),
@@ -58,34 +63,22 @@ class AwsIamRole(AwsResource):
         "role_max_session_duration": S("MaxSessionDuration"),
         "role_permissions_boundary": S("PermissionsBoundary") >> Bend(AwsIamAttachedPermissionsBoundary.mapping),
         "role_last_used": S("RoleLastUsed") >> Bend(AwsIamRoleLastUsed.mapping),
+        "role_policies": S("RolePolicyList", default=[]) >> ForallBend(AwsIamPolicyDetail.mapping),
     }
     path: Optional[str] = field(default=None)
     description: Optional[str] = field(default=None)
-    role_assume_role_policy_document: Optional[str] = field(default=None)
+    role_assume_role_policy_document: Optional[Any] = field(default=None)
     role_max_session_duration: Optional[int] = field(default=None)
     role_permissions_boundary: Optional[AwsIamAttachedPermissionsBoundary] = field(default=None)
     role_last_used: Optional[AwsIamRoleLastUsed] = field(default=None)
-    role_policies: List[str] = field(factory=list)
-
-    @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
-        for js in json:
-            instance = cast(AwsIamRole, cls.from_api(js))
-            instance.role_policies = builder.client.list(
-                "iam", "list-role-policies", "PolicyNames", RoleName=instance.name
-            )
-            builder.add_node(instance, js)
+    role_policies: List[AwsIamPolicyDetail] = field(factory=list)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         # connect to instance profiles for this role
-        for profile in builder.client.list(
-            "iam", "list-instance-profiles-for-role", "InstanceProfiles", RoleName=self.name
-        ):
+        for profile in bend(S("InstanceProfileList", default=[]), source):
             builder.dependant_node(self, arn=profile["Arn"])
         # connect to attached policies for this role
-        for profile in builder.client.list(
-            "iam", "list-attached-role-policies", "AttachedPolicies", RoleName=self.name
-        ):
+        for profile in bend(S("AttachedManagedPolicies", default=[]), source):
             builder.dependant_node(self, arn=profile["PolicyArn"])
 
 
@@ -107,8 +100,8 @@ class AwsIamServerCertificate(AwsResource, BaseCertificate):
 
 @define(eq=False, slots=False)
 class AwsIamPolicy(AwsResource, BasePolicy):
+    # Note: this resource is collected via AwsIamUser.collect.
     kind: ClassVar[str] = "aws_iam_policy"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("iam", "list-policies", "Policies")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("PolicyId"),
         "tags": S("Tags", default=[]) >> TagsToDict(),
@@ -133,8 +126,8 @@ class AwsIamPolicy(AwsResource, BasePolicy):
 
 @define(eq=False, slots=False)
 class AwsIamGroup(AwsResource, BaseGroup):
+    # Note: this resource is collected via AwsIamUser.collect.
     kind: ClassVar[str] = "aws_iam_group"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("iam", "list-groups", "Groups")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("GroupId"),
         "tags": S("Tags", default=[]) >> TagsToDict(),
@@ -142,25 +135,14 @@ class AwsIamGroup(AwsResource, BaseGroup):
         "ctime": S("CreateDate"),
         "path": S("Path"),
         "arn": S("Arn"),
+        "group_policies": S("GroupPolicyList", default=[]) >> ForallBend(AwsIamPolicyDetail.mapping),
     }
     path: Optional[str] = field(default=None)
-    group_policies: Optional[List[str]] = field(default=None)
-
-    @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
-        for js in json:
-            group = cast(AwsIamGroup, cls.from_api(js))
-            group.group_policies = builder.client.list(
-                "iam", "list-group-policies", "PolicyNames", GroupName=group.name
-            )
-            builder.add_node(group, js)
+    group_policies: List[AwsIamPolicyDetail] = field(factory=list)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        with suppress(ClientError):  # group might not exist any longer
-            for policy in builder.client.list(
-                "iam", "list-attached-group-policies", "AttachedPolicies", GroupName=self.name
-            ):
-                builder.dependant_node(self, clazz=AwsIamPolicy, arn=policy.get("PolicyArn"))
+        for policy in bend(S("AttachedManagedPolicies", default=[]), source):
+            builder.dependant_node(self, clazz=AwsIamPolicy, arn=policy.get("PolicyArn"))
 
 
 @define(eq=False, slots=False)
@@ -183,6 +165,7 @@ class AwsIamAccessKeyLastUsed:
 
 @define(eq=False, slots=False)
 class AwsIamAccessKey(AwsResource, BaseAccessKey):
+    # Note: this resource is collected via AwsIamUser.collect.
     kind: ClassVar[str] = "aws_iam_access_key_metadata"
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("AccessKeyId"),
@@ -197,7 +180,7 @@ class AwsIamAccessKey(AwsResource, BaseAccessKey):
 @define(eq=False, slots=False)
 class AwsIamUser(AwsResource, BaseUser):
     kind: ClassVar[str] = "aws_iam_user"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("iam", "list-users", "Users")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("iam", "get-account-authorization-details")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("UserId"),
         "tags": S("Tags", default=[]) >> TagsToDict(),
@@ -206,33 +189,45 @@ class AwsIamUser(AwsResource, BaseUser):
         "atime": S("PasswordLastUsed"),
         "path": S("Path"),
         "arn": S("Arn"),
+        "user_policies": S("UserPolicyList", default=[]) >> ForallBend(AwsIamPolicyDetail.mapping),
         "user_permissions_boundary": S("PermissionsBoundary") >> Bend(AwsIamAttachedPermissionsBoundary.mapping),
     }
     path: Optional[str] = field(default=None)
+    user_policies: List[AwsIamPolicyDetail] = field(factory=list)
     user_permissions_boundary: Optional[AwsIamAttachedPermissionsBoundary] = field(default=None)
-    user_policies: List[str] = field(factory=list)
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
-        for js in json:
-            user = cast(AwsIamUser, cls.from_api(js))
-            user.user_policies = builder.client.list("iam", "list-user-policies", "PolicyNames", UserName=user.name)
-            builder.add_node(user, js)
-            # add all iam access keys for this user
-            for ak in builder.client.list("iam", "list-access-keys", "AccessKeyMetadata", UserName=user.name):
-                key = AwsIamAccessKey.from_api(ak)
-                # get last used date for this key
-                if lu := builder.client.get("iam", "get-access-key-last-used", "AccessKeyLastUsed", AccessKeyId=key.id):
-                    key.access_key_last_used = AwsIamAccessKeyLastUsed.from_api(lu)
-                    key.atime = key.access_key_last_used.last_used_date if key.access_key_last_used else None
-                builder.add_node(key, ak)
-                builder.dependant_node(user, node=key)
+    def collect(cls: Type[AwsResource], json_list: List[Json], builder: GraphBuilder) -> None:
+        for json in json_list:
+            for js in json.get("GroupDetailList", []):
+                builder.add_node(AwsIamGroup.from_api(js), js)
+
+            for js in json.get("RoleDetailList", []):
+                builder.add_node(AwsIamRole.from_api(js), js)
+
+            for js in json.get("Policies", []):
+                builder.add_node(AwsIamPolicy.from_api(js), js)
+
+            for js in json.get("UserDetailList", []):
+                user = AwsIamUser.from_api(js)
+                builder.add_node(user, js)
+                # add all iam access keys for this user
+                for ak in builder.client.list("iam", "list-access-keys", "AccessKeyMetadata", UserName=user.name):
+                    key = AwsIamAccessKey.from_api(ak)
+                    # get last used date for this key
+                    if lu := builder.client.get(
+                        "iam", "get-access-key-last-used", "AccessKeyLastUsed", AccessKeyId=key.id
+                    ):
+                        key.access_key_last_used = AwsIamAccessKeyLastUsed.from_api(lu)
+                        key.atime = key.access_key_last_used.last_used_date if key.access_key_last_used else None
+                    builder.add_node(key, ak)
+                    builder.dependant_node(user, node=key)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        for p in builder.client.list("iam", "list-attached-user-policies", "AttachedPolicies", UserName=self.name):
+        for p in bend(S("AttachedManagedPolicies", default=[]), source):
             builder.dependant_node(self, clazz=AwsIamPolicy, arn=p.get("PolicyArn"))
 
-        for g in builder.client.list("iam", "list-groups-for-user", "Groups", UserName=self.name):
+        for g in bend(S("GroupList", default=[]), source):
             builder.dependant_node(self, clazz=AwsIamGroup, arn=g.get("Arn"))
 
 
