@@ -791,7 +791,6 @@ class BaseBucket(BaseResource):
 @define(eq=False, slots=False)
 class BaseServerlessFunction(BaseResource):
     kind: ClassVar[str] = "serverless_function"
-    fingerprint: str = ""
 
 
 @define(eq=False, slots=False)

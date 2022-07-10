@@ -112,6 +112,10 @@ metrics_collect_instances = Summary(
     "resoto_plugin_aws_collect_instances_seconds",
     "Time it took the collect_instances() method",
 )
+metrics_collect_lambda_functions = Summary(
+    "resoto_plugin_aws_collect_lambda_functions_seconds",
+    "Time it took the collect_lambda_functions() method",
+)
 metrics_collect_keypairs = Summary(
     "resoto_plugin_aws_collect_keypairs_seconds",
     "Time it took the collect_keypairs() method",
@@ -287,6 +291,7 @@ class AWSAccountCollector:
             "internet_gateways": self.collect_internet_gateways,
             "keypairs": self.collect_keypairs,
             "instances": self.collect_instances,
+            "lambda_functions": self.collect_lambda_functions,
             "volumes": self.collect_volumes,
             "snapshots": self.collect_snapshots,
             "elbs": self.collect_elbs,
@@ -1245,6 +1250,59 @@ class AWSAccountCollector:
 
             except botocore.exceptions.ClientError:
                 log.exception(f"Some boto3 call failed on resource {instance} - skipping")
+
+    @metrics_collect_lambda_functions.time()  # type: ignore
+    def collect_lambda_functions(self, region: AWSRegion, graph: Graph) -> None:
+        log.info(f"Collecting AWS Lambda Functions in account {self.account.dname}, region {region.id}")
+        session = aws_session(self.account.id, self.account.role)
+        client = session.client("lambda", region_name=region.id)
+
+        for function in paginate(client.list_functions):
+            name = function["FunctionName"]
+            arn = function["FunctionArn"]
+
+            log.debug(f"Found AWS Lambda Function {name}")
+
+            tags_response = client.list_tags(Resource=arn)
+            tags = tags_response.get("Tags", [])
+
+            lambda_function = AWSLambdaFunction(
+                arn,
+                tags,
+                account=self.account,
+                region=region,
+                name=name,
+                arn=arn,
+                runtime=function["Runtime"],
+                code_size=function["CodeSize"],
+                memory_size=function["MemorySize"],
+                mtime=function["LastModified"],
+                role=function.get("Role"),
+                kms_key_arn=function.get("KmsKeyArn"),
+            )
+
+            vpc_config = function.get("VpcConfig", {})
+
+            vpc_id = vpc_config.get("VpcId")
+            if vpc_id:
+                vpc = graph.search_first("id", vpc_id)
+                if vpc:
+                    graph.add_edge(vpc, lambda_function)
+                    graph.add_edge(vpc, lambda_function, edge_type=EdgeType.delete)
+
+            for subnet_id in vpc_config.get("SubnetIds", {}):
+                subnet = graph.search_first("id", subnet_id)
+                if subnet:
+                    graph.add_edge(subnet, lambda_function)
+                    graph.add_edge(subnet, lambda_function, edge_type=EdgeType.delete)
+
+            for security_group_id in vpc_config.get("SecurityGroupIds", {}):
+                security_group = graph.search_first("id", security_group_id)
+                if security_group:
+                    graph.add_edge(security_group, lambda_function)
+                    graph.add_edge(security_group, lambda_function, edge_type=EdgeType.delete)
+
+            graph.add_resource(region, lambda_function)
 
     @metrics_collect_autoscaling_groups.time()  # type: ignore
     def collect_autoscaling_groups(self, region: AWSRegion, graph: Graph) -> None:
