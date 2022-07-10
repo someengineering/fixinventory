@@ -33,9 +33,13 @@ class AwsClient:
             for page in paginator.paginate(**kwargs):
                 next_page = to_json(page)
                 if result_name is None:
+                    # the whole object is appended
                     result.append(next_page)
+                elif isinstance(list_result := next_page.get(result_name, []), list):
+                    # extend the list with the list result under given key
+                    result.extend(list_result)
                 else:
-                    result.extend(next_page.get(result_name, []))
+                    raise AttributeError("Expected list result under key '{}'".format(result_name))
             return result
         else:
             result = getattr(client, py_action)(**kwargs)
