@@ -170,9 +170,9 @@ class GraphBuilder:
         self.client = client
         self.name = f"AWS:{account.name}:{region.name}"
 
-    def node(self, clazz: Optional[Type[AwsResource]] = None, **node: Any) -> Optional[AwsResource]:
+    def node(self, clazz: Optional[Type[AWSResourceType]] = None, **node: Any) -> Optional[AWSResourceType]:
         if isinstance(nd := node.get("node"), AwsResource):
-            return nd
+            return nd  # type: ignore
         for n in self.graph:
             is_clazz = isinstance(n, clazz) if clazz else True
             if is_clazz and all(getattr(n, k, None) == v for k, v in node.items()):

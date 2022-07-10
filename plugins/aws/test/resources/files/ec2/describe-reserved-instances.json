@@ -1,0 +1,22 @@
+{
+    "ReservedInstances": [
+        {
+            "ReservedInstancesId": "ri-1234567890",
+            "InstanceType": "m1.small",
+            "AvailabilityZone": "us-east-1a",
+            "Start": "2013-01-01T00:00:00.000Z",
+            "End": "2013-01-02T00:00:00.000Z",
+            "Duration": 86400,
+            "UsagePrice": 0.00,
+            "FixedPrice": 0.00,
+            "InstanceCount": 1,
+            "ProductDescription": "Linux/UNIX",
+            "State": "active",
+            "CurrencyCode": "USD",
+            "InstanceTenancy": "default",
+            "OfferingType": "Light Utilization",
+            "OfferingClass": "standard",
+            "Scope": "Availability Zone"
+        }
+    ]
+}

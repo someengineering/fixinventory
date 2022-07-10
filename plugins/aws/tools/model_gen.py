@@ -60,7 +60,7 @@ class AwsModel:
         kind = f'    kind: ClassVar[str] = "aws_{to_snake(self.name[3:])}"'
         if self.api_info:
             srv, act, res = self.api_info
-            api = f'    api_info: ClassVar[AwsApiSpec] = AwsApiSpec("{srv}", "{act}", "{res}")\n'
+            api = f'    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("{srv}", "{act}", "{res}")\n'
         else:
             api = ""
         base_mapping = {
@@ -352,6 +352,13 @@ models: Dict[str, List[AwsResotoModel]] = {
         # AwsResotoModel("describe-key-pairs", "KeyPairs", "KeyPairInfo", prefix="Ec2"),
         # AwsResotoModel("describe-volumes", "Volumes", "Volume", base="BaseVolume", prefix="Ec2"),
         # AwsResotoModel("describe_addresses", "Addresses", "Address", prefix="Ec2"),
+        AwsResotoModel(
+            "describe-instance-types",
+            "InstanceTypes",
+            "InstanceTypeInfo",
+            prefix="Ec2",
+            prop_prefix="reservation_",
+        ),
         # AwsResotoModel(
         #     "describe_reserved_instances",
         #     "ReservedInstances",
@@ -371,6 +378,13 @@ models: Dict[str, List[AwsResotoModel]] = {
         #     "ServerCertificateMetadata",
         #     prefix="Iam",
         #     prop_prefix="server_certificate_",
+        # ),
+        # AwsResotoModel(
+        #     "get-account-authorization-details",
+        #     "GetAccountAuthorizationDetailsResult",
+        #     "GetAccountAuthorizationDetailsResponse",
+        #     prefix="Iam",
+        #     prop_prefix="policy_",
         # ),
         # AwsResotoModel(
         #     "list-policies",
@@ -400,19 +414,47 @@ models: Dict[str, List[AwsResotoModel]] = {
         #     prefix="Iam",
         #     prop_prefix="user_",
         # ),
-        AwsResotoModel(
-            "list-access-keys",
-            "AccessKeyMetadata",
-            "AccessKeyMetadata",
-            prefix="Iam",
-            prop_prefix="access_key_",
-        ),
+        # AwsResotoModel(
+        #     "list-access-keys",
+        #     "AccessKeyMetadata",
+        #     "AccessKeyMetadata",
+        #     prefix="Iam",
+        #     prop_prefix="access_key_",
+        # ),
         # AwsResotoModel(
         #     "list-access-keys-last-user",
         #     "AccessKeyLastUsed",
         #     "AccessKeyLastUsed",
         #     prefix="Iam",
         #     prop_prefix="access_key_",
+        # ),
+    ],
+    "elbv2": [
+        # AwsResotoModel(
+        #     "describe-load-balancers",
+        #     "DescribeLoadBalancersResult",
+        #     "LoadBalancer",
+        #     prefix="Alb",
+        #     prop_prefix="alb_",
+        # ),
+        # AwsResotoModel(
+        #     "describe-target-groups",
+        #     "TargetGroups",
+        #     "TargetGroup",
+        #     prefix="Alb",
+        #     prop_prefix="alb_",
+        # ),
+        # AwsResotoModel(
+        #     "describe-target-health",
+        #     "TargetHealthDescriptions",
+        #     "TargetHealthDescription",
+        #     prefix="Alb",
+        # ),
+        # AwsResotoModel(
+        #     "describe-listeners",
+        #     "DescribeListenersResult",
+        #     "Listener",
+        #     prefix="Alb",
         # ),
     ],
 }

@@ -1,0 +1,25 @@
+{
+    "TagDescriptions": [
+        {
+            "ResourceArn": "lb1",
+            "Tags": [
+                {
+                    "Key": "kubernetes.io/service-name",
+                    "Value": "redirect-service/redirect-service-staging"
+                },
+                {
+                    "Key": "owner",
+                    "Value": "test"
+                },
+                {
+                    "Key": "expiration",
+                    "Value": "never"
+                },
+                {
+                    "Key": "kubernetes.io/cluster/prod",
+                    "Value": "owned"
+                }
+            ]
+        }
+    ]
+}

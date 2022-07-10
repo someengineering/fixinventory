@@ -31,7 +31,11 @@ class BotoFileClient:
     def __getattr__(self, action_name: str) -> Callable[[], Any]:
         def call_action(*args: Any, **kwargs: Any) -> Any:
             assert not args, "No arguments allowed!"
-            vals = "__" + ("_".join(str(v) for _, v in sorted(kwargs.items()))) if kwargs else ""
+
+            def arg_string(v: Any) -> str:
+                return "_".join(str(x) for x in v) if isinstance(v, list) else str(v)
+
+            vals = "__" + ("_".join(arg_string(v) for _, v in sorted(kwargs.items()))) if kwargs else ""
             action = action_name.replace("_", "-")
             path = os.path.abspath(os.path.dirname(__file__) + f"/files/{self.service}/{action}{vals}.json")
             if os.path.exists(path):
@@ -70,6 +74,13 @@ def all_props_set(obj: AWSResourceType, ignore_props: Set[str]) -> None:
         ):
             if getattr(obj, prop) is None:
                 raise Exception(f"Prop >{prop}< is not set")
+
+
+def round_trip_for(cls: Type[AWSResourceType]) -> Tuple[AWSResourceType, GraphBuilder]:
+    if api := cls.api_spec:
+        file = f"{api.service}/{api.api_action}.json"
+        return round_trip(file, cls, api.result_property)
+    raise AttributeError("No api_spec for class: " + cls.__name__)
 
 
 def round_trip(

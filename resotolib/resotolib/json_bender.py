@@ -110,6 +110,8 @@ class K(Bender):
         self._val = value
 
     def execute(self, source: Any) -> Any:
+        if callable(self._val):
+            return self._val(source)
         return self._val
 
 

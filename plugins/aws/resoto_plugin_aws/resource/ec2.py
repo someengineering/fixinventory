@@ -20,12 +20,268 @@ from resotolib.types import Json
 
 # region InstanceType
 @define(eq=False, slots=False)
-class AwsEc2InstanceType(AwsResource, BaseInstanceType):
-    kind: ClassVar[str] = "aws_ec2_instance_type"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["aws_ec2_instance"],
-        "delete": [],
+class AwsEc2ProcessorInfo:
+    kind: ClassVar[str] = "aws_ec2_processor_info"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "supported_architectures": S("SupportedArchitectures", default=[]),
+        "sustained_clock_speed_in_ghz": S("SustainedClockSpeedInGhz"),
     }
+    supported_architectures: List[str] = field(factory=list)
+    sustained_clock_speed_in_ghz: Optional[float] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsEc2VCpuInfo:
+    kind: ClassVar[str] = "aws_ec2_v_cpu_info"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "default_v_cpus": S("DefaultVCpus"),
+        "default_cores": S("DefaultCores"),
+        "default_threads_per_core": S("DefaultThreadsPerCore"),
+        "valid_cores": S("ValidCores", default=[]),
+        "valid_threads_per_core": S("ValidThreadsPerCore", default=[]),
+    }
+    default_v_cpus: Optional[int] = field(default=None)
+    default_cores: Optional[int] = field(default=None)
+    default_threads_per_core: Optional[int] = field(default=None)
+    valid_cores: List[int] = field(factory=list)
+    valid_threads_per_core: List[int] = field(factory=list)
+
+
+@define(eq=False, slots=False)
+class AwsEc2DiskInfo:
+    kind: ClassVar[str] = "aws_ec2_disk_info"
+    mapping: ClassVar[Dict[str, Bender]] = {"size_in_gb": S("SizeInGB"), "count": S("Count"), "type": S("Type")}
+    size_in_gb: Optional[int] = field(default=None)
+    count: Optional[int] = field(default=None)
+    type: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsEc2InstanceStorageInfo:
+    kind: ClassVar[str] = "aws_ec2_instance_storage_info"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "total_size_in_gb": S("TotalSizeInGB"),
+        "disks": S("Disks", default=[]) >> ForallBend(AwsEc2DiskInfo.mapping),
+        "nvme_support": S("NvmeSupport"),
+        "encryption_support": S("EncryptionSupport"),
+    }
+    total_size_in_gb: Optional[int] = field(default=None)
+    disks: List[AwsEc2DiskInfo] = field(factory=list)
+    nvme_support: Optional[str] = field(default=None)
+    encryption_support: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsEc2EbsOptimizedInfo:
+    kind: ClassVar[str] = "aws_ec2_ebs_optimized_info"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "baseline_bandwidth_in_mbps": S("BaselineBandwidthInMbps"),
+        "baseline_throughput_in_m_bps": S("BaselineThroughputInMBps"),
+        "baseline_iops": S("BaselineIops"),
+        "maximum_bandwidth_in_mbps": S("MaximumBandwidthInMbps"),
+        "maximum_throughput_in_m_bps": S("MaximumThroughputInMBps"),
+        "maximum_iops": S("MaximumIops"),
+    }
+    baseline_bandwidth_in_mbps: Optional[int] = field(default=None)
+    baseline_throughput_in_m_bps: Optional[float] = field(default=None)
+    baseline_iops: Optional[int] = field(default=None)
+    maximum_bandwidth_in_mbps: Optional[int] = field(default=None)
+    maximum_throughput_in_m_bps: Optional[float] = field(default=None)
+    maximum_iops: Optional[int] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsEc2EbsInfo:
+    kind: ClassVar[str] = "aws_ec2_ebs_info"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "ebs_optimized_support": S("EbsOptimizedSupport"),
+        "encryption_support": S("EncryptionSupport"),
+        "ebs_optimized_info": S("EbsOptimizedInfo") >> Bend(AwsEc2EbsOptimizedInfo.mapping),
+        "nvme_support": S("NvmeSupport"),
+    }
+    ebs_optimized_support: Optional[str] = field(default=None)
+    encryption_support: Optional[str] = field(default=None)
+    ebs_optimized_info: Optional[AwsEc2EbsOptimizedInfo] = field(default=None)
+    nvme_support: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsEc2NetworkCardInfo:
+    kind: ClassVar[str] = "aws_ec2_network_card_info"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "network_card_index": S("NetworkCardIndex"),
+        "network_performance": S("NetworkPerformance"),
+        "maximum_network_interfaces": S("MaximumNetworkInterfaces"),
+    }
+    network_card_index: Optional[int] = field(default=None)
+    network_performance: Optional[str] = field(default=None)
+    maximum_network_interfaces: Optional[int] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsEc2NetworkInfo:
+    kind: ClassVar[str] = "aws_ec2_network_info"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "network_performance": S("NetworkPerformance"),
+        "maximum_network_interfaces": S("MaximumNetworkInterfaces"),
+        "maximum_network_cards": S("MaximumNetworkCards"),
+        "default_network_card_index": S("DefaultNetworkCardIndex"),
+        "network_cards": S("NetworkCards", default=[]) >> ForallBend(AwsEc2NetworkCardInfo.mapping),
+        "ipv4_addresses_per_interface": S("Ipv4AddressesPerInterface"),
+        "ipv6_addresses_per_interface": S("Ipv6AddressesPerInterface"),
+        "ipv6_supported": S("Ipv6Supported"),
+        "ena_support": S("EnaSupport"),
+        "efa_supported": S("EfaSupported"),
+        "efa_info": S("EfaInfo", "MaximumEfaInterfaces"),
+        "encryption_in_transit_supported": S("EncryptionInTransitSupported"),
+    }
+    network_performance: Optional[str] = field(default=None)
+    maximum_network_interfaces: Optional[int] = field(default=None)
+    maximum_network_cards: Optional[int] = field(default=None)
+    default_network_card_index: Optional[int] = field(default=None)
+    network_cards: List[AwsEc2NetworkCardInfo] = field(factory=list)
+    ipv4_addresses_per_interface: Optional[int] = field(default=None)
+    ipv6_addresses_per_interface: Optional[int] = field(default=None)
+    ipv6_supported: Optional[bool] = field(default=None)
+    ena_support: Optional[str] = field(default=None)
+    efa_supported: Optional[bool] = field(default=None)
+    efa_info: Optional[int] = field(default=None)
+    encryption_in_transit_supported: Optional[bool] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsEc2GpuDeviceInfo:
+    kind: ClassVar[str] = "aws_ec2_gpu_device_info"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "name": S("Name"),
+        "manufacturer": S("Manufacturer"),
+        "count": S("Count"),
+        "memory_info": S("MemoryInfo", "SizeInMiB"),
+    }
+    name: Optional[str] = field(default=None)
+    manufacturer: Optional[str] = field(default=None)
+    count: Optional[int] = field(default=None)
+    memory_info: Optional[int] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsEc2GpuInfo:
+    kind: ClassVar[str] = "aws_ec2_gpu_info"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "gpus": S("Gpus", default=[]) >> ForallBend(AwsEc2GpuDeviceInfo.mapping),
+        "total_gpu_memory_in_mi_b": S("TotalGpuMemoryInMiB"),
+    }
+    gpus: List[AwsEc2GpuDeviceInfo] = field(factory=list)
+    total_gpu_memory_in_mi_b: Optional[int] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsEc2FpgaDeviceInfo:
+    kind: ClassVar[str] = "aws_ec2_fpga_device_info"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "name": S("Name"),
+        "manufacturer": S("Manufacturer"),
+        "count": S("Count"),
+        "memory_info": S("MemoryInfo", "SizeInMiB"),
+    }
+    name: Optional[str] = field(default=None)
+    manufacturer: Optional[str] = field(default=None)
+    count: Optional[int] = field(default=None)
+    memory_info: Optional[int] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsEc2FpgaInfo:
+    kind: ClassVar[str] = "aws_ec2_fpga_info"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "fpgas": S("Fpgas", default=[]) >> ForallBend(AwsEc2FpgaDeviceInfo.mapping),
+        "total_fpga_memory_in_mi_b": S("TotalFpgaMemoryInMiB"),
+    }
+    fpgas: List[AwsEc2FpgaDeviceInfo] = field(factory=list)
+    total_fpga_memory_in_mi_b: Optional[int] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsEc2PlacementGroupInfo:
+    kind: ClassVar[str] = "aws_ec2_placement_group_info"
+    mapping: ClassVar[Dict[str, Bender]] = {"supported_strategies": S("SupportedStrategies", default=[])}
+    supported_strategies: List[str] = field(factory=list)
+
+
+@define(eq=False, slots=False)
+class AwsEc2InferenceDeviceInfo:
+    kind: ClassVar[str] = "aws_ec2_inference_device_info"
+    mapping: ClassVar[Dict[str, Bender]] = {"count": S("Count"), "name": S("Name"), "manufacturer": S("Manufacturer")}
+    count: Optional[int] = field(default=None)
+    name: Optional[str] = field(default=None)
+    manufacturer: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsEc2InferenceAcceleratorInfo:
+    kind: ClassVar[str] = "aws_ec2_inference_accelerator_info"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "accelerators": S("Accelerators", default=[]) >> ForallBend(AwsEc2InferenceDeviceInfo.mapping)
+    }
+    accelerators: List[AwsEc2InferenceDeviceInfo] = field(factory=list)
+
+
+@define(eq=False, slots=False)
+class AwsEc2InstanceType(AwsResource):
+    kind: ClassVar[str] = "aws_ec2_instance_type"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-instance-types", "InstanceTypes")
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("InstanceType"),
+        "tags": S("Tags", default=[]) >> TagsToDict(),
+        "name": S("InstanceType"),
+        "current_generation": S("CurrentGeneration"),
+        "free_tier_eligible": S("FreeTierEligible"),
+        "supported_usage_classes": S("SupportedUsageClasses", default=[]),
+        "supported_root_device_types": S("SupportedRootDeviceTypes", default=[]),
+        "supported_virtualization_types": S("SupportedVirtualizationTypes", default=[]),
+        "bare_metal": S("BareMetal"),
+        "hypervisor": S("Hypervisor"),
+        "instance_type_processor_info": S("ProcessorInfo") >> Bend(AwsEc2ProcessorInfo.mapping),
+        "instance_type_v_cpu_info": S("VCpuInfo") >> Bend(AwsEc2VCpuInfo.mapping),
+        "memory_info": S("MemoryInfo", "SizeInMiB"),
+        "instance_storage_supported": S("InstanceStorageSupported"),
+        "instance_type_instance_storage_info": S("InstanceStorageInfo") >> Bend(AwsEc2InstanceStorageInfo.mapping),
+        "instance_type_ebs_info": S("EbsInfo") >> Bend(AwsEc2EbsInfo.mapping),
+        "instance_type_network_info": S("NetworkInfo") >> Bend(AwsEc2NetworkInfo.mapping),
+        "instance_type_gpu_info": S("GpuInfo") >> Bend(AwsEc2GpuInfo.mapping),
+        "instance_type_fpga_info": S("FpgaInfo") >> Bend(AwsEc2FpgaInfo.mapping),
+        "instance_type_placement_group_info": S("PlacementGroupInfo") >> Bend(AwsEc2PlacementGroupInfo.mapping),
+        "instance_type_inference_accelerator_info": S("InferenceAcceleratorInfo")
+        >> Bend(AwsEc2InferenceAcceleratorInfo.mapping),
+        "hibernation_supported": S("HibernationSupported"),
+        "burstable_performance_supported": S("BurstablePerformanceSupported"),
+        "dedicated_hosts_supported": S("DedicatedHostsSupported"),
+        "auto_recovery_supported": S("AutoRecoverySupported"),
+        "supported_boot_modes": S("SupportedBootModes", default=[]),
+    }
+    current_generation: Optional[bool] = field(default=None)
+    free_tier_eligible: Optional[bool] = field(default=None)
+    supported_usage_classes: List[str] = field(factory=list)
+    supported_root_device_types: List[str] = field(factory=list)
+    supported_virtualization_types: List[str] = field(factory=list)
+    bare_metal: Optional[bool] = field(default=None)
+    hypervisor: Optional[str] = field(default=None)
+    instance_type_processor_info: Optional[AwsEc2ProcessorInfo] = field(default=None)
+    instance_type_v_cpu_info: Optional[AwsEc2VCpuInfo] = field(default=None)
+    memory_info: Optional[int] = field(default=None)
+    instance_storage_supported: Optional[bool] = field(default=None)
+    instance_type_instance_storage_info: Optional[AwsEc2InstanceStorageInfo] = field(default=None)
+    instance_type_ebs_info: Optional[AwsEc2EbsInfo] = field(default=None)
+    instance_type_network_info: Optional[AwsEc2NetworkInfo] = field(default=None)
+    instance_type_gpu_info: Optional[AwsEc2GpuInfo] = field(default=None)
+    instance_type_fpga_info: Optional[AwsEc2FpgaInfo] = field(default=None)
+    instance_type_placement_group_info: Optional[AwsEc2PlacementGroupInfo] = field(default=None)
+    instance_type_inference_accelerator_info: Optional[AwsEc2InferenceAcceleratorInfo] = field(default=None)
+    hibernation_supported: Optional[bool] = field(default=None)
+    burstable_performance_supported: Optional[bool] = field(default=None)
+    dedicated_hosts_supported: Optional[bool] = field(default=None)
+    auto_recovery_supported: Optional[bool] = field(default=None)
+    supported_boot_modes: List[str] = field(factory=list)
 
 
 # endregion
@@ -586,7 +842,7 @@ class AwsEc2RecurringCharge:
 @define(eq=False, slots=False)
 class AwsEc2ReservedInstances(AwsResource):
     kind: ClassVar[str] = "aws_ec2_reserved_instances"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe_reserved_instances", "ReservedInstances")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-reserved-instances", "ReservedInstances")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("ReservedInstancesId"),
         "tags": S("Tags", default=[]) >> TagsToDict(),

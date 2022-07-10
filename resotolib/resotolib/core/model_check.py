@@ -31,30 +31,34 @@ def check_overlap(*base: Type[BaseResource]) -> None:
     :raise Exception: if there is an overlap
     """
 
-    def dynamic_import(name) -> type:
+    def dynamic_import(name) -> List[type]:
         components = name.split(".")
         mod = __import__(components[0])
         for comp in components[1:]:
             mod = getattr(mod, comp)
-        return mod
+        if isinstance(mod, type):
+            return [mod]
+        elif isinstance(mod, list):
+            return mod
+        else:
+            raise AttributeError(f"Import {name}: expected type or list of types, got {type(mod)}")
 
-    models = dataclasses_to_resotocore_model(
-        {
-            dynamic_import("resoto_plugin_aws.resources.AWSResource"),
-            dynamic_import("resoto_plugin_gcp.resources.GCPResource"),
-            dynamic_import("resoto_plugin_digitalocean.resources.DigitalOceanResource"),
-            dynamic_import("resoto_plugin_k8s.resources.KubernetesResource"),
-            dynamic_import("resoto_plugin_onelogin.OneLoginResource"),
-            dynamic_import("resoto_plugin_example_collector.ExampleResource"),
-            dynamic_import("resoto_plugin_github.resources.GithubResource"),
-            dynamic_import("resoto_plugin_onprem.resources.OnpremResource"),
-            dynamic_import("resoto_plugin_slack.resources.SlackResource"),
-            dynamic_import("resoto_plugin_vsphere.resources.VSphereResource"),
-            dynamic_import("resoto_plugin_onelogin.OneLoginResource"),
-            *base,
-        },
-        aggregate_root=BaseResource,
-    )
+    model_classes = {
+        *dynamic_import("resoto_plugin_aws.collector.all_resources"),
+        *dynamic_import("resoto_plugin_aws.resources.AWSResource"),
+        *dynamic_import("resoto_plugin_gcp.resources.GCPResource"),
+        *dynamic_import("resoto_plugin_digitalocean.resources.DigitalOceanResource"),
+        *dynamic_import("resoto_plugin_k8s.resources.KubernetesResource"),
+        *dynamic_import("resoto_plugin_onelogin.OneLoginResource"),
+        *dynamic_import("resoto_plugin_example_collector.ExampleResource"),
+        *dynamic_import("resoto_plugin_github.resources.GithubResource"),
+        *dynamic_import("resoto_plugin_onprem.resources.OnpremResource"),
+        *dynamic_import("resoto_plugin_slack.resources.SlackResource"),
+        *dynamic_import("resoto_plugin_vsphere.resources.VSphereResource"),
+        *dynamic_import("resoto_plugin_onelogin.OneLoginResource"),
+        *base,
+    }
+    models = dataclasses_to_resotocore_model(model_classes, aggregate_root=BaseResource)
 
     classes = {model["fqn"]: from_json(model, CheckClass) for model in models if "properties" in model}
     all_paths: Dict[str, Tuple[CheckClass, str]] = {}

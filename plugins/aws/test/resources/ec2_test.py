@@ -1,18 +1,33 @@
-from resoto_plugin_aws.resource.ec2 import AwsEc2Instance, AwsEc2KeyPair, AwsEc2Volume, AwsEc2NetworkAcl
-from test.resources import round_trip
+from resoto_plugin_aws.resource.ec2 import (
+    AwsEc2Instance,
+    AwsEc2KeyPair,
+    AwsEc2Volume,
+    AwsEc2NetworkAcl,
+    AwsEc2InstanceType,
+    AwsEc2ReservedInstances,
+)
+from test.resources import round_trip_for
+
+
+def test_instance_types() -> None:
+    round_trip_for(AwsEc2InstanceType)
+
+
+def test_reserved_instances() -> None:
+    round_trip_for(AwsEc2ReservedInstances)
 
 
 def test_volumes() -> None:
-    round_trip("ec2/describe-volumes.json", AwsEc2Volume, "Volumes")
+    round_trip_for(AwsEc2Volume)
 
 
 def test_keypair() -> None:
-    round_trip("ec2/describe-key-pairs.json", AwsEc2KeyPair, "KeyPairs")
+    round_trip_for(AwsEc2KeyPair)
 
 
 def test_instance() -> None:
-    round_trip("ec2/describe-instances.json", AwsEc2Instance, "Reservations")
+    round_trip_for(AwsEc2Instance)
 
 
 def test_network_acl() -> None:
-    round_trip("ec2/describe-network-acls.json", AwsEc2NetworkAcl, "NetworkAcls")
+    round_trip_for(AwsEc2NetworkAcl)
