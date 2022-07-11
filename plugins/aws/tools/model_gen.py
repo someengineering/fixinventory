@@ -336,16 +336,19 @@ models: Dict[str, List[AwsResotoModel]] = {
         # AwsResotoModel("list-data-catalogs", "DataCatalogsSummary", "DataCatalogSummary", prefix="Athena"),
     ],
     "autoscaling": [
-        AwsResotoModel(
-            "describe-auto-scaling-groups",
-            "AutoScalingGroupName",
-            "AutoScalingGroup",
-            prefix="AutoScaling",
-            prop_prefix="autoscaling_",
-        ),
+        # AwsResotoModel(
+        #     "describe-auto-scaling-groups",
+        #     "AutoScalingGroupName",
+        #     "AutoScalingGroup",
+        #     prefix="AutoScaling",
+        #     prop_prefix="autoscaling_",
+        # ),
     ],
     "cloudformation": [
-        AwsResotoModel("describe-stacks", "Stacks", "Stack", prefix="CloudFormation", prop_prefix="cloud_formation_"),
+        # AwsResotoModel("describe-stacks", "Stacks", "Stack", prefix="CloudFormation", prop_prefix="stack_"),
+        AwsResotoModel(
+            "list-stack-sets", "Summaries", "StackSetSummary", prefix="CloudFormation", prop_prefix="stack_set_"
+        ),
     ],
     "ec2": [
         # AwsResotoModel(
@@ -359,13 +362,13 @@ models: Dict[str, List[AwsResotoModel]] = {
         # AwsResotoModel("describe-key-pairs", "KeyPairs", "KeyPairInfo", prefix="Ec2"),
         # AwsResotoModel("describe-volumes", "Volumes", "Volume", base="BaseVolume", prefix="Ec2"),
         # AwsResotoModel("describe_addresses", "Addresses", "Address", prefix="Ec2"),
-        AwsResotoModel(
-            "describe-instance-types",
-            "InstanceTypes",
-            "InstanceTypeInfo",
-            prefix="Ec2",
-            prop_prefix="reservation_",
-        ),
+        # AwsResotoModel(
+        #     "describe-instance-types",
+        #     "InstanceTypes",
+        #     "InstanceTypeInfo",
+        #     prefix="Ec2",
+        #     prop_prefix="reservation_",
+        # ),
         # AwsResotoModel(
         #     "describe_reserved_instances",
         #     "ReservedInstances",
