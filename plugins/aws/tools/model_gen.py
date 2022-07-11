@@ -1,8 +1,8 @@
 import re
-from attrs import define
 from typing import List, Set, Optional, Tuple, Union, Dict
 
 import boto3
+from attrs import define
 from botocore.model import ServiceModel, StringShape, ListShape, Shape, StructureShape, MapShape
 
 
@@ -117,7 +117,7 @@ ignore_props = {"Tags", "tags"}
 
 
 def service_model(name: str) -> ServiceModel:
-    return boto3.client(name)._service_model
+    return boto3.client(name, region_name="us-east-1")._service_model
 
 
 def clazz_model(
@@ -356,6 +356,13 @@ models: Dict[str, List[AwsResotoModel]] = {
         # AwsResotoModel("describe-key-pairs", "KeyPairs", "KeyPairInfo", prefix="Ec2"),
         # AwsResotoModel("describe-volumes", "Volumes", "Volume", base="BaseVolume", prefix="Ec2"),
         # AwsResotoModel("describe_addresses", "Addresses", "Address", prefix="Ec2"),
+        AwsResotoModel(
+            "describe-instance-types",
+            "InstanceTypes",
+            "InstanceTypeInfo",
+            prefix="Ec2",
+            prop_prefix="reservation_",
+        ),
         # AwsResotoModel(
         #     "describe_reserved_instances",
         #     "ReservedInstances",
@@ -390,6 +397,13 @@ models: Dict[str, List[AwsResotoModel]] = {
             prefix="Iam",
             prop_prefix="policy_",
         ),
+        # AwsResotoModel(
+        #     "get-account-authorization-details",
+        #     "GetAccountAuthorizationDetailsResult",
+        #     "GetAccountAuthorizationDetailsResponse",
+        #     prefix="Iam",
+        #     prop_prefix="policy_",
+        # ),
         # AwsResotoModel(
         #     "list-policies",
         #     "Policies",
@@ -431,6 +445,34 @@ models: Dict[str, List[AwsResotoModel]] = {
         #     "AccessKeyLastUsed",
         #     prefix="Iam",
         #     prop_prefix="access_key_",
+        # ),
+    ],
+    "elbv2": [
+        # AwsResotoModel(
+        #     "describe-load-balancers",
+        #     "DescribeLoadBalancersResult",
+        #     "LoadBalancer",
+        #     prefix="Alb",
+        #     prop_prefix="alb_",
+        # ),
+        # AwsResotoModel(
+        #     "describe-target-groups",
+        #     "TargetGroups",
+        #     "TargetGroup",
+        #     prefix="Alb",
+        #     prop_prefix="alb_",
+        # ),
+        # AwsResotoModel(
+        #     "describe-target-health",
+        #     "TargetHealthDescriptions",
+        #     "TargetHealthDescription",
+        #     prefix="Alb",
+        # ),
+        # AwsResotoModel(
+        #     "describe-listeners",
+        #     "DescribeListenersResult",
+        #     "Listener",
+        #     prefix="Alb",
         # ),
     ],
 }

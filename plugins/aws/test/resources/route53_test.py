@@ -2,11 +2,11 @@ from collections import defaultdict
 from typing import Dict
 
 from resoto_plugin_aws.resource.route53 import AwsRoute53Zone
-from test.resources import round_trip
+from test.resources import round_trip_for
 
 
 def test_hosted_zone() -> None:
-    first, builder = round_trip("route53/list-hosted-zones.json", AwsRoute53Zone, "HostedZones")
+    first, builder = round_trip_for(AwsRoute53Zone)
     type_count: Dict[str, int] = defaultdict(int)
     for node in builder.graph.nodes:
         type_count[node.kind] += 1

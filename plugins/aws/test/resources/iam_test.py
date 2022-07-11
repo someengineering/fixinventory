@@ -6,20 +6,15 @@ from resoto_plugin_aws.resource.iam import (
     AwsIamUser,
     AwsIamAccessKey,
 )
-from test.resources import round_trip
+from test.resources import round_trip_for
 
 
 def test_server_certificates() -> None:
-    round_trip(
-        "iam/list-server-certificates.json",
-        AwsIamServerCertificate,
-        "ServerCertificateMetadataList",
-        ignore_props={"dns_names", "sha1_fingerprint"},
-    )
+    round_trip_for(AwsIamServerCertificate, "dns_names", "sha1_fingerprint")
 
 
 def test_user_roles_groups_policies_keys() -> None:
-    _, builder = round_trip("iam/get-account-authorization-details.json", AwsIamUser)
+    _, builder = round_trip_for(AwsIamUser)
 
     # users ------------
     assert len(builder.resources_of(AwsIamUser)) == 3

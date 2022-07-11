@@ -7,7 +7,7 @@
                     "AmiLaunchIndex": 0,
                     "ImageId": "ami-1123",
                     "InstanceId": "i-1",
-                    "InstanceType": "m5.xlarge",
+                    "InstanceType": "m4.large",
                     "KernelId": "123",
                     "Platform": "test",
                     "KeyName": "prod",
@@ -192,7 +192,7 @@
                     "AmiLaunchIndex": 0,
                     "ImageId": "ami-123",
                     "InstanceId": "i-123",
-                    "InstanceType": "m5.xlarge",
+                    "InstanceType": "m4.large",
                     "KeyName": "prod",
                     "LaunchTime": "2018-05-08T11:03:44+00:00",
                     "Monitoring": {

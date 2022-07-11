@@ -1,0 +1,48 @@
+{
+    "Listeners": [
+        {
+            "ListenerArn": "arn:aws:elasticloadbalancing:us-west-2:test:listener/net/lb1/l1",
+            "LoadBalancerArn": "lb1",
+            "Port": 443,
+            "Protocol": "TLS",
+            "Certificates": [
+                {
+                    "CertificateArn": "arn:aws:acm:us-west-2:test:certificate/c1"
+                }
+            ],
+            "SslPolicy": "ELBSecurityPolicy-2016-08",
+            "DefaultActions": [
+                {
+                    "Type": "forward",
+                    "TargetGroupArn": "arn:aws:elasticloadbalancing:us-west-2:test:targetgroup/tg1",
+                    "ForwardConfig": {
+                        "TargetGroups": [
+                            {
+                                "TargetGroupArn": "arn:aws:elasticloadbalancing:us-west-2:test:targetgroup/tg1"
+                            }
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "ListenerArn": "arn:aws:elasticloadbalancing:us-west-2:test:listener/net/lb1/l2",
+            "LoadBalancerArn": "lb1",
+            "Port": 80,
+            "Protocol": "TCP",
+            "DefaultActions": [
+                {
+                    "Type": "forward",
+                    "TargetGroupArn": "arn:aws:elasticloadbalancing:us-west-2:test:targetgroup/tg2",
+                    "ForwardConfig": {
+                        "TargetGroups": [
+                            {
+                                "TargetGroupArn": "arn:aws:elasticloadbalancing:us-west-2:test:targetgroup/tg2"
+                            }
+                        ]
+                    }
+                }
+            ]
+        }
+    ]
+}

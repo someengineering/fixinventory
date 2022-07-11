@@ -1,0 +1,40 @@
+{
+    "TargetHealthDescriptions": [
+        {
+            "Target": {
+                "Id": "lb1",
+                "Port": 6443
+            },
+            "HealthCheckPort": "6443",
+            "TargetHealth": {
+                "State": "unhealthy",
+                "Reason": "Target.FailedHealthChecks",
+                "Description": "Health checks failed"
+            }
+        },
+        {
+            "Target": {
+                "Id": "lb1",
+                "Port": 6443
+            },
+            "HealthCheckPort": "6443",
+            "TargetHealth": {
+                "State": "unhealthy",
+                "Reason": "Target.FailedHealthChecks",
+                "Description": "Health checks failed"
+            }
+        },
+        {
+            "Target": {
+                "Id": "lb1",
+                "Port": 6443
+            },
+            "HealthCheckPort": "6443",
+            "TargetHealth": {
+                "State": "unhealthy",
+                "Reason": "Target.FailedHealthChecks",
+                "Description": "Health checks failed"
+            }
+        }
+    ]
+}

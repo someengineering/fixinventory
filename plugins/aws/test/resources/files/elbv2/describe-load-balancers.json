@@ -1,0 +1,97 @@
+{
+    "LoadBalancers": [
+        {
+            "LoadBalancerArn": "lb1",
+            "DNSName": "lb1-l1.elb.us-west-2.amazonaws.com",
+            "CanonicalHostedZoneId": "zone1",
+            "CreatedTime": "2020-12-03T13:51:36.442000+00:00",
+            "LoadBalancerName": "lb1",
+            "Scheme": "internet-facing",
+            "VpcId": "vpc-1",
+            "State": {
+                "Code": "active"
+            },
+            "Type": "network",
+            "AvailabilityZones": [
+                {
+                    "ZoneName": "us-west-2b",
+                    "SubnetId": "subnet-1",
+                    "LoadBalancerAddresses": [
+                        {
+                            "IpAddress": "1.2.3.4",
+                            "AllocationId": "ei1"
+                        }
+                    ]
+                },
+                {
+                    "ZoneName": "us-west-2a",
+                    "SubnetId": "subnet-2",
+                    "LoadBalancerAddresses": [
+                        {
+                            "IpAddress": "2.3.4.5",
+                            "AllocationId": "ei2"
+                        }
+                    ]
+                },
+                {
+                    "ZoneName": "us-west-2c",
+                    "SubnetId": "subnet-3",
+                    "LoadBalancerAddresses": [
+                        {
+                            "IpAddress": "3.4.5.6",
+                            "AllocationId": "ei3"
+                        }
+                    ]
+                }
+            ],
+            "IpAddressType": "ipv4",
+            "CustomerOwnedIpv4Pool": "customer-owned-ipv4-pool"
+        },
+        {
+            "LoadBalancerArn": "arn:aws:elasticloadbalancing:us-west-2:test:loadbalancer/net/t2/l2",
+            "DNSName": "t2-l2.elb.us-west-2.amazonaws.com",
+            "CanonicalHostedZoneId": "zone1",
+            "CreatedTime": "2020-12-04T08:20:15.211000+00:00",
+            "LoadBalancerName": "t2",
+            "Scheme": "internet-facing",
+            "VpcId": "vpc-1",
+            "State": {
+                "Code": "active"
+            },
+            "Type": "network",
+            "AvailabilityZones": [
+                {
+                    "ZoneName": "us-west-2b",
+                    "SubnetId": "subnet-1",
+                    "LoadBalancerAddresses": [
+                        {
+                            "IpAddress": "2.3.3.3",
+                            "AllocationId": "ei5"
+                        }
+                    ]
+                },
+                {
+                    "ZoneName": "us-west-2a",
+                    "SubnetId": "subnet-2",
+                    "LoadBalancerAddresses": [
+                        {
+                            "IpAddress": "2.3.3.4",
+                            "AllocationId": "ei6"
+                        }
+                    ]
+                },
+                {
+                    "ZoneName": "us-west-2c",
+                    "SubnetId": "subnet-3",
+                    "LoadBalancerAddresses": [
+                        {
+                            "IpAddress": "2.3.3.4",
+                            "AllocationId": "ei7"
+                        }
+                    ]
+                }
+            ],
+            "IpAddressType": "ipv4"
+        }
+    ]
+}
