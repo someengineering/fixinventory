@@ -1,0 +1,147 @@
+{
+    "Stacks": [
+        {
+            "StackId": "arn:aws:cloudformation:us-west-2:test:stack/eksctl/eks1",
+            "StackName": "eksctl",
+            "Description": "EKS Managed Nodes (SSH access: false) [created by eksctl]",
+            "CreationTime": "2022-05-31T09:27:57.973000+00:00",
+            "RollbackConfiguration": {
+                "RollbackTriggers": [
+                    {
+                        "Arn": "arn:aws:cloudformation:us-west-2:test:stack/eksctl/eks1",
+                        "Type": "AWS::CloudFormation::Stack"
+                    }
+                ],
+                "MonitoringTimeInMinutes": 5
+            },
+            "StackStatus": "CREATE_COMPLETE",
+            "DisableRollback": false,
+            "NotificationARNs": [],
+            "ChangeSetId": "123",
+            "DeletionTime": "2025-05-31T09:27:57.973000+00:00",
+            "Capabilities": [
+                "CAPABILITY_IAM"
+            ],
+            "TimeoutInMinutes": 23,
+            "RoleARN": "arn:aws:iam::123456789012:role/eksctl-eks1-role",
+            "EnableTerminationProtection": false,
+            "RootId": "123",
+            "ParentId": "123",
+            "StackStatusReason": "Stack CREATE completed successfully",
+            "Tags": [
+                {
+                    "Key": "alpha.eksctl.io/cluster-name",
+                    "Value": "management-bootstrap"
+                },
+                {
+                    "Key": "alpha.eksctl.io/nodegroup-name",
+                    "Value": "main"
+                },
+                {
+                    "Key": "eksctl.cluster.k8s.io/v1alpha1/cluster-name",
+                    "Value": "management-bootstrap"
+                },
+                {
+                    "Key": "alpha.eksctl.io/nodegroup-type",
+                    "Value": "managed"
+                },
+                {
+                    "Key": "alpha.eksctl.io/eksctl-version",
+                    "Value": "0.99.0"
+                }
+            ],
+            "DriftInformation": {
+                "StackDriftStatus": "NOT_CHECKED"
+            }
+        },
+        {
+            "StackId": "arn:aws:cloudformation:us-west-2:test:stack/eksctl/management",
+            "StackName": "management",
+            "Description": "EKS cluster (dedicated VPC: true, dedicated IAM: true) [created and managed by eksctl]",
+            "CreationTime": "2022-05-31T09:14:42.231000+00:00",
+            "RollbackConfiguration": {},
+            "StackStatus": "CREATE_COMPLETE",
+            "DisableRollback": false,
+            "NotificationARNs": [],
+            "Capabilities": [
+                "CAPABILITY_IAM"
+            ],
+            "Outputs": [
+                {
+                    "OutputKey": "SubnetsPrivate",
+                    "OutputValue": "subnet-123",
+                    "ExportName": "management::SubnetsPrivate"
+                },
+                {
+                    "OutputKey": "SubnetsPublic",
+                    "OutputValue": "subnet-08e0d136b4530968d,subnet-0e761062579d016a2,subnet-0fe57a1ac8645880f",
+                    "ExportName": "management::SubnetsPublic"
+                },
+                {
+                    "OutputKey": "FeatureNATMode",
+                    "OutputValue": "Single"
+                },
+                {
+                    "OutputKey": "ServiceRoleARN",
+                    "OutputValue": "arn:aws:iam::test:role/eksctl-management-bootstrap-cluster-ServiceRole-15XJZP6FP16TQ",
+                    "ExportName": "management::ServiceRoleARN"
+                },
+                {
+                    "OutputKey": "Endpoint",
+                    "OutputValue": "https://0C1D6A86D548217D11DA099A8B25A5CC.yl4.us-west-2.eks.amazonaws.com",
+                    "ExportName": "management::Endpoint"
+                },
+                {
+                    "OutputKey": "SharedNodeSecurityGroup",
+                    "OutputValue": "sg-079564f59d31b843f",
+                    "ExportName": "eksctl-management-bootstrap-cluster::SharedNodeSecurityGroup"
+                },
+                {
+                    "OutputKey": "VPC",
+                    "OutputValue": "vpc-0b852d28edab97a6f",
+                    "ExportName": "eksctl-management-bootstrap-cluster::VPC"
+                },
+                {
+                    "OutputKey": "ClusterSecurityGroupId",
+                    "OutputValue": "sg-0d5db2c97bc7c5ffe",
+                    "ExportName": "eksctl-management-bootstrap-cluster::ClusterSecurityGroupId"
+                },
+                {
+                    "OutputKey": "ClusterStackName",
+                    "OutputValue": "eksctl-management-bootstrap-cluster"
+                },
+                {
+                    "OutputKey": "CertificateAuthorityData",
+                    "OutputValue": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUMvakNDQWVhZ0F3SUJBZ0lCQURBTkJna3Foa2lHOXcwQkFRc0ZBREFWTVJNd0VRWURWUVFERXdwcmRXSmwKY201bGRHVnpNQjRYRFRJeU1EVXpNVEE1TWpFd04xb1hEVE15TURVeU9EQTVNakV3TjFvd0ZURVRNQkVHQTFVRQpBeE1LYTNWaVpYSnVaWFJsY3pDQ0FTSXdEUVlKS29aSWh2Y05BUUVCQlFBRGdnRVBBRENDQVFvQ2dnRUJBTjJhCkZwSXRGMzdSMmhsRWFyemg3b1JVKzdSMGtCcmVWdUt6Uktod042eGlQK1o2VjNtYTFzZWdsT3FLWWFwa2VnYU8KWERLbVVsenVEZzBxK2t2Skp6bmg2ZTRSM05LbFJSazJvSExDVy9aNERXZUxVMXlEZzFRczF0T0RMNUhmQTNsRQpTU3YrZDFLM1pNN1JZS2RsUXF6VzY0RjlvK2JLWUVJQyt1aUVBWUUzUzlIOXZJMUdGbGlMZTFXcEV4ZUNJQmNmCkR5R2hGWHBDT0d2QUxOblNncG5BdHFjOGNoQkNZcGZEMFV3TmU2Y0NZdUtZRFNRelRwQllXdXp5ZnYyb1FmbnMKWG5pVkt1WHZYUmVlTmhUZkNpWUh6Wlh1VHZ6RGY5L1Q1YTgybzhzbCsxY3dDc0c1aGFNMXo0bHVDRDNCbjdxUQpJTnRibnRScWI2bEoxY0gwc2U4Q0F3RUFBYU5aTUZjd0RnWURWUjBQQVFIL0JBUURBZ0trTUE4R0ExVWRFd0VCCi93UUZNQU1CQWY4d0hRWURWUjBPQkJZRUZFQVVJR2Vid3ZKbVNTYVZJaG9IR25ISnlaMDBNQlVHQTFVZEVRUU8KTUF5Q0NtdDFZbVZ5Ym1WMFpYTXdEUVlKS29aSWh2Y05BUUVMQlFBRGdnRUJBRVJHMlFyWGhkOXQzd0V3TXdLNwpNL1l0Z0phaHgxOHJ6bmFHNVh0NW5tOUhvUlJrZXBaSEJKYldrMEZnTWJ0VDM3bXd4bVdoK0hsQXlOZ3dDaFFaCnNRTTdoZk4wRllveUQxeUFrbVlrbGdmNkM1WkFZQTZxOERYZWlHRzYwcEtmTVBUWGtINElGdXVKTHlkTFR1VVoKMHM0WHdNbHk5cFpPUTBkQThlZzM4SHZEcExhb25aUERwRkErN1J5cnM1aytBeUNCb0dVRG1aYnYzaUZnMlBjTwovNDhmekNjNXFZR1pxRXlXL3BLTVNNQXl2UUZxa3dTUGJjR3pTVmFUYlhkWjFlWGV5QUhtbHRxc1l6Mm1hQzI5CkNrNTh4K2J4ZHQzS3hucUdZRTNGN3JtNmgwOFV4eW14QjE3d1pINmFjZjhYYlU2QVR2cjlxWkNpVkdvOS9NY0cKMExFPQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg=="
+                },
+                {
+                    "OutputKey": "SecurityGroup",
+                    "OutputValue": "sg-02452e39a43ed29fd",
+                    "ExportName": "eksctl-management-bootstrap-cluster::SecurityGroup"
+                },
+                {
+                    "OutputKey": "ARN",
+                    "OutputValue": "arn:aws:eks:us-west-2:test:cluster/management-bootstrap",
+                    "ExportName": "eksctl-management-bootstrap-cluster::ARN"
+                }
+            ],
+            "Tags": [
+                {
+                    "Key": "alpha.eksctl.io/cluster-name",
+                    "Value": "management-bootstrap"
+                },
+                {
+                    "Key": "eksctl.cluster.k8s.io/v1alpha1/cluster-name",
+                    "Value": "management-bootstrap"
+                },
+                {
+                    "Key": "alpha.eksctl.io/eksctl-version",
+                    "Value": "0.99.0"
+                }
+            ],
+            "DriftInformation": {
+                "StackDriftStatus": "NOT_CHECKED"
+            }
+        }
+    ]
+}

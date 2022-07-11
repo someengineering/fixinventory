@@ -65,7 +65,7 @@ class AwsModel:
             api = ""
         base_mapping = {
             "id": 'S("id")',
-            "tags": 'S("Tags", default=[]) >> TagsToDict()',
+            "tags": 'S("Tags", default=[]) >> ToDict()',
             "name": 'S("Tags", default=[]) >> TagsValue("Name")',
             "ctime": "K(None)",
             "mtime": "K(None)",
@@ -344,6 +344,9 @@ models: Dict[str, List[AwsResotoModel]] = {
             prop_prefix="autoscaling_",
         ),
     ],
+    "cloudformation": [
+        AwsResotoModel("describe-stacks", "Stacks", "Stack", prefix="CloudFormation", prop_prefix="cloud_formation_"),
+    ],
     "ec2": [
         # AwsResotoModel(
         #     "describe-instances",
@@ -390,13 +393,13 @@ models: Dict[str, List[AwsResotoModel]] = {
         #     prefix="Iam",
         #     prop_prefix="server_certificate_",
         # ),
-        AwsResotoModel(
-            "get-account-authorization-details",
-            "GetAccountAuthorizationDetailsResult",
-            "GetAccountAuthorizationDetailsResponse",
-            prefix="Iam",
-            prop_prefix="policy_",
-        ),
+        # AwsResotoModel(
+        #     "get-account-authorization-details",
+        #     "GetAccountAuthorizationDetailsResult",
+        #     "GetAccountAuthorizationDetailsResponse",
+        #     prefix="Iam",
+        #     prop_prefix="policy_",
+        # ),
         # AwsResotoModel(
         #     "get-account-authorization-details",
         #     "GetAccountAuthorizationDetailsResult",

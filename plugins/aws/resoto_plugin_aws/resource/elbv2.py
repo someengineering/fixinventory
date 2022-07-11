@@ -3,7 +3,7 @@ from typing import ClassVar, Dict, Optional, Type, List
 from attrs import define, field
 
 from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
-from resoto_plugin_aws.utils import TagsToDict
+from resoto_plugin_aws.utils import ToDict
 from resotolib.baseresources import (  # noqa: F401
     BaseCertificate,
     BasePolicy,
@@ -267,7 +267,7 @@ class AwsAlb(AwsResource, BaseLoadBalancer):
             lb = AwsAlb.from_api(js)
             tags = builder.client.list("elbv2", "describe-tags", "TagDescriptions", ResourceArns=[lb.arn])
             if tags:
-                lb.tags = bend(S("Tags", default=[]) >> TagsToDict(), tags[0])
+                lb.tags = bend(S("Tags", default=[]) >> ToDict(), tags[0])
             for listener in builder.client.list("elbv2", "describe-listeners", "Listeners", LoadBalancerArn=lb.arn):
                 mapped = bend(AwsAlbListener.mapping, listener)
                 lb.alb_listener.append(from_json(mapped, AwsAlbListener))
@@ -331,7 +331,7 @@ class AwsAlbTargetGroup(AwsResource):
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("elbv2", "describe-target-groups", "TargetGroups")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("TargetGroupName"),
-        "tags": S("Tags", default=[]) >> TagsToDict(),
+        "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("TargetGroupName"),
         "arn": S("TargetGroupArn"),
         "protocol": S("Protocol"),
@@ -373,7 +373,7 @@ class AwsAlbTargetGroup(AwsResource):
             tg = AwsAlbTargetGroup.from_api(js)
             tags = builder.client.list("elbv2", "describe-tags", "TagDescriptions", ResourceArns=[tg.arn])
             if tags:
-                tg.tags = bend(S("Tags", default=[]) >> TagsToDict(), tags[0])
+                tg.tags = bend(S("Tags", default=[]) >> ToDict(), tags[0])
             for health in builder.client.list(
                 "elbv2", "describe-target-health", "TargetHealthDescriptions", TargetGroupArn=tg.arn
             ):
