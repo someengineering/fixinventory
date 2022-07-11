@@ -336,13 +336,19 @@ models: Dict[str, List[AwsResotoModel]] = {
         # AwsResotoModel("list-data-catalogs", "DataCatalogsSummary", "DataCatalogSummary", prefix="Athena"),
     ],
     "autoscaling": [
-        AwsResotoModel(
-            "describe-auto-scaling-groups",
-            "AutoScalingGroupName",
-            "AutoScalingGroup",
-            prefix="AutoScaling",
-            prop_prefix="autoscaling_",
-        ),
+        # AwsResotoModel(
+        #     "describe-auto-scaling-groups",
+        #     "AutoScalingGroupName",
+        #     "AutoScalingGroup",
+        #     prefix="AutoScaling",
+        #     prop_prefix="autoscaling_",
+        # ),
+    ],
+    "cloudformation": [
+        # AwsResotoModel("describe-stacks", "Stacks", "Stack", prefix="CloudFormation", prop_prefix="stack_"),
+        # AwsResotoModel(
+        #     "list-stack-sets", "Summaries", "StackSetSummary", prefix="CloudFormation", prop_prefix="stack_set_"
+        # ),
     ],
     "ec2": [
         # AwsResotoModel(
@@ -475,7 +481,13 @@ models: Dict[str, List[AwsResotoModel]] = {
         #     prefix="Alb",
         # ),
     ],
-    "s3": [AwsResotoModel("list-buckets", "Buckets", "Bucket", prefix="S3", prop_prefix="s3_")],
+    "eks": [
+        # AwsResotoModel("list-clusters", "clusters", "Cluster", prefix="Eks", prop_prefix="cluster_"),
+        # AwsResotoModel("list-nodegroups", "nodegroup", "Nodegroup", prefix="Eks", prop_prefix="group_"),
+    ],
+    "s3": [
+        # AwsResotoModel("list-buckets", "Buckets", "Bucket", prefix="S3", prop_prefix="s3_")
+    ],
 }
 
 
