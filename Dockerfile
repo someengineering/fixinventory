@@ -20,6 +20,7 @@ RUN apt-get -y dist-upgrade
 RUN apt-get -y install apt-utils
 RUN apt-get -y install \
         build-essential \
+        git \
         curl \
         unzip \
         zlib1g-dev \
