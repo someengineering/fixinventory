@@ -1,6 +1,6 @@
-from typing import ClassVar, Dict, Optional, List, Type, cast
+from typing import ClassVar, Dict, Optional, List, Type  # noqa: F401
 
-from attrs import define, field
+from attrs import define
 
 from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec
 
@@ -29,5 +29,6 @@ class AwsS3Bucket(AwsResource, BaseBucket):
         "name": S("Name"),
         "ctime": S("CreationDate")
     }
+
 
 resources: List[Type[AwsResource]] = [AwsS3Bucket]
