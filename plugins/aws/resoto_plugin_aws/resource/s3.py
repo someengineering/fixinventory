@@ -1,9 +1,8 @@
-from datetime import datetime
 from typing import ClassVar, Dict, Optional, List, Type, cast
 
 from attrs import define, field
 
-from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
+from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec
 
 from resotolib.baseresources import (  # noqa: F401
     BaseBucket,
@@ -18,8 +17,7 @@ from resotolib.baseresources import (  # noqa: F401
     EdgeType,
     BaseDNSRecordSet,
 )
-from resotolib.json_bender import Bender, S, Bend, ForallBend
-from resotolib.types import Json
+from resotolib.json_bender import Bender, S
 
 
 @define(eq=False, slots=False)
