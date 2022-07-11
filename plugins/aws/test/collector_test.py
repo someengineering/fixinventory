@@ -14,4 +14,4 @@ def test_collect() -> None:
     for node in collector.graph.nodes:
         assert isinstance(node, AwsResource)
     assert len(collector.graph.nodes) == 37
-    assert len(collector.graph.edges) == 55
+    assert len(collector.graph.edges) == 57
