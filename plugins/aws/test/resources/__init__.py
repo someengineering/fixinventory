@@ -91,9 +91,7 @@ def round_trip_for(cls: Type[AWSResourceType], *ignore_props: str) -> Tuple[AWSR
     raise AttributeError("No api_spec for class: " + cls.__name__)
 
 
-def round_trip(
-    file: str, cls: Type[AWSResourceType], root: Optional[str] = None, ignore_props: Optional[Set[str]] = None
-) -> Tuple[AWSResourceType, GraphBuilder]:
+def build_from_file(file: str, cls: Type[AWSResourceType], root: Optional[str]) -> GraphBuilder:
     path = os.path.abspath(os.path.dirname(__file__) + "/files/" + file)
     config = AwsConfig()
     config.sessions().session_class_factory = BotoFileBasedSession
@@ -114,7 +112,7 @@ def check_single_node(node: AwsResource) -> None:
 
 
 def round_trip(
-    file: str, cls: Type[AWSResourceType], root: str, ignore_props: Optional[Set[str]] = None
+    file: str, cls: Type[AWSResourceType], root: Optional[str] = None, ignore_props: Optional[Set[str]] = None
 ) -> Tuple[AWSResourceType, GraphBuilder]:
     builder = build_from_file(file, cls, root)
     assert len(builder.graph.nodes) > 0
