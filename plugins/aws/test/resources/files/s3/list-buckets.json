@@ -1,0 +1,20 @@
+{
+    "Buckets": [
+      {
+        "Name": "bucket-1",
+        "CreationDate": "2019-08-08T08:05:42+00:00"
+      },
+      {
+        "Name": "bucket-2",
+        "CreationDate": "2020-01-30T17:22:24+00:00"
+      },
+      {
+        "Name": "bucket-3",
+        "CreationDate": "2020-09-25T17:07:57+00:00"
+      }
+    ],
+    "Owner": {
+      "DisplayName": "aws+test",
+      "ID": "test_id"
+    }
+  }
