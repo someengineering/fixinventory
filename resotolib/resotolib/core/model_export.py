@@ -1,4 +1,5 @@
 import attrs
+import cattrs
 from attrs import Attribute
 from datetime import datetime, date, timedelta, timezone
 from functools import lru_cache, reduce
@@ -311,6 +312,22 @@ def locate_python_type(python_type: str) -> Any:
     return locate(python_type)
 
 
+converter = cattrs.Converter()
+
+
+def convert_datetime(value: datetime) -> datetime:
+    datetime_str = str(value)
+    if datetime_str.endswith("Z"):
+        datetime_str = datetime_str[:-1] + "+00:00"
+    return datetime.fromisoformat(datetime_str)
+
+
+converter.register_structure_hook(datetime, lambda obj, typ: convert_datetime(obj))
+converter.register_structure_hook(date, lambda obj, typ: date.fromisoformat(obj))
+converter.register_structure_hook(timedelta, lambda obj, typ: str2timedelta(obj))
+converter.register_structure_hook(timezone, lambda obj, typ: str2timezone(obj))
+
+
 def node_from_dict(node_data: Dict, include_select_ancestors: bool = False) -> BaseResource:
     """Create a resource from resotocore graph node data
 
@@ -342,7 +359,6 @@ def node_from_dict(node_data: Dict, include_select_ancestors: bool = False) -> B
     if node_type is None:
         raise ValueError(f"Do not know how to handle {node_data_reported}")
 
-    restore_node_field_types(node_type, new_node_data)
     cleanup_node_field_types(node_type, new_node_data)
 
     if include_select_ancestors:
@@ -364,7 +380,7 @@ def node_from_dict(node_data: Dict, include_select_ancestors: bool = False) -> B
         }
     )
 
-    node = node_type(**new_node_data)
+    node = converter.structure_attrs_fromdict(new_node_data, node_type)
     node._raise_tags_exceptions = True
     node._protected = node_data_metadata.get("protected", False)
     node._cleaned = node_data_metadata.get("cleaned", False)
@@ -377,22 +393,3 @@ def cleanup_node_field_types(node_type: BaseResource, node_data_reported: Dict):
     for field_name in list(node_data_reported.keys()):
         if field_name not in valid_fields:
             del node_data_reported[field_name]
-
-
-def restore_node_field_types(node_type: BaseResource, node_data_reported: Dict):
-    for field in attrs.fields(node_type):
-        if field.name not in node_data_reported:
-            continue
-        field_type = optional_origin(field.type)
-
-        if field_type == datetime:
-            datetime_str = str(node_data_reported[field.name])
-            if datetime_str.endswith("Z"):
-                datetime_str = datetime_str[:-1] + "+00:00"
-            node_data_reported[field.name] = datetime.fromisoformat(datetime_str)
-        elif field_type == date:
-            node_data_reported[field.name] = date.fromisoformat(node_data_reported[field.name])
-        elif field_type == timedelta:
-            node_data_reported[field.name] = str2timedelta(node_data_reported[field.name])
-        elif field_type == timezone:
-            node_data_reported[field.name] = str2timezone(node_data_reported[field.name])
