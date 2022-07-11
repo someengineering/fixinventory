@@ -475,9 +475,7 @@ models: Dict[str, List[AwsResotoModel]] = {
         #     prefix="Alb",
         # ),
     ],
-    "s3": [
-        AwsResotoModel("list-buckets", "Buckets", "Bucket", prefix="S3", prop_prefix="s3_")
-    ],
+    "s3": [AwsResotoModel("list-buckets", "Buckets", "Bucket", prefix="S3", prop_prefix="s3_")],
 }
 
 
