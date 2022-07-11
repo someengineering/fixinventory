@@ -39,7 +39,7 @@ class AwsRoute53LinkedService:
 @define(eq=False, slots=False)
 class AwsRoute53Zone(AwsResource, BaseDNSZone):
     kind: ClassVar[str] = "aws_route53_zone"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("route53", "list_hosted_zones", "HostedZones")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("route53", "list-hosted-zones", "HostedZones")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Id"),
         "name": S("Name"),

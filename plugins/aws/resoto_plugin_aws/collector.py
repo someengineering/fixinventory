@@ -8,7 +8,7 @@ from botocore.exceptions import ClientError
 
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.config import AwsConfig
-from resoto_plugin_aws.resource import iam, ec2, route53
+from resoto_plugin_aws.resource import iam, ec2, route53, elbv2
 from resoto_plugin_aws.resource.base import AwsRegion, AwsAccount, AwsResource, GraphBuilder, AwsApiSpec
 from resotolib.baseresources import Cloud, EdgeType
 from resotolib.graph import Graph
@@ -16,8 +16,8 @@ from resotolib.graph import Graph
 log = logging.getLogger("resoto.plugins.aws")
 
 
-global_resources: List[Type[AwsResource]] = iam.resources + route53.resources
-regional_resources: List[Type[AwsResource]] = ec2.resources
+global_resources: List[Type[AwsResource]] = iam.resources + route53.resources + ec2.global_resources
+regional_resources: List[Type[AwsResource]] = ec2.resources + elbv2.resources
 all_resources: List[Type[AwsResource]] = global_resources + regional_resources
 
 
@@ -58,21 +58,19 @@ class AwsAccountCollector:
             # collect all resources as parallel as possible
             futures: List[Future[None]] = [executor.submit(self.update_account)]
 
-            # all regional resources for all configured regions
-            for region in self.regions:
-                client = self.client.for_region(region.name)
-                builder = GraphBuilder(self.graph, self.cloud, self.account, region, client)
-                for resource in regional_resources:
-                    if (spec := resource.api_spec) and self.config.should_collect(resource.kind):
-                        futures.append(executor.submit(self.collect_resource, resource, spec, builder))
-
             # all global resources
             builder = GraphBuilder(self.graph, self.cloud, self.account, self.global_region, self.client)
             for resource in global_resources:
                 if (spec := resource.api_spec) and self.config.should_collect(resource.kind):
                     futures.append(executor.submit(self.collect_resource, resource, spec, builder))
+            wait_for_futures(futures)
 
-            # wait for all futures to finish
+            # all regional resources for all configured regions
+            for region in self.regions:
+                region_builder = builder.for_region(region)
+                for resource in regional_resources:
+                    if (spec := resource.api_spec) and self.config.should_collect(resource.kind):
+                        futures.append(executor.submit(self.collect_resource, resource, spec, region_builder))
             wait_for_futures(futures)
 
             # connect account to all regions

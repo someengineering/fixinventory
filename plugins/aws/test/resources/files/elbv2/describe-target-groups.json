@@ -1,0 +1,67 @@
+{
+    "TargetGroups": [
+        {
+            "TargetGroupArn": "tg1",
+            "TargetGroupName": "group-1",
+            "Protocol": "TCP",
+            "Port": 31158,
+            "VpcId": "vpc-1",
+            "HealthCheckProtocol": "TCP",
+            "HealthCheckPort": "traffic-port",
+            "HealthCheckPath": "/healthcheck",
+            "HealthCheckEnabled": true,
+            "HealthCheckIntervalSeconds": 30,
+            "HealthCheckTimeoutSeconds": 10,
+            "HealthyThresholdCount": 3,
+            "UnhealthyThresholdCount": 3,
+            "LoadBalancerArns": [
+                "arn:aws:elasticloadbalancing:us-west-2:test:loadbalancer/net/t2/l2"
+            ],
+            "TargetType": "instance",
+            "IpAddressType": "ipv4",
+            "Matcher": {
+                "HttpCode": "200"
+            },
+            "ProtocolVersion": "1.0"
+
+        },
+        {
+            "TargetGroupArn": "arn:aws:elasticloadbalancing:us-west-2:test:targetgroup/k8s-redirect-redirect-25509771fc/9736976f6bb4c691",
+            "TargetGroupName": "group-2",
+            "Protocol": "TCP",
+            "Port": 30051,
+            "VpcId": "vpc-1",
+            "HealthCheckProtocol": "TCP",
+            "HealthCheckPort": "traffic-port",
+            "HealthCheckEnabled": true,
+            "HealthCheckIntervalSeconds": 30,
+            "HealthCheckTimeoutSeconds": 10,
+            "HealthyThresholdCount": 3,
+            "UnhealthyThresholdCount": 3,
+            "LoadBalancerArns": [
+                "arn:aws:elasticloadbalancing:us-west-2:test:loadbalancer/net/t2/l2"
+            ],
+            "TargetType": "instance",
+            "IpAddressType": "ipv4"
+        },
+        {
+            "TargetGroupArn": "arn:aws:elasticloadbalancing:us-west-2:test:targetgroup/k8s-redirect-redirect-a59ba272fd/f771afe0d23995ec",
+            "TargetGroupName": "group-3",
+            "Protocol": "TCP",
+            "Port": 32049,
+            "VpcId": "vpc-1",
+            "HealthCheckProtocol": "TCP",
+            "HealthCheckPort": "traffic-port",
+            "HealthCheckEnabled": true,
+            "HealthCheckIntervalSeconds": 30,
+            "HealthCheckTimeoutSeconds": 10,
+            "HealthyThresholdCount": 3,
+            "UnhealthyThresholdCount": 3,
+            "LoadBalancerArns": [
+                "arn:aws:elasticloadbalancing:us-west-2:test:loadbalancer/net/t2/l2"
+            ],
+            "TargetType": "instance",
+            "IpAddressType": "ipv4"
+        }
+    ]
+}
