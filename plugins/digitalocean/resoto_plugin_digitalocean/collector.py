@@ -551,6 +551,8 @@ class DigitalOceanTeamCollector:
 
     @metrics_collect_volumes.time()  # type: ignore
     def collect_volumes(self) -> None:
+        # taken from https://www.digitalocean.com/pricing/volumes
+        DO_VOLUME_COST_GB_PER_HOUR = 0.000149
         volumes = self.client.list_volumes()
 
         def extract_volume_status(volume: Json) -> VolumeStatus:
@@ -568,6 +570,7 @@ class DigitalOceanTeamCollector:
                 "filesystem_type": "filesystem_type",
                 "filesystem_label": "filesystem_label",
                 "volume_status": extract_volume_status,
+                "ondemand_cost": lambda v: v["size_gigabytes"] * DO_VOLUME_COST_GB_PER_HOUR,
             },
             search_map={
                 "__users": [

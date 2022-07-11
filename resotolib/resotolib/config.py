@@ -154,7 +154,7 @@ class Config(metaclass=MetaConfig):
     def restart_required(new_config: Dict) -> bool:
         for config_id, config_data in new_config.items():
             if config_id in Config.running_config.data:
-                for field in fields(config_data):
+                for field in fields(type(config_data)):
                     if field.metadata.get("restart_required", False):
                         old_value = getattr(Config.running_config.data[config_id], field.name, None)
                         new_value = getattr(config_data, field.name, None)

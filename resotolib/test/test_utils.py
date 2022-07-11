@@ -2,9 +2,14 @@ import unittest
 import threading
 import time
 import copy
+
+try:
+    from zoneinfo import ZoneInfo
+except ImportError:
+    from backports.zoneinfo import ZoneInfo
 from tempfile import TemporaryDirectory
 from resotolib.lock import RWLock
-from resotolib.utils import ordinal, sha256sum, rrdata_as_dict
+from resotolib.utils import ordinal, sha256sum, rrdata_as_dict, get_local_tzinfo
 from resotolib.baseresources import BaseResource
 from attrs import define
 from typing import ClassVar
@@ -299,3 +304,8 @@ def test_rrdata_as_dict():
     assert res_soa2["record_retry"] == 900
     assert res_soa2["record_expire"] == 1209600
     assert res_soa2["record_minimum"] == 86400
+
+
+def test_get_local_tzinfo():
+    tz = get_local_tzinfo()
+    assert isinstance(tz, ZoneInfo)

@@ -6,6 +6,12 @@ import socket
 import string
 import time
 from datetime import date, datetime, timezone, timedelta
+
+try:
+    from zoneinfo import ZoneInfo
+except ImportError:
+    from backports.zoneinfo import ZoneInfo
+from tzlocal import get_localzone_name
 from functools import wraps
 from pprint import pformat
 from tarfile import TarFile, TarInfo
@@ -65,6 +71,13 @@ def str2timezone(tz: str) -> timezone:
     hours = int(tz[4:6]) * mult
     minutes = int(tz[7:9])
     return timezone(offset=timedelta(hours=hours, minutes=minutes))
+
+
+def get_local_tzinfo() -> ZoneInfo:
+    zone_name = get_localzone_name()
+    if zone_name is None:
+        zone_name = "Etc/UTC"
+    return ZoneInfo(zone_name)
 
 
 def chunks(items: List, n: int) -> List:

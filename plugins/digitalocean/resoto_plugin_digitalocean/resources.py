@@ -326,6 +326,7 @@ class DigitalOceanVolume(DigitalOceanResource, BaseVolume):
     description: Optional[str] = None
     filesystem_type: Optional[str] = None
     filesystem_label: Optional[str] = None
+    ondemand_cost: Optional[float] = None
 
     def delete_uri_path(self) -> Optional[str]:
         return "/volumes"
