@@ -22,7 +22,7 @@ class AwsApiSpec:
 
     service: str
     api_action: str
-    result_property: str
+    result_property: Optional[str] = None
 
 
 @define(eq=False, slots=False)
@@ -170,9 +170,9 @@ class GraphBuilder:
         self.client = client
         self.name = f"AWS:{account.name}:{region.name}"
 
-    def node(self, clazz: Optional[Type[AwsResource]] = None, **node: Any) -> Optional[AwsResource]:
+    def node(self, clazz: Optional[Type[AWSResourceType]] = None, **node: Any) -> Optional[AWSResourceType]:
         if isinstance(nd := node.get("node"), AwsResource):
-            return nd
+            return nd  # type: ignore
         for n in self.graph:
             is_clazz = isinstance(n, clazz) if clazz else True
             if is_clazz and all(getattr(n, k, None) == v for k, v in node.items()):
@@ -204,6 +204,9 @@ class GraphBuilder:
             if delete_reverse:
                 start, end = end, start
             self.graph.add_edge(end, start, edge_type=EdgeType.delete)
+
+    def resources_of(self, resource_type: Type[AWSResourceType]) -> List[AWSResourceType]:
+        return [n for n in self.graph.nodes if isinstance(n, resource_type)]
 
     def instance_type(self, instance_type: Optional[str]) -> Optional[Any]:
         # TODO: implement me

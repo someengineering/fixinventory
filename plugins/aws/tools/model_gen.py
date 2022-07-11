@@ -363,13 +363,13 @@ models: Dict[str, List[AwsResotoModel]] = {
     ],
     "route53": [
         # AwsResotoModel("list_hosted_zones", "HostedZones", "HostedZone", prefix="Route53", prop_prefix="zone_"),
-        AwsResotoModel(
-            "list_resource_record_sets",
-            "ResourceRecordSets",
-            "ResourceRecordSet",
-            prefix="Route53",
-            prop_prefix="record_",
-        ),
+        # AwsResotoModel(
+        #     "list_resource_record_sets",
+        #     "ResourceRecordSets",
+        #     "ResourceRecordSet",
+        #     prefix="Route53",
+        #     prop_prefix="record_",
+        # ),
     ],
     "iam": [
         # AwsResotoModel(
@@ -379,6 +379,13 @@ models: Dict[str, List[AwsResotoModel]] = {
         #     prefix="Iam",
         #     prop_prefix="server_certificate_",
         # ),
+        AwsResotoModel(
+            "get-account-authorization-details",
+            "GetAccountAuthorizationDetailsResult",
+            "GetAccountAuthorizationDetailsResponse",
+            prefix="Iam",
+            prop_prefix="policy_",
+        ),
         # AwsResotoModel(
         #     "list-policies",
         #     "Policies",
