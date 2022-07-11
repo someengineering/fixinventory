@@ -1,0 +1,149 @@
+{
+    "AutoScalingGroups": [
+        {
+            "AutoScalingGroupName": "asg-123",
+            "AutoScalingGroupARN": "arn:aws:autoscaling:us-west-2:test:autoScalingGroup:asg-123:autoScalingGroupName/asg-123",
+            "MixedInstancesPolicy": {
+                "LaunchTemplate": {
+                    "LaunchTemplateSpecification": {
+                        "LaunchTemplateId": "lt-123",
+                        "LaunchTemplateName": "lt-123",
+                        "Version": "1"
+                    },
+                    "Overrides": [
+                        {
+                            "InstanceType": "t3a.xlarge"
+                        }
+                    ]
+                },
+                "InstancesDistribution": {
+                    "OnDemandAllocationStrategy": "prioritized",
+                    "OnDemandBaseCapacity": 0,
+                    "OnDemandPercentageAboveBaseCapacity": 100,
+                    "SpotAllocationStrategy": "lowest-price",
+                    "SpotInstancePools": 2
+                }
+            },
+            "MinSize": 2,
+            "MaxSize": 2,
+            "DesiredCapacity": 2,
+            "DefaultCooldown": 300,
+            "AvailabilityZones": [
+                "us-west-2a",
+                "us-west-2b",
+                "us-west-2d"
+            ],
+            "LoadBalancerNames": [],
+            "TargetGroupARNs": [],
+            "HealthCheckType": "EC2",
+            "HealthCheckGracePeriod": 15,
+            "Instances": [
+                {
+                    "InstanceId": "i-1",
+                    "InstanceType": "t3a.xlarge",
+                    "AvailabilityZone": "us-west-2a",
+                    "LifecycleState": "InService",
+                    "HealthStatus": "Healthy",
+                    "LaunchTemplate": {
+                        "LaunchTemplateId": "lt-123",
+                        "LaunchTemplateName": "lt-123",
+                        "Version": "1"
+                    },
+                    "ProtectedFromScaleIn": false
+                },
+                {
+                    "InstanceId": "i-123",
+                    "InstanceType": "t3a.xlarge",
+                    "AvailabilityZone": "us-west-2d",
+                    "LifecycleState": "InService",
+                    "HealthStatus": "Healthy",
+                    "LaunchTemplate": {
+                        "LaunchTemplateId": "lt-123",
+                        "LaunchTemplateName": "lt-123",
+                        "Version": "1"
+                    },
+                    "ProtectedFromScaleIn": false
+                }
+            ],
+            "CreatedTime": "2022-05-31T09:28:48.128000+00:00",
+            "SuspendedProcesses": [],
+            "VPCZoneIdentifier": "subnet-123",
+            "EnabledMetrics": [],
+            "Tags": [
+                {
+                    "ResourceId": "asg-123",
+                    "ResourceType": "auto-scaling-group",
+                    "Key": "eks:cluster-name",
+                    "Value": "management-bootstrap",
+                    "PropagateAtLaunch": true
+                },
+                {
+                    "ResourceId": "asg-123",
+                    "ResourceType": "auto-scaling-group",
+                    "Key": "eks:nodegroup-name",
+                    "Value": "main",
+                    "PropagateAtLaunch": true
+                },
+                {
+                    "ResourceId": "asg-123",
+                    "ResourceType": "auto-scaling-group",
+                    "Key": "k8s.io/cluster-autoscaler/enabled",
+                    "Value": "true",
+                    "PropagateAtLaunch": true
+                },
+                {
+                    "ResourceId": "asg-123",
+                    "ResourceType": "auto-scaling-group",
+                    "Key": "k8s.io/cluster-autoscaler/management-bootstrap",
+                    "Value": "owned",
+                    "PropagateAtLaunch": true
+                },
+                {
+                    "ResourceId": "asg-123",
+                    "ResourceType": "auto-scaling-group",
+                    "Key": "kubernetes.io/cluster/management-bootstrap",
+                    "Value": "owned",
+                    "PropagateAtLaunch": true
+                }
+            ],
+            "TerminationPolicies": [
+                "AllocationStrategy",
+                "OldestLaunchTemplate",
+                "OldestInstance"
+            ],
+            "NewInstancesProtectedFromScaleIn": false,
+            "ServiceLinkedRoleARN": "arn:aws:iam::test:role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling",
+            "CapacityRebalance": true,
+            "LaunchConfigurationName": "lc-123",
+            "LaunchTemplate": {
+                "LaunchTemplateSpecification": {
+                    "LaunchTemplateId": "lt-123",
+                    "LaunchTemplateName": "lt-123",
+                    "Version": "1"
+                },
+                "Overrides": [
+                    {
+                        "InstanceType": "t3a.xlarge"
+                    }
+                ]
+            },
+            "PredictedCapacity": 23,
+            "PlacementGroup": "test",
+            "Status": "InService",
+            "MaxInstanceLifetime": 23,
+            "WarmPoolConfiguration": {
+                "MinSize": 0,
+                "MaxGroupPreparedCapacity": 0,
+                "PoolState": "ENABLED",
+                "Status": "ENABLED",
+                "InstanceReusePolicy": {
+                    "ReuseOnScaleIn": true
+                }
+            },
+            "WarmPoolSize": 23,
+            "Context": "test",
+            "DesiredCapacityType": "SPOT",
+            "DefaultInstanceWarmup": 23
+        }
+    ]
+}

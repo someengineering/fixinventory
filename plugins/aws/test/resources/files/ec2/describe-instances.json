@@ -6,7 +6,7 @@
                 {
                     "AmiLaunchIndex": 0,
                     "ImageId": "ami-1123",
-                    "InstanceId": "i-02351c11905d123",
+                    "InstanceId": "i-1",
                     "InstanceType": "m5.xlarge",
                     "KernelId": "123",
                     "Platform": "test",

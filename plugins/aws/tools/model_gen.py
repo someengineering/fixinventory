@@ -336,9 +336,13 @@ models: Dict[str, List[AwsResotoModel]] = {
         # AwsResotoModel("list-data-catalogs", "DataCatalogsSummary", "DataCatalogSummary", prefix="Athena"),
     ],
     "autoscaling": [
-        # AwsResotoModel(
-        #     "describe_auto_scaling_groups", "AutoScalingGroupName", "AutoScalingGroup", prefix="AutoScaling"
-        # ),
+        AwsResotoModel(
+            "describe-auto-scaling-groups",
+            "AutoScalingGroupName",
+            "AutoScalingGroup",
+            prefix="AutoScaling",
+            prop_prefix="autoscaling_",
+        ),
     ],
     "ec2": [
         # AwsResotoModel(
@@ -363,13 +367,13 @@ models: Dict[str, List[AwsResotoModel]] = {
     ],
     "route53": [
         # AwsResotoModel("list_hosted_zones", "HostedZones", "HostedZone", prefix="Route53", prop_prefix="zone_"),
-        AwsResotoModel(
-            "list_resource_record_sets",
-            "ResourceRecordSets",
-            "ResourceRecordSet",
-            prefix="Route53",
-            prop_prefix="record_",
-        ),
+        # AwsResotoModel(
+        #     "list_resource_record_sets",
+        #     "ResourceRecordSets",
+        #     "ResourceRecordSet",
+        #     prefix="Route53",
+        #     prop_prefix="record_",
+        # ),
     ],
     "iam": [
         # AwsResotoModel(
