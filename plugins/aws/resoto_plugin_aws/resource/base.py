@@ -30,6 +30,7 @@ class AwsApiSpec:
     service: str
     api_action: str
     result_property: Optional[str] = None
+    parameter: Optional[Dict[str, Any]] = None
 
 
 @define(eq=False, slots=False)

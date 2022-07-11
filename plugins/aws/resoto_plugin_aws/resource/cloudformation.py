@@ -113,7 +113,7 @@ class AwsCloudFormationAutoDeployment:
 @define(eq=False, slots=False)
 class AwsCloudFormationStackSet(AwsResource):
     kind: ClassVar[str] = "aws_cloudformation_stack_set"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudformation", "list-stack-sets", "Summaries")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudformation", "list-stack-sets", "Summaries", dict(Status="ACTIVE"))
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("StackSetId"),
         "tags": S("Tags", default=[]) >> ToDict(),

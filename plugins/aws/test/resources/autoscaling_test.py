@@ -1,6 +1,6 @@
 from resoto_plugin_aws.resource.autoscaling import AwsAutoScalingGroup
-from test.resources import round_trip
+from test.resources import round_trip_for
 
 
 def test_autoscaling_groups() -> None:
-    round_trip("autoscaling/describe-auto-scaling-groups.json", AwsAutoScalingGroup, "AutoScalingGroups")
+    round_trip_for(AwsAutoScalingGroup)

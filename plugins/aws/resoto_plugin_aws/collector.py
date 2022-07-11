@@ -37,7 +37,8 @@ class AwsAccountCollector:
     def collect_resource(resource: Type[AwsResource], spec: AwsApiSpec, builder: GraphBuilder) -> None:
         log.debug(f"Collecting {resource.__name__} in region {builder.region.name}")
         try:
-            items = builder.client.list(spec.service, spec.api_action, spec.result_property)
+            kwargs = spec.parameter or {}
+            items = builder.client.list(spec.service, spec.api_action, spec.result_property, **kwargs)
             resource.collect(items, builder)
         except Boto3Error as e:
             log.error(f"Error while collecting {resource.__name__} in region {builder.region.name}: {e}")

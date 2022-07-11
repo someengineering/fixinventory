@@ -9,7 +9,14 @@ from boto3 import Session
 
 from resoto_plugin_aws.config import AwsConfig
 from resoto_plugin_aws.aws_client import AwsClient
-from resoto_plugin_aws.resource.base import GraphBuilder, AWSResourceType, AwsAccount, AwsRegion, AwsResource
+from resoto_plugin_aws.resource.base import (
+    GraphBuilder,
+    AWSResourceType,
+    AwsAccount,
+    AwsRegion,
+    AwsResource,
+    AwsApiSpec,
+)
 from resotolib.baseresources import Cloud
 from resotolib.graph import Graph
 
@@ -30,26 +37,33 @@ class BotoFileClient:
     def can_paginate(_: str) -> bool:
         return False
 
+    @classmethod
+    def path_from_action(cls, a: AwsApiSpec) -> str:
+        return cls.path_from(a.service, a.api_action, **(a.parameter or {}))
+
+    @staticmethod
+    def path_from(service: str, action_name: str, **kwargs: Any) -> str:
+        def arg_string(v: Any) -> str:
+            if isinstance(v, list):
+                return "_".join(arg_string(x) for x in v)
+            elif isinstance(v, dict):
+                return "_".join(arg_string(v) for k, v in v.items())
+            else:
+                return re.sub(r"[^a-zA-Z0-9]", "_", str(v))
+
+        vals = "__" + ("_".join(arg_string(v) for _, v in sorted(kwargs.items()))) if kwargs else ""
+        action = action_name.replace("_", "-")
+        return os.path.abspath(os.path.dirname(__file__) + f"/files/{service}/{action}{vals}.json")
+
     def __getattr__(self, action_name: str) -> Callable[[], Any]:
         def call_action(*args: Any, **kwargs: Any) -> Any:
             assert not args, "No arguments allowed!"
-
-            def arg_string(v: Any) -> str:
-                if isinstance(v, list):
-                    return "_".join(arg_string(x) for x in v)
-                elif isinstance(v, dict):
-                    return "_".join(arg_string(v) for k, v in v.items())
-                else:
-                    return re.sub(r"[^a-zA-Z0-9]", "_", str(v))
-
-            vals = "__" + ("_".join(arg_string(v) for _, v in sorted(kwargs.items()))) if kwargs else ""
-            action = action_name.replace("_", "-")
-            path = os.path.abspath(os.path.dirname(__file__) + f"/files/{self.service}/{action}{vals}.json")
+            path = self.path_from(self.service, action_name, **kwargs)
             if os.path.exists(path):
                 with open(path) as f:
                     return json.load(f)
             else:
-                # print(f"Not found: /files/{self.service}/{action}{vals}.json")
+                # print(f"Not found: {path}")
                 return {}
 
         return call_action
@@ -86,13 +100,11 @@ def all_props_set(obj: AWSResourceType, ignore_props: Set[str]) -> None:
 
 def round_trip_for(cls: Type[AWSResourceType], *ignore_props: str) -> Tuple[AWSResourceType, GraphBuilder]:
     if api := cls.api_spec:
-        file = f"{api.service}/{api.api_action}.json"
-        return round_trip(file, cls, api.result_property, set(ignore_props))
+        return round_trip(BotoFileClient.path_from_action(api), cls, api.result_property, set(ignore_props))
     raise AttributeError("No api_spec for class: " + cls.__name__)
 
 
-def build_from_file(file: str, cls: Type[AWSResourceType], root: Optional[str]) -> GraphBuilder:
-    path = os.path.abspath(os.path.dirname(__file__) + "/files/" + file)
+def build_from_file(path: str, cls: Type[AWSResourceType], root: Optional[str]) -> GraphBuilder:
     config = AwsConfig()
     config.sessions().session_class_factory = BotoFileBasedSession
     client = AwsClient(config, "123456789012", "role", "us-east-1")
