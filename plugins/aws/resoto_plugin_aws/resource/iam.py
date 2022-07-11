@@ -183,7 +183,7 @@ class AwsIamAccessKeyLastUsed:
 
 @define(eq=False, slots=False)
 class AwsIamAccessKey(AwsResource, BaseAccessKey):
-    kind: ClassVar[str] = "aws_iam_access_key_metadata"
+    kind: ClassVar[str] = "aws_iam_access_key"
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("AccessKeyId"),
         "tags": S("Tags", default=[]) >> TagsToDict(),

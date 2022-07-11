@@ -60,7 +60,7 @@ class AwsModel:
         kind = f'    kind: ClassVar[str] = "aws_{to_snake(self.name[3:])}"'
         if self.api_info:
             srv, act, res = self.api_info
-            api = f'    api_info: ClassVar[AwsApiSpec] = AwsApiSpec("{srv}", "{act}", "{res}")\n'
+            api = f'    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("{srv}", "{act}", "{res}")\n'
         else:
             api = ""
         base_mapping = {
@@ -362,7 +362,14 @@ models: Dict[str, List[AwsResotoModel]] = {
         # AwsResotoModel("describe-network-acls", "NetworkAcls", "NetworkAcl", prefix="Ec2"),
     ],
     "route53": [
-        # AwsResotoModel("list_hosted_zones", "HostedZones", "HostedZone", prefix="Route53"),
+        # AwsResotoModel("list_hosted_zones", "HostedZones", "HostedZone", prefix="Route53", prop_prefix="zone_"),
+        AwsResotoModel(
+            "list_resource_record_sets",
+            "ResourceRecordSets",
+            "ResourceRecordSet",
+            prefix="Route53",
+            prop_prefix="record_",
+        ),
     ],
     "iam": [
         # AwsResotoModel(
@@ -400,13 +407,13 @@ models: Dict[str, List[AwsResotoModel]] = {
         #     prefix="Iam",
         #     prop_prefix="user_",
         # ),
-        AwsResotoModel(
-            "list-access-keys",
-            "AccessKeyMetadata",
-            "AccessKeyMetadata",
-            prefix="Iam",
-            prop_prefix="access_key_",
-        ),
+        # AwsResotoModel(
+        #     "list-access-keys",
+        #     "AccessKeyMetadata",
+        #     "AccessKeyMetadata",
+        #     prefix="Iam",
+        #     prop_prefix="access_key_",
+        # ),
         # AwsResotoModel(
         #     "list-access-keys-last-user",
         #     "AccessKeyLastUsed",
