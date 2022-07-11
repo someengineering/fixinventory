@@ -1,5 +1,5 @@
 from resoto_plugin_digitalocean.collector import DigitalOceanTeamCollector
-from resoto_plugin_digitalocean.resources import DigitalOceanTeam
+from resoto_plugin_digitalocean.resources import DigitalOceanTeam, DigitalOceanVolume
 from resoto_plugin_digitalocean.client import StreamingWrapper
 from .fixtures import (
     droplets,
@@ -31,7 +31,7 @@ from resotolib.graph import sanitize
 from resotolib.baseresources import Cloud, EdgeType, GraphRoot, InstanceStatus, VolumeStatus
 from resotolib.graph import Graph
 import datetime
-from typing import Dict, Any, List
+from typing import Dict, Any, List, cast
 
 
 class ClientMock(StreamingWrapper, object):
@@ -193,7 +193,7 @@ def test_collect_volumes() -> None:
 
     check_edges(graph, "do:droplet:289110074", "do:volume:631f81d2-9fc1-11ec-800c-0a58ac14d197")
     check_edges(graph, "do:tag:volume_tag", "do:volume:631f81d2-9fc1-11ec-800c-0a58ac14d197")
-    volume = graph.search_first("urn", "do:volume:631f81d2-9fc1-11ec-800c-0a58ac14d197")
+    volume = cast(DigitalOceanVolume, graph.search_first("urn", "do:volume:631f81d2-9fc1-11ec-800c-0a58ac14d197"))
     assert volume.urn == "do:volume:631f81d2-9fc1-11ec-800c-0a58ac14d197"
     assert volume.name == "volume-fra1-01"
     assert volume.description == "Test volume"
@@ -201,6 +201,7 @@ def test_collect_volumes() -> None:
     assert volume.filesystem_label == "label"
     assert volume.volume_size == 1
     assert volume.volume_status == VolumeStatus.IN_USE
+    assert volume.ondemand_cost == 0.000149
 
 
 def test_collect_database() -> None:
