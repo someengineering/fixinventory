@@ -126,13 +126,14 @@ class F(Bender):
     ```
     """
 
-    def __init__(self, func: Callable[[Any, ...], Any], *args: Any, **kwargs: Any):  # type: ignore
+    def __init__(self, func: Callable[[Any], Any], *args: Any, **kwargs: Any):  # type: ignore
         super().__init__(*args, **kwargs)
         self._func = func
         self._args = args
         self._kwargs = kwargs
 
     def execute(self, value: Any) -> Any:
+        # noinspection PyArgumentList
         return self._func(value, *self._args, **self._kwargs)
 
 
