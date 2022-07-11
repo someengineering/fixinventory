@@ -349,7 +349,7 @@ def node_from_dict(node_data: Dict, include_select_ancestors: bool = False) -> B
         ancestors = {}
         for ancestor in ("cloud", "account", "region", "zone"):
             if node_data_ancestors.get(ancestor):
-                ancestors[f"_{ancestor}"] = node_from_dict(
+                ancestors[f"{ancestor}"] = node_from_dict(
                     {
                         "reported": node_data_ancestors[ancestor].get("reported", {}),
                         "metadata": node_data_ancestors[ancestor].get("metadata", {}),
@@ -358,9 +358,9 @@ def node_from_dict(node_data: Dict, include_select_ancestors: bool = False) -> B
         new_node_data.update(ancestors)
     new_node_data.update(
         {
-            "_resotocore_id": node_data.get("id"),
-            "_resotocore_revision": node_data.get("revision"),
-            "_resotocore_query_tag": node_data_metadata.get("query_tag"),
+            "resotocore_id": node_data.get("id"),
+            "resotocore_revision": node_data.get("revision"),
+            "resotocore_query_tag": node_data_metadata.get("query_tag"),
         }
     )
 
