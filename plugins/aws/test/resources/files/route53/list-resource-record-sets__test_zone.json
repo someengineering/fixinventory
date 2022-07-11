@@ -1,0 +1,33 @@
+{
+    "ResourceRecordSets": [
+        {
+            "Name": "test.com.",
+            "Type": "NS",
+            "TTL": 172800,
+            "ResourceRecords": [
+                {
+                    "Value": "test1.awsdns.com."
+                },
+                {
+                    "Value": "test2.awsdns.com."
+                },
+                {
+                    "Value": "test3.awsdns.com."
+                },
+                {
+                    "Value": "test4.awsdns.com."
+                }
+            ]
+        },
+        {
+            "Name": "foo.com.",
+            "Type": "SOA",
+            "TTL": 900,
+            "ResourceRecords": [
+                {
+                    "Value": "foo.com. foo.amazon.com. 1 7200 900 1209600 86400"
+                }
+            ]
+        }
+    ]
+}

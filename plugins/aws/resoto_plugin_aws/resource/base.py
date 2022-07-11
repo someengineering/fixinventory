@@ -29,7 +29,7 @@ class AwsApiSpec:
 
     service: str
     api_action: str
-    result_property: str
+    result_property: Optional[str] = None
 
 
 @define(eq=False, slots=False)
@@ -227,6 +227,9 @@ class GraphBuilder:
             if delete_reverse:
                 start, end = end, start
             self.graph.add_edge(end, start, edge_type=EdgeType.delete)
+
+    def resources_of(self, resource_type: Type[AWSResourceType]) -> List[AWSResourceType]:
+        return [n for n in self.graph.nodes if isinstance(n, resource_type)]
 
     @lru_cache(maxsize=None)
     def instance_type(self, instance_type: str) -> Optional[Any]:
