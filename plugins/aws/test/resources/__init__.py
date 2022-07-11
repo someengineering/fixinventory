@@ -76,10 +76,10 @@ def all_props_set(obj: AWSResourceType, ignore_props: Set[str]) -> None:
                 raise Exception(f"Prop >{prop}< is not set")
 
 
-def round_trip_for(cls: Type[AWSResourceType]) -> Tuple[AWSResourceType, GraphBuilder]:
+def round_trip_for(cls: Type[AWSResourceType], *ignore_props: str) -> Tuple[AWSResourceType, GraphBuilder]:
     if api := cls.api_spec:
         file = f"{api.service}/{api.api_action}.json"
-        return round_trip(file, cls, api.result_property)
+        return round_trip(file, cls, api.result_property, set(ignore_props))
     raise AttributeError("No api_spec for class: " + cls.__name__)
 
 

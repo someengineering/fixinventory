@@ -14,7 +14,7 @@ from resotolib.baseresources import (  # noqa: F401
     VolumeStatus,
     InstanceStatus,
 )
-from resotolib.json_bender import Bender, S, Bend, ForallBend, bend, MapEnum
+from resotolib.json_bender import Bender, S, Bend, ForallBend, bend, MapEnum, F
 from resotolib.types import Json
 
 
@@ -227,13 +227,16 @@ class AwsEc2InferenceAcceleratorInfo:
 
 
 @define(eq=False, slots=False)
-class AwsEc2InstanceType(AwsResource):
+class AwsEc2InstanceType(AwsResource, BaseInstanceType):
     kind: ClassVar[str] = "aws_ec2_instance_type"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-instance-types", "InstanceTypes")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("InstanceType"),
         "tags": S("Tags", default=[]) >> TagsToDict(),
         "name": S("InstanceType"),
+        "instance_type": S("InstanceType"),
+        "instance_cores": S("VCpuInfo", "DefaultVCpus"),
+        "instance_memory": S("MemoryInfo", "SizeInMiB") >> F(lambda x: int(x) / 1024),
         "current_generation": S("CurrentGeneration"),
         "free_tier_eligible": S("FreeTierEligible"),
         "supported_usage_classes": S("SupportedUsageClasses", default=[]),

@@ -10,7 +10,7 @@ from test.resources import round_trip_for
 
 
 def test_instance_types() -> None:
-    round_trip_for(AwsEc2InstanceType)
+    round_trip_for(AwsEc2InstanceType, "quota", "quota_type", "reservations", "usage", "ondemand_cost")
 
 
 def test_reserved_instances() -> None:
