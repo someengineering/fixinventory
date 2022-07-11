@@ -520,6 +520,7 @@ class DigitalOceanTeamCollector:
 
     @metrics_collect_volumes.time()  # type: ignore
     def collect_volumes(self) -> None:
+        # taken from https://www.digitalocean.com/pricing/volumes
         DO_VOLUME_COST_GB_PER_HOUR = 0.000149
         volumes = self.client.list_volumes()
 
