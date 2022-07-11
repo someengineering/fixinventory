@@ -1,7 +1,7 @@
 {
     "InstanceTypes": [
         {
-            "InstanceType": "c6i.2xlarge",
+            "InstanceType": "m4.large",
             "CurrentGeneration": true,
             "FreeTierEligible": false,
             "SupportedUsageClasses": [

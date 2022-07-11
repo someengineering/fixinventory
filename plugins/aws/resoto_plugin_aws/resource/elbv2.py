@@ -268,7 +268,7 @@ class AwsAlb(AwsResource, BaseLoadBalancer):
             tags = builder.client.list("elbv2", "describe-tags", "TagDescriptions", ResourceArns=[lb.arn])
             if tags:
                 lb.tags = bend(S("Tags", default=[]) >> TagsToDict(), tags[0])
-            for listener in builder.client.list("elbv2", "describe-listeners", "Listeners", ResourceArns=[lb.arn]):
+            for listener in builder.client.list("elbv2", "describe-listeners", "Listeners", LoadBalancerArn=lb.arn):
                 mapped = bend(AwsAlbListener.mapping, listener)
                 lb.alb_listener.append(from_json(mapped, AwsAlbListener))
             builder.add_node(lb, js)

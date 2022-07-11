@@ -286,6 +286,14 @@ class AwsEc2InstanceType(AwsResource, BaseInstanceType):
     auto_recovery_supported: Optional[bool] = field(default=None)
     supported_boot_modes: List[str] = field(factory=list)
 
+    @classmethod
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        for js in json:
+            it = AwsEc2InstanceType.from_api(js)
+            # only store this information in the builder, not directly in the graph
+            # reason: pricing is region-specific - this is enriched in the builder on demand
+            builder.global_instance_types[it.name] = it
+
 
 # endregion
 
@@ -692,7 +700,7 @@ class AwsEc2Instance(AwsResource, BaseInstance):
         "instance_cores": S("CpuOptions", "CoreCount"),
         "instance_ami_launch_index": S("AmiLaunchIndex"),
         "instance_image_id": S("ImageId"),
-        "instance_instance_type": S("InstanceType"),
+        "instance_type": S("InstanceType"),
         "instance_kernel_id": S("KernelId"),
         "instance_key_name": S("KeyName"),
         "instance_launch_time": S("LaunchTime"),
@@ -753,7 +761,6 @@ class AwsEc2Instance(AwsResource, BaseInstance):
     }
     instance_ami_launch_index: Optional[int] = field(default=None)
     instance_image_id: Optional[str] = field(default=None)
-    instance_instance_type: Optional[str] = field(default=None)
     instance_kernel_id: Optional[str] = field(default=None)
     instance_key_name: Optional[str] = field(default=None)
     instance_launch_time: Optional[datetime] = field(default=None)
@@ -817,6 +824,7 @@ class AwsEc2Instance(AwsResource, BaseInstance):
                 instance = AwsEc2Instance.from_json(mapped)
                 # copy data from the instance type
                 if instance_type := builder.instance_type(instance.instance_type):
+                    builder.add_node(instance_type, {})
                     instance.instance_cores = instance_type.instance_cores
                     instance.instance_memory = instance_type.instance_memory
                 builder.add_node(instance, instance_in)
@@ -971,9 +979,11 @@ class AwsEc2NetworkAcl(AwsResource):
 
 # endregion
 
+global_resources: List[Type[AwsResource]] = [
+    AwsEc2InstanceType,
+]
 resources: List[Type[AwsResource]] = [
     AwsEc2Instance,
-    AwsEc2InstanceType,
     AwsEc2NetworkAcl,
     AwsEc2ReservedInstances,
     AwsEc2KeyPair,

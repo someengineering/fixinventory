@@ -1,5 +1,7 @@
 import json
 import os
+import re
+
 from attrs import fields
 from typing import Type, Any, Callable, Optional, Set, Tuple
 
@@ -33,7 +35,12 @@ class BotoFileClient:
             assert not args, "No arguments allowed!"
 
             def arg_string(v: Any) -> str:
-                return "_".join(str(x) for x in v) if isinstance(v, list) else str(v)
+                if isinstance(v, list):
+                    return "_".join(arg_string(x) for x in v)
+                elif isinstance(v, dict):
+                    return "_".join(arg_string(v) for k, v in v.items())
+                else:
+                    return re.sub(r"[^a-zA-Z0-9]", "_", str(v))
 
             vals = "__" + ("_".join(arg_string(v) for _, v in sorted(kwargs.items()))) if kwargs else ""
             action = action_name.replace("_", "-")
@@ -42,6 +49,7 @@ class BotoFileClient:
                 with open(path) as f:
                     return json.load(f)
             else:
+                print(f"Not found: /files/{self.service}/{action}{vals}.json")
                 return {}
 
         return call_action
@@ -83,9 +91,7 @@ def round_trip_for(cls: Type[AWSResourceType], *ignore_props: str) -> Tuple[AWSR
     raise AttributeError("No api_spec for class: " + cls.__name__)
 
 
-def round_trip(
-    file: str, cls: Type[AWSResourceType], root: str, ignore_props: Optional[Set[str]] = None
-) -> Tuple[AWSResourceType, GraphBuilder]:
+def build_from_file(file: str, cls: Type[AWSResourceType], root: str) -> GraphBuilder:
     path = os.path.abspath(os.path.dirname(__file__) + "/files/" + file)
     config = AwsConfig()
     config.sessions().session_class_factory = BotoFileBasedSession
@@ -94,13 +100,24 @@ def round_trip(
     with open(path) as f:
         js = json.load(f)
         cls.collect(js[root], builder)
+    return builder
+
+
+def check_single_node(node: AwsResource) -> None:
+    assert isinstance(node, AwsResource), f"Expect AWSResource but got: {type(node)}: {node}"
+    as_js = node.to_json()
+    again = type(node).from_json(as_js)
+    assert again.to_json() == as_js, f"Left: {as_js}\nRight: {again.to_json()}"
+
+
+def round_trip(
+    file: str, cls: Type[AWSResourceType], root: str, ignore_props: Optional[Set[str]] = None
+) -> Tuple[AWSResourceType, GraphBuilder]:
+    builder = build_from_file(file, cls, root)
     assert len(builder.graph.nodes) > 0
     for node, data in builder.graph.nodes(data=True):
-        assert isinstance(node, AwsResource), f"Expect AWSResource but got: {type(node)}: {node}"
         node.connect_in_graph(builder, data["source"])
-        as_js = node.to_json()
-        again = type(node).from_json(as_js)
-        assert again.to_json() == as_js, f"Left: {as_js}\nRight: {again.to_json()}"
+        check_single_node(node)
     first = next(iter(builder.graph.nodes))
     all_props_set(first, ignore_props or set())
     return first, builder

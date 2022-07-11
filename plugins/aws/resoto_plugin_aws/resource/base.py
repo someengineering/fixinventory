@@ -1,14 +1,21 @@
 from __future__ import annotations
+
+import json
 import logging
+from functools import cached_property, lru_cache
+
+from attr import evolve
 from attrs import define
 from datetime import datetime, timezone
 from typing import ClassVar, Dict, Optional, List, Type, Any, TypeVar
+
+from botocore.loaders import Loader
 
 from resoto_plugin_aws.aws_client import AwsClient
 from resotolib.baseresources import BaseResource, EdgeType, Cloud, BaseAccount, BaseRegion
 from resotolib.graph import Graph
 from resotolib.json import to_json as to_js, from_json as from_js
-from resotolib.json_bender import Bender, bend
+from resotolib.json_bender import Bender, bend, S, F
 from resotolib.types import Json
 
 log = logging.getLogger("resoto.plugins.aws")
@@ -162,13 +169,29 @@ class AwsRegion(BaseRegion, AwsResource):
 
 
 class GraphBuilder:
-    def __init__(self, graph: Graph, cloud: Cloud, account: AwsAccount, region: AwsRegion, client: AwsClient) -> None:
+    def __init__(
+        self,
+        graph: Graph,
+        cloud: Cloud,
+        account: AwsAccount,
+        region: AwsRegion,
+        client: AwsClient,
+        global_instance_types: Optional[Dict[str, Any]] = None,
+    ) -> None:
         self.graph = graph
         self.cloud = cloud
         self.account = account
         self.region = region
         self.client = client
         self.name = f"AWS:{account.name}:{region.name}"
+        self.boto_loader = Loader()
+        self.global_instance_types: Dict[str, Any] = global_instance_types or {}
+
+    @cached_property
+    def price_region(self) -> str:
+        endpoints = self.boto_loader.load_data("endpoints")
+        price_name: str = bend(S("partitions")[0] >> S("regions", self.region.name, "description"), endpoints)
+        return price_name.replace("Europe", "EU")  # note: Europe is named differently in the price list
 
     def node(self, clazz: Optional[Type[AWSResourceType]] = None, **node: Any) -> Optional[AWSResourceType]:
         if isinstance(nd := node.get("node"), AwsResource):
@@ -205,6 +228,39 @@ class GraphBuilder:
                 start, end = end, start
             self.graph.add_edge(end, start, edge_type=EdgeType.delete)
 
-    def instance_type(self, instance_type: Optional[str]) -> Optional[Any]:
-        # TODO: implement me
-        return None
+    @lru_cache(maxsize=None)
+    def instance_type(self, instance_type: str) -> Optional[Any]:
+        if (global_type := self.global_instance_types.get(instance_type)) is None:
+            return None  # instance type not found
+        # get price information
+        search_filter = [
+            {"Type": "TERM_MATCH", "Field": "operatingSystem", "Value": "Linux"},
+            {"Type": "TERM_MATCH", "Field": "operation", "Value": "RunInstances"},
+            {"Type": "TERM_MATCH", "Field": "capacitystatus", "Value": "Used"},
+            {"Type": "TERM_MATCH", "Field": "tenancy", "Value": "Shared"},
+            {"Type": "TERM_MATCH", "Field": "instanceType", "Value": instance_type},
+            {"Type": "TERM_MATCH", "Field": "location", "Value": self.price_region},
+        ]
+        # Prices are only available in us-east-1
+        prices = self.client.for_region("us-east-1").list(
+            "pricing", "get-products", "PriceList", ServiceCode="AmazonEC2", Filters=search_filter, MaxResults=1
+        )
+        if prices:
+            first = F(lambda x: x.get(next(iter(x)), {}))
+            pi = S("terms", "OnDemand") >> first >> S("priceDimensions") >> first >> S("pricePerUnit", "USD")
+            usd = bend(pi, json.loads(prices[0]))
+            result = evolve(global_type, region=self.region, ondemand_cost=usd)
+        else:
+            result = evolve(global_type, region=self.region)
+
+        return result
+
+    def for_region(self, region: AwsRegion) -> GraphBuilder:
+        return GraphBuilder(
+            self.graph,
+            self.cloud,
+            self.account,
+            region,
+            self.client.for_region(region.name),
+            self.global_instance_types,
+        )

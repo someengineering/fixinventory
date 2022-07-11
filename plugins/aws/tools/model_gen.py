@@ -1,8 +1,8 @@
 import re
-from attrs import define
 from typing import List, Set, Optional, Tuple, Union, Dict
 
 import boto3
+from attrs import define
 from botocore.model import ServiceModel, StringShape, ListShape, Shape, StructureShape, MapShape
 
 
@@ -117,7 +117,7 @@ ignore_props = {"Tags", "tags"}
 
 
 def service_model(name: str) -> ServiceModel:
-    return boto3.client(name)._service_model
+    return boto3.client(name, region_name="us-east-1")._service_model
 
 
 def clazz_model(
