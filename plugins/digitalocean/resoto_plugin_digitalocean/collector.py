@@ -481,7 +481,7 @@ class DigitalOceanTeamCollector:
             sizes,
             resource_class=DigitalOceanDropletSize,
             attr_map={
-                "id": lambda s: s["slug"],
+                "id": "slug",
                 "urn": lambda s: size_id(s["slug"]),
                 "instance_type": "slug",
                 "instance_cores": "vcpus",
