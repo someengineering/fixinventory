@@ -11,6 +11,6 @@ cryptography==37.0.2
 aiohttp[speedups]==3.8.1
 Pint==0.19.2
 parsy==1.4.0
-cattrs==22.1.0
 tzlocal==4.2
 tzdata==2022.1
+cattrs @ git+https://github.com/python-attrs/cattrs@56eda37
