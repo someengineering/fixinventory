@@ -9,6 +9,7 @@ from resotolib.baseresources import (
     BaseDatabase,
     BaseInstance,
     BaseIPAddress,
+    BaseInstanceType,
     BaseLoadBalancer,
     BaseNetwork,
     BaseRegion,
@@ -239,6 +240,16 @@ class DigitalOceanProject(DigitalOceanResource, BaseResource):
 
 
 @define(eq=False, slots=False)
+class DigitalOceanDropletSize(DigitalOceanResource, BaseInstanceType):
+    kind: ClassVar[str] = "digitalocean_droplet_size"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": [
+            "digitalocean_droplet",
+        ]
+    }
+
+
+@define(eq=False, slots=False)
 class DigitalOceanDroplet(DigitalOceanResource, BaseInstance):
     """A DigitalOcean Droplet Resource
 
@@ -315,6 +326,7 @@ class DigitalOceanVolume(DigitalOceanResource, BaseVolume):
     description: Optional[str] = None
     filesystem_type: Optional[str] = None
     filesystem_label: Optional[str] = None
+    ondemand_cost: Optional[float] = None
 
     def delete_uri_path(self) -> Optional[str]:
         return "/volumes"
