@@ -3,7 +3,14 @@ from typing import List, Set, Optional, Tuple, Union, Dict
 
 import boto3
 from attrs import define
-from botocore.model import ServiceModel, StringShape, ListShape, Shape, StructureShape, MapShape
+from botocore.model import (
+    ServiceModel,
+    StringShape,
+    ListShape,
+    Shape,
+    StructureShape,
+    MapShape,
+)
 
 
 @define
@@ -18,7 +25,9 @@ class AwsProperty:
     extractor: Optional[str] = None
 
     def assignment(self) -> str:
-        default = self.field_default or ("factory=list" if self.is_array else "default=None")
+        default = self.field_default or (
+            "factory=list" if self.is_array else "default=None"
+        )
         return f"field({default})"
 
     def type_string(self) -> str:
@@ -31,7 +40,9 @@ class AwsProperty:
         # in case an extractor is defined explicitly
         if self.extractor:
             return f'"{self.name}": {self.extractor}'
-        from_p = self.from_name if isinstance(self.from_name, list) else [self.from_name]
+        from_p = (
+            self.from_name if isinstance(self.from_name, list) else [self.from_name]
+        )
         from_p_path = ",".join(f'"{p}"' for p in from_p)
         base = f'"{self.name}": S({from_p_path}'
         if self.is_array and self.is_complex:
@@ -73,11 +84,15 @@ class AwsModel:
         }
         mapping = "    mapping: ClassVar[Dict[str, Bender]] = {\n"
         if self.aggregate_root:
-            mapping += ",\n".join(f'        "{k}": {v}' for k, v in base_mapping.items())
+            mapping += ",\n".join(
+                f'        "{k}": {v}' for k, v in base_mapping.items()
+            )
             mapping += ",\n"
         mapping += ",\n".join(f"        {p.mapping()}" for p in self.props)
         mapping += "\n    }"
-        props = "\n".join(f"    {p.name}: {p.type_string()} = {p.assignment()}" for p in self.props)
+        props = "\n".join(
+            f"    {p.name}: {p.type_string()} = {p.assignment()}" for p in self.props
+        )
         return f"@define(eq=False, slots=False)\nclass {self.name}{base}\n{kind}\n{api}{mapping}\n{props}\n"
 
 
@@ -167,11 +182,23 @@ def clazz_model(
             if prop in ignore_props:
                 continue
             if simple := simple_shape(prop_shape):
-                props.append(AwsProperty(prop_prefix + prop, name, simple, prop_shape.documentation))
+                props.append(
+                    AwsProperty(
+                        prop_prefix + prop, name, simple, prop_shape.documentation
+                    )
+                )
             elif isinstance(prop_shape, ListShape):
                 inner = prop_shape.member
                 if simple := simple_shape(inner):
-                    props.append(AwsProperty(prop_prefix + prop, name, simple, prop_shape.documentation, is_array=True))
+                    props.append(
+                        AwsProperty(
+                            prop_prefix + prop,
+                            name,
+                            simple,
+                            prop_shape.documentation,
+                            is_array=True,
+                        )
+                    )
                 elif simple_path := complex_simple_shape(inner):
                     prop_name, prop_type = simple_path
                     props.append(
@@ -199,24 +226,40 @@ def clazz_model(
                     )
             elif isinstance(prop_shape, MapShape):
                 key_type = simple_shape(prop_shape.key)
-                assert key_type, f"Key type must be a simple type: {prop_shape.key.name}"
+                assert (
+                    key_type
+                ), f"Key type must be a simple type: {prop_shape.key.name}"
                 value_type = type_name(prop_shape.value)
                 result.extend(clazz_model(model, prop_shape.value, visited, prefix))
                 props.append(
-                    AwsProperty(prop_prefix + prop, name, f"Dict[{key_type}, {value_type}]", prop_shape.documentation)
+                    AwsProperty(
+                        prop_prefix + prop,
+                        name,
+                        f"Dict[{key_type}, {value_type}]",
+                        prop_shape.documentation,
+                    )
                 )
 
             elif isinstance(prop_shape, StructureShape):
                 if maybe_simple := complex_simple_shape(prop_shape):
                     s_prop_name, s_prop_type = maybe_simple
                     props.append(
-                        AwsProperty(prop_prefix + prop, [name, s_prop_name], s_prop_type, prop_shape.documentation)
+                        AwsProperty(
+                            prop_prefix + prop,
+                            [name, s_prop_name],
+                            s_prop_type,
+                            prop_shape.documentation,
+                        )
                     )
                 else:
                     result.extend(clazz_model(model, prop_shape, visited, prefix))
                     props.append(
                         AwsProperty(
-                            prop_prefix + prop, name, type_name(prop_shape), prop_shape.documentation, is_complex=True
+                            prop_prefix + prop,
+                            name,
+                            type_name(prop_shape),
+                            prop_shape.documentation,
+                            is_complex=True,
                         )
                     )
             else:
@@ -336,13 +379,13 @@ models: Dict[str, List[AwsResotoModel]] = {
         # AwsResotoModel("list-data-catalogs", "DataCatalogsSummary", "DataCatalogSummary", prefix="Athena"),
     ],
     "autoscaling": [
-        AwsResotoModel(
-            "describe-auto-scaling-groups",
-            "AutoScalingGroupName",
-            "AutoScalingGroup",
-            prefix="AutoScaling",
-            prop_prefix="autoscaling_",
-        ),
+        # AwsResotoModel(
+        #     "describe-auto-scaling-groups",
+        #     "AutoScalingGroupName",
+        #     "AutoScalingGroup",
+        #     prefix="AutoScaling",
+        #     prop_prefix="autoscaling_",
+        # ),
     ],
     "ec2": [
         # AwsResotoModel(
@@ -356,13 +399,13 @@ models: Dict[str, List[AwsResotoModel]] = {
         # AwsResotoModel("describe-key-pairs", "KeyPairs", "KeyPairInfo", prefix="Ec2"),
         # AwsResotoModel("describe-volumes", "Volumes", "Volume", base="BaseVolume", prefix="Ec2"),
         # AwsResotoModel("describe_addresses", "Addresses", "Address", prefix="Ec2"),
-        AwsResotoModel(
-            "describe-instance-types",
-            "InstanceTypes",
-            "InstanceTypeInfo",
-            prefix="Ec2",
-            prop_prefix="reservation_",
-        ),
+        # AwsResotoModel(
+        #     "describe-instance-types",
+        #     "InstanceTypes",
+        #     "InstanceTypeInfo",
+        #     prefix="Ec2",
+        #     prop_prefix="reservation_",
+        # ),
         # AwsResotoModel(
         #     "describe_reserved_instances",
         #     "ReservedInstances",
@@ -476,7 +519,9 @@ models: Dict[str, List[AwsResotoModel]] = {
         # ),
     ],
     "s3": [
-        AwsResotoModel("list-buckets", "Buckets", "Bucket", prefix="S3", prop_prefix="s3_")
+        AwsResotoModel(
+            "list-buckets", "Buckets", "Bucket", prefix="S3", prop_prefix="s3_"
+        )
     ],
 }
 

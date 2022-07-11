@@ -27,7 +27,7 @@ class AwsS3Bucket(AwsResource, BaseBucket):
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Name"),
         "name": S("Name"),
-        "ctime": S("CreationDate")
+        "ctime": S("CreationDate"),
     }
 
 
