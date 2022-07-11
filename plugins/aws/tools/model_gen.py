@@ -383,6 +383,13 @@ models: Dict[str, List[AwsResotoModel]] = {
         #     prefix="Iam",
         #     prop_prefix="server_certificate_",
         # ),
+        AwsResotoModel(
+            "get-account-authorization-details",
+            "GetAccountAuthorizationDetailsResult",
+            "GetAccountAuthorizationDetailsResponse",
+            prefix="Iam",
+            prop_prefix="policy_",
+        ),
         # AwsResotoModel(
         #     "list-policies",
         #     "Policies",

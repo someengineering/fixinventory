@@ -1,0 +1,802 @@
+{
+    "UserDetailList": [
+        {
+            "Path": "/",
+            "UserName": "test_user",
+            "UserId": "user-123",
+            "Arn": "arn:aws:iam::test:user/test_user",
+            "CreateDate": "2018-07-26T10:58:34+00:00",
+            "UserPolicyList": [
+                {
+                    "PolicyName": "stsAssumeRole",
+                    "PolicyDocument": {
+                        "Version": "2012-10-17",
+                        "Statement": {
+                            "Effect": "Allow",
+                            "Action": "sts:AssumeRole",
+                            "Resource": "*"
+                        }
+                    }
+                }
+            ],
+            "GroupList": [],
+            "AttachedManagedPolicies": [],
+            "Tags": [
+               {
+                    "Key": "Name",
+                    "Value": "test_user"
+                }
+            ],
+            "Description": "Some information"
+        },
+        {
+            "Path": "/",
+            "UserName": "ReposSync",
+            "UserId": "user-234",
+            "Arn": "arn:aws:iam::test:user/ReposSync",
+            "CreateDate": "2018-08-16T13:32:10+00:00",
+            "GroupList": [],
+            "AttachedManagedPolicies": [
+                {
+                    "PolicyName": "AmazonS3FullAccess",
+                    "PolicyArn": "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+                }
+            ],
+            "Tags": []
+        },
+        {
+            "Path": "/",
+            "UserName": "SaltCloud",
+            "UserId": "user-345",
+            "Arn": "arn:aws:iam::test:user/SaltCloud",
+            "CreateDate": "2018-05-07T13:12:46+00:00",
+            "GroupList": [],
+            "AttachedManagedPolicies": [
+                {
+                    "PolicyName": "AmazonEC2FullAccess",
+                    "PolicyArn": "arn:aws:iam::aws:policy/AmazonEC2FullAccess"
+                },
+                {
+                    "PolicyName": "IAMFullAccess",
+                    "PolicyArn": "arn:aws:iam::aws:policy/IAMFullAccess"
+                },
+                {
+                    "PolicyName": "AmazonVPCFullAccess",
+                    "PolicyArn": "arn:aws:iam::aws:policy/AmazonVPCFullAccess"
+                },
+                {
+                    "PolicyName": "AmazonRoute53FullAccess",
+                    "PolicyArn": "arn:aws:iam::aws:policy/AmazonRoute53FullAccess"
+                }
+            ],
+            "Tags": []
+        }
+    ],
+    "GroupDetailList": [
+        {
+            "Path": "/",
+            "GroupName": "test_group",
+            "GroupId": "group-123",
+            "Arn": "arn:aws:iam::test:group/test_group",
+            "CreateDate": "2018-07-26T10:58:34+00:00",
+            "GroupPolicyList": [
+                {
+                    "PolicyName": "stsAssumeRole",
+                    "PolicyDocument": {
+                        "Version": "2012-10-17",
+                        "Statement": {
+                            "Effect": "Allow",
+                            "Action": "sts:AssumeRole",
+                            "Resource": "*"
+                        }
+                    }
+                }
+            ],
+            "AttachedManagedPolicies": [
+                {
+                    "PolicyName": "AmazonS3FullAccess",
+                    "PolicyArn": "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+                }
+            ]
+        }
+    ],
+    "RoleDetailList": [
+        {
+            "Path": "/",
+            "RoleName": "role1",
+            "RoleId": "role1",
+            "Arn": "arn:aws:iam::test:role/role1",
+            "CreateDate": "2020-04-04T01:55:36+00:00",
+            "Description": "Description of Role 1",
+            "MaxSessionDuration": 3600,
+            "PermissionsBoundary": {
+                "PermissionsBoundaryType": "PermissionsBoundaryPolicy",
+                "PermissionsBoundaryArn": "arn:aws:iam::test:policy/PermissionsBoundaryPolicy"
+            },
+            "RoleLastUsed": {
+                "LastUsedDate": "2020-04-04T01:55:36+00:00",
+                "Region": "us-east-1"
+            },
+            "AssumeRolePolicyDocument": {
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Sid": "",
+                        "Effect": "Allow",
+                        "Principal": {
+                            "Service": "ec2.amazonaws.com"
+                        },
+                        "Action": "sts:AssumeRole"
+                    }
+                ]
+            },
+            "InstanceProfileList": [
+                {
+                    "Path": "/",
+                    "InstanceProfileName": "role1-profile",
+                    "InstanceProfileId": "role1-profile",
+                    "Arn": "arn:aws:iam::test:instance-profile/role1-profile",
+                    "CreateDate": "2020-04-04T01:55:47+00:00",
+                    "Roles": [
+                        {
+                            "Path": "/",
+                            "RoleName": "test",
+                            "RoleId": "test",
+                            "Arn": "arn:aws:iam::test:role/test",
+                            "CreateDate": "2020-04-04T01:55:36+00:00",
+                            "AssumeRolePolicyDocument": {
+                                "Version": "2012-10-17",
+                                "Statement": [
+                                    {
+                                        "Sid": "",
+                                        "Effect": "Allow",
+                                        "Principal": {
+                                            "Service": "ec2.amazonaws.com"
+                                        },
+                                        "Action": "sts:AssumeRole"
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ],
+            "RolePolicyList": [
+                {
+                    "PolicyName": "april03-eng-production-prow-6c8a-node-policy",
+                    "PolicyDocument": {
+                        "Version": "2012-10-17",
+                        "Statement": [
+                            {
+                                "Sid": "KubernetesCloudProvider",
+                                "Action": [
+                                    "ec2:CreateTags",
+                                    "ec2:DeleteTags",
+                                    "ec2:DescribeTags",
+                                    "ec2:DescribeInstances",
+                                    "ec2:CreateVolume",
+                                    "ec2:DeleteVolume",
+                                    "ec2:AttachVolume",
+                                    "ec2:DetachVolume",
+                                    "ec2:DescribeVolumes",
+                                    "ec2:DescribeVolumeStatus",
+                                    "ec2:DescribeVolumeAttribute",
+                                    "ec2:CreateSnapshot",
+                                    "ec2:CopySnapshot",
+                                    "ec2:DeleteSnapshot",
+                                    "ec2:DescribeSnapshots",
+                                    "ec2:DescribeSnapshotAttribute",
+                                    "ec2:AuthorizeSecurityGroupIngress",
+                                    "ec2:CreateRoute",
+                                    "ec2:CreateSecurityGroup",
+                                    "ec2:DeleteSecurityGroup",
+                                    "ec2:DeleteRoute",
+                                    "ec2:DescribeRouteTables",
+                                    "ec2:DescribeSubnets",
+                                    "ec2:DescribeSecurityGroups",
+                                    "ec2:ModifyInstanceAttribute",
+                                    "ec2:RevokeSecurityGroupIngress",
+                                    "elasticloadbalancing:AttachLoadBalancerToSubnets",
+                                    "elasticloadbalancing:ApplySecurityGroupsToLoadBalancer",
+                                    "elasticloadbalancing:CreateLoadBalancer",
+                                    "elasticloadbalancing:CreateLoadBalancerPolicy",
+                                    "elasticloadbalancing:CreateLoadBalancerListeners",
+                                    "elasticloadbalancing:ConfigureHealthCheck",
+                                    "elasticloadbalancing:DeleteLoadBalancer",
+                                    "elasticloadbalancing:DeleteLoadBalancerListeners",
+                                    "elasticloadbalancing:DescribeLoadBalancers",
+                                    "elasticloadbalancing:DescribeLoadBalancerAttributes",
+                                    "elasticloadbalancing:DetachLoadBalancerFromSubnets",
+                                    "elasticloadbalancing:DeregisterInstancesFromLoadBalancer",
+                                    "elasticloadbalancing:ModifyLoadBalancerAttributes",
+                                    "elasticloadbalancing:RegisterInstancesWithLoadBalancer",
+                                    "elasticloadbalancing:SetLoadBalancerPoliciesForBackendServer"
+                                ],
+                                "Resource": "*",
+                                "Effect": "Allow"
+                            }
+                        ]
+                    }
+                }
+            ],
+            "AttachedManagedPolicies": [],
+            "Tags": []
+        },
+        {
+            "Path": "/",
+            "RoleName": "role3",
+            "RoleId": "role3",
+            "Arn": "arn:aws:iam::test:role/role3",
+            "CreateDate": "2020-04-08T02:10:04+00:00",
+            "AssumeRolePolicyDocument": {
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Sid": "",
+                        "Effect": "Allow",
+                        "Principal": {
+                            "Service": "ec2.amazonaws.com"
+                        },
+                        "Action": "sts:AssumeRole"
+                    }
+                ]
+            },
+            "InstanceProfileList": [
+                {
+                    "Path": "/",
+                    "InstanceProfileName": "node-profile",
+                    "InstanceProfileId": "node-profile",
+                    "Arn": "arn:aws:iam::test:instance-profile/node-profile",
+                    "CreateDate": "2020-04-08T02:10:07+00:00",
+                    "Roles": [
+                        {
+                            "Path": "/",
+                            "RoleName": "node-role",
+                            "RoleId": "node-role",
+                            "Arn": "arn:aws:iam::test:role/node-role",
+                            "CreateDate": "2020-04-08T02:10:04+00:00",
+                            "AssumeRolePolicyDocument": {
+                                "Version": "2012-10-17",
+                                "Statement": [
+                                    {
+                                        "Sid": "",
+                                        "Effect": "Allow",
+                                        "Principal": {
+                                            "Service": "ec2.amazonaws.com"
+                                        },
+                                        "Action": "sts:AssumeRole"
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ],
+            "RolePolicyList": [
+                {
+                    "PolicyName": "node-policy",
+                    "PolicyDocument": {
+                        "Version": "2012-10-17",
+                        "Statement": [
+                            {
+                                "Sid": "KubernetesCloudProvider",
+                                "Action": [
+                                    "ec2:CreateTags",
+                                    "ec2:DeleteTags",
+                                    "ec2:DescribeTags",
+                                    "ec2:DescribeInstances",
+                                    "ec2:CreateVolume",
+                                    "ec2:DeleteVolume",
+                                    "ec2:AttachVolume",
+                                    "ec2:DetachVolume",
+                                    "ec2:DescribeVolumes",
+                                    "ec2:DescribeVolumeStatus",
+                                    "ec2:DescribeVolumeAttribute",
+                                    "ec2:CreateSnapshot",
+                                    "ec2:CopySnapshot",
+                                    "ec2:DeleteSnapshot",
+                                    "ec2:DescribeSnapshots",
+                                    "ec2:DescribeSnapshotAttribute",
+                                    "ec2:AuthorizeSecurityGroupIngress",
+                                    "ec2:CreateRoute",
+                                    "ec2:CreateSecurityGroup",
+                                    "ec2:DeleteSecurityGroup",
+                                    "ec2:DeleteRoute",
+                                    "ec2:DescribeRouteTables",
+                                    "ec2:DescribeSubnets",
+                                    "ec2:DescribeSecurityGroups",
+                                    "ec2:ModifyInstanceAttribute",
+                                    "ec2:RevokeSecurityGroupIngress",
+                                    "elasticloadbalancing:AttachLoadBalancerToSubnets",
+                                    "elasticloadbalancing:ApplySecurityGroupsToLoadBalancer",
+                                    "elasticloadbalancing:CreateLoadBalancer",
+                                    "elasticloadbalancing:CreateLoadBalancerPolicy",
+                                    "elasticloadbalancing:CreateLoadBalancerListeners",
+                                    "elasticloadbalancing:ConfigureHealthCheck",
+                                    "elasticloadbalancing:DeleteLoadBalancer",
+                                    "elasticloadbalancing:DeleteLoadBalancerListeners",
+                                    "elasticloadbalancing:DescribeLoadBalancers",
+                                    "elasticloadbalancing:DescribeLoadBalancerAttributes",
+                                    "elasticloadbalancing:DetachLoadBalancerFromSubnets",
+                                    "elasticloadbalancing:DeregisterInstancesFromLoadBalancer",
+                                    "elasticloadbalancing:ModifyLoadBalancerAttributes",
+                                    "elasticloadbalancing:RegisterInstancesWithLoadBalancer",
+                                    "elasticloadbalancing:SetLoadBalancerPoliciesForBackendServer"
+                                ],
+                                "Resource": "*",
+                                "Effect": "Allow"
+                            }
+                        ]
+                    }
+                }
+            ],
+            "AttachedManagedPolicies": [],
+            "Tags": [],
+            "RoleLastUsed": {}
+        }
+    ],
+    "Policies": [
+        {
+            "PolicyName": "master-elb",
+            "PolicyId": "p123",
+            "Arn": "arn:aws:iam::test:policy/master-elb",
+            "Path": "/",
+            "DefaultVersionId": "v1",
+            "AttachmentCount": 1,
+            "PermissionsBoundaryUsageCount": 0,
+            "IsAttachable": true,
+            "CreateDate": "2018-06-28T10:29:53+00:00",
+            "UpdateDate": "2018-06-28T10:29:53+00:00",
+            "PolicyVersionList": [
+                {
+                    "Document": {
+                        "Version": "2012-10-17",
+                        "Statement": [
+                            {
+                                "Action": [
+                                    "elasticloadbalancing:DeregisterInstancesFromLoadBalancer",
+                                    "elasticloadbalancing:RegisterInstancesWithLoadBalancer"
+                                ],
+                                "Effect": "Allow",
+                                "Resource": [
+                                    "arn:aws:elasticloadbalancing:*:*:loadbalancer/redireu-master"
+                                ]
+                            },
+                            {
+                                "Action": [
+                                    "ec2:DescribeTags"
+                                ],
+                                "Effect": "Allow",
+                                "Resource": [
+                                    "*"
+                                ]
+                            }
+                        ]
+                    },
+                    "VersionId": "v1",
+                    "IsDefaultVersion": true,
+                    "CreateDate": "2018-06-28T10:29:53+00:00"
+                }
+            ]
+        },
+        {
+            "PolicyName": "public-elb",
+            "PolicyId": "p-234",
+            "Arn": "arn:aws:iam::test:policy/public-elb",
+            "Path": "/",
+            "DefaultVersionId": "v1",
+            "AttachmentCount": 1,
+            "PermissionsBoundaryUsageCount": 0,
+            "IsAttachable": true,
+            "CreateDate": "2018-06-28T10:20:47+00:00",
+            "UpdateDate": "2018-06-28T10:20:47+00:00",
+            "PolicyVersionList": [
+                {
+                    "Document": {
+                        "Version": "2012-10-17",
+                        "Statement": [
+                            {
+                                "Action": [
+                                    "elasticloadbalancing:DeregisterInstancesFromLoadBalancer",
+                                    "elasticloadbalancing:RegisterInstancesWithLoadBalancer"
+                                ],
+                                "Effect": "Allow",
+                                "Resource": [
+                                    "arn:aws:elasticloadbalancing:*:*:loadbalancer/redirus-slave-public"
+                                ]
+                            },
+                            {
+                                "Action": [
+                                    "ec2:DescribeTags"
+                                ],
+                                "Effect": "Allow",
+                                "Resource": [
+                                    "*"
+                                ]
+                            }
+                        ]
+                    },
+                    "VersionId": "v1",
+                    "IsDefaultVersion": true,
+                    "CreateDate": "2018-06-28T10:20:47+00:00"
+                }
+            ]
+        },
+        {
+            "PolicyName": "ReadOnlyPolicy",
+            "PolicyId": "preadonly",
+            "Arn": "arn:aws:iam::test:policy/ReadOnlyPolicy",
+            "Path": "/",
+            "DefaultVersionId": "v16",
+            "AttachmentCount": 2,
+            "PermissionsBoundaryUsageCount": 0,
+            "IsAttachable": true,
+            "CreateDate": "2018-05-03T17:09:40+00:00",
+            "UpdateDate": "2021-01-14T19:51:39+00:00",
+            "PolicyVersionList": [
+                {
+                    "Document": {
+                        "Version": "2012-10-17",
+                        "Statement": [
+                            {
+                                "Sid": "",
+                                "Effect": "Allow",
+                                "Action": [
+                                    "xray:Get*",
+                                    "xray:BatchGet*",
+                                    "workspaces:Describe*",
+                                    "workmail:Search*",
+                                    "workmail:List*",
+                                    "workmail:Get*",
+                                    "workmail:Describe*",
+                                    "workdocs:Get*",
+                                    "workdocs:Describe*",
+                                    "workdocs:CheckAlias",
+                                    "waf:List*",
+                                    "waf:Get*",
+                                    "waf-regional:List*",
+                                    "waf-regional:Get*",
+                                    "trustedadvisor:Describe*",
+                                    "tag:Get*",
+                                    "tag:Describe*",
+                                    "swf:List*",
+                                    "swf:Get*",
+                                    "swf:Describe*",
+                                    "swf:Count*",
+                                    "support:*",
+                                    "sts:Get*",
+                                    "storagegateway:List*",
+                                    "storagegateway:Describe*",
+                                    "states:List*",
+                                    "states:GetExecutionHistory",
+                                    "states:Describe*",
+                                    "ssm:List*",
+                                    "ssm:Get*",
+                                    "ssm:Describe*",
+                                    "sqs:Receive*",
+                                    "sqs:List*",
+                                    "sqs:Get*",
+                                    "sns:List*",
+                                    "sns:Get*",
+                                    "sns:Check*",
+                                    "shield:List*",
+                                    "shield:Describe*",
+                                    "ses:List*",
+                                    "ses:Get*",
+                                    "servicequotas:List*",
+                                    "servicequotas:Get*",
+                                    "servicecatalog:Search*",
+                                    "servicecatalog:Scan*",
+                                    "servicecatalog:List*",
+                                    "servicecatalog:Describe*",
+                                    "secretsmanager:List*",
+                                    "secretsmanager:Describe*",
+                                    "sdb:Select*",
+                                    "sdb:List*",
+                                    "sdb:Get*",
+                                    "sagemaker:ListTrainingJobs",
+                                    "sagemaker:ListTags",
+                                    "sagemaker:ListNotebookInstances",
+                                    "sagemaker:ListModels",
+                                    "sagemaker:ListEndpoints",
+                                    "sagemaker:ListEndpointConfigs",
+                                    "sagemaker:InvokeEndpoint",
+                                    "sagemaker:DescribeTrainingJob",
+                                    "sagemaker:DescribeNotebookInstance",
+                                    "sagemaker:DescribeModel",
+                                    "sagemaker:DescribeEndpointConfig",
+                                    "sagemaker:DescribeEndpoint",
+                                    "sagemaker:CreatePresignedNotebookInstanceUrl",
+                                    "s3:List*",
+                                    "s3:Head*",
+                                    "s3:Get*",
+                                    "route53domains:View*",
+                                    "route53domains:List*",
+                                    "route53domains:Get*",
+                                    "route53domains:Check*",
+                                    "route53:Test*",
+                                    "route53:List*",
+                                    "route53:Get*",
+                                    "resource-groups:Search*",
+                                    "resource-groups:List*",
+                                    "resource-groups:Get*",
+                                    "resource-explorer:List*",
+                                    "rekognition:Search*",
+                                    "rekognition:List*",
+                                    "rekognition:Detect*",
+                                    "rekognition:CompareFaces",
+                                    "redshift:View*",
+                                    "redshift:Get*",
+                                    "redshift:Describe*",
+                                    "rds:List*",
+                                    "rds:Download*",
+                                    "rds:Describe*",
+                                    "pricing:Get*",
+                                    "pricing:Describe*",
+                                    "polly:SynthesizeSpeech",
+                                    "polly:List*",
+                                    "polly:Get*",
+                                    "polly:Describe*",
+                                    "organizations:List*",
+                                    "organizations:Describe*",
+                                    "opsworks:Get*",
+                                    "opsworks:Describe*",
+                                    "opsworks-cm:Describe*",
+                                    "mobiletargeting:Get*",
+                                    "mobilehub:Verify*",
+                                    "mobilehub:Validate*",
+                                    "mobilehub:List*",
+                                    "mobilehub:Get*",
+                                    "mobileanalytics:Get*",
+                                    "machinelearning:Get*",
+                                    "machinelearning:Describe*",
+                                    "logs:TestMetricFilter",
+                                    "logs:ListTagsLogGroup",
+                                    "logs:Get*",
+                                    "logs:FilterLogEvents",
+                                    "logs:Describe*",
+                                    "lightsail:Is*",
+                                    "lightsail:Get*",
+                                    "lightsail:Download*",
+                                    "lex:Get*",
+                                    "lambda:List*",
+                                    "lambda:Get*",
+                                    "kms:List*",
+                                    "kms:Get*",
+                                    "kms:Describe*",
+                                    "kinesisanalytics:List*",
+                                    "kinesisanalytics:Discover*",
+                                    "kinesisanalytics:Describe*",
+                                    "kinesis:List*",
+                                    "kinesis:Get*",
+                                    "kinesis:Describe*",
+                                    "iot:List*",
+                                    "iot:Get*",
+                                    "iot:Describe*",
+                                    "inspector:Preview*",
+                                    "inspector:List*",
+                                    "inspector:Get*",
+                                    "inspector:Describe*",
+                                    "importexport:List*",
+                                    "importexport:Get*",
+                                    "iam:Simulate*",
+                                    "iam:List*",
+                                    "iam:Get*",
+                                    "iam:Generate*",
+                                    "health:Describe*",
+                                    "globalaccelerator:List*",
+                                    "globalaccelerator:Describe*",
+                                    "glacier:List*",
+                                    "glacier:Get*",
+                                    "glacier:Describe*",
+                                    "gamelift:Search*",
+                                    "gamelift:ResolveAlias",
+                                    "gamelift:RequestUploadCredentials",
+                                    "gamelift:List*",
+                                    "gamelift:Get*",
+                                    "gamelift:Describe*",
+                                    "firehose:List*",
+                                    "firehose:Describe*",
+                                    "events:Test*",
+                                    "events:List*",
+                                    "events:Describe*",
+                                    "es:List*",
+                                    "es:ESHttpHead",
+                                    "es:ESHttpGet",
+                                    "es:Describe*",
+                                    "elastictranscoder:Read*",
+                                    "elastictranscoder:List*",
+                                    "elasticmapreduce:View*",
+                                    "elasticmapreduce:List*",
+                                    "elasticmapreduce:Describe*",
+                                    "elasticloadbalancing:Describe*",
+                                    "elasticfilesystem:Describe*",
+                                    "elasticbeanstalk:Validate*",
+                                    "elasticbeanstalk:Retrieve*",
+                                    "elasticbeanstalk:Request*",
+                                    "elasticbeanstalk:List*",
+                                    "elasticbeanstalk:Describe*",
+                                    "elasticbeanstalk:Check*",
+                                    "elasticache:List*",
+                                    "elasticache:Describe*",
+                                    "eks:List*",
+                                    "eks:Describe*",
+                                    "ecs:List*",
+                                    "ecs:Describe*",
+                                    "ecr:ListImages",
+                                    "ecr:List*",
+                                    "ecr:GetRepositoryPolicy",
+                                    "ecr:GetDownloadUrlForLayer",
+                                    "ecr:GetAuthorizationToken",
+                                    "ecr:Get*",
+                                    "ecr:DescribeRepositories",
+                                    "ecr:DescribeImages",
+                                    "ecr:Describe*",
+                                    "ecr:BatchGetImage",
+                                    "ecr:BatchGet*",
+                                    "ecr:BatchCheckLayerAvailability",
+                                    "ecr:BatchCheck*",
+                                    "ec2messages:Get*",
+                                    "ec2:Get*",
+                                    "ec2:Describe*",
+                                    "dynamodb:Scan",
+                                    "dynamodb:Query",
+                                    "dynamodb:List*",
+                                    "dynamodb:Get*",
+                                    "dynamodb:Describe*",
+                                    "dynamodb:BatchGet*",
+                                    "ds:Verify*",
+                                    "ds:List*",
+                                    "ds:Get*",
+                                    "ds:Describe*",
+                                    "ds:Check*",
+                                    "dms:Test*",
+                                    "dms:List*",
+                                    "dms:Describe*",
+                                    "discovery:List*",
+                                    "discovery:Get*",
+                                    "discovery:Describe*",
+                                    "directconnect:Describe*",
+                                    "directconnect:Confirm*",
+                                    "devicefarm:List*",
+                                    "devicefarm:Get*",
+                                    "datasync:List*",
+                                    "datasync:Describe*",
+                                    "datapipeline:Validate*",
+                                    "datapipeline:QueryObjects",
+                                    "datapipeline:List*",
+                                    "datapipeline:Get*",
+                                    "datapipeline:EvaluateExpression",
+                                    "datapipeline:Describe*",
+                                    "connect:List*",
+                                    "connect:Get*",
+                                    "connect:Describe*",
+                                    "config:List*",
+                                    "config:Get*",
+                                    "config:Describe*",
+                                    "config:Deliver*",
+                                    "compute-optimizer:Get*",
+                                    "cognito-sync:QueryRecords",
+                                    "cognito-sync:List*",
+                                    "cognito-sync:Get*",
+                                    "cognito-sync:Describe*",
+                                    "cognito-idp:List*",
+                                    "cognito-idp:Get*",
+                                    "cognito-idp:Describe*",
+                                    "cognito-idp:AdminList*",
+                                    "cognito-identity:Lookup*",
+                                    "cognito-identity:List*",
+                                    "cognito-identity:Describe*",
+                                    "codestar:List*",
+                                    "codestar:Get*",
+                                    "codestar:Describe*",
+                                    "codepipeline:List*",
+                                    "codepipeline:Get*",
+                                    "codedeploy:List*",
+                                    "codedeploy:Get*",
+                                    "codedeploy:BatchGet*",
+                                    "codecommit:List*",
+                                    "codecommit:GitPull",
+                                    "codecommit:Get*",
+                                    "codecommit:BatchGet*",
+                                    "codebuild:List*",
+                                    "codebuild:BatchGet*",
+                                    "cloudwatch:List*",
+                                    "cloudwatch:Get*",
+                                    "cloudwatch:Describe*",
+                                    "cloudtrail:LookupEvents",
+                                    "cloudtrail:ListTags",
+                                    "cloudtrail:ListPublicKeys",
+                                    "cloudtrail:GetTrailStatus",
+                                    "cloudtrail:GetEventSelectors",
+                                    "cloudtrail:DescribeTrails",
+                                    "cloudsearch:List*",
+                                    "cloudsearch:Describe*",
+                                    "cloudhsm:List*",
+                                    "cloudhsm:Get*",
+                                    "cloudhsm:Describe*",
+                                    "cloudfront:List*",
+                                    "cloudfront:Get*",
+                                    "cloudformation:Validate*",
+                                    "cloudformation:List*",
+                                    "cloudformation:Get*",
+                                    "cloudformation:Estimate*",
+                                    "cloudformation:Detect*",
+                                    "cloudformation:Describe*",
+                                    "clouddirectory:LookupPolicy",
+                                    "clouddirectory:List*",
+                                    "clouddirectory:Get*",
+                                    "clouddirectory:BatchRead",
+                                    "batch:List*",
+                                    "batch:Describe*",
+                                    "autoscaling:Describe*",
+                                    "athena:List*",
+                                    "athena:Get*",
+                                    "athena:Batch*",
+                                    "appstream:List*",
+                                    "appstream:Get*",
+                                    "appstream:Describe*",
+                                    "application-autoscaling:Describe*",
+                                    "apigateway:GET",
+                                    "acm:List*",
+                                    "acm:Get*",
+                                    "acm:Describe*"
+                                ],
+                                "Resource": "*"
+                            }
+                        ]
+                    },
+                    "VersionId": "v16",
+                    "IsDefaultVersion": true,
+                    "CreateDate": "2021-01-14T19:51:39+00:00"
+                }
+            ]
+        },
+        {
+            "PolicyName": "salt-rexray",
+            "PolicyId": "p4567",
+            "Arn": "arn:aws:iam::test:policy/salt-rexray",
+            "Path": "/",
+            "DefaultVersionId": "v1",
+            "AttachmentCount": 9,
+            "PermissionsBoundaryUsageCount": 0,
+            "IsAttachable": true,
+            "CreateDate": "2018-05-07T15:04:26+00:00",
+            "UpdateDate": "2018-05-07T15:04:26+00:00",
+            "PolicyVersionList": [
+                {
+                    "Document": {
+                        "Version": "2012-10-17",
+                        "Statement": [
+                            {
+                                "Action": [
+                                    "ec2:CreateTags",
+                                    "ec2:DescribeInstances",
+                                    "ec2:CreateVolume",
+                                    "ec2:DeleteVolume",
+                                    "ec2:AttachVolume",
+                                    "ec2:DetachVolume",
+                                    "ec2:DescribeVolumes",
+                                    "ec2:DescribeVolumeStatus",
+                                    "ec2:DescribeVolumeAttribute",
+                                    "ec2:CreateSnapshot",
+                                    "ec2:CopySnapshot",
+                                    "ec2:DeleteSnapshot",
+                                    "ec2:DescribeSnapshots",
+                                    "ec2:DescribeSnapshotAttribute"
+                                ],
+                                "Effect": "Allow",
+                                "Resource": [
+                                    "*"
+                                ]
+                            }
+                        ]
+                    },
+                    "VersionId": "v1",
+                    "IsDefaultVersion": true,
+                    "CreateDate": "2018-05-07T15:04:26+00:00"
+                }
+            ]
+        }
+    ]
+}

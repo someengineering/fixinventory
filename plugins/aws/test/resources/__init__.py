@@ -69,11 +69,11 @@ def all_props_set(obj: AWSResourceType, ignore_props: Set[str]) -> None:
             | ignore_props
         ):
             if getattr(obj, prop) is None:
-                raise Exception(f"Prop >{prop}< is not set")
+                raise Exception(f"Prop >{prop}< is not set: {obj}")
 
 
 def round_trip(
-    file: str, cls: Type[AWSResourceType], root: str, ignore_props: Optional[Set[str]] = None
+    file: str, cls: Type[AWSResourceType], root: Optional[str] = None, ignore_props: Optional[Set[str]] = None
 ) -> Tuple[AWSResourceType, GraphBuilder]:
     path = os.path.abspath(os.path.dirname(__file__) + "/files/" + file)
     config = AwsConfig()
@@ -82,7 +82,8 @@ def round_trip(
     builder = GraphBuilder(Graph(), Cloud("test"), AwsAccount("test"), AwsRegion("test"), client)
     with open(path) as f:
         js = json.load(f)
-        cls.collect(js[root], builder)
+        js = js[root] if root else [js]
+        cls.collect(js, builder)
     assert len(builder.graph.nodes) > 0
     for node, data in builder.graph.nodes(data=True):
         assert isinstance(node, AwsResource), f"Expect AWSResource but got: {type(node)}: {node}"
