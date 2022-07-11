@@ -90,6 +90,10 @@ def image_id(value: str) -> str:
     return f"do:image:{value}"
 
 
+def size_id(value: str) -> str:
+    return f"do:size:{value}"
+
+
 def space_id(value: str) -> str:
     return f"do:space:{value}"
 

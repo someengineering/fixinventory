@@ -11,6 +11,7 @@ from resotolib.types import Json
 from .client import StreamingWrapper
 from .resources import (
     DigitalOceanDroplet,
+    DigitalOceanDropletSize,
     DigitalOceanProject,
     DigitalOceanRegion,
     DigitalOceanTeam,
@@ -50,6 +51,7 @@ from .utils import (
     floatingip_id,
     database_id,
     image_id,
+    size_id,
     space_id,
     app_id,
     cdn_endpoint_id,
@@ -80,7 +82,7 @@ metrics_collect_spaces = Summary(
     "resoto_plugin_digitalocean_collect_spaces_seconds",
     "Time it took the collect_spaces() method",
 )
-metrics_collect_intances = Summary(
+metrics_collect_droplets = Summary(
     "resoto_plugin_digitalocean_collect_droplets_seconds",
     "Time it took the collect_droplets() method",
 )
@@ -152,6 +154,9 @@ metrics_collect_alert_policies = Summary(
     "resoto_plugin_digitalocean_collect_alert_policies_seconds",
     "Time it took the collect_alert_policies() method",
 )
+metrics_collect_droplet_sizes = Summary(
+    "resoto_plugin_digitalocean_collect_droplet_sizes_seconds", "Time it took the collect_droplet_sizes() method"
+)
 
 
 class DigitalOceanTeamCollector:
@@ -180,7 +185,7 @@ class DigitalOceanTeamCollector:
         self.global_collectors: List[Tuple[str, Callable[..., None]]] = [
             ("tags", self.collect_tags),
             ("vpcs", self.collect_vpcs),
-            ("instances", self.collect_instances),
+            ("instances", self.collect_droplets),
             ("volumes", self.collect_volumes),
             ("databases", self.collect_databases),
             ("k8s_clusters", self.collect_k8s_clusters),
@@ -416,8 +421,8 @@ class DigitalOceanTeamCollector:
                             else:
                                 log.error(f"Key {search_result_name} is missing in search_map")
 
-    @metrics_collect_intances.time()  # type: ignore
-    def collect_instances(self) -> None:
+    @metrics_collect_droplets.time()  # type: ignore
+    def collect_droplets(self) -> None:
         instances = self.client.list_droplets()
 
         def get_image(droplet: Json) -> Json:
@@ -425,17 +430,17 @@ class DigitalOceanTeamCollector:
             image["region"] = droplet["region"]["slug"]
             return cast(Json, image)
 
-        def remove_duplicates(images: List[Json]) -> List[Json]:
+        def remove_duplicates(resources: List[Json], id_field: str) -> List[Json]:
             seen_ids = set()
-            unique_images = []
-            for image in images:
-                if image["id"] not in seen_ids:
-                    unique_images.append(image)
-                    seen_ids.add(image["id"])
-            return unique_images
+            unique = []
+            for resource in resources:
+                if resource[id_field] not in seen_ids:
+                    unique.append(resource)
+                    seen_ids.add(resource[id_field])
+            return unique
 
         images = [get_image(instance) for instance in instances]
-        images = remove_duplicates(images)
+        images = remove_duplicates(images, "id")
 
         self.collect_resource(
             images,
@@ -463,6 +468,31 @@ class DigitalOceanTeamCollector:
                 EdgeType.default: ["__tags"],
             },
         )
+
+        def get_size(droplet: Json) -> Json:
+            size = droplet["size"]
+            size["region"] = droplet["region"]["slug"]
+            return cast(Json, size)
+
+        sizes = [get_size(instance) for instance in instances]
+        sizes = remove_duplicates(sizes, "slug")
+
+        self.collect_resource(
+            sizes,
+            resource_class=DigitalOceanDropletSize,
+            attr_map={
+                "id": "slug",
+                "urn": lambda s: size_id(s["slug"]),
+                "instance_type": "slug",
+                "instance_cores": "vcpus",
+                "instance_memory": lambda d: d["memory"] / 1024.0,
+                "ondemand_cost": "price_hourly",
+            },
+            search_map={
+                "_region": ["urn", lambda image: region_id(image["region"])],
+            },
+        )
+
         instance_status_map: Dict[str, InstanceStatus] = {
             "new": InstanceStatus.BUSY,
             "active": InstanceStatus.RUNNING,
@@ -490,13 +520,14 @@ class DigitalOceanTeamCollector:
                 ],
                 "__vpcs": ["urn", lambda droplet: vpc_id(droplet["vpc_uuid"])],
                 "__images": ["urn", lambda droplet: image_id(droplet["image"]["id"])],
+                "__sizes": ["urn", lambda droplet: size_id(droplet["size"]["slug"])],
                 "__tags": [
                     "urn",
                     lambda d: list(map(lambda tag: tag_id(tag), d.get("tags", []))),
                 ],
             },
             predecessors={
-                EdgeType.default: ["__vpcs", "__images", "__tags"],
+                EdgeType.default: ["__vpcs", "__images", "__sizes", "__tags"],
                 EdgeType.delete: ["__vpcs"],
             },
         )
