@@ -475,16 +475,20 @@ models: Dict[str, List[AwsResotoModel]] = {
         #     prefix="Alb",
         # ),
     ],
-    "s3": [AwsResotoModel("list-buckets", "Buckets", "Bucket", prefix="S3", prop_prefix="s3_")],
+    "s3": [
+        # AwsResotoModel(
+        #     "list-buckets", "Buckets", "Bucket", prefix="S3", prop_prefix="s3_"
+        # )
+    ],
     "cloudwatch": [
         AwsResotoModel(
             "describe-alarms",
             "Alarms",
             "MetricAlarm",
             prefix="Cloudwatch",
-            prop_prefix="cloudwatch_"
+            prop_prefix="cloudwatch_",
         )
-    ]
+    ],
 }
 
 
