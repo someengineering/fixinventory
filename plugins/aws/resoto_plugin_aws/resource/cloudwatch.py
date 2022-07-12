@@ -1,9 +1,10 @@
 from datetime import datetime
 from typing import ClassVar, Dict, List, Optional, Type
 from attr import define, field
-from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource
-from resotolib.baseresources import BaseAccount  # noqa: F401
+from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
+from resotolib.baseresources import BaseAccount, EdgeType  # noqa: F401
 from resotolib.json_bender import S, Bend, Bender, ForallBend
+from resotolib.types import Json
 
 
 @define(eq=False, slots=False)
@@ -122,6 +123,14 @@ class AwsCloudwatchAlarm(AwsResource):
     cloudwatch_evaluate_low_sample_count_percentile: Optional[str] = field(default=None)
     cloudwatch_metrics: List[AwsCloudwatchMetricDataQuery] = field(factory=list)
     cloudwatch_threshold_metric_id: Optional[str] = field(default=None)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        super().connect_in_graph(builder, source)
+        for dimension in self.cloudwatch_dimensions:
+            instance_id = dimension.value
+            instance = builder.graph.search_first_all({"kind": "aws_ec2_instance", "id": instance_id})
+            builder.add_edge(from_node=instance, edge_type=EdgeType.default, to_node=self)
+            builder.add_edge(from_node=instance, edge_type=EdgeType.delete, to_node=self)
 
 
 resources: List[Type[AwsResource]] = [AwsCloudwatchAlarm]
