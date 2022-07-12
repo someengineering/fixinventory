@@ -126,7 +126,7 @@ jobs:
           GITHUB_REF="${{ github.ref }}"
           GITHUB_TAG=${GITHUB_REF##*/}
           if [ "${{ github.ref_type }}" = tag ]; then
-              echo "::set-output name=targets::linux/amd64"
+              echo "::set-output name=targets::linux/amd64,linux/arm64"
               echo "::set-output name=uitag::latest"
               if [[ "$GITHUB_TAG" =~ [0-9]([ab]|rc)[0-9]* ]]; then
                 echo "::set-output name=latest::false"
