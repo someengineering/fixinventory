@@ -17,11 +17,7 @@ log = logging.getLogger("resoto.plugins.aws")
 
 
 global_resources: List[Type[AwsResource]] = (
-    iam.resources
-    + route53.resources
-    + ec2.global_resources
-    + s3.resources
-    + cloudwatch.resources
+    iam.resources + route53.resources + ec2.global_resources + s3.resources + cloudwatch.resources
 )
 regional_resources: List[Type[AwsResource]] = ec2.resources + elbv2.resources + autoscaling.resources
 all_resources: List[Type[AwsResource]] = global_resources + regional_resources

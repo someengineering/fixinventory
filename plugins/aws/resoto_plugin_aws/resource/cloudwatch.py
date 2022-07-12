@@ -20,8 +20,7 @@ class AwsCloudwatchMetric:
     mapping: ClassVar[Dict[str, Bender]] = {
         "namespace": S("Namespace"),
         "metric_name": S("MetricName"),
-        "dimensions": S("Dimensions", default=[])
-        >> ForallBend(AwsCloudwatchDimension.mapping),
+        "dimensions": S("Dimensions", default=[]) >> ForallBend(AwsCloudwatchDimension.mapping),
     }
     namespace: Optional[str] = field(default=None)
     metric_name: Optional[str] = field(default=None)
@@ -67,9 +66,7 @@ class AwsCloudwatchMetricDataQuery:
 @define(eq=False, slots=False)
 class AwsCloudwatchAlarm(AwsResource, BaseResource):
     kind: ClassVar[str] = "aws_cloudwatch_alarm"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
-        "cloudwatch", "describe-alarms", "MetricAlarms"
-    )
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudwatch", "describe-alarms", "MetricAlarms")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("AlarmName"),
         "name": S("AlarmName"),
@@ -79,9 +76,7 @@ class AwsCloudwatchAlarm(AwsResource, BaseResource):
         "cloudwatch_actions_enabled": S("ActionsEnabled"),
         "cloudwatch_ok_actions": S("OKActions", default=[]),
         "cloudwatch_alarm_actions": S("AlarmActions", default=[]),
-        "cloudwatch_insufficient_data_actions": S(
-            "InsufficientDataActions", default=[]
-        ),
+        "cloudwatch_insufficient_data_actions": S("InsufficientDataActions", default=[]),
         "cloudwatch_state_value": S("StateValue"),
         "cloudwatch_state_reason": S("StateReason"),
         "cloudwatch_state_reason_data": S("StateReasonData"),
@@ -90,8 +85,7 @@ class AwsCloudwatchAlarm(AwsResource, BaseResource):
         "cloudwatch_namespace": S("Namespace"),
         "cloudwatch_statistic": S("Statistic"),
         "cloudwatch_extended_statistic": S("ExtendedStatistic"),
-        "cloudwatch_dimensions": S("Dimensions", default=[])
-        >> ForallBend(AwsCloudwatchDimension.mapping),
+        "cloudwatch_dimensions": S("Dimensions", default=[]) >> ForallBend(AwsCloudwatchDimension.mapping),
         "cloudwatch_period": S("Period"),
         "cloudwatch_unit": S("Unit"),
         "cloudwatch_evaluation_periods": S("EvaluationPeriods"),
@@ -99,11 +93,8 @@ class AwsCloudwatchAlarm(AwsResource, BaseResource):
         "cloudwatch_threshold": S("Threshold"),
         "cloudwatch_comparison_operator": S("ComparisonOperator"),
         "cloudwatch_treat_missing_data": S("TreatMissingData"),
-        "cloudwatch_evaluate_low_sample_count_percentile": S(
-            "EvaluateLowSampleCountPercentile"
-        ),
-        "cloudwatch_metrics": S("Metrics", default=[])
-        >> ForallBend(AwsCloudwatchMetricDataQuery.mapping),
+        "cloudwatch_evaluate_low_sample_count_percentile": S("EvaluateLowSampleCountPercentile"),
+        "cloudwatch_metrics": S("Metrics", default=[]) >> ForallBend(AwsCloudwatchMetricDataQuery.mapping),
         "cloudwatch_threshold_metric_id": S("ThresholdMetricId"),
     }
     cloudwatch_alarm_arn: Optional[str] = field(default=None)
