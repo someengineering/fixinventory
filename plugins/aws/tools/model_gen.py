@@ -336,13 +336,13 @@ models: Dict[str, List[AwsResotoModel]] = {
         # AwsResotoModel("list-data-catalogs", "DataCatalogsSummary", "DataCatalogSummary", prefix="Athena"),
     ],
     "autoscaling": [
-        AwsResotoModel(
-            "describe-auto-scaling-groups",
-            "AutoScalingGroupName",
-            "AutoScalingGroup",
-            prefix="AutoScaling",
-            prop_prefix="autoscaling_",
-        ),
+        # AwsResotoModel(
+        #     "describe-auto-scaling-groups",
+        #     "AutoScalingGroupName",
+        #     "AutoScalingGroup",
+        #     prefix="AutoScaling",
+        #     prop_prefix="autoscaling_",
+        # ),
     ],
     "ec2": [
         # AwsResotoModel(
@@ -356,13 +356,13 @@ models: Dict[str, List[AwsResotoModel]] = {
         # AwsResotoModel("describe-key-pairs", "KeyPairs", "KeyPairInfo", prefix="Ec2"),
         # AwsResotoModel("describe-volumes", "Volumes", "Volume", base="BaseVolume", prefix="Ec2"),
         # AwsResotoModel("describe_addresses", "Addresses", "Address", prefix="Ec2"),
-        AwsResotoModel(
-            "describe-instance-types",
-            "InstanceTypes",
-            "InstanceTypeInfo",
-            prefix="Ec2",
-            prop_prefix="reservation_",
-        ),
+        # AwsResotoModel(
+        #     "describe-instance-types",
+        #     "InstanceTypes",
+        #     "InstanceTypeInfo",
+        #     prefix="Ec2",
+        #     prop_prefix="reservation_",
+        # ),
         # AwsResotoModel(
         #     "describe_reserved_instances",
         #     "ReservedInstances",
@@ -390,13 +390,13 @@ models: Dict[str, List[AwsResotoModel]] = {
         #     prefix="Iam",
         #     prop_prefix="server_certificate_",
         # ),
-        AwsResotoModel(
-            "get-account-authorization-details",
-            "GetAccountAuthorizationDetailsResult",
-            "GetAccountAuthorizationDetailsResponse",
-            prefix="Iam",
-            prop_prefix="policy_",
-        ),
+        # AwsResotoModel(
+        #     "get-account-authorization-details",
+        #     "GetAccountAuthorizationDetailsResult",
+        #     "GetAccountAuthorizationDetailsResponse",
+        #     prefix="Iam",
+        #     prop_prefix="policy_",
+        # ),
         # AwsResotoModel(
         #     "get-account-authorization-details",
         #     "GetAccountAuthorizationDetailsResult",
@@ -476,6 +476,15 @@ models: Dict[str, List[AwsResotoModel]] = {
         # ),
     ],
     "s3": [AwsResotoModel("list-buckets", "Buckets", "Bucket", prefix="S3", prop_prefix="s3_")],
+    "cloudwatch": [
+        AwsResotoModel(
+            "describe-alarms",
+            "Alarms",
+            "MetricAlarm",
+            prefix="Cloudwatch",
+            prop_prefix="cloudwatch_"
+        )
+    ]
 }
 
 
