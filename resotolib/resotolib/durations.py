@@ -16,7 +16,7 @@ from resotolib.parse_util import lexeme, float_p, integer_p
 # | output | all names | number of seconds |
 time_units = [
     ("yr", ["years", "year", "yr", "y"], 365 * 24 * 3600),
-    ("mo", ["month", "mo", "M"], 31 * 24 * 3600),
+    ("mo", ["months", "month", "mo", "M"], 31 * 24 * 3600),
     ("d", ["days", "day", "d"], 24 * 3600),
     (None, ["weeks", "week", "w"], 7 * 24 * 3600),  # output is none, so it will not be used to print
     ("h", ["hours", "hour", "h"], 3600),
