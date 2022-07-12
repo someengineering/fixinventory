@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import ClassVar, Dict, List, Optional, Type
 from attr import define, field
 from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource
-from resotolib.baseresources import BaseAccount, BaseResource  # noqa: F401
+from resotolib.baseresources import BaseAccount  # noqa: F401
 from resotolib.json_bender import S, Bend, Bender, ForallBend
 
 
@@ -64,14 +64,14 @@ class AwsCloudwatchMetricDataQuery:
 
 
 @define(eq=False, slots=False)
-class AwsCloudwatchAlarm(AwsResource, BaseResource):
+class AwsCloudwatchAlarm(AwsResource):
     kind: ClassVar[str] = "aws_cloudwatch_alarm"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudwatch", "describe-alarms", "MetricAlarms")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("AlarmName"),
         "name": S("AlarmName"),
         "mtime": S("AlarmConfigurationUpdatedTimestamp"),
-        "cloudwatch_alarm_arn": S("AlarmArn"),
+        "arn": S("AlarmArn"),
         "cloudwatch_alarm_description": S("AlarmDescription"),
         "cloudwatch_actions_enabled": S("ActionsEnabled"),
         "cloudwatch_ok_actions": S("OKActions", default=[]),
@@ -97,7 +97,7 @@ class AwsCloudwatchAlarm(AwsResource, BaseResource):
         "cloudwatch_metrics": S("Metrics", default=[]) >> ForallBend(AwsCloudwatchMetricDataQuery.mapping),
         "cloudwatch_threshold_metric_id": S("ThresholdMetricId"),
     }
-    cloudwatch_alarm_arn: Optional[str] = field(default=None)
+    arn: Optional[str] = field(default=None)
     cloudwatch_alarm_description: Optional[str] = field(default=None)
     cloudwatch_actions_enabled: Optional[bool] = field(default=None)
     cloudwatch_ok_actions: List[str] = field(factory=list)
