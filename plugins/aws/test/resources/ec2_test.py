@@ -11,6 +11,7 @@ from resoto_plugin_aws.resource.ec2 import (
     AwsEc2Subnet,
     AwsEc2SecurityGroup,
     AwsEc2NatGateway,
+    AwsEc2InternetGateway,
 )
 from test.resources import round_trip_for, build_from_file, check_single_node
 
@@ -65,3 +66,7 @@ def test_security_groups() -> None:
 
 def test_nat_gateways() -> None:
     round_trip_for(AwsEc2NatGateway)
+
+
+def test_internet_gateways() -> None:
+    round_trip_for(AwsEc2InternetGateway)

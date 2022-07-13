@@ -517,13 +517,13 @@ class AwsEc2InstanceNetworkInterfaceAssociation:
     mapping: ClassVar[Dict[str, Bender]] = {
         "carrier_ip": S("CarrierIp"),
         "customer_owned_ip": S("CustomerOwnedIp"),
-        "ip_owner_id": S("IpOwnerId"),
+        "owner_id": S("IpOwnerId"),
         "public_dns_name": S("PublicDnsName"),
         "public_ip": S("PublicIp"),
     }
     carrier_ip: Optional[str] = field(default=None)
     customer_owned_ip: Optional[str] = field(default=None)
-    ip_owner_id: Optional[str] = field(default=None)
+    owner_id: Optional[str] = field(default=None)
     public_dns_name: Optional[str] = field(default=None)
     public_ip: Optional[str] = field(default=None)
 
@@ -1005,7 +1005,7 @@ class AwsEc2ElasticIp(AwsResource, BaseIPAddress):
         "ip_association_id": S("AssociationId"),
         "ip_domain": S("Domain"),
         "ip_network_interface_id": S("NetworkInterfaceId"),
-        "ip_network_interface_owner_id": S("NetworkInterfaceOwnerId"),
+        # "owner_id": S("NetworkInterfaceOwnerId"),
         "ip_public_ipv4_pool": S("PublicIpv4Pool"),
         "ip_network_border_group": S("NetworkBorderGroup"),
         "ip_customer_owned_ip": S("CustomerOwnedIp"),
@@ -1018,7 +1018,6 @@ class AwsEc2ElasticIp(AwsResource, BaseIPAddress):
     ip_association_id: Optional[str] = field(default=None)
     ip_domain: Optional[str] = field(default=None)
     ip_network_interface_id: Optional[str] = field(default=None)
-    ip_network_interface_owner_id: Optional[str] = field(default=None)
     ip_public_ipv4_pool: Optional[str] = field(default=None)
     ip_network_border_group: Optional[str] = field(default=None)
     ip_customer_owned_ip: Optional[str] = field(default=None)
@@ -1044,7 +1043,7 @@ class AwsEc2NetworkInterfaceAssociation:
     mapping: ClassVar[Dict[str, Bender]] = {
         "allocation_id": S("AllocationId"),
         "association_id": S("AssociationId"),
-        "ip_owner_id": S("IpOwnerId"),
+        # "owner_id": S("IpOwnerId"),
         "public_dns_name": S("PublicDnsName"),
         "public_ip": S("PublicIp"),
         "customer_owned_ip": S("CustomerOwnedIp"),
@@ -1052,7 +1051,6 @@ class AwsEc2NetworkInterfaceAssociation:
     }
     allocation_id: Optional[str] = field(default=None)
     association_id: Optional[str] = field(default=None)
-    ip_owner_id: Optional[str] = field(default=None)
     public_dns_name: Optional[str] = field(default=None)
     public_ip: Optional[str] = field(default=None)
     customer_owned_ip: Optional[str] = field(default=None)
@@ -1069,7 +1067,7 @@ class AwsEc2NetworkInterfaceAttachment:
         "device_index": S("DeviceIndex"),
         "network_card_index": S("NetworkCardIndex"),
         "instance_id": S("InstanceId"),
-        "instance_owner_id": S("InstanceOwnerId"),
+        # "owner_id": S("InstanceOwnerId"),
         "status": S("Status"),
     }
     attach_time: Optional[datetime] = field(default=None)
@@ -1078,7 +1076,6 @@ class AwsEc2NetworkInterfaceAttachment:
     device_index: Optional[int] = field(default=None)
     network_card_index: Optional[int] = field(default=None)
     instance_id: Optional[str] = field(default=None)
-    instance_owner_id: Optional[str] = field(default=None)
     status: Optional[str] = field(default=None)
 
 
@@ -1130,7 +1127,7 @@ class AwsEc2NetworkInterface(AwsResource, BaseNetworkInterface):
         "nic_availability_zone": S("AvailabilityZone"),
         "nic_groups": S("Groups", default=[]) >> ForallBend(AwsEc2GroupIdentifier.mapping),
         "nic_outpost_arn": S("OutpostArn"),
-        "nic_owner_id": S("OwnerId"),
+        # "owner_id": S("OwnerId"),
         "nic_private_dns_name": S("PrivateDnsName"),
         "nic_private_ip_address": S("PrivateIpAddress"),
         "nic_private_ip_addresses": S("PrivateIpAddresses", default=[])
@@ -1151,7 +1148,6 @@ class AwsEc2NetworkInterface(AwsResource, BaseNetworkInterface):
     nic_availability_zone: Optional[str] = field(default=None)
     nic_groups: List[AwsEc2GroupIdentifier] = field(factory=list)
     nic_outpost_arn: Optional[str] = field(default=None)
-    nic_owner_id: Optional[str] = field(default=None)
     nic_private_dns_name: Optional[str] = field(default=None)
     nic_private_ip_address: Optional[str] = field(default=None)
     nic_private_ip_addresses: List[AwsEc2NetworkInterfacePrivateIpAddress] = field(factory=list)
@@ -1234,7 +1230,7 @@ class AwsEc2Vpc(AwsResource, BaseNetwork):
         "vpc_cidr_block": S("CidrBlock"),
         "vpc_dhcp_options_id": S("DhcpOptionsId"),
         "vpc_state": S("State"),
-        "vpc_owner_id": S("OwnerId"),
+        # "owner_id": S("OwnerId"),
         "vpc_instance_tenancy": S("InstanceTenancy"),
         "vpc_ipv6_cidr_block_association_set": S("Ipv6CidrBlockAssociationSet", default=[])
         >> ForallBend(AwsEc2VpcIpv6CidrBlockAssociation.mapping),
@@ -1245,7 +1241,6 @@ class AwsEc2Vpc(AwsResource, BaseNetwork):
     vpc_cidr_block: Optional[str] = field(default=None)
     vpc_dhcp_options_id: Optional[str] = field(default=None)
     vpc_state: Optional[str] = field(default=None)
-    vpc_owner_id: Optional[str] = field(default=None)
     vpc_instance_tenancy: Optional[str] = field(default=None)
     vpc_ipv6_cidr_block_association_set: List[AwsEc2VpcIpv6CidrBlockAssociation] = field(factory=list)
     vpc_cidr_block_association_set: List[AwsEc2VpcCidrBlockAssociation] = field(factory=list)
@@ -1311,7 +1306,7 @@ class AwsEc2Subnet(AwsResource, BaseSubnet):
         "subnet_customer_owned_ipv4_pool": S("CustomerOwnedIpv4Pool"),
         "subnet_state": S("State"),
         # "subnet_vpc_id": S("VpcId"),
-        "subnet_owner_id": S("OwnerId"),
+        # "owner_id": S("OwnerId"),
         "subnet_assign_ipv6_address_on_creation": S("AssignIpv6AddressOnCreation"),
         "subnet_ipv6_cidr_block_association_set": S("Ipv6CidrBlockAssociationSet", default=[])
         >> ForallBend(AwsEc2SubnetIpv6CidrBlockAssociation.mapping),
@@ -1332,7 +1327,6 @@ class AwsEc2Subnet(AwsResource, BaseSubnet):
     subnet_map_customer_owned_ip_on_launch: Optional[bool] = field(default=None)
     subnet_customer_owned_ipv4_pool: Optional[str] = field(default=None)
     subnet_state: Optional[str] = field(default=None)
-    subnet_owner_id: Optional[str] = field(default=None)
     subnet_assign_ipv6_address_on_creation: Optional[bool] = field(default=None)
     subnet_ipv6_cidr_block_association_set: List[AwsEc2SubnetIpv6CidrBlockAssociation] = field(factory=list)
     subnet_outpost_arn: Optional[str] = field(default=None)
@@ -1425,12 +1419,11 @@ class AwsEc2SecurityGroup(AwsResource, BaseSecurityGroup):
         "name": S("GroupName"),
         "description": S("Description"),
         "group_ip_permissions": S("IpPermissions", default=[]) >> ForallBend(AwsEc2IpPermission.mapping),
-        "group_owner_id": S("OwnerId"),
+        # "owner_id": S("OwnerId"),
         "group_ip_permissions_egress": S("IpPermissionsEgress", default=[]) >> ForallBend(AwsEc2IpPermission.mapping),
     }
     description: Optional[str] = field(default=None)
     group_ip_permissions: List[AwsEc2IpPermission] = field(factory=list)
-    group_owner_id: Optional[str] = field(default=None)
     group_ip_permissions_egress: List[AwsEc2IpPermission] = field(factory=list)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
@@ -1511,12 +1504,44 @@ class AwsEc2NatGateway(AwsResource, BaseGateway):
 
 # endregion
 
+# region Internet Gateways
+@define(eq=False, slots=False)
+class AwsEc2InternetGatewayAttachment:
+    kind: ClassVar[str] = "aws_ec2_internet_gateway_attachment"
+    mapping: ClassVar[Dict[str, Bender]] = {"state": S("State"), "vpc_id": S("VpcId")}
+    state: Optional[str] = field(default=None)
+    vpc_id: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsEc2InternetGateway(AwsResource, BaseGateway):
+    kind: ClassVar[str] = "aws_ec2_internet_gateway"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-internet-gateways", "InternetGateways")
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("InternetGatewayId"),
+        "tags": S("Tags", default=[]) >> TagsToDict(),
+        "name": S("Tags", default=[]) >> TagsValue("Name").or_else(S("InternetGatewayId")),
+        "gateway_attachments": S("Attachments", default=[]) >> ForallBend(AwsEc2InternetGatewayAttachment.mapping),
+        # "owner_id": S("OwnerId"),
+    }
+    gateway_attachments: List[AwsEc2InternetGatewayAttachment] = field(factory=list)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        super().connect_in_graph(builder, source)
+        for attachment in self.gateway_attachments:
+            if vpc_id := attachment.vpc_id:
+                builder.dependant_node(self, reverse=True, delete_reverse=True, clazz=AwsEc2Vpc, id=vpc_id)
+
+
+# endregion
+
 global_resources: List[Type[AwsResource]] = [
     AwsEc2InstanceType,
 ]
 resources: List[Type[AwsResource]] = [
     AwsEc2ElasticIp,
     AwsEc2Instance,
+    AwsEc2InternetGateway,
     AwsEc2KeyPair,
     AwsEc2NatGateway,
     AwsEc2NetworkAcl,
