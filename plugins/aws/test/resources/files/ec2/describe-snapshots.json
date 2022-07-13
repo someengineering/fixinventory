@@ -1,0 +1,46 @@
+{
+    "Snapshots": [
+        {
+            "Description": "snapshot of image.vmdk",
+            "Encrypted": false,
+            "OwnerId": "test",
+            "OwnerAlias": "test",
+            "DataEncryptionKeyId": "test",
+            "KmsKeyId": "test",
+            "Progress": "100%",
+            "SnapshotId": "snap-123",
+            "StartTime": "2018-04-23T16:28:08+00:00",
+            "State": "completed",
+            "StateMessage": "hello",
+            "VolumeId": "vol-123",
+            "VolumeSize": 8,
+            "StorageTier": "standard",
+            "OutpostArn": "test",
+            "RestoreExpiryTime": "2018-04-23T16:28:08+00:00"
+        },
+        {
+            "Description": "Copied for DestinationAmi ami-123",
+            "Encrypted": false,
+            "OwnerId": "test",
+            "Progress": "100%",
+            "SnapshotId": "snap-2",
+            "StartTime": "2018-04-20T17:59:00+00:00",
+            "State": "completed",
+            "VolumeId": "vol-123",
+            "VolumeSize": 20,
+            "StorageTier": "standard"
+        },
+        {
+            "Description": "snapshot of test",
+            "Encrypted": false,
+            "OwnerId": "test",
+            "Progress": "100%",
+            "SnapshotId": "snap-3",
+            "StartTime": "2018-04-20T16:19:44+00:00",
+            "State": "completed",
+            "VolumeId": "vol-123",
+            "VolumeSize": 8,
+            "StorageTier": "standard"
+        }
+    ]
+}

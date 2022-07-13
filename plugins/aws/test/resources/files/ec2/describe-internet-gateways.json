@@ -1,0 +1,56 @@
+{
+    "InternetGateways": [
+        {
+            "Attachments": [
+                {
+                    "State": "available",
+                    "VpcId": "vpc-123"
+                }
+            ],
+            "InternetGatewayId": "igw-123",
+            "OwnerId": "test",
+            "Tags": [
+                {
+                    "Key": "Name",
+                    "Value": "test"
+                }
+            ]
+        },
+        {
+            "Attachments": [
+                {
+                    "State": "available",
+                    "VpcId": "vpc-123"
+                }
+            ],
+            "InternetGatewayId": "igw-2",
+            "OwnerId": "test",
+            "Tags": [
+                {
+                    "Key": "owner",
+                    "Value": "sre"
+                },
+                {
+                    "Key": "Name",
+                    "Value": "prod-gateway"
+                }
+            ]
+        },
+        {
+            "Attachments": [
+                {
+                    "State": "available",
+                    "VpcId": "vpc-123"
+                }
+            ],
+            "InternetGatewayId": "igw-3",
+            "OwnerId": "test",
+            "Tags": [
+                {
+                    "Key": "AWSServiceAccount",
+                    "Value": "sa-123"
+                }
+            ]
+        }
+    ]
+}

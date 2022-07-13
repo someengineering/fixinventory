@@ -5,16 +5,7 @@ from attrs import define, field
 from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
 from resoto_plugin_aws.resource.ec2 import AwsEc2Instance
 from resoto_plugin_aws.utils import ToDict
-from resotolib.baseresources import (  # noqa: F401
-    BaseInstance,
-    EdgeType,
-    BaseVolume,
-    BaseInstanceType,
-    BaseAccount,
-    VolumeStatus,
-    InstanceStatus,
-    BaseAutoScalingGroup,
-)
+from resotolib.baseresources import BaseAutoScalingGroup, BaseAccount  # noqa: F401
 from resotolib.json_bender import Bender, S, Bend, ForallBend
 from resotolib.types import Json
 

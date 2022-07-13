@@ -1,0 +1,160 @@
+{
+    "NetworkInterfaces": [
+        {
+            "Association": {
+                "AllocationId": "eipalloc-031795020e95ade38",
+                "AssociationId": "eipassoc-059384caeac8a5134",
+                "IpOwnerId": "test",
+                "PublicDnsName": "ec2-1234.us-west-2.compute.amazonaws.com",
+                "PublicIp": "1.2.3.4"
+            },
+            "Attachment": {
+                "AttachTime": "2020-05-08T23:31:56+00:00",
+                "AttachmentId": "eni-attach-0c5bc2781cf2102ef",
+                "DeleteOnTermination": true,
+                "DeviceIndex": 0,
+                "NetworkCardIndex": 0,
+                "InstanceId": "i-0af2561eb64b7ab79",
+                "InstanceOwnerId": "test",
+                "Status": "attached"
+            },
+            "AvailabilityZone": "us-west-2d",
+            "Description": "Primary network interface",
+            "Groups": [
+                {
+                    "GroupName": "CentOS 7 -x86_64- - with Updates HVM-2002_01-AutogenByAWSMP-1",
+                    "GroupId": "sg-123"
+                }
+            ],
+            "InterfaceType": "interface",
+            "Ipv6Addresses": [],
+            "MacAddress": "0e:63:e5:c8:bb:be",
+            "NetworkInterfaceId": "eni-0c40e06e26ebebeeb",
+            "OwnerId": "test",
+            "PrivateDnsName": "ip-1234.us-west-2.compute.internal",
+            "PrivateIpAddress": "1.2.3.4",
+            "PrivateIpAddresses": [
+                {
+                    "Association": {
+                        "AllocationId": "eipalloc-031795020e95ade38",
+                        "AssociationId": "eipassoc-059384caeac8a5134",
+                        "IpOwnerId": "test",
+                        "PublicDnsName": "ec2-2345.us-west-2.compute.amazonaws.com",
+                        "PublicIp": "2.3.4.5"
+                    },
+                    "Primary": true,
+                    "PrivateDnsName": "ip-1234.us-west-2.compute.internal",
+                    "PrivateIpAddress": "1.2.3.4"
+                }
+            ],
+            "RequesterManaged": false,
+            "SourceDestCheck": true,
+            "Status": "in-use",
+            "SubnetId": "subnet-f42739dc",
+            "TagSet": [],
+            "VpcId": "vpc-123",
+            "OutpostArn": "arn:aws:outposts:us-west-2:test:outpost/oc-1/site/oc-1c8f8f8f",
+            "RequesterId": "test",
+            "DenyAllIgwTraffic": false,
+            "Ipv6Native": false,
+            "Ipv6Address": "::1"
+        },
+        {
+            "Association": {
+                "AllocationId": "eipalloc-2",
+                "AssociationId": "eipassoc-2",
+                "IpOwnerId": "test",
+                "PublicDnsName": "ec2-44-237-19-201.us-west-2.compute.amazonaws.com",
+                "PublicIp": "3.4.5.6"
+            },
+            "Attachment": {
+                "AttachmentId": "ela-attach-0e3b7cf6ef8121a1a",
+                "DeleteOnTermination": false,
+                "DeviceIndex": 1,
+                "InstanceOwnerId": "amazon-aws",
+                "Status": "attached"
+            },
+            "AvailabilityZone": "us-west-2d",
+            "Description": "Interface for NAT Gateway nat-0a84bc047f08bb4f1",
+            "Groups": [],
+            "InterfaceType": "nat_gateway",
+            "Ipv6Addresses": [],
+            "MacAddress": "0e:dd:a3:d1:52:69",
+            "NetworkInterfaceId": "eni-123",
+            "OwnerId": "test",
+            "PrivateDnsName": "ip-192-168-19-128.us-west-2.compute.internal",
+            "PrivateIpAddress": "192.168.19.128",
+            "PrivateIpAddresses": [
+                {
+                    "Association": {
+                        "AllocationId": "eipalloc-2",
+                        "AssociationId": "eipassoc-2",
+                        "IpOwnerId": "test",
+                        "PublicDnsName": "ec2-4567.us-west-2.compute.amazonaws.com",
+                        "PublicIp": "4.5.6.7"
+                    },
+                    "Primary": true,
+                    "PrivateDnsName": "ip-192-168-19-128.us-west-2.compute.internal",
+                    "PrivateIpAddress": "192.168.19.128"
+                }
+            ],
+            "RequesterId": "123",
+            "RequesterManaged": true,
+            "SourceDestCheck": false,
+            "Status": "in-use",
+            "SubnetId": "subnet-123",
+            "TagSet": [],
+            "VpcId": "vpc-123"
+        },
+        {
+            "Association": {
+                "IpOwnerId": "amazon",
+                "PublicDnsName": "ec2-5678.us-west-2.compute.amazonaws.com",
+                "PublicIp": "5.6.7.8"
+            },
+            "Attachment": {
+                "AttachTime": "2022-01-17T14:30:50+00:00",
+                "AttachmentId": "eni-attach-123",
+                "DeleteOnTermination": true,
+                "DeviceIndex": 0,
+                "NetworkCardIndex": 0,
+                "InstanceId": "i-123",
+                "InstanceOwnerId": "test",
+                "Status": "attached"
+            },
+            "AvailabilityZone": "us-west-2d",
+            "Description": "",
+            "Groups": [
+                {
+                    "GroupName": "launch-wizard-6",
+                    "GroupId": "sg-123"
+                }
+            ],
+            "InterfaceType": "interface",
+            "Ipv6Addresses": [],
+            "MacAddress": "0e:c1:1d:18:e4:29",
+            "NetworkInterfaceId": "eni-123",
+            "OwnerId": "test",
+            "PrivateDnsName": "ip-1234.us-west-2.compute.internal",
+            "PrivateIpAddress": "1.2.3.4",
+            "PrivateIpAddresses": [
+                {
+                    "Association": {
+                        "IpOwnerId": "amazon",
+                        "PublicDnsName": "ec2-6789.us-west-2.compute.amazonaws.com",
+                        "PublicIp": "6.7.8.9"
+                    },
+                    "Primary": true,
+                    "PrivateDnsName": "ip-1.2.4.5.us-west-2.compute.internal",
+                    "PrivateIpAddress": "1.2.3.4"
+                }
+            ],
+            "RequesterManaged": false,
+            "SourceDestCheck": true,
+            "Status": "in-use",
+            "SubnetId": "subnet-123",
+            "TagSet": [],
+            "VpcId": "vpc-123"
+        }
+    ]
+}

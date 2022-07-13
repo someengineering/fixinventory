@@ -1,0 +1,84 @@
+{
+    "Vpcs": [
+        {
+            "CidrBlock": "10.0.0.0/16",
+            "DhcpOptionsId": "dopt-123",
+            "State": "available",
+            "VpcId": "vpc-123",
+            "OwnerId": "123",
+            "InstanceTenancy": "default",
+            "CidrBlockAssociationSet": [
+                {
+                    "AssociationId": "vpc-cidr-assoc-123",
+                    "CidrBlock": "10.0.0.0/16",
+                    "CidrBlockState": {
+                        "State": "associated"
+                    }
+                }
+            ],
+            "IsDefault": false,
+            "Tags": [
+                {
+                    "Key": "sigs.k8s.io/cluster-api-provider-aws/role",
+                    "Value": "common"
+                },
+                {
+                    "Key": "Name",
+                    "Value": "management-vpc"
+                },
+                {
+                    "Key": "sigs.k8s.io/cluster-api-provider-aws/cluster/management",
+                    "Value": "owned"
+                }
+            ]
+        },
+        {
+            "CidrBlock": "10.0.0.0/16",
+            "DhcpOptionsId": "dopt-234",
+            "State": "available",
+            "VpcId": "vpc-234",
+            "OwnerId": "234",
+            "InstanceTenancy": "default",
+            "CidrBlockAssociationSet": [
+                {
+                    "AssociationId": "vpc-cidr-assoc-234",
+                    "CidrBlock": "10.0.0.0/16",
+                    "CidrBlockState": {
+                        "State": "associated"
+                    }
+                }
+            ],
+            "IsDefault": false,
+            "Tags": [
+                {
+                    "Key": "owner",
+                    "Value": "sre"
+                }
+            ]
+        },
+        {
+            "CidrBlock": "1.2.0.0/16",
+            "DhcpOptionsId": "dopt-345",
+            "State": "available",
+            "VpcId": "vpc-345",
+            "OwnerId": "345",
+            "InstanceTenancy": "default",
+            "CidrBlockAssociationSet": [
+                {
+                    "AssociationId": "vpc-cidr-assoc-345",
+                    "CidrBlock": "1.2.0.0/16",
+                    "CidrBlockState": {
+                        "State": "associated"
+                    }
+                }
+            ],
+            "IsDefault": true,
+            "Tags": [
+                {
+                    "Key": "test",
+                    "Value": "value"
+                }
+            ]
+        }
+    ]
+}

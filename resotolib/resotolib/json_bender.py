@@ -27,6 +27,9 @@ class Bender(ABC):
     def execute(self, source: Any) -> Any:
         return source
 
+    def or_else(self, other: Bender) -> Bender:
+        return OrElse(self, other)
+
     def __eq__(self, other: Any) -> Bender:  # type: ignore
         return Eq(self, other)
 
@@ -135,6 +138,20 @@ class F(Bender):
     def execute(self, value: Any) -> Any:
         # noinspection PyArgumentList
         return self._func(value, *self._args, **self._kwargs)
+
+
+class OrElse(Bender):
+    def __init__(self, source_bender: Bender, else_bender: Bender):
+        super().__init__()
+        self.source_bender = source_bender
+        self.else_bender = else_bender
+
+    def raw_execute(self, source: Any) -> Any:
+        first = self.source_bender.raw_execute(source)
+        if first.value is not None:
+            return first
+        else:
+            return self.else_bender.raw_execute(source)
 
 
 class GetItem(Bender):
@@ -395,6 +412,14 @@ class ForallBend(Forall):
         # ListOp.execute assumes the func is saved on self._func
         self._func = lambda v: bend(self._mapping, v, context)
         return Transport(self.execute(transport.value), transport.context)
+
+
+class StripNones(Bender):
+    def execute(self, source: Any) -> Any:
+        if isinstance(source, list):
+            return [x for x in source if x is not None]
+        else:
+            return source
 
 
 class MapValue(Bender):

@@ -352,6 +352,72 @@ models: Dict[str, List[AwsResotoModel]] = {
     ],
     "ec2": [
         # AwsResotoModel(
+        #     "describe-route-tables",
+        #     "RouteTables",
+        #     "RouteTable",
+        #     base="BaseRoutingTable",
+        #     prefix="Ec2",
+        #     prop_prefix="route_table_",
+        # ),
+        # AwsResotoModel(
+        #     "describe-vpc-endpoints",
+        #     "VpcEndpoints",
+        #     "VpcEndpoint",
+        #     base="BaseEndpoint",
+        #     prefix="Ec2",
+        #     prop_prefix="endpoint_",
+        # ),
+        # AwsResotoModel(
+        #     "describe-vpc-peering-connections",
+        #     "VpcPeeringConnections",
+        #     "VpcPeeringConnection",
+        #     base="BasePeeringConnection",
+        #     prefix="Ec2",
+        #     prop_prefix="connection_",
+        # ),
+        # AwsResotoModel(
+        #     "describe-snapshots", "Snapshots", "Snapshot", base="BaseSnapshot", prefix="Ec2", prop_prefix="snapshot_"
+        # ),
+        # AwsResotoModel(
+        #     "describe-internet-gateways",
+        #     "InternetGateways",
+        #     "InternetGateway",
+        #     base="BaseGateway",
+        #     prefix="Ec2",
+        #     prop_prefix="gateway_",
+        # ),
+        # AwsResotoModel(
+        #     "describe-nat-gateways", "NatGateways", "NatGateway", base="BaseGateway", prefix="Ec2", prop_prefix="nat_"
+        # ),
+        # AwsResotoModel(
+        #     "describe-security-groups",
+        #     "SecurityGroups",
+        #     "SecurityGroup",
+        #     base="BaseSecurityGroup",
+        #     prefix="Ec2",
+        #     prop_prefix="group_",
+        # ),
+        # AwsResotoModel(
+        #     "describe-subnets",
+        #     "Subnets",
+        #     "Subnet",
+        #     base="BaseSubnet",
+        #     prefix="Ec2",
+        #     prop_prefix="subnet_",
+        # ),
+        # AwsResotoModel("describe-vpcs", "Vpcs", "Vpc", base="BaseNetwork", prefix="Ec2", prop_prefix="vpc_"),
+        # AwsResotoModel(
+        #     "describe-addresses", "Addresses", "Address", base="BaseIPAddress", prefix="Ec2", prop_prefix="ip_"
+        # ),
+        # AwsResotoModel(
+        #     "describe-network-interfaces",
+        #     "NetworkInterfaces",
+        #     "NetworkInterface",
+        #     base="BaseNetworkInterface",
+        #     prefix="Ec2",
+        #     prop_prefix="nic_",
+        # ),
+        # AwsResotoModel(
         #     "describe-instances",
         #     "Reservations",
         #     "Instance",
@@ -363,11 +429,7 @@ models: Dict[str, List[AwsResotoModel]] = {
         # AwsResotoModel("describe-volumes", "Volumes", "Volume", base="BaseVolume", prefix="Ec2"),
         # AwsResotoModel("describe_addresses", "Addresses", "Address", prefix="Ec2"),
         # AwsResotoModel(
-        #     "describe-instance-types",
-        #     "InstanceTypes",
-        #     "InstanceTypeInfo",
-        #     prefix="Ec2",
-        #     prop_prefix="reservation_",
+        #     "describe-instance-types", "InstanceTypes", "InstanceTypeInfo", prefix="Ec2", prop_prefix="reservation_"
         # ),
         # AwsResotoModel(
         #     "describe_reserved_instances",
@@ -490,13 +552,13 @@ models: Dict[str, List[AwsResotoModel]] = {
         # )
     ],
     "cloudwatch": [
-        AwsResotoModel(
-            "describe-alarms",
-            "Alarms",
-            "MetricAlarm",
-            prefix="Cloudwatch",
-            prop_prefix="cloudwatch_",
-        )
+        # AwsResotoModel(
+        #     "describe-alarms",
+        #     "Alarms",
+        #     "MetricAlarm",
+        #     prefix="Cloudwatch",
+        #     prop_prefix="cloudwatch_"
+        # )
     ],
 }
 

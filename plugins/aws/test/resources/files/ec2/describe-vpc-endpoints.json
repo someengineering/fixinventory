@@ -1,0 +1,156 @@
+{
+    "VpcEndpoints": [
+        {
+            "VpcEndpointId": "vpce-123",
+            "VpcEndpointType": "Interface",
+            "VpcId": "vpc-123",
+            "ServiceName": "com.amazonaws.us-west-2.elasticloadbalancing",
+            "State": "available",
+            "PolicyDocument": "{\n  \"Statement\": [\n    {\n      \"Action\": \"*\", \n      \"Effect\": \"Allow\", \n      \"Principal\": \"*\", \n      \"Resource\": \"*\"\n    }\n  ]\n}",
+            "RouteTableIds": [],
+            "SubnetIds": [
+                "subnet-123",
+                "subnet-2",
+                "subnet-3"
+            ],
+            "Groups": [
+                {
+                    "GroupId": "sg-123",
+                    "GroupName": "test"
+                }
+            ],
+            "PrivateDnsEnabled": true,
+            "RequesterManaged": false,
+            "NetworkInterfaceIds": [
+                "eni-123",
+                "eni-2",
+                "eni-3"
+            ],
+            "DnsEntries": [
+                {
+                    "DnsName": "vpce-test.us-west-2.vpce.amazonaws.com",
+                    "HostedZoneId": "z123"
+                },
+                {
+                    "DnsName": "test-us-west-2b.elasticloadbalancing.us-west-2.vpce.amazonaws.com",
+                    "HostedZoneId": "z234"
+                }
+            ],
+            "CreationTimestamp": "2020-02-04T15:11:16.289000+00:00",
+            "Tags": [
+                {
+                    "Key": "version",
+                    "Value": "v1.7.1"
+                },
+                {
+                    "Key": "owner",
+                    "Value": "sre"
+                },
+                {
+                    "Key": "clusterName",
+                    "Value": "staging-devx"
+                },
+                {
+                    "Key": "expiration",
+                    "Value": "never"
+                }
+            ],
+            "IpAddressType": "ipv4",
+            "DnsOptions": {
+                "DnsRecordIpType": "test"
+            },
+            "LastError": "test",
+            "OwnerId": "test"
+        },
+        {
+            "VpcEndpointId": "vpce-2",
+            "VpcEndpointType": "Interface",
+            "VpcId": "vpc-123",
+            "ServiceName": "com.amazonaws.us-west-2.ec2",
+            "State": "available",
+            "PolicyDocument": "{\n  \"Statement\": [\n    {\n      \"Action\": \"*\", \n      \"Effect\": \"Allow\", \n      \"Principal\": \"*\", \n      \"Resource\": \"*\"\n    }\n  ]\n}",
+            "RouteTableIds": [],
+            "SubnetIds": [
+                "subnet-123",
+                "subnet-2",
+                "subnet-3"
+            ],
+            "Groups": [
+                {
+                    "GroupId": "sg-123",
+                    "GroupName": "test"
+                }
+            ],
+            "PrivateDnsEnabled": true,
+            "RequesterManaged": false,
+            "NetworkInterfaceIds": [
+                "eni-123",
+                "eni-2",
+                "eni-3"
+            ],
+            "DnsEntries": [
+                {
+                    "DnsName": "vpce.ec2.us-west-2.vpce.amazonaws.com",
+                    "HostedZoneId": "z345"
+                }
+            ],
+            "CreationTimestamp": "2020-02-04T15:11:16.297000+00:00",
+            "Tags": [
+                {
+                    "Key": "owner",
+                    "Value": "sre"
+                },
+                {
+                    "Key": "Name",
+                    "Value": "devx"
+                }
+            ],
+            "OwnerId": "test"
+        },
+        {
+            "VpcEndpointId": "vpce-3",
+            "VpcEndpointType": "Interface",
+            "VpcId": "vpc-123",
+            "ServiceName": "com.amazonaws.us-west-2.elasticloadbalancing",
+            "State": "available",
+            "PolicyDocument": "{\n  \"Statement\": [\n    {\n      \"Action\": \"*\", \n      \"Effect\": \"Allow\", \n      \"Principal\": \"*\", \n      \"Resource\": \"*\"\n    }\n  ]\n}",
+            "RouteTableIds": [],
+            "SubnetIds": [
+                "subnet-123",
+                "subnet-2",
+                "subnet-3"
+            ],
+            "Groups": [
+                {
+                    "GroupId": "sg-123",
+                    "GroupName": "private"
+                }
+            ],
+            "PrivateDnsEnabled": true,
+            "RequesterManaged": false,
+            "NetworkInterfaceIds": [
+                "eni-123",
+                "eni-2",
+                "eni-3"
+            ],
+            "DnsEntries": [
+                {
+                    "DnsName": "test.elasticloadbalancing.us-west-2.vpce.amazonaws.com",
+                    "HostedZoneId": "zone-123"
+                }
+            ],
+            "CreationTimestamp": "2020-04-30T14:24:46.697000+00:00",
+            "Tags": [
+                {
+                    "Key": "owner",
+                    "Value": "sre"
+                },
+                {
+                    "Key": "expiration",
+                    "Value": "never"
+                }
+            ],
+            "OwnerId": "test"
+        }
+    ]
+}
