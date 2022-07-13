@@ -5,6 +5,7 @@ from resoto_plugin_aws.resource.ec2 import (
     AwsEc2NetworkAcl,
     AwsEc2InstanceType,
     AwsEc2ReservedInstances,
+    AwsEc2ElasticIp,
 )
 from test.resources import round_trip_for, build_from_file, check_single_node
 
@@ -35,3 +36,7 @@ def test_instance() -> None:
 
 def test_network_acl() -> None:
     round_trip_for(AwsEc2NetworkAcl)
+
+
+def test_elastic_ips() -> None:
+    round_trip_for(AwsEc2ElasticIp)

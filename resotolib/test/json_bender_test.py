@@ -52,3 +52,8 @@ def test_as_date() -> None:
 
 def test_sort() -> None:
     assert bend(Sort(S("i")), [{"i": 2}, {"i": 3}, {"i": 1}]) == [{"i": 1}, {"i": 2}, {"i": 3}]
+
+
+def test_or_else() -> None:
+    # assert bend(S("a").or_else(S("b")), {"a": 1, "b": 2}) == 1
+    assert bend(S("a").or_else(S("b")), {"b": 2}) == 2

@@ -3,7 +3,7 @@ from typing import ClassVar, Dict, List, Type, Optional  # noqa: F401
 from attrs import define
 
 from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec
-from resotolib.baseresources import BaseBucket
+from resotolib.baseresources import BaseBucket, BaseAccount  # noqa: F401
 from resotolib.json_bender import Bender, S
 
 

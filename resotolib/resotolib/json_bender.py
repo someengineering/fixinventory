@@ -27,6 +27,9 @@ class Bender(ABC):
     def execute(self, source: Any) -> Any:
         return source
 
+    def or_else(self, other: Bender) -> Bender:
+        return OrElse(self, other)
+
     def __eq__(self, other: Any) -> Bender:  # type: ignore
         return Eq(self, other)
 
@@ -135,6 +138,19 @@ class F(Bender):
     def execute(self, value: Any) -> Any:
         # noinspection PyArgumentList
         return self._func(value, *self._args, **self._kwargs)
+
+
+class OrElse(Bender):
+    def __init__(self, source_bender: Bender, else_bender: Bender):
+        super().__init__()
+        self.source_bender = source_bender
+        self.else_bender = else_bender
+
+    def execute(self, source: Any) -> Any:
+        if (first := self.source_bender.execute(source)) is not None:
+            return first
+        else:
+            return self.else_bender.execute(source)
 
 
 class GetItem(Bender):

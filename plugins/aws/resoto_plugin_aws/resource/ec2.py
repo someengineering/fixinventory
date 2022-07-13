@@ -1,10 +1,10 @@
-from attrs import define, field
 from datetime import datetime
 from typing import ClassVar, Dict, Optional, List, Type
 
+from attrs import define, field
+
 from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
 from resoto_plugin_aws.utils import TagsToDict, TagsValue
-
 from resotolib.baseresources import (  # noqa: F401
     BaseInstance,
     EdgeType,
@@ -13,8 +13,9 @@ from resotolib.baseresources import (  # noqa: F401
     BaseAccount,
     VolumeStatus,
     InstanceStatus,
+    BaseIPAddress,
 )
-from resotolib.json_bender import Bender, S, Bend, ForallBend, bend, MapEnum, F
+from resotolib.json_bender import Bender, S, Bend, ForallBend, bend, MapEnum, F, K
 from resotolib.types import Json
 
 
@@ -979,6 +980,54 @@ class AwsEc2NetworkAcl(AwsResource):
 
 # endregion
 
+# region Elastic IPs
+
+
+@define(eq=False, slots=False)
+class AwsEc2ElasticIp(AwsResource, BaseIPAddress):
+    kind: ClassVar[str] = "aws_ec2_elastic_ip"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-addresses", "Addresses")
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("NetworkInterfaceId").or_else(S("PublicIp")),
+        "tags": S("Tags", default=[]) >> TagsToDict(),
+        "name": S("InstanceId").or_else(S("Tags", default=[]) >> TagsValue("Name")).or_else(S("NetworkInterfaceId")),
+        "ip_address": S("PublicIp") or S("PrivateIpAddress"),
+        "ip_address_family": K("ipv4"),
+        "private_ip_address": S("PrivateIpAddress"),
+        "public_ip": S("PublicIp"),
+        "ip_allocation_id": S("AllocationId"),
+        "ip_association_id": S("AssociationId"),
+        "ip_domain": S("Domain"),
+        "ip_network_interface_id": S("NetworkInterfaceId"),
+        "ip_network_interface_owner_id": S("NetworkInterfaceOwnerId"),
+        "ip_public_ipv4_pool": S("PublicIpv4Pool"),
+        "ip_network_border_group": S("NetworkBorderGroup"),
+        "ip_customer_owned_ip": S("CustomerOwnedIp"),
+        "ip_customer_owned_ipv4_pool": S("CustomerOwnedIpv4Pool"),
+        "ip_carrier_ip": S("CarrierIp"),
+    }
+    public_ip: Optional[str] = field(default=None)
+    private_ip_address: Optional[str] = field(default=None)
+    ip_allocation_id: Optional[str] = field(default=None)
+    ip_association_id: Optional[str] = field(default=None)
+    ip_domain: Optional[str] = field(default=None)
+    ip_network_interface_id: Optional[str] = field(default=None)
+    ip_network_interface_owner_id: Optional[str] = field(default=None)
+    ip_public_ipv4_pool: Optional[str] = field(default=None)
+    ip_network_border_group: Optional[str] = field(default=None)
+    ip_customer_owned_ip: Optional[str] = field(default=None)
+    ip_customer_owned_ipv4_pool: Optional[str] = field(default=None)
+    ip_carrier_ip: Optional[str] = field(default=None)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        super().connect_in_graph(builder, source)
+        if instance_id := source.get("InstanceId"):
+            builder.dependant_node(self, clazz=AwsEc2Instance, id=instance_id)
+        # if interface_id := source.get("NetworkInterfaceId"):
+        #     builder.dependant_node(self, clazz=AwsEC2NetworkInterface, id=interface_id)
+
+
+# endregion
 global_resources: List[Type[AwsResource]] = [
     AwsEc2InstanceType,
 ]
@@ -988,4 +1037,5 @@ resources: List[Type[AwsResource]] = [
     AwsEc2ReservedInstances,
     AwsEc2KeyPair,
     AwsEc2Volume,
+    AwsEc2ElasticIp,
 ]

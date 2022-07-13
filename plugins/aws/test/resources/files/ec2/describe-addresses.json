@@ -1,0 +1,67 @@
+{
+    "Addresses": [
+        {
+            "InstanceId": "i-123",
+            "PublicIp": "1.2.3.4",
+            "AllocationId": "eipalloc-123",
+            "AssociationId": "eipassoc-123",
+            "Domain": "vpc",
+            "NetworkInterfaceId": "eni-123",
+            "NetworkInterfaceOwnerId": "123",
+            "PrivateIpAddress": "10.0.0.191",
+            "PublicIpv4Pool": "amazon",
+            "NetworkBorderGroup": "us-west-2",
+            "Tags": [
+                {
+                    "Key": "Name",
+                    "Value": "dev1-egress"
+                }
+            ],
+            "CustomerOwnedIp": "1.2.3.4",
+            "CustomerOwnedIpv4Pool": "amazon",
+            "CarrierIp": "2.3.4.5"
+        },
+        {
+            "PublicIp": "1.2.3.5",
+            "AllocationId": "eipalloc-124",
+            "AssociationId": "eipassoc-124",
+            "Domain": "vpc",
+            "NetworkInterfaceId": "eni-124",
+            "NetworkInterfaceOwnerId": "124",
+            "PrivateIpAddress": "10.20.255.61",
+            "Tags": [
+                {
+                    "Key": "Name",
+                    "Value": "prod1-egress"
+                }
+            ],
+            "PublicIpv4Pool": "amazon",
+            "NetworkBorderGroup": "us-west-2"
+        },
+        {
+            "PublicIp": "1.2.3.6",
+            "AllocationId": "eipalloc-6",
+            "AssociationId": "eipassoc-6",
+            "Domain": "vpc",
+            "NetworkInterfaceId": "eni-6",
+            "NetworkInterfaceOwnerId": "6",
+            "PrivateIpAddress": "10.0.12.76",
+            "Tags": [
+                {
+                    "Key": "Name",
+                    "Value": "management-apiserver"
+                },
+                {
+                    "Key": "sigs.k8s.io/cluster-api-provider-aws/cluster/management",
+                    "Value": "owned"
+                },
+                {
+                    "Key": "sigs.k8s.io/cluster-api-provider-aws/role",
+                    "Value": "apiserver"
+                }
+            ],
+            "PublicIpv4Pool": "amazon",
+            "NetworkBorderGroup": "us-west-2"
+        }
+    ]
+}
