@@ -392,7 +392,7 @@ class AwsEc2Snapshot(AwsResource, BaseSnapshot):
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-snapshots", "Snapshots")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("SnapshotId"),
-        "tags": S("Tags", default=[]) >> TagsToDict(),
+        "tags": S("Tags", default=[]) >> ToDict(),
         "name": (S("Tags", default=[]) >> TagsValue("Name")).or_else(S("SnapshotId")),
         "ctime": S("StartTime"),
         "description": S("Description"),
@@ -1047,7 +1047,7 @@ class AwsEc2ElasticIp(AwsResource, BaseIPAddress):
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-addresses", "Addresses")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("NetworkInterfaceId").or_else(S("PublicIp")),
-        "tags": S("Tags", default=[]) >> TagsToDict(),
+        "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("InstanceId").or_else(S("Tags", default=[]) >> TagsValue("Name")).or_else(S("NetworkInterfaceId")),
         "ip_address": S("PublicIp") or S("PrivateIpAddress"),
         "ip_address_family": K("ipv4"),
@@ -1160,7 +1160,7 @@ class AwsEc2NetworkInterface(AwsResource, BaseNetworkInterface):
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-network-interfaces", "NetworkInterfaces")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("NetworkInterfaceId"),
-        "tags": S("Tags", default=[]) >> TagsToDict(),
+        "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("Tags", default=[]) >> TagsValue("Name"),
         "ctime": K(None),
         "mtime": K(None),
@@ -1277,7 +1277,7 @@ class AwsEc2Vpc(AwsResource, BaseNetwork):
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-vpcs", "Vpcs")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("VpcId"),
-        "tags": S("Tags", default=[]) >> TagsToDict(),
+        "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("Tags", default=[]) >> TagsValue("Name").or_else(S("VpcId")),
         "vpc_cidr_block": S("CidrBlock"),
         "vpc_dhcp_options_id": S("DhcpOptionsId"),
@@ -1350,7 +1350,7 @@ class AwsEc2VpcPeeringConnection(AwsResource, BasePeeringConnection):
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-vpc-peering-connections", "VpcPeeringConnections")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("VpcPeeringConnectionId"),
-        "tags": S("Tags", default=[]) >> TagsToDict(),
+        "tags": S("Tags", default=[]) >> ToDict(),
         "name": (S("Tags", default=[]) >> TagsValue("Name")).or_else(S("VpcPeeringConnectionId")),
         "connection_accepter_vpc_info": S("AccepterVpcInfo") >> Bend(AwsEc2VpcPeeringConnectionVpcInfo.mapping),
         "connection_expiration_time": S("ExpirationTime"),
@@ -1396,7 +1396,7 @@ class AwsEc2VpcEndpoint(AwsResource, BaseEndpoint):
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-vpc-endpoints", "VpcEndpoints")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("VpcEndpointId"),
-        "tags": S("Tags", default=[]) >> TagsToDict(),
+        "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("Tags", default=[]) >> TagsValue("Name"),
         "ctime": K(None),
         "mtime": K(None),
@@ -1493,7 +1493,7 @@ class AwsEc2Subnet(AwsResource, BaseSubnet):
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-subnets", "Subnets")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("SubnetId"),
-        "tags": S("Tags", default=[]) >> TagsToDict(),
+        "tags": S("Tags", default=[]) >> ToDict(),
         "name": (S("Tags", default=[]) >> TagsValue("Name")).or_else(S("SubnetId")),
         "ctime": K(None),
         "mtime": K(None),
@@ -1618,7 +1618,7 @@ class AwsEc2SecurityGroup(AwsResource, BaseSecurityGroup):
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-security-groups", "SecurityGroups")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("GroupId"),
-        "tags": S("Tags", default=[]) >> TagsToDict(),
+        "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("GroupName"),
         "description": S("Description"),
         "group_ip_permissions": S("IpPermissions", default=[]) >> ForallBend(AwsEc2IpPermission.mapping),
@@ -1676,7 +1676,7 @@ class AwsEc2NatGateway(AwsResource, BaseGateway):
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-nat-gateways", "NatGateways")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("NatGatewayId"),
-        "tags": S("Tags", default=[]) >> TagsToDict(),
+        "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("Tags", default=[]) >> TagsValue("Name"),
         "ctime": S("CreateTime"),
         "nat_delete_time": S("DeleteTime"),
@@ -1722,7 +1722,7 @@ class AwsEc2InternetGateway(AwsResource, BaseGateway):
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-internet-gateways", "InternetGateways")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("InternetGatewayId"),
-        "tags": S("Tags", default=[]) >> TagsToDict(),
+        "tags": S("Tags", default=[]) >> ToDict(),
         "name": (S("Tags", default=[]) >> TagsValue("Name")).or_else(S("InternetGatewayId")),
         "gateway_attachments": S("Attachments", default=[]) >> ForallBend(AwsEc2InternetGatewayAttachment.mapping),
         # "owner_id": S("OwnerId"),
@@ -1811,7 +1811,7 @@ class AwsEc2RouteTable(AwsResource, BaseRoutingTable):
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-route-tables", "RouteTables")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("RouteTableId"),
-        "tags": S("Tags", default=[]) >> TagsToDict(),
+        "tags": S("Tags", default=[]) >> ToDict(),
         "name": (S("Tags", default=[]) >> TagsValue("Name")).or_else(S("RouteTableId")),
         "route_table_associations": S("Associations", default=[]) >> ForallBend(AwsEc2RouteTableAssociation.mapping),
         "route_table_propagating_vgws": S("PropagatingVgws", default=[]) >> ForallBend(S("GatewayId")),
