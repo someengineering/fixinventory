@@ -63,7 +63,7 @@ async def respond_dot(gen: AsyncIterator[JsonElement]) -> AsyncGenerator[str, No
             if type_name == "node":
                 uid = value_in_path(item, NodePath.node_id)
                 if uid:
-                    name = re.sub("[^a-zA-Z0-9]", "", value_in_path_get(item, NodePath.reported_name, "n/a"))
+                    name = re.sub("[^a-zA-Z\\-0-9]", "_", value_in_path_get(item, NodePath.reported_name, "n/a"))
                     kind = value_in_path_get(item, NodePath.reported_kind, "n/a")
                     account = value_in_path_get(item, NodePath.ancestor_account_name, "graph_root")
                     paired12 = colors[kind]
