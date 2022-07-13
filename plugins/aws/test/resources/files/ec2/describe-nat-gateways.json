@@ -1,0 +1,96 @@
+{
+    "NatGateways": [
+        {
+            "CreateTime": "2022-05-31T09:15:12+00:00",
+            "DeleteTime": "2022-05-31T09:15:12+00:00",
+            "FailureCode": "wrong!",
+            "FailureMessage": "wrong!",
+            "NatGatewayAddresses": [
+                {
+                    "AllocationId": "eipalloc-123",
+                    "NetworkInterfaceId": "eni-123",
+                    "PrivateIp": "1.2.3.4",
+                    "PublicIp": "1.2.3.4"
+                }
+            ],
+            "ProvisionedBandwidth": {
+                "Provisioned": "1.0GB",
+                "Requested": "1.0GB",
+                "Status": "active",
+                "ProvisionTime": "2022-05-31T09:15:12+00:00",
+                "RequestTime": "2022-05-31T09:15:12+00:00"
+            },
+            "NatGatewayId": "nat-123",
+            "State": "available",
+            "SubnetId": "subnet-123",
+            "VpcId": "vpc-123",
+            "Tags": [
+                {
+                    "Key": "aws:cloudformation:logical-id",
+                    "Value": "NATGateway"
+                },
+                {
+                    "Key": "alpha.eksctl.io/eksctl-version",
+                    "Value": "0.99.0"
+                },
+                {
+                    "Key": "Name",
+                    "Value": "eksctl-management-bootstrap-cluster/NATGateway"
+                }
+            ],
+            "ConnectivityType": "public"
+        },
+        {
+            "CreateTime": "2021-09-29T15:55:03+00:00",
+            "NatGatewayAddresses": [
+                {
+                    "AllocationId": "eipalloc-0cb2557d64cd5ac79",
+                    "NetworkInterfaceId": "eni-070aa7c720b86df35",
+                    "PrivateIp": "1.2.3.4",
+                    "PublicIp": "1.2.3.4"
+                }
+            ],
+            "NatGatewayId": "nat-2",
+            "State": "available",
+            "SubnetId": "subnet-123",
+            "VpcId": "vpc-123",
+            "Tags": [
+                {
+                    "Key": "Owner",
+                    "Value": "SRE"
+                },
+                {
+                    "Key": "Name",
+                    "Value": "foo.bla.com"
+                }
+            ],
+            "ConnectivityType": "public"
+        },
+        {
+            "CreateTime": "2022-05-31T09:39:43+00:00",
+            "NatGatewayAddresses": [
+                {
+                    "AllocationId": "eipalloc-123",
+                    "NetworkInterfaceId": "eni-123",
+                    "PrivateIp": "1.2.3.4",
+                    "PublicIp": "1.2.3.4"
+                }
+            ],
+            "NatGatewayId": "nat-3",
+            "State": "available",
+            "SubnetId": "subnet-123",
+            "VpcId": "vpc-123",
+            "Tags": [
+                {
+                    "Key": "sigs.k8s.io/cluster-api-provider-aws/role",
+                    "Value": "common"
+                },
+                {
+                    "Key": "Name",
+                    "Value": "management-nat"
+                }
+            ],
+            "ConnectivityType": "public"
+        }
+    ]
+}

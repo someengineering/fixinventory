@@ -346,13 +346,21 @@ models: Dict[str, List[AwsResotoModel]] = {
     ],
     "ec2": [
         AwsResotoModel(
-            "describe-security-groups",
-            "SecurityGroups",
-            "SecurityGroup",
-            base="BaseSecurityGroup",
+            "describe-nat-gateways",
+            "NatGateways",
+            "NatGateway",
+            base="BaseGateway",
             prefix="Ec2",
-            prop_prefix="group_",
+            prop_prefix="nat_",
         ),
+        # AwsResotoModel(
+        #     "describe-security-groups",
+        #     "SecurityGroups",
+        #     "SecurityGroup",
+        #     base="BaseSecurityGroup",
+        #     prefix="Ec2",
+        #     prop_prefix="group_",
+        # ),
         # AwsResotoModel("describe-subnets", "Subnets", "Subnet", base="BaseSubnet", prefix="Ec2", prop_prefix="subnet_"),
         # AwsResotoModel("describe-vpcs", "Vpcs", "Vpc", base="BaseNetwork", prefix="Ec2", prop_prefix="vpc_"),
         # AwsResotoModel(

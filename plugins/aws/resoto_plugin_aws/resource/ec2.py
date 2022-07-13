@@ -18,6 +18,7 @@ from resotolib.baseresources import (  # noqa: F401
     BaseNetwork,
     BaseSubnet,
     BaseSecurityGroup,
+    BaseGateway,
 )
 from resotolib.json_bender import Bender, S, Bend, ForallBend, bend, MapEnum, F, K, StripNones
 from resotolib.types import Json
@@ -1170,14 +1171,13 @@ class AwsEc2NetworkInterface(AwsResource, BaseNetworkInterface):
         if vpc_id := source.get("VpcId"):
             builder.dependant_node(self, reverse=True, clazz=AwsEc2Vpc, id=vpc_id)
         if subnet_id := source.get("SubnetId"):
-            pass
-            builder.dependant_node(self, reverse=True, clazz=AwsEc2Subnet.kind, id=subnet_id)
+            builder.dependant_node(self, reverse=True, clazz=AwsEc2Subnet, id=subnet_id)
         if self.nic_attachment and (iid := self.nic_attachment.instance_id):
             builder.dependant_node(self, reverse=True, clazz=AwsEc2Instance, id=iid)
         for group in self.nic_groups:
             if gid := group.group_id:
                 pass
-                builder.add_edge(self, EdgeType.default, reverse=True, clazz=AwsEc2SecurityGroup.kind, id=gid)
+                builder.add_edge(self, EdgeType.default, reverse=True, clazz=AwsEc2SecurityGroup, id=gid)
 
 
 # endregion
@@ -1441,6 +1441,76 @@ class AwsEc2SecurityGroup(AwsResource, BaseSecurityGroup):
 
 # endregion
 
+# region Nat Gateways
+@define(eq=False, slots=False)
+class AwsEc2NatGatewayAddress:
+    kind: ClassVar[str] = "aws_ec2_nat_gateway_address"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "allocation_id": S("AllocationId"),
+        "network_interface_id": S("NetworkInterfaceId"),
+        "private_ip": S("PrivateIp"),
+        "public_ip": S("PublicIp"),
+    }
+    allocation_id: Optional[str] = field(default=None)
+    network_interface_id: Optional[str] = field(default=None)
+    private_ip: Optional[str] = field(default=None)
+    public_ip: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsEc2ProvisionedBandwidth:
+    kind: ClassVar[str] = "aws_ec2_provisioned_bandwidth"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "provision_time": S("ProvisionTime"),
+        "provisioned": S("Provisioned"),
+        "request_time": S("RequestTime"),
+        "requested": S("Requested"),
+        "status": S("Status"),
+    }
+    provision_time: Optional[datetime] = field(default=None)
+    provisioned: Optional[str] = field(default=None)
+    request_time: Optional[datetime] = field(default=None)
+    requested: Optional[str] = field(default=None)
+    status: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsEc2NatGateway(AwsResource, BaseGateway):
+    kind: ClassVar[str] = "aws_ec2_nat_gateway"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-nat-gateways", "NatGateways")
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("NatGatewayId"),
+        "tags": S("Tags", default=[]) >> TagsToDict(),
+        "name": S("Tags", default=[]) >> TagsValue("Name"),
+        "ctime": S("CreateTime"),
+        "nat_delete_time": S("DeleteTime"),
+        "nat_failure_code": S("FailureCode"),
+        "nat_failure_message": S("FailureMessage"),
+        "nat_gateway_addresses": S("NatGatewayAddresses", default=[]) >> ForallBend(AwsEc2NatGatewayAddress.mapping),
+        "nat_provisioned_bandwidth": S("ProvisionedBandwidth") >> Bend(AwsEc2ProvisionedBandwidth.mapping),
+        "nat_state": S("State"),
+        # "nat_subnet_id": S("SubnetId"),
+        # "nat_vpc_id": S("VpcId"),
+        "nat_connectivity_type": S("ConnectivityType"),
+    }
+    nat_delete_time: Optional[datetime] = field(default=None)
+    nat_failure_code: Optional[str] = field(default=None)
+    nat_failure_message: Optional[str] = field(default=None)
+    nat_gateway_addresses: List[AwsEc2NatGatewayAddress] = field(factory=list)
+    nat_provisioned_bandwidth: Optional[AwsEc2ProvisionedBandwidth] = field(default=None)
+    nat_state: Optional[str] = field(default=None)
+    nat_connectivity_type: Optional[str] = field(default=None)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        super().connect_in_graph(builder, source)
+        if vpc_id := source.get("VpcId"):
+            builder.dependant_node(self, reverse=True, clazz=AwsEc2Vpc, id=vpc_id)
+        if subnet_id := source.get("SubnetId"):
+            builder.dependant_node(self, reverse=True, clazz=AwsEc2Subnet, id=subnet_id)
+
+
+# endregion
+
 global_resources: List[Type[AwsResource]] = [
     AwsEc2InstanceType,
 ]
@@ -1448,6 +1518,7 @@ resources: List[Type[AwsResource]] = [
     AwsEc2ElasticIp,
     AwsEc2Instance,
     AwsEc2KeyPair,
+    AwsEc2NatGateway,
     AwsEc2NetworkAcl,
     AwsEc2NetworkInterface,
     AwsEc2ReservedInstances,
