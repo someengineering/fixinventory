@@ -17,6 +17,7 @@ from resotolib.baseresources import (  # noqa: F401
     BaseNetworkInterface,
     BaseNetwork,
     BaseSubnet,
+    BaseSecurityGroup,
 )
 from resotolib.json_bender import Bender, S, Bend, ForallBend, bend, MapEnum, F, K, StripNones
 from resotolib.types import Json
@@ -1081,14 +1082,6 @@ class AwsEc2NetworkInterfaceAttachment:
 
 
 @define(eq=False, slots=False)
-class AwsEc2GroupIdentifier:
-    kind: ClassVar[str] = "aws_ec2_group_identifier"
-    mapping: ClassVar[Dict[str, Bender]] = {"group_name": S("GroupName"), "group_id": S("GroupId")}
-    group_name: Optional[str] = field(default=None)
-    group_id: Optional[str] = field(default=None)
-
-
-@define(eq=False, slots=False)
 class AwsEc2NetworkInterfacePrivateIpAddress:
     kind: ClassVar[str] = "aws_ec2_network_interface_private_ip_address"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1178,13 +1171,13 @@ class AwsEc2NetworkInterface(AwsResource, BaseNetworkInterface):
             builder.dependant_node(self, reverse=True, clazz=AwsEc2Vpc, id=vpc_id)
         if subnet_id := source.get("SubnetId"):
             pass
-            # builder.dependant_node(self, reverse=True, clazz=AwsEc2Subnet.kind, id=subnet_id)
+            builder.dependant_node(self, reverse=True, clazz=AwsEc2Subnet.kind, id=subnet_id)
         if self.nic_attachment and (iid := self.nic_attachment.instance_id):
             builder.dependant_node(self, reverse=True, clazz=AwsEc2Instance, id=iid)
         for group in self.nic_groups:
             if gid := group.group_id:
                 pass
-                # builder.add_edge(self, EdgeType.default, reverse=True, clazz=AwsEc2SecurityGroup.kind, id=gid)
+                builder.add_edge(self, EdgeType.default, reverse=True, clazz=AwsEc2SecurityGroup.kind, id=gid)
 
 
 # endregion
@@ -1355,6 +1348,99 @@ class AwsEc2Subnet(AwsResource, BaseSubnet):
 
 # endregion
 
+# region Security Groups
+@define(eq=False, slots=False)
+class AwsEc2IpRange:
+    kind: ClassVar[str] = "aws_ec2_ip_range"
+    mapping: ClassVar[Dict[str, Bender]] = {"cidr_ip": S("CidrIp"), "description": S("Description")}
+    cidr_ip: Optional[str] = field(default=None)
+    description: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsEc2Ipv6Range:
+    kind: ClassVar[str] = "aws_ec2_ipv6_range"
+    mapping: ClassVar[Dict[str, Bender]] = {"cidr_ipv6": S("CidrIpv6"), "description": S("Description")}
+    cidr_ipv6: Optional[str] = field(default=None)
+    description: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsEc2PrefixListId:
+    kind: ClassVar[str] = "aws_ec2_prefix_list_id"
+    mapping: ClassVar[Dict[str, Bender]] = {"description": S("Description"), "prefix_list_id": S("PrefixListId")}
+    description: Optional[str] = field(default=None)
+    prefix_list_id: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsEc2UserIdGroupPair:
+    kind: ClassVar[str] = "aws_ec2_user_id_group_pair"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "description": S("Description"),
+        "group_id": S("GroupId"),
+        "group_name": S("GroupName"),
+        "peering_status": S("PeeringStatus"),
+        "user_id": S("UserId"),
+        "vpc_id": S("VpcId"),
+        "vpc_peering_connection_id": S("VpcPeeringConnectionId"),
+    }
+    description: Optional[str] = field(default=None)
+    group_id: Optional[str] = field(default=None)
+    group_name: Optional[str] = field(default=None)
+    peering_status: Optional[str] = field(default=None)
+    user_id: Optional[str] = field(default=None)
+    vpc_id: Optional[str] = field(default=None)
+    vpc_peering_connection_id: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsEc2IpPermission:
+    kind: ClassVar[str] = "aws_ec2_ip_permission"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "from_port": S("FromPort"),
+        "ip_protocol": S("IpProtocol"),
+        "ip_ranges": S("IpRanges", default=[]) >> ForallBend(AwsEc2IpRange.mapping),
+        "ipv6_ranges": S("Ipv6Ranges", default=[]) >> ForallBend(AwsEc2Ipv6Range.mapping),
+        "prefix_list_ids": S("PrefixListIds", default=[]) >> ForallBend(AwsEc2PrefixListId.mapping),
+        "to_port": S("ToPort"),
+        "user_id_group_pairs": S("UserIdGroupPairs", default=[]) >> ForallBend(AwsEc2UserIdGroupPair.mapping),
+    }
+    from_port: Optional[int] = field(default=None)
+    ip_protocol: Optional[str] = field(default=None)
+    ip_ranges: List[AwsEc2IpRange] = field(factory=list)
+    ipv6_ranges: List[AwsEc2Ipv6Range] = field(factory=list)
+    prefix_list_ids: List[AwsEc2PrefixListId] = field(factory=list)
+    to_port: Optional[int] = field(default=None)
+    user_id_group_pairs: List[AwsEc2UserIdGroupPair] = field(factory=list)
+
+
+@define(eq=False, slots=False)
+class AwsEc2SecurityGroup(AwsResource, BaseSecurityGroup):
+    kind: ClassVar[str] = "aws_ec2_security_group"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-security-groups", "SecurityGroups")
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("GroupId"),
+        "tags": S("Tags", default=[]) >> TagsToDict(),
+        "name": S("GroupName"),
+        "description": S("Description"),
+        "group_ip_permissions": S("IpPermissions", default=[]) >> ForallBend(AwsEc2IpPermission.mapping),
+        "group_owner_id": S("OwnerId"),
+        "group_ip_permissions_egress": S("IpPermissionsEgress", default=[]) >> ForallBend(AwsEc2IpPermission.mapping),
+    }
+    description: Optional[str] = field(default=None)
+    group_ip_permissions: List[AwsEc2IpPermission] = field(factory=list)
+    group_owner_id: Optional[str] = field(default=None)
+    group_ip_permissions_egress: List[AwsEc2IpPermission] = field(factory=list)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        super().connect_in_graph(builder, source)
+        if vpc_id := source.get("VpcId"):
+            builder.dependant_node(self, reverse=True, clazz=AwsEc2Vpc, id=vpc_id)
+
+
+# endregion
+
 global_resources: List[Type[AwsResource]] = [
     AwsEc2InstanceType,
 ]
@@ -1365,6 +1451,7 @@ resources: List[Type[AwsResource]] = [
     AwsEc2NetworkAcl,
     AwsEc2NetworkInterface,
     AwsEc2ReservedInstances,
+    AwsEc2SecurityGroup,
     AwsEc2Subnet,
     AwsEc2Volume,
     AwsEc2Vpc,

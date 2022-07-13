@@ -1,0 +1,165 @@
+{
+    "SecurityGroups": [
+        {
+            "Description": "Allow all egress communication.",
+            "GroupName": "prow-egress",
+            "IpPermissions": [],
+            "OwnerId": "test",
+            "GroupId": "sg-123",
+            "IpPermissionsEgress": [
+                {
+                    "IpProtocol": "-1",
+                    "IpRanges": [
+                        {
+                            "CidrIp": "0.0.0.0/0"
+                        }
+                    ],
+                    "Ipv6Ranges": [],
+                    "PrefixListIds": [],
+                    "UserIdGroupPairs": []
+                }
+            ],
+            "Tags": [
+                {
+                    "Key": "owner",
+                    "Value": "test"
+                },
+                {
+                    "Key": "Name",
+                    "Value": "Foo"
+                }
+            ],
+            "VpcId": "vpc-123"
+        },
+        {
+            "Description": "Allow active directory traffic",
+            "GroupName": "ad-security-group",
+            "IpPermissions": [
+                {
+                    "IpProtocol": "-1",
+                    "IpRanges": [
+                        {
+                            "CidrIp": "0.0.0.0/0"
+                        }
+                    ],
+                    "Ipv6Ranges": [],
+                    "PrefixListIds": [],
+                    "UserIdGroupPairs": []
+                }
+            ],
+            "OwnerId": "test",
+            "GroupId": "sg-123",
+            "IpPermissionsEgress": [
+                {
+                    "IpProtocol": "-1",
+                    "IpRanges": [
+                        {
+                            "CidrIp": "0.0.0.0/0"
+                        }
+                    ],
+                    "Ipv6Ranges": [],
+                    "PrefixListIds": [],
+                    "UserIdGroupPairs": []
+                }
+            ],
+            "Tags": [
+                {
+                    "Key": "Owner",
+                    "Value": "SRE"
+                }
+            ],
+            "VpcId": "vpc-123"
+        },
+        {
+            "Description": "Master ELB security group",
+            "GroupName": "master-elb",
+            "IpPermissions": [
+                {
+                    "FromPort": 80,
+                    "IpProtocol": "tcp",
+                    "IpRanges": [
+                        {
+                            "CidrIp": "1.2.3.4/32"
+                        },
+                        {
+                            "CidrIp": "2.3.4.5/32"
+                        },
+                        {
+                            "CidrIp": "4.5.6.7/32",
+                            "Description": "Agent Test"
+                        }
+                    ],
+                    "Ipv6Ranges": [],
+                    "PrefixListIds": [],
+                    "ToPort": 80,
+                    "UserIdGroupPairs": [
+                        {
+                            "GroupId": "sg-123",
+                            "UserId": "test"
+                        },
+                        {
+                            "GroupId": "sg-234",
+                            "UserId": "test"
+                        },
+                        {
+                            "GroupId": "sg-345",
+                            "UserId": "test"
+                        }
+                    ]
+                },
+                {
+                    "FromPort": 443,
+                    "IpProtocol": "tcp",
+                    "IpRanges": [
+                        {
+                            "CidrIp": "1.2.3.4/32"
+                        },
+                        {
+                            "CidrIp": "2.3.4.5/32"
+                        },
+                        {
+                            "CidrIp": "3.4.5.6/29"
+                        },
+                        {
+                            "CidrIp": "4.5.6.7/32",
+                            "Description": "Agent 007"
+                        }
+                    ],
+                    "Ipv6Ranges": [],
+                    "PrefixListIds": [],
+                    "ToPort": 443,
+                    "UserIdGroupPairs": [
+                        {
+                            "GroupId": "sg-123",
+                            "UserId": "test"
+                        },
+                        {
+                            "GroupId": "sg-234",
+                            "UserId": "test"
+                        },
+                        {
+                            "GroupId": "sg-345",
+                            "UserId": "test"
+                        }
+                    ]
+                }
+            ],
+            "OwnerId": "test",
+            "GroupId": "sg-123",
+            "IpPermissionsEgress": [
+                {
+                    "IpProtocol": "-1",
+                    "IpRanges": [
+                        {
+                            "CidrIp": "0.0.0.0/0"
+                        }
+                    ],
+                    "Ipv6Ranges": [],
+                    "PrefixListIds": [],
+                    "UserIdGroupPairs": []
+                }
+            ],
+            "VpcId": "vpc-123"
+        }
+    ]
+}
