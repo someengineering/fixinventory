@@ -22,6 +22,7 @@ from resotolib.baseresources import (  # noqa: F401
     BaseSnapshot,
     BasePeeringConnection,
     BaseEndpoint,
+    BaseRoutingTable,
 )
 from resotolib.json_bender import Bender, S, Bend, ForallBend, bend, MapEnum, F, K, StripNones
 from resotolib.types import Json
@@ -1022,12 +1023,17 @@ class AwsEc2NetworkAcl(AwsResource):
         "acl_associations": S("Associations", default=[]) >> ForallBend(AwsEc2NetworkAclAssociation.mapping),
         "acl_entries": S("Entries", default=[]) >> ForallBend(AwsEc2NetworkAclEntry.mapping),
         "is_default": S("IsDefault"),
-        # "vpc_id": S("VpcId"), # TODO: add link
-        # "owner_id": S("OwnerId") # TODO: add link
+        # "vpc_id": S("VpcId"),
+        "owner_id": S("OwnerId"),
     }
     acl_associations: List[AwsEc2NetworkAclAssociation] = field(factory=list)
     acl_entries: List[AwsEc2NetworkAclEntry] = field(factory=list)
     is_default: Optional[bool] = field(default=None)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        super().connect_in_graph(builder, source)
+        if vpc_id := source.get("VpcId"):
+            builder.add_edge(self, EdgeType.default, reverse=True, clazz=AwsEc2Vpc, name=vpc_id)
 
 
 # endregion
@@ -1431,8 +1437,7 @@ class AwsEc2VpcEndpoint(AwsResource, BaseEndpoint):
             builder.dependant_node(self, reverse=True, delete_reverse=True, clazz=AwsEc2Vpc, id=vpc_id)
 
         for rt in source.get("RouteTableIds", []):
-            print(rt)
-            # builder.dependant_node(self, reverse=True, delete_reverse=True, clazz=AwsEc2RouteTable, id=rt)
+            builder.dependant_node(self, reverse=True, delete_reverse=True, clazz=AwsEc2RouteTable, id=rt)
 
         for sn in source.get("SubnetIds", []):
             builder.dependant_node(self, reverse=True, delete_reverse=True, clazz=AwsEc2Subnet, id=sn)
@@ -1733,6 +1738,100 @@ class AwsEc2InternetGateway(AwsResource, BaseGateway):
 
 # endregion
 
+# region Route Tables
+@define(eq=False, slots=False)
+class AwsEc2RouteTableAssociationState:
+    kind: ClassVar[str] = "aws_ec2_route_table_association_state"
+    mapping: ClassVar[Dict[str, Bender]] = {"state": S("State"), "status_message": S("StatusMessage")}
+    state: Optional[str] = field(default=None)
+    status_message: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsEc2RouteTableAssociation:
+    kind: ClassVar[str] = "aws_ec2_route_table_association"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "main": S("Main"),
+        "route_table_association_id": S("RouteTableAssociationId"),
+        "route_table_id": S("RouteTableId"),
+        "subnet_id": S("SubnetId"),
+        "gateway_id": S("GatewayId"),
+        "association_state": S("AssociationState") >> Bend(AwsEc2RouteTableAssociationState.mapping),
+    }
+    main: Optional[bool] = field(default=None)
+    route_table_association_id: Optional[str] = field(default=None)
+    route_table_id: Optional[str] = field(default=None)
+    subnet_id: Optional[str] = field(default=None)
+    gateway_id: Optional[str] = field(default=None)
+    association_state: Optional[AwsEc2RouteTableAssociationState] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsEc2Route:
+    kind: ClassVar[str] = "aws_ec2_route"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "destination_cidr_block": S("DestinationCidrBlock"),
+        "destination_ipv6_cidr_block": S("DestinationIpv6CidrBlock"),
+        "destination_prefix_list_id": S("DestinationPrefixListId"),
+        "egress_only_internet_gateway_id": S("EgressOnlyInternetGatewayId"),
+        "gateway_id": S("GatewayId"),
+        "instance_id": S("InstanceId"),
+        "instance_owner_id": S("InstanceOwnerId"),
+        "nat_gateway_id": S("NatGatewayId"),
+        "transit_gateway_id": S("TransitGatewayId"),
+        "local_gateway_id": S("LocalGatewayId"),
+        "carrier_gateway_id": S("CarrierGatewayId"),
+        "network_interface_id": S("NetworkInterfaceId"),
+        "origin": S("Origin"),
+        "state": S("State"),
+        "vpc_peering_connection_id": S("VpcPeeringConnectionId"),
+        "core_network_arn": S("CoreNetworkArn"),
+    }
+    destination_cidr_block: Optional[str] = field(default=None)
+    destination_ipv6_cidr_block: Optional[str] = field(default=None)
+    destination_prefix_list_id: Optional[str] = field(default=None)
+    egress_only_internet_gateway_id: Optional[str] = field(default=None)
+    gateway_id: Optional[str] = field(default=None)
+    instance_id: Optional[str] = field(default=None)
+    instance_owner_id: Optional[str] = field(default=None)
+    nat_gateway_id: Optional[str] = field(default=None)
+    transit_gateway_id: Optional[str] = field(default=None)
+    local_gateway_id: Optional[str] = field(default=None)
+    carrier_gateway_id: Optional[str] = field(default=None)
+    network_interface_id: Optional[str] = field(default=None)
+    origin: Optional[str] = field(default=None)
+    state: Optional[str] = field(default=None)
+    vpc_peering_connection_id: Optional[str] = field(default=None)
+    core_network_arn: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsEc2RouteTable(AwsResource, BaseRoutingTable):
+    kind: ClassVar[str] = "aws_ec2_route_table"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-route-tables", "RouteTables")
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("RouteTableId"),
+        "tags": S("Tags", default=[]) >> TagsToDict(),
+        "name": (S("Tags", default=[]) >> TagsValue("Name")).or_else(S("RouteTableId")),
+        "route_table_associations": S("Associations", default=[]) >> ForallBend(AwsEc2RouteTableAssociation.mapping),
+        "route_table_propagating_vgws": S("PropagatingVgws", default=[]) >> ForallBend(S("GatewayId")),
+        "route_table_routes": S("Routes", default=[]) >> ForallBend(AwsEc2Route.mapping),
+        # "route_table_vpc_id": S("VpcId"),
+        "owner_id": S("OwnerId"),
+    }
+    route_table_associations: List[AwsEc2RouteTableAssociation] = field(factory=list)
+    route_table_propagating_vgws: List[str] = field(factory=list)
+    route_table_routes: List[AwsEc2Route] = field(factory=list)
+    owner_id: Optional[str] = field(default=None)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        super().connect_in_graph(builder, source)
+        if vpc_id := source.get("VpcId"):
+            builder.dependant_node(self, reverse=True, clazz=AwsEc2Vpc, id=vpc_id)
+
+
+# endregion
+
 global_resources: List[Type[AwsResource]] = [
     AwsEc2InstanceType,
 ]
@@ -1745,6 +1844,7 @@ resources: List[Type[AwsResource]] = [
     AwsEc2NetworkAcl,
     AwsEc2NetworkInterface,
     AwsEc2ReservedInstances,
+    AwsEc2RouteTable,
     AwsEc2SecurityGroup,
     AwsEc2Snapshot,
     AwsEc2Subnet,

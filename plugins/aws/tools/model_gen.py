@@ -345,14 +345,22 @@ models: Dict[str, List[AwsResotoModel]] = {
         # ),
     ],
     "ec2": [
-        AwsResotoModel(
-            "describe-vpc-endpoints",
-            "VpcEndpoints",
-            "VpcEndpoint",
-            base="BaseEndpoint",
-            prefix="Ec2",
-            prop_prefix="endpoint_",
-        ),
+        # AwsResotoModel(
+        #     "describe-route-tables",
+        #     "RouteTables",
+        #     "RouteTable",
+        #     base="BaseRoutingTable",
+        #     prefix="Ec2",
+        #     prop_prefix="route_table_",
+        # ),
+        # AwsResotoModel(
+        #     "describe-vpc-endpoints",
+        #     "VpcEndpoints",
+        #     "VpcEndpoint",
+        #     base="BaseEndpoint",
+        #     prefix="Ec2",
+        #     prop_prefix="endpoint_",
+        # ),
         # AwsResotoModel(
         #     "describe-vpc-peering-connections",
         #     "VpcPeeringConnections",

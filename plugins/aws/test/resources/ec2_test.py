@@ -15,6 +15,7 @@ from resoto_plugin_aws.resource.ec2 import (
     AwsEc2Snapshot,
     AwsEc2VpcPeeringConnection,
     AwsEc2VpcEndpoint,
+    AwsEc2RouteTable,
 )
 from test.resources import round_trip_for, build_from_file, check_single_node
 
@@ -73,6 +74,10 @@ def test_vpc_endpoints() -> None:
 
 def test_subnets() -> None:
     round_trip_for(AwsEc2Subnet)
+
+
+def test_route_table() -> None:
+    round_trip_for(AwsEc2RouteTable)
 
 
 def test_security_groups() -> None:
