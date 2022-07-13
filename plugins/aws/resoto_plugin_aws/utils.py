@@ -11,6 +11,7 @@ from resotolib.config import Config
 from resotolib.graph import Graph
 from resotolib.json_bender import Bender
 from resotolib.types import Json
+from resotolib.logger import log
 
 metrics_session_exceptions = Counter(
     "resoto_plugin_aws_session_exceptions_total",
@@ -36,15 +37,19 @@ def aws_session(
 ) -> BotoSession:
     if Config.aws.role_override:
         role = Config.aws.role
-    if profile:
-        return BotoSession(profile_name=profile)
-    elif role and account:
+    if role and account:
         role_arn = f"arn:aws:iam::{account}:role/{role}"
-        session = BotoSession(
-            aws_access_key_id=Config.aws.access_key_id,
-            aws_secret_access_key=Config.aws.secret_access_key,
-            region_name="us-east-1",
-        )
+        if profile:
+            session = BotoSession(
+                profile_name=profile,
+                region_name="us-east-1",
+            )
+        else:
+            session = BotoSession(
+                aws_access_key_id=Config.aws.access_key_id,
+                aws_secret_access_key=Config.aws.secret_access_key,
+                region_name="us-east-1",
+            )
         sts = session.client("sts")
         token = sts.assume_role(RoleArn=role_arn, RoleSessionName=f"{account}-{str(uuid.uuid4())}")
         credentials = token["Credentials"]
@@ -54,10 +59,17 @@ def aws_session(
             aws_session_token=credentials["SessionToken"],
         )
     else:
-        return BotoSession(
-            aws_access_key_id=Config.aws.access_key_id,
-            aws_secret_access_key=Config.aws.secret_access_key,
-        )
+        if profile:
+            log.debug(f"Using profile {profile}")
+            return BotoSession(
+                profile_name=profile,
+            )
+        else:
+            log.debug(f"Using access key")
+            return BotoSession(
+                aws_access_key_id=Config.aws.access_key_id,
+                aws_secret_access_key=Config.aws.secret_access_key,
+            )
 
 
 def aws_client(resource: BaseResource, service: str, graph: Optional[Graph] = None) -> BotoSession:

@@ -44,34 +44,16 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
     @metrics_collect.time()  # type: ignore
     def collect(self) -> None:
         log.debug("plugin: AWS collecting resources")
-        if not self.authenticated:
-            log.error("Failed to authenticate - skipping collection")
+        #        if not self.authenticated:
+        #            log.error("Failed to authenticate - skipping collection")
+        #            return
+
+        accounts = get_accounts()
+        if len(accounts) == 0:
+            log.error("No accounts found")
             return
-
-        if Config.aws.assume_current and not Config.aws.do_not_scrape_current:
-            log.warning(
-                "You specified assume_current but not do_not_scrape_current! "
-                "This will result in the same account being scraped twice and is likely not what you want."
-            )
-
-        if isinstance(Config.aws.profiles, list) and len(Config.aws.profiles) > 0:
-            accounts = [
-                AWSAccount(current_account_id(profile=profile), {}, profile=profile) for profile in Config.aws.profiles
-            ]
-        elif Config.aws.role and Config.aws.scrape_org:
-            accounts = [
-                AWSAccount(id=aws_account_id, tags={}, role=Config.aws.role)
-                for aws_account_id in get_org_accounts(filter_current_account=not Config.aws.assume_current)
-                if aws_account_id not in Config.aws.scrape_exclude_account
-            ]
-            if not Config.aws.do_not_scrape_current:
-                accounts.append(AWSAccount(id=current_account_id(), tags={}))
-        elif Config.aws.role and Config.aws.account:
-            accounts = [
-                AWSAccount(id=aws_account_id, tags={}, role=Config.aws.role) for aws_account_id in Config.aws.account
-            ]
-        else:
-            accounts = [AWSAccount(id=current_account_id(), tags={})]
+        for account in accounts:
+            log.debug(f"Found account {account.rtdname} {account.role} {account.profile}")
 
         max_workers = len(accounts) if len(accounts) < Config.aws.account_pool_size else Config.aws.account_pool_size
         pool_args = {"max_workers": max_workers}
@@ -109,10 +91,9 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
                 self.__regions = list(Config.aws.region)
         return self.__regions
 
-    @property
-    def authenticated(self) -> bool:
+    def authenticated(self, profile: Optional[str] = None) -> bool:
         try:
-            _ = current_account_id()
+            _ = current_account_id(profile=profile)
         except botocore.exceptions.NoCredentialsError:
             log.error("No AWS credentials found")
             return False
@@ -134,8 +115,58 @@ def current_account_id(profile: Optional[str] = None) -> str:
     return session.client("sts").get_caller_identity().get("Account")  # type: ignore
 
 
-def get_org_accounts(filter_current_account: bool = False) -> List[str]:
-    session = aws_session()
+def get_accounts() -> List[AWSAccount]:
+    accounts = []
+    profiles = [None]
+
+    if Config.aws.assume_current and not Config.aws.do_not_scrape_current:
+        log.warning(
+            "You specified assume_current but not do_not_scrape_current! "
+            "This will result in the same account being collected twice and is likely not what you want."
+        )
+
+    if isinstance(Config.aws.profiles, list) and len(Config.aws.profiles) > 0:
+        log.debug("Using specified AWS profiles")
+        profiles = Config.aws.profiles
+        if Config.aws.account and len(Config.aws.profiles) > 1:
+            log.warning(
+                "You specified both a list of accounts and more than one profile! "
+                "This will result in the attempt to collect the same accounts for "
+                "every profile and is likely not what you want."
+            )
+
+    for profile in profiles:
+        if profile is not None:
+            log.debug(f"Finding accounts for profile {profile}")
+        if Config.aws.role and Config.aws.scrape_org:
+            log.debug("Role and scrape_org are both set")
+            accounts.extend(
+                [
+                    AWSAccount(aws_account_id, {}, role=Config.aws.role, profile=profile)
+                    for aws_account_id in get_org_accounts(
+                        filter_current_account=not Config.aws.assume_current, profile=profile
+                    )
+                    if aws_account_id not in Config.aws.scrape_exclude_account
+                ]
+            )
+            if not Config.aws.do_not_scrape_current:
+                accounts.append(AWSAccount(current_account_id(profile=profile), {}))
+        elif Config.aws.role and Config.aws.account:
+            log.debug("Both, role and list of accounts specified")
+            accounts.extend(
+                [
+                    AWSAccount(aws_account_id, {}, role=Config.aws.role, profile=profile)
+                    for aws_account_id in Config.aws.account
+                ]
+            )
+        else:
+            accounts.extend([AWSAccount(current_account_id(profile=profile), {}, profile=profile)])
+
+    return accounts
+
+
+def get_org_accounts(filter_current_account: bool = False, profile: Optional[str] = None) -> List[str]:
+    session = aws_session(profile=profile)
     client = session.client("organizations")
     accounts = []
     try:
@@ -149,7 +180,7 @@ def get_org_accounts(filter_current_account: bool = False) -> List[str]:
             log.error("AWS error - missing permissions to list organization accounts")
         else:
             raise
-    filter_account_id = current_account_id() if filter_current_account else -1
+    filter_account_id = current_account_id(profile=profile) if filter_current_account else -1
     accounts = [aws_account["Id"] for aws_account in accounts if aws_account["Id"] != filter_account_id]
     for account in accounts:
         log.debug(f"AWS found org account {account}")

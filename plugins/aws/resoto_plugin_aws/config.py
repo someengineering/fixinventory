@@ -81,9 +81,7 @@ class AwsConfig:
     )
     profiles: Optional[List[str]] = field(
         default=None,
-        metadata={
-            "description": "List of AWS profiles to collect (if specified, other account related options are ignored)"
-        },
+        metadata={"description": "List of AWS profiles to collect"},
     )
     account: Optional[List[str]] = field(
         default=None,
