@@ -144,7 +144,7 @@ def get_accounts() -> List[AWSAccount]:
             log.debug("Role and scrape_org are both set")
             accounts.extend(
                 [
-                    AWSAccount(aws_account_id, {}, role=Config.aws.role, profile=profile)
+                    AWSAccount(id=aws_account_id, role=Config.aws.role, profile=profile)
                     for aws_account_id in get_org_accounts(
                         filter_current_account=not Config.aws.assume_current, profile=profile
                     )
@@ -152,17 +152,17 @@ def get_accounts() -> List[AWSAccount]:
                 ]
             )
             if not Config.aws.do_not_scrape_current:
-                accounts.append(AWSAccount(current_account_id(profile=profile), {}))
+                accounts.append(AWSAccount(id=current_account_id(profile=profile)))
         elif Config.aws.role and Config.aws.account:
             log.debug("Both, role and list of accounts specified")
             accounts.extend(
                 [
-                    AWSAccount(aws_account_id, {}, role=Config.aws.role, profile=profile)
+                    AWSAccount(id=aws_account_id, role=Config.aws.role, profile=profile)
                     for aws_account_id in Config.aws.account
                 ]
             )
         else:
-            accounts.extend([AWSAccount(current_account_id(profile=profile), {}, profile=profile)])
+            accounts.extend([AWSAccount(id=current_account_id(profile=profile), profile=profile)])
 
     return accounts
 
