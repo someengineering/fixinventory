@@ -15,6 +15,7 @@ from resotolib.baseresources import (  # noqa: F401
     InstanceStatus,
     BaseIPAddress,
     BaseNetworkInterface,
+    BaseNetwork,
 )
 from resotolib.json_bender import Bender, S, Bend, ForallBend, bend, MapEnum, F, K, StripNones
 from resotolib.types import Json
@@ -718,7 +719,6 @@ class AwsEc2Instance(AwsResource, BaseInstance):
         "instance_state": S("State") >> Bend(AwsEc2InstanceState.mapping),
         "instance_state_transition_reason": S("StateTransitionReason"),
         "instance_subnet_id": S("SubnetId"),
-        # "instance_vpc_id": S("VpcId"), # TODO: add link
         "instance_architecture": S("Architecture"),
         "instance_block_device_mappings": S("BlockDeviceMappings", default=[])
         >> ForallBend(AwsEc2InstanceBlockDeviceMapping.mapping),
@@ -837,6 +837,8 @@ class AwsEc2Instance(AwsResource, BaseInstance):
         if self.instance_key_name:
             builder.add_edge(self, EdgeType.default, clazz=AwsEc2KeyPair, name=self.instance_key_name)
             builder.add_edge(self, EdgeType.delete, reverse=True, clazz=AwsEc2KeyPair, name=self.instance_key_name)
+        if vpc_id := source.get("VpcId"):
+            builder.dependant_node(self, reverse=True, clazz=AwsEc2Vpc, name=vpc_id)
 
 
 # endregion
@@ -1172,8 +1174,7 @@ class AwsEc2NetworkInterface(AwsResource, BaseNetworkInterface):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
         if vpc_id := source.get("VpcId"):
-            pass
-            # builder.dependant_node(self, reverse=True, clazz=AwsEc2Vpc.kind, id=vpc_id)
+            builder.dependant_node(self, reverse=True, clazz=AwsEc2Vpc, id=vpc_id)
         if subnet_id := source.get("SubnetId"):
             pass
             # builder.dependant_node(self, reverse=True, clazz=AwsEc2Subnet.kind, id=subnet_id)
@@ -1187,15 +1188,88 @@ class AwsEc2NetworkInterface(AwsResource, BaseNetworkInterface):
 
 # endregion
 
+# region VPCs
+
+
+@define(eq=False, slots=False)
+class AwsEc2VpcCidrBlockState:
+    kind: ClassVar[str] = "aws_ec2_vpc_cidr_block_state"
+    mapping: ClassVar[Dict[str, Bender]] = {"state": S("State"), "status_message": S("StatusMessage")}
+    state: Optional[str] = field(default=None)
+    status_message: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsEc2VpcIpv6CidrBlockAssociation:
+    kind: ClassVar[str] = "aws_ec2_vpc_ipv6_cidr_block_association"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "association_id": S("AssociationId"),
+        "ipv6_cidr_block": S("Ipv6CidrBlock"),
+        "ipv6_cidr_block_state": S("Ipv6CidrBlockState") >> Bend(AwsEc2VpcCidrBlockState.mapping),
+        "network_border_group": S("NetworkBorderGroup"),
+        "ipv6_pool": S("Ipv6Pool"),
+    }
+    association_id: Optional[str] = field(default=None)
+    ipv6_cidr_block: Optional[str] = field(default=None)
+    ipv6_cidr_block_state: Optional[AwsEc2VpcCidrBlockState] = field(default=None)
+    network_border_group: Optional[str] = field(default=None)
+    ipv6_pool: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsEc2VpcCidrBlockAssociation:
+    kind: ClassVar[str] = "aws_ec2_vpc_cidr_block_association"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "association_id": S("AssociationId"),
+        "cidr_block": S("CidrBlock"),
+        "cidr_block_state": S("CidrBlockState") >> Bend(AwsEc2VpcCidrBlockState.mapping),
+    }
+    association_id: Optional[str] = field(default=None)
+    cidr_block: Optional[str] = field(default=None)
+    cidr_block_state: Optional[AwsEc2VpcCidrBlockState] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsEc2Vpc(AwsResource, BaseNetwork):
+    kind: ClassVar[str] = "aws_ec2_vpc"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-vpcs", "Vpcs")
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("VpcId"),
+        "tags": S("Tags", default=[]) >> TagsToDict(),
+        "name": S("Tags", default=[]) >> TagsValue("Name").or_else(S("VpcId")),
+        "vpc_cidr_block": S("CidrBlock"),
+        "vpc_dhcp_options_id": S("DhcpOptionsId"),
+        "vpc_state": S("State"),
+        "vpc_owner_id": S("OwnerId"),
+        "vpc_instance_tenancy": S("InstanceTenancy"),
+        "vpc_ipv6_cidr_block_association_set": S("Ipv6CidrBlockAssociationSet", default=[])
+        >> ForallBend(AwsEc2VpcIpv6CidrBlockAssociation.mapping),
+        "vpc_cidr_block_association_set": S("CidrBlockAssociationSet", default=[])
+        >> ForallBend(AwsEc2VpcCidrBlockAssociation.mapping),
+        "vpc_is_default": S("IsDefault"),
+    }
+    vpc_cidr_block: Optional[str] = field(default=None)
+    vpc_dhcp_options_id: Optional[str] = field(default=None)
+    vpc_state: Optional[str] = field(default=None)
+    vpc_owner_id: Optional[str] = field(default=None)
+    vpc_instance_tenancy: Optional[str] = field(default=None)
+    vpc_ipv6_cidr_block_association_set: List[AwsEc2VpcIpv6CidrBlockAssociation] = field(factory=list)
+    vpc_cidr_block_association_set: List[AwsEc2VpcCidrBlockAssociation] = field(factory=list)
+    vpc_is_default: Optional[bool] = field(default=None)
+
+
+# endregion
+
 global_resources: List[Type[AwsResource]] = [
     AwsEc2InstanceType,
 ]
 resources: List[Type[AwsResource]] = [
-    AwsEc2Instance,
-    AwsEc2NetworkAcl,
-    AwsEc2ReservedInstances,
-    AwsEc2KeyPair,
-    AwsEc2Volume,
     AwsEc2ElasticIp,
+    AwsEc2Instance,
+    AwsEc2KeyPair,
+    AwsEc2NetworkAcl,
     AwsEc2NetworkInterface,
+    AwsEc2ReservedInstances,
+    AwsEc2Volume,
+    AwsEc2Vpc,
 ]
