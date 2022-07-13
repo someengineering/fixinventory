@@ -44,7 +44,8 @@ def check_overlap(*base: Type[BaseResource]) -> None:
             raise AttributeError(f"Import {name}: expected type or list of types, got {type(mod)}")
 
     model_classes = {
-        *dynamic_import("resoto_plugin_aws.collector.all_resources"),
+        # TODO: uncomment, once the new aws classes are ready
+        # *dynamic_import("resoto_plugin_aws.collector.all_resources"),
         *dynamic_import("resoto_plugin_aws.resources.AWSResource"),
         *dynamic_import("resoto_plugin_gcp.resources.GCPResource"),
         *dynamic_import("resoto_plugin_digitalocean.resources.DigitalOceanResource"),

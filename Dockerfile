@@ -20,6 +20,7 @@ RUN apt-get -y dist-upgrade
 RUN apt-get -y install apt-utils
 RUN apt-get -y install \
         build-essential \
+        git \
         curl \
         unzip \
         zlib1g-dev \
@@ -123,6 +124,9 @@ COPY plugins /usr/src/plugins
 WORKDIR /usr/src
 RUN if [ "X${TESTS:-false}" = Xtrue ]; then . /usr/local/resoto-venv-python3/bin/activate && find plugins/ -name tox.ini | while read toxini; do cd $(dirname "$toxini") && tox && cd - || exit 1; done; fi
 RUN . /usr/local/resoto-venv-python3/bin/activate && find plugins/ -maxdepth 1 -mindepth 1 -type d -print0 | xargs -0 python -m pip wheel -w /build-python -f /build-python
+
+# Workaround until cattrs 22.2.0 is released
+RUN rm -f /build-python/cattrs-22.2.0.dev0-py3-none-any.whl /build-pypy/cattrs-22.2.0.dev0-py3-none-any.whl
 
 # Install all wheels
 RUN . /usr/local/resoto-venv-python3/bin/activate && python -m pip install -f /build-python /build-python/*.whl
