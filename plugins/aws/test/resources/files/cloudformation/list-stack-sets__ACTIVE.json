@@ -1,0 +1,20 @@
+{
+    "Summaries": [
+        {
+            "StackSetId": "set-2",
+            "StacKSetName": "set-2",
+            "Description": "set-2",
+            "Status": "CREATE_COMPLETE",
+            "AutoDeployment": {
+                "Enabled": true,
+                "RetainStacksOnDelete": true
+            },
+            "PermissionModel": "SERVICE_MANAGED",
+            "DriftStatus": "DRIFTED",
+            "LastDriftCheckTimestamp": "2020-01-01T00:00:00.000Z",
+            "ManagedExecution": {
+                "Active": true
+            }
+        }
+    ]
+}

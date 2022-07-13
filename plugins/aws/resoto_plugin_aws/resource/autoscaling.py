@@ -4,7 +4,7 @@ from attrs import define, field
 
 from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
 from resoto_plugin_aws.resource.ec2 import AwsEc2Instance
-from resoto_plugin_aws.utils import TagsToDict
+from resoto_plugin_aws.utils import ToDict
 from resotolib.baseresources import (  # noqa: F401
     BaseInstance,
     EdgeType,
@@ -214,7 +214,7 @@ class AwsAutoScalingGroup(AwsResource, BaseAutoScalingGroup):
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("autoscaling", "describe-auto-scaling-groups", "AutoScalingGroups")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("AutoScalingGroupName"),
-        "tags": S("Tags", default=[]) >> TagsToDict(),
+        "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("AutoScalingGroupName"),
         "ctime": S("CreatedTime"),
         "arn": S("AutoScalingGroupARN"),

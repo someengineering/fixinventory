@@ -95,9 +95,13 @@ def tags_as_dict(tags: List[Json]) -> Dict[str, Optional[str]]:
     return {tag["Key"]: tag["Value"] for tag in tags or []}
 
 
-class TagsToDict(Bender):
+class ToDict(Bender):
+    def __init__(self, key: str = "Key", value: str = "Value") -> None:
+        self.key = key
+        self.value = value
+
     def execute(self, source: List[Json]) -> Dict[str, str]:
-        return {k.get("Key", "Key"): k.get("Value", "") for k in source}
+        return {k.get(self.key, self.key): k.get(self.value, "") for k in source}
 
 
 class TagsValue(Bender):

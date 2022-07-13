@@ -1,0 +1,67 @@
+{
+    "MetricAlarms": [
+        {
+            "AlarmName": "awsec2-CPU-Utilization",
+            "AlarmArn": "arn:aws:cloudwatch:us-west-2:test:alarm:awsec2-CPU-Utilization",
+            "AlarmDescription": "Created from EC2 Console",
+            "AlarmConfigurationUpdatedTimestamp": "2020-01-27T17:41:13.228000+00:00",
+            "ActionsEnabled": true,
+            "OKActions": [],
+            "AlarmActions": [
+                "arn:aws:sns:us-west-2:test:high_cpu_usage"
+            ],
+            "InsufficientDataActions": [],
+            "StateValue": "INSUFFICIENT_DATA",
+            "StateReason": "Insufficient Data: 1 datapoint was unknown.",
+            "StateReasonData": "{\"version\":\"1.0\",\"queryDate\":\"2021-03-17T19:20:42.342+0000\",\"statistic\":\"Average\",\"period\":300,\"recentDatapoints\":[],\"threshold\":60.0,\"evaluatedDatapoints\":[{\"timestamp\":\"2021-03-17T19:20:00.000+0000\"}]}",
+            "StateUpdatedTimestamp": "2021-03-17T19:20:42.345000+00:00",
+            "MetricName": "CPUUtilization",
+            "Namespace": "AWS/EC2",
+            "Statistic": "Average",
+            "ExtendedStatistic": "p42",
+            "Dimensions": [
+                {
+                    "Name": "InstanceId",
+                    "Value": "i-123"
+                }
+            ],
+            "Period": 300,
+            "Unit": "ms",
+            "EvaluationPeriods": 1,
+            "DatapointsToAlarm": 42,
+            "Threshold": 60.0,
+            "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+            "TreatMissingData": "ignore",
+            "EvaluateLowSampleCountPercentile": "ignore",
+            "ThresholdMetricId": "SomeId"
+        },
+        {
+            "AlarmName": "high-cpu-utlization",
+            "AlarmArn": "arn:aws:cloudwatch:us-west-2:test:alarm:high-cpu-utlization",
+            "AlarmDescription": "Created from EC2 Console",
+            "AlarmConfigurationUpdatedTimestamp": "2020-11-20T01:27:34.701000+00:00",
+            "ActionsEnabled": true,
+            "OKActions": [],
+            "AlarmActions": [],
+            "InsufficientDataActions": [],
+            "StateValue": "ALARM",
+            "StateReason": "Threshold Crossed: 1 datapoint [12.538333333333334 (28/03/22 09:53:00)] was greater than or equal to the threshold (0.99).",
+            "StateReasonData": "{\"version\":\"1.0\",\"queryDate\":\"2022-03-28T09:58:26.406+0000\",\"startDate\":\"2022-03-28T09:53:00.000+0000\",\"statistic\":\"Maximum\",\"period\":300,\"recentDatapoints\":[12.538333333333334],\"threshold\":0.99,\"evaluatedDatapoints\":[{\"timestamp\":\"2022-03-28T09:53:00.000+0000\",\"sampleCount\":5.0,\"value\":12.538333333333334}]}",
+            "StateUpdatedTimestamp": "2022-03-28T09:58:26.408000+00:00",
+            "MetricName": "CPUUtilization",
+            "Namespace": "AWS/EC2",
+            "Statistic": "Maximum",
+            "Dimensions": [
+                {
+                    "Name": "InstanceId",
+                    "Value": "i-234"
+                }
+            ],
+            "Period": 300,
+            "EvaluationPeriods": 1,
+            "Threshold": 0.99,
+            "ComparisonOperator": "GreaterThanOrEqualToThreshold"
+        }
+    ],
+    "CompositeAlarms": []
+}

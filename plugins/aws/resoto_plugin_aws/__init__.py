@@ -18,7 +18,6 @@ from .resources import AWSAccount
 from .accountcollector import AWSAccountCollector
 from prometheus_client import Summary, Counter
 from typing import List
-from .collector import AwsAccountCollector  # noqa: F401
 
 
 logging.getLogger("boto").setLevel(logging.CRITICAL)

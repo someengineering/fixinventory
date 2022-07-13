@@ -65,7 +65,7 @@ class AwsModel:
             api = ""
         base_mapping = {
             "id": 'S("id")',
-            "tags": 'S("Tags", default=[]) >> TagsToDict()',
+            "tags": 'S("Tags", default=[]) >> ToDict()',
             "name": 'S("Tags", default=[]) >> TagsValue("Name")',
             "ctime": "K(None)",
             "mtime": "K(None)",
@@ -362,13 +362,13 @@ models: Dict[str, List[AwsResotoModel]] = {
         # AwsResotoModel("describe-key-pairs", "KeyPairs", "KeyPairInfo", prefix="Ec2"),
         # AwsResotoModel("describe-volumes", "Volumes", "Volume", base="BaseVolume", prefix="Ec2"),
         # AwsResotoModel("describe_addresses", "Addresses", "Address", prefix="Ec2"),
-        AwsResotoModel(
-            "describe-instance-types",
-            "InstanceTypes",
-            "InstanceTypeInfo",
-            prefix="Ec2",
-            prop_prefix="reservation_",
-        ),
+        # AwsResotoModel(
+        #     "describe-instance-types",
+        #     "InstanceTypes",
+        #     "InstanceTypeInfo",
+        #     prefix="Ec2",
+        #     prop_prefix="reservation_",
+        # ),
         # AwsResotoModel(
         #     "describe_reserved_instances",
         #     "ReservedInstances",
@@ -396,13 +396,13 @@ models: Dict[str, List[AwsResotoModel]] = {
         #     prefix="Iam",
         #     prop_prefix="server_certificate_",
         # ),
-        AwsResotoModel(
-            "get-account-authorization-details",
-            "GetAccountAuthorizationDetailsResult",
-            "GetAccountAuthorizationDetailsResponse",
-            prefix="Iam",
-            prop_prefix="policy_",
-        ),
+        # AwsResotoModel(
+        #     "get-account-authorization-details",
+        #     "GetAccountAuthorizationDetailsResult",
+        #     "GetAccountAuthorizationDetailsResponse",
+        #     prefix="Iam",
+        #     prop_prefix="policy_",
+        # ),
         # AwsResotoModel(
         #     "get-account-authorization-details",
         #     "GetAccountAuthorizationDetailsResult",
@@ -486,7 +486,17 @@ models: Dict[str, List[AwsResotoModel]] = {
         # AwsResotoModel("list-nodegroups", "nodegroup", "Nodegroup", prefix="Eks", prop_prefix="group_"),
     ],
     "s3": [
-        # AwsResotoModel("list-buckets", "Buckets", "Bucket", prefix="S3", prop_prefix="s3_")
+        # AwsResotoModel(#     "list-buckets", "Buckets", "Bucket", prefix="S3", prop_prefix="s3_"
+        # )
+    ],
+    "cloudwatch": [
+        AwsResotoModel(
+            "describe-alarms",
+            "Alarms",
+            "MetricAlarm",
+            prefix="Cloudwatch",
+            prop_prefix="cloudwatch_",
+        )
     ],
 }
 
