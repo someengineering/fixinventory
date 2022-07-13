@@ -96,7 +96,7 @@ def build_from_file(file: str, cls: Type[AWSResourceType], root: Optional[str]) 
     config = AwsConfig()
     config.sessions().session_class_factory = BotoFileBasedSession
     client = AwsClient(config, "123456789012", "role", "us-east-1")
-    builder = GraphBuilder(Graph(), Cloud("test"), AwsAccount("test"), AwsRegion("test"), client)
+    builder = GraphBuilder(Graph(), Cloud(id="test"), AwsAccount(id="test"), AwsRegion(id="test"), client)
     with open(path) as f:
         js = json.load(f)
         js = js[root] if root else [js]

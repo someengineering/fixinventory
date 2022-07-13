@@ -48,12 +48,12 @@ class ClientMock(StreamingWrapper, object):
 
 
 def prepare_graph(do_client: StreamingWrapper) -> Graph:
-    cloud = Cloud("do")
+    cloud = Cloud(id="do")
     team = DigitalOceanTeam(id="test_team", urn="do:team:test_team")
     plugin_instance = DigitalOceanTeamCollector(team, do_client)
     plugin_instance.collect()
     cloud_graph = Graph(root=cloud)
-    graph = Graph(root=GraphRoot("root", {}))
+    graph = Graph(root=GraphRoot(id="root", tags={}))
     cloud_graph.merge(plugin_instance.graph)
     graph.merge(cloud_graph)
     sanitize(graph)

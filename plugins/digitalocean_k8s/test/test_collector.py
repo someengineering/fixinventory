@@ -17,7 +17,7 @@ def test_post_collect() -> None:
 
     plugin = DigitalOceanK8sCollectorPlugin()
 
-    node = KubernetesNode("123")
+    node = KubernetesNode(id="123")
 
     graph = Graph(root=node)
     plugin.post_collect(graph)

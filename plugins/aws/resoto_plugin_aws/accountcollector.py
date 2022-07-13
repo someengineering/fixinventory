@@ -831,7 +831,9 @@ class AWSAccountCollector:
     @metrics_collect_iam_server_certificates.time()  # type: ignore
     def collect_iam_server_certificates(self, region: AWSRegion, graph: Graph) -> None:
         log.info(f"Collecting AWS IAM Server Certificates in account {self.account.dname} region {region.id}")
-        cq = AWSIAMServerCertificateQuota(id="iam_server_certificates_quota", tags={}, account=self.account, region=region)
+        cq = AWSIAMServerCertificateQuota(
+            id="iam_server_certificates_quota", tags={}, account=self.account, region=region
+        )
         cq.quota = self.get_iam_service_quotas(region).get("server_certificates", -1.0)
         graph.add_resource(region, cq)
         session = aws_session(self.account.id, self.account.role)

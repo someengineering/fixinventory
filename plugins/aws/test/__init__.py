@@ -17,4 +17,4 @@ def aws_client() -> AwsClient:
 
 @fixture
 def builder(aws_client: AwsClient) -> GraphBuilder:
-    return GraphBuilder(Graph(), Cloud("aws"), AwsAccount("test"), AwsRegion("us-east-1"), aws_client)
+    return GraphBuilder(Graph(), Cloud(id="aws"), AwsAccount(id="test"), AwsRegion(id="us-east-1"), aws_client)

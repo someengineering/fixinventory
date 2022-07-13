@@ -10,8 +10,8 @@ from test.resources import BotoFileBasedSession
 def test_collect() -> None:
     config = AwsConfig("test", "test", "test")
     config.sessions().session_class_factory = BotoFileBasedSession
-    account = AwsAccount("123")
-    ac = AwsAccountCollector(config, Cloud("aws"), account, ["us-east-1"])
+    account = AwsAccount(id="123")
+    ac = AwsAccountCollector(config, Cloud(id="aws"), account, ["us-east-1"])
     ac.collect()
 
     def count_kind(clazz: Type[AwsResource]) -> int:

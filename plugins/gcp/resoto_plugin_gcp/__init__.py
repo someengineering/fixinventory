@@ -90,7 +90,7 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
         descriptors we are passing the already parsed `args` Namespace() to this
         method.
         """
-        project = GCPProject(id=project_id, {})
+        project = GCPProject(id=project_id, tags={})
         collector_name = f"gcp_{project.id}"
         resotolib.proc.set_thread_name(collector_name)
 

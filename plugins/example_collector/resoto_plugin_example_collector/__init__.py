@@ -89,7 +89,9 @@ class ExampleCollectorPlugin(BaseCollectorPlugin):
         self.graph.add_edge(instance1, volume1)
         self.graph.add_edge(volume1, instance1, edge_type=EdgeType.delete)
 
-        volume2 = ExampleVolume(id="someVolume2", tags={"Name": "Example Volume 2"}, volume_status=VolumeStatus.AVAILABLE)
+        volume2 = ExampleVolume(
+            id="someVolume2", tags={"Name": "Example Volume 2"}, volume_status=VolumeStatus.AVAILABLE
+        )
         self.graph.add_resource(region2, volume2)
         self.graph.add_edge(instance2, volume2)
         self.graph.add_edge(volume2, instance2, edge_type=EdgeType.delete)
