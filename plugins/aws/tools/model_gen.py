@@ -346,13 +346,21 @@ models: Dict[str, List[AwsResotoModel]] = {
     ],
     "ec2": [
         AwsResotoModel(
-            "describe-vpc-peering-connections",
-            "VpcPeeringConnections",
-            "VpcPeeringConnection",
-            base="BasePeeringConnection",
+            "describe-vpc-endpoints",
+            "VpcEndpoints",
+            "VpcEndpoint",
+            base="BaseEndpoint",
             prefix="Ec2",
-            prop_prefix="connection_",
+            prop_prefix="endpoint_",
         ),
+        # AwsResotoModel(
+        #     "describe-vpc-peering-connections",
+        #     "VpcPeeringConnections",
+        #     "VpcPeeringConnection",
+        #     base="BasePeeringConnection",
+        #     prefix="Ec2",
+        #     prop_prefix="connection_",
+        # ),
         # AwsResotoModel(
         #     "describe-snapshots", "Snapshots", "Snapshot", base="BaseSnapshot", prefix="Ec2", prop_prefix="snapshot_"
         # ),

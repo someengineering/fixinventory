@@ -21,6 +21,7 @@ from resotolib.baseresources import (  # noqa: F401
     BaseGateway,
     BaseSnapshot,
     BasePeeringConnection,
+    BaseEndpoint,
 )
 from resotolib.json_bender import Bender, S, Bend, ForallBend, bend, MapEnum, F, K, StripNones
 from resotolib.types import Json
@@ -1364,6 +1365,88 @@ class AwsEc2VpcPeeringConnection(AwsResource, BasePeeringConnection):
 
 # endregion
 
+# region VPC Endpoints
+
+
+@define(eq=False, slots=False)
+class AwsEc2DnsEntry:
+    kind: ClassVar[str] = "aws_ec2_dns_entry"
+    mapping: ClassVar[Dict[str, Bender]] = {"dns_name": S("DnsName"), "hosted_zone_id": S("HostedZoneId")}
+    dns_name: Optional[str] = field(default=None)
+    hosted_zone_id: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsEc2LastError:
+    kind: ClassVar[str] = "aws_ec2_last_error"
+    mapping: ClassVar[Dict[str, Bender]] = {"message": S("Message"), "code": S("Code")}
+    message: Optional[str] = field(default=None)
+    code: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsEc2VpcEndpoint(AwsResource, BaseEndpoint):
+    kind: ClassVar[str] = "aws_ec2_vpc_endpoint"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-vpc-endpoints", "VpcEndpoints")
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("VpcEndpointId"),
+        "tags": S("Tags", default=[]) >> TagsToDict(),
+        "name": S("Tags", default=[]) >> TagsValue("Name"),
+        "ctime": K(None),
+        "mtime": K(None),
+        "atime": K(None),
+        "vpc_endpoint_type": S("VpcEndpointType"),
+        # "vpc_id": S("VpcId"),
+        "endpoint_service_name": S("ServiceName"),
+        "endpoint_state": S("State"),
+        "endpoint_policy_document": S("PolicyDocument"),
+        # "endpoint_route_table_ids": S("RouteTableIds", default=[]),
+        # "endpoint_subnet_ids": S("SubnetIds", default=[]),
+        # "endpoint_groups": S("Groups", default=[]) >> ForallBend(AwsEc2SecurityGroupIdentifier.mapping),
+        "endpoint_ip_address_type": S("IpAddressType"),
+        "endpoint_dns_options": S("DnsOptions", "DnsRecordIpType"),
+        "endpoint_private_dns_enabled": S("PrivateDnsEnabled"),
+        "endpoint_requester_managed": S("RequesterManaged"),
+        # "endpoint_network_interface_ids": S("NetworkInterfaceIds", default=[]),
+        "endpoint_dns_entries": S("DnsEntries", default=[]) >> ForallBend(AwsEc2DnsEntry.mapping),
+        "endpoint_creation_timestamp": S("CreationTimestamp"),
+        "endpoint_owner_id": S("OwnerId"),
+        "endpoint_last_error": S("LastError") >> Bend(AwsEc2LastError.mapping),
+    }
+    vpc_endpoint_type: Optional[str] = field(default=None)
+    endpoint_service_name: Optional[str] = field(default=None)
+    endpoint_state: Optional[str] = field(default=None)
+    endpoint_policy_document: Optional[str] = field(default=None)
+    endpoint_ip_address_type: Optional[str] = field(default=None)
+    endpoint_dns_options: Optional[str] = field(default=None)
+    endpoint_private_dns_enabled: Optional[bool] = field(default=None)
+    endpoint_requester_managed: Optional[bool] = field(default=None)
+    endpoint_dns_entries: List[AwsEc2DnsEntry] = field(factory=list)
+    endpoint_creation_timestamp: Optional[datetime] = field(default=None)
+    endpoint_owner_id: Optional[str] = field(default=None)
+    endpoint_last_error: Optional[AwsEc2LastError] = field(default=None)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if vpc_id := source.get("VpcId"):
+            builder.dependant_node(self, reverse=True, delete_reverse=True, clazz=AwsEc2Vpc, id=vpc_id)
+
+        for rt in source.get("RouteTableIds", []):
+            print(rt)
+            # builder.dependant_node(self, reverse=True, delete_reverse=True, clazz=AwsEc2RouteTable, id=rt)
+
+        for sn in source.get("SubnetIds", []):
+            builder.dependant_node(self, reverse=True, delete_reverse=True, clazz=AwsEc2Subnet, id=sn)
+
+        for nic in source.get("NetworkInterfaceIds", []):
+            builder.dependant_node(self, reverse=True, delete_reverse=True, clazz=AwsEc2NetworkInterface, id=nic)
+
+        for group in source.get("Groups", []):
+            if group_id := group.get("GroupId"):
+                builder.dependant_node(self, reverse=True, delete_reverse=True, clazz=AwsEc2SecurityGroup, id=group_id)
+
+
+# endregion
+
 # region Subnets
 @define(eq=False, slots=False)
 class AwsEc2SubnetCidrBlockState:
@@ -1667,5 +1750,6 @@ resources: List[Type[AwsResource]] = [
     AwsEc2Subnet,
     AwsEc2Volume,
     AwsEc2Vpc,
+    AwsEc2VpcEndpoint,
     AwsEc2VpcPeeringConnection,
 ]
