@@ -11,7 +11,7 @@ from resotolib.config import Config
 from resotolib.graph import Graph
 from resotolib.json_bender import Bender
 from resotolib.types import Json
-from resotolib.logger import log
+
 
 metrics_session_exceptions = Counter(
     "resoto_plugin_aws_session_exceptions_total",
@@ -60,12 +60,10 @@ def aws_session(
         )
     else:
         if profile:
-            log.debug(f"Using profile {profile}")
             return BotoSession(
                 profile_name=profile,
             )
         else:
-            log.debug(f"Using access key")
             return BotoSession(
                 aws_access_key_id=Config.aws.access_key_id,
                 aws_secret_access_key=Config.aws.secret_access_key,
