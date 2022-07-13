@@ -1,0 +1,75 @@
+{
+    "cluster": {
+        "name": "cluster1",
+        "arn": "arn:aws:eks:us-west-2:test:cluster/cluster1",
+        "createdAt": "2022-05-31T11:15:16.740000+02:00",
+        "version": "1.22",
+        "endpoint": "https://someendpoint.test.us-west-2.eks.amazonaws.com",
+        "roleArn": "arn:aws:iam::test:role/eksctl-management-bootstrap-cluster-ServiceRole-15XJZP6FP16TQ",
+        "clientRequestToken": "test",
+        "resourcesVpcConfig": {
+            "subnetIds": [
+                "subnet-1",
+                "subnet-2",
+                "subnet-3",
+                "subnet-4",
+                "subnet-5",
+                "subnet-6"
+            ],
+            "securityGroupIds": [
+                "sg-1"
+            ],
+            "clusterSecurityGroupId": "sg-1",
+            "vpcId": "vpc-1",
+            "endpointPublicAccess": true,
+            "endpointPrivateAccess": false,
+            "publicAccessCidrs": [
+                "0.0.0.0/0"
+            ]
+        },
+        "kubernetesNetworkConfig": {
+            "serviceIpv4Cidr": "10.100.0.0/16",
+            "ipFamily": "ipv4"
+        },
+        "logging": {
+            "clusterLogging": [
+                {
+                    "types": [
+                        "api",
+                        "audit",
+                        "authenticator",
+                        "controllerManager",
+                        "scheduler"
+                    ],
+                    "enabled": false
+                }
+            ]
+        },
+        "identity": {
+            "oidc": {
+                "issuer": "https://oidc.eks.us-west-2.amazonaws.com/id/test"
+            }
+        },
+        "status": "ACTIVE",
+        "certificateAuthority": {
+            "data": "certdata"
+        },
+        "platformVersion": "eks.2",
+        "tags": {
+            "aws:cloudformation:stack-name": "eksctl-management-bootstrap-cluster",
+            "alpha.eksctl.io/cluster-name": "management-bootstrap",
+            "aws:cloudformation:stack-id": "arn:aws:cloudformation:us-west-2:test:stack/cluster1/foo",
+            "eksctl.cluster.k8s.io/v1alpha1/cluster-name": "management-bootstrap",
+            "aws:cloudformation:logical-id": "ControlPlane",
+            "alpha.eksctl.io/eksctl-version": "0.99.0",
+            "Name": "eksctl-management-bootstrap-cluster/ControlPlane"
+        },
+        "connectorConfig": {
+            "activationId": "test",
+            "activationCode": "test",
+            "activationExpiry": "2022-05-31T11:15:16.740000+02:00",
+            "provider": "oidc",
+            "roleArn": "arn:aws:iam::test:role/eksctl-management-bootstrap-cluster-ServiceRole-15XJZP6FP16TQ"
+        }
+    }
+}
