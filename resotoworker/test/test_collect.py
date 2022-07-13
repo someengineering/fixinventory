@@ -22,7 +22,7 @@ class ExampleCollectorPlugin(BaseCollectorPlugin):
     cloud = "example"
 
     def collect(self) -> None:
-        account = ExampleAccount("Example Account")
+        account = ExampleAccount(id="Example Account")
         self.graph.add_resource(self.graph.root, account)  # type: ignore
 
     @staticmethod

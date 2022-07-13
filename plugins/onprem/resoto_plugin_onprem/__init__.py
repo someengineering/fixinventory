@@ -27,10 +27,10 @@ class OnpremCollectorPlugin(BaseCollectorPlugin):
             log.debug("No On-Prem servers specified")
             return
 
-        default_location = OnpremLocation(Config.onprem.location)
+        default_location = OnpremLocation(id=Config.onprem.location)
         self.graph.add_resource(self.graph.root, default_location)
 
-        default_region = OnpremRegion(Config.onprem.region)
+        default_region = OnpremRegion(id=Config.onprem.region)
         self.graph.add_resource(default_location, default_region)
 
         servers = []
@@ -41,7 +41,7 @@ class OnpremCollectorPlugin(BaseCollectorPlugin):
                 server_location, server = server.split("%", 1)
                 location = self.graph.search_first_all({"id": server_location, "kind": "onprem_location"})
                 if location is None:
-                    location = OnpremLocation(server_location, {})
+                    location = OnpremLocation(id=server_location, tags={})
                     self.graph.add_resource(self.graph.root, location)
                     srv.update({"location": location})
                 log.debug(f"Location for {server} is {location.rtdname}")
@@ -49,7 +49,7 @@ class OnpremCollectorPlugin(BaseCollectorPlugin):
                 server_region, server = server.split("%", 1)
                 region = self.graph.search_first_all({"id": server_region, "kind": "onprem_region"})
                 if region is None:
-                    region = OnpremRegion(server_region, {})
+                    region = OnpremRegion(id=server_region, tags={})
                     self.graph.add_resource(location, region)
                     srv.update({"region": region})
                 log.debug(f"Region for {server} is {region.rtdname}")
@@ -57,7 +57,7 @@ class OnpremCollectorPlugin(BaseCollectorPlugin):
                 server_network, server = server.split("%", 1)
                 network = self.graph.search_first_all({"id": server_network, "kind": "onprem_network"})
                 if network is None:
-                    network = OnpremNetwork(server_network, {})
+                    network = OnpremNetwork(id=server_network, tags={})
                     self.graph.add_resource(region, network)
                     srv.update({"network": network})
                 log.debug(f"Network for {server} is {network.rtdname}")

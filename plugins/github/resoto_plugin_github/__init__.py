@@ -26,8 +26,8 @@ class GithubCollectorPlugin(BaseCollectorPlugin):
 
         log.debug("plugin: collecting GitHub resources")
 
-        account = GithubAccount("GitHub")
-        region = GithubRegion("Global")
+        account = GithubAccount(id="GitHub")
+        region = GithubRegion(id="Global")
         self.graph.add_resource(self.graph.root, account)
         self.graph.add_resource(account, region)
 

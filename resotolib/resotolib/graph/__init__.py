@@ -381,7 +381,7 @@ class GraphContainer:
     replacement and updating of the graph without losing its context.
     """
 
-    GRAPH_ROOT = GraphRoot("root", {})
+    GRAPH_ROOT = GraphRoot(id="root", tags={})
 
     def __init__(self, cache_graph=True) -> None:
         self._graph = None

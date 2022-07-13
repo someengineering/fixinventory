@@ -12,7 +12,7 @@ class SomeTestResource(BaseResource):
 
 
 def test_resource():
-    r = SomeTestResource("foo", {"foo": "bar"})
+    r = SomeTestResource(id="foo", tags={"foo": "bar"})
     log_msg = "some log"
     r.log(log_msg)
     assert r.id == "foo"

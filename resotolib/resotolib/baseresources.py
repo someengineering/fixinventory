@@ -92,7 +92,7 @@ class ResourceChanges:
         return changes
 
 
-@define(eq=False, slots=False)
+@define(eq=False, slots=False, kw_only=True)
 class BaseResource(ABC):
     """A BaseResource is any node we're connecting to the Graph()
 
@@ -446,7 +446,7 @@ class BaseResource(ABC):
         elif graph:
             account = graph.search_first_parent_class(self, BaseAccount)
         if account is None:
-            account = UnknownAccount("undefined", {})
+            account = UnknownAccount(id="undefined", tags={})
         return account
 
     def cloud(self, graph=None) -> "BaseCloud":
@@ -458,7 +458,7 @@ class BaseResource(ABC):
         elif graph:
             cloud = graph.search_first_parent_class(self, BaseCloud)
         if cloud is None:
-            cloud = UnknownCloud("undefined", {})
+            cloud = UnknownCloud(id="undefined", tags={})
         return cloud
 
     def region(self, graph=None) -> "BaseRegion":
@@ -470,7 +470,7 @@ class BaseResource(ABC):
         elif graph:
             region = graph.search_first_parent_class(self, BaseRegion)
         if region is None:
-            region = UnknownRegion("undefined", {})
+            region = UnknownRegion(id="undefined", tags={})
         return region
 
     def zone(self, graph=None) -> "BaseZone":
@@ -482,7 +482,7 @@ class BaseResource(ABC):
         elif graph:
             zone = graph.search_first_parent_class(self, BaseZone)
         if zone is None:
-            zone = UnknownZone("undefined", {})
+            zone = UnknownZone(id="undefined", tags={})
         return zone
 
     def location(self, graph=None):

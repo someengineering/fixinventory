@@ -7,7 +7,7 @@ from resotolib.baseresources import *
 from resotolib.graph import Graph
 from resotolib.utils import make_valid_timestamp
 from .utils import aws_client, aws_resource, tags_as_dict
-from typing import ClassVar, Any, Optional, Union
+from typing import ClassVar, Any, Optional, Union, List, Dict
 from attrs import define
 from resotolib.logger import log
 

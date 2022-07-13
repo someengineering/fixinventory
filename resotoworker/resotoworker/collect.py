@@ -26,7 +26,7 @@ class Collector:
         task_id: str,
     ) -> None:
         def collect(collectors: List[Type[BaseCollectorPlugin]]) -> Optional[Graph]:
-            graph = Graph(root=GraphRoot("root", {}))
+            graph = Graph(root=GraphRoot(id="root", tags={}))
 
             max_workers = (
                 len(collectors)

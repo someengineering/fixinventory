@@ -28,8 +28,8 @@ class AwsAccountCollector:
         self.config = config
         self.cloud = cloud
         self.account = account
-        self.global_region = AwsRegion("us-east-1", {}, name="global", account=account)
-        self.regions = [AwsRegion(region, {}, account=account) for region in regions]
+        self.global_region = AwsRegion(id="us-east-1", tags={}, name="global", account=account)
+        self.regions = [AwsRegion(id=region, tags={}, account=account) for region in regions]
         self.graph = Graph(root=self.account)
         self.client = AwsClient(config, account.id, account.role)
 

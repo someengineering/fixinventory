@@ -70,7 +70,7 @@ def add_accounts(graph: Graph) -> None:
     log.debug(f"Adding {num_accounts} accounts")
     for account_num in range(num_accounts):
         account_id = str(int(get_id(f"account_{account_num}", 6), 16))
-        account = RandomAccount(account_id, {}, name=f"Random Account {account_num}")
+        account = RandomAccount(id=account_id, tags={}, name=f"Random Account {account_num}")
         graph.add_resource(graph.root, account)
         add_regions(graph, [account], account=account)
 
@@ -98,7 +98,7 @@ def add_regions(graph: Graph, parents: List[BaseResource], account: BaseResource
     regions = random.sample(sorted(all_regions), num_regions)
     log.debug(f"Adding {num_regions} regions {regions} in {account.rtdname}")
     for r in regions:
-        region = RandomRegion(r, {}, name=all_regions[r], account=account)
+        region = RandomRegion(id=r, tags={}, name=all_regions[r], account=account)
         graph.add_node(region)
         for parent in parents:
             graph.add_edge(parent, region)
@@ -306,7 +306,7 @@ def add_resources(
         log.debug(f"Adding {long_prefix} {resource_num} resource ({id_path})")
         resource_id = short_prefix + get_id(resource_id_path)
         name = f"{long_prefix} {resource_num}"
-        resource = cls(resource_id, name=name, account=account, region=region, **kwargs)
+        resource = cls(id=resource_id, name=name, account=account, region=region, **kwargs)
         graph.add_node(resource)
         for parent in parents:
             graph.add_edge(parent, resource)
@@ -340,7 +340,7 @@ def add_loadbalancer(
     else:
         tags = kwargs.get("tags", {})
     resource_id = "rndlb-" + get_id(resource_id_path)
-    lb = RandomLoadBalancer(resource_id, tags=tags, name="LoadBalancer", account=account, region=region)
+    lb = RandomLoadBalancer(id=resource_id, tags=tags, name="LoadBalancer", account=account, region=region)
     graph.add_node(lb)
     for parent in parents:
         graph.add_edge(parent, lb)
