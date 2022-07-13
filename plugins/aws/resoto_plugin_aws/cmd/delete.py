@@ -66,11 +66,11 @@ arg_parser.parse_args()
 def main():
     if ArgumentParser.args.aws_role and ArgumentParser.args.aws_account:
         accounts = [
-            AWSAccount(aws_account_id, {}, role=ArgumentParser.args.aws_role)
+            AWSAccount(id=aws_account_id, tags={}, role=ArgumentParser.args.aws_role)
             for aws_account_id in ArgumentParser.args.aws_account
         ]
     else:
-        accounts = [AWSAccount(current_account_id(), {})]
+        accounts = [AWSAccount(id=current_account_id(), tags={})]
 
     if len(accounts) != 1:
         log.error("This tool only supports a single account at a time")
