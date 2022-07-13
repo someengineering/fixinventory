@@ -1,0 +1,90 @@
+{
+    "VpcPeeringConnections": [
+        {
+            "AccepterVpcInfo": {
+                "CidrBlock": "10.0.0.0/16",
+                "CidrBlockSet": [
+                    {
+                        "CidrBlock": "10.0.0.0/16"
+                    }
+                ],
+                "OwnerId": "test",
+                "PeeringOptions": {
+                    "AllowDnsResolutionFromRemoteVpc": false,
+                    "AllowEgressFromLocalClassicLinkToRemoteVpc": false,
+                    "AllowEgressFromLocalVpcToRemoteClassicLink": false
+                },
+                "VpcId": "vpc-123",
+                "Region": "us-west-2"
+            },
+            "RequesterVpcInfo": {
+                "CidrBlock": "1.2.0.0/16",
+                "CidrBlockSet": [
+                    {
+                        "CidrBlock": "1.2.0.0/16"
+                    }
+                ],
+                "OwnerId": "test",
+                "VpcId": "vpc-123",
+                "Region": "us-west-2"
+            },
+            "Status": {
+                "Code": "active",
+                "Message": "Active"
+            },
+            "Tags": [
+                {
+                    "Key": "Name",
+                    "Value": "root-account-default-vpc"
+                }
+            ],
+            "VpcPeeringConnectionId": "pcx-123",
+            "ExpirationTime": "2020-01-01T00:00:00Z"
+        },
+        {
+            "AccepterVpcInfo": {
+                "CidrBlock": "1.2.0.0/16",
+                "CidrBlockSet": [
+                    {
+                        "CidrBlock": "1.2.0.0/16"
+                    }
+                ],
+                "OwnerId": "test",
+                "PeeringOptions": {
+                    "AllowDnsResolutionFromRemoteVpc": false,
+                    "AllowEgressFromLocalClassicLinkToRemoteVpc": false,
+                    "AllowEgressFromLocalVpcToRemoteClassicLink": false
+                },
+                "VpcId": "vpc-123",
+                "Region": "us-west-2"
+            },
+            "RequesterVpcInfo": {
+                "CidrBlock": "1.0.0.0/16",
+                "CidrBlockSet": [
+                    {
+                        "CidrBlock": "1.0.0.0/16"
+                    }
+                ],
+                "OwnerId": "test",
+                "PeeringOptions": {
+                    "AllowDnsResolutionFromRemoteVpc": false,
+                    "AllowEgressFromLocalClassicLinkToRemoteVpc": false,
+                    "AllowEgressFromLocalVpcToRemoteClassicLink": false
+                },
+                "VpcId": "vpc-123",
+                "Region": "us-west-2"
+            },
+            "Status": {
+                "Code": "active",
+                "Message": "Active"
+            },
+            "Tags": [
+                {
+                    "Key": "Name",
+                    "Value": "prod"
+                }
+            ],
+            "VpcPeeringConnectionId": "pcx-2"
+        }
+    ]
+}

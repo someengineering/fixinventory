@@ -20,6 +20,7 @@ from resotolib.baseresources import (  # noqa: F401
     BaseSecurityGroup,
     BaseGateway,
     BaseSnapshot,
+    BasePeeringConnection,
 )
 from resotolib.json_bender import Bender, S, Bend, ForallBend, bend, MapEnum, F, K, StripNones
 from resotolib.types import Json
@@ -1293,6 +1294,76 @@ class AwsEc2Vpc(AwsResource, BaseNetwork):
 
 # endregion
 
+# region VPC Peering Connections
+@define(eq=False, slots=False)
+class AwsEc2VpcPeeringConnectionOptionsDescription:
+    kind: ClassVar[str] = "aws_ec2_vpc_peering_connection_options_description"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "allow_dns_resolution_from_remote_vpc": S("AllowDnsResolutionFromRemoteVpc"),
+        "allow_egress_from_local_classic_link_to_remote_vpc": S("AllowEgressFromLocalClassicLinkToRemoteVpc"),
+        "allow_egress_from_local_vpc_to_remote_classic_link": S("AllowEgressFromLocalVpcToRemoteClassicLink"),
+    }
+    allow_dns_resolution_from_remote_vpc: Optional[bool] = field(default=None)
+    allow_egress_from_local_classic_link_to_remote_vpc: Optional[bool] = field(default=None)
+    allow_egress_from_local_vpc_to_remote_classic_link: Optional[bool] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsEc2VpcPeeringConnectionVpcInfo:
+    kind: ClassVar[str] = "aws_ec2_vpc_peering_connection_vpc_info"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "cidr_block": S("CidrBlock"),
+        "ipv6_cidr_block_set": S("Ipv6CidrBlockSet", default=[]) >> ForallBend(S("Ipv6CidrBlock")),
+        "cidr_block_set": S("CidrBlockSet", default=[]) >> ForallBend(S("CidrBlock")),
+        "owner_id": S("OwnerId"),
+        "peering_options": S("PeeringOptions") >> Bend(AwsEc2VpcPeeringConnectionOptionsDescription.mapping),
+        "vpc_id": S("VpcId"),
+        "region": S("Region"),
+    }
+    cidr_block: Optional[str] = field(default=None)
+    ipv6_cidr_block_set: List[str] = field(factory=list)
+    cidr_block_set: List[str] = field(factory=list)
+    owner_id: Optional[str] = field(default=None)
+    peering_options: Optional[AwsEc2VpcPeeringConnectionOptionsDescription] = field(default=None)
+    vpc_id: Optional[str] = field(default=None)
+    region: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsEc2VpcPeeringConnectionStateReason:
+    kind: ClassVar[str] = "aws_ec2_vpc_peering_connection_state_reason"
+    mapping: ClassVar[Dict[str, Bender]] = {"code": S("Code"), "message": S("Message")}
+    code: Optional[str] = field(default=None)
+    message: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsEc2VpcPeeringConnection(AwsResource, BasePeeringConnection):
+    kind: ClassVar[str] = "aws_ec2_vpc_peering_connection"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-vpc-peering-connections", "VpcPeeringConnections")
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("VpcPeeringConnectionId"),
+        "tags": S("Tags", default=[]) >> TagsToDict(),
+        "name": (S("Tags", default=[]) >> TagsValue("Name")).or_else(S("VpcPeeringConnectionId")),
+        "connection_accepter_vpc_info": S("AccepterVpcInfo") >> Bend(AwsEc2VpcPeeringConnectionVpcInfo.mapping),
+        "connection_expiration_time": S("ExpirationTime"),
+        "connection_requester_vpc_info": S("RequesterVpcInfo") >> Bend(AwsEc2VpcPeeringConnectionVpcInfo.mapping),
+        "connection_status": S("Status") >> Bend(AwsEc2VpcPeeringConnectionStateReason.mapping),
+    }
+    connection_accepter_vpc_info: Optional[AwsEc2VpcPeeringConnectionVpcInfo] = field(default=None)
+    connection_expiration_time: Optional[datetime] = field(default=None)
+    connection_requester_vpc_info: Optional[AwsEc2VpcPeeringConnectionVpcInfo] = field(default=None)
+    connection_status: Optional[AwsEc2VpcPeeringConnectionStateReason] = field(default=None)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if self.connection_requester_vpc_info and (vpc_id := self.connection_requester_vpc_info.vpc_id):
+            builder.dependant_node(self, reverse=True, delete_reverse=True, clazz=AwsEc2Vpc, id=vpc_id)
+        if self.connection_accepter_vpc_info and (vpc_id := self.connection_accepter_vpc_info.vpc_id):
+            builder.dependant_node(self, reverse=True, delete_reverse=True, clazz=AwsEc2Vpc, id=vpc_id)
+
+
+# endregion
+
 # region Subnets
 @define(eq=False, slots=False)
 class AwsEc2SubnetCidrBlockState:
@@ -1596,4 +1667,5 @@ resources: List[Type[AwsResource]] = [
     AwsEc2Subnet,
     AwsEc2Volume,
     AwsEc2Vpc,
+    AwsEc2VpcPeeringConnection,
 ]
