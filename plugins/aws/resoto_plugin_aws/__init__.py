@@ -56,16 +56,18 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
 
         if Config.aws.role and Config.aws.scrape_org:
             accounts = [
-                AWSAccount(aws_account_id, {}, role=Config.aws.role)
+                AWSAccount(id=aws_account_id, tags={}, role=Config.aws.role)
                 for aws_account_id in get_org_accounts(filter_current_account=not Config.aws.assume_current)
                 if aws_account_id not in Config.aws.scrape_exclude_account
             ]
             if not Config.aws.do_not_scrape_current:
-                accounts.append(AWSAccount(current_account_id(), {}))
+                accounts.append(AWSAccount(id=current_account_id(), tags={}))
         elif Config.aws.role and Config.aws.account:
-            accounts = [AWSAccount(aws_account_id, {}, role=Config.aws.role) for aws_account_id in Config.aws.account]
+            accounts = [
+                AWSAccount(id=aws_account_id, tags={}, role=Config.aws.role) for aws_account_id in Config.aws.account
+            ]
         else:
-            accounts = [AWSAccount(current_account_id(), {})]
+            accounts = [AWSAccount(id=current_account_id(), tags={})]
 
         max_workers = len(accounts) if len(accounts) < Config.aws.account_pool_size else Config.aws.account_pool_size
         pool_args = {"max_workers": max_workers}

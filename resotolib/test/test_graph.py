@@ -19,8 +19,8 @@ class SomeTestResource(BaseResource):
 
 def test_graph():
     g = Graph()
-    n1 = SomeTestResource("foo", {})
-    n2 = SomeTestResource("bar", {})
+    n1 = SomeTestResource(id="foo", tags={})
+    n2 = SomeTestResource(id="bar", tags={})
     g.add_node(n1)
     g.add_node(n2)
     g.add_edge(n1, n2)
@@ -31,8 +31,8 @@ def test_graph():
 def test_graph_container():
     gc = GraphContainer(cache_graph=False)
     g = Graph()
-    n1 = SomeTestResource("foo", {})
-    n2 = SomeTestResource("bar", {})
+    n1 = SomeTestResource(id="foo", tags={})
+    n2 = SomeTestResource(id="bar", tags={})
     g.add_node(n1)
     gc.graph.add_resource(gc.GRAPH_ROOT, n2)
     gc.add(g)
@@ -46,10 +46,10 @@ def test_graph_container():
 def test_graph_merge():
     rg1 = Graph()
     rg2 = Graph()
-    a = SomeTestResource("a", {})
-    b = SomeTestResource("b", {})
-    c = SomeTestResource("c", {})
-    d = SomeTestResource("d", {})
+    a = SomeTestResource(id="a", tags={})
+    b = SomeTestResource(id="b", tags={})
+    c = SomeTestResource(id="c", tags={})
+    d = SomeTestResource(id="d", tags={})
     rg1.add_node(a)
     rg1.add_node(b)
     rg2.add_node(c)
@@ -69,10 +69,10 @@ def test_graph_merge():
 
 def test_multidigraph():
     g = Graph()
-    a = SomeTestResource("a", {})
-    b = SomeTestResource("b", {})
-    c = SomeTestResource("c", {})
-    d = SomeTestResource("d", {})
+    a = SomeTestResource(id="a", tags={})
+    b = SomeTestResource(id="b", tags={})
+    c = SomeTestResource(id="c", tags={})
+    d = SomeTestResource(id="d", tags={})
     g.add_resource(a, b)
     g.add_resource(b, c)
     g.add_resource(c, d)
@@ -104,7 +104,7 @@ def test_multidigraph():
 
 def test_baseresource_chksum():
     g = Graph()
-    a = SomeTestResource("a", {})
+    a = SomeTestResource(id="a", tags={})
     with pytest.raises(RuntimeError):
         a.chksum
     g.add_node(a)
@@ -112,8 +112,8 @@ def test_baseresource_chksum():
 
 
 def test_graph_export_iterator():
-    g = Graph(root=GraphRoot("root", {}))
-    a = SomeTestResource("a", {})
+    g = Graph(root=GraphRoot(id="root", tags={}))
+    a = SomeTestResource(id="a", tags={})
     g.add_resource(g.root, a)
     assert getrefcount(g) == 2
     gei = GraphExportIterator(g)

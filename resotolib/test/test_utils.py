@@ -203,7 +203,7 @@ def test_resource_tags_dict():
     key = "foo"
     value = "bar"
     new_value = "baz"
-    r = SomeTestResource("foo", {key: value})
+    r = SomeTestResource(id="foo", tags={key: value})
     assert r.tags[key] == value
     assert r.key is None
     assert r.value is None

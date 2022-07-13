@@ -202,7 +202,7 @@ class BaseCollectorPlugin(BasePlugin):
     def __init__(self) -> None:
         super().__init__()
         self.name = str(self.cloud)
-        cloud = Cloud(self.cloud)
+        cloud = Cloud(id=self.cloud)
         self.root = cloud
         self.graph = Graph(root=self.root)
 

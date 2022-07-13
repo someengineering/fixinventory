@@ -72,11 +72,11 @@ class SlackCollectorPlugin(BaseCollectorPlugin):
         team = SlackTeam.new(team)
         self.graph.add_resource(self.root, team)
 
-        members = SlackRegion("members", {})
+        members = SlackRegion(id="members", tags={})
         self.graph.add_resource(team, members)
-        usergroups = SlackRegion("usergroups", {})
+        usergroups = SlackRegion(id="usergroups", tags={})
         self.graph.add_resource(team, usergroups)
-        conversations = SlackRegion("conversations", {})
+        conversations = SlackRegion(id="conversations", tags={})
         self.graph.add_resource(team, conversations)
 
         for member in self.list_members():

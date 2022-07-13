@@ -279,19 +279,19 @@ def get_accounts():
 
     if ArgumentParser.args.aws_role and ArgumentParser.args.aws_scrape_org:
         accounts = [
-            AWSAccount(aws_account_id, {}, role=ArgumentParser.args.aws_role)
+            AWSAccount(id=aws_account_id, tags={}, role=ArgumentParser.args.aws_role)
             for aws_account_id in get_org_accounts(filter_current_account=not ArgumentParser.args.aws_assume_current)
             if aws_account_id not in ArgumentParser.args.aws_scrape_exclude_account
         ]
         if not ArgumentParser.args.aws_dont_scrape_current:
-            accounts.append(AWSAccount(current_account_id(), {}))
+            accounts.append(AWSAccount(id=current_account_id(), tags={}))
     elif ArgumentParser.args.aws_role and ArgumentParser.args.aws_account:
         accounts = [
-            AWSAccount(aws_account_id, {}, role=ArgumentParser.args.aws_role)
+            AWSAccount(id=aws_account_id, tags={}, role=ArgumentParser.args.aws_role)
             for aws_account_id in ArgumentParser.args.aws_account
         ]
     else:
-        accounts = [AWSAccount(current_account_id(), {})]
+        accounts = [AWSAccount(id=current_account_id(), tags={})]
 
     return accounts
 

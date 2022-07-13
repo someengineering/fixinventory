@@ -562,8 +562,8 @@ class GCPProjectCollector:
                 the graph. The resource object and the graph are given as args.
             dump_resource: If True will log.debug() a dump of the API result.
         """
-        client_method_name = resource_class("", {})._client_method
-        default_resource_args = resource_class("", {}).resource_args
+        client_method_name = resource_class(id="", tags={})._client_method
+        default_resource_args = resource_class(id="", tags={}).resource_args
         log.debug(f"Collecting {client_method_name}")
         if paginate_subitems_name is None:
             paginate_subitems_name = client_method_name
@@ -678,8 +678,8 @@ class GCPProjectCollector:
             for quota in resource._quotas:
                 if set(["metric", "limit", "usage"]) == set(quota.keys()):
                     q = GCPQuota(
-                        quota["metric"],
-                        {},
+                        id=quota["metric"],
+                        tags={},
                         quota=quota["limit"],
                         usage=quota["usage"],
                         region=resource.region(),
@@ -761,8 +761,8 @@ class GCPProjectCollector:
                     resource._cleaned = True
                 log.debug(f"Fetching custom instance type for {resource.rtdname}")
                 machine_type = GCPMachineType(
-                    resource._machine_type_link.split("/")[-1],
-                    {},
+                    id=resource._machine_type_link.split("/")[-1],
+                    tags={},
                     zone=resource.zone(graph),
                     account=resource.account(graph),
                     link=resource._machine_type_link,
@@ -1471,8 +1471,8 @@ class GCPProjectCollector:
                 **kwargs,
             ):
                 sku = GCPServiceSKU(
-                    r["skuId"],
-                    {},
+                    id=r["skuId"],
+                    tags={},
                     name=r.get("description"),
                     service=r.get("category", {}).get("serviceDisplayName"),
                     resource_family=r.get("category", {}).get("resourceFamily"),

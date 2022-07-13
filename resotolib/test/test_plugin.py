@@ -17,7 +17,7 @@ class SomeTestPlugin(BaseCollectorPlugin):
     cloud = "test"
 
     def collect(self) -> None:
-        account = SomeTestResource("Example Account", {})
+        account = SomeTestResource(id="Example Account", tags={})
         self.graph.add_resource(self.root, account)
 
     @staticmethod
