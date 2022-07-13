@@ -411,7 +411,7 @@ models: Dict[str, List[AwsResotoModel]] = {
         # AwsResotoModel("describe-volumes", "Volumes", "Volume", base="BaseVolume", prefix="Ec2"),
         # AwsResotoModel("describe_addresses", "Addresses", "Address", prefix="Ec2"),
         # AwsResotoModel(
-        #     "describe-instance-types", "InstanceTypes", "InstanceTypeInfo", prefix="Ec2", prop_prefix="reservation_"
+        #     "describe-instance-types",# "InstanceTypes",# "InstanceTypeInfo",# prefix="Ec2",#     prop_prefix="reservation_"
         # ),
         # AwsResotoModel(
         #     "describe_reserved_instances",
@@ -526,7 +526,17 @@ models: Dict[str, List[AwsResotoModel]] = {
         # ),
     ],
     "s3": [
-        # AwsResotoModel("list-buckets", "Buckets", "Bucket", prefix="S3", prop_prefix="s3_")
+        # AwsResotoModel(#     "list-buckets", "Buckets", "Bucket", prefix="S3", prop_prefix="s3_"
+        # )
+    ],
+    "cloudwatch": [
+        # AwsResotoModel(
+        #     "describe-alarms",
+        #     "Alarms",
+        #     "MetricAlarm",
+        #     prefix="Cloudwatch",
+        #     prop_prefix="cloudwatch_"
+        # )
     ],
 }
 
