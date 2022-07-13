@@ -44,9 +44,6 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
     @metrics_collect.time()  # type: ignore
     def collect(self) -> None:
         log.debug("plugin: AWS collecting resources")
-        #        if not self.authenticated:
-        #            log.error("Failed to authenticate - skipping collection")
-        #            return
 
         accounts = get_accounts()
         if len(accounts) == 0:
