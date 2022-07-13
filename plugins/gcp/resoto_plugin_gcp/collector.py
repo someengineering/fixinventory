@@ -762,7 +762,7 @@ class GCPProjectCollector:
                 log.debug(f"Fetching custom instance type for {resource.rtdname}")
                 machine_type = GCPMachineType(
                     id=resource._machine_type_link.split("/")[-1],
-                    id={},
+                    tags={},
                     zone=resource.zone(graph),
                     account=resource.account(graph),
                     link=resource._machine_type_link,
