@@ -16,6 +16,7 @@ from resotolib.baseresources import (  # noqa: F401
     BaseIPAddress,
     BaseNetworkInterface,
     BaseNetwork,
+    BaseSubnet,
 )
 from resotolib.json_bender import Bender, S, Bend, ForallBend, bend, MapEnum, F, K, StripNones
 from resotolib.types import Json
@@ -1260,6 +1261,100 @@ class AwsEc2Vpc(AwsResource, BaseNetwork):
 
 # endregion
 
+# region Subnets
+@define(eq=False, slots=False)
+class AwsEc2SubnetCidrBlockState:
+    kind: ClassVar[str] = "aws_ec2_subnet_cidr_block_state"
+    mapping: ClassVar[Dict[str, Bender]] = {"state": S("State"), "status_message": S("StatusMessage")}
+    state: Optional[str] = field(default=None)
+    status_message: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsEc2SubnetIpv6CidrBlockAssociation:
+    kind: ClassVar[str] = "aws_ec2_subnet_ipv6_cidr_block_association"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "association_id": S("AssociationId"),
+        "ipv6_cidr_block": S("Ipv6CidrBlock"),
+        "ipv6_cidr_block_state": S("Ipv6CidrBlockState") >> Bend(AwsEc2SubnetCidrBlockState.mapping),
+    }
+    association_id: Optional[str] = field(default=None)
+    ipv6_cidr_block: Optional[str] = field(default=None)
+    ipv6_cidr_block_state: Optional[AwsEc2SubnetCidrBlockState] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsEc2PrivateDnsNameOptionsOnLaunch:
+    kind: ClassVar[str] = "aws_ec2_private_dns_name_options_on_launch"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "hostname_type": S("HostnameType"),
+        "enable_resource_name_dns_a_record": S("EnableResourceNameDnsARecord"),
+        "enable_resource_name_dns_aaaa_record": S("EnableResourceNameDnsAAAARecord"),
+    }
+    hostname_type: Optional[str] = field(default=None)
+    enable_resource_name_dns_a_record: Optional[bool] = field(default=None)
+    enable_resource_name_dns_aaaa_record: Optional[bool] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsEc2Subnet(AwsResource, BaseSubnet):
+    kind: ClassVar[str] = "aws_ec2_subnet"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-subnets", "Subnets")
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("SubnetId"),
+        "tags": S("Tags", default=[]) >> TagsToDict(),
+        "name": S("Tags", default=[]) >> TagsValue("Name").or_else(S("SubnetId")),
+        "ctime": K(None),
+        "mtime": K(None),
+        "atime": K(None),
+        "subnet_availability_zone": S("AvailabilityZone"),
+        "subnet_availability_zone_id": S("AvailabilityZoneId"),
+        "subnet_available_ip_address_count": S("AvailableIpAddressCount"),
+        "subnet_cidr_block": S("CidrBlock"),
+        "subnet_default_for_az": S("DefaultForAz"),
+        "subnet_enable_lni_at_device_index": S("EnableLniAtDeviceIndex"),
+        "subnet_map_public_ip_on_launch": S("MapPublicIpOnLaunch"),
+        "subnet_map_customer_owned_ip_on_launch": S("MapCustomerOwnedIpOnLaunch"),
+        "subnet_customer_owned_ipv4_pool": S("CustomerOwnedIpv4Pool"),
+        "subnet_state": S("State"),
+        # "subnet_vpc_id": S("VpcId"),
+        "subnet_owner_id": S("OwnerId"),
+        "subnet_assign_ipv6_address_on_creation": S("AssignIpv6AddressOnCreation"),
+        "subnet_ipv6_cidr_block_association_set": S("Ipv6CidrBlockAssociationSet", default=[])
+        >> ForallBend(AwsEc2SubnetIpv6CidrBlockAssociation.mapping),
+        "arn": S("SubnetArn"),
+        "subnet_outpost_arn": S("OutpostArn"),
+        "subnet_enable_dns64": S("EnableDns64"),
+        "subnet_ipv6_native": S("Ipv6Native"),
+        "subnet_private_dns_name_options_on_launch": S("PrivateDnsNameOptionsOnLaunch")
+        >> Bend(AwsEc2PrivateDnsNameOptionsOnLaunch.mapping),
+    }
+    subnet_availability_zone: Optional[str] = field(default=None)
+    subnet_availability_zone_id: Optional[str] = field(default=None)
+    subnet_available_ip_address_count: Optional[int] = field(default=None)
+    subnet_cidr_block: Optional[str] = field(default=None)
+    subnet_default_for_az: Optional[bool] = field(default=None)
+    subnet_enable_lni_at_device_index: Optional[int] = field(default=None)
+    subnet_map_public_ip_on_launch: Optional[bool] = field(default=None)
+    subnet_map_customer_owned_ip_on_launch: Optional[bool] = field(default=None)
+    subnet_customer_owned_ipv4_pool: Optional[str] = field(default=None)
+    subnet_state: Optional[str] = field(default=None)
+    subnet_owner_id: Optional[str] = field(default=None)
+    subnet_assign_ipv6_address_on_creation: Optional[bool] = field(default=None)
+    subnet_ipv6_cidr_block_association_set: List[AwsEc2SubnetIpv6CidrBlockAssociation] = field(factory=list)
+    subnet_outpost_arn: Optional[str] = field(default=None)
+    subnet_enable_dns64: Optional[bool] = field(default=None)
+    subnet_ipv6_native: Optional[bool] = field(default=None)
+    subnet_private_dns_name_options_on_launch: Optional[AwsEc2PrivateDnsNameOptionsOnLaunch] = field(default=None)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        super().connect_in_graph(builder, source)
+        if vpc_id := source.get("VpcId"):
+            builder.dependant_node(self, reverse=True, clazz=AwsEc2Vpc, id=vpc_id)
+
+
+# endregion
+
 global_resources: List[Type[AwsResource]] = [
     AwsEc2InstanceType,
 ]
@@ -1270,6 +1365,7 @@ resources: List[Type[AwsResource]] = [
     AwsEc2NetworkAcl,
     AwsEc2NetworkInterface,
     AwsEc2ReservedInstances,
+    AwsEc2Subnet,
     AwsEc2Volume,
     AwsEc2Vpc,
 ]

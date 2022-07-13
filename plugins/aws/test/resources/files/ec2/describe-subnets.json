@@ -1,0 +1,112 @@
+{
+    "Subnets": [
+        {
+            "AvailabilityZone": "us-west-2b",
+            "AvailabilityZoneId": "usw2-az2",
+            "AvailableIpAddressCount": 4089,
+            "CidrBlock": "1.2.3.4/20",
+            "DefaultForAz": false,
+            "MapPublicIpOnLaunch": true,
+            "MapCustomerOwnedIpOnLaunch": false,
+            "State": "available",
+            "SubnetId": "subnet-123",
+            "VpcId": "vpc-123",
+            "OwnerId": "123",
+            "AssignIpv6AddressOnCreation": false,
+            "Ipv6CidrBlockAssociationSet": [],
+            "Tags": [
+                {
+                    "Key": "kubernetes.io/cluster/management",
+                    "Value": "shared"
+                },
+                {
+                    "Key": "kubernetes.io/role/elb",
+                    "Value": "1"
+                },
+                {
+                    "Key": "sigs.k8s.io/cluster-api-provider-aws/role",
+                    "Value": "public"
+                },
+                {
+                    "Key": "Name",
+                    "Value": "management-subnet-public-us-west-2b"
+                },
+                {
+                    "Key": "sigs.k8s.io/cluster-api-provider-aws/cluster/management",
+                    "Value": "owned"
+                }
+            ],
+            "SubnetArn": "arn:aws:ec2:us-west-2:test:subnet/subnet-123",
+            "EnableDns64": false,
+            "EnableLniAtDeviceIndex": false,
+            "CustomerOwnedIpv4Pool": "amazon",
+            "OutpostArn": "arn:aws:outposts:us-west-2:123:outpost/oc-123/oc-123-outpost-1",
+            "Ipv6Native": false,
+            "PrivateDnsNameOptionsOnLaunch": {
+                "HostnameType": "ip-name",
+                "EnableResourceNameDnsARecord": false,
+                "EnableResourceNameDnsAAAARecord": false
+            }
+        },
+        {
+            "AvailabilityZone": "us-west-2b",
+            "AvailabilityZoneId": "usw2-az2",
+            "AvailableIpAddressCount": 1006,
+            "CidrBlock": "1.2.3.4/22",
+            "DefaultForAz": false,
+            "MapPublicIpOnLaunch": false,
+            "MapCustomerOwnedIpOnLaunch": false,
+            "State": "available",
+            "SubnetId": "subnet-123",
+            "VpcId": "vpc-123",
+            "OwnerId": "test",
+            "AssignIpv6AddressOnCreation": false,
+            "Ipv6CidrBlockAssociationSet": [],
+            "Tags": [
+                {
+                    "Key": "owner",
+                    "Value": "sre"
+                },
+                {
+                    "Key": "Name",
+                    "Value": "control-plane"
+                },
+                {
+                    "Key": "kubernetes.io/cluster",
+                    "Value": "prod"
+                }
+            ],
+            "SubnetArn": "arn:aws:ec2:us-west-2:test:subnet/subnet-123",
+            "EnableDns64": false,
+            "Ipv6Native": false,
+            "PrivateDnsNameOptionsOnLaunch": {
+                "HostnameType": "ip-name",
+                "EnableResourceNameDnsARecord": false,
+                "EnableResourceNameDnsAAAARecord": false
+            }
+        },
+        {
+            "AvailabilityZone": "us-west-2b",
+            "AvailabilityZoneId": "usw2-az2",
+            "AvailableIpAddressCount": 4091,
+            "CidrBlock": "1.2.3.4/20",
+            "DefaultForAz": true,
+            "MapPublicIpOnLaunch": true,
+            "MapCustomerOwnedIpOnLaunch": false,
+            "State": "available",
+            "SubnetId": "subnet-123",
+            "VpcId": "vpc-123",
+            "OwnerId": "test",
+            "AssignIpv6AddressOnCreation": false,
+            "Ipv6CidrBlockAssociationSet": [],
+            "SubnetArn": "arn:aws:ec2:us-west-2:test:subnet/subnet-123",
+            "EnableDns64": false,
+            "Ipv6Native": false,
+            "PrivateDnsNameOptionsOnLaunch": {
+                "HostnameType": "ip-name",
+                "EnableResourceNameDnsARecord": false,
+                "EnableResourceNameDnsAAAARecord": false
+            }
+        }
+    ]
+}

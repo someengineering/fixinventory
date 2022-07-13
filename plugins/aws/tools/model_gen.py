@@ -345,7 +345,8 @@ models: Dict[str, List[AwsResotoModel]] = {
         # ),
     ],
     "ec2": [
-        AwsResotoModel("describe-vpcs", "Vpcs", "Vpc", base="BaseNetwork", prefix="Ec2", prop_prefix="vpc_"),
+        AwsResotoModel("describe-subnets", "Subnets", "Subnet", base="BaseSubnet", prefix="Ec2", prop_prefix="subnet_"),
+        # AwsResotoModel("describe-vpcs", "Vpcs", "Vpc", base="BaseNetwork", prefix="Ec2", prop_prefix="vpc_"),
         # AwsResotoModel(
         #     "describe-addresses", "Addresses", "Address", base="BaseIPAddress", prefix="Ec2", prop_prefix="ip_"
         # ),
