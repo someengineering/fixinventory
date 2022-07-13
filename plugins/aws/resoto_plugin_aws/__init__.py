@@ -122,7 +122,7 @@ def get_accounts() -> List[AWSAccount]:
     profiles = [None]
 
     if Config.aws.assume_current and not Config.aws.do_not_scrape_current:
-        log.warning(
+        raise ValueError(
             "You specified assume_current but not do_not_scrape_current! "
             "This will result in the same account being collected twice and is likely not what you want."
         )
@@ -131,7 +131,7 @@ def get_accounts() -> List[AWSAccount]:
         log.debug("Using specified AWS profiles")
         profiles = Config.aws.profiles
         if Config.aws.account and len(Config.aws.profiles) > 1:
-            log.warning(
+            raise ValueError(
                 "You specified both a list of accounts and more than one profile! "
                 "This will result in the attempt to collect the same accounts for "
                 "every profile and is likely not what you want."
