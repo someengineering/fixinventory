@@ -1,0 +1,60 @@
+{
+    "nodegroup": {
+        "nodegroupName": "main",
+        "nodegroupArn": "arn:aws:eks:us-west-2:test:nodegroup/management-bootstrap/main/04c08cb8",
+        "clusterName": "cluster1",
+        "version": "1.22",
+        "releaseVersion": "1.22.6-20220526",
+        "createdAt": "2022-05-31T11:28:29.992000+02:00",
+        "modifiedAt": "2022-07-11T17:39:01.954000+02:00",
+        "status": "ACTIVE",
+        "capacityType": "ON_DEMAND",
+        "scalingConfig": {
+            "minSize": 2,
+            "maxSize": 2,
+            "desiredSize": 2
+        },
+        "instanceTypes": [
+            "t3a.xlarge"
+        ],
+        "subnets": [
+            "subnet-1",
+            "subnet-2",
+            "subnet-3"
+        ],
+        "amiType": "AL2_x86_64",
+        "nodeRole": "arn:aws:iam::test:role/eksctl-management-bootstrap-nodeg-NodeInstanceRole-123",
+        "labels": {
+            "alpha.eksctl.io/cluster-name": "management-bootstrap",
+            "alpha.eksctl.io/nodegroup-name": "main"
+        },
+        "resources": {
+            "autoScalingGroups": [
+                {
+                    "name": "eks-main-04c08cb8"
+                }
+            ]
+        },
+        "health": {
+            "issues": []
+        },
+        "updateConfig": {
+            "maxUnavailable": 1
+        },
+        "launchTemplate": {
+            "name": "eksctl-management-bootstrap-nodegroup-main",
+            "version": "1",
+            "id": "lt-123"
+        },
+        "tags": {
+            "aws:cloudformation:stack-name": "eksctl-management-bootstrap-nodegroup-main",
+            "alpha.eksctl.io/cluster-name": "management-bootstrap",
+            "alpha.eksctl.io/nodegroup-name": "main",
+            "aws:cloudformation:stack-id": "arn:aws:cloudformation:us-west-2:test:stack/eksctl-management-bootstrap-nodegroup-main/f538fd00",
+            "eksctl.cluster.k8s.io/v1alpha1/cluster-name": "management-bootstrap",
+            "aws:cloudformation:logical-id": "ManagedNodeGroup",
+            "alpha.eksctl.io/nodegroup-type": "managed",
+            "alpha.eksctl.io/eksctl-version": "0.99.0"
+        }
+    }
+}

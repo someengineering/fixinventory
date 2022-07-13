@@ -4,7 +4,7 @@ from typing import ClassVar, Dict, Optional, Type, List, Any
 from attrs import define, field
 
 from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
-from resoto_plugin_aws.utils import TagsToDict
+from resoto_plugin_aws.utils import ToDict
 
 from resotolib.baseresources import (  # noqa: F401
     BaseCertificate,
@@ -52,7 +52,7 @@ class AwsIamRole(AwsResource):
     kind: ClassVar[str] = "aws_iam_role"
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("RoleId"),
-        "tags": S("Tags", default=[]) >> TagsToDict(),
+        "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("RoleName"),
         "ctime": S("CreateDate"),
         "atime": (S("RoleLastUsed") >> Sort(S("LastUsedDate") >> AsDate()))[-1]["LastUsedDate"],
@@ -89,7 +89,7 @@ class AwsIamServerCertificate(AwsResource, BaseCertificate):
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("ServerCertificateId"),
         "arn": S("Arn"),
-        "tags": S("Tags", default=[]) >> TagsToDict(),
+        "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("ServerCertificateName"),
         "ctime": S("UploadDate"),
         "path": S("Path"),
@@ -104,7 +104,7 @@ class AwsIamPolicy(AwsResource, BasePolicy):
     kind: ClassVar[str] = "aws_iam_policy"
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("PolicyId"),
-        "tags": S("Tags", default=[]) >> TagsToDict(),
+        "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("PolicyName"),
         "ctime": S("CreateDate"),
         "mtime": S("UpdateDate"),
@@ -130,7 +130,7 @@ class AwsIamGroup(AwsResource, BaseGroup):
     kind: ClassVar[str] = "aws_iam_group"
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("GroupId"),
-        "tags": S("Tags", default=[]) >> TagsToDict(),
+        "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("GroupName"),
         "ctime": S("CreateDate"),
         "path": S("Path"),
@@ -169,7 +169,7 @@ class AwsIamAccessKey(AwsResource, BaseAccessKey):
     kind: ClassVar[str] = "aws_iam_access_key"
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("AccessKeyId"),
-        "tags": S("Tags", default=[]) >> TagsToDict(),
+        "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("UserName"),
         "ctime": S("CreateDate"),
         "access_key_status": S("Status"),
@@ -183,7 +183,7 @@ class AwsIamUser(AwsResource, BaseUser):
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("iam", "get-account-authorization-details")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("UserId"),
-        "tags": S("Tags", default=[]) >> TagsToDict(),
+        "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("UserName"),
         "ctime": S("CreateDate"),
         "atime": S("PasswordLastUsed"),

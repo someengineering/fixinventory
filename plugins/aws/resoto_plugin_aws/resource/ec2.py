@@ -4,7 +4,7 @@ from typing import ClassVar, Dict, Optional, List, Type
 from attrs import define, field
 
 from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
-from resoto_plugin_aws.utils import TagsToDict, TagsValue
+from resoto_plugin_aws.utils import ToDict, TagsValue
 from resotolib.baseresources import (  # noqa: F401
     BaseInstance,
     EdgeType,
@@ -242,7 +242,7 @@ class AwsEc2InstanceType(AwsResource, BaseInstanceType):
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-instance-types", "InstanceTypes")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("InstanceType"),
-        "tags": S("Tags", default=[]) >> TagsToDict(),
+        "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("InstanceType"),
         "instance_type": S("InstanceType"),
         "instance_cores": S("VCpuInfo", "DefaultVCpus"),
@@ -345,7 +345,7 @@ class AwsEc2Volume(AwsResource, BaseVolume):
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-volumes", "Volumes")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("VolumeId"),
-        "tags": S("Tags", default=[]) >> TagsToDict(),
+        "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("Tags", default=[]) >> TagsValue("Name"),
         "ctime": S("CreateTime"),
         "volume_size": S("Size"),
@@ -436,7 +436,7 @@ class AwsEc2KeyPair(AwsResource):
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("KeyPairId"),
         "name": S("KeyName"),
-        "tags": S("Tags", default=[]) >> TagsToDict(),
+        "tags": S("Tags", default=[]) >> ToDict(),
         "key_fingerprint": S("KeyFingerprint"),
         "key_type": S("KeyType"),
         "public_key": S("PublicKey"),
@@ -746,7 +746,7 @@ class AwsEc2Instance(AwsResource, BaseInstance):
     mapping: ClassVar[Dict[str, Bender]] = {
         # base properties
         "id": S("InstanceId"),
-        "tags": S("Tags", default=[]) >> TagsToDict(),
+        "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("Tags", default=[]) >> TagsValue("Name"),
         "ctime": S("LaunchTime"),
         "instance_status": S("State", "Name") >> MapEnum(InstanceStatusMapping, default=InstanceStatus.UNKNOWN),
@@ -910,7 +910,7 @@ class AwsEc2ReservedInstances(AwsResource):
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-reserved-instances", "ReservedInstances")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("ReservedInstancesId"),
-        "tags": S("Tags", default=[]) >> TagsToDict(),
+        "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("Tags", default=[]) >> TagsValue("Name"),
         "availability_zone": S("AvailabilityZone"),
         "reservation_duration": S("Duration"),
@@ -1018,7 +1018,7 @@ class AwsEc2NetworkAcl(AwsResource):
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-network-acls", "NetworkAcls")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("NetworkAclId"),
-        "tags": S("Tags", default=[]) >> TagsToDict(),
+        "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("Tags", default=[]) >> TagsValue("Name"),
         "acl_associations": S("Associations", default=[]) >> ForallBend(AwsEc2NetworkAclAssociation.mapping),
         "acl_entries": S("Entries", default=[]) >> ForallBend(AwsEc2NetworkAclEntry.mapping),

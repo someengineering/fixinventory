@@ -65,7 +65,7 @@ class AwsModel:
             api = ""
         base_mapping = {
             "id": 'S("id")',
-            "tags": 'S("Tags", default=[]) >> TagsToDict()',
+            "tags": 'S("Tags", default=[]) >> ToDict()',
             "name": 'S("Tags", default=[]) >> TagsValue("Name")',
             "ctime": "K(None)",
             "mtime": "K(None)",
@@ -344,6 +344,12 @@ models: Dict[str, List[AwsResotoModel]] = {
         #     prop_prefix="autoscaling_",
         # ),
     ],
+    "cloudformation": [
+        # AwsResotoModel("describe-stacks", "Stacks", "Stack", prefix="CloudFormation", prop_prefix="stack_"),
+        # AwsResotoModel(
+        #     "list-stack-sets", "Summaries", "StackSetSummary", prefix="CloudFormation", prop_prefix="stack_set_"
+        # ),
+    ],
     "ec2": [
         # AwsResotoModel(
         #     "describe-route-tables",
@@ -524,6 +530,10 @@ models: Dict[str, List[AwsResotoModel]] = {
         #     "Listener",
         #     prefix="Alb",
         # ),
+    ],
+    "eks": [
+        # AwsResotoModel("list-clusters", "clusters", "Cluster", prefix="Eks", prop_prefix="cluster_"),
+        # AwsResotoModel("list-nodegroups", "nodegroup", "Nodegroup", prefix="Eks", prop_prefix="group_"),
     ],
     "s3": [
         # AwsResotoModel(#     "list-buckets", "Buckets", "Bucket", prefix="S3", prop_prefix="s3_"
