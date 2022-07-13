@@ -397,7 +397,14 @@ models: Dict[str, List[AwsResotoModel]] = {
         #     prefix="Ec2",
         #     prop_prefix="group_",
         # ),
-        # AwsResotoModel("describe-subnets", "Subnets", "Subnet", base="BaseSubnet", prefix="Ec2", prop_prefix="subnet_"),
+        # AwsResotoModel(
+        #     "describe-subnets",
+        #     "Subnets",
+        #     "Subnet",
+        #     base="BaseSubnet",
+        #     prefix="Ec2",
+        #     prop_prefix="subnet_",
+        # ),
         # AwsResotoModel("describe-vpcs", "Vpcs", "Vpc", base="BaseNetwork", prefix="Ec2", prop_prefix="vpc_"),
         # AwsResotoModel(
         #     "describe-addresses", "Addresses", "Address", base="BaseIPAddress", prefix="Ec2", prop_prefix="ip_"
@@ -411,13 +418,18 @@ models: Dict[str, List[AwsResotoModel]] = {
         #     prop_prefix="nic_",
         # ),
         # AwsResotoModel(
-        #     "describe-instances", "Reservations", "Instance", base="BaseInstance", prefix="Ec2", prop_prefix="instance_"
+        #     "describe-instances",
+        #     "Reservations",
+        #     "Instance",
+        #     base="BaseInstance",
+        #     prefix="Ec2",
+        #     prop_prefix="instance_",
         # ),
         # AwsResotoModel("describe-key-pairs", "KeyPairs", "KeyPairInfo", prefix="Ec2"),
         # AwsResotoModel("describe-volumes", "Volumes", "Volume", base="BaseVolume", prefix="Ec2"),
         # AwsResotoModel("describe_addresses", "Addresses", "Address", prefix="Ec2"),
         # AwsResotoModel(
-        #     "describe-instance-types",# "InstanceTypes",# "InstanceTypeInfo",# prefix="Ec2",#     prop_prefix="reservation_"
+        #     "describe-instance-types", "InstanceTypes", "InstanceTypeInfo", prefix="Ec2", prop_prefix="reservation_"
         # ),
         # AwsResotoModel(
         #     "describe_reserved_instances",
