@@ -255,7 +255,7 @@ CollectorFn = Callable[[AWSRegion, Graph], None]
 
 class AWSAccountCollector:
     def __init__(self, regions: List[str], account: AWSAccount) -> None:
-        self.regions = [AWSRegion(region, {}, account=account) for region in regions]
+        self.regions = [AWSRegion(id=region, tags={}, account=account) for region in regions]
         self.account = account
         self.root = self.account
         self.graph = Graph(root=self.account)
