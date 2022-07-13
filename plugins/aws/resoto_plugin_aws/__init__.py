@@ -53,7 +53,12 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
             log.error("No accounts found")
             return
         for account in accounts:
-            log.debug(f"Found account {account.rtdname} {account.role} {account.profile}")
+            add_str = ""
+            if account.role:
+                add_str += f" role {account.role}"
+            if account.profile:
+                add_str += f" profile {account.profile}"
+            log.debug(f"Found {account.rtdname}{add_str}")
 
         max_workers = len(accounts) if len(accounts) < Config.aws.account_pool_size else Config.aws.account_pool_size
         pool_args = {"max_workers": max_workers}
