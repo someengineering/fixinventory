@@ -24,6 +24,7 @@ class AwsClient:
         self.region = region
 
     def call(self, service: str, action: str, result_name: Optional[str], **kwargs: Any) -> JsonElement:
+        log.info(f"[Aws] call service={service} action={action} with_args={kwargs}")
         py_action = action.replace("-", "_")
         session = self.config.sessions().session(self.account_id, self.account_role)
         client = session.client(service, region_name=self.region)
@@ -40,10 +41,12 @@ class AwsClient:
                     result.extend(list_result)
                 else:
                     raise AttributeError("Expected list result under key '{}'".format(result_name))
+            log.info(f"[Aws] call service={service} action={action} with_args={kwargs}: {len(result)} results.")
             return result
         else:
             result = getattr(client, py_action)(**kwargs)
             single = to_json(result)
+            log.info(f"[Aws] call service={service} action={action} with_args={kwargs}: single result")
             return single.get(result_name) if result_name else [single]
 
     def list(self, service: str, action: str, result_name: Optional[str], **kwargs: Any) -> List[Any]:
