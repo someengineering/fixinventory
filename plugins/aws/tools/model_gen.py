@@ -346,13 +346,21 @@ models: Dict[str, List[AwsResotoModel]] = {
     ],
     "ec2": [
         AwsResotoModel(
-            "describe-internet-gateways",
-            "InternetGateways",
-            "InternetGateway",
-            base="BaseGateway",
+            "describe-snapshots",
+            "Snapshots",
+            "Snapshot",
+            base="BaseSnapshot",
             prefix="Ec2",
-            prop_prefix="gateway_",
+            prop_prefix="snapshot_",
         ),
+        # AwsResotoModel(
+        #     "describe-internet-gateways",
+        #     "InternetGateways",
+        #     "InternetGateway",
+        #     base="BaseGateway",
+        #     prefix="Ec2",
+        #     prop_prefix="gateway_",
+        # ),
         # AwsResotoModel(
         #     "describe-nat-gateways", "NatGateways", "NatGateway", base="BaseGateway", prefix="Ec2", prop_prefix="nat_"
         # ),

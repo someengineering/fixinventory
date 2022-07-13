@@ -8,7 +8,7 @@ import uuid
 import weakref
 from resotolib.logger import log
 from enum import Enum
-from typing import Dict, Iterator, List, ClassVar, Optional, Type
+from typing import Dict, Iterator, List, ClassVar, Optional
 from resotolib.utils import make_valid_timestamp, utc_str
 from prometheus_client import Counter, Summary
 from attrs import define, field
@@ -825,12 +825,12 @@ class BaseVolume(BaseResource):
 class BaseSnapshot(BaseResource):
     kind: ClassVar[str] = "snapshot"
     snapshot_status: str = ""
-    description: str = ""
+    description: Optional[str] = None
     volume_id: Optional[str] = None
     volume_size: int = 0
     encrypted: bool = False
     owner_id: Optional[str] = None
-    owner_alias: str = ""
+    owner_alias: Optional[str] = None
 
 
 @define(eq=False, slots=False)

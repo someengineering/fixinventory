@@ -65,7 +65,7 @@ def test_sort() -> None:
 
 
 def test_or_else() -> None:
-    # assert bend(S("a").or_else(S("b")), {"a": 1, "b": 2}) == 1
+    assert bend(S("a").or_else(S("b")), {"a": 1, "b": 2}) == 1
     assert bend(S("a").or_else(S("b")), {"b": 2}) == 2
 
 

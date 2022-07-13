@@ -19,6 +19,7 @@ from resotolib.baseresources import (  # noqa: F401
     BaseSubnet,
     BaseSecurityGroup,
     BaseGateway,
+    BaseSnapshot,
 )
 from resotolib.json_bender import Bender, S, Bend, ForallBend, bend, MapEnum, F, K, StripNones
 from resotolib.types import Json
@@ -375,6 +376,49 @@ class AwsEc2Volume(AwsResource, BaseVolume):
         for attachment in self.volume_attachments:
             builder.add_edge(self, EdgeType.default, clazz=AwsEc2Instance, id=attachment.instance_id)
             builder.add_edge(self, EdgeType.delete, reverse=True, clazz=AwsEc2Instance, id=attachment.instance_id)
+
+
+# endregion
+
+# region Snapshot
+
+
+@define(eq=False, slots=False)
+class AwsEc2Snapshot(AwsResource, BaseSnapshot):
+    kind: ClassVar[str] = "aws_ec2_snapshot"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-snapshots", "Snapshots")
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("SnapshotId"),
+        "tags": S("Tags", default=[]) >> TagsToDict(),
+        "name": (S("Tags", default=[]) >> TagsValue("Name")).or_else(S("SnapshotId")),
+        "ctime": S("StartTime"),
+        "description": S("Description"),
+        "encrypted": S("Encrypted"),
+        "owner_alias": S("OwnerAlias"),
+        "owner_id": S("OwnerId"),
+        "volume_id": S("VolumeId"),
+        "volume_size": S("VolumeSize"),
+        "snapshot_data_encryption_key_id": S("DataEncryptionKeyId"),
+        "snapshot_kms_key_id": S("KmsKeyId"),
+        "snapshot_outpost_arn": S("OutpostArn"),
+        "snapshot_progress": S("Progress"),
+        "snapshot_state_message": S("StateMessage"),
+        "snapshot_status": S("State"),
+        "snapshot_storage_tier": S("StorageTier"),
+        "snapshot_restore_expiry_time": S("RestoreExpiryTime"),
+    }
+    snapshot_data_encryption_key_id: Optional[str] = field(default=None)
+    snapshot_kms_key_id: Optional[str] = field(default=None)
+    snapshot_progress: Optional[str] = field(default=None)
+    snapshot_state_message: Optional[str] = field(default=None)
+    snapshot_outpost_arn: Optional[str] = field(default=None)
+    snapshot_storage_tier: Optional[str] = field(default=None)
+    snapshot_restore_expiry_time: Optional[datetime] = field(default=None)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        super().connect_in_graph(builder, source)
+        if volume_id := source.get("VolumeId"):
+            builder.add_edge(self, EdgeType.default, reverse=True, clazz=AwsEc2Volume, id=volume_id)
 
 
 # endregion
@@ -1291,7 +1335,7 @@ class AwsEc2Subnet(AwsResource, BaseSubnet):
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("SubnetId"),
         "tags": S("Tags", default=[]) >> TagsToDict(),
-        "name": S("Tags", default=[]) >> TagsValue("Name").or_else(S("SubnetId")),
+        "name": (S("Tags", default=[]) >> TagsValue("Name")).or_else(S("SubnetId")),
         "ctime": K(None),
         "mtime": K(None),
         "atime": K(None),
@@ -1520,7 +1564,7 @@ class AwsEc2InternetGateway(AwsResource, BaseGateway):
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("InternetGatewayId"),
         "tags": S("Tags", default=[]) >> TagsToDict(),
-        "name": S("Tags", default=[]) >> TagsValue("Name").or_else(S("InternetGatewayId")),
+        "name": (S("Tags", default=[]) >> TagsValue("Name")).or_else(S("InternetGatewayId")),
         "gateway_attachments": S("Attachments", default=[]) >> ForallBend(AwsEc2InternetGatewayAttachment.mapping),
         # "owner_id": S("OwnerId"),
     }
@@ -1548,6 +1592,7 @@ resources: List[Type[AwsResource]] = [
     AwsEc2NetworkInterface,
     AwsEc2ReservedInstances,
     AwsEc2SecurityGroup,
+    AwsEc2Snapshot,
     AwsEc2Subnet,
     AwsEc2Volume,
     AwsEc2Vpc,

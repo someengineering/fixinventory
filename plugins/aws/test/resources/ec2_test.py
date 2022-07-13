@@ -12,6 +12,7 @@ from resoto_plugin_aws.resource.ec2 import (
     AwsEc2SecurityGroup,
     AwsEc2NatGateway,
     AwsEc2InternetGateway,
+    AwsEc2Snapshot,
 )
 from test.resources import round_trip_for, build_from_file, check_single_node
 
@@ -30,6 +31,10 @@ def test_reserved_instances() -> None:
 
 def test_volumes() -> None:
     round_trip_for(AwsEc2Volume)
+
+
+def test_snapshots() -> None:
+    round_trip_for(AwsEc2Snapshot)
 
 
 def test_keypair() -> None:

@@ -146,11 +146,12 @@ class OrElse(Bender):
         self.source_bender = source_bender
         self.else_bender = else_bender
 
-    def execute(self, source: Any) -> Any:
-        if (first := self.source_bender.execute(source)) is not None:
+    def raw_execute(self, source: Any) -> Any:
+        first = self.source_bender.raw_execute(source)
+        if first.value is not None:
             return first
         else:
-            return self.else_bender.execute(source)
+            return self.else_bender.raw_execute(source)
 
 
 class GetItem(Bender):
