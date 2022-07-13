@@ -14,8 +14,9 @@ from resotolib.baseresources import (  # noqa: F401
     VolumeStatus,
     InstanceStatus,
     BaseIPAddress,
+    BaseNetworkInterface,
 )
-from resotolib.json_bender import Bender, S, Bend, ForallBend, bend, MapEnum, F, K
+from resotolib.json_bender import Bender, S, Bend, ForallBend, bend, MapEnum, F, K, StripNones
 from resotolib.types import Json
 
 
@@ -1023,11 +1024,169 @@ class AwsEc2ElasticIp(AwsResource, BaseIPAddress):
         super().connect_in_graph(builder, source)
         if instance_id := source.get("InstanceId"):
             builder.dependant_node(self, clazz=AwsEc2Instance, id=instance_id)
-        # if interface_id := source.get("NetworkInterfaceId"):
-        #     builder.dependant_node(self, clazz=AwsEC2NetworkInterface, id=interface_id)
+        if interface_id := source.get("NetworkInterfaceId"):
+            builder.dependant_node(self, clazz=AwsEc2NetworkInterface, id=interface_id)
 
 
 # endregion
+
+# region Network Interfaces
+
+
+@define(eq=False, slots=False)
+class AwsEc2NetworkInterfaceAssociation:
+    kind: ClassVar[str] = "aws_ec2_network_interface_association"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "allocation_id": S("AllocationId"),
+        "association_id": S("AssociationId"),
+        "ip_owner_id": S("IpOwnerId"),
+        "public_dns_name": S("PublicDnsName"),
+        "public_ip": S("PublicIp"),
+        "customer_owned_ip": S("CustomerOwnedIp"),
+        "carrier_ip": S("CarrierIp"),
+    }
+    allocation_id: Optional[str] = field(default=None)
+    association_id: Optional[str] = field(default=None)
+    ip_owner_id: Optional[str] = field(default=None)
+    public_dns_name: Optional[str] = field(default=None)
+    public_ip: Optional[str] = field(default=None)
+    customer_owned_ip: Optional[str] = field(default=None)
+    carrier_ip: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsEc2NetworkInterfaceAttachment:
+    kind: ClassVar[str] = "aws_ec2_network_interface_attachment"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "attach_time": S("AttachTime"),
+        "attachment_id": S("AttachmentId"),
+        "delete_on_termination": S("DeleteOnTermination"),
+        "device_index": S("DeviceIndex"),
+        "network_card_index": S("NetworkCardIndex"),
+        "instance_id": S("InstanceId"),
+        "instance_owner_id": S("InstanceOwnerId"),
+        "status": S("Status"),
+    }
+    attach_time: Optional[datetime] = field(default=None)
+    attachment_id: Optional[str] = field(default=None)
+    delete_on_termination: Optional[bool] = field(default=None)
+    device_index: Optional[int] = field(default=None)
+    network_card_index: Optional[int] = field(default=None)
+    instance_id: Optional[str] = field(default=None)
+    instance_owner_id: Optional[str] = field(default=None)
+    status: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsEc2GroupIdentifier:
+    kind: ClassVar[str] = "aws_ec2_group_identifier"
+    mapping: ClassVar[Dict[str, Bender]] = {"group_name": S("GroupName"), "group_id": S("GroupId")}
+    group_name: Optional[str] = field(default=None)
+    group_id: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsEc2NetworkInterfacePrivateIpAddress:
+    kind: ClassVar[str] = "aws_ec2_network_interface_private_ip_address"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "association": S("Association") >> Bend(AwsEc2NetworkInterfaceAssociation.mapping),
+        "primary": S("Primary"),
+        "private_dns_name": S("PrivateDnsName"),
+        "private_ip_address": S("PrivateIpAddress"),
+    }
+    association: Optional[AwsEc2NetworkInterfaceAssociation] = field(default=None)
+    primary: Optional[bool] = field(default=None)
+    private_dns_name: Optional[str] = field(default=None)
+    private_ip_address: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsEc2Tag:
+    kind: ClassVar[str] = "aws_ec2_tag"
+    mapping: ClassVar[Dict[str, Bender]] = {"key": S("Key"), "value": S("Value")}
+    key: Optional[str] = field(default=None)
+    value: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsEc2NetworkInterface(AwsResource, BaseNetworkInterface):
+    kind: ClassVar[str] = "aws_ec2_network_interface"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-network-interfaces", "NetworkInterfaces")
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("NetworkInterfaceId"),
+        "tags": S("Tags", default=[]) >> TagsToDict(),
+        "name": S("Tags", default=[]) >> TagsValue("Name"),
+        "ctime": K(None),
+        "mtime": K(None),
+        "atime": K(None),
+        "network_interface_type": S("InterfaceType"),
+        "network_interface_status": S("Status"),
+        "private_ip_addresses": S("PrivateIpAddresses", default=[]) >> ForallBend(S("PrivateIpAddress")),
+        "public_ip_addresses": S("PrivateIpAddresses", default=[])
+        >> ForallBend(S("Association", "PublicIp"))
+        >> StripNones(),
+        "mac": S("MacAddress"),
+        "v6_ips": S("Ipv6Addresses", default=[]) >> ForallBend(S("Ipv6Address")),
+        "description": S("Description"),
+        "nic_association": S("Association") >> Bend(AwsEc2NetworkInterfaceAssociation.mapping),
+        "nic_attachment": S("Attachment") >> Bend(AwsEc2NetworkInterfaceAttachment.mapping),
+        "nic_availability_zone": S("AvailabilityZone"),
+        "nic_groups": S("Groups", default=[]) >> ForallBend(AwsEc2GroupIdentifier.mapping),
+        "nic_outpost_arn": S("OutpostArn"),
+        "nic_owner_id": S("OwnerId"),
+        "nic_private_dns_name": S("PrivateDnsName"),
+        "nic_private_ip_address": S("PrivateIpAddress"),
+        "nic_private_ip_addresses": S("PrivateIpAddresses", default=[])
+        >> ForallBend(AwsEc2NetworkInterfacePrivateIpAddress.mapping),
+        "nic_ipv4_prefixes": S("Ipv4Prefixes", default=[]) >> ForallBend(S("Ipv4Prefix")),
+        "nic_ipv6_prefixes": S("Ipv6Prefixes", default=[]) >> ForallBend(S("Ipv6Prefix")),
+        "nic_requester_id": S("RequesterId"),
+        "nic_requester_managed": S("RequesterManaged"),
+        "nic_source_dest_check": S("SourceDestCheck"),
+        "nic_subnet_id": S("SubnetId"),
+        "nic_tag_set": S("TagSet", default=[]) >> ForallBend(AwsEc2Tag.mapping),
+        "nic_deny_all_igw_traffic": S("DenyAllIgwTraffic"),
+        "nic_ipv6_native": S("Ipv6Native"),
+        "nic_ipv6_address": S("Ipv6Address"),
+    }
+    nic_association: Optional[AwsEc2NetworkInterfaceAssociation] = field(default=None)
+    nic_attachment: Optional[AwsEc2NetworkInterfaceAttachment] = field(default=None)
+    nic_availability_zone: Optional[str] = field(default=None)
+    nic_groups: List[AwsEc2GroupIdentifier] = field(factory=list)
+    nic_outpost_arn: Optional[str] = field(default=None)
+    nic_owner_id: Optional[str] = field(default=None)
+    nic_private_dns_name: Optional[str] = field(default=None)
+    nic_private_ip_address: Optional[str] = field(default=None)
+    nic_private_ip_addresses: List[AwsEc2NetworkInterfacePrivateIpAddress] = field(factory=list)
+    nic_ipv4_prefixes: List[str] = field(factory=list)
+    nic_ipv6_prefixes: List[str] = field(factory=list)
+    nic_requester_id: Optional[str] = field(default=None)
+    nic_requester_managed: Optional[bool] = field(default=None)
+    nic_source_dest_check: Optional[bool] = field(default=None)
+    nic_subnet_id: Optional[str] = field(default=None)
+    nic_tag_set: List[AwsEc2Tag] = field(factory=list)
+    nic_deny_all_igw_traffic: Optional[bool] = field(default=None)
+    nic_ipv6_native: Optional[bool] = field(default=None)
+    nic_ipv6_address: Optional[str] = field(default=None)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        super().connect_in_graph(builder, source)
+        if vpc_id := source.get("VpcId"):
+            pass
+            # builder.dependant_node(self, reverse=True, clazz=AwsEc2Vpc.kind, id=vpc_id)
+        if subnet_id := source.get("SubnetId"):
+            pass
+            # builder.dependant_node(self, reverse=True, clazz=AwsEc2Subnet.kind, id=subnet_id)
+        if self.nic_attachment and (iid := self.nic_attachment.instance_id):
+            builder.dependant_node(self, reverse=True, clazz=AwsEc2Instance, id=iid)
+        for group in self.nic_groups:
+            if gid := group.group_id:
+                pass
+                # builder.add_edge(self, EdgeType.default, reverse=True, clazz=AwsEc2SecurityGroup.kind, id=gid)
+
+
+# endregion
+
 global_resources: List[Type[AwsResource]] = [
     AwsEc2InstanceType,
 ]
@@ -1038,4 +1197,5 @@ resources: List[Type[AwsResource]] = [
     AwsEc2KeyPair,
     AwsEc2Volume,
     AwsEc2ElasticIp,
+    AwsEc2NetworkInterface,
 ]

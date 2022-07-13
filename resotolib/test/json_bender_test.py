@@ -3,7 +3,17 @@ from datetime import datetime
 import pytest
 
 from resotolib.baseresources import InstanceStatus
-from resotolib.json_bender import StringToUnitNumber, bend, CPUCoresToNumber, MapValue, AsDate, Sort, S, MapEnum
+from resotolib.json_bender import (
+    StringToUnitNumber,
+    bend,
+    CPUCoresToNumber,
+    MapValue,
+    AsDate,
+    Sort,
+    S,
+    MapEnum,
+    StripNones,
+)
 
 
 def test_map_value() -> None:
@@ -57,3 +67,7 @@ def test_sort() -> None:
 def test_or_else() -> None:
     # assert bend(S("a").or_else(S("b")), {"a": 1, "b": 2}) == 1
     assert bend(S("a").or_else(S("b")), {"b": 2}) == 2
+
+
+def test_strip_nones() -> None:
+    assert bend(StripNones(), [1, None, 2, None, None, 3]) == [1, 2, 3]

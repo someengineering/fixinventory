@@ -413,6 +413,14 @@ class ForallBend(Forall):
         return Transport(self.execute(transport.value), transport.context)
 
 
+class StripNones(Bender):
+    def execute(self, source: Any) -> Any:
+        if isinstance(source, list):
+            return [x for x in source if x is not None]
+        else:
+            return source
+
+
 class MapValue(Bender):
     def __init__(self, lookup: Dict[str, Any], default: Any = None, **kwargs: Any):
         super().__init__(**kwargs)
