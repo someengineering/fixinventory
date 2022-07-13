@@ -679,7 +679,7 @@ class GCPProjectCollector:
                 if set(["metric", "limit", "usage"]) == set(quota.keys()):
                     q = GCPQuota(
                         id=quota["metric"],
-                        id={},
+                        tags={},
                         quota=quota["limit"],
                         usage=quota["usage"],
                         region=resource.region(),
