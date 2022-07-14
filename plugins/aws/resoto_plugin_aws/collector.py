@@ -90,9 +90,7 @@ class AwsAccountCollector:
                 if isinstance(node, AwsResource):
                     if rg := node.region():
                         builder.add_edge(rg, EdgeType.default, node=node)
-                    futures.append(executor.submit(node.connect_in_graph, builder, data.get("source", {})))
-                    if idx % 100 == 0:  # only spawn 100 futures at a time
-                        wait_for_futures(futures)
+                    node.connect_in_graph(builder, data.get("source", {}))
                 else:
                     raise Exception("Only AWS resources expected")
 

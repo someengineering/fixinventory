@@ -281,9 +281,9 @@ class AwsEksCluster(AwsResource):
             if cluster_json is not None:
                 cluster = AwsEksCluster.from_api(cluster_json)
                 builder.add_node(cluster, cluster_json)
-                for ng_name in builder.client.list("eks", "list-nodegroups", "nodegroups", cluster_name=name):
+                for ng_name in builder.client.list("eks", "list-nodegroups", "nodegroups", clusterName=name):
                     ng_json = builder.client.get(
-                        "eks", "describe-nodegroup", "nodegroup", cluster_name=name, nodegroup=ng_name
+                        "eks", "describe-nodegroup", "nodegroup", clusterName=name, nodegroupName=ng_name
                     )
                     if ng_json is not None:
                         ng = AwsEksNodegroup.from_api(ng_json)

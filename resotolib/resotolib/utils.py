@@ -35,6 +35,10 @@ def utc() -> datetime:
 
 
 def utc_str(dt: datetime = utc()) -> str:
+    if dt.tzinfo is not None and dt.tzname() != "UTC":
+        offset = dt.tzinfo.utcoffset(dt)
+        if offset is not None and offset.total_seconds() != 0:
+            dt = (dt - offset).replace(tzinfo=timezone.utc)
     return dt.strftime(UTC_Date_Format)
 
 

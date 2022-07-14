@@ -389,7 +389,7 @@ class AwsEc2Volume(AwsResource, BaseVolume):
 @define(eq=False, slots=False)
 class AwsEc2Snapshot(AwsResource, BaseSnapshot):
     kind: ClassVar[str] = "aws_ec2_snapshot"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-snapshots", "Snapshots")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-snapshots", "Snapshots", dict(OwnerIds=["self"]))
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("SnapshotId"),
         "tags": S("Tags", default=[]) >> ToDict(),
