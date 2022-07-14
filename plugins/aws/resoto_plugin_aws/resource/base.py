@@ -9,9 +9,12 @@ from attrs import define
 from datetime import datetime, timezone
 from typing import ClassVar, Dict, Optional, List, Type, Any, TypeVar
 
+from boto3.exceptions import Boto3Error
 from botocore.loaders import Loader
 
 from resoto_plugin_aws.aws_client import AwsClient
+
+# from resoto_plugin_aws.resource.service_quotas import AwsServiceQuota
 from resotolib.baseresources import BaseResource, EdgeType, Cloud, BaseAccount, BaseRegion
 from resotolib.graph import Graph
 from resotolib.json import to_json as to_js, from_json as from_js
@@ -101,13 +104,26 @@ class AwsResource(BaseResource):
         )
 
     @classmethod
-    def from_json(cls: Type[AWSResourceType], json: Json) -> AWSResourceType:
+    def from_json(cls: Type[AwsResourceType], json: Json) -> AwsResourceType:
         return from_js(json, cls)
 
     @classmethod
-    def from_api(cls: Type[AWSResourceType], json: Json) -> AWSResourceType:
+    def from_api(cls: Type[AwsResourceType], json: Json) -> AwsResourceType:
         mapped = bend(cls.mapping, json)
         return cls.from_json(mapped)
+
+    @classmethod
+    def collect_resources(cls: Type[AwsResource], builder: GraphBuilder) -> None:
+        # Default behavior: in case the class has an ApiSpec, call the api and call collect.
+        log.debug(f"Collecting {cls.__name__} in region {builder.region.name}")
+        if spec := cls.api_spec:
+            try:
+                kwargs = spec.parameter or {}
+                items = builder.client.list(spec.service, spec.api_action, spec.result_property, **kwargs)
+                cls.collect(items, builder)
+            except Boto3Error as e:
+                log.error(f"Error while collecting {cls.__name__} in region {builder.region.name}: {e}")
+                raise
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
@@ -128,7 +144,7 @@ class AwsResource(BaseResource):
         return f"{self.kind}:{self.name}"
 
 
-AWSResourceType = TypeVar("AWSResourceType", bound=AwsResource)
+AwsResourceType = TypeVar("AwsResourceType", bound=AwsResource)
 
 
 # derived from https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-template-resource-type-ref.html
@@ -194,7 +210,7 @@ class GraphBuilder:
         price_name: str = bend(S("partitions")[0] >> S("regions", self.region.name, "description"), endpoints)
         return price_name.replace("Europe", "EU")  # note: Europe is named differently in the price list
 
-    def node(self, clazz: Optional[Type[AWSResourceType]] = None, **node: Any) -> Optional[AWSResourceType]:
+    def node(self, clazz: Optional[Type[AwsResourceType]] = None, **node: Any) -> Optional[AwsResourceType]:
         if isinstance(nd := node.get("node"), AwsResource):
             return nd  # type: ignore
         for n in self.graph:
@@ -229,7 +245,7 @@ class GraphBuilder:
                 start, end = end, start
             self.graph.add_edge(end, start, edge_type=EdgeType.delete)
 
-    def resources_of(self, resource_type: Type[AWSResourceType]) -> List[AWSResourceType]:
+    def resources_of(self, resource_type: Type[AwsResourceType]) -> List[AwsResourceType]:
         return [n for n in self.graph.nodes if isinstance(n, resource_type)]
 
     @lru_cache(maxsize=None)
@@ -268,3 +284,6 @@ class GraphBuilder:
             self.client.for_region(region.name),
             self.global_instance_types,
         )
+
+    # def service_quotas(self, service_type: str) -> Dict[str, AwsServiceQuota]:
+    #     self.client.list("service-quotas", "list-service-quotas", "Quotas", ServiceCode=service_type)
