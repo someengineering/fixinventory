@@ -730,6 +730,10 @@ class GraphMergeKind(Enum):
     account = "account"
 
 
+class GraphExportError(RuntimeError):
+    pass
+
+
 class GraphExportIterator:
     def __init__(
         self,
@@ -802,6 +806,7 @@ class GraphExportIterator:
 
     def export_graph(self) -> None:
         with self.export_lock:
+            found_replace_node = False
             start_time = time()
             for node in self.graph.nodes:
                 node_dict = node_to_dict(node)
@@ -810,11 +815,14 @@ class GraphExportIterator:
                     if "metadata" not in node_dict or not isinstance(node_dict["metadata"], dict):
                         node_dict["metadata"] = {}
                     node_dict["metadata"]["replace"] = True
+                    found_replace_node = True
                 node_json = jsons.dumps(node_dict) + "\n"
                 self.tempfile.write(node_json.encode())
                 self.total_lines += 1
             elapsed_nodes = time() - start_time
             log.debug(f"Exported {self.number_of_nodes} nodes in {elapsed_nodes:.4f}s")
+            if not found_replace_node:
+                raise GraphExportError(f"No nodes of kind {self.graph_merge_kind.kind} found in graph")
             start_time = time()
             for edge in self.graph.edges:
                 from_node = edge[0]

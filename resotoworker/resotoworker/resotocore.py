@@ -5,7 +5,7 @@ from datetime import datetime
 from resotolib.args import ArgumentParser
 from resotolib.logger import log
 from resotolib.jwt import encode_jwt_to_headers
-from resotolib.graph import Graph, GraphExportIterator
+from resotolib.graph import Graph, GraphExportIterator, GraphExportError
 from resotolib.config import Config
 from resotolib.core import resotocore
 from typing import Callable, Optional
