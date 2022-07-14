@@ -881,8 +881,8 @@ class AWSAccountCollector:
 
         for policy in policies:
             p = AWSIAMPolicy(
-                policy["PolicyId"],
-                {},
+                id=policy["PolicyId"],
+                tags={},
                 account=self.account,
                 region=region,
                 ctime=policy.get("CreateDate"),
@@ -973,8 +973,8 @@ class AWSAccountCollector:
 
         for instance_profile in instance_profiles:
             ip = AWSIAMInstanceProfile(
-                instance_profile["InstanceProfileId"],
-                {},
+                id=instance_profile["InstanceProfileId"],
+                tags={},
                 account=self.account,
                 region=region,
                 ctime=instance_profile.get("CreateDate"),
