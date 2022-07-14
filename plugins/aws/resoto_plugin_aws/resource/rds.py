@@ -2,9 +2,9 @@ from datetime import datetime
 from typing import ClassVar, Dict, List, Optional, Type
 from attr import define, field
 from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource
-from resoto_plugin_aws.utils import TagsToDict, TagsValue
-from resotolib.baseresources import BaseAccount, BaseDatabase
-from resotolib.json_bender import K, S, Bend, Bender, ForallBend
+from resoto_plugin_aws.utils import ToDict
+from resotolib.baseresources import BaseAccount, BaseDatabase  # noqa: F401
+from resotolib.json_bender import S, Bend, Bender, ForallBend
 
 
 @define(eq=False, slots=False)
@@ -13,55 +13,54 @@ class AwsRdsEndpoint:
     mapping: ClassVar[Dict[str, Bender]] = {
         "address": S("Address"),
         "port": S("Port"),
-        "hosted_zone_id": S("HostedZoneId")
+        "hosted_zone_id": S("HostedZoneId"),
     }
     address: Optional[str] = field(default=None)
     port: Optional[int] = field(default=None)
     hosted_zone_id: Optional[str] = field(default=None)
 
+
 @define(eq=False, slots=False)
 class AwsRdsDBSecurityGroupMembership:
     kind: ClassVar[str] = "aws_rds_db_security_group_membership"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "db_security_group_name": S("DBSecurityGroupName"),
-        "status": S("Status")
-    }
+    mapping: ClassVar[Dict[str, Bender]] = {"db_security_group_name": S("DBSecurityGroupName"), "status": S("Status")}
     db_security_group_name: Optional[str] = field(default=None)
     status: Optional[str] = field(default=None)
+
 
 @define(eq=False, slots=False)
 class AwsRdsVpcSecurityGroupMembership:
     kind: ClassVar[str] = "aws_rds_vpc_security_group_membership"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "vpc_security_group_id": S("VpcSecurityGroupId"),
-        "status": S("Status")
-    }
+    mapping: ClassVar[Dict[str, Bender]] = {"vpc_security_group_id": S("VpcSecurityGroupId"), "status": S("Status")}
     vpc_security_group_id: Optional[str] = field(default=None)
     status: Optional[str] = field(default=None)
+
 
 @define(eq=False, slots=False)
 class AwsRdsDBParameterGroupStatus:
     kind: ClassVar[str] = "aws_rds_db_parameter_group_status"
     mapping: ClassVar[Dict[str, Bender]] = {
         "db_parameter_group_name": S("DBParameterGroupName"),
-        "parameter_apply_status": S("ParameterApplyStatus")
+        "parameter_apply_status": S("ParameterApplyStatus"),
     }
     db_parameter_group_name: Optional[str] = field(default=None)
     parameter_apply_status: Optional[str] = field(default=None)
+
 
 @define(eq=False, slots=False)
 class AwsRdsSubnet:
     kind: ClassVar[str] = "aws_rds_subnet"
     mapping: ClassVar[Dict[str, Bender]] = {
         "subnet_identifier": S("SubnetIdentifier"),
-        "subnet_availability_zone": S("SubnetAvailabilityZone","Name"),
-        "subnet_outpost": S("SubnetOutpost","Arn"),
-        "subnet_status": S("SubnetStatus")
+        "subnet_availability_zone": S("SubnetAvailabilityZone", "Name"),
+        "subnet_outpost": S("SubnetOutpost", "Arn"),
+        "subnet_status": S("SubnetStatus"),
     }
     subnet_identifier: Optional[str] = field(default=None)
     subnet_availability_zone: Optional[str] = field(default=None)
     subnet_outpost: Optional[str] = field(default=None)
     subnet_status: Optional[str] = field(default=None)
+
 
 @define(eq=False, slots=False)
 class AwsRdsDBSubnetGroup:
@@ -73,7 +72,7 @@ class AwsRdsDBSubnetGroup:
         "subnet_group_status": S("SubnetGroupStatus"),
         "subnets": S("Subnets", default=[]) >> ForallBend(AwsRdsSubnet.mapping),
         "db_subnet_group_arn": S("DBSubnetGroupArn"),
-        "supported_network_types": S("SupportedNetworkTypes", default=[])
+        "supported_network_types": S("SupportedNetworkTypes", default=[]),
     }
     db_subnet_group_name: Optional[str] = field(default=None)
     db_subnet_group_description: Optional[str] = field(default=None)
@@ -83,25 +82,25 @@ class AwsRdsDBSubnetGroup:
     db_subnet_group_arn: Optional[str] = field(default=None)
     supported_network_types: List[str] = field(factory=list)
 
+
 @define(eq=False, slots=False)
 class AwsRdsPendingCloudwatchLogsExports:
     kind: ClassVar[str] = "aws_rds_pending_cloudwatch_logs_exports"
     mapping: ClassVar[Dict[str, Bender]] = {
         "log_types_to_enable": S("LogTypesToEnable", default=[]),
-        "log_types_to_disable": S("LogTypesToDisable", default=[])
+        "log_types_to_disable": S("LogTypesToDisable", default=[]),
     }
     log_types_to_enable: List[str] = field(factory=list)
     log_types_to_disable: List[str] = field(factory=list)
 
+
 @define(eq=False, slots=False)
 class AwsRdsProcessorFeature:
     kind: ClassVar[str] = "aws_rds_processor_feature"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "name": S("Name"),
-        "value": S("Value")
-    }
+    mapping: ClassVar[Dict[str, Bender]] = {"name": S("Name"), "value": S("Value")}
     name: Optional[str] = field(default=None)
     value: Optional[str] = field(default=None)
+
 
 @define(eq=False, slots=False)
 class AwsRdsPendingModifiedValues:
@@ -120,11 +119,12 @@ class AwsRdsPendingModifiedValues:
         "storage_type": S("StorageType"),
         "ca_certificate_identifier": S("CACertificateIdentifier"),
         "db_subnet_group_name": S("DBSubnetGroupName"),
-        "pending_cloudwatch_logs_exports": S("PendingCloudwatchLogsExports") >> Bend(AwsRdsPendingCloudwatchLogsExports.mapping),
+        "pending_cloudwatch_logs_exports": S("PendingCloudwatchLogsExports")
+        >> Bend(AwsRdsPendingCloudwatchLogsExports.mapping),
         "processor_features": S("ProcessorFeatures", default=[]) >> ForallBend(AwsRdsProcessorFeature.mapping),
         "iam_database_authentication_enabled": S("IAMDatabaseAuthenticationEnabled"),
         "automation_mode": S("AutomationMode"),
-        "resume_full_automation_mode_time": S("ResumeFullAutomationModeTime")
+        "resume_full_automation_mode_time": S("ResumeFullAutomationModeTime"),
     }
     db_instance_class: Optional[str] = field(default=None)
     allocated_storage: Optional[int] = field(default=None)
@@ -145,15 +145,14 @@ class AwsRdsPendingModifiedValues:
     automation_mode: Optional[str] = field(default=None)
     resume_full_automation_mode_time: Optional[datetime] = field(default=None)
 
+
 @define(eq=False, slots=False)
 class AwsRdsOptionGroupMembership:
     kind: ClassVar[str] = "aws_rds_option_group_membership"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "option_group_name": S("OptionGroupName"),
-        "status": S("Status")
-    }
+    mapping: ClassVar[Dict[str, Bender]] = {"option_group_name": S("OptionGroupName"), "status": S("Status")}
     option_group_name: Optional[str] = field(default=None)
     status: Optional[str] = field(default=None)
+
 
 @define(eq=False, slots=False)
 class AwsRdsDBInstanceStatusInfo:
@@ -162,12 +161,13 @@ class AwsRdsDBInstanceStatusInfo:
         "status_type": S("StatusType"),
         "normal": S("Normal"),
         "status": S("Status"),
-        "message": S("Message")
+        "message": S("Message"),
     }
     status_type: Optional[str] = field(default=None)
     normal: Optional[bool] = field(default=None)
     status: Optional[str] = field(default=None)
     message: Optional[str] = field(default=None)
+
 
 @define(eq=False, slots=False)
 class AwsRdsDomainMembership:
@@ -176,12 +176,13 @@ class AwsRdsDomainMembership:
         "domain": S("Domain"),
         "status": S("Status"),
         "fqdn": S("FQDN"),
-        "iam_role_name": S("IAMRoleName")
+        "iam_role_name": S("IAMRoleName"),
     }
     domain: Optional[str] = field(default=None)
     status: Optional[str] = field(default=None)
     fqdn: Optional[str] = field(default=None)
     iam_role_name: Optional[str] = field(default=None)
+
 
 @define(eq=False, slots=False)
 class AwsRdsDBInstanceRole:
@@ -189,21 +190,20 @@ class AwsRdsDBInstanceRole:
     mapping: ClassVar[Dict[str, Bender]] = {
         "role_arn": S("RoleArn"),
         "feature_name": S("FeatureName"),
-        "status": S("Status")
+        "status": S("Status"),
     }
     role_arn: Optional[str] = field(default=None)
     feature_name: Optional[str] = field(default=None)
     status: Optional[str] = field(default=None)
 
+
 @define(eq=False, slots=False)
 class AwsRdsTag:
     kind: ClassVar[str] = "aws_rds_tag"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "key": S("Key"),
-        "value": S("Value")
-    }
+    mapping: ClassVar[Dict[str, Bender]] = {"key": S("Key"), "value": S("Value")}
     key: Optional[str] = field(default=None)
     value: Optional[str] = field(default=None)
+
 
 @define(eq=False, slots=False)
 class AwsRdsInstance(AwsResource, BaseDatabase):
@@ -211,7 +211,7 @@ class AwsRdsInstance(AwsResource, BaseDatabase):
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("rds", "describe-db-instances", "DBInstances")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("DBInstanceIdentifier"),
-        "tags": S("TagList", default=[]) >> ForallBend(AwsRdsTag.mapping),
+        "tags": S("TagList", default=[]) >> ForallBend(AwsRdsTag.mapping) >> ToDict(),
         "name": S("DBName"),
         "ctime": S("InstanceCreateTime"),
         "arn": S("DBInstanceArn"),
@@ -228,9 +228,12 @@ class AwsRdsInstance(AwsResource, BaseDatabase):
         "rds_master_username": S("MasterUsername"),
         "rds_preferred_backup_window": S("PreferredBackupWindow"),
         "rds_backup_retention_period": S("BackupRetentionPeriod"),
-        "rds_db_security_groups": S("DBSecurityGroups", default=[]) >> ForallBend(AwsRdsDBSecurityGroupMembership.mapping),
-        "rds_vpc_security_groups": S("VpcSecurityGroups", default=[]) >> ForallBend(AwsRdsVpcSecurityGroupMembership.mapping),
-        "rds_db_parameter_groups": S("DBParameterGroups", default=[]) >> ForallBend(AwsRdsDBParameterGroupStatus.mapping),
+        "rds_db_security_groups": S("DBSecurityGroups", default=[])
+        >> ForallBend(AwsRdsDBSecurityGroupMembership.mapping),
+        "rds_vpc_security_groups": S("VpcSecurityGroups", default=[])
+        >> ForallBend(AwsRdsVpcSecurityGroupMembership.mapping),
+        "rds_db_parameter_groups": S("DBParameterGroups", default=[])
+        >> ForallBend(AwsRdsDBParameterGroupStatus.mapping),
         "rds_availability_zone": S("AvailabilityZone"),
         "rds_db_subnet_group": S("DBSubnetGroup") >> Bend(AwsRdsDBSubnetGroup.mapping),
         "rds_preferred_maintenance_window": S("PreferredMaintenanceWindow"),
@@ -243,7 +246,8 @@ class AwsRdsInstance(AwsResource, BaseDatabase):
         "rds_read_replica_db_cluster_identifiers": S("ReadReplicaDBClusterIdentifiers", default=[]),
         "rds_replica_mode": S("ReplicaMode"),
         "rds_license_model": S("LicenseModel"),
-        "rds_option_group_memberships": S("OptionGroupMemberships", default=[]) >> ForallBend(AwsRdsOptionGroupMembership.mapping),
+        "rds_option_group_memberships": S("OptionGroupMemberships", default=[])
+        >> ForallBend(AwsRdsOptionGroupMembership.mapping),
         "rds_character_set_name": S("CharacterSetName"),
         "rds_nchar_character_set_name": S("NcharCharacterSetName"),
         "rds_secondary_availability_zone": S("SecondaryAvailabilityZone"),
@@ -272,7 +276,8 @@ class AwsRdsInstance(AwsResource, BaseDatabase):
         "rds_associated_roles": S("AssociatedRoles", default=[]) >> ForallBend(AwsRdsDBInstanceRole.mapping),
         "rds_listener_endpoint": S("ListenerEndpoint") >> Bend(AwsRdsEndpoint.mapping),
         "rds_max_allocated_storage": S("MaxAllocatedStorage"),
-        "rds_db_instance_automated_backups_replications": S("DBInstanceAutomatedBackupsReplications", default=[]) >> ForallBend(S("DBInstanceAutomatedBackupsArn")),
+        "rds_db_instance_automated_backups_replications": S("DBInstanceAutomatedBackupsReplications", default=[])
+        >> ForallBend(S("DBInstanceAutomatedBackupsArn")),
         "rds_customer_owned_ip_enabled": S("CustomerOwnedIpEnabled"),
         "rds_aws_backup_recovery_point_arn": S("AwsBackupRecoveryPointArn"),
         "rds_activity_stream_status": S("ActivityStreamStatus"),
@@ -284,16 +289,16 @@ class AwsRdsInstance(AwsResource, BaseDatabase):
         "rds_resume_full_automation_mode_time": S("ResumeFullAutomationModeTime"),
         "rds_custom_iam_instance_profile": S("CustomIamInstanceProfile"),
         "rds_backup_target": S("BackupTarget"),
-        "rds_network_type": S("NetworkType")
+        "rds_network_type": S("NetworkType"),
     }
     arn: Optional[str] = field(default=None)
-    db_type: Optional[str] = field(default=None)
-    db_status: Optional[str] = field(default=None)
-    db_endpoint: Optional[AwsRdsEndpoint] = field(default=None)
+    db_type: str = field(default=None)
+    db_status: str = field(default=None)
+    db_endpoint: AwsRdsEndpoint = field(default=None)
     db_version: Optional[str] = field(default=None)
     db_publicly_accessible: Optional[bool] = field(default=None)
-    instance_type: Optional[str] = field(default=None)
-    volume_size: Optional[int] = field(default=None)
+    instance_type: str = field(default=None)
+    volume_size: int = field(default=None)
     volume_iops: Optional[int] = field(default=None)
     volume_encrypted: Optional[bool] = field(default=None)
     rds_automatic_restart_time: Optional[datetime] = field(default=None)
