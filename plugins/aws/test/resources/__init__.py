@@ -11,7 +11,7 @@ from resoto_plugin_aws.config import AwsConfig
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import (
     GraphBuilder,
-    AWSResourceType,
+    AwsResourceType,
     AwsAccount,
     AwsRegion,
     AwsResource,
@@ -75,7 +75,7 @@ class BotoFileBasedSession(Session):  # type: ignore
         return BotoDummyStsClient() if service_name == "sts" else BotoFileClient(service_name)
 
 
-def all_props_set(obj: AWSResourceType, ignore_props: Set[str]) -> None:
+def all_props_set(obj: AwsResourceType, ignore_props: Set[str]) -> None:
     for field in fields(type(obj)):
         prop = field.name
         if (
@@ -98,13 +98,13 @@ def all_props_set(obj: AWSResourceType, ignore_props: Set[str]) -> None:
                 raise Exception(f"Prop >{prop}< is not set: {obj}")
 
 
-def round_trip_for(cls: Type[AWSResourceType], *ignore_props: str) -> Tuple[AWSResourceType, GraphBuilder]:
+def round_trip_for(cls: Type[AwsResourceType], *ignore_props: str) -> Tuple[AwsResourceType, GraphBuilder]:
     if api := cls.api_spec:
         return round_trip(BotoFileClient.path_from_action(api), cls, api.result_property, set(ignore_props))
     raise AttributeError("No api_spec for class: " + cls.__name__)
 
 
-def build_from_file(path: str, cls: Type[AWSResourceType], root: Optional[str]) -> GraphBuilder:
+def build_from_file(path: str, cls: Type[AwsResourceType], root: Optional[str]) -> GraphBuilder:
     config = AwsConfig()
     config.sessions().session_class_factory = BotoFileBasedSession
     client = AwsClient(config, "123456789012", "role", "us-east-1")
@@ -124,8 +124,8 @@ def check_single_node(node: AwsResource) -> None:
 
 
 def round_trip(
-    file: str, cls: Type[AWSResourceType], root: Optional[str] = None, ignore_props: Optional[Set[str]] = None
-) -> Tuple[AWSResourceType, GraphBuilder]:
+    file: str, cls: Type[AwsResourceType], root: Optional[str] = None, ignore_props: Optional[Set[str]] = None
+) -> Tuple[AwsResourceType, GraphBuilder]:
     builder = build_from_file(file, cls, root)
     assert len(builder.graph.nodes) > 0
     for node, data in builder.graph.nodes(data=True):
