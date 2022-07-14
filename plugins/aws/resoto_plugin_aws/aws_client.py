@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime
 from typing import Optional, Any, List
 
 from resoto_plugin_aws.config import AwsConfig
-from resotolib.json import to_json
 from resotolib.types import Json, JsonElement
+from resotolib.utils import utc_str
 
 log = logging.getLogger("resoto.plugins.aws")
 
@@ -23,6 +24,18 @@ class AwsClient:
         self.account_role = account_role
         self.region = region
 
+    def __to_json(self, node: Any, **kwargs: Any) -> JsonElement:
+        if node is None or isinstance(node, (str, int, float, bool)):
+            return node
+        elif isinstance(node, list):
+            return [self.__to_json(item, **kwargs) for item in node]
+        elif isinstance(node, dict):
+            return {key: self.__to_json(value, **kwargs) for key, value in node.items()}
+        elif isinstance(node, datetime):
+            return utc_str(node)
+        else:
+            raise AttributeError(f"Unsupported type: {type(node)}")
+
     def call(self, service: str, action: str, result_name: Optional[str], **kwargs: Any) -> JsonElement:
         log.info(f"[Aws] call service={service} action={action} with_args={kwargs}")
         py_action = action.replace("-", "_")
@@ -32,7 +45,7 @@ class AwsClient:
             paginator = client.get_paginator(py_action)
             result: List[Json] = []
             for page in paginator.paginate(**kwargs):
-                next_page = to_json(page)
+                next_page: Json = self.__to_json(page)  # type: ignore
                 if result_name is None:
                     # the whole object is appended
                     result.append(next_page)
@@ -45,7 +58,7 @@ class AwsClient:
             return result
         else:
             result = getattr(client, py_action)(**kwargs)
-            single = to_json(result)
+            single: Json = self.__to_json(result)  # type: ignore
             log.info(f"[Aws] call service={service} action={action} with_args={kwargs}: single result")
             return single.get(result_name) if result_name else [single]
 

@@ -2,6 +2,7 @@ import unittest
 import threading
 import time
 import copy
+from datetime import datetime
 
 try:
     from zoneinfo import ZoneInfo
@@ -9,7 +10,7 @@ except ImportError:
     from backports.zoneinfo import ZoneInfo
 from tempfile import TemporaryDirectory
 from resotolib.lock import RWLock
-from resotolib.utils import ordinal, sha256sum, rrdata_as_dict, get_local_tzinfo
+from resotolib.utils import ordinal, sha256sum, rrdata_as_dict, get_local_tzinfo, utc_str
 from resotolib.baseresources import BaseResource
 from attrs import define
 from typing import ClassVar
@@ -309,3 +310,12 @@ def test_rrdata_as_dict():
 def test_get_local_tzinfo():
     tz = get_local_tzinfo()
     assert isinstance(tz, ZoneInfo)
+
+
+def test_utc_str():
+    dt = datetime(2020, 8, 3, 18, 0, 0)
+    assert utc_str(dt) == "2020-08-03T18:00:00Z"
+    assert utc_str(dt.replace(tzinfo=ZoneInfo("CET"))) == "2020-08-03T16:00:00Z"
+    assert utc_str(dt.replace(tzinfo=ZoneInfo("GMT"))) == "2020-08-03T18:00:00Z"
+    assert utc_str(dt.replace(tzinfo=ZoneInfo("US/Eastern"))) == "2020-08-03T22:00:00Z"
+    assert utc_str(dt.replace(tzinfo=ZoneInfo("US/Pacific"))) == "2020-08-04T01:00:00Z"
