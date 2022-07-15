@@ -151,8 +151,6 @@ class BaseResource(ABC):
         self.__log: List = []
         self._raise_tags_exceptions: bool = False
         self.max_graph_depth: int = 0
-        if not hasattr(self, "_tags"):
-            self._tags = None
         if not hasattr(self, "_ctime"):
             self._ctime = None
         if not hasattr(self, "_atime"):
@@ -209,14 +207,6 @@ class BaseResource(ABC):
 
     rtdname = kdname
 
-    def _tags_getter(self) -> Dict:
-        return self._tags
-
-    def _tags_setter(self, value: Dict) -> None:
-        if value is None:
-            value = {}
-        self._tags = ResourceTagsDict(dict(value), parent_resource=self)
-
     def log(self, msg: str, data=None, exception=None) -> None:
         now = datetime.utcnow().replace(tzinfo=timezone.utc)
         log_entry = {
@@ -227,6 +217,9 @@ class BaseResource(ABC):
         }
         self.__log.append(log_entry)
         self._changes.add("log")
+
+    def add_change(self, change: str) -> None:
+        self._changes.add(change)
 
     @property
     def changes(self) -> ResourceChanges:
@@ -581,76 +574,9 @@ class BaseResource(ABC):
         self.__dict__.update(state)
 
 
-BaseResource.tags = property(BaseResource._tags_getter, BaseResource._tags_setter)
 BaseResource.ctime = property(BaseResource._ctime_getter, BaseResource._ctime_setter)
 BaseResource.mtime = property(BaseResource._mtime_getter, BaseResource._mtime_setter)
 BaseResource.atime = property(BaseResource._atime_getter, BaseResource._atime_setter)
-
-
-class ResourceTagsDict(dict):
-    def __init__(self, *args, parent_resource=None, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self.__parent_resource = None
-        self.parent_resource = parent_resource
-
-    @property
-    def parent_resource(self):
-        return self.__parent_resource
-
-    @parent_resource.setter
-    def parent_resource(self, value):
-        self.__parent_resource = value
-
-    def __setitem__(self, key, value):
-        if self.parent_resource and isinstance(self.parent_resource, BaseResource):
-            log.debug(f"Calling parent resource to set tag {key} to {value} in cloud")
-            try:
-                if self.parent_resource.update_tag(key, value):
-                    log_msg = f"Successfully set tag {key} to {value} in cloud"
-                    self.parent_resource._changes.add("tags")
-                    self.parent_resource.log(log_msg)
-                    log.info((f"{log_msg} for {self.parent_resource.kind}" f" {self.parent_resource.id}"))
-                    return super().__setitem__(key, value)
-                else:
-                    log_msg = f"Error setting tag {key} to {value} in cloud"
-                    self.parent_resource.log(log_msg)
-                    log.error((f"{log_msg} for {self.parent_resource.kind}" f" {self.parent_resource.id}"))
-            except Exception as e:
-                log_msg = f"Unhandled exception while trying to set tag {key} to {value}" f" in cloud: {type(e)} {e}"
-                self.parent_resource.log(log_msg, exception=e)
-                if self.parent_resource._raise_tags_exceptions:
-                    raise
-                else:
-                    log.exception(log_msg)
-        else:
-            return super().__setitem__(key, value)
-
-    def __delitem__(self, key):
-        if self.parent_resource and isinstance(self.parent_resource, BaseResource):
-            log.debug(f"Calling parent resource to delete tag {key} in cloud")
-            try:
-                if self.parent_resource.delete_tag(key):
-                    log_msg = f"Successfully deleted tag {key} in cloud"
-                    self.parent_resource._changes.add("tags")
-                    self.parent_resource.log(log_msg)
-                    log.info((f"{log_msg} for {self.parent_resource.kind}" f" {self.parent_resource.id}"))
-                    return super().__delitem__(key)
-                else:
-                    log_msg = f"Error deleting tag {key} in cloud"
-                    self.parent_resource.log(log_msg)
-                    log.error((f"{log_msg} for {self.parent_resource.kind}" f" {self.parent_resource.id}"))
-            except Exception as e:
-                log_msg = f"Unhandled exception while trying to delete tag {key} in cloud:" f" {type(e)} {e}"
-                self.parent_resource.log(log_msg, exception=e)
-                if self.parent_resource._raise_tags_exceptions:
-                    raise
-                else:
-                    log.exception(log_msg)
-        else:
-            return super().__delitem__(key)
-
-    def __reduce__(self):
-        return super().__reduce__()
 
 
 @define(eq=False, slots=False)

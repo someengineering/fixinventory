@@ -26,7 +26,6 @@ from resotolib.baseresources import (
 )
 from resotolib.graph import Graph
 
-from .utils import dump_tag
 
 log = logging.getLogger("resoto." + __name__)
 
@@ -68,71 +67,6 @@ class DigitalOceanResource(BaseResource):
             return client.delete(delete_uri_path, self.id)
 
         raise NotImplementedError
-
-    def update_tag(self, key: str, value: str) -> bool:
-
-        tag_resource_name = self.tag_resource_name()
-        if tag_resource_name:
-
-            log.debug(f"Updating tag {key} on resource {self.id}")
-            team = self.account()
-            credentials = get_team_credentials(team.id)
-            if credentials is None:
-                raise RuntimeError(f"Cannot update tag on resource {self.id}, credentials not found for team {team.id}")
-            client = StreamingWrapper(
-                credentials.api_token,
-                credentials.spaces_access_key,
-                credentials.spaces_secret_key,
-            )
-
-            if key in self.tags:
-                # resotocore knows about the tag. Therefore we need to clean it first
-                tag_key = dump_tag(key, self.tags.get(key))
-                client.untag_resource(tag_key, tag_resource_name, self.id)
-
-            # we tag the resource using the key-value formatted tag
-            tag_kv = dump_tag(key, value)
-            tag_ready: bool = True
-            tag_count = client.get_tag_count(tag_kv)
-            # tag count call failed irrecoverably, we can't continue
-            if isinstance(tag_count, str):
-                raise RuntimeError(f"Tag update failed. Reason: {tag_count}")
-            # tag does not exist, create it
-            if tag_count is None:
-                tag_ready = client.create_tag(tag_kv)
-
-            return tag_ready and client.tag_resource(tag_kv, tag_resource_name, self.id)
-        else:
-            raise NotImplementedError(f"resource {self.kind} does not support tagging")
-
-    def delete_tag(self, key: str) -> bool:
-        tag_resource_name = self.tag_resource_name()
-        if tag_resource_name:
-            log.debug(f"Deleting tag {key} on resource {self.id}")
-            team = self.account()
-            credentials = get_team_credentials(team.id)
-            if credentials is None:
-                raise RuntimeError(f"Cannot update tag on resource {self.id}, credentials not found for team {team.id}")
-            client = StreamingWrapper(
-                credentials.api_token,
-                credentials.spaces_access_key,
-                credentials.spaces_secret_key,
-            )
-
-            if key not in self.tags:
-                # tag does not exist, nothing to do
-                return False
-
-            tag_key = dump_tag(key, self.tags.get(key))
-            untagged = client.untag_resource(tag_key, tag_resource_name, self.id)
-            if not untagged:
-                return False
-            tag_count = client.get_tag_count(tag_key)
-            if tag_count == 0:
-                return client.delete("/tags", tag_key)
-            return True
-        else:
-            raise NotImplementedError(f"resource {self.kind} does not support tagging")
 
 
 @define(eq=False, slots=False)

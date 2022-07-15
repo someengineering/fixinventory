@@ -7,7 +7,7 @@ from resotolib.core.actions import CoreActions
 from resotolib.args import ArgumentParser
 from resotolib.config import Config
 from resotolib.logger import log
-from resotolib.baseresources import Cloud
+from resotolib.baseresources import BaseResource, Cloud
 from threading import Thread, current_thread
 from prometheus_client import Counter
 import resotolib.config
@@ -210,6 +210,16 @@ class BaseCollectorPlugin(BasePlugin):
     def collect(self) -> None:
         """Collects all the Cloud Resources"""
         pass
+
+    @staticmethod
+    def update_tag(resource: BaseResource, key: str, value: str) -> bool:
+        """Update the tag of a resource"""
+        return resource.update_tag(key, value)
+
+    @staticmethod
+    def delete_tag(resource: BaseResource, key: str) -> bool:
+        """Delete the tag of a resource"""
+        return resource.delete_tag(key)
 
     def go(self) -> None:
         self.collect()
