@@ -1148,4 +1148,4 @@ class UnknownLocation(BaseResource):
         return False
 
 
-resolve_types(BaseResource, globals(), locals())
+resolve_types(BaseResource)
