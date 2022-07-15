@@ -101,9 +101,9 @@ class AwsServiceQuota(AwsResource, BaseQuota):
 
 @define
 class QuotaMatcher:
-    quota_name: Union[str, Pattern, None]
+    quota_name: Union[str, Pattern[str], None]
     node_kind: str
-    node_selector: Dict[str, Any]
+    node_selector: Dict[str, Any] = field(factory=dict)
 
     def match(self, quota: AwsServiceQuota) -> bool:
         if self.quota_name is None:
@@ -149,4 +149,5 @@ CollectQuotas = {
             "^Storage for.*st1": "st1",
         }.items()
     ],
+    "vpc": [QuotaMatcher(quota_name="Internet gateways per Region", node_kind="aws_ec2_vpc")],
 }

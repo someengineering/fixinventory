@@ -3,7 +3,7 @@
         {
             "ServiceCode": "ec2",
             "ServiceName": "Amazon Elastic Compute Cloud (Amazon EC2)",
-            "QuotaArn": "arn:aws:servicequotas:us-west-2:139475575661:ec2/L-1216C47A",
+            "QuotaArn": "arn:aws:servicequotas:us-west-2:test:ec2/L-1216C47A",
             "QuotaCode": "L-1216C47A",
             "QuotaName": "Running On-Demand Standard (A, C, D, H, I, M, R, T, Z) instances",
             "Value": 8704.0,
@@ -33,7 +33,7 @@
         {
             "ServiceCode": "ec2",
             "ServiceName": "Amazon Elastic Compute Cloud (Amazon EC2)",
-            "QuotaArn": "arn:aws:servicequotas:us-west-2:139475575661:ec2/L-1945791B",
+            "QuotaArn": "arn:aws:servicequotas:us-west-2:test:ec2/L-1945791B",
             "QuotaCode": "L-1945791B",
             "QuotaName": "Running On-Demand Inf instances",
             "Value": 128.0,
@@ -55,7 +55,7 @@
         {
             "ServiceCode": "ec2",
             "ServiceName": "Amazon Elastic Compute Cloud (Amazon EC2)",
-            "QuotaArn": "arn:aws:servicequotas:us-west-2:139475575661:ec2/L-7295265B",
+            "QuotaArn": "arn:aws:servicequotas:us-west-2:test:ec2/L-7295265B",
             "QuotaCode": "L-7295265B",
             "QuotaName": "Running On-Demand X instances",
             "Value": 560.0,
@@ -77,7 +77,7 @@
         {
             "ServiceCode": "ec2",
             "ServiceName": "Amazon Elastic Compute Cloud (Amazon EC2)",
-            "QuotaArn": "arn:aws:servicequotas:us-west-2:139475575661:ec2/L-3E6EC3A3",
+            "QuotaArn": "arn:aws:servicequotas:us-west-2:test:ec2/L-3E6EC3A3",
             "QuotaCode": "L-3E6EC3A3",
             "QuotaName": "VPN connections per region",
             "Value": 50.0,
@@ -88,7 +88,7 @@
         {
             "ServiceCode": "ec2",
             "ServiceName": "Amazon Elastic Compute Cloud (Amazon EC2)",
-            "QuotaArn": "arn:aws:servicequotas:us-west-2:139475575661:ec2/L-7029FAB6",
+            "QuotaArn": "arn:aws:servicequotas:us-west-2:test:ec2/L-7029FAB6",
             "QuotaCode": "L-7029FAB6",
             "QuotaName": "Virtual private gateways per region",
             "Value": 5.0,
