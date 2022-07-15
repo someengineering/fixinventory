@@ -1,7 +1,6 @@
-import concurrent
 import logging
-from concurrent.futures import ThreadPoolExecutor, Future
-from typing import List, Type, Any
+from concurrent.futures import ThreadPoolExecutor
+from typing import List, Type
 
 from boto3.exceptions import Boto3Error
 from botocore.exceptions import ClientError
@@ -39,19 +38,7 @@ class AwsAccountCollector:
         self.client = AwsClient(config, account.id, account.role)
 
     def collect(self) -> None:
-        def wait_for_futures(fs: List[Future[Any]]) -> None:
-            # wait until all futures are complete
-            for future in concurrent.futures.as_completed(fs):
-                try:
-                    future.result()
-                except Exception as ex:
-                    log.exception(f"Unhandled exception in account {self.account.name}: {ex}")
-                    raise
-            fs.clear()
-
-        with ThreadPoolExecutor(
-            max_workers=self.config.region_pool_size, thread_name_prefix=f"aws_{self.account.id}"
-        ) as executor:
+        with ThreadPoolExecutor(thread_name_prefix=f"aws_{self.account.id}") as executor:
             builder = GraphBuilder(self.graph, self.cloud, self.account, self.global_region, self.client, executor)
             builder.submit_work(self.update_account)
 
