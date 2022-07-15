@@ -1,6 +1,6 @@
 import logging
 import re
-from typing import ClassVar, Dict, Optional, Type, Any, List, Pattern
+from typing import ClassVar, Dict, Optional, Type, Any, List, Pattern, Union
 
 from attr import field
 from attrs import define
@@ -101,14 +101,17 @@ class AwsServiceQuota(AwsResource, BaseQuota):
 
 @define
 class QuotaMatcher:
-    quota_name: Optional[str]
+    quota_name: Union[str, Pattern, None]
     node_kind: str
     node_selector: Dict[str, Any]
 
     def match(self, quota: AwsServiceQuota) -> bool:
-        if self.quota_name is not None:
-            return bool(self.quota_name == quota.name)
-        return False
+        if self.quota_name is None:
+            return False
+        elif isinstance(self.quota_name, Pattern):
+            return self.quota_name.match(quota.name) is not None
+        else:
+            return self.quota_name == quota.name
 
 
 CollectQuotas = {
@@ -122,10 +125,28 @@ CollectQuotas = {
         for name, start in {
             "Standard (A, C, D, H, I, M, R, T, Z)": "[acdhimrtz]",  # matches e.g. m4.large, i3en.3xlarge
             "F": "f",
-            "G": "g",
+            "G and VT": "g",
             "P": "p",
             "Inf": "inf",
             "X": "x",
+            "High Memory instances": "u",
+            "DL": "dl",
         }.items()
-    ]
+    ],
+    "ebs": [
+        QuotaMatcher(
+            quota_name=re.compile(name_pattern),
+            node_kind="aws_ec2_volume_type",
+            node_selector=dict(volume_type=volume_type),
+        )
+        for name_pattern, volume_type in {
+            "^Storage for.*gp2": "gp2",
+            "^Storage for.*gp3": "gp3",
+            "^Storage for.*standard": "standard",
+            "^Storage for.*io1": "io1",
+            "^Storage for.*io2": "io2",
+            "^Storage for.*sc1": "sc1",
+            "^Storage for.*st1": "st1",
+        }.items()
+    ],
 }
