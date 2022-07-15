@@ -1,10 +1,12 @@
 from datetime import datetime
 from typing import ClassVar, Dict, List, Optional, Type
 from attr import define, field
-from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource
+from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
+from resoto_plugin_aws.resource.ec2 import AwsEc2SecurityGroup, AwsEc2Subnet, AwsEc2Vpc
 from resoto_plugin_aws.utils import ToDict
 from resotolib.baseresources import BaseAccount, BaseDatabase  # noqa: F401
 from resotolib.json_bender import F, K, S, Bend, Bender, ForallBend
+from resotolib.types import Json
 
 
 @define(eq=False, slots=False)
@@ -362,6 +364,21 @@ class AwsRdsInstance(AwsResource, BaseDatabase):
     rds_custom_iam_instance_profile: Optional[str] = field(default=None)
     rds_backup_target: Optional[str] = field(default=None)
     rds_network_type: Optional[str] = field(default=None)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        super().connect_in_graph(builder, source)
+        for group in self.rds_vpc_security_groups:
+            builder.dependant_node(
+                self, reverse=True, delete_reverse=True, clazz=AwsEc2SecurityGroup, id=group.vpc_security_group_id
+            )
+        # vpc_id = self.rds_db_subnet_group.vpc_id
+        if self.rds_db_subnet_group.vpc_id:
+            builder.dependant_node(
+                self, reverse=True, delete_reverse=True, clazz=AwsEc2Vpc, id=self.rds_db_subnet_group.vpc_id
+            )
+        for subnet in self.rds_db_subnet_group.subnets:
+            subnet_id = subnet.subnet_identifier
+            builder.dependant_node(self, reverse=True, delete_reverse=True, clazz=AwsEc2Subnet, id=subnet_id)
 
 
 resources: List[Type[AwsResource]] = [AwsRdsInstance]
