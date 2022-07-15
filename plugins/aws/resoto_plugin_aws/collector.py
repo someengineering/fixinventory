@@ -52,23 +52,22 @@ class AwsAccountCollector:
         with ThreadPoolExecutor(
             max_workers=self.config.region_pool_size, thread_name_prefix=f"aws_{self.account.id}"
         ) as executor:
-            # collect all resources as parallel as possible
-            futures: List[Future[None]] = [executor.submit(self.update_account)]
+            builder = GraphBuilder(self.graph, self.cloud, self.account, self.global_region, self.client, executor)
+            builder.submit_work(self.update_account)
 
             # all global resources
-            builder = GraphBuilder(self.graph, self.cloud, self.account, self.global_region, self.client)
             for resource in global_resources:
                 if self.config.should_collect(resource.kind):
-                    futures.append(executor.submit(resource.collect_resources, builder))
-            wait_for_futures(futures)
+                    resource.collect_resources(builder)
+            builder.wait_for_submitted_work()
 
             # all regional resources for all configured regions
             for region in self.regions:
                 region_builder = builder.for_region(region)
                 for resource in regional_resources:
                     if self.config.should_collect(resource.kind):
-                        futures.append(executor.submit(resource.collect_resources, region_builder))
-            wait_for_futures(futures)
+                        resource.collect_resources(region_builder)
+            builder.wait_for_submitted_work()
 
             # connect account to all regions
             for region in self.regions:
@@ -84,7 +83,7 @@ class AwsAccountCollector:
                     raise Exception("Only AWS resources expected")
 
             # wait for all futures to finish
-            wait_for_futures(futures)
+            builder.wait_for_submitted_work()
 
     def update_account(self) -> None:
         # account alias

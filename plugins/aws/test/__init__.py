@@ -5,7 +5,7 @@ from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsAccount, AwsRegion, GraphBuilder
 from resotolib.baseresources import Cloud
 from resotolib.graph import Graph
-from test.resources import BotoFileBasedSession
+from test.resources import BotoFileBasedSession, DummyExecutor
 
 
 @fixture
@@ -17,4 +17,6 @@ def aws_client() -> AwsClient:
 
 @fixture
 def builder(aws_client: AwsClient) -> GraphBuilder:
-    return GraphBuilder(Graph(), Cloud(id="aws"), AwsAccount(id="test"), AwsRegion(id="us-east-1"), aws_client)
+    return GraphBuilder(
+        Graph(), Cloud(id="aws"), AwsAccount(id="test"), AwsRegion(id="us-east-1"), aws_client, DummyExecutor()
+    )

@@ -1,13 +1,16 @@
 from __future__ import annotations
 
+import concurrent
 import json
 import logging
+from concurrent.futures import Executor, Future
 from functools import cached_property, lru_cache
+from threading import Lock
 
 from attr import evolve
 from attrs import define
 from datetime import datetime, timezone
-from typing import ClassVar, Dict, Optional, List, Type, Any, TypeVar
+from typing import ClassVar, Dict, Optional, List, Type, Any, TypeVar, Callable
 
 from boto3.exceptions import Boto3Error
 from botocore.loaders import Loader
@@ -193,6 +196,7 @@ class GraphBuilder:
         account: AwsAccount,
         region: AwsRegion,
         client: AwsClient,
+        executor: Executor,
         global_instance_types: Optional[Dict[str, Any]] = None,
     ) -> None:
         self.graph = graph
@@ -200,9 +204,30 @@ class GraphBuilder:
         self.account = account
         self.region = region
         self.client = client
+        self.executor = executor
+        self.futures: List[Future[Any]] = []
+        self.futures_lock = Lock()
         self.name = f"AWS:{account.name}:{region.name}"
         self.boto_loader = Loader()
         self.global_instance_types: Dict[str, Any] = global_instance_types or {}
+
+    def submit_work(self, fn: Callable[..., None], *args: Any, **kwargs: Any) -> Future[Any]:
+        future = self.executor.submit(fn, *args, **kwargs)
+        with self.futures_lock:
+            self.futures.append(future)
+        return future
+
+    def wait_for_submitted_work(self) -> None:
+        # wait until all futures are complete
+        with self.futures_lock:
+            to_wait = self.futures
+            self.futures = []
+        for future in concurrent.futures.as_completed(to_wait):
+            try:
+                future.result()
+            except Exception as ex:
+                log.exception(f"Unhandled exception in account {self.account.name}: {ex}")
+                raise
 
     @cached_property
     def price_region(self) -> str:
@@ -282,8 +307,6 @@ class GraphBuilder:
             self.account,
             region,
             self.client.for_region(region.name),
+            self.executor,
             self.global_instance_types,
         )
-
-    # def service_quotas(self, service_type: str) -> Dict[str, AwsServiceQuota]:
-    #     self.client.list("service-quotas", "list-service-quotas", "Quotas", ServiceCode=service_type)

@@ -1,0 +1,131 @@
+import logging
+import re
+from typing import ClassVar, Dict, Optional, Type, Any, List, Pattern
+
+from attr import field
+from attrs import define
+
+from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder
+from resotolib.baseresources import BaseAccount, BaseQuota, EdgeType  # noqa: F401
+from resotolib.json_bender import Bender, S, Bend
+from resotolib.types import Json
+
+log = logging.getLogger("resoto.plugins.aws")
+
+
+@define(eq=False, slots=False)
+class AwsQuotaMetricInfo:
+    kind: ClassVar[str] = "aws_quota_metric_info"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "metric_namespace": S("MetricNamespace"),
+        "metric_name": S("MetricName"),
+        "metric_dimensions": S("MetricDimensions"),
+        "metric_statistic_recommendation": S("MetricStatisticRecommendation"),
+    }
+    metric_namespace: Optional[str] = field(default=None)
+    metric_name: Optional[str] = field(default=None)
+    metric_dimensions: Optional[Dict[str, str]] = field(default=None)
+    metric_statistic_recommendation: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsQuotaPeriod:
+    kind: ClassVar[str] = "aws_quota_quota_period"
+    mapping: ClassVar[Dict[str, Bender]] = {"period_value": S("PeriodValue"), "period_unit": S("PeriodUnit")}
+    period_value: Optional[int] = field(default=None)
+    period_unit: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsQuotaErrorReason:
+    kind: ClassVar[str] = "aws_quota_error_reason"
+    mapping: ClassVar[Dict[str, Bender]] = {"error_code": S("ErrorCode"), "error_message": S("ErrorMessage")}
+    error_code: Optional[str] = field(default=None)
+    error_message: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsServiceQuota(AwsResource, BaseQuota):
+    kind: ClassVar[str] = "aws_quota_service_quota"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("QuotaCode"),
+        "name": S("QuotaName"),
+        "service_code": S("ServiceCode"),
+        "service_name": S("ServiceName"),
+        "arn": S("QuotaArn"),
+        "quota": S("Value"),
+        "quota_unit": S("Unit"),
+        "quota_adjustable": S("Adjustable"),
+        "quota_global": S("GlobalQuota"),
+        "quota_usage_metric": S("UsageMetric") >> Bend(AwsQuotaMetricInfo.mapping),
+        "quota_period": S("Period") >> Bend(AwsQuotaPeriod.mapping),
+        "quota_error_reason": S("ErrorReason") >> Bend(AwsQuotaErrorReason.mapping),
+    }
+    quota_unit: Optional[str] = field(default=None)
+    quota_adjustable: Optional[bool] = field(default=None)
+    quota_global: Optional[bool] = field(default=None)
+    quota_usage_metric: Optional[AwsQuotaMetricInfo] = field(default=None)
+    quota_period: Optional[AwsQuotaPeriod] = field(default=None)
+    quota_error_reason: Optional[AwsQuotaErrorReason] = field(default=None)
+
+    @classmethod
+    def collect_resources(cls: Type[AwsResource], builder: GraphBuilder) -> None:
+        def collect_service(service_code: str, matchers: List[QuotaMatcher]) -> None:
+            log.debug(f"Collecting Service quotas for {service_code} in region {builder.region.name}")
+            for js in builder.client.list("service-quotas", "list-service-quotas", "Quotas", ServiceCode=service_code):
+                quota = AwsServiceQuota.from_api(js)
+                for matcher in matchers:
+                    if matcher.match(quota):
+                        builder.add_node(quota, dict(source=js, matcher=matcher))
+
+        for service, ms in CollectQuotas.items():
+            builder.submit_work(collect_service, service, ms)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        super().connect_in_graph(builder, source)
+        matcher: Optional[QuotaMatcher] = source.get("matcher", None)
+
+        def prop_matches(attr: Any, expect: Any) -> bool:
+            if isinstance(expect, Pattern):
+                return expect.match(attr) is not None
+            else:
+                return bool(attr == expect)
+
+        if matcher:
+            for node in builder.graph.nodes:
+                if node.kind == matcher.node_kind and all(
+                    prop_matches(getattr(node, k, None), v) for k, v in matcher.node_selector.items()
+                ):
+                    builder.add_edge(self, EdgeType.default, node=node)
+
+
+@define
+class QuotaMatcher:
+    quota_name: Optional[str]
+    node_kind: str
+    node_selector: Dict[str, Any]
+
+    def match(self, quota: AwsServiceQuota) -> bool:
+        if self.quota_name is not None:
+            return bool(self.quota_name == quota.name)
+        return False
+
+
+CollectQuotas = {
+    "ec2": [
+        # Example: "Running On-Demand F instances" --> match InstanceTypes that start with F
+        QuotaMatcher(
+            quota_name=f"Running On-Demand {name} instances",
+            node_kind="aws_ec2_instance_type",
+            node_selector=dict(instance_type=re.compile("^" + start + "\\d")),
+        )
+        for name, start in {
+            "Standard (A, C, D, H, I, M, R, T, Z)": "[acdhimrtz]",  # matches e.g. m4.large, i3en.3xlarge
+            "F": "f",
+            "G": "g",
+            "P": "p",
+            "Inf": "inf",
+            "X": "x",
+        }.items()
+    ]
+}

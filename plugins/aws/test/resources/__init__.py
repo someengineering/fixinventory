@@ -1,9 +1,10 @@
 import json
 import os
 import re
+from concurrent.futures import Executor, Future
 
 from attrs import fields
-from typing import Type, Any, Callable, Optional, Set, Tuple
+from typing import Type, Any, Callable, Set, Tuple
 
 from boto3 import Session
 
@@ -19,6 +20,14 @@ from resoto_plugin_aws.resource.base import (
 )
 from resotolib.baseresources import Cloud
 from resotolib.graph import Graph
+
+
+class DummyExecutor(Executor):
+    def submit(self, fn: Callable[..., Any], *args: Any, **kwargs: Any) -> Future[Any]:  # type: ignore
+        result = fn(*args, **kwargs)
+        f: Future[Any] = Future()
+        f.set_result(result)
+        return f
 
 
 class BotoDummyStsClient:
@@ -42,7 +51,7 @@ class BotoFileClient:
         return cls.path_from(a.service, a.api_action, **(a.parameter or {}))
 
     @staticmethod
-    def path_from(service: str, action_name: str, **kwargs: Any) -> str:
+    def path_from(service_name: str, action_name: str, **kwargs: Any) -> str:
         def arg_string(v: Any) -> str:
             if isinstance(v, list):
                 return "_".join(arg_string(x) for x in v)
@@ -53,6 +62,7 @@ class BotoFileClient:
 
         vals = "__" + ("_".join(arg_string(v) for _, v in sorted(kwargs.items()))) if kwargs else ""
         action = action_name.replace("_", "-")
+        service = service_name.replace("-", "_")
         return os.path.abspath(os.path.dirname(__file__) + f"/files/{service}/{action}{vals}.json")
 
     def __getattr__(self, action_name: str) -> Callable[[], Any]:
@@ -98,21 +108,15 @@ def all_props_set(obj: AwsResourceType, ignore_props: Set[str]) -> None:
                 raise Exception(f"Prop >{prop}< is not set: {obj}")
 
 
-def round_trip_for(cls: Type[AwsResourceType], *ignore_props: str) -> Tuple[AwsResourceType, GraphBuilder]:
-    if api := cls.api_spec:
-        return round_trip(BotoFileClient.path_from_action(api), cls, api.result_property, set(ignore_props))
-    raise AttributeError("No api_spec for class: " + cls.__name__)
-
-
-def build_from_file(path: str, cls: Type[AwsResourceType], root: Optional[str]) -> GraphBuilder:
+def build_graph(cls: Type[AwsResourceType]) -> GraphBuilder:
     config = AwsConfig()
     config.sessions().session_class_factory = BotoFileBasedSession
     client = AwsClient(config, "123456789012", "role", "us-east-1")
-    builder = GraphBuilder(Graph(), Cloud(id="test"), AwsAccount(id="test"), AwsRegion(id="test"), client)
-    with open(path) as f:
-        js = json.load(f)
-        js = js[root] if root else [js]
-        cls.collect(js, builder)
+    builder = GraphBuilder(
+        Graph(), Cloud(id="test"), AwsAccount(id="test"), AwsRegion(id="test"), client, DummyExecutor()
+    )
+    cls.collect_resources(builder)
+    builder.wait_for_submitted_work()
     return builder
 
 
@@ -123,14 +127,12 @@ def check_single_node(node: AwsResource) -> None:
     assert again.to_json() == as_js, f"Left: {as_js}\nRight: {again.to_json()}"
 
 
-def round_trip(
-    file: str, cls: Type[AwsResourceType], root: Optional[str] = None, ignore_props: Optional[Set[str]] = None
-) -> Tuple[AwsResourceType, GraphBuilder]:
-    builder = build_from_file(file, cls, root)
+def round_trip_for(cls: Type[AwsResourceType], *ignore_props: str) -> Tuple[AwsResourceType, GraphBuilder]:
+    builder = build_graph(cls)
     assert len(builder.graph.nodes) > 0
     for node, data in builder.graph.nodes(data=True):
         node.connect_in_graph(builder, data["source"])
         check_single_node(node)
     first = next(iter(builder.graph.nodes))
-    all_props_set(first, ignore_props or set())
+    all_props_set(first, set(ignore_props))
     return first, builder
