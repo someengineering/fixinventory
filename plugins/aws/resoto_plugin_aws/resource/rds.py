@@ -371,14 +371,14 @@ class AwsRdsInstance(AwsResource, BaseDatabase):
             builder.dependant_node(
                 self, reverse=True, delete_reverse=True, clazz=AwsEc2SecurityGroup, id=group.vpc_security_group_id
             )
-        # vpc_id = self.rds_db_subnet_group.vpc_id
-        if self.rds_db_subnet_group.vpc_id:
+        if self.rds_db_subnet_group and self.rds_db_subnet_group.vpc_id:
             builder.dependant_node(
                 self, reverse=True, delete_reverse=True, clazz=AwsEc2Vpc, id=self.rds_db_subnet_group.vpc_id
             )
-        for subnet in self.rds_db_subnet_group.subnets:
-            subnet_id = subnet.subnet_identifier
-            builder.dependant_node(self, reverse=True, delete_reverse=True, clazz=AwsEc2Subnet, id=subnet_id)
+        if self.rds_db_subnet_group:
+            for subnet in self.rds_db_subnet_group.subnets:
+                subnet_id = subnet.subnet_identifier
+                builder.dependant_node(self, reverse=True, delete_reverse=True, clazz=AwsEc2Subnet, id=subnet_id)
 
 
 resources: List[Type[AwsResource]] = [AwsRdsInstance]
