@@ -4,7 +4,7 @@ from attr import define, field
 from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource
 from resoto_plugin_aws.utils import ToDict
 from resotolib.baseresources import BaseAccount, BaseDatabase  # noqa: F401
-from resotolib.json_bender import S, Bend, Bender, ForallBend
+from resotolib.json_bender import F, K, S, Bend, Bender, ForallBend
 
 
 @define(eq=False, slots=False)
@@ -217,7 +217,7 @@ class AwsRdsInstance(AwsResource, BaseDatabase):
         "arn": S("DBInstanceArn"),
         "db_type": S("Engine"),
         "db_status": S("DBInstanceStatus"),
-        "db_endpoint": S("Endpoint") >> Bend(AwsRdsEndpoint.mapping),
+        "db_endpoint": S("Endpoint", "Address") + K(":") + (S("Endpoint", "Port") >> F(str)),
         "db_version": S("EngineVersion"),
         "db_publicly_accessible": S("PubliclyAccessible"),
         "instance_type": S("DBInstanceClass"),
@@ -294,7 +294,7 @@ class AwsRdsInstance(AwsResource, BaseDatabase):
     arn: Optional[str] = field(default=None)
     db_type: str = field(default=None)
     db_status: str = field(default=None)
-    db_endpoint: AwsRdsEndpoint = field(default=None)
+    db_endpoint: str = field(default=None)
     db_version: Optional[str] = field(default=None)
     db_publicly_accessible: Optional[bool] = field(default=None)
     instance_type: str = field(default=None)
