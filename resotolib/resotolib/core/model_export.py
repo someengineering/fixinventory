@@ -360,27 +360,27 @@ def node_from_dict(node_data: Dict, include_select_ancestors: bool = False) -> B
         raise ValueError(f"Do not know how to handle {node_data_reported}")
 
     cleanup_node_field_types(node_type, new_node_data)
-
+    ancestors = {}
     if include_select_ancestors:
-        ancestors = {}
         for ancestor in ("cloud", "account", "region", "zone"):
             if node_data_ancestors.get(ancestor):
-                ancestors[f"{ancestor}"] = node_from_dict(
+                ancestors[f"_{ancestor}"] = node_from_dict(
                     {
                         "reported": node_data_ancestors[ancestor].get("reported", {}),
                         "metadata": node_data_ancestors[ancestor].get("metadata", {}),
                     }
                 )
-        new_node_data.update(ancestors)
     new_node_data.update(
         {
-            "resotocore_id": node_data.get("id"),
-            "resotocore_revision": node_data.get("revision"),
-            "resotocore_query_tag": node_data_metadata.get("query_tag"),
+            "_resotocore_id": node_data.get("id"),
+            "_resotocore_revision": node_data.get("revision"),
+            "_resotocore_query_tag": node_data_metadata.get("query_tag"),
         }
     )
 
     node = converter.structure_attrs_fromdict(new_node_data, node_type)
+    for field_name, value in ancestors.items():
+        setattr(node, field_name, value)
     node._raise_tags_exceptions = True
     node._protected = node_data_metadata.get("protected", False)
     node._cleaned = node_data_metadata.get("cleaned", False)
