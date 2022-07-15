@@ -23,6 +23,7 @@ from resotolib.baseresources import (  # noqa: F401
     BasePeeringConnection,
     BaseEndpoint,
     BaseRoutingTable,
+    BaseVolumeType,
 )
 from resotolib.json_bender import Bender, S, Bend, ForallBend, bend, MapEnum, F, K, StripNones
 from resotolib.types import Json
@@ -372,6 +373,14 @@ class AwsEc2Volume(AwsResource, BaseVolume):
     volume_fast_restored: Optional[bool] = field(default=None)
     volume_multi_attach_enabled: Optional[bool] = field(default=None)
     volume_throughput: Optional[int] = field(default=None)
+
+    @classmethod
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        for js in json:
+            instance = builder.add_node(AwsEc2Volume.from_api(js), js)
+            if vt := builder.volume_type(instance.volume_type):
+                builder.add_node(vt, {})
+                builder.add_edge(vt, EdgeType.default, node=instance)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
@@ -879,11 +888,11 @@ class AwsEc2Instance(AwsResource, BaseInstance):
                     builder.add_node(instance_type, {})
                     instance.instance_cores = instance_type.instance_cores
                     instance.instance_memory = instance_type.instance_memory
+                    builder.add_edge(instance_type, EdgeType.default, node=instance)
                 builder.add_node(instance, instance_in)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
-        builder.add_edge(self, EdgeType.default, reverse=True, clazz=AwsEc2InstanceType, name=self.instance_type)
         if self.instance_key_name:
             builder.add_edge(self, EdgeType.default, clazz=AwsEc2KeyPair, name=self.instance_key_name)
             builder.add_edge(self, EdgeType.delete, reverse=True, clazz=AwsEc2KeyPair, name=self.instance_key_name)

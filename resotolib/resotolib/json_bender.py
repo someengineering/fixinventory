@@ -414,6 +414,23 @@ class ForallBend(Forall):
         return Transport(self.execute(transport.value), transport.context)
 
 
+class MapDict(Bender):
+    """
+    If you have a dict and want to map either key or value.
+    """
+
+    def __init__(self, key_bender: Optional[Bender] = None, value_bender: Optional[Bender] = None, **kwargs: Any):
+        super().__init__(**kwargs)
+        self._key_bender = key_bender
+        self._value_bender = value_bender
+
+    def execute(self, value: Dict[Any, Any]) -> Dict[Any, Any]:
+        def do_bend(v: Any, bender: Optional[Bender]) -> Any:
+            return bender.raw_execute(v).value if bender else v
+
+        return {do_bend(k, self._key_bender): do_bend(v, self._value_bender) for k, v in value.items()}
+
+
 class StripNones(Bender):
     def execute(self, source: Any) -> Any:
         if isinstance(source, list):

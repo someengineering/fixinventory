@@ -4,10 +4,6 @@ from resoto_plugin_aws.resource.ec2 import AwsEc2InstanceType
 from test import builder, aws_client  # noqa: F401
 
 
-def test_price_region(builder: GraphBuilder) -> None:  # noqa: F811
-    assert builder.price_region == "US East (N. Virginia)"
-
-
 def test_instance_type(builder: GraphBuilder) -> None:  # noqa: F811
     builder.global_instance_types["m4.large"] = AwsEc2InstanceType(id="m4.large")
     m4l: AwsEc2InstanceType = builder.instance_type("m4.large")  # type: ignore

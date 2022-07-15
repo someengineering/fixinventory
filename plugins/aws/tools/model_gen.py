@@ -560,8 +560,11 @@ models: Dict[str, List[AwsResotoModel]] = {
         #     prop_prefix="cloudwatch_"
         # )
     ],
+    "pricing": [
+        # AwsResotoModel("get-products", "PriceList", "PriceListItemJSON", prefix="Price", prop_prefix="price_")
+    ],
     "service-quotas": [
-        AwsResotoModel("list-service-quotas", "Quotas", "ServiceQuota", prefix="Quota", prop_prefix="quota_")
+        # AwsResotoModel("list-service-quotas", "Quotas", "ServiceQuota", prefix="Quota", prop_prefix="quota_")
     ],
 }
 

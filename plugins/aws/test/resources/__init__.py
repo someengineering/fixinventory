@@ -113,7 +113,7 @@ def build_graph(cls: Type[AwsResourceType]) -> GraphBuilder:
     config.sessions().session_class_factory = BotoFileBasedSession
     client = AwsClient(config, "123456789012", "role", "us-east-1")
     builder = GraphBuilder(
-        Graph(), Cloud(id="test"), AwsAccount(id="test"), AwsRegion(id="test"), client, DummyExecutor()
+        Graph(), Cloud(id="test"), AwsAccount(id="test"), AwsRegion(id="eu-central-1"), client, DummyExecutor()
     )
     cls.collect_resources(builder)
     builder.wait_for_submitted_work()
