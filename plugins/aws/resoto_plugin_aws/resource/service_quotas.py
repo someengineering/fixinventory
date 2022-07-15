@@ -149,5 +149,12 @@ CollectQuotas = {
             "^Storage for.*st1": "st1",
         }.items()
     ],
-    "vpc": [QuotaMatcher(quota_name="Internet gateways per Region", node_kind="aws_ec2_vpc")],
+    "vpc": [QuotaMatcher(quota_name="Internet gateways per Region", node_kind="aws_vpc")],
+    "elasticloadbalancing": [
+        QuotaMatcher(quota_name="Application Load Balancers per Region", node_kind="aws_alb"),
+        QuotaMatcher(quota_name="Classic Load Balancers per Region", node_kind="aws_elb"),
+    ],
+    "iam": [
+        QuotaMatcher(quota_name="Server certificates per account", node_kind="aws_iam_server_certificate"),
+    ],
 }

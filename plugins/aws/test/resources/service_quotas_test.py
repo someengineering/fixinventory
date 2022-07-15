@@ -1,67 +1,53 @@
+from resoto_plugin_aws.resource.base import GraphBuilder
 from resoto_plugin_aws.resource.ec2 import AwsEc2InstanceType, AwsEc2Vpc
+from resoto_plugin_aws.resource.elbv2 import AwsAlb
+from resoto_plugin_aws.resource.iam import AwsIamServerCertificate
 from test.resources import round_trip_for
 
 from resoto_plugin_aws.resource.service_quotas import AwsServiceQuota
 
-NrOfQuotas = 11
+
+def test_service_quotas() -> None:
+    first, builder = round_trip_for(AwsServiceQuota, "usage", "quota_type")
+    assert len(builder.resources_of(AwsServiceQuota)) >= 14
 
 
 def test_instance_type_quotas() -> None:
-    first, builder = round_trip_for(AwsServiceQuota, "usage", "quota_type")
-    assert len(builder.resources_of(AwsServiceQuota)) == NrOfQuotas
-
-    # load instance types (they are normally only added for instances of this type)
+    _, builder = round_trip_for(AwsServiceQuota, "usage", "quota_type")
     AwsEc2InstanceType.collect_resources(builder)
     for _, it in builder.global_instance_types.items():
         builder.add_node(it, {})
-
-    # no edge has been created
-    assert builder.graph.number_of_edges() == 0
-
-    # connect all service quotas
-    for node, data in builder.graph.nodes(data=True):
-        if isinstance(node, AwsServiceQuota):
-            node.connect_in_graph(builder, data.get("source", {}))
-
-    # make sure edges have been created
-    assert builder.graph.number_of_edges() == 3
+    expect_quotas(builder, 3)
 
 
 def test_volume_type_quotas() -> None:
-    first, builder = round_trip_for(AwsServiceQuota, "usage", "quota_type")
-    assert len(builder.resources_of(AwsServiceQuota)) == NrOfQuotas
-
-    # define volume type
-    AwsEc2InstanceType.collect_resources(builder)
+    _, builder = round_trip_for(AwsServiceQuota, "usage", "quota_type")
     for vt in ["gp2", "gp3", "standard", "io1", "io2", "sc1", "st1"]:
         builder.add_node(builder.volume_type(vt), {})  # type: ignore
-
-    # no edge has been created
-    assert builder.graph.number_of_edges() == 0
-
-    # connect all service quotas
-    for node, data in builder.graph.nodes(data=True):
-        if isinstance(node, AwsServiceQuota):
-            node.connect_in_graph(builder, data.get("source", {}))
-
-    # make sure edges have been created
-    assert builder.graph.number_of_edges() == 7
+    expect_quotas(builder, 7)
 
 
 def test_vpc_quotas() -> None:
-    first, builder = round_trip_for(AwsServiceQuota, "usage", "quota_type")
-    assert len(builder.resources_of(AwsServiceQuota)) == NrOfQuotas
-
-    # collect vpc's
+    _, builder = round_trip_for(AwsServiceQuota, "usage", "quota_type")
     AwsEc2Vpc.collect_resources(builder)
+    expect_quotas(builder, 3)
 
-    # no edge has been created
-    assert builder.graph.number_of_edges() == 0
 
-    # connect all service quotas
+def test_alb_quotas() -> None:
+    _, builder = round_trip_for(AwsServiceQuota, "usage", "quota_type")
+    AwsAlb.collect_resources(builder)
+    expect_quotas(builder, 2)
+
+
+def test_iam_server_certificate_quotas() -> None:
+    _, builder = round_trip_for(AwsServiceQuota, "usage", "quota_type")
+    AwsIamServerCertificate.collect_resources(builder)
+    expect_quotas(builder, 2)
+
+
+def expect_quotas(builder: GraphBuilder, quotas: int) -> None:
     for node, data in builder.graph.nodes(data=True):
         if isinstance(node, AwsServiceQuota):
             node.connect_in_graph(builder, data.get("source", {}))
-
     # make sure edges have been created
-    assert builder.graph.number_of_edges() == 3
+    assert builder.graph.number_of_edges() == quotas
