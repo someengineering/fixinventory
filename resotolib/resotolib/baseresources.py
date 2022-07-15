@@ -11,7 +11,7 @@ from enum import Enum
 from typing import Dict, Iterator, List, ClassVar, Optional
 from resotolib.utils import make_valid_timestamp, utc_str
 from prometheus_client import Counter, Summary
-from attrs import define, field, resolve_types
+from attrs import define, field, resolve_types, Factory
 import jsons
 
 metrics_resource_pre_cleanup_exceptions = Counter(
@@ -116,12 +116,12 @@ class BaseResource(ABC):
     successor_kinds: ClassVar[Dict[str, List[str]]] = {"default": [], "delete": []}
 
     id: str
-    tags: Optional[Dict[str, Optional[str]]] = None
-    name: Optional[str] = None
-    _cloud: 'Optional[BaseCloud]' = field(default=None, repr=False)
-    _account: 'Optional[BaseAccount]' = field(default=None, repr=False)
-    _region: 'Optional[BaseRegion]' = field(default=None, repr=False)
-    _zone: 'Optional[BaseZone]' = field(default=None, repr=False)
+    tags: Dict[str, Optional[str]] = Factory(dict)
+    name: str = None
+    _cloud: "Optional[BaseCloud]" = field(default=None, repr=False)
+    _account: "Optional[BaseAccount]" = field(default=None, repr=False)
+    _region: "Optional[BaseRegion]" = field(default=None, repr=False)
+    _zone: "Optional[BaseZone]" = field(default=None, repr=False)
     _resotocore_id: Optional[str] = field(default=None, repr=False)
     _resotocore_revision: Optional[str] = field(default=None, repr=False)
     _resotocore_query_tag: Optional[str] = field(default=None, repr=False)

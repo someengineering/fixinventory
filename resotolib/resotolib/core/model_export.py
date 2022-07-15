@@ -361,7 +361,7 @@ def node_from_dict(node_data: Dict, include_select_ancestors: bool = False) -> B
 
     cleanup_node_field_types(node_type, new_node_data)
     ancestors = {}
-    if include_select_ancestors:        
+    if include_select_ancestors:
         for ancestor in ("cloud", "account", "region", "zone"):
             if node_data_ancestors.get(ancestor):
                 ancestors[f"_{ancestor}"] = node_from_dict(
