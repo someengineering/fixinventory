@@ -74,7 +74,7 @@ class BotoFileClient:
                 with open(path) as f:
                     return json.load(f)
             else:
-                # print(f"Not found: {path}")
+                print(f"Not found: {path}")
                 return {}
 
         return call_action

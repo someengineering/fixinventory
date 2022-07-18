@@ -1,0 +1,17 @@
+{
+    "TagDescriptions": [
+        {
+            "LoadBalancerName": "elb-123",
+            "Tags": [
+                {
+                    "Key": "owner",
+                    "Value": "sre"
+                },
+                {
+                    "Key": "expiration",
+                    "Value": "never"
+                }
+            ]
+        }
+    ]
+}

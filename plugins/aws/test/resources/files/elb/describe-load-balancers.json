@@ -1,0 +1,157 @@
+{
+    "LoadBalancerDescriptions": [
+        {
+            "LoadBalancerName": "elb-123",
+            "DNSName": "elb-123.us-west-2.elb.amazonaws.com",
+            "CanonicalHostedZoneName": "elb-123.us-west-2.elb.amazonaws.com",
+            "CanonicalHostedZoneNameID": "elb-123",
+            "ListenerDescriptions": [
+                {
+                    "Listener": {
+                        "Protocol": "HTTPS",
+                        "LoadBalancerPort": 443,
+                        "InstanceProtocol": "HTTPS",
+                        "InstancePort": 443,
+                        "SSLCertificateId": "arn:aws:acm:us-west-2:test:certificate/cert-123"
+                    },
+                    "PolicyNames": [
+                        "ELBSecurityPolicy-2016-08"
+                    ]
+                },
+                {
+                    "Listener": {
+                        "Protocol": "HTTP",
+                        "LoadBalancerPort": 80,
+                        "InstanceProtocol": "HTTP",
+                        "InstancePort": 80
+                    },
+                    "PolicyNames": []
+                }
+            ],
+            "Policies": {
+                "AppCookieStickinessPolicies": [],
+                "LBCookieStickinessPolicies": [],
+                "OtherPolicies": [
+                    "ELBSecurityPolicy-2016-08"
+                ]
+            },
+            "BackendServerDescriptions": [],
+            "AvailabilityZones": [
+                "us-west-2c",
+                "us-west-2b",
+                "us-west-2a"
+            ],
+            "Subnets": [
+                "subnet-123",
+                "subnet-2",
+                "subnet-3"
+            ],
+            "VPCId": "vpc-1",
+            "Instances": [
+                {
+                    "InstanceId": "i-123"
+                },
+                {
+                    "InstanceId": "i-2"
+                },
+                {
+                    "InstanceId": "i-3"
+                }
+            ],
+            "HealthCheck": {
+                "Target": "TCP:5050",
+                "Interval": 30,
+                "Timeout": 5,
+                "UnhealthyThreshold": 5,
+                "HealthyThreshold": 3
+            },
+            "SourceSecurityGroup": {
+                "OwnerAlias": "test",
+                "GroupName": "sg-123"
+            },
+            "SecurityGroups": [
+                "sg-123"
+            ],
+            "CreatedTime": "2018-05-08T06:58:59.740000+00:00",
+            "Scheme": "internet-facing"
+        },
+        {
+            "LoadBalancerName": "elb-2",
+            "DNSName": "elb-2.us-west-2.elb.amazonaws.com",
+            "CanonicalHostedZoneName": "elb-2.us-west-2.elb.amazonaws.com",
+            "CanonicalHostedZoneNameID": "elb-2",
+            "ListenerDescriptions": [
+                {
+                    "Listener": {
+                        "Protocol": "TCP",
+                        "LoadBalancerPort": 9090,
+                        "InstanceProtocol": "TCP",
+                        "InstancePort": 9090
+                    },
+                    "PolicyNames": []
+                },
+                {
+                    "Listener": {
+                        "Protocol": "TCP",
+                        "LoadBalancerPort": 443,
+                        "InstanceProtocol": "TCP",
+                        "InstancePort": 443
+                    },
+                    "PolicyNames": []
+                },
+                {
+                    "Listener": {
+                        "Protocol": "TCP",
+                        "LoadBalancerPort": 80,
+                        "InstanceProtocol": "TCP",
+                        "InstancePort": 80
+                    },
+                    "PolicyNames": []
+                }
+            ],
+            "Policies": {
+                "AppCookieStickinessPolicies": [],
+                "LBCookieStickinessPolicies": [],
+                "OtherPolicies": [
+                    "ELBSecurityPolicy-2016-08"
+                ]
+            },
+            "BackendServerDescriptions": [],
+            "AvailabilityZones": [
+                "us-west-2c",
+                "us-west-2b",
+                "us-west-2a"
+            ],
+            "Subnets": [
+                "subnet-123",
+                "subnet-2",
+                "subnet-3"
+            ],
+            "VPCId": "vpc-123",
+            "Instances": [
+                {
+                    "InstanceId": "i-123"
+                },
+                {
+                    "InstanceId": "i-2"
+                }
+            ],
+            "HealthCheck": {
+                "Target": "TCP:80",
+                "Interval": 30,
+                "Timeout": 5,
+                "UnhealthyThreshold": 2,
+                "HealthyThreshold": 10
+            },
+            "SourceSecurityGroup": {
+                "OwnerAlias": "test",
+                "GroupName": "elb-2"
+            },
+            "SecurityGroups": [
+                "sg-123"
+            ],
+            "CreatedTime": "2018-05-08T06:59:02.150000+00:00",
+            "Scheme": "internet-facing"
+        }
+    ]
+}
