@@ -560,6 +560,7 @@ models: Dict[str, List[AwsResotoModel]] = {
         #     prop_prefix="cloudwatch_"
         # )
     ],
+    "rds": [AwsResotoModel("describe-db-instances", "Instances", "DBInstance", prefix="Rds", prop_prefix="rds_")],
 }
 
 
