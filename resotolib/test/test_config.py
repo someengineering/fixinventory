@@ -59,6 +59,11 @@ def test_config_lru_cache():
     cfg.override_config(cfg.running_config)
     assert cfg.configtest.testvar1 == "foo"
     assert test_lru_config(cfg) == "foo"
+    # cleanup
+    ArgumentParser.args.config_override = [
+        "configtest.testvar1=testing123",
+    ]
+    cfg.override_config(cfg.running_config)
 
 
 def test_config_override():
