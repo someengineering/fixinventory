@@ -1,0 +1,6 @@
+{
+    "FormatVersion": "aws_v1",
+    "PriceList": [
+        "{\"product\":{\"productFamily\":\"Storage\",\"attributes\":{\"maxThroughputvolume\":\"250 MiB/s\",\"volumeType\":\"General Purpose\",\"maxIopsvolume\":\"16000\",\"usagetype\":\"EUC1-EBS:VolumeUsage.gp2\",\"locationType\":\"AWS Region\",\"maxVolumeSize\":\"16 TiB\",\"maxIopsBurstPerformance\":\"3000 for volumes <= 1 TiB\",\"storageMedia\":\"SSD-backed\",\"regionCode\":\"eu-central-1\",\"servicecode\":\"AmazonEC2\",\"volumeApiName\":\"gp2\",\"location\":\"EU (Frankfurt)\",\"servicename\":\"Amazon Elastic Compute Cloud\",\"operation\":\"\"},\"sku\":\"WHD78M63XVBREKT5\"},\"serviceCode\":\"AmazonEC2\",\"terms\":{\"OnDemand\":{\"WHD78M63XVBREKT5.JRTCKXETXF\":{\"priceDimensions\":{\"WHD78M63XVBREKT5.JRTCKXETXF.6YS6EN2CT7\":{\"unit\":\"GB-Mo\",\"endRange\":\"Inf\",\"description\":\"$0.119 per GB-month of General Purpose SSD (gp2) provisioned storage - EU (Frankfurt)\",\"appliesTo\":[],\"rateCode\":\"WHD78M63XVBREKT5.JRTCKXETXF.6YS6EN2CT7\",\"beginRange\":\"0\",\"pricePerUnit\":{\"USD\":\"0.1190000000\"}}},\"sku\":\"WHD78M63XVBREKT5\",\"effectiveDate\":\"2022-07-01T00:00:00Z\",\"offerTermCode\":\"JRTCKXETXF\",\"termAttributes\":{}}}},\"version\":\"20220707234252\",\"publicationDate\":\"2022-07-07T23:42:52Z\"}"
+    ]
+}

@@ -1,14 +1,12 @@
+from typing import List
+
 from resoto_plugin_aws.resource.base import GraphBuilder, AwsRegion
 from resoto_plugin_aws.resource.ec2 import AwsEc2InstanceType
 
 from test import builder, aws_client  # noqa: F401
 
 
-def test_price_region(builder: GraphBuilder) -> None:  # noqa: F811
-    assert builder.price_region == "US East (N. Virginia)"
-
-
-def test_instance_type(builder: GraphBuilder) -> None:  # noqa: F811
+def test_instance_type(builder: GraphBuilder) -> None:
     builder.global_instance_types["m4.large"] = AwsEc2InstanceType(id="m4.large")
     m4l: AwsEc2InstanceType = builder.instance_type("m4.large")  # type: ignore
     assert m4l == builder.instance_type("m4.large")
@@ -18,3 +16,16 @@ def test_instance_type(builder: GraphBuilder) -> None:  # noqa: F811
     assert m4l != m4l_eu
     assert m4l_eu == eu_builder.instance_type("m4.large")
     assert m4l_eu.ondemand_cost == 0.12
+
+
+def test_executor(builder: GraphBuilder) -> None:
+    result: List[int] = []
+
+    def do_something(key: int) -> None:
+        result.append(key)
+
+    for idx in range(0, 100):
+        builder.submit_work(do_something, idx)
+
+    builder.executor.wait_for_submitted_work()
+    assert result == list(range(0, 100))

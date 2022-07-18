@@ -23,6 +23,7 @@ from resotolib.baseresources import (  # noqa: F401
     BasePeeringConnection,
     BaseEndpoint,
     BaseRoutingTable,
+    BaseVolumeType,
 )
 from resotolib.json_bender import Bender, S, Bend, ForallBend, bend, MapEnum, F, K, StripNones
 from resotolib.types import Json
@@ -372,6 +373,14 @@ class AwsEc2Volume(AwsResource, BaseVolume):
     volume_fast_restored: Optional[bool] = field(default=None)
     volume_multi_attach_enabled: Optional[bool] = field(default=None)
     volume_throughput: Optional[int] = field(default=None)
+
+    @classmethod
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        for js in json:
+            instance = builder.add_node(AwsEc2Volume.from_api(js), js)
+            if vt := builder.volume_type(instance.volume_type):
+                builder.add_node(vt, {})
+                builder.add_edge(vt, EdgeType.default, node=instance)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
@@ -879,11 +888,11 @@ class AwsEc2Instance(AwsResource, BaseInstance):
                     builder.add_node(instance_type, {})
                     instance.instance_cores = instance_type.instance_cores
                     instance.instance_memory = instance_type.instance_memory
+                    builder.add_edge(instance_type, EdgeType.default, node=instance)
                 builder.add_node(instance, instance_in)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
-        builder.add_edge(self, EdgeType.default, reverse=True, clazz=AwsEc2InstanceType, name=self.instance_type)
         if self.instance_key_name:
             builder.add_edge(self, EdgeType.default, clazz=AwsEc2KeyPair, name=self.instance_key_name)
             builder.add_edge(self, EdgeType.delete, reverse=True, clazz=AwsEc2KeyPair, name=self.instance_key_name)
@@ -1235,7 +1244,7 @@ class AwsEc2NetworkInterface(AwsResource, BaseNetworkInterface):
 
 @define(eq=False, slots=False)
 class AwsEc2VpcCidrBlockState:
-    kind: ClassVar[str] = "aws_ec2_vpc_cidr_block_state"
+    kind: ClassVar[str] = "aws_vpc_cidr_block_state"
     mapping: ClassVar[Dict[str, Bender]] = {"state": S("State"), "status_message": S("StatusMessage")}
     state: Optional[str] = field(default=None)
     status_message: Optional[str] = field(default=None)
@@ -1243,7 +1252,7 @@ class AwsEc2VpcCidrBlockState:
 
 @define(eq=False, slots=False)
 class AwsEc2VpcIpv6CidrBlockAssociation:
-    kind: ClassVar[str] = "aws_ec2_vpc_ipv6_cidr_block_association"
+    kind: ClassVar[str] = "aws_vpc_ipv6_cidr_block_association"
     mapping: ClassVar[Dict[str, Bender]] = {
         "association_id": S("AssociationId"),
         "ipv6_cidr_block": S("Ipv6CidrBlock"),
@@ -1260,7 +1269,7 @@ class AwsEc2VpcIpv6CidrBlockAssociation:
 
 @define(eq=False, slots=False)
 class AwsEc2VpcCidrBlockAssociation:
-    kind: ClassVar[str] = "aws_ec2_vpc_cidr_block_association"
+    kind: ClassVar[str] = "aws_vpc_cidr_block_association"
     mapping: ClassVar[Dict[str, Bender]] = {
         "association_id": S("AssociationId"),
         "cidr_block": S("CidrBlock"),
@@ -1273,7 +1282,7 @@ class AwsEc2VpcCidrBlockAssociation:
 
 @define(eq=False, slots=False)
 class AwsEc2Vpc(AwsResource, BaseNetwork):
-    kind: ClassVar[str] = "aws_ec2_vpc"
+    kind: ClassVar[str] = "aws_vpc"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-vpcs", "Vpcs")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("VpcId"),
@@ -1304,7 +1313,7 @@ class AwsEc2Vpc(AwsResource, BaseNetwork):
 # region VPC Peering Connections
 @define(eq=False, slots=False)
 class AwsEc2VpcPeeringConnectionOptionsDescription:
-    kind: ClassVar[str] = "aws_ec2_vpc_peering_connection_options_description"
+    kind: ClassVar[str] = "aws_vpc_peering_connection_options_description"
     mapping: ClassVar[Dict[str, Bender]] = {
         "allow_dns_resolution_from_remote_vpc": S("AllowDnsResolutionFromRemoteVpc"),
         "allow_egress_from_local_classic_link_to_remote_vpc": S("AllowEgressFromLocalClassicLinkToRemoteVpc"),
@@ -1317,7 +1326,7 @@ class AwsEc2VpcPeeringConnectionOptionsDescription:
 
 @define(eq=False, slots=False)
 class AwsEc2VpcPeeringConnectionVpcInfo:
-    kind: ClassVar[str] = "aws_ec2_vpc_peering_connection_vpc_info"
+    kind: ClassVar[str] = "aws_vpc_peering_connection_vpc_info"
     mapping: ClassVar[Dict[str, Bender]] = {
         "cidr_block": S("CidrBlock"),
         "ipv6_cidr_block_set": S("Ipv6CidrBlockSet", default=[]) >> ForallBend(S("Ipv6CidrBlock")),
@@ -1338,7 +1347,7 @@ class AwsEc2VpcPeeringConnectionVpcInfo:
 
 @define(eq=False, slots=False)
 class AwsEc2VpcPeeringConnectionStateReason:
-    kind: ClassVar[str] = "aws_ec2_vpc_peering_connection_state_reason"
+    kind: ClassVar[str] = "aws_vpc_peering_connection_state_reason"
     mapping: ClassVar[Dict[str, Bender]] = {"code": S("Code"), "message": S("Message")}
     code: Optional[str] = field(default=None)
     message: Optional[str] = field(default=None)
@@ -1346,7 +1355,7 @@ class AwsEc2VpcPeeringConnectionStateReason:
 
 @define(eq=False, slots=False)
 class AwsEc2VpcPeeringConnection(AwsResource, BasePeeringConnection):
-    kind: ClassVar[str] = "aws_ec2_vpc_peering_connection"
+    kind: ClassVar[str] = "aws_vpc_peering_connection"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-vpc-peering-connections", "VpcPeeringConnections")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("VpcPeeringConnectionId"),
@@ -1392,7 +1401,7 @@ class AwsEc2LastError:
 
 @define(eq=False, slots=False)
 class AwsEc2VpcEndpoint(AwsResource, BaseEndpoint):
-    kind: ClassVar[str] = "aws_ec2_vpc_endpoint"
+    kind: ClassVar[str] = "aws_vpc_endpoint"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-vpc-endpoints", "VpcEndpoints")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("VpcEndpointId"),

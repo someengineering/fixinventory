@@ -1,0 +1,100 @@
+{
+    "Quotas": [
+        {
+            "ServiceCode": "ec2",
+            "ServiceName": "Amazon Elastic Compute Cloud (Amazon EC2)",
+            "QuotaArn": "arn:aws:servicequotas:us-west-2:test:ec2/L-1216C47A",
+            "QuotaCode": "L-1216C47A",
+            "QuotaName": "Running On-Demand Standard (A, C, D, H, I, M, R, T, Z) instances",
+            "Value": 8704.0,
+            "Unit": "None",
+            "Adjustable": true,
+            "GlobalQuota": false,
+            "UsageMetric": {
+                "MetricNamespace": "AWS/Usage",
+                "MetricName": "ResourceCount",
+                "MetricDimensions": {
+                    "Class": "Standard/OnDemand",
+                    "Resource": "vCPU",
+                    "Service": "EC2",
+                    "Type": "Resource"
+                },
+                "MetricStatisticRecommendation": "Maximum"
+            },
+            "Period": {
+                "PeriodValue":  123,
+                "PeriodUnit": "days"
+            },
+            "ErrorReason": {
+                "ErrorCode": "QuotaExceeded",
+                "ErrorMessage": "Quota exceeded for service: EC2, quota: Running On-Demand Standard (A, C, D, H, I, M, R, T, Z) instances, period: 123 days, value: 8704.0"
+            }
+        },
+        {
+            "ServiceCode": "ec2",
+            "ServiceName": "Amazon Elastic Compute Cloud (Amazon EC2)",
+            "QuotaArn": "arn:aws:servicequotas:us-west-2:test:ec2/L-1945791B",
+            "QuotaCode": "L-1945791B",
+            "QuotaName": "Running On-Demand Inf instances",
+            "Value": 128.0,
+            "Unit": "None",
+            "Adjustable": true,
+            "GlobalQuota": false,
+            "UsageMetric": {
+                "MetricNamespace": "AWS/Usage",
+                "MetricName": "ResourceCount",
+                "MetricDimensions": {
+                    "Class": "Inf/OnDemand",
+                    "Resource": "vCPU",
+                    "Service": "EC2",
+                    "Type": "Resource"
+                },
+                "MetricStatisticRecommendation": "Maximum"
+            }
+        },
+        {
+            "ServiceCode": "ec2",
+            "ServiceName": "Amazon Elastic Compute Cloud (Amazon EC2)",
+            "QuotaArn": "arn:aws:servicequotas:us-west-2:test:ec2/L-7295265B",
+            "QuotaCode": "L-7295265B",
+            "QuotaName": "Running On-Demand X instances",
+            "Value": 560.0,
+            "Unit": "None",
+            "Adjustable": true,
+            "GlobalQuota": false,
+            "UsageMetric": {
+                "MetricNamespace": "AWS/Usage",
+                "MetricName": "ResourceCount",
+                "MetricDimensions": {
+                    "Class": "X/OnDemand",
+                    "Resource": "vCPU",
+                    "Service": "EC2",
+                    "Type": "Resource"
+                },
+                "MetricStatisticRecommendation": "Maximum"
+            }
+        },
+        {
+            "ServiceCode": "ec2",
+            "ServiceName": "Amazon Elastic Compute Cloud (Amazon EC2)",
+            "QuotaArn": "arn:aws:servicequotas:us-west-2:test:ec2/L-3E6EC3A3",
+            "QuotaCode": "L-3E6EC3A3",
+            "QuotaName": "VPN connections per region",
+            "Value": 50.0,
+            "Unit": "None",
+            "Adjustable": true,
+            "GlobalQuota": false
+        },
+        {
+            "ServiceCode": "ec2",
+            "ServiceName": "Amazon Elastic Compute Cloud (Amazon EC2)",
+            "QuotaArn": "arn:aws:servicequotas:us-west-2:test:ec2/L-7029FAB6",
+            "QuotaCode": "L-7029FAB6",
+            "QuotaName": "Virtual private gateways per region",
+            "Value": 5.0,
+            "Unit": "None",
+            "Adjustable": true,
+            "GlobalQuota": false
+        }
+    ]
+}

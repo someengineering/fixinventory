@@ -1,0 +1,388 @@
+{
+    "Quotas": [
+        {
+            "ServiceCode": "ebs",
+            "ServiceName": "Amazon Elastic Block Store (Amazon EBS)",
+            "QuotaArn": "arn:aws:servicequotas:us-east-1:test:ebs/L-1D4D9345",
+            "QuotaCode": "L-1D4D9345",
+            "QuotaName": "CompleteSnapshot requests per account",
+            "Value": 10.0,
+            "Unit": "None",
+            "Adjustable": false,
+            "GlobalQuota": false,
+            "Period": {
+                "PeriodValue": 1,
+                "PeriodUnit": "SECOND"
+            }
+        },
+        {
+            "ServiceCode": "ebs",
+            "ServiceName": "Amazon Elastic Block Store (Amazon EBS)",
+            "QuotaArn": "arn:aws:servicequotas:us-east-1:test:ebs/L-C125AE42",
+            "QuotaCode": "L-C125AE42",
+            "QuotaName": "GetSnapshotBlock requests per account",
+            "Value": 1000.0,
+            "Unit": "None",
+            "Adjustable": true,
+            "GlobalQuota": false,
+            "Period": {
+                "PeriodValue": 1,
+                "PeriodUnit": "SECOND"
+            }
+        },
+        {
+            "ServiceCode": "ebs",
+            "ServiceName": "Amazon Elastic Block Store (Amazon EBS)",
+            "QuotaArn": "arn:aws:servicequotas:us-east-1:test:ebs/L-028ACFB9",
+            "QuotaCode": "L-028ACFB9",
+            "QuotaName": "GetSnapshotBlock requests per snapshot",
+            "Value": 1000.0,
+            "Unit": "None",
+            "Adjustable": false,
+            "GlobalQuota": false,
+            "Period": {
+                "PeriodValue": 1,
+                "PeriodUnit": "SECOND"
+            }
+        },
+        {
+            "ServiceCode": "ebs",
+            "ServiceName": "Amazon Elastic Block Store (Amazon EBS)",
+            "QuotaArn": "arn:aws:servicequotas:us-east-1:test:ebs/L-DB2FBAA1",
+            "QuotaCode": "L-DB2FBAA1",
+            "QuotaName": "ListChangedBlocks requests per account",
+            "Value": 50.0,
+            "Unit": "None",
+            "Adjustable": false,
+            "GlobalQuota": false,
+            "Period": {
+                "PeriodValue": 1,
+                "PeriodUnit": "SECOND"
+            }
+        },
+        {
+            "ServiceCode": "ebs",
+            "ServiceName": "Amazon Elastic Block Store (Amazon EBS)",
+            "QuotaArn": "arn:aws:servicequotas:us-east-1:test:ebs/L-18E976AB",
+            "QuotaCode": "L-18E976AB",
+            "QuotaName": "ListSnapshotBlocks requests per account",
+            "Value": 50.0,
+            "Unit": "None",
+            "Adjustable": false,
+            "GlobalQuota": false,
+            "Period": {
+                "PeriodValue": 1,
+                "PeriodUnit": "SECOND"
+            }
+        },
+        {
+            "ServiceCode": "ebs",
+            "ServiceName": "Amazon Elastic Block Store (Amazon EBS)",
+            "QuotaArn": "arn:aws:servicequotas:us-east-1:test:ebs/L-94D7AB7D",
+            "QuotaCode": "L-94D7AB7D",
+            "QuotaName": "Pending snapshots per account",
+            "Value": 100.0,
+            "Unit": "None",
+            "Adjustable": false,
+            "GlobalQuota": false
+        },
+        {
+            "ServiceCode": "ebs",
+            "ServiceName": "Amazon Elastic Block Store (Amazon EBS)",
+            "QuotaArn": "arn:aws:servicequotas:us-east-1:test:ebs/L-E20676C1",
+            "QuotaCode": "L-E20676C1",
+            "QuotaName": "Archived snapshots per volume",
+            "Value": 25.0,
+            "Unit": "None",
+            "Adjustable": true,
+            "GlobalQuota": false
+        },
+        {
+            "ServiceCode": "ebs",
+            "ServiceName": "Amazon Elastic Block Store (Amazon EBS)",
+            "QuotaArn": "arn:aws:servicequotas:us-east-1:test:ebs/L-631ECBD3",
+            "QuotaCode": "L-631ECBD3",
+            "QuotaName": "Fast snapshot restore",
+            "Value": 5.0,
+            "Unit": "None",
+            "Adjustable": true,
+            "GlobalQuota": false
+        },
+        {
+            "ServiceCode": "ebs",
+            "ServiceName": "Amazon Elastic Block Store (Amazon EBS)",
+            "QuotaArn": "arn:aws:servicequotas:us-east-1:test:ebs/L-B3A130E6",
+            "QuotaCode": "L-B3A130E6",
+            "QuotaName": "IOPS for Provisioned IOPS SSD (io1) volumes",
+            "Value": 300000.0,
+            "Unit": "None",
+            "Adjustable": true,
+            "GlobalQuota": false
+        },
+        {
+            "ServiceCode": "ebs",
+            "ServiceName": "Amazon Elastic Block Store (Amazon EBS)",
+            "QuotaArn": "arn:aws:servicequotas:us-east-1:test:ebs/L-8D977E7E",
+            "QuotaCode": "L-8D977E7E",
+            "QuotaName": "IOPS for Provisioned IOPS SSD (io2) volumes",
+            "Value": 100000.0,
+            "Unit": "None",
+            "Adjustable": true,
+            "GlobalQuota": false
+        },
+        {
+            "ServiceCode": "ebs",
+            "ServiceName": "Amazon Elastic Block Store (Amazon EBS)",
+            "QuotaArn": "arn:aws:servicequotas:us-east-1:test:ebs/L-98A0B26D",
+            "QuotaCode": "L-98A0B26D",
+            "QuotaName": "IOPS modifications for Provisioned IOPS SSD (io1) volumes",
+            "Value": 500000.0,
+            "Unit": "None",
+            "Adjustable": true,
+            "GlobalQuota": false
+        },
+        {
+            "ServiceCode": "ebs",
+            "ServiceName": "Amazon Elastic Block Store (Amazon EBS)",
+            "QuotaArn": "arn:aws:servicequotas:us-east-1:test:ebs/L-35B31D98",
+            "QuotaCode": "L-35B31D98",
+            "QuotaName": "IOPS modifications for Provisioned IOPS SSD (io2) volumes",
+            "Value": 100000.0,
+            "Unit": "None",
+            "Adjustable": true,
+            "GlobalQuota": false
+        },
+        {
+            "ServiceCode": "ebs",
+            "ServiceName": "Amazon Elastic Block Store (Amazon EBS)",
+            "QuotaArn": "arn:aws:servicequotas:us-east-1:test:ebs/L-3A0E616D",
+            "QuotaCode": "L-3A0E616D",
+            "QuotaName": "In-progress snapshot archives per account",
+            "Value": 5.0,
+            "Unit": "None",
+            "Adjustable": true,
+            "GlobalQuota": false
+        },
+        {
+            "ServiceCode": "ebs",
+            "ServiceName": "Amazon Elastic Block Store (Amazon EBS)",
+            "QuotaArn": "arn:aws:servicequotas:us-east-1:test:ebs/L-07399329",
+            "QuotaCode": "L-07399329",
+            "QuotaName": "In-progress snapshot restores from archive per account",
+            "Value": 5.0,
+            "Unit": "None",
+            "Adjustable": true,
+            "GlobalQuota": false
+        },
+        {
+            "ServiceCode": "ebs",
+            "ServiceName": "Amazon Elastic Block Store (Amazon EBS)",
+            "QuotaArn": "arn:aws:servicequotas:us-east-1:test:ebs/L-AFAE1BE8",
+            "QuotaCode": "L-AFAE1BE8",
+            "QuotaName": "PutSnapshotBlock requests per account",
+            "Value": 1000.0,
+            "Unit": "None",
+            "Adjustable": true,
+            "GlobalQuota": false,
+            "Period": {
+                "PeriodValue": 1,
+                "PeriodUnit": "SECOND"
+            }
+        },
+        {
+            "ServiceCode": "ebs",
+            "ServiceName": "Amazon Elastic Block Store (Amazon EBS)",
+            "QuotaArn": "arn:aws:servicequotas:us-east-1:test:ebs/L-1774F84A",
+            "QuotaCode": "L-1774F84A",
+            "QuotaName": "PutSnapshotBlock requests per snapshot",
+            "Value": 1000.0,
+            "Unit": "None",
+            "Adjustable": false,
+            "GlobalQuota": false,
+            "Period": {
+                "PeriodValue": 1,
+                "PeriodUnit": "SECOND"
+            }
+        },
+        {
+            "ServiceCode": "ebs",
+            "ServiceName": "Amazon Elastic Block Store (Amazon EBS)",
+            "QuotaArn": "arn:aws:servicequotas:us-east-1:test:ebs/L-AFEBDF7A",
+            "QuotaCode": "L-AFEBDF7A",
+            "QuotaName": "StartSnapshot requests per account",
+            "Value": 10.0,
+            "Unit": "None",
+            "Adjustable": false,
+            "GlobalQuota": false,
+            "Period": {
+                "PeriodValue": 1,
+                "PeriodUnit": "SECOND"
+            }
+        },
+        {
+            "ServiceCode": "ebs",
+            "ServiceName": "Amazon Elastic Block Store (Amazon EBS)",
+            "QuotaArn": "arn:aws:servicequotas:us-east-1:test:ebs/L-309BACF6",
+            "QuotaCode": "L-309BACF6",
+            "QuotaName": "Snapshots per Region",
+            "Value": 100000.0,
+            "Unit": "None",
+            "Adjustable": true,
+            "GlobalQuota": false
+        },
+        {
+            "ServiceCode": "ebs",
+            "ServiceName": "Amazon Elastic Block Store (Amazon EBS)",
+            "QuotaArn": "arn:aws:servicequotas:us-east-1:test:ebs/L-17AF77E8",
+            "QuotaCode": "L-17AF77E8",
+            "QuotaName": "Storage for Cold HDD (sc1) volumes, in TiB",
+            "Value": 50.0,
+            "Unit": "None",
+            "Adjustable": true,
+            "GlobalQuota": false
+        },
+        {
+            "ServiceCode": "ebs",
+            "ServiceName": "Amazon Elastic Block Store (Amazon EBS)",
+            "QuotaArn": "arn:aws:servicequotas:us-east-1:test:ebs/L-D18FCD1D",
+            "QuotaCode": "L-D18FCD1D",
+            "QuotaName": "Storage for General Purpose SSD (gp2) volumes, in TiB",
+            "Value": 50.0,
+            "Unit": "None",
+            "Adjustable": true,
+            "GlobalQuota": false
+        },
+        {
+            "ServiceCode": "ebs",
+            "ServiceName": "Amazon Elastic Block Store (Amazon EBS)",
+            "QuotaArn": "arn:aws:servicequotas:us-east-1:test:ebs/L-7A658B76",
+            "QuotaCode": "L-7A658B76",
+            "QuotaName": "Storage for General Purpose SSD (gp3) volumes, in TiB",
+            "Value": 50.0,
+            "Unit": "None",
+            "Adjustable": true,
+            "GlobalQuota": false
+        },
+        {
+            "ServiceCode": "ebs",
+            "ServiceName": "Amazon Elastic Block Store (Amazon EBS)",
+            "QuotaArn": "arn:aws:servicequotas:us-east-1:test:ebs/L-9CF3C2EB",
+            "QuotaCode": "L-9CF3C2EB",
+            "QuotaName": "Storage for Magnetic (standard) volumes, in TiB",
+            "Value": 50.0,
+            "Unit": "None",
+            "Adjustable": true,
+            "GlobalQuota": false
+        },
+        {
+            "ServiceCode": "ebs",
+            "ServiceName": "Amazon Elastic Block Store (Amazon EBS)",
+            "QuotaArn": "arn:aws:servicequotas:us-east-1:test:ebs/L-FD252861",
+            "QuotaCode": "L-FD252861",
+            "QuotaName": "Storage for Provisioned IOPS SSD (io1) volumes, in TiB",
+            "Value": 50.0,
+            "Unit": "None",
+            "Adjustable": true,
+            "GlobalQuota": false
+        },
+        {
+            "ServiceCode": "ebs",
+            "ServiceName": "Amazon Elastic Block Store (Amazon EBS)",
+            "QuotaArn": "arn:aws:servicequotas:us-east-1:test:ebs/L-09BD8365",
+            "QuotaCode": "L-09BD8365",
+            "QuotaName": "Storage for Provisioned IOPS SSD (io2) volumes, in TiB",
+            "Value": 20.0,
+            "Unit": "None",
+            "Adjustable": true,
+            "GlobalQuota": false
+        },
+        {
+            "ServiceCode": "ebs",
+            "ServiceName": "Amazon Elastic Block Store (Amazon EBS)",
+            "QuotaArn": "arn:aws:servicequotas:us-east-1:test:ebs/L-82ACEF56",
+            "QuotaCode": "L-82ACEF56",
+            "QuotaName": "Storage for Throughput Optimized HDD (st1) volumes, in TiB",
+            "Value": 50.0,
+            "Unit": "None",
+            "Adjustable": true,
+            "GlobalQuota": false
+        },
+        {
+            "ServiceCode": "ebs",
+            "ServiceName": "Amazon Elastic Block Store (Amazon EBS)",
+            "QuotaArn": "arn:aws:servicequotas:us-east-1:test:ebs/L-651D1834",
+            "QuotaCode": "L-651D1834",
+            "QuotaName": "Storage modifications for Cold HDD (sc1) volumes, in TiB",
+            "Value": 500.0,
+            "Unit": "None",
+            "Adjustable": true,
+            "GlobalQuota": false
+        },
+        {
+            "ServiceCode": "ebs",
+            "ServiceName": "Amazon Elastic Block Store (Amazon EBS)",
+            "QuotaArn": "arn:aws:servicequotas:us-east-1:test:ebs/L-F06E64A8",
+            "QuotaCode": "L-F06E64A8",
+            "QuotaName": "Storage modifications for General Purpose SSD (gp2) volumes, in TiB",
+            "Value": 500.0,
+            "Unit": "None",
+            "Adjustable": true,
+            "GlobalQuota": false
+        },
+        {
+            "ServiceCode": "ebs",
+            "ServiceName": "Amazon Elastic Block Store (Amazon EBS)",
+            "QuotaArn": "arn:aws:servicequotas:us-east-1:test:ebs/L-59C8FC87",
+            "QuotaCode": "L-59C8FC87",
+            "QuotaName": "Storage modifications for General Purpose SSD (gp3) volumes, in TiB",
+            "Value": 500.0,
+            "Unit": "None",
+            "Adjustable": true,
+            "GlobalQuota": false
+        },
+        {
+            "ServiceCode": "ebs",
+            "ServiceName": "Amazon Elastic Block Store (Amazon EBS)",
+            "QuotaArn": "arn:aws:servicequotas:us-east-1:test:ebs/L-B9F7C487",
+            "QuotaCode": "L-B9F7C487",
+            "QuotaName": "Storage modifications for Magnetic (standard) volumes, in TiB",
+            "Value": 500.0,
+            "Unit": "None",
+            "Adjustable": true,
+            "GlobalQuota": false
+        },
+        {
+            "ServiceCode": "ebs",
+            "ServiceName": "Amazon Elastic Block Store (Amazon EBS)",
+            "QuotaArn": "arn:aws:servicequotas:us-east-1:test:ebs/L-5F80CA91",
+            "QuotaCode": "L-5F80CA91",
+            "QuotaName": "Storage modifications for Provisioned IOPS SSD (io1) volumes, in TiB",
+            "Value": 500.0,
+            "Unit": "None",
+            "Adjustable": true,
+            "GlobalQuota": false
+        },
+        {
+            "ServiceCode": "ebs",
+            "ServiceName": "Amazon Elastic Block Store (Amazon EBS)",
+            "QuotaArn": "arn:aws:servicequotas:us-east-1:test:ebs/L-9A0E0F82",
+            "QuotaCode": "L-9A0E0F82",
+            "QuotaName": "Storage modifications for Provisioned IOPS SSD (io2) volumes, in TiB",
+            "Value": 20.0,
+            "Unit": "None",
+            "Adjustable": true,
+            "GlobalQuota": false
+        },
+        {
+            "ServiceCode": "ebs",
+            "ServiceName": "Amazon Elastic Block Store (Amazon EBS)",
+            "QuotaArn": "arn:aws:servicequotas:us-east-1:test:ebs/L-87C9DEA6",
+            "QuotaCode": "L-87C9DEA6",
+            "QuotaName": "Storage modifications for Throughput Optimized HDD (st1) volumes, in TiB",
+            "Value": 500.0,
+            "Unit": "None",
+            "Adjustable": true,
+            "GlobalQuota": false
+        }
+    ]
+}

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
+from functools import cached_property
 from typing import Optional, Any, List
 
 from resoto_plugin_aws.config import AwsConfig
@@ -70,3 +71,11 @@ class AwsClient:
 
     def for_region(self, region: str) -> AwsClient:
         return AwsClient(self.config, self.account_id, self.account_role, region)
+
+    @cached_property
+    def global_region(self) -> AwsClient:
+        """
+        AWS serves some APIs only from one region: us-east-1.
+        We call it the global region in this collector.
+        """
+        return self.for_region("us-east-1")

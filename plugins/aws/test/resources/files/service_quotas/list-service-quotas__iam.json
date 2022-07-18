@@ -1,0 +1,169 @@
+{
+    "Quotas": [
+        {
+            "ServiceCode": "iam",
+            "ServiceName": "AWS Identity and Access Management (IAM)",
+            "QuotaArn": "arn:aws:servicequotas::test:iam/L-7A1621EC",
+            "QuotaCode": "L-7A1621EC",
+            "QuotaName": "IAM groups per user",
+            "Value": 10.0,
+            "Unit": "None",
+            "Adjustable": false,
+            "GlobalQuota": true
+        },
+        {
+            "ServiceCode": "iam",
+            "ServiceName": "AWS Identity and Access Management (IAM)",
+            "QuotaArn": "arn:aws:servicequotas::test:iam/L-3AD47CAE",
+            "QuotaCode": "L-3AD47CAE",
+            "QuotaName": "Identity providers per IAM SAML provider object",
+            "Value": 10.0,
+            "Unit": "None",
+            "Adjustable": false,
+            "GlobalQuota": true
+        },
+        {
+            "ServiceCode": "iam",
+            "ServiceName": "AWS Identity and Access Management (IAM)",
+            "QuotaArn": "arn:aws:servicequotas::test:iam/L-6E65F664",
+            "QuotaCode": "L-6E65F664",
+            "QuotaName": "Instance profiles per account",
+            "Value": 1000.0,
+            "Unit": "None",
+            "Adjustable": true,
+            "GlobalQuota": true
+        },
+        {
+            "ServiceCode": "iam",
+            "ServiceName": "AWS Identity and Access Management (IAM)",
+            "QuotaArn": "arn:aws:servicequotas::test:iam/L-C4DF001E",
+            "QuotaCode": "L-C4DF001E",
+            "QuotaName": "Keys per SAML provider",
+            "Value": 10.0,
+            "Unit": "None",
+            "Adjustable": false,
+            "GlobalQuota": true
+        },
+        {
+            "ServiceCode": "iam",
+            "ServiceName": "AWS Identity and Access Management (IAM)",
+            "QuotaArn": "arn:aws:servicequotas::test:iam/L-19F2CF71",
+            "QuotaCode": "L-19F2CF71",
+            "QuotaName": "MFA devices per user",
+            "Value": 1.0,
+            "Unit": "None",
+            "Adjustable": false,
+            "GlobalQuota": true
+        },
+        {
+            "ServiceCode": "iam",
+            "ServiceName": "AWS Identity and Access Management (IAM)",
+            "QuotaArn": "arn:aws:servicequotas::test:iam/L-384571C4",
+            "QuotaCode": "L-384571C4",
+            "QuotaName": "Managed policies per group",
+            "Value": 10.0,
+            "Unit": "None",
+            "Adjustable": false,
+            "GlobalQuota": true
+        },
+        {
+            "ServiceCode": "iam",
+            "ServiceName": "AWS Identity and Access Management (IAM)",
+            "QuotaArn": "arn:aws:servicequotas::test:iam/L-0DA4ABF3",
+            "QuotaCode": "L-0DA4ABF3",
+            "QuotaName": "Managed policies per role",
+            "Value": 10.0,
+            "Unit": "None",
+            "Adjustable": true,
+            "GlobalQuota": true
+        },
+        {
+            "ServiceCode": "iam",
+            "ServiceName": "AWS Identity and Access Management (IAM)",
+            "QuotaArn": "arn:aws:servicequotas::test:iam/L-4019AD8B",
+            "QuotaCode": "L-4019AD8B",
+            "QuotaName": "Managed policies per user",
+            "Value": 10.0,
+            "Unit": "None",
+            "Adjustable": true,
+            "GlobalQuota": true
+        },
+        {
+            "ServiceCode": "iam",
+            "ServiceName": "AWS Identity and Access Management (IAM)",
+            "QuotaArn": "arn:aws:servicequotas::test:iam/L-ED111B8C",
+            "QuotaCode": "L-ED111B8C",
+            "QuotaName": "Managed policy length",
+            "Value": 6144.0,
+            "Unit": "None",
+            "Adjustable": false,
+            "GlobalQuota": true
+        },
+        {
+            "ServiceCode": "iam",
+            "ServiceName": "AWS Identity and Access Management (IAM)",
+            "QuotaArn": "arn:aws:servicequotas::test:iam/L-858F3967",
+            "QuotaCode": "L-858F3967",
+            "QuotaName": "OpenId connect providers per account",
+            "Value": 100.0,
+            "Unit": "None",
+            "Adjustable": false,
+            "GlobalQuota": true
+        },
+        {
+            "ServiceCode": "iam",
+            "ServiceName": "AWS Identity and Access Management (IAM)",
+            "QuotaArn": "arn:aws:servicequotas::test:iam/L-C07B4B0D",
+            "QuotaCode": "L-C07B4B0D",
+            "QuotaName": "Role trust policy length",
+            "Value": 2048.0,
+            "Unit": "None",
+            "Adjustable": true,
+            "GlobalQuota": true
+        },
+        {
+            "ServiceCode": "iam",
+            "ServiceName": "AWS Identity and Access Management (IAM)",
+            "QuotaArn": "arn:aws:servicequotas::test:iam/L-FE177D64",
+            "QuotaCode": "L-FE177D64",
+            "QuotaName": "Roles per account",
+            "Value": 1000.0,
+            "Unit": "None",
+            "Adjustable": true,
+            "GlobalQuota": true
+        },
+        {
+            "ServiceCode": "iam",
+            "ServiceName": "AWS Identity and Access Management (IAM)",
+            "QuotaArn": "arn:aws:servicequotas::test:iam/L-DB618D39",
+            "QuotaCode": "L-DB618D39",
+            "QuotaName": "SAML providers per account",
+            "Value": 100.0,
+            "Unit": "None",
+            "Adjustable": false,
+            "GlobalQuota": true
+        },
+        {
+            "ServiceCode": "iam",
+            "ServiceName": "AWS Identity and Access Management (IAM)",
+            "QuotaArn": "arn:aws:servicequotas::test:iam/L-F1176D35",
+            "QuotaCode": "L-F1176D35",
+            "QuotaName": "SSH Public keys per user",
+            "Value": 5.0,
+            "Unit": "None",
+            "Adjustable": false,
+            "GlobalQuota": true
+        },
+        {
+            "ServiceCode": "iam",
+            "ServiceName": "AWS Identity and Access Management (IAM)",
+            "QuotaArn": "arn:aws:servicequotas::test:iam/L-BF35879D",
+            "QuotaCode": "L-BF35879D",
+            "QuotaName": "Server certificates per account",
+            "Value": 20.0,
+            "Unit": "None",
+            "Adjustable": true,
+            "GlobalQuota": true
+        }
+    ]
+}

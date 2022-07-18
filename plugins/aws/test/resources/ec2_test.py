@@ -17,12 +17,11 @@ from resoto_plugin_aws.resource.ec2 import (
     AwsEc2VpcEndpoint,
     AwsEc2RouteTable,
 )
-from test.resources import round_trip_for, build_from_file, check_single_node, BotoFileClient
+from test.resources import round_trip_for, build_graph, check_single_node
 
 
 def test_instance_types() -> None:
-    api = AwsEc2InstanceType.api_spec
-    builder = build_from_file(BotoFileClient.path_from_action(api), AwsEc2InstanceType, api.result_property)
+    builder = build_graph(AwsEc2InstanceType)
     for it in builder.global_instance_types.values():
         it.connect_in_graph(builder, {})
         check_single_node(it)

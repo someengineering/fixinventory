@@ -13,6 +13,8 @@ from resotolib.json_bender import (
     S,
     MapEnum,
     StripNones,
+    MapDict,
+    F,
 )
 
 
@@ -71,3 +73,10 @@ def test_or_else() -> None:
 
 def test_strip_nones() -> None:
     assert bend(StripNones(), [1, None, 2, None, None, 3]) == [1, 2, 3]
+
+
+def test_map_dict() -> None:
+    src = {"a": 1, "b": 2}
+    assert bend(MapDict(value_bender=F(lambda x: x + 1)), src) == {"a": 2, "b": 3}
+    assert bend(MapDict(key_bender=F(lambda x: x + "b")), src) == {"ab": 1, "bb": 2}
+    assert bend(MapDict(key_bender=F(lambda x: x + "b"), value_bender=F(lambda x: x + 1)), src) == {"ab": 2, "bb": 3}

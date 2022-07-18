@@ -1,21 +1,23 @@
 from __future__ import annotations
 
-import json
+import concurrent
 import logging
-from functools import cached_property, lru_cache
+from concurrent.futures import Executor, Future
+from datetime import datetime, timezone
+from functools import lru_cache
+from threading import Lock
+from typing import ClassVar, Dict, Optional, List, Type, Any, TypeVar, Callable
 
 from attr import evolve
 from attrs import define
-from datetime import datetime, timezone
-from typing import ClassVar, Dict, Optional, List, Type, Any, TypeVar
-
-from botocore.loaders import Loader
+from boto3.exceptions import Boto3Error
 
 from resoto_plugin_aws.aws_client import AwsClient
-from resotolib.baseresources import BaseResource, EdgeType, Cloud, BaseAccount, BaseRegion
+from resoto_plugin_aws.resource.pricing import AwsPricingPrice
+from resotolib.baseresources import BaseResource, EdgeType, Cloud, BaseAccount, BaseRegion, BaseVolumeType
 from resotolib.graph import Graph
 from resotolib.json import to_json as to_js, from_json as from_js
-from resotolib.json_bender import Bender, bend, S, F
+from resotolib.json_bender import Bender, bend
 from resotolib.types import Json
 
 log = logging.getLogger("resoto.plugins.aws")
@@ -101,13 +103,26 @@ class AwsResource(BaseResource):
         )
 
     @classmethod
-    def from_json(cls: Type[AWSResourceType], json: Json) -> AWSResourceType:
+    def from_json(cls: Type[AwsResourceType], json: Json) -> AwsResourceType:
         return from_js(json, cls)
 
     @classmethod
-    def from_api(cls: Type[AWSResourceType], json: Json) -> AWSResourceType:
+    def from_api(cls: Type[AwsResourceType], json: Json) -> AwsResourceType:
         mapped = bend(cls.mapping, json)
         return cls.from_json(mapped)
+
+    @classmethod
+    def collect_resources(cls: Type[AwsResource], builder: GraphBuilder) -> None:
+        # Default behavior: in case the class has an ApiSpec, call the api and call collect.
+        log.debug(f"Collecting {cls.__name__} in region {builder.region.name}")
+        if spec := cls.api_spec:
+            try:
+                kwargs = spec.parameter or {}
+                items = builder.client.list(spec.service, spec.api_action, spec.result_property, **kwargs)
+                cls.collect(items, builder)
+            except Boto3Error as e:
+                log.error(f"Error while collecting {cls.__name__} in region {builder.region.name}: {e}")
+                raise
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
@@ -128,7 +143,7 @@ class AwsResource(BaseResource):
         return f"{self.kind}:{self.name}"
 
 
-AWSResourceType = TypeVar("AWSResourceType", bound=AwsResource)
+AwsResourceType = TypeVar("AwsResourceType", bound=AwsResource)
 
 
 # derived from https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-template-resource-type-ref.html
@@ -169,6 +184,37 @@ class AwsRegion(BaseRegion, AwsResource):
     ctime: Optional[datetime] = default_ctime
 
 
+@define(eq=False, slots=False)
+class AwsEc2VolumeType(AwsResource, BaseVolumeType):
+    kind: ClassVar[str] = "aws_ec2_volume_type"
+
+
+@define
+class ExecutorQueue:
+    executor: Executor
+    name: str
+    futures: List[Future[Any]] = []
+    _lock: Lock = Lock()
+
+    def submit_work(self, fn: Callable[..., None], *args: Any, **kwargs: Any) -> Future[Any]:
+        future = self.executor.submit(fn, *args, **kwargs)
+        with self._lock:
+            self.futures.append(future)
+        return future
+
+    def wait_for_submitted_work(self) -> None:
+        # wait until all futures are complete
+        with self._lock:
+            to_wait = self.futures
+            self.futures = []
+        for future in concurrent.futures.as_completed(to_wait):
+            try:
+                future.result()
+            except Exception as ex:
+                log.exception(f"Unhandled exception in account {self.name}: {ex}")
+                raise
+
+
 class GraphBuilder:
     def __init__(
         self,
@@ -177,6 +223,7 @@ class GraphBuilder:
         account: AwsAccount,
         region: AwsRegion,
         client: AwsClient,
+        executor: ExecutorQueue,
         global_instance_types: Optional[Dict[str, Any]] = None,
     ) -> None:
         self.graph = graph
@@ -184,17 +231,14 @@ class GraphBuilder:
         self.account = account
         self.region = region
         self.client = client
+        self.executor = executor
         self.name = f"AWS:{account.name}:{region.name}"
-        self.boto_loader = Loader()
         self.global_instance_types: Dict[str, Any] = global_instance_types or {}
 
-    @cached_property
-    def price_region(self) -> str:
-        endpoints = self.boto_loader.load_data("endpoints")
-        price_name: str = bend(S("partitions")[0] >> S("regions", self.region.name, "description"), endpoints)
-        return price_name.replace("Europe", "EU")  # note: Europe is named differently in the price list
+    def submit_work(self, fn: Callable[..., None], *args: Any, **kwargs: Any) -> Future[Any]:
+        return self.executor.submit_work(fn, *args, **kwargs)
 
-    def node(self, clazz: Optional[Type[AWSResourceType]] = None, **node: Any) -> Optional[AWSResourceType]:
+    def node(self, clazz: Optional[Type[AwsResourceType]] = None, **node: Any) -> Optional[AwsResourceType]:
         if isinstance(nd := node.get("node"), AwsResource):
             return nd  # type: ignore
         for n in self.graph:
@@ -203,12 +247,13 @@ class GraphBuilder:
                 return n  # type: ignore
         return None
 
-    def add_node(self, node: AwsResource, source: Json) -> None:
+    def add_node(self, node: AwsResourceType, source: Json) -> AwsResourceType:
         log.debug(f"{self.name}: add node {node}")
         node._cloud = self.cloud
         node._account = self.account
         node._region = self.region
         self.graph.add_node(node, source=source)
+        return node
 
     def add_edge(self, from_node: BaseResource, edge_type: EdgeType, reverse: bool = False, **to_node: Any) -> None:
         to_n = self.node(**to_node)
@@ -229,35 +274,25 @@ class GraphBuilder:
                 start, end = end, start
             self.graph.add_edge(end, start, edge_type=EdgeType.delete)
 
-    def resources_of(self, resource_type: Type[AWSResourceType]) -> List[AWSResourceType]:
+    def resources_of(self, resource_type: Type[AwsResourceType]) -> List[AwsResourceType]:
         return [n for n in self.graph.nodes if isinstance(n, resource_type)]
 
     @lru_cache(maxsize=None)
     def instance_type(self, instance_type: str) -> Optional[Any]:
         if (global_type := self.global_instance_types.get(instance_type)) is None:
             return None  # instance type not found
-        # get price information
-        search_filter = [
-            {"Type": "TERM_MATCH", "Field": "operatingSystem", "Value": "Linux"},
-            {"Type": "TERM_MATCH", "Field": "operation", "Value": "RunInstances"},
-            {"Type": "TERM_MATCH", "Field": "capacitystatus", "Value": "Used"},
-            {"Type": "TERM_MATCH", "Field": "tenancy", "Value": "Shared"},
-            {"Type": "TERM_MATCH", "Field": "instanceType", "Value": instance_type},
-            {"Type": "TERM_MATCH", "Field": "location", "Value": self.price_region},
-        ]
-        # Prices are only available in us-east-1
-        prices = self.client.for_region("us-east-1").list(
-            "pricing", "get-products", "PriceList", ServiceCode="AmazonEC2", Filters=search_filter, MaxResults=1
-        )
-        if prices:
-            first = F(lambda x: x.get(next(iter(x)), {}))
-            pi = S("terms", "OnDemand") >> first >> S("priceDimensions") >> first >> S("pricePerUnit", "USD")
-            usd = bend(pi, json.loads(prices[0]))
-            result = evolve(global_type, region=self.region, ondemand_cost=usd)
-        else:
-            result = evolve(global_type, region=self.region)
+        price = AwsPricingPrice.instance_type_price(self.client, instance_type, self.region.name)
+        return evolve(global_type, region=self.region, ondemand_cost=price.on_demand_price_usd if price else None)
 
-        return result
+    @lru_cache(maxsize=None)
+    def volume_type(self, volume_type: str) -> Optional[Any]:
+        price = AwsPricingPrice.volume_type_price(self.client, volume_type, self.region.name)
+        return AwsEc2VolumeType(
+            id=volume_type,
+            name=volume_type,
+            volume_type=volume_type,
+            ondemand_cost=price.on_demand_price_usd if price else 0,
+        )
 
     def for_region(self, region: AwsRegion) -> GraphBuilder:
         return GraphBuilder(
@@ -266,5 +301,6 @@ class GraphBuilder:
             self.account,
             region,
             self.client.for_region(region.name),
+            self.executor,
             self.global_instance_types,
         )

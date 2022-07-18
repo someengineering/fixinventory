@@ -1,0 +1,92 @@
+{
+    "Quotas": [
+        {
+            "ServiceCode": "elasticloadbalancing",
+            "ServiceName": "Elastic Load Balancing (ELB)",
+            "QuotaArn": "arn:aws:servicequotas:us-west-2:test:elasticloadbalancing/L-53DA6B97",
+            "QuotaCode": "L-53DA6B97",
+            "QuotaName": "Application Load Balancers per Region",
+            "Value": 50.0,
+            "Unit": "None",
+            "Adjustable": true,
+            "GlobalQuota": false,
+            "UsageMetric": {
+                "MetricNamespace": "AWS/Usage",
+                "MetricName": "ResourceCount",
+                "MetricDimensions": {
+                    "Class": "None",
+                    "Resource": "ApplicationLoadBalancersPerRegion",
+                    "Service": "Elastic Load Balancing",
+                    "Type": "Resource"
+                },
+                "MetricStatisticRecommendation": "Maximum"
+            }
+        },
+        {
+            "ServiceCode": "elasticloadbalancing",
+            "ServiceName": "Elastic Load Balancing (ELB)",
+            "QuotaArn": "arn:aws:servicequotas:us-west-2:test:elasticloadbalancing/L-B211E961",
+            "QuotaCode": "L-B211E961",
+            "QuotaName": "Targets per Availability Zone per Network Load Balancer",
+            "Value": 500.0,
+            "Unit": "None",
+            "Adjustable": true,
+            "GlobalQuota": false,
+            "UsageMetric": {
+                "MetricNamespace": "AWS/Usage",
+                "MetricName": "ResourceCount",
+                "MetricDimensions": {
+                    "Class": "None",
+                    "Resource": "TargetsPerAvailabilityZonePerNetworkLoadBalancer",
+                    "Service": "Elastic Load Balancing",
+                    "Type": "Resource"
+                },
+                "MetricStatisticRecommendation": "Maximum"
+            }
+        },
+        {
+            "ServiceCode": "elasticloadbalancing",
+            "ServiceName": "Elastic Load Balancing (ELB)",
+            "QuotaArn": "arn:aws:servicequotas:us-west-2:test:elasticloadbalancing/L-E9E9831D",
+            "QuotaCode": "L-E9E9831D",
+            "QuotaName": "Classic Load Balancers per Region",
+            "Value": 20.0,
+            "Unit": "None",
+            "Adjustable": true,
+            "GlobalQuota": false,
+            "UsageMetric": {
+                "MetricNamespace": "AWS/Usage",
+                "MetricName": "ResourceCount",
+                "MetricDimensions": {
+                    "Class": "None",
+                    "Resource": "ClassicLoadBalancersPerRegion",
+                    "Service": "Elastic Load Balancing",
+                    "Type": "Resource"
+                },
+                "MetricStatisticRecommendation": "Maximum"
+            }
+        },
+        {
+            "ServiceCode": "elasticloadbalancing",
+            "ServiceName": "Elastic Load Balancing (ELB)",
+            "QuotaArn": "arn:aws:servicequotas:us-west-2:test:elasticloadbalancing/L-A0D0B863",
+            "QuotaCode": "L-A0D0B863",
+            "QuotaName": "Targets per Target Group per Region",
+            "Value": 1000.0,
+            "Unit": "None",
+            "Adjustable": true,
+            "GlobalQuota": false,
+            "UsageMetric": {
+                "MetricNamespace": "AWS/Usage",
+                "MetricName": "ResourceCount",
+                "MetricDimensions": {
+                    "Class": "None",
+                    "Resource": "TargetsPerTargetGroupPerRegion",
+                    "Service": "Elastic Load Balancing",
+                    "Type": "Resource"
+                },
+                "MetricStatisticRecommendation": "Maximum"
+            }
+        }
+    ]
+}
