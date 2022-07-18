@@ -1,10 +1,9 @@
 import json
-from dataclasses import dataclass
 from datetime import datetime
 from functools import lru_cache
 from typing import ClassVar, Dict, Optional, List, Any
 
-from attr import field
+from attr import field, frozen
 from botocore.loaders import Loader
 
 from resoto_plugin_aws.aws_client import AwsClient
@@ -31,6 +30,7 @@ def pricing_region(region: str) -> str:
     return name.replace("Europe", "EU")  # note: Europe is named differently in the price list
 
 
+@frozen(eq=False)
 class AwsPricingProduct:
     kind: ClassVar[str] = "aws_pricing_product"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -43,6 +43,7 @@ class AwsPricingProduct:
     sku: Optional[str] = None
 
 
+@frozen(eq=False)
 class AwsPricingPriceDimension:
     kind: ClassVar[str] = "aws_pricing_price_dimension"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -63,6 +64,7 @@ class AwsPricingPriceDimension:
     price_per_unit: Dict[str, float] = field(factory=dict)
 
 
+@frozen(eq=False)
 class AwsPricingTerm:
     kind: ClassVar[str] = "aws_pricing_term"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -81,7 +83,7 @@ class AwsPricingTerm:
     price_dimensions: List[AwsPricingPriceDimension] = field(factory=list)
 
 
-@dataclass
+@frozen(eq=False)
 class AwsPricingPrice:
     kind: ClassVar[str] = "aws_pricing_price"
     mapping: ClassVar[Dict[str, Bender]] = {
