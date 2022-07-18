@@ -79,6 +79,10 @@ class AwsConfig:
         default=False,
         metadata={"description": "Override any stored role names (e.g. from remote graphs)"},
     )
+    profiles: Optional[List[str]] = field(
+        default=None,
+        metadata={"description": "List of AWS profiles to collect"},
+    )
     account: Optional[List[str]] = field(
         default=None,
         metadata={"description": "List of AWS Account ID(s) to collect (null for all if scrape_org is true)"},

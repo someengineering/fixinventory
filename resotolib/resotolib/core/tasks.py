@@ -3,6 +3,7 @@ import queue
 import time
 import websocket
 import json
+import jsons
 from resotolib.event import EventType, remove_event_listener, add_event_listener, Event
 from resotolib.logger import log
 from resotolib.args import ArgumentParser
@@ -63,7 +64,7 @@ class CoreTasks(threading.Thread):
                 try:
                     result = self.message_processor(message)
                     log.debug(f"Sending reply {result}")
-                    self.ws.send(json.dumps(result))
+                    self.ws.send(jsons.dumps(result))
                 except Exception:
                     log.exception(f"Something went wrong while processing {message}")
             self.queue.task_done()

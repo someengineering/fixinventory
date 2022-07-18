@@ -566,6 +566,9 @@ models: Dict[str, List[AwsResotoModel]] = {
     "service-quotas": [
         # AwsResotoModel("list-service-quotas", "Quotas", "ServiceQuota", prefix="Quota", prop_prefix="quota_")
     ],
+    "rds": [
+        # AwsResotoModel("describe-db-instances", "Instances", "DBInstance", prefix="Rds", prop_prefix="rds_")
+    ],
 }
 
 
