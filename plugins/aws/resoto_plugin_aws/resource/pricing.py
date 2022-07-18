@@ -109,7 +109,7 @@ class AwsPricingPrice:
         cls, client: AwsClient, service_code: str, search_filter: List[Json]
     ) -> "Optional[AwsPricingPrice]":
         # Prices are only available in us-east-1
-        prices = client.for_region("us-east-1").list(
+        prices = client.global_region.list(
             "pricing", "get-products", "PriceList", ServiceCode=service_code, Filters=search_filter, MaxResults=1
         )
         return from_json(bend(cls.mapping, json.loads(prices[0])), AwsPricingPrice) if prices else None
