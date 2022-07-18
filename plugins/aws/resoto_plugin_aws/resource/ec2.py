@@ -393,7 +393,7 @@ class AwsEc2Volume(AwsResource, BaseVolume):
                 if volume.volume_status == VolumeStatus.IN_USE:
                     volume.atime = now
                     volume.mtime = now
-                else:
+                elif volume.volume_status == VolumeStatus.AVAILABLE:
                     vid = volume.id
                     lookup[vid] = volume
                     queries.append(AwsCloudwatchQuery.create("VolumeReadOps", "AWS/EBS", delta, vid, VolumeId=vid))
