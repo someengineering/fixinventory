@@ -1,9 +1,10 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import ClassVar, Dict, Optional, List, Type
 
 from attrs import define, field
 
 from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
+from resoto_plugin_aws.resource.cloudwatch import AwsCloudwatchQuery, AwsCloudwatchMetricData
 from resoto_plugin_aws.utils import ToDict, TagsValue
 from resotolib.baseresources import (  # noqa: F401
     BaseInstance,
@@ -30,6 +31,9 @@ from resotolib.types import Json
 
 
 # region InstanceType
+from resotolib.utils import utc
+
+
 @define(eq=False, slots=False)
 class AwsEc2ProcessorInfo:
     kind: ClassVar[str] = "aws_ec2_processor_info"
@@ -376,11 +380,48 @@ class AwsEc2Volume(AwsResource, BaseVolume):
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        volumes: List[AwsEc2Volume] = []
+
+        def update_atime_mtime() -> None:
+            delta = timedelta(hours=1)
+            queries = []
+            now = utc()
+            start = now - delta
+            lookup: Dict[str, AwsEc2Volume] = {}
+            for volume in volumes:
+                # Used volumes: use now as atime and mtime
+                if volume.volume_status == VolumeStatus.IN_USE:
+                    volume.atime = now
+                    volume.mtime = now
+                else:
+                    vid = volume.id
+                    lookup[vid] = volume
+                    queries.append(AwsCloudwatchQuery.create("VolumeReadOps", "AWS/EBS", delta, vid, VolumeId=vid))
+                    queries.append(AwsCloudwatchQuery.create("VolumeWriteOps", "AWS/EBS", delta, vid, VolumeId=vid))
+
+            for query, metric in AwsCloudwatchMetricData.query_for(builder.client, queries, start, now).items():
+                if non_zero := metric.first_non_zero():
+                    at, value = non_zero
+                    volume = lookup[query.ref_id]
+                    if metric.label == "VolumeReadOps":
+                        volume.atime = at
+                    elif metric.label == "VolumeWriteOps":
+                        volume.mtime = at
+                    lookup.pop(query.ref_id, None)
+            # all volumes in this list do not have value in cloudwatch
+            # fall back to either ctime or start time whatever is more recent.
+            for v in lookup.values():
+                t = max(v.ctime or start, start)
+                v.atime = t
+                v.mtime = t
+
         for js in json:
             instance = builder.add_node(AwsEc2Volume.from_api(js), js)
+            volumes.append(instance)
             if vt := builder.volume_type(instance.volume_type):
                 builder.add_node(vt, {})
                 builder.add_edge(vt, EdgeType.default, node=instance)
+        update_atime_mtime()
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)

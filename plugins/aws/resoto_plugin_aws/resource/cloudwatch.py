@@ -1,11 +1,16 @@
-from datetime import datetime
-from typing import ClassVar, Dict, List, Optional, Type
+import re
+from datetime import datetime, timedelta
+from typing import ClassVar, Dict, List, Optional, Type, Tuple
+
 from attr import define, field
+
+from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
-from resoto_plugin_aws.resource.ec2 import AwsEc2Instance
 from resotolib.baseresources import BaseAccount  # noqa: F401
-from resotolib.json_bender import S, Bend, Bender, ForallBend
+from resotolib.json import from_json
+from resotolib.json_bender import S, Bend, Bender, ForallBend, bend
 from resotolib.types import Json
+from resotolib.utils import chunks
 
 
 @define(eq=False, slots=False)
@@ -128,7 +133,111 @@ class AwsCloudwatchAlarm(AwsResource):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
         for dimension in self.cloudwatch_dimensions:
-            builder.dependant_node(self, reverse=True, delete_reverse=True, clazz=AwsEc2Instance, id=dimension.value)
+            builder.dependant_node(self, reverse=True, delete_reverse=True, kind="aws_ec2_instance", id=dimension.value)
+
+
+@define(hash=True, frozen=True)
+class AwsCloudwatchQuery:
+    metric_name: str
+    namespace: str
+    dimensions: Tuple[Tuple[str, str], ...]
+    period: timedelta
+    ref_id: str
+    metric_id: str
+
+    def to_json(self) -> Json:
+        return {
+            "Id": self.metric_id,
+            "MetricStat": {
+                "Metric": {
+                    "Namespace": self.namespace,
+                    "MetricName": self.metric_name,
+                    "Dimensions": [{"Name": k, "Value": v} for k, v in self.dimensions],
+                },
+                "Period": int((self.period.total_seconds() / 60) * 60),  # round to the next 60 seconds
+                "Stat": "Sum",
+                "Unit": "Count",
+            },
+            "ReturnData": True,
+        }
+
+    @staticmethod
+    def create(
+        metric_name: str,
+        namespace: str,
+        period: timedelta,
+        ref_id: str,
+        metric_id: Optional[str] = None,
+        **dimensions: str,
+    ) -> "AwsCloudwatchQuery":
+        dims = "_".join(f"{k}+{v}" for k, v in dimensions.items())
+        rid = metric_id or re.sub("\\W", "_", f"{metric_name}-{namespace}-{dims}".lower())
+        return AwsCloudwatchQuery(
+            metric_name=metric_name,
+            namespace=namespace,
+            period=period,
+            dimensions=tuple(dimensions.items()),
+            ref_id=ref_id,
+            metric_id=rid,
+        )
+
+
+@define(eq=False, slots=False)
+class AwsCloudwatchMessageData:
+    mapping: ClassVar[Dict[str, Bender]] = {"code": S("Code"), "value": S("Value")}
+    code: Optional[str] = field(default=None)
+    value: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsCloudwatchMetricData:
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("Id"),
+        "label": S("Label"),
+        "metric_timestamps": S("Timestamps", default=[]),
+        "metric_values": S("Values", default=[]),
+        "metric_status_code": S("StatusCode"),
+        "metric_messages": S("Messages", default=[]) >> ForallBend(AwsCloudwatchMessageData.mapping),
+    }
+    id: str = field(default=None)
+    label: Optional[str] = field(default=None)
+    metric_timestamps: List[datetime] = field(factory=list)
+    metric_values: List[float] = field(factory=list)
+    metric_status_code: Optional[str] = field(default=None)
+    metric_messages: List[AwsCloudwatchMessageData] = field(factory=list)
+
+    def first_non_zero(self) -> Optional[Tuple[datetime, float]]:
+        for timestamp, value in zip(self.metric_timestamps, self.metric_values):
+            if value != 0:
+                return timestamp, value
+        return None
+
+    @staticmethod
+    def query_for(
+        client: AwsClient,
+        queries: List[AwsCloudwatchQuery],
+        start_time: datetime,
+        end_time: datetime,
+        scan_desc: bool = True,
+    ) -> "Dict[AwsCloudwatchQuery, AwsCloudwatchMetricData]":
+        lookup = {q.metric_id: q for q in queries}
+        result: Dict[AwsCloudwatchQuery, AwsCloudwatchMetricData] = {}
+        # the api only allows for up to 500 metrics at once
+        for chunk in chunks(queries, 499):
+            part = client.list(
+                "cloudwatch",
+                "get-metric-data",
+                "MetricDataResults",
+                MetricDataQueries=[a.to_json() for a in chunk],
+                StartTime=start_time,
+                EndTime=end_time,
+                ScanBy="TimestampDescending" if scan_desc else "TimestampAscending",
+            )
+            for single in part:
+                metric = from_json(bend(AwsCloudwatchMetricData.mapping, single), AwsCloudwatchMetricData)
+                result[lookup[metric.id]] = metric
+
+        return result
 
 
 resources: List[Type[AwsResource]] = [AwsCloudwatchAlarm]
