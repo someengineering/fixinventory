@@ -1,3 +1,5 @@
+from typing import List
+
 from resoto_plugin_aws.resource.base import GraphBuilder, AwsRegion
 from resoto_plugin_aws.resource.ec2 import AwsEc2InstanceType
 
@@ -14,3 +16,16 @@ def test_instance_type(builder: GraphBuilder) -> None:  # noqa: F811
     assert m4l != m4l_eu
     assert m4l_eu == eu_builder.instance_type("m4.large")
     assert m4l_eu.ondemand_cost == 0.12
+
+
+def test_executor(builder: GraphBuilder) -> None:  # noqa: F811a
+    result: List[int] = []
+
+    def do_something(key: int) -> None:
+        result.append(key)
+
+    for idx in range(0, 100):
+        builder.submit_work(do_something, idx)
+
+    builder.executor.wait_for_submitted_work()
+    assert result == list(range(0, 100))

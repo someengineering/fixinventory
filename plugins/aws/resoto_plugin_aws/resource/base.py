@@ -189,6 +189,32 @@ class AwsEc2VolumeType(AwsResource, BaseVolumeType):
     kind: ClassVar[str] = "aws_ec2_volume_type"
 
 
+@define
+class ExecutorQueue:
+    executor: Executor
+    name: str
+    futures: List[Future[Any]] = []
+    _lock: Lock = Lock()
+
+    def submit_work(self, fn: Callable[..., None], *args: Any, **kwargs: Any) -> Future[Any]:
+        future = self.executor.submit(fn, *args, **kwargs)
+        with self._lock:
+            self.futures.append(future)
+        return future
+
+    def wait_for_submitted_work(self) -> None:
+        # wait until all futures are complete
+        with self._lock:
+            to_wait = self.futures
+            self.futures = []
+        for future in concurrent.futures.as_completed(to_wait):
+            try:
+                future.result()
+            except Exception as ex:
+                log.exception(f"Unhandled exception in account {self.name}: {ex}")
+                raise
+
+
 class GraphBuilder:
     def __init__(
         self,
@@ -197,7 +223,7 @@ class GraphBuilder:
         account: AwsAccount,
         region: AwsRegion,
         client: AwsClient,
-        executor: Executor,
+        executor: ExecutorQueue,
         global_instance_types: Optional[Dict[str, Any]] = None,
     ) -> None:
         self.graph = graph
@@ -206,28 +232,11 @@ class GraphBuilder:
         self.region = region
         self.client = client
         self.executor = executor
-        self.futures: List[Future[Any]] = []
-        self.futures_lock = Lock()
         self.name = f"AWS:{account.name}:{region.name}"
         self.global_instance_types: Dict[str, Any] = global_instance_types or {}
 
     def submit_work(self, fn: Callable[..., None], *args: Any, **kwargs: Any) -> Future[Any]:
-        future = self.executor.submit(fn, *args, **kwargs)
-        with self.futures_lock:
-            self.futures.append(future)
-        return future
-
-    def wait_for_submitted_work(self) -> None:
-        # wait until all futures are complete
-        with self.futures_lock:
-            to_wait = self.futures
-            self.futures = []
-        for future in concurrent.futures.as_completed(to_wait):
-            try:
-                future.result()
-            except Exception as ex:
-                log.exception(f"Unhandled exception in account {self.account.name}: {ex}")
-                raise
+        return self.executor.submit_work(fn, *args, **kwargs)
 
     def node(self, clazz: Optional[Type[AwsResourceType]] = None, **node: Any) -> Optional[AwsResourceType]:
         if isinstance(nd := node.get("node"), AwsResource):

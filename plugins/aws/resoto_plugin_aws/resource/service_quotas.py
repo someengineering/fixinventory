@@ -158,3 +158,5 @@ CollectQuotas = {
         QuotaMatcher(quota_name="Server certificates per account", node_kind="aws_iam_server_certificate"),
     ],
 }
+
+resources: List[Type[AwsResource]] = [AwsServiceQuota]

@@ -7,8 +7,20 @@ from botocore.exceptions import ClientError
 
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.config import AwsConfig
-from resoto_plugin_aws.resource import iam, ec2, route53, elbv2, autoscaling, s3, cloudwatch, cloudformation, eks, rds
-from resoto_plugin_aws.resource.base import AwsRegion, AwsAccount, AwsResource, GraphBuilder
+from resoto_plugin_aws.resource import (
+    autoscaling,
+    cloudformation,
+    cloudwatch,
+    ec2,
+    eks,
+    elbv2,
+    iam,
+    rds,
+    route53,
+    s3,
+    service_quotas,
+)
+from resoto_plugin_aws.resource.base import AwsRegion, AwsAccount, AwsResource, GraphBuilder, ExecutorQueue
 from resotolib.baseresources import Cloud, EdgeType
 from resotolib.graph import Graph
 
@@ -17,13 +29,14 @@ log = logging.getLogger("resoto.plugins.aws")
 
 global_resources: List[Type[AwsResource]] = iam.resources + route53.resources + ec2.global_resources + s3.resources
 regional_resources: List[Type[AwsResource]] = (
-    ec2.resources
-    + elbv2.resources
-    + autoscaling.resources
-    + cloudwatch.resources
+    autoscaling.resources
     + cloudformation.resources
+    + cloudwatch.resources
+    + ec2.resources
     + eks.resources
+    + elbv2.resources
     + rds.resources
+    + service_quotas.resources
 )
 all_resources: List[Type[AwsResource]] = global_resources + regional_resources
 
@@ -40,14 +53,15 @@ class AwsAccountCollector:
 
     def collect(self) -> None:
         with ThreadPoolExecutor(thread_name_prefix=f"aws_{self.account.id}") as executor:
-            builder = GraphBuilder(self.graph, self.cloud, self.account, self.global_region, self.client, executor)
-            builder.submit_work(self.update_account)
+            queue = ExecutorQueue(executor, self.account.name)
+            queue.submit_work(self.update_account)
+            builder = GraphBuilder(self.graph, self.cloud, self.account, self.global_region, self.client, queue)
 
             # all global resources
             for resource in global_resources:
                 if self.config.should_collect(resource.kind):
                     resource.collect_resources(builder)
-            builder.wait_for_submitted_work()
+            queue.wait_for_submitted_work()
 
             # all regional resources for all configured regions
             for region in self.regions:
@@ -55,7 +69,7 @@ class AwsAccountCollector:
                 for resource in regional_resources:
                     if self.config.should_collect(resource.kind):
                         resource.collect_resources(region_builder)
-            builder.wait_for_submitted_work()
+            queue.wait_for_submitted_work()
 
             # connect account to all regions
             for region in self.regions:
@@ -71,7 +85,7 @@ class AwsAccountCollector:
                     raise Exception("Only AWS resources expected")
 
             # wait for all futures to finish
-            builder.wait_for_submitted_work()
+            queue.wait_for_submitted_work()
 
     def update_account(self) -> None:
         # account alias

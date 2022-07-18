@@ -17,6 +17,7 @@ from resoto_plugin_aws.resource.base import (
     AwsRegion,
     AwsResource,
     AwsApiSpec,
+    ExecutorQueue,
 )
 from resotolib.baseresources import Cloud
 from resotolib.graph import Graph
@@ -112,11 +113,11 @@ def build_graph(cls: Type[AwsResourceType]) -> GraphBuilder:
     config = AwsConfig()
     config.sessions().session_class_factory = BotoFileBasedSession
     client = AwsClient(config, "123456789012", "role", "us-east-1")
-    builder = GraphBuilder(
-        Graph(), Cloud(id="test"), AwsAccount(id="test"), AwsRegion(id="eu-central-1"), client, DummyExecutor()
-    )
+    queue = ExecutorQueue(DummyExecutor(), "test")
+    region = AwsRegion(id="eu-central-1")
+    builder = GraphBuilder(Graph(), Cloud(id="test"), AwsAccount(id="test"), region, client, queue)
     cls.collect_resources(builder)
-    builder.wait_for_submitted_work()
+    builder.executor.wait_for_submitted_work()
     return builder
 
 
