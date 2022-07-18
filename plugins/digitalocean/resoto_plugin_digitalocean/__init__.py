@@ -75,14 +75,14 @@ class DigitalOceanCollectorPlugin(BaseCollectorPlugin):
         config.add_config(DigitalOceanCollectorConfig)
 
     @staticmethod
-    def update_tag(resource: BaseResource, key: str, value: str) -> bool:
+    def update_tag(config: Config, resource: BaseResource, key: str, value: str) -> bool:
         assert isinstance(resource, DigitalOceanResource)
         tag_resource_name = resource.tag_resource_name()
         if tag_resource_name:
 
             log.debug(f"Updating tag {key} on resource {resource.id}")
             team = resource.account()
-            credentials = get_team_credentials(team.id)
+            credentials = get_team_credentials(config, team.id)
             if credentials is None:
                 raise RuntimeError(
                     f"Cannot update tag on resource {resource.id}, credentials not found for team {team.id}"
@@ -114,13 +114,13 @@ class DigitalOceanCollectorPlugin(BaseCollectorPlugin):
             raise NotImplementedError(f"resource {resource.kind} does not support tagging")
 
     @staticmethod
-    def delete_tag(resource: BaseResource, key: str) -> bool:
+    def delete_tag(config: Config, resource: BaseResource, key: str) -> bool:
         assert isinstance(resource, DigitalOceanResource)
         tag_resource_name = resource.tag_resource_name()
         if tag_resource_name:
             log.debug(f"Deleting tag {key} on resource {resource.id}")
             team = resource.account()
-            credentials = get_team_credentials(team.id)
+            credentials = get_team_credentials(config, team.id)
             if credentials is None:
                 raise RuntimeError(
                     f"Cannot update tag on resource {resource.id}, credentials not found for team {team.id}"

@@ -212,12 +212,12 @@ class BaseCollectorPlugin(BasePlugin):
         pass
 
     @staticmethod
-    def update_tag(resource: BaseResource, key: str, value: str) -> bool:
+    def update_tag(config: Config, resource: BaseResource, key: str, value: str) -> bool:
         """Update the tag of a resource"""
         return resource.update_tag(key, value)
 
     @staticmethod
-    def delete_tag(resource: BaseResource, key: str) -> bool:
+    def delete_tag(config: Config, resource: BaseResource, key: str) -> bool:
         """Delete the tag of a resource"""
         return resource.delete_tag(key)
 

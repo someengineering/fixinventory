@@ -1,12 +1,13 @@
 from resotolib.baseplugin import BaseCollectorPlugin
 from resotolib.baseresources import BaseResource
+from resotolib.config import Config
 from resotolib.logger import log
 from resotolib.core.model_export import node_from_dict, node_to_dict
 from resotolib.types import Json
 from typing import Any, Dict, List, Type
 
 
-def core_tag_tasks_processor(plugins: Dict[str, Type[BaseCollectorPlugin]], message: Dict[str, Any]) -> Json:
+def core_tag_tasks_processor(plugins: Dict[str, Type[BaseCollectorPlugin]], config: Config, message: Dict[str, Any]) -> Json:
     task_id = message.get("task_id")
     # task_name = message.get("task_name")
     # task_attrs = message.get("attrs", {})
@@ -20,7 +21,7 @@ def core_tag_tasks_processor(plugins: Dict[str, Type[BaseCollectorPlugin]], mess
     def delete(plugin: Type[BaseCollectorPlugin], node: BaseResource, key: str) -> None:
         log.debug(f"Calling parent resource to delete tag {key} in cloud")
         try:
-            if plugin.delete_tag(node, key):
+            if plugin.delete_tag(config, node, key):
                 log_msg = f"Successfully deleted tag {key} in cloud"
                 node.add_change("tags")
                 node.log(log_msg)
@@ -41,7 +42,7 @@ def core_tag_tasks_processor(plugins: Dict[str, Type[BaseCollectorPlugin]], mess
     def update(plugin: Type[BaseCollectorPlugin], node: BaseResource, key: str, value: str) -> None:
         log.debug(f"Calling parent resource to set tag {key} to {value} in cloud")
         try:
-            if plugin.update_tag(node, key, value):
+            if plugin.update_tag(config, node, key, value):
                 log_msg = f"Successfully set tag {key} to {value} in cloud"
                 node.add_change("tags")
                 node.log(log_msg)
