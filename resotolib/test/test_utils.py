@@ -200,20 +200,6 @@ class SomeTestResource(BaseResource):
         return False
 
 
-def test_resource_tags_dict():
-    key = "foo"
-    value = "bar"
-    new_value = "baz"
-    r = SomeTestResource(id="foo", tags={key: value})
-    assert r.tags[key] == value
-    assert r.key is None
-    assert r.value is None
-    r.tags[key] = new_value
-    assert r.key is key
-    assert r.value is new_value
-    assert r.tags[key] == new_value
-
-
 def test_ordinal():
     assert ordinal(1) == "1st"
     assert ordinal(2) == "2nd"

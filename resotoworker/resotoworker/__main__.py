@@ -5,7 +5,7 @@ import os
 import sys
 import threading
 import resotolib.proc
-from typing import List, Dict, Type, Optional, Any
+from typing import List, Dict, Type, Optional, Any, cast
 from resotoworker.config import add_config
 from resotolib.config import Config
 from resotolib.logger import log, setup_logger, add_args as logging_add_args
@@ -149,7 +149,11 @@ def main() -> None:
         resotocore_ws_uri=resotocore.ws_uri,
         tasks=["tag"],
         task_queue_filter=task_queue_filter,
-        message_processor=core_tag_tasks_processor,
+        message_processor=partial(
+            core_tag_tasks_processor,
+            {p.cloud: p for p in cast(List[Type[BaseCollectorPlugin]], plugin_loader.plugins(PluginType.COLLECTOR))},
+            config,
+        ),
         tls_data=tls_data,
     )
     core_actions.start()
