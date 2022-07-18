@@ -515,6 +515,15 @@ models: Dict[str, List[AwsResotoModel]] = {
         #     prop_prefix="access_key_",
         # ),
     ],
+    "elb": [
+        # AwsResotoModel(
+        #     "describe-load-balancers",
+        #     "LoadBalancerDescriptions",
+        #     "LoadBalancerDescription",
+        #     prefix="Elb",
+        #     prop_prefix="elb_",
+        # ),
+    ],
     "elbv2": [
         # AwsResotoModel(
         #     "describe-load-balancers",

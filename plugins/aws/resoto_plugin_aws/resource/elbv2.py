@@ -3,6 +3,7 @@ from typing import ClassVar, Dict, Optional, Type, List
 from attrs import define, field
 
 from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
+from resoto_plugin_aws.resource.ec2 import AwsEc2Vpc
 from resoto_plugin_aws.utils import ToDict
 from resotolib.baseresources import BaseLoadBalancer, EdgeType, BaseAccount  # noqa: F401
 from resotolib.json import from_json
@@ -231,7 +232,6 @@ class AwsAlb(AwsResource, BaseLoadBalancer):
         "alb_dns_name": S("DNSName"),
         "alb_canonical_hosted_zone_id": S("CanonicalHostedZoneId"),
         "alb_scheme": S("Scheme"),
-        "alb_vpc_id": S("VpcId"),
         "alb_state": S("State") >> Bend(AwsAlbLoadBalancerState.mapping),
         "alb_type": S("Type"),
         "lb_type": K("alb"),
@@ -243,7 +243,6 @@ class AwsAlb(AwsResource, BaseLoadBalancer):
     alb_dns_name: Optional[str] = field(default=None)
     alb_canonical_hosted_zone_id: Optional[str] = field(default=None)
     alb_scheme: Optional[str] = field(default=None)
-    alb_vpc_id: Optional[str] = field(default=None)
     alb_state: Optional[AwsAlbLoadBalancerState] = field(default=None)
     alb_availability_zones: List[AwsAlbAvailabilityZone] = field(factory=list)
     alb_security_groups: List[str] = field(factory=list)
@@ -265,7 +264,8 @@ class AwsAlb(AwsResource, BaseLoadBalancer):
             builder.add_node(lb, js)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        builder.dependant_node(self, reverse=True, delete_reverse=True, id=self.alb_vpc_id)
+        if vpc_id := source.get("VpcId"):
+            builder.dependant_node(self, reverse=True, delete_reverse=True, clazz=AwsEc2Vpc, id=vpc_id)
         for sg in self.alb_security_groups:
             builder.add_edge(self, EdgeType.default, reverse=True, id=sg)
         for sn in self.alb_availability_zones:
@@ -327,7 +327,6 @@ class AwsAlbTargetGroup(AwsResource):
         "arn": S("TargetGroupArn"),
         "protocol": S("Protocol"),
         "port": S("Port"),
-        "alb_vpc_id": S("VpcId"),
         "alb_health_check_protocol": S("HealthCheckProtocol"),
         "alb_health_check_port": S("HealthCheckPort"),
         "alb_health_check_enabled": S("HealthCheckEnabled"),
@@ -344,7 +343,6 @@ class AwsAlbTargetGroup(AwsResource):
     target_type: Optional[str] = field(default=None)
     protocol: Optional[str] = field(default=None)
     port: Optional[int] = field(default=None)
-    alb_vpc_id: Optional[str] = field(default=None)
     alb_health_check_protocol: Optional[str] = field(default=None)
     alb_health_check_port: Optional[str] = field(default=None)
     alb_health_check_enabled: Optional[bool] = field(default=None)
@@ -373,8 +371,8 @@ class AwsAlbTargetGroup(AwsResource):
             builder.add_node(tg, js)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if vpc_id := self.alb_vpc_id:
-            builder.dependant_node(self, reverse=True, delete_reverse=True, id=vpc_id)
+        if vpc_id := source.get("VpcId"):
+            builder.dependant_node(self, reverse=True, delete_reverse=True, clazz=AwsEc2Vpc, id=vpc_id)
         for lb_arn in bend(S("LoadBalancerArns", default=[]), source):
             if lb := builder.node(AwsAlb, arn=lb_arn):
                 builder.dependant_node(lb, node=self)
