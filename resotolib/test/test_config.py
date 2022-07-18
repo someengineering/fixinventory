@@ -1,3 +1,6 @@
+from copy import deepcopy
+from distutils.command.config import config
+from functools import lru_cache
 import pytest
 from attrs import define, field
 from typing import ClassVar, Dict
@@ -35,6 +38,27 @@ def test_config():
         Config.does_not_exist.foo = "bar"
     with pytest.raises(ConfigNotFoundError):
         cfg.does_not_exist.foo = "bar"
+
+
+def test_config_lru_cache():
+    @lru_cache()
+    def test_lru_config(config: Config):
+        return config.configtest.testvar1
+
+    arg_parser = get_arg_parser()
+    core_add_args(arg_parser)
+    arg_parser.parse_known_args()
+    cfg = Config("test")
+    cfg.add_config(ConfigTest)
+    cfg.init_default_config()
+
+    assert test_lru_config(cfg) == "testing123"
+    ArgumentParser.args.config_override = [
+        "configtest.testvar1=foo",
+    ]
+    cfg.override_config(cfg.running_config)
+    assert cfg.configtest.testvar1 == "foo"
+    assert test_lru_config(cfg) == "foo"
 
 
 def test_config_override():
