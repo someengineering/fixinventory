@@ -152,7 +152,7 @@ def main() -> None:
         message_processor=partial(
             core_tag_tasks_processor,
             {p.cloud: p for p in cast(List[Type[BaseCollectorPlugin]], plugin_loader.plugins(PluginType.COLLECTOR))},
-            config
+            config,
         ),
         tls_data=tls_data,
     )

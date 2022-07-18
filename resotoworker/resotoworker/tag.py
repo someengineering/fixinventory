@@ -7,7 +7,9 @@ from resotolib.types import Json
 from typing import Any, Dict, List, Type
 
 
-def core_tag_tasks_processor(plugins: Dict[str, Type[BaseCollectorPlugin]], config: Config, message: Dict[str, Any]) -> Json:
+def core_tag_tasks_processor(
+    plugins: Dict[str, Type[BaseCollectorPlugin]], config: Config, message: Dict[str, Any]
+) -> Json:
     task_id = message.get("task_id")
     # task_name = message.get("task_name")
     # task_attrs = message.get("attrs", {})
