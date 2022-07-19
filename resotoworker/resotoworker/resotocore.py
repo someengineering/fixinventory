@@ -47,6 +47,9 @@ class Resotocore:
         #  The graph is not required any longer and can be released.
         del graph
         graph_export_iterator.export_graph()
+        if not graph_export_iterator.found_replace_node:
+            log.error("No replace node found, not sending graph to resotocore")
+            return
         self.send_graph(graph_export_iterator, base_uri, resotocore_graph, task_id)
 
     def create_graph(self, resotocore_base_uri: str, resotocore_graph: str) -> None:

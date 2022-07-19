@@ -80,7 +80,7 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
             for future in futures.as_completed(wait_for):
                 account_graph = future.result()
                 if not isinstance(account_graph, Graph):
-                    log.error(f"Returned account graph has invalid type {type(account_graph)}")
+                    log.debug(f"Skipping account graph of invalid type {type(account_graph)}")
                     continue
                 self.graph.merge(account_graph)
 
@@ -93,23 +93,27 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
                 self.__regions = list(Config.aws.region)
         return self.__regions
 
-    def authenticated(self, profile: Optional[str] = None) -> bool:
-        try:
-            _ = current_account_id(profile=profile)
-        except botocore.exceptions.NoCredentialsError:
-            log.error("No AWS credentials found")
-            return False
-        except botocore.exceptions.ClientError as e:
-            if e.response["Error"]["Code"] == "AuthFailure":
-                log.error("AWS was unable to validate the provided access credentials")
-            elif e.response["Error"]["Code"] == "InvalidClientTokenId":
-                log.error("AWS was unable to validate the provided security token")
-            elif e.response["Error"]["Code"] == "ExpiredToken":
-                log.error("AWS security token included in the request is expired")
-            else:
-                raise
-            return False
-        return True
+
+def authenticated(account: AWSAccount) -> bool:
+    try:
+        log.debug(f"AWS testing credentials for {account.rtdname}")
+        session = aws_session(account.id, account.role, account.profile)
+        _ = session.client("sts").get_caller_identity().get("Account")
+    except botocore.exceptions.NoCredentialsError:
+        log.error(f"No AWS credentials found for {account.rtdname}")
+    except botocore.exceptions.ClientError as e:
+        if e.response["Error"]["Code"] == "AuthFailure":
+            log.error(f"AWS was unable to validate the provided access credentials for {account.rtdname}")
+        elif e.response["Error"]["Code"] == "InvalidClientTokenId":
+            log.error(f"AWS was unable to validate the provided security token for {account.rtdname}")
+        elif e.response["Error"]["Code"] == "ExpiredToken":
+            log.error(f"AWS security token included in the request is expired for {account.rtdname}")
+        elif e.response["Error"]["Code"] == "AccessDenied":
+            log.error(f"AWS denied access to {account.rtdname}")
+        else:
+            raise
+        return False
+    return True
 
 
 def current_account_id(profile: Optional[str] = None) -> str:
@@ -140,29 +144,44 @@ def get_accounts() -> List[AWSAccount]:
     for profile in profiles:
         if profile is not None:
             log.debug(f"Finding accounts for profile {profile}")
-        if Config.aws.role and Config.aws.scrape_org:
-            log.debug("Role and scrape_org are both set")
-            accounts.extend(
-                [
-                    AWSAccount(id=aws_account_id, role=Config.aws.role, profile=profile)
-                    for aws_account_id in get_org_accounts(
-                        filter_current_account=not Config.aws.assume_current, profile=profile
-                    )
-                    if aws_account_id not in Config.aws.scrape_exclude_account
-                ]
-            )
-            if not Config.aws.do_not_scrape_current:
-                accounts.append(AWSAccount(id=current_account_id(profile=profile)))
-        elif Config.aws.role and Config.aws.account:
-            log.debug("Both, role and list of accounts specified")
-            accounts.extend(
-                [
-                    AWSAccount(id=aws_account_id, role=Config.aws.role, profile=profile)
-                    for aws_account_id in Config.aws.account
-                ]
-            )
-        else:
-            accounts.extend([AWSAccount(id=current_account_id(profile=profile), profile=profile)])
+
+        try:
+            if Config.aws.role and Config.aws.scrape_org:
+                log.debug("Role and scrape_org are both set")
+                accounts.extend(
+                    [
+                        AWSAccount(id=aws_account_id, role=Config.aws.role, profile=profile)
+                        for aws_account_id in get_org_accounts(
+                            filter_current_account=not Config.aws.assume_current, profile=profile
+                        )
+                        if aws_account_id not in Config.aws.scrape_exclude_account
+                    ]
+                )
+                if not Config.aws.do_not_scrape_current:
+                    accounts.append(AWSAccount(id=current_account_id(profile=profile)))
+            elif Config.aws.role and Config.aws.account:
+                log.debug("Both, role and list of accounts specified")
+                accounts.extend(
+                    [
+                        AWSAccount(id=aws_account_id, role=Config.aws.role, profile=profile)
+                        for aws_account_id in Config.aws.account
+                    ]
+                )
+            else:
+                accounts.extend([AWSAccount(id=current_account_id(profile=profile), profile=profile)])
+        except botocore.exceptions.NoCredentialsError:
+            log.error(f"No AWS credentials found for {profile}")
+        except botocore.exceptions.ClientError as e:
+            if e.response["Error"]["Code"] == "AuthFailure":
+                log.error(f"AWS was unable to validate the provided access credentials for {profile}")
+            elif e.response["Error"]["Code"] == "InvalidClientTokenId":
+                log.error(f"AWS was unable to validate the provided security token for {profile}")
+            elif e.response["Error"]["Code"] == "ExpiredToken":
+                log.error(f"AWS security token included in the request is expired for {profile}")
+            elif e.response["Error"]["Code"] == "AccessDenied":
+                log.error(f"AWS denied access for {profile}")
+            else:
+                raise
 
     return accounts
 
@@ -203,7 +222,7 @@ def collect_account(
     regions: List[str],
     args: Namespace,
     running_config: RunningConfig,
-) -> Graph:
+) -> Optional[Graph]:
     collector_name = f"aws_{account.id}"
     resotolib.proc.set_thread_name(collector_name)
 
@@ -213,6 +232,10 @@ def collect_account(
     if running_config is not None:
         Config.running_config.apply(running_config)
 
+    if not authenticated(account):
+        log.error(f"Skipping {account.rtdname} due to authentication failure")
+        return None
+
     log.debug(f"Starting new collect process for account {account.dname}")
 
     aac = AWSAccountCollector(regions, account)
@@ -221,8 +244,10 @@ def collect_account(
     except botocore.exceptions.ClientError as e:
         log.exception(f"An AWS {e.response['Error']['Code']} error occurred while collecting account {account.dname}")
         metrics_unhandled_account_exceptions.labels(account=account.dname).inc()
+        return None
     except Exception:
         log.exception(f"An unhandled error occurred while collecting AWS account {account.dname}")
         metrics_unhandled_account_exceptions.labels(account=account.dname).inc()
+        return None
 
     return aac.graph  # type: ignore

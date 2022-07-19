@@ -762,6 +762,7 @@ class GraphExportIterator:
             self.graph_merge_kind = BaseCloud
 
         self.graph_exported = False
+        self.found_replace_node = False
         self.export_lock = threading.Lock()
         self.total_lines = 0
         self.number_of_nodes = int(graph.number_of_nodes())
@@ -810,11 +811,14 @@ class GraphExportIterator:
                     if "metadata" not in node_dict or not isinstance(node_dict["metadata"], dict):
                         node_dict["metadata"] = {}
                     node_dict["metadata"]["replace"] = True
+                    self.found_replace_node = True
                 node_json = jsons.dumps(node_dict) + "\n"
                 self.tempfile.write(node_json.encode())
                 self.total_lines += 1
             elapsed_nodes = time() - start_time
             log.debug(f"Exported {self.number_of_nodes} nodes in {elapsed_nodes:.4f}s")
+            if not self.found_replace_node:
+                log.warning(f"No nodes of kind {self.graph_merge_kind.kind} found in graph")
             start_time = time()
             for edge in self.graph.edges:
                 from_node = edge[0]
