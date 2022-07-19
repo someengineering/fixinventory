@@ -383,10 +383,10 @@ class AwsEc2Volume(AwsResource, BaseVolume):
         volumes: List[AwsEc2Volume] = []
 
         def update_atime_mtime() -> None:
-            delta = builder.config.cloudwatch_metrics_for_atime_mtime_granularity
+            delta = builder.config.atime_mtime_granularity()
             queries = []
             now = utc()
-            start = now - builder.config.cloudwatch_metrics_for_atime_mtime_period
+            start = now - builder.config.atime_mtime_period()
             lookup: Dict[str, AwsEc2Volume] = {}
             for volume in volumes:
                 # Used volumes: use now as atime and mtime
