@@ -267,7 +267,7 @@ class Config(metaclass=MetaConfig):
     # the __hash__ and the __eq__ below is a workaround to make sure the outdated config is not cached by
     # a lru_cache decoartor after the config performed a self-update. It serves no other purpose.
     def __hash__(self) -> int:
-        return self.running_config.revision.__hash__()
+        return hash(self.running_config.revision)
 
     def __eq__(self, other: Any) -> bool:
         if isinstance(other, Config):
