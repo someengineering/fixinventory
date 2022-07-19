@@ -112,7 +112,7 @@ def all_props_set(obj: AwsResourceType, ignore_props: Set[str]) -> None:
 def build_graph(cls: Type[AwsResourceType]) -> GraphBuilder:
     config = AwsConfig()
     config.sessions().session_class_factory = BotoFileBasedSession
-    client = AwsClient(config, "123456789012", "role", "us-east-1")
+    client = AwsClient(config, "123456789012", role="role", region="us-east-1")
     queue = ExecutorQueue(DummyExecutor(), "test")
     region = AwsRegion(id="eu-central-1")
     builder = GraphBuilder(Graph(), Cloud(id="test"), AwsAccount(id="test"), region, client, queue)

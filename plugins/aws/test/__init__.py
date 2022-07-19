@@ -12,7 +12,7 @@ from test.resources import BotoFileBasedSession, DummyExecutor
 def aws_client() -> AwsClient:
     config = AwsConfig()
     config.sessions().session_class_factory = BotoFileBasedSession
-    return AwsClient(config, "test", None, "us-east-1")
+    return AwsClient(config, "test", region="us-east-1")
 
 
 @fixture

@@ -152,6 +152,7 @@ class AwsAccount(BaseAccount, AwsResource):
     kind: ClassVar[str] = "aws_account"
     account_alias: Optional[str] = ""
     role: Optional[str] = None
+    profile: Optional[str] = None
     users: Optional[int] = 0
     groups: Optional[int] = 0
     account_mfa_enabled: Optional[int] = 0

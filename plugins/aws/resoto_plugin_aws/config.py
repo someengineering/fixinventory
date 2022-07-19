@@ -25,22 +25,32 @@ class AwsSessionHolder:
 
     # noinspection PyUnusedLocal
     @lru_cache(maxsize=128)
-    def __direct_session(self, thread_id: Any) -> BotoSession:
-        return self.session_class_factory(
-            aws_access_key_id=self.access_key_id,
-            aws_secret_access_key=self.secret_access_key,
-        )
+    def __direct_session(self, profile: Optional[str], thread_id: Any) -> BotoSession:
+        if profile:
+            return self.session_class_factory(profile_name=profile)
+        else:
+            return self.session_class_factory(
+                aws_access_key_id=self.access_key_id, aws_secret_access_key=self.secret_access_key
+            )
 
     # noinspection PyUnusedLocal
-    @lru_cache(maxsize=128)
-    def __sts_session(self, aws_account: str, aws_role: str, thread_id: Any, cache_key: int) -> BotoSession:
+    @lru_cache(maxsize=512)
+    def __sts_session(
+        self, aws_account: str, aws_role: str, profile: Optional[str], thread_id: Any, cache_key: int
+    ) -> BotoSession:
         role = self.role if self.role_override else aws_role
         role_arn = f"arn:aws:iam::{aws_account}:role/{role}"
-        session = self.session_class_factory(
-            aws_access_key_id=self.access_key_id,
-            aws_secret_access_key=self.secret_access_key,
-            region_name="us-east-1",
-        )
+        if profile:
+            session = self.session_class_factory(
+                profile_name=profile,
+                region_name="us-east-1",
+            )
+        else:
+            session = self.session_class_factory(
+                aws_access_key_id=self.access_key_id,
+                aws_secret_access_key=self.secret_access_key,
+                region_name="us-east-1",
+            )
         sts = session.client("sts")
         token = sts.assume_role(RoleArn=role_arn, RoleSessionName=f"{aws_account}-{str(uuid.uuid4())}")
         credentials = token["Credentials"]
@@ -50,17 +60,19 @@ class AwsSessionHolder:
             aws_session_token=credentials["SessionToken"],
         )
 
-    def session(self, aws_account: str, aws_role: Optional[str] = None) -> BotoSession:
+    def session(
+        self, aws_account: str, aws_role: Optional[str] = None, aws_profile: Optional[str] = None
+    ) -> BotoSession:
         # sessions should not be shared across threads
         # https://boto3.amazonaws.com/v1/documentation/api/1.14.31/guide/session.html#multithreading-or-multiprocessing-with-sessions
         thread_id = threading.current_thread().ident
         if aws_role is None:
-            return self.__direct_session(thread_id)
+            return self.__direct_session(aws_profile, thread_id)
         else:
             # Use sts to create a temporary token for the given account and role
             # Sts session is at least valid for 900 seconds (default 1 hour)
             # let's renew the session after 10 minutes
-            return self.__sts_session(aws_account, aws_role, thread_id, int(time.time() / 600))
+            return self.__sts_session(aws_account, aws_role, aws_profile, thread_id, int(time.time() / 600))
 
 
 @define(slots=False)
