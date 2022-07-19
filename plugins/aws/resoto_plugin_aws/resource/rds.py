@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import ClassVar, Dict, List, Optional, Type
 from attr import define, field
 from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
@@ -372,10 +372,10 @@ class AwsRdsInstance(AwsResource, BaseDatabase):
         instances: List[AwsRdsInstance] = []
 
         def update_atime_mtime() -> None:
-            delta = timedelta(hours=1)
+            delta = builder.config.cloudwatch_metrics_for_atime_mtime_granularity
             queries = []
             now = utc()
-            start = now - delta
+            start = now - builder.config.cloudwatch_metrics_for_atime_mtime_period
             lookup: Dict[str, AwsRdsInstance] = {}
             for rds in instances:
                 vid = rds.id
