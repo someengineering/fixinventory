@@ -51,7 +51,7 @@ class AwsAccountCollector:
         self.global_region = AwsRegion(id="us-east-1", tags={}, name="global", account=account)
         self.regions = [AwsRegion(id=region, tags={}, account=account) for region in regions]
         self.graph = Graph(root=self.account)
-        self.client = AwsClient(config, account.id, account.role)
+        self.client = AwsClient(config, account.id, role=account.role, profile=account.profile, region="us-east-1")
 
     def collect(self) -> None:
         with ThreadPoolExecutor(thread_name_prefix=f"aws_{self.account.id}") as executor:

@@ -17,12 +17,15 @@ class AwsClient:
         self,
         config: AwsConfig,
         account_id: str,
-        account_role: Optional[str] = None,
+        *,
+        role: Optional[str] = None,
+        profile: Optional[str] = None,
         region: Optional[str] = None,
     ) -> None:
         self.config = config
         self.account_id = account_id
-        self.account_role = account_role
+        self.role = role
+        self.profile = profile
         self.region = region
 
     def __to_json(self, node: Any, **kwargs: Any) -> JsonElement:
@@ -40,7 +43,7 @@ class AwsClient:
     def call(self, service: str, action: str, result_name: Optional[str], **kwargs: Any) -> JsonElement:
         log.info(f"[Aws] call service={service} action={action} with_args={kwargs}")
         py_action = action.replace("-", "_")
-        session = self.config.sessions().session(self.account_id, self.account_role)
+        session = self.config.sessions().session(self.account_id, self.role, self.profile)
         client = session.client(service, region_name=self.region)
         if client.can_paginate(py_action):
             paginator = client.get_paginator(py_action)
@@ -70,7 +73,7 @@ class AwsClient:
         return self.call(service, action, result_name, **kwargs)  # type: ignore
 
     def for_region(self, region: str) -> AwsClient:
-        return AwsClient(self.config, self.account_id, self.account_role, region)
+        return AwsClient(self.config, self.account_id, role=self.role, profile=self.profile, region=region)
 
     @cached_property
     def global_region(self) -> AwsClient:
