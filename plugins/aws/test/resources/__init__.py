@@ -62,6 +62,8 @@ class BotoFileClient:
                 return re.sub(r"[^a-zA-Z0-9]", "_", str(v))
 
         vals = "__" + ("_".join(arg_string(v) for _, v in sorted(kwargs.items()))) if kwargs else ""
+        # cut the action string if it becomes too long
+        vals = vals[0:220] if len(vals) > 220 else vals
         action = action_name.replace("_", "-")
         service = service_name.replace("-", "_")
         return os.path.abspath(os.path.dirname(__file__) + f"/files/{service}/{action}{vals}.json")
@@ -74,7 +76,7 @@ class BotoFileClient:
                 with open(path) as f:
                     return json.load(f)
             else:
-                print(f"Not found: {path}")
+                # print(f"Not found: {path}")
                 return {}
 
         return call_action

@@ -2,12 +2,15 @@ import logging
 import threading
 import time
 import uuid
+from datetime import timedelta
+
 from attrs import define, field
 from functools import lru_cache
 from typing import List, ClassVar, Optional, Type, Any, Dict
 
 from boto3.session import Session as BotoSession
 
+from resotolib.durations import parse_duration
 from resotolib.proc import num_default_threads
 
 log = logging.getLogger("resoto.plugins.aws")
@@ -119,6 +122,30 @@ class AwsConfig:
         factory=list,
         metadata={"description": "List of AWS services to exclude (default: none)"},
     )
+    cloudwatch_metrics_for_atime_mtime_period: str = field(
+        default="60d",
+        metadata={
+            "type_hint": "duration",
+            "description": "This value is used to look up atime and mtime for volumes and rds instances.\n"
+            "It defines how long Resoto should look back for CloudWatch metrics.\n"
+            "If no metric is found, now-period is used as atime and mtime. Defaults to 60 days.",
+        },
+    )
+    cloudwatch_metrics_for_atime_mtime_granularity: str = field(
+        default="1h",
+        metadata={
+            "type_hint": "duration",
+            "description": "Granularity of atime and mtime.\n"
+            "Higher precision is more expensive: Resoto will fetch period * granularity data points.\n"
+            "Defaults to 1 hour.",
+        },
+    )
+
+    def atime_mtime_period(self) -> timedelta:
+        return parse_duration(self.cloudwatch_metrics_for_atime_mtime_period)
+
+    def atime_mtime_granularity(self) -> timedelta:
+        return parse_duration(self.cloudwatch_metrics_for_atime_mtime_granularity)
 
     def should_collect(self, name: str) -> bool:
         if self.collect:

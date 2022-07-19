@@ -350,6 +350,18 @@ models: Dict[str, List[AwsResotoModel]] = {
         #     "list-stack-sets", "Summaries", "StackSetSummary", prefix="CloudFormation", prop_prefix="stack_set_"
         # ),
     ],
+    "cloudwatch": [
+        # AwsResotoModel(
+        #     "describe-alarms",
+        #     "Alarms",
+        #     "MetricAlarm",
+        #     prefix="Cloudwatch",
+        #     prop_prefix="cloudwatch_"
+        # ),
+        # AwsResotoModel(
+        #     "get-metric-data", "GetMetricDataResult", "MetricDataResult", prefix="Cloudwatch", prop_prefix="metric_"
+        # )
+    ],
     "ec2": [
         # AwsResotoModel(
         #     "describe-route-tables",
@@ -440,15 +452,46 @@ models: Dict[str, List[AwsResotoModel]] = {
         # ),
         # AwsResotoModel("describe-network-acls", "NetworkAcls", "NetworkAcl", prefix="Ec2"),
     ],
-    "route53": [
-        # AwsResotoModel("list_hosted_zones", "HostedZones", "HostedZone", prefix="Route53", prop_prefix="zone_"),
+    "elb": [
         # AwsResotoModel(
-        #     "list_resource_record_sets",
-        #     "ResourceRecordSets",
-        #     "ResourceRecordSet",
-        #     prefix="Route53",
-        #     prop_prefix="record_",
+        #     "describe-load-balancers",
+        #     "LoadBalancerDescriptions",
+        #     "LoadBalancerDescription",
+        #     prefix="Elb",
+        #     prop_prefix="elb_",
         # ),
+    ],
+    "elbv2": [
+        # AwsResotoModel(
+        #     "describe-load-balancers",
+        #     "DescribeLoadBalancersResult",
+        #     "LoadBalancer",
+        #     prefix="Alb",
+        #     prop_prefix="alb_",
+        # ),
+        # AwsResotoModel(
+        #     "describe-target-groups",
+        #     "TargetGroups",
+        #     "TargetGroup",
+        #     prefix="Alb",
+        #     prop_prefix="alb_",
+        # ),
+        # AwsResotoModel(
+        #     "describe-target-health",
+        #     "TargetHealthDescriptions",
+        #     "TargetHealthDescription",
+        #     prefix="Alb",
+        # ),
+        # AwsResotoModel(
+        #     "describe-listeners",
+        #     "DescribeListenersResult",
+        #     "Listener",
+        #     prefix="Alb",
+        # ),
+    ],
+    "eks": [
+        # AwsResotoModel("list-clusters", "clusters", "Cluster", prefix="Eks", prop_prefix="cluster_"),
+        # AwsResotoModel("list-nodegroups", "nodegroup", "Nodegroup", prefix="Eks", prop_prefix="group_"),
     ],
     "iam": [
         # AwsResotoModel(
@@ -515,68 +558,28 @@ models: Dict[str, List[AwsResotoModel]] = {
         #     prop_prefix="access_key_",
         # ),
     ],
-    "elb": [
-        # AwsResotoModel(
-        #     "describe-load-balancers",
-        #     "LoadBalancerDescriptions",
-        #     "LoadBalancerDescription",
-        #     prefix="Elb",
-        #     prop_prefix="elb_",
-        # ),
+    "pricing": [
+        # AwsResotoModel("get-products", "PriceList", "PriceListItemJSON", prefix="Price", prop_prefix="price_")
     ],
-    "elbv2": [
-        # AwsResotoModel(
-        #     "describe-load-balancers",
-        #     "DescribeLoadBalancersResult",
-        #     "LoadBalancer",
-        #     prefix="Alb",
-        #     prop_prefix="alb_",
-        # ),
-        # AwsResotoModel(
-        #     "describe-target-groups",
-        #     "TargetGroups",
-        #     "TargetGroup",
-        #     prefix="Alb",
-        #     prop_prefix="alb_",
-        # ),
-        # AwsResotoModel(
-        #     "describe-target-health",
-        #     "TargetHealthDescriptions",
-        #     "TargetHealthDescription",
-        #     prefix="Alb",
-        # ),
-        # AwsResotoModel(
-        #     "describe-listeners",
-        #     "DescribeListenersResult",
-        #     "Listener",
-        #     prefix="Alb",
-        # ),
+    "rds": [
+        # AwsResotoModel("describe-db-instances", "Instances", "DBInstance", prefix="Rds", prop_prefix="rds_")
     ],
-    "eks": [
-        # AwsResotoModel("list-clusters", "clusters", "Cluster", prefix="Eks", prop_prefix="cluster_"),
-        # AwsResotoModel("list-nodegroups", "nodegroup", "Nodegroup", prefix="Eks", prop_prefix="group_"),
+    "route53": [
+        # AwsResotoModel("list_hosted_zones", "HostedZones", "HostedZone", prefix="Route53", prop_prefix="zone_"),
+        # AwsResotoModel(
+        #     "list_resource_record_sets",
+        #     "ResourceRecordSets",
+        #     "ResourceRecordSet",
+        #     prefix="Route53",
+        #     prop_prefix="record_",
+        # ),
     ],
     "s3": [
         # AwsResotoModel(#     "list-buckets", "Buckets", "Bucket", prefix="S3", prop_prefix="s3_"
         # )
     ],
-    "cloudwatch": [
-        # AwsResotoModel(
-        #     "describe-alarms",
-        #     "Alarms",
-        #     "MetricAlarm",
-        #     prefix="Cloudwatch",
-        #     prop_prefix="cloudwatch_"
-        # )
-    ],
-    "pricing": [
-        # AwsResotoModel("get-products", "PriceList", "PriceListItemJSON", prefix="Price", prop_prefix="price_")
-    ],
     "service-quotas": [
         # AwsResotoModel("list-service-quotas", "Quotas", "ServiceQuota", prefix="Quota", prop_prefix="quota_")
-    ],
-    "rds": [
-        # AwsResotoModel("describe-db-instances", "Instances", "DBInstance", prefix="Rds", prop_prefix="rds_")
     ],
 }
 

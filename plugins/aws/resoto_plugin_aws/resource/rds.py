@@ -2,11 +2,13 @@ from datetime import datetime
 from typing import ClassVar, Dict, List, Optional, Type
 from attr import define, field
 from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
+from resoto_plugin_aws.resource.cloudwatch import AwsCloudwatchQuery, AwsCloudwatchMetricData
 from resoto_plugin_aws.resource.ec2 import AwsEc2SecurityGroup, AwsEc2Subnet, AwsEc2Vpc
 from resoto_plugin_aws.utils import ToDict
 from resotolib.baseresources import BaseAccount, BaseDatabase  # noqa: F401
 from resotolib.json_bender import F, K, S, Bend, Bender, ForallBend
 from resotolib.types import Json
+from resotolib.utils import utc
 
 
 @define(eq=False, slots=False)
@@ -364,6 +366,44 @@ class AwsRdsInstance(AwsResource, BaseDatabase):
     rds_custom_iam_instance_profile: Optional[str] = field(default=None)
     rds_backup_target: Optional[str] = field(default=None)
     rds_network_type: Optional[str] = field(default=None)
+
+    @classmethod
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        instances: List[AwsRdsInstance] = []
+
+        def update_atime_mtime() -> None:
+            delta = builder.config.atime_mtime_granularity()
+            queries = []
+            now = utc()
+            start = now - builder.config.atime_mtime_period()
+            lookup: Dict[str, AwsRdsInstance] = {}
+            for rds in instances:
+                vid = rds.id
+                lookup[vid] = rds
+                queries.append(
+                    AwsCloudwatchQuery.create("DatabaseConnections", "AWS/RDS", delta, vid, DBInstanceIdentifier=vid)
+                )
+
+            for query, metric in AwsCloudwatchMetricData.query_for(builder.client, queries, start, now).items():
+                if non_zero := metric.first_non_zero():
+                    at, value = non_zero
+                    rds = lookup[query.ref_id]
+                    rds.atime = at
+                    rds.mtime = at
+                    lookup.pop(query.ref_id, None)
+
+            # all volumes in this list do not have value in cloudwatch
+            # fall back to either ctime or start time whatever is more recent.
+            for rds in lookup.values():
+                t = max(rds.ctime or start, start)
+                rds.atime = t
+                rds.mtime = t
+
+        for js in json:
+            instance = AwsRdsInstance.from_api(js)
+            instances.append(instance)
+            builder.add_node(instance, js)
+        update_atime_mtime()
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
