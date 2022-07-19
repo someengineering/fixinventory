@@ -52,7 +52,6 @@ class MetaConfig(type):
 
 class Config(metaclass=MetaConfig):
     running_config: RunningConfig = _config
-    running_config_timestamp: int = 0  # workaround for using it with lru_cache
 
     def __init__(
         self,
@@ -90,7 +89,6 @@ class Config(metaclass=MetaConfig):
             if config_id not in Config.running_config.data:
                 log.debug(f"Initializing defaults for config section {config_id}")
                 Config.running_config.data[config_id] = config_data()
-                Config.running_config_timestamp += 1
 
     @staticmethod
     def add_config(config: object) -> None:
@@ -100,7 +98,6 @@ class Config(metaclass=MetaConfig):
         Dataclass must have a kind ClassVar which specifies the top level config name.
         """
         if hasattr(config, "kind"):
-            Config.running_config_timestamp += 1
             Config.running_config.classes[config.kind] = config
             Config.running_config.types[config.kind] = {}
             for field in fields(config):
@@ -140,7 +137,6 @@ class Config(metaclass=MetaConfig):
                     restart()
                 Config.running_config.data = new_config
                 Config.running_config.revision = new_config_revision
-                Config.running_config_timestamp += 1
             self.init_default_config()
             if self._initial_load:
                 # Try to store the generated config. Handle failure gracefully.
@@ -180,8 +176,6 @@ class Config(metaclass=MetaConfig):
                 if "." not in config_key:
                     log.error(f"Invalid config override {config_key}")
                     continue
-
-                Config.running_config_timestamp += 1
 
                 config_keys = config_key.split(".")
                 num_keys = len(config_keys)
@@ -254,7 +248,6 @@ class Config(metaclass=MetaConfig):
         stored_config_revision = set_config(self.config_name, self.dict(), self.resotocore_uri, verify=self.verify)
         if stored_config_revision != Config.running_config.revision:
             Config.running_config.revision = stored_config_revision
-            Config.running_config_timestamp += 1
             log.debug(f"Saved config {self.config_name} revision {Config.running_config.revision}")
         else:
             log.debug(f"Config {self.config_name} unchanged")
@@ -274,14 +267,11 @@ class Config(metaclass=MetaConfig):
     # the __hash__ and the __eq__ below is a workaround to make sure the outdated config is not cached by
     # a lru_cache decoartor after the config performed a self-update. It serves no other purpose.
     def __hash__(self) -> int:
-        return self.running_config_timestamp
+        return self.running_config.revision.__hash__()
 
     def __eq__(self, other: Any) -> bool:
         if isinstance(other, Config):
-            return (
-                self.running_config_timestamp == other.running_config_timestamp
-                and self.running_config.__dict__ == other.running_config.__dict__
-            )
+            return self.running_config.__dict__ == other.running_config.__dict__
         return False
 
     @property

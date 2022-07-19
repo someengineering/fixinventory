@@ -51,19 +51,14 @@ def test_config_lru_cache():
     cfg = Config("test")
     cfg.add_config(ConfigTest)
     cfg.init_default_config()
-
     assert test_lru_config(cfg) == "testing123"
-    ArgumentParser.args.config_override = [
-        "configtest.testvar1=foo",
-    ]
-    cfg.override_config(cfg.running_config)
+    # update config
+    cfg.running_config.data["configtest"].testvar1 = "foo"
+    cfg.running_config.revision = "foo_revision"
     assert cfg.configtest.testvar1 == "foo"
     assert test_lru_config(cfg) == "foo"
     # cleanup
-    ArgumentParser.args.config_override = [
-        "configtest.testvar1=testing123",
-    ]
-    cfg.override_config(cfg.running_config)
+    cfg.running_config.data["configtest"].testvar1 = "testing123"
 
 
 def test_config_override():
@@ -76,7 +71,7 @@ def test_config_override():
     assert Config.dict() == {
         "configtest": {
             "testvar1": "testing123",
-            "testvar2": 12346,
+            "testvar2": 12345,
             "testvar3": {
                 "mydict": {"foo": "bar", "abc": {"def": "ghi"}},
                 "myint": 0,
@@ -95,7 +90,7 @@ def test_config_override():
     assert Config.dict() == {
         "configtest": {
             "testvar1": "testing124",
-            "testvar2": 12346,
+            "testvar2": 12345,
             "testvar3": {
                 "mydict": {"foo": "baz", "abc": {"def": "jkl"}},
                 "myint": 1,
