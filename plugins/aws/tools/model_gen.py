@@ -494,7 +494,13 @@ models: Dict[str, List[AwsResotoModel]] = {
         # AwsResotoModel("list-nodegroups", "nodegroup", "Nodegroup", prefix="Eks", prop_prefix="group_"),
     ],
     "lambda": [
-        # AwsResotoModel("list-functions", "Functions", "FunctionConfiguration", prefix="Lambda", prop_prefix="function_")
+        # AwsResotoModel(
+        #     "list-functions",
+        #     "Functions",
+        #     "FunctionConfiguration",
+        #     prefix="Lambda",
+        #     prop_prefix="function_",
+        # )
     ],
     "iam": [
         # AwsResotoModel(

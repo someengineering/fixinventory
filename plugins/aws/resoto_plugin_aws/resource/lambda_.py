@@ -91,6 +91,7 @@ class AwsLambdaImageConfigResponse:
     error: Optional[AwsLambdaImageConfigError] = field(default=None)
 
 
+# TODO: add base class BaseServerlessFunction once #992 is merged
 @define(eq=False, slots=False)
 class AwsLambdaFunction(AwsResource):
     kind: ClassVar[str] = "aws_lambda_function"
