@@ -1,5 +1,7 @@
 import jsons
 import threading
+
+from resotolib.json import from_json
 from resotolib.logger import log
 from resotolib.args import ArgumentParser, convert
 from resotolib.core.ca import TLSData
@@ -130,7 +132,7 @@ class Config(metaclass=MetaConfig):
                         if loader := getattr(clazz, "from_json", None):
                             new_config[config_id] = loader(config_data)
                         else:
-                            new_config[config_id] = jsons.load(config_data, clazz)
+                            new_config[config_id] = from_json(config_data, clazz)
                     else:
                         log.warning(f"Unknown config section {config_id}")
                 if reload and self.restart_required(new_config):

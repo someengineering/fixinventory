@@ -1,4 +1,5 @@
 import json
+from datetime import timedelta
 
 import jsons
 import cattrs
@@ -7,6 +8,9 @@ from cattrs.gen import make_dict_unstructure_fn
 import attrs
 from typing import TypeVar, Any, Type, Optional, Dict
 
+from jsons import set_deserializer, set_serializer
+
+from resotolib.durations import parse_duration, duration_str
 from resotolib.types import Json, JsonElement
 
 AnyT = TypeVar("AnyT")
@@ -62,3 +66,15 @@ def from_json(json: JsonElement, clazz: Type[AnyT], **kwargs: Any) -> AnyT:
     :return: the loaded python object.
     """
     return jsons.load(json, clazz, **kwargs) if clazz != dict else json  # type: ignore
+
+
+def timedelta_to_json(td: timedelta, **_: Any) -> str:
+    return duration_str(td)
+
+
+def timedelta_from_json(js: str, _: type = object, **__: Any) -> timedelta:
+    return parse_duration(js)
+
+
+set_deserializer(timedelta_from_json, timedelta)
+set_serializer(timedelta_to_json, timedelta)

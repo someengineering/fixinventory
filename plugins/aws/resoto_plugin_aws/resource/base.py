@@ -12,6 +12,7 @@ from attr import evolve
 from attrs import define
 from boto3.exceptions import Boto3Error
 
+from resoto_plugin_aws.config import AwsConfig
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.pricing import AwsPricingPrice
 from resotolib.baseresources import BaseResource, EdgeType, Cloud, BaseAccount, BaseRegion, BaseVolumeType
@@ -237,6 +238,10 @@ class GraphBuilder:
 
     def submit_work(self, fn: Callable[..., None], *args: Any, **kwargs: Any) -> Future[Any]:
         return self.executor.submit_work(fn, *args, **kwargs)
+
+    @property
+    def config(self) -> AwsConfig:
+        return self.client.config
 
     def node(self, clazz: Optional[Type[AwsResourceType]] = None, **node: Any) -> Optional[AwsResourceType]:
         if isinstance(nd := node.get("node"), AwsResource):

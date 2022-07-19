@@ -2,6 +2,8 @@ import logging
 import threading
 import time
 import uuid
+from datetime import timedelta
+
 from attrs import define, field
 from functools import lru_cache
 from typing import List, ClassVar, Optional, Type, Any, Dict
@@ -118,6 +120,22 @@ class AwsConfig:
     no_collect: List[str] = field(
         factory=list,
         metadata={"description": "List of AWS services to exclude (default: none)"},
+    )
+    cloudwatch_metrics_for_atime_mtime_period: timedelta = field(
+        factory=lambda: timedelta(days=60),
+        metadata={
+            "description": "This value is used to look up atime and mtime for volumes and rds instances.\n"
+            "It defines how long Resoto should look back for CloudWatch metrics.\n"
+            "If no metric is found, now-period is used as atime and mtime. Defaults to 60 days."
+        },
+    )
+    cloudwatch_metrics_for_atime_mtime_granularity: timedelta = field(
+        factory=lambda: timedelta(hours=1),
+        metadata={
+            "description": "Granularity of atime and mtime.\n"
+            "Higher precision is more expensive: Resoto will fetch period * granularity data points.\n"
+            "Defaults to 1 hour."
+        },
     )
 
     def should_collect(self, name: str) -> bool:

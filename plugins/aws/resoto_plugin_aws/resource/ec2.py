@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import ClassVar, Dict, Optional, List, Type
 
 from attrs import define, field
@@ -383,10 +383,10 @@ class AwsEc2Volume(AwsResource, BaseVolume):
         volumes: List[AwsEc2Volume] = []
 
         def update_atime_mtime() -> None:
-            delta = timedelta(hours=1)
+            delta = builder.config.cloudwatch_metrics_for_atime_mtime_granularity
             queries = []
             now = utc()
-            start = now - delta
+            start = now - builder.config.cloudwatch_metrics_for_atime_mtime_period
             lookup: Dict[str, AwsEc2Volume] = {}
             for volume in volumes:
                 # Used volumes: use now as atime and mtime
