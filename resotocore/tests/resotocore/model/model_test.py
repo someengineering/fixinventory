@@ -131,7 +131,8 @@ def test_duration() -> None:
     assert (
         expect_error(a, "23df") == "Wrong format for duration: 23df. Examples: 1yr, 3mo, 3d4h3min1s, 3days and 2hours"
     )
-    assert a.coerce_if_required("12d") == "1036800s"
+    assert a.coerce("12d") == "1036800s"
+    assert a.coerce("12d", normalize=False) == "12d"
     with pytest.raises(AttributeError) as no_date:
         a.check_valid("simply no duration")
     assert (

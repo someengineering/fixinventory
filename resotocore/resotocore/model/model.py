@@ -200,12 +200,12 @@ class Kind(ABC):
     def __eq__(self, other: object) -> bool:
         return self.__dict__ == other.__dict__ if isinstance(other, Kind) else False
 
-    def coerce(self, value: JsonElement) -> JsonElement:
-        coerced = self.coerce_if_required(value)
+    def coerce(self, value: JsonElement, **kwargs: bool) -> JsonElement:
+        coerced = self.coerce_if_required(value, **kwargs)
         return coerced or value
 
     @abstractmethod
-    def coerce_if_required(self, value: JsonElement) -> Optional[JsonElement]:
+    def coerce_if_required(self, value: JsonElement, **kwargs: bool) -> Optional[JsonElement]:
         """
         Coerces the given value to this kind.
         - if obj is already correct: return None
@@ -326,7 +326,7 @@ class SimpleKind(Kind, ABC):
         self.runtime_kind = runtime_kind
         self.reverse_order = reverse_order
 
-    def coerce_if_required(self, value: JsonElement) -> Optional[JsonElement]:
+    def coerce_if_required(self, value: JsonElement, **kwargs: bool) -> Optional[JsonElement]:
         """
         Take a user defined value and transform it into a machine queryable value.
         Example:
@@ -395,14 +395,14 @@ class StringKind(SimpleKind):
             return None
         elif isinstance(obj, str):
             return self.valid_fn(obj)
-        coerced = self.coerce_if_required(obj)
+        coerced = self.coerce_if_required(obj, **kwargs)
         if coerced is not None:
             self.valid_fn(coerced)
             return coerced
         else:
             raise AttributeError(f"Expected type {self.runtime_kind} but got {type(obj).__name__}")
 
-    def coerce_if_required(self, value: JsonElement) -> Optional[str]:
+    def coerce_if_required(self, value: JsonElement, **kwargs: bool) -> Optional[str]:
         if value is None:
             return value
         if isinstance(value, str):
@@ -455,14 +455,14 @@ class NumberKind(SimpleKind):
             return None
         elif isinstance(obj, (int, float)):
             return self.valid_fn(obj)
-        coerced = self.coerce_if_required(obj)
+        coerced = self.coerce_if_required(obj, **kwargs)
         if coerced is not None:
             self.valid_fn(coerced)
             return coerced
         else:
             raise AttributeError(f"Expected type {self.runtime_kind} but got {type(obj).__name__}")
 
-    def coerce_if_required(self, value: JsonElement) -> Optional[Union[int, float]]:
+    def coerce_if_required(self, value: JsonElement, **kwargs: bool) -> Optional[Union[int, float]]:
         if value is None:
             return value
         elif isinstance(value, (int, float)):
@@ -492,13 +492,13 @@ class BooleanKind(SimpleKind):
     def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
         if obj is True or obj is False or obj is None:
             return None
-        coerced = self.coerce_if_required(obj)
+        coerced = self.coerce_if_required(obj, **kwargs)
         if coerced is not None:
             return coerced
         else:
             raise AttributeError(f"Expected type boolean but got {type(obj).__name__}")
 
-    def coerce_if_required(self, value: JsonElement) -> Optional[bool]:
+    def coerce_if_required(self, value: JsonElement, **kwargs: bool) -> Optional[bool]:
         if value is None:
             return value
         elif isinstance(value, bool):
@@ -523,9 +523,9 @@ class DurationKind(SimpleKind):
     def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
         return self.valid_fn(obj)
 
-    def coerce_if_required(self, value: Any) -> Optional[str]:
+    def coerce_if_required(self, value: Any, **kwargs: bool) -> Optional[str]:
         try:
-            return f"{int(duration_parser.parse(value))}s"
+            return f"{int(duration_parser.parse(value))}s" if kwargs.get("normalize", True) else None
         except Exception:
             return None
 
@@ -557,7 +557,7 @@ class DateTimeKind(SimpleKind):
     def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
         return self.valid_fn(obj)
 
-    def coerce_if_required(self, value: JsonElement) -> Optional[str]:
+    def coerce_if_required(self, value: JsonElement, **kwargs: bool) -> Optional[str]:
         try:
             if value is None:
                 return value
@@ -609,7 +609,7 @@ class DateKind(SimpleKind):
     def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
         return self.valid_fn(obj)
 
-    def coerce_if_required(self, value: JsonElement) -> Optional[str]:
+    def coerce_if_required(self, value: JsonElement, **kwargs: bool) -> Optional[str]:
         try:
             if value is None:
                 return value
@@ -651,7 +651,7 @@ class TransformKind(SimpleKind):
         self.converter = converter
         self.source_to_destination, self.destination_to_source = converters[converter]
 
-    def coerce_if_required(self, value: JsonElement) -> Optional[JsonElement]:
+    def coerce_if_required(self, value: JsonElement, **kwargs: bool) -> Optional[JsonElement]:
         if value is None:
             return None
         elif self.source_kind:
@@ -710,12 +710,12 @@ class ArrayKind(Kind):
             # list is expected, but object found
             raise AttributeError("Expected property is a json object not an array!")
 
-        coerced = self.coerce_if_required(obj)
+        coerced = self.coerce_if_required(obj, **kwargs)
         for elem in coerced or obj:  # type: ignore
             self.inner.check_valid(elem, **kwargs)
         return coerced
 
-    def coerce_if_required(self, value: JsonElement) -> Optional[List[JsonElement]]:
+    def coerce_if_required(self, value: JsonElement, **kwargs: bool) -> Optional[List[JsonElement]]:
         has_coerced = False
         if isinstance(value, dict):
             return None
@@ -726,7 +726,7 @@ class ArrayKind(Kind):
 
         def check(item: Any) -> ValidationResult:
             nonlocal has_coerced
-            res = self.inner.coerce_if_required(item)
+            res = self.inner.coerce_if_required(item, **kwargs)
             if res is None:
                 return item
             else:
@@ -749,7 +749,7 @@ class DictionaryKind(Kind):
 
     def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
         if isinstance(obj, dict):
-            coerced = self.coerce_if_required(obj)
+            coerced = self.coerce_if_required(obj, **kwargs)
             for prop, value in (coerced or obj).items():
                 part = "key"
                 try:
@@ -762,13 +762,13 @@ class DictionaryKind(Kind):
         else:
             raise AttributeError(f"dictionary requires a json object, but got this: {obj}")
 
-    def coerce_if_required(self, value: JsonElement) -> Optional[Json]:
+    def coerce_if_required(self, value: JsonElement, **kwargs: bool) -> Optional[Json]:
         if isinstance(value, dict):
             coerced: Json = {}
             has_coerced = False
             for p, v in value.items():
-                ck = self.key_kind.coerce_if_required(p)
-                cv = self.value_kind.coerce_if_required(v)
+                ck = self.key_kind.coerce_if_required(p, **kwargs)
+                cv = self.value_kind.coerce_if_required(v, **kwargs)
                 coerced[ck or p] = cv or v  # type: ignore
                 if ck is not None or cv is not None:
                     has_coerced = True
@@ -882,7 +882,7 @@ class ComplexKind(Kind):
 
     def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
         if isinstance(obj, dict):
-            coerced = self.coerce_if_required(obj)
+            coerced = self.coerce_if_required(obj, **kwargs)
             for name, value in (coerced or obj).items():
                 known = self.__resolved_kinds.get(name, None)
                 if known:
@@ -914,7 +914,7 @@ class ComplexKind(Kind):
         else:
             raise AttributeError("Kind:{self.fqn} expected a complex type but got this: {obj}")
 
-    def coerce_if_required(self, value: JsonElement) -> Optional[Json]:
+    def coerce_if_required(self, value: JsonElement, **kwargs: bool) -> Optional[Json]:
         if isinstance(value, dict):
             result: Json = {}
             has_coerced = False
@@ -928,7 +928,7 @@ class ComplexKind(Kind):
                     elif v is None:
                         result[n] = None
                     else:
-                        coerced = kind.coerce_if_required(v)
+                        coerced = kind.coerce_if_required(v, **kwargs)
                         has_coerced |= coerced is not None
                         result[n] = coerced if coerced is not None else v
                 else:
