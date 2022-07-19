@@ -4,6 +4,7 @@ import botocore.exceptions
 import multiprocessing
 import resotolib.proc
 import resotolib.logger
+from resotolib.baseresources import Cloud
 from resotolib.logger import log, setup_logger
 from concurrent import futures
 from resotolib.args import ArgumentParser
@@ -14,8 +15,8 @@ from resotolib.utils import log_runtime
 from resotolib.baseplugin import BaseCollectorPlugin
 from .config import AwsConfig
 from .utils import aws_session
-from .resources import AWSAccount
-from .accountcollector import AWSAccountCollector
+from .resource.base import AwsAccount
+from .collector import AwsAccountCollector
 from prometheus_client import Summary, Counter
 from typing import List, Optional
 
@@ -94,7 +95,7 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
         return self.__regions
 
 
-def authenticated(account: AWSAccount) -> bool:
+def authenticated(account: AwsAccount) -> bool:
     try:
         log.debug(f"AWS testing credentials for {account.rtdname}")
         session = aws_session(account.id, account.role, account.profile)
@@ -121,7 +122,7 @@ def current_account_id(profile: Optional[str] = None) -> str:
     return session.client("sts").get_caller_identity().get("Account")  # type: ignore
 
 
-def get_accounts() -> List[AWSAccount]:
+def get_accounts() -> List[AwsAccount]:
     accounts = []
     profiles = [None]
 
@@ -150,7 +151,7 @@ def get_accounts() -> List[AWSAccount]:
                 log.debug("Role and scrape_org are both set")
                 accounts.extend(
                     [
-                        AWSAccount(id=aws_account_id, role=Config.aws.role, profile=profile)
+                        AwsAccount(id=aws_account_id, role=Config.aws.role, profile=profile)
                         for aws_account_id in get_org_accounts(
                             filter_current_account=not Config.aws.assume_current, profile=profile
                         )
@@ -158,17 +159,17 @@ def get_accounts() -> List[AWSAccount]:
                     ]
                 )
                 if not Config.aws.do_not_scrape_current:
-                    accounts.append(AWSAccount(id=current_account_id(profile=profile)))
+                    accounts.append(AwsAccount(id=current_account_id(profile=profile)))
             elif Config.aws.role and Config.aws.account:
                 log.debug("Both, role and list of accounts specified")
                 accounts.extend(
                     [
-                        AWSAccount(id=aws_account_id, role=Config.aws.role, profile=profile)
+                        AwsAccount(id=aws_account_id, role=Config.aws.role, profile=profile)
                         for aws_account_id in Config.aws.account
                     ]
                 )
             else:
-                accounts.extend([AWSAccount(id=current_account_id(profile=profile), profile=profile)])
+                accounts.extend([AwsAccount(id=current_account_id(profile=profile), profile=profile)])
         except botocore.exceptions.NoCredentialsError:
             log.error(f"No AWS credentials found for {profile}")
         except botocore.exceptions.ClientError as e:
@@ -218,7 +219,7 @@ def all_regions(profile: Optional[str] = None) -> List[str]:
 
 @log_runtime  # type: ignore
 def collect_account(
-    account: AWSAccount,
+    account: AwsAccount,
     regions: List[str],
     args: Namespace,
     running_config: RunningConfig,
@@ -238,7 +239,7 @@ def collect_account(
 
     log.debug(f"Starting new collect process for account {account.dname}")
 
-    aac = AWSAccountCollector(regions, account)
+    aac = AwsAccountCollector(Config.aws, Cloud(id="aws", name="AWS"), account, regions)
     try:
         aac.collect()
     except botocore.exceptions.ClientError as e:
@@ -250,4 +251,4 @@ def collect_account(
         metrics_unhandled_account_exceptions.labels(account=account.dname).inc()
         return None
 
-    return aac.graph  # type: ignore
+    return aac.graph
