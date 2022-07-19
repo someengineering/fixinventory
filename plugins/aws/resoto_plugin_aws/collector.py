@@ -16,6 +16,7 @@ from resoto_plugin_aws.resource import (
     elb,
     elbv2,
     iam,
+    lambda_,
     rds,
     route53,
     s3,
@@ -37,6 +38,7 @@ regional_resources: List[Type[AwsResource]] = (
     + eks.resources
     + elb.resources
     + elbv2.resources
+    + lambda_.resources
     + rds.resources
     + service_quotas.resources
 )

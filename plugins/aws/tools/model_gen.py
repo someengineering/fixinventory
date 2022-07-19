@@ -493,6 +493,9 @@ models: Dict[str, List[AwsResotoModel]] = {
         # AwsResotoModel("list-clusters", "clusters", "Cluster", prefix="Eks", prop_prefix="cluster_"),
         # AwsResotoModel("list-nodegroups", "nodegroup", "Nodegroup", prefix="Eks", prop_prefix="group_"),
     ],
+    "lambda": [
+        # AwsResotoModel("list-functions", "Functions", "FunctionConfiguration", prefix="Lambda", prop_prefix="function_")
+    ],
     "iam": [
         # AwsResotoModel(
         #     "list-server-certificates",
