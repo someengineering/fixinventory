@@ -71,7 +71,7 @@ def test_config_override():
     assert Config.dict() == {
         "configtest": {
             "testvar1": "testing123",
-            "testvar2": 12345,
+            "testvar2": 12346,
             "testvar3": {
                 "mydict": {"foo": "bar", "abc": {"def": "ghi"}},
                 "myint": 0,
@@ -90,7 +90,7 @@ def test_config_override():
     assert Config.dict() == {
         "configtest": {
             "testvar1": "testing124",
-            "testvar2": 12345,
+            "testvar2": 12346,
             "testvar3": {
                 "mydict": {"foo": "baz", "abc": {"def": "jkl"}},
                 "myint": 1,
