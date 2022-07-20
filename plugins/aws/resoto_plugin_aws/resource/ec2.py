@@ -1125,7 +1125,7 @@ class AwsEc2NetworkAcl(AwsResource):
 
 
 @define(eq=False, slots=False)
-class AwsEc2ElasticIp(AwsResource, BaseIPAddress):
+class AwsEc2ElasticIp(AwsResource, BaseIPAddress, EC2Taggable):
     kind: ClassVar[str] = "aws_ec2_elastic_ip"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-addresses", "Addresses")
     mapping: ClassVar[Dict[str, Bender]] = {
