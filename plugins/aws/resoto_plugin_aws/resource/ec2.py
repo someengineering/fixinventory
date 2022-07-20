@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import ClassVar, Dict, Optional, List, Type
+from typing import ClassVar, Dict, Optional, List, Type, cast
 
 from attrs import define, field
 from resoto_plugin_aws.aws_client import AwsClient
@@ -36,26 +36,35 @@ from resotolib.types import Json
 from resotolib.utils import utc
 
 
-def ec2_update_tag(resource: AwsResource, client: AwsClient, key: str, value: str) -> bool:
-    if spec := resource.api_spec:
-        client.call(
-            service=spec.service,
-            action="create_tags",
-            result_name=None,
-            Resources=[resource.id],
-            Tags=[{"Key": key, "Value": value}],
-        )
-        return True
-    return False
+# todo: annotate with no serialization annotation
+class EC2Taggable:
+    def update_tag(self, client: AwsClient, key: str, value: str) -> bool:
+        if isinstance(self, AwsResource):
+            if spec := self.api_spec:
+                client.call(
+                    service=spec.service,
+                    action="create_tags",
+                    result_name=None,
+                    Resources=[self.id],
+                    Tags=[{"Key": key, "Value": value}],
+                )
+                return True
+            return False
+        return False
 
-
-def ec2_delete_tag(resource: AwsResource, client: AwsClient, key: str) -> bool:
-    if spec := resource.api_spec:
-        client.call(
-            service=spec.service, action="delete_tags", result_name=None, Resources=[resource.id], Tags=[{"Key": key}]
-        )
-        return True
-    return False
+    def delete_tag(self, client: AwsClient, key: str) -> bool:
+        if isinstance(self, AwsResource):
+            if spec := self.api_spec:
+                client.call(
+                    service=spec.service,
+                    action="delete_tags",
+                    result_name=None,
+                    Resources=[self.id],
+                    Tags=[{"Key": key}],
+                )
+                return True
+            return False
+        return False
 
 
 @define(eq=False, slots=False)
@@ -369,7 +378,7 @@ VolumeStatusMapping = {
 
 
 @define(eq=False, slots=False)
-class AwsEc2Volume(AwsResource, BaseVolume):
+class AwsEc2Volume(AwsResource, BaseVolume, EC2Taggable):
     kind: ClassVar[str] = "aws_ec2_volume"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-volumes", "Volumes")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -454,12 +463,6 @@ class AwsEc2Volume(AwsResource, BaseVolume):
             builder.add_edge(self, EdgeType.default, clazz=AwsEc2Instance, id=attachment.instance_id)
             builder.add_edge(self, EdgeType.delete, reverse=True, clazz=AwsEc2Instance, id=attachment.instance_id)
 
-    def update_tag(self, client: AwsClient, key: str, value: str) -> bool:
-        return ec2_update_tag(self, client, key, value)
-
-    def delete_tag(self, client: AwsClient, key: str) -> bool:
-        return ec2_delete_tag(self, client, key)
-
 
 # endregion
 
@@ -467,7 +470,7 @@ class AwsEc2Volume(AwsResource, BaseVolume):
 
 
 @define(eq=False, slots=False)
-class AwsEc2Snapshot(AwsResource, BaseSnapshot):
+class AwsEc2Snapshot(AwsResource, BaseSnapshot, Ec2Taggable):
     kind: ClassVar[str] = "aws_ec2_snapshot"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-snapshots", "Snapshots", dict(OwnerIds=["self"]))
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -503,12 +506,6 @@ class AwsEc2Snapshot(AwsResource, BaseSnapshot):
         if volume_id := source.get("VolumeId"):
             builder.add_edge(self, EdgeType.default, reverse=True, clazz=AwsEc2Volume, id=volume_id)
 
-    def update_tag(self, client: AwsClient, key: str, value: str) -> bool:
-        return ec2_update_tag(self, client, key, value)
-
-    def delete_tag(self, client: AwsClient, key: str) -> bool:
-        return ec2_delete_tag(self, client, key)
-
 
 # endregion
 
@@ -516,7 +513,7 @@ class AwsEc2Snapshot(AwsResource, BaseSnapshot):
 
 
 @define(eq=False, slots=False)
-class AwsEc2KeyPair(AwsResource):
+class AwsEc2KeyPair(AwsResource, EC2Taggable):
     kind: ClassVar[str] = "aws_ec2_key_pair_info"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-key-pairs", "KeyPairs")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -531,12 +528,6 @@ class AwsEc2KeyPair(AwsResource):
     key_fingerprint: Optional[str] = field(default=None)
     key_type: Optional[str] = field(default=None)
     public_key: Optional[str] = field(default=None)
-
-    def update_tag(self, client: AwsClient, key: str, value: str) -> bool:
-        return ec2_update_tag(self, client, key, value)
-
-    def delete_tag(self, client: AwsClient, key: str) -> bool:
-        return ec2_delete_tag(self, client, key)
 
 
 # endregion
@@ -832,7 +823,7 @@ InstanceStatusMapping = {
 
 
 @define(eq=False, slots=False)
-class AwsEc2Instance(AwsResource, BaseInstance):
+class AwsEc2Instance(AwsResource, BaseInstance, EC2Taggable):
     kind: ClassVar[str] = "aws_ec2_instance"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-instances", "Reservations")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -981,12 +972,6 @@ class AwsEc2Instance(AwsResource, BaseInstance):
             builder.add_edge(self, EdgeType.delete, reverse=True, clazz=AwsEc2KeyPair, name=self.instance_key_name)
         if vpc_id := source.get("VpcId"):
             builder.dependant_node(self, reverse=True, clazz=AwsEc2Vpc, name=vpc_id)
-
-    def update_tag(self, client: AwsClient, key: str, value: str) -> bool:
-        return ec2_update_tag(self, client=client, key=key, value=value)
-
-    def delete_tag(self, client: AwsClient, key: str) -> bool:
-        return ec2_delete_tag(self, client=client, key=key)
 
 
 # endregion
