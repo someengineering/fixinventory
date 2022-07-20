@@ -454,6 +454,12 @@ class AwsEc2Volume(AwsResource, BaseVolume):
             builder.add_edge(self, EdgeType.default, clazz=AwsEc2Instance, id=attachment.instance_id)
             builder.add_edge(self, EdgeType.delete, reverse=True, clazz=AwsEc2Instance, id=attachment.instance_id)
 
+    def update_tag(self, client: AwsClient, key: str, value: str) -> bool:
+        return ec2_update_tag(self, client, key, value)
+
+    def delete_tag(self, client: AwsClient, key: str) -> bool:
+        return ec2_delete_tag(self, client, key)
+
 
 # endregion
 
