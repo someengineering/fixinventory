@@ -9,6 +9,38 @@ from resotolib.baseresources import BaseLoadBalancer, EdgeType, BaseAccount  # n
 from resotolib.json import from_json
 from resotolib.json_bender import Bender, S, Bend, bend, ForallBend, K
 from resotolib.types import Json
+from resoto_plugin_aws.aws_client import AwsClient
+
+
+# todo: annotate with no serialization annotation
+class ElbV2Taggable:
+    def update_tag(self, client: AwsClient, key: str, value: str) -> bool:
+        if isinstance(self, AwsResource):
+            if spec := self.api_spec:
+                client.call(
+                    service=spec.service,
+                    action="add_tags",
+                    result_name=None,
+                    ResourceArns=[self.arn],
+                    Tags=[{"Key": key, "Value": value}],
+                )
+                return True
+            return False
+        return False
+
+    def delete_tag(self, client: AwsClient, key: str) -> bool:
+        if isinstance(self, AwsResource):
+            if spec := self.api_spec:
+                client.call(
+                    service=spec.service,
+                    action="remove_tags",
+                    result_name=None,
+                    ResourceArns=[self.arn],
+                    TagsKeys=[{key}],
+                )
+                return True
+            return False
+        return False
 
 
 @define(eq=False, slots=False)
@@ -220,7 +252,7 @@ class AwsAlbListener:
 
 
 @define(eq=False, slots=False)
-class AwsAlb(AwsResource, BaseLoadBalancer):
+class AwsAlb(AwsResource, BaseLoadBalancer, ElbV2Taggable):
     kind: ClassVar[str] = "aws_alb"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("elbv2", "describe-load-balancers", "LoadBalancers")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -317,7 +349,7 @@ class AwsAlbTargetHealthDescription:
 
 
 @define(eq=False, slots=False)
-class AwsAlbTargetGroup(AwsResource):
+class AwsAlbTargetGroup(AwsResource, ElbV2Taggable):
     kind: ClassVar[str] = "aws_alb_target_group"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("elbv2", "describe-target-groups", "TargetGroups")
     mapping: ClassVar[Dict[str, Bender]] = {
