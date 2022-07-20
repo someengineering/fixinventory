@@ -4,23 +4,22 @@ from resotolib.baseplugin import BaseActionPlugin
 from resotolib.logger import log
 from resotolib.core.search import CoreGraph
 from resotolib.graph import Graph
-from resoto_plugin_aws.resources import (
-    AWSVPC,
-    AWSVPCPeeringConnection,
-    AWSEC2NetworkAcl,
-    AWSEC2NetworkInterface,
-    AWSELB,
-    AWSALB,
-    AWSALBTargetGroup,
-    AWSEC2Subnet,
-    AWSEC2SecurityGroup,
-    AWSEC2InternetGateway,
-    AWSEC2NATGateway,
-    AWSEC2RouteTable,
-    AWSVPCEndpoint,
-    AWSEC2Instance,
-    AWSEC2ElasticIP,
+from resoto_plugin_aws.resource.ec2 import (
+    AwsEc2Vpc,
+    AwsEc2VpcPeeringConnection,
+    AwsEc2NetworkAcl,
+    AwsEc2NetworkInterface,
+    AwsEc2Subnet,
+    AwsEc2SecurityGroup,
+    AwsEc2InternetGateway,
+    AwsEc2NatGateway,
+    AwsEc2RouteTable,
+    AwsEc2VpcEndpoint,
+    AwsEc2Instance,
+    AwsEc2ElasticIp,
 )
+from resoto_plugin_aws.resource.elb import AwsElb
+from resoto_plugin_aws.resource.elbv2 import AwsAlb, AwsAlbTargetGroup
 from resotolib.config import Config
 from .config import CleanupAWSVPCsConfig
 from typing import Dict
@@ -48,7 +47,7 @@ class CleanupAWSVPCsPlugin(BaseActionPlugin):
     def vpc_cleanup(self, graph: Graph):
         log.info("AWS VPC cleanup called")
         for node in graph.nodes:
-            if node.protected or not node.clean or not isinstance(node, AWSVPC):
+            if node.protected or not node.clean or not isinstance(node, AwsEc2Vpc):
                 continue
 
             cloud = node.cloud(graph)
@@ -67,7 +66,7 @@ class CleanupAWSVPCsPlugin(BaseActionPlugin):
             vpc_instances = [
                 i
                 for i in node.descendants(graph, edge_type=EdgeType.delete)
-                if isinstance(i, AWSEC2Instance)
+                if isinstance(i, AwsEc2Instance)
                 and i.instance_status not in ("shutting-down", "terminated")
                 and not i.clean
             ]
@@ -85,19 +84,19 @@ class CleanupAWSVPCsPlugin(BaseActionPlugin):
                 if isinstance(
                     descendant,
                     (
-                        AWSVPCPeeringConnection,
-                        AWSEC2NetworkAcl,
-                        AWSEC2NetworkInterface,
-                        AWSELB,
-                        AWSALB,
-                        AWSALBTargetGroup,
-                        AWSEC2Subnet,
-                        AWSEC2SecurityGroup,
-                        AWSEC2InternetGateway,
-                        AWSEC2NATGateway,
-                        AWSEC2RouteTable,
-                        AWSVPCEndpoint,
-                        AWSEC2ElasticIP,
+                        AwsEc2VpcPeeringConnection,
+                        AwsEc2NetworkAcl,
+                        AwsEc2NetworkInterface,
+                        AwsElb,
+                        AwsAlb,
+                        AwsAlbTargetGroup,
+                        AwsEc2Subnet,
+                        AwsEc2SecurityGroup,
+                        AwsEc2InternetGateway,
+                        AwsEc2NatGateway,
+                        AwsEc2RouteTable,
+                        AwsEc2VpcEndpoint,
+                        AwsEc2ElasticIp,
                     ),
                 ):
                     descendant.log(

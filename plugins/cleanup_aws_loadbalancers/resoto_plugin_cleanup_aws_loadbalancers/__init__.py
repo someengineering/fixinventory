@@ -3,12 +3,9 @@ from resotolib.baseresources import EdgeType
 from resotolib.logger import log
 from resotolib.core.search import CoreGraph
 from resotolib.graph import Graph
-from resoto_plugin_aws.resources import (
-    AWSELB,
-    AWSALB,
-    AWSALBTargetGroup,
-    AWSEC2Instance,
-)
+from resoto_plugin_aws.resource.elb import AwsElb
+from resoto_plugin_aws.resource.elbv2 import AwsAlb, AwsAlbTargetGroup
+from resoto_plugin_aws.resource.ec2 import AwsEc2Instance
 from resotolib.config import Config
 from .config import CleanupAWSLoadbalancersConfig
 from resotolib.durations import parse_duration
@@ -50,9 +47,9 @@ class CleanupAWSLoadbalancersPlugin(BaseActionPlugin):
         log.info("AWS Loadbalancers Cleanup called")
         for node in graph.nodes:
             if (
-                not isinstance(node, AWSELB)
-                and not isinstance(node, AWSALB)
-                and not isinstance(node, AWSALBTargetGroup)
+                not isinstance(node, AwsElb)
+                and not isinstance(node, AwsAlb)
+                and not isinstance(node, AwsAlbTargetGroup)
             ):
                 continue
 
@@ -67,12 +64,12 @@ class CleanupAWSLoadbalancersPlugin(BaseActionPlugin):
             region = node.region(graph)
 
             if (
-                isinstance(node, AWSELB)
+                isinstance(node, AwsAlb)
                 and len(
                     [
                         i
                         for i in node.predecessors(graph, edge_type=EdgeType.delete)
-                        if isinstance(i, AWSEC2Instance) and i.instance_status != "terminated"
+                        if isinstance(i, AwsEc2Instance) and i.instance_status != "terminated"
                     ]
                 )
                 == 0
@@ -86,9 +83,9 @@ class CleanupAWSLoadbalancersPlugin(BaseActionPlugin):
                 )
                 node.clean = True
             elif (
-                isinstance(node, AWSALB)
+                isinstance(node, AwsAlb)
                 and len(
-                    [n for n in node.predecessors(graph, edge_type=EdgeType.delete) if isinstance(n, AWSALBTargetGroup)]
+                    [n for n in node.predecessors(graph, edge_type=EdgeType.delete) if isinstance(n, AwsAlbTargetGroup)]
                 )
                 == 0
                 and len(node.backends) == 0
@@ -101,7 +98,7 @@ class CleanupAWSLoadbalancersPlugin(BaseActionPlugin):
                 )
                 node.clean = True
             elif (
-                isinstance(node, AWSALBTargetGroup)
+                isinstance(node, AwsAlbTargetGroup)
                 and len(list(node.successors(graph, edge_type=EdgeType.delete))) == 0
             ):
                 log.debug(
@@ -111,10 +108,10 @@ class CleanupAWSLoadbalancersPlugin(BaseActionPlugin):
                     )
                 )
                 node.clean = True
-            elif isinstance(node, AWSALB):
+            elif isinstance(node, AwsAlb):
                 cleanup_alb = True
                 target_groups = [
-                    n for n in node.predecessors(graph, edge_type=EdgeType.delete) if isinstance(n, AWSALBTargetGroup)
+                    n for n in node.predecessors(graph, edge_type=EdgeType.delete) if isinstance(n, AwsAlbTargetGroup)
                 ]
 
                 if len(node.backends) > 0:
@@ -128,7 +125,7 @@ class CleanupAWSLoadbalancersPlugin(BaseActionPlugin):
                             [
                                 i
                                 for i in tg.predecessors(graph, edge_type=EdgeType.delete)
-                                if isinstance(i, AWSEC2Instance) and i.instance_status != "terminated"
+                                if isinstance(i, AwsEc2Instance) and i.instance_status != "terminated"
                             ]
                         )
                         > 0
