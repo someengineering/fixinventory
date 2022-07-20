@@ -520,6 +520,12 @@ class AwsEc2KeyPair(AwsResource):
     key_type: Optional[str] = field(default=None)
     public_key: Optional[str] = field(default=None)
 
+    def update_tag(self, client: AwsClient, key: str, value: str) -> bool:
+        return ec2_update_tag(self, client, key, value)
+
+    def delete_tag(self, client: AwsClient, key: str) -> bool:
+        return ec2_delete_tag(self, client, key)
+
 
 # endregion
 
