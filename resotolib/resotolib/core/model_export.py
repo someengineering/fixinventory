@@ -7,7 +7,8 @@ from datetime import datetime, date, timedelta, timezone
 from functools import lru_cache, reduce
 from pydoc import locate
 from typing import List, MutableSet, Union, Tuple, Dict, Set, Any, TypeVar, Type, Optional
-from resotolib.baseresources import BaseResource, EdgeType
+from resotolib.baseresources import BaseResource
+from resotolib.durations import duration_str
 from resotolib.types import Json
 from resotolib.utils import type_str, str2timedelta, str2timezone, utc_str
 from typing import get_args, get_origin
@@ -270,7 +271,7 @@ def format_value_for_export(value: Any) -> Any:
     if isinstance(value, (date, datetime)):
         return utc_str(value)
     elif isinstance(value, (timedelta, timezone)):
-        return str(value)
+        return duration_str(value)
     return value
 
 

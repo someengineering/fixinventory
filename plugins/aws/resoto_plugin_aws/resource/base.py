@@ -151,6 +151,11 @@ AwsResourceType = TypeVar("AwsResourceType", bound=AwsResource)
 @define(eq=False)
 class AwsAccount(BaseAccount, AwsResource):
     kind: ClassVar[str] = "aws_account"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": [],
+        "delete": ["aws_ec2_instance"],
+    }
+
     account_alias: Optional[str] = ""
     role: Optional[str] = None
     profile: Optional[str] = None
@@ -183,12 +188,60 @@ default_ctime = datetime(2006, 3, 19, tzinfo=timezone.utc)  # AWS public launch 
 @define(eq=False)
 class AwsRegion(BaseRegion, AwsResource):
     kind: ClassVar[str] = "aws_region"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": [
+            "aws_vpc_quota",
+            "aws_vpc_peering_connection",
+            "aws_vpc_endpoint",
+            "aws_vpc",
+            "aws_s3_bucket_quota",
+            "aws_s3_bucket",
+            "aws_rds_instance",
+            "aws_iam_server_certificate_quota",
+            "aws_iam_server_certificate",
+            "aws_iam_role",
+            "aws_iam_policy",
+            "aws_iam_instance_profile",
+            "aws_iam_group",
+            "aws_elb_quota",
+            "aws_elb",
+            "aws_eks_cluster",
+            "aws_ec2_volume_type",
+            "aws_ec2_volume",
+            "aws_iam_user",
+            "aws_ec2_subnet",
+            "aws_ec2_snapshot",
+            "aws_ec2_security_group",
+            "aws_ec2_route_table",
+            "aws_ec2_network_interface",
+            "aws_ec2_network_acl",
+            "aws_ec2_nat_gateway",
+            "aws_ec2_keypair",
+            "aws_ec2_internet_gateway_quota",
+            "aws_ec2_internet_gateway",
+            "aws_ec2_instance_type",
+            "aws_ec2_instance_quota",
+            "aws_ec2_instance",
+            "aws_ec2_elastic_ip",
+            "aws_cloudwatch_alarm",
+            "aws_cloudformation_stack",
+            "aws_cloudformation_stack_set",
+            "aws_autoscaling_group",
+            "aws_alb_target_group",
+            "aws_alb_quota",
+            "aws_alb",
+        ]
+    }
     ctime: Optional[datetime] = default_ctime
 
 
 @define(eq=False, slots=False)
 class AwsEc2VolumeType(AwsResource, BaseVolumeType):
     kind: ClassVar[str] = "aws_ec2_volume_type"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["aws_ec2_volume"],
+        "delete": [],
+    }
 
 
 @define
@@ -253,19 +306,19 @@ class GraphBuilder:
                 return n  # type: ignore
         return None
 
-    def add_node(self, node: AwsResourceType, source: Json) -> AwsResourceType:
+    def add_node(self, node: AwsResourceType, source: Optional[Json] = None) -> AwsResourceType:
         log.debug(f"{self.name}: add node {node}")
         node._cloud = self.cloud
         node._account = self.account
         node._region = self.region
-        self.graph.add_node(node, source=source)
+        self.graph.add_node(node, source=source or {})
         return node
 
     def add_edge(self, from_node: BaseResource, edge_type: EdgeType, reverse: bool = False, **to_node: Any) -> None:
         to_n = self.node(**to_node)
         if isinstance(from_node, AwsResource) and isinstance(to_n, AwsResource):
             start, end = (to_n, from_node) if reverse else (from_node, to_n)
-            log.debug(f"{self.name}: add edge: {start} -> {end}")
+            log.debug(f"{self.name}: add edge: {start} -> {end} [{edge_type}]")
             self.graph.add_edge(start, end, edge_type=edge_type)
 
     def dependant_node(
@@ -274,10 +327,11 @@ class GraphBuilder:
         to_n = self.node(**to_node)
         if isinstance(from_node, AwsResource) and isinstance(to_n, AwsResource):
             start, end = (to_n, from_node) if reverse else (from_node, to_n)
-            log.debug(f"{self.name}: add dependant edge: {start} -> {end}")
+            log.debug(f"{self.name}: add edge: {start} -> {end} [default]")
             self.graph.add_edge(start, end, edge_type=EdgeType.default)
             if delete_reverse:
                 start, end = end, start
+            log.debug(f"{self.name}: add edge: {end} -> {start} [delete]")
             self.graph.add_edge(end, start, edge_type=EdgeType.delete)
 
     def resources_of(self, resource_type: Type[AwsResourceType]) -> List[AwsResourceType]:

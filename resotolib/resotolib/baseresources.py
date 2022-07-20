@@ -134,6 +134,11 @@ class BaseResource(ABC):
     _resotocore_id: Optional[str] = field(default=None, repr=False)
     _resotocore_revision: Optional[str] = field(default=None, repr=False)
     _resotocore_query_tag: Optional[str] = field(default=None, repr=False)
+    _clean: bool = False
+    _cleaned: bool = False
+    _protected: bool = False
+    _deferred_connections: List = field(factory=list)
+
     ctime: Optional[datetime] = field(
         default=None,
         metadata={"synthetic": {"age": "trafo.duration_to_datetime"}},
@@ -150,16 +155,10 @@ class BaseResource(ABC):
     def __attrs_post_init__(self) -> None:
         if self.name is None:
             self.name = self.id
-        self.uuid = uuid.uuid4().hex
-        self._clean: bool = False
-        self._cleaned: bool = False
-        self._protected: bool = False
         self._changes: ResourceChanges = ResourceChanges(self)
-        self._deferred_connections: List = []
         self.__graph = None
         self.__log: List = []
         self._raise_tags_exceptions: bool = False
-        self.max_graph_depth: int = 0
         if not hasattr(self, "_ctime"):
             self._ctime = None
         if not hasattr(self, "_atime"):
@@ -172,7 +171,7 @@ class BaseResource(ABC):
             f"{self.__class__.__name__}('{self.id}', name='{self.name}',"
             f" region='{self.region().name}', zone='{self.zone().name}',"
             f" account='{self.account().dname}', kind='{self.kind}',"
-            f" ctime={self.ctime!r}, uuid={self.uuid}, chksum={self.chksum})"
+            f" ctime={self.ctime!r}, chksum={self.chksum})"
         )
 
     def _keys(self) -> tuple:

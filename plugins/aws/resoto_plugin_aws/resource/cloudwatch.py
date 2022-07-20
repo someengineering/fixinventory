@@ -74,6 +74,10 @@ class AwsCloudwatchMetricDataQuery:
 class AwsCloudwatchAlarm(AwsResource):
     kind: ClassVar[str] = "aws_cloudwatch_alarm"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudwatch", "describe-alarms", "MetricAlarms")
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": [],
+        "delete": ["aws_ec2_instance"],
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("AlarmName"),
         "name": S("AlarmName"),
@@ -133,7 +137,7 @@ class AwsCloudwatchAlarm(AwsResource):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
         for dimension in self.cloudwatch_dimensions:
-            builder.dependant_node(self, reverse=True, delete_reverse=True, kind="aws_ec2_instance", id=dimension.value)
+            builder.dependant_node(self, reverse=True, kind="aws_ec2_instance", id=dimension.value)
 
 
 @define(hash=True, frozen=True)

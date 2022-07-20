@@ -41,6 +41,10 @@ class AwsRoute53LinkedService:
 class AwsRoute53Zone(AwsResource, BaseDNSZone):
     kind: ClassVar[str] = "aws_route53_zone"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("route53", "list-hosted-zones", "HostedZones")
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["aws_route53_resource_record_set"],
+        "delete": [],
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Id"),
         "name": S("Name"),
@@ -126,6 +130,10 @@ class AwsRoute53ResourceRecord(AwsResource, BaseDNSRecord):
 @define(eq=False, slots=False)
 class AwsRoute53ResourceRecordSet(AwsResource, BaseDNSRecordSet):
     kind: ClassVar[str] = "aws_route53_resource_record_set"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["aws_route53_resource_record"],
+        "delete": ["aws_route53_resource_record"],
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Name"),
         "name": S("Name"),

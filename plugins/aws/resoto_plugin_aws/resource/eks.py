@@ -98,6 +98,10 @@ class AwsEksLaunchTemplateSpecification:
 class AwsEksNodegroup(AwsResource):
     # Note: this resource is collected via AwsEksCluster
     kind: ClassVar[str] = "aws_eks_nodegroup"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["aws_ec2_instance"],
+        "delete": [],
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("nodegroupName"),
         "name": S("nodegroupName"),
@@ -240,6 +244,10 @@ class AwsEksConnectorConfig:
 class AwsEksCluster(AwsResource):
     kind: ClassVar[str] = "aws_eks_cluster"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("eks", "list-clusters", "clusters")
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["aws_ec2_instance"],
+        "delete": [],
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name"),
         "tags": S("tags", default={}),

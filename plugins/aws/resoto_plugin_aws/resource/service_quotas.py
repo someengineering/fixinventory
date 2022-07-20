@@ -30,7 +30,7 @@ class AwsQuotaMetricInfo:
 
 @define(eq=False, slots=False)
 class AwsQuotaPeriod:
-    kind: ClassVar[str] = "aws_quota_quota_period"
+    kind: ClassVar[str] = "aws_quota_period"
     mapping: ClassVar[Dict[str, Bender]] = {"period_value": S("PeriodValue"), "period_unit": S("PeriodUnit")}
     period_value: Optional[int] = field(default=None)
     period_unit: Optional[str] = field(default=None)
@@ -46,7 +46,18 @@ class AwsQuotaErrorReason:
 
 @define(eq=False, slots=False)
 class AwsServiceQuota(AwsResource, BaseQuota):
-    kind: ClassVar[str] = "aws_quota_service_quota"
+    kind: ClassVar[str] = "aws_service_quota"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": [
+            "aws_ec2_instance_type",
+            "aws_ec2_volume_type",
+            "aws_vpc",
+            "aws_elb",
+            "aws_alb",
+            "aws_iam_server_certificate",
+        ],
+        "delete": [],
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("QuotaCode"),
         "name": S("QuotaName"),

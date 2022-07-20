@@ -223,6 +223,10 @@ class AwsAlbListener:
 class AwsAlb(AwsResource, BaseLoadBalancer):
     kind: ClassVar[str] = "aws_alb"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("elbv2", "describe-load-balancers", "LoadBalancers")
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["aws_iam_server_certificate", "aws_alb_target_group"],
+        "delete": [],
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("LoadBalancerName"),
         "name": S("LoadBalancerName"),
@@ -265,11 +269,11 @@ class AwsAlb(AwsResource, BaseLoadBalancer):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if vpc_id := source.get("VpcId"):
-            builder.dependant_node(self, reverse=True, delete_reverse=True, clazz=AwsEc2Vpc, id=vpc_id)
+            builder.dependant_node(self, reverse=True, clazz=AwsEc2Vpc, id=vpc_id)
         for sg in self.alb_security_groups:
             builder.add_edge(self, EdgeType.default, reverse=True, id=sg)
         for sn in self.alb_availability_zones:
-            builder.dependant_node(self, reverse=True, delete_reverse=True, id=sn.subnet_id)
+            builder.dependant_node(self, reverse=True, id=sn.subnet_id)
 
 
 @define(eq=False, slots=False)
@@ -320,6 +324,10 @@ class AwsAlbTargetHealthDescription:
 class AwsAlbTargetGroup(AwsResource):
     kind: ClassVar[str] = "aws_alb_target_group"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("elbv2", "describe-target-groups", "TargetGroups")
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": ["aws_ec2_instance"],
+        "delete": ["aws_alb"],
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("TargetGroupName"),
         "tags": S("Tags", default=[]) >> ToDict(),
@@ -372,7 +380,7 @@ class AwsAlbTargetGroup(AwsResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if vpc_id := source.get("VpcId"):
-            builder.dependant_node(self, reverse=True, delete_reverse=True, clazz=AwsEc2Vpc, id=vpc_id)
+            builder.dependant_node(self, reverse=True, clazz=AwsEc2Vpc, id=vpc_id)
         for lb_arn in bend(S("LoadBalancerArns", default=[]), source):
             if lb := builder.node(AwsAlb, arn=lb_arn):
                 builder.dependant_node(lb, node=self)
