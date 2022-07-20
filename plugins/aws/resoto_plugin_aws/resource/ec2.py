@@ -503,6 +503,12 @@ class AwsEc2Snapshot(AwsResource, BaseSnapshot):
         if volume_id := source.get("VolumeId"):
             builder.add_edge(self, EdgeType.default, reverse=True, clazz=AwsEc2Volume, id=volume_id)
 
+    def update_tag(self, client: AwsClient, key: str, value: str) -> bool:
+        return ec2_update_tag(self, client, key, value)
+
+    def delete_tag(self, client: AwsClient, key: str) -> bool:
+        return ec2_delete_tag(self, client, key)
+
 
 # endregion
 
