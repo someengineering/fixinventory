@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import ClassVar, Dict, Optional, List, Type
 
 from attrs import define, field
+from resoto_plugin_aws.aws_client import AwsClient
 
 from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
 from resoto_plugin_aws.resource.cloudwatch import AwsCloudwatchQuery, AwsCloudwatchMetricData
@@ -26,6 +27,7 @@ from resotolib.baseresources import (  # noqa: F401
     BaseRoutingTable,
     BaseVolumeType,
 )
+from resotolib.graph import Graph
 from resotolib.json_bender import Bender, S, Bend, ForallBend, bend, MapEnum, F, K, StripNones
 from resotolib.types import Json
 
@@ -939,6 +941,12 @@ class AwsEc2Instance(AwsResource, BaseInstance):
             builder.add_edge(self, EdgeType.delete, reverse=True, clazz=AwsEc2KeyPair, name=self.instance_key_name)
         if vpc_id := source.get("VpcId"):
             builder.dependant_node(self, reverse=True, clazz=AwsEc2Vpc, name=vpc_id)
+
+    def update_tag(self, client: AwsClient, key: str, value: str) -> bool:
+        return self._default_update_tag(client=client, key=key, value=value)
+
+    def delete_tag(self, client: AwsClient, key: str) -> bool:
+        return self._default_delete_tag(client=client, key=key)
 
 
 # endregion
