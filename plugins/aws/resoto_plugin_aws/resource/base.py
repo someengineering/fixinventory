@@ -57,27 +57,9 @@ class AwsResource(BaseResource):
     def update_tag(self, client: AwsClient, key: str, value: str) -> bool:
         raise NotImplementedError
 
-    def _default_update_tag(self, client: AwsClient, key: str, value: str, action: str = "create_tags") -> bool:
-        if spec := self.api_spec:
-            client.call(
-                service=spec.service,
-                action=action,
-                result_name=None,
-                Resources=[self.id],
-                Tags=[{"Key": key, "Value": value}],
-            )
-            return True
-        return False
-
     # TODO: implement me
     def delete_tag(self, client: AwsClient, key: str) -> bool:
         raise NotImplementedError
-
-    def _default_delete_tag(self, client: AwsClient, key: str, action: str = "delete_tags") -> bool:
-        if spec := self.api_spec:
-            client.call(service=spec.service, action=action, result_name=None, Resources=[self.id], Tags=[{"Key": key}])
-            return True
-        return False
 
     # TODO: implement me
     def delete(self, graph: Graph) -> bool:

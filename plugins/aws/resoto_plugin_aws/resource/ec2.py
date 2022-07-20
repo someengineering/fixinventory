@@ -36,6 +36,28 @@ from resotolib.types import Json
 from resotolib.utils import utc
 
 
+def ec2_update_tag(resource: AwsResource, client: AwsClient, key: str, value: str) -> bool:
+    if spec := resource.api_spec:
+        client.call(
+            service=spec.service,
+            action="create_tags",
+            result_name=None,
+            Resources=[resource.id],
+            Tags=[{"Key": key, "Value": value}],
+        )
+        return True
+    return False
+
+
+def ec2_delete_tag(resource: AwsResource, client: AwsClient, key: str) -> bool:
+    if spec := resource.api_spec:
+        client.call(
+            service=spec.service, action="delete_tags", result_name=None, Resources=[resource.id], Tags=[{"Key": key}]
+        )
+        return True
+    return False
+
+
 @define(eq=False, slots=False)
 class AwsEc2ProcessorInfo:
     kind: ClassVar[str] = "aws_ec2_processor_info"
@@ -943,10 +965,10 @@ class AwsEc2Instance(AwsResource, BaseInstance):
             builder.dependant_node(self, reverse=True, clazz=AwsEc2Vpc, name=vpc_id)
 
     def update_tag(self, client: AwsClient, key: str, value: str) -> bool:
-        return self._default_update_tag(client=client, key=key, value=value)
+        return ec2_update_tag(self, client=client, key=key, value=value)
 
     def delete_tag(self, client: AwsClient, key: str) -> bool:
-        return self._default_delete_tag(client=client, key=key)
+        return ec2_delete_tag(self, client=client, key=key)
 
 
 # endregion
