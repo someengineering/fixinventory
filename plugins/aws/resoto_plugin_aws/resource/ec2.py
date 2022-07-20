@@ -275,7 +275,7 @@ class AwsEc2InferenceAcceleratorInfo:
 
 
 @define(eq=False, slots=False)
-class AwsEc2InstanceType(AwsResource, BaseInstanceType):
+class AwsEc2InstanceType(AwsResource, BaseInstanceType, EC2Taggable):
     kind: ClassVar[str] = "aws_ec2_instance_type"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-instance-types", "InstanceTypes")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -470,7 +470,7 @@ class AwsEc2Volume(AwsResource, BaseVolume, EC2Taggable):
 
 
 @define(eq=False, slots=False)
-class AwsEc2Snapshot(AwsResource, BaseSnapshot, Ec2Taggable):
+class AwsEc2Snapshot(AwsResource, BaseSnapshot, EC2Taggable):
     kind: ClassVar[str] = "aws_ec2_snapshot"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-snapshots", "Snapshots", dict(OwnerIds=["self"]))
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -988,7 +988,7 @@ class AwsEc2RecurringCharge:
 
 
 @define(eq=False, slots=False)
-class AwsEc2ReservedInstances(AwsResource):
+class AwsEc2ReservedInstances(AwsResource, EC2Taggable):
     kind: ClassVar[str] = "aws_ec2_reserved_instances"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-reserved-instances", "ReservedInstances")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1096,7 +1096,7 @@ class AwsEc2NetworkAclEntry:
 
 
 @define(eq=False, slots=False)
-class AwsEc2NetworkAcl(AwsResource):
+class AwsEc2NetworkAcl(AwsResource, EC2Taggable):
     kind: ClassVar[str] = "aws_ec2_network_acl"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-network-acls", "NetworkAcls")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1238,7 +1238,7 @@ class AwsEc2Tag:
 
 
 @define(eq=False, slots=False)
-class AwsEc2NetworkInterface(AwsResource, BaseNetworkInterface):
+class AwsEc2NetworkInterface(AwsResource, BaseNetworkInterface, EC2Taggable):
     kind: ClassVar[str] = "aws_ec2_network_interface"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-network-interfaces", "NetworkInterfaces")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1428,7 +1428,7 @@ class AwsEc2VpcPeeringConnectionStateReason:
 
 
 @define(eq=False, slots=False)
-class AwsEc2VpcPeeringConnection(AwsResource, BasePeeringConnection):
+class AwsEc2VpcPeeringConnection(AwsResource, BasePeeringConnection, EC2Taggable):
     kind: ClassVar[str] = "aws_vpc_peering_connection"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-vpc-peering-connections", "VpcPeeringConnections")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1474,7 +1474,7 @@ class AwsEc2LastError:
 
 
 @define(eq=False, slots=False)
-class AwsEc2VpcEndpoint(AwsResource, BaseEndpoint):
+class AwsEc2VpcEndpoint(AwsResource, BaseEndpoint, EC2Taggable):
     kind: ClassVar[str] = "aws_vpc_endpoint"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-vpc-endpoints", "VpcEndpoints")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1696,7 +1696,7 @@ class AwsEc2IpPermission:
 
 
 @define(eq=False, slots=False)
-class AwsEc2SecurityGroup(AwsResource, BaseSecurityGroup):
+class AwsEc2SecurityGroup(AwsResource, BaseSecurityGroup, EC2Taggable):
     kind: ClassVar[str] = "aws_ec2_security_group"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-security-groups", "SecurityGroups")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1754,7 +1754,7 @@ class AwsEc2ProvisionedBandwidth:
 
 
 @define(eq=False, slots=False)
-class AwsEc2NatGateway(AwsResource, BaseGateway):
+class AwsEc2NatGateway(AwsResource, BaseGateway, EC2Taggable):
     kind: ClassVar[str] = "aws_ec2_nat_gateway"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-nat-gateways", "NatGateways")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1800,7 +1800,7 @@ class AwsEc2InternetGatewayAttachment:
 
 
 @define(eq=False, slots=False)
-class AwsEc2InternetGateway(AwsResource, BaseGateway):
+class AwsEc2InternetGateway(AwsResource, BaseGateway, EC2Taggable):
     kind: ClassVar[str] = "aws_ec2_internet_gateway"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-internet-gateways", "InternetGateways")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1889,7 +1889,7 @@ class AwsEc2Route:
 
 
 @define(eq=False, slots=False)
-class AwsEc2RouteTable(AwsResource, BaseRoutingTable):
+class AwsEc2RouteTable(AwsResource, BaseRoutingTable, EC2Taggable):
     kind: ClassVar[str] = "aws_ec2_route_table"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-route-tables", "RouteTables")
     mapping: ClassVar[Dict[str, Bender]] = {
