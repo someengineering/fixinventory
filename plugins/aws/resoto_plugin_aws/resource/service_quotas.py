@@ -9,6 +9,7 @@ from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder
 from resotolib.baseresources import BaseAccount, BaseQuota, EdgeType  # noqa: F401
 from resotolib.json_bender import Bender, S, Bend
 from resotolib.types import Json
+from resoto_plugin_aws.aws_client import AwsClient
 
 log = logging.getLogger("resoto.plugins.aws")
 
@@ -98,6 +99,26 @@ class AwsServiceQuota(AwsResource, BaseQuota):
                     prop_matches(getattr(node, k, None), v) for k, v in matcher.node_selector.items()
                 ):
                     builder.add_edge(self, EdgeType.default, node=node)
+
+    def update_tag(self, client: AwsClient, key: str, value: str) -> bool:
+        client.call(
+            service="service-quotas",
+            action="tag_resource",
+            result_name=None,
+            ResourceARN=[self.arn],
+            Tags=[{"Key": key, "Value": value}],
+        )
+        return True
+
+    def delete_tag(self, client: AwsClient, key: str) -> bool:
+        client.call(
+            service="service-quotas",
+            action="untag_resource",
+            result_name=None,
+            ResourceARN=[self.arn],
+            TagsKeys=[key],
+        )
+        return True
 
 
 @define
