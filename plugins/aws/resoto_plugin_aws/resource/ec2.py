@@ -1571,7 +1571,7 @@ class AwsEc2PrivateDnsNameOptionsOnLaunch:
 
 
 @define(eq=False, slots=False)
-class AwsEc2Subnet(AwsResource, BaseSubnet):
+class AwsEc2Subnet(AwsResource, BaseSubnet, EC2Taggable):
     kind: ClassVar[str] = "aws_ec2_subnet"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-subnets", "Subnets")
     mapping: ClassVar[Dict[str, Bender]] = {
