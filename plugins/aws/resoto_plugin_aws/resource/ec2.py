@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import ClassVar, Dict, Optional, List, Type, cast
+from typing import ClassVar, Dict, Optional, List, Type
 
 from attrs import define, field
 from resoto_plugin_aws.aws_client import AwsClient
@@ -12,7 +12,6 @@ from resotolib.baseresources import (  # noqa: F401
     EdgeType,
     BaseVolume,
     BaseInstanceType,
-    BaseAccount,
     VolumeStatus,
     InstanceStatus,
     BaseIPAddress,
@@ -25,9 +24,7 @@ from resotolib.baseresources import (  # noqa: F401
     BasePeeringConnection,
     BaseEndpoint,
     BaseRoutingTable,
-    BaseVolumeType,
 )
-from resotolib.graph import Graph
 from resotolib.json_bender import Bender, S, Bend, ForallBend, bend, MapEnum, F, K, StripNones
 from resotolib.types import Json
 
@@ -275,7 +272,7 @@ class AwsEc2InferenceAcceleratorInfo:
 
 
 @define(eq=False, slots=False)
-class AwsEc2InstanceType(AwsResource, BaseInstanceType, EC2Taggable):
+class AwsEc2InstanceType(AwsResource, BaseInstanceType):
     kind: ClassVar[str] = "aws_ec2_instance_type"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-instance-types", "InstanceTypes")
     mapping: ClassVar[Dict[str, Bender]] = {
