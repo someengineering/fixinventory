@@ -36,7 +36,7 @@ class ElbV2Taggable:
                     action="remove_tags",
                     result_name=None,
                     ResourceArns=[self.arn],
-                    TagsKeys=[{key}],
+                    TagsKeys=[key],
                 )
                 return True
             return False
