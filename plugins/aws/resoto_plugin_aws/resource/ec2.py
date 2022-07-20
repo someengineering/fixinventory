@@ -1355,7 +1355,7 @@ class AwsEc2VpcCidrBlockAssociation:
 
 
 @define(eq=False, slots=False)
-class AwsEc2Vpc(AwsResource, BaseNetwork):
+class AwsEc2Vpc(AwsResource, BaseNetwork, EC2Taggable):
     kind: ClassVar[str] = "aws_vpc"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-vpcs", "Vpcs")
     mapping: ClassVar[Dict[str, Bender]] = {
