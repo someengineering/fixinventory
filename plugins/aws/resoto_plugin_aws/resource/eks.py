@@ -20,7 +20,7 @@ class EKSTaggable:
                     service=spec.service,
                     action="tag_resource",
                     result_name=None,
-                    resourceArn=self.id,
+                    resourceArn=self.arn,
                     tags=[{key, value}],
                 )
                 return True
@@ -34,7 +34,7 @@ class EKSTaggable:
                     service=spec.service,
                     action="untag_resource",
                     result_name=None,
-                    resourceArn=self.id,
+                    resourceArn=self.arn,
                     tagKeys=[key],
                 )
                 return True
@@ -276,6 +276,7 @@ class AwsEksCluster(AwsResource, EKSTaggable):
         "id": S("name"),
         "tags": S("tags", default={}),
         "name": S("name"),
+        "arn": S("arn"),
         "ctime": S("createdAt"),
         "cluster_version": S("version"),
         "cluster_endpoint": S("endpoint"),
