@@ -7,6 +7,7 @@ from resotolib.baseresources import (
     BaseUser,
     BaseGroup,
     BaseResource,
+    ModelReference,
 )
 from attrs import define, field
 
@@ -22,9 +23,11 @@ class SlackResource:
 @define(eq=False, slots=False)
 class SlackTeam(SlackResource, BaseAccount):
     kind: ClassVar[str] = "slack_team"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["slack_region"],
-        "delete": [],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["slack_region"],
+            "delete": [],
+        }
     }
     domain: str = None
     email_domain: str = None
@@ -45,9 +48,11 @@ class SlackTeam(SlackResource, BaseAccount):
 @define(eq=False, slots=False)
 class SlackRegion(SlackResource, BaseRegion):
     kind = "slack_region"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["slack_usergroup", "slack_user", "slack_conversation"],
-        "delete": [],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["slack_usergroup", "slack_user", "slack_conversation"],
+            "delete": [],
+        }
     }
 
 
@@ -141,9 +146,11 @@ class SlackUser(SlackResource, BaseUser):
 @define(eq=False, slots=False)
 class SlackUsergroup(SlackResource, BaseGroup):
     kind: ClassVar[str] = "slack_usergroup"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["slack_user"],
-        "delete": [],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["slack_user"],
+            "delete": [],
+        }
     }
 
     auto_provision: bool = None
@@ -191,9 +198,11 @@ class SlackUsergroup(SlackResource, BaseGroup):
 @define(eq=False, slots=False)
 class SlackConversation(SlackResource, BaseResource):
     kind: ClassVar[str] = "slack_conversation"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["slack_user"],
-        "delete": [],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["slack_user"],
+            "delete": [],
+        }
     }
 
     creator: Optional[str] = None

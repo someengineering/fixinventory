@@ -15,6 +15,7 @@ from resotolib.baseresources import (  # noqa: F401
     BaseDNSRecord,
     EdgeType,
     BaseDNSRecordSet,
+    ModelReference,
 )
 from resotolib.json_bender import Bender, S, Bend, ForallBend
 from resotolib.types import Json
@@ -114,9 +115,11 @@ class AwsRoute53CidrRoutingConfig:
 @define(eq=False, slots=False)
 class AwsRoute53ResourceRecord(AwsResource, BaseDNSRecord):
     kind: ClassVar[str] = "aws_route53_resource_record"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": [],
-        "delete": [],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [],
+            "delete": [],
+        }
     }
 
 

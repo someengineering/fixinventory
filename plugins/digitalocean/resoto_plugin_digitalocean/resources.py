@@ -23,6 +23,7 @@ from resotolib.baseresources import (
     BaseKeyPair,
     BaseDNSZone,
     BaseDNSRecord,
+    ModelReference,
 )
 from resotolib.graph import Graph
 
@@ -74,35 +75,37 @@ class DigitalOceanTeam(DigitalOceanResource, BaseAccount):
     """DigitalOcean Team"""
 
     kind: ClassVar[str] = "digitalocean_team"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": [
-            "digitalocean_alert_policy",
-            "digitalocean_app",
-            "digitalocean_cdn_endpoint",
-            "digitalocean_certificate",
-            "digitalocean_container_registry",
-            "digitalocean_container_registry_repository",
-            "digitalocean_container_registry_repository_tag",
-            "digitalocean_database",
-            "digitalocean_domain",
-            "digitalocean_domain_record",
-            "digitalocean_droplet",
-            "digitalocean_firewall",
-            "digitalocean_floating_ip",
-            "digitalocean_image",
-            "digitalocean_kubernetes_cluster",
-            "digitalocean_load_balancer",
-            "digitalocean_vpc",
-            "digitalocean_project",
-            "digitalocean_region",
-            "digitalocean_resource",
-            "digitalocean_snapshot",
-            "digitalocean_space",
-            "digitalocean_ssh_key",
-            "digitalocean_tag",
-            "digitalocean_volume",
-        ],
-        "delete": [],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [
+                "digitalocean_alert_policy",
+                "digitalocean_app",
+                "digitalocean_cdn_endpoint",
+                "digitalocean_certificate",
+                "digitalocean_container_registry",
+                "digitalocean_container_registry_repository",
+                "digitalocean_container_registry_repository_tag",
+                "digitalocean_database",
+                "digitalocean_domain",
+                "digitalocean_domain_record",
+                "digitalocean_droplet",
+                "digitalocean_firewall",
+                "digitalocean_floating_ip",
+                "digitalocean_image",
+                "digitalocean_kubernetes_cluster",
+                "digitalocean_load_balancer",
+                "digitalocean_vpc",
+                "digitalocean_project",
+                "digitalocean_region",
+                "digitalocean_resource",
+                "digitalocean_snapshot",
+                "digitalocean_space",
+                "digitalocean_ssh_key",
+                "digitalocean_tag",
+                "digitalocean_volume",
+            ],
+            "delete": [],
+        }
     }
 
 
@@ -111,21 +114,23 @@ class DigitalOceanRegion(DigitalOceanResource, BaseRegion):
     """DigitalOcean region"""
 
     kind: ClassVar[str] = "digitalocean_region"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": [
-            "digitalocean_app",
-            "digitalocean_container_registry",
-            "digitalocean_database",
-            "digitalocean_droplet",
-            "digitalocean_floating_ip",
-            "digitalocean_image",
-            "digitalocean_kubernetes_cluster",
-            "digitalocean_load_balancer",
-            "digitalocean_vpc",
-            "digitalocean_snapshot",
-            "digitalocean_space",
-        ],
-        "delete": [],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [
+                "digitalocean_app",
+                "digitalocean_container_registry",
+                "digitalocean_database",
+                "digitalocean_droplet",
+                "digitalocean_floating_ip",
+                "digitalocean_image",
+                "digitalocean_kubernetes_cluster",
+                "digitalocean_load_balancer",
+                "digitalocean_vpc",
+                "digitalocean_snapshot",
+                "digitalocean_space",
+            ],
+            "delete": [],
+        }
     }
 
     do_region_slug: Optional[str] = None
@@ -139,27 +144,29 @@ class DigitalOceanProject(DigitalOceanResource, BaseResource):
     """DigitalOcean project"""
 
     kind: ClassVar[str] = "digitalocean_project"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": [
-            "digitalocean_database",
-            "digitalocean_domain",
-            "digitalocean_droplet",
-            "digitalocean_floating_ip",
-            "digitalocean_kubernetes_cluster",
-            "digitalocean_load_balancer",
-            "digitalocean_space",
-            "digitalocean_volume",
-        ],
-        "delete": [
-            "digitalocean_database",
-            "digitalocean_domain",
-            "digitalocean_droplet",
-            "digitalocean_floating_ip",
-            "digitalocean_kubernetes_cluster",
-            "digitalocean_load_balancer",
-            "digitalocean_space",
-            "digitalocean_volume",
-        ],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [
+                "digitalocean_database",
+                "digitalocean_domain",
+                "digitalocean_droplet",
+                "digitalocean_floating_ip",
+                "digitalocean_kubernetes_cluster",
+                "digitalocean_load_balancer",
+                "digitalocean_space",
+                "digitalocean_volume",
+            ],
+            "delete": [
+                "digitalocean_database",
+                "digitalocean_domain",
+                "digitalocean_droplet",
+                "digitalocean_floating_ip",
+                "digitalocean_kubernetes_cluster",
+                "digitalocean_load_balancer",
+                "digitalocean_space",
+                "digitalocean_volume",
+            ],
+        }
     }
 
     owner_uuid: Optional[str] = None
@@ -176,10 +183,12 @@ class DigitalOceanProject(DigitalOceanResource, BaseResource):
 @define(eq=False, slots=False)
 class DigitalOceanDropletSize(DigitalOceanResource, BaseInstanceType):
     kind: ClassVar[str] = "digitalocean_droplet_size"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": [
-            "digitalocean_droplet",
-        ]
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [
+                "digitalocean_droplet",
+            ]
+        }
     }
 
 
@@ -193,13 +202,15 @@ class DigitalOceanDroplet(DigitalOceanResource, BaseInstance):
     """
 
     kind: ClassVar[str] = "digitalocean_droplet"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": [
-            "digitalocean_floating_ip",
-            "digitalocean_snapshot",
-            "digitalocean_volume",
-        ],
-        "delete": [],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [
+                "digitalocean_floating_ip",
+                "digitalocean_snapshot",
+                "digitalocean_volume",
+            ],
+            "delete": [],
+        }
     }
 
     droplet_backup_ids: Optional[List[str]] = None
@@ -219,9 +230,11 @@ class DigitalOceanKubernetesCluster(DigitalOceanResource, BaseResource):
     """DigitalOcean Kubernetes Cluster"""
 
     kind: ClassVar[str] = "digitalocean_kubernetes_cluster"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["digitalocean_droplet"],
-        "delete": [],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["digitalocean_droplet"],
+            "delete": [],
+        }
     }
 
     k8s_version: Optional[str] = None
@@ -242,9 +255,11 @@ class DigitalOceanKubernetesCluster(DigitalOceanResource, BaseResource):
 @define(eq=False, slots=False)
 class DigitalOceanVolume(DigitalOceanResource, BaseVolume):
     kind: ClassVar[str] = "digitalocean_volume"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["digitalocean_snapshot"],
-        "delete": ["digitalocean_droplet"],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["digitalocean_snapshot"],
+            "delete": ["digitalocean_droplet"],
+        }
     }
 
     volume_status_map: ClassVar[Dict[str, VolumeStatus]] = {
@@ -272,9 +287,11 @@ class DigitalOceanVolume(DigitalOceanResource, BaseVolume):
 @define(eq=False, slots=False)
 class DigitalOceanDatabase(DigitalOceanResource, BaseDatabase):
     kind: ClassVar[str] = "digitalocean_database"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["digitalocean_app"],
-        "delete": [],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["digitalocean_app"],
+            "delete": [],
+        }
     }
 
     def delete_uri_path(self) -> Optional[str]:
@@ -292,7 +309,7 @@ class DigitalOceanVPC(DigitalOceanResource, BaseNetwork):
     """
 
     kind: ClassVar[str] = "digitalocean_vpc"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+    reference_kinds: ClassVar[ModelReference] = { "successors": {
         "default": [
             "digitalocean_load_balancer",
             "digitalocean_kubernetes_cluster",
@@ -304,7 +321,7 @@ class DigitalOceanVPC(DigitalOceanResource, BaseNetwork):
             "digitalocean_droplet",
             "digitalocean_kubernetes_cluster",
         ],
-    }
+    }}
 
     ip_range: Optional[str] = None
     description: Optional[str] = None
@@ -335,9 +352,10 @@ class DigitalOceanLoadBalancer(DigitalOceanResource, BaseLoadBalancer):
     """DigitalOcean load balancer"""
 
     kind: ClassVar[str] = "digitalocean_load_balancer"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+    reference_kinds: ClassVar[ModelReference] = { "successors": {
         "default": ["digitalocean_droplet"],
         "delete": [],
+    }
     }
 
     nr_nodes: Optional[int] = None
@@ -380,9 +398,10 @@ class DigitalOceanImage(DigitalOceanResource, BaseResource):
     """DigitalOcean image"""
 
     kind: ClassVar[str] = "digitalocean_image"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+    reference_kinds: ClassVar[ModelReference] = { "successors": {
         "default": ["digitalocean_droplet"],
         "delete": [],
+    }
     }
 
     distribution: Optional[str] = None
@@ -471,10 +490,10 @@ class DigitalOceanContainerRegistry(DigitalOceanResource, BaseResource):
     """DigitalOcean container registry"""
 
     kind = "digitalocean_container_registry"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+    reference_kinds: ClassVar[ModelReference] = { "successors": {
         "default": ["digitalocean_container_registry_repository"],
         "delete": [],
-    }
+    }}
 
     storage_usage_bytes: Optional[int] = None
     is_read_only: Optional[bool] = None
@@ -500,10 +519,10 @@ class DigitalOceanContainerRegistryRepository(DigitalOceanResource, BaseResource
     """DigitalOcean container registry repository"""
 
     kind = "digitalocean_container_registry_repository"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+    reference_kinds: ClassVar[ModelReference] = { "successors": {
         "default": ["digitalocean_container_registry_repository_tag"],
         "delete": [],
-    }
+    }}
 
     tag_count: Optional[int] = None
     manifest_count: Optional[int] = None
@@ -551,10 +570,10 @@ class DigitalOceanDomain(DigitalOceanResource, BaseDNSZone):
     """DigitalOcean domain"""
 
     kind = "digitalocean_domain"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+    reference_kinds: ClassVar[ModelReference] = { "successors": {
         "default": ["digitalocean_domain_record"],
         "delete": [],
-    }
+    }}
     ttl: Optional[int] = None
     zone_file: Optional[str] = None
 
@@ -578,9 +597,10 @@ class DigitalOceanFirewall(DigitalOceanResource, BaseResource):
     """DigitalOcean firewall"""
 
     kind = "digitalocean_firewall"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+    reference_kinds: ClassVar[ModelReference] = { "successors": {
         "default": ["digitalocean_droplet"],
         "delete": [],
+    }
     }
 
     firewall_status: Optional[str] = None
