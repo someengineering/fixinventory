@@ -12,6 +12,8 @@ from resotolib.baseresources import (  # noqa: F401
     BaseAccount,
     BaseAccessKey,
     BaseUser,
+    BaseServerlessFunction,
+    ModelReference,
 )
 from resotolib.json_bender import Bender, S, Bend, ForallBend, F
 from resotolib.types import Json
@@ -91,11 +93,14 @@ class AwsLambdaImageConfigResponse:
     error: Optional[AwsLambdaImageConfigError] = field(default=None)
 
 
-# TODO: add base class BaseServerlessFunction once #992 is merged
 @define(eq=False, slots=False)
-class AwsLambdaFunction(AwsResource):
+class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
     kind: ClassVar[str] = "aws_lambda_function"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("lambda", "list-functions", "Functions")
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["aws_vpc", "aws_ec2_subnet", "aws_ec2_security_group"]},
+        "successors": {"delete": ["aws_vpc", "aws_ec2_subnet", "aws_ec2_security_group"]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("FunctionName"),
         "name": S("FunctionName"),
@@ -165,13 +170,11 @@ class AwsLambdaFunction(AwsResource):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if vpc_config := source.get("VpcConfig"):
             if vpc_id := vpc_config.get("VpcId"):
-                builder.dependant_node(self, reverse=True, delete_reverse=True, clazz=AwsEc2Vpc, id=vpc_id)
+                builder.dependant_node(self, reverse=True, clazz=AwsEc2Vpc, id=vpc_id)
             for subnet_id in vpc_config.get("SubnetIds", []):
-                builder.dependant_node(self, reverse=True, delete_reverse=True, clazz=AwsEc2Subnet, id=subnet_id)
+                builder.dependant_node(self, reverse=True, clazz=AwsEc2Subnet, id=subnet_id)
             for security_group_id in vpc_config.get("SecurityGroupIds", []):
-                builder.dependant_node(
-                    self, reverse=True, delete_reverse=True, clazz=AwsEc2SecurityGroup, id=security_group_id
-                )
+                builder.dependant_node(self, reverse=True, clazz=AwsEc2SecurityGroup, id=security_group_id)
 
 
 resources: List[Type[AwsResource]] = [AwsLambdaFunction]
