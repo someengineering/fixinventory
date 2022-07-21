@@ -8,6 +8,7 @@ from resoto_plugin_aws.utils import ToDict
 from resotolib.baseresources import BaseAutoScalingGroup, BaseAccount  # noqa: F401
 from resotolib.json_bender import Bender, S, Bend, ForallBend
 from resotolib.types import Json
+from resoto_plugin_aws.aws_client import AwsClient
 
 
 @define(eq=False, slots=False)
@@ -273,6 +274,29 @@ class AwsAutoScalingGroup(AwsResource, BaseAutoScalingGroup):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for instance in self.autoscaling_instances:
             builder.dependant_node(self, clazz=AwsEc2Instance, id=instance.instance_id)
+
+    def update_tag(self, client: AwsClient, key: str, value: str) -> bool:
+        client.call(
+            service="autoscaling",
+            action="create_or_update_tags",
+            result_name=None,
+            ResourceId=[self.name],
+            ResourceType="auto-scaling-group",
+            Key=key,
+            Value=value,
+        )
+        return True
+
+    def delete_tag(self, client: AwsClient, key: str) -> bool:
+        client.call(
+            service="autoscaling",
+            action="delete_tags",
+            result_name=None,
+            ResourceId=[self.name],
+            ResourceType="auto-scaling-group",
+            Key=key,
+        )
+        return True
 
 
 resources: List[Type[AwsResource]] = [AwsAutoScalingGroup]
