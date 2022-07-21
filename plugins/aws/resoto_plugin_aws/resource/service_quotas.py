@@ -6,7 +6,7 @@ from attr import field
 from attrs import define
 
 from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder
-from resotolib.baseresources import BaseAccount, BaseQuota, EdgeType  # noqa: F401
+from resotolib.baseresources import BaseAccount, BaseQuota, EdgeType, ModelReference  # noqa: F401
 from resotolib.json_bender import Bender, S, Bend
 from resotolib.types import Json
 
@@ -30,7 +30,7 @@ class AwsQuotaMetricInfo:
 
 @define(eq=False, slots=False)
 class AwsQuotaPeriod:
-    kind: ClassVar[str] = "aws_quota_quota_period"
+    kind: ClassVar[str] = "aws_quota_period"
     mapping: ClassVar[Dict[str, Bender]] = {"period_value": S("PeriodValue"), "period_unit": S("PeriodUnit")}
     period_value: Optional[int] = field(default=None)
     period_unit: Optional[str] = field(default=None)
@@ -46,7 +46,19 @@ class AwsQuotaErrorReason:
 
 @define(eq=False, slots=False)
 class AwsServiceQuota(AwsResource, BaseQuota):
-    kind: ClassVar[str] = "aws_quota_service_quota"
+    kind: ClassVar[str] = "aws_service_quota"
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [
+                "aws_ec2_instance_type",
+                "aws_ec2_volume_type",
+                "aws_vpc",
+                "aws_elb",
+                "aws_alb",
+                "aws_iam_server_certificate",
+            ]
+        }
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("QuotaCode"),
         "name": S("QuotaName"),

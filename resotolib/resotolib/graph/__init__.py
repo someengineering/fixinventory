@@ -660,15 +660,6 @@ def update_graph_ref(graph: Graph) -> None:
             node._graph = graph
 
 
-def set_max_depth(graph: Graph, node: BaseResource, current_depth: int = 0) -> None:
-    if isinstance(node, BaseResource):
-        if current_depth > node.max_graph_depth:
-            node.max_graph_depth = current_depth
-
-    for child_node in node.successors(graph):
-        set_max_depth(graph, child_node, current_depth + 1)
-
-
 def sanitize(graph: Graph, root: GraphRoot = None) -> None:
     log.debug("Sanitizing Graph")
     plugin_roots = {}
@@ -721,7 +712,6 @@ def sanitize(graph: Graph, root: GraphRoot = None) -> None:
             graph.remove_node(graph_root)
     graph.resolve_deferred_connections()
     update_graph_ref(graph)
-    set_max_depth(graph, root)
     validate_graph_dataclasses_and_nodes(graph)
 
 

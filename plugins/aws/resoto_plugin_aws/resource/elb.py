@@ -5,7 +5,7 @@ from attrs import define, field
 from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
 from resoto_plugin_aws.resource.ec2 import AwsEc2Subnet, AwsEc2SecurityGroup, AwsEc2Vpc, AwsEc2Instance
 from resoto_plugin_aws.utils import ToDict
-from resotolib.baseresources import BaseLoadBalancer, EdgeType, BaseAccount  # noqa: F401
+from resotolib.baseresources import BaseLoadBalancer, EdgeType, BaseAccount, ModelReference  # noqa: F401
 from resotolib.json_bender import Bender, S, Bend, bend, ForallBend, K
 from resotolib.types import Json
 
@@ -110,8 +110,18 @@ class AwsElbSourceSecurityGroup:
 
 @define(eq=False, slots=False)
 class AwsElb(AwsResource, BaseLoadBalancer):
-    kind: ClassVar[str] = "aws_elb_load_balancer_description"
+    kind: ClassVar[str] = "aws_elb"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("elb", "describe-load-balancers", "LoadBalancerDescriptions")
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {
+            "default": ["aws_vpc", "aws_ec2_subnet", "aws_ec2_security_group"],
+            "delete": ["aws_ec2_instance"],
+        },
+        "successors": {
+            "delete": ["aws_vpc", "aws_ec2_subnet", "aws_ec2_security_group"],
+            "default": ["aws_ec2_instance"],
+        },
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("DNSName"),
         "name": S("LoadBalancerName"),
@@ -155,13 +165,13 @@ class AwsElb(AwsResource, BaseLoadBalancer):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
         if vpc_id := source.get("VPCId"):
-            builder.dependant_node(self, reverse=True, delete_reverse=True, clazz=AwsEc2Vpc, id=vpc_id)
+            builder.dependant_node(self, reverse=True, clazz=AwsEc2Vpc, id=vpc_id)
         for subnet_id in source.get("Subnets", []):
-            builder.dependant_node(self, reverse=True, delete_reverse=True, clazz=AwsEc2Subnet, id=subnet_id)
+            builder.dependant_node(self, reverse=True, clazz=AwsEc2Subnet, id=subnet_id)
         for sg_id in source.get("SecurityGroups", []):
             builder.add_edge(self, EdgeType.default, reverse=True, clazz=AwsEc2SecurityGroup, id=sg_id)
         for instance in self.backends:
-            builder.dependant_node(self, reverse=True, clazz=AwsEc2Instance, id=instance)
+            builder.dependant_node(self, clazz=AwsEc2Instance, id=instance)
 
 
 resources: List[Type[AwsResource]] = [AwsElb]

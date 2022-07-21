@@ -25,6 +25,7 @@ from resotolib.baseresources import (  # noqa: F401
     BaseEndpoint,
     BaseRoutingTable,
     BaseVolumeType,
+    ModelReference,
 )
 from resotolib.json_bender import Bender, S, Bend, ForallBend, bend, MapEnum, F, K, StripNones
 from resotolib.types import Json
@@ -245,6 +246,12 @@ class AwsEc2InferenceAcceleratorInfo:
 class AwsEc2InstanceType(AwsResource, BaseInstanceType):
     kind: ClassVar[str] = "aws_ec2_instance_type"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-instance-types", "InstanceTypes")
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["aws_ec2_instance"],
+            "delete": [],
+        }
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("InstanceType"),
         "tags": S("Tags", default=[]) >> ToDict(),
@@ -348,6 +355,10 @@ VolumeStatusMapping = {
 class AwsEc2Volume(AwsResource, BaseVolume):
     kind: ClassVar[str] = "aws_ec2_volume"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-volumes", "Volumes")
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["aws_ec2_volume_type", "aws_ec2_instance"]},
+        "successors": {"delete": ["aws_ec2_instance"]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("VolumeId"),
         "tags": S("Tags", default=[]) >> ToDict(),
@@ -402,12 +413,12 @@ class AwsEc2Volume(AwsResource, BaseVolume):
             for query, metric in AwsCloudwatchMetricData.query_for(builder.client, queries, start, now).items():
                 if non_zero := metric.first_non_zero():
                     at, value = non_zero
-                    volume = lookup[query.ref_id]
-                    if metric.label == "VolumeReadOps":
-                        volume.atime = at
-                    elif metric.label == "VolumeWriteOps":
-                        volume.mtime = at
-                    lookup.pop(query.ref_id, None)
+                    if vol := lookup.get(query.ref_id):
+                        if metric.label == "VolumeReadOps":
+                            vol.atime = at
+                        elif metric.label == "VolumeWriteOps":
+                            vol.mtime = at
+                        lookup.pop(query.ref_id, None)
             # all volumes in this list do not have value in cloudwatch
             # fall back to either ctime or start time whatever is more recent.
             for v in lookup.values():
@@ -427,8 +438,7 @@ class AwsEc2Volume(AwsResource, BaseVolume):
         super().connect_in_graph(builder, source)
         builder.add_edge(self, EdgeType.default, reverse=True, name=self.volume_type)
         for attachment in self.volume_attachments:
-            builder.add_edge(self, EdgeType.default, clazz=AwsEc2Instance, id=attachment.instance_id)
-            builder.add_edge(self, EdgeType.delete, reverse=True, clazz=AwsEc2Instance, id=attachment.instance_id)
+            builder.dependant_node(self, reverse=True, clazz=AwsEc2Instance, id=attachment.instance_id)
 
 
 # endregion
@@ -440,6 +450,8 @@ class AwsEc2Volume(AwsResource, BaseVolume):
 class AwsEc2Snapshot(AwsResource, BaseSnapshot):
     kind: ClassVar[str] = "aws_ec2_snapshot"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-snapshots", "Snapshots", dict(OwnerIds=["self"]))
+    reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["aws_ec2_volume"]}}
+
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("SnapshotId"),
         "tags": S("Tags", default=[]) >> ToDict(),
@@ -481,8 +493,14 @@ class AwsEc2Snapshot(AwsResource, BaseSnapshot):
 
 @define(eq=False, slots=False)
 class AwsEc2KeyPair(AwsResource):
-    kind: ClassVar[str] = "aws_ec2_key_pair_info"
+    kind: ClassVar[str] = "aws_ec2_key_pair"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-key-pairs", "KeyPairs")
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [],
+            "delete": ["aws_ec2_instance"],
+        }
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("KeyPairId"),
         "name": S("KeyName"),
@@ -670,6 +688,12 @@ class AwsEc2InstancePrivateIpAddress:
 @define(eq=False, slots=False)
 class AwsEc2InstanceNetworkInterface:
     kind: ClassVar[str] = "aws_ec2_instance_network_interface"
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["aws_ec2_elastic_ip"],
+            "delete": ["aws_vpc_endpoint", "aws_ec2_nat_gateway", "aws_ec2_instance", "aws_ec2_subnet"],
+        }
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "association": S("Association") >> Bend(AwsEc2InstanceNetworkInterfaceAssociation.mapping),
         "attachment": S("Attachment") >> Bend(AwsEc2InstanceNetworkInterfaceAttachment.mapping),
@@ -793,6 +817,10 @@ InstanceStatusMapping = {
 class AwsEc2Instance(AwsResource, BaseInstance):
     kind: ClassVar[str] = "aws_ec2_instance"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-instances", "Reservations")
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["aws_vpc"], "delete": ["aws_ec2_keypair"]},
+        "successors": {"default": ["aws_ec2_keypair"], "delete": ["aws_vpc"]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         # base properties
         "id": S("InstanceId"),
@@ -935,8 +963,7 @@ class AwsEc2Instance(AwsResource, BaseInstance):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
         if self.instance_key_name:
-            builder.add_edge(self, EdgeType.default, clazz=AwsEc2KeyPair, name=self.instance_key_name)
-            builder.add_edge(self, EdgeType.delete, reverse=True, clazz=AwsEc2KeyPair, name=self.instance_key_name)
+            builder.dependant_node(self, clazz=AwsEc2KeyPair, name=self.instance_key_name)
         if vpc_id := source.get("VpcId"):
             builder.dependant_node(self, reverse=True, clazz=AwsEc2Vpc, name=vpc_id)
 
@@ -958,6 +985,7 @@ class AwsEc2RecurringCharge:
 class AwsEc2ReservedInstances(AwsResource):
     kind: ClassVar[str] = "aws_ec2_reserved_instances"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-reserved-instances", "ReservedInstances")
+    reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["aws_ec2_instance_type"]}}
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("ReservedInstancesId"),
         "tags": S("Tags", default=[]) >> ToDict(),
@@ -1066,6 +1094,10 @@ class AwsEc2NetworkAclEntry:
 class AwsEc2NetworkAcl(AwsResource):
     kind: ClassVar[str] = "aws_ec2_network_acl"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-network-acls", "NetworkAcls")
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["aws_vpc"]},
+        "successors": {"delete": ["aws_vpc"]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("NetworkAclId"),
         "tags": S("Tags", default=[]) >> ToDict(),
@@ -1095,6 +1127,10 @@ class AwsEc2NetworkAcl(AwsResource):
 class AwsEc2ElasticIp(AwsResource, BaseIPAddress):
     kind: ClassVar[str] = "aws_ec2_elastic_ip"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-addresses", "Addresses")
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["aws_ec2_instance", "aws_ec2_network_interface"]},
+        "successors": {"delete": ["aws_ec2_instance", "aws_ec2_network_interface"]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("NetworkInterfaceId").or_else(S("PublicIp")),
         "tags": S("Tags", default=[]) >> ToDict(),
@@ -1129,9 +1165,9 @@ class AwsEc2ElasticIp(AwsResource, BaseIPAddress):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
         if instance_id := source.get("InstanceId"):
-            builder.dependant_node(self, clazz=AwsEc2Instance, id=instance_id)
+            builder.dependant_node(self, reverse=True, clazz=AwsEc2Instance, id=instance_id)
         if interface_id := source.get("NetworkInterfaceId"):
-            builder.dependant_node(self, clazz=AwsEc2NetworkInterface, id=interface_id)
+            builder.dependant_node(self, reverse=True, clazz=AwsEc2NetworkInterface, id=interface_id)
 
 
 # endregion
@@ -1208,6 +1244,10 @@ class AwsEc2Tag:
 class AwsEc2NetworkInterface(AwsResource, BaseNetworkInterface):
     kind: ClassVar[str] = "aws_ec2_network_interface"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-network-interfaces", "NetworkInterfaces")
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["aws_vpc", "aws_ec2_subnet", "aws_ec2_instance", "aws_ec2_security_group"]},
+        "successors": {"delete": ["aws_vpc", "aws_ec2_subnet", "aws_ec2_instance", "aws_ec2_security_group"]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("NetworkInterfaceId"),
         "tags": S("Tags", default=[]) >> ToDict(),
@@ -1274,7 +1314,6 @@ class AwsEc2NetworkInterface(AwsResource, BaseNetworkInterface):
             builder.dependant_node(self, reverse=True, clazz=AwsEc2Instance, id=iid)
         for group in self.nic_groups:
             if gid := group.group_id:
-                pass
                 builder.add_edge(self, EdgeType.default, reverse=True, clazz=AwsEc2SecurityGroup, id=gid)
 
 
@@ -1325,6 +1364,38 @@ class AwsEc2VpcCidrBlockAssociation:
 class AwsEc2Vpc(AwsResource, BaseNetwork):
     kind: ClassVar[str] = "aws_vpc"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-vpcs", "Vpcs")
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [
+                "aws_vpc_peering_connection",
+                "aws_vpc_endpoint",
+                "aws_rds_instance",
+                "aws_elb",
+                "aws_ec2_subnet",
+                "aws_ec2_security_group",
+                "aws_ec2_route_table",
+                "aws_ec2_network_interface",
+                "aws_ec2_network_acl",
+                "aws_ec2_nat_gateway",
+                "aws_ec2_internet_gateway",
+                "aws_alb_target_group",
+            ],
+            "delete": [
+                "aws_vpc_peering_connection",
+                "aws_vpc_endpoint",
+                "aws_rds_instance",
+                "aws_elb",
+                "aws_ec2_subnet",
+                "aws_ec2_security_group",
+                "aws_ec2_route_table",
+                "aws_ec2_network_interface",
+                "aws_ec2_network_acl",
+                "aws_ec2_nat_gateway",
+                "aws_ec2_internet_gateway",
+                "aws_alb_target_group",
+            ],
+        }
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("VpcId"),
         "tags": S("Tags", default=[]) >> ToDict(),
@@ -1398,6 +1469,10 @@ class AwsEc2VpcPeeringConnectionStateReason:
 class AwsEc2VpcPeeringConnection(AwsResource, BasePeeringConnection):
     kind: ClassVar[str] = "aws_vpc_peering_connection"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-vpc-peering-connections", "VpcPeeringConnections")
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["aws_vpc"]},
+        "successors": {"delete": ["aws_vpc"]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("VpcPeeringConnectionId"),
         "tags": S("Tags", default=[]) >> ToDict(),
@@ -1414,9 +1489,9 @@ class AwsEc2VpcPeeringConnection(AwsResource, BasePeeringConnection):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.connection_requester_vpc_info and (vpc_id := self.connection_requester_vpc_info.vpc_id):
-            builder.dependant_node(self, reverse=True, delete_reverse=True, clazz=AwsEc2Vpc, id=vpc_id)
+            builder.dependant_node(self, reverse=True, clazz=AwsEc2Vpc, id=vpc_id)
         if self.connection_accepter_vpc_info and (vpc_id := self.connection_accepter_vpc_info.vpc_id):
-            builder.dependant_node(self, reverse=True, delete_reverse=True, clazz=AwsEc2Vpc, id=vpc_id)
+            builder.dependant_node(self, reverse=True, clazz=AwsEc2Vpc, id=vpc_id)
 
 
 # endregion
@@ -1444,6 +1519,16 @@ class AwsEc2LastError:
 class AwsEc2VpcEndpoint(AwsResource, BaseEndpoint):
     kind: ClassVar[str] = "aws_vpc_endpoint"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-vpc-endpoints", "VpcEndpoints")
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {
+            "default": ["aws_vpc", "aws_ec2_route_table", "aws_ec2_subnet", "aws_ec2_security_group"],
+            "delete": ["aws_ec2_network_interface"],
+        },
+        "successors": {
+            "delete": ["aws_vpc", "aws_ec2_route_table", "aws_ec2_subnet", "aws_ec2_security_group"],
+            "default": ["aws_ec2_network_interface"],
+        },
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("VpcEndpointId"),
         "tags": S("Tags", default=[]) >> ToDict(),
@@ -1484,20 +1569,20 @@ class AwsEc2VpcEndpoint(AwsResource, BaseEndpoint):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if vpc_id := source.get("VpcId"):
-            builder.dependant_node(self, reverse=True, delete_reverse=True, clazz=AwsEc2Vpc, id=vpc_id)
+            builder.dependant_node(self, reverse=True, clazz=AwsEc2Vpc, id=vpc_id)
 
         for rt in source.get("RouteTableIds", []):
-            builder.dependant_node(self, reverse=True, delete_reverse=True, clazz=AwsEc2RouteTable, id=rt)
+            builder.dependant_node(self, reverse=True, clazz=AwsEc2RouteTable, id=rt)
 
         for sn in source.get("SubnetIds", []):
-            builder.dependant_node(self, reverse=True, delete_reverse=True, clazz=AwsEc2Subnet, id=sn)
+            builder.dependant_node(self, reverse=True, clazz=AwsEc2Subnet, id=sn)
 
         for nic in source.get("NetworkInterfaceIds", []):
-            builder.dependant_node(self, reverse=True, delete_reverse=True, clazz=AwsEc2NetworkInterface, id=nic)
+            builder.dependant_node(self, clazz=AwsEc2NetworkInterface, id=nic)
 
         for group in source.get("Groups", []):
             if group_id := group.get("GroupId"):
-                builder.dependant_node(self, reverse=True, delete_reverse=True, clazz=AwsEc2SecurityGroup, id=group_id)
+                builder.dependant_node(self, reverse=True, clazz=AwsEc2SecurityGroup, id=group_id)
 
 
 # endregion
@@ -1541,6 +1626,10 @@ class AwsEc2PrivateDnsNameOptionsOnLaunch:
 class AwsEc2Subnet(AwsResource, BaseSubnet):
     kind: ClassVar[str] = "aws_ec2_subnet"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-subnets", "Subnets")
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["aws_vpc"]},
+        "successors": {"delete": ["aws_vpc"]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("SubnetId"),
         "tags": S("Tags", default=[]) >> ToDict(),
@@ -1666,6 +1755,10 @@ class AwsEc2IpPermission:
 class AwsEc2SecurityGroup(AwsResource, BaseSecurityGroup):
     kind: ClassVar[str] = "aws_ec2_security_group"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-security-groups", "SecurityGroups")
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["aws_vpc"]},
+        "successors": {"delete": ["aws_vpc"]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("GroupId"),
         "tags": S("Tags", default=[]) >> ToDict(),
@@ -1724,6 +1817,10 @@ class AwsEc2ProvisionedBandwidth:
 class AwsEc2NatGateway(AwsResource, BaseGateway):
     kind: ClassVar[str] = "aws_ec2_nat_gateway"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-nat-gateways", "NatGateways")
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["aws_vpc", "aws_ec2_subnet"]},
+        "successors": {"delete": ["aws_vpc", "aws_ec2_subnet"]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("NatGatewayId"),
         "tags": S("Tags", default=[]) >> ToDict(),
@@ -1770,6 +1867,10 @@ class AwsEc2InternetGatewayAttachment:
 class AwsEc2InternetGateway(AwsResource, BaseGateway):
     kind: ClassVar[str] = "aws_ec2_internet_gateway"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-internet-gateways", "InternetGateways")
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["aws_vpc"]},
+        "successors": {"delete": ["aws_vpc"]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("InternetGatewayId"),
         "tags": S("Tags", default=[]) >> ToDict(),
@@ -1783,7 +1884,7 @@ class AwsEc2InternetGateway(AwsResource, BaseGateway):
         super().connect_in_graph(builder, source)
         for attachment in self.gateway_attachments:
             if vpc_id := attachment.vpc_id:
-                builder.dependant_node(self, reverse=True, delete_reverse=True, clazz=AwsEc2Vpc, id=vpc_id)
+                builder.dependant_node(self, reverse=True, clazz=AwsEc2Vpc, id=vpc_id)
 
 
 # endregion
@@ -1859,6 +1960,10 @@ class AwsEc2Route:
 class AwsEc2RouteTable(AwsResource, BaseRoutingTable):
     kind: ClassVar[str] = "aws_ec2_route_table"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-route-tables", "RouteTables")
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["aws_vpc"]},
+        "successors": {"delete": ["aws_vpc"]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("RouteTableId"),
         "tags": S("Tags", default=[]) >> ToDict(),
