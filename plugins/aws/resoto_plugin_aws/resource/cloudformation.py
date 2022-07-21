@@ -1,12 +1,16 @@
 from datetime import datetime
-from typing import ClassVar, Dict, Optional, List, Type
+from termios import TABDLY
+import time
+from typing import Any, ClassVar, Dict, Literal, Optional, List, Type, cast
 
-from attrs import define, field
+from attrs import define, field, Factory
 
 from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec
 from resoto_plugin_aws.utils import ToDict
 from resotolib.baseresources import BaseStack, BaseAccount  # noqa: F401
 from resotolib.json_bender import Bender, S, Bend, ForallBend
+from resoto_plugin_aws.aws_client import AwsClient
+from resotolib.types import Json
 
 
 @define(eq=False, slots=False)
@@ -98,6 +102,63 @@ class AwsCloudFormationStack(AwsResource, BaseStack):
     stack_root_id: Optional[str] = field(default=None)
     stack_drift_information: Optional[AwsCloudFormationStackDriftInformation] = field(default=None)
 
+    def _modify_tag(self, client: AwsClient, key: str, value: Optional[str], mode: Literal["delete", "update"]) -> bool:
+        tags = dict(self.tags)
+        if mode == "delete":
+            if not self.tags.get(key):
+                raise KeyError(key)
+            del tags[key]
+        elif mode == "update":
+            if self.tags.get(key) == value:
+                return True
+            tags.update({key: value})
+        else:
+            return False
+        service = self.api_spec.service
+        stack = cast(
+            Json, client.call(service=service, action="describe_stacks", result_name="Stacks", StackName=self.name)
+        )
+        stack = self._wait_for_completion(client, stack, service)
+
+        try:
+            client.call(
+                service="cloudformation",
+                action="update_stack",
+                result_name=None,
+                StackName=self.name,
+                Capabilities=["CAPABILITY_NAMED_IAM"],
+                UsePreviousTemplate=True,
+                Tags=[{"Key": label, "Value": value} for label, value in tags.items()],
+                Parameters=[
+                    {"ParameterKey": parameter, "UsePreviousValue": True} for parameter in self.stack_parameters.keys()
+                ],
+            )
+        except Exception as e:
+            raise RuntimeError(f"Error updating AWS Cloudformation Stack {self.dname} for {mode} of tag {key}") from e
+        return True
+
+    def _wait_for_completion(self, client: AwsClient, stack: Json, service: str, timeout=300):
+        start_utime = time.time()
+        while stack["StackStatus"].endswith("_IN_PROGRESS"):
+            if time.time() > start_utime + timeout:
+                raise TimeoutError(
+                    (
+                        f"AWS Cloudformation Stack {self.dname} tag update timed out "
+                        f"after {timeout} seconds with status {stack['StackStatus']}"
+                    )
+                )
+            time.sleep(5)
+            stack = cast(
+                Json, client.call(service=service, action="describe_stacks", result_name="Stacks", StackName=self.name)
+            )
+        return stack
+
+    def update_tag(self, client: AwsClient, key: str, value: str) -> bool:
+        return self._modify_tag(client, key, value, "update")
+
+    def delete_tag(self, client: AwsClient, key: str) -> bool:
+        return self._modify_tag(client, key, None, "delete")
+
 
 @define(eq=False, slots=False)
 class AwsCloudFormationAutoDeployment:
@@ -125,6 +186,7 @@ class AwsCloudFormationStackSet(AwsResource):
         "stack_set_drift_status": S("DriftStatus"),
         "stack_set_last_drift_check_timestamp": S("LastDriftCheckTimestamp"),
         "stack_set_managed_execution": S("ManagedExecution", "Active"),
+        "stack_set_parameters": S("Parameters", default=[]) >> ToDict("ParameterKey", "ParameterValue"),
     }
     description: Optional[str] = field(default=None)
     stack_set_status: Optional[str] = field(default=None)
@@ -133,6 +195,43 @@ class AwsCloudFormationStackSet(AwsResource):
     stack_set_drift_status: Optional[str] = field(default=None)
     stack_set_last_drift_check_timestamp: Optional[datetime] = field(default=None)
     stack_set_managed_execution: Optional[bool] = field(default=None)
+    stack_set_parameters: Optional[Dict[str, Any]] = None
+
+    def _modify_tag(
+        self, client: AwsClient, key: str, value: Optional[str] = None, mode=Literal["update", "delete"]
+    ) -> bool:
+        tags = dict(self.tags)
+        if mode == "delete":
+            if not self.tags.get(key):
+                raise KeyError(key)
+            del tags[key]
+        elif mode == "update":
+            if self.tags.get(key) == value:
+                return True
+            tags.update({key: value})
+        else:
+            return False
+
+        try:
+            client.call(
+                service="cloudformation",
+                action="update_stack_set",
+                result_name=None,
+                StackSetName=self.name,
+                Capabilities=["CAPABILITY_NAMED_IAM"],
+                UsePreviousTemplate=True,
+                Tags=[{"Key": label, "Value": value} for label, value in tags.items()],
+                Parameters=[
+                    {"ParameterKey": parameter, "UsePreviousValue": True}
+                    for parameter in (self.stack_set_parameters or {}).keys()
+                ],
+            )
+        except Exception as e:
+            raise RuntimeError(
+                "Error updating AWS Cloudformation Stack Set" f" {self.dname} for {mode} of tag {key}"
+            ) from e
+
+        return True
 
 
 resources: List[Type[AwsResource]] = [AwsCloudFormationStack, AwsCloudFormationStackSet]
