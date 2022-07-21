@@ -5,7 +5,7 @@ from attrs import define, field
 
 from resoto_plugin_aws.resource.autoscaling import AwsAutoScalingGroup
 from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
-from resotolib.baseresources import BaseAccount, EdgeType  # noqa: F401
+from resotolib.baseresources import BaseAccount, EdgeType, ModelReference  # noqa: F401
 from resotolib.json_bender import Bender, S, Bend, ForallBend
 from resotolib.types import Json
 
@@ -98,9 +98,9 @@ class AwsEksLaunchTemplateSpecification:
 class AwsEksNodegroup(AwsResource):
     # Note: this resource is collected via AwsEksCluster
     kind: ClassVar[str] = "aws_eks_nodegroup"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["aws_ec2_instance"],
-        "delete": [],
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"delete": ["aws_autoscaling_group"]},
+        "successors": {"default": ["aws_autoscaling_group"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("nodegroupName"),
@@ -244,9 +244,11 @@ class AwsEksConnectorConfig:
 class AwsEksCluster(AwsResource):
     kind: ClassVar[str] = "aws_eks_cluster"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("eks", "list-clusters", "clusters")
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["aws_ec2_instance"],
-        "delete": [],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["aws_ec2_instance"],
+            "delete": [],
+        }
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name"),

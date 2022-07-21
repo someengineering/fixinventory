@@ -6,7 +6,7 @@ from attr import field
 from attrs import define
 
 from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder
-from resotolib.baseresources import BaseAccount, BaseQuota, EdgeType  # noqa: F401
+from resotolib.baseresources import BaseAccount, BaseQuota, EdgeType, ModelReference  # noqa: F401
 from resotolib.json_bender import Bender, S, Bend
 from resotolib.types import Json
 
@@ -47,16 +47,17 @@ class AwsQuotaErrorReason:
 @define(eq=False, slots=False)
 class AwsServiceQuota(AwsResource, BaseQuota):
     kind: ClassVar[str] = "aws_service_quota"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": [
-            "aws_ec2_instance_type",
-            "aws_ec2_volume_type",
-            "aws_vpc",
-            "aws_elb",
-            "aws_alb",
-            "aws_iam_server_certificate",
-        ],
-        "delete": [],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [
+                "aws_ec2_instance_type",
+                "aws_ec2_volume_type",
+                "aws_vpc",
+                "aws_elb",
+                "aws_alb",
+                "aws_iam_server_certificate",
+            ]
+        }
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("QuotaCode"),

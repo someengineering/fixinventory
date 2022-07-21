@@ -5,7 +5,7 @@ from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilde
 from resoto_plugin_aws.resource.cloudwatch import AwsCloudwatchQuery, AwsCloudwatchMetricData
 from resoto_plugin_aws.resource.ec2 import AwsEc2SecurityGroup, AwsEc2Subnet, AwsEc2Vpc
 from resoto_plugin_aws.utils import ToDict
-from resotolib.baseresources import BaseAccount, BaseDatabase  # noqa: F401
+from resotolib.baseresources import BaseAccount, BaseDatabase, ModelReference  # noqa: F401
 from resotolib.json_bender import F, K, S, Bend, Bender, ForallBend
 from resotolib.types import Json
 from resotolib.utils import utc
@@ -213,6 +213,10 @@ class AwsRdsTag:
 class AwsRdsInstance(AwsResource, BaseDatabase):
     kind: ClassVar[str] = "aws_rds_instance"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("rds", "describe-db-instances", "DBInstances")
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["aws_vpc", "aws_ec2_security_group", "aws_ec2_subnet"]},
+        "successors": {"delete": ["aws_vpc", "aws_ec2_security_group", "aws_ec2_subnet"]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("DBInstanceIdentifier"),
         "tags": S("TagList", default=[]) >> ForallBend(AwsRdsTag.mapping) >> ToDict(),

@@ -25,6 +25,7 @@ from resotolib.baseresources import (  # noqa: F401
     BaseEndpoint,
     BaseRoutingTable,
     BaseVolumeType,
+    ModelReference,
 )
 from resotolib.json_bender import Bender, S, Bend, ForallBend, bend, MapEnum, F, K, StripNones
 from resotolib.types import Json
@@ -245,9 +246,11 @@ class AwsEc2InferenceAcceleratorInfo:
 class AwsEc2InstanceType(AwsResource, BaseInstanceType):
     kind: ClassVar[str] = "aws_ec2_instance_type"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-instance-types", "InstanceTypes")
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["aws_ec2_instance"],
-        "delete": [],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["aws_ec2_instance"],
+            "delete": [],
+        }
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("InstanceType"),
@@ -352,9 +355,9 @@ VolumeStatusMapping = {
 class AwsEc2Volume(AwsResource, BaseVolume):
     kind: ClassVar[str] = "aws_ec2_volume"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-volumes", "Volumes")
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["aws_ec2_snapshot"],
-        "delete": ["aws_ec2_instance"],
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["aws_ec2_volume_type", "aws_ec2_instance"]},
+        "successors": {"delete": ["aws_ec2_instance"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("VolumeId"),
@@ -447,6 +450,8 @@ class AwsEc2Volume(AwsResource, BaseVolume):
 class AwsEc2Snapshot(AwsResource, BaseSnapshot):
     kind: ClassVar[str] = "aws_ec2_snapshot"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-snapshots", "Snapshots", dict(OwnerIds=["self"]))
+    reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["aws_ec2_volume"]}}
+
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("SnapshotId"),
         "tags": S("Tags", default=[]) >> ToDict(),
@@ -490,9 +495,11 @@ class AwsEc2Snapshot(AwsResource, BaseSnapshot):
 class AwsEc2KeyPair(AwsResource):
     kind: ClassVar[str] = "aws_ec2_key_pair"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-key-pairs", "KeyPairs")
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": [],
-        "delete": ["aws_ec2_instance"],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [],
+            "delete": ["aws_ec2_instance"],
+        }
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("KeyPairId"),
@@ -681,9 +688,11 @@ class AwsEc2InstancePrivateIpAddress:
 @define(eq=False, slots=False)
 class AwsEc2InstanceNetworkInterface:
     kind: ClassVar[str] = "aws_ec2_instance_network_interface"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["aws_ec2_elastic_ip"],
-        "delete": ["aws_vpc_endpoint", "aws_ec2_nat_gateway", "aws_ec2_instance", "aws_ec2_subnet"],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["aws_ec2_elastic_ip"],
+            "delete": ["aws_vpc_endpoint", "aws_ec2_nat_gateway", "aws_ec2_instance", "aws_ec2_subnet"],
+        }
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "association": S("Association") >> Bend(AwsEc2InstanceNetworkInterfaceAssociation.mapping),
@@ -808,19 +817,9 @@ InstanceStatusMapping = {
 class AwsEc2Instance(AwsResource, BaseInstance):
     kind: ClassVar[str] = "aws_ec2_instance"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-instances", "Reservations")
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": [
-            "aws_ec2_volume",
-            "aws_ec2_network_interface",
-            "aws_ec2_keypair",
-            "aws_ec2_elastic_ip",
-            "aws_cloudwatch_alarm",
-        ],
-        "delete": [
-            "aws_elb",
-            "aws_autoscaling_group",
-            "aws_alb_target_group",
-        ],
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["aws_vpc"], "delete": ["aws_ec2_keypair"]},
+        "successors": {"default": ["aws_ec2_keypair"], "delete": ["aws_vpc"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         # base properties
@@ -986,6 +985,7 @@ class AwsEc2RecurringCharge:
 class AwsEc2ReservedInstances(AwsResource):
     kind: ClassVar[str] = "aws_ec2_reserved_instances"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-reserved-instances", "ReservedInstances")
+    reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["aws_ec2_instance_type"]}}
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("ReservedInstancesId"),
         "tags": S("Tags", default=[]) >> ToDict(),
@@ -1094,9 +1094,9 @@ class AwsEc2NetworkAclEntry:
 class AwsEc2NetworkAcl(AwsResource):
     kind: ClassVar[str] = "aws_ec2_network_acl"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-network-acls", "NetworkAcls")
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": [],
-        "delete": ["aws_ec2_subnet"],
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["aws_vpc"]},
+        "successors": {"delete": ["aws_vpc"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("NetworkAclId"),
@@ -1127,9 +1127,9 @@ class AwsEc2NetworkAcl(AwsResource):
 class AwsEc2ElasticIp(AwsResource, BaseIPAddress):
     kind: ClassVar[str] = "aws_ec2_elastic_ip"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-addresses", "Addresses")
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": [],
-        "delete": ["aws_ec2_network_interface", "aws_ec2_instance"],
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["aws_ec2_instance", "aws_ec2_network_interface"]},
+        "successors": {"delete": ["aws_ec2_instance", "aws_ec2_network_interface"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("NetworkInterfaceId").or_else(S("PublicIp")),
@@ -1244,9 +1244,9 @@ class AwsEc2Tag:
 class AwsEc2NetworkInterface(AwsResource, BaseNetworkInterface):
     kind: ClassVar[str] = "aws_ec2_network_interface"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-network-interfaces", "NetworkInterfaces")
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["aws_ec2_elastic_ip"],
-        "delete": ["aws_vpc_endpoint", "aws_ec2_nat_gateway", "aws_ec2_instance"],
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["aws_vpc", "aws_ec2_subnet", "aws_ec2_instance", "aws_ec2_security_group"]},
+        "successors": {"delete": ["aws_vpc", "aws_ec2_subnet", "aws_ec2_instance", "aws_ec2_security_group"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("NetworkInterfaceId"),
@@ -1364,35 +1364,37 @@ class AwsEc2VpcCidrBlockAssociation:
 class AwsEc2Vpc(AwsResource, BaseNetwork):
     kind: ClassVar[str] = "aws_vpc"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-vpcs", "Vpcs")
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": [
-            "aws_vpc_peering_connection",
-            "aws_vpc_endpoint",
-            "aws_rds_instance",
-            "aws_elb",
-            "aws_ec2_subnet",
-            "aws_ec2_security_group",
-            "aws_ec2_route_table",
-            "aws_ec2_network_interface",
-            "aws_ec2_network_acl",
-            "aws_ec2_nat_gateway",
-            "aws_ec2_internet_gateway",
-            "aws_alb_target_group",
-        ],
-        "delete": [
-            "aws_vpc_peering_connection",
-            "aws_vpc_endpoint",
-            "aws_rds_instance",
-            "aws_elb",
-            "aws_ec2_subnet",
-            "aws_ec2_security_group",
-            "aws_ec2_route_table",
-            "aws_ec2_network_interface",
-            "aws_ec2_network_acl",
-            "aws_ec2_nat_gateway",
-            "aws_ec2_internet_gateway",
-            "aws_alb_target_group",
-        ],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [
+                "aws_vpc_peering_connection",
+                "aws_vpc_endpoint",
+                "aws_rds_instance",
+                "aws_elb",
+                "aws_ec2_subnet",
+                "aws_ec2_security_group",
+                "aws_ec2_route_table",
+                "aws_ec2_network_interface",
+                "aws_ec2_network_acl",
+                "aws_ec2_nat_gateway",
+                "aws_ec2_internet_gateway",
+                "aws_alb_target_group",
+            ],
+            "delete": [
+                "aws_vpc_peering_connection",
+                "aws_vpc_endpoint",
+                "aws_rds_instance",
+                "aws_elb",
+                "aws_ec2_subnet",
+                "aws_ec2_security_group",
+                "aws_ec2_route_table",
+                "aws_ec2_network_interface",
+                "aws_ec2_network_acl",
+                "aws_ec2_nat_gateway",
+                "aws_ec2_internet_gateway",
+                "aws_alb_target_group",
+            ],
+        }
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("VpcId"),
@@ -1467,6 +1469,10 @@ class AwsEc2VpcPeeringConnectionStateReason:
 class AwsEc2VpcPeeringConnection(AwsResource, BasePeeringConnection):
     kind: ClassVar[str] = "aws_vpc_peering_connection"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-vpc-peering-connections", "VpcPeeringConnections")
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["aws_vpc"]},
+        "successors": {"delete": ["aws_vpc"]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("VpcPeeringConnectionId"),
         "tags": S("Tags", default=[]) >> ToDict(),
@@ -1513,9 +1519,15 @@ class AwsEc2LastError:
 class AwsEc2VpcEndpoint(AwsResource, BaseEndpoint):
     kind: ClassVar[str] = "aws_vpc_endpoint"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-vpc-endpoints", "VpcEndpoints")
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["aws_ec2_network_interface"],
-        "delete": [],
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {
+            "default": ["aws_vpc", "aws_ec2_route_table", "aws_ec2_subnet", "aws_ec2_security_group"],
+            "delete": ["aws_ec2_network_interface"],
+        },
+        "successors": {
+            "delete": ["aws_vpc", "aws_ec2_route_table", "aws_ec2_subnet", "aws_ec2_security_group"],
+            "default": ["aws_ec2_network_interface"],
+        },
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("VpcEndpointId"),
@@ -1614,23 +1626,9 @@ class AwsEc2PrivateDnsNameOptionsOnLaunch:
 class AwsEc2Subnet(AwsResource, BaseSubnet):
     kind: ClassVar[str] = "aws_ec2_subnet"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-subnets", "Subnets")
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": [
-            "aws_vpc_endpoint",
-            "aws_rds_instance",
-            "aws_elb",
-            "aws_ec2_network_interface",
-            "aws_ec2_network_acl",
-            "aws_ec2_nat_gateway",
-            "aws_alb",
-        ],
-        "delete": [
-            "aws_vpc_endpoint",
-            "aws_rds_instance",
-            "aws_elb",
-            "aws_ec2_network_interface",
-            "aws_alb",
-        ],
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["aws_vpc"]},
+        "successors": {"delete": ["aws_vpc"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("SubnetId"),
@@ -1757,14 +1755,9 @@ class AwsEc2IpPermission:
 class AwsEc2SecurityGroup(AwsResource, BaseSecurityGroup):
     kind: ClassVar[str] = "aws_ec2_security_group"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-security-groups", "SecurityGroups")
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": [
-            "aws_vpc_endpoint",
-            "aws_rds_instance",
-            "aws_elb",
-            "aws_ec2_network_interface",
-        ],
-        "delete": ["aws_vpc_endpoint", "aws_rds_instance"],
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["aws_vpc"]},
+        "successors": {"delete": ["aws_vpc"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("GroupId"),
@@ -1824,9 +1817,9 @@ class AwsEc2ProvisionedBandwidth:
 class AwsEc2NatGateway(AwsResource, BaseGateway):
     kind: ClassVar[str] = "aws_ec2_nat_gateway"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-nat-gateways", "NatGateways")
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["aws_ec2_network_interface"],
-        "delete": [],
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["aws_vpc", "aws_ec2_subnet"]},
+        "successors": {"delete": ["aws_vpc", "aws_ec2_subnet"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("NatGatewayId"),
@@ -1874,9 +1867,9 @@ class AwsEc2InternetGatewayAttachment:
 class AwsEc2InternetGateway(AwsResource, BaseGateway):
     kind: ClassVar[str] = "aws_ec2_internet_gateway"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-internet-gateways", "InternetGateways")
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["aws_ec2_internet_gateway"],
-        "delete": [],
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["aws_vpc"]},
+        "successors": {"delete": ["aws_vpc"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("InternetGatewayId"),
@@ -1967,9 +1960,9 @@ class AwsEc2Route:
 class AwsEc2RouteTable(AwsResource, BaseRoutingTable):
     kind: ClassVar[str] = "aws_ec2_route_table"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-route-tables", "RouteTables")
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["aws_vpc_endpoint"],
-        "delete": ["aws_vpc_endpoint"],
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["aws_vpc"]},
+        "successors": {"delete": ["aws_vpc"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("RouteTableId"),

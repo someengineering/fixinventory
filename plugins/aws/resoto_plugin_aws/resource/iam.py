@@ -14,6 +14,7 @@ from resotolib.baseresources import (  # noqa: F401
     BaseAccount,
     BaseAccessKey,
     BaseUser,
+    ModelReference,
 )
 from resotolib.json import from_json
 from resotolib.json_bender import Bender, S, Bend, AsDate, Sort, bend, ForallBend
@@ -51,9 +52,9 @@ class AwsIamRoleLastUsed:
 class AwsIamRole(AwsResource):
     # Note: this resource is collected via AwsIamUser.collect.
     kind: ClassVar[str] = "aws_iam_role"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["aws_iam_policy", "aws_iam_instance_profile"],
-        "delete": ["aws_iam_policy", "aws_iam_instance_profile", "aws_eks_cluster"],
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"delete": ["aws_iam_policy", "aws_iam_instance_profile"]},
+        "successors": {"default": ["aws_iam_policy", "aws_iam_instance_profile"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("RoleId"),
@@ -91,9 +92,11 @@ class AwsIamRole(AwsResource):
 class AwsIamServerCertificate(AwsResource, BaseCertificate):
     kind: ClassVar[str] = "aws_iam_server_certificate"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("iam", "list-server-certificates", "ServerCertificateMetadataList")
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["aws_ec2_instance"],
-        "delete": [],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["aws_ec2_instance"],
+            "delete": [],
+        }
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("ServerCertificateId"),
@@ -111,9 +114,11 @@ class AwsIamServerCertificate(AwsResource, BaseCertificate):
 class AwsIamPolicy(AwsResource, BasePolicy):
     # Note: this resource is collected via AwsIamUser.collect.
     kind: ClassVar[str] = "aws_iam_policy"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["aws_iam_user", "aws_iam_group"],
-        "delete": [],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["aws_iam_user", "aws_iam_group"],
+            "delete": [],
+        }
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("PolicyId"),
@@ -141,9 +146,9 @@ class AwsIamPolicy(AwsResource, BasePolicy):
 class AwsIamGroup(AwsResource, BaseGroup):
     # Note: this resource is collected via AwsIamUser.collect.
     kind: ClassVar[str] = "aws_iam_group"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["aws_iam_user"],
-        "delete": ["aws_iam_policy"],
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"delete": ["aws_iam_policy"]},
+        "successors": {"default": ["aws_iam_policy"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("GroupId"),
@@ -198,9 +203,9 @@ class AwsIamAccessKey(AwsResource, BaseAccessKey):
 class AwsIamUser(AwsResource, BaseUser):
     kind: ClassVar[str] = "aws_iam_user"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("iam", "get-account-authorization-details")
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["aws_iam_access_key"],
-        "delete": ["aws_iam_policy"],
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["aws_iam_group"], "delete": ["aws_iam_policy"]},
+        "successors": {"default": ["aws_iam_policy"], "delete": ["aws_iam_group"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("UserId"),

@@ -3,9 +3,9 @@ from typing import ClassVar, Dict, Optional, Type, List
 from attrs import define, field
 
 from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
-from resoto_plugin_aws.resource.ec2 import AwsEc2Vpc
+from resoto_plugin_aws.resource.ec2 import AwsEc2Vpc, AwsEc2Subnet, AwsEc2Instance, AwsEc2SecurityGroup
 from resoto_plugin_aws.utils import ToDict
-from resotolib.baseresources import BaseLoadBalancer, EdgeType, BaseAccount  # noqa: F401
+from resotolib.baseresources import BaseLoadBalancer, EdgeType, BaseAccount, ModelReference  # noqa: F401
 from resotolib.json import from_json
 from resotolib.json_bender import Bender, S, Bend, bend, ForallBend, K
 from resotolib.types import Json
@@ -223,9 +223,9 @@ class AwsAlbListener:
 class AwsAlb(AwsResource, BaseLoadBalancer):
     kind: ClassVar[str] = "aws_alb"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("elbv2", "describe-load-balancers", "LoadBalancers")
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["aws_iam_server_certificate", "aws_alb_target_group"],
-        "delete": [],
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["aws_vpc", "aws_ec2_subnet", "aws_ec2_security_group"]},
+        "successors": {"delete": ["aws_vpc", "aws_ec2_subnet", "aws_ec2_security_group"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("LoadBalancerName"),
@@ -271,9 +271,9 @@ class AwsAlb(AwsResource, BaseLoadBalancer):
         if vpc_id := source.get("VpcId"):
             builder.dependant_node(self, reverse=True, clazz=AwsEc2Vpc, id=vpc_id)
         for sg in self.alb_security_groups:
-            builder.add_edge(self, EdgeType.default, reverse=True, id=sg)
+            builder.add_edge(self, EdgeType.default, reverse=True, clazz=AwsEc2SecurityGroup, id=sg)
         for sn in self.alb_availability_zones:
-            builder.dependant_node(self, reverse=True, id=sn.subnet_id)
+            builder.dependant_node(self, reverse=True, clazz=AwsEc2Subnet, id=sn.subnet_id)
 
 
 @define(eq=False, slots=False)
@@ -324,9 +324,9 @@ class AwsAlbTargetHealthDescription:
 class AwsAlbTargetGroup(AwsResource):
     kind: ClassVar[str] = "aws_alb_target_group"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("elbv2", "describe-target-groups", "TargetGroups")
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["aws_ec2_instance"],
-        "delete": ["aws_alb"],
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["aws_vpc", "aws_alb"], "delete": ["aws_ec2_instance"]},
+        "successors": {"delete": ["aws_vpc", "aws_alb"], "default": ["aws_ec2_instance"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("TargetGroupName"),
@@ -387,7 +387,7 @@ class AwsAlbTargetGroup(AwsResource):
                 for th in self.alb_target_health:
                     if th.target and th.target.id:
                         lb.backends.append(th.target.id)
-                        builder.dependant_node(self, id=th.target.id)
+                        builder.dependant_node(self, clazz=AwsEc2Instance, id=th.target.id)
 
 
 resources: List[Type[AwsResource]] = [AwsAlb, AwsAlbTargetGroup]

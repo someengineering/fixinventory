@@ -15,7 +15,15 @@ from boto3.exceptions import Boto3Error
 from resoto_plugin_aws.config import AwsConfig
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.pricing import AwsPricingPrice
-from resotolib.baseresources import BaseResource, EdgeType, Cloud, BaseAccount, BaseRegion, BaseVolumeType
+from resotolib.baseresources import (
+    BaseResource,
+    EdgeType,
+    Cloud,
+    BaseAccount,
+    BaseRegion,
+    BaseVolumeType,
+    ModelReference,
+)
 from resotolib.graph import Graph
 from resotolib.json import to_json as to_js, from_json as from_js
 from resotolib.json_bender import Bender, bend
@@ -151,10 +159,7 @@ AwsResourceType = TypeVar("AwsResourceType", bound=AwsResource)
 @define(eq=False)
 class AwsAccount(BaseAccount, AwsResource):
     kind: ClassVar[str] = "aws_account"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": [],
-        "delete": ["aws_ec2_instance"],
-    }
+    reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["aws_region"]}}
 
     account_alias: Optional[str] = ""
     role: Optional[str] = None
@@ -188,49 +193,51 @@ default_ctime = datetime(2006, 3, 19, tzinfo=timezone.utc)  # AWS public launch 
 @define(eq=False)
 class AwsRegion(BaseRegion, AwsResource):
     kind: ClassVar[str] = "aws_region"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": [
-            "aws_vpc_quota",
-            "aws_vpc_peering_connection",
-            "aws_vpc_endpoint",
-            "aws_vpc",
-            "aws_s3_bucket_quota",
-            "aws_s3_bucket",
-            "aws_rds_instance",
-            "aws_iam_server_certificate_quota",
-            "aws_iam_server_certificate",
-            "aws_iam_role",
-            "aws_iam_policy",
-            "aws_iam_instance_profile",
-            "aws_iam_group",
-            "aws_elb_quota",
-            "aws_elb",
-            "aws_eks_cluster",
-            "aws_ec2_volume_type",
-            "aws_ec2_volume",
-            "aws_iam_user",
-            "aws_ec2_subnet",
-            "aws_ec2_snapshot",
-            "aws_ec2_security_group",
-            "aws_ec2_route_table",
-            "aws_ec2_network_interface",
-            "aws_ec2_network_acl",
-            "aws_ec2_nat_gateway",
-            "aws_ec2_keypair",
-            "aws_ec2_internet_gateway_quota",
-            "aws_ec2_internet_gateway",
-            "aws_ec2_instance_type",
-            "aws_ec2_instance_quota",
-            "aws_ec2_instance",
-            "aws_ec2_elastic_ip",
-            "aws_cloudwatch_alarm",
-            "aws_cloudformation_stack",
-            "aws_cloudformation_stack_set",
-            "aws_autoscaling_group",
-            "aws_alb_target_group",
-            "aws_alb_quota",
-            "aws_alb",
-        ]
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [
+                "aws_vpc_quota",
+                "aws_vpc_peering_connection",
+                "aws_vpc_endpoint",
+                "aws_vpc",
+                "aws_s3_bucket_quota",
+                "aws_s3_bucket",
+                "aws_rds_instance",
+                "aws_iam_server_certificate_quota",
+                "aws_iam_server_certificate",
+                "aws_iam_role",
+                "aws_iam_policy",
+                "aws_iam_instance_profile",
+                "aws_iam_group",
+                "aws_elb_quota",
+                "aws_elb",
+                "aws_eks_cluster",
+                "aws_ec2_volume_type",
+                "aws_ec2_volume",
+                "aws_iam_user",
+                "aws_ec2_subnet",
+                "aws_ec2_snapshot",
+                "aws_ec2_security_group",
+                "aws_ec2_route_table",
+                "aws_ec2_network_interface",
+                "aws_ec2_network_acl",
+                "aws_ec2_nat_gateway",
+                "aws_ec2_keypair",
+                "aws_ec2_internet_gateway_quota",
+                "aws_ec2_internet_gateway",
+                "aws_ec2_instance_type",
+                "aws_ec2_instance_quota",
+                "aws_ec2_instance",
+                "aws_ec2_elastic_ip",
+                "aws_cloudwatch_alarm",
+                "aws_cloudformation_stack",
+                "aws_cloudformation_stack_set",
+                "aws_autoscaling_group",
+                "aws_alb_target_group",
+                "aws_alb_quota",
+                "aws_alb",
+            ]
+        }
     }
     ctime: Optional[datetime] = default_ctime
 
@@ -238,10 +245,6 @@ class AwsRegion(BaseRegion, AwsResource):
 @define(eq=False, slots=False)
 class AwsEc2VolumeType(AwsResource, BaseVolumeType):
     kind: ClassVar[str] = "aws_ec2_volume_type"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["aws_ec2_volume"],
-        "delete": [],
-    }
 
 
 @define

@@ -6,7 +6,7 @@ from attr import define, field
 
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
-from resotolib.baseresources import BaseAccount  # noqa: F401
+from resotolib.baseresources import BaseAccount, ModelReference  # noqa: F401
 from resotolib.json import from_json
 from resotolib.json_bender import S, Bend, Bender, ForallBend, bend
 from resotolib.types import Json
@@ -74,9 +74,9 @@ class AwsCloudwatchMetricDataQuery:
 class AwsCloudwatchAlarm(AwsResource):
     kind: ClassVar[str] = "aws_cloudwatch_alarm"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudwatch", "describe-alarms", "MetricAlarms")
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": [],
-        "delete": ["aws_ec2_instance"],
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["aws_ec2_instance"]},
+        "successors": {"delete": ["aws_ec2_instance"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("AlarmName"),

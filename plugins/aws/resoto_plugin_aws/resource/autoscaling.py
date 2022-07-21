@@ -5,7 +5,7 @@ from attrs import define, field
 from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
 from resoto_plugin_aws.resource.ec2 import AwsEc2Instance
 from resoto_plugin_aws.utils import ToDict
-from resotolib.baseresources import BaseAutoScalingGroup, BaseAccount  # noqa: F401
+from resotolib.baseresources import BaseAutoScalingGroup, BaseAccount, ModelReference  # noqa: F401
 from resotolib.json_bender import Bender, S, Bend, ForallBend
 from resotolib.types import Json
 
@@ -203,9 +203,9 @@ class AwsAutoScalingWarmPoolConfiguration:
 class AwsAutoScalingGroup(AwsResource, BaseAutoScalingGroup):
     kind: ClassVar[str] = "aws_autoscaling_group"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("autoscaling", "describe-auto-scaling-groups", "AutoScalingGroups")
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["aws_ec2_instance"],
-        "delete": ["aws_eks_nodegroup"],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {"default": ["aws_ec2_instance"]},
+        "predecessors": {"delete": ["aws_ec2_instance"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("AutoScalingGroupName"),
