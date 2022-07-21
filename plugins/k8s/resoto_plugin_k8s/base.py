@@ -51,7 +51,7 @@ class KubernetesResource(BaseResource):
                 "k8s_name",
                 "mapping",
                 "phantom",
-                "successor_kinds",
+                "reference_kinds",
                 "parent_resource",
                 "usage_percentage",
                 "dname",
