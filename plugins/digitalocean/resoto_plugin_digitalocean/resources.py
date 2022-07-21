@@ -309,19 +309,21 @@ class DigitalOceanVPC(DigitalOceanResource, BaseNetwork):
     """
 
     kind: ClassVar[str] = "digitalocean_vpc"
-    reference_kinds: ClassVar[ModelReference] = { "successors": {
-        "default": [
-            "digitalocean_load_balancer",
-            "digitalocean_kubernetes_cluster",
-            "digitalocean_droplet",
-            "digitalocean_database",
-        ],
-        "delete": [
-            "digitalocean_database",
-            "digitalocean_droplet",
-            "digitalocean_kubernetes_cluster",
-        ],
-    }}
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [
+                "digitalocean_load_balancer",
+                "digitalocean_kubernetes_cluster",
+                "digitalocean_droplet",
+                "digitalocean_database",
+            ],
+            "delete": [
+                "digitalocean_database",
+                "digitalocean_droplet",
+                "digitalocean_kubernetes_cluster",
+            ],
+        }
+    }
 
     ip_range: Optional[str] = None
     description: Optional[str] = None
@@ -352,10 +354,11 @@ class DigitalOceanLoadBalancer(DigitalOceanResource, BaseLoadBalancer):
     """DigitalOcean load balancer"""
 
     kind: ClassVar[str] = "digitalocean_load_balancer"
-    reference_kinds: ClassVar[ModelReference] = { "successors": {
-        "default": ["digitalocean_droplet"],
-        "delete": [],
-    }
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["digitalocean_droplet"],
+            "delete": [],
+        }
     }
 
     nr_nodes: Optional[int] = None
@@ -398,10 +401,11 @@ class DigitalOceanImage(DigitalOceanResource, BaseResource):
     """DigitalOcean image"""
 
     kind: ClassVar[str] = "digitalocean_image"
-    reference_kinds: ClassVar[ModelReference] = { "successors": {
-        "default": ["digitalocean_droplet"],
-        "delete": [],
-    }
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["digitalocean_droplet"],
+            "delete": [],
+        }
     }
 
     distribution: Optional[str] = None
@@ -490,10 +494,12 @@ class DigitalOceanContainerRegistry(DigitalOceanResource, BaseResource):
     """DigitalOcean container registry"""
 
     kind = "digitalocean_container_registry"
-    reference_kinds: ClassVar[ModelReference] = { "successors": {
-        "default": ["digitalocean_container_registry_repository"],
-        "delete": [],
-    }}
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["digitalocean_container_registry_repository"],
+            "delete": [],
+        }
+    }
 
     storage_usage_bytes: Optional[int] = None
     is_read_only: Optional[bool] = None
@@ -519,10 +525,12 @@ class DigitalOceanContainerRegistryRepository(DigitalOceanResource, BaseResource
     """DigitalOcean container registry repository"""
 
     kind = "digitalocean_container_registry_repository"
-    reference_kinds: ClassVar[ModelReference] = { "successors": {
-        "default": ["digitalocean_container_registry_repository_tag"],
-        "delete": [],
-    }}
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["digitalocean_container_registry_repository_tag"],
+            "delete": [],
+        }
+    }
 
     tag_count: Optional[int] = None
     manifest_count: Optional[int] = None
@@ -570,10 +578,12 @@ class DigitalOceanDomain(DigitalOceanResource, BaseDNSZone):
     """DigitalOcean domain"""
 
     kind = "digitalocean_domain"
-    reference_kinds: ClassVar[ModelReference] = { "successors": {
-        "default": ["digitalocean_domain_record"],
-        "delete": [],
-    }}
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["digitalocean_domain_record"],
+            "delete": [],
+        }
+    }
     ttl: Optional[int] = None
     zone_file: Optional[str] = None
 
@@ -597,10 +607,11 @@ class DigitalOceanFirewall(DigitalOceanResource, BaseResource):
     """DigitalOcean firewall"""
 
     kind = "digitalocean_firewall"
-    reference_kinds: ClassVar[ModelReference] = { "successors": {
-        "default": ["digitalocean_droplet"],
-        "delete": [],
-    }
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["digitalocean_droplet"],
+            "delete": [],
+        }
     }
 
     firewall_status: Optional[str] = None
