@@ -1,0 +1,91 @@
+{
+    "Functions": [
+        {
+            "FunctionName": "test-lambda-function",
+            "FunctionArn": "arn:aws:lambda:us-east-1:test:function:dcos-versions-lambda-dev-commit",
+            "Runtime": "go1.x",
+            "Role": "arn:aws:iam::test:role/test-lambda-function-us-east-1-lambdaRole",
+            "Handler": "bin/commit",
+            "CodeSize": 32385562,
+            "Description": "Some description of this lambda function",
+            "Timeout": 6,
+            "MemorySize": 1024,
+            "LastModified": "2020-08-31T16:00:01.411+0000",
+            "CodeSha256": "gE6qwjb7LBHAJGw6fIiwgRBfzpNBP08beohvtvlZsCk=",
+            "Version": "$LATEST",
+            "VpcConfig": {
+                "SubnetIds": ["subnet-123"],
+                "SecurityGroupIds": ["sg-123"],
+                "VpcId": "vpc-123"
+            },
+            "Environment": {
+                "Variables": {
+                    "MYSQL_DATABASE": "versions",
+                    "MYSQL_USER": "admin",
+                    "MYSQL_AWS_REGION": "us-east-1"
+                }
+            },
+            "TracingConfig": {
+                "Mode": "PassThrough"
+            },
+            "RevisionId": "52c56771-4bdc-4988-861d-958d5cdb287e",
+            "PackageType": "Zip",
+            "Architectures": [
+                "x86_64"
+            ],
+            "EphemeralStorage": {
+                "Size": 512
+            },
+            "DeadLetterConfig": {
+                "TargetArn": "arn:aws:sqs:us-east-1:123456789012:MyDeadLetterQueue"
+            },
+            "KMSKeyArn": "arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012",
+            "MasterArn": "arn:aws:lambda:us-east-1:123456789012:function:test-lambda-function",
+            "State": "Active",
+            "StateReason": "Provisioned Successfully",
+            "StateReasonCode": "Provisioned",
+            "LastUpdateStatus": "Successful",
+            "LastUpdateStatusReason": "Provisioned Successfully",
+            "LastUpdateStatusReasonCode": "Provisioned",
+            "ImageConfigResponse": {
+                "ImageConfig": {
+                    "EntryPoint": [ "bin/commit" ],
+                    "Command": [ "bin/commit" ],
+                    "WorkingDirectory": "/var/task"
+                },
+                "Error": {
+                    "Code": "InvalidParameterValueException",
+                    "Message": "The specified parameter is invalid."
+                }
+            },
+            "SigningProfileArn": "arn:aws:signing-profiles:us-east-1:test:profile/test-profile",
+            "SigningProfileVersionArn": "arn:aws:signing-profiles:us-east-1:test:profile/test-profile-version",
+            "SigningJobArn": "arn:aws:signing-jobs:us-east-1:test:job/test-job"
+        },
+        {
+            "FunctionName": "beta-test",
+            "FunctionArn": "arn:aws:lambda:us-east-1:test:function:beta-test",
+            "Runtime": "nodejs14.x",
+            "Role": "arn:aws:iam::test:role/service-role/beta-test-role-e81uql66",
+            "Handler": "index.handler",
+            "CodeSize": 564,
+            "Description": "Some description",
+            "Timeout": 3,
+            "MemorySize": 128,
+            "LastModified": "2021-05-07T16:34:58.205+0000",
+            "CodeSha256": "pyhmU3X+dsdEvfnGpnM/Mz2NSYqor74m01Xo0e6e6GM=",
+            "Version": "$LATEST",
+            "TracingConfig": {
+                "Mode": "PassThrough"
+            },
+            "RevisionId": "18b84871-abd0-48f4-86f5-2f5d7c6d4e62",
+            "PackageType": "Zip",
+            "Architectures": [
+                "x86_64"
+            ],
+            "EphemeralStorage": {
+                "Size": 512
+            }
+        }
+    ]
+}
