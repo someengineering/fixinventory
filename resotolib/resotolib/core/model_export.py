@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 import attrs
 import cattrs
 from attrs import Attribute
@@ -5,7 +7,7 @@ from datetime import datetime, date, timedelta, timezone
 from functools import lru_cache, reduce
 from pydoc import locate
 from typing import List, MutableSet, Union, Tuple, Dict, Set, Any, TypeVar, Type, Optional
-from resotolib.baseresources import BaseResource
+from resotolib.baseresources import BaseResource, EdgeType
 from resotolib.types import Json
 from resotolib.utils import type_str, str2timedelta, str2timezone, utc_str
 from typing import get_args, get_origin
@@ -184,6 +186,26 @@ def dataclasses_to_resotocore_model(
         return [json(name, kind, required, desc)] + synthetics
 
     model: List[Json] = []
+    all_classes = transitive_classes(classes)
+
+    # type edge_type -> list of types
+    successors: Dict[str, Dict[str, List[str]]] = defaultdict(lambda: defaultdict(list))
+
+    for clazz in all_classes:
+        if name := getattr(clazz, "kind", None):
+            # backwards compatibility: still look for successor kinds variable. deprecated.
+            if succs := getattr(clazz, "successor_kinds", None):
+                for edge_type, values in succs.items():
+                    successors[name][edge_type].extend(values)
+            if refs := getattr(clazz, "reference_kinds", None):
+                if succs := refs.get("successors", None):
+                    for edge_type, values in succs.items():
+                        successors[name][edge_type].extend(values)
+                if preds := refs.get("predecessors", None):
+                    for edge_type, values in preds.items():
+                        for value in values:
+                            successors[value][edge_type].append(name)
+    successors = {k: {ik: list(set(iv)) for ik, iv in v.items()} for k, v in successors.items()}
 
     def export_data_class(clazz: type) -> None:
         bases = [base for base in clazz.__bases__ if attrs.has(base)]
@@ -193,13 +215,14 @@ def dataclasses_to_resotocore_model(
             p for field in attrs.fields(clazz) if field not in base_props and should_export(field) for p in prop(field)
         ]
         root = any(sup == aggregate_root for sup in clazz.mro()) if aggregate_root else True
+        kind = model_name(clazz)
         model.append(
             {
-                "fqn": model_name(clazz),
+                "fqn": kind,
                 "bases": base_names,
                 "properties": props,
                 "allow_unknown_props": allow_unknown_props,
-                "successor_kinds": getattr(clazz, "successor_kinds", None),
+                "successor_kinds": successors.get(kind, None),
                 "aggregate_root": root,
             }
         )
@@ -215,7 +238,7 @@ def dataclasses_to_resotocore_model(
         enum_values = [literal_name(literal) for literal in clazz]
         model.append({"fqn": model_name(clazz), "runtime_kind": "string", "enum": enum_values})
 
-    for cls in transitive_classes(classes):
+    for cls in all_classes:
         if attrs.has(cls):
             export_data_class(cls)
         elif is_enum(cls):

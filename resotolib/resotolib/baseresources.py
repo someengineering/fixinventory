@@ -41,6 +41,15 @@ def unless_protected(f):
     return wrapper
 
 
+# To define predecessors and successors of a resource by kind
+# Example:
+# reference_kinds: ClassVar[ModelReference] = {
+#   "successors": {"default": ["base"], "delete": ["other_kind"]]},
+#   "predecessors": {"delete": ["other"]},
+# }
+ModelReference = Dict[str, Dict[str, List[str]]]
+
+
 class EdgeType(Enum):
     default = "default"
     delete = "delete"
@@ -100,20 +109,20 @@ class BaseResource(ABC):
     the resource within the Graph. The name is used for display purposes. Tags are
     key/value pairs that get exported in the GRAPHML view.
 
-    There's also class variables, kind, phantom and successor_kinds.
+    There's also class variables, kind, phantom and reference_kinds.
     `kind` is a string describing the type of resource, e.g. 'aws_ec2_instance'
        or 'some_cloud_load_balancer'.
     `phantom` is a bool describing whether the resource actually exists within
        the cloud or if it's just a phantom resource like pricing information
        or usage quota. I.e. some information relevant to the cloud account
        but not actually existing in the form of a usable resource.
-    `successor_kinds` is a list of kinds that can be connected to this resource for
-       the related edge type.
+    `reference_kinds` is a list of kinds that can be connected to this resource for
+       the related edge type as successor or predecessor.
     """
 
     kind: ClassVar[str] = "resource"
     phantom: ClassVar[bool] = False
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {"default": [], "delete": []}
+    reference_kinds: ClassVar[ModelReference] = {}
 
     id: str
     tags: Dict[str, Optional[str]] = Factory(dict)

@@ -266,6 +266,16 @@ class Config(metaclass=MetaConfig):
             except Exception:
                 log.exception("Failed to reload config")
 
+    # the __hash__ and the __eq__ below is a workaround to make sure the outdated config is not cached by
+    # a lru_cache decoartor after the config performed a self-update. It serves no other purpose.
+    def __hash__(self) -> int:
+        return hash(self.running_config.revision)
+
+    def __eq__(self, other: Any) -> bool:
+        if isinstance(other, Config):
+            return self.running_config.__dict__ == other.running_config.__dict__
+        return False
+
     @property
     def model(self) -> List:
         """Return the config dataclass model in resotocore format"""

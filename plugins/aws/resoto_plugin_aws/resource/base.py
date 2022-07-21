@@ -71,7 +71,7 @@ class AwsResource(BaseResource):
             strip_attr=(
                 "mapping",
                 "phantom",
-                "successor_kinds",
+                "reference_kinds",
                 "parent_resource",
                 "usage_percentage",
                 "dname",

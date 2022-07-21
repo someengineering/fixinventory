@@ -19,9 +19,11 @@ default_ctime = make_valid_timestamp(date(2006, 3, 19))  # AWS public launch dat
 @define(eq=False, slots=False)
 class AWSAccount(BaseAccount):
     kind: ClassVar[str] = "aws_account"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["aws_region"],
-        "delete": [],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["aws_region"],
+            "delete": [],
+        }
     }
 
     account_alias: Optional[str] = ""
@@ -56,50 +58,52 @@ class AWSAccount(BaseAccount):
 @define(eq=False, slots=False)
 class AWSRegion(BaseRegion):
     kind: ClassVar[str] = "aws_region"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": [
-            "aws_vpc_quota",
-            "aws_vpc_peering_connection",
-            "aws_vpc_endpoint",
-            "aws_vpc",
-            "aws_s3_bucket_quota",
-            "aws_s3_bucket",
-            "aws_rds_instance",
-            "aws_iam_server_certificate_quota",
-            "aws_iam_server_certificate",
-            "aws_iam_role",
-            "aws_iam_policy",
-            "aws_iam_instance_profile",
-            "aws_iam_group",
-            "aws_elb_quota",
-            "aws_elb",
-            "aws_eks_cluster",
-            "aws_ec2_volume_type",
-            "aws_ec2_volume",
-            "aws_iam_user",
-            "aws_ec2_subnet",
-            "aws_ec2_snapshot",
-            "aws_ec2_security_group",
-            "aws_ec2_route_table",
-            "aws_ec2_network_interface",
-            "aws_ec2_network_acl",
-            "aws_ec2_nat_gateway",
-            "aws_ec2_keypair",
-            "aws_ec2_internet_gateway_quota",
-            "aws_ec2_internet_gateway",
-            "aws_ec2_instance_type",
-            "aws_ec2_instance_quota",
-            "aws_ec2_instance",
-            "aws_ec2_elastic_ip",
-            "aws_cloudwatch_alarm",
-            "aws_cloudformation_stack",
-            "aws_cloudformation_stack_set",
-            "aws_autoscaling_group",
-            "aws_alb_target_group",
-            "aws_alb_quota",
-            "aws_alb",
-        ],
-        "delete": [],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [
+                "aws_vpc_quota",
+                "aws_vpc_peering_connection",
+                "aws_vpc_endpoint",
+                "aws_vpc",
+                "aws_s3_bucket_quota",
+                "aws_s3_bucket",
+                "aws_rds_instance",
+                "aws_iam_server_certificate_quota",
+                "aws_iam_server_certificate",
+                "aws_iam_role",
+                "aws_iam_policy",
+                "aws_iam_instance_profile",
+                "aws_iam_group",
+                "aws_elb_quota",
+                "aws_elb",
+                "aws_eks_cluster",
+                "aws_ec2_volume_type",
+                "aws_ec2_volume",
+                "aws_iam_user",
+                "aws_ec2_subnet",
+                "aws_ec2_snapshot",
+                "aws_ec2_security_group",
+                "aws_ec2_route_table",
+                "aws_ec2_network_interface",
+                "aws_ec2_network_acl",
+                "aws_ec2_nat_gateway",
+                "aws_ec2_keypair",
+                "aws_ec2_internet_gateway_quota",
+                "aws_ec2_internet_gateway",
+                "aws_ec2_instance_type",
+                "aws_ec2_instance_quota",
+                "aws_ec2_instance",
+                "aws_ec2_elastic_ip",
+                "aws_cloudwatch_alarm",
+                "aws_cloudformation_stack",
+                "aws_cloudformation_stack_set",
+                "aws_autoscaling_group",
+                "aws_alb_target_group",
+                "aws_alb_quota",
+                "aws_alb",
+            ],
+            "delete": [],
+        }
     }
     ctime: Optional[datetime] = default_ctime
 
@@ -119,38 +123,44 @@ class AWSResource:
 @define(eq=False, slots=False)
 class AWSEC2InstanceType(AWSResource, BaseInstanceType):
     kind: ClassVar[str] = "aws_ec2_instance_type"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["aws_ec2_instance"],
-        "delete": [],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["aws_ec2_instance"],
+            "delete": [],
+        }
     }
 
 
 @define(eq=False, slots=False)
 class AWSEC2InstanceQuota(AWSResource, BaseInstanceQuota):
     kind: ClassVar[str] = "aws_ec2_instance_quota"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["aws_ec2_instance_type"],
-        "delete": [],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["aws_ec2_instance_type"],
+            "delete": [],
+        }
     }
 
 
 @define(eq=False, slots=False)
 class AWSEC2Instance(AWSResource, BaseInstance):
     kind: ClassVar[str] = "aws_ec2_instance"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": [
-            "aws_ec2_volume",
-            "aws_ec2_network_interface",
-            "aws_ec2_keypair",
-            "aws_ec2_elastic_ip",
-            "aws_cloudwatch_alarm",
-        ],
-        "delete": [
-            "aws_elb",
-            "aws_autoscaling_group",
-            "aws_alb_target_group",
-            "aws_cloudwatch_alarm",
-        ],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [
+                "aws_ec2_volume",
+                "aws_ec2_network_interface",
+                "aws_ec2_keypair",
+                "aws_ec2_elastic_ip",
+                "aws_cloudwatch_alarm",
+            ],
+            "delete": [
+                "aws_elb",
+                "aws_autoscaling_group",
+                "aws_alb_target_group",
+                "aws_cloudwatch_alarm",
+            ],
+        }
     }
 
     def delete(self, graph: Graph) -> bool:
@@ -186,9 +196,11 @@ class AWSEC2Instance(AWSResource, BaseInstance):
 @define(eq=False, slots=False)
 class AWSEC2KeyPair(AWSResource, BaseKeyPair):
     kind: ClassVar[str] = "aws_ec2_keypair"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": [],
-        "delete": ["aws_ec2_instance"],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [],
+            "delete": ["aws_ec2_instance"],
+        }
     }
 
     def delete(self, graph: Graph) -> bool:
@@ -210,18 +222,22 @@ class AWSEC2KeyPair(AWSResource, BaseKeyPair):
 @define(eq=False, slots=False)
 class AWSEC2VolumeType(AWSResource, BaseVolumeType):
     kind: ClassVar[str] = "aws_ec2_volume_type"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["aws_ec2_volume"],
-        "delete": [],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["aws_ec2_volume"],
+            "delete": [],
+        }
     }
 
 
 @define(eq=False, slots=False)
 class AWSEC2Volume(AWSResource, BaseVolume):
     kind: ClassVar[str] = "aws_ec2_volume"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["aws_ec2_snapshot"],
-        "delete": ["aws_ec2_instance"],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["aws_ec2_snapshot"],
+            "delete": ["aws_ec2_instance"],
+        }
     }
 
     volume_kms_key_id: Optional[str] = None
@@ -319,23 +335,25 @@ class AWSEC2Snapshot(AWSResource, BaseSnapshot):
 @define(eq=False, slots=False)
 class AWSEC2Subnet(AWSResource, BaseSubnet):
     kind: ClassVar[str] = "aws_ec2_subnet"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": [
-            "aws_vpc_endpoint",
-            "aws_rds_instance",
-            "aws_elb",
-            "aws_ec2_network_interface",
-            "aws_ec2_network_acl",
-            "aws_ec2_nat_gateway",
-            "aws_alb",
-        ],
-        "delete": [
-            "aws_vpc_endpoint",
-            "aws_rds_instance",
-            "aws_elb",
-            "aws_ec2_network_interface",
-            "aws_alb",
-        ],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [
+                "aws_vpc_endpoint",
+                "aws_rds_instance",
+                "aws_elb",
+                "aws_ec2_network_interface",
+                "aws_ec2_network_acl",
+                "aws_ec2_nat_gateway",
+                "aws_alb",
+            ],
+            "delete": [
+                "aws_vpc_endpoint",
+                "aws_rds_instance",
+                "aws_elb",
+                "aws_ec2_network_interface",
+                "aws_alb",
+            ],
+        }
     }
 
     def delete(self, graph: Graph) -> bool:
@@ -358,9 +376,11 @@ class AWSEC2Subnet(AWSResource, BaseSubnet):
 @define(eq=False, slots=False)
 class AWSEC2ElasticIP(AWSResource, BaseIPAddress):
     kind: ClassVar[str] = "aws_ec2_elastic_ip"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": [],
-        "delete": ["aws_ec2_network_interface", "aws_ec2_instance"],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [],
+            "delete": ["aws_ec2_network_interface", "aws_ec2_instance"],
+        }
     }
 
     instance_id: Optional[str] = None
@@ -399,35 +419,37 @@ class AWSEC2ElasticIP(AWSResource, BaseIPAddress):
 @define(eq=False, slots=False)
 class AWSVPC(AWSResource, BaseNetwork):
     kind: ClassVar[str] = "aws_vpc"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": [
-            "aws_vpc_peering_connection",
-            "aws_vpc_endpoint",
-            "aws_rds_instance",
-            "aws_elb",
-            "aws_ec2_subnet",
-            "aws_ec2_security_group",
-            "aws_ec2_route_table",
-            "aws_ec2_network_interface",
-            "aws_ec2_network_acl",
-            "aws_ec2_nat_gateway",
-            "aws_ec2_internet_gateway",
-            "aws_alb_target_group",
-        ],
-        "delete": [
-            "aws_vpc_peering_connection",
-            "aws_vpc_endpoint",
-            "aws_rds_instance",
-            "aws_elb",
-            "aws_ec2_subnet",
-            "aws_ec2_security_group",
-            "aws_ec2_route_table",
-            "aws_ec2_network_interface",
-            "aws_ec2_network_acl",
-            "aws_ec2_nat_gateway",
-            "aws_ec2_internet_gateway",
-            "aws_alb_target_group",
-        ],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [
+                "aws_vpc_peering_connection",
+                "aws_vpc_endpoint",
+                "aws_rds_instance",
+                "aws_elb",
+                "aws_ec2_subnet",
+                "aws_ec2_security_group",
+                "aws_ec2_route_table",
+                "aws_ec2_network_interface",
+                "aws_ec2_network_acl",
+                "aws_ec2_nat_gateway",
+                "aws_ec2_internet_gateway",
+                "aws_alb_target_group",
+            ],
+            "delete": [
+                "aws_vpc_peering_connection",
+                "aws_vpc_endpoint",
+                "aws_rds_instance",
+                "aws_elb",
+                "aws_ec2_subnet",
+                "aws_ec2_security_group",
+                "aws_ec2_route_table",
+                "aws_ec2_network_interface",
+                "aws_ec2_network_acl",
+                "aws_ec2_nat_gateway",
+                "aws_ec2_internet_gateway",
+                "aws_alb_target_group",
+            ],
+        }
     }
     is_default: bool = False
 
@@ -458,9 +480,11 @@ class AWSVPC(AWSResource, BaseNetwork):
 @define(eq=False, slots=False)
 class AWSVPCQuota(AWSResource, BaseNetworkQuota):
     kind: ClassVar[str] = "aws_vpc_quota"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["aws_vpc"],
-        "delete": [],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["aws_vpc"],
+            "delete": [],
+        }
     }
 
 
@@ -525,18 +549,22 @@ class AWSS3Bucket(AWSResource, BaseBucket):
 @define(eq=False, slots=False)
 class AWSS3BucketQuota(AWSResource, BaseBucketQuota):
     kind: ClassVar[str] = "aws_s3_bucket_quota"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["aws_s3_bucket"],
-        "delete": [],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["aws_s3_bucket"],
+            "delete": [],
+        }
     }
 
 
 @define(eq=False, slots=False)
 class AWSELB(AWSResource, BaseLoadBalancer):
     kind: ClassVar[str] = "aws_elb"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["aws_ec2_instance"],
-        "delete": [],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["aws_ec2_instance"],
+            "delete": [],
+        }
     }
 
     def delete(self, graph: Graph) -> bool:
@@ -559,9 +587,11 @@ class AWSELB(AWSResource, BaseLoadBalancer):
 @define(eq=False, slots=False)
 class AWSALB(AWSResource, BaseLoadBalancer):
     kind: ClassVar[str] = "aws_alb"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["aws_iam_server_certificate", "aws_alb_target_group"],
-        "delete": [],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["aws_iam_server_certificate", "aws_alb_target_group"],
+            "delete": [],
+        }
     }
 
     def delete(self, graph: Graph) -> bool:
@@ -584,9 +614,11 @@ class AWSALB(AWSResource, BaseLoadBalancer):
 @define(eq=False, slots=False)
 class AWSALBTargetGroup(AWSResource, BaseResource):
     kind: ClassVar[str] = "aws_alb_target_group"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["aws_ec2_instance"],
-        "delete": ["aws_alb"],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["aws_ec2_instance"],
+            "delete": ["aws_alb"],
+        }
     }
 
     target_type: str = ""
@@ -611,18 +643,22 @@ class AWSALBTargetGroup(AWSResource, BaseResource):
 @define(eq=False, slots=False)
 class AWSELBQuota(AWSResource, BaseLoadBalancerQuota):
     kind: ClassVar[str] = "aws_elb_quota"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["aws_elb"],
-        "delete": [],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["aws_elb"],
+            "delete": [],
+        }
     }
 
 
 @define(eq=False, slots=False)
 class AWSALBQuota(AWSResource, BaseLoadBalancerQuota):
     kind: ClassVar[str] = "aws_alb_quota"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["aws_alb"],
-        "delete": [],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["aws_alb"],
+            "delete": [],
+        }
     }
 
 
@@ -661,9 +697,11 @@ class AWSEC2InternetGateway(AWSResource, BaseGateway):
 @define(eq=False, slots=False)
 class AWSEC2NATGateway(AWSResource, BaseGateway):
     kind: ClassVar[str] = "aws_ec2_nat_gateway"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["aws_ec2_network_interface"],
-        "delete": [],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["aws_ec2_network_interface"],
+            "delete": [],
+        }
     }
 
     nat_gateway_status: str = ""
@@ -687,23 +725,27 @@ class AWSEC2NATGateway(AWSResource, BaseGateway):
 @define(eq=False, slots=False)
 class AWSEC2InternetGatewayQuota(AWSResource, BaseGatewayQuota):
     kind: ClassVar[str] = "aws_ec2_internet_gateway_quota"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["aws_ec2_internet_gateway"],
-        "delete": [],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["aws_ec2_internet_gateway"],
+            "delete": [],
+        }
     }
 
 
 @define(eq=False, slots=False)
 class AWSEC2SecurityGroup(AWSResource, BaseSecurityGroup):
     kind: ClassVar[str] = "aws_ec2_security_group"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": [
-            "aws_vpc_endpoint",
-            "aws_rds_instance",
-            "aws_elb",
-            "aws_ec2_network_interface",
-        ],
-        "delete": ["aws_vpc_endpoint", "aws_rds_instance"],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [
+                "aws_vpc_endpoint",
+                "aws_rds_instance",
+                "aws_elb",
+                "aws_ec2_network_interface",
+            ],
+            "delete": ["aws_vpc_endpoint", "aws_rds_instance"],
+        }
     }
 
     def pre_delete(self, graph: Graph) -> bool:
@@ -752,9 +794,11 @@ class AWSEC2SecurityGroup(AWSResource, BaseSecurityGroup):
 @define(eq=False, slots=False)
 class AWSEC2RouteTable(AWSResource, BaseRoutingTable):
     kind: ClassVar[str] = "aws_ec2_route_table"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["aws_vpc_endpoint"],
-        "delete": ["aws_vpc_endpoint"],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["aws_vpc_endpoint"],
+            "delete": ["aws_vpc_endpoint"],
+        }
     }
 
     def pre_delete(self, graph: Graph) -> bool:
@@ -809,9 +853,11 @@ class AWSVPCPeeringConnection(AWSResource, BasePeeringConnection):
 @define(eq=False, slots=False)
 class AWSVPCEndpoint(AWSResource, BaseEndpoint):
     kind: ClassVar[str] = "aws_vpc_endpoint"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["aws_ec2_network_interface"],
-        "delete": [],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["aws_ec2_network_interface"],
+            "delete": [],
+        }
     }
     vpc_endpoint_type: str = ""
     vpc_endpoint_status: str = ""
@@ -835,9 +881,11 @@ class AWSVPCEndpoint(AWSResource, BaseEndpoint):
 @define(eq=False, slots=False)
 class AWSEC2NetworkAcl(AWSResource, BaseNetworkAcl):
     kind: ClassVar[str] = "aws_ec2_network_acl"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": [],
-        "delete": ["aws_ec2_subnet"],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [],
+            "delete": ["aws_ec2_subnet"],
+        }
     }
     is_default: bool = False
 
@@ -860,9 +908,11 @@ class AWSEC2NetworkAcl(AWSResource, BaseNetworkAcl):
 @define(eq=False, slots=False)
 class AWSEC2NetworkInterface(AWSResource, BaseNetworkInterface):
     kind: ClassVar[str] = "aws_ec2_network_interface"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["aws_ec2_elastic_ip"],
-        "delete": ["aws_vpc_endpoint", "aws_ec2_nat_gateway", "aws_ec2_instance"],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["aws_ec2_elastic_ip"],
+            "delete": ["aws_vpc_endpoint", "aws_ec2_nat_gateway", "aws_ec2_instance"],
+        }
     }
 
     def delete(self, graph: Graph) -> bool:
@@ -891,9 +941,11 @@ class AWSRDSInstance(AWSResource, BaseDatabase):
 @define(eq=False, slots=False)
 class AWSIAMUser(AWSResource, BaseUser):
     kind: ClassVar[str] = "aws_iam_user"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["aws_iam_access_key"],
-        "delete": ["aws_iam_policy"],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["aws_iam_access_key"],
+            "delete": ["aws_iam_policy"],
+        }
     }
     user_policies: List = field(factory=list)
 
@@ -928,9 +980,11 @@ class AWSIAMUser(AWSResource, BaseUser):
 @define(eq=False, slots=False)
 class AWSIAMGroup(AWSResource, BaseGroup):
     kind: ClassVar[str] = "aws_iam_group"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["aws_iam_user"],
-        "delete": ["aws_iam_policy"],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["aws_iam_user"],
+            "delete": ["aws_iam_policy"],
+        }
     }
     group_policies: List = field(factory=list)
 
@@ -965,9 +1019,11 @@ class AWSIAMGroup(AWSResource, BaseGroup):
 @define(eq=False, slots=False)
 class AWSIAMRole(AWSResource, BaseRole):
     kind: ClassVar[str] = "aws_iam_role"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["aws_iam_policy", "aws_iam_instance_profile"],
-        "delete": ["aws_iam_policy", "aws_iam_instance_profile", "aws_eks_cluster"],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["aws_iam_policy", "aws_iam_instance_profile"],
+            "delete": ["aws_iam_policy", "aws_iam_instance_profile", "aws_eks_cluster"],
+        }
     }
 
     role_policies: List = field(factory=list)
@@ -1003,9 +1059,11 @@ class AWSIAMRole(AWSResource, BaseRole):
 @define(eq=False, slots=False)
 class AWSIAMPolicy(AWSResource, BasePolicy):
     kind: ClassVar[str] = "aws_iam_policy"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["aws_iam_user", "aws_iam_group"],
-        "delete": [],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["aws_iam_user", "aws_iam_group"],
+            "delete": [],
+        }
     }
 
     def delete(self, graph: Graph) -> bool:
@@ -1018,9 +1076,11 @@ class AWSIAMPolicy(AWSResource, BasePolicy):
 @define(eq=False, slots=False)
 class AWSIAMInstanceProfile(AWSResource, BaseInstanceProfile):
     kind: ClassVar[str] = "aws_iam_instance_profile"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["aws_ec2_instance"],
-        "delete": [],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["aws_ec2_instance"],
+            "delete": [],
+        }
     }
 
     def pre_delete(self, graph: Graph) -> bool:
@@ -1059,9 +1119,11 @@ class AWSIAMAccessKey(AWSResource, BaseAccessKey):
 @define(eq=False, slots=False)
 class AWSIAMServerCertificate(AWSResource, BaseCertificate):
     kind: ClassVar[str] = "aws_iam_server_certificate"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": [],
-        "delete": ["aws_alb"],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [],
+            "delete": ["aws_alb"],
+        }
     }
     path: str = None
 
@@ -1075,9 +1137,11 @@ class AWSIAMServerCertificate(AWSResource, BaseCertificate):
 @define(eq=False, slots=False)
 class AWSIAMServerCertificateQuota(AWSResource, BaseCertificateQuota):
     kind: ClassVar[str] = "aws_iam_server_certificate_quota"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["aws_iam_server_certificate"],
-        "delete": [],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["aws_iam_server_certificate"],
+            "delete": [],
+        }
     }
 
 
@@ -1152,9 +1216,11 @@ class AWSCloudFormationStack(AWSResource, BaseStack):
 @define(eq=False, slots=False)
 class AWSEKSCluster(AWSResource, BaseResource):
     kind: ClassVar[str] = "aws_eks_cluster"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["aws_iam_role", "aws_eks_nodegroup"],
-        "delete": ["aws_eks_nodegroup"],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["aws_iam_role", "aws_eks_nodegroup"],
+            "delete": ["aws_eks_nodegroup"],
+        }
     }
     cluster_status: str = ""
     cluster_endpoint: str = ""
@@ -1178,9 +1244,11 @@ class AWSEKSCluster(AWSResource, BaseResource):
 @define(eq=False, slots=False)
 class AWSEKSNodegroup(AWSResource, BaseResource):
     kind: ClassVar[str] = "aws_eks_nodegroup"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["aws_autoscaling_group"],
-        "delete": [],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["aws_autoscaling_group"],
+            "delete": [],
+        }
     }
 
     cluster_name: str = ""
@@ -1205,9 +1273,11 @@ class AWSEKSNodegroup(AWSResource, BaseResource):
 @define(eq=False, slots=False)
 class AWSAutoScalingGroup(AWSResource, BaseAutoScalingGroup):
     kind: ClassVar[str] = "aws_autoscaling_group"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["aws_ec2_instance"],
-        "delete": ["aws_eks_nodegroup"],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["aws_ec2_instance"],
+            "delete": ["aws_eks_nodegroup"],
+        }
     }
 
     def delete(self, graph: Graph, force_delete: bool = True) -> bool:
@@ -1249,9 +1319,11 @@ class AWSAutoScalingGroup(AWSResource, BaseAutoScalingGroup):
 @define(eq=False, slots=False)
 class AWSCloudwatchAlarm(AWSResource, BaseResource):
     kind: ClassVar[str] = "aws_cloudwatch_alarm"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": [],
-        "delete": [],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [],
+            "delete": [],
+        }
     }
 
     actions_enabled: bool = False
@@ -1353,9 +1425,11 @@ class AWSCloudFormationStackSet(AWSResource, BaseResource):
 @define(eq=False, slots=False)
 class AWSRoute53Zone(AWSResource, BaseDNSZone):
     kind: ClassVar[str] = "aws_route53_zone"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["aws_route53_resource_record_set"],
-        "delete": [],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["aws_route53_resource_record_set"],
+            "delete": [],
+        }
     }
 
     zone_caller_reference: Optional[str] = None
@@ -1367,9 +1441,11 @@ class AWSRoute53Zone(AWSResource, BaseDNSZone):
 @define(eq=False, slots=False)
 class AWSRoute53ResourceRecordSet(AWSResource, BaseDNSRecordSet):
     kind: ClassVar[str] = "aws_route53_resource_record_set"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": ["aws_route53_resource_record"],
-        "delete": ["aws_route53_resource_record"],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["aws_route53_resource_record"],
+            "delete": ["aws_route53_resource_record"],
+        }
     }
     record_set_identifier: Optional[str] = None
     record_region: Optional[str] = None
@@ -1384,7 +1460,9 @@ class AWSRoute53ResourceRecordSet(AWSResource, BaseDNSRecordSet):
 @define(eq=False, slots=False)
 class AWSRoute53ResourceRecord(AWSResource, BaseDNSRecord):
     kind: ClassVar[str] = "aws_route53_resource_record"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": [],
-        "delete": [],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [],
+            "delete": [],
+        }
     }

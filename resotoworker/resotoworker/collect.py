@@ -75,11 +75,12 @@ class Collector:
                 return graph
             pool_args: Dict[str, Any] = {"max_workers": 1}
             pool_executor: Type[futures.Executor]
+            collect_args: Dict[str, Any] = {}
             if self._config.resotoworker.fork_process:
                 pool_args["mp_context"] = multiprocessing.get_context("spawn")
                 pool_args["initializer"] = resotolib.proc.initializer
                 pool_executor = futures.ProcessPoolExecutor
-                collect_args: Dict[str, Any] = {
+                collect_args = {
                     "args": ArgumentParser.args,
                     "running_config": self._config.running_config,
                 }
@@ -132,7 +133,7 @@ def run_post_collect_plugin(
         post_collector.post_collect(graph)
         elapsed = time() - start_time
         if not graph.is_dag_per_edge_type():
-            log.error(f"Graph of plugin {post_collector.name} is not acyclic" " - ignoring plugin results")
+            log.error(f"Graph of plugin {post_collector.name} is not acyclic - ignoring plugin results")
             return None
         log.info(f"Collector of plugin {post_collector.name} finished in {elapsed:.4f}s")
         return graph

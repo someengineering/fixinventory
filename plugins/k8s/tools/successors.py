@@ -15,7 +15,7 @@ def get_successors(client: ResotoClient) -> None:
                 )
             if any(a for a in succesors.values()):
                 print(name)
-                print("successor_kinds: ClassVar[Dict[str, List[str]]] = " + json.dumps(succesors))
+                print("reference_kinds: ClassVar[ModelReference] = " + json.dumps({"successors": succesors}))
 
 
 if __name__ == "__main__":
