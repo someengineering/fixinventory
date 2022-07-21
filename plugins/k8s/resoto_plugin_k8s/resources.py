@@ -312,12 +312,8 @@ class KubernetesNode(KubernetesResource, BaseInstance):
         "instance_type": K("kubernetes_node"),
         "instance_status": K(InstanceStatus.RUNNING.value),
     }
-<<<<<<< HEAD
-    reference_kinds: ClassVar[ModelReference] = { "successors": {
-=======
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
->>>>>>> c6559a8e (black formatting)
             "default": ["kubernetes_csi_node", "kubernetes_pod"],
             "delete": [],
         }
@@ -775,12 +771,8 @@ class KubernetesPod(KubernetesResource):
         "pod_status": S("status") >> Bend(KubernetesPodStatus.mapping),
         "pod_spec": S("spec") >> Bend(KubernetesPodSpec.mapping),
     }
-<<<<<<< HEAD
-    reference_kinds: ClassVar[ModelReference] = { "successors": {
-=======
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
->>>>>>> c6559a8e (black formatting)
             "default": ["kubernetes_secret", "kubernetes_persistent_volume_claim", "kubernetes_config_map"],
             "delete": ["kubernetes_stateful_set", "kubernetes_replica_set", "kubernetes_job", "kubernetes_daemon_set"],
         }
@@ -1046,12 +1038,8 @@ class KubernetesService(KubernetesResource):
         "service_status": S("status") >> Bend(KubernetesServiceStatus.mapping),
         "service_spec": S("spec") >> Bend(KubernetesServiceSpec.mapping),
     }
-<<<<<<< HEAD
-    reference_kinds: ClassVar[ModelReference] = { "successors": {
-=======
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
->>>>>>> c6559a8e (black formatting)
             "default": ["kubernetes_pod", "kubernetes_endpoint_slice"],
             "delete": [],
         }
@@ -1086,12 +1074,8 @@ class KubernetesClusterInfo:
 @define(eq=False, slots=False)
 class KubernetesCluster(KubernetesResource, BaseAccount):
     kind: ClassVar[str] = "kubernetes_cluster"
-<<<<<<< HEAD
-    reference_kinds: ClassVar[ModelReference] = { "successors": {
-=======
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
->>>>>>> c6559a8e (black formatting)
             "default": [
                 "kubernetes_volume_attachment",
                 "kubernetes_validating_webhook_configuration",
@@ -1168,12 +1152,8 @@ class KubernetesEndpoints(KubernetesResource):
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
         "subsets": S("subsets", default=[]) >> ForallBend(KubernetesEndpointSubset.mapping),
     }
-<<<<<<< HEAD
-    reference_kinds: ClassVar[ModelReference] = { "successors": {
-=======
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
->>>>>>> c6559a8e (black formatting)
             "default": ["kubernetes_pod", "kubernetes_node", "kubernetes_endpoint_slice"],
             "delete": [],
         }
@@ -1192,12 +1172,8 @@ class KubernetesEndpoints(KubernetesResource):
 @define(eq=False, slots=False)
 class KubernetesEndpointSlice(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_endpoint_slice"
-<<<<<<< HEAD
-    reference_kinds: ClassVar[ModelReference] = { "successors": {
-=======
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
->>>>>>> c6559a8e (black formatting)
             "default": [],
             "delete": ["kubernetes_service", "kubernetes_endpoint"],
         }
@@ -1245,12 +1221,8 @@ class KubernetesNamespace(KubernetesResource, BaseRegion):
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
         "namespace_status": S("status") >> Bend(KubernetesNamespaceStatus.mapping),
     }
-<<<<<<< HEAD
-    reference_kinds: ClassVar[ModelReference] = { "successors": {
-=======
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
->>>>>>> c6559a8e (black formatting)
             "default": [
                 "kubernetes_stateful_set",
                 "kubernetes_service",
@@ -1498,12 +1470,8 @@ class KubernetesValidatingWebhookConfiguration(KubernetesResource):
 @define(eq=False, slots=False)
 class KubernetesControllerRevision(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_controller_revision"
-<<<<<<< HEAD
-    reference_kinds: ClassVar[ModelReference] = { "successors": {
-=======
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
->>>>>>> c6559a8e (black formatting)
             "default": [],
             "delete": ["kubernetes_stateful_set", "kubernetes_daemon_set"],
         }
@@ -1587,12 +1555,8 @@ class KubernetesDaemonSet(KubernetesResource):
         "daemon_set_status": S("status") >> Bend(KubernetesDaemonSetStatus.mapping),
         "daemon_set_spec": S("spec") >> Bend(KubernetesDaemonSetSpec.mapping),
     }
-<<<<<<< HEAD
-    reference_kinds: ClassVar[ModelReference] = { "successors": {
-=======
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
->>>>>>> c6559a8e (black formatting)
             "default": ["kubernetes_pod", "kubernetes_controller_revision"],
             "delete": [],
         }
@@ -1698,12 +1662,8 @@ class KubernetesDeployment(KubernetesResource):
         "deployment_status": S("status") >> Bend(KubernetesDeploymentStatus.mapping),
         "deployment_spec": S("spec") >> Bend(KubernetesDeploymentSpec.mapping),
     }
-<<<<<<< HEAD
-    reference_kinds: ClassVar[ModelReference] = { "successors": {
-=======
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
->>>>>>> c6559a8e (black formatting)
             "default": ["kubernetes_replica_set"],
             "delete": [],
         }
@@ -1778,12 +1738,8 @@ class KubernetesReplicaSet(KubernetesResource):
         "replica_set_status": S("status") >> Bend(KubernetesReplicaSetStatus.mapping),
         "replica_set_spec": S("spec") >> Bend(KubernetesReplicaSetSpec.mapping),
     }
-<<<<<<< HEAD
-    reference_kinds: ClassVar[ModelReference] = { "successors": {
-=======
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
->>>>>>> c6559a8e (black formatting)
             "default": ["kubernetes_pod"],
             "delete": ["kubernetes_deployment"],
         }
@@ -1867,12 +1823,8 @@ class KubernetesStatefulSet(KubernetesResource):
         "stateful_set_status": S("status") >> Bend(KubernetesStatefulSetStatus.mapping),
         "stateful_set_spec": S("spec") >> Bend(KubernetesStatefulSetSpec.mapping),
     }
-<<<<<<< HEAD
-    reference_kinds: ClassVar[ModelReference] = { "successors": {
-=======
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
->>>>>>> c6559a8e (black formatting)
             "default": ["kubernetes_pod", "kubernetes_controller_revision"],
             "delete": [],
         }
