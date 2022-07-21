@@ -281,4 +281,11 @@ class AwsIamInstanceProfile(AwsResource, BaseInstanceProfile):
                 builder.add_edge(self, EdgeType.default, clazz=AwsIamRole, id=role_id)
 
 
-resources: List[Type[AwsResource]] = [AwsIamServerCertificate, AwsIamPolicy, AwsIamGroup, AwsIamRole, AwsIamUser]
+resources: List[Type[AwsResource]] = [
+    AwsIamServerCertificate,
+    AwsIamPolicy,
+    AwsIamGroup,
+    AwsIamRole,
+    AwsIamUser,
+    AwsIamInstanceProfile,
+]
