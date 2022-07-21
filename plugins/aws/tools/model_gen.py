@@ -516,6 +516,13 @@ models: Dict[str, List[AwsResotoModel]] = {
         #     prop_prefix="policy_",
         # ),
         # AwsResotoModel(
+        #     "list-instance-profiles",
+        #     "InstanceProfiles",
+        #     "InstanceProfile",
+        #     prefix="Iam",
+        #     prop_prefix="instance_profile_",
+        # ),
+        # AwsResotoModel(
         #     "list-policies",
         #     "Policies",
         #     "Policy",

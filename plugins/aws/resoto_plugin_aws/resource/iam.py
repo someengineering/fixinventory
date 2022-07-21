@@ -13,6 +13,9 @@ from resotolib.baseresources import (  # noqa: F401
     BaseAccount,
     BaseAccessKey,
     BaseUser,
+    BaseInstanceProfile,
+    EdgeType,
+    ModelReference,
 )
 from resotolib.json import from_json
 from resotolib.json_bender import Bender, S, Bend, AsDate, Sort, bend, ForallBend
@@ -229,6 +232,28 @@ class AwsIamUser(AwsResource, BaseUser):
 
         for g in bend(S("GroupList", default=[]), source):
             builder.dependant_node(self, clazz=AwsIamGroup, arn=g.get("Arn"))
+
+
+@define(eq=False, slots=False)
+class AwsIamInstanceProfile(AwsResource, BaseInstanceProfile):
+    kind: ClassVar[str] = "aws_iam_instance_profile"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("iam", "list-instance-profiles", "InstanceProfiles")
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {"delete": ["aws_iam_role"]},
+    }
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("InstanceProfileId"),
+        "name": S("InstanceProfileName"),
+        "ctime": S("CreateDate"),
+        "arn": S("Arn"),
+        "instance_profile_path": S("Path"),
+    }
+    instance_profile_path: Optional[str] = field(default=None)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        for role in source.get("Roles", []):
+            if role_id := role.get("RoleId"):
+                builder.add_edge(self, EdgeType.default, clazz=AwsIamRole, id=role_id)
 
 
 resources: List[Type[AwsResource]] = [AwsIamServerCertificate, AwsIamPolicy, AwsIamGroup, AwsIamRole, AwsIamUser]
