@@ -1280,6 +1280,7 @@ class AWSAccountCollector:
                 role=function.get("Role"),
                 kms_key_arn=function.get("KmsKeyArn"),
             )
+            graph.add_resource(region, lambda_function)
 
             vpc_config = function.get("VpcConfig", {})
 
@@ -1301,8 +1302,6 @@ class AWSAccountCollector:
                 if security_group:
                     graph.add_edge(security_group, lambda_function)
                     graph.add_edge(security_group, lambda_function, edge_type=EdgeType.delete)
-
-            graph.add_resource(region, lambda_function)
 
     @metrics_collect_autoscaling_groups.time()  # type: ignore
     def collect_autoscaling_groups(self, region: AWSRegion, graph: Graph) -> None:
