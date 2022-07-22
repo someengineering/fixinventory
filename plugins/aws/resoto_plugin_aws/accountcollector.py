@@ -1267,7 +1267,7 @@ class AWSAccountCollector:
             tags = tags_response.get("Tags", [])
             role = function.get("Role")
 
-            l = AWSLambdaFunction(
+            lf = AWSLambdaFunction(
                 id=arn,
                 tags=tags,
                 account=self.account,
@@ -1281,7 +1281,7 @@ class AWSAccountCollector:
                 role=role,
                 kms_key_arn=function.get("KmsKeyArn"),
             )
-            graph.add_resource(region, l)
+            graph.add_resource(region, lf)
 
             vpc_config = function.get("VpcConfig", {})
 
@@ -1289,25 +1289,25 @@ class AWSAccountCollector:
             if vpc_id:
                 vpc = graph.search_first("id", vpc_id)
                 if vpc:
-                    graph.add_edge(vpc, l)
-                    graph.add_edge(vpc, l, edge_type=EdgeType.delete)
+                    graph.add_edge(vpc, lf)
+                    graph.add_edge(vpc, lf, edge_type=EdgeType.delete)
 
             for subnet_id in vpc_config.get("SubnetIds", {}):
                 subnet = graph.search_first("id", subnet_id)
                 if subnet:
-                    graph.add_edge(subnet, l)
-                    graph.add_edge(subnet, l, edge_type=EdgeType.delete)
+                    graph.add_edge(subnet, lf)
+                    graph.add_edge(subnet, lf, edge_type=EdgeType.delete)
 
             for security_group_id in vpc_config.get("SecurityGroupIds", {}):
                 security_group = graph.search_first("id", security_group_id)
                 if security_group:
-                    graph.add_edge(security_group, l)
-                    graph.add_edge(security_group, l, edge_type=EdgeType.delete)
+                    graph.add_edge(security_group, lf)
+                    graph.add_edge(security_group, lf, edge_type=EdgeType.delete)
 
             if role:
-                log.debug(f"Queuing deferred connection from role {role} to {l.rtdname}")
-                l.add_deferred_connection({"arn": role})
-                l.add_deferred_connection({"arn": role}, edge_type=EdgeType.delete)
+                log.debug(f"Queuing deferred connection from role {role} to {lf.rtdname}")
+                lf.add_deferred_connection({"arn": role})
+                lf.add_deferred_connection({"arn": role}, edge_type=EdgeType.delete)
 
     @metrics_collect_autoscaling_groups.time()  # type: ignore
     def collect_autoscaling_groups(self, region: AWSRegion, graph: Graph) -> None:
