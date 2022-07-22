@@ -1267,8 +1267,8 @@ class AWSAccountCollector:
             tags = tags_response.get("Tags", [])
 
             lambda_function = AWSLambdaFunction(
-                arn,
-                tags,
+                id=arn,
+                tags=tags,
                 account=self.account,
                 region=region,
                 name=name,
