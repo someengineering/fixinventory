@@ -304,7 +304,6 @@ class AwsEksCluster(AwsResource):
                     if ng_json is not None:
                         ng = AwsEksNodegroup.from_api(ng_json)
                         builder.add_node(ng, ng_json)
-                        builder.dependant_node(cluster, node=ng)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         builder.add_edge(self, EdgeType.default, clazz=AwsIamRole, arn=self.cluster_role_arn)
