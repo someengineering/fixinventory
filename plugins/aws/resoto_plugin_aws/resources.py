@@ -1061,8 +1061,8 @@ class AWSIAMRole(AWSResource, BaseRole):
     kind: ClassVar[str] = "aws_iam_role"
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
-            "default": ["aws_iam_policy", "aws_iam_instance_profile"],
-            "delete": ["aws_iam_policy", "aws_iam_instance_profile", "aws_eks_cluster"],
+            "default": ["aws_iam_policy", "aws_iam_instance_profile", "aws_eks_cluster", "aws_lambda_function"],
+            "delete": ["aws_iam_policy", "aws_iam_instance_profile", "aws_eks_cluster", "aws_lambda_function"],
         }
     }
 
@@ -1258,7 +1258,7 @@ class AWSEKSCluster(AWSResource, BaseResource):
     kind: ClassVar[str] = "aws_eks_cluster"
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
-            "default": ["aws_iam_role", "aws_eks_nodegroup"],
+            "default": ["aws_eks_nodegroup"],
             "delete": ["aws_eks_nodegroup"],
         }
     }
