@@ -789,6 +789,11 @@ class BaseBucket(BaseResource):
 
 
 @define(eq=False, slots=False)
+class BaseServerlessFunction(BaseResource):
+    kind: ClassVar[str] = "serverless_function"
+
+
+@define(eq=False, slots=False)
 class BaseKeyPair(BaseResource):
     kind: ClassVar[str] = "keypair"
     fingerprint: str = ""

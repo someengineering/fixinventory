@@ -101,6 +101,7 @@ class AWSRegion(BaseRegion):
                 "aws_alb_target_group",
                 "aws_alb_quota",
                 "aws_alb",
+                "aws_lambda_function",
             ],
             "delete": [],
         }
@@ -190,6 +191,36 @@ class AWSEC2Instance(AWSResource, BaseInstance):
         ec2 = aws_resource(self, "ec2")
         instance = ec2.Instance(self.id)
         instance.delete_tags(Tags=[{"Key": key}])
+        return True
+
+
+@define(eq=False, slots=False)
+class AWSLambdaFunction(AWSResource, BaseServerlessFunction):
+    kind: ClassVar[str] = "aws_lambda_function"
+    successor_kinds: ClassVar[Dict[str, List[str]]] = {
+        "default": [],
+        "delete": ["aws_lambda_function"],
+    }
+
+    role: Optional[str] = None
+    runtime: str = None
+    code_size: int = None
+    memory_size: int = None
+    kms_key_arn: Optional[str] = None
+
+    def delete(self, graph: Graph) -> bool:
+        client = aws_client(self, "lambda", graph)
+        client.delete_function(self.name)
+        return True
+
+    def update_tag(self, key, value) -> bool:
+        client = aws_client(self, "lambda")
+        client.tag_resource(Resources=[self.id], Tags=[{"Key": key, "Value": value}])
+        return True
+
+    def delete_tag(self, key) -> bool:
+        client = aws_client(self, "lambda")
+        client.delete_tags(Resources=[self.id], Tags=[{"Key": key}])
         return True
 
 
