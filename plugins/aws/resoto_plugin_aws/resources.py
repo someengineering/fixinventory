@@ -210,17 +210,17 @@ class AWSLambdaFunction(AWSResource, BaseServerlessFunction):
 
     def delete(self, graph: Graph) -> bool:
         client = aws_client(self, "lambda", graph)
-        client.delete_function(self.name)
+        client.delete_function(FunctionName=self.id)
         return True
 
     def update_tag(self, key, value) -> bool:
         client = aws_client(self, "lambda")
-        client.tag_resource(Resources=[self.id], Tags=[{"Key": key, "Value": value}])
+        client.tag_resource(Resource=self.id, Tags={key: value})
         return True
 
     def delete_tag(self, key) -> bool:
         client = aws_client(self, "lambda")
-        client.delete_tags(Resources=[self.id], Tags=[{"Key": key}])
+        client.untag_resource(Resource=self.id, TagKeys=[key])
         return True
 
 
