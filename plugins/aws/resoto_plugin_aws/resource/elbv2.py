@@ -36,7 +36,7 @@ class ElbV2Taggable:
                     action="remove_tags",
                     result_name=None,
                     ResourceArns=[self.arn],
-                    TagsKeys=[key],
+                    TagKeys=[key],
                 )
                 return True
             return False
@@ -252,7 +252,7 @@ class AwsAlbListener:
 
 
 @define(eq=False, slots=False)
-class AwsAlb(AwsResource, BaseLoadBalancer, ElbV2Taggable):
+class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
     kind: ClassVar[str] = "aws_alb"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("elbv2", "describe-load-balancers", "LoadBalancers")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -349,7 +349,7 @@ class AwsAlbTargetHealthDescription:
 
 
 @define(eq=False, slots=False)
-class AwsAlbTargetGroup(AwsResource, ElbV2Taggable):
+class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
     kind: ClassVar[str] = "aws_alb_target_group"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("elbv2", "describe-target-groups", "TargetGroups")
     mapping: ClassVar[Dict[str, Bender]] = {

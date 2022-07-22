@@ -105,7 +105,7 @@ class AwsServiceQuota(AwsResource, BaseQuota):
             service="service-quotas",
             action="tag_resource",
             result_name=None,
-            ResourceARN=[self.arn],
+            ResourceARN=self.arn,
             Tags=[{"Key": key, "Value": value}],
         )
         return True
@@ -115,8 +115,8 @@ class AwsServiceQuota(AwsResource, BaseQuota):
             service="service-quotas",
             action="untag_resource",
             result_name=None,
-            ResourceARN=[self.arn],
-            TagsKeys=[key],
+            ResourceARN=self.arn,
+            TagKeys=[key],
         )
         return True
 

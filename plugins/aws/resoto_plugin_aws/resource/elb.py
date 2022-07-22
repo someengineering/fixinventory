@@ -141,7 +141,7 @@ class AwsElbSourceSecurityGroup:
 
 
 @define(eq=False, slots=False)
-class AwsElb(AwsResource, BaseLoadBalancer, ElbTaggable):
+class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
     kind: ClassVar[str] = "aws_elb_load_balancer_description"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("elb", "describe-load-balancers", "LoadBalancerDescriptions")
     mapping: ClassVar[Dict[str, Bender]] = {

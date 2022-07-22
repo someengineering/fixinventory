@@ -39,7 +39,7 @@ def iam_delete_tag(resource: AwsResource, client: AwsClient, action: str, key: s
             service=spec.service,
             action=action,
             result_name=None,
-            TagsKeys=[key],
+            TagKeys=[key],
             **kwargs,
         )
         return True

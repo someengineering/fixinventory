@@ -820,7 +820,7 @@ InstanceStatusMapping = {
 
 
 @define(eq=False, slots=False)
-class AwsEc2Instance(AwsResource, BaseInstance, EC2Taggable):
+class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
     kind: ClassVar[str] = "aws_ec2_instance"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-instances", "Reservations")
     mapping: ClassVar[Dict[str, Bender]] = {

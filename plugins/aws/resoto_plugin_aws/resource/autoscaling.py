@@ -280,10 +280,15 @@ class AwsAutoScalingGroup(AwsResource, BaseAutoScalingGroup):
             service="autoscaling",
             action="create_or_update_tags",
             result_name=None,
-            ResourceId=[self.name],
-            ResourceType="auto-scaling-group",
-            Key=key,
-            Value=value,
+            Tags=[
+                {
+                    "ResourceId": self.name,
+                    "ResourceType": "auto-scaling-group",
+                    "Key": key,
+                    "Value": value,
+                    "PropagateAtLaunch": False,
+                }
+            ],
         )
         return True
 
@@ -292,9 +297,13 @@ class AwsAutoScalingGroup(AwsResource, BaseAutoScalingGroup):
             service="autoscaling",
             action="delete_tags",
             result_name=None,
-            ResourceId=[self.name],
-            ResourceType="auto-scaling-group",
-            Key=key,
+            Tags=[
+                {
+                    "ResourceId": self.name,
+                    "ResourceType": "auto-scaling-group",
+                    "Key": key,
+                }
+            ],
         )
         return True
 

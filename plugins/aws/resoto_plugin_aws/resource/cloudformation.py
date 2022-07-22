@@ -116,7 +116,7 @@ class AwsCloudFormationStack(AwsResource, BaseStack):
             return False
         service = self.api_spec.service
         stack = cast(
-            Json, client.call(service=service, action="describe_stacks", result_name="Stacks", StackName=self.name)
+            Json, client.call(service=service, action="describe_stacks", result_name="Stacks", StackName=self.name)[0]
         )
         stack = self._wait_for_completion(client, stack, service)
 
@@ -197,9 +197,7 @@ class AwsCloudFormationStackSet(AwsResource):
     stack_set_managed_execution: Optional[bool] = field(default=None)
     stack_set_parameters: Optional[Dict[str, Any]] = None
 
-    def _modify_tag(
-        self, client: AwsClient, key: str, value: Optional[str] = None, mode=Literal["update", "delete"]
-    ) -> bool:
+    def _modify_tag(self, client: AwsClient, key: str, value: Optional[str], mode: Literal["update", "delete"]) -> bool:
         tags = dict(self.tags)
         if mode == "delete":
             if not self.tags.get(key):
@@ -232,6 +230,12 @@ class AwsCloudFormationStackSet(AwsResource):
             ) from e
 
         return True
+
+    def update_tag(self, client: AwsClient, key: str, value: str) -> bool:
+        return self._modify_tag(client, key, value, "update")
+
+    def delete_tag(self, client: AwsClient, key: str) -> bool:
+        return self._modify_tag(client, key, None, "delete")
 
 
 resources: List[Type[AwsResource]] = [AwsCloudFormationStack, AwsCloudFormationStackSet]

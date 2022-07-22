@@ -21,7 +21,7 @@ class RdsTaggable:
                     service=spec.service,
                     action="add_tags_to_resource",
                     result_name=None,
-                    ResourceName=[self.arn],
+                    ResourceName=self.arn,
                     Tags=[{"Key": key, "Value": value}],
                 )
                 return True
@@ -35,8 +35,8 @@ class RdsTaggable:
                     service=spec.service,
                     action="remove_tags_from_resource",
                     result_name=None,
-                    ResourceName=[self.arn],
-                    TagsKeys=[key],
+                    ResourceName=self.arn,
+                    TagKeys=[key],
                 )
                 return True
             return False
@@ -242,7 +242,7 @@ class AwsRdsTag:
 
 
 @define(eq=False, slots=False)
-class AwsRdsInstance(AwsResource, BaseDatabase, RdsTaggable):
+class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
     kind: ClassVar[str] = "aws_rds_instance"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("rds", "describe-db-instances", "DBInstances")
     mapping: ClassVar[Dict[str, Bender]] = {

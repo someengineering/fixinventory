@@ -21,7 +21,7 @@ class EKSTaggable:
                     action="tag_resource",
                     result_name=None,
                     resourceArn=self.arn,
-                    tags=[{key, value}],
+                    tags=[{key: value}],
                 )
                 return True
             return False
@@ -127,7 +127,7 @@ class AwsEksLaunchTemplateSpecification:
 
 
 @define(eq=False, slots=False)
-class AwsEksNodegroup(AwsResource, EKSTaggable):
+class AwsEksNodegroup(EKSTaggable, AwsResource):
     # Note: this resource is collected via AwsEksCluster
     kind: ClassVar[str] = "aws_eks_nodegroup"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -269,7 +269,7 @@ class AwsEksConnectorConfig:
 
 
 @define(eq=False, slots=False)
-class AwsEksCluster(AwsResource, EKSTaggable):
+class AwsEksCluster(EKSTaggable, AwsResource):
     kind: ClassVar[str] = "aws_eks_cluster"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("eks", "list-clusters", "clusters")
     mapping: ClassVar[Dict[str, Bender]] = {

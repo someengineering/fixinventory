@@ -22,7 +22,7 @@ class CloudwatchTaggable:
                     service=spec.service,
                     action="tag_resource",
                     result_name=None,
-                    ResourceARN=[self.arn],
+                    ResourceARN=self.arn,
                     Tags=[{"Key": key, "Value": value}],
                 )
                 return True
@@ -36,8 +36,8 @@ class CloudwatchTaggable:
                     service=spec.service,
                     action="untag_resource",
                     result_name=None,
-                    ResourceARN=[self.arn],
-                    TagsKeys=[key],
+                    ResourceARN=self.arn,
+                    TagKeys=[key],
                 )
                 return True
             return False
@@ -102,7 +102,7 @@ class AwsCloudwatchMetricDataQuery:
 
 
 @define(eq=False, slots=False)
-class AwsCloudwatchAlarm(AwsResource, CloudwatchTaggable):
+class AwsCloudwatchAlarm(CloudwatchTaggable, AwsResource):
     kind: ClassVar[str] = "aws_cloudwatch_alarm"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudwatch", "describe-alarms", "MetricAlarms")
     mapping: ClassVar[Dict[str, Bender]] = {

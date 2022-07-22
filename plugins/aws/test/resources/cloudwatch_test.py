@@ -1,5 +1,6 @@
 from datetime import timedelta, datetime, timezone
-
+from typing import cast, Any
+from types import SimpleNamespace
 from test.resources import round_trip_for
 
 from resoto_plugin_aws.aws_client import AwsClient
@@ -20,3 +21,23 @@ def test_metric(aws_client: AwsClient) -> None:
     result = AwsCloudwatchMetricData.query_for(aws_client, [read, write], earlier, now)
     assert result[read].first_non_zero() == (datetime(2020, 1, 18, 17, 40, tzinfo=timezone.utc), 15.0)
     assert result[write].first_non_zero() == (datetime(2020, 1, 18, 18, 40, tzinfo=timezone.utc), 12861.0)
+
+
+def test_tagging() -> None:
+    alarm, _ = round_trip_for(AwsCloudwatchAlarm)
+
+    def validate_update_args(**kwargs: Any):
+        assert kwargs["action"] == "tag_resource"
+        assert kwargs["ResourceARN"] == alarm.arn
+        assert kwargs["Tags"] == [{"Key": "foo", "Value": "bar"}]
+
+    def validate_delete_args(**kwargs: Any):
+        assert kwargs["action"] == "untag_resource"
+        assert kwargs["ResourceARN"] == alarm.arn
+        assert kwargs["TagKeys"] == ["foo"]
+
+    client = cast(AwsClient, SimpleNamespace(call=validate_update_args))
+    alarm.update_tag(client, "foo", "bar")
+
+    client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
+    alarm.delete_tag(client, "foo")
