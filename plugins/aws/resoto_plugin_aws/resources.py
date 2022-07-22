@@ -199,7 +199,7 @@ class AWSLambdaFunction(AWSResource, BaseServerlessFunction):
     kind: ClassVar[str] = "aws_lambda_function"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
         "default": [],
-        "delete": ["aws_lambda_function"],
+        "delete": [],
     }
 
     role: Optional[str] = None
@@ -376,6 +376,7 @@ class AWSEC2Subnet(AWSResource, BaseSubnet):
                 "aws_ec2_network_acl",
                 "aws_ec2_nat_gateway",
                 "aws_alb",
+                "aws_lambda_function",
             ],
             "delete": [
                 "aws_vpc_endpoint",
@@ -383,6 +384,7 @@ class AWSEC2Subnet(AWSResource, BaseSubnet):
                 "aws_elb",
                 "aws_ec2_network_interface",
                 "aws_alb",
+                "aws_lambda_function",
             ],
         }
     }
@@ -465,6 +467,7 @@ class AWSVPC(AWSResource, BaseNetwork):
                 "aws_ec2_nat_gateway",
                 "aws_ec2_internet_gateway",
                 "aws_alb_target_group",
+                "aws_lambda_function",
             ],
             "delete": [
                 "aws_vpc_peering_connection",
@@ -479,6 +482,7 @@ class AWSVPC(AWSResource, BaseNetwork):
                 "aws_ec2_nat_gateway",
                 "aws_ec2_internet_gateway",
                 "aws_alb_target_group",
+                "aws_lambda_function",
             ],
         }
     }
@@ -774,8 +778,13 @@ class AWSEC2SecurityGroup(AWSResource, BaseSecurityGroup):
                 "aws_rds_instance",
                 "aws_elb",
                 "aws_ec2_network_interface",
+                "aws_lambda_function",
             ],
-            "delete": ["aws_vpc_endpoint", "aws_rds_instance"],
+            "delete": [
+                "aws_vpc_endpoint",
+                "aws_rds_instance",
+                "aws_lambda_function",
+            ],
         }
     }
 
@@ -1052,8 +1061,8 @@ class AWSIAMRole(AWSResource, BaseRole):
     kind: ClassVar[str] = "aws_iam_role"
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
-            "default": ["aws_iam_policy", "aws_iam_instance_profile"],
-            "delete": ["aws_iam_policy", "aws_iam_instance_profile", "aws_eks_cluster"],
+            "default": ["aws_iam_policy", "aws_iam_instance_profile", "aws_eks_cluster", "aws_lambda_function"],
+            "delete": ["aws_iam_policy", "aws_iam_instance_profile", "aws_eks_cluster", "aws_lambda_function"],
         }
     }
 
@@ -1249,7 +1258,7 @@ class AWSEKSCluster(AWSResource, BaseResource):
     kind: ClassVar[str] = "aws_eks_cluster"
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
-            "default": ["aws_iam_role", "aws_eks_nodegroup"],
+            "default": ["aws_eks_nodegroup"],
             "delete": ["aws_eks_nodegroup"],
         }
     }

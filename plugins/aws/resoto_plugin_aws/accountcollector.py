@@ -1265,10 +1265,11 @@ class AWSAccountCollector:
 
             tags_response = client.list_tags(Resource=arn)
             tags = tags_response.get("Tags", [])
+            role = function.get("Role")
 
-            lambda_function = AWSLambdaFunction(
-                arn,
-                tags,
+            lf = AWSLambdaFunction(
+                id=arn,
+                tags=tags,
                 account=self.account,
                 region=region,
                 name=name,
@@ -1277,9 +1278,10 @@ class AWSAccountCollector:
                 code_size=function["CodeSize"],
                 memory_size=function["MemorySize"],
                 mtime=function["LastModified"],
-                role=function.get("Role"),
+                role=role,
                 kms_key_arn=function.get("KmsKeyArn"),
             )
+            graph.add_resource(region, lf)
 
             vpc_config = function.get("VpcConfig", {})
 
@@ -1287,22 +1289,25 @@ class AWSAccountCollector:
             if vpc_id:
                 vpc = graph.search_first("id", vpc_id)
                 if vpc:
-                    graph.add_edge(vpc, lambda_function)
-                    graph.add_edge(vpc, lambda_function, edge_type=EdgeType.delete)
+                    graph.add_edge(vpc, lf)
+                    graph.add_edge(vpc, lf, edge_type=EdgeType.delete)
 
             for subnet_id in vpc_config.get("SubnetIds", {}):
                 subnet = graph.search_first("id", subnet_id)
                 if subnet:
-                    graph.add_edge(subnet, lambda_function)
-                    graph.add_edge(subnet, lambda_function, edge_type=EdgeType.delete)
+                    graph.add_edge(subnet, lf)
+                    graph.add_edge(subnet, lf, edge_type=EdgeType.delete)
 
             for security_group_id in vpc_config.get("SecurityGroupIds", {}):
                 security_group = graph.search_first("id", security_group_id)
                 if security_group:
-                    graph.add_edge(security_group, lambda_function)
-                    graph.add_edge(security_group, lambda_function, edge_type=EdgeType.delete)
+                    graph.add_edge(security_group, lf)
+                    graph.add_edge(security_group, lf, edge_type=EdgeType.delete)
 
-            graph.add_resource(region, lambda_function)
+            if role:
+                log.debug(f"Queuing deferred connection from role {role} to {lf.rtdname}")
+                lf.add_deferred_connection({"arn": role})
+                lf.add_deferred_connection({"arn": role}, edge_type=EdgeType.delete)
 
     @metrics_collect_autoscaling_groups.time()  # type: ignore
     def collect_autoscaling_groups(self, region: AWSRegion, graph: Graph) -> None:
@@ -2118,7 +2123,7 @@ class AWSAccountCollector:
             log.debug(f"Found {c.rtdname} in account {self.account.dname} region {region.id}")
             if "roleArn" in cluster:
                 log.debug(f"Queuing deferred connection from role {cluster['roleArn']} to {c.rtdname}")
-                c.add_deferred_connection({"arn": cluster["roleArn"]}, parent=False)
+                c.add_deferred_connection({"arn": cluster["roleArn"]})
                 c.add_deferred_connection({"arn": cluster["roleArn"]}, edge_type=EdgeType.delete)
             graph.add_resource(region, c)
             self.get_eks_nodegroups(region, graph, c)
