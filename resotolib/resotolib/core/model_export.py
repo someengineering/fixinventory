@@ -97,7 +97,7 @@ lookup: Dict[type, str] = {
     float: "double",
     datetime: "datetime",
     date: "date",
-    timedelta: "duration",
+    timedelta: "string",
 }
 simple_type = tuple(lookup.keys())
 
