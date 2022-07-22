@@ -55,8 +55,10 @@ class AwsIamRole(AwsResource):
     # Note: this resource is collected via AwsIamUser.collect.
     kind: ClassVar[str] = "aws_iam_role"
     reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {"delete": ["aws_iam_policy", "aws_iam_instance_profile"]},
-        "successors": {"default": ["aws_iam_policy", "aws_iam_instance_profile"]},
+        "successors": {
+            "default": ["aws_iam_policy", "aws_iam_instance_profile"],
+            "delete": ["aws_iam_policy", "aws_iam_instance_profile"],
+        },
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("RoleId"),
@@ -84,22 +86,18 @@ class AwsIamRole(AwsResource):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         # connect to instance profiles for this role
         for profile in bend(S("InstanceProfileList", default=[]), source):
-            builder.dependant_node(self, clazz=AwsEc2IamInstanceProfile, arn=profile["Arn"])
+            builder.dependant_node(
+                self, clazz=AwsEc2IamInstanceProfile, delete_same_as_default=True, arn=profile["Arn"]
+            )
         # connect to attached policies for this role
         for profile in bend(S("AttachedManagedPolicies", default=[]), source):
-            builder.dependant_node(self, clazz=AwsIamPolicy, arn=profile["PolicyArn"])
+            builder.dependant_node(self, clazz=AwsIamPolicy, delete_same_as_default=True, arn=profile["PolicyArn"])
 
 
 @define(eq=False, slots=False)
 class AwsIamServerCertificate(AwsResource, BaseCertificate):
     kind: ClassVar[str] = "aws_iam_server_certificate"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("iam", "list-server-certificates", "ServerCertificateMetadataList")
-    reference_kinds: ClassVar[ModelReference] = {
-        "successors": {
-            "default": ["aws_ec2_instance"],
-            "delete": [],
-        }
-    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("ServerCertificateId"),
         "arn": S("Arn"),
@@ -116,12 +114,6 @@ class AwsIamServerCertificate(AwsResource, BaseCertificate):
 class AwsIamPolicy(AwsResource, BasePolicy):
     # Note: this resource is collected via AwsIamUser.collect.
     kind: ClassVar[str] = "aws_iam_policy"
-    reference_kinds: ClassVar[ModelReference] = {
-        "successors": {
-            "default": ["aws_iam_user", "aws_iam_group"],
-            "delete": [],
-        }
-    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("PolicyId"),
         "tags": S("Tags", default=[]) >> ToDict(),
@@ -149,8 +141,7 @@ class AwsIamGroup(AwsResource, BaseGroup):
     # Note: this resource is collected via AwsIamUser.collect.
     kind: ClassVar[str] = "aws_iam_group"
     reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {"delete": ["aws_iam_policy"]},
-        "successors": {"default": ["aws_iam_policy"]},
+        "successors": {"default": ["aws_iam_policy"], "delete": ["aws_iam_policy"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("GroupId"),
@@ -166,7 +157,7 @@ class AwsIamGroup(AwsResource, BaseGroup):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for policy in bend(S("AttachedManagedPolicies", default=[]), source):
-            builder.dependant_node(self, clazz=AwsIamPolicy, arn=policy.get("PolicyArn"))
+            builder.dependant_node(self, clazz=AwsIamPolicy, delete_same_as_default=True, arn=policy.get("PolicyArn"))
 
 
 @define(eq=False, slots=False)
@@ -206,8 +197,8 @@ class AwsIamUser(AwsResource, BaseUser):
     kind: ClassVar[str] = "aws_iam_user"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("iam", "get-account-authorization-details")
     reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {"default": ["aws_iam_group"], "delete": ["aws_iam_policy"]},
-        "successors": {"default": ["aws_iam_policy"], "delete": ["aws_iam_group"]},
+        "predecessors": {"default": ["aws_iam_group"]},
+        "successors": {"default": ["aws_iam_policy"], "delete": ["aws_iam_policy"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("UserId"),
@@ -253,19 +244,16 @@ class AwsIamUser(AwsResource, BaseUser):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for p in bend(S("AttachedManagedPolicies", default=[]), source):
-            builder.dependant_node(self, clazz=AwsIamPolicy, arn=p.get("PolicyArn"))
+            builder.dependant_node(self, clazz=AwsIamPolicy, delete_same_as_default=True, arn=p.get("PolicyArn"))
 
         for arn in bend(S("GroupList", default=[]), source):
-            builder.dependant_node(self, reverse=True, clazz=AwsIamGroup, arn=arn)
+            builder.add_edge(self, reverse=True, clazz=AwsIamGroup, arn=arn)
 
 
 @define(eq=False, slots=False)
 class AwsIamInstanceProfile(AwsResource, BaseInstanceProfile):
     kind: ClassVar[str] = "aws_iam_instance_profile"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("iam", "list-instance-profiles", "InstanceProfiles")
-    reference_kinds: ClassVar[ModelReference] = {
-        "successors": {"delete": ["aws_iam_role"]},
-    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("InstanceProfileId"),
         "name": S("InstanceProfileName"),
@@ -274,11 +262,6 @@ class AwsIamInstanceProfile(AwsResource, BaseInstanceProfile):
         "instance_profile_path": S("Path"),
     }
     instance_profile_path: Optional[str] = field(default=None)
-
-    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        for role in source.get("Roles", []):
-            if role_id := role.get("RoleId"):
-                builder.add_edge(self, EdgeType.default, clazz=AwsIamRole, id=role_id)
 
 
 resources: List[Type[AwsResource]] = [

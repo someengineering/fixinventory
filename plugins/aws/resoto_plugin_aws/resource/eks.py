@@ -5,6 +5,7 @@ from attrs import define, field
 
 from resoto_plugin_aws.resource.autoscaling import AwsAutoScalingGroup
 from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
+from resoto_plugin_aws.resource.iam import AwsIamRole
 from resotolib.baseresources import BaseAccount, EdgeType, ModelReference  # noqa: F401
 from resotolib.json_bender import Bender, S, Bend, ForallBend
 from resotolib.types import Json
@@ -99,7 +100,7 @@ class AwsEksNodegroup(AwsResource):
     # Note: this resource is collected via AwsEksCluster
     kind: ClassVar[str] = "aws_eks_nodegroup"
     reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {"delete": ["aws_autoscaling_group"]},
+        "predecessors": {"default": ["aws_eks_cluster"], "delete": ["aws_eks_cluster", "aws_autoscaling_group"]},
         "successors": {"default": ["aws_autoscaling_group"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -128,6 +129,7 @@ class AwsEksNodegroup(AwsResource):
         "group_update_config": S("updateConfig") >> Bend(AwsEksNodegroupUpdateConfig.mapping),
         "group_launch_template": S("launchTemplate") >> Bend(AwsEksLaunchTemplateSpecification.mapping),
     }
+    cluster_name: Optional[str] = field(default=None)
     group_nodegroup_arn: Optional[str] = field(default=None)
     group_version: Optional[str] = field(default=None)
     group_release_version: Optional[str] = field(default=None)
@@ -149,6 +151,10 @@ class AwsEksNodegroup(AwsResource):
     group_launch_template: Optional[AwsEksLaunchTemplateSpecification] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if cluster_name := self.cluster_name:
+            builder.dependant_node(
+                self, clazz=AwsEksCluster, reverse=True, delete_same_as_default=True, name=cluster_name
+            )
         if self.group_resources:
             for arn in self.group_resources.auto_scaling_groups:
                 builder.dependant_node(self, clazz=AwsAutoScalingGroup, arn=arn)
@@ -246,7 +252,7 @@ class AwsEksCluster(AwsResource):
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("eks", "list-clusters", "clusters")
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
-            "default": ["aws_ec2_instance"],
+            "default": ["aws_iam_role"],
             "delete": [],
         }
     }
@@ -301,7 +307,7 @@ class AwsEksCluster(AwsResource):
                         builder.dependant_node(cluster, node=ng)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        builder.add_edge(self, EdgeType.default, arn=self.cluster_role_arn)
+        builder.add_edge(self, EdgeType.default, clazz=AwsIamRole, arn=self.cluster_role_arn)
 
 
 resources: List[Type[AwsResource]] = [AwsEksNodegroup, AwsEksCluster]

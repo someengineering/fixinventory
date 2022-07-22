@@ -317,7 +317,9 @@ class GraphBuilder:
         self.graph.add_node(node, source=source or {})
         return node
 
-    def add_edge(self, from_node: BaseResource, edge_type: EdgeType, reverse: bool = False, **to_node: Any) -> None:
+    def add_edge(
+        self, from_node: BaseResource, edge_type: EdgeType = EdgeType.default, reverse: bool = False, **to_node: Any
+    ) -> None:
         to_n = self.node(**to_node)
         if isinstance(from_node, AwsResource) and isinstance(to_n, AwsResource):
             start, end = (to_n, from_node) if reverse else (from_node, to_n)
@@ -325,14 +327,14 @@ class GraphBuilder:
             self.graph.add_edge(start, end, edge_type=edge_type)
 
     def dependant_node(
-        self, from_node: BaseResource, reverse: bool = False, delete_reverse: bool = False, **to_node: Any
+        self, from_node: BaseResource, reverse: bool = False, delete_same_as_default: bool = False, **to_node: Any
     ) -> None:
         to_n = self.node(**to_node)
         if isinstance(from_node, AwsResource) and isinstance(to_n, AwsResource):
             start, end = (to_n, from_node) if reverse else (from_node, to_n)
             log.debug(f"{self.name}: add edge: {start} -> {end} [default]")
             self.graph.add_edge(start, end, edge_type=EdgeType.default)
-            if delete_reverse:
+            if delete_same_as_default:
                 start, end = end, start
             log.debug(f"{self.name}: add edge: {end} -> {start} [delete]")
             self.graph.add_edge(end, start, edge_type=EdgeType.delete)

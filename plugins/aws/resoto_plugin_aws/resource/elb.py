@@ -115,10 +115,9 @@ class AwsElb(AwsResource, BaseLoadBalancer):
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["aws_vpc", "aws_ec2_subnet", "aws_ec2_security_group"],
-            "delete": ["aws_ec2_instance"],
+            "delete": ["aws_vpc", "aws_ec2_subnet", "aws_ec2_instance"],
         },
         "successors": {
-            "delete": ["aws_vpc", "aws_ec2_subnet", "aws_ec2_security_group"],
             "default": ["aws_ec2_instance"],
         },
     }
@@ -165,9 +164,9 @@ class AwsElb(AwsResource, BaseLoadBalancer):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
         if vpc_id := source.get("VPCId"):
-            builder.dependant_node(self, reverse=True, clazz=AwsEc2Vpc, id=vpc_id)
+            builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsEc2Vpc, id=vpc_id)
         for subnet_id in source.get("Subnets", []):
-            builder.dependant_node(self, reverse=True, clazz=AwsEc2Subnet, id=subnet_id)
+            builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsEc2Subnet, id=subnet_id)
         for sg_id in source.get("SecurityGroups", []):
             builder.add_edge(self, EdgeType.default, reverse=True, clazz=AwsEc2SecurityGroup, id=sg_id)
         for instance in self.backends:
