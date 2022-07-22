@@ -214,8 +214,10 @@ class AwsRdsInstance(AwsResource, BaseDatabase):
     kind: ClassVar[str] = "aws_rds_instance"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("rds", "describe-db-instances", "DBInstances")
     reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {"default": ["aws_vpc", "aws_ec2_security_group", "aws_ec2_subnet"]},
-        "successors": {"delete": ["aws_vpc", "aws_ec2_security_group", "aws_ec2_subnet"]},
+        "predecessors": {
+            "default": ["aws_vpc", "aws_ec2_security_group", "aws_ec2_subnet"],
+            "delete": ["aws_vpc", "aws_ec2_security_group", "aws_ec2_subnet"],
+        },
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("DBInstanceIdentifier"),
@@ -412,13 +414,23 @@ class AwsRdsInstance(AwsResource, BaseDatabase):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
         for group in self.rds_vpc_security_groups:
-            builder.dependant_node(self, reverse=True, clazz=AwsEc2SecurityGroup, id=group.vpc_security_group_id)
+            builder.dependant_node(
+                self,
+                reverse=True,
+                delete_same_as_default=True,
+                clazz=AwsEc2SecurityGroup,
+                id=group.vpc_security_group_id,
+            )
         if self.rds_db_subnet_group and self.rds_db_subnet_group.vpc_id:
-            builder.dependant_node(self, reverse=True, clazz=AwsEc2Vpc, id=self.rds_db_subnet_group.vpc_id)
+            builder.dependant_node(
+                self, reverse=True, delete_same_as_default=True, clazz=AwsEc2Vpc, id=self.rds_db_subnet_group.vpc_id
+            )
         if self.rds_db_subnet_group:
             for subnet in self.rds_db_subnet_group.subnets:
                 subnet_id = subnet.subnet_identifier
-                builder.dependant_node(self, reverse=True, clazz=AwsEc2Subnet, id=subnet_id)
+                builder.dependant_node(
+                    self, reverse=True, delete_same_as_default=True, clazz=AwsEc2Subnet, id=subnet_id
+                )
 
 
 resources: List[Type[AwsResource]] = [AwsRdsInstance]

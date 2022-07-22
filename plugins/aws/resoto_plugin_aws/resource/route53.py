@@ -82,6 +82,7 @@ class AwsRoute53Zone(AwsResource, BaseDNSZone):
                     )
                     builder.add_node(record, js)
                     builder.add_edge(record_set, EdgeType.default, node=record)
+                    builder.add_edge(record_set, EdgeType.delete, node=record)
 
 
 @define(eq=False, slots=False)
