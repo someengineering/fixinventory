@@ -862,12 +862,6 @@ class BaseGatewayQuota(BaseQuota):
 
 
 @define(eq=False, slots=False)
-class BaseServerlessFunction(BaseResource):
-    kind: ClassVar[str] = "serverless_function"
-    access_key_status: str = ""
-
-
-@define(eq=False, slots=False)
 class BaseSecurityGroup(BaseResource):
     kind: ClassVar[str] = "security_group"
 
