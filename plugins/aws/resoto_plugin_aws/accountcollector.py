@@ -1266,7 +1266,6 @@ class AWSAccountCollector:
             tags_response = client.list_tags(Resource=arn)
             tags = tags_response.get("Tags", [])
             role = function.get("Role")
-            log.debug(pformat(function))
 
             l = AWSLambdaFunction(
                 id=arn,
