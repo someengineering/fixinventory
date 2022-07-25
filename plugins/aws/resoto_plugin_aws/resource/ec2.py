@@ -36,7 +36,7 @@ from resotolib.utils import utc
 
 # todo: annotate with no serialization annotation
 class EC2Taggable:
-    def update_tag(self, client: AwsClient, key: str, value: str) -> bool:
+    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         if isinstance(self, AwsResource):
             if spec := self.api_spec:
                 client.call(
@@ -50,7 +50,7 @@ class EC2Taggable:
             return False
         return False
 
-    def delete_tag(self, client: AwsClient, key: str) -> bool:
+    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
         if isinstance(self, AwsResource):
             if spec := self.api_spec:
                 client.call(

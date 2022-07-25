@@ -1,9 +1,8 @@
 from datetime import datetime
-from termios import TABDLY
 import time
 from typing import Any, ClassVar, Dict, Literal, Optional, List, Type, cast
 
-from attrs import define, field, Factory
+from attrs import define, field
 
 from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec
 from resoto_plugin_aws.utils import ToDict
@@ -137,7 +136,7 @@ class AwsCloudFormationStack(AwsResource, BaseStack):
             raise RuntimeError(f"Error updating AWS Cloudformation Stack {self.dname} for {mode} of tag {key}") from e
         return True
 
-    def _wait_for_completion(self, client: AwsClient, stack: Json, service: str, timeout=300):
+    def _wait_for_completion(self, client: AwsClient, stack: Json, service: str, timeout: int = 300) -> Json:
         start_utime = time.time()
         while stack["StackStatus"].endswith("_IN_PROGRESS"):
             if time.time() > start_utime + timeout:
@@ -153,10 +152,10 @@ class AwsCloudFormationStack(AwsResource, BaseStack):
             )
         return stack
 
-    def update_tag(self, client: AwsClient, key: str, value: str) -> bool:
+    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         return self._modify_tag(client, key, value, "update")
 
-    def delete_tag(self, client: AwsClient, key: str) -> bool:
+    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
         return self._modify_tag(client, key, None, "delete")
 
 
@@ -231,10 +230,10 @@ class AwsCloudFormationStackSet(AwsResource):
 
         return True
 
-    def update_tag(self, client: AwsClient, key: str, value: str) -> bool:
+    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         return self._modify_tag(client, key, value, "update")
 
-    def delete_tag(self, client: AwsClient, key: str) -> bool:
+    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
         return self._modify_tag(client, key, None, "delete")
 
 

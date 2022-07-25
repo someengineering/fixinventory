@@ -12,7 +12,7 @@ def test_autoscaling_groups() -> None:
 def test_tagging() -> None:
     asg, _ = round_trip_for(AwsAutoScalingGroup)
 
-    def validate_update_args(**kwargs: Any):
+    def validate_update_args(**kwargs: Any) -> None:
         assert kwargs["action"] == "create_or_update_tags"
         assert kwargs["Tags"] == [
             {
@@ -24,7 +24,7 @@ def test_tagging() -> None:
             }
         ]
 
-    def validate_delete_args(**kwargs: Any):
+    def validate_delete_args(**kwargs: Any) -> None:
         assert kwargs["action"] == "delete_tags"
         assert kwargs["Tags"] == [
             {
@@ -35,7 +35,7 @@ def test_tagging() -> None:
         ]
 
     client = cast(AwsClient, SimpleNamespace(call=validate_update_args))
-    asg.update_tag(client, "foo", "bar")
+    asg.update_resource_tag(client, "foo", "bar")
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
-    asg.delete_tag(client, "foo")
+    asg.delete_resource_tag(client, "foo")

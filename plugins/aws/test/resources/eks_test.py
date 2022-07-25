@@ -14,18 +14,18 @@ def test_eks_nodegroup() -> None:
 def test_tagging() -> None:
     cluster, _ = round_trip_for(AwsEksCluster)
 
-    def validate_update_args(**kwargs: Any):
+    def validate_update_args(**kwargs: Any) -> None:
         assert kwargs["action"] == "tag_resource"
         assert kwargs["resourceArn"] == cluster.arn
         assert kwargs["tags"] == [{"foo": "bar"}]
 
-    def validate_delete_args(**kwargs: Any):
+    def validate_delete_args(**kwargs: Any) -> None:
         assert kwargs["action"] == "untag_resource"
         assert kwargs["resourceArn"] == cluster.arn
         assert kwargs["tagKeys"] == ["foo"]
 
     client = cast(AwsClient, SimpleNamespace(call=validate_update_args))
-    cluster.update_tag(client, "foo", "bar")
+    cluster.update_resource_tag(client, "foo", "bar")
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
-    cluster.delete_tag(client, "foo")
+    cluster.delete_resource_tag(client, "foo")

@@ -112,7 +112,7 @@ class AwsServiceQuota(AwsResource, BaseQuota):
                 ):
                     builder.add_edge(self, EdgeType.default, node=node)
 
-    def update_tag(self, client: AwsClient, key: str, value: str) -> bool:
+    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(
             service="service-quotas",
             action="tag_resource",
@@ -122,7 +122,7 @@ class AwsServiceQuota(AwsResource, BaseQuota):
         )
         return True
 
-    def delete_tag(self, client: AwsClient, key: str) -> bool:
+    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
         client.call(
             service="service-quotas",
             action="untag_resource",

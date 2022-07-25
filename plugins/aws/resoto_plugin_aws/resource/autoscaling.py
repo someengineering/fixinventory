@@ -279,7 +279,7 @@ class AwsAutoScalingGroup(AwsResource, BaseAutoScalingGroup):
         for instance in self.autoscaling_instances:
             builder.dependant_node(self, clazz=AwsEc2Instance, id=instance.instance_id)
 
-    def update_tag(self, client: AwsClient, key: str, value: str) -> bool:
+    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(
             service="autoscaling",
             action="create_or_update_tags",
@@ -296,7 +296,7 @@ class AwsAutoScalingGroup(AwsResource, BaseAutoScalingGroup):
         )
         return True
 
-    def delete_tag(self, client: AwsClient, key: str) -> bool:
+    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
         client.call(
             service="autoscaling",
             action="delete_tags",

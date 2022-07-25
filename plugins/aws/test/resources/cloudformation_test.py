@@ -19,7 +19,7 @@ def test_cloud_formation_stack_tagging() -> None:
 
     tag = "alpha.eksctl.io/nodegroup-name"
 
-    def validate_args(delete: bool, **kwargs: Any):
+    def validate_args(delete: bool, **kwargs: Any) -> Any:
 
         assert kwargs["action"] in {"describe_stacks", "update_stack"}
         if kwargs["action"] == "describe_stacks":
@@ -40,17 +40,17 @@ def test_cloud_formation_stack_tagging() -> None:
             ]
 
     client = cast(AwsClient, SimpleNamespace(call=partial(validate_args, delete=False)))
-    cf.update_tag(client, "foo", "bar")
+    cf.update_resource_tag(client, "foo", "bar")
 
     client = cast(AwsClient, SimpleNamespace(call=partial(validate_args, delete=True)))
-    cf.delete_tag(client, tag)
+    cf.delete_resource_tag(client, tag)
 
 
 def test_cloud_formation_stack_set_tagging() -> None:
     cf, _ = round_trip_for(AwsCloudFormationStackSet)
     cf.tags["bar"] = "bar"
 
-    def validate_args(delete: bool, **kwargs: Any):
+    def validate_args(delete: bool, **kwargs: Any) -> None:
 
         assert kwargs["action"] == "update_stack_set"
         tags = cf.tags
@@ -68,7 +68,7 @@ def test_cloud_formation_stack_set_tagging() -> None:
         ]
 
     client = cast(AwsClient, SimpleNamespace(call=partial(validate_args, delete=False)))
-    cf.update_tag(client, "foo", "bar")
+    cf.update_resource_tag(client, "foo", "bar")
 
     client = cast(AwsClient, SimpleNamespace(call=partial(validate_args, delete=True)))
-    cf.delete_tag(client, "bar")
+    cf.delete_resource_tag(client, "bar")

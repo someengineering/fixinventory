@@ -120,7 +120,7 @@ class AwsIamRole(AwsResource):
         for profile in bend(S("AttachedManagedPolicies", default=[]), source):
             builder.dependant_node(self, clazz=AwsIamPolicy, delete_same_as_default=True, arn=profile["PolicyArn"])
 
-    def update_tag(self, client: AwsClient, key: str, value: str) -> bool:
+    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         return iam_update_tag(
             resource=self,
             client=client,
@@ -130,7 +130,7 @@ class AwsIamRole(AwsResource):
             RoleName=self.name,
         )
 
-    def delete_tag(self, client: AwsClient, key: str) -> bool:
+    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
         return iam_delete_tag(
             resource=self,
             client=client,
@@ -155,7 +155,7 @@ class AwsIamServerCertificate(AwsResource, BaseCertificate):
     }
     path: Optional[str] = field(default=None)
 
-    def update_tag(self, client: AwsClient, key: str, value: str) -> bool:
+    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         return iam_update_tag(
             resource=self,
             client=client,
@@ -165,7 +165,7 @@ class AwsIamServerCertificate(AwsResource, BaseCertificate):
             ServerCertificateName=self.name,
         )
 
-    def delete_tag(self, client: AwsClient, key: str) -> bool:
+    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
         return iam_delete_tag(
             resource=self,
             client=client,
@@ -200,7 +200,7 @@ class AwsIamPolicy(AwsResource, BasePolicy):
     policy_is_attachable: Optional[bool] = field(default=None)
     policy_description: Optional[str] = field(default=None)
 
-    def update_tag(self, client: AwsClient, key: str, value: str) -> bool:
+    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         return iam_update_tag(
             resource=self,
             client=client,
@@ -210,7 +210,7 @@ class AwsIamPolicy(AwsResource, BasePolicy):
             PolicyArn=self.arn,
         )
 
-    def delete_tag(self, client: AwsClient, key: str) -> bool:
+    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
         return iam_delete_tag(
             resource=self,
             client=client,
@@ -333,10 +333,10 @@ class AwsIamUser(AwsResource, BaseUser):
         for arn in bend(S("GroupList", default=[]), source):
             builder.add_edge(self, reverse=True, clazz=AwsIamGroup, arn=arn)
 
-    def update_tag(self, client: AwsClient, key: str, value: str) -> bool:
+    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         return iam_update_tag(resource=self, client=client, action="tag_user", key=key, value=value, UserName=self.name)
 
-    def delete_tag(self, client: AwsClient, key: str) -> bool:
+    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
         return iam_delete_tag(resource=self, client=client, action="untag_user", key=key, UserName=self.name)
 
 

@@ -13,18 +13,18 @@ def test_rds_instances() -> None:
 def test_tagging() -> None:
     instance, _ = round_trip_for(AwsRdsInstance)
 
-    def validate_update_args(**kwargs: Any):
+    def validate_update_args(**kwargs: Any) -> None:
         assert kwargs["action"] == "add_tags_to_resource"
         assert kwargs["ResourceName"] == instance.arn
         assert kwargs["Tags"] == [{"Key": "foo", "Value": "bar"}]
 
-    def validate_delete_args(**kwargs: Any):
+    def validate_delete_args(**kwargs: Any) -> None:
         assert kwargs["action"] == "remove_tags_from_resource"
         assert kwargs["ResourceName"] == instance.arn
         assert kwargs["TagKeys"] == ["foo"]
 
     client = cast(AwsClient, SimpleNamespace(call=validate_update_args))
-    instance.update_tag(client, "foo", "bar")
+    instance.update_resource_tag(client, "foo", "bar")
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
-    instance.delete_tag(client, "foo")
+    instance.delete_resource_tag(client, "foo")

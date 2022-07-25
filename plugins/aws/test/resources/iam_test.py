@@ -56,18 +56,18 @@ def test_tagging() -> None:
 
     res, _ = round_trip_for(AwsIamServerCertificate, "dns_names", "sha1_fingerprint")
 
-    def validate_update_args(**kwargs: Any):
+    def validate_update_args(**kwargs: Any) -> None:
         assert kwargs["action"] == "tag_server_certificate"
         assert kwargs["Tags"] == [{"Key": "foo", "Value": "bar"}]
         assert kwargs["ServerCertificateName"] == res.name
 
-    def validate_delete_args(**kwargs: Any):
+    def validate_delete_args(**kwargs: Any) -> None:
         assert kwargs["action"] == "untag_server_certificate"
         assert kwargs["TagKeys"] == ["foo"]
         assert kwargs["ServerCertificateName"] == res.name
 
     client = cast(AwsClient, SimpleNamespace(call=validate_update_args))
-    res.update_tag(client, "foo", "bar")
+    res.update_resource_tag(client, "foo", "bar")
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
-    res.delete_tag(client, "foo")
+    res.delete_resource_tag(client, "foo")

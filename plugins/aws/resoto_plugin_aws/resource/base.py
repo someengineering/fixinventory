@@ -62,11 +62,11 @@ class AwsResource(BaseResource):
     arn: Optional[str] = None
 
     # TODO: implement me
-    def update_tag(self, client: AwsClient, key: str, value: str) -> bool:
+    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         raise NotImplementedError
 
     # TODO: implement me
-    def delete_tag(self, client: AwsClient, key: str) -> bool:
+    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
         raise NotImplementedError
 
     # TODO: implement me

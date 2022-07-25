@@ -13,18 +13,18 @@ def test_elbs() -> None:
 def test_tagging() -> None:
     elb, _ = round_trip_for(AwsElb, "public_ip_address")
 
-    def validate_update_args(**kwargs: Any):
+    def validate_update_args(**kwargs: Any) -> None:
         assert kwargs["action"] == "add_tags"
         assert kwargs["LoadBalancerNames"] == [elb.name]
         assert kwargs["Tags"] == [{"Key": "foo", "Value": "bar"}]
 
-    def validate_delete_args(**kwargs: Any):
+    def validate_delete_args(**kwargs: Any) -> None:
         assert kwargs["action"] == "remove_tags"
         assert kwargs["LoadBalancerNames"] == [elb.name]
         assert kwargs["Tags"] == [{"Key": "foo"}]
 
     client = cast(AwsClient, SimpleNamespace(call=validate_update_args))
-    elb.update_tag(client, "foo", "bar")
+    elb.update_resource_tag(client, "foo", "bar")
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
-    elb.delete_tag(client, "foo")
+    elb.delete_resource_tag(client, "foo")

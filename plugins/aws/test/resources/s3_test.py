@@ -13,7 +13,7 @@ def test_buckets() -> None:
 def test_tagging() -> None:
     bucket, _ = round_trip_for(AwsS3Bucket)
 
-    def validate_update_args(**kwargs: Any):
+    def validate_update_args(**kwargs: Any) -> Any:
         if kwargs["action"] == "get_bucket_tagging":
             assert kwargs["Bucket"] == bucket.name
             return [{"Key": "foo", "Value": "bar"}]
@@ -22,7 +22,7 @@ def test_tagging() -> None:
             assert kwargs["Bucket"] == bucket.name
             assert kwargs["Tagging"] == {"TagSet": [{"Key": "foo", "Value": "bar"}]}
 
-    def validate_delete_args(**kwargs: Any):
+    def validate_delete_args(**kwargs: Any) -> Any:
         if kwargs["action"] == "get_bucket_tagging":
             assert kwargs["Bucket"] == bucket.name
             return [{"Key": "foo", "Value": "bar"}]
@@ -32,7 +32,7 @@ def test_tagging() -> None:
             assert kwargs["Tagging"] == {"TagSet": []}
 
     client = cast(AwsClient, SimpleNamespace(call=validate_update_args))
-    bucket.update_tag(client, "foo", "bar")
+    bucket.update_resource_tag(client, "foo", "bar")
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
-    bucket.delete_tag(client, "foo")
+    bucket.delete_resource_tag(client, "foo")
