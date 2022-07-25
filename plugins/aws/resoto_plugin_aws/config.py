@@ -177,6 +177,7 @@ class AwsConfig:
 
     def __setstate__(self, d: Dict[str, Any]) -> None:
         d["_lock"] = threading.RLock()
+        d["_holder"] = None
         self.__dict__.update(d)
 
     def sessions(self) -> AwsSessionHolder:

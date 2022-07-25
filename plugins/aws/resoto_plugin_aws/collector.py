@@ -2,7 +2,6 @@ import logging
 from concurrent.futures import ThreadPoolExecutor
 from typing import List, Type
 
-from boto3.exceptions import Boto3Error
 from botocore.exceptions import ClientError
 
 from resoto_plugin_aws.aws_client import AwsClient
@@ -16,6 +15,7 @@ from resoto_plugin_aws.resource import (
     elb,
     elbv2,
     iam,
+    lambda_,
     rds,
     route53,
     s3,
@@ -37,6 +37,7 @@ regional_resources: List[Type[AwsResource]] = (
     + eks.resources
     + elb.resources
     + elbv2.resources
+    + lambda_.resources
     + rds.resources
     + service_quotas.resources
 )
@@ -58,6 +59,7 @@ class AwsAccountCollector:
             queue = ExecutorQueue(executor, self.account.name)
             queue.submit_work(self.update_account)
             builder = GraphBuilder(self.graph, self.cloud, self.account, self.global_region, self.client, queue)
+            builder.add_node(self.global_region)
 
             # all global resources
             for resource in global_resources:
@@ -67,21 +69,24 @@ class AwsAccountCollector:
 
             # all regional resources for all configured regions
             for region in self.regions:
+                builder.add_node(region)
                 region_builder = builder.for_region(region)
                 for resource in regional_resources:
                     if self.config.should_collect(resource.kind):
                         resource.collect_resources(region_builder)
             queue.wait_for_submitted_work()
 
-            # connect account to all regions
-            for region in self.regions:
-                builder.add_edge(self.account, EdgeType.default, node=region)
-
-            # connect nodes as parallel as possible
-            for idx, (node, data) in enumerate(list(self.graph.nodes(data=True))):
+            # connect nodes
+            for node, data in list(self.graph.nodes(data=True)):
                 if isinstance(node, AwsResource):
-                    if rg := node.region():
+                    if isinstance(node, AwsAccount):
+                        pass
+                    elif isinstance(node, AwsRegion):
+                        builder.add_edge(self.account, EdgeType.default, node=node)
+                    elif rg := node.region():
                         builder.add_edge(rg, EdgeType.default, node=node)
+                    else:
+                        builder.add_edge(self.account, EdgeType.default, node=node)
                     node.connect_in_graph(builder, data.get("source", {}))
                 else:
                     raise Exception("Only AWS resources expected")
@@ -98,7 +103,7 @@ class AwsAccountCollector:
             log.debug(f"Could not get account aliases: {e}")
 
         log.info(f"Collecting AWS IAM Account Summary in account {self.account.dname}")
-        sm = self.client.get("iam", "get_account_summary", "SummaryMap") or {}
+        sm = self.client.get("iam", "get-account-summary", "SummaryMap") or {}
         self.account.users = int(sm.get("Users", 0))
         self.account.groups = int(sm.get("Groups", 0))
         self.account.account_mfa_enabled = int(sm.get("AccountMFAEnabled", 0))
@@ -113,7 +118,7 @@ class AwsAccountCollector:
 
         # boto will fail, when there is no Custom PasswordPolicy defined (only AWS Default). This is intended behaviour.
         try:
-            app = self.client.get("iam", "get_account_password_policy", "PasswordPolicy") or {}
+            app = self.client.get("iam", "get-account-password-policy", "PasswordPolicy") or {}
             self.account.minimum_password_length = int(app.get("MinimumPasswordLength", 0))
             self.account.require_symbols = bool(app.get("RequireSymbols", None))
             self.account.require_numbers = bool(app.get("RequireNumbers", None))
@@ -124,5 +129,5 @@ class AwsAccountCollector:
             self.account.max_password_age = int(app.get("MaxPasswordAge", 0))
             self.account.password_reuse_prevention = int(app.get("PasswordReusePrevention", 0))
             self.account.hard_expiry = bool(app.get("HardExpiry", None))
-        except Boto3Error:
+        except Exception:
             log.debug(f"The Password Policy for account {self.account.dname} cannot be found.")

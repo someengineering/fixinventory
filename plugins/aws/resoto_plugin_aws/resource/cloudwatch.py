@@ -6,7 +6,7 @@ from attr import define, field
 
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
-from resotolib.baseresources import BaseAccount  # noqa: F401
+from resotolib.baseresources import BaseAccount, ModelReference  # noqa: F401
 from resotolib.json import from_json
 from resotolib.json_bender import S, Bend, Bender, ForallBend, bend
 from resotolib.types import Json
@@ -105,6 +105,9 @@ class AwsCloudwatchMetricDataQuery:
 class AwsCloudwatchAlarm(CloudwatchTaggable, AwsResource):
     kind: ClassVar[str] = "aws_cloudwatch_alarm"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudwatch", "describe-alarms", "MetricAlarms")
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["aws_ec2_instance"], "delete": ["aws_ec2_instance"]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("AlarmName"),
         "name": S("AlarmName"),
@@ -164,7 +167,9 @@ class AwsCloudwatchAlarm(CloudwatchTaggable, AwsResource):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
         for dimension in self.cloudwatch_dimensions:
-            builder.dependant_node(self, reverse=True, delete_reverse=True, kind="aws_ec2_instance", id=dimension.value)
+            builder.dependant_node(
+                self, reverse=True, delete_same_as_default=True, kind="aws_ec2_instance", id=dimension.value
+            )
 
 
 @define(hash=True, frozen=True)

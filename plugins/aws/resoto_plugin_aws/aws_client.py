@@ -4,12 +4,25 @@ import logging
 from datetime import datetime
 from functools import cached_property
 from typing import Optional, Any, List
+from retrying import retry
+
+from botocore.exceptions import ClientError
 
 from resoto_plugin_aws.config import AwsConfig
 from resotolib.types import Json, JsonElement
 from resotolib.utils import utc_str
 
 log = logging.getLogger("resoto.plugins.aws")
+
+RetryableErrors = ("RequestLimitExceeded", "Throttling", "TooManyRequestsException")
+
+
+def is_retryable_exception(e: Exception) -> bool:
+    if isinstance(e, ClientError):
+        if e.response["Error"]["Code"] in RetryableErrors:
+            log.debug("AWS API request limit exceeded or throttling, retrying with exponential backoff")
+            return True
+    return False
 
 
 class AwsClient:
@@ -40,8 +53,15 @@ class AwsClient:
         else:
             raise AttributeError(f"Unsupported type: {type(node)}")
 
+    @retry(  # type: ignore
+        stop_max_attempt_number=10,
+        wait_exponential_multiplier=3000,
+        wait_exponential_max=300000,
+        retry_on_exception=is_retryable_exception,
+    )
     def call(self, service: str, action: str, result_name: Optional[str], **kwargs: Any) -> JsonElement:
-        log.info(f"[Aws] call service={service} action={action} with_args={kwargs}")
+        arg_info = " with args=" + ", ".join(kwargs.keys()) if kwargs else ""
+        log.info(f"[Aws] call service={service} action={action}{arg_info}")
         py_action = action.replace("-", "_")
         session = self.config.sessions().session(self.account_id, self.role, self.profile)
         client = session.client(service, region_name=self.region)
@@ -57,20 +77,39 @@ class AwsClient:
                     # extend the list with the list result under given key
                     result.extend(list_result)
                 else:
-                    raise AttributeError("Expected list result under key '{}'".format(result_name))
-            log.info(f"[Aws] call service={service} action={action} with_args={kwargs}: {len(result)} results.")
+                    raise AttributeError(f"Expected list result under key '{result_name}'")
+            log.info(f"[Aws] call service={service} action={action}{arg_info}: {len(result)} results.")
             return result
         else:
             result = getattr(client, py_action)(**kwargs)
             single: Json = self.__to_json(result)  # type: ignore
-            log.info(f"[Aws] call service={service} action={action} with_args={kwargs}: single result")
+            log.debug(f"[Aws] call service={service} action={action}{arg_info}: single result")
             return single.get(result_name) if result_name else [single]
 
+    def call_handle(self, service: str, action: str, result_name: Optional[str], **kwargs: Any) -> JsonElement:
+        try:
+            return self.call(service, action, result_name, **kwargs)  # type: ignore
+        except ClientError as e:
+            code = e.response["Error"]["Code"]
+            if code in ("UnauthorizedOperation", "AccessDenied"):
+                log.error(f"Not authorized to collect resources in account {self.account_id} region {self.region}")
+                return None
+            elif code in RetryableErrors:
+                raise  # already have been retried, give up here
+            else:
+                log.exception(
+                    (
+                        f"An AWS API error {code} occurred during resource collection of {service} action {action} in "
+                        f"account {self.account_id} region {self.region} - skipping resources"
+                    )
+                )
+                return None
+
     def list(self, service: str, action: str, result_name: Optional[str], **kwargs: Any) -> List[Any]:
-        return self.call(service, action, result_name, **kwargs) or []  # type: ignore
+        return self.call_handle(service, action, result_name, **kwargs) or []  # type: ignore
 
     def get(self, service: str, action: str, result_name: Optional[str], **kwargs: Any) -> Optional[Json]:
-        return self.call(service, action, result_name, **kwargs)  # type: ignore
+        return self.call_handle(service, action, result_name, **kwargs)  # type: ignore
 
     def for_region(self, region: str) -> AwsClient:
         return AwsClient(self.config, self.account_id, role=self.role, profile=self.profile, region=region)

@@ -5,7 +5,7 @@ from attrs import define, field
 from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
 from resoto_plugin_aws.resource.ec2 import AwsEc2Instance
 from resoto_plugin_aws.utils import ToDict
-from resotolib.baseresources import BaseAutoScalingGroup, BaseAccount  # noqa: F401
+from resotolib.baseresources import BaseAutoScalingGroup, BaseAccount, ModelReference  # noqa: F401
 from resotolib.json_bender import Bender, S, Bend, ForallBend
 from resotolib.types import Json
 from resoto_plugin_aws.aws_client import AwsClient
@@ -13,7 +13,7 @@ from resoto_plugin_aws.aws_client import AwsClient
 
 @define(eq=False, slots=False)
 class AwsAutoScalingLaunchTemplateSpecification:
-    kind: ClassVar[str] = "aws_auto_scaling_launch_template_specification"
+    kind: ClassVar[str] = "aws_autoscaling_launch_template_specification"
     mapping: ClassVar[Dict[str, Bender]] = {
         "launch_template_id": S("LaunchTemplateId"),
         "launch_template_name": S("LaunchTemplateName"),
@@ -26,7 +26,7 @@ class AwsAutoScalingLaunchTemplateSpecification:
 
 @define(eq=False, slots=False)
 class AwsAutoScalingMinMax:
-    kind: ClassVar[str] = "aws_auto_scaling_min_max"
+    kind: ClassVar[str] = "aws_autoscaling_min_max"
     mapping: ClassVar[Dict[str, Bender]] = {"min": S("Min"), "max": S("Max")}
     min: Optional[int] = field(default=None)
     max: Optional[int] = field(default=None)
@@ -34,7 +34,7 @@ class AwsAutoScalingMinMax:
 
 @define(eq=False, slots=False)
 class AwsAutoScalingInstanceRequirements:
-    kind: ClassVar[str] = "aws_auto_scaling_instance_requirements"
+    kind: ClassVar[str] = "aws_autoscaling_instance_requirements"
     mapping: ClassVar[Dict[str, Bender]] = {
         "v_cpu_count": S("VCpuCount") >> Bend(AwsAutoScalingMinMax.mapping),
         "memory_mi_b": S("MemoryMiB") >> Bend(AwsAutoScalingMinMax.mapping),
@@ -83,7 +83,7 @@ class AwsAutoScalingInstanceRequirements:
 
 @define(eq=False, slots=False)
 class AwsAutoScalingLaunchTemplateOverrides:
-    kind: ClassVar[str] = "aws_auto_scaling_launch_template_overrides"
+    kind: ClassVar[str] = "aws_autoscaling_launch_template_overrides"
     mapping: ClassVar[Dict[str, Bender]] = {
         "instance_type": S("InstanceType"),
         "weighted_capacity": S("WeightedCapacity"),
@@ -99,7 +99,7 @@ class AwsAutoScalingLaunchTemplateOverrides:
 
 @define(eq=False, slots=False)
 class AwsAutoScalingLaunchTemplate:
-    kind: ClassVar[str] = "aws_auto_scaling_launch_template"
+    kind: ClassVar[str] = "aws_autoscaling_launch_template"
     mapping: ClassVar[Dict[str, Bender]] = {
         "launch_template_specification": S("LaunchTemplateSpecification")
         >> Bend(AwsAutoScalingLaunchTemplateSpecification.mapping),
@@ -111,7 +111,7 @@ class AwsAutoScalingLaunchTemplate:
 
 @define(eq=False, slots=False)
 class AwsAutoScalingInstancesDistribution:
-    kind: ClassVar[str] = "aws_auto_scaling_instances_distribution"
+    kind: ClassVar[str] = "aws_autoscaling_instances_distribution"
     mapping: ClassVar[Dict[str, Bender]] = {
         "on_demand_allocation_strategy": S("OnDemandAllocationStrategy"),
         "on_demand_base_capacity": S("OnDemandBaseCapacity"),
@@ -130,7 +130,7 @@ class AwsAutoScalingInstancesDistribution:
 
 @define(eq=False, slots=False)
 class AwsAutoScalingMixedInstancesPolicy:
-    kind: ClassVar[str] = "aws_auto_scaling_mixed_instances_policy"
+    kind: ClassVar[str] = "aws_autoscaling_mixed_instances_policy"
     mapping: ClassVar[Dict[str, Bender]] = {
         "launch_template": S("LaunchTemplate") >> Bend(AwsAutoScalingLaunchTemplate.mapping),
         "instances_distribution": S("InstancesDistribution") >> Bend(AwsAutoScalingInstancesDistribution.mapping),
@@ -141,7 +141,7 @@ class AwsAutoScalingMixedInstancesPolicy:
 
 @define(eq=False, slots=False)
 class AwsAutoScalingInstance:
-    kind: ClassVar[str] = "aws_auto_scaling_instance"
+    kind: ClassVar[str] = "aws_autoscaling_instance"
     mapping: ClassVar[Dict[str, Bender]] = {
         "instance_id": S("InstanceId"),
         "instance_type": S("InstanceType"),
@@ -166,7 +166,7 @@ class AwsAutoScalingInstance:
 
 @define(eq=False, slots=False)
 class AwsAutoScalingSuspendedProcess:
-    kind: ClassVar[str] = "aws_auto_scaling_suspended_process"
+    kind: ClassVar[str] = "aws_autoscaling_suspended_process"
     mapping: ClassVar[Dict[str, Bender]] = {
         "process_name": S("ProcessName"),
         "suspension_reason": S("SuspensionReason"),
@@ -177,7 +177,7 @@ class AwsAutoScalingSuspendedProcess:
 
 @define(eq=False, slots=False)
 class AwsAutoScalingEnabledMetric:
-    kind: ClassVar[str] = "aws_auto_scaling_enabled_metric"
+    kind: ClassVar[str] = "aws_autoscaling_enabled_metric"
     mapping: ClassVar[Dict[str, Bender]] = {"metric": S("Metric"), "granularity": S("Granularity")}
     metric: Optional[str] = field(default=None)
     granularity: Optional[str] = field(default=None)
@@ -185,7 +185,7 @@ class AwsAutoScalingEnabledMetric:
 
 @define(eq=False, slots=False)
 class AwsAutoScalingWarmPoolConfiguration:
-    kind: ClassVar[str] = "aws_auto_scaling_warm_pool_configuration"
+    kind: ClassVar[str] = "aws_autoscaling_warm_pool_configuration"
     mapping: ClassVar[Dict[str, Bender]] = {
         "max_group_prepared_capacity": S("MaxGroupPreparedCapacity"),
         "min_size": S("MinSize"),
@@ -202,8 +202,12 @@ class AwsAutoScalingWarmPoolConfiguration:
 
 @define(eq=False, slots=False)
 class AwsAutoScalingGroup(AwsResource, BaseAutoScalingGroup):
-    kind: ClassVar[str] = "aws_auto_scaling_group"
+    kind: ClassVar[str] = "aws_autoscaling_group"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("autoscaling", "describe-auto-scaling-groups", "AutoScalingGroups")
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {"default": ["aws_ec2_instance"]},
+        "predecessors": {"delete": ["aws_ec2_instance"]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("AutoScalingGroupName"),
         "tags": S("Tags", default=[]) >> ToDict(),

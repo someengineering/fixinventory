@@ -5,6 +5,7 @@ from resoto_plugin_aws.resource.iam import (
     AwsIamRole,
     AwsIamUser,
     AwsIamAccessKey,
+    AwsIamInstanceProfile,
 )
 from test.resources import round_trip_for
 from typing import Any, cast
@@ -14,6 +15,10 @@ from resoto_plugin_aws.aws_client import AwsClient
 
 def test_server_certificates() -> None:
     round_trip_for(AwsIamServerCertificate, "dns_names", "sha1_fingerprint")
+
+
+def test_instance_profiles() -> None:
+    round_trip_for(AwsIamInstanceProfile)
 
 
 def test_user_roles_groups_policies_keys() -> None:

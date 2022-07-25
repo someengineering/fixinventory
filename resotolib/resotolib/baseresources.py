@@ -41,6 +41,15 @@ def unless_protected(f):
     return wrapper
 
 
+# To define predecessors and successors of a resource by kind
+# Example:
+# reference_kinds: ClassVar[ModelReference] = {
+#   "successors": {"default": ["base"], "delete": ["other_kind"]]},
+#   "predecessors": {"delete": ["other"]},
+# }
+ModelReference = Dict[str, Dict[str, List[str]]]
+
+
 class EdgeType(Enum):
     default = "default"
     delete = "delete"
@@ -100,20 +109,20 @@ class BaseResource(ABC):
     the resource within the Graph. The name is used for display purposes. Tags are
     key/value pairs that get exported in the GRAPHML view.
 
-    There's also class variables, kind, phantom and successor_kinds.
+    There's also class variables, kind, phantom and reference_kinds.
     `kind` is a string describing the type of resource, e.g. 'aws_ec2_instance'
        or 'some_cloud_load_balancer'.
     `phantom` is a bool describing whether the resource actually exists within
        the cloud or if it's just a phantom resource like pricing information
        or usage quota. I.e. some information relevant to the cloud account
        but not actually existing in the form of a usable resource.
-    `successor_kinds` is a list of kinds that can be connected to this resource for
-       the related edge type.
+    `reference_kinds` is a list of kinds that can be connected to this resource for
+       the related edge type as successor or predecessor.
     """
 
     kind: ClassVar[str] = "resource"
     phantom: ClassVar[bool] = False
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {"default": [], "delete": []}
+    reference_kinds: ClassVar[ModelReference] = {}
 
     id: str
     tags: Dict[str, Optional[str]] = Factory(dict)
@@ -125,6 +134,11 @@ class BaseResource(ABC):
     _resotocore_id: Optional[str] = field(default=None, repr=False)
     _resotocore_revision: Optional[str] = field(default=None, repr=False)
     _resotocore_query_tag: Optional[str] = field(default=None, repr=False)
+    _clean: bool = False
+    _cleaned: bool = False
+    _protected: bool = False
+    _deferred_connections: List = field(factory=list)
+
     ctime: Optional[datetime] = field(
         default=None,
         metadata={"synthetic": {"age": "trafo.duration_to_datetime"}},
@@ -141,16 +155,10 @@ class BaseResource(ABC):
     def __attrs_post_init__(self) -> None:
         if self.name is None:
             self.name = self.id
-        self.uuid = uuid.uuid4().hex
-        self._clean: bool = False
-        self._cleaned: bool = False
-        self._protected: bool = False
         self._changes: ResourceChanges = ResourceChanges(self)
-        self._deferred_connections: List = []
         self.__graph = None
         self.__log: List = []
         self._raise_tags_exceptions: bool = False
-        self.max_graph_depth: int = 0
         if not hasattr(self, "_ctime"):
             self._ctime = None
         if not hasattr(self, "_atime"):
@@ -163,7 +171,7 @@ class BaseResource(ABC):
             f"{self.__class__.__name__}('{self.id}', name='{self.name}',"
             f" region='{self.region().name}', zone='{self.zone().name}',"
             f" account='{self.account().dname}', kind='{self.kind}',"
-            f" ctime={self.ctime!r}, uuid={self.uuid}, chksum={self.chksum})"
+            f" ctime={self.ctime!r}, chksum={self.chksum})"
         )
 
     def _keys(self) -> tuple:
@@ -778,6 +786,11 @@ class GraphRoot(PhantomBaseResource):
 @define(eq=False, slots=False)
 class BaseBucket(BaseResource):
     kind: ClassVar[str] = "bucket"
+
+
+@define(eq=False, slots=False)
+class BaseServerlessFunction(BaseResource):
+    kind: ClassVar[str] = "serverless_function"
 
 
 @define(eq=False, slots=False)

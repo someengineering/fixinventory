@@ -1,0 +1,62 @@
+{
+    "InstanceProfiles": [
+        {
+            "Path": "/",
+            "InstanceProfileName": "profile-123",
+            "InstanceProfileId": "profile-123",
+            "Arn": "arn:aws:iam::test:instance-profile/profile-123",
+            "CreateDate": "2020-04-04T01:55:47+00:00",
+            "Roles": [
+                {
+                    "Path": "/",
+                    "RoleName": "node-role",
+                    "RoleId": "role-123",
+                    "Arn": "arn:aws:iam::test:role/role-123",
+                    "CreateDate": "2020-04-04T01:55:36+00:00",
+                    "AssumeRolePolicyDocument": {
+                        "Version": "2012-10-17",
+                        "Statement": [
+                            {
+                                "Sid": "",
+                                "Effect": "Allow",
+                                "Principal": {
+                                    "Service": "ec2.amazonaws.com"
+                                },
+                                "Action": "sts:AssumeRole"
+                            }
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "Path": "/",
+            "InstanceProfileName": "profile-2",
+            "InstanceProfileId": "profile-2",
+            "Arn": "arn:aws:iam::test:instance-profile/profile-2",
+            "CreateDate": "2020-04-08T02:10:07+00:00",
+            "Roles": [
+                {
+                    "Path": "/",
+                    "RoleName": "role-2",
+                    "RoleId": "role-2",
+                    "Arn": "arn:aws:iam::test:role/role-2",
+                    "CreateDate": "2020-04-08T02:10:04+00:00",
+                    "AssumeRolePolicyDocument": {
+                        "Version": "2012-10-17",
+                        "Statement": [
+                            {
+                                "Sid": "",
+                                "Effect": "Allow",
+                                "Principal": {
+                                    "Service": "ec2.amazonaws.com"
+                                },
+                                "Action": "sts:AssumeRole"
+                            }
+                        ]
+                    }
+                }
+            ]
+        }
+    ]
+}

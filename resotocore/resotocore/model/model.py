@@ -1080,6 +1080,15 @@ predefined_kinds = [
 ]
 predefined_kinds_by_name = {k.fqn: k for k in predefined_kinds}
 
+allowed_simple_type_changes: List[Tuple[Optional[str], Optional[str]]] = [
+    ("string", "duration"),
+    ("string", "date"),
+    ("duration", "string"),
+    ("date", "string"),
+    ("any", None),
+    (None, "any"),
+]
+
 
 class Model:
     @staticmethod
@@ -1245,7 +1254,11 @@ class Model:
                 right = up[p].simple_kind
                 # consider valid as long as the runtime kind stays the same
                 return (left.runtime_kind != right.runtime_kind) and not (
-                    isinstance(left, AnyKind) or isinstance(right, AnyKind)
+                    any(
+                        True
+                        for al, ar in allowed_simple_type_changes
+                        if (al is None or left.fqn == al) and (ar is None or right.fqn == ar)
+                    )
                 )
 
             # Filter out duplicates that have the same kind or any side is any

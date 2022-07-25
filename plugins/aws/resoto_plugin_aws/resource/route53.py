@@ -15,6 +15,7 @@ from resotolib.baseresources import (  # noqa: F401
     BaseDNSRecord,
     EdgeType,
     BaseDNSRecordSet,
+    ModelReference,
 )
 from resotolib.json_bender import Bender, S, Bend, ForallBend
 from resotolib.types import Json
@@ -40,6 +41,12 @@ class AwsRoute53LinkedService:
 class AwsRoute53Zone(AwsResource, BaseDNSZone):
     kind: ClassVar[str] = "aws_route53_zone"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("route53", "list-hosted-zones", "HostedZones")
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["aws_route53_resource_record_set"],
+            "delete": [],
+        }
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Id"),
         "name": S("Name"),
@@ -75,6 +82,7 @@ class AwsRoute53Zone(AwsResource, BaseDNSZone):
                     )
                     builder.add_node(record, js)
                     builder.add_edge(record_set, EdgeType.default, node=record)
+                    builder.add_edge(record_set, EdgeType.delete, node=record)
 
 
 @define(eq=False, slots=False)
@@ -114,15 +122,23 @@ class AwsRoute53CidrRoutingConfig:
 @define(eq=False, slots=False)
 class AwsRoute53ResourceRecord(AwsResource, BaseDNSRecord):
     kind: ClassVar[str] = "aws_route53_resource_record"
-    successor_kinds: ClassVar[Dict[str, List[str]]] = {
-        "default": [],
-        "delete": [],
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [],
+            "delete": [],
+        }
     }
 
 
 @define(eq=False, slots=False)
 class AwsRoute53ResourceRecordSet(AwsResource, BaseDNSRecordSet):
     kind: ClassVar[str] = "aws_route53_resource_record_set"
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["aws_route53_resource_record"],
+            "delete": ["aws_route53_resource_record"],
+        }
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Name"),
         "name": S("Name"),

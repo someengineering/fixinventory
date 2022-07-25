@@ -13,6 +13,7 @@ from resotolib.core.model_export import (
     model_name,
     dynamic_object_to_resotocore_model,
 )
+from resotolib.baseresources import ModelReference
 
 
 class ExampleEnum(Enum):
@@ -44,7 +45,10 @@ class DataClassExample(DataClassBase):
     kind: ClassVar[str] = "example"
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
         "default": ["example"],
-        "delete": ["other"],
+    }
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {"default": ["base"]},
+        "predecessors": {"delete": ["other"]},
     }
     list_of_string: List[str]
     optional_list_of_props: Optional[List[DataClassProp]]
@@ -137,8 +141,10 @@ def test_dataclasses_to_resotocore_model() -> None:
             assert len(r["properties"]) == 2
             assert props["key"]["kind"] == "string"
             assert props["value"]["kind"] == "any"
+        elif r["fqn"] == "other":
+            assert r["successor_kinds"] == {"default": [], "delete": ["example"]}
         elif r["fqn"] == "example":
-            assert r["successor_kinds"] == {"default": ["example"], "delete": ["other"]}
+            assert set(r["successor_kinds"]["default"]) == {"base", "example"}
             assert len(r["properties"]) == 10
             assert props["list_of_string"]["kind"] == "string[]"
             assert props["optional_list_of_props"]["kind"] == "prop[]"

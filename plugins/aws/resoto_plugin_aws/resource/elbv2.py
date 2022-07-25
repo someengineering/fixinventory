@@ -3,9 +3,9 @@ from typing import ClassVar, Dict, Optional, Type, List
 from attrs import define, field
 
 from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
-from resoto_plugin_aws.resource.ec2 import AwsEc2Vpc
+from resoto_plugin_aws.resource.ec2 import AwsEc2Vpc, AwsEc2Subnet, AwsEc2Instance, AwsEc2SecurityGroup
 from resoto_plugin_aws.utils import ToDict
-from resotolib.baseresources import BaseLoadBalancer, EdgeType, BaseAccount  # noqa: F401
+from resotolib.baseresources import BaseLoadBalancer, EdgeType, BaseAccount, ModelReference  # noqa: F401
 from resotolib.json import from_json
 from resotolib.json_bender import Bender, S, Bend, bend, ForallBend, K
 from resotolib.types import Json
@@ -255,6 +255,12 @@ class AwsAlbListener:
 class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
     kind: ClassVar[str] = "aws_alb"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("elbv2", "describe-load-balancers", "LoadBalancers")
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {
+            "default": ["aws_vpc", "aws_ec2_subnet", "aws_ec2_security_group"],
+            "delete": ["aws_vpc", "aws_ec2_subnet"],
+        }
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("LoadBalancerName"),
         "name": S("LoadBalancerName"),
@@ -297,11 +303,11 @@ class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if vpc_id := source.get("VpcId"):
-            builder.dependant_node(self, reverse=True, delete_reverse=True, clazz=AwsEc2Vpc, id=vpc_id)
+            builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsEc2Vpc, id=vpc_id)
         for sg in self.alb_security_groups:
-            builder.add_edge(self, EdgeType.default, reverse=True, id=sg)
+            builder.add_edge(self, EdgeType.default, reverse=True, clazz=AwsEc2SecurityGroup, id=sg)
         for sn in self.alb_availability_zones:
-            builder.dependant_node(self, reverse=True, delete_reverse=True, id=sn.subnet_id)
+            builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsEc2Subnet, id=sn.subnet_id)
 
 
 @define(eq=False, slots=False)
@@ -352,6 +358,10 @@ class AwsAlbTargetHealthDescription:
 class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
     kind: ClassVar[str] = "aws_alb_target_group"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("elbv2", "describe-target-groups", "TargetGroups")
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["aws_vpc", "aws_alb"], "delete": ["aws_ec2_instance", "aws_vpc"]},
+        "successors": {"delete": ["aws_alb"], "default": ["aws_ec2_instance"]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("TargetGroupName"),
         "tags": S("Tags", default=[]) >> ToDict(),
@@ -404,14 +414,14 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if vpc_id := source.get("VpcId"):
-            builder.dependant_node(self, reverse=True, delete_reverse=True, clazz=AwsEc2Vpc, id=vpc_id)
+            builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsEc2Vpc, id=vpc_id)
         for lb_arn in bend(S("LoadBalancerArns", default=[]), source):
             if lb := builder.node(AwsAlb, arn=lb_arn):
                 builder.dependant_node(lb, node=self)
                 for th in self.alb_target_health:
                     if th.target and th.target.id:
                         lb.backends.append(th.target.id)
-                        builder.dependant_node(self, id=th.target.id)
+                        builder.dependant_node(self, clazz=AwsEc2Instance, id=th.target.id)
 
 
 resources: List[Type[AwsResource]] = [AwsAlb, AwsAlbTargetGroup]
