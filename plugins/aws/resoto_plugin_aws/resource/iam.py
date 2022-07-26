@@ -21,6 +21,33 @@ from resotolib.baseresources import (  # noqa: F401
 from resotolib.json import from_json
 from resotolib.json_bender import Bender, S, Bend, AsDate, Sort, bend, ForallBend
 from resotolib.types import Json
+from resoto_plugin_aws.aws_client import AwsClient
+
+
+def iam_update_tag(resource: AwsResource, client: AwsClient, action: str, key: str, value: str, **kwargs: Any) -> bool:
+    if spec := resource.api_spec:
+        client.call(
+            service=spec.service,
+            action=action,
+            result_name=None,
+            Tags=[{"Key": key, "Value": value}],
+            **kwargs,
+        )
+        return True
+    return False
+
+
+def iam_delete_tag(resource: AwsResource, client: AwsClient, action: str, key: str, **kwargs: Any) -> bool:
+    if spec := resource.api_spec:
+        client.call(
+            service=spec.service,
+            action=action,
+            result_name=None,
+            TagKeys=[key],
+            **kwargs,
+        )
+        return True
+    return False
 
 
 @define(eq=False, slots=False)
@@ -93,6 +120,25 @@ class AwsIamRole(AwsResource):
         for profile in bend(S("AttachedManagedPolicies", default=[]), source):
             builder.dependant_node(self, clazz=AwsIamPolicy, delete_same_as_default=True, arn=profile["PolicyArn"])
 
+    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
+        return iam_update_tag(
+            resource=self,
+            client=client,
+            action="tag_role",
+            key=key,
+            value=value,
+            RoleName=self.name,
+        )
+
+    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
+        return iam_delete_tag(
+            resource=self,
+            client=client,
+            action="untag_role",
+            key=key,
+            RoleName=self.name,
+        )
+
 
 @define(eq=False, slots=False)
 class AwsIamServerCertificate(AwsResource, BaseCertificate):
@@ -108,6 +154,25 @@ class AwsIamServerCertificate(AwsResource, BaseCertificate):
         "expires": S("Expiration"),
     }
     path: Optional[str] = field(default=None)
+
+    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
+        return iam_update_tag(
+            resource=self,
+            client=client,
+            action="tag_server_certificate",
+            key=key,
+            value=value,
+            ServerCertificateName=self.name,
+        )
+
+    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
+        return iam_delete_tag(
+            resource=self,
+            client=client,
+            action="untag_server_certificate",
+            key=key,
+            ServerCertificateName=self.name,
+        )
 
 
 @define(eq=False, slots=False)
@@ -134,6 +199,25 @@ class AwsIamPolicy(AwsResource, BasePolicy):
     policy_permissions_boundary_usage_count: Optional[int] = field(default=None)
     policy_is_attachable: Optional[bool] = field(default=None)
     policy_description: Optional[str] = field(default=None)
+
+    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
+        return iam_update_tag(
+            resource=self,
+            client=client,
+            action="tag_policy",
+            key=key,
+            value=value,
+            PolicyArn=self.arn,
+        )
+
+    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
+        return iam_delete_tag(
+            resource=self,
+            client=client,
+            action="untag_policy",
+            key=key,
+            PolicyArn=self.arn,
+        )
 
 
 @define(eq=False, slots=False)
@@ -249,6 +333,12 @@ class AwsIamUser(AwsResource, BaseUser):
         for arn in bend(S("GroupList", default=[]), source):
             builder.add_edge(self, reverse=True, clazz=AwsIamGroup, arn=arn)
 
+    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
+        return iam_update_tag(resource=self, client=client, action="tag_user", key=key, value=value, UserName=self.name)
+
+    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
+        return iam_delete_tag(resource=self, client=client, action="untag_user", key=key, UserName=self.name)
+
 
 @define(eq=False, slots=False)
 class AwsIamInstanceProfile(AwsResource, BaseInstanceProfile):
@@ -262,6 +352,21 @@ class AwsIamInstanceProfile(AwsResource, BaseInstanceProfile):
         "instance_profile_path": S("Path"),
     }
     instance_profile_path: Optional[str] = field(default=None)
+
+    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
+        return iam_update_tag(
+            resource=self,
+            client=client,
+            action="tag_instance_profile",
+            key=key,
+            value=value,
+            InstanceProfileName=self.name,
+        )
+
+    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
+        return iam_delete_tag(
+            resource=self, client=client, action="untag_instance_profile", key=key, InstanceProfileName=self.name
+        )
 
 
 resources: List[Type[AwsResource]] = [

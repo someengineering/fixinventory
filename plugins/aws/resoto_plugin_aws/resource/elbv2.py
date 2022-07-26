@@ -9,6 +9,38 @@ from resotolib.baseresources import BaseLoadBalancer, EdgeType, BaseAccount, Mod
 from resotolib.json import from_json
 from resotolib.json_bender import Bender, S, Bend, bend, ForallBend, K
 from resotolib.types import Json
+from resoto_plugin_aws.aws_client import AwsClient
+
+
+# todo: annotate with no serialization annotation
+class ElbV2Taggable:
+    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
+        if isinstance(self, AwsResource):
+            if spec := self.api_spec:
+                client.call(
+                    service=spec.service,
+                    action="add_tags",
+                    result_name=None,
+                    ResourceArns=[self.arn],
+                    Tags=[{"Key": key, "Value": value}],
+                )
+                return True
+            return False
+        return False
+
+    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
+        if isinstance(self, AwsResource):
+            if spec := self.api_spec:
+                client.call(
+                    service=spec.service,
+                    action="remove_tags",
+                    result_name=None,
+                    ResourceArns=[self.arn],
+                    TagKeys=[key],
+                )
+                return True
+            return False
+        return False
 
 
 @define(eq=False, slots=False)
@@ -220,7 +252,7 @@ class AwsAlbListener:
 
 
 @define(eq=False, slots=False)
-class AwsAlb(AwsResource, BaseLoadBalancer):
+class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
     kind: ClassVar[str] = "aws_alb"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("elbv2", "describe-load-balancers", "LoadBalancers")
     reference_kinds: ClassVar[ModelReference] = {
@@ -323,7 +355,7 @@ class AwsAlbTargetHealthDescription:
 
 
 @define(eq=False, slots=False)
-class AwsAlbTargetGroup(AwsResource):
+class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
     kind: ClassVar[str] = "aws_alb_target_group"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("elbv2", "describe-target-groups", "TargetGroups")
     reference_kinds: ClassVar[ModelReference] = {

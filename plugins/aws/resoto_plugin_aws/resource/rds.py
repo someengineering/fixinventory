@@ -9,6 +9,38 @@ from resotolib.baseresources import BaseAccount, BaseDatabase, ModelReference  #
 from resotolib.json_bender import F, K, S, Bend, Bender, ForallBend
 from resotolib.types import Json
 from resotolib.utils import utc
+from resoto_plugin_aws.aws_client import AwsClient
+
+
+# todo: annotate with no serialization annotation
+class RdsTaggable:
+    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
+        if isinstance(self, AwsResource):
+            if spec := self.api_spec:
+                client.call(
+                    service=spec.service,
+                    action="add_tags_to_resource",
+                    result_name=None,
+                    ResourceName=self.arn,
+                    Tags=[{"Key": key, "Value": value}],
+                )
+                return True
+            return False
+        return False
+
+    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
+        if isinstance(self, AwsResource):
+            if spec := self.api_spec:
+                client.call(
+                    service=spec.service,
+                    action="remove_tags_from_resource",
+                    result_name=None,
+                    ResourceName=self.arn,
+                    TagKeys=[key],
+                )
+                return True
+            return False
+        return False
 
 
 @define(eq=False, slots=False)
@@ -210,7 +242,7 @@ class AwsRdsTag:
 
 
 @define(eq=False, slots=False)
-class AwsRdsInstance(AwsResource, BaseDatabase):
+class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
     kind: ClassVar[str] = "aws_rds_instance"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("rds", "describe-db-instances", "DBInstances")
     reference_kinds: ClassVar[ModelReference] = {

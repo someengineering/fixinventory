@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import ClassVar, Dict, Optional, List, Type
 
 from attrs import define, field
+from resoto_plugin_aws.aws_client import AwsClient
 
 from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
 from resoto_plugin_aws.resource.cloudwatch import AwsCloudwatchQuery, AwsCloudwatchMetricData
@@ -11,7 +12,6 @@ from resotolib.baseresources import (  # noqa: F401
     EdgeType,
     BaseVolume,
     BaseInstanceType,
-    BaseAccount,
     VolumeStatus,
     InstanceStatus,
     BaseIPAddress,
@@ -24,7 +24,6 @@ from resotolib.baseresources import (  # noqa: F401
     BasePeeringConnection,
     BaseEndpoint,
     BaseRoutingTable,
-    BaseVolumeType,
     ModelReference,
 )
 from resotolib.json_bender import Bender, S, Bend, ForallBend, bend, MapEnum, F, K, StripNones
@@ -33,6 +32,37 @@ from resotolib.types import Json
 
 # region InstanceType
 from resotolib.utils import utc
+
+
+# todo: annotate with no serialization annotation
+class EC2Taggable:
+    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
+        if isinstance(self, AwsResource):
+            if spec := self.api_spec:
+                client.call(
+                    service=spec.service,
+                    action="create_tags",
+                    result_name=None,
+                    Resources=[self.id],
+                    Tags=[{"Key": key, "Value": value}],
+                )
+                return True
+            return False
+        return False
+
+    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
+        if isinstance(self, AwsResource):
+            if spec := self.api_spec:
+                client.call(
+                    service=spec.service,
+                    action="delete_tags",
+                    result_name=None,
+                    Resources=[self.id],
+                    Tags=[{"Key": key}],
+                )
+                return True
+            return False
+        return False
 
 
 @define(eq=False, slots=False)
@@ -352,7 +382,7 @@ VolumeStatusMapping = {
 
 
 @define(eq=False, slots=False)
-class AwsEc2Volume(AwsResource, BaseVolume):
+class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
     kind: ClassVar[str] = "aws_ec2_volume"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-volumes", "Volumes")
     reference_kinds: ClassVar[ModelReference] = {
@@ -447,7 +477,7 @@ class AwsEc2Volume(AwsResource, BaseVolume):
 
 
 @define(eq=False, slots=False)
-class AwsEc2Snapshot(AwsResource, BaseSnapshot):
+class AwsEc2Snapshot(EC2Taggable, AwsResource, BaseSnapshot):
     kind: ClassVar[str] = "aws_ec2_snapshot"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-snapshots", "Snapshots", dict(OwnerIds=["self"]))
     reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["aws_ec2_volume"]}}
@@ -492,7 +522,7 @@ class AwsEc2Snapshot(AwsResource, BaseSnapshot):
 
 
 @define(eq=False, slots=False)
-class AwsEc2KeyPair(AwsResource):
+class AwsEc2KeyPair(EC2Taggable, AwsResource):
     kind: ClassVar[str] = "aws_ec2_keypair"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-key-pairs", "KeyPairs")
     reference_kinds: ClassVar[ModelReference] = {
@@ -808,7 +838,7 @@ InstanceStatusMapping = {
 
 
 @define(eq=False, slots=False)
-class AwsEc2Instance(AwsResource, BaseInstance):
+class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
     kind: ClassVar[str] = "aws_ec2_instance"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-instances", "Reservations")
     reference_kinds: ClassVar[ModelReference] = {
@@ -976,7 +1006,7 @@ class AwsEc2RecurringCharge:
 
 
 @define(eq=False, slots=False)
-class AwsEc2ReservedInstances(AwsResource):
+class AwsEc2ReservedInstances(EC2Taggable, AwsResource):
     kind: ClassVar[str] = "aws_ec2_reserved_instances"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-reserved-instances", "ReservedInstances")
     reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["aws_ec2_instance_type"]}}
@@ -1085,7 +1115,7 @@ class AwsEc2NetworkAclEntry:
 
 
 @define(eq=False, slots=False)
-class AwsEc2NetworkAcl(AwsResource):
+class AwsEc2NetworkAcl(EC2Taggable, AwsResource):
     kind: ClassVar[str] = "aws_ec2_network_acl"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-network-acls", "NetworkAcls")
     reference_kinds: ClassVar[ModelReference] = {
@@ -1120,7 +1150,7 @@ class AwsEc2NetworkAcl(AwsResource):
 
 
 @define(eq=False, slots=False)
-class AwsEc2ElasticIp(AwsResource, BaseIPAddress):
+class AwsEc2ElasticIp(EC2Taggable, AwsResource, BaseIPAddress):
     kind: ClassVar[str] = "aws_ec2_elastic_ip"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-addresses", "Addresses")
     reference_kinds: ClassVar[ModelReference] = {
@@ -1237,7 +1267,7 @@ class AwsEc2Tag:
 
 
 @define(eq=False, slots=False)
-class AwsEc2NetworkInterface(AwsResource, BaseNetworkInterface):
+class AwsEc2NetworkInterface(EC2Taggable, AwsResource, BaseNetworkInterface):
     kind: ClassVar[str] = "aws_ec2_network_interface"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-network-interfaces", "NetworkInterfaces")
     reference_kinds: ClassVar[ModelReference] = {
@@ -1359,7 +1389,7 @@ class AwsEc2VpcCidrBlockAssociation:
 
 
 @define(eq=False, slots=False)
-class AwsEc2Vpc(AwsResource, BaseNetwork):
+class AwsEc2Vpc(EC2Taggable, AwsResource, BaseNetwork):
     kind: ClassVar[str] = "aws_vpc"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-vpcs", "Vpcs")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1432,7 +1462,7 @@ class AwsEc2VpcPeeringConnectionStateReason:
 
 
 @define(eq=False, slots=False)
-class AwsEc2VpcPeeringConnection(AwsResource, BasePeeringConnection):
+class AwsEc2VpcPeeringConnection(EC2Taggable, AwsResource, BasePeeringConnection):
     kind: ClassVar[str] = "aws_vpc_peering_connection"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-vpc-peering-connections", "VpcPeeringConnections")
     reference_kinds: ClassVar[ModelReference] = {
@@ -1481,7 +1511,7 @@ class AwsEc2LastError:
 
 
 @define(eq=False, slots=False)
-class AwsEc2VpcEndpoint(AwsResource, BaseEndpoint):
+class AwsEc2VpcEndpoint(EC2Taggable, AwsResource, BaseEndpoint):
     kind: ClassVar[str] = "aws_vpc_endpoint"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-vpc-endpoints", "VpcEndpoints")
     reference_kinds: ClassVar[ModelReference] = {
@@ -1590,7 +1620,7 @@ class AwsEc2PrivateDnsNameOptionsOnLaunch:
 
 
 @define(eq=False, slots=False)
-class AwsEc2Subnet(AwsResource, BaseSubnet):
+class AwsEc2Subnet(EC2Taggable, AwsResource, BaseSubnet):
     kind: ClassVar[str] = "aws_ec2_subnet"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-subnets", "Subnets")
     reference_kinds: ClassVar[ModelReference] = {
@@ -1718,7 +1748,7 @@ class AwsEc2IpPermission:
 
 
 @define(eq=False, slots=False)
-class AwsEc2SecurityGroup(AwsResource, BaseSecurityGroup):
+class AwsEc2SecurityGroup(EC2Taggable, AwsResource, BaseSecurityGroup):
     kind: ClassVar[str] = "aws_ec2_security_group"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-security-groups", "SecurityGroups")
     reference_kinds: ClassVar[ModelReference] = {
@@ -1779,7 +1809,7 @@ class AwsEc2ProvisionedBandwidth:
 
 
 @define(eq=False, slots=False)
-class AwsEc2NatGateway(AwsResource, BaseGateway):
+class AwsEc2NatGateway(EC2Taggable, AwsResource, BaseGateway):
     kind: ClassVar[str] = "aws_ec2_nat_gateway"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-nat-gateways", "NatGateways")
     reference_kinds: ClassVar[ModelReference] = {
@@ -1830,7 +1860,7 @@ class AwsEc2InternetGatewayAttachment:
 
 
 @define(eq=False, slots=False)
-class AwsEc2InternetGateway(AwsResource, BaseGateway):
+class AwsEc2InternetGateway(EC2Taggable, AwsResource, BaseGateway):
     kind: ClassVar[str] = "aws_ec2_internet_gateway"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-internet-gateways", "InternetGateways")
     reference_kinds: ClassVar[ModelReference] = {
@@ -1922,7 +1952,7 @@ class AwsEc2Route:
 
 
 @define(eq=False, slots=False)
-class AwsEc2RouteTable(AwsResource, BaseRoutingTable):
+class AwsEc2RouteTable(EC2Taggable, AwsResource, BaseRoutingTable):
     kind: ClassVar[str] = "aws_ec2_route_table"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-route-tables", "RouteTables")
     reference_kinds: ClassVar[ModelReference] = {

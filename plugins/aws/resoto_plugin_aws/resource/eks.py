@@ -9,6 +9,38 @@ from resoto_plugin_aws.resource.iam import AwsIamRole
 from resotolib.baseresources import BaseAccount, EdgeType, ModelReference  # noqa: F401
 from resotolib.json_bender import Bender, S, Bend, ForallBend
 from resotolib.types import Json
+from resoto_plugin_aws.aws_client import AwsClient
+
+
+# todo: annotate with no serialization annotation
+class EKSTaggable:
+    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
+        if isinstance(self, AwsResource):
+            if spec := self.api_spec:
+                client.call(
+                    service=spec.service,
+                    action="tag_resource",
+                    result_name=None,
+                    resourceArn=self.arn,
+                    tags=[{key: value}],
+                )
+                return True
+            return False
+        return False
+
+    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
+        if isinstance(self, AwsResource):
+            if spec := self.api_spec:
+                client.call(
+                    service=spec.service,
+                    action="untag_resource",
+                    result_name=None,
+                    resourceArn=self.arn,
+                    tagKeys=[key],
+                )
+                return True
+            return False
+        return False
 
 
 @define(eq=False, slots=False)
@@ -96,7 +128,7 @@ class AwsEksLaunchTemplateSpecification:
 
 
 @define(eq=False, slots=False)
-class AwsEksNodegroup(AwsResource):
+class AwsEksNodegroup(EKSTaggable, AwsResource):
     # Note: this resource is collected via AwsEksCluster
     kind: ClassVar[str] = "aws_eks_nodegroup"
     reference_kinds: ClassVar[ModelReference] = {
@@ -247,7 +279,7 @@ class AwsEksConnectorConfig:
 
 
 @define(eq=False, slots=False)
-class AwsEksCluster(AwsResource):
+class AwsEksCluster(EKSTaggable, AwsResource):
     kind: ClassVar[str] = "aws_eks_cluster"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("eks", "list-clusters", "clusters")
     reference_kinds: ClassVar[ModelReference] = {
@@ -260,6 +292,7 @@ class AwsEksCluster(AwsResource):
         "id": S("name"),
         "tags": S("tags", default={}),
         "name": S("name"),
+        "arn": S("arn"),
         "ctime": S("createdAt"),
         "cluster_version": S("version"),
         "cluster_endpoint": S("endpoint"),

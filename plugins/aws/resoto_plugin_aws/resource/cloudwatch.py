@@ -13,6 +13,37 @@ from resotolib.types import Json
 from resotolib.utils import chunks
 
 
+# todo: annotate with no serialization annotation
+class CloudwatchTaggable:
+    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
+        if isinstance(self, AwsResource):
+            if spec := self.api_spec:
+                client.call(
+                    service=spec.service,
+                    action="tag_resource",
+                    result_name=None,
+                    ResourceARN=self.arn,
+                    Tags=[{"Key": key, "Value": value}],
+                )
+                return True
+            return False
+        return False
+
+    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
+        if isinstance(self, AwsResource):
+            if spec := self.api_spec:
+                client.call(
+                    service=spec.service,
+                    action="untag_resource",
+                    result_name=None,
+                    ResourceARN=self.arn,
+                    TagKeys=[key],
+                )
+                return True
+            return False
+        return False
+
+
 @define(eq=False, slots=False)
 class AwsCloudwatchDimension:
     kind: ClassVar[str] = "aws_cloudwatch_dimension"
@@ -71,7 +102,7 @@ class AwsCloudwatchMetricDataQuery:
 
 
 @define(eq=False, slots=False)
-class AwsCloudwatchAlarm(AwsResource):
+class AwsCloudwatchAlarm(CloudwatchTaggable, AwsResource):
     kind: ClassVar[str] = "aws_cloudwatch_alarm"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudwatch", "describe-alarms", "MetricAlarms")
     reference_kinds: ClassVar[ModelReference] = {

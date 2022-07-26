@@ -62,16 +62,16 @@ class AwsResource(BaseResource):
     arn: Optional[str] = None
 
     # TODO: implement me
-    def update_tag(self, key: str, value: str) -> bool:
-        pass
+    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
+        raise NotImplementedError
 
     # TODO: implement me
-    def delete_tag(self, key: str) -> bool:
-        pass
+    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
+        raise NotImplementedError
 
     # TODO: implement me
     def delete(self, graph: Graph) -> bool:
-        return False
+        raise NotImplementedError
 
     def to_json(self) -> Json:
         return to_js(

@@ -1,7 +1,10 @@
+from functools import lru_cache
 import logging
+import time
 
 import botocore.exceptions
 import multiprocessing
+from resotolib.baseresources import BaseResource
 import resotolib.proc
 import resotolib.logger
 from resotolib.logger import log, setup_logger
@@ -14,10 +17,12 @@ from resotolib.utils import log_runtime
 from resotolib.baseplugin import BaseCollectorPlugin
 from .config import AwsConfig
 from .utils import aws_session
-from .resources import AWSAccount
+from .resources import AWSAccount, AWSResource
 from .accountcollector import AWSAccountCollector
 from prometheus_client import Summary, Counter
 from typing import List, Optional
+from resoto_plugin_aws.resource.base import AwsResource
+from resoto_plugin_aws.aws_client import AwsClient
 
 
 logging.getLogger("boto").setLevel(logging.CRITICAL)
@@ -93,6 +98,51 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
                 self.__regions = list(Config.aws.region)
         return self.__regions
 
+    @staticmethod
+    def update_tag(config: Config, resource: BaseResource, key: str, value: str) -> bool:
+        """Update the tag of a resource"""
+        if isinstance(resource, AWSResource):  # backwards compatibility with the existing collector
+            return resource.update_tag(key, value)
+
+        if isinstance(resource, AwsResource):
+            cache_key = int(time.time() / 600)  # 10 minutes
+            all_accounts = {acc.id: acc for acc in cached_accounts(cache_key)}
+            account = all_accounts.get(resource.account().id)
+            if not account:
+                msg = (
+                    f"Unknown account {resource.account().rtdname} in resource {resource.rtdname}."
+                    " Tag update is not possible"
+                )
+                raise RuntimeError(msg)
+
+            client = AwsClient(config.aws, account.id, role=account.role, profile=account.profile, region="us-east-1")
+            return resource.update_resource_tag(client, key, value)
+
+        raise RuntimeError(f"Unsupported resource type: {resource.rtdname}")
+
+    @staticmethod
+    def delete_tag(config: Config, resource: BaseResource, key: str) -> bool:
+        """Delete the tag of a resource"""
+        if isinstance(resource, AWSResource):  # backwards compatibility with the existing collector
+            return resource.delete_tag(key)
+
+        if isinstance(resource, AwsResource):
+            cache_key = int(time.time() / 600)  # 10 minutes
+            all_accounts = {acc.id: acc for acc in cached_accounts(cache_key)}
+            account = all_accounts.get(resource.account().id)
+            if not account:
+                msg = (
+                    f"Unknown account {resource.account().rtdname} in resource {resource.rtdname}."
+                    " Tag deletion is not possible"
+                )
+                raise RuntimeError(msg)
+
+            client = AwsClient(config.aws, account.id, role=account.role, profile=account.profile, region="us-east-1")
+
+            return resource.delete_resource_tag(client, key)
+
+        raise RuntimeError(f"Unsupported resource type: {resource.rtdname}")
+
 
 def authenticated(account: AWSAccount) -> bool:
     try:
@@ -119,6 +169,11 @@ def authenticated(account: AWSAccount) -> bool:
 def current_account_id(profile: Optional[str] = None) -> str:
     session = aws_session(profile=profile)
     return session.client("sts").get_caller_identity().get("Account")  # type: ignore
+
+
+@lru_cache(maxsize=1024)
+def cached_accounts(cache_key: int) -> List[AWSAccount]:
+    return get_accounts()
 
 
 def get_accounts() -> List[AWSAccount]:

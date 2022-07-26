@@ -8,6 +8,38 @@ from resoto_plugin_aws.utils import ToDict
 from resotolib.baseresources import BaseLoadBalancer, EdgeType, BaseAccount, ModelReference  # noqa: F401
 from resotolib.json_bender import Bender, S, Bend, bend, ForallBend, K
 from resotolib.types import Json
+from resoto_plugin_aws.aws_client import AwsClient
+
+
+# todo: annotate with no serialization annotation
+class ElbTaggable:
+    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
+        if isinstance(self, AwsResource):
+            if spec := self.api_spec:
+                client.call(
+                    service=spec.service,
+                    action="add_tags",
+                    result_name=None,
+                    LoadBalancerNames=[self.name],
+                    Tags=[{"Key": key, "Value": value}],
+                )
+                return True
+            return False
+        return False
+
+    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
+        if isinstance(self, AwsResource):
+            if spec := self.api_spec:
+                client.call(
+                    service=spec.service,
+                    action="remove_tags",
+                    result_name=None,
+                    LoadBalancerNames=[self.name],
+                    Tags=[{"Key": key}],
+                )
+                return True
+            return False
+        return False
 
 
 @define(eq=False, slots=False)
@@ -109,7 +141,7 @@ class AwsElbSourceSecurityGroup:
 
 
 @define(eq=False, slots=False)
-class AwsElb(AwsResource, BaseLoadBalancer):
+class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
     kind: ClassVar[str] = "aws_elb"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("elb", "describe-load-balancers", "LoadBalancerDescriptions")
     reference_kinds: ClassVar[ModelReference] = {

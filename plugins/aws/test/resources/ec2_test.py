@@ -1,3 +1,6 @@
+from types import SimpleNamespace
+from typing import cast, Any
+from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.ec2 import (
     AwsEc2Instance,
     AwsEc2KeyPair,
@@ -89,3 +92,23 @@ def test_nat_gateways() -> None:
 
 def test_internet_gateways() -> None:
     round_trip_for(AwsEc2InternetGateway)
+
+
+def test_tagging() -> None:
+    instance, _ = round_trip_for(AwsEc2Instance)
+
+    def validate_update_args(**kwargs: Any) -> None:
+        assert kwargs["action"] == "create_tags"
+        assert kwargs["Resources"] == [instance.id]
+        assert kwargs["Tags"] == [{"Key": "foo", "Value": "bar"}]
+
+    def validate_delete_args(**kwargs: Any) -> None:
+        assert kwargs["action"] == "delete_tags"
+        assert kwargs["Resources"] == [instance.id]
+        assert kwargs["Tags"] == [{"Key": "foo"}]
+
+    client = cast(AwsClient, SimpleNamespace(call=validate_update_args))
+    instance.update_resource_tag(client, "foo", "bar")
+
+    client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
+    instance.delete_resource_tag(client, "foo")
