@@ -23,7 +23,7 @@ class AwsS3Bucket(AwsResource, BaseBucket):
         return True
 
     def _get_tags(self, client: AwsClient) -> Dict[str, str]:
-        r"""Fetch the S3 buckets tags from the AWS API."""
+        """Fetch the S3 buckets tags from the AWS API."""
         tags: Dict[str, str] = {}
         try:
             response = client.call(service="s3", action="get_bucket_tagging", result_name="TagSet", Bucket=self.name)
