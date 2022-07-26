@@ -2,6 +2,7 @@ import re
 from typing import ClassVar, Dict, Optional, List, Type
 
 from attrs import define, field
+from resoto_plugin_aws.aws_client import AwsClient
 
 from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
 from resoto_plugin_aws.resource.ec2 import AwsEc2Subnet, AwsEc2SecurityGroup, AwsEc2Vpc
@@ -179,6 +180,26 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
                 )
             for security_group_id in vpc_config.get("SecurityGroupIds", []):
                 builder.add_edge(self, reverse=True, clazz=AwsEc2SecurityGroup, id=security_group_id)
+
+    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
+        client.call(
+            service=self.api_spec.service,
+            action="tag_resource",
+            result_name=None,
+            Resource=self.arn,
+            Tags={key: value},
+        )
+        return True
+
+    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
+        client.call(
+            service=self.api_spec.service,
+            action="untag_resource",
+            result_name=None,
+            Resource=self.arn,
+            TagKeys=[key],
+        )
+        return True
 
 
 resources: List[Type[AwsResource]] = [AwsLambdaFunction]
