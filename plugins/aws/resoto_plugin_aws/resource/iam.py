@@ -353,6 +353,21 @@ class AwsIamInstanceProfile(AwsResource, BaseInstanceProfile):
     }
     instance_profile_path: Optional[str] = field(default=None)
 
+    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
+        return iam_update_tag(
+            resource=self,
+            client=client,
+            action="tag_instance_profile",
+            key=key,
+            value=value,
+            InstanceProfileName=self.name,
+        )
+
+    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
+        return iam_delete_tag(
+            resource=self, client=client, action="untag_instance_profile", key=key, InstanceProfileName=self.name
+        )
+
 
 resources: List[Type[AwsResource]] = [
     AwsIamServerCertificate,
