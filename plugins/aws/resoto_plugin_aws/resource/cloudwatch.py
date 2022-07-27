@@ -171,6 +171,10 @@ class AwsCloudwatchAlarm(CloudwatchTaggable, AwsResource):
                 self, reverse=True, delete_same_as_default=True, kind="aws_ec2_instance", id=dimension.value
             )
 
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(service=self.api_spec.service, action="delete_alarms", result_name=None, AlarmNames=[self.name])
+        return True
+
 
 @define(hash=True, frozen=True)
 class AwsCloudwatchQuery:
