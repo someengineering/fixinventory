@@ -311,5 +311,15 @@ class AwsAutoScalingGroup(AwsResource, BaseAutoScalingGroup):
         )
         return True
 
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(
+            service=self.api_spec.service,
+            action="delete_auto_scaling_group",
+            result_name=None,
+            AutoScalingGroupName=self.name,
+            ForceDelete=True,
+        )
+        return True
+
 
 resources: List[Type[AwsResource]] = [AwsAutoScalingGroup]

@@ -1,3 +1,4 @@
+from select import kevent
 from resoto_plugin_aws.resource.autoscaling import AwsAutoScalingGroup
 from test.resources import round_trip_for
 from typing import cast, Any
@@ -39,3 +40,16 @@ def test_tagging() -> None:
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
     asg.delete_resource_tag(client, "foo")
+
+
+def test_deletion() -> None:
+    asg, _ = round_trip_for(AwsAutoScalingGroup)
+
+    def validate_args(**kwargs: Any) -> None:
+        assert kwargs["action"] == "delete_auto_scaling_group"
+        assert kwargs["AutoScalingGroupName"] == asg.name
+        assert kwargs["ForceDelete"] == True
+
+    client = cast(AwsClient, SimpleNamespace(call=validate_args))
+
+    asg.delete_resource(client)

@@ -69,8 +69,12 @@ class AwsResource(BaseResource):
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
         raise NotImplementedError
 
-    # TODO: implement me
+    # legacy interface
     def delete(self, graph: Graph) -> bool:
+        raise NotImplementedError
+
+    # TODO: implement me
+    def delete_resource(self, client: AwsClient) -> bool:
         raise NotImplementedError
 
     def to_json(self) -> Json:
