@@ -47,7 +47,7 @@ def test_deletion() -> None:
     def validate_args(**kwargs: Any) -> None:
         assert kwargs["action"] == "delete_auto_scaling_group"
         assert kwargs["AutoScalingGroupName"] == asg.name
-        assert kwargs["ForceDelete"] == True
+        assert kwargs["ForceDelete"] is True
 
     client = cast(AwsClient, SimpleNamespace(call=validate_args))
 
