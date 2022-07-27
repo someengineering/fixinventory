@@ -39,3 +39,16 @@ def test_tagging() -> None:
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
     asg.delete_resource_tag(client, "foo")
+
+
+def test_deletion() -> None:
+    asg, _ = round_trip_for(AwsAutoScalingGroup)
+
+    def validate_args(**kwargs: Any) -> None:
+        assert kwargs["action"] == "delete_auto_scaling_group"
+        assert kwargs["AutoScalingGroupName"] == asg.name
+        assert kwargs["ForceDelete"] is True
+
+    client = cast(AwsClient, SimpleNamespace(call=validate_args))
+
+    asg.delete_resource(client)
