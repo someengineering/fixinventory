@@ -558,6 +558,15 @@ class AwsEc2KeyPair(EC2Taggable, AwsResource):
     key_type: Optional[str] = field(default=None)
     public_key: Optional[str] = field(default=None)
 
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(
+            service=self.api_spec.service,
+            action="delete_key_pair",
+            result_name=None,
+            KeyPairId=self.id,
+        )
+        return True
+
 
 # endregion
 

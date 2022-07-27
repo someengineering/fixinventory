@@ -68,6 +68,17 @@ def test_keypair() -> None:
     round_trip_for(AwsEc2KeyPair)
 
 
+def test_delete_keypair() -> None:
+    keypair, _ = round_trip_for(AwsEc2KeyPair)
+
+    def validate_delete_args(**kwargs: Any) -> None:
+        assert kwargs["action"] == "delete_key_pair"
+        assert kwargs["KeyPairId"] == keypair.id
+
+    client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
+    keypair.delete_resource(client)
+
+
 def test_instance() -> None:
     round_trip_for(AwsEc2Instance)
 
