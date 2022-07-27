@@ -83,3 +83,14 @@ def test_cloud_formation_stack_set_tagging() -> None:
 
     client = cast(AwsClient, SimpleNamespace(call=partial(validate_args, delete=True)))
     cf.delete_resource_tag(client, "bar")
+
+
+def test_cloud_formation_stack_set_delete() -> None:
+    cf, _ = round_trip_for(AwsCloudFormationStackSet)
+
+    def validate_args(**kwargs: Any) -> None:
+        assert kwargs["action"] == "delete_stack_set"
+        assert kwargs["StackSetName"] == cf.name
+
+    client = cast(AwsClient, SimpleNamespace(call=partial(validate_args)))
+    cf.delete_resource(client)
