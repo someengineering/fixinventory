@@ -524,6 +524,11 @@ class AwsEc2Snapshot(EC2Taggable, AwsResource, BaseSnapshot):
         if volume_id := source.get("VolumeId"):
             builder.add_edge(self, EdgeType.default, reverse=True, clazz=AwsEc2Volume, id=volume_id)
 
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(service=self.api_spec.service, action="delete_snapshot", result_name=None, SnapshotId=self.id)
+
+        return True
+
 
 # endregion
 
