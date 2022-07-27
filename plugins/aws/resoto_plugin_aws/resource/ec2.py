@@ -1014,6 +1014,19 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
         if vpc_id := source.get("VpcId"):
             builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsEc2Vpc, name=vpc_id)
 
+    def delete_resource(self, client: AwsClient) -> bool:
+        if self.instance_status == InstanceStatus.TERMINATED:
+            self.log("Instance is already terminated")
+            return True
+        client.call(
+            service=self.api_spec.service,
+            action="terminate_instances",
+            result_name=None,
+            InstanceIds=[self.id],
+            DryRun=False,
+        )
+        return True
+
 
 # endregion
 

@@ -83,6 +83,18 @@ def test_instance() -> None:
     round_trip_for(AwsEc2Instance)
 
 
+def test_delete_instances() -> None:
+    instance, _ = round_trip_for(AwsEc2Instance)
+
+    def validate_delete_args(**kwargs: Any) -> None:
+        assert kwargs["action"] == "terminate_instances"
+        assert kwargs["InstanceIds"] == [instance.id]
+        assert kwargs["DryRun"] is False
+
+    client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
+    instance.delete_resource(client)
+
+
 def test_network_acl() -> None:
     round_trip_for(AwsEc2NetworkAcl)
 
