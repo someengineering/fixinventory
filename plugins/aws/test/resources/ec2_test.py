@@ -38,6 +38,17 @@ def test_volumes() -> None:
     round_trip_for(AwsEc2Volume)
 
 
+def test_delete_volumes() -> None:
+    volume, _ = round_trip_for(AwsEc2Volume)
+
+    def validate_delete_args(**kwargs: Any) -> None:
+        assert kwargs["action"] == "delete_volume"
+        assert kwargs["VolumeId"] == volume.id
+
+    client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
+    volume.delete_resource(client)
+
+
 def test_snapshots() -> None:
     round_trip_for(AwsEc2Snapshot)
 

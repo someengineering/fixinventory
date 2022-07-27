@@ -470,6 +470,15 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
         for attachment in self.volume_attachments:
             builder.dependant_node(self, reverse=True, clazz=AwsEc2Instance, id=attachment.instance_id)
 
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(
+            service=self.api_spec.service,
+            action="delete_volume",
+            result_name=None,
+            VolumeId=self.id,
+        )
+        return True
+
 
 # endregion
 
