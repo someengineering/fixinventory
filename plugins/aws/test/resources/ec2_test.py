@@ -42,6 +42,17 @@ def test_snapshots() -> None:
     round_trip_for(AwsEc2Snapshot)
 
 
+def test_delete_shapshot() -> None:
+    snapshot, _ = round_trip_for(AwsEc2Snapshot)
+
+    def validate_delete_args(**kwargs: Any) -> None:
+        assert kwargs["action"] == "delete_snapshot"
+        assert kwargs["SnapshotId"] == snapshot.id
+
+    client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
+    snapshot.delete_resource(client)
+
+
 def test_keypair() -> None:
     round_trip_for(AwsEc2KeyPair)
 
