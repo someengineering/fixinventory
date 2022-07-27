@@ -99,6 +99,17 @@ def test_network_acl() -> None:
     round_trip_for(AwsEc2NetworkAcl)
 
 
+def test_delete_network_acl() -> None:
+    network_acl, _ = round_trip_for(AwsEc2NetworkAcl)
+
+    def validate_delete_args(**kwargs: Any) -> None:
+        assert kwargs["action"] == "delete_network_acl"
+        assert kwargs["NetworkAclId"] == network_acl.id
+
+    client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
+    network_acl.delete_resource(client)
+
+
 def test_elastic_ips() -> None:
     round_trip_for(AwsEc2ElasticIp)
 
