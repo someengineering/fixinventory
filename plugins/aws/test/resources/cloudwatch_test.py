@@ -41,3 +41,14 @@ def test_tagging() -> None:
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
     alarm.delete_resource_tag(client, "foo")
+
+
+def test_deletion() -> None:
+    alarm, _ = round_trip_for(AwsCloudwatchAlarm)
+
+    def validate_delete_args(**kwargs: Any) -> None:
+        assert kwargs["action"] == "delete_alarms"
+        assert kwargs["AlarmNames"] == [alarm.name]
+
+    client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
+    alarm.delete_resource(client)
