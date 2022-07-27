@@ -158,6 +158,10 @@ class AwsCloudFormationStack(AwsResource, BaseStack):
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
         return self._modify_tag(client, key, None, "delete")
 
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(service=self.api_spec.service, action="delete_stack", result_name=None, StackName=self.name)
+        return True
+
 
 @define(eq=False, slots=False)
 class AwsCloudFormationAutoDeployment:
