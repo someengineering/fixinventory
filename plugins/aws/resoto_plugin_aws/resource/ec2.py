@@ -1166,6 +1166,10 @@ class AwsEc2NetworkAcl(EC2Taggable, AwsResource):
         for association in self.acl_associations:
             builder.dependant_node(self, reverse=True, clazz=AwsEc2Subnet, name=association.subnet_id)
 
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(service=self.api_spec.service, action="delete_network_acl", result_name=None, NetworkAclId=self.id)
+        return True
+
 
 # endregion
 
