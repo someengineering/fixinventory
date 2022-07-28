@@ -178,6 +178,17 @@ def test_vpc_endpoints() -> None:
     round_trip_for(AwsEc2VpcEndpoint)
 
 
+def test_delete_vpc_endpoints() -> None:
+    vpc_endpoint, _ = round_trip_for(AwsEc2VpcEndpoint)
+
+    def validate_delete_args(**kwargs: Any) -> None:
+        assert kwargs["action"] == "delete_vpc_endpoints"
+        assert kwargs["VpcEndpointIds"] == [vpc_endpoint.id]
+
+    client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
+    vpc_endpoint.delete_resource(client)
+
+
 def test_subnets() -> None:
     round_trip_for(AwsEc2Subnet)
 
