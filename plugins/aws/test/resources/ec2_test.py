@@ -193,6 +193,17 @@ def test_subnets() -> None:
     round_trip_for(AwsEc2Subnet)
 
 
+def test_delete_subnets() -> None:
+    subnet, _ = round_trip_for(AwsEc2Subnet)
+
+    def validate_delete_args(**kwargs: Any) -> None:
+        assert kwargs["action"] == "delete_subnet"
+        assert kwargs["SubnetId"] == subnet.id
+
+    client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
+    subnet.delete_resource(client)
+
+
 def test_route_table() -> None:
     round_trip_for(AwsEc2RouteTable)
 
