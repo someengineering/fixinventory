@@ -1656,6 +1656,12 @@ class AwsEc2VpcEndpoint(EC2Taggable, AwsResource, BaseEndpoint):
                     self, reverse=True, delete_same_as_default=True, clazz=AwsEc2SecurityGroup, id=group_id
                 )
 
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(
+            service=self.api_spec.service, action="delete_vpc_endpoints", result_name=None, VpcEndpointIds=[self.id]
+        )
+        return True
+
 
 # endregion
 
