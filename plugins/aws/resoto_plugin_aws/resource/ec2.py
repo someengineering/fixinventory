@@ -1879,7 +1879,7 @@ class AwsEc2SecurityGroup(EC2Taggable, AwsResource, BaseSecurityGroup):
             GroupIds=[self.id],
         )
 
-        security_group: Json = next(iter(security_groups), {})  # type: ignore
+        security_group: Json = next(iter(security_groups), {})
 
         for permission in security_group.get("IpPermissions", []):
             if "UserIdGroupPairs" in permission and len(permission["UserIdGroupPairs"]) > 0:
