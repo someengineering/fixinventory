@@ -1402,6 +1402,15 @@ class AwsEc2NetworkInterface(EC2Taggable, AwsResource, BaseNetworkInterface):
             if gid := group.group_id:
                 builder.add_edge(self, EdgeType.default, reverse=True, clazz=AwsEc2SecurityGroup, id=gid)
 
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(
+            service=self.api_spec.service,
+            action="delete_network_interface",
+            result_name=None,
+            NetworkInterfaceId=self.id,
+        )
+        return True
+
 
 # endregion
 

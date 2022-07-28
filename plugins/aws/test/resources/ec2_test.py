@@ -133,6 +133,17 @@ def test_network_interfaces() -> None:
     round_trip_for(AwsEc2NetworkInterface)
 
 
+def test_delete_network_interfaces() -> None:
+    network_interface, _ = round_trip_for(AwsEc2NetworkInterface)
+
+    def validate_delete_args(**kwargs: Any) -> None:
+        assert kwargs["action"] == "delete_network_interface"
+        assert kwargs["NetworkInterfaceId"] == network_interface.id
+
+    client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
+    network_interface.delete_resource(client)
+
+
 def test_vpcs() -> None:
     round_trip_for(AwsEc2Vpc)
 
