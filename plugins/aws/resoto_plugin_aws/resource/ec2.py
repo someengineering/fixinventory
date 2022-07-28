@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import ClassVar, Dict, Optional, List, Type
+import copy
 
 from attrs import define, field
 from resoto_plugin_aws.aws_client import AwsClient
@@ -1865,6 +1866,55 @@ class AwsEc2SecurityGroup(EC2Taggable, AwsResource, BaseSecurityGroup):
         super().connect_in_graph(builder, source)
         if vpc_id := source.get("VpcId"):
             builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsEc2Vpc, id=vpc_id)
+
+    def delete_resource(self, client: AwsClient) -> bool:
+
+        remove_ingress = []
+        remove_egress = []
+
+        security_groups = client.call(
+            service=self.api_spec.service,
+            action="describe_security_groups",
+            result_name="SecurityGroups",
+            GroupIds=[self.id],
+        )
+
+        security_group: Json = next(iter(security_groups), {})  # type: ignore
+
+        for permission in security_group.get("IpPermissions", []):
+            if "UserIdGroupPairs" in permission and len(permission["UserIdGroupPairs"]) > 0:
+                p = copy.deepcopy(permission)
+                remove_ingress.append(p)
+
+        for permission in security_group.get("IpPermissionsEgress", []):
+            if "UserIdGroupPairs" in permission and len(permission["UserIdGroupPairs"]) > 0:
+                p = copy.deepcopy(permission)
+                remove_egress.append(p)
+
+        if len(remove_ingress) > 0:
+            client.call(
+                service=self.api_spec.service,
+                action="revoke_security_group_ingress",
+                result_name=None,
+                IpPermissions=remove_ingress,
+            )
+
+        if len(remove_egress) > 0:
+            client.call(
+                service=self.api_spec.service,
+                action="revoke_security_group_egress",
+                result_name=None,
+                IpPermissions=remove_egress,
+            )
+
+        client.call(
+            service=self.api_spec.service,
+            action="delete_security_group",
+            result_name=None,
+            GroupId=self.id,
+        )
+
+        return True
 
 
 # endregion
