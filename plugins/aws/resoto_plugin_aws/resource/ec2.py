@@ -1473,6 +1473,14 @@ class AwsEc2Vpc(EC2Taggable, AwsResource, BaseNetwork):
     vpc_cidr_block_association_set: List[AwsEc2VpcCidrBlockAssociation] = field(factory=list)
     vpc_is_default: Optional[bool] = field(default=None)
 
+    def delete_resource(self, client: AwsClient) -> bool:
+        if self.vpc_is_default:
+            log_msg = f"Not removing the default VPC {self.id} - aborting delete request"
+            self.log(log_msg)
+            return False
+        client.call(service=self.api_spec.service, action="delete_vpc", result_name=None, VpcId=self.id)
+        return True
+
 
 # endregion
 
