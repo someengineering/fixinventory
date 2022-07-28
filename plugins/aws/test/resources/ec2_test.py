@@ -114,6 +114,21 @@ def test_elastic_ips() -> None:
     round_trip_for(AwsEc2ElasticIp)
 
 
+def test_delete_elastic_ips() -> None:
+    elastic_ip, _ = round_trip_for(AwsEc2ElasticIp)
+
+    def validate_delete_args(**kwargs: Any) -> None:
+
+        assert kwargs["action"] in {"release_address", "disassociate_address"}
+        if kwargs["action"] == "disassociate_address":
+            assert kwargs["AssociationId"] == elastic_ip.ip_association_id
+        if kwargs["action"] == "release_address":
+            assert kwargs["AllocationId"] == elastic_ip.ip_allocation_id
+
+    client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
+    elastic_ip.delete_resource(client)
+
+
 def test_network_interfaces() -> None:
     round_trip_for(AwsEc2NetworkInterface)
 
