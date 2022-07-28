@@ -1546,6 +1546,15 @@ class AwsEc2VpcPeeringConnection(EC2Taggable, AwsResource, BasePeeringConnection
         if self.connection_accepter_vpc_info and (vpc_id := self.connection_accepter_vpc_info.vpc_id):
             builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsEc2Vpc, id=vpc_id)
 
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(
+            service=self.api_spec.service,
+            action="delete_vpc_peering_connection",
+            result_name=None,
+            VpcPeeringConnectionId=self.id,
+        )
+        return True
+
 
 # endregion
 

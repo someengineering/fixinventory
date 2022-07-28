@@ -141,6 +141,17 @@ def test_vpc_peering_connections() -> None:
     round_trip_for(AwsEc2VpcPeeringConnection)
 
 
+def test_delete_vpc_peering_connections() -> None:
+    vpc_peering_connection, _ = round_trip_for(AwsEc2VpcPeeringConnection)
+
+    def validate_delete_args(**kwargs: Any) -> None:
+        assert kwargs["action"] == "delete_vpc_peering_connection"
+        assert kwargs["VpcPeeringConnectionId"] == vpc_peering_connection.id
+
+    client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
+    vpc_peering_connection.delete_resource(client)
+
+
 def test_vpc_endpoints() -> None:
     round_trip_for(AwsEc2VpcEndpoint)
 
