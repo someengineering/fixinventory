@@ -1235,6 +1235,24 @@ class AwsEc2ElasticIp(EC2Taggable, AwsResource, BaseIPAddress):
         if interface_id := source.get("NetworkInterfaceId"):
             builder.dependant_node(self, reverse=True, clazz=AwsEc2NetworkInterface, id=interface_id)
 
+    def delete_resource(self, client: AwsClient) -> bool:
+        if self.ip_association_id:
+            client.call(
+                service=self.api_spec.service,
+                action="disassociate_address",
+                result_name=None,
+                AssociationId=self.ip_association_id,
+            )  # this call is idempotent and can be called multiple times
+
+        client.call(
+            service=self.api_spec.service,
+            action="release_address",
+            result_name=None,
+            AllocationId=self.ip_allocation_id,
+        )
+
+        return True
+
 
 # endregion
 
