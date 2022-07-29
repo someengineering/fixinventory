@@ -11,6 +11,28 @@ def test_albs() -> None:
     assert len(first.tags) == 4
 
 
+def test_alb_deletion() -> None:
+    alb, _ = round_trip_for(AwsAlb)
+
+    def validate_delete_args(**kwargs: Any) -> None:
+        assert kwargs["action"] == "delete_load_balancer"
+        assert kwargs["LoadBalancerArn"] == alb.arn
+
+    client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
+    alb.delete_resource(client)
+
+
+def test_alb_target_group_deletion() -> None:
+    alb, _ = round_trip_for(AwsAlbTargetGroup)
+
+    def validate_delete_args(**kwargs: Any) -> None:
+        assert kwargs["action"] == "delete_target_group"
+        assert kwargs["TargetGroupArn"] == alb.arn
+
+    client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
+    alb.delete_resource(client)
+
+
 def test_alb_target_groups() -> None:
     first, graph = round_trip_for(AwsAlbTargetGroup)
     assert len(first.tags) == 4
