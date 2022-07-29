@@ -230,6 +230,17 @@ def test_nat_gateways() -> None:
     round_trip_for(AwsEc2NatGateway)
 
 
+def test_delete_nat_gateways() -> None:
+    nat_gateway, _ = round_trip_for(AwsEc2NatGateway)
+
+    def validate_delete_args(**kwargs: Any) -> None:
+        assert kwargs["action"] == "delete_nat_gateway"
+        assert kwargs["NatGatewayId"] == nat_gateway.id
+
+    client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
+    nat_gateway.delete_resource(client)
+
+
 def test_internet_gateways() -> None:
     round_trip_for(AwsEc2InternetGateway)
 
