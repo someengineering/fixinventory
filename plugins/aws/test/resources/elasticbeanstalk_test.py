@@ -36,3 +36,14 @@ def test_tagging() -> None:
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
     app.delete_resource_tag(client, "foo")
+
+
+def test_delete_application() -> None:
+    app, _ = round_trip_for(AwsBeanstalkApplication)
+
+    def validate_delete_args(**kwargs: Any) -> None:
+        assert kwargs["action"] == "delete-application"
+        assert kwargs["ApplicationName"] == app.name
+
+    client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
+    app.delete_resource(client)

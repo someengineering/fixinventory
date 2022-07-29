@@ -115,5 +115,11 @@ class AwsBeanstalkApplication(AwsResource):
             raise KeyError(key)
         return self._set_tags(client, tags)
 
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(
+            service=self.api_spec.service, action="delete-application", result_name=None, ApplicationName=self.name
+        )
+        return True
+
 
 resources: List[Type[AwsResource]] = [AwsBeanstalkApplication]
