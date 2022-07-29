@@ -1,7 +1,10 @@
 from typing import ClassVar, Dict, List, Optional, Type
-from attr import define, field
+from attrs import define, field
+import botocore.exceptions
+from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource
 from resotolib.json_bender import Bender, S, Bend
+from resoto_plugin_aws.utils import tags_as_dict
 
 
 @define(eq=False, slots=False)
@@ -74,6 +77,43 @@ class AwsBeanstalkApplication(AwsResource):
     versions: List[str] = field(factory=list)
     configuration_templates: List[str] = field(factory=list)
     resource_lifecycle_config: Optional[AwsBeanstalkApplicationResourceLifecycleConfig] = field(default=None)
+
+    def _set_tags(self, client: AwsClient, tags: Dict[str, str]) -> bool:
+        tag_set = [{"Key": k, "Value": v} for k, v in tags.items()]
+        client.call(
+            service="elasticbeanstalk",
+            action="update-tags-for-resource",
+            result_name=None,
+            ResourceArn=self.arn,
+            Tagging={"TagSet": tag_set},
+        )
+        return True
+
+    def _get_tags(self, client: AwsClient) -> Dict[str, str]:
+        """Fetch the Elasticbeanstalk Application tags from the AWS API."""
+        tags: Dict[str, str] = {}
+        try:
+            response = client.call(
+                service="elasticbeanstalk", action="list-tags-for-resource", result_name="TagSet", ResourceArn=self.arn
+            )
+            tags = tags_as_dict(response)  # type: ignore
+        except botocore.exceptions.ClientError as e:
+            if e.response["Error"]["Code"] != "NoSuchTagSet":
+                raise
+        return tags
+
+    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
+        tags = self._get_tags(client)
+        tags[key] = value
+        return self._set_tags(client, tags)
+
+    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
+        tags = self._get_tags(client)
+        if key in tags:
+            del tags[key]
+        else:
+            raise KeyError(key)
+        return self._set_tags(client, tags)
 
 
 resources: List[Type[AwsResource]] = [AwsBeanstalkApplication]
