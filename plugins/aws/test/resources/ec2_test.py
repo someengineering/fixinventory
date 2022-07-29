@@ -208,6 +208,17 @@ def test_route_table() -> None:
     round_trip_for(AwsEc2RouteTable)
 
 
+def test_delete_route_table() -> None:
+    route_table, _ = round_trip_for(AwsEc2RouteTable)
+
+    def validate_delete_args(**kwargs: Any) -> None:
+        assert kwargs["action"] == "delete_route_table"
+        assert kwargs["RouteTableId"] == route_table.id
+
+    client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
+    route_table.delete_resource(client)
+
+
 def test_security_groups() -> None:
     round_trip_for(AwsEc2SecurityGroup)
 
