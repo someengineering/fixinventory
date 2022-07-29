@@ -11,6 +11,30 @@ def test_eks_nodegroup() -> None:
     assert len(builder.resources_of(AwsEksNodegroup)) == 1
 
 
+def test_cluster_deletion() -> None:
+    cluster, _ = round_trip_for(AwsEksCluster)
+
+    def validate_delete_args(**kwargs: Any) -> None:
+        assert kwargs["action"] == "delete_cluster"
+        assert kwargs["name"] == cluster.name
+
+    client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
+    cluster.delete_resource(client)
+
+
+def test_nodegroup_deletion() -> None:
+    _, builder = round_trip_for(AwsEksCluster)
+    nodegroup = builder.resources_of(AwsEksNodegroup)[0]
+
+    def validate_delete_args(**kwargs: Any) -> None:
+        assert kwargs["action"] == "delete_nodegroup"
+        assert kwargs["nodegroupName"] == nodegroup.name
+        assert kwargs["clusterName"] == nodegroup.cluster_name
+
+    client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
+    nodegroup.delete_resource(client)
+
+
 def test_tagging() -> None:
     cluster, _ = round_trip_for(AwsEksCluster)
 
