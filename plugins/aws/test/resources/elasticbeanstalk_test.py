@@ -20,7 +20,7 @@ def test_tagging() -> None:
 
         if kwargs["action"] == "update-tags-for-resource":
             assert kwargs["ResourceArn"] == app.arn
-            assert kwargs["Tagging"] == {"TagSet": [{"Key": "foo", "Value": "bar"}]}
+            assert kwargs["TagsToAdd"] == [{"Key": "foo", "Value": "bar"}]
 
     def validate_delete_args(**kwargs: Any) -> Any:
         if kwargs["action"] == "list-tags-for-resource":
@@ -29,7 +29,7 @@ def test_tagging() -> None:
 
         if kwargs["action"] == "update-tags-for-resource":
             assert kwargs["ResourceArn"] == app.arn
-            assert kwargs["Tagging"] == {"TagSet": []}
+            assert kwargs["TagsToRemove"] == ["foo"]
 
     client = cast(AwsClient, SimpleNamespace(call=validate_update_args))
     app.update_resource_tag(client, "foo", "bar")
