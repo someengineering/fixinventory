@@ -103,9 +103,9 @@ class AwsBeanstalkApplication(AwsResource):
         return tags
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
-        tags = self._get_tags(client)
-        tags[key] = value
-        return self._set_tags(client, tags)
+        # tags = self._get_tags(client)
+        # tags[key] = value
+        return self._set_tags(client, {key: value})
 
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
         tags = self._get_tags(client)
