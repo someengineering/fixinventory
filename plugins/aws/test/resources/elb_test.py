@@ -10,6 +10,17 @@ def test_elbs() -> None:
     assert len(first.tags) == 2
 
 
+def test_elb_deletion() -> None:
+    elb, _ = round_trip_for(AwsElb, "public_ip_address")
+
+    def validate_delete_args(**kwargs: Any) -> None:
+        assert kwargs["action"] == "delete_load_balancer"
+        assert kwargs["LoadBalancerName"] == elb.name
+
+    client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
+    elb.delete_resource(client)
+
+
 def test_tagging() -> None:
     elb, _ = round_trip_for(AwsElb, "public_ip_address")
 

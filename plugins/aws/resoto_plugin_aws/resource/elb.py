@@ -204,5 +204,11 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
         for instance in self.backends:
             builder.dependant_node(self, clazz=AwsEc2Instance, id=instance)
 
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(
+            service=self.api_spec.service, action="delete_load_balancer", result_name=None, LoadBalancerName=self.name
+        )
+        return True
+
 
 resources: List[Type[AwsResource]] = [AwsElb]
