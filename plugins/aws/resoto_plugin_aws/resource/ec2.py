@@ -27,6 +27,7 @@ from resotolib.baseresources import (  # noqa: F401
     BaseRoutingTable,
     ModelReference,
 )
+from resotolib.graph import Graph
 from resotolib.json_bender import Bender, S, Bend, ForallBend, bend, MapEnum, F, K, StripNones
 from resotolib.types import Json
 
@@ -1236,14 +1237,17 @@ class AwsEc2ElasticIp(EC2Taggable, AwsResource, BaseIPAddress):
         if interface_id := source.get("NetworkInterfaceId"):
             builder.dependant_node(self, reverse=True, clazz=AwsEc2NetworkInterface, id=interface_id)
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def pre_delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         if self.ip_association_id:
             client.call(
                 service=self.api_spec.service,
                 action="disassociate_address",
                 result_name=None,
                 AssociationId=self.ip_association_id,
-            )  # this call is idempotent and can be called multiple times
+            )
+        return True
+
+    def delete_resource(self, client: AwsClient) -> bool:
 
         client.call(
             service=self.api_spec.service,
@@ -1867,8 +1871,7 @@ class AwsEc2SecurityGroup(EC2Taggable, AwsResource, BaseSecurityGroup):
         if vpc_id := source.get("VpcId"):
             builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsEc2Vpc, id=vpc_id)
 
-    def delete_resource(self, client: AwsClient) -> bool:
-
+    def pre_delete_resources(self, client: AwsClient, graph: Graph) -> bool:
         remove_ingress = []
         remove_egress = []
 
@@ -1906,7 +1909,9 @@ class AwsEc2SecurityGroup(EC2Taggable, AwsResource, BaseSecurityGroup):
                 result_name=None,
                 IpPermissions=remove_egress,
             )
+        return True
 
+    def delete_resource(self, client: AwsClient) -> bool:
         client.call(
             service=self.api_spec.service,
             action="delete_security_group",
@@ -2029,6 +2034,20 @@ class AwsEc2InternetGateway(EC2Taggable, AwsResource, BaseGateway):
             if vpc_id := attachment.vpc_id:
                 builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsEc2Vpc, id=vpc_id)
 
+    def pre_delete_resource(self, client: AwsClient, graph: Graph) -> bool:
+        for predecessor in self.predecessors(graph=graph, edge_type=EdgeType.delete):
+            if isinstance(predecessor, AwsEc2Vpc):
+                log_msg = f"Detaching {predecessor.kind} {predecessor.dname}"
+                self.log(log_msg)
+                client.call(
+                    service=self.api_spec.service,
+                    action="detach_internet_gateway",
+                    result_name=None,
+                    InternetGatewayId=self.id,
+                    VpcId=predecessor.id,
+                )
+        return True
+
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
             service=self.api_spec.service,
@@ -2135,7 +2154,7 @@ class AwsEc2RouteTable(EC2Taggable, AwsResource, BaseRoutingTable):
         if vpc_id := source.get("VpcId"):
             builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsEc2Vpc, id=vpc_id)
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def pre_delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         for rta in self.route_table_associations:
             if rta.main:
                 log_msg = f"Deleting route table association {rta.route_table_association_id}"
@@ -2146,6 +2165,9 @@ class AwsEc2RouteTable(EC2Taggable, AwsResource, BaseRoutingTable):
                     result_name=None,
                     AssociationId=rta.route_table_association_id,
                 )
+        return True
+
+    def delete_resource(self, client: AwsClient) -> bool:
         client.call(service=self.api_spec.service, action="delete_route_table", result_name=None, RouteTableId=self.id)
         return True
 
