@@ -452,6 +452,15 @@ models: Dict[str, List[AwsResotoModel]] = {
         # ),
         # AwsResotoModel("describe-network-acls", "NetworkAcls", "NetworkAcl", prefix="Ec2"),
     ],
+    "elasticbeanstalk": [
+        AwsResotoModel(
+            "describe-applications",
+            "Applications",
+            "ApplicationDescriptionsMessage",
+            prefix="Beanstalk",
+            prop_prefix="beanstalk_",
+        ),
+    ],
     "elb": [
         # AwsResotoModel(
         #     "describe-load-balancers",

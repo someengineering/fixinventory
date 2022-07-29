@@ -1,0 +1,49 @@
+{
+    "Applications": [
+        {
+            "ApplicationName": "ruby",
+            "ConfigurationTemplates": [],
+            "DateUpdated": "2015-08-13T21:05:44.376Z",
+            "Description": "Some Description",
+            "Versions": [
+                "Sample Application"
+            ],
+            "DateCreated": "2015-08-13T21:05:44.376Z",
+            "ResourceLifecycleConfig": {
+                "ServiceRole": "Some Role",
+                "VersionLifecycleConfig": {
+                    "MaxCountRule": {
+                        "Enabled": true,
+                        "MaxCount": 42,
+                        "DeleteSourceFromS3": false
+                    },
+                    "MaxAgeRule": {
+                        "Enabled": true,
+                        "MaxAgeInDays": 42,
+                        "DeleteSourceFromS3": false
+                    }
+                }
+            }
+        },
+        {
+            "ApplicationName": "pythonsample",
+            "Description": "Application created from the EB CLI using \"eb init\"",
+            "Versions": [
+                "Sample Application"
+            ],
+            "DateCreated": "2015-08-13T19:05:43.637Z",
+            "ConfigurationTemplates": [],
+            "DateUpdated": "2015-08-13T19:05:43.637Z"
+        },
+        {
+            "ApplicationName": "nodejs-example",
+            "ConfigurationTemplates": [],
+            "DateUpdated": "2015-08-06T17:50:02.486Z",
+            "Versions": [
+                "add elasticache",
+                "First Release"
+            ],
+            "DateCreated": "2015-08-06T17:50:02.486Z"
+        }
+    ]
+}

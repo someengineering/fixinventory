@@ -12,6 +12,7 @@ from resoto_plugin_aws.resource import (
     cloudwatch,
     ec2,
     eks,
+    elasticbeanstalk,
     elb,
     elbv2,
     iam,
@@ -35,6 +36,7 @@ regional_resources: List[Type[AwsResource]] = (
     + cloudwatch.resources
     + ec2.resources
     + eks.resources
+    + elasticbeanstalk.resources
     + elb.resources
     + elbv2.resources
     + lambda_.resources
