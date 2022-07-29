@@ -1991,6 +1991,10 @@ class AwsEc2NatGateway(EC2Taggable, AwsResource, BaseGateway):
             if network_interface_id := address.network_interface_id:
                 builder.dependant_node(self, clazz=AwsEc2NetworkInterface, id=network_interface_id)
 
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(service=self.api_spec.service, action="delete_nat_gateway", result_name=None, NatGatewayId=self.id)
+        return True
+
 
 # endregion
 
