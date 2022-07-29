@@ -2029,6 +2029,15 @@ class AwsEc2InternetGateway(EC2Taggable, AwsResource, BaseGateway):
             if vpc_id := attachment.vpc_id:
                 builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsEc2Vpc, id=vpc_id)
 
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(
+            service=self.api_spec.service,
+            action="delete_internet_gateway",
+            result_name=None,
+            InternetGatewayId=self.id,
+        )
+        return True
+
 
 # endregion
 
