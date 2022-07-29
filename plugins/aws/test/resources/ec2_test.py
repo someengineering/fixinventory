@@ -234,6 +234,17 @@ def test_internet_gateways() -> None:
     round_trip_for(AwsEc2InternetGateway)
 
 
+def test_delete_internet_gateways() -> None:
+    internet_gateway, _ = round_trip_for(AwsEc2InternetGateway)
+
+    def validate_delete_args(**kwargs: Any) -> None:
+        assert kwargs["action"] == "delete_internet_gateway"
+        assert kwargs["InternetGatewayId"] == internet_gateway.id
+
+    client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
+    internet_gateway.delete_resource(client)
+
+
 def test_tagging() -> None:
     instance, _ = round_trip_for(AwsEc2Instance)
 
