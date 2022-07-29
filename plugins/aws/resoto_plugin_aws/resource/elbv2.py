@@ -309,6 +309,12 @@ class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
         for sn in self.alb_availability_zones:
             builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsEc2Subnet, id=sn.subnet_id)
 
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(
+            service=self.api_spec.service, action="delete_load_balancer", result_name=None, LoadBalancerArn=self.arn
+        )
+        return True
+
 
 @define(eq=False, slots=False)
 class AwsAlbMatcher:
@@ -422,6 +428,12 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
                     if th.target and th.target.id:
                         lb.backends.append(th.target.id)
                         builder.dependant_node(self, clazz=AwsEc2Instance, id=th.target.id)
+
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(
+            service=self.api_spec.service, action="delete_target_group", result_name=None, TargetGroupArn=self.arn
+        )
+        return True
 
 
 resources: List[Type[AwsResource]] = [AwsAlb, AwsAlbTargetGroup]
