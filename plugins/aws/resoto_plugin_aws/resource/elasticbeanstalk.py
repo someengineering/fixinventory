@@ -78,7 +78,6 @@ class AwsBeanstalkApplication(AwsResource):
     configuration_templates: List[str] = field(factory=list)
     resource_lifecycle_config: Optional[AwsBeanstalkApplicationResourceLifecycleConfig] = field(default=None)
 
-
     def _get_tags(self, client: AwsClient) -> Dict[str, str]:
         """Fetch the Elasticbeanstalk Application tags from the AWS API."""
         tags: Dict[str, str] = {}
