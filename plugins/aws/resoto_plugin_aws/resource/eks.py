@@ -191,6 +191,16 @@ class AwsEksNodegroup(EKSTaggable, AwsResource):
             for arn in self.group_resources.auto_scaling_groups:
                 builder.dependant_node(self, clazz=AwsAutoScalingGroup, arn=arn)
 
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(
+            service="eks",
+            action="delete_nodegroup",
+            result_name=None,
+            clusterName=self.cluster_name,
+            nodegroupName=self.name,
+        )
+        return True
+
 
 @define(eq=False, slots=False)
 class AwsEksVpcConfigResponse:
@@ -340,6 +350,10 @@ class AwsEksCluster(EKSTaggable, AwsResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         builder.add_edge(self, EdgeType.default, clazz=AwsIamRole, arn=self.cluster_role_arn)
+
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(service=self.api_spec.service, action="delete_cluster", result_name=None, name=self.name)
+        return True
 
 
 resources: List[Type[AwsResource]] = [AwsEksNodegroup, AwsEksCluster]
