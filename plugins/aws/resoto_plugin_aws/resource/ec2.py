@@ -2126,6 +2126,20 @@ class AwsEc2RouteTable(EC2Taggable, AwsResource, BaseRoutingTable):
         if vpc_id := source.get("VpcId"):
             builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsEc2Vpc, id=vpc_id)
 
+    def delete_resource(self, client: AwsClient) -> bool:
+        for rta in self.route_table_associations:
+            if rta.main:
+                log_msg = f"Deleting route table association {rta.route_table_association_id}"
+                self.log(log_msg)
+                client.call(
+                    service=self.api_spec.service,
+                    action="disassociate_route_table",
+                    result_name=None,
+                    AssociationId=rta.route_table_association_id,
+                )
+        client.call(service=self.api_spec.service, action="delete_route_table", result_name=None, RouteTableId=self.id)
+        return True
+
 
 # endregion
 
