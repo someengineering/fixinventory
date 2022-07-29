@@ -14,19 +14,11 @@ def test_tagging() -> None:
     app, _ = round_trip_for(AwsBeanstalkApplication)
 
     def validate_update_args(**kwargs: Any) -> Any:
-        if kwargs["action"] == "list-tags-for-resource":
-            assert kwargs["ResourceArn"] == app.arn
-            return [{"Key": "foo", "Value": "bar"}]
-
         if kwargs["action"] == "update-tags-for-resource":
             assert kwargs["ResourceArn"] == app.arn
             assert kwargs["TagsToAdd"] == [{"Key": "foo", "Value": "bar"}]
 
     def validate_delete_args(**kwargs: Any) -> Any:
-        if kwargs["action"] == "list-tags-for-resource":
-            assert kwargs["ResourceArn"] == app.arn
-            return [{"Key": "foo", "Value": "bar"}]
-
         if kwargs["action"] == "update-tags-for-resource":
             assert kwargs["ResourceArn"] == app.arn
             assert kwargs["TagsToRemove"] == ["foo"]
