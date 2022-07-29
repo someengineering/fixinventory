@@ -78,16 +78,6 @@ class AwsBeanstalkApplication(AwsResource):
     configuration_templates: List[str] = field(factory=list)
     resource_lifecycle_config: Optional[AwsBeanstalkApplicationResourceLifecycleConfig] = field(default=None)
 
-    # def _set_tags(self, client: AwsClient, tags: Dict[str, str]) -> bool:
-    #     tag_set = [{"Key": k, "Value": v} for k, v in tags.items()]
-    #     client.call(
-    #         service="elasticbeanstalk",
-    #         action="update-tags-for-resource",
-    #         result_name=None,
-    #         ResourceArn=self.arn,
-    #         Tagging={"TagSet": tag_set},
-    #     )
-    #     return True
 
     def _get_tags(self, client: AwsClient) -> Dict[str, str]:
         """Fetch the Elasticbeanstalk Application tags from the AWS API."""
