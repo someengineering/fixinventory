@@ -334,13 +334,13 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
         "rds_network_type": S("NetworkType"),
     }
     arn: Optional[str] = field(default=None)
-    db_type: Optional[str] = field(default=None)
-    db_status: Optional[str] = field(default=None)
-    db_endpoint: Optional[str] = field(default=None)
+    db_type: str = field(default=None)
+    db_status: str = field(default=None)
+    db_endpoint: str = field(default=None)
     db_version: Optional[str] = field(default=None)
     db_publicly_accessible: Optional[bool] = field(default=None)
-    instance_type: Optional[str] = field(default=None)
-    volume_size: Optional[int] = field(default=None)
+    instance_type: str = field(default=None)
+    volume_size: int = field(default=None)
     volume_iops: Optional[int] = field(default=None)
     volume_encrypted: Optional[bool] = field(default=None)
     rds_automatic_restart_time: Optional[datetime] = field(default=None)
