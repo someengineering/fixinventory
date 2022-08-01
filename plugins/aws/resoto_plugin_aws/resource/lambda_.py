@@ -201,5 +201,9 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
         )
         return True
 
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(service=self.api_spec.service, action="delete_function", result_name=None, FunctionName=self.arn)
+        return True
+
 
 resources: List[Type[AwsResource]] = [AwsLambdaFunction]
