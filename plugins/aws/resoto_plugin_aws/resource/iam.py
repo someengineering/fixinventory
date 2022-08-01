@@ -21,6 +21,7 @@ from resotolib.baseresources import (  # noqa: F401
 from resotolib.json import from_json
 from resotolib.json_bender import Bender, S, Bend, AsDate, Sort, bend, ForallBend
 from resotolib.types import Json
+from resotolib.graph import Graph
 from resoto_plugin_aws.aws_client import AwsClient
 
 
@@ -139,6 +140,37 @@ class AwsIamRole(AwsResource):
             RoleName=self.name,
         )
 
+    def pre_delete_resource(self, client: AwsClient, graph: Graph) -> bool:
+
+        for successor in self.successors(graph, edge_type=EdgeType.delete):
+            if isinstance(successor, AwsIamPolicy):
+                log_msg = f"Detaching {successor.rtdname}"
+                self.log(log_msg)
+                client.call(
+                    service="iam",
+                    action="detach_role_policy",
+                    result_name=None,
+                    PolicyArn=successor.arn,
+                    RoleName=self.name,
+                )
+
+        for role_policy in self.role_policies:
+            log_msg = f"Deleting inline policy {role_policy}"
+            self.log(log_msg)
+            client.call(
+                service="iam",
+                action="delete_role_policy",
+                result_name=None,
+                PolicyName=role_policy.policy_name,
+                RoleName=self.name,
+            )
+
+        return True
+
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(service="iam", action="delete_role", result_name=None, RoleName=self.name)
+        return True
+
 
 @define(eq=False, slots=False)
 class AwsIamServerCertificate(AwsResource, BaseCertificate):
@@ -173,6 +205,15 @@ class AwsIamServerCertificate(AwsResource, BaseCertificate):
             key=key,
             ServerCertificateName=self.name,
         )
+
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(
+            service=self.api_spec.service,
+            action="delete_server_certificate",
+            result_name=None,
+            ServerCertificateName=self.name,
+        )
+        return True
 
 
 @define(eq=False, slots=False)
@@ -219,6 +260,15 @@ class AwsIamPolicy(AwsResource, BasePolicy):
             PolicyArn=self.arn,
         )
 
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(
+            service="iam",
+            action="delete_policy",
+            result_name=None,
+            PolicyArn=self.arn,
+        )
+        return True
+
 
 @define(eq=False, slots=False)
 class AwsIamGroup(AwsResource, BaseGroup):
@@ -242,6 +292,42 @@ class AwsIamGroup(AwsResource, BaseGroup):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for policy in bend(S("AttachedManagedPolicies", default=[]), source):
             builder.dependant_node(self, clazz=AwsIamPolicy, delete_same_as_default=True, arn=policy.get("PolicyArn"))
+
+    def pre_delete_resource(self, client: AwsClient, graph: Graph) -> bool:
+
+        for successor in self.successors(graph, edge_type=EdgeType.delete):
+            if isinstance(successor, AwsIamPolicy):
+                log_msg = f"Detaching {successor.rtdname}"
+                self.log(log_msg)
+                client.call(
+                    service="iam",
+                    action="detach_group_policy",
+                    result_name=None,
+                    GroupName=self.name,
+                    PolicyArn=successor.arn,
+                )
+
+        for group_policy in self.group_policies:
+            log_msg = f"Deleting inline policy {group_policy}"
+            self.log(log_msg)
+            client.call(
+                service="iam",
+                action="delete_group_policy",
+                result_name=None,
+                GroupName=self.name,
+                PolicyName=group_policy,
+            )
+
+        return True
+
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(
+            service="iam",
+            action="delete_group",
+            result_name=None,
+            GroupName=self.name,
+        )
+        return True
 
 
 @define(eq=False, slots=False)
@@ -339,6 +425,36 @@ class AwsIamUser(AwsResource, BaseUser):
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
         return iam_delete_tag(resource=self, client=client, action="untag_user", key=key, UserName=self.name)
 
+    def pre_delete_resource(self, client: AwsClient, graph: Graph) -> bool:
+        for successor in self.successors(graph, edge_type=EdgeType.delete):
+            if isinstance(successor, AwsIamPolicy):
+                log_msg = f"Detaching {successor.rtdname}"
+                self.log(log_msg)
+                client.call(
+                    service="iam",
+                    action="detach_user_policy",
+                    result_name=None,
+                    UserName=self.name,
+                    PolicyArn=successor.arn,
+                )
+
+        for user_policy in self.user_policies:
+            log_msg = f"Deleting inline policy {user_policy}"
+            self.log(log_msg)
+            client.call(
+                service="iam",
+                action="delete_user_policy",
+                result_name=None,
+                UserName=self.name,
+                PolicyName=user_policy.policy_name,
+            )
+
+        return True
+
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(service="iam", action="delete_user", result_name=None, UserName=self.name)
+        return True
+
 
 @define(eq=False, slots=False)
 class AwsIamInstanceProfile(AwsResource, BaseInstanceProfile):
@@ -367,6 +483,24 @@ class AwsIamInstanceProfile(AwsResource, BaseInstanceProfile):
         return iam_delete_tag(
             resource=self, client=client, action="untag_instance_profile", key=key, InstanceProfileName=self.name
         )
+
+    def pre_delete_resource(self, client: AwsClient, graph: Graph) -> bool:
+        for predecessor in self.predecessors(graph, edge_type=EdgeType.delete):
+            if isinstance(predecessor, AwsIamRole):
+                log_msg = f"Detaching {predecessor.rtdname}"
+                self.log(log_msg)
+                client.call(
+                    service="iam",
+                    action="remove_role_from_instance_profile",
+                    result_name=None,
+                    RoleName=predecessor.name,
+                    InstanceProfileName=self.name,
+                )
+        return True
+
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(service="iam", action="delete_instance_profile", result_name=None, InstanceProfileName=self.name)
+        return True
 
 
 resources: List[Type[AwsResource]] = [
