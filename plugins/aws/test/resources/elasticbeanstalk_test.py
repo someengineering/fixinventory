@@ -1,6 +1,6 @@
 from typing import Any, cast
 from types import SimpleNamespace
-from resoto_plugin_aws.resource.elasticbeanstalk import AwsBeanstalkApplication
+from resoto_plugin_aws.resource.elasticbeanstalk import AwsBeanstalkApplication, AwsBeanstalkEnvironment
 from resoto_plugin_aws.aws_client import AwsClient
 from test.resources import round_trip_for
 
@@ -9,7 +9,6 @@ def test_applications() -> None:
     first, builder = round_trip_for(AwsBeanstalkApplication)
     assert len(builder.resources_of(AwsBeanstalkApplication)) == 3
     assert len(first.tags) == 2
-
 
 
 def test_tagging() -> None:
@@ -41,3 +40,8 @@ def test_delete_application() -> None:
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
     app.delete_resource(client)
+
+def test_environments() -> None:
+    first, builder = round_trip_for(AwsBeanstalkEnvironment)
+    assert len(builder.resources_of(AwsBeanstalkEnvironment)) == 1
+    # assert len(first.tags) == 2

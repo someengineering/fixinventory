@@ -1,0 +1,48 @@
+{
+    "Environments": [
+        {
+            "EnvironmentName": "TestEnv",
+            "EnvironmentId": "SomeId",
+            "ApplicationName": "ruby",
+            "VersionLabel": "SomeLabel",
+            "SolutionStackName": "SomeName",
+            "PlatformArn": "SomeArn",
+            "TemplateName": "SomeName",
+            "Description": "SomeDescription",
+            "EndpointURL": "SomeURL",
+            "CNAME": "SomeName",
+            "DateCreated": "2015-08-13T21:05:44.376Z",
+            "DateUpdated": "2015-09-13T21:05:44.376Z",
+            "Status": "Ready",
+            "AbortableOperationInProgress": false,
+            "Health": "Green",
+            "HealthStatus": "Ok",
+            "Resources": {
+                "LoadBalancer": {
+                    "LoadBalancerName": "SomeName",
+                    "Domain": "SomeDomain",
+                    "Listeners": [
+                        {
+                            "Protocol": "SomeProtocol",
+                            "Port": 123
+                        }
+                    ]
+                }
+            },
+            "Tier": {
+                "Name": "SomeName",
+                "Type": "SomeType",
+                "Version": "SomeVersion"
+            },
+            "EnvironmentLinks": [
+                {
+                    "LinkName": "SomeName",
+                    "EnvironmentName": "SomeName"
+                }
+            ],
+            "EnvironmentArn": "SomeEnvArn",
+            "OperationsRole": "SomeRole"
+        }
+    ],
+    "NextToken": "SomeToken"
+}

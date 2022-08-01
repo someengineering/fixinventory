@@ -460,6 +460,13 @@ models: Dict[str, List[AwsResotoModel]] = {
         #     prefix="Beanstalk",
         #     prop_prefix="beanstalk_",
         # ),
+        AwsResotoModel(
+            "describe-environments",
+            "Environments",
+            "EnvironmentDescriptionsMessage",
+            prefix="Beanstalk",
+            prop_prefix="environment_"
+        )
     ],
     "elb": [
         # AwsResotoModel(
