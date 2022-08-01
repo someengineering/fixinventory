@@ -46,5 +46,8 @@ class AwsS3Bucket(AwsResource, BaseBucket):
             raise KeyError(key)
         return self._set_tags(client, tags)
 
+    def delete_resource(self, client: AwsClient) -> None:
+        client.call(service="s3", action="delete_bucket", result_name=None, Bucket=self.name)
+
 
 resources: List[Type[AwsResource]] = [AwsS3Bucket]
