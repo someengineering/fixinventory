@@ -28,3 +28,14 @@ def test_tagging() -> None:
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
     res.delete_resource_tag(client, "foo")
+
+
+def test_deletion() -> None:
+    res, _ = round_trip_for(AwsLambdaFunction)
+
+    def validate_delete_args(**kwargs: Any) -> None:
+        assert kwargs["action"] == "delete_function"
+        assert kwargs["FunctionName"] == res.arn
+
+    client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
+    res.delete_resource(client)
