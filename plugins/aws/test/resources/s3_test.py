@@ -36,3 +36,14 @@ def test_tagging() -> None:
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
     bucket.delete_resource_tag(client, "foo")
+
+
+def test_deletion() -> None:
+    bucket, _ = round_trip_for(AwsS3Bucket)
+
+    def validate_delete_args(**kwargs: Any) -> Any:
+        assert kwargs["action"] == "delete_bucket"
+        assert kwargs["Bucket"] == bucket.name
+
+    client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
+    bucket.delete_resource(client)
