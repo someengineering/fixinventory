@@ -28,3 +28,15 @@ def test_tagging() -> None:
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
     instance.delete_resource_tag(client, "foo")
+
+
+def test_deletion() -> None:
+    instance, _ = round_trip_for(AwsRdsInstance)
+
+    def validate_delete_args(**kwargs: Any) -> None:
+        assert kwargs["action"] == "delete_db_instance"
+        assert kwargs["DBInstanceIdentifier"] == instance.name
+        assert kwargs["SkipFinalSnapshot"] is True
+
+    client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
+    instance.delete_resource(client)

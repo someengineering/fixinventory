@@ -464,5 +464,15 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
                     self, reverse=True, delete_same_as_default=True, clazz=AwsEc2Subnet, id=subnet_id
                 )
 
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(
+            service=self.api_spec.service,
+            action="delete_db_instance",
+            result_name=None,
+            DBInstanceIdentifier=self.id,
+            SkipFinalSnapshot=True,
+        )
+        return True
+
 
 resources: List[Type[AwsResource]] = [AwsRdsInstance]
