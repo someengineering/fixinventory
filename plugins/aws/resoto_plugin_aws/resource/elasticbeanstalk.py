@@ -183,5 +183,42 @@ class AwsBeanstalkEnvironment(AwsResource):
     environment_links: List[AwsBeanstalkEnvironmentLink] = field(factory=list)
     operations_role: Optional[str] = field(default=None)
 
+    @classmethod
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def add_tags(env: AwsBeanstalkEnvironment) -> None:
+            tags = builder.client.list("elasticbeanstalk", "list-tags-for-resource", "ResourceTags", ResourceArn=env.arn)
+            if tags:
+                env.tags = bend(ToDict(), tags)
+
+        for js in json:
+            instance = cls.from_api(js)
+            builder.add_node(instance, js)
+            builder.submit_work(add_tags, instance)
+
+    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
+        client.call(
+            service=self.api_spec.service,
+            action="update-tags-for-resource",
+            result_name=None,
+            ResourceArn=self.arn,
+            TagsToAdd=[{"Key": key, "Value": value}],
+        )
+        return True
+
+    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
+        client.call(
+            service=self.api_spec.service,
+            action="update-tags-for-resource",
+            result_name=None,
+            ResourceArn=self.arn,
+            TagsToRemove=[key],
+        )
+        return True
+
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(
+            service=self.api_spec.service, action="terminate-environment", result_name=None, EnvironmentName=self.name
+        )
+        return True
 
 resources: List[Type[AwsResource]] = [AwsBeanstalkApplication, AwsBeanstalkEnvironment]

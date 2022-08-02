@@ -1,0 +1,13 @@
+{
+    "ResourceArn": "SomeEnvArn",
+    "ResourceTags": [
+        {
+            "Key": "SomeKey",
+            "Value": "SomeValue"
+        },
+        {
+            "Key": "SomeOtherKey",
+            "Value": "SomeOtherValue"
+        }
+    ]
+}
