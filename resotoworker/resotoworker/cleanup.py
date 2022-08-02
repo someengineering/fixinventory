@@ -9,13 +9,14 @@ from resotolib.utils import ordinal
 from resotolib.config import Config
 from concurrent.futures import ThreadPoolExecutor
 from prometheus_client import Summary
-from typing import Optional, List
-
+from typing import Optional, List, Type, Dict
+from resotolib.baseplugin import BaseCollectorPlugin
+from functools import partial
 
 metrics_cleanup = Summary("resoto_cleanup_seconds", "Time it took the cleanup() method")
 
 
-def cleanup(tls_data: Optional[TLSData] = None) -> None:
+def cleanup(config: Config, plugins: Dict[str, Type[BaseCollectorPlugin]], tls_data: Optional[TLSData] = None) -> None:
     """Run resource cleanup"""
 
     log.info("Running cleanup")
@@ -33,7 +34,7 @@ def cleanup(tls_data: Optional[TLSData] = None) -> None:
 
     graph = cg.graph(search)
     cleaner = Cleaner(graph)
-    cleaner.cleanup()
+    cleaner.cleanup(config, plugins)
     cg.patch_nodes(graph)
 
 
@@ -42,7 +43,7 @@ class Cleaner:
         self.graph = graph
 
     @metrics_cleanup.time()  # type: ignore
-    def cleanup(self) -> None:
+    def cleanup(self, config: Config, plugins: Dict[str, Type[BaseCollectorPlugin]]) -> None:
         if not Config.resotoworker.cleanup:
             log.debug(("Cleanup called but resotoworker.cleanup not configured" " - ignoring call"))
             return
@@ -70,7 +71,10 @@ class Cleaner:
             max_workers=Config.resotoworker.cleanup_pool_size,
             thread_name_prefix="pre_cleaner",
         ) as executor:
-            executor.map(self.pre_clean, cleanup_nodes)
+            executor.map(
+                lambda node: self.pre_clean(config, plugins, node),
+                cleanup_nodes,
+            )
 
         log.debug(f"Running parallel cleanup on {len(cleanup_nodes)} nodes")
         parallel_pass_num = 1
@@ -80,11 +84,11 @@ class Cleaner:
                 max_workers=Config.resotoworker.cleanup_pool_size,
                 thread_name_prefix="cleaner",
             ) as executor:
-                executor.map(self.clean, nodes)
+                executor.map(lambda node: self.clean(config, plugins, node), nodes)
             parallel_pass_num += 1
 
-    def pre_clean(self, node: BaseResource) -> None:
-        if not hasattr(node, "pre_delete"):
+    def pre_clean(self, config: Config, plugins: Dict[str, Type[BaseCollectorPlugin]], node: BaseResource) -> None:
+        if not hasattr(node, "pre_delete") or not hasattr(node, "pre_delete_resource"):
             return
 
         log_prefix = f"Resource {node.rtdname} is marked for removal"
@@ -92,20 +96,28 @@ class Cleaner:
             log.info(f"{log_prefix}, not calling pre cleanup method because of dry run flag")
             return
 
+        plugin = plugins.get(node.cloud().id)
+        if plugin is None:
+            raise ValueError(f"No plugin found for cloud {node.cloud().id}")
+
         log.info(f"{log_prefix}, calling pre cleanup method")
         try:
-            node.pre_cleanup(self.graph)
+            plugin.pre_cleanup(config, node, self.graph)
         except Exception:
             log.exception(("An exception occurred when running resource pre cleanup on" f" {node.rtdname}"))
 
-    def clean(self, node: BaseResource) -> None:
+    def clean(self, config: Config, plugins: Dict[str, Type[BaseCollectorPlugin]], node: BaseResource) -> None:
         log_prefix = f"Resource {node.rtdname} is marked for removal"
         if Config.resotoworker.cleanup_dry_run:
             log.info(f"{log_prefix}, not calling cleanup method because of dry run flag")
             return
 
+        plugin = plugins.get(node.cloud().id)
+        if plugin is None:
+            raise ValueError(f"No plugin found for cloud {node.cloud().id}")
+
         log.info(f"{log_prefix}, calling cleanup method")
         try:
-            node.cleanup(self.graph)
+            plugin.cleanup(config, node, self.graph)
         except Exception:
             log.exception(f"An exception occurred when running resource cleanup on {node.rtdname}")

@@ -1871,7 +1871,7 @@ class AwsEc2SecurityGroup(EC2Taggable, AwsResource, BaseSecurityGroup):
         if vpc_id := source.get("VpcId"):
             builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsEc2Vpc, id=vpc_id)
 
-    def pre_delete_resources(self, client: AwsClient, graph: Graph) -> bool:
+    def pre_delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         remove_ingress = []
         remove_egress = []
 

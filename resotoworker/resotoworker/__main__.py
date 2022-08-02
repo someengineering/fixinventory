@@ -137,7 +137,7 @@ def main() -> None:
                 "wait_for_completion": True,
             },
         },
-        message_processor=partial(core_actions_processor, plugin_loader, tls_data, collector),
+        message_processor=partial(core_actions_processor, config, plugin_loader, tls_data, collector),
         tls_data=tls_data,
     )
 
@@ -179,7 +179,11 @@ def main() -> None:
 
 
 def core_actions_processor(
-    plugin_loader: PluginLoader, tls_data: Optional[TLSData], collector: Collector, message: Dict[str, Any]
+    config: Config,
+    plugin_loader: PluginLoader,
+    tls_data: Optional[TLSData],
+    collector: Collector,
+    message: Dict[str, Any],
 ) -> Optional[Dict[str, Any]]:
     collectors: List[Type[BaseCollectorPlugin]] = plugin_loader.plugins(PluginType.COLLECTOR)  # type: ignore
     post_collectors: List[Type[BasePostCollectPlugin]] = plugin_loader.plugins(PluginType.POST_COLLECT)  # type: ignore
@@ -206,7 +210,11 @@ def core_actions_processor(
                     if Config.resotoworker.cleanup_dry_run:
                         log.info("Cleanup called with dry run configured" " (resotoworker.cleanup_dry_run)")
                     start_time = time.time()
-                    cleanup(tls_data=tls_data)
+                    cleanup(
+                        config,
+                        {p.cloud: p for p in cast(List[Type[BaseCollectorPlugin]], collectors)},
+                        tls_data=tls_data,
+                    )
                     run_time = int(time.time() - start_time)
                     log.info(f"Cleanup ran for {run_time} seconds")
             else:

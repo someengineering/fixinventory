@@ -345,6 +345,8 @@ class BaseResource(ABC):
             self._changes.add("protected")
             self._protected = value
 
+    # deprecated. future collectors plugins should be responsible for running pre_cleanup
+    # and calling delete_resource on resources
     @metrics_resource_cleanup.time()
     @unless_protected
     def cleanup(self, graph=None) -> bool:
@@ -389,6 +391,8 @@ class BaseResource(ABC):
             return False
         return True
 
+    # deprecated. future collectors plugins should be responsible for running pre_cleanup
+    # and calling pre_delete_resource on resources
     @unless_protected
     def pre_cleanup(self, graph=None) -> bool:
         if not hasattr(self, "pre_delete"):
