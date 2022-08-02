@@ -45,6 +45,7 @@ def test_environments() -> None:
     first, builder = round_trip_for(AwsBeanstalkEnvironment)
     assert len(builder.resources_of(AwsBeanstalkEnvironment)) == 1
     assert len(first.tags) == 2
+    assert first.resources.auto_scaling_groups[0].auto_scaling_group_name == "SomeGroup"
 
 def test_tagging_envs() -> None:
     env, _ = round_trip_for(AwsBeanstalkEnvironment)

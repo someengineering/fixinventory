@@ -1,0 +1,41 @@
+{
+    "EnvironmentResources": {
+        "EnvironmentName": "TestEnv",
+        "AutoScalingGroups": [
+            {
+                "Name": "SomeGroup"
+            }
+        ],
+        "Instances": [
+            {
+                "Id": "SomeInstanceId"
+            }
+        ],
+        "LaunchConfigurations": [
+            {
+                "Name": "string"
+            }
+        ],
+        "LaunchTemplates": [
+            {
+                "Id": "string"
+            }
+        ],
+        "LoadBalancers": [
+            {
+                "Name": "SomeLoadBalancer"
+            }
+        ],
+        "Triggers": [
+            {
+                "Name": "SomeTrigger"
+            }
+        ],
+        "Queues": [
+            {
+                "Name": "SomeQueue",
+                "URL": "SomeUrl"
+            }
+        ]
+    }
+}
