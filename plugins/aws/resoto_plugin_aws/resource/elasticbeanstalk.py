@@ -195,6 +195,16 @@ class AwsBeanstalkEnvironment(AwsResource):
             builder.add_node(instance, js)
             builder.submit_work(add_tags, instance)
 
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        super().connect_in_graph(builder, source)
+        builder.dependant_node(
+            self,
+            reverse=True,
+            delete_same_as_default=True,
+            clazz=AwsBeanstalkApplication,
+            name=self.application_name
+         )
+
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(
             service=self.api_spec.service,
