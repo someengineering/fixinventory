@@ -212,7 +212,7 @@ def core_actions_processor(
                     start_time = time.time()
                     cleanup(
                         config,
-                        {p.cloud: p for p in cast(List[Type[BaseCollectorPlugin]], collectors)},
+                        {p.cloud: p for p in collectors},
                         tls_data=tls_data,
                     )
                     run_time = int(time.time() - start_time)

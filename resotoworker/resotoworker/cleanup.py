@@ -11,7 +11,6 @@ from concurrent.futures import ThreadPoolExecutor
 from prometheus_client import Summary
 from typing import Optional, List, Type, Dict
 from resotolib.baseplugin import BaseCollectorPlugin
-from functools import partial
 
 metrics_cleanup = Summary("resoto_cleanup_seconds", "Time it took the cleanup() method")
 
