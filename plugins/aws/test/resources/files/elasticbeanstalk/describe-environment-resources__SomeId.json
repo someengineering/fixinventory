@@ -3,27 +3,27 @@
         "EnvironmentName": "TestEnv",
         "AutoScalingGroups": [
             {
-                "Name": "SomeGroup"
+                "Name": "asg-123"
             }
         ],
         "Instances": [
             {
-                "Id": "SomeInstanceId"
+                "Id": "i-1"
             }
         ],
         "LaunchConfigurations": [
             {
-                "Name": "string"
+                "Name": "SomeConfig"
             }
         ],
         "LaunchTemplates": [
             {
-                "Id": "string"
+                "Id": "SomeTemplate"
             }
         ],
         "LoadBalancers": [
             {
-                "Name": "SomeLoadBalancer"
+                "Name": "lb1"
             }
         ],
         "Triggers": [
