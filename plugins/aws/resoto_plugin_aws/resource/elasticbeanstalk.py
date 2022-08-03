@@ -1,10 +1,14 @@
 from typing import ClassVar, Dict, List, Optional, Type
 from attrs import define, field
 from resoto_plugin_aws.aws_client import AwsClient
+from resoto_plugin_aws.resource.autoscaling import AwsAutoScalingGroup
 from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
+from resoto_plugin_aws.resource.ec2 import AwsEc2Instance
+from resoto_plugin_aws.resource.elbv2 import AwsAlb
 from resoto_plugin_aws.utils import ToDict
 from resotolib.json_bender import Bender, S, Bend, ForallBend, bend
 from resotolib.types import Json
+from resotolib.json import from_json
 
 
 @define(eq=False, slots=False)
@@ -80,7 +84,9 @@ class AwsBeanstalkApplication(AwsResource):
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_tags(app: AwsBeanstalkApplication) -> None:
-            tags = builder.client.list("elasticbeanstalk", "list-tags-for-resource", "ResourceTags", ResourceArn=app.arn)
+            tags = builder.client.list(
+                "elasticbeanstalk", "list-tags-for-resource", "ResourceTags", ResourceArn=app.arn
+            )
             if tags:
                 app.tags = bend(ToDict(), tags)
 
@@ -119,22 +125,16 @@ class AwsBeanstalkApplication(AwsResource):
 @define(eq=False, slots=False)
 class AwsBeanstalkEnvironmentTier:
     kind: ClassVar[str] = "aws_beanstalk_environment_tier"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "name": S("Name"),
-        "type": S("Type"),
-        "version": S("Version")
-    }
+    mapping: ClassVar[Dict[str, Bender]] = {"name": S("Name"), "type": S("Type"), "version": S("Version")}
     name: Optional[str] = field(default=None)
     type: Optional[str] = field(default=None)
     version: Optional[str] = field(default=None)
 
+
 @define(eq=False, slots=False)
 class AwsBeanstalkEnvironmentLink:
     kind: ClassVar[str] = "aws_beanstalk_environment_link"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "link_name": S("LinkName"),
-        "environment_name": S("EnvironmentName")
-    }
+    mapping: ClassVar[Dict[str, Bender]] = {"link_name": S("LinkName"), "environment_name": S("EnvironmentName")}
     link_name: Optional[str] = field(default=None)
     environment_name: Optional[str] = field(default=None)
 
@@ -167,15 +167,6 @@ class AwsBeanstalkLoadBalancerDescription:
 
 
 @define(eq=False, slots=False)
-class AwsBeanstalkTriggerDescription:
-    kind: ClassVar[str] = "aws_beanstalk_trigger_description"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "trigger_name": S("Name"),
-    }
-    trigger_name: Optional[str] = field(default=None)
-
-
-@define(eq=False, slots=False)
 class AwsBeanstalkQueueDescription:
     kind: ClassVar[str] = "aws_beanstalk_queue_description"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -187,21 +178,17 @@ class AwsBeanstalkQueueDescription:
 
 
 @define(eq=False, slots=False)
-class AwsBeanstalkEnvironmentResources:
+class AwsBeanstalkEnvironmentResourcesDescription:
     kind: ClassVar[str] = "aws_beanstalk_environment_resources"
     mapping: ClassVar[Dict[str, Bender]] = {
         "auto_scaling_groups": S("AutoScalingGroups") >> ForallBend(AwsBeanstalkAutoScalingGroupDescription.mapping),
         "instances": S("Instances") >> ForallBend(AwsBeanstalkInstancesDescription.mapping),
-        # "launch_configurations": S("LaunchConfigurations"),
-        # "launch_templates": S("LaunchTemplates"),
         "load_balancers": S("LoadBalancers") >> ForallBend(AwsBeanstalkLoadBalancerDescription.mapping),
-        "triggers": S("Triggers") >> ForallBend(AwsBeanstalkTriggerDescription.mapping),
-        "queues": S("Queues") >> ForallBend(AwsBeanstalkQueueDescription.mapping)
+        "queues": S("Queues") >> ForallBend(AwsBeanstalkQueueDescription.mapping),
     }
     auto_scaling_groups: Optional[List[AwsBeanstalkAutoScalingGroupDescription]] = field(default=None)
     instances: Optional[List[AwsBeanstalkInstancesDescription]] = field(default=None)
     load_balancers: Optional[List[AwsBeanstalkLoadBalancerDescription]] = field(default=None)
-    triggers: Optional[List[AwsBeanstalkTriggerDescription]] = field(default=None)
     queues: Optional[List[AwsBeanstalkQueueDescription]] = field(default=None)
 
 
@@ -227,10 +214,9 @@ class AwsBeanstalkEnvironment(AwsResource):
         "abortable_operation_in_progress": S("AbortableOperationInProgress"),
         "health": S("Health"),
         "health_status": S("HealthStatus"),
-        "resources": [],
         "tier": S("Tier") >> Bend(AwsBeanstalkEnvironmentTier.mapping),
         "environment_links": S("EnvironmentLinks", default=[]) >> ForallBend(AwsBeanstalkEnvironmentLink.mapping),
-        "operations_role": S("OperationsRole")
+        "operations_role": S("OperationsRole"),
     }
     application_name: Optional[str] = field(default=None)
     version_label: Optional[str] = field(default=None)
@@ -244,7 +230,7 @@ class AwsBeanstalkEnvironment(AwsResource):
     abortable_operation_in_progress: Optional[bool] = field(default=None)
     health: Optional[str] = field(default=None)
     health_status: Optional[str] = field(default=None)
-    resources: Optional[AwsBeanstalkEnvironmentResources] = field(default=None)
+    resources: Optional[AwsBeanstalkEnvironmentResourcesDescription] = field(default=None)
     tier: Optional[AwsBeanstalkEnvironmentTier] = field(default=None)
     environment_links: List[AwsBeanstalkEnvironmentLink] = field(factory=list)
     operations_role: Optional[str] = field(default=None)
@@ -252,14 +238,21 @@ class AwsBeanstalkEnvironment(AwsResource):
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_tags(env: AwsBeanstalkEnvironment) -> None:
-            tags = builder.client.list("elasticbeanstalk", "list-tags-for-resource", "ResourceTags", ResourceArn=env.arn)
+            tags = builder.client.list(
+                "elasticbeanstalk", "list-tags-for-resource", "ResourceTags", ResourceArn=env.arn
+            )
             if tags:
                 env.tags = bend(ToDict(), tags)
 
         def add_resources(env: AwsBeanstalkEnvironment) -> None:
-            resources = builder.client.list("elasticbeanstalk", "describe-environment-resources", "EnvironmentResources", EnvironmentId=env.id)
+            resources = builder.client.list(
+                "elasticbeanstalk", "describe-environment-resources", "EnvironmentResources", EnvironmentId=env.id
+            )
             if resources:
-                env.resources = bend(AwsBeanstalkEnvironmentResources.mapping, resources)
+                env.resources = from_json(
+                    bend(AwsBeanstalkEnvironmentResourcesDescription.mapping, resources),
+                    AwsBeanstalkEnvironmentResourcesDescription,
+                )
 
         for js in json:
             instance = cls.from_api(js)
@@ -274,8 +267,43 @@ class AwsBeanstalkEnvironment(AwsResource):
             reverse=True,
             # delete_same_as_default=True, ??
             clazz=AwsBeanstalkApplication,
-            name=self.application_name
-         )
+            name=self.application_name,
+        )
+        res = self.resources
+        if not res:
+            return
+        if res.auto_scaling_groups:
+            for group in res.auto_scaling_groups:
+                if group.auto_scaling_group_name:
+                    builder.dependant_node(
+                        self,
+                        reverse=True,
+                        # delete_same_as_default=True, ??
+                        clazz=AwsAutoScalingGroup,
+                        name=group.auto_scaling_group_name,
+                    )
+        if res.instances:
+            for instance in res.instances:
+                if instance.instance_id:
+                    builder.dependant_node(
+                        self,
+                        reverse=True,
+                        # delete_same_as_default=True, ??
+                        clazz=AwsEc2Instance,
+                        id=instance.instance_id,
+                    )
+        if res.load_balancers:
+            for lb in res.load_balancers:
+                if lb.load_balancer_name:
+                    builder.dependant_node(
+                        self,
+                        reverse=True,
+                        # delete_same_as_default=True, ??
+                        clazz=AwsAlb,
+                        name=lb.load_balancer_name,
+                    )
+
+        # TODO as soon as SQS is supported: for queue in res.queues ...
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(
@@ -302,5 +330,6 @@ class AwsBeanstalkEnvironment(AwsResource):
             service=self.api_spec.service, action="terminate-environment", result_name=None, EnvironmentName=self.name
         )
         return True
+
 
 resources: List[Type[AwsResource]] = [AwsBeanstalkApplication, AwsBeanstalkEnvironment]
