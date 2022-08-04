@@ -1,0 +1,26 @@
+{
+    "Attributes":
+        {
+            "QueueArn": "arn:aws:sqs:eu-central-1:882347060974:SomeName",
+            "ApproximateNumberOfMessages": 0,
+            "ApproximateNumberOfMessagesNotVisible": 0,
+            "ApproximateNumberOfMessagesDelayed": 0,
+            "CreatedTimestamp": 1659601278,
+            "LastModifiedTimestamp": 1659601278,
+            "Policy": "SomeSQSPolicy",
+            "RedrivePolicy": "SomeRedrivePolicy",
+            "FifoQueue": true,
+            "ContentBasedDeduplication": false,
+            "KmsMasterKeyId": "SomeKeyId",
+            "KmsDataKeyReusePeriodSeconds": 42,
+            "DeduplicationScope": "messageGroup",
+            "FifoThroughputLimit": "perQueue",
+            "RedriveAllowPolicy": "SomeRedriveAllowPolicy",
+            "VisibilityTimeout": 30,
+            "MaximumMessageSize": 262144,
+            "MessageRetentionPeriod": 345600,
+            "DelaySeconds": 0,
+            "ReceiveMessageWaitTimeSeconds": 0,
+            "SqsManagedSseEnabled": false
+        }
+}
