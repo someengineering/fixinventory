@@ -1,19 +1,10 @@
-from typing import ClassVar, Dict, List, Optional, Type
+from typing import ClassVar, Dict, List, Optional, Type, cast
 from attrs import define, field
 from datetime import datetime
-from resoto_plugin_aws.utils import ToDict
+from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
-from resotolib.json_bender import AsDate, Bender, S, bend
+from resotolib.json_bender import Bender, S
 from resotolib.types import Json
-
-# @define(eq=False, slots=False)
-# class AwsSqsQueueList():
-#     kind: ClassVar[str] = "aws_sqs_queue"
-#     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sqs", "list-queues", result_name=None)
-#     mapping: ClassVar[Dict[str, Bender]] = {
-#         "sqs_queue_urls": S("QueueUrls")
-#     }
-#     sqs_queue_urls: List[str] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -42,7 +33,7 @@ class AwsSqsQueue(AwsResource):
         "sqs_message_retention_period": S("MessageRetentionPeriod"),
         "sqs_delay_seconds": S("DelaySeconds"),
         "sqs_receive_message_wait_time_seconds": S("ReceiveMessageWaitTimeSeconds"),
-        "sqs_managed_sse_enabled": S("SqsManagedSseEnabled")
+        "sqs_managed_sse_enabled": S("SqsManagedSseEnabled"),
     }
     sqs_queue_url: str = field(default=None)
     sqs_approximate_number_of_messages: Optional[int] = field(default=None)
@@ -71,13 +62,28 @@ class AwsSqsQueue(AwsResource):
                 queue.tags = tags
 
         for queue_url in json:
-            queue_attributes = builder.client.call("sqs", "get-queue-attributes", "Attributes", QueueUrl=queue_url, AttributeNames=["All"])
+            queue_attributes = builder.client.call(
+                "sqs", "get-queue-attributes", "Attributes", QueueUrl=queue_url, AttributeNames=["All"]
+            )
             queue_attributes["QueueUrl"] = queue_url
-            queue_attributes["QueueName"] = queue_url.rsplit('/',1)[-1]
+            queue_attributes["QueueName"] = cast(str, queue_url).rsplit("/", 1)[-1]
             instance = cls.from_api(queue_attributes)
             instance.ctime = datetime.fromtimestamp(queue_attributes["CreatedTimestamp"])
             instance.mtime = datetime.fromtimestamp(queue_attributes["LastModifiedTimestamp"])
             builder.add_node(instance, queue_attributes)
             builder.submit_work(add_tags, instance)
+
+    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
+        client.call(service="sqs", action="tag-queue", result_name=None, QueueUrl=self.sqs_queue_url, Tags={key: value})
+        return True
+
+    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
+        client.call(service="sqs", action="untag-queue", result_name=None, QueueUrl=self.sqs_queue_url, TagKeys=[key])
+        return True
+
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(service="sqs", action="delete-queue", result_name=None, QueueUrl=self.sqs_queue_url)
+        return True
+
 
 resources: List[Type[AwsResource]] = [AwsSqsQueue]
