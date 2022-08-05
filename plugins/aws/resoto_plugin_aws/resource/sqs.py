@@ -59,7 +59,7 @@ class AwsSqsQueue(AwsResource):
         def add_tags(queue: AwsSqsQueue) -> None:
             tags = builder.client.list("sqs", "list-queue-tags", result_name="Tags", QueueUrl=[queue.sqs_queue_url])
             if tags:
-                queue.tags = tags
+                queue.tags = cast(Dict[str, Optional[str]], tags)
 
         for queue_url in json:
             queue_attributes = builder.client.call(
