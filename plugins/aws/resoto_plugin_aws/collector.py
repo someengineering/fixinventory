@@ -22,7 +22,7 @@ from resoto_plugin_aws.resource import (
     route53,
     s3,
     service_quotas,
-    sqs
+    sqs,
 )
 from resoto_plugin_aws.resource.base import AwsRegion, AwsAccount, AwsResource, GraphBuilder, ExecutorQueue
 from resotolib.baseresources import Cloud, EdgeType
