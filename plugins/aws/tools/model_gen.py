@@ -453,13 +453,13 @@ models: Dict[str, List[AwsResotoModel]] = {
         # AwsResotoModel("describe-network-acls", "NetworkAcls", "NetworkAcl", prefix="Ec2"),
     ],
     "elasticbeanstalk": [
-        AwsResotoModel(
-            "describe-applications",
-            "Applications",
-            "ApplicationDescriptionsMessage",
-            prefix="Beanstalk",
-            prop_prefix="beanstalk_",
-        ),
+        # AwsResotoModel(
+        #     "describe-applications",
+        #     "Applications",
+        #     "ApplicationDescriptionsMessage",
+        #     prefix="Beanstalk",
+        #     prop_prefix="beanstalk_",
+        # ),
     ],
     "elb": [
         # AwsResotoModel(
@@ -501,6 +501,9 @@ models: Dict[str, List[AwsResotoModel]] = {
     "eks": [
         # AwsResotoModel("list-clusters", "clusters", "Cluster", prefix="Eks", prop_prefix="cluster_"),
         # AwsResotoModel("list-nodegroups", "nodegroup", "Nodegroup", prefix="Eks", prop_prefix="group_"),
+    ],
+    "kinesis": [
+        # AwsResotoModel("list-streams", "StreamNames", "StreamDescription", prefix="Kinesis", prop_prefix="kinesis_"),
     ],
     "lambda": [
         # AwsResotoModel(
