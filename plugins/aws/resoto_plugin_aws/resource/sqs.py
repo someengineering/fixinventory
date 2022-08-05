@@ -1,8 +1,9 @@
 from typing import ClassVar, Dict, List, Optional, Type
 from attrs import define, field
 from datetime import datetime
+from resoto_plugin_aws.utils import ToDict
 from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
-from resotolib.json_bender import AsDate, Bender, S
+from resotolib.json_bender import AsDate, Bender, S, bend
 from resotolib.types import Json
 
 # @define(eq=False, slots=False)
@@ -64,6 +65,11 @@ class AwsSqsQueue(AwsResource):
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def add_tags(queue: AwsSqsQueue) -> None:
+            tags = builder.client.list("sqs", "list-queue-tags", result_name="Tags", QueueUrl=[queue.sqs_queue_url])
+            if tags:
+                queue.tags = tags
+
         for queue_url in json:
             queue_attributes = builder.client.call("sqs", "get-queue-attributes", "Attributes", QueueUrl=queue_url, AttributeNames=["All"])
             queue_attributes["QueueUrl"] = queue_url
@@ -72,5 +78,6 @@ class AwsSqsQueue(AwsResource):
             instance.ctime = datetime.fromtimestamp(queue_attributes["CreatedTimestamp"])
             instance.mtime = datetime.fromtimestamp(queue_attributes["LastModifiedTimestamp"])
             builder.add_node(instance, queue_attributes)
+            builder.submit_work(add_tags, instance)
 
 resources: List[Type[AwsResource]] = [AwsSqsQueue]
