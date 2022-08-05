@@ -41,10 +41,10 @@ regional_resources: List[Type[AwsResource]] = (
     + elasticbeanstalk.resources
     + elb.resources
     + elbv2.resources
+    + kinesis.resources
     + lambda_.resources
     + rds.resources
     + service_quotas.resources
-    + kinesis.resources
     + sqs.resources
 )
 all_resources: List[Type[AwsResource]] = global_resources + regional_resources
