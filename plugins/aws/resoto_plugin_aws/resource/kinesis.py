@@ -1,14 +1,12 @@
 from typing import ClassVar, Dict, Optional, List
 
 from attrs import define, field
-from datetime import datetime
 
 from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
-from resotolib.baseresources import BaseLoadBalancer, EdgeType, BaseAccount, ModelReference  # noqa: F401
-from resotolib.json_bender import Bender, S, Bend, bend, ForallBend, K
+from resotolib.json_bender import Bender, S, Bend, bend, ForallBend
 from resotolib.types import Json
 from resoto_plugin_aws.aws_client import AwsClient
-from resoto_plugin_aws.utils import ToDict, TagsValue
+from resoto_plugin_aws.utils import ToDict
 from typing import Type
 
 
