@@ -265,7 +265,6 @@ class AwsBeanstalkEnvironment(AwsResource):
         builder.dependant_node(
             self,
             reverse=True,
-            # delete_same_as_default=True, ??
             clazz=AwsBeanstalkApplication,
             name=self.application_name,
         )
@@ -278,7 +277,6 @@ class AwsBeanstalkEnvironment(AwsResource):
                     builder.dependant_node(
                         self,
                         reverse=True,
-                        # delete_same_as_default=True, ??
                         clazz=AwsAutoScalingGroup,
                         name=group.auto_scaling_group_name,
                     )
@@ -288,7 +286,6 @@ class AwsBeanstalkEnvironment(AwsResource):
                     builder.dependant_node(
                         self,
                         reverse=True,
-                        # delete_same_as_default=True, ??
                         clazz=AwsEc2Instance,
                         id=instance.instance_id,
                     )
@@ -298,7 +295,6 @@ class AwsBeanstalkEnvironment(AwsResource):
                     builder.dependant_node(
                         self,
                         reverse=True,
-                        # delete_same_as_default=True, ??
                         clazz=AwsAlb,
                         name=lb.load_balancer_name,
                     )
