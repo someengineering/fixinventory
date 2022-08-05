@@ -16,12 +16,12 @@ from resoto_plugin_aws.resource import (
     elb,
     elbv2,
     iam,
+    kinesis,
     lambda_,
     rds,
     route53,
     s3,
     service_quotas,
-    kinesis,
     sqs
 )
 from resoto_plugin_aws.resource.base import AwsRegion, AwsAccount, AwsResource, GraphBuilder, ExecutorQueue
