@@ -1,0 +1,13 @@
+{
+    "ResourceArn": "SomeAppArn",
+    "ResourceTags": [
+        {
+            "Key": "owner",
+            "Value": "sre"
+        },
+        {
+            "Key": "expiration",
+            "Value": "never"
+        }
+    ]
+}

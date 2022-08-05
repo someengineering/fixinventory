@@ -1,0 +1,41 @@
+{
+    "EnvironmentResources": {
+        "EnvironmentName": "TestEnv",
+        "AutoScalingGroups": [
+            {
+                "Name": "asg-123"
+            }
+        ],
+        "Instances": [
+            {
+                "Id": "i-1"
+            }
+        ],
+        "LaunchConfigurations": [
+            {
+                "Name": "SomeConfig"
+            }
+        ],
+        "LaunchTemplates": [
+            {
+                "Id": "SomeTemplate"
+            }
+        ],
+        "LoadBalancers": [
+            {
+                "Name": "lb1"
+            }
+        ],
+        "Triggers": [
+            {
+                "Name": "SomeTrigger"
+            }
+        ],
+        "Queues": [
+            {
+                "Name": "SomeQueue",
+                "URL": "SomeUrl"
+            }
+        ]
+    }
+}

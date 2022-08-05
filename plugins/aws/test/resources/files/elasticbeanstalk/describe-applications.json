@@ -4,6 +4,7 @@
             "ApplicationName": "ruby",
             "ConfigurationTemplates": [],
             "DateUpdated": "2015-08-13T21:05:44.376Z",
+            "ApplicationArn": "SomeAppArn",
             "Description": "Some Description",
             "Versions": [
                 "Sample Application"
