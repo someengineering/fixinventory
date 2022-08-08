@@ -276,7 +276,6 @@ class AwsBeanstalkEnvironment(AwsResource):
                 if group.auto_scaling_group_name:
                     builder.dependant_node(
                         self,
-                        reverse=True,
                         clazz=AwsAutoScalingGroup,
                         name=group.auto_scaling_group_name,
                     )
@@ -285,7 +284,6 @@ class AwsBeanstalkEnvironment(AwsResource):
                 if instance.instance_id:
                     builder.dependant_node(
                         self,
-                        reverse=True,
                         clazz=AwsEc2Instance,
                         id=instance.instance_id,
                     )
@@ -294,7 +292,6 @@ class AwsBeanstalkEnvironment(AwsResource):
                 if lb.load_balancer_name:
                     builder.dependant_node(
                         self,
-                        reverse=True,
                         clazz=AwsAlb,
                         name=lb.load_balancer_name,
                     )
