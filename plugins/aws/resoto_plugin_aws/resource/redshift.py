@@ -2,12 +2,14 @@ from typing import ClassVar, Dict, Optional, List
 
 from attrs import define, field
 
-from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec
+from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
 from resotolib.json_bender import Bender, S, Bend, ForallBend, K, F
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.utils import ToDict
 from typing import Tuple, Type
 from datetime import datetime
+from resotolib.types import Json
+from resoto_plugin_aws.resource.ec2 import AwsEc2Vpc, AwsEc2SecurityGroup, AwsEc2Subnet
 
 
 @define(eq=False, slots=False)
@@ -410,6 +412,21 @@ class AwsRedshiftCluster(AwsResource):
     redshift_aqua_configuration: Optional[AwsRedshiftAquaConfiguration] = field(default=None)
     redshift_default_iam_role_arn: Optional[str] = field(default=None)
     redshift_reserved_node_exchange_status: Optional[AwsRedshiftReservedNodeExchangeStatus] = field(default=None)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if self.redshift_vpc_id:
+            builder.dependant_node(self, reverse=True, clazz=AwsEc2Vpc, id=self.redshift_vpc_id)
+
+        for vsg in self.redshift_vpc_security_groups:
+            if vsg.vpc_security_group_id:
+                builder.dependant_node(self, reverse=True, clazz=AwsEc2SecurityGroup, id=vsg.vpc_security_group_id)
+
+        for role in self.redshift_iam_roles:
+            if role.iam_role_arn:
+                builder.dependant_node(self, reverse=True, clazz=AwsEc2Vpc, arn=role.iam_role_arn)
+
+        if self.redshift_cluster_subnet_group_name:
+            builder.dependant_node(self, reverse=True, clazz=AwsEc2Subnet, name=self.redshift_cluster_subnet_group_name)
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(
