@@ -81,7 +81,7 @@ class AwsSqsQueue(AwsResource):
             
             
             builder.submit_work(add_instance, queue_url)
-            # builder.add_node(instance)
+            builder.add_node(instance)
             # builder.submit_work(add_tags, instance)
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
