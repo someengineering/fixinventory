@@ -56,21 +56,30 @@ class AwsSqsQueue(AwsResource):
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def add_attributes(queue: AwsSqsQueue) -> None:
+            queue_attributes = builder.client.call(
+                "sqs", "get-queue-attributes", "Attributes", QueueUrl=queue.sqs_queue_url, AttributeNames=["All"]
+            )
+            queue_attributes["QueueUrl"] = queue.sqs_queue_url
+            queue_attributes["QueueName"] = cast(str, queue.sqs_queue_url).rsplit("/", 1)[-1]
+            # instance = cls.from_api(js)
+            queue.ctime = datetime.fromtimestamp(queue_attributes["CreatedTimestamp"])
+            queue.mtime = datetime.fromtimestamp(queue_attributes["LastModifiedTimestamp"])
+        
         def add_tags(queue: AwsSqsQueue) -> None:
             tags = builder.client.list("sqs", "list-queue-tags", result_name="Tags", QueueUrl=[queue.sqs_queue_url])
             if tags:
                 queue.tags = cast(Dict[str, Optional[str]], tags)
 
-        for queue_url in json:
-            queue_attributes = builder.client.call(
-                "sqs", "get-queue-attributes", "Attributes", QueueUrl=queue_url, AttributeNames=["All"]
-            )
-            queue_attributes["QueueUrl"] = queue_url
-            queue_attributes["QueueName"] = cast(str, queue_url).rsplit("/", 1)[-1]
-            instance = cls.from_api(queue_attributes)
-            instance.ctime = datetime.fromtimestamp(queue_attributes["CreatedTimestamp"])
-            instance.mtime = datetime.fromtimestamp(queue_attributes["LastModifiedTimestamp"])
-            builder.add_node(instance, queue_attributes)
+        for js in json:
+            # queue_attributes = builder.client.call(
+            #     "sqs", "get-queue-attributes", "Attributes", QueueUrl=queue_url, AttributeNames=["All"]
+            # )
+            # queue_attributes["QueueUrl"] = queue_url
+            # queue_attributes["QueueName"] = cast(str, queue_url).rsplit("/", 1)[-1]
+            instance = cls.from_api(js)
+            builder.add_node(instance, js)
+            builder.submit_work(add_attributes, instance)
             builder.submit_work(add_tags, instance)
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
