@@ -2,7 +2,7 @@ from typing import ClassVar, Dict, List, Optional, Type, cast
 from attrs import define, field
 from datetime import datetime
 from resoto_plugin_aws.aws_client import AwsClient
-from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, AwsResourceType, GraphBuilder
+from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
 from resotolib.json_bender import Bender, S
 from resotolib.types import Json
 
@@ -56,33 +56,29 @@ class AwsSqsQueue(AwsResource):
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
-        def add_instance(queue_url: str) -> AwsResourceType:
+        def add_instance(queue_url: str) -> None:
             queue_attributes = builder.client.call(
                 "sqs", "get-queue-attributes", "Attributes", QueueUrl=queue_url, AttributeNames=["All"]
             )
             queue_attributes["QueueUrl"] = queue_url
-            queue_attributes["QueueName"] = cast(str, queue_url).rsplit("/", 1)[-1]
-            queue_attributes["CreatedTimestamp"] = datetime.fromtimestamp(queue_attributes["CreatedTimestamp"]).isoformat()
-            queue_attributes["LastModifiedTimestamp"] = datetime.fromtimestamp(queue_attributes["LastModifiedTimestamp"]).isoformat()
+            queue_attributes["QueueName"] = queue_url.rsplit("/", 1)[-1]
+            queue_attributes["CreatedTimestamp"] = datetime.fromtimestamp(
+                queue_attributes["CreatedTimestamp"]
+            ).isoformat()
+            queue_attributes["LastModifiedTimestamp"] = datetime.fromtimestamp(
+                queue_attributes["LastModifiedTimestamp"]
+            ).isoformat()
             instance = cls.from_api(queue_attributes)
-            return instance
-        
+            builder.add_node(instance)
+            builder.submit_work(add_tags, instance)
+
         def add_tags(queue: AwsSqsQueue) -> None:
             tags = builder.client.list("sqs", "list-queue-tags", result_name="Tags", QueueUrl=[queue.sqs_queue_url])
             if tags:
                 queue.tags = cast(Dict[str, Optional[str]], tags)
 
         for queue_url in json:
-            # queue_attributes = builder.client.call(
-            #     "sqs", "get-queue-attributes", "Attributes", QueueUrl=queue_url, AttributeNames=["All"]
-            # )
-            # queue_attributes["QueueUrl"] = queue_url
-            # queue_attributes["QueueName"] = cast(str, queue_url).rsplit("/", 1)[-1]
-            
-            
             builder.submit_work(add_instance, queue_url)
-            builder.add_node(instance)
-            # builder.submit_work(add_tags, instance)
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(service="sqs", action="tag-queue", result_name=None, QueueUrl=self.sqs_queue_url, Tags={key: value})
