@@ -4,14 +4,14 @@
             {
                 "AttributeName": "LockID",
                 "AttributeType": "S"
-            },
+            }
         ],
         "TableName": "test1",
         "KeySchema": [
             {
                 "AttributeName": "LockID",
                 "KeyType": "HASH"
-            },
+            }
         ],
         "TableStatus": "UPDATING",
         "CreationDateTime": "2022-08-08T09:36:55Z",
@@ -37,18 +37,18 @@
                     {
                         "AttributeName": "string",
                         "KeyType": "HASH"
-                    },
+                    }
                 ],
                 "Projection": {
                     "ProjectionType": "ALL",
                     "NonKeyAttributes": [
-                        "string",
+                        "string"
                     ]
                 },
                 "IndexSizeBytes": 123,
                 "ItemCount": 123,
                 "IndexArn": "string"
-            },
+            }
         ],
         "GlobalSecondaryIndexes": [
             {
@@ -57,12 +57,12 @@
                     {
                         "AttributeName": "string",
                         "KeyType": "HASH"
-                    },
+                    }
                 ],
                 "Projection": {
                     "ProjectionType": "ALL",
                     "NonKeyAttributes": [
-                        "string",
+                        "string"
                     ]
                 },
                 "IndexStatus": "CREATING",
@@ -77,7 +77,7 @@
                 "IndexSizeBytes": 123,
                 "ItemCount": 123,
                 "IndexArn": "string"
-            },
+            }
         ],
         "StreamSpecification": {
             "StreamEnabled": true,
@@ -102,14 +102,14 @@
                         "ProvisionedThroughputOverride": {
                             "ReadCapacityUnits": 123
                         }
-                    },
+                    }
                 ],
                 "ReplicaInaccessibleDateTime": "2022-08-08T09:36:55Z",
                 "ReplicaTableClassSummary": {
                     "TableClass": "STANDARD",
                     "LastUpdateDateTime": "2022-08-08T09:36:55Z"
                 }
-            },
+            }
         ],
         "RestoreSummary": {
             "SourceBackupArn": "string",

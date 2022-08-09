@@ -10,6 +10,7 @@ from resoto_plugin_aws.resource import (
     autoscaling,
     cloudformation,
     cloudwatch,
+    dynamodb,
     ec2,
     eks,
     elasticbeanstalk,
@@ -39,6 +40,7 @@ regional_resources: List[Type[AwsResource]] = (
     autoscaling.resources
     + cloudformation.resources
     + cloudwatch.resources
+    + dynamodb.resources
     + ec2.resources
     + eks.resources
     + elasticbeanstalk.resources

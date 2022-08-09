@@ -1,7 +1,9 @@
 from datetime import datetime
 from typing import ClassVar, Dict, List, Optional, Type
 from attrs import define, field
+from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
+from resoto_plugin_aws.utils import ToDict
 from resotolib.json_bender import S, Bend, Bender, ForallBend, bend
 from resotolib.types import Json
 
@@ -248,10 +250,44 @@ class AwsDynamoDbTable(AwsResource):
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def add_tags(table: AwsDynamoDbTable) -> None:
+            tags = builder.client.list(
+                "dynamodb", "list-tags-of-resource", "Tags", ResourceArn=table.arn
+            )
+            if tags:
+                table.tags = bend(ToDict(), tags)
+
         for table in json:
             table_description = builder.client.call("dynamodb", "describe-table", "Table", TableName=table)
             instance = cls.from_api(table_description)
             builder.add_node(instance, table_description)
+            builder.submit_work(add_tags, instance)
+
+    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
+        client.call(
+            service=self.api_spec.service,
+            action="tag-resource",
+            result_name=None,
+            ResourceArn=self.arn,
+            Tags=[{"Key": key, "Value": value}],
+        )
+        return True
+
+    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
+        client.call(
+            service=self.api_spec.service,
+            action="untag-resource",
+            result_name=None,
+            ResourceArn=self.arn,
+            TagKeys=[key],
+        )
+        return True
+
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(
+            service=self.api_spec.service, action="delete-table", result_name=None, TableName=self.name
+        )
+        return True
 
 @define(eq=False, slots=False)
 class AwsDynamoDbGlobalTable(AwsResource):
@@ -268,3 +304,6 @@ class AwsDynamoDbGlobalTable(AwsResource):
     arn: Optional[str] = field(default=None)
     dynamodb_replication_group: List[AwsDynamoDbReplicaDescription] = field(factory=list)
     dynamodb_global_table_status: Optional[str] = field(default=None)
+
+
+resources: List[Type[AwsResource]] = [AwsDynamoDbTable]
