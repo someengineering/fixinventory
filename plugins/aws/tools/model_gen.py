@@ -363,10 +363,10 @@ models: Dict[str, List[AwsResotoModel]] = {
         # )
     ],
     "dynamodb": [
-        AwsResotoModel("list-tables", "TableNames", "TableDescription", prefix="DynamoDb", prop_prefix="dynamodb_"),
-        AwsResotoModel(
-        "list-global-tables", "GlobalTables", "GlobalTableDescription", prefix="DynamoDb", prop_prefix="dynamodb_"
-    )
+        # AwsResotoModel("list-tables", "TableNames", "TableDescription", prefix="DynamoDb", prop_prefix="dynamodb_"),
+        # AwsResotoModel(
+        #     "list-global-tables", "GlobalTables", "GlobalTableDescription", prefix="DynamoDb", prop_prefix="dynamodb_"
+        # ),
     ],
     "ec2": [
         # AwsResotoModel(
