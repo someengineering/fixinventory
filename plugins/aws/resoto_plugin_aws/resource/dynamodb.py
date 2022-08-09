@@ -276,7 +276,6 @@ class AwsDynamoDbTable(AwsResource):
             builder.add_node(instance, table_description)
             builder.submit_work(add_tags, instance)
 
-
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
         if self.dynamodb_latest_stream_arn:
@@ -285,7 +284,6 @@ class AwsDynamoDbTable(AwsResource):
                 clazz=AwsKinesisStream,
                 arn=self.dynamodb_latest_stream_arn,
             )
-
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(
