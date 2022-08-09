@@ -325,7 +325,9 @@ class AwsDynamoDbGlobalTable(AwsResource):
                 table.tags = bend(ToDict(), tags)
 
         for table in json:
-            table_description = builder.client.call("dynamodb", "describe-global-table", "GlobalTableDescription", GlobalTableName=table["GlobalTableName"])
+            table_description = builder.client.call(
+                "dynamodb", "describe-global-table", "GlobalTableDescription", GlobalTableName=table["GlobalTableName"]
+            )
             instance = cls.from_api(table_description)
             builder.add_node(instance, table_description)
             builder.submit_work(add_tags, instance)

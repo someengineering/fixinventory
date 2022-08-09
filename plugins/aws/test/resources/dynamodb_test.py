@@ -11,7 +11,7 @@ def test_tables() -> None:
     assert len(first.tags) == 1
 
 
-def test_tagging() -> None:
+def test_tagging_tables() -> None:
     table, _ = round_trip_for(AwsDynamoDbTable)
 
     def validate_update_args(**kwargs: Any) -> Any:
@@ -35,7 +35,7 @@ def test_tagging() -> None:
     table.delete_resource_tag(client, "foo")
 
 
-def test_deletion() -> None:
+def test_delete_tables() -> None:
     table, _ = round_trip_for(AwsDynamoDbTable)
 
     def validate_delete_args(**kwargs: Any) -> Any:
@@ -52,7 +52,7 @@ def test_global_tables() -> None:
     # assert len(first.tags) == 1
 
 
-def test_tagging() -> None:
+def test_tagging_global_tables() -> None:
     table, _ = round_trip_for(AwsDynamoDbGlobalTable)
 
     def validate_update_args(**kwargs: Any) -> Any:
@@ -76,7 +76,7 @@ def test_tagging() -> None:
     table.delete_resource_tag(client, "foo")
 
 
-def test_deletion() -> None:
+def test_delete_global_tables() -> None:
     table, _ = round_trip_for(AwsDynamoDbGlobalTable)
 
     def validate_delete_args(**kwargs: Any) -> Any:
