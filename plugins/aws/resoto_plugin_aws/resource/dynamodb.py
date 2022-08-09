@@ -3,6 +3,7 @@ from typing import ClassVar, Dict, List, Optional, Type
 from attrs import define, field
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
+from resoto_plugin_aws.resource.kinesis import AwsKinesisStream
 from resoto_plugin_aws.utils import ToDict
 from resotolib.json_bender import S, Bend, Bender, ForallBend, bend
 from resotolib.types import Json
@@ -274,6 +275,17 @@ class AwsDynamoDbTable(AwsResource):
             instance = cls.from_api(table_description)
             builder.add_node(instance, table_description)
             builder.submit_work(add_tags, instance)
+
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        super().connect_in_graph(builder, source)
+        if self.dynamodb_latest_stream_arn:
+            builder.dependant_node(
+                self,
+                clazz=AwsKinesisStream,
+                arn=self.dynamodb_latest_stream_arn,
+            )
+
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(

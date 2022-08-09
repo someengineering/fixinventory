@@ -83,8 +83,8 @@
             "StreamEnabled": true,
             "StreamViewType": "NEW_IMAGE"
         },
-        "LatestStreamLabel": "string",
-        "LatestStreamArn": "string",
+        "LatestStreamLabel": "2022-08-08T09:36:55Z",
+        "LatestStreamArn": "arn:aws:kinesis:us-east-1:12345678945:stream/resoto-stream",
         "GlobalTableVersion": "string",
         "Replicas": [
             {
