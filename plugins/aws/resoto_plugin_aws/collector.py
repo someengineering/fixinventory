@@ -35,7 +35,13 @@ from resotolib.graph import Graph
 log = logging.getLogger("resoto.plugins.aws")
 
 
-global_resources: List[Type[AwsResource]] = iam.resources + route53.resources + ec2.global_resources + s3.resources
+global_resources: List[Type[AwsResource]] = (
+    dynamodb.global_resources
+    + ec2.global_resources
+    + iam.resources
+    + route53.resources    
+    + s3.resources
+)
 regional_resources: List[Type[AwsResource]] = (
     autoscaling.resources
     + cloudformation.resources

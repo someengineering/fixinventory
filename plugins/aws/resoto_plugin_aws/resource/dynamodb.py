@@ -305,7 +305,7 @@ class AwsDynamoDbGlobalTable(AwsResource):
     kind: ClassVar[str] = "aws_dynamo_db_global_table"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("dynamodb", "list-global-tables", "GlobalTables")
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("GlobalTableName"),
         "name": S("GlobalTableName"),
         "ctime": S("CreationDateTime"),
         "arn": S("GlobalTableArn"),
@@ -317,5 +317,43 @@ class AwsDynamoDbGlobalTable(AwsResource):
     dynamodb_replication_group: List[AwsDynamoDbReplicaDescription] = field(factory=list)
     dynamodb_global_table_status: Optional[str] = field(default=None)
 
+    @classmethod
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def add_tags(table: AwsDynamoDbGlobalTable) -> None:
+            tags = builder.client.list("dynamodb", "list-tags-of-resource", "Tags", ResourceArn=table.arn)
+            if tags:
+                table.tags = bend(ToDict(), tags)
 
+        for table in json:
+            table_description = builder.client.call("dynamodb", "describe-global-table", "GlobalTableDescription", GlobalTableName=table["GlobalTableName"])
+            instance = cls.from_api(table_description)
+            builder.add_node(instance, table_description)
+            builder.submit_work(add_tags, instance)
+
+    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
+        client.call(
+            service=self.api_spec.service,
+            action="tag-resource",
+            result_name=None,
+            ResourceArn=self.arn,
+            Tags=[{"Key": key, "Value": value}],
+        )
+        return True
+
+    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
+        client.call(
+            service=self.api_spec.service,
+            action="untag-resource",
+            result_name=None,
+            ResourceArn=self.arn,
+            TagKeys=[key],
+        )
+        return True
+
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(service=self.api_spec.service, action="delete-table", result_name=None, TableName=self.name)
+        return True
+
+
+global_resources: List[Type[AwsResource]] = [AwsDynamoDbGlobalTable]
 resources: List[Type[AwsResource]] = [AwsDynamoDbTable]
