@@ -10,6 +10,7 @@ from typing import Tuple, Type
 from datetime import datetime
 from resotolib.types import Json
 from resoto_plugin_aws.resource.ec2 import AwsEc2Vpc, AwsEc2SecurityGroup, AwsEc2Subnet
+from resoto_plugin_aws.resource.iam import AwsIamRole
 
 
 @define(eq=False, slots=False)
@@ -423,7 +424,7 @@ class AwsRedshiftCluster(AwsResource):
 
         for role in self.redshift_iam_roles:
             if role.iam_role_arn:
-                builder.dependant_node(self, reverse=True, clazz=AwsEc2Vpc, arn=role.iam_role_arn)
+                builder.dependant_node(self, reverse=True, clazz=AwsIamRole, arn=role.iam_role_arn)
 
         if self.redshift_cluster_subnet_group_name:
             builder.dependant_node(self, reverse=True, clazz=AwsEc2Subnet, name=self.redshift_cluster_subnet_group_name)
