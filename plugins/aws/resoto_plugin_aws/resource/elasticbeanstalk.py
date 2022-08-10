@@ -301,7 +301,6 @@ class AwsBeanstalkEnvironment(AwsResource):
                 if queue.queue_name:
                     builder.dependant_node(
                         self,
-                        reverse=True,
                         clazz=AwsSqsQueue,
                         name=queue.queue_name,
                     )
