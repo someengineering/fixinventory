@@ -5,6 +5,7 @@ from resoto_plugin_aws.resource.autoscaling import AwsAutoScalingGroup
 from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
 from resoto_plugin_aws.resource.ec2 import AwsEc2Instance
 from resoto_plugin_aws.resource.elbv2 import AwsAlb
+from resoto_plugin_aws.resource.sqs import AwsSqsQueue
 from resoto_plugin_aws.utils import ToDict
 from resotolib.json_bender import Bender, S, Bend, ForallBend, bend
 from resotolib.types import Json
@@ -276,7 +277,6 @@ class AwsBeanstalkEnvironment(AwsResource):
                 if group.auto_scaling_group_name:
                     builder.dependant_node(
                         self,
-                        reverse=True,
                         clazz=AwsAutoScalingGroup,
                         name=group.auto_scaling_group_name,
                     )
@@ -285,7 +285,6 @@ class AwsBeanstalkEnvironment(AwsResource):
                 if instance.instance_id:
                     builder.dependant_node(
                         self,
-                        reverse=True,
                         clazz=AwsEc2Instance,
                         id=instance.instance_id,
                     )
@@ -294,12 +293,17 @@ class AwsBeanstalkEnvironment(AwsResource):
                 if lb.load_balancer_name:
                     builder.dependant_node(
                         self,
-                        reverse=True,
                         clazz=AwsAlb,
                         name=lb.load_balancer_name,
                     )
-
-        # TODO as soon as SQS is supported: for queue in res.queues ...
+        if res.queues:
+            for queue in res.queues:
+                if queue.queue_name:
+                    builder.dependant_node(
+                        self,
+                        clazz=AwsSqsQueue,
+                        name=queue.queue_name,
+                    )
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(

@@ -33,7 +33,7 @@
         ],
         "Queues": [
             {
-                "Name": "SomeQueue",
+                "Name": "SomeName",
                 "URL": "SomeUrl"
             }
         ]
