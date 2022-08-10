@@ -302,7 +302,7 @@ class AwsBeanstalkEnvironment(AwsResource):
                     builder.dependant_node(
                         self,
                         reverse=True,
-                        clazz=AwsSQSQueue,
+                        clazz=AwsSqsQueue,
                         name=queue.queue_name,
                     )
 
