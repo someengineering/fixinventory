@@ -16,12 +16,13 @@ from resoto_plugin_aws.resource import (
     elb,
     elbv2,
     iam,
+    kinesis,
     lambda_,
     rds,
     route53,
     s3,
     service_quotas,
-    kinesis,
+    sqs,
 )
 from resoto_plugin_aws.resource.base import AwsRegion, AwsAccount, AwsResource, GraphBuilder, ExecutorQueue
 from resotolib.baseresources import Cloud, EdgeType
@@ -40,10 +41,11 @@ regional_resources: List[Type[AwsResource]] = (
     + elasticbeanstalk.resources
     + elb.resources
     + elbv2.resources
+    + kinesis.resources
     + lambda_.resources
     + rds.resources
     + service_quotas.resources
-    + kinesis.resources
+    + sqs.resources
 )
 all_resources: List[Type[AwsResource]] = global_resources + regional_resources
 
