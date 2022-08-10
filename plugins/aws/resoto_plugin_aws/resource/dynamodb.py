@@ -265,16 +265,19 @@ class AwsDynamoDbTable(AwsResource):
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def add_instance(table: str) -> None:
+            table_description = builder.client.call("dynamodb", "describe-table", "Table", TableName=table)
+            instance = cls.from_api(table_description)
+            builder.add_node(instance, table_description)
+            builder.submit_work(add_tags, instance)
+
         def add_tags(table: AwsDynamoDbTable) -> None:
             tags = builder.client.list("dynamodb", "list-tags-of-resource", "Tags", ResourceArn=table.arn)
             if tags:
                 table.tags = bend(ToDict(), tags)
 
         for table in json:
-            table_description = builder.client.call("dynamodb", "describe-table", "Table", TableName=table)
-            instance = cls.from_api(table_description)
-            builder.add_node(instance, table_description)
-            builder.submit_work(add_tags, instance)
+            builder.submit_work(add_instance, table)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
@@ -329,18 +332,21 @@ class AwsDynamoDbGlobalTable(AwsResource):
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
-        def add_tags(table: AwsDynamoDbGlobalTable) -> None:
-            tags = builder.client.list("dynamodb", "list-tags-of-resource", "Tags", ResourceArn=table.arn)
-            if tags:
-                table.tags = bend(ToDict(), tags)
-
-        for table in json:
+        def add_instance(table: Dict[str, str]) -> None:
             table_description = builder.client.call(
                 "dynamodb", "describe-global-table", "GlobalTableDescription", GlobalTableName=table["GlobalTableName"]
             )
             instance = cls.from_api(table_description)
             builder.add_node(instance, table_description)
             builder.submit_work(add_tags, instance)
+
+        def add_tags(table: AwsDynamoDbGlobalTable) -> None:
+            tags = builder.client.list("dynamodb", "list-tags-of-resource", "Tags", ResourceArn=table.arn)
+            if tags:
+                table.tags = bend(ToDict(), tags)
+
+        for table in json:
+            builder.submit_work(add_instance, table)
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(
