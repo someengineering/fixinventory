@@ -512,6 +512,15 @@ models: Dict[str, List[AwsResotoModel]] = {
     "kinesis": [
         # AwsResotoModel("list-streams", "StreamNames", "StreamDescription", prefix="Kinesis", prop_prefix="kinesis_"),
     ],
+    "kms": [
+        # AwsResotoModel(
+        #     "list-keys",
+        #     result_property="Keys",
+        #     result_shape="ListKeysResponse",
+        #     prefix="Kms",
+        #     prop_prefix="kms_"
+        # )
+    ],
     "lambda": [
         # AwsResotoModel(
         #     "list-functions",
