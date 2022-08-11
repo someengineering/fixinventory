@@ -3,15 +3,12 @@ from typing import ClassVar, Dict, Optional, List
 from attrs import define, field
 
 from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec
-from resotolib.json_bender import Bender, S, Bend, ForallBend, K, F
+from resotolib.json_bender import Bender, S, Bend, ForallBend, K
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.utils import ToDict
 from typing import Tuple, Type
 from datetime import datetime
-from resotolib.types import Json
 from resotolib.baseresources import BaseSnapshot
-from resoto_plugin_aws.resource.ec2 import AwsEc2Vpc, AwsEc2SecurityGroup, AwsEc2Subnet
-from resoto_plugin_aws.resource.iam import AwsIamRole
 
 
 class ElastiCacheTaggable:
@@ -42,7 +39,7 @@ class ElastiCacheTaggable:
 
 @define(eq=False, slots=False)
 class AwsElastiCacheEndpoint:
-    kind: ClassVar[str] = "aws_elasti_cache_endpoint"
+    kind: ClassVar[str] = "aws_elasticache_endpoint"
     mapping: ClassVar[Dict[str, Bender]] = {"address": S("Address"), "port": S("Port")}
     address: Optional[str] = field(default=None)
     port: Optional[int] = field(default=None)
@@ -50,7 +47,7 @@ class AwsElastiCacheEndpoint:
 
 @define(eq=False, slots=False)
 class AwsElastiCacheDestinationDetails:
-    kind: ClassVar[str] = "aws_elasti_cache_destination_details"
+    kind: ClassVar[str] = "aws_elasticache_destination_details"
     mapping: ClassVar[Dict[str, Bender]] = {
         "cloud_watch_logs_details": S("CloudWatchLogsDetails", "LogGroup"),
         "kinesis_firehose_details": S("KinesisFirehoseDetails", "DeliveryStream"),
@@ -61,7 +58,7 @@ class AwsElastiCacheDestinationDetails:
 
 @define(eq=False, slots=False)
 class AwsElastiCachePendingLogDeliveryConfiguration:
-    kind: ClassVar[str] = "aws_elasti_cache_pending_log_delivery_configuration"
+    kind: ClassVar[str] = "aws_elasticache_pending_log_delivery_configuration"
     mapping: ClassVar[Dict[str, Bender]] = {
         "log_type": S("LogType"),
         "destination_type": S("DestinationType"),
@@ -76,7 +73,7 @@ class AwsElastiCachePendingLogDeliveryConfiguration:
 
 @define(eq=False, slots=False)
 class AwsElastiCachePendingModifiedValues:
-    kind: ClassVar[str] = "aws_elasti_cache_pending_modified_values"
+    kind: ClassVar[str] = "aws_elasticache_pending_modified_values"
     mapping: ClassVar[Dict[str, Bender]] = {
         "num_cache_nodes": S("NumCacheNodes"),
         "cache_node_ids_to_remove": S("CacheNodeIdsToRemove", default=[]),
@@ -96,7 +93,7 @@ class AwsElastiCachePendingModifiedValues:
 
 @define(eq=False, slots=False)
 class AwsElastiCacheNotificationConfiguration:
-    kind: ClassVar[str] = "aws_elasti_cache_notification_configuration"
+    kind: ClassVar[str] = "aws_elasticache_notification_configuration"
     mapping: ClassVar[Dict[str, Bender]] = {"topic_arn": S("TopicArn"), "topic_status": S("TopicStatus")}
     topic_arn: Optional[str] = field(default=None)
     topic_status: Optional[str] = field(default=None)
@@ -104,7 +101,7 @@ class AwsElastiCacheNotificationConfiguration:
 
 @define(eq=False, slots=False)
 class AwsElastiCacheCacheSecurityGroupMembership:
-    kind: ClassVar[str] = "aws_elasti_cache_cache_security_group_membership"
+    kind: ClassVar[str] = "aws_elasticache_cache_security_group_membership"
     mapping: ClassVar[Dict[str, Bender]] = {
         "cache_security_group_name": S("CacheSecurityGroupName"),
         "status": S("Status"),
@@ -115,7 +112,7 @@ class AwsElastiCacheCacheSecurityGroupMembership:
 
 @define(eq=False, slots=False)
 class AwsElastiCacheCacheParameterGroupStatus:
-    kind: ClassVar[str] = "aws_elasti_cache_cache_parameter_group_status"
+    kind: ClassVar[str] = "aws_elasticache_cache_parameter_group_status"
     mapping: ClassVar[Dict[str, Bender]] = {
         "cache_parameter_group_name": S("CacheParameterGroupName"),
         "parameter_apply_status": S("ParameterApplyStatus"),
@@ -128,7 +125,7 @@ class AwsElastiCacheCacheParameterGroupStatus:
 
 @define(eq=False, slots=False)
 class AwsElastiCacheCacheNode:
-    kind: ClassVar[str] = "aws_elasti_cache_cache_node"
+    kind: ClassVar[str] = "aws_elasticache_cache_node"
     mapping: ClassVar[Dict[str, Bender]] = {
         "cache_node_id": S("CacheNodeId"),
         "cache_node_status": S("CacheNodeStatus"),
@@ -151,7 +148,7 @@ class AwsElastiCacheCacheNode:
 
 @define(eq=False, slots=False)
 class AwsElastiCacheSecurityGroupMembership:
-    kind: ClassVar[str] = "aws_elasti_cache_security_group_membership"
+    kind: ClassVar[str] = "aws_elasticache_security_group_membership"
     mapping: ClassVar[Dict[str, Bender]] = {"security_group_id": S("SecurityGroupId"), "status": S("Status")}
     security_group_id: Optional[str] = field(default=None)
     status: Optional[str] = field(default=None)
@@ -159,7 +156,7 @@ class AwsElastiCacheSecurityGroupMembership:
 
 @define(eq=False, slots=False)
 class AwsElastiCacheLogDeliveryConfiguration:
-    kind: ClassVar[str] = "aws_elasti_cache_log_delivery_configuration"
+    kind: ClassVar[str] = "aws_elasticache_log_delivery_configuration"
     mapping: ClassVar[Dict[str, Bender]] = {
         "log_type": S("LogType"),
         "destination_type": S("DestinationType"),
@@ -178,7 +175,7 @@ class AwsElastiCacheLogDeliveryConfiguration:
 
 @define(eq=False, slots=False)
 class AwsElastiCacheCacheCluster(ElastiCacheTaggable, AwsResource):
-    kind: ClassVar[str] = "aws_elasti_cache_cache_cluster"
+    kind: ClassVar[str] = "aws_elasticache_cache_cluster"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("elasticache", "describe-cache-clusters", "CacheClusters")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("CacheClusterId"),
@@ -188,7 +185,6 @@ class AwsElastiCacheCacheCluster(ElastiCacheTaggable, AwsResource):
         "ctime": S("CacheClusterCreateTime"),
         "mtime": K(None),
         "atime": K(None),
-        "cluster_cache_cluster_id": S("CacheClusterId"),
         "cluster_configuration_endpoint": S("ConfigurationEndpoint") >> Bend(AwsElastiCacheEndpoint.mapping),
         "cluster_client_download_landing_page": S("ClientDownloadLandingPage"),
         "cluster_cache_node_type": S("CacheNodeType"),
@@ -224,7 +220,6 @@ class AwsElastiCacheCacheCluster(ElastiCacheTaggable, AwsResource):
         "cluster_log_delivery_configurations": S("LogDeliveryConfigurations", default=[])
         >> ForallBend(AwsElastiCacheLogDeliveryConfiguration.mapping),
     }
-    cluster_cache_cluster_id: Optional[str] = field(default=None)
     cluster_configuration_endpoint: Optional[AwsElastiCacheEndpoint] = field(default=None)
     cluster_client_download_landing_page: Optional[str] = field(default=None)
     cluster_cache_node_type: Optional[str] = field(default=None)
@@ -254,10 +249,15 @@ class AwsElastiCacheCacheCluster(ElastiCacheTaggable, AwsResource):
     cluster_replication_group_log_delivery_enabled: Optional[bool] = field(default=None)
     cluster_log_delivery_configurations: List[AwsElastiCacheLogDeliveryConfiguration] = field(factory=list)
 
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(
+            service=self.api_spec.service, action="delete_cache_cluster", result_name=None, CacheClusterId=self.id
+        )
+
 
 @define(eq=False, slots=False)
 class AwsElastiCacheNodeGroupConfiguration:
-    kind: ClassVar[str] = "aws_elasti_cache_node_group_configuration"
+    kind: ClassVar[str] = "aws_elasticache_node_group_configuration"
     mapping: ClassVar[Dict[str, Bender]] = {
         "node_group_id": S("NodeGroupId"),
         "slots": S("Slots"),
@@ -278,7 +278,7 @@ class AwsElastiCacheNodeGroupConfiguration:
 
 @define(eq=False, slots=False)
 class AwsElastiCacheNodeSnapshot:
-    kind: ClassVar[str] = "aws_elasti_cache_node_snapshot"
+    kind: ClassVar[str] = "aws_elasticache_node_snapshot"
     mapping: ClassVar[Dict[str, Bender]] = {
         "cache_cluster_id": S("CacheClusterId"),
         "node_group_id": S("NodeGroupId"),
@@ -299,16 +299,15 @@ class AwsElastiCacheNodeSnapshot:
 
 @define(eq=False, slots=False)
 class AwsElastiCacheSnapshot(ElastiCacheTaggable, AwsResource, BaseSnapshot):
-    kind: ClassVar[str] = "aws_elasti_cache_snapshot"
+    kind: ClassVar[str] = "aws_elasticache_snapshot"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("elasticache", "describe-snapshots", "Snapshots")
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
-        "tags": S("Tags", default=[]) >> ToDict(),
+        "id": S("SnapshotName"),
         "name": S("SnapshotName"),
-        "ctime": K(None),
+        "arn": S("ARN"),
+        "ctime": S("CacheClusterCreateTime"),
         "mtime": K(None),
         "atime": K(None),
-        "snapshot_snapshot_name": S("SnapshotName"),
         "snapshot_replication_group_id": S("ReplicationGroupId"),
         "snapshot_replication_group_description": S("ReplicationGroupDescription"),
         "snapshot_cache_cluster_id": S("CacheClusterId"),
@@ -320,7 +319,6 @@ class AwsElastiCacheSnapshot(ElastiCacheTaggable, AwsResource, BaseSnapshot):
         "snapshot_num_cache_nodes": S("NumCacheNodes"),
         "snapshot_preferred_availability_zone": S("PreferredAvailabilityZone"),
         "snapshot_preferred_outpost_arn": S("PreferredOutpostArn"),
-        "snapshot_cache_cluster_create_time": S("CacheClusterCreateTime"),
         "snapshot_preferred_maintenance_window": S("PreferredMaintenanceWindow"),
         "snapshot_topic_arn": S("TopicArn"),
         "snapshot_port": S("Port"),
@@ -334,10 +332,8 @@ class AwsElastiCacheSnapshot(ElastiCacheTaggable, AwsResource, BaseSnapshot):
         "snapshot_automatic_failover": S("AutomaticFailover"),
         "snapshot_node_snapshots": S("NodeSnapshots", default=[]) >> ForallBend(AwsElastiCacheNodeSnapshot.mapping),
         "snapshot_kms_key_id": S("KmsKeyId"),
-        "snapshot_arn": S("ARN"),
         "snapshot_data_tiering": S("DataTiering"),
     }
-    snapshot_snapshot_name: Optional[str] = field(default=None)
     snapshot_replication_group_id: Optional[str] = field(default=None)
     snapshot_replication_group_description: Optional[str] = field(default=None)
     snapshot_cache_cluster_id: Optional[str] = field(default=None)
@@ -349,7 +345,6 @@ class AwsElastiCacheSnapshot(ElastiCacheTaggable, AwsResource, BaseSnapshot):
     snapshot_num_cache_nodes: Optional[int] = field(default=None)
     snapshot_preferred_availability_zone: Optional[str] = field(default=None)
     snapshot_preferred_outpost_arn: Optional[str] = field(default=None)
-    snapshot_cache_cluster_create_time: Optional[datetime] = field(default=None)
     snapshot_preferred_maintenance_window: Optional[str] = field(default=None)
     snapshot_topic_arn: Optional[str] = field(default=None)
     snapshot_port: Optional[int] = field(default=None)
@@ -363,13 +358,21 @@ class AwsElastiCacheSnapshot(ElastiCacheTaggable, AwsResource, BaseSnapshot):
     snapshot_automatic_failover: Optional[str] = field(default=None)
     snapshot_node_snapshots: List[AwsElastiCacheNodeSnapshot] = field(factory=list)
     snapshot_kms_key_id: Optional[str] = field(default=None)
-    snapshot_arn: Optional[str] = field(default=None)
     snapshot_data_tiering: Optional[str] = field(default=None)
+
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(
+            service=self.api_spec.service,
+            action="delete_snapshot",
+            result_name=None,
+            SnapshotName=self.name,
+        )
+        return True
 
 
 @define(eq=False, slots=False)
 class AwsElastiCacheGlobalReplicationGroupInfo:
-    kind: ClassVar[str] = "aws_elasti_cache_global_replication_group_info"
+    kind: ClassVar[str] = "aws_elasticache_global_replication_group_info"
     mapping: ClassVar[Dict[str, Bender]] = {
         "global_replication_group_id": S("GlobalReplicationGroupId"),
         "global_replication_group_member_role": S("GlobalReplicationGroupMemberRole"),
@@ -380,14 +383,14 @@ class AwsElastiCacheGlobalReplicationGroupInfo:
 
 @define(eq=False, slots=False)
 class AwsElastiCacheReshardingStatus:
-    kind: ClassVar[str] = "aws_elasti_cache_resharding_status"
+    kind: ClassVar[str] = "aws_elasticache_resharding_status"
     mapping: ClassVar[Dict[str, Bender]] = {"slot_migration": S("SlotMigration", "ProgressPercentage")}
     slot_migration: Optional[float] = field(default=None)
 
 
 @define(eq=False, slots=False)
 class AwsElastiCacheUserGroupsUpdateStatus:
-    kind: ClassVar[str] = "aws_elasti_cache_user_groups_update_status"
+    kind: ClassVar[str] = "aws_elasticache_user_groups_update_status"
     mapping: ClassVar[Dict[str, Bender]] = {
         "user_group_ids_to_add": S("UserGroupIdsToAdd", default=[]),
         "user_group_ids_to_remove": S("UserGroupIdsToRemove", default=[]),
@@ -398,7 +401,7 @@ class AwsElastiCacheUserGroupsUpdateStatus:
 
 @define(eq=False, slots=False)
 class AwsElastiCacheReplicationGroupPendingModifiedValues:
-    kind: ClassVar[str] = "aws_elasti_cache_replication_group_pending_modified_values"
+    kind: ClassVar[str] = "aws_elasticache_replication_group_pending_modified_values"
     mapping: ClassVar[Dict[str, Bender]] = {
         "primary_cluster_id": S("PrimaryClusterId"),
         "automatic_failover_status": S("AutomaticFailoverStatus"),
@@ -418,7 +421,7 @@ class AwsElastiCacheReplicationGroupPendingModifiedValues:
 
 @define(eq=False, slots=False)
 class AwsElastiCacheNodeGroupMember:
-    kind: ClassVar[str] = "aws_elasti_cache_node_group_member"
+    kind: ClassVar[str] = "aws_elasticache_node_group_member"
     mapping: ClassVar[Dict[str, Bender]] = {
         "cache_cluster_id": S("CacheClusterId"),
         "cache_node_id": S("CacheNodeId"),
@@ -437,7 +440,7 @@ class AwsElastiCacheNodeGroupMember:
 
 @define(eq=False, slots=False)
 class AwsElastiCacheNodeGroup:
-    kind: ClassVar[str] = "aws_elasti_cache_node_group"
+    kind: ClassVar[str] = "aws_elasticache_node_group"
     mapping: ClassVar[Dict[str, Bender]] = {
         "node_group_id": S("NodeGroupId"),
         "status": S("Status"),
@@ -456,7 +459,7 @@ class AwsElastiCacheNodeGroup:
 
 @define(eq=False, slots=False)
 class AwsElastiCacheReplicationGroup(ElastiCacheTaggable, AwsResource):
-    kind: ClassVar[str] = "aws_elasti_cache_replication_group"
+    kind: ClassVar[str] = "aws_elasticache_replication_group"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("elasticache", "describe-replication-groups", "ReplicationGroups")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("ReplicationGroupId"),
