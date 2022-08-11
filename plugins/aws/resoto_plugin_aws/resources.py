@@ -203,9 +203,9 @@ class AWSLambdaFunction(AWSResource, BaseServerlessFunction):
     }
 
     role: Optional[str] = None
-    runtime: str = None
-    code_size: int = None
-    memory_size: int = None
+    runtime: Optional[str] = None
+    code_size: Optional[int] = None
+    memory_size: Optional[int] = None
     kms_key_arn: Optional[str] = None
 
     def delete(self, graph: Graph) -> bool:
