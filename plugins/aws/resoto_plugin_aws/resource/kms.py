@@ -1,5 +1,6 @@
 from typing import ClassVar, Dict, List, Optional, Type
 from attrs import define, field
+from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
 from resotolib.baseresources import BaseAccessKey
 from resoto_plugin_aws.utils import ToDict
@@ -108,5 +109,17 @@ class AwsKmsKey(AwsResource, BaseAccessKey):
 
         for key in json:
             builder.submit_work(add_instance, key)
+    
+    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
+        client.call(service="kms", action="tag-resource", result_name=None, KeyId=self.id, Tags=[{"TagKey": key, "TagValue": value}])
+        return True
+
+    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
+        client.call(service="kms", action="untag-resource", result_name=None, KeyId=self.id, TagKeys=[key])
+        return True
+
+    # def delete_resource(self, client: AwsClient) -> bool:
+    #     client.call(service="kms", action="delete-queue", result_name=None, QueueUrl=self.sqs_queue_url)
+    #     return True
 
 resources: List[AwsResource] = [AwsKmsKey]
