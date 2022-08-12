@@ -9,6 +9,7 @@ from resoto_plugin_aws.utils import ToDict
 from typing import Type
 from datetime import datetime
 from resotolib.types import Json
+from resoto_plugin_aws.resource.ec2 import AwsEc2SecurityGroup
 
 
 class ElastiCacheTaggable:
@@ -271,6 +272,10 @@ class AwsElastiCacheCacheCluster(ElastiCacheTaggable, AwsResource):
             builder.add_node(instance, js)
             builder.submit_work(add_tags, instance)
 
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        for sg in self.cluster_security_groups:
+            builder.dependant_node(self, reverse=True, clazz=AwsEc2SecurityGroup, id=sg.security_group_id)
+
 
 @define(eq=False, slots=False)
 class AwsElastiCacheGlobalReplicationGroupInfo:
@@ -443,6 +448,14 @@ class AwsElastiCacheReplicationGroup(ElastiCacheTaggable, AwsResource):
             instance = cls.from_api(js)
             builder.add_node(instance, js)
             builder.submit_work(add_tags, instance)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        for cluster_name in self.replication_group_member_clusters:
+            builder.dependant_node(
+                self,
+                clazz=AwsElastiCacheCacheCluster,
+                name=cluster_name,
+            )
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
