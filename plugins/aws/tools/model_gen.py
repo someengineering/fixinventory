@@ -612,6 +612,15 @@ models: Dict[str, List[AwsResotoModel]] = {
     "pricing": [
         # AwsResotoModel("get-products", "PriceList", "PriceListItemJSON", prefix="Price", prop_prefix="price_")
     ],
+    "redshift": [
+        #     AwsResotoModel(
+        #         "describe-clusters",
+        #         "Clusters",
+        #         "Cluster",
+        #         prefix="Redshift",
+        #         prop_prefix="redshift_",
+        #     ),
+    ],
     "rds": [
         # AwsResotoModel("describe-db-instances", "Instances", "DBInstance", prefix="Rds", prop_prefix="rds_")
     ],

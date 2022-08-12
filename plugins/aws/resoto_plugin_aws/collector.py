@@ -24,6 +24,7 @@ from resoto_plugin_aws.resource import (
     s3,
     service_quotas,
     sqs,
+    redshift,
 )
 from resoto_plugin_aws.resource.base import AwsRegion, AwsAccount, AwsResource, GraphBuilder, ExecutorQueue
 from resotolib.baseresources import Cloud, EdgeType
@@ -48,6 +49,7 @@ regional_resources: List[Type[AwsResource]] = (
     + rds.resources
     + service_quotas.resources
     + sqs.resources
+    + redshift.resources
 )
 all_resources: List[Type[AwsResource]] = global_resources + regional_resources
 
