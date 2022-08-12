@@ -118,8 +118,9 @@ class AwsKmsKey(AwsResource, BaseAccessKey):
         client.call(service="kms", action="untag-resource", result_name=None, KeyId=self.id, TagKeys=[key])
         return True
 
-    # def delete_resource(self, client: AwsClient) -> bool:
-    #     client.call(service="kms", action="delete-queue", result_name=None, QueueUrl=self.sqs_queue_url)
-    #     return True
+    #  AWS warns of deleting keys outright as that is "a destructive and potentially dangerous operation"
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(service="kms", action="disable-key", result_name=None, KeyId=self.id)
+        return True
 
 resources: List[AwsResource] = [AwsKmsKey]
