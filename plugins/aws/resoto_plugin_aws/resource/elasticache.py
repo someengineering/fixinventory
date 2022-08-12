@@ -2,13 +2,13 @@ from typing import ClassVar, Dict, Optional, List
 
 from attrs import define, field
 
-from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec
-from resotolib.json_bender import Bender, S, Bend, ForallBend, K
+from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
+from resotolib.json_bender import Bender, S, Bend, ForallBend, K, bend
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.utils import ToDict
-from typing import Tuple, Type
+from typing import Type
 from datetime import datetime
-from resotolib.baseresources import BaseSnapshot
+from resotolib.types import Json
 
 
 class ElastiCacheTaggable:
@@ -245,7 +245,6 @@ class AwsElastiCacheCacheCluster(ElastiCacheTaggable, AwsResource):
     cluster_auth_token_last_modified_date: Optional[datetime] = field(default=None)
     cluster_transit_encryption_enabled: Optional[bool] = field(default=None)
     cluster_at_rest_encryption_enabled: Optional[bool] = field(default=None)
-    cluster_arn: Optional[str] = field(default=None)
     cluster_replication_group_log_delivery_enabled: Optional[bool] = field(default=None)
     cluster_log_delivery_configurations: List[AwsElastiCacheLogDeliveryConfiguration] = field(factory=list)
 
@@ -253,121 +252,24 @@ class AwsElastiCacheCacheCluster(ElastiCacheTaggable, AwsResource):
         client.call(
             service=self.api_spec.service, action="delete_cache_cluster", result_name=None, CacheClusterId=self.id
         )
-
-
-@define(eq=False, slots=False)
-class AwsElastiCacheNodeGroupConfiguration:
-    kind: ClassVar[str] = "aws_elasticache_node_group_configuration"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "node_group_id": S("NodeGroupId"),
-        "slots": S("Slots"),
-        "replica_count": S("ReplicaCount"),
-        "primary_availability_zone": S("PrimaryAvailabilityZone"),
-        "replica_availability_zones": S("ReplicaAvailabilityZones", default=[]),
-        "primary_outpost_arn": S("PrimaryOutpostArn"),
-        "replica_outpost_arns": S("ReplicaOutpostArns", default=[]),
-    }
-    node_group_id: Optional[str] = field(default=None)
-    slots: Optional[str] = field(default=None)
-    replica_count: Optional[int] = field(default=None)
-    primary_availability_zone: Optional[str] = field(default=None)
-    replica_availability_zones: List[str] = field(factory=list)
-    primary_outpost_arn: Optional[str] = field(default=None)
-    replica_outpost_arns: List[str] = field(factory=list)
-
-
-@define(eq=False, slots=False)
-class AwsElastiCacheNodeSnapshot:
-    kind: ClassVar[str] = "aws_elasticache_node_snapshot"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "cache_cluster_id": S("CacheClusterId"),
-        "node_group_id": S("NodeGroupId"),
-        "cache_node_id": S("CacheNodeId"),
-        "node_group_configuration": S("NodeGroupConfiguration") >> Bend(AwsElastiCacheNodeGroupConfiguration.mapping),
-        "cache_size": S("CacheSize"),
-        "cache_node_create_time": S("CacheNodeCreateTime"),
-        "snapshot_create_time": S("SnapshotCreateTime"),
-    }
-    cache_cluster_id: Optional[str] = field(default=None)
-    node_group_id: Optional[str] = field(default=None)
-    cache_node_id: Optional[str] = field(default=None)
-    node_group_configuration: Optional[AwsElastiCacheNodeGroupConfiguration] = field(default=None)
-    cache_size: Optional[str] = field(default=None)
-    cache_node_create_time: Optional[datetime] = field(default=None)
-    snapshot_create_time: Optional[datetime] = field(default=None)
-
-
-@define(eq=False, slots=False)
-class AwsElastiCacheSnapshot(ElastiCacheTaggable, AwsResource, BaseSnapshot):
-    kind: ClassVar[str] = "aws_elasticache_snapshot"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("elasticache", "describe-snapshots", "Snapshots")
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("SnapshotName"),
-        "name": S("SnapshotName"),
-        "arn": S("ARN"),
-        "ctime": S("CacheClusterCreateTime"),
-        "mtime": K(None),
-        "atime": K(None),
-        "snapshot_replication_group_id": S("ReplicationGroupId"),
-        "snapshot_replication_group_description": S("ReplicationGroupDescription"),
-        "snapshot_cache_cluster_id": S("CacheClusterId"),
-        "snapshot_snapshot_status": S("SnapshotStatus"),
-        "snapshot_snapshot_source": S("SnapshotSource"),
-        "snapshot_cache_node_type": S("CacheNodeType"),
-        "snapshot_engine": S("Engine"),
-        "snapshot_engine_version": S("EngineVersion"),
-        "snapshot_num_cache_nodes": S("NumCacheNodes"),
-        "snapshot_preferred_availability_zone": S("PreferredAvailabilityZone"),
-        "snapshot_preferred_outpost_arn": S("PreferredOutpostArn"),
-        "snapshot_preferred_maintenance_window": S("PreferredMaintenanceWindow"),
-        "snapshot_topic_arn": S("TopicArn"),
-        "snapshot_port": S("Port"),
-        "snapshot_cache_parameter_group_name": S("CacheParameterGroupName"),
-        "snapshot_cache_subnet_group_name": S("CacheSubnetGroupName"),
-        "snapshot_vpc_id": S("VpcId"),
-        "snapshot_auto_minor_version_upgrade": S("AutoMinorVersionUpgrade"),
-        "snapshot_snapshot_retention_limit": S("SnapshotRetentionLimit"),
-        "snapshot_snapshot_window": S("SnapshotWindow"),
-        "snapshot_num_node_groups": S("NumNodeGroups"),
-        "snapshot_automatic_failover": S("AutomaticFailover"),
-        "snapshot_node_snapshots": S("NodeSnapshots", default=[]) >> ForallBend(AwsElastiCacheNodeSnapshot.mapping),
-        "snapshot_kms_key_id": S("KmsKeyId"),
-        "snapshot_data_tiering": S("DataTiering"),
-    }
-    snapshot_replication_group_id: Optional[str] = field(default=None)
-    snapshot_replication_group_description: Optional[str] = field(default=None)
-    snapshot_cache_cluster_id: Optional[str] = field(default=None)
-    snapshot_snapshot_status: Optional[str] = field(default=None)
-    snapshot_snapshot_source: Optional[str] = field(default=None)
-    snapshot_cache_node_type: Optional[str] = field(default=None)
-    snapshot_engine: Optional[str] = field(default=None)
-    snapshot_engine_version: Optional[str] = field(default=None)
-    snapshot_num_cache_nodes: Optional[int] = field(default=None)
-    snapshot_preferred_availability_zone: Optional[str] = field(default=None)
-    snapshot_preferred_outpost_arn: Optional[str] = field(default=None)
-    snapshot_preferred_maintenance_window: Optional[str] = field(default=None)
-    snapshot_topic_arn: Optional[str] = field(default=None)
-    snapshot_port: Optional[int] = field(default=None)
-    snapshot_cache_parameter_group_name: Optional[str] = field(default=None)
-    snapshot_cache_subnet_group_name: Optional[str] = field(default=None)
-    snapshot_vpc_id: Optional[str] = field(default=None)
-    snapshot_auto_minor_version_upgrade: Optional[bool] = field(default=None)
-    snapshot_snapshot_retention_limit: Optional[int] = field(default=None)
-    snapshot_snapshot_window: Optional[str] = field(default=None)
-    snapshot_num_node_groups: Optional[int] = field(default=None)
-    snapshot_automatic_failover: Optional[str] = field(default=None)
-    snapshot_node_snapshots: List[AwsElastiCacheNodeSnapshot] = field(factory=list)
-    snapshot_kms_key_id: Optional[str] = field(default=None)
-    snapshot_data_tiering: Optional[str] = field(default=None)
-
-    def delete_resource(self, client: AwsClient) -> bool:
-        client.call(
-            service=self.api_spec.service,
-            action="delete_snapshot",
-            result_name=None,
-            SnapshotName=self.name,
-        )
         return True
+
+    @classmethod
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def add_tags(resource: AwsElastiCacheCacheCluster) -> None:
+            tags = builder.client.list(
+                resource.api_spec.service,
+                "list-tags-for-resource",
+                None,
+                ResourceName=resource.arn,
+            )
+            if tags:
+                resource.tags = bend(S("TagList", default=[]) >> ToDict(), tags[0])
+
+        for js in json:
+            instance = cls.from_api(js)
+            builder.add_node(instance, js)
+            builder.submit_work(add_tags, instance)
 
 
 @define(eq=False, slots=False)
@@ -496,7 +398,6 @@ class AwsElastiCacheReplicationGroup(ElastiCacheTaggable, AwsResource):
         >> ForallBend(AwsElastiCacheLogDeliveryConfiguration.mapping),
         "replication_group_data_tiering": S("DataTiering"),
     }
-    replication_group_replication_group_id: Optional[str] = field(default=None)
     replication_group_description: Optional[str] = field(default=None)
     replication_group_global_replication_group_info: Optional[AwsElastiCacheGlobalReplicationGroupInfo] = field(
         default=None
@@ -525,6 +426,23 @@ class AwsElastiCacheReplicationGroup(ElastiCacheTaggable, AwsResource):
     replication_group_user_group_ids: List[str] = field(factory=list)
     replication_group_log_delivery_configurations: List[AwsElastiCacheLogDeliveryConfiguration] = field(factory=list)
     replication_group_data_tiering: Optional[str] = field(default=None)
+
+    @classmethod
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def add_tags(resource: AwsElastiCacheReplicationGroup) -> None:
+            tags = builder.client.list(
+                resource.api_spec.service,
+                "list-tags-for-resource",
+                None,
+                ResourceName=resource.arn,
+            )
+            if tags:
+                resource.tags = bend(S("TagList", default=[]) >> ToDict(), tags[0])
+
+        for js in json:
+            instance = cls.from_api(js)
+            builder.add_node(instance, js)
+            builder.submit_work(add_tags, instance)
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(

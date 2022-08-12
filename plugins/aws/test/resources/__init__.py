@@ -66,7 +66,8 @@ class BotoFileClient:
         vals = vals[0:220] if len(vals) > 220 else vals
         action = action_name.replace("_", "-")
         service = service_name.replace("-", "_")
-        return os.path.abspath(os.path.dirname(__file__) + f"/files/{service}/{action}{vals}.json")
+        path = os.path.dirname(__file__) + f"/files/{service}/{action}{vals}.json"
+        return os.path.abspath(path)
 
     def __getattr__(self, action_name: str) -> Callable[[], Any]:
         def call_action(*args: Any, **kwargs: Any) -> Any:

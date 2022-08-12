@@ -1,0 +1,111 @@
+{
+    "CacheClusters": [
+        {
+            "CacheClusterId": "string",
+            "ConfigurationEndpoint": {
+                "Address": "string",
+                "Port": 123
+            },
+            "ClientDownloadLandingPage": "string",
+            "CacheNodeType": "string",
+            "Engine": "string",
+            "EngineVersion": "string",
+            "CacheClusterStatus": "string",
+            "NumCacheNodes": 123,
+            "PreferredAvailabilityZone": "string",
+            "PreferredOutpostArn": "string",
+            "CacheClusterCreateTime": "2015-02-12T23:00:00Z",
+            "PreferredMaintenanceWindow": "string",
+            "PendingModifiedValues": {
+                "NumCacheNodes": 123,
+                "CacheNodeIdsToRemove": [
+                    "string"
+                ],
+                "EngineVersion": "string",
+                "CacheNodeType": "string",
+                "AuthTokenStatus": "SETTING",
+                "LogDeliveryConfigurations": [
+                    {
+                        "LogType": "slow-log",
+                        "DestinationType": "cloudwatch-logs",
+                        "DestinationDetails": {
+                            "CloudWatchLogsDetails": {
+                                "LogGroup": "string"
+                            },
+                            "KinesisFirehoseDetails": {
+                                "DeliveryStream": "string"
+                            }
+                        },
+                        "LogFormat": "json"
+                    }
+                ]
+            },
+            "NotificationConfiguration": {
+                "TopicArn": "string",
+                "TopicStatus": "string"
+            },
+            "CacheSecurityGroups": [
+                {
+                    "CacheSecurityGroupName": "string",
+                    "Status": "string"
+                }
+            ],
+            "CacheParameterGroup": {
+                "CacheParameterGroupName": "string",
+                "ParameterApplyStatus": "string",
+                "CacheNodeIdsToReboot": [
+                    "string"
+                ]
+            },
+            "CacheSubnetGroupName": "string",
+            "CacheNodes": [
+                {
+                    "CacheNodeId": "string",
+                    "CacheNodeStatus": "string",
+                    "CacheNodeCreateTime": "2015-02-12T23:00:00Z",
+                    "Endpoint": {
+                        "Address": "string",
+                        "Port": 123
+                    },
+                    "ParameterGroupStatus": "string",
+                    "SourceCacheNodeId": "string",
+                    "CustomerAvailabilityZone": "string",
+                    "CustomerOutpostArn": "string"
+                }
+            ],
+            "AutoMinorVersionUpgrade": true,
+            "SecurityGroups": [
+                {
+                    "SecurityGroupId": "string",
+                    "Status": "string"
+                }
+            ],
+            "ReplicationGroupId": "string",
+            "SnapshotRetentionLimit": 123,
+            "SnapshotWindow": "string",
+            "AuthTokenEnabled": true,
+            "AuthTokenLastModifiedDate": "2015-02-12T23:00:00Z",
+            "TransitEncryptionEnabled": true,
+            "AtRestEncryptionEnabled": true,
+            "ARN": "foo-cluster",
+            "ReplicationGroupLogDeliveryEnabled": true,
+            "LogDeliveryConfigurations": [
+                {
+                    "LogType": "slow-log",
+                    "DestinationType": "cloudwatch-logs",
+                    "DestinationDetails": {
+                        "CloudWatchLogsDetails": {
+                            "LogGroup": "string"
+                        },
+                        "KinesisFirehoseDetails": {
+                            "DeliveryStream": "string"
+                        }
+                    },
+                    "LogFormat": "text",
+                    "Status": "active",
+                    "Message": "string"
+                }
+            ]
+        }
+    ]
+}

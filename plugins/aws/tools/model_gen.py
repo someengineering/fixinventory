@@ -477,14 +477,6 @@ models: Dict[str, List[AwsResotoModel]] = {
         #     prop_prefix="cluster_",
         # ),
         # AwsResotoModel(
-        #     "describe-snapshots",
-        #     "Snapshots",
-        #     "Snapshot",
-        #     base="BaseSnapshot",
-        #     prefix="ElastiCache",
-        #     prop_prefix="snapshot_",
-        # ),
-        # AwsResotoModel(
         #     "describe-replication-groups",
         #     "ReplicationGroups",
         #     "ReplicationGroup",
