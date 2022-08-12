@@ -2,7 +2,8 @@ from typing import ClassVar, Dict, List, Optional, Type
 from attrs import define, field
 from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
 from resotolib.baseresources import BaseAccessKey
-from resotolib.json_bender import Bend, Bender, S, ForallBend
+from resoto_plugin_aws.utils import ToDict
+from resotolib.json_bender import Bend, Bender, S, ForallBend, bend
 from resotolib.types import Json
 
 
@@ -98,12 +99,12 @@ class AwsKmsKey(AwsResource, BaseAccessKey):
             key_metadata = builder.client.call("kms", "describe-key", result_name="KeyMetadata", KeyId=key["KeyId"])
             instance = cls.from_api(key_metadata)
             builder.add_node(instance)
-            # builder.submit_work(add_tags, instance)
+            builder.submit_work(add_tags, instance)
 
-        # def add_tags(queue: AwsSqsQueue) -> None:
-        #     tags = builder.client.list("sqs", "list-queue-tags", result_name="Tags", QueueUrl=[queue.sqs_queue_url])
-        #     if tags:
-        #         queue.tags = cast(Dict[str, Optional[str]], tags)
+        def add_tags(key: AwsKmsKey) -> None:
+            tags = builder.client.list("kms", "list-resource-tags", result_name=None, KeyId=key.id)
+            if tags:
+                key.tags = bend(S("Tags", default=[]) >> ToDict(), tags[0])
 
         for key in json:
             builder.submit_work(add_instance, key)

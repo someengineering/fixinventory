@@ -1,0 +1,10 @@
+{
+    "Tags": [
+        {
+            "TagKey": "SomeKey",
+            "TagValue": "SomeValue"
+        }
+    ],
+    "NextMarker": "string",
+    "Truncated": false
+}
