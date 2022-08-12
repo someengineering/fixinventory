@@ -466,3 +466,6 @@ class AwsElastiCacheReplicationGroup(ElastiCacheTaggable, AwsResource):
             RetainPrimaryCluster=False,
         )
         return True
+
+
+resources: List[Type[AwsResource]] = [AwsElastiCacheReplicationGroup, AwsElastiCacheCacheCluster]
