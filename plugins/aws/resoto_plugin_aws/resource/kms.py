@@ -11,10 +11,7 @@ from resotolib.types import Json
 @define(eq=False, slots=False)
 class AwsKmsMultiRegionPrimaryKey:
     kind: ClassVar[str] = "aws_kms_multiregion_primary_key"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "arn": S("Arn"),
-        "region": S("Region")
-    }
+    mapping: ClassVar[Dict[str, Bender]] = {"arn": S("Arn"), "region": S("Region")}
     arn: Optional[str] = field(default=None)
     region: Optional[str] = field(default=None)
 
@@ -22,10 +19,7 @@ class AwsKmsMultiRegionPrimaryKey:
 @define(eq=False, slots=False)
 class AwsKmsMultiRegionReplicaKey:
     kind: ClassVar[str] = "aws_kms_multiregion_replica_key"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "arn": S("Arn"),
-        "region": S("Region")
-    }
+    mapping: ClassVar[Dict[str, Bender]] = {"arn": S("Arn"), "region": S("Region")}
     arn: Optional[str] = field(default=None)
     region: Optional[str] = field(default=None)
 
@@ -36,11 +30,11 @@ class AwsKmsMultiRegionConfig:
     mapping: ClassVar[Dict[str, Bender]] = {
         "multi_region_key_type": S("MultiRegionKeyType"),
         "primary_key": S("PrimaryKey") >> Bend(AwsKmsMultiRegionPrimaryKey.mapping),
-        "replica_keys": S("ReplicaKeys", default=[]) >> ForallBend(AwsKmsMultiRegionReplicaKey.mapping)
+        "replica_keys": S("ReplicaKeys", default=[]) >> ForallBend(AwsKmsMultiRegionReplicaKey.mapping),
     }
     multi_region_key_type: Optional[str] = field(default=None)
     primary_key: Optional[AwsKmsMultiRegionPrimaryKey] = field(default=None)
-    replica_keys: Optional[List[AwsKmsMultiRegionReplicaKey]] = field(factory=list)
+    replica_keys: Optional[List[str]] = field(factory=list)
 
 
 @define(eq=False, slots=False)
@@ -68,10 +62,10 @@ class AwsKmsKey(AwsResource, BaseAccessKey):
         "kms_custom_key_store_id": S("CustomKeyStoreId"),
         "kms_cloud_hsm_cluster_id": S("CloudHsmClusterId"),
         "kms_expiration_model": S("ExpirationModel"),
-        "kms_signing_algorithms" : S("SigningAlgorithms", default=[]),
+        "kms_signing_algorithms": S("SigningAlgorithms", default=[]),
         "kms_multiregion_configuration": S("MultiRegionConfiguration") >> Bend(AwsKmsMultiRegionConfig.mapping),
         "kms_pending_deletion_window_in_days": S("PendingDeletionWindowInDays"),
-        "kms_mac_algorithms": S("MacAlgorithms", default=[])
+        "kms_mac_algorithms": S("MacAlgorithms", default=[]),
     }
 
     kms_aws_account_id: str = field(default=None)
@@ -90,7 +84,7 @@ class AwsKmsKey(AwsResource, BaseAccessKey):
     kms_cloud_hsm_cluster_id: Optional[str] = field(default=None)
     kms_expiration_model: Optional[str] = field(default=None)
     kms_signing_algorithms: Optional[List[str]] = field(factory=list)
-    kms_multiregion_configuration: Optional[ AwsKmsMultiRegionConfig] = field(default=None)
+    kms_multiregion_configuration: Optional[AwsKmsMultiRegionConfig] = field(default=None)
     kms_pending_deletion_window_in_days: Optional[int] = field(default=None)
     kms_mac_algorithms: Optional[List[str]] = field(factory=list)
 
@@ -109,9 +103,15 @@ class AwsKmsKey(AwsResource, BaseAccessKey):
 
         for key in json:
             builder.submit_work(add_instance, key)
-    
+
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
-        client.call(service="kms", action="tag-resource", result_name=None, KeyId=self.id, Tags=[{"TagKey": key, "TagValue": value}])
+        client.call(
+            service="kms",
+            action="tag-resource",
+            result_name=None,
+            KeyId=self.id,
+            Tags=[{"TagKey": key, "TagValue": value}],
+        )
         return True
 
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
@@ -123,4 +123,5 @@ class AwsKmsKey(AwsResource, BaseAccessKey):
         client.call(service="kms", action="disable-key", result_name=None, KeyId=self.id)
         return True
 
-resources: List[AwsResource] = [AwsKmsKey]
+
+resources: List[Type[AwsResource]] = [AwsKmsKey]
