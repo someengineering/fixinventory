@@ -11,3 +11,4 @@ from resoto_plugin_aws.resource.kms import AwsKmsKey
 def test_keys() -> None:
     first, builder = round_trip_for(AwsKmsKey)
     assert len(builder.resources_of(AwsKmsKey)) == 2
+    assert len(first.tags) == 1
