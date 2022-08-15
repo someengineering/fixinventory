@@ -120,7 +120,9 @@ class AwsKmsKey(AwsResource, BaseAccessKey):
 
     def delete_resource(self, client: AwsClient) -> bool:
         if self.access_key_status == "Disabled":
-            client.call(service="kms", action="schedule-key-deletion", result_name=None, KeyId=self.id, PendingWindowInDays=7)
+            client.call(
+                service="kms", action="schedule-key-deletion", result_name=None, KeyId=self.id, PendingWindowInDays=7
+            )
             return True
         if self.access_key_status == "PendingDeletion":
             return True
