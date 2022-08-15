@@ -34,7 +34,7 @@ class AwsKmsMultiRegionConfig:
     }
     multi_region_key_type: Optional[str] = field(default=None)
     primary_key: Optional[AwsKmsMultiRegionPrimaryKey] = field(default=None)
-    replica_keys: Optional[List[str]] = field(factory=list)
+    replica_keys: Optional[List[AwsKmsMultiRegionReplicaKey]] = field(factory=list)
 
 
 @define(eq=False, slots=False)
@@ -90,7 +90,7 @@ class AwsKmsKey(AwsResource, BaseAccessKey):
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
-        def add_instance(key: str) -> None:
+        def add_instance(key: Dict[str, str]) -> None:
             key_metadata = builder.client.call("kms", "describe-key", result_name="KeyMetadata", KeyId=key["KeyId"])
             instance = cls.from_api(key_metadata)
             builder.add_node(instance)
