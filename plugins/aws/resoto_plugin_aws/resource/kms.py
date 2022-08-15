@@ -118,8 +118,13 @@ class AwsKmsKey(AwsResource, BaseAccessKey):
         client.call(service="kms", action="untag-resource", result_name=None, KeyId=self.id, TagKeys=[key])
         return True
 
-    #  AWS warns of deleting keys outright as that is "a destructive and potentially dangerous operation"
     def delete_resource(self, client: AwsClient) -> bool:
+        if self.access_key_status == "Disabled":
+            client.call(service="kms", action="schedule-key-deletion", result_name=None, KeyId=self.id, PendingWindowInDays=7)
+            return True
+        if self.access_key_status == "PendingDeletion":
+            return True
+
         client.call(service="kms", action="disable-key", result_name=None, KeyId=self.id)
         return True
 

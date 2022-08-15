@@ -41,3 +41,14 @@ def test_disable_keys() -> None:
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
     key.delete_resource(client)
+
+
+def test_delete_queues() -> None:
+    key, _ = round_trip_for(AwsKmsKey)
+
+    def validate_delete_args(**kwargs: Any) -> None:
+        assert kwargs["action"] == "disable-key"
+        assert kwargs["KeyId"] == key.id
+
+    client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
+    key.delete_resource(client)
