@@ -65,7 +65,9 @@ class AwsAccountCollector:
         self.client = AwsClient(config, account.id, role=account.role, profile=account.profile, region="us-east-1")
 
     def collect(self) -> None:
-        with ThreadPoolExecutor(thread_name_prefix=f"aws_{self.account.id}") as executor:
+        with ThreadPoolExecutor(
+            thread_name_prefix=f"aws_{self.account.id}", max_workers=self.config.region_pool_size
+        ) as executor:
             queue = ExecutorQueue(executor, self.account.name)
             queue.submit_work(self.update_account)
             builder = GraphBuilder(self.graph, self.cloud, self.account, self.global_region, self.client, queue)
