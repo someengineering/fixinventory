@@ -13,7 +13,7 @@ class DynamoDbTaggable:
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         if isinstance(self, AwsResource):
             client.call(
-                service=self.api_spec.service,
+                service="dynamodb",
                 action="tag-resource",
                 result_name=None,
                 ResourceArn=self.arn,
@@ -25,7 +25,7 @@ class DynamoDbTaggable:
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
         if isinstance(self, AwsResource):
             client.call(
-                service=self.api_spec.service,
+                service="dynamodb",
                 action="untag-resource",
                 result_name=None,
                 ResourceArn=self.arn,
