@@ -95,7 +95,7 @@ class OneLoginUser(OneLoginResource, BaseUser):
             company=user.company,
             department=user.department,
             title=user.title,
-            status=user.status,
+            status_code=user.status,
             member_of=user.member_of,
             samaccountname=user.samaccountname,
             userprincipalname=user.userprincipalname,
