@@ -50,6 +50,8 @@ def parse_commit(row: list[str]) -> Commit:
     brackets = re.findall("\\[([^]]+)]", msg)
     if len(brackets) == 2:
         component, group = brackets
+        if rewrite_group.get(component, component) in group_names:
+            group, component = brackets
     elif len(brackets) == 1:
         component, group = brackets[0], "feat"
     else:
