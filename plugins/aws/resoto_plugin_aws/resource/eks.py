@@ -5,9 +5,42 @@ from attrs import define, field
 
 from resoto_plugin_aws.resource.autoscaling import AwsAutoScalingGroup
 from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
-from resotolib.baseresources import BaseAccount, EdgeType  # noqa: F401
+from resoto_plugin_aws.resource.iam import AwsIamRole
+from resotolib.baseresources import BaseAccount, EdgeType, ModelReference  # noqa: F401
 from resotolib.json_bender import Bender, S, Bend, ForallBend
 from resotolib.types import Json
+from resoto_plugin_aws.aws_client import AwsClient
+
+
+# todo: annotate with no serialization annotation
+class EKSTaggable:
+    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
+        if isinstance(self, AwsResource):
+            if spec := self.api_spec:
+                client.call(
+                    service=spec.service,
+                    action="tag_resource",
+                    result_name=None,
+                    resourceArn=self.arn,
+                    tags=[{key: value}],
+                )
+                return True
+            return False
+        return False
+
+    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
+        if isinstance(self, AwsResource):
+            if spec := self.api_spec:
+                client.call(
+                    service=spec.service,
+                    action="untag_resource",
+                    result_name=None,
+                    resourceArn=self.arn,
+                    tagKeys=[key],
+                )
+                return True
+            return False
+        return False
 
 
 @define(eq=False, slots=False)
@@ -95,9 +128,13 @@ class AwsEksLaunchTemplateSpecification:
 
 
 @define(eq=False, slots=False)
-class AwsEksNodegroup(AwsResource):
+class AwsEksNodegroup(EKSTaggable, AwsResource):
     # Note: this resource is collected via AwsEksCluster
     kind: ClassVar[str] = "aws_eks_nodegroup"
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["aws_eks_cluster"], "delete": ["aws_eks_cluster", "aws_autoscaling_group"]},
+        "successors": {"default": ["aws_autoscaling_group"]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("nodegroupName"),
         "name": S("nodegroupName"),
@@ -124,6 +161,7 @@ class AwsEksNodegroup(AwsResource):
         "group_update_config": S("updateConfig") >> Bend(AwsEksNodegroupUpdateConfig.mapping),
         "group_launch_template": S("launchTemplate") >> Bend(AwsEksLaunchTemplateSpecification.mapping),
     }
+    cluster_name: Optional[str] = field(default=None)
     group_nodegroup_arn: Optional[str] = field(default=None)
     group_version: Optional[str] = field(default=None)
     group_release_version: Optional[str] = field(default=None)
@@ -145,9 +183,23 @@ class AwsEksNodegroup(AwsResource):
     group_launch_template: Optional[AwsEksLaunchTemplateSpecification] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if cluster_name := self.cluster_name:
+            builder.dependant_node(
+                self, clazz=AwsEksCluster, reverse=True, delete_same_as_default=True, name=cluster_name
+            )
         if self.group_resources:
             for arn in self.group_resources.auto_scaling_groups:
                 builder.dependant_node(self, clazz=AwsAutoScalingGroup, arn=arn)
+
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(
+            service="eks",
+            action="delete_nodegroup",
+            result_name=None,
+            clusterName=self.cluster_name,
+            nodegroupName=self.name,
+        )
+        return True
 
 
 @define(eq=False, slots=False)
@@ -237,13 +289,20 @@ class AwsEksConnectorConfig:
 
 
 @define(eq=False, slots=False)
-class AwsEksCluster(AwsResource):
+class AwsEksCluster(EKSTaggable, AwsResource):
     kind: ClassVar[str] = "aws_eks_cluster"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("eks", "list-clusters", "clusters")
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["aws_iam_role"],
+            "delete": [],
+        }
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name"),
         "tags": S("tags", default={}),
         "name": S("name"),
+        "arn": S("arn"),
         "ctime": S("createdAt"),
         "cluster_version": S("version"),
         "cluster_endpoint": S("endpoint"),
@@ -288,10 +347,13 @@ class AwsEksCluster(AwsResource):
                     if ng_json is not None:
                         ng = AwsEksNodegroup.from_api(ng_json)
                         builder.add_node(ng, ng_json)
-                        builder.dependant_node(cluster, node=ng)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        builder.add_edge(self, EdgeType.default, arn=self.cluster_role_arn)
+        builder.add_edge(self, EdgeType.default, clazz=AwsIamRole, arn=self.cluster_role_arn)
+
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(service=self.api_spec.service, action="delete_cluster", result_name=None, name=self.name)
+        return True
 
 
 resources: List[Type[AwsResource]] = [AwsEksNodegroup, AwsEksCluster]

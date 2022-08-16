@@ -1,0 +1,120 @@
+{
+    "ReplicationGroups": [
+        {
+            "ReplicationGroupId": "Foo",
+            "Description": "string",
+            "GlobalReplicationGroupInfo": {
+                "GlobalReplicationGroupId": "string",
+                "GlobalReplicationGroupMemberRole": "string"
+            },
+            "Status": "string",
+            "PendingModifiedValues": {
+                "PrimaryClusterId": "string",
+                "AutomaticFailoverStatus": "enabled",
+                "Resharding": {
+                    "SlotMigration": {
+                        "ProgressPercentage": 123.0
+                    }
+                },
+                "AuthTokenStatus": "SETTING",
+                "UserGroups": {
+                    "UserGroupIdsToAdd": [
+                        "string"
+                    ],
+                    "UserGroupIdsToRemove": [
+                        "string"
+                    ]
+                },
+                "LogDeliveryConfigurations": [
+                    {
+                        "LogType": "slow-log",
+                        "DestinationType": "cloudwatch-logs",
+                        "DestinationDetails": {
+                            "CloudWatchLogsDetails": {
+                                "LogGroup": "string"
+                            },
+                            "KinesisFirehoseDetails": {
+                                "DeliveryStream": "string"
+                            }
+                        },
+                        "LogFormat": "text"
+                    }
+                ]
+            },
+            "MemberClusters": [
+                "string"
+            ],
+            "NodeGroups": [
+                {
+                    "NodeGroupId": "string",
+                    "Status": "string",
+                    "PrimaryEndpoint": {
+                        "Address": "string",
+                        "Port": 123
+                    },
+                    "ReaderEndpoint": {
+                        "Address": "string",
+                        "Port": 123
+                    },
+                    "Slots": "string",
+                    "NodeGroupMembers": [
+                        {
+                            "CacheClusterId": "string",
+                            "CacheNodeId": "string",
+                            "ReadEndpoint": {
+                                "Address": "string",
+                                "Port": 123
+                            },
+                            "PreferredAvailabilityZone": "string",
+                            "PreferredOutpostArn": "string",
+                            "CurrentRole": "string"
+                        }
+                    ]
+                }
+            ],
+            "SnapshottingClusterId": "string",
+            "AutomaticFailover": "enabled",
+            "MultiAZ": "enabled",
+            "ConfigurationEndpoint": {
+                "Address": "string",
+                "Port": 123
+            },
+            "SnapshotRetentionLimit": 123,
+            "SnapshotWindow": "string",
+            "ClusterEnabled": false,
+            "CacheNodeType": "string",
+            "AuthTokenEnabled": false,
+            "AuthTokenLastModifiedDate": "2015-01-01T00:00:00.000Z",
+            "TransitEncryptionEnabled": false,
+            "AtRestEncryptionEnabled": false,
+            "MemberClustersOutpostArns": [
+                "string"
+            ],
+            "KmsKeyId": "string",
+            "ARN": "foo-rg",
+            "UserGroupIds": [
+                "string"
+            ],
+            "LogDeliveryConfigurations": [
+                {
+                    "LogType": "slow-log",
+                    "DestinationType": "cloudwatch-logs",
+                    "DestinationDetails": {
+                        "CloudWatchLogsDetails": {
+                            "LogGroup": "string"
+                        },
+                        "KinesisFirehoseDetails": {
+                            "DeliveryStream": "string"
+                        }
+                    },
+                    "LogFormat": "json",
+                    "Status": "active",
+                    "Message": "string"
+                }
+            ],
+            "ReplicationGroupCreateTime": "2015-01-01T00:00:00.000Z",
+            "DataTiering": "enabled",
+            "AutoMinorVersionUpgrade": false
+        }
+    ]
+}

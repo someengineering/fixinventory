@@ -6,11 +6,42 @@ from attr import define, field
 
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
-from resotolib.baseresources import BaseAccount  # noqa: F401
+from resotolib.baseresources import BaseAccount, ModelReference  # noqa: F401
 from resotolib.json import from_json
 from resotolib.json_bender import S, Bend, Bender, ForallBend, bend
 from resotolib.types import Json
 from resotolib.utils import chunks
+
+
+# todo: annotate with no serialization annotation
+class CloudwatchTaggable:
+    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
+        if isinstance(self, AwsResource):
+            if spec := self.api_spec:
+                client.call(
+                    service=spec.service,
+                    action="tag_resource",
+                    result_name=None,
+                    ResourceARN=self.arn,
+                    Tags=[{"Key": key, "Value": value}],
+                )
+                return True
+            return False
+        return False
+
+    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
+        if isinstance(self, AwsResource):
+            if spec := self.api_spec:
+                client.call(
+                    service=spec.service,
+                    action="untag_resource",
+                    result_name=None,
+                    ResourceARN=self.arn,
+                    TagKeys=[key],
+                )
+                return True
+            return False
+        return False
 
 
 @define(eq=False, slots=False)
@@ -71,9 +102,12 @@ class AwsCloudwatchMetricDataQuery:
 
 
 @define(eq=False, slots=False)
-class AwsCloudwatchAlarm(AwsResource):
+class AwsCloudwatchAlarm(CloudwatchTaggable, AwsResource):
     kind: ClassVar[str] = "aws_cloudwatch_alarm"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudwatch", "describe-alarms", "MetricAlarms")
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["aws_ec2_instance"], "delete": ["aws_ec2_instance"]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("AlarmName"),
         "name": S("AlarmName"),
@@ -133,7 +167,13 @@ class AwsCloudwatchAlarm(AwsResource):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
         for dimension in self.cloudwatch_dimensions:
-            builder.dependant_node(self, reverse=True, delete_reverse=True, kind="aws_ec2_instance", id=dimension.value)
+            builder.dependant_node(
+                self, reverse=True, delete_same_as_default=True, kind="aws_ec2_instance", id=dimension.value
+            )
+
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(service=self.api_spec.service, action="delete_alarms", result_name=None, AlarmNames=[self.name])
+        return True
 
 
 @define(hash=True, frozen=True)

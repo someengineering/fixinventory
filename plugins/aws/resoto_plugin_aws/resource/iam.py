@@ -4,6 +4,7 @@ from typing import ClassVar, Dict, Optional, Type, List, Any
 from attrs import define, field
 
 from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
+from resoto_plugin_aws.resource.ec2 import AwsEc2IamInstanceProfile
 from resoto_plugin_aws.utils import ToDict
 
 from resotolib.baseresources import (  # noqa: F401
@@ -13,10 +14,41 @@ from resotolib.baseresources import (  # noqa: F401
     BaseAccount,
     BaseAccessKey,
     BaseUser,
+    BaseInstanceProfile,
+    EdgeType,
+    ModelReference,
 )
 from resotolib.json import from_json
 from resotolib.json_bender import Bender, S, Bend, AsDate, Sort, bend, ForallBend
 from resotolib.types import Json
+from resotolib.graph import Graph
+from resoto_plugin_aws.aws_client import AwsClient
+
+
+def iam_update_tag(resource: AwsResource, client: AwsClient, action: str, key: str, value: str, **kwargs: Any) -> bool:
+    if spec := resource.api_spec:
+        client.call(
+            service=spec.service,
+            action=action,
+            result_name=None,
+            Tags=[{"Key": key, "Value": value}],
+            **kwargs,
+        )
+        return True
+    return False
+
+
+def iam_delete_tag(resource: AwsResource, client: AwsClient, action: str, key: str, **kwargs: Any) -> bool:
+    if spec := resource.api_spec:
+        client.call(
+            service=spec.service,
+            action=action,
+            result_name=None,
+            TagKeys=[key],
+            **kwargs,
+        )
+        return True
+    return False
 
 
 @define(eq=False, slots=False)
@@ -50,6 +82,12 @@ class AwsIamRoleLastUsed:
 class AwsIamRole(AwsResource):
     # Note: this resource is collected via AwsIamUser.collect.
     kind: ClassVar[str] = "aws_iam_role"
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["aws_iam_policy", "aws_iam_instance_profile"],
+            "delete": ["aws_iam_policy", "aws_iam_instance_profile"],
+        },
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("RoleId"),
         "tags": S("Tags", default=[]) >> ToDict(),
@@ -76,10 +114,62 @@ class AwsIamRole(AwsResource):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         # connect to instance profiles for this role
         for profile in bend(S("InstanceProfileList", default=[]), source):
-            builder.dependant_node(self, arn=profile["Arn"])
+            builder.dependant_node(
+                self, clazz=AwsEc2IamInstanceProfile, delete_same_as_default=True, arn=profile["Arn"]
+            )
         # connect to attached policies for this role
         for profile in bend(S("AttachedManagedPolicies", default=[]), source):
-            builder.dependant_node(self, arn=profile["PolicyArn"])
+            builder.dependant_node(self, clazz=AwsIamPolicy, delete_same_as_default=True, arn=profile["PolicyArn"])
+
+    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
+        return iam_update_tag(
+            resource=self,
+            client=client,
+            action="tag_role",
+            key=key,
+            value=value,
+            RoleName=self.name,
+        )
+
+    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
+        return iam_delete_tag(
+            resource=self,
+            client=client,
+            action="untag_role",
+            key=key,
+            RoleName=self.name,
+        )
+
+    def pre_delete_resource(self, client: AwsClient, graph: Graph) -> bool:
+
+        for successor in self.successors(graph, edge_type=EdgeType.delete):
+            if isinstance(successor, AwsIamPolicy):
+                log_msg = f"Detaching {successor.rtdname}"
+                self.log(log_msg)
+                client.call(
+                    service="iam",
+                    action="detach_role_policy",
+                    result_name=None,
+                    PolicyArn=successor.arn,
+                    RoleName=self.name,
+                )
+
+        for role_policy in self.role_policies:
+            log_msg = f"Deleting inline policy {role_policy}"
+            self.log(log_msg)
+            client.call(
+                service="iam",
+                action="delete_role_policy",
+                result_name=None,
+                PolicyName=role_policy.policy_name,
+                RoleName=self.name,
+            )
+
+        return True
+
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(service="iam", action="delete_role", result_name=None, RoleName=self.name)
+        return True
 
 
 @define(eq=False, slots=False)
@@ -96,6 +186,34 @@ class AwsIamServerCertificate(AwsResource, BaseCertificate):
         "expires": S("Expiration"),
     }
     path: Optional[str] = field(default=None)
+
+    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
+        return iam_update_tag(
+            resource=self,
+            client=client,
+            action="tag_server_certificate",
+            key=key,
+            value=value,
+            ServerCertificateName=self.name,
+        )
+
+    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
+        return iam_delete_tag(
+            resource=self,
+            client=client,
+            action="untag_server_certificate",
+            key=key,
+            ServerCertificateName=self.name,
+        )
+
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(
+            service=self.api_spec.service,
+            action="delete_server_certificate",
+            result_name=None,
+            ServerCertificateName=self.name,
+        )
+        return True
 
 
 @define(eq=False, slots=False)
@@ -123,11 +241,42 @@ class AwsIamPolicy(AwsResource, BasePolicy):
     policy_is_attachable: Optional[bool] = field(default=None)
     policy_description: Optional[str] = field(default=None)
 
+    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
+        return iam_update_tag(
+            resource=self,
+            client=client,
+            action="tag_policy",
+            key=key,
+            value=value,
+            PolicyArn=self.arn,
+        )
+
+    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
+        return iam_delete_tag(
+            resource=self,
+            client=client,
+            action="untag_policy",
+            key=key,
+            PolicyArn=self.arn,
+        )
+
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(
+            service="iam",
+            action="delete_policy",
+            result_name=None,
+            PolicyArn=self.arn,
+        )
+        return True
+
 
 @define(eq=False, slots=False)
 class AwsIamGroup(AwsResource, BaseGroup):
     # Note: this resource is collected via AwsIamUser.collect.
     kind: ClassVar[str] = "aws_iam_group"
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {"default": ["aws_iam_policy"], "delete": ["aws_iam_policy"]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("GroupId"),
         "tags": S("Tags", default=[]) >> ToDict(),
@@ -142,7 +291,43 @@ class AwsIamGroup(AwsResource, BaseGroup):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for policy in bend(S("AttachedManagedPolicies", default=[]), source):
-            builder.dependant_node(self, clazz=AwsIamPolicy, arn=policy.get("PolicyArn"))
+            builder.dependant_node(self, clazz=AwsIamPolicy, delete_same_as_default=True, arn=policy.get("PolicyArn"))
+
+    def pre_delete_resource(self, client: AwsClient, graph: Graph) -> bool:
+
+        for successor in self.successors(graph, edge_type=EdgeType.delete):
+            if isinstance(successor, AwsIamPolicy):
+                log_msg = f"Detaching {successor.rtdname}"
+                self.log(log_msg)
+                client.call(
+                    service="iam",
+                    action="detach_group_policy",
+                    result_name=None,
+                    GroupName=self.name,
+                    PolicyArn=successor.arn,
+                )
+
+        for group_policy in self.group_policies:
+            log_msg = f"Deleting inline policy {group_policy}"
+            self.log(log_msg)
+            client.call(
+                service="iam",
+                action="delete_group_policy",
+                result_name=None,
+                GroupName=self.name,
+                PolicyName=group_policy,
+            )
+
+        return True
+
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(
+            service="iam",
+            action="delete_group",
+            result_name=None,
+            GroupName=self.name,
+        )
+        return True
 
 
 @define(eq=False, slots=False)
@@ -181,6 +366,10 @@ class AwsIamAccessKey(AwsResource, BaseAccessKey):
 class AwsIamUser(AwsResource, BaseUser):
     kind: ClassVar[str] = "aws_iam_user"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("iam", "get-account-authorization-details")
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["aws_iam_group"]},
+        "successors": {"default": ["aws_iam_policy"], "delete": ["aws_iam_policy"]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("UserId"),
         "tags": S("Tags", default=[]) >> ToDict(),
@@ -225,10 +414,100 @@ class AwsIamUser(AwsResource, BaseUser):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for p in bend(S("AttachedManagedPolicies", default=[]), source):
-            builder.dependant_node(self, clazz=AwsIamPolicy, arn=p.get("PolicyArn"))
+            builder.dependant_node(self, clazz=AwsIamPolicy, delete_same_as_default=True, arn=p.get("PolicyArn"))
 
-        for g in bend(S("GroupList", default=[]), source):
-            builder.dependant_node(self, clazz=AwsIamGroup, arn=g.get("Arn"))
+        for arn in bend(S("GroupList", default=[]), source):
+            builder.add_edge(self, reverse=True, clazz=AwsIamGroup, arn=arn)
+
+    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
+        return iam_update_tag(resource=self, client=client, action="tag_user", key=key, value=value, UserName=self.name)
+
+    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
+        return iam_delete_tag(resource=self, client=client, action="untag_user", key=key, UserName=self.name)
+
+    def pre_delete_resource(self, client: AwsClient, graph: Graph) -> bool:
+        for successor in self.successors(graph, edge_type=EdgeType.delete):
+            if isinstance(successor, AwsIamPolicy):
+                log_msg = f"Detaching {successor.rtdname}"
+                self.log(log_msg)
+                client.call(
+                    service="iam",
+                    action="detach_user_policy",
+                    result_name=None,
+                    UserName=self.name,
+                    PolicyArn=successor.arn,
+                )
+
+        for user_policy in self.user_policies:
+            log_msg = f"Deleting inline policy {user_policy}"
+            self.log(log_msg)
+            client.call(
+                service="iam",
+                action="delete_user_policy",
+                result_name=None,
+                UserName=self.name,
+                PolicyName=user_policy.policy_name,
+            )
+
+        return True
+
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(service="iam", action="delete_user", result_name=None, UserName=self.name)
+        return True
 
 
-resources: List[Type[AwsResource]] = [AwsIamServerCertificate, AwsIamPolicy, AwsIamGroup, AwsIamRole, AwsIamUser]
+@define(eq=False, slots=False)
+class AwsIamInstanceProfile(AwsResource, BaseInstanceProfile):
+    kind: ClassVar[str] = "aws_iam_instance_profile"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("iam", "list-instance-profiles", "InstanceProfiles")
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("InstanceProfileId"),
+        "name": S("InstanceProfileName"),
+        "ctime": S("CreateDate"),
+        "arn": S("Arn"),
+        "instance_profile_path": S("Path"),
+    }
+    instance_profile_path: Optional[str] = field(default=None)
+
+    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
+        return iam_update_tag(
+            resource=self,
+            client=client,
+            action="tag_instance_profile",
+            key=key,
+            value=value,
+            InstanceProfileName=self.name,
+        )
+
+    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
+        return iam_delete_tag(
+            resource=self, client=client, action="untag_instance_profile", key=key, InstanceProfileName=self.name
+        )
+
+    def pre_delete_resource(self, client: AwsClient, graph: Graph) -> bool:
+        for predecessor in self.predecessors(graph, edge_type=EdgeType.delete):
+            if isinstance(predecessor, AwsIamRole):
+                log_msg = f"Detaching {predecessor.rtdname}"
+                self.log(log_msg)
+                client.call(
+                    service="iam",
+                    action="remove_role_from_instance_profile",
+                    result_name=None,
+                    RoleName=predecessor.name,
+                    InstanceProfileName=self.name,
+                )
+        return True
+
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(service="iam", action="delete_instance_profile", result_name=None, InstanceProfileName=self.name)
+        return True
+
+
+resources: List[Type[AwsResource]] = [
+    AwsIamServerCertificate,
+    AwsIamPolicy,
+    AwsIamGroup,
+    AwsIamRole,
+    AwsIamUser,
+    AwsIamInstanceProfile,
+]

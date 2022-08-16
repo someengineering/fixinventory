@@ -221,6 +221,14 @@ class BaseCollectorPlugin(BasePlugin):
         """Delete the tag of a resource"""
         return resource.delete_tag(key)
 
+    @staticmethod
+    def pre_cleanup(config: Config, resource: BaseResource, graph: Graph) -> bool:
+        return resource.pre_cleanup(graph)
+
+    @staticmethod
+    def cleanup(config: Config, resource: BaseResource, graph: Graph) -> bool:
+        return resource.cleanup(graph)
+
     def go(self) -> None:
         self.collect()
 

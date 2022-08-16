@@ -452,6 +452,38 @@ models: Dict[str, List[AwsResotoModel]] = {
         # ),
         # AwsResotoModel("describe-network-acls", "NetworkAcls", "NetworkAcl", prefix="Ec2"),
     ],
+    "elasticbeanstalk": [
+        # AwsResotoModel(
+        #     "describe-applications",
+        #     "Applications",
+        #     "ApplicationDescriptionsMessage",
+        #     prefix="Beanstalk",
+        #     prop_prefix="beanstalk_",
+        # ),
+        # AwsResotoModel(
+        #     "describe-environments",
+        #     "Environments",
+        #     "EnvironmentDescriptionsMessage",
+        #     prefix="Beanstalk",
+        #     prop_prefix="environment_"
+        # )
+    ],
+    "elasticache": [
+        # AwsResotoModel(
+        #     "describe-cache-clusters",
+        #     "CacheClusters",
+        #     "CacheCluster",
+        #     prefix="ElastiCache",
+        #     prop_prefix="cluster_",
+        # ),
+        # AwsResotoModel(
+        #     "describe-replication-groups",
+        #     "ReplicationGroups",
+        #     "ReplicationGroup",
+        #     prefix="ElastiCache",
+        #     prop_prefix="replication_group_",
+        # ),
+    ],
     "elb": [
         # AwsResotoModel(
         #     "describe-load-balancers",
@@ -493,6 +525,18 @@ models: Dict[str, List[AwsResotoModel]] = {
         # AwsResotoModel("list-clusters", "clusters", "Cluster", prefix="Eks", prop_prefix="cluster_"),
         # AwsResotoModel("list-nodegroups", "nodegroup", "Nodegroup", prefix="Eks", prop_prefix="group_"),
     ],
+    "kinesis": [
+        # AwsResotoModel("list-streams", "StreamNames", "StreamDescription", prefix="Kinesis", prop_prefix="kinesis_"),
+    ],
+    "lambda": [
+        # AwsResotoModel(
+        #     "list-functions",
+        #     "Functions",
+        #     "FunctionConfiguration",
+        #     prefix="Lambda",
+        #     prop_prefix="function_",
+        # )
+    ],
     "iam": [
         # AwsResotoModel(
         #     "list-server-certificates",
@@ -514,6 +558,13 @@ models: Dict[str, List[AwsResotoModel]] = {
         #     "GetAccountAuthorizationDetailsResponse",
         #     prefix="Iam",
         #     prop_prefix="policy_",
+        # ),
+        # AwsResotoModel(
+        #     "list-instance-profiles",
+        #     "InstanceProfiles",
+        #     "InstanceProfile",
+        #     prefix="Iam",
+        #     prop_prefix="instance_profile_",
         # ),
         # AwsResotoModel(
         #     "list-policies",
@@ -561,6 +612,15 @@ models: Dict[str, List[AwsResotoModel]] = {
     "pricing": [
         # AwsResotoModel("get-products", "PriceList", "PriceListItemJSON", prefix="Price", prop_prefix="price_")
     ],
+    "redshift": [
+        #     AwsResotoModel(
+        #         "describe-clusters",
+        #         "Clusters",
+        #         "Cluster",
+        #         prefix="Redshift",
+        #         prop_prefix="redshift_",
+        #     ),
+    ],
     "rds": [
         # AwsResotoModel("describe-db-instances", "Instances", "DBInstance", prefix="Rds", prop_prefix="rds_")
     ],
@@ -580,6 +640,11 @@ models: Dict[str, List[AwsResotoModel]] = {
     ],
     "service-quotas": [
         # AwsResotoModel("list-service-quotas", "Quotas", "ServiceQuota", prefix="Quota", prop_prefix="quota_")
+    ],
+    "sqs": [
+        # AwsResotoModel(
+        #     "get-queue-attributes", "Attributes", "GetQueueAttributesResult", prefix="Sqs", prop_prefix="sqs_"
+        # )
     ],
 }
 

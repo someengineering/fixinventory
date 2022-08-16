@@ -1,0 +1,62 @@
+{
+    "StreamDescription": {
+        "StreamName": "resoto-stream",
+        "StreamARN": "arn:aws:kinesis:us-east-1:12345678945:stream/resoto-stream",
+        "StreamStatus": "ACTIVE",
+        "StreamModeDetails": {
+            "StreamMode": "ON_DEMAND"
+        },
+        "Shards": [
+            {
+                "ShardId": "shardId-000000000000",
+                "HashKeyRange": {
+                    "StartingHashKey": "0",
+                    "EndingHashKey": "85070591730234615865843651857942052863"
+                },
+                "SequenceNumberRange": {
+                    "StartingSequenceNumber": "49632029048151921545657121635285968190685118571609063426"
+                }
+            },
+            {
+                "ShardId": "shardId-000000000001",
+                "HashKeyRange": {
+                    "StartingHashKey": "85070591730234615865843651857942052864",
+                    "EndingHashKey": "170141183460469231731687303715884105727"
+                },
+                "SequenceNumberRange": {
+                    "StartingSequenceNumber": "49632029048174222290855652258427503908957766933115043858"
+                }
+            },
+            {
+                "ShardId": "shardId-000000000002",
+                "HashKeyRange": {
+                    "StartingHashKey": "170141183460469231731687303715884105728",
+                    "EndingHashKey": "255211775190703847597530955573826158591"
+                },
+                "SequenceNumberRange": {
+                    "StartingSequenceNumber": "49632029048196523036054182881569039627230415294621024290"
+                }
+            },
+            {
+                "ShardId": "shardId-000000000003",
+                "HashKeyRange": {
+                    "StartingHashKey": "255211775190703847597530955573826158592",
+                    "EndingHashKey": "340282366920938463463374607431768211455"
+                },
+                "SequenceNumberRange": {
+                    "StartingSequenceNumber": "49632029048218823781252713504710575345503063656127004722"
+                }
+            }
+        ],
+        "HasMoreShards": false,
+        "RetentionPeriodHours": 24,
+        "StreamCreationTimestamp": "2022-08-04T13:11:44Z",
+        "EnhancedMonitoring": [
+            {
+                "ShardLevelMetrics": []
+            }
+        ],
+        "EncryptionType": "NONE",
+        "KeyId": "foo"
+    }
+}

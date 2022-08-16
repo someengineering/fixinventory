@@ -5,10 +5,42 @@ from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilde
 from resoto_plugin_aws.resource.cloudwatch import AwsCloudwatchQuery, AwsCloudwatchMetricData
 from resoto_plugin_aws.resource.ec2 import AwsEc2SecurityGroup, AwsEc2Subnet, AwsEc2Vpc
 from resoto_plugin_aws.utils import ToDict
-from resotolib.baseresources import BaseAccount, BaseDatabase  # noqa: F401
+from resotolib.baseresources import BaseAccount, BaseDatabase, ModelReference  # noqa: F401
 from resotolib.json_bender import F, K, S, Bend, Bender, ForallBend
 from resotolib.types import Json
 from resotolib.utils import utc
+from resoto_plugin_aws.aws_client import AwsClient
+
+
+# todo: annotate with no serialization annotation
+class RdsTaggable:
+    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
+        if isinstance(self, AwsResource):
+            if spec := self.api_spec:
+                client.call(
+                    service=spec.service,
+                    action="add_tags_to_resource",
+                    result_name=None,
+                    ResourceName=self.arn,
+                    Tags=[{"Key": key, "Value": value}],
+                )
+                return True
+            return False
+        return False
+
+    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
+        if isinstance(self, AwsResource):
+            if spec := self.api_spec:
+                client.call(
+                    service=spec.service,
+                    action="remove_tags_from_resource",
+                    result_name=None,
+                    ResourceName=self.arn,
+                    TagKeys=[key],
+                )
+                return True
+            return False
+        return False
 
 
 @define(eq=False, slots=False)
@@ -210,9 +242,15 @@ class AwsRdsTag:
 
 
 @define(eq=False, slots=False)
-class AwsRdsInstance(AwsResource, BaseDatabase):
+class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
     kind: ClassVar[str] = "aws_rds_instance"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("rds", "describe-db-instances", "DBInstances")
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {
+            "default": ["aws_vpc", "aws_ec2_security_group", "aws_ec2_subnet"],
+            "delete": ["aws_vpc", "aws_ec2_security_group", "aws_ec2_subnet"],
+        },
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("DBInstanceIdentifier"),
         "tags": S("TagList", default=[]) >> ForallBend(AwsRdsTag.mapping) >> ToDict(),
@@ -409,16 +447,32 @@ class AwsRdsInstance(AwsResource, BaseDatabase):
         super().connect_in_graph(builder, source)
         for group in self.rds_vpc_security_groups:
             builder.dependant_node(
-                self, reverse=True, delete_reverse=True, clazz=AwsEc2SecurityGroup, id=group.vpc_security_group_id
+                self,
+                reverse=True,
+                delete_same_as_default=True,
+                clazz=AwsEc2SecurityGroup,
+                id=group.vpc_security_group_id,
             )
         if self.rds_db_subnet_group and self.rds_db_subnet_group.vpc_id:
             builder.dependant_node(
-                self, reverse=True, delete_reverse=True, clazz=AwsEc2Vpc, id=self.rds_db_subnet_group.vpc_id
+                self, reverse=True, delete_same_as_default=True, clazz=AwsEc2Vpc, id=self.rds_db_subnet_group.vpc_id
             )
         if self.rds_db_subnet_group:
             for subnet in self.rds_db_subnet_group.subnets:
                 subnet_id = subnet.subnet_identifier
-                builder.dependant_node(self, reverse=True, delete_reverse=True, clazz=AwsEc2Subnet, id=subnet_id)
+                builder.dependant_node(
+                    self, reverse=True, delete_same_as_default=True, clazz=AwsEc2Subnet, id=subnet_id
+                )
+
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(
+            service=self.api_spec.service,
+            action="delete_db_instance",
+            result_name=None,
+            DBInstanceIdentifier=self.id,
+            SkipFinalSnapshot=True,
+        )
+        return True
 
 
 resources: List[Type[AwsResource]] = [AwsRdsInstance]

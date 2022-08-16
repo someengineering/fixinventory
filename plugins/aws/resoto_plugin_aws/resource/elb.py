@@ -5,9 +5,41 @@ from attrs import define, field
 from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
 from resoto_plugin_aws.resource.ec2 import AwsEc2Subnet, AwsEc2SecurityGroup, AwsEc2Vpc, AwsEc2Instance
 from resoto_plugin_aws.utils import ToDict
-from resotolib.baseresources import BaseLoadBalancer, EdgeType, BaseAccount  # noqa: F401
+from resotolib.baseresources import BaseLoadBalancer, EdgeType, BaseAccount, ModelReference  # noqa: F401
 from resotolib.json_bender import Bender, S, Bend, bend, ForallBend, K
 from resotolib.types import Json
+from resoto_plugin_aws.aws_client import AwsClient
+
+
+# todo: annotate with no serialization annotation
+class ElbTaggable:
+    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
+        if isinstance(self, AwsResource):
+            if spec := self.api_spec:
+                client.call(
+                    service=spec.service,
+                    action="add_tags",
+                    result_name=None,
+                    LoadBalancerNames=[self.name],
+                    Tags=[{"Key": key, "Value": value}],
+                )
+                return True
+            return False
+        return False
+
+    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
+        if isinstance(self, AwsResource):
+            if spec := self.api_spec:
+                client.call(
+                    service=spec.service,
+                    action="remove_tags",
+                    result_name=None,
+                    LoadBalancerNames=[self.name],
+                    Tags=[{"Key": key}],
+                )
+                return True
+            return False
+        return False
 
 
 @define(eq=False, slots=False)
@@ -109,9 +141,18 @@ class AwsElbSourceSecurityGroup:
 
 
 @define(eq=False, slots=False)
-class AwsElb(AwsResource, BaseLoadBalancer):
-    kind: ClassVar[str] = "aws_elb_load_balancer_description"
+class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
+    kind: ClassVar[str] = "aws_elb"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("elb", "describe-load-balancers", "LoadBalancerDescriptions")
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {
+            "default": ["aws_vpc", "aws_ec2_subnet", "aws_ec2_security_group"],
+            "delete": ["aws_vpc", "aws_ec2_subnet", "aws_ec2_instance"],
+        },
+        "successors": {
+            "default": ["aws_ec2_instance"],
+        },
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("DNSName"),
         "name": S("LoadBalancerName"),
@@ -155,13 +196,19 @@ class AwsElb(AwsResource, BaseLoadBalancer):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
         if vpc_id := source.get("VPCId"):
-            builder.dependant_node(self, reverse=True, delete_reverse=True, clazz=AwsEc2Vpc, id=vpc_id)
+            builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsEc2Vpc, id=vpc_id)
         for subnet_id in source.get("Subnets", []):
-            builder.dependant_node(self, reverse=True, delete_reverse=True, clazz=AwsEc2Subnet, id=subnet_id)
+            builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsEc2Subnet, id=subnet_id)
         for sg_id in source.get("SecurityGroups", []):
             builder.add_edge(self, EdgeType.default, reverse=True, clazz=AwsEc2SecurityGroup, id=sg_id)
         for instance in self.backends:
-            builder.dependant_node(self, reverse=True, clazz=AwsEc2Instance, id=instance)
+            builder.dependant_node(self, clazz=AwsEc2Instance, id=instance)
+
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(
+            service=self.api_spec.service, action="delete_load_balancer", result_name=None, LoadBalancerName=self.name
+        )
+        return True
 
 
 resources: List[Type[AwsResource]] = [AwsElb]
