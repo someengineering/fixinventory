@@ -49,7 +49,6 @@ def test_delete_tables() -> None:
 def test_global_tables() -> None:
     first, builder = round_trip_for(AwsDynamoDbGlobalTable)
     assert len(builder.resources_of(AwsDynamoDbGlobalTable)) == 1
-    # assert len(first.tags) == 1
 
 
 def test_tagging_global_tables() -> None:
