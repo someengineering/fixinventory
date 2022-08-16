@@ -1,3 +1,3 @@
-resotolib==2.4.0a0
+resotolib==2.5.0a0
 slack-sdk==3.16.0
 retrying==1.3.3
