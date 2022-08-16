@@ -1,6 +1,5 @@
 from typing import Type
 
-import pytest
 from networkx import DiGraph, is_directed_acyclic_graph
 
 from resoto_plugin_aws.collector import AwsAccountCollector, all_resources
@@ -31,7 +30,6 @@ def test_collect() -> None:
         assert count_kind(resource) > 0, "No instances of {} found".format(resource.__name__)
 
 
-@pytest.mark.skipif(True, reason="Enable this once the old collector is gone")
 def test_dependencies() -> None:
     model = dataclasses_to_resotocore_model({AwsResource})
 
