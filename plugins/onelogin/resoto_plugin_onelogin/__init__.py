@@ -46,7 +46,7 @@ class OneLoginUser(OneLoginResource, BaseUser):
     company: Optional[str] = None
     department: Optional[str] = None
     title: Optional[str] = None
-    status: Optional[int] = None
+    status_code: Optional[int] = None
     member_of: Optional[str] = None
     samaccountname: Optional[str] = None
     userprincipalname: Optional[str] = None
