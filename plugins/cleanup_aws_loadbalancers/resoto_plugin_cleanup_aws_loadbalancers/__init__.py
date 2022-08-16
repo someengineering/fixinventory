@@ -64,7 +64,7 @@ class CleanupAWSLoadbalancersPlugin(BaseActionPlugin):
             region = node.region(graph)
 
             if (
-                isinstance(node, AwsAlb)
+                isinstance(node, AwsElb)
                 and len(
                     [
                         i
