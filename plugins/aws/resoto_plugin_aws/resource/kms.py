@@ -34,7 +34,7 @@ class AwsKmsMultiRegionConfig:
     }
     multi_region_key_type: Optional[str] = field(default=None)
     primary_key: Optional[AwsKmsMultiRegionPrimaryKey] = field(default=None)
-    replica_keys: Optional[List[AwsKmsMultiRegionReplicaKey]] = field(factory=list)
+    replica_keys: List[AwsKmsMultiRegionReplicaKey] = field(factory=list)
 
 
 @define(eq=False, slots=False)
@@ -83,10 +83,10 @@ class AwsKmsKey(AwsResource, BaseAccessKey):
     kms_custom_key_store_id: Optional[str] = field(default=None)
     kms_cloud_hsm_cluster_id: Optional[str] = field(default=None)
     kms_expiration_model: Optional[str] = field(default=None)
-    kms_signing_algorithms: Optional[List[str]] = field(factory=list)
+    kms_signing_algorithms: List[str] = field(factory=list)
     kms_multiregion_configuration: Optional[AwsKmsMultiRegionConfig] = field(default=None)
     kms_pending_deletion_window_in_days: Optional[int] = field(default=None)
-    kms_mac_algorithms: Optional[List[str]] = field(factory=list)
+    kms_mac_algorithms: List[str] = field(factory=list)
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
