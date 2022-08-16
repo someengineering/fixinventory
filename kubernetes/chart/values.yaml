@@ -56,6 +56,14 @@ resotometrics:
   extraArgs: [ ]
   # Use this section to pass extra environment variables
   extraEnv: [ ]
+  # Prometheus serviceMonitor configuration
+  serviceMonitor:
+    # Whether a Prometheus serviceMonitor should be created
+    enabled: false
+    # Metrics scrape interval
+    interval: 30s
+    # Metrics scrape timeout
+    scrapeTimeout: 25s
 
 resotocore:
   service:
