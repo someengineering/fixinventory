@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import ClassVar, Dict, List, Optional, Type
+from typing import ClassVar, Dict, List, Optional, Type, Union
 from attrs import define, field
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
@@ -289,24 +289,10 @@ class AwsDynamoDbTable(AwsResource):
             )
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
-        client.call(
-            service=self.api_spec.service,
-            action="tag-resource",
-            result_name=None,
-            ResourceArn=self.arn,
-            Tags=[{"Key": key, "Value": value}],
-        )
-        return True
+        return DynamoDbTag.update_resource_tag(self, client, key, value)
 
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
-        client.call(
-            service=self.api_spec.service,
-            action="untag-resource",
-            result_name=None,
-            ResourceArn=self.arn,
-            TagKeys=[key],
-        )
-        return True
+        return DynamoDbTag.delete_resource_tag(self, client, key)
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(service=self.api_spec.service, action="delete-table", result_name=None, TableName=self.name)
@@ -349,27 +335,42 @@ class AwsDynamoDbGlobalTable(AwsResource):
             builder.submit_work(add_instance, table)
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
+        return DynamoDbTag.update_resource_tag(self, client, key, value)
+
+    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
+        return DynamoDbTag.delete_resource_tag(self, client, key)
+
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(service=self.api_spec.service, action="delete-table", result_name=None, TableName=self.name)
+        return True
+
+
+@define(eq=False, slots=False)
+class DynamoDbTag:
+    @staticmethod
+    def update_resource_tag(
+        instance: Union[AwsDynamoDbTable, AwsDynamoDbGlobalTable], client: AwsClient, key: str, value: str
+    ) -> bool:
         client.call(
-            service=self.api_spec.service,
+            service=instance.api_spec.service,
             action="tag-resource",
             result_name=None,
-            ResourceArn=self.arn,
+            ResourceArn=instance.arn,
             Tags=[{"Key": key, "Value": value}],
         )
         return True
 
-    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
+    @staticmethod
+    def delete_resource_tag(
+        instance: Union[AwsDynamoDbTable, AwsDynamoDbGlobalTable], client: AwsClient, key: str
+    ) -> bool:
         client.call(
-            service=self.api_spec.service,
+            service=instance.api_spec.service,
             action="untag-resource",
             result_name=None,
-            ResourceArn=self.arn,
+            ResourceArn=instance.arn,
             TagKeys=[key],
         )
-        return True
-
-    def delete_resource(self, client: AwsClient) -> bool:
-        client.call(service=self.api_spec.service, action="delete-table", result_name=None, TableName=self.name)
         return True
 
 
