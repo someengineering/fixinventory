@@ -212,7 +212,7 @@ class AwsDynamoDbArchivalSummary:
 
 
 @define(eq=False, slots=False)
-class AwsDynamoDbTable(AwsResource):
+class AwsDynamoDbTable(DynamoDbTaggable, AwsResource):
     kind: ClassVar[str] = "aws_dynamo_db_table"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("dynamodb", "list-tables", "TableNames")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -288,19 +288,13 @@ class AwsDynamoDbTable(AwsResource):
                 arn=self.dynamodb_latest_stream_arn,
             )
 
-    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
-        return DynamoDbTag.update_resource_tag(self, client, key, value)
-
-    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
-        return DynamoDbTag.delete_resource_tag(self, client, key)
-
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(service=self.api_spec.service, action="delete-table", result_name=None, TableName=self.name)
         return True
 
 
 @define(eq=False, slots=False)
-class AwsDynamoDbGlobalTable(AwsResource):
+class AwsDynamoDbGlobalTable(DynamoDbTaggable, AwsResource):
     kind: ClassVar[str] = "aws_dynamo_db_global_table"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("dynamodb", "list-global-tables", "GlobalTables")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -334,44 +328,34 @@ class AwsDynamoDbGlobalTable(AwsResource):
         for table in json:
             builder.submit_work(add_instance, table)
 
-    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
-        return DynamoDbTag.update_resource_tag(self, client, key, value)
-
-    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
-        return DynamoDbTag.delete_resource_tag(self, client, key)
-
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(service=self.api_spec.service, action="delete-table", result_name=None, TableName=self.name)
         return True
 
 
 @define(eq=False, slots=False)
-class DynamoDbTag:
-    @staticmethod
-    def update_resource_tag(
-        instance: Union[AwsDynamoDbTable, AwsDynamoDbGlobalTable], client: AwsClient, key: str, value: str
-    ) -> bool:
-        client.call(
-            service=instance.api_spec.service,
-            action="tag-resource",
-            result_name=None,
-            ResourceArn=instance.arn,
-            Tags=[{"Key": key, "Value": value}],
-        )
-        return True
+class DynamoDbTaggable:
+    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
+        if isinstance(self, AwsResource):
+            client.call(
+                service=self.api_spec.service,
+                action="tag-resource",
+                result_name=None,
+                ResourceArn=self.arn,
+                Tags=[{"Key": key, "Value": value}],
+            )
+            return True
 
-    @staticmethod
-    def delete_resource_tag(
-        instance: Union[AwsDynamoDbTable, AwsDynamoDbGlobalTable], client: AwsClient, key: str
-    ) -> bool:
-        client.call(
-            service=instance.api_spec.service,
-            action="untag-resource",
-            result_name=None,
-            ResourceArn=instance.arn,
-            TagKeys=[key],
-        )
-        return True
+    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
+        if isinstance(self, AwsResource):
+            client.call(
+                service=self.api_spec.service,
+                action="untag-resource",
+                result_name=None,
+                ResourceArn=self.arn,
+                TagKeys=[key],
+            )
+            return True
 
 
 global_resources: List[Type[AwsResource]] = [AwsDynamoDbGlobalTable]
