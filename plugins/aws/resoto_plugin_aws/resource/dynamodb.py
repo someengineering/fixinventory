@@ -333,7 +333,6 @@ class AwsDynamoDbGlobalTable(DynamoDbTaggable, AwsResource):
         return True
 
 
-@define(eq=False, slots=False)
 class DynamoDbTaggable:
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         if isinstance(self, AwsResource):
@@ -345,6 +344,7 @@ class DynamoDbTaggable:
                 Tags=[{"Key": key, "Value": value}],
             )
             return True
+        return False
 
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
         if isinstance(self, AwsResource):
@@ -356,6 +356,7 @@ class DynamoDbTaggable:
                 TagKeys=[key],
             )
             return True
+        return False
 
 
 global_resources: List[Type[AwsResource]] = [AwsDynamoDbGlobalTable]
