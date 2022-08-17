@@ -11,7 +11,7 @@ def read(fname):
 
 setup(
     name="resoto-plugin-onelogin",
-    version="2.4.0a0",
+    version="2.5.0a0",
     description="Resoto OneLogin Plugin",
     license="Apache 2.0",
     packages=find_packages(),
