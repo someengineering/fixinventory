@@ -71,13 +71,13 @@ class AwsBeanstalkApplication(AwsResource):
         "ctime": S("DateCreated"),
         "mtime": S("DateUpdated"),
         "arn": S("ApplicationArn"),
-        "beanstalk_description": S("Description"),
+        "description": S("Description"),
         "beanstalk_versions": S("Versions", default=[]),
         "beanstalk_configuration_templates": S("ConfigurationTemplates", default=[]),
         "beanstalk_resource_lifecycle_config": S("ResourceLifecycleConfig")
         >> Bend(AwsBeanstalkApplicationResourceLifecycleConfig.mapping),
     }
-    beanstalk_description: Optional[str] = field(default=None)
+    description: Optional[str] = field(default=None)
     beanstalk_versions: List[str] = field(factory=list)
     beanstalk_configuration_templates: List[str] = field(factory=list)
     beanstalk_resource_lifecycle_config: Optional[AwsBeanstalkApplicationResourceLifecycleConfig] = field(default=None)
@@ -203,12 +203,12 @@ class AwsBeanstalkEnvironment(AwsResource):
         "ctime": S("DateCreated"),
         "mtime": S("DateUpdated"),
         "arn": S("EnvironmentArn"),
+        "description": S("Description"),
         "beanstalk_application_name": S("ApplicationName"),
         "beanstalk_version_label": S("VersionLabel"),
         "beanstalk_solution_stack_name": S("SolutionStackName"),
         "beanstalk_platform_arn": S("PlatformArn"),
         "beanstalk_template_name": S("TemplateName"),
-        "beanstalk_description": S("Description"),
         "beanstalk_endpoint_url": S("EndpointURL"),
         "beanstalk_cname": S("CNAME"),
         "beanstalk_status": S("Status"),
@@ -220,12 +220,12 @@ class AwsBeanstalkEnvironment(AwsResource):
         >> ForallBend(AwsBeanstalkEnvironmentLink.mapping),
         "beanstalk_operations_role": S("OperationsRole"),
     }
+    description: Optional[str] = field(default=None)
     beanstalk_application_name: Optional[str] = field(default=None)
     beanstalk_version_label: Optional[str] = field(default=None)
     beanstalk_solution_stack_name: Optional[str] = field(default=None)
     beanstalk_platform_arn: Optional[str] = field(default=None)
     beanstalk_template_name: Optional[str] = field(default=None)
-    beanstalk_description: Optional[str] = field(default=None)
     beanstalk_endpoint_url: Optional[str] = field(default=None)
     beanstalk_cname: Optional[str] = field(default=None)
     beanstalk_status: Optional[str] = field(default=None)
