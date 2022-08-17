@@ -1,11 +1,19 @@
+import time
 from functools import lru_cache
 import logging
 
 import botocore.exceptions
 import multiprocessing
-from resotolib.baseresources import BaseResource
+from resotolib.baseresources import (
+    BaseResource,
+    metrics_resource_cleanup_exceptions,
+    BaseAccount,
+    BaseRegion,
+    metrics_resource_pre_cleanup_exceptions,
+)
 import resotolib.proc
 import resotolib.logger
+from resotolib.baseresources import Cloud
 from resotolib.logger import log, setup_logger
 from concurrent import futures
 from resotolib.args import ArgumentParser
@@ -16,10 +24,10 @@ from resotolib.utils import log_runtime
 from resotolib.baseplugin import BaseCollectorPlugin
 from .config import AwsConfig
 from .utils import aws_session
-from .resources import AWSAccount, AWSResource
-from .accountcollector import AWSAccountCollector
+from .resource.base import AwsAccount, AwsResource
+from .collector import AwsAccountCollector
 from prometheus_client import Summary, Counter
-from typing import List, Optional, cast
+from typing import List, Optional
 from resoto_plugin_aws.aws_client import AwsClient
 
 
@@ -99,151 +107,135 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
     @staticmethod
     def update_tag(config: Config, resource: BaseResource, key: str, value: str) -> bool:
         """Update the tag of a resource"""
-        if isinstance(resource, AWSResource):  # backwards compatibility with the existing collector
-            return resource.update_tag(key, value)
-
-        # TODO: uncomment me when new collector is used
-        # if isinstance(resource, AwsResource):
-        #     cache_key = int(time.time() / 600)  # 10 minutes
-        #     client = get_client(cache_key, config, resource, "Tag update is not possible")
-        #     return resource.update_resource_tag(client, key, value)
+        if isinstance(resource, AwsResource):
+            cache_key = int(time.time() / 600)  # 10 minutes
+            client = get_client(cache_key, config, resource, "Tag update is not possible")
+            return resource.update_resource_tag(client, key, value)
 
         raise RuntimeError(f"Unsupported resource type: {resource.rtdname}")
 
     @staticmethod
     def delete_tag(config: Config, resource: BaseResource, key: str) -> bool:
         """Delete the tag of a resource"""
-        if isinstance(resource, AWSResource):  # backwards compatibility with the existing collector
-            return resource.delete_tag(key)
-
-        # TODO: uncomment me when new collector is used
-        # if isinstance(resource, AwsResource):
-        #     cache_key = int(time.time() / 600)  # 10 minutes
-        #     client = get_client(cache_key, config, resource, "Tag deletion is not possible")
-        #     return resource.delete_resource_tag(client, key)
+        if isinstance(resource, AwsResource):
+            cache_key = int(time.time() / 600)  # 10 minutes
+            client = get_client(cache_key, config, resource, "Tag deletion is not possible")
+            return resource.delete_resource_tag(client, key)
 
         raise RuntimeError(f"Unsupported resource type: {resource.rtdname}")
 
     @staticmethod
     def pre_cleanup(config: Config, resource: BaseResource, graph: Graph) -> bool:
-        if isinstance(resource, AWSResource):  # backwards compatibility with the existing collector
-            return cast(bool, resource.pre_cleanup(graph))  # mypy thinks this isn't a bool
+        if isinstance(resource, AwsResource):
+            cache_key = int(time.time() / 600)  # 10 minutes
+            client = get_client(cache_key, config, resource, "Pre-cleanup is not possible")
 
-        # TODO: uncomment me when new collector is used
-        # if isinstance(resource, AwsResource):
-        #     cache_key = int(time.time() / 600)  # 10 minutes
-        #     client = get_client(cache_key, config, resource, "Pre-cleanup is not possible")
-        #
-        #     if not hasattr(resource, "pre_delete_resource"):
-        #         return True
-        #
-        #     if graph is None:
-        #         graph = resource._graph
-        #
-        #     if resource.protected:
-        #         log.error(f"Resource {resource.rtdname} is protected - refusing modification")
-        #         resource.log(("Modification was requested even though resource is protected" " - refusing"))
-        #         return False
-        #
-        #     if resource.phantom:
-        #         raise RuntimeError(f"Can't cleanup phantom resource {resource.rtdname}")
-        #
-        #     if resource.cleaned:
-        #         log.debug(f"Resource {resource.rtdname} has already been cleaned up")
-        #         return True
-        #
-        #     account = resource.account(graph)
-        #     region = resource.region(graph)
-        #     if not isinstance(account, BaseAccount) or not isinstance(region, BaseRegion):
-        #         log.error(("Could not determine account or region for pre cleanup of" f" {resource.rtdname}"))
-        #         return False
-        #
-        #     log_suffix = f" in account {account.dname} region {region.name}"
-        #     resource.log("Trying to run pre clean up")
-        #     log.debug(f"Trying to run pre clean up {resource.rtdname}{log_suffix}")
-        #     try:
-        #         if not getattr(resource, "pre_delete_resource")(client, graph):
-        #             resource.log("Failed to run pre clean up")
-        #             log.error(f"Failed to run pre clean up {resource.rtdname}{log_suffix}")
-        #             return False
-        #         resource.log("Successfully ran pre clean up")
-        #         log.info(f"Successfully ran pre clean up {resource.rtdname}{log_suffix}")
-        #     except Exception as e:
-        #         resource.log("An error occurred during pre clean up", exception=e)
-        #         log.exception(f"An error occurred during pre clean up {resource.rtdname}{log_suffix}")
-        #         cloud = resource.cloud(graph)
-        #         metrics_resource_pre_cleanup_exceptions.labels(
-        #             cloud=cloud.name,
-        #             account=account.dname,
-        #             region=region.name,
-        #             kind=resource.kind,
-        #         ).inc()
-        #         return False
-        #     return True
+            if not hasattr(resource, "pre_delete_resource"):
+                return True
+
+            if graph is None:
+                graph = resource._graph
+
+            if resource.protected:
+                log.error(f"Resource {resource.rtdname} is protected - refusing modification")
+                resource.log(("Modification was requested even though resource is protected" " - refusing"))
+                return False
+
+            if resource.phantom:
+                raise RuntimeError(f"Can't cleanup phantom resource {resource.rtdname}")
+
+            if resource.cleaned:
+                log.debug(f"Resource {resource.rtdname} has already been cleaned up")
+                return True
+
+            account = resource.account(graph)
+            region = resource.region(graph)
+            if not isinstance(account, BaseAccount) or not isinstance(region, BaseRegion):
+                log.error(("Could not determine account or region for pre cleanup of" f" {resource.rtdname}"))
+                return False
+
+            log_suffix = f" in account {account.dname} region {region.name}"
+            resource.log("Trying to run pre clean up")
+            log.debug(f"Trying to run pre clean up {resource.rtdname}{log_suffix}")
+            try:
+                if not getattr(resource, "pre_delete_resource")(client, graph):
+                    resource.log("Failed to run pre clean up")
+                    log.error(f"Failed to run pre clean up {resource.rtdname}{log_suffix}")
+                    return False
+                resource.log("Successfully ran pre clean up")
+                log.info(f"Successfully ran pre clean up {resource.rtdname}{log_suffix}")
+            except Exception as e:
+                resource.log("An error occurred during pre clean up", exception=e)
+                log.exception(f"An error occurred during pre clean up {resource.rtdname}{log_suffix}")
+                cloud = resource.cloud(graph)
+                metrics_resource_pre_cleanup_exceptions.labels(
+                    cloud=cloud.name,
+                    account=account.dname,
+                    region=region.name,
+                    kind=resource.kind,
+                ).inc()
+                return False
+            return True
 
         raise RuntimeError(f"Unsupported resource type: {resource.rtdname}")
 
     @staticmethod
     def cleanup(config: Config, resource: BaseResource, graph: Graph) -> bool:
-        if isinstance(resource, AWSResource):  # backwards compatibility with the existing collector
-            return cast(bool, resource.cleanup(graph))  # mypy thinks this isn't a bool
+        if isinstance(resource, AwsResource):
 
-        # TODO: uncomment me when new collector is used
-        # if isinstance(resource, AwsResource):
-        #
-        #     cache_key = int(time.time() / 600)  # 10 minutes
-        #     client = get_client(cache_key, config, resource, "Pre-cleanup is not possible")
-        #
-        #     if resource.phantom:
-        #         raise RuntimeError(f"Can't cleanup phantom resource {resource.rtdname}")
-        #
-        #     if resource.cleaned:
-        #         log.debug(f"Resource {resource.rtdname} has already been cleaned up")
-        #         return True
-        #
-        #     if resource.protected:
-        #         log.error(f"Resource {resource.rtdname} is protected - refusing modification")
-        #         resource.log(("Modification was requested even though resource is protected" " - refusing"))
-        #         return False
-        #
-        #     resource._changes.add("cleaned")
-        #     if graph is None:
-        #         graph = resource._graph
-        #
-        #     account = resource.account(graph)
-        #     region = resource.region(graph)
-        #     if not isinstance(account, BaseAccount) or not isinstance(region, BaseRegion):
-        #         log.error(f"Could not determine account or region for cleanup of {resource.rtdname}")
-        #         return False
-        #
-        #     log_suffix = f" in account {account.dname} region {region.name}"
-        #     resource.log("Trying to clean up")
-        #     log.debug(f"Trying to clean up {resource.rtdname}{log_suffix}")
-        #     try:
-        #         if not resource.delete_resource(client):
-        #             resource.log("Failed to clean up")
-        #             log.error(f"Failed to clean up {resource.rtdname}{log_suffix}")
-        #             return False
-        #         resource._cleaned = True
-        #         resource.log("Successfully cleaned up")
-        #         log.info(f"Successfully cleaned up {resource.rtdname}{log_suffix}")
-        #     except Exception as e:
-        #         resource.log("An error occurred during clean up", exception=e)
-        #         log.exception(f"An error occurred during clean up {resource.rtdname}{log_suffix}")
-        #         cloud = resource.cloud(graph)
-        #         metrics_resource_cleanup_exceptions.labels(
-        #             cloud=cloud.name,
-        #             account=account.dname,
-        #             region=region.name,
-        #             kind=resource.kind,
-        #         ).inc()
-        #         return False
-        #     return True
+            cache_key = int(time.time() / 600)  # 10 minutes
+            client = get_client(cache_key, config, resource, "Pre-cleanup is not possible")
+
+            if resource.phantom:
+                raise RuntimeError(f"Can't cleanup phantom resource {resource.rtdname}")
+
+            if resource.cleaned:
+                log.debug(f"Resource {resource.rtdname} has already been cleaned up")
+                return True
+
+            if resource.protected:
+                log.error(f"Resource {resource.rtdname} is protected - refusing modification")
+                resource.log(("Modification was requested even though resource is protected" " - refusing"))
+                return False
+
+            resource._changes.add("cleaned")
+            if graph is None:
+                graph = resource._graph
+
+            account = resource.account(graph)
+            region = resource.region(graph)
+            if not isinstance(account, BaseAccount) or not isinstance(region, BaseRegion):
+                log.error(f"Could not determine account or region for cleanup of {resource.rtdname}")
+                return False
+
+            log_suffix = f" in account {account.dname} region {region.name}"
+            resource.log("Trying to clean up")
+            log.debug(f"Trying to clean up {resource.rtdname}{log_suffix}")
+            try:
+                if not resource.delete_resource(client):
+                    resource.log("Failed to clean up")
+                    log.error(f"Failed to clean up {resource.rtdname}{log_suffix}")
+                    return False
+                resource._cleaned = True
+                resource.log("Successfully cleaned up")
+                log.info(f"Successfully cleaned up {resource.rtdname}{log_suffix}")
+            except Exception as e:
+                resource.log("An error occurred during clean up", exception=e)
+                log.exception(f"An error occurred during clean up {resource.rtdname}{log_suffix}")
+                cloud = resource.cloud(graph)
+                metrics_resource_cleanup_exceptions.labels(
+                    cloud=cloud.name,
+                    account=account.dname,
+                    region=region.name,
+                    kind=resource.kind,
+                ).inc()
+                return False
+            return True
 
         raise RuntimeError(f"Unsupported resource type: {resource.rtdname}")
 
 
-def authenticated(account: AWSAccount) -> bool:
+def authenticated(account: AwsAccount) -> bool:
     try:
         log.debug(f"AWS testing credentials for {account.rtdname}")
         session = aws_session(account.id, account.role, account.profile)
@@ -281,11 +273,11 @@ def current_account_id(profile: Optional[str] = None) -> str:
 
 
 @lru_cache(maxsize=1024)
-def cached_accounts(cache_key: int) -> List[AWSAccount]:
+def cached_accounts(cache_key: int) -> List[AwsAccount]:
     return get_accounts()
 
 
-def get_accounts() -> List[AWSAccount]:
+def get_accounts() -> List[AwsAccount]:
     accounts = []
     profiles = [None]
 
@@ -314,7 +306,7 @@ def get_accounts() -> List[AWSAccount]:
                 log.debug("Role and scrape_org are both set")
                 accounts.extend(
                     [
-                        AWSAccount(id=aws_account_id, role=Config.aws.role, profile=profile)
+                        AwsAccount(id=aws_account_id, role=Config.aws.role, profile=profile)
                         for aws_account_id in get_org_accounts(
                             filter_current_account=not Config.aws.assume_current, profile=profile
                         )
@@ -322,17 +314,17 @@ def get_accounts() -> List[AWSAccount]:
                     ]
                 )
                 if not Config.aws.do_not_scrape_current:
-                    accounts.append(AWSAccount(id=current_account_id(profile=profile)))
+                    accounts.append(AwsAccount(id=current_account_id(profile=profile)))
             elif Config.aws.role and Config.aws.account:
                 log.debug("Both, role and list of accounts specified")
                 accounts.extend(
                     [
-                        AWSAccount(id=aws_account_id, role=Config.aws.role, profile=profile)
+                        AwsAccount(id=aws_account_id, role=Config.aws.role, profile=profile)
                         for aws_account_id in Config.aws.account
                     ]
                 )
             else:
-                accounts.extend([AWSAccount(id=current_account_id(profile=profile), profile=profile)])
+                accounts.extend([AwsAccount(id=current_account_id(profile=profile), profile=profile)])
         except botocore.exceptions.NoCredentialsError:
             log.error(f"No AWS credentials found for {profile}")
         except botocore.exceptions.ClientError as e:
@@ -382,7 +374,7 @@ def all_regions(profile: Optional[str] = None) -> List[str]:
 
 @log_runtime  # type: ignore
 def collect_account(
-    account: AWSAccount,
+    account: AwsAccount,
     regions: List[str],
     args: Namespace,
     running_config: RunningConfig,
@@ -402,7 +394,7 @@ def collect_account(
 
     log.debug(f"Starting new collect process for account {account.dname}")
 
-    aac = AWSAccountCollector(regions, account)
+    aac = AwsAccountCollector(Config.aws, Cloud(id="aws", name="AWS"), account, regions)
     try:
         aac.collect()
     except botocore.exceptions.ClientError as e:
@@ -414,4 +406,4 @@ def collect_account(
         metrics_unhandled_account_exceptions.labels(account=account.dname).inc()
         return None
 
-    return aac.graph  # type: ignore
+    return aac.graph
