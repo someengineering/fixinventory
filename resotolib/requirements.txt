@@ -13,4 +13,4 @@ Pint==0.19.2
 parsy==1.4.0
 tzlocal==4.2
 tzdata==2022.1
-cattrs @ git+https://github.com/python-attrs/cattrs@56eda37
+resoto-cattrs-snapshot-56eda37==22.2.0.dev0
