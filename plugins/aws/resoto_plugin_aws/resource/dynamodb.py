@@ -5,6 +5,7 @@ from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
 from resoto_plugin_aws.resource.kinesis import AwsKinesisStream
 from resoto_plugin_aws.utils import ToDict
+from resotolib.baseresources import ModelReference
 from resotolib.json_bender import S, Bend, Bender, ForallBend, bend
 from resotolib.types import Json
 
@@ -241,6 +242,10 @@ class AwsDynamoDbArchivalSummary:
 class AwsDynamoDbTable(DynamoDbTaggable, AwsResource):
     kind: ClassVar[str] = "aws_dynamo_db_table"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("dynamodb", "list-tables", "TableNames")
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {"default": ["aws_kinesis_stream"]},
+        "predecessors": {"delete": ["aws_kinesis_stream"]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("TableId"),
         "name": S("TableName"),
@@ -306,7 +311,6 @@ class AwsDynamoDbTable(DynamoDbTaggable, AwsResource):
             builder.submit_work(add_instance, table)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        super().connect_in_graph(builder, source)
         if self.dynamodb_latest_stream_arn:
             builder.dependant_node(
                 self,
