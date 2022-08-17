@@ -1224,13 +1224,10 @@ class Model:
             return self
 
         def update_is_valid(from_kind: Kind, to_kind: Kind) -> None:
-            def hint() -> str:
-                return f"Update {from_kind.fqn}"
-
             # Allowed changes: The update
             # - does not change it's type (e.g. going from SimpleKind to ComplexKind)
             if type(from_kind) != type(to_kind):  # pylint: disable=unidiomatic-typecheck
-                raise AttributeError(f"{hint()} changes an existing property type {from_kind.fqn}")
+                raise AttributeError(f"Update {from_kind.fqn} changes an existing property type {from_kind.fqn}")
 
         # resolve and build dict
         updates = {elem.fqn: elem for elem in to_update}
@@ -1242,35 +1239,21 @@ class Model:
         for name in self.kinds.keys() & updates.keys():
             update_is_valid(self.kinds[name], updates[name])
 
-        # check if no property path is overlapping
+        # check if the updated model has overlapping property paths
         def check_no_overlap() -> None:
-            existing_complex = [c for c in self.kinds.values() if isinstance(c, ComplexKind) and c.aggregate_root]
-            update_complex = [c for c in to_update if isinstance(c, ComplexKind) and c.aggregate_root]
-            ex = {p.path: p for k in existing_complex for p in k.resolved_properties()}
-            up = {p.path: p for k in update_complex for p in k.resolved_properties()}
-
-            def simple_kind_incompatible(p: PropertyPath) -> bool:
-                left = ex[p].simple_kind
-                right = up[p].simple_kind
-                # consider valid as long as the runtime kind stays the same
-                return (left.runtime_kind != right.runtime_kind) and not (
-                    any(
-                        True
-                        for al, ar in allowed_simple_type_changes
-                        if (al is None or left.fqn == al) and (ar is None or right.fqn == ar)
-                    )
-                )
-
-            # Filter out duplicates that have the same kind or any side is any
-            non_unique = [a for a in ex.keys() & up.keys() if simple_kind_incompatible(a)]
-            if non_unique:
-                # PropertyPath -> str
-                name_by_kind = {p.path: k.fqn for k in update_complex for p in k.resolved_properties()}
-                message = ", ".join(f"{name_by_kind[a]}.{a} ({ex[a].kind.fqn} -> {up[a].kind.fqn})" for a in non_unique)
-                raise AttributeError(
-                    f"Update not possible: following properties would be non unique having "
-                    f"the same path but different type: {message}"
-                )
+            existing: Dict[PropertyPath, Tuple[ResolvedProperty, ComplexKind]] = {}
+            for c in updated.values():
+                if isinstance(c, ComplexKind) and c.aggregate_root:
+                    for prop in c.resolved_properties():
+                        if ex := existing.get(prop.path):
+                            ex_prop, ex_complex = ex
+                            if prop.kind.fqn != ex_prop.kind.fqn:
+                                raise AttributeError(
+                                    f"Update not possible: following properties would be non unique having "
+                                    f"the same path but different type: {prop.path} "
+                                    f"({ex_complex.fqn}.{ex_prop.kind.fqn} -> {c.fqn}.{prop.kind.fqn})"
+                                )
+                        existing[prop.path] = (prop, c)
 
         check_no_overlap()
         return Model(updated)

@@ -329,14 +329,6 @@ def test_property_path_on_model(person_model: Model) -> None:
 
 
 def test_update(person_model: Model) -> None:
-    with pytest.raises(AttributeError) as not_allowed:  # update city with different type
-        person_model.update_kinds([ComplexKind("Address", ["Base"], [Property("city", "int32", required=True)])])
-    assert (
-        str(not_allowed.value)
-        == "Update not possible: following properties would be non unique having the same path but different type: "
-        "Address.city (string -> int32)"
-    )
-
     updated = person_model.update_kinds([StringKind("Foo")])
     assert updated["Foo"].fqn == "Foo"
     # update simple type Foo as Complex is forbidden
@@ -348,7 +340,7 @@ def test_update(person_model: Model) -> None:
     assert (
         str(duplicate.value)
         == "Update not possible: following properties would be non unique having the same path but different type: "
-        "Bla.id (string -> int32)"
+        "id (child.string -> Bla.int32)"
     )
 
     # update the test property of any_foo from string to an enumeration
@@ -362,10 +354,6 @@ def test_update(person_model: Model) -> None:
     # allowed to change string to duration, any or date
     for kind in ["duration", "any", "date"]:
         updated.update_kinds([ComplexKind("any_foo", ["Base"], [evolve(prop, kind=kind)])])
-    # not allowed and should fail
-    for kind in ["int32", "int64", "double"]:
-        with pytest.raises(AttributeError):
-            updated.update_kinds([ComplexKind("any_foo", ["Base"], [evolve(prop, kind=kind)])])
 
 
 def test_load(model_json: str) -> None:
