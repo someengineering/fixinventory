@@ -1,0 +1,45 @@
+{
+    "KeyMetadata": {
+        "AWSAccountId": "12345",
+        "KeyId": "32b03fb9",
+        "Arn": "arn:aws:kms:eu-central-1:882347060974:key/32b03fb9",
+        "CreationDate": "2022-05-06T08:43:41Z",
+        "Enabled": true,
+        "Description": "Default key",
+        "KeyUsage": "ENCRYPT_DECRYPT",
+        "KeyState": "Enabled",
+        "DeletionDate": "2022-05-06T08:43:41Z",
+        "ValidTo": "2022-05-06T08:43:41Z",
+        "Origin": "AWS_KMS",
+        "CustomKeyStoreId": "string",
+        "CloudHsmClusterId": "string",
+        "ExpirationModel": "KEY_MATERIAL_EXPIRES",
+        "KeyManager": "AWS",
+        "CustomerMasterKeySpec": "SYMMETRIC_DEFAULT",
+        "KeySpec": "SYMMETRIC_DEFAULT",
+        "EncryptionAlgorithms": ["SYMMETRIC_DEFAULT"],
+        "SigningAlgorithms": [
+            "RSASSA_PSS_SHA_256",
+            "RSASSA_PSS_SHA_384"
+        ],
+        "MultiRegion": false,
+        "MultiRegionConfiguration": {
+            "MultiRegionKeyType": "PRIMARY",
+            "PrimaryKey": {
+                "Arn": "string",
+                "Region": "string"
+            },
+            "ReplicaKeys": [
+                {
+                    "Arn": "string",
+                    "Region": "string"
+                }
+            ]
+        },
+        "PendingDeletionWindowInDays": 123,
+        "MacAlgorithms": [
+            "HMAC_SHA_224",
+            "HMAC_SHA_256"
+        ]
+    }
+}
