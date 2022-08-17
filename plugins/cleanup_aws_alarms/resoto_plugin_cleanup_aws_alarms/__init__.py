@@ -1,10 +1,8 @@
 from resotolib.baseplugin import BaseActionPlugin
 from resotolib.core.search import CoreGraph
 from resotolib.graph import Graph
-from resoto_plugin_aws.resources import (
-    AWSCloudwatchAlarm,
-    AWSEC2Instance,
-)
+from resoto_plugin_aws.resource.cloudwatch import AwsCloudwatchAlarm
+from resoto_plugin_aws.resource.ec2 import AwsEc2Instance
 from resotolib.logger import log
 from resotolib.config import Config
 from .config import CleanupAWSAlarmsConfig
@@ -35,7 +33,7 @@ class CleanupAWSAlarmsPlugin(BaseActionPlugin):
     def alarm_cleanup(self, graph: Graph):
         log.info("AWS Cloudwatch Alarms cleanup called")
         for node in graph.nodes:
-            if node.protected or not isinstance(node, AWSCloudwatchAlarm):
+            if node.protected or not isinstance(node, AwsCloudwatchAlarm):
                 continue
 
             cloud = node.cloud(graph)
@@ -55,7 +53,7 @@ class CleanupAWSAlarmsPlugin(BaseActionPlugin):
                 if dimension.get("Name") == "InstanceId":
                     instance_id = dimension.get("Value")
                     i = graph.search_first_all({"kind": "aws_ec2_instance", "id": instance_id})
-                    if isinstance(i, AWSEC2Instance) and i.instance_status not in ("terminated"):
+                    if isinstance(i, AwsEc2Instance) and i.instance_status not in ("terminated"):
                         should_clean = False
                         break
                     else:

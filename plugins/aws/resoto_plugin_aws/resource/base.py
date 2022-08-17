@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import concurrent
 import logging
+from abc import ABC
 from concurrent.futures import Executor, Future
 from datetime import datetime, timezone
 from functools import lru_cache
@@ -45,7 +46,7 @@ class AwsApiSpec:
 
 
 @define(eq=False, slots=False)
-class AwsResource(BaseResource):
+class AwsResource(BaseResource, ABC):
     """
     Base class for all AWS resources.
     Override kind, mapping and api_spec for every resource that is collected in AWS.

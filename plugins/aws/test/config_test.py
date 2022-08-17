@@ -20,8 +20,7 @@ def test_default_config() -> None:
     assert Config.aws.assume_current is False
     assert Config.aws.do_not_scrape_current is False
     assert Config.aws.account_pool_size == num_default_threads()
-    assert Config.aws.region_pool_size == 20
-    assert Config.aws.parallel_api_requests == 10
+    assert Config.aws.region_pool_size == 128
     assert len(Config.aws.collect) == 0
     assert len(Config.aws.no_collect) == 0
 

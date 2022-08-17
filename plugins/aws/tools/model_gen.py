@@ -468,6 +468,22 @@ models: Dict[str, List[AwsResotoModel]] = {
         #     prop_prefix="environment_"
         # )
     ],
+    "elasticache": [
+        # AwsResotoModel(
+        #     "describe-cache-clusters",
+        #     "CacheClusters",
+        #     "CacheCluster",
+        #     prefix="ElastiCache",
+        #     prop_prefix="cluster_",
+        # ),
+        # AwsResotoModel(
+        #     "describe-replication-groups",
+        #     "ReplicationGroups",
+        #     "ReplicationGroup",
+        #     prefix="ElastiCache",
+        #     prop_prefix="replication_group_",
+        # ),
+    ],
     "elb": [
         # AwsResotoModel(
         #     "describe-load-balancers",

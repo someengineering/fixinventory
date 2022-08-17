@@ -13,6 +13,7 @@ from resoto_plugin_aws.resource import (
     ec2,
     eks,
     elasticbeanstalk,
+    elasticache,
     elb,
     elbv2,
     iam,
@@ -41,6 +42,7 @@ regional_resources: List[Type[AwsResource]] = (
     + ec2.resources
     + eks.resources
     + elasticbeanstalk.resources
+    + elasticache.resources
     + elb.resources
     + elbv2.resources
     + kinesis.resources
@@ -65,7 +67,9 @@ class AwsAccountCollector:
         self.client = AwsClient(config, account.id, role=account.role, profile=account.profile, region="us-east-1")
 
     def collect(self) -> None:
-        with ThreadPoolExecutor(thread_name_prefix=f"aws_{self.account.id}") as executor:
+        with ThreadPoolExecutor(
+            thread_name_prefix=f"aws_{self.account.id}", max_workers=self.config.region_pool_size
+        ) as executor:
             queue = ExecutorQueue(executor, self.account.name)
             queue.submit_work(self.update_account)
             builder = GraphBuilder(self.graph, self.cloud, self.account, self.global_region, self.client, queue)
