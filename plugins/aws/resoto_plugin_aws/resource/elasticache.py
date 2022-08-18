@@ -371,8 +371,8 @@ class AwsElastiCacheReplicationGroup(ElastiCacheTaggable, AwsResource):
     kind: ClassVar[str] = "aws_elasticache_replication_group"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("elasticache", "describe-replication-groups", "ReplicationGroups")
     reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {"delete": ["aws_elasticache_cache_cluster", "aws_kms_key"]},
-        "successors": {"default": ["aws_elasticache_cache_cluster", "aws_kms_key"]},
+        "predecessors": {"delete": ["aws_elasticache_cache_cluster"], "default": ["aws_kms_key"]},
+        "successors": {"default": ["aws_elasticache_cache_cluster"],"delete": ["aws_kms_key"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("ReplicationGroupId"),
@@ -463,7 +463,7 @@ class AwsElastiCacheReplicationGroup(ElastiCacheTaggable, AwsResource):
                 name=cluster_name,
             )
         if self.replication_group_kms_key_id:
-            builder.dependant_node(self, clazz=AwsKmsKey, id=self.replication_group_kms_key_id)
+            builder.dependant_node(self, reverse=True, clazz=AwsKmsKey, id=self.replication_group_kms_key_id)
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
