@@ -105,7 +105,7 @@ class AwsKinesisStream(AwsResource):
             if stream_description is not None:
                 stream = AwsKinesisStream.from_api(stream_description)
                 builder.add_node(stream)
-                builder.submit_work(add_tags, stream)
+                builder.submit_work_global(add_tags, stream)
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(

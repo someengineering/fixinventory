@@ -70,7 +70,7 @@ class AwsSqsQueue(AwsResource):
             ).isoformat()
             instance = cls.from_api(queue_attributes)
             builder.add_node(instance)
-            builder.submit_work(add_tags, instance)
+            builder.submit_work_global(add_tags, instance)
 
         def add_tags(queue: AwsSqsQueue) -> None:
             tags = builder.client.list("sqs", "list-queue-tags", result_name="Tags", QueueUrl=[queue.sqs_queue_url])

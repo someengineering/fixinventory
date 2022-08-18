@@ -94,7 +94,7 @@ class AwsKmsKey(AwsResource, BaseAccessKey):
             key_metadata = builder.client.call("kms", "describe-key", result_name="KeyMetadata", KeyId=key["KeyId"])
             instance = cls.from_api(key_metadata)
             builder.add_node(instance)
-            builder.submit_work(add_tags, instance)
+            builder.submit_work_global(add_tags, instance)
 
         def add_tags(key: AwsKmsKey) -> None:
             tags = builder.client.list("kms", "list-resource-tags", result_name=None, KeyId=key.id)
