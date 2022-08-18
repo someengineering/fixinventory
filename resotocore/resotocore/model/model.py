@@ -15,10 +15,11 @@ from jsons import set_deserializer, set_serializer
 from networkx import MultiDiGraph
 from parsy import regex, string, Parser
 
+from resotolib.core.model_check import check_overlap_for
 from resotolib.durations import duration_parser, DurationRe
 from resotolib.parse_util import make_parser, variable_dp_backtick, dot_dp
 from resotocore.model.transform_kind_convert import converters
-from resotocore.model.typed_model import from_js
+from resotocore.model.typed_model import from_js, to_js
 from resotocore.types import Json, JsonElement, ValidationResult, ValidationFn, EdgeType
 from resotocore.util import if_set, utc, duration, first
 from resotocore.compat import remove_suffix
@@ -1210,7 +1211,7 @@ class Model:
 
         return graph
 
-    def update_kinds(self, kinds: List[Kind]) -> Model:
+    def update_kinds(self, kinds: List[Kind], check_overlap: bool = True) -> Model:
 
         # Create a list of kinds that have changed to the existing model
         to_update = []
@@ -1239,23 +1240,9 @@ class Model:
         for name in self.kinds.keys() & updates.keys():
             update_is_valid(self.kinds[name], updates[name])
 
-        # check if the updated model has overlapping property paths
-        def check_no_overlap() -> None:
-            existing: Dict[PropertyPath, Tuple[ResolvedProperty, ComplexKind]] = {}
-            for c in updated.values():
-                if isinstance(c, ComplexKind) and c.aggregate_root:
-                    for prop in c.resolved_properties():
-                        if ex := existing.get(prop.path):
-                            ex_prop, ex_complex = ex
-                            if prop.kind.fqn != ex_prop.kind.fqn:
-                                raise AttributeError(
-                                    f"Update not possible: following properties would be non unique having "
-                                    f"the same path but different type: {prop.path} "
-                                    f"({ex_complex.fqn}.{ex_prop.kind.fqn} -> {c.fqn}.{prop.kind.fqn})"
-                                )
-                        existing[prop.path] = (prop, c)
+        if check_overlap:
+            check_overlap_for([to_js(a) for a in updated.values()])
 
-        check_no_overlap()
         return Model(updated)
 
 

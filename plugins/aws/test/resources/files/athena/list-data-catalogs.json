@@ -1,0 +1,8 @@
+{
+    "DataCatalogsSummary": [
+        {
+            "CatalogName": "resoto-catalog",
+            "Type": "LAMBDA"
+        }
+    ]
+}

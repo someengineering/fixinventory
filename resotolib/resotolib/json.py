@@ -72,8 +72,13 @@ def timedelta_to_json(td: timedelta, **_: Any) -> str:
     return duration_str(td)
 
 
-def timedelta_from_json(js: str, _: type = object, **__: Any) -> timedelta:
-    return parse_duration(js)
+def timedelta_from_json(js: Any, _: type = object, **__: Any) -> timedelta:
+    if isinstance(js, str):
+        return parse_duration(js)
+    elif isinstance(js, int):
+        return timedelta(seconds=js)
+    else:
+        raise ValueError(f"Cannot convert {js} to timedelta")
 
 
 set_deserializer(timedelta_from_json, timedelta)

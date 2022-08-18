@@ -251,6 +251,9 @@ class AwsEc2VolumeType(AwsResource, BaseVolumeType):
     kind: ClassVar[str] = "aws_ec2_volume_type"
 
 
+T = TypeVar("T")
+
+
 @define
 class ExecutorQueue:
     executor: Executor
@@ -258,7 +261,7 @@ class ExecutorQueue:
     futures: List[Future[Any]] = []
     _lock: Lock = Lock()
 
-    def submit_work(self, fn: Callable[..., None], *args: Any, **kwargs: Any) -> Future[Any]:
+    def submit_work(self, fn: Callable[..., T], *args: Any, **kwargs: Any) -> Future[T]:
         future = self.executor.submit(fn, *args, **kwargs)
         with self._lock:
             self.futures.append(future)
@@ -297,7 +300,7 @@ class GraphBuilder:
         self.name = f"AWS:{account.name}:{region.name}"
         self.global_instance_types: Dict[str, Any] = global_instance_types or {}
 
-    def submit_work(self, fn: Callable[..., None], *args: Any, **kwargs: Any) -> Future[Any]:
+    def submit_work(self, fn: Callable[..., T], *args: Any, **kwargs: Any) -> Future[T]:
         return self.executor.submit_work(fn, *args, **kwargs)
 
     @property

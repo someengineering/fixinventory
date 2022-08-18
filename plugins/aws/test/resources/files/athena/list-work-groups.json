@@ -1,0 +1,14 @@
+{
+    "WorkGroups": [
+        {
+            "Name": "resoto-workgroup",
+            "State": "ENABLED",
+            "Description": "string",
+            "CreationTime": "2019-12-02T20:44:39.217Z",
+            "EngineVersion": {
+                "SelectedEngineVersion": "string",
+                "EffectiveEngineVersion": "string"
+            }
+        }
+    ]
+}

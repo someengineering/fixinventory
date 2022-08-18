@@ -8,7 +8,7 @@ from typing import Callable
 import resotolib.proc
 from resotoclient import ResotoClient
 from resotolib.args import ArgumentParser
-from resotolib.core import resotocore, add_args as core_add_args, resotocore_is_up
+from resotolib.core import resotocore, add_args as core_add_args, wait_for_resotocore
 from resotolib.core.ca import TLSData
 from resotolib.event import add_event_listener, Event as ResotoEvent, EventType
 from resotolib.jwt import add_args as jwt_add_args
@@ -30,7 +30,9 @@ def main() -> None:
     TLSData.add_args(arg_parser, ca_only=True)
     args: Namespace = arg_parser.parse_args()
 
-    if not resotocore_is_up(resotocore.http_uri):
+    try:
+        wait_for_resotocore(resotocore.http_uri, timeout=5)
+    except TimeoutError:
         log.fatal(f"resotocore is not online at {resotocore.http_uri}")
         sys.exit(1)
 
