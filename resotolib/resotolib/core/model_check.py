@@ -5,6 +5,7 @@ from typing import List, Dict, Tuple, Type
 from resotolib.baseresources import BaseResource
 from resotolib.core.model_export import dataclasses_to_resotocore_model
 from resotolib.json import from_json
+from resotolib.types import Json
 
 
 @define
@@ -19,6 +20,50 @@ class CheckClass:
     aggregate_root: bool
     bases: List[str]
     properties: List[CheckProp]
+
+    def ignore(self) -> bool:
+        # those types were created during development of 2.4
+        return self.fqn.startswith("aws_auto_scaling") or self.fqn.startswith("aws_quota")
+
+
+def check_overlap_for(models: List[Json]) -> None:
+    classes = {model["fqn"]: from_json(model, CheckClass) for model in models if "properties" in model}
+    all_paths: Dict[str, Tuple[CheckClass, str]] = {}
+
+    def is_compatible(left: str, right: str) -> bool:
+        return left == "any" or right == "any" or left == right
+
+    def add_path(path: List[str], kinds: List[CheckClass], model: CheckClass) -> None:
+        for c in kinds:
+            if c == model:
+                # recursive cycle. stop.
+                return
+        for prop in model.properties:
+            pkinds = kinds + [model]
+            kind = prop.kind
+            prop_path = path + [prop.name]
+            if "[]" in prop.kind:
+                kind = prop.kind.replace("[]", "")
+                prop_path += ["[0]"]  # use always the first element for simplicity
+            elif "dictionary[" in prop.kind:
+                kind = re.sub("dictionary\\[[^,]+,\\s*(\\S*)\\s*]", r"\1", prop.kind)
+                prop_path += ["foo"]  # always use foo as lookup key
+
+            str_path = ".".join(prop_path)
+            if existing := all_paths.get(str_path):
+                existing_class, existing_kind = existing
+                if not is_compatible(existing_kind, prop.kind):
+                    raise AttributeError(
+                        f"{str_path} is defined in {existing_class.fqn} as {existing_kind} and in {model.fqn} as {kind}"
+                    )
+            all_paths[str_path] = (model, prop.kind)
+
+            if check_kind := classes.get(kind):
+                add_path(prop_path, pkinds, check_kind)
+
+    for _, clazz in classes.items():
+        if clazz.aggregate_root and not clazz.ignore():
+            add_path([], [], clazz)
 
 
 def check_overlap(*base: Type[BaseResource]) -> None:
@@ -58,36 +103,4 @@ def check_overlap(*base: Type[BaseResource]) -> None:
         *base,
     }
     models = dataclasses_to_resotocore_model(model_classes, aggregate_root=BaseResource)
-
-    classes = {model["fqn"]: from_json(model, CheckClass) for model in models if "properties" in model}
-    all_paths: Dict[str, Tuple[CheckClass, str]] = {}
-
-    def is_compatible(left: str, right: str) -> bool:
-        return left == "any" or right == "any" or left == right
-
-    def add_path(path: List[str], model: CheckClass) -> None:
-        for prop in model.properties:
-            kind = prop.kind
-            prop_path = path + [prop.name]
-            if "[]" in prop.kind:
-                kind = prop.kind.replace("[]", "")
-                prop_path += ["[0]"]  # use always the first element for simplicity
-            elif "dictionary[" in prop.kind:
-                kind = re.sub("dictionary\\[[^,]+,\\s*(\\S*)\\s*]", r"\1", prop.kind)
-                prop_path += ["foo"]  # always use foo as lookup key
-
-            str_path = ".".join(prop_path)
-            if existing := all_paths.get(str_path):
-                existing_class, existing_kind = existing
-                if not is_compatible(existing_kind, prop.kind):
-                    raise Exception(
-                        f"{str_path} is defined in {existing_class.fqn} as {existing_kind} and in {model.fqn} as {kind}"
-                    )
-            all_paths[str_path] = (model, prop.kind)
-
-            if kind := classes.get(kind):
-                add_path(prop_path, kind)
-
-    for _, clazz in classes.items():
-        if clazz.aggregate_root:
-            add_path([], clazz)
+    check_overlap_for(models)

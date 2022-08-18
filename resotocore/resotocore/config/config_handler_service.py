@@ -103,7 +103,7 @@ class ConfigHandlerService(ConfigHandler):
         # load existing model
         model = await self.get_configs_model()
         # make sure the update is valid
-        updated = model.update_kinds(kinds)
+        updated = model.update_kinds(kinds, check_overlap=False)
         # store all updated kinds
         await self.model_db.update_many(kinds)
         return updated
