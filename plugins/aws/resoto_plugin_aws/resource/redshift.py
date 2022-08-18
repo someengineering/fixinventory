@@ -3,6 +3,8 @@ from typing import ClassVar, Dict, Optional, List
 from attrs import define, field
 
 from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
+from resoto_plugin_aws.resource.kms import AwsKmsKey
+from resotolib.baseresources import ModelReference
 from resotolib.json_bender import Bender, S, Bend, ForallBend, K, F
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.utils import ToDict
@@ -297,7 +299,16 @@ def _cluster_arn(ns_arn_and_cluster_id: Tuple[str, str]) -> str:
 class AwsRedshiftCluster(AwsResource):
     kind: ClassVar[str] = "aws_redshift_cluster"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("redshift", "describe-clusters", "Clusters")
-
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {
+            "default": ["aws_vpc", "aws_ec2_security_group", "aws_iam_role", "aws_ec2_subnet"],
+            "delete": ["aws_kms_key"],
+        },
+        "successors": {
+            "default": ["aws_kms_key"],
+            "delete": ["aws_vpc", "aws_ec2_security_group", "aws_iam_role", "aws_ec2_subnet"],
+        },
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("ClusterIdentifier"),
         "tags": S("Tags", default=[]) >> ToDict(),
@@ -428,6 +439,9 @@ class AwsRedshiftCluster(AwsResource):
 
         if self.redshift_cluster_subnet_group_name:
             builder.dependant_node(self, reverse=True, clazz=AwsEc2Subnet, name=self.redshift_cluster_subnet_group_name)
+
+        if self.redshift_kms_key_id:
+            builder.dependant_node(self, clazz=AwsKmsKey, id=self.redshift_kms_key_id)
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(
