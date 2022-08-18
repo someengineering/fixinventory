@@ -22,7 +22,8 @@ class CheckClass:
     properties: List[CheckProp]
 
     def ignore(self) -> bool:
-        # those types were created during development of 2.4
+        # Those types were created during development of 2.4 and renamed. They were never available in a final release.
+        # In case somebody operated on edge, we want to ignore them.
         return self.fqn.startswith("aws_auto_scaling") or self.fqn.startswith("aws_quota")
 
 
@@ -42,7 +43,10 @@ def check_overlap_for(models: List[Json]) -> None:
         for c in kinds:
             if c == model:
                 return
+
+        # Walk all properties of the model and add them to the all_paths dict.
         for prop in model.properties:
+            # add the current kind to the list: this must be a new list which is unique for the property path
             pkinds = kinds + [model]
             kind = prop.kind
             prop_path = path + [prop.name]
