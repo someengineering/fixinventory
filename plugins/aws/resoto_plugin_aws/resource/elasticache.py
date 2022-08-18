@@ -372,7 +372,7 @@ class AwsElastiCacheReplicationGroup(ElastiCacheTaggable, AwsResource):
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("elasticache", "describe-replication-groups", "ReplicationGroups")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"delete": ["aws_elasticache_cache_cluster"], "default": ["aws_kms_key"]},
-        "successors": {"default": ["aws_elasticache_cache_cluster"],"delete": ["aws_kms_key"]},
+        "successors": {"default": ["aws_elasticache_cache_cluster"], "delete": ["aws_kms_key"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("ReplicationGroupId"),
