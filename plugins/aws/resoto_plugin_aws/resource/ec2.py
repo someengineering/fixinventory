@@ -7,6 +7,7 @@ from resoto_plugin_aws.aws_client import AwsClient
 
 from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
 from resoto_plugin_aws.resource.cloudwatch import AwsCloudwatchQuery, AwsCloudwatchMetricData
+from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resoto_plugin_aws.utils import ToDict, TagsValue
 from resotolib.baseresources import (  # noqa: F401
     BaseInstance,
@@ -388,8 +389,8 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
     kind: ClassVar[str] = "aws_ec2_volume"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-volumes", "Volumes")
     reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {"default": ["aws_ec2_volume_type", "aws_ec2_instance"]},
-        "successors": {"delete": ["aws_ec2_instance"]},
+        "predecessors": {"default": ["aws_ec2_volume_type", "aws_ec2_instance"], "delete": ["aws_kms_key"]},
+        "successors": {"default": ["aws_kms_key"], "delete": ["aws_ec2_instance"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("VolumeId"),
@@ -471,6 +472,12 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
         builder.add_edge(self, EdgeType.default, reverse=True, name=self.volume_type)
         for attachment in self.volume_attachments:
             builder.dependant_node(self, reverse=True, clazz=AwsEc2Instance, id=attachment.instance_id)
+        if self.volume_kms_key_id:
+            builder.dependant_node(
+                self,
+                clazz=AwsKmsKey,
+                id=self.volume_kms_key_id,
+            )
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
@@ -491,8 +498,10 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
 class AwsEc2Snapshot(EC2Taggable, AwsResource, BaseSnapshot):
     kind: ClassVar[str] = "aws_ec2_snapshot"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-snapshots", "Snapshots", dict(OwnerIds=["self"]))
-    reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["aws_ec2_volume"]}}
-
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["aws_ec2_volume"], "delete": ["aws_kms_key"]},
+        "successors": {"default": ["aws_kms_key"]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("SnapshotId"),
         "tags": S("Tags", default=[]) >> ToDict(),
@@ -525,6 +534,12 @@ class AwsEc2Snapshot(EC2Taggable, AwsResource, BaseSnapshot):
         super().connect_in_graph(builder, source)
         if volume_id := source.get("VolumeId"):
             builder.add_edge(self, EdgeType.default, reverse=True, clazz=AwsEc2Volume, id=volume_id)
+        if self.snapshot_kms_key_id:
+            builder.dependant_node(
+                self,
+                clazz=AwsKmsKey,
+                id=self.snapshot_kms_key_id,
+            )
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(service=self.api_spec.service, action="delete_snapshot", result_name=None, SnapshotId=self.id)
