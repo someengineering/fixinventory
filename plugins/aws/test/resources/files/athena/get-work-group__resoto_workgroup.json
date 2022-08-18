@@ -1,0 +1,29 @@
+{
+    "WorkGroup": {
+        "Name": "resoto-workgroup",
+        "State": "ENABLED",
+        "Configuration": {
+            "ResultConfiguration": {
+                "OutputLocation": "string",
+                "EncryptionConfiguration": {
+                    "EncryptionOption": "SSE_S3",
+                    "KmsKey": "string"
+                },
+                "ExpectedBucketOwner": "string",
+                "AclConfiguration": {
+                    "S3AclOption": "BUCKET_OWNER_FULL_CONTROL"
+                }
+            },
+            "EnforceWorkGroupConfiguration": true,
+            "PublishCloudWatchMetricsEnabled": true,
+            "BytesScannedCutoffPerQuery": 123,
+            "RequesterPaysEnabled": true,
+            "EngineVersion": {
+                "SelectedEngineVersion": "string",
+                "EffectiveEngineVersion": "string"
+            }
+        },
+        "Description": "string",
+        "CreationTime": "2015-12-02T23:29:00Z"
+    }
+}
