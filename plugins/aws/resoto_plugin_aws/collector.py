@@ -91,7 +91,7 @@ class AwsAccountCollector:
                 ) as executor:
                     queue = ExecutorQueue(executor, region.name)
                     builder.add_node(region)
-                    region_builder = builder.for_region(region)
+                    region_builder = builder.for_region(region, queue)
                     for resource in regional_resources:
                         if self.config.should_collect(resource.kind):
                             resource.collect_resources(region_builder)

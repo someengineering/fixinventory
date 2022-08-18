@@ -289,7 +289,8 @@ class GraphBuilder:
         account: AwsAccount,
         region: AwsRegion,
         client: AwsClient,
-        executor: ExecutorQueue,
+        global_executor: ExecutorQueue,
+        region_executor: Optional[ExecutorQueue] = None,
         global_instance_types: Optional[Dict[str, Any]] = None,
     ) -> None:
         self.graph = graph
@@ -297,12 +298,16 @@ class GraphBuilder:
         self.account = account
         self.region = region
         self.client = client
-        self.executor = executor
+        self.global_executor = global_executor
+        self.region_executor = region_executor
         self.name = f"AWS:{account.name}:{region.name}"
         self.global_instance_types: Dict[str, Any] = global_instance_types or {}
 
     def submit_work(self, fn: Callable[..., None], *args: Any, **kwargs: Any) -> Future[Any]:
-        return self.executor.submit_work(fn, *args, **kwargs)
+        return (self.region_executor or self.global_executor).submit_work(fn, *args, **kwargs)
+
+    def submit_work_global(self, fn: Callable[..., None], *args: Any, **kwargs: Any) -> Future[Any]:
+        return self.global_executor.submit_work(fn, *args, **kwargs)
 
     @property
     def config(self) -> AwsConfig:
@@ -367,13 +372,18 @@ class GraphBuilder:
             ondemand_cost=price.on_demand_price_usd if price else 0,
         )
 
-    def for_region(self, region: AwsRegion) -> GraphBuilder:
+    def for_region(
+        self,
+        region: AwsRegion,
+        region_executor: ExecutorQueue,
+    ) -> GraphBuilder:
         return GraphBuilder(
             self.graph,
             self.cloud,
             self.account,
             region,
             self.client.for_region(region.name),
-            self.executor,
+            self.global_executor,
+            region_executor,
             self.global_instance_types,
         )
