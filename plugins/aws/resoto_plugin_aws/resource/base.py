@@ -200,20 +200,17 @@ class AwsRegion(BaseRegion, AwsResource):
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [
-                "aws_vpc_quota",
                 "aws_vpc_peering_connection",
                 "aws_vpc_endpoint",
                 "aws_vpc",
-                "aws_s3_bucket_quota",
+                "aws_service_quota",
                 "aws_s3_bucket",
                 "aws_rds_instance",
-                "aws_iam_server_certificate_quota",
                 "aws_iam_server_certificate",
                 "aws_iam_role",
                 "aws_iam_policy",
                 "aws_iam_instance_profile",
                 "aws_iam_group",
-                "aws_elb_quota",
                 "aws_elb",
                 "aws_eks_cluster",
                 "aws_ec2_volume_type",
@@ -227,10 +224,8 @@ class AwsRegion(BaseRegion, AwsResource):
                 "aws_ec2_network_acl",
                 "aws_ec2_nat_gateway",
                 "aws_ec2_keypair",
-                "aws_ec2_internet_gateway_quota",
                 "aws_ec2_internet_gateway",
                 "aws_ec2_instance_type",
-                "aws_ec2_instance_quota",
                 "aws_ec2_instance",
                 "aws_ec2_elastic_ip",
                 "aws_cloudwatch_alarm",
@@ -238,7 +233,6 @@ class AwsRegion(BaseRegion, AwsResource):
                 "aws_cloudformation_stack_set",
                 "aws_autoscaling_group",
                 "aws_alb_target_group",
-                "aws_alb_quota",
                 "aws_alb",
             ]
         }
