@@ -333,7 +333,8 @@ models: Dict[str, List[AwsResotoModel]] = {
         # AwsResotoModel("list-domain-names", "domainNameConfigs", "DomainNameConfig", prefix="AppSync"),
     ],
     "athena": [
-        # AwsResotoModel("list-data-catalogs", "DataCatalogsSummary", "DataCatalogSummary", prefix="Athena"),
+        # AwsResotoModel("list-work-groups", "WorkGroups", "WorkGroup", prefix="Athena"),
+        # AwsResotoModel("list-data-catalogs", "DataCatalogs", "DataCatalog", prefix="Athena"),
     ],
     "autoscaling": [
         # AwsResotoModel(
