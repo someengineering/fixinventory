@@ -122,6 +122,9 @@ class AwsConfig:
         metadata={"description": "Account thread/process pool size"},
     )
     region_pool_size: int = field(default=128, metadata={"description": "Region thread pool size"})
+    region_resources_pool_size: int = field(
+        default=2, metadata={"description": "How many threads will collect a single region"}
+    )
     collect: List[str] = field(
         factory=list,
         metadata={"description": "List of AWS services to collect (default: all)"},

@@ -1,4 +1,5 @@
 import logging
+import concurrent.futures
 from concurrent.futures import ThreadPoolExecutor
 from typing import List, Type
 
@@ -82,13 +83,22 @@ class AwsAccountCollector:
             queue.wait_for_submitted_work()
 
             # all regional resources for all configured regions
+            region_futures = []
             for region in self.regions:
-                builder.add_node(region)
-                region_builder = builder.for_region(region)
-                for resource in regional_resources:
-                    if self.config.should_collect(resource.kind):
-                        resource.collect_resources(region_builder)
-            queue.wait_for_submitted_work()
+                with ThreadPoolExecutor(
+                    thread_name_prefix=f"aws_{self.account.id}_{region.id}",
+                    max_workers=self.config.region_resources_pool_size,
+                ) as executor:
+                    queue = ExecutorQueue(executor, region.name)
+                    builder.add_node(region)
+                    region_builder = builder.for_region(region)
+                    for resource in regional_resources:
+                        if self.config.should_collect(resource.kind):
+                            resource.collect_resources(region_builder)
+                    region_futures.extend(queue.active_futures())
+
+            # wait for all regional resources to be collected
+            concurrent.futures.wait(region_futures)
 
             # connect nodes
             for node, data in list(self.graph.nodes(data=True)):

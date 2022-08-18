@@ -276,6 +276,10 @@ class ExecutorQueue:
                 log.exception(f"Unhandled exception in account {self.name}: {ex}")
                 raise
 
+    def active_futures(self) -> List[Future[Any]]:
+        with self._lock:
+            return self.futures[:]
+
 
 class GraphBuilder:
     def __init__(
