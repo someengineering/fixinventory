@@ -6,7 +6,7 @@
                 "ReplicaStatus": "ACTIVE",
                 "ReplicaStatusDescription": "string",
                 "ReplicaStatusPercentProgress": "string",
-                "KMSMasterKeyId": "string",
+                "KMSMasterKeyId": "32b03fb9",
                 "ProvisionedThroughputOverride": {
                     "ReadCapacityUnits": 123
                 },

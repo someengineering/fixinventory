@@ -4,6 +4,7 @@ from attrs import define, field
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
 from resoto_plugin_aws.resource.kinesis import AwsKinesisStream
+from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resoto_plugin_aws.utils import ToDict
 from resotolib.baseresources import ModelReference
 from resotolib.json_bender import S, Bend, Bender, ForallBend, bend
@@ -243,8 +244,8 @@ class AwsDynamoDbTable(DynamoDbTaggable, AwsResource):
     kind: ClassVar[str] = "aws_dynamo_db_table"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("dynamodb", "list-tables", "TableNames")
     reference_kinds: ClassVar[ModelReference] = {
-        "successors": {"default": ["aws_kinesis_stream"]},
-        "predecessors": {"delete": ["aws_kinesis_stream"]},
+        "successors": {"default": ["aws_kinesis_stream", "aws_kms_key"]},
+        "predecessors": {"delete": ["aws_kinesis_stream", "aws_kms_key"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("TableId"),
@@ -317,6 +318,20 @@ class AwsDynamoDbTable(DynamoDbTaggable, AwsResource):
                 clazz=AwsKinesisStream,
                 arn=self.dynamodb_latest_stream_arn,
             )
+        if self.dynamodb_replicas is not []:
+            for replica in self.dynamodb_replicas:
+                if replica.kms_master_key_id:
+                    builder.dependant_node(
+                        self,
+                        clazz=AwsKmsKey,
+                        id=replica.kms_master_key_id,
+                    )
+        if self.dynamodb_sse_description and self.dynamodb_sse_description.kms_master_key_arn:
+            builder.dependant_node(
+                self,
+                clazz=AwsKmsKey,
+                arn=self.dynamodb_sse_description.kms_master_key_arn,
+            )
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(service=self.api_spec.service, action="delete-table", result_name=None, TableName=self.name)
@@ -327,6 +342,10 @@ class AwsDynamoDbTable(DynamoDbTaggable, AwsResource):
 class AwsDynamoDbGlobalTable(DynamoDbTaggable, AwsResource):
     kind: ClassVar[str] = "aws_dynamo_db_global_table"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("dynamodb", "list-global-tables", "GlobalTables")
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {"default": ["aws_kms_key"]},
+        "predecessors": {"delete": ["aws_kms_key"]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("GlobalTableName"),
         "name": S("GlobalTableName"),
@@ -357,6 +376,16 @@ class AwsDynamoDbGlobalTable(DynamoDbTaggable, AwsResource):
 
         for table in json:
             builder.submit_work(add_instance, table)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if self.dynamodb_replication_group is not []:
+            for replica in self.dynamodb_replication_group:
+                if replica.kms_master_key_id:
+                    builder.dependant_node(
+                        self,
+                        clazz=AwsKmsKey,
+                        id=replica.kms_master_key_id,
+                    )
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(service=self.api_spec.service, action="delete-table", result_name=None, TableName=self.name)

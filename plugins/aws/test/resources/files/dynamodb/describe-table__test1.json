@@ -92,7 +92,7 @@
                 "ReplicaStatus": "CREATING",
                 "ReplicaStatusDescription": "string",
                 "ReplicaStatusPercentProgress": "string",
-                "KMSMasterKeyId": "string",
+                "KMSMasterKeyId": "32b03fb9",
                 "ProvisionedThroughputOverride": {
                     "ReadCapacityUnits": 123
                 },
@@ -120,7 +120,7 @@
         "SSEDescription": {
             "Status": "ENABLING",
             "SSEType": "KMS",
-            "KMSMasterKeyArn": "arn:aws:kms:us-west-2:test:key/key-123",
+            "KMSMasterKeyArn": "arn:aws:kms:eu-central-1:882347060974:key/32b03fb9",
             "InaccessibleEncryptionDateTime": "2022-08-08T09:36:55Z"
         },
         "ArchivalSummary": {
