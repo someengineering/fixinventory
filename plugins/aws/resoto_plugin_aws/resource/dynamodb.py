@@ -343,8 +343,8 @@ class AwsDynamoDbGlobalTable(DynamoDbTaggable, AwsResource):
     kind: ClassVar[str] = "aws_dynamo_db_global_table"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("dynamodb", "list-global-tables", "GlobalTables")
     reference_kinds: ClassVar[ModelReference] = {
-        "successors": {"default": ["aws_kms_key"]},
-        "predecessors": {"delete": ["aws_kms_key"]},
+        "successors": {"delete": ["aws_kms_key"]},
+        "predecessors": {"default": ["aws_kms_key"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("GlobalTableName"),
@@ -383,6 +383,7 @@ class AwsDynamoDbGlobalTable(DynamoDbTaggable, AwsResource):
                 if replica.kms_master_key_id:
                     builder.dependant_node(
                         self,
+                        reverse=True,
                         clazz=AwsKmsKey,
                         id=replica.kms_master_key_id,
                     )
