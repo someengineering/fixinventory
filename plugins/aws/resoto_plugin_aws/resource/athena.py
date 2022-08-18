@@ -81,8 +81,8 @@ class AwsAthenaWorkGroup(AwsResource):
     description: Optional[str] = None
 
     reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {"default": ["aws_kms_key"]},
-        "successors": {"delete": ["aws_kms_key"]},
+        "predecessors": {"delete": ["aws_kms_key"]},
+        "successors": {"default": ["aws_kms_key"]},
     }
 
     def _arn(self) -> str:
