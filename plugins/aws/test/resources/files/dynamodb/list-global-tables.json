@@ -1,0 +1,13 @@
+{
+    "GlobalTables": [
+        {
+            "GlobalTableName": "SomeGlobalName",
+            "ReplicationGroup": [
+                {
+                    "RegionName": "SomeRegion"
+                }
+            ]
+        }
+    ],
+    "LastEvaluatedGlobalTableName": "string"
+}

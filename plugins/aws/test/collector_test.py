@@ -24,8 +24,8 @@ def test_collect() -> None:
                 count += 1
         return count
 
-    assert len(ac.graph.edges) == 307
-    assert count_kind(AwsResource) == 123
+    assert len(ac.graph.edges) == 315
+    assert count_kind(AwsResource) == 125
     for resource in all_resources:
         assert count_kind(resource) > 0, "No instances of {} found".format(resource.__name__)
 
