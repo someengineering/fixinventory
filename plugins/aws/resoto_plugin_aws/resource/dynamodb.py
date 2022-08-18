@@ -318,14 +318,13 @@ class AwsDynamoDbTable(DynamoDbTaggable, AwsResource):
                 clazz=AwsKinesisStream,
                 arn=self.dynamodb_latest_stream_arn,
             )
-        if self.dynamodb_replicas is not []:
-            for replica in self.dynamodb_replicas:
-                if replica.kms_master_key_id:
-                    builder.dependant_node(
-                        self,
-                        clazz=AwsKmsKey,
-                        id=replica.kms_master_key_id,
-                    )
+        for replica in self.dynamodb_replicas:
+            if replica.kms_master_key_id:
+                builder.dependant_node(
+                    self,
+                    clazz=AwsKmsKey,
+                    id=replica.kms_master_key_id,
+                )
         if self.dynamodb_sse_description and self.dynamodb_sse_description.kms_master_key_arn:
             builder.dependant_node(
                 self,
