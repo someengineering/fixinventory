@@ -102,7 +102,9 @@ class ConfigHandlerService(ConfigHandler):
     async def update_configs_model(self, kinds: List[Kind]) -> Model:
         # load existing model
         model = await self.get_configs_model()
-        # make sure the update is valid
+        # make sure the update is valid, but ignore overlapping property paths, so the same name is allowed to have
+        # different types in different sections.
+        model.update(Model.from_kinds(kinds), ignore_overlapping_paths=True)
         updated = model.update_kinds(kinds, check_overlap=False)
         # store all updated kinds
         await self.model_db.update_many(kinds)

@@ -27,16 +27,20 @@ class CheckClass:
 
 
 def check_overlap_for(models: List[Json]) -> None:
+    # convert json representation to intermediate python structure
     classes = {model["fqn"]: from_json(model, CheckClass) for model in models if "properties" in model}
+    # this variable holds all possible property paths
     all_paths: Dict[str, Tuple[CheckClass, str]] = {}
 
+    # checks if 2 kinds are compatible
     def is_compatible(left: str, right: str) -> bool:
         return left == "any" or right == "any" or left == right
 
     def add_path(path: List[str], kinds: List[CheckClass], model: CheckClass) -> None:
+        # This check is required to prevent endless loops: consider class Foo with property inner of type Foo.
+        # We would walk this chain infinitely, that's why we return as early as possible
         for c in kinds:
             if c == model:
-                # recursive cycle. stop.
                 return
         for prop in model.properties:
             pkinds = kinds + [model]
@@ -49,15 +53,21 @@ def check_overlap_for(models: List[Json]) -> None:
                 kind = re.sub("dictionary\\[[^,]+,\\s*(\\S*)\\s*]", r"\1", prop.kind)
                 prop_path += ["foo"]  # always use foo as lookup key
 
+            # Create a string representation of the path. E.g. user.address.city.zip
             str_path = ".".join(prop_path)
+
+            # Check if the path is already in the list of all paths and has a compatible kind.
             if existing := all_paths.get(str_path):
                 existing_class, existing_kind = existing
                 if not is_compatible(existing_kind, prop.kind):
                     raise AttributeError(
                         f"{str_path} is defined in {existing_class.fqn} as {existing_kind} and in {model.fqn} as {kind}"
                     )
+
+            # update the dict of all paths, ignoring any existing value
             all_paths[str_path] = (model, prop.kind)
 
+            # if this property  kind is complex too: walk it.
             if check_kind := classes.get(kind):
                 add_path(prop_path, pkinds, check_kind)
 
@@ -88,6 +98,7 @@ def check_overlap(*base: Type[BaseResource]) -> None:
         else:
             raise AttributeError(f"Import {name}: expected type or list of types, got {type(mod)}")
 
+    # List of all plugin classes that need to be imported.
     model_classes = {
         *dynamic_import("resoto_plugin_aws.collector.all_resources"),
         *dynamic_import("resoto_plugin_gcp.resources.GCPResource"),
@@ -102,5 +113,5 @@ def check_overlap(*base: Type[BaseResource]) -> None:
         *dynamic_import("resoto_plugin_onelogin.OneLoginResource"),
         *base,
     }
-    models = dataclasses_to_resotocore_model(model_classes, aggregate_root=BaseResource)
-    check_overlap_for(models)
+    # check overlap for all plugin classes
+    check_overlap_for(dataclasses_to_resotocore_model(model_classes, aggregate_root=BaseResource))
