@@ -59,6 +59,7 @@ def test_parse_duration() -> None:
         for name in names:
             assert time_unit_parser.parse(name) == seconds
 
+    assert parse_duration("1s") == timedelta(seconds=1)
     assert parse_duration("4d") == timedelta(days=4)
     assert parse_duration("1h") == timedelta(hours=1)
     assert parse_duration("32days, 4hours and 3min and 3s") == timedelta(days=32, hours=4, minutes=3, seconds=3)
