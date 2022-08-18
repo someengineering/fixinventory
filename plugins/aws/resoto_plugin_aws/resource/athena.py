@@ -3,6 +3,8 @@ from typing import ClassVar, Dict, Optional, List
 from attrs import define
 
 from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
+from resoto_plugin_aws.resource.kms import AwsKmsKey
+from resotolib.baseresources import ModelReference
 from resotolib.json_bender import Bender, S, Bend, bend
 from resotolib.types import Json
 from resoto_plugin_aws.aws_client import AwsClient
@@ -78,6 +80,11 @@ class AwsAthenaWorkGroup(AwsResource):
     workgroup_configuration: Optional[AwsAthenaWorkGroupConfiguration] = None
     description: Optional[str] = None
 
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["aws_kms_key"]},
+        "successors": {"delete": ["aws_kms_key"]},
+    }
+
     def _arn(self) -> str:
         return f"arn:aws:athena:{self.region().id}:{self.account().id}:workgroup/{self.name}"
 
@@ -111,6 +118,15 @@ class AwsAthenaWorkGroup(AwsResource):
             if wg is not None:
                 builder.add_node(wg)
                 builder.submit_work(add_tags, wg)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if (
+            (wc := self.workgroup_configuration)
+            and (rc := wc.result_configuration)
+            and (ec := rc.encryption_configuration)
+        ):
+            if ec.kms_key:
+                builder.dependant_node(from_node=self, reverse=True, clazz=AwsKmsKey, id=ec.kms_key)
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(
