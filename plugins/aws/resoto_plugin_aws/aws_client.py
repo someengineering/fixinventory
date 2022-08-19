@@ -7,6 +7,7 @@ from typing import Optional, Any, List
 from retrying import retry
 
 from botocore.exceptions import ClientError
+from botocore.config import Config
 
 from resoto_plugin_aws.config import AwsConfig
 from resotolib.types import Json, JsonElement
@@ -63,8 +64,10 @@ class AwsClient:
         arg_info = " with args=" + ", ".join(kwargs.keys()) if kwargs else ""
         log.info(f"[Aws] call service={service} action={action}{arg_info}")
         py_action = action.replace("-", "_")
+        # 5 attempts is the default, and the adaptive mode allows automated client-side throttling
+        config = Config(retries={"max_attempts": 5, "mode": "adaptive"})
         session = self.config.sessions().session(self.account_id, self.role, self.profile)
-        client = session.client(service, region_name=self.region)
+        client = session.client(service, region_name=self.region, config=config)
         if client.can_paginate(py_action):
             paginator = client.get_paginator(py_action)
             result: List[Json] = []
