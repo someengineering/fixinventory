@@ -1002,6 +1002,14 @@ class BaseDNSRecordSet(BaseResource):
         super().__attrs_post_init__()
         self.record_type = self.record_type.upper()
 
+    def dns_zone(self, graph=None) -> "BaseDNSZone":
+        if graph is None:
+            graph = self._graph
+        dns_zone = graph.search_first_parent_class(self, BaseDNSZone)
+        if dns_zone is None:
+            dns_zone = UnknownDNSZone(id="undefined", tags={})
+        return dns_zone
+
     def _keys(self) -> tuple:
         if self._graph is None:
             raise RuntimeError(f"_keys() called on {self.rtdname} before resource was added to graph")
@@ -1011,6 +1019,7 @@ class BaseDNSRecordSet(BaseResource):
             self.account().id,
             self.region().id,
             self.zone().id,
+            self.dns_zone().id,
             self.id,
             self.name,
             self.record_type,
@@ -1042,6 +1051,14 @@ class BaseDNSRecord(BaseResource):
         super().__attrs_post_init__()
         self.record_type = self.record_type.upper()
 
+    def dns_zone(self, graph=None) -> "BaseDNSZone":
+        if graph is None:
+            graph = self._graph
+        dns_zone = graph.search_first_parent_class(self, BaseDNSZone)
+        if dns_zone is None:
+            dns_zone = UnknownDNSZone(id="undefined", tags={})
+        return dns_zone
+
     def _keys(self) -> tuple:
         if self._graph is None:
             raise RuntimeError(f"_keys() called on {self.rtdname} before resource was added to graph")
@@ -1051,6 +1068,7 @@ class BaseDNSRecord(BaseResource):
             self.account().id,
             self.region().id,
             self.zone().id,
+            self.dns_zone().id,
             self.id,
             self.name,
             self.record_type,
@@ -1077,6 +1095,14 @@ class UnknownAccount(BaseAccount):
 @define(eq=False, slots=False)
 class UnknownRegion(BaseRegion):
     kind: ClassVar[str] = "unknown_region"
+
+    def delete(self, graph) -> bool:
+        return False
+
+
+@define(eq=False, slots=False)
+class UnknownDNSZone(BaseDNSZone):
+    kind: ClassVar[str] = "unknown_dns_zone"
 
     def delete(self, graph) -> bool:
         return False
