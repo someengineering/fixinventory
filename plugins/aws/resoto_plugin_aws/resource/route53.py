@@ -19,6 +19,7 @@ from resotolib.baseresources import (  # noqa: F401
 )
 from resotolib.json_bender import Bender, S, Bend, ForallBend
 from resotolib.types import Json
+from resotolib.utils import rrdata_as_dict
 
 
 @define(eq=False, slots=False)
@@ -78,7 +79,7 @@ class AwsRoute53Zone(AwsResource, BaseDNSZone):
                         record_type=record_set.record_type,
                         record_ttl=record_set.record_ttl or 0,
                         record_data=data,
-                        record_value="foo",
+                        **rrdata_as_dict(record_set.record_type, data),
                     )
                     builder.add_node(record, js)
                     builder.add_edge(record_set, EdgeType.default, node=record)
