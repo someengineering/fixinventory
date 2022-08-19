@@ -64,7 +64,7 @@ class AwsClient:
         arg_info = " with args=" + ", ".join(kwargs.keys()) if kwargs else ""
         log.info(f"[Aws] call service={service} action={action}{arg_info}")
         py_action = action.replace("-", "_")
-        config = Config(retries={"max_attempts": 10, "mode": "standard"})
+        config = Config(retries={"max_attempts": 5, "mode": "adaptive"})
         session = self.config.sessions().session(self.account_id, self.role, self.profile)
         client = session.client(service, region_name=self.region, config=config)
         if client.can_paginate(py_action):
