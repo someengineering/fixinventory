@@ -3,7 +3,7 @@ from __future__ import annotations
 import concurrent
 import logging
 from abc import ABC
-from concurrent.futures import Executor, Future
+from concurrent.futures import Executor, Future, ThreadPoolExecutor
 from datetime import datetime, timezone
 from functools import lru_cache
 from threading import Lock
@@ -264,6 +264,13 @@ class ExecutorQueue:
             self.futures.append(future)
         return future
 
+    def submitted_work(self) -> Future[None]:
+        # separate threadpool to avoid deadlocks
+        pool = ThreadPoolExecutor(max_workers=1)
+        future = pool.submit(self.wait_for_submitted_work)
+        future.add_done_callback(lambda f: pool.shutdown())
+        return future
+
     def wait_for_submitted_work(self) -> None:
         # wait until all futures are complete
         with self._lock:
@@ -275,10 +282,6 @@ class ExecutorQueue:
             except Exception as ex:
                 log.exception(f"Unhandled exception in account {self.name}: {ex}")
                 raise
-
-    def active_futures(self) -> List[Future[Any]]:
-        with self._lock:
-            return self.futures[:]
 
 
 class GraphBuilder:
