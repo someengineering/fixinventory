@@ -463,7 +463,7 @@ class AwsElastiCacheReplicationGroup(ElastiCacheTaggable, AwsResource):
                 name=cluster_name,
             )
         if self.replication_group_kms_key_id:
-            builder.dependant_node(self, reverse=True, clazz=AwsKmsKey, id=self.replication_group_kms_key_id)
+            builder.dependant_node(self, clazz=AwsKmsKey, id=self.replication_group_kms_key_id)
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
