@@ -120,7 +120,7 @@
         "SSEDescription": {
             "Status": "ENABLING",
             "SSEType": "KMS",
-            "KMSMasterKeyArn": "arn:aws:kms:eu-central-1:882347060974:key/32b03fb9",
+            "KMSMasterKeyArn": "arn:aws:kms:eu-central-1:882347060974:key/bdc0c890",
             "InaccessibleEncryptionDateTime": "2022-08-08T09:36:55Z"
         },
         "ArchivalSummary": {
