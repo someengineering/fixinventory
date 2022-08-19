@@ -7,6 +7,7 @@ from resoto_plugin_aws.resource.ec2 import AwsEc2Instance
 from resoto_plugin_aws.resource.elbv2 import AwsAlb
 from resoto_plugin_aws.resource.sqs import AwsSqsQueue
 from resoto_plugin_aws.utils import ToDict
+from resotolib.baseresources import ModelReference
 from resotolib.json_bender import Bender, S, Bend, ForallBend, bend
 from resotolib.types import Json
 from resotolib.json import from_json
@@ -197,6 +198,16 @@ class AwsBeanstalkEnvironmentResourcesDescription:
 class AwsBeanstalkEnvironment(AwsResource):
     kind: ClassVar[str] = "aws_beanstalk_environment"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("elasticbeanstalk", "describe-environments", "Environments")
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {
+            "default": ["aws_beanstalk_application"],
+            "delete": ["aws_autoscaling_group", "aws_ec2_instance", "aws_alb", "aws_sqs_queue"],
+        },
+        "successors": {
+            "default": ["aws_autoscaling_group", "aws_ec2_instance", "aws_alb", "aws_sqs_queue"],
+            "delete": ["aws_beanstalk_application"],
+        },
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("EnvironmentId"),
         "name": S("EnvironmentName"),
