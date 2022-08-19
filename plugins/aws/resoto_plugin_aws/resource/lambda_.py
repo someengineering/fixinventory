@@ -6,6 +6,7 @@ from resoto_plugin_aws.aws_client import AwsClient
 
 from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
 from resoto_plugin_aws.resource.ec2 import AwsEc2Subnet, AwsEc2SecurityGroup, AwsEc2Vpc
+from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resotolib.baseresources import (  # noqa: F401
     BaseCertificate,
     BasePolicy,
@@ -101,8 +102,9 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["aws_vpc", "aws_ec2_subnet", "aws_ec2_security_group"],
-            "delete": ["aws_vpc", "aws_ec2_subnet"],
+            "delete": ["aws_vpc", "aws_ec2_subnet", "aws_kms_key"],
         },
+        "successors": {"default": ["aws_kms_key"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("FunctionName"),
@@ -180,6 +182,12 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
                 )
             for security_group_id in vpc_config.get("SecurityGroupIds", []):
                 builder.add_edge(self, reverse=True, clazz=AwsEc2SecurityGroup, id=security_group_id)
+        if self.function_kms_key_arn:
+            builder.dependant_node(
+                self,
+                clazz=AwsKmsKey,
+                arn=self.function_kms_key_arn,
+            )
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(
