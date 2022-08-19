@@ -120,7 +120,9 @@ def build_graph(cls: Type[AwsResourceType]) -> GraphBuilder:
     region = AwsRegion(id="eu-central-1")
     builder = GraphBuilder(Graph(), Cloud(id="test"), AwsAccount(id="test"), region, client, queue)
     cls.collect_resources(builder)
-    builder.executor.wait_for_submitted_work()
+    builder.global_executor.wait_for_submitted_work()
+    if ex := builder.region_executor:
+        ex.wait_for_submitted_work()
     return builder
 
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 import concurrent
 import logging
 from abc import ABC
-from concurrent.futures import Executor, Future
+from concurrent.futures import Executor, Future, ThreadPoolExecutor
 from datetime import datetime, timezone
 from functools import lru_cache
 from threading import Lock
@@ -261,6 +261,13 @@ class ExecutorQueue:
             self.futures.append(future)
         return future
 
+    def submitted_work(self) -> Future[None]:
+        # separate threadpool to avoid deadlocks
+        pool = ThreadPoolExecutor(max_workers=1)
+        future = pool.submit(self.wait_for_submitted_work)
+        future.add_done_callback(lambda f: pool.shutdown())
+        return future
+
     def wait_for_submitted_work(self) -> None:
         # wait until all futures are complete
         with self._lock:
@@ -282,7 +289,8 @@ class GraphBuilder:
         account: AwsAccount,
         region: AwsRegion,
         client: AwsClient,
-        executor: ExecutorQueue,
+        global_executor: ExecutorQueue,
+        region_executor: Optional[ExecutorQueue] = None,
         global_instance_types: Optional[Dict[str, Any]] = None,
     ) -> None:
         self.graph = graph
@@ -290,12 +298,24 @@ class GraphBuilder:
         self.account = account
         self.region = region
         self.client = client
-        self.executor = executor
+        self.global_executor = global_executor
+        self.region_executor = region_executor
         self.name = f"AWS:{account.name}:{region.name}"
         self.global_instance_types: Dict[str, Any] = global_instance_types or {}
 
     def submit_work(self, fn: Callable[..., T], *args: Any, **kwargs: Any) -> Future[T]:
-        return self.executor.submit_work(fn, *args, **kwargs)
+        """
+        Use this method as default for submitting work. It uses a regional pool of resources that tries to
+        behave nicely with respect to other users of the cloud (e.g. limit the requests that are done in parallel).
+        """
+        return (self.region_executor or self.global_executor).submit_work(fn, *args, **kwargs)
+
+    def submit_work_shared_pool(self, fn: Callable[..., None], *args: Any, **kwargs: Any) -> Future[Any]:
+        """
+        Use this method for work that can be done in parallel more aggressively than the default.
+        Example: fetching tags of a resource.
+        """
+        return self.global_executor.submit_work(fn, *args, **kwargs)
 
     @property
     def config(self) -> AwsConfig:
@@ -360,13 +380,18 @@ class GraphBuilder:
             ondemand_cost=price.on_demand_price_usd if price else 0,
         )
 
-    def for_region(self, region: AwsRegion) -> GraphBuilder:
+    def for_region(
+        self,
+        region: AwsRegion,
+        region_executor: ExecutorQueue,
+    ) -> GraphBuilder:
         return GraphBuilder(
             self.graph,
             self.cloud,
             self.account,
             region,
             self.client.for_region(region.name),
-            self.executor,
+            self.global_executor,
+            region_executor,
             self.global_instance_types,
         )

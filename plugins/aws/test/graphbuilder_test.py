@@ -11,7 +11,7 @@ def test_instance_type(builder: GraphBuilder) -> None:
     m4l: AwsEc2InstanceType = builder.instance_type("m4.large")  # type: ignore
     assert m4l == builder.instance_type("m4.large")
     assert m4l.ondemand_cost == 0.051
-    eu_builder = builder.for_region(AwsRegion(id="eu-central-1"))
+    eu_builder = builder.for_region(AwsRegion(id="eu-central-1"), builder.global_executor)
     m4l_eu: AwsEc2InstanceType = eu_builder.instance_type("m4.large")  # type: ignore
     assert m4l != m4l_eu
     assert m4l_eu == eu_builder.instance_type("m4.large")
@@ -25,7 +25,7 @@ def test_executor(builder: GraphBuilder) -> None:
         result.append(key)
 
     for idx in range(0, 100):
-        builder.submit_work(do_something, idx)
+        builder.submit_work_shared_pool(do_something, idx)
 
-    builder.executor.wait_for_submitted_work()
+    builder.global_executor.wait_for_submitted_work()
     assert result == list(range(0, 100))
