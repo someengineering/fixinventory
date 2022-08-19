@@ -2,7 +2,7 @@
     "KeyMetadata": {
         "AWSAccountId": "882347060974",
         "KeyId": "bdc0c890",
-        "Arn": "arn:aws:kms:eu-central-1:882347060974:key/32b03fb9",
+        "Arn": "arn:aws:kms:eu-central-1:882347060974:key/bdc0c890",
         "CreationDate": "2022-05-06T08:43:41Z",
         "Enabled": true,
         "Description": "Just some Key",
