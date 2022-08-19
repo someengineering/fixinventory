@@ -1,7 +1,6 @@
 import logging
-import concurrent.futures
-from concurrent.futures import ThreadPoolExecutor, Future
-from typing import List, Type, Any
+from concurrent.futures import ThreadPoolExecutor
+from typing import List, Type
 
 from botocore.exceptions import ClientError
 
@@ -77,33 +76,26 @@ class AwsAccountCollector:
         with ThreadPoolExecutor(
             thread_name_prefix=f"aws_{self.account.id}", max_workers=self.config.shared_pool_size
         ) as executor:
-            queue = ExecutorQueue(executor, self.account.name)
-            queue.submit_work(self.update_account)
-            builder = GraphBuilder(self.graph, self.cloud, self.account, self.global_region, self.client, queue)
-            builder.add_node(self.global_region)
+            shared_queue = ExecutorQueue(executor, self.account.name)
+            shared_queue.submit_work(self.update_account)
+            global_builder = GraphBuilder(
+                self.graph, self.cloud, self.account, self.global_region, self.client, shared_queue
+            )
+            global_builder.add_node(self.global_region)
 
             # all global resources
             for resource in global_resources:
                 if self.config.should_collect(resource.kind):
-                    resource.collect_resources(builder)
-            queue.wait_for_submitted_work()
+                    resource.collect_resources(global_builder)
+            shared_queue.wait_for_submitted_work()
 
-            resource_collection_in_regions = []
-            regions_running = []
-
-            # all regional resources for all configured regions
+            # all regions are collected in parallel.
+            # note: when the thread pool context is left, all submitted work is done (or an exception has been thrown)
             with ThreadPoolExecutor(
                 thread_name_prefix=f"aws_{self.account.id}_regions", max_workers=self.config.region_pool_size
             ) as per_region_executor:
                 for region in self.regions:
-                    per_region_queue = ExecutorQueue(per_region_executor, region.name)
-                    per_region_queue.submit_work(self.collect_region, region, builder, resource_collection_in_regions)
-                    regions_running.append(per_region_queue.submitted_work())
-
-            # wait for all region collectors to start
-            concurrent.futures.wait(regions_running)
-            # wait for all regional resources to be collected
-            concurrent.futures.wait(resource_collection_in_regions)
+                    per_region_executor.submit(self.collect_region, region, global_builder)
 
             # connect nodes
             for node, data in list(self.graph.nodes(data=True)):
@@ -111,17 +103,29 @@ class AwsAccountCollector:
                     if isinstance(node, AwsAccount):
                         pass
                     elif isinstance(node, AwsRegion):
-                        builder.add_edge(self.account, EdgeType.default, node=node)
+                        global_builder.add_edge(self.account, EdgeType.default, node=node)
                     elif rg := node.region():
-                        builder.add_edge(rg, EdgeType.default, node=node)
+                        global_builder.add_edge(rg, EdgeType.default, node=node)
                     else:
-                        builder.add_edge(self.account, EdgeType.default, node=node)
-                    node.connect_in_graph(builder, data.get("source", {}))
+                        global_builder.add_edge(self.account, EdgeType.default, node=node)
+                    node.connect_in_graph(global_builder, data.get("source", {}))
                 else:
                     raise Exception("Only AWS resources expected")
 
             # wait for all futures to finish
-            queue.wait_for_submitted_work()
+            shared_queue.wait_for_submitted_work()
+
+    def collect_region(self, region: AwsRegion, global_builder: GraphBuilder) -> None:
+        with ThreadPoolExecutor(
+            thread_name_prefix=f"aws_{self.account.id}_{region.id}",
+            max_workers=self.config.region_resources_pool_size,
+        ) as executor:
+            queue = ExecutorQueue(executor, region.name)
+            global_builder.add_node(region)
+            region_builder = global_builder.for_region(region, queue)
+            for resource in regional_resources:
+                if self.config.should_collect(resource.kind):
+                    resource.collect_resources(region_builder)
 
     def update_account(self) -> None:
         # account alias
@@ -160,16 +164,3 @@ class AwsAccountCollector:
             self.account.hard_expiry = bool(app.get("HardExpiry", None))
         except Exception:
             log.debug(f"The Password Policy for account {self.account.dname} cannot be found.")
-
-    def collect_region(self, region: AwsRegion, builder: GraphBuilder, region_futures: List[Future[Any]]) -> None:
-        with ThreadPoolExecutor(
-            thread_name_prefix=f"aws_{self.account.id}_{region.id}",
-            max_workers=self.config.region_resources_pool_size,
-        ) as executor:
-            queue = ExecutorQueue(executor, region.name)
-            builder.add_node(region)
-            region_builder = builder.for_region(region, queue)
-            for resource in regional_resources:
-                if self.config.should_collect(resource.kind):
-                    resource.collect_resources(region_builder)
-            region_futures.append(queue.submitted_work())
