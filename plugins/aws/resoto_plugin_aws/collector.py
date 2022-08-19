@@ -76,6 +76,9 @@ class AwsAccountCollector:
         with ThreadPoolExecutor(
             thread_name_prefix=f"aws_{self.account.id}", max_workers=self.config.shared_pool_size
         ) as executor:
+            # The shared executor is used to parallelize the collection of resources "as fast as possible"
+            # It should only be used in scenarios, where it is safe to do so.
+            # This executor is shared between all regions.
             shared_queue = ExecutorQueue(executor, self.account.name)
             shared_queue.submit_work(self.update_account)
             global_builder = GraphBuilder(

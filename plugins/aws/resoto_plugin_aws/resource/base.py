@@ -304,9 +304,17 @@ class GraphBuilder:
         self.global_instance_types: Dict[str, Any] = global_instance_types or {}
 
     def submit_work(self, fn: Callable[..., T], *args: Any, **kwargs: Any) -> Future[T]:
+        """
+        Use this method as default for submitting work. It uses a regional pool of resources that tries to
+        behave nicely with respect to other users of the cloud (e.g. limit the requests that are done in parallel).
+        """
         return (self.region_executor or self.global_executor).submit_work(fn, *args, **kwargs)
 
-    def submit_work_global(self, fn: Callable[..., None], *args: Any, **kwargs: Any) -> Future[Any]:
+    def submit_work_shared_pool(self, fn: Callable[..., None], *args: Any, **kwargs: Any) -> Future[Any]:
+        """
+        Use this method for work that can be done in parallel more aggressively than the default.
+        Example: fetching tags of a resource.
+        """
         return self.global_executor.submit_work(fn, *args, **kwargs)
 
     @property

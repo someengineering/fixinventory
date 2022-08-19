@@ -270,7 +270,7 @@ class AwsElastiCacheCacheCluster(ElastiCacheTaggable, AwsResource):
         for js in json:
             instance = cls.from_api(js)
             builder.add_node(instance, js)
-            builder.submit_work_global(add_tags, instance)
+            builder.submit_work_shared_pool(add_tags, instance)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for sg in self.cluster_security_groups:
@@ -447,7 +447,7 @@ class AwsElastiCacheReplicationGroup(ElastiCacheTaggable, AwsResource):
         for js in json:
             instance = cls.from_api(js)
             builder.add_node(instance, js)
-            builder.submit_work_global(add_tags, instance)
+            builder.submit_work_shared_pool(add_tags, instance)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for cluster_name in self.replication_group_member_clusters:
