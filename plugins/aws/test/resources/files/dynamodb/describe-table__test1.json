@@ -1,0 +1,136 @@
+{
+    "Table": {
+        "AttributeDefinitions": [
+            {
+                "AttributeName": "LockID",
+                "AttributeType": "S"
+            }
+        ],
+        "TableName": "test1",
+        "KeySchema": [
+            {
+                "AttributeName": "LockID",
+                "KeyType": "HASH"
+            }
+        ],
+        "TableStatus": "UPDATING",
+        "CreationDateTime": "2022-08-08T09:36:55Z",
+        "ProvisionedThroughput": {
+            "LastIncreaseDateTime": "2022-08-08T09:36:55Z",
+            "LastDecreaseDateTime": "2022-08-08T09:36:55Z",
+            "NumberOfDecreasesToday": 123,
+            "ReadCapacityUnits": 123,
+            "WriteCapacityUnits": 123
+        },
+        "TableSizeBytes": 123,
+        "ItemCount": 123,
+        "TableArn": "arn:aws:dynamodb:us-west-2:test:table/test1",
+        "TableId": "db-123",
+        "BillingModeSummary": {
+            "BillingMode": "PROVISIONED",
+            "LastUpdateToPayPerRequestDateTime": "2022-08-08T09:36:55Z"
+        },
+        "LocalSecondaryIndexes": [
+            {
+                "IndexName": "string",
+                "KeySchema": [
+                    {
+                        "AttributeName": "string",
+                        "KeyType": "HASH"
+                    }
+                ],
+                "Projection": {
+                    "ProjectionType": "ALL",
+                    "NonKeyAttributes": [
+                        "string"
+                    ]
+                },
+                "IndexSizeBytes": 123,
+                "ItemCount": 123,
+                "IndexArn": "string"
+            }
+        ],
+        "GlobalSecondaryIndexes": [
+            {
+                "IndexName": "string",
+                "KeySchema": [
+                    {
+                        "AttributeName": "string",
+                        "KeyType": "HASH"
+                    }
+                ],
+                "Projection": {
+                    "ProjectionType": "ALL",
+                    "NonKeyAttributes": [
+                        "string"
+                    ]
+                },
+                "IndexStatus": "CREATING",
+                "Backfilling": true,
+                "ProvisionedThroughput": {
+                    "LastIncreaseDateTime": "2022-08-08T09:36:55Z",
+                    "LastDecreaseDateTime": "2022-08-08T09:36:55Z",
+                    "NumberOfDecreasesToday": 123,
+                    "ReadCapacityUnits": 123,
+                    "WriteCapacityUnits": 123
+                },
+                "IndexSizeBytes": 123,
+                "ItemCount": 123,
+                "IndexArn": "string"
+            }
+        ],
+        "StreamSpecification": {
+            "StreamEnabled": true,
+            "StreamViewType": "NEW_IMAGE"
+        },
+        "LatestStreamLabel": "2022-08-08T09:36:55Z",
+        "LatestStreamArn": "arn:aws:kinesis:us-east-1:12345678945:stream/resoto-stream",
+        "GlobalTableVersion": "string",
+        "Replicas": [
+            {
+                "RegionName": "string",
+                "ReplicaStatus": "CREATING",
+                "ReplicaStatusDescription": "string",
+                "ReplicaStatusPercentProgress": "string",
+                "KMSMasterKeyId": "32b03fb9",
+                "ProvisionedThroughputOverride": {
+                    "ReadCapacityUnits": 123
+                },
+                "GlobalSecondaryIndexes": [
+                    {
+                        "IndexName": "string",
+                        "ProvisionedThroughputOverride": {
+                            "ReadCapacityUnits": 123
+                        }
+                    }
+                ],
+                "ReplicaInaccessibleDateTime": "2022-08-08T09:36:55Z",
+                "ReplicaTableClassSummary": {
+                    "TableClass": "STANDARD",
+                    "LastUpdateDateTime": "2022-08-08T09:36:55Z"
+                }
+            }
+        ],
+        "RestoreSummary": {
+            "SourceBackupArn": "string",
+            "SourceTableArn": "string",
+            "RestoreDateTime": "2022-08-08T09:36:55Z",
+            "RestoreInProgress": false
+        },
+        "SSEDescription": {
+            "Status": "ENABLING",
+            "SSEType": "KMS",
+            "KMSMasterKeyArn": "arn:aws:kms:eu-central-1:882347060974:key/bdc0c890",
+            "InaccessibleEncryptionDateTime": "2022-08-08T09:36:55Z"
+        },
+        "ArchivalSummary": {
+            "ArchivalDateTime": "2022-08-08T09:36:55Z",
+            "ArchivalReason": "string",
+            "ArchivalBackupArn": "string"
+        },
+        "TableClassSummary": {
+            "TableClass": "STANDARD",
+            "LastUpdateDateTime": "2022-08-08T09:36:55Z"
+        }
+    }
+}

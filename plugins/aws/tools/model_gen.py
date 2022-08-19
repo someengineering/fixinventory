@@ -333,7 +333,8 @@ models: Dict[str, List[AwsResotoModel]] = {
         # AwsResotoModel("list-domain-names", "domainNameConfigs", "DomainNameConfig", prefix="AppSync"),
     ],
     "athena": [
-        # AwsResotoModel("list-data-catalogs", "DataCatalogsSummary", "DataCatalogSummary", prefix="Athena"),
+        # AwsResotoModel("list-work-groups", "WorkGroups", "WorkGroup", prefix="Athena"),
+        # AwsResotoModel("list-data-catalogs", "DataCatalogs", "DataCatalog", prefix="Athena"),
     ],
     "autoscaling": [
         # AwsResotoModel(
@@ -361,6 +362,12 @@ models: Dict[str, List[AwsResotoModel]] = {
         # AwsResotoModel(
         #     "get-metric-data", "GetMetricDataResult", "MetricDataResult", prefix="Cloudwatch", prop_prefix="metric_"
         # )
+    ],
+    "dynamodb": [
+        # AwsResotoModel("list-tables", "TableNames", "TableDescription", prefix="DynamoDb", prop_prefix="dynamodb_"),
+        # AwsResotoModel(
+        #     "list-global-tables", "GlobalTables", "GlobalTableDescription", prefix="DynamoDb", prop_prefix="dynamodb_"
+        # ),
     ],
     "ec2": [
         # AwsResotoModel(

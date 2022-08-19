@@ -3,14 +3,20 @@ from attrs import define, field
 from datetime import datetime
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
+from resoto_plugin_aws.resource.kms import AwsKmsKey
+from resotolib.baseresources import ModelReference
 from resotolib.json_bender import Bender, S
 from resotolib.types import Json
 
 
 @define(eq=False, slots=False)
 class AwsSqsQueue(AwsResource):
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sqs", "list-queues", "QueueUrls")
     kind: ClassVar[str] = "aws_sqs_queue"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sqs", "list-queues", "QueueUrls")
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {"default": ["aws_kms_key"]},
+        "predecessors": {"delete": ["aws_kms_key"]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("QueueName"),
         "name": S("QueueName"),
@@ -43,6 +49,7 @@ class AwsSqsQueue(AwsResource):
     sqs_redrive_policy: Optional[str] = field(default=None)
     sqs_fifo_queue: Optional[bool] = field(default=None)
     sqs_content_based_deduplication: Optional[bool] = field(default=None)
+    sqs_kms_master_key_id: Optional[str] = field(default=None)
     sqs_kms_data_key_reuse_period_seconds: Optional[int] = field(default=None)
     sqs_deduplication_scope: Optional[str] = field(default=None)
     sqs_fifo_throughput_limit: Optional[str] = field(default=None)
@@ -79,6 +86,14 @@ class AwsSqsQueue(AwsResource):
 
         for queue_url in json:
             builder.submit_work(add_instance, queue_url)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if self.sqs_kms_master_key_id:
+            builder.dependant_node(
+                self,
+                clazz=AwsKmsKey,
+                id=self.sqs_kms_master_key_id,
+            )
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(service="sqs", action="tag-queue", result_name=None, QueueUrl=self.sqs_queue_url, Tags={key: value})

@@ -1,0 +1,10 @@
+{
+    "DataCatalog": {
+        "Name": "resoto-catalog",
+        "Description": "string",
+        "Type": "LAMBDA",
+        "Parameters": {
+            "string": "string"
+        }
+    }
+}

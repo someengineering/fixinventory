@@ -2,6 +2,7 @@ from collections import defaultdict
 
 import attrs
 import cattrs
+from attr import resolve_types
 from attrs import Attribute
 from datetime import datetime, date, timedelta, timezone
 from functools import lru_cache, reduce
@@ -241,6 +242,7 @@ def dataclasses_to_resotocore_model(
 
     for cls in all_classes:
         if attrs.has(cls):
+            resolve_types(cls)  # make sure all string based types are resolved correctly
             export_data_class(cls)
         elif is_enum(cls):
             export_enum(cls)  # type: ignore

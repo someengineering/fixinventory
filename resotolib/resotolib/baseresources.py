@@ -8,7 +8,7 @@ import uuid
 import weakref
 from resotolib.logger import log
 from enum import Enum
-from typing import Dict, Iterator, List, ClassVar, Optional
+from typing import Dict, Iterator, List, ClassVar, Optional, TypedDict
 from resotolib.utils import make_valid_timestamp, utc_str
 from prometheus_client import Counter, Summary
 from attrs import define, field, resolve_types, Factory
@@ -47,7 +47,14 @@ def unless_protected(f):
 #   "successors": {"default": ["base"], "delete": ["other_kind"]]},
 #   "predecessors": {"delete": ["other"]},
 # }
-ModelReference = Dict[str, Dict[str, List[str]]]
+class ModelReferenceEdges(TypedDict, total=False):
+    default: List[str]
+    delete: List[str]
+
+
+class ModelReference(TypedDict, total=False):
+    predecessors: ModelReferenceEdges
+    successors: ModelReferenceEdges
 
 
 class EdgeType(Enum):

@@ -8,9 +8,11 @@ from botocore.exceptions import ClientError
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.config import AwsConfig
 from resoto_plugin_aws.resource import (
+    athena,
     autoscaling,
     cloudformation,
     cloudwatch,
+    dynamodb,
     ec2,
     eks,
     elasticbeanstalk,
@@ -35,11 +37,15 @@ from resotolib.graph import Graph
 log = logging.getLogger("resoto.plugins.aws")
 
 
-global_resources: List[Type[AwsResource]] = iam.resources + route53.resources + ec2.global_resources + s3.resources
+global_resources: List[Type[AwsResource]] = (
+    dynamodb.global_resources + ec2.global_resources + iam.resources + route53.resources + s3.resources
+)
 regional_resources: List[Type[AwsResource]] = (
     autoscaling.resources
+    + athena.resources
     + cloudformation.resources
     + cloudwatch.resources
+    + dynamodb.resources
     + ec2.resources
     + eks.resources
     + elasticbeanstalk.resources

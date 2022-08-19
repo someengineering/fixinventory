@@ -1,0 +1,33 @@
+{
+    "GlobalTableDescription": {
+        "ReplicationGroup": [
+            {
+                "RegionName": "string",
+                "ReplicaStatus": "ACTIVE",
+                "ReplicaStatusDescription": "string",
+                "ReplicaStatusPercentProgress": "string",
+                "KMSMasterKeyId": "32b03fb9",
+                "ProvisionedThroughputOverride": {
+                    "ReadCapacityUnits": 123
+                },
+                "GlobalSecondaryIndexes": [
+                    {
+                        "IndexName": "string",
+                        "ProvisionedThroughputOverride": {
+                            "ReadCapacityUnits": 123
+                        }
+                    }
+                ],
+                "ReplicaInaccessibleDateTime": "2022-08-08T09:36:55Z",
+                "ReplicaTableClassSummary": {
+                    "TableClass": "STANDARD",
+                    "LastUpdateDateTime": "2022-08-08T09:36:55Z"
+                }
+            }
+        ],
+        "GlobalTableArn": "string",
+        "CreationDateTime": "2022-08-08T09:36:55Z",
+        "GlobalTableStatus": "ACTIVE",
+        "GlobalTableName": "SomeGlobalName"
+    }
+}

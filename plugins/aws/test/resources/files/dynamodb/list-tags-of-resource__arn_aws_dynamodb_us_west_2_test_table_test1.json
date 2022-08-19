@@ -1,0 +1,9 @@
+{
+    "Tags": [
+        {
+            "Key": "string",
+            "Value": "string"
+        }
+    ],
+    "NextToken": "string"
+}

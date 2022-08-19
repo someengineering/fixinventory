@@ -71,7 +71,7 @@ def duration_str(duration: timedelta, precision: Optional[int] = 0, down_to_unit
     result = ""
     for unit, _, factor in time_units:
         if unit:
-            if seconds > factor:
+            if seconds >= factor:
                 found = True
                 num = int(seconds / factor)
                 seconds = seconds - (num * factor)

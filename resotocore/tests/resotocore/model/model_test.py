@@ -337,11 +337,7 @@ def test_update(person_model: Model) -> None:
     assert str(simple.value) == "Update Foo changes an existing property type Foo"
     with pytest.raises(AttributeError) as duplicate:
         updated.update_kinds([ComplexKind("Bla", [], [Property("id", "int32")])])
-    assert (
-        str(duplicate.value)
-        == "Update not possible: following properties would be non unique having the same path but different type: "
-        "id (child.string -> Bla.int32)"
-    )
+    assert str(duplicate.value) == "id is defined in Base as string and in Bla as int32"
 
     # update the test property of any_foo from string to an enumeration
     prop = Property("test", "string", description="Some test value.")

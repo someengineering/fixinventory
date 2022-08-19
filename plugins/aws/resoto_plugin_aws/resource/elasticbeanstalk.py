@@ -72,15 +72,15 @@ class AwsBeanstalkApplication(AwsResource):
         "mtime": S("DateUpdated"),
         "arn": S("ApplicationArn"),
         "description": S("Description"),
-        "versions": S("Versions", default=[]),
-        "configuration_templates": S("ConfigurationTemplates", default=[]),
-        "resource_lifecycle_config": S("ResourceLifecycleConfig")
+        "beanstalk_versions": S("Versions", default=[]),
+        "beanstalk_configuration_templates": S("ConfigurationTemplates", default=[]),
+        "beanstalk_resource_lifecycle_config": S("ResourceLifecycleConfig")
         >> Bend(AwsBeanstalkApplicationResourceLifecycleConfig.mapping),
     }
     description: Optional[str] = field(default=None)
-    versions: List[str] = field(factory=list)
-    configuration_templates: List[str] = field(factory=list)
-    resource_lifecycle_config: Optional[AwsBeanstalkApplicationResourceLifecycleConfig] = field(default=None)
+    beanstalk_versions: List[str] = field(factory=list)
+    beanstalk_configuration_templates: List[str] = field(factory=list)
+    beanstalk_resource_lifecycle_config: Optional[AwsBeanstalkApplicationResourceLifecycleConfig] = field(default=None)
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
@@ -203,38 +203,39 @@ class AwsBeanstalkEnvironment(AwsResource):
         "ctime": S("DateCreated"),
         "mtime": S("DateUpdated"),
         "arn": S("EnvironmentArn"),
-        "application_name": S("ApplicationName"),
-        "version_label": S("VersionLabel"),
-        "solution_stack_name": S("SolutionStackName"),
-        "platform_arn": S("PlatformArn"),
-        "template_name": S("TemplateName"),
         "description": S("Description"),
-        "endpoint_url": S("EndpointURL"),
-        "cname": S("CNAME"),
-        "status": S("Status"),
-        "abortable_operation_in_progress": S("AbortableOperationInProgress"),
-        "health": S("Health"),
-        "health_status": S("HealthStatus"),
-        "tier": S("Tier") >> Bend(AwsBeanstalkEnvironmentTier.mapping),
-        "environment_links": S("EnvironmentLinks", default=[]) >> ForallBend(AwsBeanstalkEnvironmentLink.mapping),
-        "operations_role": S("OperationsRole"),
+        "beanstalk_application_name": S("ApplicationName"),
+        "beanstalk_version_label": S("VersionLabel"),
+        "beanstalk_solution_stack_name": S("SolutionStackName"),
+        "beanstalk_platform_arn": S("PlatformArn"),
+        "beanstalk_template_name": S("TemplateName"),
+        "beanstalk_endpoint_url": S("EndpointURL"),
+        "beanstalk_cname": S("CNAME"),
+        "beanstalk_status": S("Status"),
+        "beanstalk_abortable_operation_in_progress": S("AbortableOperationInProgress"),
+        "beanstalk_health": S("Health"),
+        "beanstalk_health_status": S("HealthStatus"),
+        "beanstalk_tier": S("Tier") >> Bend(AwsBeanstalkEnvironmentTier.mapping),
+        "beanstalk_environment_links": S("EnvironmentLinks", default=[])
+        >> ForallBend(AwsBeanstalkEnvironmentLink.mapping),
+        "beanstalk_operations_role": S("OperationsRole"),
     }
-    application_name: Optional[str] = field(default=None)
-    version_label: Optional[str] = field(default=None)
-    solution_stack_name: Optional[str] = field(default=None)
-    platform_arn: Optional[str] = field(default=None)
-    template_name: Optional[str] = field(default=None)
     description: Optional[str] = field(default=None)
-    endpoint_url: Optional[str] = field(default=None)
-    cname: Optional[str] = field(default=None)
-    status: Optional[str] = field(default=None)
-    abortable_operation_in_progress: Optional[bool] = field(default=None)
-    health: Optional[str] = field(default=None)
-    health_status: Optional[str] = field(default=None)
-    resources: Optional[AwsBeanstalkEnvironmentResourcesDescription] = field(default=None)
-    tier: Optional[AwsBeanstalkEnvironmentTier] = field(default=None)
-    environment_links: List[AwsBeanstalkEnvironmentLink] = field(factory=list)
-    operations_role: Optional[str] = field(default=None)
+    beanstalk_application_name: Optional[str] = field(default=None)
+    beanstalk_version_label: Optional[str] = field(default=None)
+    beanstalk_solution_stack_name: Optional[str] = field(default=None)
+    beanstalk_platform_arn: Optional[str] = field(default=None)
+    beanstalk_template_name: Optional[str] = field(default=None)
+    beanstalk_endpoint_url: Optional[str] = field(default=None)
+    beanstalk_cname: Optional[str] = field(default=None)
+    beanstalk_status: Optional[str] = field(default=None)
+    beanstalk_abortable_operation_in_progress: Optional[bool] = field(default=None)
+    beanstalk_health: Optional[str] = field(default=None)
+    beanstalk_health_status: Optional[str] = field(default=None)
+    beanstalk_resources: Optional[AwsBeanstalkEnvironmentResourcesDescription] = field(default=None)
+    beanstalk_tier: Optional[AwsBeanstalkEnvironmentTier] = field(default=None)
+    beanstalk_environment_links: List[AwsBeanstalkEnvironmentLink] = field(factory=list)
+    beanstalk_operations_role: Optional[str] = field(default=None)
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
@@ -250,7 +251,7 @@ class AwsBeanstalkEnvironment(AwsResource):
                 "elasticbeanstalk", "describe-environment-resources", "EnvironmentResources", EnvironmentId=env.id
             )
             if resources:
-                env.resources = from_json(
+                env.beanstalk_resources = from_json(
                     bend(AwsBeanstalkEnvironmentResourcesDescription.mapping, resources),
                     AwsBeanstalkEnvironmentResourcesDescription,
                 )
@@ -262,14 +263,13 @@ class AwsBeanstalkEnvironment(AwsResource):
             builder.submit_work(add_resources, instance)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        super().connect_in_graph(builder, source)
         builder.dependant_node(
             self,
             reverse=True,
             clazz=AwsBeanstalkApplication,
-            name=self.application_name,
+            name=self.beanstalk_application_name,
         )
-        res = self.resources
+        res = self.beanstalk_resources
         if not res:
             return
         if res.auto_scaling_groups:
