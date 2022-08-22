@@ -464,21 +464,17 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
                 builder.dependant_node(
                     self, reverse=True, delete_same_as_default=True, clazz=AwsEc2Subnet, id=subnet_id
                 )
-        if self.rds_kms_key_id:
-            if self.rds_kms_key_id.startswith("arn:"):
-                builder.dependant_node(from_node=self, clazz=AwsKmsKey, arn=self.rds_kms_key_id)
+        potential_keys = [
+            self.rds_kms_key_id,
+            self.rds_performance_insights_kms_key_id,
+            self.rds_activity_stream_kms_key_id,
+        ]
+        keys = [key for key in potential_keys if key]
+        for key_reference in keys:
+            if key_reference.startswith("arn:"):
+                builder.dependant_node(from_node=self, clazz=AwsKmsKey, arn=key_reference)
             else:
-                builder.dependant_node(from_node=self, clazz=AwsKmsKey, id=self.rds_kms_key_id)
-        if self.rds_performance_insights_kms_key_id:
-            if self.rds_performance_insights_kms_key_id.startswith("arn:"):
-                builder.dependant_node(from_node=self, clazz=AwsKmsKey, arn=self.rds_performance_insights_kms_key_id)
-            else:
-                builder.dependant_node(from_node=self, clazz=AwsKmsKey, id=self.rds_performance_insights_kms_key_id)
-        if self.rds_activity_stream_kms_key_id:
-            if self.rds_activity_stream_kms_key_id.startswith("arn:"):
-                builder.dependant_node(from_node=self, clazz=AwsKmsKey, arn=self.rds_activity_stream_kms_key_id)
-            else:
-                builder.dependant_node(from_node=self, clazz=AwsKmsKey, id=self.rds_activity_stream_kms_key_id)
+                builder.dependant_node(from_node=self, clazz=AwsKmsKey, id=key_reference)
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
