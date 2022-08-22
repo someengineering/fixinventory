@@ -1,30 +1,28 @@
+import logging
 from typing import Type
 
+from _pytest.logging import LogCaptureFixture
+from botocore.exceptions import ClientError
 from networkx import DiGraph, is_directed_acyclic_graph
 
 from resoto_plugin_aws.collector import AwsAccountCollector, all_resources
-from resoto_plugin_aws.config import AwsConfig
-from resoto_plugin_aws.resource.base import AwsAccount, AwsResource
-from resotolib.baseresources import Cloud
+from resoto_plugin_aws.resource.base import AwsResource, AwsRegion, GraphBuilder
 from resotolib.core.model_export import dataclasses_to_resotocore_model
-from test.resources import BotoFileBasedSession
+from test import account_collector, builder, aws_client, aws_config  # noqa: F401
+from test.resources import BotoErrorSession
 
 
-def test_collect() -> None:
-    config = AwsConfig("test", "test", "test")
-    config.sessions().session_class_factory = BotoFileBasedSession
-    account = AwsAccount(id="123")
-    ac = AwsAccountCollector(config, Cloud(id="aws"), account, ["us-east-1"])
-    ac.collect()
+def test_collect(account_collector: AwsAccountCollector) -> None:
+    account_collector.collect()
 
     def count_kind(clazz: Type[AwsResource]) -> int:
         count = 0
-        for node in ac.graph.nodes:
+        for node in account_collector.graph.nodes:
             if isinstance(node, clazz):
                 count += 1
         return count
 
-    assert len(ac.graph.edges) == 317
+    assert len(account_collector.graph.edges) == 317
     assert count_kind(AwsResource) == 125
     for resource in all_resources:
         assert count_kind(resource) > 0, "No instances of {} found".format(resource.__name__)
@@ -50,3 +48,14 @@ def test_dependencies() -> None:
 
     assert is_directed_acyclic_graph(for_edge_type("default")), show_graph(for_edge_type("default"))
     assert is_directed_acyclic_graph(for_edge_type("delete")), show_graph(for_edge_type("delete"))
+
+
+def test_collect_region(
+    account_collector: AwsAccountCollector, builder: GraphBuilder, caplog: LogCaptureFixture
+) -> None:
+    BotoErrorSession.exception = ClientError({"Error": {"Code": "UnauthorizedOperation"}}, "test")
+    account_collector.config.sessions().session_class_factory = BotoErrorSession
+
+    with caplog.at_level(logging.ERROR):
+        account_collector.collect_region(AwsRegion(id="us-east-1", name="us-east-1"), builder)
+    assert "Not authorized to collect resources in account 123 region us-east-1" in caplog.text

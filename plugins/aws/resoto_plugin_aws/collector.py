@@ -119,16 +119,26 @@ class AwsAccountCollector:
             shared_queue.wait_for_submitted_work()
 
     def collect_region(self, region: AwsRegion, global_builder: GraphBuilder) -> None:
-        with ThreadPoolExecutor(
-            thread_name_prefix=f"aws_{self.account.id}_{region.id}",
-            max_workers=self.config.region_resources_pool_size,
-        ) as executor:
-            queue = ExecutorQueue(executor, region.name)
-            global_builder.add_node(region)
-            region_builder = global_builder.for_region(region, queue)
-            for resource in regional_resources:
-                if self.config.should_collect(resource.kind):
-                    resource.collect_resources(region_builder)
+        try:
+            with ThreadPoolExecutor(
+                thread_name_prefix=f"aws_{self.account.id}_{region.id}",
+                max_workers=self.config.region_resources_pool_size,
+            ) as executor:
+                queue = ExecutorQueue(executor, region.name)
+                global_builder.add_node(region)
+                region_builder = global_builder.for_region(region, queue)
+                for resource in regional_resources:
+                    if self.config.should_collect(resource.kind):
+                        resource.collect_resources(region_builder)
+                        log.info(f"[Aws][{self.account.id}][{region.name}] finished collecting: {resource.kind}")
+        except ClientError as e:
+            code = e.response["Error"]["Code"]
+            if code == "UnauthorizedOperation":
+                log.error(f"Not authorized to collect resources in account {self.account.id} region {region.id}")
+                return None
+            else:
+                log.error(f"Error collecting resources in account {self.account.id} region {region.id}", exc_info=True)
+                raise
 
     def update_account(self) -> None:
         # account alias

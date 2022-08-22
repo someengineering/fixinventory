@@ -89,6 +89,22 @@ class BotoFileBasedSession(Session):  # type: ignore
         return BotoDummyStsClient() if service_name == "sts" else BotoFileClient(service_name)
 
 
+class BotoErrorClient:
+    def __init__(self, exception: Exception):
+        self.exception = exception
+
+    def __getattr__(self, action_name: str) -> Callable[[], Any]:
+        raise self.exception
+
+
+# use this factory in tests, to check how the collector behaves n terms of errors
+class BotoErrorSession(Session):  # type: ignore
+    exception: Exception = Exception("Test exception")
+
+    def client(self, service_name: str, **kwargs: Any) -> Any:
+        return BotoErrorClient(self.exception)
+
+
 def all_props_set(obj: AwsResourceType, ignore_props: Set[str]) -> None:
     for field in fields(type(obj)):
         prop = field.name
