@@ -5,14 +5,15 @@ from attrs import define, field
 from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
 from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resotolib.baseresources import ModelReference
-from resotolib.json_bender import Bender, S, Bend, ForallBend, K, F
+from resotolib.json_bender import Bender, S, Bend, ForallBend, K
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.utils import ToDict
-from typing import Tuple, Type
+from typing import Type
 from datetime import datetime
 from resotolib.types import Json
 from resoto_plugin_aws.resource.ec2 import AwsEc2Vpc, AwsEc2SecurityGroup, AwsEc2Subnet
 from resoto_plugin_aws.resource.iam import AwsIamRole
+from resoto_plugin_aws.utils import arn_partition
 
 
 @define(eq=False, slots=False)
@@ -286,15 +287,6 @@ class AwsRedshiftReservedNodeExchangeStatus:
     target_reserved_node_count: Optional[int] = field(default=None)
 
 
-# AWS does not give us a cluster arn in the api, and we have to figure it out
-# from the cluster network arn and the cluster name.
-def _cluster_arn(ns_arn_and_cluster_id: Tuple[str, str]) -> str:
-    ns_arn = ns_arn_and_cluster_id[0]
-    cluster_id = ns_arn_and_cluster_id[1]
-    splitted = ns_arn.split(":")
-    return f"arn:aws:redshift:{splitted[3]}:{splitted[4]}:cluster:{cluster_id[1]}"
-
-
 @define(eq=False, slots=False)
 class AwsRedshiftCluster(AwsResource):
     kind: ClassVar[str] = "aws_redshift_cluster"
@@ -313,8 +305,6 @@ class AwsRedshiftCluster(AwsResource):
         "id": S("ClusterIdentifier"),
         "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("ClusterIdentifier"),
-        "arn": ((S("ClusterNamespaceArn") >> F(lambda x: (x,))) + (S("ClusterIdentifier") >> F(lambda x: (x,))))
-        >> F(lambda cn: _cluster_arn(cn)),
         "ctime": S("ClusterCreateTime"),
         "mtime": K(None),
         "atime": K(None),
@@ -424,6 +414,15 @@ class AwsRedshiftCluster(AwsResource):
     redshift_aqua_configuration: Optional[AwsRedshiftAquaConfiguration] = field(default=None)
     redshift_default_iam_role_arn: Optional[str] = field(default=None)
     redshift_reserved_node_exchange_status: Optional[AwsRedshiftReservedNodeExchangeStatus] = field(default=None)
+
+    @classmethod
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        for js in json:
+            cluster = cls.from_api(js)
+            r_id = builder.region.id
+            a_id = builder.account.id
+            cluster.arn = f"arn:{arn_partition(builder.region)}:redshift:{r_id}:{a_id}:cluster:{cluster.id}"
+            builder.add_node(cluster, js)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.redshift_vpc_id:

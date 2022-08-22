@@ -2,11 +2,14 @@ from typing import ClassVar, Dict, List, Type, Optional  # noqa: F401
 
 from attrs import define
 import botocore.exceptions
-from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec
+from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
 from resotolib.baseresources import BaseBucket, BaseAccount  # noqa: F401
 from resotolib.json_bender import Bender, S
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.utils import tags_as_dict
+
+from resotolib.types import Json
+from resoto_plugin_aws.utils import arn_partition
 
 
 @define(eq=False, slots=False)
@@ -14,6 +17,13 @@ class AwsS3Bucket(AwsResource, BaseBucket):
     kind: ClassVar[str] = "aws_s3_bucket"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("s3", "list-buckets", "Buckets")
     mapping: ClassVar[Dict[str, Bender]] = {"id": S("Name"), "name": S("Name"), "ctime": S("CreationDate")}
+
+    @classmethod
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        for js in json:
+            bucket = cls.from_api(js)
+            bucket.arn = f"arn:{arn_partition(builder.region)}:s3:::{bucket.name}"
+            builder.add_node(bucket, js)
 
     def _set_tags(self, client: AwsClient, tags: Dict[str, str]) -> bool:
         tag_set = [{"Key": k, "Value": v} for k, v in tags.items()]

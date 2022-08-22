@@ -11,6 +11,7 @@ from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.utils import ToDict
 from typing import Type, cast
 import concurrent.futures
+from resoto_plugin_aws.utils import arn_partition
 
 
 @define(eq=False, slots=False)
@@ -85,9 +86,6 @@ class AwsAthenaWorkGroup(AwsResource):
         "successors": {"default": ["aws_kms_key"]},
     }
 
-    def _arn(self) -> str:
-        return f"arn:aws:athena:{self.region().id}:{self.account().id}:workgroup/{self.name}"
-
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def fetch_workgroup(name: str) -> Optional[AwsAthenaWorkGroup]:
@@ -97,14 +95,19 @@ class AwsAthenaWorkGroup(AwsResource):
             if result is None:
                 return None
 
-            return cast(AwsAthenaWorkGroup, cls.from_api(result))
+            workgroup = cls.from_api(result)
+            r_id = builder.region.id
+            a_id = builder.account.id
+            workgroup.arn = f"arn:{arn_partition(builder.region)}:athena:{r_id}:{a_id}:workgroup/{workgroup.name}"
+
+            return cast(AwsAthenaWorkGroup, workgroup)
 
         def add_tags(data_catalog: AwsAthenaWorkGroup) -> None:
             tags = builder.client.list(
                 "athena",
                 "list_tags_for_resource",
                 None,
-                ResourceARN=data_catalog._arn(),
+                ResourceARN=data_catalog.arn,
             )
             if tags:
                 data_catalog.tags = bend(S("Tags", default=[]) >> ToDict(), tags[0])
@@ -136,7 +139,7 @@ class AwsAthenaWorkGroup(AwsResource):
             service=self.api_spec.service,
             action="tag_resource",
             result_name=None,
-            ResourceARN=self._arn(),
+            ResourceARN=self.arn,
             Tags=[{"Key": key, "Value": value}],
         )
         return True
@@ -146,7 +149,7 @@ class AwsAthenaWorkGroup(AwsResource):
             service=self.api_spec.service,
             action="untag_resource",
             result_name=None,
-            ResourceARN=self._arn(),
+            ResourceARN=self.arn,
             TagKeys=[key],
         )
         return True
@@ -177,9 +180,6 @@ class AwsAthenaDataCatalog(AwsResource):
     datacatalog_type: Optional[str] = None
     datacatalog_parameters: Optional[Dict[str, str]] = None
 
-    def _arn(self) -> str:
-        return f"arn:aws:athena:{self.region().id}:{self.account().id}:datacatalog/{self.name}"
-
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def fetch_data_catalog(data_catalog_name: str) -> Optional[AwsAthenaDataCatalog]:
@@ -191,14 +191,18 @@ class AwsAthenaDataCatalog(AwsResource):
             )
             if result is None:
                 return None
-            return cast(AwsAthenaDataCatalog, cls.from_api(result))
+            catalog = cls.from_api(result)
+            r_id = builder.region.id
+            a_id = builder.account.id
+            catalog.arn = f"arn:{arn_partition(builder.region)}:athena:{r_id}:{a_id}:datacatalog/{catalog.name}"
+            return cast(AwsAthenaDataCatalog, catalog)
 
         def add_tags(data_catalog: AwsAthenaDataCatalog) -> None:
             tags = builder.client.list(
                 "athena",
                 "list-tags-for-resource",
                 None,
-                ResourceARN=data_catalog._arn(),
+                ResourceARN=data_catalog.arn,
             )
             if tags:
                 data_catalog.tags = bend(S("Tags", default=[]) >> ToDict(), tags[0])
@@ -220,7 +224,7 @@ class AwsAthenaDataCatalog(AwsResource):
             service=self.api_spec.service,
             action="tag_resource",
             result_name=None,
-            ResourceARN=self._arn(),
+            ResourceARN=self.arn,
             Tags=[{"Key": key, "Value": value}],
         )
         return True
@@ -230,7 +234,7 @@ class AwsAthenaDataCatalog(AwsResource):
             service=self.api_spec.service,
             action="untag_resource",
             result_name=None,
-            ResourceARN=self._arn(),
+            ResourceARN=self.arn,
             TagKeys=[key],
         )
         return True
