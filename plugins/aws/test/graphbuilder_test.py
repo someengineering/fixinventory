@@ -3,7 +3,7 @@ from typing import List
 from resoto_plugin_aws.resource.base import GraphBuilder, AwsRegion
 from resoto_plugin_aws.resource.ec2 import AwsEc2InstanceType
 
-from test import builder, aws_client  # noqa: F401
+from test import builder, aws_client, aws_config  # noqa: F401
 
 
 def test_instance_type(builder: GraphBuilder) -> None:

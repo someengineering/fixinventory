@@ -94,9 +94,11 @@ class AwsClient:
             return self.call(service, action, result_name, **kwargs)  # type: ignore
         except ClientError as e:
             code = e.response["Error"]["Code"]
-            if code in ("UnauthorizedOperation", "AccessDenied"):
-                log.error(f"Not authorized to collect resources in account {self.account_id} region {self.region}")
+            if code == "AccessDenied":
+                log.error(f"Access denied to collect resources in account {self.account_id} region {self.region}")
                 return None
+            elif code == "UnauthorizedOperation":
+                raise  # not allowed to collect in account/region
             elif code in RetryableErrors:
                 raise  # already have been retried, give up here
             else:
