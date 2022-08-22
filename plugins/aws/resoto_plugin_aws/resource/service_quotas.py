@@ -93,7 +93,7 @@ class AwsServiceQuota(AwsResource, BaseQuota):
                         builder.add_node(quota, dict(source=js, matcher=matcher))
 
         for service, ms in CollectQuotas.items():
-            builder.submit_work(collect_service, service, ms)
+            collect_service(service, ms)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
