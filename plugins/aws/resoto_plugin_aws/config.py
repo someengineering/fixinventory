@@ -4,10 +4,12 @@ import time
 import uuid
 from datetime import timedelta
 
-from attrs import define, field
+from resotolib.types import Json
+from attrs import define, field, fields_dict
 from functools import lru_cache
 from typing import List, ClassVar, Optional, Type, Any, Dict
 
+from resotolib.json import from_json as from_js
 from boto3.session import Session as BotoSession
 
 from resotolib.durations import parse_duration
@@ -155,6 +157,14 @@ class AwsConfig:
             "Defaults to 1 hour.",
         },
     )
+
+    @staticmethod
+    def from_json(json: Json) -> "AwsConfig":
+        valid_fields = fields_dict(AwsConfig).keys()
+        for field_name in json.copy().keys():
+            if field_name not in valid_fields:
+                del json[field_name]
+        return from_js(json, AwsConfig)
 
     def atime_mtime_period(self) -> timedelta:
         return parse_duration(self.cloudwatch_metrics_for_atime_mtime_period)
