@@ -11,6 +11,7 @@ from test import aws_client  # noqa: F401
 def test_alarms() -> None:
     first, builder = round_trip_for(AwsCloudwatchAlarm)
     assert len(builder.resources_of(AwsCloudwatchAlarm)) == 2
+    assert len(first.tags) == 1
 
 
 def test_metric(aws_client: AwsClient) -> None:

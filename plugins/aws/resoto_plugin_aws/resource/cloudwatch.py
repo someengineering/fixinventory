@@ -6,6 +6,7 @@ from attr import define, field
 
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
+from resoto_plugin_aws.utils import ToDict
 from resotolib.baseresources import BaseAccount, ModelReference  # noqa: F401
 from resotolib.json import from_json
 from resotolib.json_bender import S, Bend, Bender, ForallBend, bend
@@ -163,6 +164,18 @@ class AwsCloudwatchAlarm(CloudwatchTaggable, AwsResource):
     cloudwatch_evaluate_low_sample_count_percentile: Optional[str] = field(default=None)
     cloudwatch_metrics: List[AwsCloudwatchMetricDataQuery] = field(factory=list)
     cloudwatch_threshold_metric_id: Optional[str] = field(default=None)
+
+    @classmethod
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def add_tags(alarm: AwsCloudwatchAlarm) -> None:
+            tags = builder.client.list("cloudwatch", "list-tags-for-resource", "Tags", ResourceARN=alarm.arn)
+            if tags:
+                alarm.tags = bend(ToDict(), tags)
+
+        for js in json:
+            instance = cls.from_api(js)
+            builder.add_node(instance, js)
+            builder.submit_work_shared_pool(add_tags, instance)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
