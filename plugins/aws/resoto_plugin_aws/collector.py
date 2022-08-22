@@ -135,6 +135,8 @@ class AwsAccountCollector:
             if code == "UnauthorizedOperation":
                 log.error(f"Not authorized to collect resources in account {self.account.id} region {region.id}")
                 return None
+            else:
+                raise
 
     def update_account(self) -> None:
         # account alias
