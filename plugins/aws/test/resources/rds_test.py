@@ -8,6 +8,7 @@ from resoto_plugin_aws.resource.rds import AwsRdsInstance
 def test_rds_instances() -> None:
     first, builder = round_trip_for(AwsRdsInstance)
     assert len(builder.resources_of(AwsRdsInstance)) == 2
+    assert len(first.tags) == 1
 
 
 def test_tagging() -> None:
