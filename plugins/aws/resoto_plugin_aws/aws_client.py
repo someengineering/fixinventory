@@ -62,7 +62,7 @@ class AwsClient:
     )
     def call(self, service: str, action: str, result_name: Optional[str], **kwargs: Any) -> JsonElement:
         arg_info = " with args=" + ", ".join(kwargs.keys()) if kwargs else ""
-        log.info(f"[Aws] call service={service} action={action}{arg_info}")
+        log.debug(f"[Aws] call service={service} action={action}{arg_info}")
         py_action = action.replace("-", "_")
         # 5 attempts is the default, and the adaptive mode allows automated client-side throttling
         config = Config(retries={"max_attempts": 5, "mode": "adaptive"})
@@ -72,6 +72,7 @@ class AwsClient:
             paginator = client.get_paginator(py_action)
             result: List[Json] = []
             for page in paginator.paginate(**kwargs):
+                log.debug(f"[Aws] Get next page for service={service} action={action}{arg_info}")
                 next_page: Json = self.__to_json(page)  # type: ignore
                 if result_name is None:
                     # the whole object is appended
@@ -81,7 +82,7 @@ class AwsClient:
                     result.extend(list_result)
                 else:
                     raise AttributeError(f"Expected list result under key '{result_name}'")
-            log.info(f"[Aws] call service={service} action={action}{arg_info}: {len(result)} results.")
+            log.debug(f"[Aws] call service={service} action={action}{arg_info}: {len(result)} results.")
             return result
         else:
             result = getattr(client, py_action)(**kwargs)

@@ -130,12 +130,14 @@ class AwsAccountCollector:
                 for resource in regional_resources:
                     if self.config.should_collect(resource.kind):
                         resource.collect_resources(region_builder)
+                        log.info(f"[Aws][{self.account.id}][{region.name}] finished collecting: {resource.kind}")
         except ClientError as e:
             code = e.response["Error"]["Code"]
             if code == "UnauthorizedOperation":
                 log.error(f"Not authorized to collect resources in account {self.account.id} region {region.id}")
                 return None
             else:
+                log.error(f"Error collecting resources in account {self.account.id} region {region.id}", exc_info=True)
                 raise
 
     def update_account(self) -> None:
