@@ -1,8 +1,10 @@
 from typing import ClassVar, Dict, Optional, List, Type, cast
 
 from attrs import define, field
+from resoto_plugin_aws.aws_client import AwsClient
 
 from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
+from resoto_plugin_aws.utils import ToDict
 
 from resotolib.baseresources import (  # noqa: F401
     BaseCertificate,
@@ -17,7 +19,7 @@ from resotolib.baseresources import (  # noqa: F401
     BaseDNSRecordSet,
     ModelReference,
 )
-from resotolib.json_bender import Bender, S, Bend, ForallBend
+from resotolib.json_bender import F, Bender, S, Bend, ForallBend, bend
 from resotolib.types import Json
 from resotolib.utils import rrdata_as_dict
 
@@ -49,7 +51,7 @@ class AwsRoute53Zone(AwsResource, BaseDNSZone):
         }
     }
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("Id"),
+        "id": S("Id") >> F(lambda x: x.rsplit("/", 1)[-1]),  # remove leading "/hostedzones/"
         "name": S("Name"),
         "zone_caller_reference": S("CallerReference"),
         "zone_config": S("Config") >> Bend(AwsRoute53ZoneConfig.mapping),
@@ -63,9 +65,21 @@ class AwsRoute53Zone(AwsResource, BaseDNSZone):
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def add_tags(zone: AwsRoute53Zone) -> None:
+            tags = builder.client.list(
+                "route53",
+                "list-tags-for-resource",
+                result_name="ResourceTagSet",
+                ResourceType="hostedzone",
+                ResourceId=zone.id,
+            )
+            if tags:
+                zone.tags = bend(S("Tags", default=[]) >> ToDict(), tags)
+
         for js in json:
             zone: AwsRoute53Zone = cast(AwsRoute53Zone, cls.from_api(js))
             builder.add_node(zone, js)
+            builder.submit_work_shared_pool(add_tags, zone)
             for rs_js in builder.client.list(
                 "route53", "list-resource-record-sets", "ResourceRecordSets", HostedZoneId=zone.id
             ):
@@ -84,6 +98,32 @@ class AwsRoute53Zone(AwsResource, BaseDNSZone):
                     builder.add_node(record, js)
                     builder.add_edge(record_set, EdgeType.default, node=record)
                     builder.add_edge(record_set, EdgeType.delete, node=record)
+
+    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
+        client.call(
+            service="route53",
+            action="change-tags-for-resource",
+            result_name=None,
+            ResourceType="hostedzone",
+            ResourceId=self.id,
+            AddTags=[{"Key": key, "Value": value}],
+        )
+        return True
+
+    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
+        client.call(
+            service="route53",
+            action="change-tags-for-resource",
+            result_name=None,
+            ResourceType="hostedzone",
+            ResourceId=self.id,
+            RemoveTagKeys=[key],
+        )
+        return True
+
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(service="route53", action="delete-hosted-zone", result_name=None, Id=self.id.rsplit("/", 1)[-1])
+        return True
 
 
 @define(eq=False, slots=False)
