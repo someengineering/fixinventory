@@ -365,8 +365,8 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
     kind: ClassVar[str] = "aws_alb_target_group"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("elbv2", "describe-target-groups", "TargetGroups")
     reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {"default": ["aws_vpc", "aws_alb"], "delete": ["aws_ec2_instance", "aws_vpc"]},
-        "successors": {"delete": ["aws_alb"], "default": ["aws_ec2_instance"]},
+        "predecessors": {"default": ["aws_vpc", "aws_alb"], "delete": ["aws_ec2_instance", "aws_vpc", "aws_alb"]},
+        "successors": {"default": ["aws_ec2_instance"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("TargetGroupName"),
@@ -423,7 +423,7 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
             builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsEc2Vpc, id=vpc_id)
         for lb_arn in bend(S("LoadBalancerArns", default=[]), source):
             if lb := builder.node(AwsAlb, arn=lb_arn):
-                builder.dependant_node(lb, node=self)
+                builder.dependant_node(lb, delete_same_as_default=True, node=self)
                 for th in self.alb_target_health:
                     if th.target and th.target.id:
                         lb.backends.append(th.target.id)
