@@ -19,7 +19,7 @@ from resotolib.baseresources import (  # noqa: F401
     BaseDNSRecordSet,
     ModelReference,
 )
-from resotolib.json_bender import Bender, S, Bend, ForallBend, bend
+from resotolib.json_bender import F, Bender, S, Bend, ForallBend, bend
 from resotolib.types import Json
 from resotolib.utils import rrdata_as_dict
 
@@ -51,7 +51,7 @@ class AwsRoute53Zone(AwsResource, BaseDNSZone):
         }
     }
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("Id"),
+        "id": S("Id") >> F(lambda x: x.rsplit("/", 1)[-1]),  # remove leading "/hostedzones/"
         "name": S("Name"),
         "zone_caller_reference": S("CallerReference"),
         "zone_config": S("Config") >> Bend(AwsRoute53ZoneConfig.mapping),
@@ -71,7 +71,7 @@ class AwsRoute53Zone(AwsResource, BaseDNSZone):
                 "list-tags-for-resource",
                 result_name="ResourceTagSet",
                 ResourceType="hostedzone",
-                ResourceId=zone.id.rsplit("/", 1)[-1],
+                ResourceId=zone.id,
             )
             if tags:
                 zone.tags = bend(S("Tags", default=[]) >> ToDict(), tags)
@@ -105,7 +105,7 @@ class AwsRoute53Zone(AwsResource, BaseDNSZone):
             action="change-tags-for-resource",
             result_name=None,
             ResourceType="hostedzone",
-            ResourceId=self.id.rsplit("/", 1)[-1],
+            ResourceId=self.id,
             AddTags=[{"Key": key, "Value": value}],
         )
         return True
@@ -116,7 +116,7 @@ class AwsRoute53Zone(AwsResource, BaseDNSZone):
             action="change-tags-for-resource",
             result_name=None,
             ResourceType="hostedzone",
-            ResourceId=self.id.rsplit("/", 1)[-1],
+            ResourceId=self.id,
             RemoveTagKeys=[key],
         )
         return True
