@@ -32,5 +32,5 @@ resotocore/tools/Assets
 out/
 *.iml
 **/.hypothesis/
-plugins/aws/test/resources/*.ipynb
-plugins/aws/test/resources/.ipynb_checkpoints
+plugins/api_sandboxes/*.ipynb
+plugins/api_sandboxes/.ipynb_checkpoints
