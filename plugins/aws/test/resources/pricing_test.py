@@ -1,7 +1,7 @@
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.pricing import AwsPricingPrice, pricing_region
 from resotolib.json import to_json, from_json
-from test import aws_client, builder  # noqa: F401
+from test import aws_client, builder, aws_config  # noqa: F401
 
 
 def test_json_serialization(aws_client: AwsClient) -> None:

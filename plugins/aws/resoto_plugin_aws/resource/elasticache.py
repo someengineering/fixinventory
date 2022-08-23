@@ -3,6 +3,8 @@ from typing import ClassVar, Dict, Optional, List
 from attrs import define, field
 
 from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
+from resoto_plugin_aws.resource.kms import AwsKmsKey
+from resotolib.baseresources import ModelReference
 from resotolib.json_bender import Bender, S, Bend, ForallBend, K, bend
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.utils import ToDict
@@ -270,7 +272,7 @@ class AwsElastiCacheCacheCluster(ElastiCacheTaggable, AwsResource):
         for js in json:
             instance = cls.from_api(js)
             builder.add_node(instance, js)
-            builder.submit_work(add_tags, instance)
+            builder.submit_work_shared_pool(add_tags, instance)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for sg in self.cluster_security_groups:
@@ -368,6 +370,10 @@ class AwsElastiCacheNodeGroup:
 class AwsElastiCacheReplicationGroup(ElastiCacheTaggable, AwsResource):
     kind: ClassVar[str] = "aws_elasticache_replication_group"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("elasticache", "describe-replication-groups", "ReplicationGroups")
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"delete": ["aws_elasticache_cache_cluster", "aws_kms_key"]},
+        "successors": {"default": ["aws_elasticache_cache_cluster", "aws_kms_key"]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("ReplicationGroupId"),
         "name": S("ReplicationGroupId"),
@@ -447,7 +453,7 @@ class AwsElastiCacheReplicationGroup(ElastiCacheTaggable, AwsResource):
         for js in json:
             instance = cls.from_api(js)
             builder.add_node(instance, js)
-            builder.submit_work(add_tags, instance)
+            builder.submit_work_shared_pool(add_tags, instance)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for cluster_name in self.replication_group_member_clusters:
@@ -456,6 +462,8 @@ class AwsElastiCacheReplicationGroup(ElastiCacheTaggable, AwsResource):
                 clazz=AwsElastiCacheCacheCluster,
                 name=cluster_name,
             )
+        if self.replication_group_kms_key_id:
+            builder.dependant_node(self, clazz=AwsKmsKey, id=self.replication_group_kms_key_id)
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(

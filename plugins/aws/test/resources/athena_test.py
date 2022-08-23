@@ -9,12 +9,14 @@ def test_data_catalogs() -> None:
     res, builder = round_trip_for(AwsAthenaDataCatalog)
     assert len(builder.resources_of(AwsAthenaDataCatalog)) == 1
     assert len(res.tags) == 1
+    assert res.arn == "arn:aws:athena:eu-central-1:test:datacatalog/resoto-catalog"
 
 
 def test_workgroups() -> None:
     res, builder = round_trip_for(AwsAthenaWorkGroup)
     assert len(builder.resources_of(AwsAthenaWorkGroup)) == 1
     assert len(res.tags) == 1
+    assert res.arn == "arn:aws:athena:eu-central-1:test:workgroup/resoto-workgroup"
 
 
 def test_data_catalogs_tagging() -> None:
@@ -22,12 +24,12 @@ def test_data_catalogs_tagging() -> None:
 
     def validate_update_args(**kwargs: Any) -> None:
         assert kwargs["action"] == "tag_resource"
-        assert kwargs["ResourceARN"] == res._arn()
+        assert kwargs["ResourceARN"] == res.arn
         assert kwargs["Tags"] == [{"Key": "foo", "Value": "bar"}]
 
     def validate_delete_args(**kwargs: Any) -> None:
         assert kwargs["action"] == "untag_resource"
-        assert kwargs["ResourceARN"] == res._arn()
+        assert kwargs["ResourceARN"] == res.arn
         assert kwargs["TagKeys"] == ["foo"]
 
     client = cast(AwsClient, SimpleNamespace(call=validate_update_args))
@@ -42,12 +44,12 @@ def test_workgroup_tagging() -> None:
 
     def validate_update_args(**kwargs: Any) -> None:
         assert kwargs["action"] == "tag_resource"
-        assert kwargs["ResourceARN"] == res._arn()
+        assert kwargs["ResourceARN"] == res.arn
         assert kwargs["Tags"] == [{"Key": "foo", "Value": "bar"}]
 
     def validate_delete_args(**kwargs: Any) -> None:
         assert kwargs["action"] == "untag_resource"
-        assert kwargs["ResourceARN"] == res._arn()
+        assert kwargs["ResourceARN"] == res.arn
         assert kwargs["TagKeys"] == ["foo"]
 
     client = cast(AwsClient, SimpleNamespace(call=validate_update_args))

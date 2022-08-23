@@ -9,6 +9,7 @@ def test_redshift_cluster() -> None:
     res, builder = round_trip_for(AwsRedshiftCluster)
     assert len(builder.resources_of(AwsRedshiftCluster)) == 1
     assert len(res.tags) == 1
+    assert res.arn == "arn:aws:redshift:eu-central-1:test:cluster:resoto-delete-me"
 
 
 def test_tagging() -> None:

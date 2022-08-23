@@ -1,11 +1,12 @@
 import re
-from typing import ClassVar, Dict, Optional, List, Type
+from typing import ClassVar, Dict, Optional, List, Type, cast
 
 from attrs import define, field
 from resoto_plugin_aws.aws_client import AwsClient
 
 from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
 from resoto_plugin_aws.resource.ec2 import AwsEc2Subnet, AwsEc2SecurityGroup, AwsEc2Vpc
+from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resotolib.baseresources import (  # noqa: F401
     BaseCertificate,
     BasePolicy,
@@ -101,8 +102,9 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["aws_vpc", "aws_ec2_subnet", "aws_ec2_security_group"],
-            "delete": ["aws_vpc", "aws_ec2_subnet"],
+            "delete": ["aws_vpc", "aws_ec2_subnet", "aws_kms_key"],
         },
+        "successors": {"default": ["aws_kms_key"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("FunctionName"),
@@ -170,6 +172,18 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
     function_architectures: List[str] = field(factory=list)
     function_ephemeral_storage: Optional[int] = field(default=None)
 
+    @classmethod
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def add_tags(function: AwsLambdaFunction) -> None:
+            tags = builder.client.list("lambda", "list-tags", "Tags", Resource=function.arn)
+            if tags:
+                function.tags = cast(Dict[str, Optional[str]], tags)
+
+        for js in json:
+            instance = cls.from_api(js)
+            builder.add_node(instance, js)
+            builder.submit_work_shared_pool(add_tags, instance)
+
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if vpc_config := source.get("VpcConfig"):
             if vpc_id := vpc_config.get("VpcId"):
@@ -180,6 +194,12 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
                 )
             for security_group_id in vpc_config.get("SecurityGroupIds", []):
                 builder.add_edge(self, reverse=True, clazz=AwsEc2SecurityGroup, id=security_group_id)
+        if self.function_kms_key_arn:
+            builder.dependant_node(
+                self,
+                clazz=AwsKmsKey,
+                arn=self.function_kms_key_arn,
+            )
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(

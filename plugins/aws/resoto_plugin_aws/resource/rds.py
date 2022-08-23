@@ -7,7 +7,7 @@ from resoto_plugin_aws.resource.ec2 import AwsEc2SecurityGroup, AwsEc2Subnet, Aw
 from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resoto_plugin_aws.utils import ToDict
 from resotolib.baseresources import BaseAccount, BaseDatabase, ModelReference  # noqa: F401
-from resotolib.json_bender import F, K, S, Bend, Bender, ForallBend
+from resotolib.json_bender import F, K, S, Bend, Bender, ForallBend, bend
 from resotolib.types import Json
 from resotolib.utils import utc
 from resoto_plugin_aws.aws_client import AwsClient
@@ -409,6 +409,11 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def add_tags(rds: AwsRdsInstance) -> None:
+            tags = builder.client.list("rds", "list-tags-for-resource", "TagList", ResourceName=rds.arn)
+            if tags:
+                rds.tags = bend(ToDict(), tags)
+
         instances: List[AwsRdsInstance] = []
 
         def update_atime_mtime() -> None:
@@ -443,6 +448,7 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
             instance = AwsRdsInstance.from_api(js)
             instances.append(instance)
             builder.add_node(instance, js)
+            builder.submit_work_shared_pool(add_tags, instance)
         update_atime_mtime()
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
