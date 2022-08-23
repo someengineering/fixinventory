@@ -11,7 +11,7 @@ def read(fname):
 
 setup(
     name="resoto-plugin-cleanup-expired",
-    version="2.5.0a0",
+    version="3.0.0a0",
     description="Resoto Expired Resource Cleanup Plugin",
     license="Apache 2.0",
     packages=find_packages(),

@@ -1,1 +1,1 @@
-resotolib==2.5.0a0
+resotolib==3.0.0a0
