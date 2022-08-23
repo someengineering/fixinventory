@@ -71,7 +71,7 @@ class AwsRoute53Zone(AwsResource, BaseDNSZone):
                 "list-tags-for-resource",
                 result_name="ResourceTagSet",
                 ResourceType="hostedzone",
-                ResourceId=zone.id,
+                ResourceId=zone.id.rsplit("/", 1)[-1],
             )
             if tags:
                 zone.tags = bend(S("Tags", default=[]) >> ToDict(), tags)
@@ -105,7 +105,7 @@ class AwsRoute53Zone(AwsResource, BaseDNSZone):
             action="change-tags-for-resource",
             result_name=None,
             ResourceType="hostedzone",
-            ResourceId=self.id,
+            ResourceId=self.id.rsplit("/", 1)[-1],
             AddTags=[{"Key": key, "Value": value}],
         )
         return True
@@ -116,13 +116,13 @@ class AwsRoute53Zone(AwsResource, BaseDNSZone):
             action="change-tags-for-resource",
             result_name=None,
             ResourceType="hostedzone",
-            ResourceId=self.id,
+            ResourceId=self.id.rsplit("/", 1)[-1],
             RemoveTagKeys=[key],
         )
         return True
 
     def delete_resource(self, client: AwsClient) -> bool:
-        client.call(service="route53", action="delete-hosted-zone", result_name=None, Id=self.id)
+        client.call(service="route53", action="delete-hosted-zone", result_name=None, Id=self.id.rsplit("/", 1)[-1])
         return True
 
 
