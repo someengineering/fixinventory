@@ -32,6 +32,7 @@ from resoto_plugin_aws.resource import (
 from resoto_plugin_aws.resource.base import AwsRegion, AwsAccount, AwsResource, GraphBuilder, ExecutorQueue
 from resotolib.baseresources import Cloud, EdgeType
 from resotolib.graph import Graph
+from resotolib.proc import set_thread_name
 
 log = logging.getLogger("resoto.plugins.aws")
 
@@ -86,11 +87,15 @@ class AwsAccountCollector:
             )
             global_builder.add_node(self.global_region)
 
+            log.info(f"[Aws][{self.account.id} Collect global resources.")
+
             # all global resources
             for resource in global_resources:
                 if self.config.should_collect(resource.kind):
                     resource.collect_resources(global_builder)
             shared_queue.wait_for_submitted_work()
+
+            log.info(f"[Aws][{self.account.id} Collect regional resources.")
 
             # all regions are collected in parallel.
             # note: when the thread pool context is left, all submitted work is done (or an exception has been thrown)
@@ -99,6 +104,8 @@ class AwsAccountCollector:
             ) as per_region_executor:
                 for region in self.regions:
                     per_region_executor.submit(self.collect_region, region, global_builder)
+
+            log.info(f"[Aws][{self.account.id} Connect resources and create edges.")
 
             # connect nodes
             for node, data in list(self.graph.nodes(data=True)):
@@ -118,10 +125,14 @@ class AwsAccountCollector:
             # wait for all futures to finish
             shared_queue.wait_for_submitted_work()
 
+            log.info(f"[Aws][{self.account.id} Collecting resources done.")
+
     def collect_region(self, region: AwsRegion, global_builder: GraphBuilder) -> None:
         try:
+            regional_thread_name = f"aws_{self.account.id}_{region.id}"
+            set_thread_name(regional_thread_name)
             with ThreadPoolExecutor(
-                thread_name_prefix=f"aws_{self.account.id}_{region.id}",
+                thread_name_prefix=regional_thread_name,
                 max_workers=self.config.region_resources_pool_size,
             ) as executor:
                 queue = ExecutorQueue(executor, region.name)
