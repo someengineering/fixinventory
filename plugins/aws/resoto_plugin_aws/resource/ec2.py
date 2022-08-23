@@ -1358,15 +1358,10 @@ class AwsEc2NetworkInterface(EC2Taggable, AwsResource, BaseNetworkInterface):
         "id": S("NetworkInterfaceId"),
         "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("Tags", default=[]) >> TagsValue("Name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "network_interface_type": S("InterfaceType"),
         "network_interface_status": S("Status"),
-        "private_ip_addresses": S("PrivateIpAddresses", default=[]) >> ForallBend(S("PrivateIpAddress")),
-        "public_ip_addresses": S("PrivateIpAddresses", default=[])
-        >> ForallBend(S("Association", "PublicIp"))
-        >> StripNones(),
+        "private_ips": S("PrivateIpAddresses", default=[]) >> ForallBend(S("PrivateIpAddress")),
+        "public_ips": S("PrivateIpAddresses", default=[]) >> ForallBend(S("Association", "PublicIp")) >> StripNones(),
         "mac": S("MacAddress"),
         "v6_ips": S("Ipv6Addresses", default=[]) >> ForallBend(S("Ipv6Address")),
         "description": S("Description"),

@@ -27,7 +27,11 @@
                 }
             ],
             "InterfaceType": "interface",
-            "Ipv6Addresses": [],
+            "Ipv6Addresses": [
+                {
+                    "Ipv6Address": "a::a:a:a:a"
+                }
+            ],
             "MacAddress": "0e:63:e5:c8:bb:be",
             "NetworkInterfaceId": "eni-0c40e06e26ebebeeb",
             "OwnerId": "test",

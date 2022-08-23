@@ -130,7 +130,12 @@ def test_delete_elastic_ips() -> None:
 
 
 def test_network_interfaces() -> None:
-    round_trip_for(AwsEc2NetworkInterface)
+    nic, gb = round_trip_for(AwsEc2NetworkInterface)
+    assert nic.private_ips == ["1.2.3.4"]
+    assert nic.public_ips == ["2.3.4.5"]
+    assert nic.mac == "0e:63:e5:c8:bb:be"
+    assert nic.v6_ips == ["a::a:a:a:a"]
+    assert nic.description == "Primary network interface"
 
 
 def test_delete_network_interfaces() -> None:
