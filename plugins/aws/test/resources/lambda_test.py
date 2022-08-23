@@ -8,6 +8,7 @@ from resoto_plugin_aws.aws_client import AwsClient
 def test_lambda() -> None:
     first, graph = round_trip_for(AwsLambdaFunction)
     assert len(graph.resources_of(AwsLambdaFunction)) == 2
+    assert len(first.tags) == 1
 
 
 def test_tagging() -> None:

@@ -1,5 +1,5 @@
 import re
-from typing import ClassVar, Dict, Optional, List, Type
+from typing import ClassVar, Dict, Optional, List, Type, cast
 
 from attrs import define, field
 from resoto_plugin_aws.aws_client import AwsClient
@@ -171,6 +171,18 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
     function_signing_job_arn: Optional[str] = field(default=None)
     function_architectures: List[str] = field(factory=list)
     function_ephemeral_storage: Optional[int] = field(default=None)
+
+    @classmethod
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def add_tags(function: AwsLambdaFunction) -> None:
+            tags = builder.client.list("lambda", "list-tags", "Tags", Resource=function.arn)
+            if tags:
+                function.tags = cast(Dict[str, Optional[str]], tags)
+
+        for js in json:
+            instance = cls.from_api(js)
+            builder.add_node(instance, js)
+            builder.submit_work_shared_pool(add_tags, instance)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if vpc_config := source.get("VpcConfig"):
