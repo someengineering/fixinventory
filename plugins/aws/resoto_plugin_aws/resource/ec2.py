@@ -41,6 +41,7 @@ from resotolib.utils import utc
 class EC2Taggable:
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         if isinstance(self, AwsResource):
+            # noinspection PyUnresolvedReferences
             if spec := self.api_spec:
                 client.call(
                     service=spec.service,
@@ -463,7 +464,6 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
             instance = builder.add_node(AwsEc2Volume.from_api(js), js)
             volumes.append(instance)
             if vt := builder.volume_type(instance.volume_type):
-                builder.add_node(vt, {})
                 builder.add_edge(vt, EdgeType.default, node=instance)
         update_atime_mtime()
 

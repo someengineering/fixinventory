@@ -373,12 +373,14 @@ class GraphBuilder:
     @lru_cache(maxsize=None)
     def volume_type(self, volume_type: str) -> Optional[Any]:
         price = AwsPricingPrice.volume_type_price(self.client, volume_type, self.region.name)
-        return AwsEc2VolumeType(
+        vt = AwsEc2VolumeType(
             id=volume_type,
             name=volume_type,
             volume_type=volume_type,
             ondemand_cost=price.on_demand_price_usd if price else 0,
         )
+        self.add_node(vt, {})
+        return vt
 
     def for_region(
         self,
