@@ -1,7 +1,7 @@
 {
     "HostedZones": [
         {
-            "Id": "test_zone",
+            "Id": "testzone",
             "Name": "production.test.",
             "CallerReference": "production.test.2018-05-03T19:09:40.2238717+02:00",
             "Config": {

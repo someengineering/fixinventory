@@ -3,6 +3,7 @@ from typing import ClassVar, Dict, Optional, List, Type, cast
 from attrs import define, field
 
 from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
+from resoto_plugin_aws.utils import ToDict
 
 from resotolib.baseresources import (  # noqa: F401
     BaseCertificate,
@@ -17,7 +18,7 @@ from resotolib.baseresources import (  # noqa: F401
     BaseDNSRecordSet,
     ModelReference,
 )
-from resotolib.json_bender import Bender, S, Bend, ForallBend
+from resotolib.json_bender import Bender, S, Bend, ForallBend, bend
 from resotolib.types import Json
 from resotolib.utils import rrdata_as_dict
 
@@ -63,9 +64,15 @@ class AwsRoute53Zone(AwsResource, BaseDNSZone):
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def add_tags(zone: AwsRoute53Zone) -> None:
+            tags = builder.client.list("route53", "list-tags-for-resource", result_name=None, ResourceType="hostedzone", ResourceId=zone.id)
+            if tags:
+                zone.tags = bend(ToDict(), tags)
+        
         for js in json:
             zone: AwsRoute53Zone = cast(AwsRoute53Zone, cls.from_api(js))
             builder.add_node(zone, js)
+            builder.submit_work_shared_pool(add_tags, zone)
             for rs_js in builder.client.list(
                 "route53", "list-resource-record-sets", "ResourceRecordSets", HostedZoneId=zone.id
             ):

@@ -13,3 +13,4 @@ def test_hosted_zone() -> None:
     assert type_count["aws_route53_zone"] == 3
     assert type_count["aws_route53_resource_record_set"] == 2
     assert type_count["aws_route53_resource_record"] == 5
+    assert len(first.tags) == 1

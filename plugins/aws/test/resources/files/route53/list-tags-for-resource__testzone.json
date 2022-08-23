@@ -1,0 +1,12 @@
+{
+    "ResourceTagSet": {
+        "ResourceType": "hostedzone",
+        "ResourceId": "testzone",
+        "Tags": [
+            {
+                "Key": "Nice Key",
+                "Value": "Nice Value"
+            }
+        ]
+    }
+}
