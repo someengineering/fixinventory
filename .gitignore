@@ -33,4 +33,5 @@ out/
 *.iml
 **/.hypothesis/
 plugins/api_sandboxes/*.ipynb
+!plugins/api_sandboxes/*.example.ipynb
 plugins/api_sandboxes/.ipynb_checkpoints
