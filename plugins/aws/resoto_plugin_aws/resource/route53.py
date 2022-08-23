@@ -1,6 +1,7 @@
 from typing import ClassVar, Dict, Optional, List, Type, cast
 
 from attrs import define, field
+from resoto_plugin_aws.aws_client import AwsClient
 
 from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
 from resoto_plugin_aws.utils import ToDict
@@ -65,10 +66,16 @@ class AwsRoute53Zone(AwsResource, BaseDNSZone):
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_tags(zone: AwsRoute53Zone) -> None:
-            tags = builder.client.list("route53", "list-tags-for-resource", result_name=None, ResourceType="hostedzone", ResourceId=zone.id)
+            tags = builder.client.list(
+                "route53",
+                "list-tags-for-resource",
+                result_name="ResourceTagSet",
+                ResourceType="hostedzone",
+                ResourceId=zone.id,
+            )
             if tags:
-                zone.tags = bend(ToDict(), tags)
-        
+                zone.tags = bend(S("Tags", default=[]) >> ToDict(), tags)
+
         for js in json:
             zone: AwsRoute53Zone = cast(AwsRoute53Zone, cls.from_api(js))
             builder.add_node(zone, js)
@@ -91,6 +98,32 @@ class AwsRoute53Zone(AwsResource, BaseDNSZone):
                     builder.add_node(record, js)
                     builder.add_edge(record_set, EdgeType.default, node=record)
                     builder.add_edge(record_set, EdgeType.delete, node=record)
+
+    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
+        client.call(
+            service="route53",
+            action="change-tags-for-resource",
+            result_name=None,
+            ResourceType="hostedzone",
+            ResourceId=self.id,
+            AddTags=[{"Key": key, "Value": value}],
+        )
+        return True
+
+    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
+        client.call(
+            service="route53",
+            action="change-tags-for-resource",
+            result_name=None,
+            ResourceType="hostedzone",
+            ResourceId=self.id,
+            RemoveTagKeys=[key],
+        )
+        return True
+
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(service="route53", action="delete-hosted-zone", result_name=None, Id=self.id)
+        return True
 
 
 @define(eq=False, slots=False)
