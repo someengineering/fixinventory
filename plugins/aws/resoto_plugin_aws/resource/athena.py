@@ -129,10 +129,7 @@ class AwsAthenaWorkGroup(AwsResource):
             and (ec := rc.encryption_configuration)
         ):
             if ec.kms_key:
-                if ec.kms_key.startswith("arn:"):
-                    builder.dependant_node(from_node=self, clazz=AwsKmsKey, arn=ec.kms_key)
-                else:
-                    builder.dependant_node(from_node=self, clazz=AwsKmsKey, id=ec.kms_key)
+                builder.dependant_node(from_node=self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(ec.kms_key))
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(

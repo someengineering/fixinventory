@@ -4,6 +4,7 @@ from attr import define, field
 from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
 from resoto_plugin_aws.resource.cloudwatch import AwsCloudwatchQuery, AwsCloudwatchMetricData
 from resoto_plugin_aws.resource.ec2 import AwsEc2SecurityGroup, AwsEc2Subnet, AwsEc2Vpc
+from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resoto_plugin_aws.utils import ToDict
 from resotolib.baseresources import BaseAccount, BaseDatabase, ModelReference  # noqa: F401
 from resotolib.json_bender import F, K, S, Bend, Bender, ForallBend, bend
@@ -248,8 +249,9 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["aws_vpc", "aws_ec2_security_group", "aws_ec2_subnet"],
-            "delete": ["aws_vpc", "aws_ec2_security_group", "aws_ec2_subnet"],
+            "delete": ["aws_vpc", "aws_ec2_security_group", "aws_ec2_subnet", "aws_kms_key"],
         },
+        "successors": {"default": ["aws_kms_key"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("DBInstanceIdentifier"),
@@ -450,7 +452,6 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
         update_atime_mtime()
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        super().connect_in_graph(builder, source)
         for group in self.rds_vpc_security_groups:
             builder.dependant_node(
                 self,
@@ -469,6 +470,14 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
                 builder.dependant_node(
                     self, reverse=True, delete_same_as_default=True, clazz=AwsEc2Subnet, id=subnet_id
                 )
+        potential_keys = [
+            self.rds_kms_key_id,
+            self.rds_performance_insights_kms_key_id,
+            self.rds_activity_stream_kms_key_id,
+        ]
+        keys = [key for key in potential_keys if key]
+        for key_reference in keys:
+            builder.dependant_node(from_node=self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(key_reference))
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(

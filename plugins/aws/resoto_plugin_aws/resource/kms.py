@@ -130,5 +130,13 @@ class AwsKmsKey(AwsResource, BaseAccessKey):
         client.call(service="kms", action="disable-key", result_name=None, KeyId=self.id)
         return True
 
+    @staticmethod
+    def normalise_id(identifier: str) -> str:
+        if identifier.startswith("arn:"):
+            # format: "arn:aws:kms:region:account-id:key/id"
+            return identifier.rsplit("/", 1)[-1]
+        else:
+            return identifier
+
 
 resources: List[Type[AwsResource]] = [AwsKmsKey]
