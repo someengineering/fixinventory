@@ -1,12 +1,12 @@
-from typing import ClassVar, Dict, List, Type, Optional  # noqa: F401
+from typing import ClassVar, Dict, List, Type, Optional, cast  # noqa: F401
 
 from attrs import define
 import botocore.exceptions
 from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
 from resotolib.baseresources import BaseBucket, BaseAccount  # noqa: F401
-from resotolib.json_bender import Bender, S, bend
+from resotolib.json_bender import Bender, S
 from resoto_plugin_aws.aws_client import AwsClient
-from resoto_plugin_aws.utils import ToDict, tags_as_dict
+from resoto_plugin_aws.utils import tags_as_dict
 
 from resotolib.types import Json
 from resoto_plugin_aws.utils import arn_partition
@@ -20,18 +20,16 @@ class AwsS3Bucket(AwsResource, BaseBucket):
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
-        def add_tags(bucket: AwsS3Bucket) -> None:
-            tags = builder.client.call(
-                service="s3", action="get_bucket_tagging", result_name="TagSet", Bucket=bucket.name
-            )
+        def add_tags(bucket: AwsS3Bucket, client: AwsClient) -> None:
+            tags = bucket._get_tags(client)
             if tags:
-                bucket.tags = bend(ToDict(), tags)
+                bucket.tags = cast(Dict[str, Optional[str]], tags)
 
         for js in json:
             bucket = cls.from_api(js)
             bucket.arn = f"arn:{arn_partition(builder.region)}:s3:::{bucket.name}"
             builder.add_node(bucket, js)
-            builder.submit_work_shared_pool(add_tags, bucket)
+            builder.submit_work_shared_pool(add_tags, bucket, builder.client)
 
     def _set_tags(self, client: AwsClient, tags: Dict[str, str]) -> bool:
         tag_set = [{"Key": k, "Value": v} for k, v in tags.items()]
