@@ -106,7 +106,7 @@ async def respond_text(gen: AsyncIterator[JsonElement]) -> AsyncGenerator[str, N
             if isinstance(js, (dict, list)):
                 if flag:
                     yield sep
-                yml = yaml.dump(to_result(js), default_flow_style=False, sort_keys=False)
+                yml = yaml.dump(to_result(js), allow_unicode=True, default_flow_style=False, sort_keys=False)
                 yield yml
             else:
                 yield str(js)
