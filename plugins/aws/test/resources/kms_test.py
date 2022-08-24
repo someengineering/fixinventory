@@ -43,7 +43,7 @@ def test_disable_keys() -> None:
     key.delete_resource(client)
 
 
-def test_delete_queues() -> None:
+def test_delete_keys() -> None:
     key, _ = round_trip_for(AwsKmsKey)
 
     def validate_delete_args(**kwargs: Any) -> None:
@@ -52,3 +52,8 @@ def test_delete_queues() -> None:
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
     key.delete_resource(client)
+
+
+def test_normalise_keys() -> None:
+    assert AwsKmsKey.normalise_id("arn:aws:kms:us-west-2:test:key/kms-1") == "kms-1"
+    assert AwsKmsKey.normalise_id("kms-1") == "kms-1"
