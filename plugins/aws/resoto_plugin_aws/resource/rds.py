@@ -477,10 +477,7 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
         ]
         keys = [key for key in potential_keys if key]
         for key_reference in keys:
-            if key_reference.startswith("arn:"):
-                builder.dependant_node(from_node=self, clazz=AwsKmsKey, arn=key_reference)
-            else:
-                builder.dependant_node(from_node=self, clazz=AwsKmsKey, id=key_reference)
+            builder.dependant_node(from_node=self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(key_reference))
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
