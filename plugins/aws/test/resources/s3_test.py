@@ -9,6 +9,7 @@ def test_buckets() -> None:
     first, builder = round_trip_for(AwsS3Bucket)
     assert len(builder.resources_of(AwsS3Bucket)) == 3
     assert first.arn == "arn:aws:s3:::bucket-1"
+    assert len(first.tags) == 1
 
 
 def test_tagging() -> None:
