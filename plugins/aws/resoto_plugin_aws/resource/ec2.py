@@ -476,7 +476,7 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
             builder.dependant_node(
                 self,
                 clazz=AwsKmsKey,
-                id=self.volume_kms_key_id,
+                id=AwsKmsKey.normalise_id(self.volume_kms_key_id),
             )
 
     def delete_resource(self, client: AwsClient) -> bool:
@@ -538,7 +538,7 @@ class AwsEc2Snapshot(EC2Taggable, AwsResource, BaseSnapshot):
             builder.dependant_node(
                 self,
                 clazz=AwsKmsKey,
-                id=self.snapshot_kms_key_id,
+                id=AwsKmsKey.normalise_id(self.snapshot_kms_key_id),
             )
 
     def delete_resource(self, client: AwsClient) -> bool:
