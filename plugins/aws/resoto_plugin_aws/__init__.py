@@ -178,7 +178,7 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
     def cleanup(config: Config, resource: BaseResource, graph: Graph) -> bool:
         if isinstance(resource, AwsResource):
 
-            client = get_client(config, resource, "Pre-cleanup is not possible")
+            client = get_client(config, resource, "Cleanup is not possible")
 
             if resource.phantom:
                 raise RuntimeError(f"Can't cleanup phantom resource {resource.rtdname}")
@@ -252,12 +252,7 @@ def authenticated(account: AwsAccount) -> bool:
 
 
 def get_client(config: Config, resource: BaseResource, err_reason: str) -> AwsClient:
-    all_accounts = {acc.id: acc for acc in get_accounts()}
-    account = all_accounts.get(resource.account().id)
-    if not account:
-        msg = f"Unknown account {resource.account().rtdname} in resource {resource.rtdname}. "
-        raise RuntimeError(msg + err_reason)
-
+    account = resource.account()
     return AwsClient(config.aws, account.id, role=account.role, profile=account.profile, region=resource.region().name)
 
 
