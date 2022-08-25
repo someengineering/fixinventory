@@ -106,7 +106,7 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
     def update_tag(config: Config, resource: BaseResource, key: str, value: str) -> bool:
         """Update the tag of a resource"""
         if isinstance(resource, AwsResource):
-            client = get_client(config, resource, "Tag update is not possible")
+            client = get_client(config, resource)
             return resource.update_resource_tag(client, key, value)
 
         raise RuntimeError(f"Unsupported resource type: {resource.rtdname}")
@@ -115,7 +115,7 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
     def delete_tag(config: Config, resource: BaseResource, key: str) -> bool:
         """Delete the tag of a resource"""
         if isinstance(resource, AwsResource):
-            client = get_client(config, resource, "Tag deletion is not possible")
+            client = get_client(config, resource)
             return resource.delete_resource_tag(client, key)
 
         raise RuntimeError(f"Unsupported resource type: {resource.rtdname}")
@@ -123,7 +123,7 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
     @staticmethod
     def pre_cleanup(config: Config, resource: BaseResource, graph: Graph) -> bool:
         if isinstance(resource, AwsResource):
-            client = get_client(config, resource, "Pre-cleanup is not possible")
+            client = get_client(config, resource)
 
             if not hasattr(resource, "pre_delete_resource"):
                 return True
@@ -178,7 +178,7 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
     def cleanup(config: Config, resource: BaseResource, graph: Graph) -> bool:
         if isinstance(resource, AwsResource):
 
-            client = get_client(config, resource, "Cleanup is not possible")
+            client = get_client(config, resource)
 
             if resource.phantom:
                 raise RuntimeError(f"Can't cleanup phantom resource {resource.rtdname}")
@@ -251,8 +251,9 @@ def authenticated(account: AwsAccount) -> bool:
     return True
 
 
-def get_client(config: Config, resource: BaseResource, err_reason: str) -> AwsClient:
+def get_client(config: Config, resource: BaseResource) -> AwsClient:
     account = resource.account()
+    assert isinstance(account, AwsAccount)
     return AwsClient(config.aws, account.id, role=account.role, profile=account.profile, region=resource.region().name)
 
 
