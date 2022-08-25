@@ -335,7 +335,10 @@ def node_to_dict(node: BaseResource, changes_only: bool = False, include_revisio
 
 @lru_cache(maxsize=None)
 def locate_python_type(python_type: str) -> Any:
-    return locate(python_type)
+    cls = locate(python_type)
+    if attrs.has(cls):
+        attrs.resolve_types(cls)
+    return cls
 
 
 converter = cattrs.Converter()
