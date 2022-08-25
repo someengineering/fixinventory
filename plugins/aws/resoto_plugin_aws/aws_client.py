@@ -63,7 +63,7 @@ class AwsClient:
     def call(self, service: str, action: str, result_name: Optional[str], **kwargs: Any) -> JsonElement:
         arg_info = ""
         if kwargs:
-            arg_info += " with args " + ", ".join([f"{key}={str(value)[:8]}" for key, value in kwargs.items()])
+            arg_info += " with args " + ", ".join([f"{key}={value}" for key, value in kwargs.items()])
         log.debug(f"[Aws] call service={service} action={action}{arg_info}")
         py_action = action.replace("-", "_")
         # 5 attempts is the default, and the adaptive mode allows automated client-side throttling
