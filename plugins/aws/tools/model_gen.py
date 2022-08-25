@@ -532,6 +532,9 @@ models: Dict[str, List[AwsResotoModel]] = {
         # AwsResotoModel("list-clusters", "clusters", "Cluster", prefix="Eks", prop_prefix="cluster_"),
         # AwsResotoModel("list-nodegroups", "nodegroup", "Nodegroup", prefix="Eks", prop_prefix="group_"),
     ],
+    "glacier": [
+        # AwsResotoModel("list-vaults", "VaultList", "ListVaultsOutput", prefix="Glacier", prop_prefix="glacier_"),
+    ],
     "kinesis": [
         # AwsResotoModel("list-streams", "StreamNames", "StreamDescription", prefix="Kinesis", prop_prefix="kinesis_"),
     ],

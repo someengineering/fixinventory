@@ -1,0 +1,13 @@
+{
+    "VaultList": [
+        {
+            "VaultARN": "arn:aws:glacier:us-west-2:999999999999:vaults/nice-vault",
+            "VaultName": "Nice-Vault",
+            "CreationDate": "2012-03-20T17:03:43.221Z",
+            "LastInventoryDate": "2012-03-20T17:03:43.221Z",
+            "NumberOfArchives": 123,
+            "SizeInBytes": 123
+        }
+    ],
+    "Marker": "string"
+}

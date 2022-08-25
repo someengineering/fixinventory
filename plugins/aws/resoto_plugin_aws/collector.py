@@ -18,6 +18,7 @@ from resoto_plugin_aws.resource import (
     elasticache,
     elb,
     elbv2,
+    glacier,
     iam,
     kinesis,
     kms,
@@ -52,6 +53,7 @@ regional_resources: List[Type[AwsResource]] = (
     + elasticache.resources
     + elb.resources
     + elbv2.resources
+    + glacier.resources
     + kinesis.resources
     + kms.resources
     + lambda_.resources
