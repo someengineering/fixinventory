@@ -1,5 +1,6 @@
 from typing import ClassVar, Dict, List, Optional, Type, cast
 from attrs import define, field
+from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
 from resotolib.baseresources import EdgeType
 from resotolib.json_bender import S, Bend, Bender, ForallBend
@@ -167,5 +168,17 @@ class AwsGlacierVault(AwsResource):
                 job_instance = AwsGlacierJob.from_api(job)
                 builder.add_node(job_instance, job)
                 builder.add_edge(vault_instance, EdgeType.default, node=job_instance)
+
+    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
+        client.call(service="glacier", action="add-tags-to-vault", result_name=None, vaultName=self.name, Tags={key: value})
+        return True
+
+    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
+        client.call(service="glacier", action="remove-tags-from-vault", result_name=None, vaultName=self.name, TagKeys=[key])
+        return True
+
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(service="glacier", action="delete-vault", result_name=None, vaultName=self.name)
+        return True
 
 resources: List[AwsResource] = [AwsGlacierVault, AwsGlacierJob]
