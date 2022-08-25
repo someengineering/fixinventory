@@ -403,6 +403,7 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
     alb_protocol_version: Optional[str] = field(default=None)
     alb_ip_address_type: Optional[str] = field(default=None)
     alb_target_health: List[AwsAlbTargetHealthDescription] = field(factory=list)
+
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for js in json:
