@@ -1,5 +1,3 @@
-import time
-from functools import lru_cache
 import logging
 
 import botocore.exceptions
@@ -108,8 +106,7 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
     def update_tag(config: Config, resource: BaseResource, key: str, value: str) -> bool:
         """Update the tag of a resource"""
         if isinstance(resource, AwsResource):
-            cache_key = int(time.time() / 600)  # 10 minutes
-            client = get_client(cache_key, config, resource, "Tag update is not possible")
+            client = get_client(config, resource, "Tag update is not possible")
             return resource.update_resource_tag(client, key, value)
 
         raise RuntimeError(f"Unsupported resource type: {resource.rtdname}")
@@ -118,8 +115,7 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
     def delete_tag(config: Config, resource: BaseResource, key: str) -> bool:
         """Delete the tag of a resource"""
         if isinstance(resource, AwsResource):
-            cache_key = int(time.time() / 600)  # 10 minutes
-            client = get_client(cache_key, config, resource, "Tag deletion is not possible")
+            client = get_client(config, resource, "Tag deletion is not possible")
             return resource.delete_resource_tag(client, key)
 
         raise RuntimeError(f"Unsupported resource type: {resource.rtdname}")
@@ -127,8 +123,7 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
     @staticmethod
     def pre_cleanup(config: Config, resource: BaseResource, graph: Graph) -> bool:
         if isinstance(resource, AwsResource):
-            cache_key = int(time.time() / 600)  # 10 minutes
-            client = get_client(cache_key, config, resource, "Pre-cleanup is not possible")
+            client = get_client(config, resource, "Pre-cleanup is not possible")
 
             if not hasattr(resource, "pre_delete_resource"):
                 return True
@@ -183,8 +178,7 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
     def cleanup(config: Config, resource: BaseResource, graph: Graph) -> bool:
         if isinstance(resource, AwsResource):
 
-            cache_key = int(time.time() / 600)  # 10 minutes
-            client = get_client(cache_key, config, resource, "Pre-cleanup is not possible")
+            client = get_client(config, resource, "Pre-cleanup is not possible")
 
             if resource.phantom:
                 raise RuntimeError(f"Can't cleanup phantom resource {resource.rtdname}")
@@ -257,24 +251,19 @@ def authenticated(account: AwsAccount) -> bool:
     return True
 
 
-def get_client(cache_key: int, config: Config, resource: BaseResource, err_reason: str) -> AwsClient:
-    all_accounts = {acc.id: acc for acc in cached_accounts(cache_key)}
+def get_client(config: Config, resource: BaseResource, err_reason: str) -> AwsClient:
+    all_accounts = {acc.id: acc for acc in get_accounts()}
     account = all_accounts.get(resource.account().id)
     if not account:
         msg = f"Unknown account {resource.account().rtdname} in resource {resource.rtdname}. "
         raise RuntimeError(msg + err_reason)
 
-    return AwsClient(config.aws, account.id, role=account.role, profile=account.profile, region=account.region().name)
+    return AwsClient(config.aws, account.id, role=account.role, profile=account.profile, region=resource.region().name)
 
 
 def current_account_id(profile: Optional[str] = None) -> str:
     session = aws_session(profile=profile)
     return session.client("sts").get_caller_identity().get("Account")  # type: ignore
-
-
-@lru_cache(maxsize=1024)
-def cached_accounts(cache_key: int) -> List[AwsAccount]:
-    return get_accounts()
 
 
 def get_accounts() -> List[AwsAccount]:
