@@ -51,6 +51,17 @@ class AwsGlacierBucketEncryption:
 
 
 @define(eq=False, slots=False)
+class AwsGlacierAcl:
+    kind: ClassVar[str] = "aws_glacier_acl"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "grantee": S("Grantee"),
+        "permission": S("Permission"),
+    }
+    grantee: Dict[str, str] = field(default=None)
+    permission: str = field(default=None)
+
+
+@define(eq=False, slots=False)
 class AwsGlacierJobBucket:
     kind: ClassVar[str] = "aws_glacier_job_bucket"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -58,7 +69,7 @@ class AwsGlacierJobBucket:
         "prefix": S("Prefix"),
         "encryption": S("Encryption") >> Bend(AwsGlacierBucketEncryption.mapping),
         "canned_acl": S("CannedACL"),
-        "access_control_list": S("AccessControlList"),
+        "access_control_list": S("AccessControlList") >> ForallBend(AwsGlacierAcl.mapping),
         "tagging": S("Tagging"),
         "user_metadata": S("UserMetadata"),
         "storage_class": S("StorageClass"),
@@ -67,7 +78,7 @@ class AwsGlacierJobBucket:
     bucket_name: Optional[str] = field(default=None)
     prefix: Optional[str] = field(default=None)
     encryption: Optional[AwsGlacierBucketEncryption] = field(default=None)
-    access_control_list: Optional[Dict[str, Dict[str, str]]] = field(default=None)
+    access_control_list: Optional[List[AwsGlacierAcl]] = field(default=None)
     tagging: Optional[Dict[str, str]] = field(default=None)
     user_metadata: Optional[Dict[str, str]] = field(default=None)
     storage_class: Optional[str] = field(default=None)
