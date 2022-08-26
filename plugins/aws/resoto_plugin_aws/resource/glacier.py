@@ -73,7 +73,6 @@ class AwsGlacierJobBucket:
         "tagging": S("Tagging"),
         "user_metadata": S("UserMetadata"),
         "storage_class": S("StorageClass"),
-
     }
     bucket_name: Optional[str] = field(default=None)
     prefix: Optional[str] = field(default=None)
@@ -116,11 +115,11 @@ class AwsGlacierJob(AwsResource):
         "glacier_job_archive_sha256_tree_hash": S("ArchiveSHA256TreeHash"),
         "glacier_job_retrieval_byte_range": S("RetrievalByteRange"),
         "glacier_job_tier": S("Tier"),
-        "glacier_job_inventory_retrieval_parameters": S("InventoryRetrievalParameters") >> Bend(AwsGlacierInventoryRetrievalParameters.mapping),
+        "glacier_job_inventory_retrieval_parameters": S("InventoryRetrievalParameters")
+        >> Bend(AwsGlacierInventoryRetrievalParameters.mapping),
         "glacier_job_output_path": S("JobOutputPath"),
         "glacier_job_select_parameters": S("SelectParameters") >> Bend(AwsGlacierSelectParameters.mapping),
-        "glacier_job_output_location": S("OutputLocation") >> Bend(AwsGlacierJobOutputLocation.mapping)
-
+        "glacier_job_output_location": S("OutputLocation") >> Bend(AwsGlacierJobOutputLocation.mapping),
     }
     # TODO find out which are optional and which aren't
     description: Optional[str] = field(default=None)
@@ -144,7 +143,6 @@ class AwsGlacierJob(AwsResource):
     glacier_job_output_location: Optional[AwsGlacierJobOutputLocation] = field(default=None)
 
 
-
 @define(eq=False, slots=False)
 class AwsGlacierVault(AwsResource):
     kind: ClassVar[str] = "aws_glacier_vault"
@@ -156,7 +154,7 @@ class AwsGlacierVault(AwsResource):
         "arn": S("VaultARN"),
         "glacier_last_inventory_date": S("LastInventoryDate"),
         "glacier_number_of_archives": S("NumberOfArchives"),
-        "glacier_size_in_bytes": S("SizeInBytes")
+        "glacier_size_in_bytes": S("SizeInBytes"),
     }
     glacier_last_inventory_date: Optional[str] = field(default=None)
     glacier_number_of_archives: Optional[int] = field(default=None)
@@ -173,23 +171,26 @@ class AwsGlacierVault(AwsResource):
             vault_instance = cls.from_api(vault)
             builder.add_node(vault_instance, vault)
             builder.submit_work_shared_pool(add_tags, vault_instance)
-            for job in builder.client.list(
-                "glacier", "list-jobs", "JobList", vaultName=vault_instance.name
-            ):
+            for job in builder.client.list("glacier", "list-jobs", "JobList", vaultName=vault_instance.name):
                 job_instance = AwsGlacierJob.from_api(job)
                 builder.add_node(job_instance, job)
                 builder.add_edge(vault_instance, EdgeType.default, node=job_instance)
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
-        client.call(service="glacier", action="add-tags-to-vault", result_name=None, vaultName=self.name, Tags={key: value})
+        client.call(
+            service="glacier", action="add-tags-to-vault", result_name=None, vaultName=self.name, Tags={key: value}
+        )
         return True
 
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
-        client.call(service="glacier", action="remove-tags-from-vault", result_name=None, vaultName=self.name, TagKeys=[key])
+        client.call(
+            service="glacier", action="remove-tags-from-vault", result_name=None, vaultName=self.name, TagKeys=[key]
+        )
         return True
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(service="glacier", action="delete-vault", result_name=None, vaultName=self.name)
         return True
+
 
 resources: List[AwsResource] = [AwsGlacierVault, AwsGlacierJob]

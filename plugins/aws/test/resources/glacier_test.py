@@ -1,5 +1,5 @@
 from collections import defaultdict
-from resoto_plugin_aws.resource.glacier import AwsGlacierVault, AwsGlacierJob
+from resoto_plugin_aws.resource.glacier import AwsGlacierVault
 from test.resources import round_trip_for
 from typing import Any, Dict, cast
 from types import SimpleNamespace
@@ -14,6 +14,7 @@ def test_vaults() -> None:
     for node in builder.graph.nodes:
         type_count[node.kind] += 1
     assert type_count["aws_glacier_job"] == 1
+
 
 def test_tagging_vaults() -> None:
     vault, _ = round_trip_for(AwsGlacierVault)
