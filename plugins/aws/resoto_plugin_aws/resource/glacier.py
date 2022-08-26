@@ -2,6 +2,7 @@ from typing import ClassVar, Dict, List, Optional, Type, cast
 from attrs import define, field
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
+from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resotolib.baseresources import EdgeType
 from resotolib.json_bender import S, Bend, Bender, ForallBend
 from resotolib.types import Json
@@ -89,7 +90,7 @@ class AwsGlacierJobOutputLocation:
     mapping: ClassVar[Dict[str, Bender]] = {
         "s3": S("S3") >> Bend(AwsGlacierJobBucket.mapping),
     }
-    s3: Optional[AwsGlacierJobBucket] = field(default=None)
+    s3: AwsGlacierJobBucket = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -124,7 +125,7 @@ class AwsGlacierJob(AwsResource):
     description: Optional[str] = field(default=None)
     glacier_job_action: str = field(default=None)
     glacier_job_archive_id: Optional[str] = field(default=None)
-    glacier_job_vault_arn: str = field(default=None)
+    glacier_job_vault_arn: Optional[str] = field(default=None)
     glacier_job_completed: bool = field(default=None)
     glacier_job_status_code: str = field(default=None)
     glacier_job_status_message: str = field(default=None)
@@ -140,6 +141,15 @@ class AwsGlacierJob(AwsResource):
     glacier_job_output_path: str = field(default=None)
     glacier_job_select_parameters: Optional[AwsGlacierSelectParameters] = field(default=None)
     glacier_job_output_location: Optional[AwsGlacierJobOutputLocation] = field(default=None)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if self.glacier_job_output_location:
+            builder.dependant_node(
+                self,
+                clazz=AwsKmsKey,
+                id=AwsKmsKey.normalise_id(self.glacier_job_output_location.s3.encryption.kms_key_id),
+            )
+        # TODO add edge to SNS Topic once implemented
 
 
 @define(eq=False, slots=False)

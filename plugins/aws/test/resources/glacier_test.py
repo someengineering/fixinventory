@@ -6,7 +6,7 @@ from types import SimpleNamespace
 from resoto_plugin_aws.aws_client import AwsClient
 
 
-def test_vaults() -> None:
+def test_vaults_and_jobs() -> None:
     vault, builder = round_trip_for(AwsGlacierVault)
     assert len(builder.resources_of(AwsGlacierVault)) == 1
     assert len(vault.tags) == 1
