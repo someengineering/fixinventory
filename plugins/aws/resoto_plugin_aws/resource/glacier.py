@@ -16,10 +16,10 @@ class AwsGlacierInventoryRetrievalParameters:
         "end_date": S("EndDate"),
         "limit": S("Limit"),
     }
-    output_format: Optional[str] = field(default=None)
-    start_date: Optional[str] = field(default=None)
-    end_date: Optional[str] = field(default=None)
-    limit: Optional[str] = field(default=None)
+    output_format: str = field(default=None)
+    start_date: str = field(default=None)
+    end_date: str = field(default=None)
+    limit: str = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -31,10 +31,10 @@ class AwsGlacierSelectParameters:
         "expression": S("Expression"),
         "output_serialization": S("OutputSerialization"),
     }
-    input_serialization: Optional[Dict[str, Dict[str, str]]] = field(default=None)
-    expression_type: Optional[str] = field(default=None)
-    expression: Optional[str] = field(default=None)
-    output_serialization: Optional[Dict[str, Dict[str, str]]] = field(default=None)
+    input_serialization: Dict[str, Dict[str, str]] = field(default=None)
+    expression_type: str = field(default=None)
+    expression: str = field(default=None)
+    output_serialization: Dict[str, Dict[str, str]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -74,13 +74,13 @@ class AwsGlacierJobBucket:
         "user_metadata": S("UserMetadata"),
         "storage_class": S("StorageClass"),
     }
-    bucket_name: Optional[str] = field(default=None)
-    prefix: Optional[str] = field(default=None)
-    encryption: Optional[AwsGlacierBucketEncryption] = field(default=None)
-    access_control_list: Optional[List[AwsGlacierAcl]] = field(default=None)
+    bucket_name: str = field(default=None)
+    prefix: str = field(default=None)
+    encryption: AwsGlacierBucketEncryption = field(default=None)
+    access_control_list: List[AwsGlacierAcl] = field(default=None)
     tagging: Optional[Dict[str, str]] = field(default=None)
-    user_metadata: Optional[Dict[str, str]] = field(default=None)
-    storage_class: Optional[str] = field(default=None)
+    user_metadata: Dict[str, str] = field(default=None)
+    storage_class: str = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -121,24 +121,23 @@ class AwsGlacierJob(AwsResource):
         "glacier_job_select_parameters": S("SelectParameters") >> Bend(AwsGlacierSelectParameters.mapping),
         "glacier_job_output_location": S("OutputLocation") >> Bend(AwsGlacierJobOutputLocation.mapping),
     }
-    # TODO find out which are optional and which aren't
     description: Optional[str] = field(default=None)
-    glacier_job_action: Optional[str] = field(default=None)
+    glacier_job_action: str = field(default=None)
     glacier_job_archive_id: Optional[str] = field(default=None)
-    glacier_job_vault_arn: Optional[str] = field(default=None)
-    glacier_job_completed: Optional[bool] = field(default=None)
-    glacier_job_status_code: Optional[str] = field(default=None)
-    glacier_job_status_message: Optional[str] = field(default=None)
+    glacier_job_vault_arn: str = field(default=None)
+    glacier_job_completed: bool = field(default=None)
+    glacier_job_status_code: str = field(default=None)
+    glacier_job_status_message: str = field(default=None)
     glacier_job_archive_size_in_bytes: Optional[int] = field(default=None)
     glacier_job_inventory_size_in_bytes: Optional[int] = field(default=None)
-    glacier_job_sns_topic: Optional[str] = field(default=None)
+    glacier_job_sns_topic: str = field(default=None)
     glacier_job_completion_date: Optional[str] = field(default=None)
     glacier_job_sha256_tree_hash: Optional[str] = field(default=None)
     glacier_job_archive_sha256_tree_hash: Optional[str] = field(default=None)
     glacier_job_retrieval_byte_range: Optional[str] = field(default=None)
-    glacier_job_tier: Optional[str] = field(default=None)
+    glacier_job_tier: str = field(default=None)
     glacier_job_inventory_retrieval_parameters: Optional[AwsGlacierInventoryRetrievalParameters] = field(default=None)
-    glacier_job_output_path: Optional[str] = field(default=None)
+    glacier_job_output_path: str = field(default=None)
     glacier_job_select_parameters: Optional[AwsGlacierSelectParameters] = field(default=None)
     glacier_job_output_location: Optional[AwsGlacierJobOutputLocation] = field(default=None)
 
@@ -193,4 +192,4 @@ class AwsGlacierVault(AwsResource):
         return True
 
 
-resources: List[AwsResource] = [AwsGlacierVault, AwsGlacierJob]
+resources: List[Type[AwsResource]] = [AwsGlacierVault, AwsGlacierJob]
