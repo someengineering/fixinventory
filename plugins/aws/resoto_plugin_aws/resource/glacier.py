@@ -3,7 +3,7 @@ from attrs import define, field
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
 from resoto_plugin_aws.resource.kms import AwsKmsKey
-from resotolib.baseresources import EdgeType
+from resotolib.baseresources import EdgeType, ModelReference
 from resotolib.json_bender import S, Bend, Bender, ForallBend
 from resotolib.types import Json
 
@@ -96,6 +96,12 @@ class AwsGlacierJobOutputLocation:
 @define(eq=False, slots=False)
 class AwsGlacierJob(AwsResource):
     kind: ClassVar[str] = "aws_glacier_job"
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {
+            "delete": ["aws_kms_key"],
+        },
+        "successors": {"default": ["aws_kms_key"]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("JobId"),
         "name": S("JobId"),
@@ -156,6 +162,11 @@ class AwsGlacierJob(AwsResource):
 class AwsGlacierVault(AwsResource):
     kind: ClassVar[str] = "aws_glacier_vault"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("glacier", "list-vaults", "VaultList")
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["aws_glacier_job"],
+        }
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("VaultName"),
         "name": S("VaultName"),
