@@ -11,6 +11,7 @@ from resotolib.json_bender import S, Bend, Bender, ForallBend, bend
 from resotolib.types import Json
 
 
+# noinspection PyUnresolvedReferences
 class DynamoDbTaggable:
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         if isinstance(self, AwsResource):
@@ -296,12 +297,17 @@ class AwsDynamoDbTable(DynamoDbTaggable, AwsResource):
     dynamodb_table_class_summary: Optional[AwsDynamoDbTableClassSummary] = field(default=None)
 
     @classmethod
+    def called_apis(cls) -> List[AwsApiSpec]:
+        return [cls.api_spec, AwsApiSpec("dynamodb", "describe-table"), AwsApiSpec("dynamodb", "list-tags-of-resource")]
+
+    @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_instance(table: str) -> None:
-            table_description = builder.client.call("dynamodb", "describe-table", "Table", TableName=table)
-            instance = cls.from_api(table_description)
-            builder.add_node(instance, table_description)
-            builder.submit_work(add_tags, instance)
+            table_description = builder.client.get("dynamodb", "describe-table", "Table", TableName=table)
+            if table_description:
+                instance = cls.from_api(table_description)
+                builder.add_node(instance, table_description)
+                builder.submit_work(add_tags, instance)
 
         def add_tags(table: AwsDynamoDbTable) -> None:
             tags = builder.client.list("dynamodb", "list-tags-of-resource", "Tags", ResourceArn=table.arn)
@@ -359,14 +365,23 @@ class AwsDynamoDbGlobalTable(DynamoDbTaggable, AwsResource):
     dynamodb_global_table_status: Optional[str] = field(default=None)
 
     @classmethod
+    def called_apis(cls) -> List[AwsApiSpec]:
+        return [
+            cls.api_spec,
+            AwsApiSpec("dynamodb", "describe-global-table"),
+            AwsApiSpec("dynamodb", "list-tags-of-resource"),
+        ]
+
+    @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_instance(table: Dict[str, str]) -> None:
-            table_description = builder.client.call(
+            table_description = builder.client.get(
                 "dynamodb", "describe-global-table", "GlobalTableDescription", GlobalTableName=table["GlobalTableName"]
             )
-            instance = cls.from_api(table_description)
-            builder.add_node(instance, table_description)
-            builder.submit_work(add_tags, instance)
+            if table_description:
+                instance = cls.from_api(table_description)
+                builder.add_node(instance, table_description)
+                builder.submit_work(add_tags, instance)
 
         def add_tags(table: AwsDynamoDbGlobalTable) -> None:
             tags = builder.client.list("dynamodb", "list-tags-of-resource", "Tags", ResourceArn=table.arn)

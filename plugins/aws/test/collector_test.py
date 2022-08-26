@@ -1,3 +1,4 @@
+import json
 import logging
 from typing import Type
 
@@ -5,7 +6,7 @@ from _pytest.logging import LogCaptureFixture
 from botocore.exceptions import ClientError
 from networkx import DiGraph, is_directed_acyclic_graph
 
-from resoto_plugin_aws.collector import AwsAccountCollector, all_resources
+from resoto_plugin_aws.collector import AwsAccountCollector, all_resources, called_collect_apis
 from resoto_plugin_aws.resource.base import AwsResource, AwsRegion, GraphBuilder
 from resotolib.core.model_export import dataclasses_to_resotocore_model
 from test import account_collector, builder, aws_client, aws_config  # noqa: F401
@@ -59,3 +60,23 @@ def test_collect_region(
     with caplog.at_level(logging.ERROR):
         account_collector.collect_region(AwsRegion(id="us-east-1", name="us-east-1"), builder)
     assert "Not authorized to collect resources in account 123 region us-east-1" in caplog.text
+
+
+def test_all_called_apis() -> None:
+    allow = [api.action_string() for api in called_collect_apis()]
+    allowed = ", ".join(f'"{a}"' for a in allow)
+    statement = f"""{{
+    "Version": "2012-10-17",
+    "Statement": [
+        {{
+            "Sid": "AllowResotoAccess",
+            "Effect": "Allow",
+            "Action": [{allowed}],
+            "Resource": "*"
+        }}
+    ]
+    }}
+    """
+    assert json.loads(statement)
+    assert len(allow) >= 74
+    assert "s3:ListBuckets" in allow

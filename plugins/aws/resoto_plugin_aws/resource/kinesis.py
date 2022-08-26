@@ -89,6 +89,10 @@ class AwsKinesisStream(AwsResource):
     kinesis_key_id: Optional[str] = field(default=None)
 
     @classmethod
+    def called_apis(cls) -> List[AwsApiSpec]:
+        return [cls.api_spec, AwsApiSpec("kinesis", "describe-stream"), AwsApiSpec("kinesis", "list_tags_for_stream")]
+
+    @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_tags(stream: AwsKinesisStream) -> None:
             tags = builder.client.list(stream.api_spec.service, "list_tags_for_stream", None, StreamName=stream.name)

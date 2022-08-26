@@ -64,6 +64,14 @@ class AwsRoute53Zone(AwsResource, BaseDNSZone):
     zone_linked_service: Optional[AwsRoute53LinkedService] = field(default=None)
 
     @classmethod
+    def called_apis(cls) -> List[AwsApiSpec]:
+        return [
+            cls.api_spec,
+            AwsApiSpec("route53", "list-resource-record-sets"),
+            AwsApiSpec("route53", "list-tags-for-resource"),
+        ]
+
+    @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_tags(zone: AwsRoute53Zone) -> None:
             tags = builder.client.list(

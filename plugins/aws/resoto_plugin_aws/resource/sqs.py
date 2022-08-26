@@ -62,9 +62,13 @@ class AwsSqsQueue(AwsResource):
     sqs_managed_sse_enabled: Optional[bool] = field(default=None)
 
     @classmethod
+    def called_apis(cls) -> List[AwsApiSpec]:
+        return [cls.api_spec, AwsApiSpec("sqs", "get-queue-attributes"), AwsApiSpec("sqs", "list-queue-tags")]
+
+    @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_instance(queue_url: str) -> None:
-            queue_attributes = builder.client.call(
+            queue_attributes = builder.client.get(
                 "sqs", "get-queue-attributes", "Attributes", QueueUrl=queue_url, AttributeNames=["All"]
             )
             queue_attributes["QueueUrl"] = queue_url
