@@ -99,7 +99,7 @@ class AwsGlacierJob(AwsResource):
         "id": S("JobId"),
         "name": S("JobId"),
         "ctime": S("CreationDate"),
-        # "arn": S("VaultARN"),
+        "vault_arn": S("VaultARN"),
         "description": S("JobDescription"),
         "glacier_job_action": S("Action"),
         "glacier_job_archive_id": S("ArchiveId"),
