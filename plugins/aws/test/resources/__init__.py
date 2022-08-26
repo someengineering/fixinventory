@@ -106,7 +106,7 @@ class BotoErrorSession(Session):  # type: ignore
 
 
 def all_props_set(obj: AwsResourceType, ignore_props: Set[str]) -> None:
-    for field in fields(type(obj)):  # type: ignore
+    for field in fields(type(obj)):
         prop = field.name
         if (
             not prop.startswith("_")
