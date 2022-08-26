@@ -71,17 +71,18 @@ class AwsSqsQueue(AwsResource):
             queue_attributes = builder.client.get(
                 "sqs", "get-queue-attributes", "Attributes", QueueUrl=queue_url, AttributeNames=["All"]
             )
-            queue_attributes["QueueUrl"] = queue_url
-            queue_attributes["QueueName"] = queue_url.rsplit("/", 1)[-1]
-            queue_attributes["CreatedTimestamp"] = datetime.fromtimestamp(
-                queue_attributes["CreatedTimestamp"]
-            ).isoformat()
-            queue_attributes["LastModifiedTimestamp"] = datetime.fromtimestamp(
-                queue_attributes["LastModifiedTimestamp"]
-            ).isoformat()
-            instance = cls.from_api(queue_attributes)
-            builder.add_node(instance)
-            builder.submit_work_shared_pool(add_tags, instance)
+            if queue_attributes is not None:
+                queue_attributes["QueueUrl"] = queue_url
+                queue_attributes["QueueName"] = queue_url.rsplit("/", 1)[-1]
+                queue_attributes["CreatedTimestamp"] = datetime.fromtimestamp(
+                    queue_attributes["CreatedTimestamp"]
+                ).isoformat()
+                queue_attributes["LastModifiedTimestamp"] = datetime.fromtimestamp(
+                    queue_attributes["LastModifiedTimestamp"]
+                ).isoformat()
+                instance = cls.from_api(queue_attributes)
+                builder.add_node(instance)
+                builder.submit_work_shared_pool(add_tags, instance)
 
         def add_tags(queue: AwsSqsQueue) -> None:
             tags = builder.client.list("sqs", "list-queue-tags", result_name="Tags", QueueUrl=[queue.sqs_queue_url])

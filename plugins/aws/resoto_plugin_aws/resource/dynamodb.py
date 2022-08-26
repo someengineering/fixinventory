@@ -304,7 +304,7 @@ class AwsDynamoDbTable(DynamoDbTaggable, AwsResource):
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_instance(table: str) -> None:
             table_description = builder.client.get("dynamodb", "describe-table", "Table", TableName=table)
-            if table_description:
+            if table_description is not None:
                 instance = cls.from_api(table_description)
                 builder.add_node(instance, table_description)
                 builder.submit_work(add_tags, instance)
