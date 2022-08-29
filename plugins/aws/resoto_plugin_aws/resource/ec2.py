@@ -2182,6 +2182,112 @@ class AwsEc2RouteTable(EC2Taggable, AwsResource, BaseRoutingTable):
         return True
 
 
+@define(eq=False, slots=False)
+class AwsEc2InstanceCapacity:
+    kind: ClassVar[str] = "aws_ec2_instance_capacity"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "available_capacity": S("AvailableCapacity"),
+        "instance_type": S("InstanceType"),
+        "total_capacity": S("TotalCapacity"),
+    }
+    available_capacity: Optional[int] = field(default=None)
+    instance_type: Optional[str] = field(default=None)
+    total_capacity: Optional[int] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsEc2AvailableCapacity:
+    kind: ClassVar[str] = "aws_ec2_available_capacity"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "available_instance_capacity": S("AvailableInstanceCapacity", default=[])
+        >> ForallBend(AwsEc2InstanceCapacity.mapping),
+        "available_v_cpus": S("AvailableVCpus"),
+    }
+    available_instance_capacity: List[AwsEc2InstanceCapacity] = field(factory=list)
+    available_v_cpus: Optional[int] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsEc2HostProperties:
+    kind: ClassVar[str] = "aws_ec2_host_properties"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "cores": S("Cores"),
+        "instance_type": S("InstanceType"),
+        "instance_family": S("InstanceFamily"),
+        "sockets": S("Sockets"),
+        "total_v_cpus": S("TotalVCpus"),
+    }
+    cores: Optional[int] = field(default=None)
+    instance_type: Optional[str] = field(default=None)
+    instance_family: Optional[str] = field(default=None)
+    sockets: Optional[int] = field(default=None)
+    total_v_cpus: Optional[int] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsEc2HostInstance:
+    kind: ClassVar[str] = "aws_ec2_host_instance"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "instance_id": S("InstanceId"),
+        "instance_type": S("InstanceType"),
+        "owner_id": S("OwnerId"),
+    }
+    instance_id: Optional[str] = field(default=None)
+    instance_type: Optional[str] = field(default=None)
+    owner_id: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsEc2Host(EC2Taggable, AwsResource):
+    kind: ClassVar[str] = "aws_ec2_host"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-hosts", "Hosts")
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("HostId"),
+        "tags": S("Tags", default=[]) >> ToDict(),
+        "name": (S("Tags", default=[]) >> TagsValue("Name")).or_else(S("HostId")),
+        "ctime": S("AllocationTime"),
+        "host_auto_placement": S("AutoPlacement"),
+        "host_availability_zone": S("AvailabilityZone"),
+        "host_available_capacity": S("AvailableCapacity") >> Bend(AwsEc2AvailableCapacity.mapping),
+        "host_client_token": S("ClientToken"),
+        "host_properties": S("HostProperties") >> Bend(AwsEc2HostProperties.mapping),
+        "host_reservation_id": S("HostReservationId"),
+        "host_instances": S("Instances", default=[]) >> ForallBend(AwsEc2HostInstance.mapping),
+        "host_state": S("State"),
+        "host_release_time": S("ReleaseTime"),
+        "host_recovery": S("HostRecovery"),
+        "host_allows_multiple_instance_types": S("AllowsMultipleInstanceTypes"),
+        "host_owner_id": S("OwnerId"),
+        "host_availability_zone_id": S("AvailabilityZoneId"),
+        "host_member_of_service_linked_resource_group": S("MemberOfServiceLinkedResourceGroup"),
+        "host_outpost_arn": S("OutpostArn"),
+    }
+    host_auto_placement: Optional[str] = field(default=None)
+    host_availability_zone: Optional[str] = field(default=None)
+    host_available_capacity: Optional[AwsEc2AvailableCapacity] = field(default=None)
+    host_client_token: Optional[str] = field(default=None)
+    host_properties: Optional[AwsEc2HostProperties] = field(default=None)
+    host_reservation_id: Optional[str] = field(default=None)
+    host_instances: List[AwsEc2HostInstance] = field(factory=list)
+    host_state: Optional[str] = field(default=None)
+    host_release_time: Optional[datetime] = field(default=None)
+    host_recovery: Optional[str] = field(default=None)
+    host_allows_multiple_instance_types: Optional[str] = field(default=None)
+    host_owner_id: Optional[str] = field(default=None)
+    host_availability_zone_id: Optional[str] = field(default=None)
+    host_member_of_service_linked_resource_group: Optional[bool] = field(default=None)
+    host_outpost_arn: Optional[str] = field(default=None)
+
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(
+            service=self.api_spec.service,
+            action="release-hosts",
+            result_name=None,
+            HostIds=[self.id],
+        )
+        return True
+
+
 # endregion
 
 global_resources: List[Type[AwsResource]] = [
@@ -2189,6 +2295,7 @@ global_resources: List[Type[AwsResource]] = [
 ]
 resources: List[Type[AwsResource]] = [
     AwsEc2ElasticIp,
+    AwsEc2Host,
     AwsEc2Instance,
     AwsEc2InternetGateway,
     AwsEc2KeyPair,

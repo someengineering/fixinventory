@@ -1,0 +1,49 @@
+{
+    "Hosts": [
+        {
+            "AutoPlacement": "off",
+            "AvailabilityZone": "us-east-1a",
+            "AvailableCapacity": {
+                "AvailableInstanceCapacity": [
+                    {
+                        "AvailableCapacity": 0,
+                        "InstanceType": "mac2.metal",
+                        "TotalCapacity": 1
+                    }
+                ],
+                "AvailableVCpus": 0
+            },
+            "ClientToken": "cLiEntTokEn",
+            "HostId": "h-09",
+            "HostProperties": {
+                "Cores": 8,
+                "InstanceType": "mac2.metal",
+                "Sockets": 1,
+                "TotalVCpus": 8
+            },
+            "HostReservationId": "123",
+            "Instances": [
+                {
+                    "InstanceId": "i-09",
+                    "InstanceType": "mac2.metal",
+                    "OwnerId": "123"
+                }
+            ],
+            "State": "available",
+            "AllocationTime": "2022-08-26T10:12:47+00:00",
+            "ReleaseTime": "2022-08-29T10:12:47+00:00",
+            "Tags": [
+                {
+                    "Key": "Name",
+                    "Value": "Playground"
+                }
+            ],
+            "HostRecovery": "off",
+            "AllowsMultipleInstanceTypes": "off",
+            "OwnerId": "123",
+            "AvailabilityZoneId": "use1-az4",
+            "MemberOfServiceLinkedResourceGroup": false,
+            "OutpostArn": "arn:123"
+        }
+    ]
+}
