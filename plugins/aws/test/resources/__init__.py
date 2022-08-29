@@ -68,14 +68,16 @@ class BotoFileClient:
         action = action_name.replace("_", "-")
         service = service_name.replace("-", "_")
         path = os.path.dirname(__file__) + f"/files/{service}/{action}{vals}.json"
-        if service_name == "glacier" and action_name.startswith("list"):
-            print(f"glacier list path: {path}")
+
         return os.path.abspath(path)
 
     def __getattr__(self, action_name: str) -> Callable[[], Any]:
         def call_action(*args: Any, **kwargs: Any) -> Any:
             assert not args, "No arguments allowed!"
             path = self.path_from(self.service, action_name, **kwargs)
+            if self.service == "glacier" and action_name.startswith("list_tags"):
+                print(f"glacier tag path: {path}")
+                print(f"exists: {os.path.exists(path)}")
             if os.path.exists(path):
                 with open(path) as f:
                     loaded = json.load(f)
