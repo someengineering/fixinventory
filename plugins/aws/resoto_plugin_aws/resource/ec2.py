@@ -2241,6 +2241,9 @@ class AwsEc2HostInstance:
 class AwsEc2Host(EC2Taggable, AwsResource):
     kind: ClassVar[str] = "aws_ec2_host"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-hosts", "Hosts")
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {"default": ["aws_ec2_instance"], "delete": ["aws_ec2_instance"]}
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("HostId"),
         "tags": S("Tags", default=[]) >> ToDict(),
@@ -2277,6 +2280,15 @@ class AwsEc2Host(EC2Taggable, AwsResource):
     host_availability_zone_id: Optional[str] = field(default=None)
     host_member_of_service_linked_resource_group: Optional[bool] = field(default=None)
     host_outpost_arn: Optional[str] = field(default=None)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        for instance in self.host_instances:
+            builder.dependant_node(
+                self,
+                clazz=AwsEc2Instance,
+                delete_same_as_default=True,
+                id=instance.instance_id,
+            )
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
