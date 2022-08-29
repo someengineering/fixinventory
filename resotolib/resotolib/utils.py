@@ -15,7 +15,8 @@ from tzlocal import get_localzone_name
 from functools import wraps
 from pprint import pformat
 from tarfile import TarFile, TarInfo
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple, Optional, Callable
+from resotolib.types import DecoratedFn
 
 import pkg_resources
 import requests
@@ -145,7 +146,7 @@ def json_default(o):
     raise TypeError(f"Object of type {o.__class__.__name__} is not JSON serializable")
 
 
-def log_runtime(f):
+def log_runtime(f: DecoratedFn) -> DecoratedFn:
     @wraps(f)
     def timer(*args, **kwargs):
         start = time.time()
