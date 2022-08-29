@@ -66,8 +66,7 @@ class AwsClient:
             arg_info += " with args " + ", ".join([f"{key}={value}" for key, value in kwargs.items()])
         log.debug(f"[Aws] calling service={service} action={action}{arg_info}")
         py_action = action.replace("-", "_")
-        # 5 attempts is the default, and the adaptive mode allows automated client-side throttling
-        config = Config(retries={"max_attempts": 5, "mode": "adaptive"})
+        config = Config(retries={"max_attempts": 5, "mode": "legacy"})
         session = self.config.sessions().session(self.account_id, self.role, self.profile)
         client = session.client(service, region_name=self.region, config=config)
         if client.can_paginate(py_action):
