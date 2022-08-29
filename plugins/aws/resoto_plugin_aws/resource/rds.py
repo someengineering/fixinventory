@@ -13,7 +13,7 @@ from resotolib.utils import utc
 from resoto_plugin_aws.aws_client import AwsClient
 
 
-# todo: annotate with no serialization annotation
+# noinspection PyUnresolvedReferences
 class RdsTaggable:
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         if isinstance(self, AwsResource):
@@ -406,6 +406,10 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
     rds_custom_iam_instance_profile: Optional[str] = field(default=None)
     rds_backup_target: Optional[str] = field(default=None)
     rds_network_type: Optional[str] = field(default=None)
+
+    @classmethod
+    def called_apis(cls) -> List[AwsApiSpec]:
+        return [cls.api_spec, AwsApiSpec(cls.api_spec.service, "list-tags-for-resource")]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:

@@ -89,12 +89,17 @@ class AwsKmsKey(AwsResource, BaseAccessKey):
     kms_mac_algorithms: List[str] = field(factory=list)
 
     @classmethod
+    def called_apis(cls) -> List[AwsApiSpec]:
+        return [cls.api_spec, AwsApiSpec("kms", "describe-key"), AwsApiSpec("kms", "list-resource-tags")]
+
+    @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_instance(key: Dict[str, str]) -> None:
-            key_metadata = builder.client.call("kms", "describe-key", result_name="KeyMetadata", KeyId=key["KeyId"])
-            instance = cls.from_api(key_metadata)
-            builder.add_node(instance)
-            builder.submit_work_shared_pool(add_tags, instance)
+            key_metadata = builder.client.get("kms", "describe-key", result_name="KeyMetadata", KeyId=key["KeyId"])
+            if key_metadata is not None:
+                instance = cls.from_api(key_metadata)
+                builder.add_node(instance)
+                builder.submit_work_shared_pool(add_tags, instance)
 
         def add_tags(key: AwsKmsKey) -> None:
             tags = builder.client.list("kms", "list-resource-tags", result_name=None, KeyId=key.id)

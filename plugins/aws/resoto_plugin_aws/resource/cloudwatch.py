@@ -14,7 +14,7 @@ from resotolib.types import Json
 from resotolib.utils import chunks
 
 
-# todo: annotate with no serialization annotation
+# noinspection PyUnresolvedReferences
 class CloudwatchTaggable:
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         if isinstance(self, AwsResource):
@@ -264,6 +264,10 @@ class AwsCloudwatchMetricData:
             if value != 0:
                 return timestamp, value
         return None
+
+    @classmethod
+    def called_apis(cls) -> List[AwsApiSpec]:
+        return [AwsApiSpec("cloudwatch", "get_metric_data")]
 
     @staticmethod
     def query_for(

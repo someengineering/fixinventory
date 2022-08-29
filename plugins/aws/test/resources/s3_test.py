@@ -16,7 +16,7 @@ def test_tagging() -> None:
     bucket, _ = round_trip_for(AwsS3Bucket)
 
     def validate_update_args(**kwargs: Any) -> Any:
-        if kwargs["action"] == "get_bucket_tagging":
+        if kwargs["action"] == "get-bucket-tagging":
             assert kwargs["Bucket"] == bucket.name
             return [{"Key": "foo", "Value": "bar"}]
 
@@ -25,7 +25,7 @@ def test_tagging() -> None:
             assert kwargs["Tagging"] == {"TagSet": [{"Key": "foo", "Value": "bar"}]}
 
     def validate_delete_args(**kwargs: Any) -> Any:
-        if kwargs["action"] == "get_bucket_tagging":
+        if kwargs["action"] == "get-bucket-tagging":
             assert kwargs["Bucket"] == bucket.name
             return [{"Key": "foo", "Value": "bar"}]
 

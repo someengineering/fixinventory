@@ -84,6 +84,10 @@ class AwsBeanstalkApplication(AwsResource):
     beanstalk_resource_lifecycle_config: Optional[AwsBeanstalkApplicationResourceLifecycleConfig] = field(default=None)
 
     @classmethod
+    def called_apis(cls) -> List[AwsApiSpec]:
+        return [cls.api_spec, AwsApiSpec(cls.api_spec.service, "list-tags-for-resource")]
+
+    @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_tags(app: AwsBeanstalkApplication) -> None:
             tags = builder.client.list(
@@ -247,6 +251,14 @@ class AwsBeanstalkEnvironment(AwsResource):
     beanstalk_tier: Optional[AwsBeanstalkEnvironmentTier] = field(default=None)
     beanstalk_environment_links: List[AwsBeanstalkEnvironmentLink] = field(factory=list)
     beanstalk_operations_role: Optional[str] = field(default=None)
+
+    @classmethod
+    def called_apis(cls) -> List[AwsApiSpec]:
+        return [
+            cls.api_spec,
+            AwsApiSpec(cls.api_spec.service, "describe-environment-resources"),
+            AwsApiSpec(cls.api_spec.service, "list-tags-for-resource"),
+        ]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
