@@ -2289,6 +2289,7 @@ class AwsEc2Host(EC2Taggable, AwsResource):
                 delete_same_as_default=True,
                 id=instance.instance_id,
             )
+        # TODO add edge to outpost (host_outpost_arn) when applicable
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
