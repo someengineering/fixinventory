@@ -11,7 +11,7 @@ from botocore.config import Config
 
 from resoto_plugin_aws.config import AwsConfig
 from resotolib.types import Json, JsonElement
-from resotolib.utils import utc_str
+from resotolib.utils import utc_str, log_runtime
 
 log = logging.getLogger("resoto.plugins.aws")
 
@@ -60,6 +60,7 @@ class AwsClient:
         wait_exponential_max=300000,
         retry_on_exception=is_retryable_exception,
     )
+    @log_runtime
     def call(self, service: str, action: str, result_name: Optional[str], **kwargs: Any) -> JsonElement:
         arg_info = ""
         if kwargs:
