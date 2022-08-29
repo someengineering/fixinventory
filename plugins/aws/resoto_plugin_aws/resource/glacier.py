@@ -184,6 +184,7 @@ class AwsGlacierVault(AwsResource):
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_tags(vault: AwsGlacierVault) -> None:
             tags = builder.client.list("glacier", "list-tags-for-vault", "Tags", vaultName=vault.name)
+            print(f"glacier debug: adding {len(tags)} tags")
             if tags:
                 vault.tags = cast(Dict[str, Optional[str]], tags)
                 print("glacier debug: add tags done")
