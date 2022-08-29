@@ -15,8 +15,6 @@ def test_vaults_and_jobs() -> None:
         type_count[node.kind] += 1
     assert type_count["aws_glacier_job"] == 1
 
-    assert False
-
 
 def test_tagging_vaults() -> None:
     vault, _ = round_trip_for(AwsGlacierVault)
