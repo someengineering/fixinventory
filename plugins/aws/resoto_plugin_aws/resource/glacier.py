@@ -186,6 +186,7 @@ class AwsGlacierVault(AwsResource):
             tags = builder.client.list("glacier", "list-tags-for-vault", "Tags", vaultName=vault.name)
             if tags:
                 vault.tags = cast(Dict[str, Optional[str]], tags)
+                print("glacier debug: add tags done")
 
         for vault in json:
             vault_instance = cls.from_api(vault)

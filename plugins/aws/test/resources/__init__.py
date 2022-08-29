@@ -19,6 +19,7 @@ from resoto_plugin_aws.resource.base import (
     AwsApiSpec,
     ExecutorQueue,
 )
+from resoto_plugin_aws.resource.glacier import AwsGlacierVault
 from resotolib.baseresources import Cloud
 from resotolib.graph import Graph
 
@@ -137,8 +138,12 @@ def build_graph(cls: Type[AwsResourceType]) -> GraphBuilder:
     builder = GraphBuilder(Graph(), Cloud(id="test"), AwsAccount(id="test"), region, client, queue)
     cls.collect_resources(builder)
     builder.global_executor.wait_for_submitted_work()
+    if cls == AwsGlacierVault:
+        print("glacier debug: global executor wait finished")
     if ex := builder.region_executor:
         ex.wait_for_submitted_work()
+    if cls == AwsGlacierVault:
+        print("glacier debug: global executor wait finished")
     return builder
 
 
