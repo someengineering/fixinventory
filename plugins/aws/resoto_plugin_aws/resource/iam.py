@@ -386,6 +386,10 @@ class AwsIamUser(AwsResource, BaseUser):
     user_permissions_boundary: Optional[AwsIamAttachedPermissionsBoundary] = field(default=None)
 
     @classmethod
+    def called_apis(cls) -> List[AwsApiSpec]:
+        return [cls.api_spec, AwsApiSpec("iam", "list-access-keys"), AwsApiSpec("iam", "get-access-key-last-used")]
+
+    @classmethod
     def collect(cls: Type[AwsResource], json_list: List[Json], builder: GraphBuilder) -> None:
         for json in json_list:
             for js in json.get("GroupDetailList", []):

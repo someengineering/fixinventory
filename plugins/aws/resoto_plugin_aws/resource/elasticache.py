@@ -14,6 +14,7 @@ from resotolib.types import Json
 from resoto_plugin_aws.resource.ec2 import AwsEc2SecurityGroup
 
 
+# noinspection PyUnresolvedReferences
 class ElastiCacheTaggable:
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         if isinstance(self, AwsResource):
@@ -258,6 +259,10 @@ class AwsElastiCacheCacheCluster(ElastiCacheTaggable, AwsResource):
         return True
 
     @classmethod
+    def called_apis(cls) -> List[AwsApiSpec]:
+        return [cls.api_spec, AwsApiSpec(cls.api_spec.service, "list-tags-for-resource")]
+
+    @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_tags(resource: AwsElastiCacheCacheCluster) -> None:
             tags = builder.client.list(
@@ -439,13 +444,14 @@ class AwsElastiCacheReplicationGroup(ElastiCacheTaggable, AwsResource):
     replication_group_data_tiering: Optional[str] = field(default=None)
 
     @classmethod
+    def called_apis(cls) -> List[AwsApiSpec]:
+        return [cls.api_spec, AwsApiSpec(cls.api_spec.service, "list-tags-for-resource")]
+
+    @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_tags(resource: AwsElastiCacheReplicationGroup) -> None:
             tags = builder.client.list(
-                resource.api_spec.service,
-                "list-tags-for-resource",
-                None,
-                ResourceName=resource.arn,
+                resource.api_spec.service, "list-tags-for-resource", None, ResourceName=resource.arn
             )
             if tags:
                 resource.tags = bend(S("TagList", default=[]) >> ToDict(), tags[0])

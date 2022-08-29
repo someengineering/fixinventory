@@ -11,7 +11,7 @@ from resotolib.types import Json
 from resoto_plugin_aws.aws_client import AwsClient
 
 
-# todo: annotate with no serialization annotation
+# noinspection PyUnresolvedReferences
 class ElbTaggable:
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         if isinstance(self, AwsResource):
@@ -180,6 +180,10 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
     elb_availability_zones: List[str] = field(factory=list)
     elb_health_check: Optional[AwsElbHealthCheck] = field(default=None)
     elb_source_security_group: Optional[AwsElbSourceSecurityGroup] = field(default=None)
+
+    @classmethod
+    def called_apis(cls) -> List[AwsApiSpec]:
+        return [cls.api_spec, AwsApiSpec(cls.api_spec.service, "describe-tags")]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:

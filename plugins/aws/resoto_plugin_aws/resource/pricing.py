@@ -138,3 +138,6 @@ class AwsPricingPrice:
             {"Type": "TERM_MATCH", "Field": "location", "Value": pricing_region(region)},
         ]
         return cls.single_price_for(client, "AmazonEC2", search_filter)
+
+
+resources = [AwsPricingPrice]

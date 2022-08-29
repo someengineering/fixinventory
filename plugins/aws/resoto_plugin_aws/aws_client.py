@@ -11,7 +11,7 @@ from botocore.config import Config
 
 from resoto_plugin_aws.config import AwsConfig
 from resotolib.types import Json, JsonElement
-from resotolib.utils import utc_str
+from resotolib.utils import utc_str, log_runtime
 
 log = logging.getLogger("resoto.plugins.aws")
 
@@ -60,11 +60,12 @@ class AwsClient:
         wait_exponential_max=300000,
         retry_on_exception=is_retryable_exception,
     )
+    @log_runtime
     def call(self, service: str, action: str, result_name: Optional[str], **kwargs: Any) -> JsonElement:
         arg_info = ""
         if kwargs:
-            arg_info += " with args " + ", ".join([f"{key}={str(value)[:8]}" for key, value in kwargs.items()])
-        log.debug(f"[Aws] call service={service} action={action}{arg_info}")
+            arg_info += " with args " + ", ".join([f"{key}={value}" for key, value in kwargs.items()])
+        log.debug(f"[Aws] calling service={service} action={action}{arg_info}")
         py_action = action.replace("-", "_")
         # 5 attempts is the default, and the adaptive mode allows automated client-side throttling
         config = Config(retries={"max_attempts": 5, "mode": "adaptive"})
@@ -84,12 +85,12 @@ class AwsClient:
                     result.extend(list_result)
                 else:
                     raise AttributeError(f"Expected list result under key '{result_name}'")
-            log.debug(f"[Aws] call service={service} action={action}{arg_info}: {len(result)} results.")
+            log.debug(f"[Aws] called service={service} action={action}{arg_info}: {len(result)} results.")
             return result
         else:
             result = getattr(client, py_action)(**kwargs)
             single: Json = self.__to_json(result)  # type: ignore
-            log.debug(f"[Aws] call service={service} action={action}{arg_info}: single result")
+            log.debug(f"[Aws] called service={service} action={action}{arg_info}: single result")
             return single.get(result_name) if result_name else [single]
 
     def call_handle(self, service: str, action: str, result_name: Optional[str], **kwargs: Any) -> JsonElement:
