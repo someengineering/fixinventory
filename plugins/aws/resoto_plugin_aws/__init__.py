@@ -357,7 +357,7 @@ def all_regions(profile: Optional[str] = None) -> List[str]:
     return [r["RegionName"] for r in regions["Regions"]]
 
 
-@log_runtime  # type: ignore
+@log_runtime
 def collect_account(
     account: AwsAccount,
     regions: List[str],
