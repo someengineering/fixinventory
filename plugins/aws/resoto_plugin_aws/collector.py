@@ -7,6 +7,7 @@ from botocore.exceptions import ClientError
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.config import AwsConfig
 from resoto_plugin_aws.resource import (
+    apigateway,
     athena,
     autoscaling,
     cloudformation,
@@ -41,7 +42,8 @@ global_resources: List[Type[AwsResource]] = (
     dynamodb.global_resources + ec2.global_resources + iam.resources + route53.resources + s3.resources
 )
 regional_resources: List[Type[AwsResource]] = (
-    autoscaling.resources
+    apigateway.resources
+    + autoscaling.resources
     + athena.resources
     + cloudformation.resources
     + cloudwatch.resources
