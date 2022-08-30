@@ -7,7 +7,5 @@ class DockerHubConfig:
     kind: ClassVar[str] = "dockerhub"
     namespaces: List[str] = field(
         factory=list,
-        metadata={
-            "description": "Docker Hub namespaces to collect."
-        },
+        metadata={"description": "Docker Hub namespaces to collect."},
     )
