@@ -10,14 +10,14 @@ def read(fname):
 
 
 setup(
-    name="resoto-plugin-github",
+    name="resoto-plugin-dockerhub",
     version="3.0.0a0",
     description="Resoto Docker Hub Collector Plugin",
     license="Apache 2.0",
     packages=find_packages(),
     long_description=read("README.md"),
     long_description_content_type="text/markdown",
-    entry_points={"resoto.plugins": ["github = resoto_plugin_dockerhub:DockerHubCollectorPlugin"]},
+    entry_points={"resoto.plugins": ["dockerhub = resoto_plugin_dockerhub:DockerHubCollectorPlugin"]},
     include_package_data=True,
     zip_safe=False,
     install_requires=requirements,
