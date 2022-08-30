@@ -6,7 +6,8 @@ from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
 from resotolib.baseresources import ModelReference
 from resotolib.json_bender import Bender, S, Bend, bend
-from resoto_plugin_aws.utils import ToDict
+from resoto_plugin_aws.utils import ToDict, arn_partition
+from resotolib.types import Json
 
 
 class ApiGatewayTaggable:
@@ -18,7 +19,7 @@ class ApiGatewayTaggable:
                     action="tag-resource",
                     result_name=None,
                     resourceArn=self.arn,
-                    tags={"Key": key, "Value": value},
+                    tags={key: value},
                 )
                 return True
             return False
@@ -78,5 +79,21 @@ class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
     api_policy: Optional[str] = field(default=None)
     api_disable_execute_api_endpoint: Optional[bool] = field(default=None)
 
+    @classmethod
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        for js in json:
+            instance = cls.from_api(js)
+            region = builder.region
+            instance.arn = f"arn:{arn_partition(region)}:apigateway:{region.id}::/restapis/{instance.id}"
+            builder.add_node(instance, js)
+
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(
+            service=self.api_spec.service,
+            action="delete-rest-api",
+            result_name=None,
+            restApiId=self.id,
+        )
+        return True
 
 resources: List[Type[AwsResource]] = [AwsApiGatewayRestApi]
