@@ -5,7 +5,7 @@ from resotolib.config import Config
 from .config import DockerHubConfig
 from .resources import (
     DockerHubNamespace,
-    DockerHubRepo,
+    DockerHubRepository,
 )
 
 
@@ -30,7 +30,7 @@ class DockerHubCollectorPlugin(BaseCollectorPlugin):
             ns = DockerHubNamespace(id=namespace, count=count)
             self.graph.add_resource(self.graph.root, ns)
             for repo in results:
-                r = DockerHubRepo.new(repo)
+                r = DockerHubRepository.new(repo)
                 self.graph.add_resource(ns, r)
 
     @staticmethod

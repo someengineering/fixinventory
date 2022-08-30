@@ -30,8 +30,8 @@ class DockerHubNamespace(DockerHubResource, BaseAccount):
 
 
 @define(eq=False, slots=False)
-class DockerHubRepo(DockerHubResource, BaseResource):
-    kind: ClassVar[str] = "dockerhub_repo"
+class DockerHubRepository(DockerHubResource, BaseResource):
+    kind: ClassVar[str] = "dockerhub_repository"
 
     repository_type: Optional[str] = None
     status: Optional[int] = None
@@ -43,7 +43,7 @@ class DockerHubRepo(DockerHubResource, BaseResource):
 
     @staticmethod
     def new(data: Dict) -> BaseResource:
-        return DockerHubRepo(
+        return DockerHubRepository(
             id=data.get("name"),
             repository_type=data.get("repository_type"),
             is_private=data.get("is_private"),
