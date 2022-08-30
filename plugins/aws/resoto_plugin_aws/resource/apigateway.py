@@ -1,11 +1,43 @@
 from typing import ClassVar, Dict, Optional, List, Type
 
 from attrs import define, field
+from resoto_plugin_aws.aws_client import AwsClient
 
 from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
 from resotolib.baseresources import ModelReference
 from resotolib.json_bender import Bender, S, Bend, bend
 from resoto_plugin_aws.utils import ToDict
+
+
+class ApiGatewayTaggable:
+    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
+        if isinstance(self, AwsResource):
+            if spec := self.api_spec:
+                client.call(
+                    service=spec.service,
+                    action="tag-resource",
+                    result_name=None,
+                    resourceArn=self.arn,
+                    tags={"Key": key, "Value": value},
+                )
+                return True
+            return False
+        return False
+
+    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
+        if isinstance(self, AwsResource):
+            if spec := self.api_spec:
+                client.call(
+                    service=spec.service,
+                    action="untag-resource",
+                    result_name=None,
+                    resourceArn=self.arn,
+                    tagKeys=[key],
+                )
+                return True
+            return False
+        return False
+
 
 @define(eq=False, slots=False)
 class AwsApiGatewayEndpointConfiguration:
@@ -18,7 +50,7 @@ class AwsApiGatewayEndpointConfiguration:
     vpc_endpoint_ids: List[str] = field(factory=list)
 
 @define(eq=False, slots=False)
-class AwsApiGatewayRestApi(AwsResource):
+class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
     kind: ClassVar[str] = "aws_api_gateway_rest_api"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("apigateway", "get-rest-apis", "items")
     mapping: ClassVar[Dict[str, Bender]] = {
