@@ -8,6 +8,6 @@ class DockerHubConfig:
     namespaces: List[str] = field(
         factory=list,
         metadata={
-            "description": "Docker Hub namespaces to collect. If specified will collect all repositories in the namespace."
+            "description": "Docker Hub namespaces to collect."
         },
     )
