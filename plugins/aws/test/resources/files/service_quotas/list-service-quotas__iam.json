@@ -163,7 +163,26 @@
             "Value": 20.0,
             "Unit": "None",
             "Adjustable": true,
-            "GlobalQuota": true
+            "GlobalQuota": true,
+            "UsageMetric": {
+                "MetricNamespace": "AWS/Usage",
+                "MetricName": "ResourceCount",
+                "MetricDimensions": {
+                    "Class": "None",
+                    "Resource": "ApplicationLoadBalancersPerRegion",
+                    "Service": "Elastic Load Balancing",
+                    "Type": "Resource"
+                },
+                "MetricStatisticRecommendation": "Maximum"
+            },
+            "Period": {
+                "PeriodValue": 123,
+                "PeriodUnit": "days"
+            },
+            "ErrorReason": {
+                "ErrorCode": "QuotaExceeded",
+                "ErrorMessage": "Quota exceeded for service: EC2, quota: Running On-Demand Standard (A, C, D, H, I, M, R, T, Z) instances, period: 123 days, value: 8704.0"
+            }
         }
     ]
 }

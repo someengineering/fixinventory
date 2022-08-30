@@ -82,17 +82,18 @@ class AwsServiceQuota(AwsResource, BaseQuota):
     quota_error_reason: Optional[AwsQuotaErrorReason] = field(default=None)
 
     @classmethod
-    def collect_resources(cls: Type[AwsResource], builder: GraphBuilder) -> None:
-        def collect_service(service_code: str, matchers: List[QuotaMatcher]) -> None:
-            log.debug(f"Collecting Service quotas for {service_code} in region {builder.region.name}")
-            for js in builder.client.list("service-quotas", "list-service-quotas", "Quotas", ServiceCode=service_code):
-                quota = AwsServiceQuota.from_api(js)
-                for matcher in matchers:
-                    if matcher.match(quota):
-                        builder.add_node(quota, dict(source=js, matcher=matcher))
+    def collect_service(cls, service_code: str, matchers: List["QuotaMatcher"], builder: GraphBuilder) -> None:
+        log.debug(f"Collecting Service quotas for {service_code} in region {builder.region.name}")
+        for js in builder.client.list("service-quotas", "list-service-quotas", "Quotas", ServiceCode=service_code):
+            quota = AwsServiceQuota.from_api(js)
+            for matcher in matchers:
+                if matcher.match(quota):
+                    builder.add_node(quota, dict(source=js, matcher=matcher))
 
+    @classmethod
+    def collect_resources(cls: Type[AwsResource], builder: GraphBuilder) -> None:
         for service, ms in CollectQuotas.items():
-            collect_service(service, ms)
+            AwsServiceQuota.collect_service(service, ms, builder)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
@@ -130,6 +131,14 @@ class AwsServiceQuota(AwsResource, BaseQuota):
             TagKeys=[key],
         )
         return True
+
+
+@define(eq=False, slots=False)
+class AwsIamServiceQuota(AwsServiceQuota):
+    @classmethod
+    def collect_resources(cls: Type[AwsResource], builder: GraphBuilder) -> None:
+        for service, ms in CollectIamQuotas.items():
+            AwsServiceQuota.collect_service(service, ms, builder)
 
 
 @define
@@ -187,10 +196,14 @@ CollectQuotas = {
         QuotaMatcher(quota_name="Application Load Balancers per Region", node_kind="aws_alb"),
         QuotaMatcher(quota_name="Classic Load Balancers per Region", node_kind="aws_elb"),
     ],
-    # TODO: iam quotas need to be collected globally
-    # "iam": [
-    #     QuotaMatcher(quota_name="Server certificates per account", node_kind="aws_iam_server_certificate"),
-    # ],
 }
 
+CollectIamQuotas = {
+    "iam": [
+        QuotaMatcher(quota_name="Server certificates per account", node_kind="aws_iam_server_certificate"),
+    ],
+}
+
+
 resources: List[Type[AwsResource]] = [AwsServiceQuota]
+global_resources: List[Type[AwsResource]] = [AwsIamServiceQuota]
