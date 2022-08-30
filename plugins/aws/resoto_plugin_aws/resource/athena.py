@@ -87,6 +87,10 @@ class AwsAthenaWorkGroup(AwsResource):
     }
 
     @classmethod
+    def called_apis(cls) -> List[AwsApiSpec]:
+        return [cls.api_spec, AwsApiSpec("athena", "get-work-group"), AwsApiSpec("athena", "list-tags-for-resource")]
+
+    @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def fetch_workgroup(name: str) -> Optional[AwsAthenaWorkGroup]:
             result = builder.client.get(
@@ -122,6 +126,7 @@ class AwsAthenaWorkGroup(AwsResource):
                 builder.add_node(wg)
                 builder.submit_work(add_tags, wg)
 
+    # noinspection PyUnboundLocalVariable
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if (
             (wc := self.workgroup_configuration)
@@ -176,6 +181,10 @@ class AwsAthenaDataCatalog(AwsResource):
     description: Optional[str] = None
     datacatalog_type: Optional[str] = None
     datacatalog_parameters: Optional[Dict[str, str]] = None
+
+    @classmethod
+    def called_apis(cls) -> List[AwsApiSpec]:
+        return [cls.api_spec, AwsApiSpec("athena", "get-data-catalog"), AwsApiSpec("athena", "list-tags-for-resource")]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:

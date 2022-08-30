@@ -173,6 +173,10 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
     function_ephemeral_storage: Optional[int] = field(default=None)
 
     @classmethod
+    def called_apis(cls) -> List[AwsApiSpec]:
+        return [cls.api_spec, AwsApiSpec("lambda", "list-tags")]
+
+    @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_tags(function: AwsLambdaFunction) -> None:
             tags = builder.client.list("lambda", "list-tags", "Tags", Resource=function.arn)

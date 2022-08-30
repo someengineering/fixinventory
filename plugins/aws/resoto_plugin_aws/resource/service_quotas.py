@@ -5,7 +5,7 @@ from typing import ClassVar, Dict, Optional, Type, Any, List, Pattern, Union
 from attr import field
 from attrs import define
 
-from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder
+from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
 from resotolib.baseresources import BaseAccount, BaseQuota, EdgeType, ModelReference  # noqa: F401
 from resotolib.json_bender import Bender, S, Bend
 from resotolib.types import Json
@@ -80,6 +80,10 @@ class AwsServiceQuota(AwsResource, BaseQuota):
     quota_usage_metric: Optional[AwsQuotaMetricInfo] = field(default=None)
     quota_period: Optional[AwsQuotaPeriod] = field(default=None)
     quota_error_reason: Optional[AwsQuotaErrorReason] = field(default=None)
+
+    @classmethod
+    def called_apis(cls) -> List[AwsApiSpec]:
+        return [AwsApiSpec("service-quotas", "list_service_quotas")]
 
     @classmethod
     def collect_service(cls, service_code: str, matchers: List["QuotaMatcher"], builder: GraphBuilder) -> None:

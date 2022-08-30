@@ -19,6 +19,10 @@ class AwsS3Bucket(AwsResource, BaseBucket):
     mapping: ClassVar[Dict[str, Bender]] = {"id": S("Name"), "name": S("Name"), "ctime": S("CreationDate")}
 
     @classmethod
+    def called_apis(cls) -> List[AwsApiSpec]:
+        return [cls.api_spec, AwsApiSpec("s3", "get-bucket-tagging")]
+
+    @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_tags(bucket: AwsS3Bucket, client: AwsClient) -> None:
             tags = bucket._get_tags(client)
@@ -42,7 +46,7 @@ class AwsS3Bucket(AwsResource, BaseBucket):
         """Fetch the S3 buckets tags from the AWS API."""
         tags: Dict[str, str] = {}
         try:
-            response = client.call(service="s3", action="get_bucket_tagging", result_name="TagSet", Bucket=self.name)
+            response = client.call(service="s3", action="get-bucket-tagging", result_name="TagSet", Bucket=self.name)
             tags = tags_as_dict(response)  # type: ignore
         except botocore.exceptions.ClientError as e:
             if e.response["Error"]["Code"] != "NoSuchTagSet":
