@@ -19,6 +19,7 @@ from resoto_plugin_aws.resource.ec2 import (
     AwsEc2VpcPeeringConnection,
     AwsEc2VpcEndpoint,
     AwsEc2RouteTable,
+    AwsEc2Host,
 )
 from test.resources import round_trip_for, build_graph, check_single_node
 
@@ -270,6 +271,21 @@ def test_delete_internet_gateways() -> None:
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
     internet_gateway.delete_resource(client)
+
+
+def test_dedicated_hosts() -> None:
+    round_trip_for(AwsEc2Host)
+
+
+def test_delete_dedicated_hosts() -> None:
+    host, _ = round_trip_for(AwsEc2Host)
+
+    def validate_delete_args(**kwargs: Any) -> None:
+        assert kwargs["action"] == "release-hosts"
+        assert kwargs["HostIds"] == [host.id]
+
+    client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
+    host.delete_resource(client)
 
 
 def test_tagging() -> None:
