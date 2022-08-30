@@ -24,8 +24,8 @@ def test_collect(account_collector: AwsAccountCollector) -> None:
                 count += 1
         return count
 
-    assert len(account_collector.graph.edges) == 321
-    assert count_kind(AwsResource) == 127
+    assert len(account_collector.graph.edges) == 326
+    assert count_kind(AwsResource) == 129
     to_ignore = {AwsIamServiceQuota}
     for resource in all_resources:
         if resource in to_ignore:

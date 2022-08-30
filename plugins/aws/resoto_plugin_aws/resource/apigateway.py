@@ -1,11 +1,11 @@
-from typing import ClassVar, Dict, Optional, List, Type
+from typing import ClassVar, Dict, Optional, List, Type, Union
 
 from attrs import define, field
 from resoto_plugin_aws.aws_client import AwsClient
 
 from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
 from resoto_plugin_aws.resource.ec2 import AwsEc2VpcEndpoint
-from resotolib.baseresources import ModelReference
+from resotolib.baseresources import EdgeType, ModelReference
 from resotolib.json_bender import Bender, S, Bend
 from resoto_plugin_aws.utils import arn_partition
 from resotolib.types import Json
@@ -42,6 +42,24 @@ class ApiGatewayTaggable:
 
 
 @define(eq=False, slots=False)
+class AwsApiGatewayDeployment(ApiGatewayTaggable, AwsResource):
+    kind: ClassVar[str] = "aws_api_gateway_deployment"
+    # reference_kinds: ClassVar[ModelReference] = {
+    #     "successors": {"default": ["aws_vpc_endpoint"], "delete": ["aws_vpc_endpoint"]}
+    # }
+
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("id"),
+        # "tags": S("tags", default=[]),
+        "ctime": S("createdDate"),
+        "description": S("description"),
+        "deployment_api_summary": S("apiSummary"),
+    }
+    description: Optional[str] = field(default=None)
+    deployment_api_summary: Dict[str, Dict[str, Dict[str, Union[str, bool]]]] = field(default=None)
+
+
+@define(eq=False, slots=False)
 class AwsApiGatewayEndpointConfiguration:
     kind: ClassVar[str] = "aws_api_gateway_endpoint_configuration"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -59,6 +77,17 @@ class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["aws_vpc_endpoint"], "delete": ["aws_vpc_endpoint"]}
     }
+
+    @classmethod
+    def called_apis(cls) -> List[AwsApiSpec]:
+        return [
+            cls.api_spec,
+            AwsApiSpec("apigateway", "get-deployments"),
+            AwsApiSpec("apigateway", "get-stages"),
+            AwsApiSpec("apigateway", "get-authorizers"),
+            AwsApiSpec("apigateway", "get-resources"),
+        ]
+
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "name": S("name"),
@@ -87,10 +116,17 @@ class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for js in json:
-            instance = cls.from_api(js)
+            api_instance = cls.from_api(js)
             region = builder.region
-            instance.arn = f"arn:{arn_partition(region)}:apigateway:{region.id}::/restapis/{instance.id}"
-            builder.add_node(instance, js)
+            api_instance.arn = f"arn:{arn_partition(region)}:apigateway:{region.id}::/restapis/{api_instance.id}"
+            builder.add_node(api_instance, js)
+            for deployment in builder.client.list("apigateway", "get-deployments", "items", restApiId=api_instance.id):
+                deploy_instance = AwsApiGatewayDeployment.from_api(deployment)
+                # arn:partition:apigateway:region::/restapis/api-id/deployments/id
+                deploy_instance.arn = api_instance.arn + "/deployments/" + deploy_instance.id
+                builder.add_node(deploy_instance, deployment)
+                builder.add_edge(api_instance, EdgeType.default, node=deploy_instance)
+            #   ... get stages
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.api_endpoint_configuration:
