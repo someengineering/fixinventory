@@ -43,6 +43,7 @@ def test_alb_quotas() -> None:
 
 def test_iam_server_certificate_quotas() -> None:
     _, builder = round_trip_for(AwsIamServiceQuota, "usage", "quota_type")
+    assert len(builder.resources_of(AwsServiceQuota)) == 1
     AwsIamServerCertificate.collect_resources(builder)
     expect_quotas(builder, 2)
 
