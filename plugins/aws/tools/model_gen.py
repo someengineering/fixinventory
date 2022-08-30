@@ -370,6 +370,7 @@ models: Dict[str, List[AwsResotoModel]] = {
         # ),
     ],
     "ec2": [
+        # AwsResotoModel("describe-hosts", "Hosts", "Host", prefix="Ec2", prop_prefix="host_")
         # AwsResotoModel(
         #     "describe-route-tables",
         #     "RouteTables",
