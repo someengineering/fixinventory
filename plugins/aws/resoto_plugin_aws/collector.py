@@ -39,7 +39,12 @@ log = logging.getLogger("resoto.plugins.aws")
 
 
 global_resources: List[Type[AwsResource]] = (
-    dynamodb.global_resources + ec2.global_resources + iam.resources + route53.resources + s3.resources
+    dynamodb.global_resources
+    + ec2.global_resources
+    + iam.resources
+    + route53.resources
+    + s3.resources
+    + service_quotas.global_resources
 )
 regional_resources: List[Type[AwsResource]] = (
     apigateway.resources

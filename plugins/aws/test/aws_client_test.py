@@ -18,4 +18,4 @@ def test_call() -> None:
     config.sessions().session_class_factory = BotoFileBasedSession
     client = AwsClient(config, "test")
     instances = client.list("ec2", "describe-instances", "Reservations")
-    assert len(instances) == 2
+    assert len(instances) == 3

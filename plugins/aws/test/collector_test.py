@@ -8,6 +8,7 @@ from networkx import DiGraph, is_directed_acyclic_graph
 
 from resoto_plugin_aws.collector import AwsAccountCollector, all_resources, called_collect_apis
 from resoto_plugin_aws.resource.base import AwsResource, AwsRegion, GraphBuilder
+from resoto_plugin_aws.resource.service_quotas import AwsIamServiceQuota
 from resotolib.core.model_export import dataclasses_to_resotocore_model
 from test import account_collector, builder, aws_client, aws_config  # noqa: F401
 from test.resources import BotoErrorSession
@@ -23,9 +24,12 @@ def test_collect(account_collector: AwsAccountCollector) -> None:
                 count += 1
         return count
 
-    assert len(account_collector.graph.edges) == 320
-    assert count_kind(AwsResource) == 126
+    assert len(account_collector.graph.edges) == 321
+    assert count_kind(AwsResource) == 127
+    to_ignore = {AwsIamServiceQuota}
     for resource in all_resources:
+        if resource in to_ignore:
+            continue
         assert count_kind(resource) > 0, "No instances of {} found".format(resource.__name__)
 
 
