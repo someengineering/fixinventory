@@ -6,8 +6,8 @@ from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
 from resoto_plugin_aws.resource.ec2 import AwsEc2VpcEndpoint
 from resotolib.baseresources import ModelReference
-from resotolib.json_bender import Bender, S, Bend, bend
-from resoto_plugin_aws.utils import ToDict, arn_partition
+from resotolib.json_bender import Bender, S, Bend
+from resoto_plugin_aws.utils import arn_partition
 from resotolib.types import Json
 
 
@@ -46,20 +46,18 @@ class AwsApiGatewayEndpointConfiguration:
     kind: ClassVar[str] = "aws_api_gateway_endpoint_configuration"
     mapping: ClassVar[Dict[str, Bender]] = {
         "types": S("types", default=[]),
-        "vpc_endpoint_ids": S("vpcEndpointIds", default=[])
+        "vpc_endpoint_ids": S("vpcEndpointIds", default=[]),
     }
     types: List[str] = field(factory=list)
     vpc_endpoint_ids: List[str] = field(factory=list)
+
 
 @define(eq=False, slots=False)
 class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
     kind: ClassVar[str] = "aws_api_gateway_rest_api"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("apigateway", "get-rest-apis", "items")
     reference_kinds: ClassVar[ModelReference] = {
-        "successors": {
-            "default": ["aws_vpc_endpoint"],
-            "delete": ["aws_vpc_endpoint"]
-        }
+        "successors": {"default": ["aws_vpc_endpoint"], "delete": ["aws_vpc_endpoint"]}
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -74,7 +72,7 @@ class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
         "api_key_source": S("apiKeySource"),
         "api_endpoint_configuration": S("endpointConfiguration") >> Bend(AwsApiGatewayEndpointConfiguration.mapping),
         "api_policy": S("policy"),
-        "api_disable_execute_api_endpoint": S("disableExecuteApiEndpoint")
+        "api_disable_execute_api_endpoint": S("disableExecuteApiEndpoint"),
     }
     description: Optional[str] = field(default=None)
     api_version: Optional[str] = field(default=None)
@@ -112,5 +110,6 @@ class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
             restApiId=self.id,
         )
         return True
+
 
 resources: List[Type[AwsResource]] = [AwsApiGatewayRestApi]

@@ -4,11 +4,13 @@ from resoto_plugin_aws.aws_client import AwsClient
 from test.resources import round_trip_for
 from resoto_plugin_aws.resource.apigateway import AwsApiGatewayRestApi
 
+
 def test_data_catalogs() -> None:
     api, builder = round_trip_for(AwsApiGatewayRestApi)
     assert len(builder.resources_of(AwsApiGatewayRestApi)) == 1
     assert len(api.tags) == 1
-    assert api.arn == "arn:aws:apigateway:eu-central-1::restapis/2lsd9i45ub"
+    assert api.arn == "arn:aws:apigateway:eu-central-1::/restapis/2lsd9i45ub"
+
 
 def test_api_tagging() -> None:
     api, builder = round_trip_for(AwsApiGatewayRestApi)
@@ -16,7 +18,7 @@ def test_api_tagging() -> None:
     def validate_update_args(**kwargs: Any) -> None:
         assert kwargs["action"] == "tag-resource"
         assert kwargs["resourceArn"] == api.arn
-        assert kwargs["tags"] == {"Key": "foo", "Value": "bar"}
+        assert kwargs["tags"] == {"foo": "bar"}
 
     def validate_delete_args(**kwargs: Any) -> None:
         assert kwargs["action"] == "untag-resource"
