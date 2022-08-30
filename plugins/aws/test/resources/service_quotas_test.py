@@ -1,7 +1,6 @@
 from resoto_plugin_aws.resource.base import GraphBuilder
 from resoto_plugin_aws.resource.ec2 import AwsEc2InstanceType, AwsEc2Vpc
 from resoto_plugin_aws.resource.elbv2 import AwsAlb
-from resoto_plugin_aws.resource.iam import AwsIamServerCertificate
 from test.resources import round_trip_for
 from types import SimpleNamespace
 from typing import cast, Any
@@ -11,7 +10,7 @@ from resoto_plugin_aws.resource.service_quotas import AwsServiceQuota
 
 def test_service_quotas() -> None:
     first, builder = round_trip_for(AwsServiceQuota, "usage", "quota_type")
-    assert len(builder.resources_of(AwsServiceQuota)) >= 14
+    assert len(builder.resources_of(AwsServiceQuota)) >= 13
 
 
 def test_instance_type_quotas() -> None:
@@ -41,10 +40,11 @@ def test_alb_quotas() -> None:
     expect_quotas(builder, 2)
 
 
-def test_iam_server_certificate_quotas() -> None:
-    _, builder = round_trip_for(AwsServiceQuota, "usage", "quota_type")
-    AwsIamServerCertificate.collect_resources(builder)
-    expect_quotas(builder, 2)
+# todo: move to the separate iam quota global resource
+# def test_iam_server_certificate_quotas() -> None:
+#     _, builder = round_trip_for(AwsServiceQuota, "usage", "quota_type")
+#     AwsIamServerCertificate.collect_resources(builder)
+#     expect_quotas(builder, 2)
 
 
 def expect_quotas(builder: GraphBuilder, quotas: int) -> None:
