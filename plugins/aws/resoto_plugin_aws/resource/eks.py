@@ -12,7 +12,7 @@ from resotolib.types import Json
 from resoto_plugin_aws.aws_client import AwsClient
 
 
-# todo: annotate with no serialization annotation
+# noinspection PyUnresolvedReferences
 class EKSTaggable:
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         if isinstance(self, AwsResource):
@@ -332,6 +332,15 @@ class AwsEksCluster(EKSTaggable, AwsResource):
     cluster_platform_version: Optional[str] = field(default=None)
     cluster_encryption_config: List[AwsEksEncryptionConfig] = field(factory=list)
     cluster_connector_config: Optional[AwsEksConnectorConfig] = field(default=None)
+
+    @classmethod
+    def called_apis(cls) -> List[AwsApiSpec]:
+        return [
+            cls.api_spec,
+            AwsApiSpec("eks", "describe-cluster"),
+            AwsApiSpec("eks", "list-nodegroups"),
+            AwsApiSpec("eks", "describe-nodegroup"),
+        ]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:

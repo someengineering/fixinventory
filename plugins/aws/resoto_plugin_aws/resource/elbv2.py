@@ -12,7 +12,7 @@ from resotolib.types import Json
 from resoto_plugin_aws.aws_client import AwsClient
 
 
-# todo: annotate with no serialization annotation
+# noinspection PyUnresolvedReferences
 class ElbV2Taggable:
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         if isinstance(self, AwsResource):
@@ -290,6 +290,10 @@ class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
     alb_listener: List[AwsAlbListener] = field(factory=list)
 
     @classmethod
+    def called_apis(cls) -> List[AwsApiSpec]:
+        return [cls.api_spec, AwsApiSpec("elbv2", "describe-listeners"), AwsApiSpec("elbv2", "describe-tags")]
+
+    @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for js in json:
             lb = AwsAlb.from_api(js)
@@ -403,6 +407,10 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
     alb_protocol_version: Optional[str] = field(default=None)
     alb_ip_address_type: Optional[str] = field(default=None)
     alb_target_health: List[AwsAlbTargetHealthDescription] = field(factory=list)
+
+    @classmethod
+    def called_apis(cls) -> List[AwsApiSpec]:
+        return [cls.api_spec, AwsApiSpec("elbv2", "describe-target-health"), AwsApiSpec("elbv2", "describe-tags")]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:

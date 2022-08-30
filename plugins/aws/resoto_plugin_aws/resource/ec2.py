@@ -37,11 +37,10 @@ from resotolib.types import Json
 from resotolib.utils import utc
 
 
-# todo: annotate with no serialization annotation
+# noinspection PyUnresolvedReferences
 class EC2Taggable:
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         if isinstance(self, AwsResource):
-            # noinspection PyUnresolvedReferences
             if spec := self.api_spec:
                 client.call(
                     service=spec.service,
