@@ -20,7 +20,7 @@
                     "PRIVATE"
                 ],
                 "vpcEndpointIds": [
-                    "vpc-endpoint-id"
+                    "vpce-2"
                 ]
             },
             "policy": "string",

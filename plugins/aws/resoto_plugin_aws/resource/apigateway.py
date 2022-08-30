@@ -4,6 +4,7 @@ from attrs import define, field
 from resoto_plugin_aws.aws_client import AwsClient
 
 from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
+from resoto_plugin_aws.resource.ec2 import AwsEc2VpcEndpoint
 from resotolib.baseresources import ModelReference
 from resotolib.json_bender import Bender, S, Bend, bend
 from resoto_plugin_aws.utils import ToDict, arn_partition
@@ -54,6 +55,12 @@ class AwsApiGatewayEndpointConfiguration:
 class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
     kind: ClassVar[str] = "aws_api_gateway_rest_api"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("apigateway", "get-rest-apis", "items")
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["aws_vpc_endpoint"],
+            "delete": ["aws_vpc_endpoint"]
+        }
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "name": S("name"),
@@ -86,6 +93,16 @@ class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
             region = builder.region
             instance.arn = f"arn:{arn_partition(region)}:apigateway:{region.id}::/restapis/{instance.id}"
             builder.add_node(instance, js)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if self.api_endpoint_configuration:
+            for endpoint in self.api_endpoint_configuration.vpc_endpoint_ids:
+                builder.dependant_node(
+                    self,
+                    clazz=AwsEc2VpcEndpoint,
+                    delete_same_as_default=True,
+                    id=endpoint,
+                )
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
