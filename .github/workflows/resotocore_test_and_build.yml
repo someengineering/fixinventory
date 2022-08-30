@@ -62,6 +62,9 @@ jobs:
         env:
           RESOTOCORE_ANALYTICS_OPT_OUT: true
         run: pytest
+      - name: Build jupyterlite static files
+        run: |
+          jupyter lite build
       - name: Build a binary wheel and a source tarball
         run: >-
           python -m

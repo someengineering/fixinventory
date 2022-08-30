@@ -3,6 +3,8 @@
 """The setup script."""
 
 from setuptools import setup, find_packages
+from setuptools.command.develop import develop
+from subprocess import check_call
 
 with open("requirements.txt") as f:
     required = f.read().splitlines()
@@ -19,6 +21,15 @@ with open("README.md") as f:
 setup_requirements = [
     "pytest-runner",
 ]
+
+
+class PostDevelopCommand(develop):
+    """Post-installation for development mode."""
+
+    def run(self):
+        develop.run(self)
+        check_call(["jupyter", "lite", "build"])
+
 
 setup(
     name="resotocore",
@@ -37,4 +48,7 @@ setup(
     test_suite="tests",
     tests_require=dev_required + test_required,
     url="https://github.com/someengineering/resoto/resotocore",
+    cmdclass={
+        "develop": PostDevelopCommand,
+    },
 )

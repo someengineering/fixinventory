@@ -1,0 +1,10 @@
+{
+    "LiteBuildConfig": {
+        "lite_dir": "jupyterlite_config",
+        "output_dir": "resotocore/jupyterlite",
+        "no_sourcemaps": true,
+        "apps": [
+            "lab"
+        ]
+    }
+}

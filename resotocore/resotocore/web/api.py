@@ -91,7 +91,7 @@ def section_of(request: Request) -> Optional[str]:
     return section
 
 
-AlwaysAllowed = {"/", "/metrics", "/api-doc.*", "/system/.*", "/ui.*", "/ca/cert"}
+AlwaysAllowed = {"/", "/metrics", "/api-doc.*", "/system/.*", "/ui.*", "/ca/cert", "/notebook"}
 
 
 class Api:
@@ -142,6 +142,7 @@ class Api:
 
     def __add_routes(self, prefix: str) -> None:
         static_path = os.path.abspath(os.path.dirname(__file__) + "/../static")
+        jupyterlite_path = os.path.abspath(os.path.dirname(__file__) + "/../jupyterlite")
         ui_route: List[AbstractRouteDef] = (
             [web.static(f"{prefix}/ui/", self.config.api.ui_path)]
             if self.config.api.ui_path and Path(self.config.api.ui_path).exists()
@@ -203,6 +204,8 @@ class Api:
                 # Serve static filed
                 web.get(prefix, self.forward("/ui/index.html")),
                 web.static(prefix + "/static", static_path),
+                web.get(prefix + "/notebook", self.forward("/notebook/index.html")),
+                web.static(prefix + "/notebook", jupyterlite_path),
                 # metrics
                 web.get(prefix + "/metrics", self.metrics),
                 # config operations
