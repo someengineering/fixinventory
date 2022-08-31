@@ -7,6 +7,7 @@ from resotolib.baseresources import (
     BaseResource,
 )
 
+
 @define(eq=False, slots=False)
 class DockerHubResource:
     kind: ClassVar[str] = "dockerhub_resource"
