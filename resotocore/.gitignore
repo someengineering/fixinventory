@@ -132,3 +132,8 @@ dmypy.json
 # IDE
 .idea
 .swp
+
+# jupyterlite
+resotocore/jupyterlite/*
+!resotocore/jupyterlite/README.md
+.jupyterlite.doit.db
