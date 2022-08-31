@@ -42,7 +42,63 @@ class ApiGatewayTaggable:
 
 
 @define(eq=False, slots=False)
-class AwsApiGatewayDeployment(ApiGatewayTaggable, AwsResource):
+class AwsApiGatewayCanarySetting:
+    kind: ClassVar[str] = "aws_api_gateway_canary_setting"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "percent_traffic": S("percentTraffic"),
+        "deployment_id": S("deploymentId"),
+        "stage_variable_overrides": S("stageVariableOverrides"),
+        "use_stage_cache": S("useStageCache")
+    }
+    percent_traffic: int = field(default=None)
+    deployment_id: str = field(default=None)
+    stage_variable_overrides: Dict[str, str] = field(default=None)
+    use_stage_cache: bool = field(default=None)
+
+@define(eq=False, slots=False)
+class AwsApiGatewayStage(ApiGatewayTaggable, AwsResource):
+    kind: ClassVar[str] = "aws_api_gateway_stage"
+    # reference_kinds: ClassVar[ModelReference] = {
+    #     "successors": {"default": ["aws_vpc_endpoint"], "delete": ["aws_vpc_endpoint"]}
+    # }
+
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("stageName"),
+        "name": S("stageName"),
+        "tags": S("tags", default=[]),
+        "ctime": S("createdDate"),
+        "mtime": S("lastUpdatedDate"),
+        "description": S("description"),
+        "stage_client_certificate_id": S("clientCertificateId"),
+        "stage_cache_cluster_enabled": S("cacheClusterEnabled"),
+        "stage_cache_cluster_size": S("cacheClusterSize"),
+        "stage_cache_status": S("cacheClusterStatus"),
+        "stage_method_settings": S("methodSettings"),
+        "stage_variables": S("variables"),
+        "stage_documentation_version": S("documentationVersion"),
+        "stage_access_log_settings": S("accessLogSettings"),
+        "stage_canary_settings": S("canarySettings") >> Bend(AwsApiGatewayCanarySetting.mapping),
+        "stage_tracing_enabled": S("tracingEnabled"),
+        "stage_web_acl_arn": S("webAclArn"),
+    }
+    description: Optional[str] = field(default=None)
+    stage_client_certificate_id: Optional[str] = field(default=None)
+    stage_cache_cluster_enabled: bool = field(default=None)
+    stage_cache_cluster_size: Optional[str] = field(default=None)
+    stage_cache_status: Optional[str] = field(default=None)
+    stage_method_settings: Dict[str, Dict[str, Union[bool, str, int]]] = field(default=None)
+    stage_variables: Dict[str, str] = field(default=None)
+    stage_documentation_version: Optional[str] = field(default=None)
+    stage_access_log_settings: Dict[str, str] = field(default=None)
+    stage_canary_settings: Optional[AwsApiGatewayCanarySetting] = field(default=None)
+    stage_tracing_enabled: bool = field(default=None)
+    stage_web_acl_arn: Optional[str] = field(default=None)
+
+
+
+
+@define(eq=False, slots=False)
+class AwsApiGatewayDeployment(AwsResource):
     kind: ClassVar[str] = "aws_api_gateway_deployment"
     # reference_kinds: ClassVar[ModelReference] = {
     #     "successors": {"default": ["aws_vpc_endpoint"], "delete": ["aws_vpc_endpoint"]}
@@ -122,11 +178,13 @@ class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
             builder.add_node(api_instance, js)
             for deployment in builder.client.list("apigateway", "get-deployments", "items", restApiId=api_instance.id):
                 deploy_instance = AwsApiGatewayDeployment.from_api(deployment)
-                # arn:partition:apigateway:region::/restapis/api-id/deployments/id
                 deploy_instance.arn = api_instance.arn + "/deployments/" + deploy_instance.id
                 builder.add_node(deploy_instance, deployment)
                 builder.add_edge(api_instance, EdgeType.default, node=deploy_instance)
-            #   ... get stages
+                for stage in builder.client.list("apigateway", "get-stages", "item", restApiId=api_instance.id, deploymentId=deploy_instance.id): #that ain't working
+                    stage_instance = AwsApiGatewayStage.from_api(stage)
+                    builder.add_node(stage_instance, stage)
+                    builder.add_edge(deploy_instance, EdgeType.default, node=stage_instance)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.api_endpoint_configuration:

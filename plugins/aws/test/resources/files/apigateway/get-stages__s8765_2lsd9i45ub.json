@@ -1,0 +1,50 @@
+{
+    "item": [
+        {
+            "deploymentId": "s8765",
+            "clientCertificateId": "string",
+            "stageName": "backstage",
+            "description": "string",
+            "cacheClusterEnabled": true,
+            "cacheClusterSize": "0.5",
+            "cacheClusterStatus": "FLUSH_IN_PROGRESS",
+            "methodSettings": {
+                "string": {
+                    "metricsEnabled": true,
+                    "loggingLevel": "INFO",
+                    "dataTraceEnabled": true,
+                    "throttlingBurstLimit": 123,
+                    "throttlingRateLimit": 123.0,
+                    "cachingEnabled": true,
+                    "cacheTtlInSeconds": 123,
+                    "cacheDataEncrypted": true,
+                    "requireAuthorizationForCacheControl": false,
+                    "unauthorizedCacheControlHeaderStrategy": "FAIL_WITH_403"
+                }
+            },
+            "variables": {
+                "string": "string"
+            },
+            "documentationVersion": "string",
+            "accessLogSettings": {
+                "format": "string",
+                "destinationArn": "string"
+            },
+            "canarySettings": {
+                "percentTraffic": 123.0,
+                "deploymentId": "string",
+                "stageVariableOverrides": {
+                    "string": "string"
+                },
+                "useStageCache": true
+            },
+            "tracingEnabled": false,
+            "webAclArn": "string",
+            "tags": {
+                "string": "string"
+            },
+            "createdDate": "2015-12-02T23:29:00Z",
+            "lastUpdatedDate": "2015-12-02T23:29:00Z"
+        }
+    ]
+}
