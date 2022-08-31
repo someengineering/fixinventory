@@ -125,17 +125,17 @@ class AwsEc2EbsOptimizedInfo:
     kind: ClassVar[str] = "aws_ec2_ebs_optimized_info"
     mapping: ClassVar[Dict[str, Bender]] = {
         "baseline_bandwidth_in_mbps": S("BaselineBandwidthInMbps"),
-        "baseline_throughput_in_m_bps": S("BaselineThroughputInMBps"),
+        "baseline_throughput_in_mbps": S("BaselineThroughputInMBps"),
         "baseline_iops": S("BaselineIops"),
         "maximum_bandwidth_in_mbps": S("MaximumBandwidthInMbps"),
-        "maximum_throughput_in_m_bps": S("MaximumThroughputInMBps"),
+        "maximum_throughput_in_mbps": S("MaximumThroughputInMBps"),
         "maximum_iops": S("MaximumIops"),
     }
     baseline_bandwidth_in_mbps: Optional[int] = field(default=None)
-    baseline_throughput_in_m_bps: Optional[float] = field(default=None)
+    baseline_throughput_in_mbps: Optional[float] = field(default=None)
     baseline_iops: Optional[int] = field(default=None)
     maximum_bandwidth_in_mbps: Optional[int] = field(default=None)
-    maximum_throughput_in_m_bps: Optional[float] = field(default=None)
+    maximum_throughput_in_mbps: Optional[float] = field(default=None)
     maximum_iops: Optional[int] = field(default=None)
 
 
