@@ -1,0 +1,86 @@
+{
+    "JobList": [
+        {
+            "JobId": "string",
+            "JobDescription": "string",
+            "Action": "ArchiveRetrieval",
+            "ArchiveId": "string",
+            "VaultARN": "arn:aws:glacier:us-west-2:999999999999:vaults/nice-vault",
+            "CreationDate": "2012-03-20T17:03:43.221Z",
+            "Completed": true,
+            "StatusCode": "Failed",
+            "StatusMessage": "string",
+            "ArchiveSizeInBytes": 123,
+            "InventorySizeInBytes": 123,
+            "SNSTopic": "string",
+            "CompletionDate": "2012-03-20T17:03:43.221Z",
+            "SHA256TreeHash": "string",
+            "ArchiveSHA256TreeHash": "string",
+            "RetrievalByteRange": "string",
+            "Tier": "string",
+            "InventoryRetrievalParameters": {
+                "Format": "JSON",
+                "StartDate": "2012-03-20T17:03:43.221Z",
+                "EndDate": "2012-04-20T17:03:43.221Z",
+                "Limit": "string",
+                "Marker": "string"
+            },
+            "JobOutputPath": "string",
+            "SelectParameters": {
+                "InputSerialization": {
+                    "csv": {
+                        "FileHeaderInfo": "USE",
+                        "Comments": "string",
+                        "QuoteEscapeCharacter": "string",
+                        "RecordDelimiter": "string",
+                        "FieldDelimiter": "string",
+                        "QuoteCharacter": "string"
+                    }
+                },
+                "ExpressionType": "SQL",
+                "Expression": "string",
+                "OutputSerialization": {
+                    "csv": {
+                        "QuoteFields": "ALWAYS",
+                        "QuoteEscapeCharacter": "string",
+                        "RecordDelimiter": "string",
+                        "FieldDelimiter": "string",
+                        "QuoteCharacter": "string"
+                    }
+                }
+            },
+            "OutputLocation": {
+                "S3": {
+                    "BucketName": "string",
+                    "Prefix": "string",
+                    "Encryption": {
+                        "EncryptionType": "aws:kms",
+                        "KMSKeyId": "string",
+                        "KMSContext": "string"
+                    },
+                    "CannedACL": "private",
+                    "AccessControlList": [
+                        {
+                            "Grantee": {
+                                "Type": "AmazonCustomerByEmail",
+                                "DisplayName": "string",
+                                "URI": "string",
+                                "ID": "string",
+                                "EmailAddress": "string"
+                            },
+                            "Permission": "FULL_CONTROL"
+                        }
+                    ],
+                    "Tagging": {
+                        "string": "string"
+                    },
+                    "UserMetadata": {
+                        "string": "string"
+                    },
+                    "StorageClass": "STANDARD"
+                }
+            }
+        }
+    ],
+    "Marker": "string"
+}
