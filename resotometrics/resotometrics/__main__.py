@@ -170,7 +170,7 @@ def update_metrics(metrics: Metrics, search_uri: str, tls_data: Optional[TLSData
         if metrics_search is None:
             continue
 
-        if metric_type not in ("gauge", "counter"):
+        if metric_type not in ("gauge", "counter", "cleanup_counter"):
             log.error(f"Do not know how to handle metrics of type {metric_type}")
             continue
 
@@ -188,13 +188,13 @@ def update_metrics(metrics: Metrics, search_uri: str, tls_data: Optional[TLSData
                                 metric_help,
                                 labels=labels,
                             )
-                        elif metric_type == "counter":
+                        elif metric_type in ("counter", "cleanup_counter"):
                             metrics.staging[metric_name] = CounterMetricFamily(
                                 f"resoto_{metric_name}",
                                 metric_help,
                                 labels=labels,
                             )
-                    if metric_type == "counter" and metric_name in metrics.live:
+                    if metric_type == "cleanup_counter" and metric_name in metrics.live:
                         current_metric = metrics.live[metric_name]
                         for sample in current_metric.samples:
                             if sample.labels == result.get("group"):
