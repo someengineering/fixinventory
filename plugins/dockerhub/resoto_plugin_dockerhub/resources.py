@@ -7,7 +7,6 @@ from resotolib.baseresources import (
     BaseResource,
 )
 
-
 @define(eq=False, slots=False)
 class DockerHubResource:
     kind: ClassVar[str] = "dockerhub_resource"
@@ -43,6 +42,11 @@ class DockerHubRepository(DockerHubResource, BaseResource):
 
     @staticmethod
     def new(data: Dict) -> BaseResource:
+        # Docker Hub API returns [None] for media types
+        # This removes all None values from the list
+        media_types = list(filter((None).__ne__, data.get("media_types", [])))
+        if len(media_types) == 0:
+            media_types = None
         return DockerHubRepository(
             id=data.get("name"),
             repository_type=data.get("repository_type"),
@@ -52,7 +56,7 @@ class DockerHubRepository(DockerHubResource, BaseResource):
             mtime=convert_date(data.get("last_updated")),
             ctime=convert_date(data.get("date_registered")),
             affiliation=data.get("affiliation"),
-            media_types=data.get("media_types"),
+            media_types=media_types,
         )
 
 
