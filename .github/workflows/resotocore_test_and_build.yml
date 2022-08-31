@@ -61,7 +61,7 @@ jobs:
       - name: Run Tests
         env:
           RESOTOCORE_ANALYTICS_OPT_OUT: true
-        run: pytest
+        run: pytest -s
       - name: Build jupyterlite static files
         run: |
           jupyter lite build
