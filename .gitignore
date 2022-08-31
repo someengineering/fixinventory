@@ -33,5 +33,5 @@ out/
 *.iml
 **/.hypothesis/
 .sandbox/*
-resotocore/resotocore/jupyterlite/*
+# resotocore/resotocore/jupyterlite/*
 .jupyterlite.doit.db
