@@ -186,7 +186,7 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
         for js in json:
             instance = cls.from_api(js)
             builder.add_node(instance, js)
-            builder.submit_work_shared_pool(add_tags, instance)
+            builder.submit_work(add_tags, instance)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if vpc_config := source.get("VpcConfig"):

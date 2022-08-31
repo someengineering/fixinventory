@@ -452,7 +452,7 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
             instance = AwsRdsInstance.from_api(js)
             instances.append(instance)
             builder.add_node(instance, js)
-            builder.submit_work_shared_pool(add_tags, instance)
+            builder.submit_work(add_tags, instance)
         update_atime_mtime()
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:

@@ -33,7 +33,7 @@ class AwsS3Bucket(AwsResource, BaseBucket):
             bucket = cls.from_api(js)
             bucket.arn = f"arn:{arn_partition(builder.region)}:s3:::{bucket.name}"
             builder.add_node(bucket, js)
-            builder.submit_work_shared_pool(add_tags, bucket, builder.client)
+            builder.submit_work(add_tags, bucket, builder.client)
 
     def _set_tags(self, client: AwsClient, tags: Dict[str, str]) -> bool:
         tag_set = [{"Key": k, "Value": v} for k, v in tags.items()]
