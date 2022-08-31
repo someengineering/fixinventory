@@ -1,7 +1,6 @@
 import json
 import logging
 import threading
-import time
 from typing import Type
 
 from _pytest.logging import LogCaptureFixture
@@ -32,12 +31,10 @@ def test_collect(account_collector: AwsAccountCollector) -> None:
             continue
         assert count_kind(resource) > 0, "No instances of {} found".format(resource.__name__)
 
+    # make sure all threads have been joined
     assert len(threading.enumerate()) == 1
+    # ensure the correct number of nodes and edges
     assert count_kind(AwsResource) == 127
-    name = f"/tmp/{int(time.time()-1661887002.136981)}"
-    with open(name, "w") as f:
-        for f_e, t_e, _ in account_collector.graph.edges:
-            f.write(f"{f_e}->{t_e}\n")
     assert len(account_collector.graph.edges) == 321
 
 
