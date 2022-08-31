@@ -9,5 +9,3 @@ setuptools==62.3.3
 pylint==2.14.1
 black==22.3.0
 build==0.8.0
-jupyterlite==0.1.0b12
-plotly==5.10.0

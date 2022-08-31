@@ -28,6 +28,9 @@ class PostDevelopCommand(develop):
 
     def run(self):
         develop.run(self)
+        import pip
+
+        pip.main(["install", "-r", "requirements-jupyterlite.txt"])
         check_call(["jupyter", "lite", "build"])
 
 
