@@ -28,7 +28,7 @@ class DockerHubCollectorPlugin(BaseCollectorPlugin):
             while next is not None:
                 r = fetch_uri(next)
                 if r is None:
-                    continue
+                    break
                 count = r.get("count")
                 results = r.get("results", [])
                 next = r.get("next")
