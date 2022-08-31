@@ -58,12 +58,12 @@ jobs:
           pip install -r requirements-test.txt
           pip install -r requirements-dev.txt
           pip install -r requirements.txt
+      - name: Build jupyterlite static files
+        run: jupyter lite build
       - name: Run Tests
         env:
           RESOTOCORE_ANALYTICS_OPT_OUT: true
         run: pytest
-      # - name: Build jupyterlite static files
-        # run: jupyter lite build
       - name: Build a binary wheel and a source tarball
         run: >-
           python -m
