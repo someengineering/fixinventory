@@ -273,7 +273,7 @@ models: Dict[str, List[AwsResotoModel]] = {
     "apigateway": [
         # AwsResotoModel("get-vpc-links", "items", "VpcLink", prefix="ApiGateway"),
         # AwsResotoModel("get-sdk-types", "items", "SdkType", prefix="ApiGateway"),
-        # AwsResotoModel("get-rest-apis", "items", "RestApi", prefix="ApiGateway"),
+        AwsResotoModel("get-resources", "items", "Resource", prefix="ApiGateway"),
         # AwsResotoModel("get-domain-names", "items", "DomainName", prefix="ApiGateway"),
         # AwsResotoModel("get-client-certificates", "items", "ClientCertificate", prefix="ApiGateway"),
     ],
