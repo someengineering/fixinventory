@@ -17,6 +17,7 @@ def test_rest_apis() -> None:
     assert type_count["aws_api_gateway_deployment"] == 2
     assert type_count["aws_api_gateway_stage"] == 1
     assert type_count["aws_api_gateway_authorizer"] == 1
+    assert type_count["aws_api_gateway_resource"] == 1
 
 
 def test_api_tagging() -> None:
