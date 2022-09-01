@@ -465,7 +465,7 @@ class PredecessorsPart(SearchCLIPart):
         return "predecessors"
 
     def info(self) -> str:
-        return "Select all predecessors of this node in the graph."
+        return "Select predecessors of incoming nodes in the graph."
 
     def args_info(self) -> ArgsInfo:
         return [
@@ -531,7 +531,7 @@ class SuccessorsPart(SearchCLIPart):
         return "successors"
 
     def info(self) -> str:
-        return "Select all successor of this node in the graph."
+        return "Select successors of incoming nodes in the graph."
 
     def args_info(self) -> ArgsInfo:
         return [
@@ -584,7 +584,7 @@ class AncestorsPart(SearchCLIPart):
         return "ancestors"
 
     def info(self) -> str:
-        return "Select all ancestors of this node in the graph."
+        return "Select ancestors of incoming nodes in the graph."
 
     def args_info(self) -> ArgsInfo:
         return [
@@ -632,7 +632,7 @@ class DescendantsPart(SearchCLIPart):
         return "descendants"
 
     def info(self) -> str:
-        return "Select all descendants of this node in the graph."
+        return "Select descendants of incoming nodes in the graph."
 
     def args_info(self) -> ArgsInfo:
         return [
@@ -707,7 +707,7 @@ class AggregatePart(SearchCLIPart):
         return "aggregate"
 
     def info(self) -> str:
-        return "Aggregate this search by the provided specification."
+        return "Aggregate the result of a search by the provided specification."
 
     def args_info(self) -> ArgsInfo:
         return [ArgInfo(expects_value=True, value_hint="aggregate", help_text="aggregation specification")]
@@ -1770,7 +1770,7 @@ class CleanCommand(SetDesiredStateBase):
         return "clean"
 
     def info(self) -> str:
-        return "Mark all incoming database objects for cleaning."
+        return "Mark all incoming resources for cleaning."
 
     def args_info(self) -> ArgsInfo:
         return [ArgInfo(expects_value=True, help_text="optional reason for cleaning")]
@@ -4025,49 +4025,49 @@ class CertificateCommand(CLICommand):
 
 def all_commands(d: CLIDependencies) -> List[CLICommand]:
     commands = [
-        AggregatePart(d),
-        AggregateToCountCommand(d),
-        AncestorsPart(d),
-        CertificateCommand(d, allowed_in_source_position=True),
-        ChunkCommand(d),
-        CleanCommand(d),
-        ConfigsCommand(d, allowed_in_source_position=True),
-        CountCommand(d),
-        DescendantsPart(d),
-        DumpCommand(d),
-        EchoCommand(d, allowed_in_source_position=True),
-        EnvCommand(d, allowed_in_source_position=True),
-        ExecuteSearchCommand(d, allowed_in_source_position=True),
-        FlattenCommand(d),
-        FormatCommand(d),
-        HeadCommand(d),
-        HttpCommand(d),
-        JobsCommand(d, allowed_in_source_position=True),
-        JqCommand(d),
-        JsonCommand(d, allowed_in_source_position=True),
-        KindsCommand(d, allowed_in_source_position=True),
-        LimitPart(d),
-        ListCommand(d),
-        TemplatesCommand(d, allowed_in_source_position=True),
-        PredecessorsPart(d),
-        ProtectCommand(d),
-        SearchPart(d, allowed_in_source_position=True),
-        SetDesiredCommand(d),
-        SetMetadataCommand(d),
-        SleepCommand(d, allowed_in_source_position=True),
-        SortPart(d),
-        SuccessorsPart(d),
-        SystemCommand(d, allowed_in_source_position=True),
-        TagCommand(d),
-        TailCommand(d),
-        UniqCommand(d),
-        WorkflowsCommand(d, allowed_in_source_position=True),
-        WelcomeCommand(d, allowed_in_source_position=True),
-        WriteCommand(d),
+        AggregatePart(d, "search"),
+        AggregateToCountCommand(d, "search"),
+        AncestorsPart(d, "search"),
+        CertificateCommand(d, "setup", allowed_in_source_position=True),
+        ChunkCommand(d, "misc"),
+        CleanCommand(d, "action"),
+        ConfigsCommand(d, "setup", allowed_in_source_position=True),
+        CountCommand(d, "search"),
+        DescendantsPart(d, "search"),
+        DumpCommand(d, "format"),
+        EchoCommand(d, "misc", allowed_in_source_position=True),
+        EnvCommand(d, "misc", allowed_in_source_position=True),
+        ExecuteSearchCommand(d, "search", allowed_in_source_position=True),
+        FlattenCommand(d, "misc"),
+        FormatCommand(d, "format"),
+        HeadCommand(d, "misc"),
+        HttpCommand(d, "action"),
+        JobsCommand(d, "action", allowed_in_source_position=True),
+        JqCommand(d, "misc"),
+        JsonCommand(d, "misc", allowed_in_source_position=True),
+        KindsCommand(d, "search", allowed_in_source_position=True),
+        LimitPart(d, "search"),
+        ListCommand(d, "format"),
+        TemplatesCommand(d, "search", allowed_in_source_position=True),
+        PredecessorsPart(d, "search"),
+        ProtectCommand(d, "action"),
+        SearchPart(d, "search", allowed_in_source_position=True),
+        SetDesiredCommand(d, "action"),
+        SetMetadataCommand(d, "action"),
+        SleepCommand(d, "misc", allowed_in_source_position=True),
+        SortPart(d, "search"),
+        SuccessorsPart(d, "search"),
+        SystemCommand(d, "setup", allowed_in_source_position=True),
+        TagCommand(d, "action"),
+        TailCommand(d, "misc"),
+        UniqCommand(d, "misc"),
+        WorkflowsCommand(d, "action", allowed_in_source_position=True),
+        WelcomeCommand(d, "misc", allowed_in_source_position=True),
+        WriteCommand(d, "misc"),
     ]
     # commands that are only available when the system is started in debug mode
     if d.config.runtime.debug:
-        commands.extend([FileCommand(d), UploadCommand(d)])
+        commands.extend([FileCommand(d, "misc"), UploadCommand(d, "misc")])
 
     return commands
 

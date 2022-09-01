@@ -62,6 +62,15 @@ jobs:
         env:
           RESOTOCORE_ANALYTICS_OPT_OUT: true
         run: pytest
+      - name: Build jupyterlite static files
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.10' 
+          architecture: 'x64'
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-jupyterlite.txt
+          jupyter lite build
       - name: Build a binary wheel and a source tarball
         run: >-
           python -m

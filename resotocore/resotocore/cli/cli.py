@@ -118,7 +118,7 @@ class HelpCommand(CLICommand):
         alias_names: Dict[str, str],
         alias_templates: List[AliasTemplate],
     ):
-        super().__init__(dependencies, True)
+        super().__init__(dependencies, "misc", True)
         self.all_parts = {p.name: p for p in parts + [self]}
         self.parts = {p.name: p for p in parts + [self] if not isinstance(p, InternalPart)}
         self.alias_names = {a: n for a, n in alias_names.items() if n in self.parts and a not in self.parts}
@@ -144,15 +144,17 @@ class HelpCommand(CLICommand):
 
         def overview() -> str:
             all_parts = sorted(self.parts.values(), key=lambda p: p.name)
-            parts = (p for p in all_parts if isinstance(p, CLICommand))
-            indent = "                 "  # required for dedent to work properly
-            available = "\n".join(f"{indent}- `{part.name}` - {part.info()}" for part in parts)
-            alias_templates = "\n".join(f"{indent}- `{a.name}` - {a.info}" for a in self.alias_templates.values())
-            result = dedent(
-                f"""
-                 ## Custom Commands: \n{alias_templates}
+            parts = [p for p in all_parts if isinstance(p, CLICommand)]
+            alias_templates = "\n".join(f"- `{a.name}` - {a.info}" for a in self.alias_templates.values())
+            result = f"## Custom Commands \n{alias_templates}\n"
+            for category in ["search", "format", "action", "setup", "misc"]:
+                result += f"\n\n## {category.capitalize()} Commands\n"
+                for part in parts:
+                    if part.category == category:
+                        result += f"- `{part.name}` - {part.info()}\n"
 
-                 ## Builtin Commands: \n{available}
+            result += dedent(
+                """
 
                  *Note* that you can pipe commands using the pipe character (|)
                  and chain multiple commands using the semicolon (;).

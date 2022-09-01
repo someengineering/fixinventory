@@ -84,8 +84,8 @@ venv-pypy:
 
 setup: clean clean-env venv-pypy
 
-list-outdated: 
+list-outdated:
 	pip list --outdated
 
-install-latest: 
+install-latest:
 	pip list --outdated --format=freeze | grep -v '^\-e' | cut -d = -f 1  | xargs -n1 pip install -U
