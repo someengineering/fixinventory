@@ -1,0 +1,78 @@
+{
+    "position": "string",
+    "items": [
+        {
+            "id": "string",
+            "parentId": "string",
+            "pathPart": "string",
+            "path": "string",
+            "resourceMethods": {
+                "POST": {
+                    "httpMethod": "string",
+                    "authorizationType": "string",
+                    "authorizerId": "string",
+                    "apiKeyRequired": true,
+                    "requestValidatorId": "string",
+                    "operationName": "string",
+                    "requestParameters": {
+                        "string": true
+                    },
+                    "requestModels": {
+                        "string": "string"
+                    },
+                    "methodResponses": {
+                        "string": {
+                            "statusCode": "string",
+                            "responseParameters": {
+                                "string": true
+                            },
+                            "responseModels": {
+                                "string": "string"
+                            }
+                        }
+                    },
+                    "methodIntegration": {
+                        "type": "HTTP",
+                        "httpMethod": "string",
+                        "uri": "string",
+                        "connectionType": "INTERNET",
+                        "connectionId": "string",
+                        "credentials": "string",
+                        "requestParameters": {
+                            "string": "string"
+                        },
+                        "requestTemplates": {
+                            "string": "string"
+                        },
+                        "passthroughBehavior": "string",
+                        "contentHandling": "CONVERT_TO_TEXT",
+                        "timeoutInMillis": 123,
+                        "cacheNamespace": "string",
+                        "cacheKeyParameters": [
+                            "string"
+                        ],
+                        "integrationResponses": {
+                            "string": {
+                                "statusCode": "string",
+                                "selectionPattern": "string",
+                                "responseParameters": {
+                                    "string": "string"
+                                },
+                                "responseTemplates": {
+                                    "string": "string"
+                                },
+                                "contentHandling": "CONVERT_TO_TEXT"
+                            }
+                        },
+                        "tlsConfig": {
+                            "insecureSkipVerification": false
+                        }
+                    },
+                    "authorizationScopes": [
+                        "string"
+                    ]
+                }
+            }
+        }
+    ]
+}

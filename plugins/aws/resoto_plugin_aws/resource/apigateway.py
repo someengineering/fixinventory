@@ -43,116 +43,114 @@ class ApiGatewayTaggable:
         return False
 
 
-# @define(eq=False, slots=False)
-# class AwsApiGatewayMethodResponse:
-#     kind: ClassVar[str] = "aws_api_gateway_method_response"
-#     mapping: ClassVar[Dict[str, Bender]] = {
-#         "status_code": S("statusCode"),
-#         "response_parameters": S("responseParameters"),
-#         "response_models": S("responseModels")
-#     }
-#     status_code: Optional[str] = field(default=None)
-#     response_parameters: Optional[Dict[str, bool]] = field(default=None)
-#     response_models: Optional[Dict[str, str]] = field(default=None)
+@define(eq=False, slots=False)
+class AwsApiGatewayMethodResponse:
+    kind: ClassVar[str] = "aws_api_gateway_method_response"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "status_code": S("statusCode"),
+        "response_parameters": S("responseParameters"),
+        "response_models": S("responseModels")
+    }
+    status_code: Optional[str] = field(default=None)
+    response_parameters: Optional[Dict[str, bool]] = field(default=None)
+    response_models: Optional[Dict[str, str]] = field(default=None)
 
-# @define(eq=False, slots=False)
-# class AwsApiGatewayIntegrationResponse:
-#     kind: ClassVar[str] = "aws_api_gateway_integration_response"
-#     mapping: ClassVar[Dict[str, Bender]] = {
-#         "status_code": S("statusCode"),
-#         "selection_pattern": S("selectionPattern"),
-#         "response_parameters": S("responseParameters"),
-#         "response_templates": S("responseTemplates"),
-#         "content_handling": S("contentHandling")
-#     }
-#     status_code: Optional[str] = field(default=None)
-#     selection_pattern: Optional[str] = field(default=None)
-#     response_parameters: Optional[Dict[str, str]] = field(default=None)
-#     response_templates: Optional[Dict[str, str]] = field(default=None)
-#     content_handling: Optional[str] = field(default=None)
+@define(eq=False, slots=False)
+class AwsApiGatewayIntegrationResponse:
+    kind: ClassVar[str] = "aws_api_gateway_integration_response"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "status_code": S("statusCode"),
+        "selection_pattern": S("selectionPattern"),
+        "response_parameters": S("responseParameters"),
+        "response_templates": S("responseTemplates"),
+        "content_handling": S("contentHandling")
+    }
+    status_code: Optional[str] = field(default=None)
+    selection_pattern: Optional[str] = field(default=None)
+    response_parameters: Optional[Dict[str, str]] = field(default=None)
+    response_templates: Optional[Dict[str, str]] = field(default=None)
+    content_handling: Optional[str] = field(default=None)
 
-# @define(eq=False, slots=False)
-# class AwsApiGatewayIntegration:
-#     kind: ClassVar[str] = "aws_api_gateway_integration"
-#     mapping: ClassVar[Dict[str, Bender]] = {
-#         "integration_type": S("type"),
-#         "http_method": S("httpMethod"),
-#         "uri": S("uri"),
-#         "connection_type": S("connectionType"),
-#         "connection_id": S("connectionId"),
-#         "credentials": S("credentials"),
-#         "request_parameters": S("requestParameters"),
-#         "request_templates": S("requestTemplates"),
-#         "passthrough_behavior": S("passthroughBehavior"),
-#         "content_handling": S("contentHandling"),
-#         "timeout_in_millis": S("timeoutInMillis"),
-#         "cache_namespace": S("cacheNamespace"),
-#         "cache_key_parameters": S("cacheKeyParameters", default=[]),
-#         "integration_responses": S("integrationResponses"),
-#         "tls_config": S("tlsConfig","insecureSkipVerification")
-#     }
-#     integration_type: Optional[str] = field(default=None)
-#     http_method: Optional[str] = field(default=None)
-#     uri: Optional[str] = field(default=None)
-#     connection_type: Optional[str] = field(default=None)
-#     connection_id: Optional[str] = field(default=None)
-#     credentials: Optional[str] = field(default=None)
-#     request_parameters: Optional[Dict[str, str]] = field(default=None)
-#     request_templates: Optional[Dict[str, str]] = field(default=None)
-#     passthrough_behavior: Optional[str] = field(default=None)
-#     content_handling: Optional[str] = field(default=None)
-#     timeout_in_millis: Optional[int] = field(default=None)
-#     cache_namespace: Optional[str] = field(default=None)
-#     cache_key_parameters: List[str] = field(factory=list)
-#     integration_responses: Optional[Dict[str, AwsApiGatewayIntegrationResponse]] = field(default=None)
-#     tls_config: Optional[bool] = field(default=None)
+@define(eq=False, slots=False)
+class AwsApiGatewayIntegration:
+    kind: ClassVar[str] = "aws_api_gateway_integration"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "integration_type": S("type"),
+        "http_method": S("httpMethod"),
+        "uri": S("uri"),
+        "connection_type": S("connectionType"),
+        "connection_id": S("connectionId"),
+        "credentials": S("credentials"),
+        "request_parameters": S("requestParameters"),
+        "request_templates": S("requestTemplates"),
+        "passthrough_behavior": S("passthroughBehavior"),
+        "content_handling": S("contentHandling"),
+        "timeout_in_millis": S("timeoutInMillis"),
+        "cache_namespace": S("cacheNamespace"),
+        "cache_key_parameters": S("cacheKeyParameters", default=[]),
+        "integration_responses": S("integrationResponses"),
+        "tls_config": S("tlsConfig","insecureSkipVerification")
+    }
+    integration_type: Optional[str] = field(default=None)
+    http_method: Optional[str] = field(default=None)
+    uri: Optional[str] = field(default=None)
+    connection_type: Optional[str] = field(default=None)
+    connection_id: Optional[str] = field(default=None)
+    credentials: Optional[str] = field(default=None)
+    request_parameters: Optional[Dict[str, str]] = field(default=None)
+    request_templates: Optional[Dict[str, str]] = field(default=None)
+    passthrough_behavior: Optional[str] = field(default=None)
+    content_handling: Optional[str] = field(default=None)
+    timeout_in_millis: Optional[int] = field(default=None)
+    cache_namespace: Optional[str] = field(default=None)
+    cache_key_parameters: List[str] = field(factory=list)
+    integration_responses: Optional[Dict[str, AwsApiGatewayIntegrationResponse]] = field(default=None)
+    tls_config: Optional[bool] = field(default=None)
 
-# @define(eq=False, slots=False)
-# class AwsApiGatewayMethod:
-#     kind: ClassVar[str] = "aws_api_gateway_method"
-#     mapping: ClassVar[Dict[str, Bender]] = {
-#         "http_method": S("httpMethod"),
-#         "authorization_type": S("authorizationType"),
-#         "authorizer_id": S("authorizerId"),
-#         "api_key_required": S("apiKeyRequired"),
-#         "request_validator_id": S("requestValidatorId"),
-#         "operation_name": S("operationName"),
-#         "request_parameters": S("requestParameters"),
-#         "request_models": S("requestModels"),
-#         "method_responses": S("methodResponses"),
-#         "method_integration": S("methodIntegration") >> Bend(AwsApiGatewayIntegration.mapping),
-#         "authorization_scopes": S("authorizationScopes", default=[])
-#     }
-#     http_method: Optional[str] = field(default=None)
-#     authorization_type: Optional[str] = field(default=None)
-#     authorizer_id: Optional[str] = field(default=None)
-#     api_key_required: Optional[bool] = field(default=None)
-#     request_validator_id: Optional[str] = field(default=None)
-#     operation_name: Optional[str] = field(default=None)
-#     request_parameters: Optional[Dict[str, bool]] = field(default=None)
-#     request_models: Optional[Dict[str, str]] = field(default=None)
-#     method_responses: Optional[Dict[str, AwsApiGatewayMethodResponse]] = field(default=None)
-#     method_integration: Optional[AwsApiGatewayIntegration] = field(default=None)
-#     authorization_scopes: List[str] = field(factory=list)
+@define(eq=False, slots=False)
+class AwsApiGatewayMethod:
+    kind: ClassVar[str] = "aws_api_gateway_method"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "http_method": S("httpMethod"),
+        "authorization_type": S("authorizationType"),
+        "authorizer_id": S("authorizerId"),
+        "api_key_required": S("apiKeyRequired"),
+        "request_validator_id": S("requestValidatorId"),
+        "operation_name": S("operationName"),
+        "request_parameters": S("requestParameters"),
+        "request_models": S("requestModels"),
+        "method_responses": S("methodResponses"),
+        "method_integration": S("methodIntegration") >> Bend(AwsApiGatewayIntegration.mapping),
+        "authorization_scopes": S("authorizationScopes", default=[])
+    }
+    http_method: Optional[str] = field(default=None)
+    authorization_type: Optional[str] = field(default=None)
+    authorizer_id: Optional[str] = field(default=None)
+    api_key_required: Optional[bool] = field(default=None)
+    request_validator_id: Optional[str] = field(default=None)
+    operation_name: Optional[str] = field(default=None)
+    request_parameters: Optional[Dict[str, bool]] = field(default=None)
+    request_models: Optional[Dict[str, str]] = field(default=None)
+    method_responses: Optional[Dict[str, AwsApiGatewayMethodResponse]] = field(default=None)
+    method_integration: Optional[AwsApiGatewayIntegration] = field(default=None)
+    authorization_scopes: List[str] = field(factory=list)
 
-# @define(eq=False, slots=False)
-# class AwsApiGatewayResource(AwsResource):
-#     kind: ClassVar[str] = "aws_api_gateway_resource"
-#     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("apigateway", "get-resources", "items")
-#     mapping: ClassVar[Dict[str, Bender]] = {
-#         "id": S("id"),
-#         "tags": S("Tags", default=[]) >> ToDict(),
-#         "name": S("Tags", default=[]) >> TagsValue("Name"),
-#         "resource_parent_id": S("parentId"),
-#         "resource_path_part": S("pathPart"),
-#         "resource_path": S("path"),
-#         "resource_methods": S("resourceMethods")
-#     }
-#     id: Optional[str] = field(default=None)
-#     resource_parent_id: Optional[str] = field(default=None)
-#     resource_path_part: Optional[str] = field(default=None)
-#     resource_path: Optional[str] = field(default=None)
-#     resource_methods: Optional[Dict[str, AwsApiGatewayMethod]] = field(default=None)
+@define(eq=False, slots=False)
+class AwsApiGatewayResource(AwsResource):
+    kind: ClassVar[str] = "aws_api_gateway_resource"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("apigateway", "get-resources", "items")
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("id"),
+        "resource_parent_id": S("parentId"),
+        "resource_path_part": S("pathPart"),
+        "resource_path": S("path"),
+        "resource_methods": S("resourceMethods")
+    }
+    id: Optional[str] = field(default=None)
+    resource_parent_id: Optional[str] = field(default=None)
+    resource_path_part: Optional[str] = field(default=None)
+    resource_path: Optional[str] = field(default=None)
+    resource_methods: Optional[Dict[str, AwsApiGatewayMethod]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -343,8 +341,8 @@ class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
                 auth_instance = AwsApiGatewayAuthorizer.from_api(authorizer)
                 builder.add_node(auth_instance, authorizer)
                 builder.add_edge(api_instance, EdgeType.default, node=auth_instance)
-            # for resource in builder.client.list("apigateway", "get-resources", "items", restApiId=api_instance.id):
-            # resource_instance = AwsApiGatewayResource.from_api(resource)
+            for resource in builder.client.list("apigateway", "get-resources", "items", restApiId=api_instance.id):
+                resource_instance = AwsApiGatewayResource.from_api(resource)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.api_endpoint_configuration:
