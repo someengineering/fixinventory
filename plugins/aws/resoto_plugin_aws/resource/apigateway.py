@@ -361,9 +361,9 @@ class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
                 resource_instance = AwsApiGatewayResource.from_api(resource)
                 resource_instance.resource_api_link = api_instance.id
                 if resource_instance.resource_methods:
-                    for http_verb in resource_instance.resource_methods:
-                        mapped = bend(AwsApiGatewayMethod.mapping, resource["resourceMethods"][http_verb])
-                        resource_instance.resource_methods[http_verb] = from_json(mapped, AwsApiGatewayMethod)
+                    for method in resource_instance.resource_methods:
+                        mapped = bend(AwsApiGatewayMethod.mapping, resource["resourceMethods"][method])
+                        resource_instance.resource_methods[method] = from_json(mapped, AwsApiGatewayMethod)
                 builder.add_node(resource_instance, resource)
                 builder.add_edge(api_instance, EdgeType.default, node=resource_instance)
 
