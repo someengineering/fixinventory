@@ -11,10 +11,10 @@
               "Service": "apigateway.amazonaws.com"
             },
             "Action": "lambda:InvokeFunction",
-            "Resource": "arn:aws:lambda:eu-central-1:882347060974:function:test",
+            "Resource": "arn:aws:lambda:eu-central-1:1234:function:test",
             "Condition": {
               "ArnLike": {
-                "AWS:SourceArn": "arn:aws:execute-api:eu-central-1:882347060974:54cghc9atj/*/*/test"
+                "AWS:SourceArn": "arn:aws:execute-api:eu-central-1:1234:2lsd9i45ub/*/*/test"
               }
             }
           }

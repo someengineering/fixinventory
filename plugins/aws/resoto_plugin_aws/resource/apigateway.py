@@ -6,7 +6,8 @@ from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
 from resoto_plugin_aws.resource.ec2 import AwsEc2VpcEndpoint
 from resoto_plugin_aws.resource.iam import AwsIamRole
-from resoto_plugin_aws.resource.lambda_ import AwsLambdaFunction
+
+# from resoto_plugin_aws.resource.lambda_ import AwsLambdaFunction
 from resotolib.baseresources import EdgeType, ModelReference
 from resotolib.json import from_json
 from resotolib.json_bender import Bender, S, Bend
@@ -155,6 +156,7 @@ class AwsApiGatewayResource(AwsResource):
     resource_path_part: Optional[str] = field(default=None)
     resource_path: Optional[str] = field(default=None)
     resource_methods: Optional[Dict[str, AwsApiGatewayMethod]] = field(default=None)
+    resource_api_link: Optional[str] = field(default=None)
 
     # def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
     #     for method in self.resource_methods:
@@ -188,13 +190,13 @@ class AwsApiGatewayAuthorizer(AwsResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         # TODO add edge to Cognito User Pool when applicable (via self.authorizer_provider_arns)
-        if self.authorizer_uri:
-            lambda_name = self.authorizer_uri.split(":")[-1].removesuffix("/invocations")
-            builder.dependant_node(
-                self,
-                clazz=AwsLambdaFunction,
-                name=lambda_name,
-            )
+        # if self.authorizer_uri:
+        #     lambda_name = self.authorizer_uri.split(":")[-1].removesuffix("/invocations")
+        #     builder.dependant_node(
+        #         self,
+        #         clazz=AwsLambdaFunction,
+        #         name=lambda_name,
+        #     )
         if self.authorizer_credentials:
             builder.add_edge(self, edge_type=EdgeType.default, clazz=AwsIamRole, arn=self.authorizer_credentials)
 
@@ -352,7 +354,8 @@ class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
                 builder.add_edge(api_instance, EdgeType.default, node=auth_instance)
             for resource in builder.client.list("apigateway", "get-resources", "items", restApiId=api_instance.id):
                 resource_instance = AwsApiGatewayResource.from_api(resource)
-                resource_instance.resource_methods = from_json(resource["resourceMethods"]["POST"], AwsApiGatewayMethod) 
+                resource_instance.resource_api_link = api_instance.id
+                # resource_instance.resource_methods = from_json(resource["resourceMethods"]["POST"], AwsApiGatewayMethod)
                 builder.add_node(resource_instance, resource)
                 builder.add_edge(api_instance, EdgeType.default, node=resource_instance)
 

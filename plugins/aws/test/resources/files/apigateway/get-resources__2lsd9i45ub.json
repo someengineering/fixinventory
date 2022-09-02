@@ -2,10 +2,10 @@
     "position": "string",
     "items": [
         {
-            "id": "string",
+            "id": "123abc",
             "parentId": "string",
             "pathPart": "string",
-            "path": "string",
+            "path": "/test",
             "resourceMethods": {
                 "POST": {
                     "httpMethod": "string",

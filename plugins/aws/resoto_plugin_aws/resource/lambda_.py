@@ -5,6 +5,7 @@ from attrs import define, field
 from resoto_plugin_aws.aws_client import AwsClient
 
 from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
+from resoto_plugin_aws.resource.apigateway import AwsApiGatewayRestApi, AwsApiGatewayResource
 from resoto_plugin_aws.resource.ec2 import AwsEc2Subnet, AwsEc2SecurityGroup, AwsEc2Vpc
 from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resotolib.baseresources import (  # noqa: F401
@@ -18,7 +19,7 @@ from resotolib.baseresources import (  # noqa: F401
     ModelReference,
 )
 from resotolib.json import from_json
-from resotolib.json_bender import Bender, S, Bend, ForallBend, F
+from resotolib.json_bender import Bender, S, Bend, ForallBend, F, bend
 from resotolib.types import Json
 
 
@@ -28,7 +29,7 @@ class AwsLambdaCondition:
     mapping: ClassVar[Dict[str, Bender]] = {
         "arn_like": S("ArnLike"),
     }
-    arn_like: Dict[str, str] = field(default=None)
+    arn_like: Optional[Dict[str, str]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -43,11 +44,11 @@ class AwsLambdaPolicyStatement:
         "condition": S("Condition") >> Bend(AwsLambdaCondition.mapping),
     }
     sid: str = field(default=None)
-    effect: Optional[str] = field(default=None)
-    principal: Optional[Dict[str, str]] = field(default=None)
-    action: Optional[str] = field(default=None)
-    resource: Optional[str] = field(default=None)
-    condition: Optional[AwsLambdaCondition] = field(default=None)
+    effect: str = field(default=None)
+    principal: Dict[str, str] = field(default=None)
+    action: str = field(default=None)
+    resource: str = field(default=None)
+    condition: AwsLambdaCondition = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -56,11 +57,11 @@ class AwsLambdaPolicyDetails:
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Id"),
         "policy_version": S("Version"),
-        "policy_statement": S("Statement") >> ForallBend(AwsLambdaPolicyStatement.mapping)
+        "policy_statement": S("Statement") >> ForallBend(AwsLambdaPolicyStatement.mapping),
     }
     id: str = field(default=None)
     policy_version: Optional[str] = field(default=None)
-    policy_statement: Optional[List[AwsLambdaPolicyStatement]] = field(factory=list)
+    policy_statement: List[AwsLambdaPolicyStatement] = field(factory=list)
 
 
 @define(eq=False, slots=False)
@@ -68,9 +69,9 @@ class AwsLambdaGetPolicyResponse:
     kind: ClassVar[str] = "aws_lambda_get_policy_response"
     mapping: ClassVar[Dict[str, Bender]] = {
         "policy_policy": S("Policy") >> Bend(AwsLambdaPolicyDetails.mapping),
-        "policy_revision_id": S("RevisionId")
+        "policy_revision_id": S("RevisionId"),
     }
-    policy_policy: Optional[AwsLambdaPolicyDetails] = field(default=None)
+    policy_policy: AwsLambdaPolicyDetails = field(default=None)
     policy_revision_id: Optional[str] = field(default=None)
 
 
@@ -111,9 +112,9 @@ class AwsLambdaLayer:
 @define(eq=False, slots=False)
 class AwsLambdaFileSystemConfig:
     kind: ClassVar[str] = "aws_lambda_file_system_config"
-    mapping: ClassVar[Dict[str, Bender]] = {"arn": S("Arn"), "local_mount_path": S("LocalMountPath")}
+    mapping: ClassVar[Dict[str, Bender]] = {"arn": S("Arn"), "local_mount_source_arn": S("LocalMountsource_arn")}
     arn: Optional[str] = field(default=None)
-    local_mount_path: Optional[str] = field(default=None)
+    local_mount_source_arn: Optional[str] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -241,7 +242,30 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
             builder.add_node(instance, js)
             builder.submit_work_shared_pool(add_tags, instance)
             for policy in builder.client.list("lambda", "get-policy", FunctionName=instance.name, result_name=None):
-                testthing = from_json(policy, AwsLambdaGetPolicyResponse)
+                if policy:
+                    mapped = bend(AwsLambdaGetPolicyResponse.mapping, policy)
+                    policy_instance = from_json(mapped, AwsLambdaGetPolicyResponse)
+                    for statement in policy_instance.policy_policy.policy_statement:
+                        if (
+                            statement.principal["Service"] == "apigateway.amazonaws.com"
+                            and statement.condition.arn_like
+                        ):
+                            source = statement.condition.arn_like["AWS:SourceArn"]
+                            source_arn = source.rsplit(":")[-1]
+                            rest_api_id = source_arn.split("/")[0]
+                            builder.dependant_node(
+                                instance,
+                                reverse=True,
+                                clazz=AwsApiGatewayRestApi,
+                                id=rest_api_id,
+                            )
+                            builder.dependant_node(
+                                instance,
+                                reverse=True,
+                                clazz=AwsApiGatewayResource,
+                                resource_api_link=rest_api_id,
+                                resource_path="/" + source_arn.split("/")[-1],
+                            )
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if vpc_config := source.get("VpcConfig"):
