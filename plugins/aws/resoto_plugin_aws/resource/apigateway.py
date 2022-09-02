@@ -10,7 +10,7 @@ from resoto_plugin_aws.resource.iam import AwsIamRole
 # from resoto_plugin_aws.resource.lambda_ import AwsLambdaFunction
 from resotolib.baseresources import EdgeType, ModelReference
 from resotolib.json import from_json
-from resotolib.json_bender import Bender, S, Bend
+from resotolib.json_bender import Bender, S, Bend, bend
 from resoto_plugin_aws.utils import arn_partition
 from resotolib.types import Json
 
@@ -355,7 +355,10 @@ class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
             for resource in builder.client.list("apigateway", "get-resources", "items", restApiId=api_instance.id):
                 resource_instance = AwsApiGatewayResource.from_api(resource)
                 resource_instance.resource_api_link = api_instance.id
-                # resource_instance.resource_methods = from_json(resource["resourceMethods"]["POST"], AwsApiGatewayMethod)
+                if resource_instance.resource_methods:
+                    for http_verb in resource_instance.resource_methods:
+                        mapped = bend(AwsApiGatewayMethod.mapping, resource["resourceMethods"][http_verb])
+                        resource_instance.resource_methods[http_verb] = from_json(mapped, AwsApiGatewayMethod)
                 builder.add_node(resource_instance, resource)
                 builder.add_edge(api_instance, EdgeType.default, node=resource_instance)
 
