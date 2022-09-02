@@ -332,8 +332,11 @@ class CLICommand(ABC):
     Sink: takes a stream of objects and creates a result
     """
 
-    def __init__(self, dependencies: CLIDependencies, allowed_in_source_position: bool = False) -> None:
+    def __init__(
+        self, dependencies: CLIDependencies, category: str = "misc", allowed_in_source_position: bool = False
+    ) -> None:
         self.dependencies = dependencies
+        self.category = category
         self.allowed_in_source_position = allowed_in_source_position
 
     @property

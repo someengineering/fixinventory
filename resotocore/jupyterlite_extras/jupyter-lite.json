@@ -1,0 +1,9 @@
+{
+    "jupyter-config-data": {
+        "litePluginSettings": {
+            "@jupyterlite/pyolite-kernel-extension:kernel": {
+                "pyodideUrl": "https://cdn.jsdelivr.net/pyodide/v0.21.2/full/pyodide.js"
+            }
+        }
+    }
+}
