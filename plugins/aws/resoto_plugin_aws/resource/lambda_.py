@@ -155,10 +155,16 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("lambda", "list-functions", "Functions")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
-            "default": ["aws_vpc", "aws_ec2_subnet", "aws_ec2_security_group"],
+            "default": [
+                "aws_vpc",
+                "aws_ec2_subnet",
+                "aws_ec2_security_group",
+                "aws_api_gateway_rest_api",
+                "aws_api_gateway_resource",
+            ],
             "delete": ["aws_vpc", "aws_ec2_subnet", "aws_kms_key"],
         },
-        "successors": {"default": ["aws_kms_key"]},
+        "successors": {"default": ["aws_kms_key"], "delete": ["aws_api_gateway_rest_api", "aws_api_gateway_resource"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("FunctionName"),
