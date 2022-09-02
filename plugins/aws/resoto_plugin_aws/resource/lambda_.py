@@ -269,7 +269,7 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
                                 instance,
                                 reverse=True,
                                 clazz=AwsApiGatewayResource,
-                                resource_api_link=rest_api_id,
+                                api_link=rest_api_id,
                                 resource_path="/" + source_arn.split("/")[-1],
                             )
 

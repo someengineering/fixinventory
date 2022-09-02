@@ -156,7 +156,7 @@ class AwsApiGatewayResource(AwsResource):
     resource_path_part: Optional[str] = field(default=None)
     resource_path: Optional[str] = field(default=None)
     resource_methods: Optional[Dict[str, AwsApiGatewayMethod]] = field(default=None)
-    resource_api_link: Optional[str] = field(default=None)
+    api_link: Optional[str] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.resource_methods:
@@ -167,6 +167,16 @@ class AwsApiGatewayResource(AwsResource):
                     clazz=AwsApiGatewayAuthorizer,
                     id=self.resource_methods[method].authorizer_id,
                 )
+
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(
+            service="apigateway",
+            action="delete-resource",
+            result_name=None,
+            restApiId=self.api_link,
+            resourceId=self.id,
+        )
+        return True
 
 
 @define(eq=False, slots=False)
@@ -192,9 +202,11 @@ class AwsApiGatewayAuthorizer(AwsResource):
     authorizer_identity_source: Optional[str] = field(default=None)
     authorizer_identity_validation_expression: Optional[str] = field(default=None)
     authorizer_result_ttl_in_seconds: int = field(default=None)
+    api_link: Optional[str] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         # TODO add edge to Cognito User Pool when applicable (via self.authorizer_provider_arns)
+
         # if self.authorizer_uri:
         #     lambda_name = self.authorizer_uri.split(":")[-1].removesuffix("/invocations")
         #     builder.dependant_node(
@@ -204,6 +216,16 @@ class AwsApiGatewayAuthorizer(AwsResource):
         #     )
         if self.authorizer_credentials:
             builder.add_edge(self, edge_type=EdgeType.default, clazz=AwsIamRole, arn=self.authorizer_credentials)
+
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(
+            service="apigateway",
+            action="delete-authorizer",
+            result_name=None,
+            restApiId=self.api_link,
+            authorizerId=self.id,
+        )
+        return True
 
 
 @define(eq=False, slots=False)
@@ -259,8 +281,19 @@ class AwsApiGatewayStage(ApiGatewayTaggable, AwsResource):
     stage_canary_settings: Optional[AwsApiGatewayCanarySetting] = field(default=None)
     stage_tracing_enabled: bool = field(default=None)
     stage_web_acl_arn: Optional[str] = field(default=None)
+    api_link: Optional[str] = field(default=None)
 
     # TODO add edge to Web Acl when applicable (via stage_web_acl_arn)
+
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(
+            service="apigateway",
+            action="delete-stage",
+            result_name=None,
+            restApiId=self.api_link,
+            stageName=self.name,
+        )
+        return True
 
 
 @define(eq=False, slots=False)
@@ -272,13 +305,23 @@ class AwsApiGatewayDeployment(AwsResource):
 
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
-        # "tags": S("tags", default=[]),
         "ctime": S("createdDate"),
         "description": S("description"),
         "deployment_api_summary": S("apiSummary"),
     }
     description: Optional[str] = field(default=None)
     deployment_api_summary: Dict[str, Dict[str, Dict[str, Union[str, bool]]]] = field(default=None)
+    api_link: Optional[str] = field(default=None)
+
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(
+            service="apigateway",
+            action="delete-deployment",
+            result_name=None,
+            restApiId=self.api_link,
+            deploymentId=self.id,
+        )
+        return True
 
 
 @define(eq=False, slots=False)
@@ -345,21 +388,24 @@ class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
             for deployment in builder.client.list("apigateway", "get-deployments", "items", restApiId=api_instance.id):
                 deploy_instance = AwsApiGatewayDeployment.from_api(deployment)
                 deploy_instance.arn = api_instance.arn + "/deployments/" + deploy_instance.id
+                deploy_instance.api_link = api_instance.id
                 builder.add_node(deploy_instance, deployment)
                 builder.add_edge(api_instance, EdgeType.default, node=deploy_instance)
                 for stage in builder.client.list(
                     "apigateway", "get-stages", "item", restApiId=api_instance.id, deploymentId=deploy_instance.id
                 ):
                     stage_instance = AwsApiGatewayStage.from_api(stage)
+                    stage_instance.api_link = api_instance.id
                     builder.add_node(stage_instance, stage)
                     builder.add_edge(deploy_instance, EdgeType.default, node=stage_instance)
             for authorizer in builder.client.list("apigateway", "get-authorizers", "items", restApiId=api_instance.id):
                 auth_instance = AwsApiGatewayAuthorizer.from_api(authorizer)
+                auth_instance.api_link = api_instance.id
                 builder.add_node(auth_instance, authorizer)
                 builder.add_edge(api_instance, EdgeType.default, node=auth_instance)
             for resource in builder.client.list("apigateway", "get-resources", "items", restApiId=api_instance.id):
                 resource_instance = AwsApiGatewayResource.from_api(resource)
-                resource_instance.resource_api_link = api_instance.id
+                resource_instance.api_link = api_instance.id
                 if resource_instance.resource_methods:
                     for method in resource_instance.resource_methods:
                         mapped = bend(AwsApiGatewayMethod.mapping, resource["resourceMethods"][method])
@@ -392,4 +438,5 @@ resources: List[Type[AwsResource]] = [
     AwsApiGatewayDeployment,
     AwsApiGatewayStage,
     AwsApiGatewayResource,
+    AwsApiGatewayAuthorizer,
 ]
