@@ -10,7 +10,7 @@
                 "POST": {
                     "httpMethod": "string",
                     "authorizationType": "string",
-                    "authorizerId": "string",
+                    "authorizerId": "strabcdefing",
                     "apiKeyRequired": true,
                     "requestValidatorId": "string",
                     "operationName": "string",

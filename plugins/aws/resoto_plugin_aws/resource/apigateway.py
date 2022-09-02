@@ -8,6 +8,7 @@ from resoto_plugin_aws.resource.ec2 import AwsEc2VpcEndpoint
 from resoto_plugin_aws.resource.iam import AwsIamRole
 from resoto_plugin_aws.resource.lambda_ import AwsLambdaFunction
 from resotolib.baseresources import EdgeType, ModelReference
+from resotolib.json import from_json
 from resotolib.json_bender import Bender, S, Bend
 from resoto_plugin_aws.utils import arn_partition
 from resotolib.types import Json
@@ -154,6 +155,11 @@ class AwsApiGatewayResource(AwsResource):
     resource_path_part: Optional[str] = field(default=None)
     resource_path: Optional[str] = field(default=None)
     resource_methods: Optional[Dict[str, AwsApiGatewayMethod]] = field(default=None)
+
+    # def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+    #     for method in self.resource_methods:
+    #         print("meow")
+    #         builder.add_edge(self, edge_type=EdgeType.default, clazz=AwsApiGatewayAuthorizer, id=...)
 
 
 @define(eq=False, slots=False)
@@ -346,6 +352,7 @@ class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
                 builder.add_edge(api_instance, EdgeType.default, node=auth_instance)
             for resource in builder.client.list("apigateway", "get-resources", "items", restApiId=api_instance.id):
                 resource_instance = AwsApiGatewayResource.from_api(resource)
+                resource_instance.resource_methods = from_json(resource["resourceMethods"]["POST"], AwsApiGatewayMethod) 
                 builder.add_node(resource_instance, resource)
                 builder.add_edge(api_instance, EdgeType.default, node=resource_instance)
 
@@ -369,4 +376,9 @@ class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
         return True
 
 
-resources: List[Type[AwsResource]] = [AwsApiGatewayRestApi]
+resources: List[Type[AwsResource]] = [
+    AwsApiGatewayRestApi,
+    AwsApiGatewayDeployment,
+    AwsApiGatewayStage,
+    AwsApiGatewayResource,
+]

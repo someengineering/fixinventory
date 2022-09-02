@@ -17,8 +17,61 @@ from resotolib.baseresources import (  # noqa: F401
     BaseServerlessFunction,
     ModelReference,
 )
+from resotolib.json import from_json
 from resotolib.json_bender import Bender, S, Bend, ForallBend, F
 from resotolib.types import Json
+
+
+@define(eq=False, slots=False)
+class AwsLambdaCondition:
+    kind: ClassVar[str] = "aws_lambda_condition"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "arn_like": S("ArnLike"),
+    }
+    arn_like: Dict[str, str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsLambdaPolicyStatement:
+    kind: ClassVar[str] = "aws_lambda_policy_statement"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "sid": S("Sid"),
+        "effect": S("Effect"),
+        "principal": S("Principal"),
+        "action": S("Action"),
+        "resource": S("Resource"),
+        "condition": S("Condition") >> Bend(AwsLambdaCondition.mapping),
+    }
+    sid: str = field(default=None)
+    effect: Optional[str] = field(default=None)
+    principal: Optional[Dict[str, str]] = field(default=None)
+    action: Optional[str] = field(default=None)
+    resource: Optional[str] = field(default=None)
+    condition: Optional[AwsLambdaCondition] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsLambdaPolicyDetails:
+    kind: ClassVar[str] = "aws_lambda_policy_details"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("Id"),
+        "policy_version": S("Version"),
+        "policy_statement": S("Statement") >> ForallBend(AwsLambdaPolicyStatement.mapping)
+    }
+    id: str = field(default=None)
+    policy_version: Optional[str] = field(default=None)
+    policy_statement: Optional[List[AwsLambdaPolicyStatement]] = field(factory=list)
+
+
+@define(eq=False, slots=False)
+class AwsLambdaGetPolicyResponse:
+    kind: ClassVar[str] = "aws_lambda_get_policy_response"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "policy_policy": S("Policy") >> Bend(AwsLambdaPolicyDetails.mapping),
+        "policy_revision_id": S("RevisionId")
+    }
+    policy_policy: Optional[AwsLambdaPolicyDetails] = field(default=None)
+    policy_revision_id: Optional[str] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -187,6 +240,8 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
             instance = cls.from_api(js)
             builder.add_node(instance, js)
             builder.submit_work_shared_pool(add_tags, instance)
+            for policy in builder.client.list("lambda", "get-policy", FunctionName=instance.name, result_name=None):
+                testthing = from_json(policy, AwsLambdaGetPolicyResponse)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if vpc_config := source.get("VpcConfig"):
