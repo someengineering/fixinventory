@@ -75,7 +75,7 @@
                 "GET": {
                     "httpMethod": "get",
                     "authorizationType": "string",
-                    "authorizerId": "strabcdefing",
+                    "authorizerId": "strabcdefingxyz",
                     "apiKeyRequired": true,
                     "requestValidatorId": "string",
                     "operationName": "string",

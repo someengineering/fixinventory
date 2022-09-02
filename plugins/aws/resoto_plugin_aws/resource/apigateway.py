@@ -158,10 +158,15 @@ class AwsApiGatewayResource(AwsResource):
     resource_methods: Optional[Dict[str, AwsApiGatewayMethod]] = field(default=None)
     resource_api_link: Optional[str] = field(default=None)
 
-    # def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-    #     for method in self.resource_methods:
-    #         print("meow")
-    #         builder.add_edge(self, edge_type=EdgeType.default, clazz=AwsApiGatewayAuthorizer, id=...)
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if self.resource_methods:
+            for method in self.resource_methods:
+                builder.add_edge(
+                    self,
+                    edge_type=EdgeType.default,
+                    clazz=AwsApiGatewayAuthorizer,
+                    id=self.resource_methods[method].authorizer_id,
+                )
 
 
 @define(eq=False, slots=False)
