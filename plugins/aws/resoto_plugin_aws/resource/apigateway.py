@@ -182,6 +182,7 @@ class AwsApiGatewayResource(AwsResource):
 @define(eq=False, slots=False)
 class AwsApiGatewayAuthorizer(AwsResource):
     kind: ClassVar[str] = "aws_api_gateway_authorizer"
+    reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["aws_iam_role"]}}
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "name": S("name"),
@@ -207,6 +208,7 @@ class AwsApiGatewayAuthorizer(AwsResource):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         # TODO add edge to Cognito User Pool when applicable (via self.authorizer_provider_arns)
 
+        # the following edge to a lambda function would lead to circular import errors
         # if self.authorizer_uri:
         #     lambda_name = self.authorizer_uri.split(":")[-1].removesuffix("/invocations")
         #     builder.dependant_node(
@@ -246,10 +248,6 @@ class AwsApiGatewayCanarySetting:
 @define(eq=False, slots=False)
 class AwsApiGatewayStage(ApiGatewayTaggable, AwsResource):
     kind: ClassVar[str] = "aws_api_gateway_stage"
-    # reference_kinds: ClassVar[ModelReference] = {
-    #     "successors": {"default": ["aws_vpc_endpoint"], "delete": ["aws_vpc_endpoint"]}
-    # }
-
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("stageName"),
         "name": S("stageName"),
@@ -299,9 +297,7 @@ class AwsApiGatewayStage(ApiGatewayTaggable, AwsResource):
 @define(eq=False, slots=False)
 class AwsApiGatewayDeployment(AwsResource):
     kind: ClassVar[str] = "aws_api_gateway_deployment"
-    # reference_kinds: ClassVar[ModelReference] = {
-    #     "successors": {"default": ["aws_vpc_endpoint"], "delete": ["aws_vpc_endpoint"]}
-    # }
+    reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["aws_api_gateway_stage"]}}
 
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -340,7 +336,15 @@ class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
     kind: ClassVar[str] = "aws_api_gateway_rest_api"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("apigateway", "get-rest-apis", "items")
     reference_kinds: ClassVar[ModelReference] = {
-        "successors": {"default": ["aws_vpc_endpoint"], "delete": ["aws_vpc_endpoint"]}
+        "successors": {
+            "default": [
+                "aws_vpc_endpoint",
+                "aws_api_gateway_deployment",
+                "aws_api_gateway_authorizer",
+                "aws_api_gateway_resource",
+            ],
+            "delete": ["aws_vpc_endpoint"],
+        }
     }
 
     @classmethod
