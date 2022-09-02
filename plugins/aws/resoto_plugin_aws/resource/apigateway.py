@@ -156,7 +156,7 @@ class AwsApiGatewayResource(AwsResource):
     resource_path_part: Optional[str] = field(default=None)
     resource_path: Optional[str] = field(default=None)
     resource_methods: Optional[Dict[str, AwsApiGatewayMethod]] = field(default=None)
-    api_link: Optional[str] = field(default=None)
+    api_link: str = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.resource_methods:
@@ -202,7 +202,7 @@ class AwsApiGatewayAuthorizer(AwsResource):
     authorizer_identity_source: Optional[str] = field(default=None)
     authorizer_identity_validation_expression: Optional[str] = field(default=None)
     authorizer_result_ttl_in_seconds: int = field(default=None)
-    api_link: Optional[str] = field(default=None)
+    api_link: str = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         # TODO add edge to Cognito User Pool when applicable (via self.authorizer_provider_arns)
@@ -281,7 +281,7 @@ class AwsApiGatewayStage(ApiGatewayTaggable, AwsResource):
     stage_canary_settings: Optional[AwsApiGatewayCanarySetting] = field(default=None)
     stage_tracing_enabled: bool = field(default=None)
     stage_web_acl_arn: Optional[str] = field(default=None)
-    api_link: Optional[str] = field(default=None)
+    api_link: str = field(default=None)
 
     # TODO add edge to Web Acl when applicable (via stage_web_acl_arn)
 
@@ -311,7 +311,7 @@ class AwsApiGatewayDeployment(AwsResource):
     }
     description: Optional[str] = field(default=None)
     deployment_api_summary: Dict[str, Dict[str, Dict[str, Union[str, bool]]]] = field(default=None)
-    api_link: Optional[str] = field(default=None)
+    api_link: str = field(default=None)
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
