@@ -6,6 +6,7 @@ from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
 from resoto_plugin_aws.resource.ec2 import AwsEc2VpcEndpoint
 from resoto_plugin_aws.resource.iam import AwsIamRole
+
 # from resoto_plugin_aws.resource.lambda_ import AwsLambdaFunction
 
 from resotolib.baseresources import EdgeType, ModelReference
