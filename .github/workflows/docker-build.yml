@@ -481,8 +481,8 @@ jobs:
         if: steps.release_type.outputs.prerelease == 'false'
         uses: supplypike/setup-bin@v1
         with:
-          uri: "https://github.com/norwoodj/helm-docs/releases/download/v1.11.0/helm-docs_1.11.0_Linux_x86_64.tar.gz"
-          name: "helm-docs"
+          uri: https://github.com/norwoodj/helm-docs/releases/download/v1.11.0/helm-docs_1.11.0_Linux_x86_64.tar.gz
+          name: helm-docs
           version: "1.11.0"
 
       - name: Generate helm-charts README.md
@@ -492,8 +492,6 @@ jobs:
       - name: Create someengineering/helm-charts pull request
         uses: peter-evans/create-pull-request@v4
         if: steps.release_type.outputs.prerelease == 'false'
-        env:
-          HUSKY: 0
         with:
           path: helm-charts
           commit-message: "chore: bump appVersion to ${{ steps.release_notes.outputs.tag }}"
