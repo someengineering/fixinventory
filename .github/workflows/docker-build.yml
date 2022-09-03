@@ -443,6 +443,53 @@ jobs:
           committer: C.K. <98986935+some-ci@users.noreply.github.com>
           author: C.K. <98986935+some-ci@users.noreply.github.com>
 
+      - name: Check out someengineering/helm-charts
+        uses: actions/checkout@v3
+        if: steps.release_type.outputs.prerelease == 'false'
+        with:
+          repository: someengineering/helm-charts
+          path: helm-charts
+          token: ${{ secrets.SOME_CI_PAT }}
+
+      - name: Get current chart version
+        id: current_chart_version
+        uses: mikefarah/yq@master
+        if: steps.release_type.outputs.prerelease == 'false'
+        with:
+          cmd: yq '.version' helm-charts/charts/resoto/Chart.yaml
+
+      - name: Get new chart version
+        id: new_chart_version
+        uses: WyriHaximus/github-action-next-semvers@v1
+        if: steps.release_type.outputs.prerelease == 'false'
+        with:
+          version: ${{ steps.current_chart_version.outputs.result }}
+
+      - name: Update appVersion and bump chart version
+        uses: mikefarah/yq@master
+        if: steps.release_type.outputs.prerelease == 'false'
+        with:
+          cmd: yq e -i '.version = "${{ steps.new_chart_version.outputs.patch }}" | .appVersion = "${{ steps.release_notes.outputs.tag }}"' helm-charts/charts/resoto/Chart.yaml
+
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@v4
+        if: steps.release_type.outputs.prerelease == 'false'
+        env:
+          HUSKY: 0
+        with:
+          path: helm-charts
+          commit-message: "chore: bump appVersion to ${{ steps.release_notes.outputs.tag }}"
+          title: "chore: bump appVersion to ${{ steps.release_notes.outputs.tag }}"
+          body: |
+            Bumps Resoto version to [${{ steps.release_notes.outputs.tag }}](https://github.com/someengineering/resoto/releases/tag/${{ steps.release_notes.outputs.tag }}).
+          labels: |
+            🤖 bot
+          branch: release/v${{ steps.release_notes.outputs.tag }}
+          delete-branch: true
+          token: ${{ secrets.SOME_CI_PAT }}
+          committer: C.K. <98986935+some-ci@users.noreply.github.com>
+          author: C.K. <98986935+some-ci@users.noreply.github.com>
+
       - name: Create release
         uses: ncipollo/release-action@v1
         with:
