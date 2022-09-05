@@ -38,7 +38,7 @@ multidict = ">=4.5,<7.0"
 yarl = ">=1.0,<2.0"
 
 [package.extras]
-speedups = ["aiodns", "brotli", "cchardet"]
+speedups = ["Brotli", "aiodns", "cchardet"]
 
 [[package]]
 name = "aiohttp-swagger3"
@@ -84,6 +84,7 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, <4"
 
 [package.dependencies]
 pytz = "*"
+setuptools = ">=0.7"
 six = ">=1.4.0"
 tzlocal = ">=2.0,<3.0.0 || >=4.0.0"
 
@@ -95,7 +96,7 @@ mongodb = ["pymongo (>=3.0)"]
 redis = ["redis (>=3.0)"]
 rethinkdb = ["rethinkdb (>=2.4.0)"]
 sqlalchemy = ["sqlalchemy (>=0.8)"]
-testing = ["pytest", "pytest-cov", "pytest-tornado5", "mock", "pytest-asyncio (<0.6)", "pytest-asyncio"]
+testing = ["mock", "pytest", "pytest-asyncio", "pytest-asyncio (<0.6)", "pytest-cov", "pytest-tornado5"]
 tornado = ["tornado (>=4.3)"]
 twisted = ["twisted"]
 zookeeper = ["kazoo"]
@@ -117,10 +118,10 @@ optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 
 [package.extras]
-dev = ["coverage[toml] (>=5.0.2)", "hypothesis", "pympler", "pytest (>=4.3.0)", "six", "mypy", "pytest-mypy-plugins", "zope.interface", "furo", "sphinx", "sphinx-notfound-page", "pre-commit", "cloudpickle"]
-docs = ["furo", "sphinx", "zope.interface", "sphinx-notfound-page"]
-tests = ["coverage[toml] (>=5.0.2)", "hypothesis", "pympler", "pytest (>=4.3.0)", "six", "mypy", "pytest-mypy-plugins", "zope.interface", "cloudpickle"]
-tests_no_zope = ["coverage[toml] (>=5.0.2)", "hypothesis", "pympler", "pytest (>=4.3.0)", "six", "mypy", "pytest-mypy-plugins", "cloudpickle"]
+dev = ["cloudpickle", "coverage[toml] (>=5.0.2)", "furo", "hypothesis", "mypy", "pre-commit", "pympler", "pytest (>=4.3.0)", "pytest-mypy-plugins", "six", "sphinx", "sphinx-notfound-page", "zope.interface"]
+docs = ["furo", "sphinx", "sphinx-notfound-page", "zope.interface"]
+tests = ["cloudpickle", "coverage[toml] (>=5.0.2)", "hypothesis", "mypy", "pympler", "pytest (>=4.3.0)", "pytest-mypy-plugins", "six", "zope.interface"]
+tests_no_zope = ["cloudpickle", "coverage[toml] (>=5.0.2)", "hypothesis", "mypy", "pympler", "pytest (>=4.3.0)", "pytest-mypy-plugins", "six"]
 
 [[package]]
 name = "backoff"
@@ -209,6 +210,9 @@ category = "main"
 optional = false
 python-versions = ">=2.7"
 
+[package.dependencies]
+setuptools = "*"
+
 [[package]]
 name = "certifi"
 version = "2022.6.15"
@@ -253,7 +257,7 @@ more-itertools = {version = ">=2.6", markers = "python_version >= \"3.6\""}
 six = ">=1.11.0"
 
 [package.extras]
-docs = ["sphinx (>=1.8.2)", "jaraco.packaging (>=3.2)", "sphinx-tabs (>=1.1.0)", "furo", "python-dateutil", "sphinxcontrib-apidoc (>=0.3.0)"]
+docs = ["furo", "jaraco.packaging (>=3.2)", "python-dateutil", "sphinx (>=1.8.2)", "sphinx-tabs (>=1.1.0)", "sphinxcontrib-apidoc (>=0.3.0)"]
 
 [[package]]
 name = "cherrypy"
@@ -272,12 +276,12 @@ pywin32 = {version = ">=227", markers = "sys_platform == \"win32\" and implement
 "zc.lockfile" = "*"
 
 [package.extras]
-docs = ["sphinx", "docutils", "alabaster", "sphinxcontrib-apidoc (>=0.3.0)", "rst.linker (>=1.11)", "jaraco.packaging (>=3.2)", "setuptools"]
+docs = ["alabaster", "docutils", "jaraco.packaging (>=3.2)", "rst.linker (>=1.11)", "setuptools", "sphinx", "sphinxcontrib-apidoc (>=0.3.0)"]
 json = ["simplejson"]
 memcached_session = ["python-memcached (>=1.58)"]
 routes_dispatcher = ["routes (>=2.3.1)"]
-ssl = ["pyopenssl"]
-testing = ["coverage", "codecov", "objgraph", "pytest (>=5.3.5)", "pytest-cov", "pytest-forked", "pytest-sugar", "path.py", "requests-toolbelt", "pytest-services (>=2)", "setuptools"]
+ssl = ["pyOpenSSL"]
+testing = ["codecov", "coverage", "objgraph", "path.py", "pytest (>=5.3.5)", "pytest-cov", "pytest-forked", "pytest-services (>=2)", "pytest-sugar", "requests-toolbelt", "setuptools"]
 xcgi = ["flup"]
 
 [[package]]
@@ -303,12 +307,12 @@ python-versions = ">=3.6"
 cffi = ">=1.12"
 
 [package.extras]
-docs = ["sphinx (>=1.6.5,!=1.8.0,!=3.1.0,!=3.1.1)", "sphinx-rtd-theme"]
-docstest = ["pyenchant (>=1.6.11)", "twine (>=1.12.0)", "sphinxcontrib-spelling (>=4.0.1)"]
+docs = ["sphinx (>=1.6.5,!=1.8.0,!=3.1.0,!=3.1.1)", "sphinx_rtd_theme"]
+docstest = ["pyenchant (>=1.6.11)", "sphinxcontrib-spelling (>=4.0.1)", "twine (>=1.12.0)"]
 pep8test = ["black", "flake8", "flake8-import-order", "pep8-naming"]
 sdist = ["setuptools_rust (>=0.11.4)"]
 ssh = ["bcrypt (>=3.1.5)"]
-test = ["pytest (>=6.2.0)", "pytest-benchmark", "pytest-cov", "pytest-subtests", "pytest-xdist", "pretend", "iso8601", "pytz", "hypothesis (>=1.11.4,!=3.79.2)"]
+test = ["hypothesis (>=1.11.4,!=3.79.2)", "iso8601", "pretend", "pytest (>=6.2.0)", "pytest-benchmark", "pytest-cov", "pytest-subtests", "pytest-xdist", "pytz"]
 
 [[package]]
 name = "defusedxml"
@@ -330,7 +334,18 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 wrapt = ">=1.10,<2"
 
 [package.extras]
-dev = ["tox", "bump2version (<1)", "sphinx (<2)", "importlib-metadata (<3)", "importlib-resources (<4)", "configparser (<5)", "sphinxcontrib-websupport (<2)", "zipp (<2)", "PyTest (<5)", "PyTest-Cov (<2.6)", "pytest", "pytest-cov"]
+dev = ["PyTest", "PyTest (<5)", "PyTest-Cov", "PyTest-Cov (<2.6)", "bump2version (<1)", "configparser (<5)", "importlib-metadata (<3)", "importlib-resources (<4)", "sphinx (<2)", "sphinxcontrib-websupport (<2)", "tox", "zipp (<2)"]
+
+[[package]]
+name = "exceptiongroup"
+version = "1.0.0rc9"
+description = "Backport of PEP 654 (exception groups)"
+category = "main"
+optional = false
+python-versions = ">=3.7"
+
+[package.extras]
+test = ["pytest (>=6)"]
 
 [[package]]
 name = "fastjsonschema"
@@ -341,7 +356,7 @@ optional = false
 python-versions = "*"
 
 [package.extras]
-devel = ["colorama", "jsonschema", "json-spec", "pylint", "pytest", "pytest-benchmark", "pytest-cache", "validictory"]
+devel = ["colorama", "json-spec", "jsonschema", "pylint", "pytest", "pytest-benchmark", "pytest-cache", "validictory"]
 
 [[package]]
 name = "frozendict"
@@ -406,7 +421,7 @@ rsa = {version = ">=3.1.4,<5", markers = "python_version >= \"3.6\""}
 six = ">=1.9.0"
 
 [package.extras]
-aiohttp = ["requests (>=2.20.0,<3.0.0dev)", "aiohttp (>=3.6.2,<4.0.0dev)"]
+aiohttp = ["aiohttp (>=3.6.2,<4.0.0dev)", "requests (>=2.20.0,<3.0.0dev)"]
 enterprise_cert = ["cryptography (==36.0.2)", "pyopenssl (==22.0.0)"]
 pyopenssl = ["pyopenssl (>=20.0.0)"]
 reauth = ["pyu2f (>=0.1.5)"]
@@ -447,7 +462,7 @@ optional = false
 python-versions = ">=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*"
 
 [package.extras]
-docs = ["sphinx"]
+docs = ["Sphinx"]
 
 [[package]]
 name = "httplib2"
@@ -480,8 +495,8 @@ python-versions = ">=3.6"
 more-itertools = "*"
 
 [package.extras]
-docs = ["sphinx", "jaraco.packaging (>=8.2)", "rst.linker (>=1.9)"]
-testing = ["pytest (>=3.5,!=3.7.3)", "pytest-checkdocs (>=1.2.3)", "pytest-flake8", "pytest-cov", "pytest-enabler", "pytest-black (>=0.3.7)", "pytest-mypy"]
+docs = ["jaraco.packaging (>=8.2)", "rst.linker (>=1.9)", "sphinx"]
+testing = ["pytest (>=3.5,!=3.7.3)", "pytest-black (>=0.3.7)", "pytest-checkdocs (>=1.2.3)", "pytest-cov", "pytest-enabler", "pytest-flake8", "pytest-mypy"]
 
 [[package]]
 name = "jaraco.collections"
@@ -496,8 +511,8 @@ python-versions = ">=3.7"
 "jaraco.text" = "*"
 
 [package.extras]
-docs = ["sphinx", "jaraco.packaging (>=8.2)", "rst.linker (>=1.9)"]
-testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-cov", "pytest-enabler (>=1.0.1)", "pytest-black (>=0.3.7)", "pytest-mypy"]
+docs = ["jaraco.packaging (>=8.2)", "rst.linker (>=1.9)", "sphinx"]
+testing = ["pytest (>=6)", "pytest-black (>=0.3.7)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=1.0.1)", "pytest-flake8", "pytest-mypy"]
 
 [[package]]
 name = "jaraco.context"
@@ -508,8 +523,8 @@ optional = false
 python-versions = ">=3.6"
 
 [package.extras]
-docs = ["sphinx", "jaraco.packaging (>=8.2)", "rst.linker (>=1.9)"]
-testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-cov", "pytest-enabler (>=1.0.1)", "pytest-black (>=0.3.7)", "pytest-mypy"]
+docs = ["jaraco.packaging (>=8.2)", "rst.linker (>=1.9)", "sphinx"]
+testing = ["pytest (>=6)", "pytest-black (>=0.3.7)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=1.0.1)", "pytest-flake8", "pytest-mypy"]
 
 [[package]]
 name = "jaraco.functools"
@@ -523,8 +538,8 @@ python-versions = ">=3.7"
 more-itertools = "*"
 
 [package.extras]
-docs = ["sphinx", "jaraco.packaging (>=8.2)", "rst.linker (>=1.9)"]
-testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-cov", "pytest-enabler (>=1.0.1)", "jaraco.classes", "pytest-black (>=0.3.7)", "pytest-mypy"]
+docs = ["jaraco.packaging (>=8.2)", "rst.linker (>=1.9)", "sphinx"]
+testing = ["jaraco.classes", "pytest (>=6)", "pytest-black (>=0.3.7)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=1.0.1)", "pytest-flake8", "pytest-mypy"]
 
 [[package]]
 name = "jaraco.text"
@@ -539,8 +554,8 @@ python-versions = ">=3.7"
 "jaraco.functools" = "*"
 
 [package.extras]
-docs = ["sphinx", "jaraco.packaging (>=9)", "rst.linker (>=1.9)"]
-testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-cov", "pytest-enabler (>=1.0.1)", "pytest-black (>=0.3.7)", "pytest-mypy (>=0.9.1)"]
+docs = ["jaraco.packaging (>=9)", "rst.linker (>=1.9)", "sphinx"]
+testing = ["pytest (>=6)", "pytest-black (>=0.3.7)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=1.0.1)", "pytest-flake8", "pytest-mypy (>=0.9.1)"]
 
 [[package]]
 name = "jmespath"
@@ -570,7 +585,7 @@ python-versions = ">=3.5"
 typish = ">=1.9.2"
 
 [package.extras]
-test = ["attrs", "coverage", "codecov", "pytest", "scons", "dataclasses", "tzdata"]
+test = ["attrs", "codecov", "coverage", "dataclasses", "pytest", "scons", "tzdata"]
 
 [[package]]
 name = "kubernetes"
@@ -587,6 +602,7 @@ python-dateutil = ">=2.5.3"
 pyyaml = ">=5.4.1"
 requests = "*"
 requests-oauthlib = "*"
+setuptools = ">=21.0.0"
 six = ">=1.9.0"
 urllib3 = ">=1.24.2"
 websocket-client = ">=0.32.0,<0.40.0 || >0.40.0,<0.41.0 || >=0.43.0"
@@ -627,11 +643,11 @@ optional = false
 python-versions = ">=3.8"
 
 [package.extras]
-default = ["numpy (>=1.19)", "scipy (>=1.8)", "matplotlib (>=3.4)", "pandas (>=1.3)"]
-developer = ["pre-commit (>=2.18)", "mypy (>=0.942)"]
-doc = ["sphinx (>=4.5)", "pydata-sphinx-theme (>=0.8.1)", "sphinx-gallery (>=0.10)", "numpydoc (>=1.2)", "pillow (>=9.1)", "nb2plots (>=0.6)", "texext (>=0.6.6)"]
-extra = ["lxml (>=4.6)", "pygraphviz (>=1.9)", "pydot (>=1.4.2)", "sympy (>=1.10)"]
-test = ["pytest (>=7.1)", "pytest-cov (>=3.0)", "codecov (>=2.1)"]
+default = ["matplotlib (>=3.4)", "numpy (>=1.19)", "pandas (>=1.3)", "scipy (>=1.8)"]
+developer = ["mypy (>=0.942)", "pre-commit (>=2.18)"]
+doc = ["nb2plots (>=0.6)", "numpydoc (>=1.2)", "pillow (>=9.1)", "pydata-sphinx-theme (>=0.8.1)", "sphinx (>=4.5)", "sphinx-gallery (>=0.10)", "texext (>=0.6.6)"]
+extra = ["lxml (>=4.6)", "pydot (>=1.4.2)", "pygraphviz (>=1.9)", "sympy (>=1.10)"]
+test = ["codecov (>=2.1)", "pytest (>=7.1)", "pytest-cov (>=3.0)"]
 
 [[package]]
 name = "oauth2client"
@@ -679,7 +695,7 @@ test = ["coverage (>=3,<6)", "mock", "pep8 (>=1,<2)", "pyflakes (>=1,<3)", "pyli
 
 [[package]]
 name = "paramiko"
-version = "2.10.4"
+version = "2.11.0"
 description = "SSH2 protocol library"
 category = "main"
 optional = false
@@ -692,9 +708,9 @@ pynacl = ">=1.0.1"
 six = "*"
 
 [package.extras]
-all = ["pyasn1 (>=0.1.7)", "pynacl (>=1.0.1)", "bcrypt (>=3.1.3)", "invoke (>=1.3)", "gssapi (>=1.4.1)", "pywin32 (>=2.1.8)"]
-ed25519 = ["pynacl (>=1.0.1)", "bcrypt (>=3.1.3)"]
-gssapi = ["pyasn1 (>=0.1.7)", "gssapi (>=1.4.1)", "pywin32 (>=2.1.8)"]
+all = ["bcrypt (>=3.1.3)", "gssapi (>=1.4.1)", "invoke (>=1.3)", "pyasn1 (>=0.1.7)", "pynacl (>=1.0.1)", "pywin32 (>=2.1.8)"]
+ed25519 = ["bcrypt (>=3.1.3)", "pynacl (>=1.0.1)"]
+gssapi = ["gssapi (>=1.4.1)", "pyasn1 (>=0.1.7)", "pywin32 (>=2.1.8)"]
 invoke = ["invoke (>=1.3)"]
 
 [[package]]
@@ -715,7 +731,7 @@ python-versions = ">=3.8"
 
 [package.extras]
 numpy = ["numpy (>=1.19.5)"]
-test = ["pytest", "pytest-mpl", "pytest-cov", "pytest-subtests"]
+test = ["pytest", "pytest-cov", "pytest-mpl", "pytest-subtests"]
 uncertainties = ["uncertainties (>=3.1.6)"]
 
 [[package]]
@@ -741,8 +757,8 @@ python-versions = ">=3.7"
 tempora = ">=1.8"
 
 [package.extras]
-docs = ["sphinx", "jaraco.packaging (>=8.2)", "rst.linker (>=1.9)"]
-testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-cov", "pytest-enabler (>=1.0.1)", "pytest-black (>=0.3.7)", "pytest-mypy"]
+docs = ["jaraco.packaging (>=8.2)", "rst.linker (>=1.9)", "sphinx"]
+testing = ["pytest (>=6)", "pytest-black (>=0.3.7)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=1.0.1)", "pytest-flake8", "pytest-mypy"]
 
 [[package]]
 name = "posthog"
@@ -761,8 +777,8 @@ six = ">=1.5"
 
 [package.extras]
 dev = ["black", "isort", "pre-commit"]
-sentry = ["sentry-sdk", "django"]
-test = ["mock (>=2.0.0)", "freezegun (==0.3.15)", "pylint", "flake8", "coverage", "pytest"]
+sentry = ["django", "sentry-sdk"]
+test = ["coverage", "flake8", "freezegun (==0.3.15)", "mock (>=2.0.0)", "pylint", "pytest"]
 
 [[package]]
 name = "prometheus-client"
@@ -803,7 +819,7 @@ optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 
 [package.extras]
-test = ["ipaddress", "mock", "enum34", "pywin32", "wmi"]
+test = ["enum34", "ipaddress", "mock", "pywin32", "wmi"]
 
 [[package]]
 name = "pyasn1"
@@ -881,9 +897,9 @@ python-versions = ">=3.6"
 
 [package.extras]
 crypto = ["cryptography (>=3.3.1)"]
-dev = ["sphinx", "sphinx-rtd-theme", "zope.interface", "cryptography (>=3.3.1)", "pytest (>=6.0.0,<7.0.0)", "coverage[toml] (==5.0.4)", "mypy", "pre-commit"]
+dev = ["coverage[toml] (==5.0.4)", "cryptography (>=3.3.1)", "mypy", "pre-commit", "pytest (>=6.0.0,<7.0.0)", "sphinx", "sphinx-rtd-theme", "zope.interface"]
 docs = ["sphinx", "sphinx-rtd-theme", "zope.interface"]
-tests = ["pytest (>=6.0.0,<7.0.0)", "coverage[toml] (==5.0.4)"]
+tests = ["coverage[toml] (==5.0.4)", "pytest (>=6.0.0,<7.0.0)"]
 
 [[package]]
 name = "pynacl"
@@ -897,8 +913,8 @@ python-versions = ">=3.6"
 cffi = ">=1.4.1"
 
 [package.extras]
-docs = ["sphinx (>=1.6.5)", "sphinx-rtd-theme"]
-tests = ["pytest (>=3.2.1,!=3.3.0)", "hypothesis (>=3.27.0)"]
+docs = ["sphinx (>=1.6.5)", "sphinx_rtd_theme"]
+tests = ["hypothesis (>=3.27.0)", "pytest (>=3.2.1,!=3.3.0)"]
 
 [[package]]
 name = "pyparsing"
@@ -909,7 +925,7 @@ optional = false
 python-versions = ">=3.6.8"
 
 [package.extras]
-diagrams = ["railroad-diagrams", "jinja2"]
+diagrams = ["jinja2", "railroad-diagrams"]
 
 [[package]]
 name = "python-arango"
@@ -923,10 +939,11 @@ python-versions = ">=3.7"
 PyJWT = "*"
 requests = "*"
 requests-toolbelt = "*"
+setuptools = ">=42"
 urllib3 = ">=1.26.0"
 
 [package.extras]
-dev = ["black (>=22.3.0)", "flake8 (>=4.0.1)", "isort (>=5.10.1)", "mypy (>=0.942)", "mock", "pre-commit (>=2.17.0)", "pytest (>=7.1.1)", "pytest-cov (>=3.0.0)", "sphinx", "sphinx-rtd-theme", "types-pkg-resources", "types-requests"]
+dev = ["black (>=22.3.0)", "flake8 (>=4.0.1)", "isort (>=5.10.1)", "mock", "mypy (>=0.942)", "pre-commit (>=2.17.0)", "pytest (>=7.1.1)", "pytest-cov (>=3.0.0)", "sphinx", "sphinx-rtd-theme", "types-pkg-resources", "types-requests"]
 
 [[package]]
 name = "python-dateutil"
@@ -971,7 +988,7 @@ requests = ">=2.3.0"
 six = ">=1.7.3"
 
 [package.extras]
-sso = ["pyopenssl", "lxml", "pywin32"]
+sso = ["lxml", "pyOpenSSL", "pywin32"]
 
 [[package]]
 name = "pywin32"
@@ -1034,8 +1051,20 @@ python-versions = "*"
 requests = ">=2.0.1,<3.0.0"
 
 [[package]]
+name = "resoto-cattrs-snapshot-56eda37"
+version = "22.2.0.dev0"
+description = "Composable complex class support for attrs and dataclasses."
+category = "main"
+optional = false
+python-versions = ">=3.7"
+
+[package.dependencies]
+attrs = ">=20"
+exceptiongroup = {version = "*", markers = "python_version < \"3.11\""}
+
+[[package]]
 name = "resoto-plugin-aws"
-version = "2.3.1"
+version = "2.4.1"
 description = "Resoto AWS Collector Plugin"
 category = "main"
 optional = false
@@ -1044,13 +1073,13 @@ python-versions = "*"
 [package.dependencies]
 boto3 = "1.24.4"
 botocore = "1.27.4"
-resotolib = "2.3.1"
+resotolib = "2.4.1"
 retrying = "1.3.3"
 SQLAlchemy = "1.4.37"
 
 [[package]]
 name = "resoto-plugin-cleanup-aws-alarms"
-version = "2.3.1"
+version = "2.4.1"
 description = "AWS Cloudwatch Alarms Cleaner Plugin"
 category = "main"
 optional = false
@@ -1058,24 +1087,24 @@ python-versions = "*"
 
 [package.dependencies]
 PyYAML = "6.0"
-resoto-plugin-aws = "2.3.1"
-resotolib = "2.3.1"
+resoto-plugin-aws = "2.4.1"
+resotolib = "2.4.1"
 
 [[package]]
 name = "resoto-plugin-cleanup-aws-loadbalancers"
-version = "2.3.1"
+version = "2.4.1"
 description = "AWS Loadbalancers Cleaner Plugin"
 category = "main"
 optional = false
 python-versions = "*"
 
 [package.dependencies]
-resoto-plugin-aws = "2.3.1"
-resotolib = "2.3.1"
+resoto-plugin-aws = "2.4.1"
+resotolib = "2.4.1"
 
 [[package]]
 name = "resoto-plugin-cleanup-aws-vpcs"
-version = "2.3.1"
+version = "2.4.1"
 description = "AWS VPC Cleaner Plugin"
 category = "main"
 optional = false
@@ -1083,23 +1112,23 @@ python-versions = "*"
 
 [package.dependencies]
 PyYAML = "6.0"
-resoto-plugin-aws = "2.3.1"
-resotolib = "2.3.1"
+resoto-plugin-aws = "2.4.1"
+resotolib = "2.4.1"
 
 [[package]]
 name = "resoto-plugin-cleanup-expired"
-version = "2.3.1"
+version = "2.4.1"
 description = "Resoto Expired Resource Cleanup Plugin"
 category = "main"
 optional = false
 python-versions = "*"
 
 [package.dependencies]
-resotolib = "2.3.1"
+resotolib = "2.4.1"
 
 [[package]]
 name = "resoto-plugin-cleanup-untagged"
-version = "2.3.1"
+version = "2.4.1"
 description = "Resoto Cleanup Untagged Plugin"
 category = "main"
 optional = false
@@ -1107,22 +1136,22 @@ python-versions = "*"
 
 [package.dependencies]
 PyYAML = "6.0"
-resotolib = "2.3.1"
+resotolib = "2.4.1"
 
 [[package]]
 name = "resoto-plugin-cleanup-volumes"
-version = "2.3.1"
+version = "2.4.1"
 description = "Volume Cleaner Plugin"
 category = "main"
 optional = false
 python-versions = "*"
 
 [package.dependencies]
-resotolib = "2.3.1"
+resotolib = "2.4.1"
 
 [[package]]
 name = "resoto-plugin-digitalocean"
-version = "2.3.1"
+version = "2.4.1"
 description = "Resoto DigitalOcean Collector Plugin"
 category = "main"
 optional = false
@@ -1132,23 +1161,23 @@ python-versions = "*"
 boto3 = "1.24.4"
 botocore = "1.27.4"
 requests = ">=2.27.1"
-resotolib = "2.3.1"
+resotolib = "2.4.1"
 retrying = ">=1.3.3"
 
 [[package]]
 name = "resoto-plugin-example-collector"
-version = "2.3.1"
+version = "2.4.1"
 description = "Resoto Example Collector Plugin"
 category = "main"
 optional = false
 python-versions = "*"
 
 [package.dependencies]
-resotolib = "2.3.1"
+resotolib = "2.4.1"
 
 [[package]]
 name = "resoto-plugin-gcp"
-version = "2.3.1"
+version = "2.4.1"
 description = "Resoto GCP Collector Plugin"
 category = "main"
 optional = false
@@ -1157,13 +1186,13 @@ python-versions = "*"
 [package.dependencies]
 google-api-python-client = "2.50.0"
 oauth2client = "4.1.3"
-resotolib = "2.3.1"
+resotolib = "2.4.1"
 retrying = "1.3.3"
 tenacity = "8.0.1"
 
 [[package]]
 name = "resoto-plugin-github"
-version = "2.3.1"
+version = "2.4.1"
 description = "Resoto Github Collector Plugin"
 category = "main"
 optional = false
@@ -1171,11 +1200,11 @@ python-versions = "*"
 
 [package.dependencies]
 PyGithub = "1.55"
-resotolib = "2.3.1"
+resotolib = "2.4.1"
 
 [[package]]
 name = "resoto-plugin-k8s"
-version = "2.3.1"
+version = "2.4.1"
 description = "Resoto Kubernetes Collector Plugin"
 category = "main"
 optional = false
@@ -1183,11 +1212,11 @@ python-versions = "*"
 
 [package.dependencies]
 kubernetes = "23.6.0"
-resotolib = "2.3.1"
+resotolib = "2.4.1"
 
 [[package]]
 name = "resoto-plugin-onelogin"
-version = "2.3.1"
+version = "2.4.1"
 description = "Resoto OneLogin Plugin"
 category = "main"
 optional = false
@@ -1195,23 +1224,23 @@ python-versions = "*"
 
 [package.dependencies]
 onelogin = "2.0.3"
-resotolib = "2.3.1"
+resotolib = "2.4.1"
 
 [[package]]
 name = "resoto-plugin-onprem"
-version = "2.3.1"
+version = "2.4.1"
 description = "Resoto On-Premises Collector Plugin"
 category = "main"
 optional = false
 python-versions = "*"
 
 [package.dependencies]
-paramiko = "2.10.4"
-resotolib = "2.3.1"
+paramiko = "2.11.0"
+resotolib = "2.4.1"
 
 [[package]]
 name = "resoto-plugin-protector"
-version = "2.3.1"
+version = "2.4.1"
 description = "Resoto Protector Plugin"
 category = "main"
 optional = false
@@ -1219,24 +1248,24 @@ python-versions = "*"
 
 [package.dependencies]
 PyYAML = "6.0"
-resotolib = "2.3.1"
+resotolib = "2.4.1"
 
 [[package]]
 name = "resoto-plugin-slack"
-version = "2.3.1"
+version = "2.4.1"
 description = "Resoto Slack Plugin"
 category = "main"
 optional = false
 python-versions = "*"
 
 [package.dependencies]
-resotolib = "2.3.1"
+resotolib = "2.4.1"
 retrying = "1.3.3"
 slack-sdk = "3.16.0"
 
 [[package]]
 name = "resoto-plugin-tagvalidator"
-version = "2.3.1"
+version = "2.4.1"
 description = "Resoto Tag Validator Plugin"
 category = "main"
 optional = false
@@ -1244,11 +1273,11 @@ python-versions = "*"
 
 [package.dependencies]
 PyYAML = "6.0"
-resotolib = "2.3.1"
+resotolib = "2.4.1"
 
 [[package]]
 name = "resoto-plugin-vsphere"
-version = "2.3.1"
+version = "2.4.1"
 description = "Resoto VSphere Collector Plugin"
 category = "main"
 optional = false
@@ -1256,7 +1285,7 @@ python-versions = "*"
 
 [package.dependencies]
 pyvmomi = "7.0.3"
-resotolib = "2.3.1"
+resotolib = "2.4.1"
 
 [[package]]
 name = "resotoclient"
@@ -1275,7 +1304,7 @@ requests-toolbelt = ">=0.9.1,<0.10.0"
 
 [[package]]
 name = "resotocore"
-version = "2.3.1"
+version = "2.4.1"
 description = "Keeps all the things."
 category = "main"
 optional = false
@@ -1298,7 +1327,7 @@ posthog = "1.4.8"
 python-arango = "7.3.4"
 python-dateutil = "2.8.2"
 PyYAML = "6.0"
-resotolib = "2.3.1"
+resotolib = "2.4.1"
 rich = ">=12.4.4,<12.5.0"
 toolz = "0.11.2"
 transitions = "0.8.11"
@@ -1307,7 +1336,7 @@ ustache = "0.1.5"
 
 [[package]]
 name = "resotolib"
-version = "2.3.1"
+version = "2.4.1"
 description = "Resoto common library."
 category = "main"
 optional = false
@@ -1325,12 +1354,15 @@ prometheus-client = "0.14.1"
 psutil = "5.9.1"
 PyJWT = "2.4.0"
 requests = "2.27.1"
+resoto-cattrs-snapshot-56eda37 = "22.2.0.dev0"
 typeguard = "2.13.3"
+tzdata = "2022.1"
+tzlocal = "4.2"
 websocket-client = "1.3.2"
 
 [[package]]
 name = "resotometrics"
-version = "2.3.1"
+version = "2.4.1"
 description = "Exports Resoto metrics in Prometheus format."
 category = "main"
 optional = false
@@ -1338,11 +1370,11 @@ python-versions = "*"
 
 [package.dependencies]
 PyYAML = "6.0"
-resotolib = "2.3.1"
+resotolib = "2.4.1"
 
 [[package]]
 name = "resotoshell"
-version = "2.3.1"
+version = "2.4.1"
 description = "Commandline interpreter to interact with Resoto."
 category = "main"
 optional = false
@@ -1352,19 +1384,19 @@ python-versions = "*"
 prompt-toolkit = "3.0.29"
 requests-toolbelt = "0.9.1"
 resotoclient = "0.1.12"
-resotolib = "2.3.1"
+resotolib = "2.4.1"
 rich = "12.4.4"
 
 [[package]]
 name = "resotoworker"
-version = "2.3.1"
+version = "2.4.1"
 description = "Runs collector plugins and sends the result to resotocore."
 category = "main"
 optional = false
 python-versions = "*"
 
 [package.dependencies]
-resotolib = "2.3.1"
+resotolib = "2.4.1"
 tenacity = "8.0.1"
 
 [[package]]
@@ -1419,6 +1451,19 @@ botocore = ">=1.12.36,<2.0a.0"
 crt = ["botocore[crt] (>=1.20.29,<2.0a.0)"]
 
 [[package]]
+name = "setuptools"
+version = "65.3.0"
+description = "Easily download, build, install, upgrade, and uninstall Python packages"
+category = "main"
+optional = false
+python-versions = ">=3.7"
+
+[package.extras]
+docs = ["furo", "jaraco.packaging (>=9)", "jaraco.tidelift (>=1.4)", "pygments-github-lexers (==0.0.5)", "rst.linker (>=1.9)", "sphinx", "sphinx-favicon", "sphinx-hoverxref (<2)", "sphinx-inline-tabs", "sphinx-notfound-page (==0.8.3)", "sphinx-reredirects", "sphinxcontrib-towncrier"]
+testing = ["build[virtualenv]", "filelock (>=3.4.0)", "flake8 (<5)", "flake8-2020", "ini2toml[lite] (>=0.9)", "jaraco.envs (>=2.2)", "jaraco.path (>=3.2.0)", "mock", "pip (>=19.1)", "pip-run (>=8.8)", "pytest (>=6)", "pytest-black (>=0.3.7)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=1.3)", "pytest-flake8", "pytest-mypy (>=0.9.1)", "pytest-perf", "pytest-xdist", "tomli-w (>=1.0.0)", "virtualenv (>=13.0.0)", "wheel"]
+testing-integration = ["build[virtualenv]", "filelock (>=3.4.0)", "jaraco.envs (>=2.2)", "jaraco.path (>=3.2.0)", "pytest", "pytest-enabler", "pytest-xdist", "tomli", "virtualenv (>=13.0.0)", "wheel"]
+
+[[package]]
 name = "six"
 version = "1.16.0"
 description = "Python 2 and 3 compatibility utilities"
@@ -1435,8 +1480,8 @@ optional = false
 python-versions = ">=3.6.0"
 
 [package.extras]
-optional = ["aiodns (>1.0)", "aiohttp (>=3.7.3,<4)", "boto3 (<=2)", "SQLAlchemy (>=1,<2)", "websockets (>=10,<11)", "websocket-client (>=1,<2)"]
-testing = ["pytest (>=6.2.5,<7)", "pytest-asyncio (<1)", "Flask-Sockets (>=0.2,<1)", "Flask (>=1,<2)", "Werkzeug (<2)", "itsdangerous (==2.0.1)", "Jinja2 (==3.0.3)", "pytest-cov (>=2,<3)", "codecov (>=2,<3)", "flake8 (>=4,<5)", "black (==22.3.0)", "click (==8.0.4)", "psutil (>=5,<6)", "databases (>=0.5)", "boto3 (<=2)", "moto (>=3,<4)"]
+optional = ["SQLAlchemy (>=1,<2)", "aiodns (>1.0)", "aiohttp (>=3.7.3,<4)", "boto3 (<=2)", "websocket-client (>=1,<2)", "websockets (>=10,<11)"]
+testing = ["Flask (>=1,<2)", "Flask-Sockets (>=0.2,<1)", "Jinja2 (==3.0.3)", "Werkzeug (<2)", "black (==22.3.0)", "boto3 (<=2)", "click (==8.0.4)", "codecov (>=2,<3)", "databases (>=0.5)", "flake8 (>=4,<5)", "itsdangerous (==2.0.1)", "moto (>=3,<4)", "psutil (>=5,<6)", "pytest (>=6.2.5,<7)", "pytest-asyncio (<1)", "pytest-cov (>=2,<3)"]
 
 [[package]]
 name = "sqlalchemy"
@@ -1450,25 +1495,25 @@ python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,!=3.5.*,>=2.7"
 greenlet = {version = "!=0.4.17", markers = "python_version >= \"3\" and (platform_machine == \"aarch64\" or platform_machine == \"ppc64le\" or platform_machine == \"x86_64\" or platform_machine == \"amd64\" or platform_machine == \"AMD64\" or platform_machine == \"win32\" or platform_machine == \"WIN32\")"}
 
 [package.extras]
-aiomysql = ["greenlet (!=0.4.17)", "aiomysql"]
-aiosqlite = ["typing_extensions (!=3.10.0.1)", "greenlet (!=0.4.17)", "aiosqlite"]
+aiomysql = ["aiomysql", "greenlet (!=0.4.17)"]
+aiosqlite = ["aiosqlite", "greenlet (!=0.4.17)", "typing_extensions (!=3.10.0.1)"]
 asyncio = ["greenlet (!=0.4.17)"]
-asyncmy = ["greenlet (!=0.4.17)", "asyncmy (>=0.2.3,!=0.2.4)"]
+asyncmy = ["asyncmy (>=0.2.3,!=0.2.4)", "greenlet (!=0.4.17)"]
 mariadb_connector = ["mariadb (>=1.0.1)"]
 mssql = ["pyodbc"]
 mssql_pymssql = ["pymssql"]
 mssql_pyodbc = ["pyodbc"]
-mypy = ["sqlalchemy2-stubs", "mypy (>=0.910)"]
-mysql = ["mysqlclient (>=1.4.0,<2)", "mysqlclient (>=1.4.0)"]
+mypy = ["mypy (>=0.910)", "sqlalchemy2-stubs"]
+mysql = ["mysqlclient (>=1.4.0)", "mysqlclient (>=1.4.0,<2)"]
 mysql_connector = ["mysql-connector-python"]
-oracle = ["cx_oracle (>=7,<8)", "cx_oracle (>=7)"]
+oracle = ["cx_oracle (>=7)", "cx_oracle (>=7,<8)"]
 postgresql = ["psycopg2 (>=2.7)"]
-postgresql_asyncpg = ["greenlet (!=0.4.17)", "asyncpg"]
+postgresql_asyncpg = ["asyncpg", "greenlet (!=0.4.17)"]
 postgresql_pg8000 = ["pg8000 (>=1.16.6,!=1.29.0)"]
 postgresql_psycopg2binary = ["psycopg2-binary"]
 postgresql_psycopg2cffi = ["psycopg2cffi"]
-pymysql = ["pymysql (<1)", "pymysql"]
-sqlcipher = ["sqlcipher3-binary"]
+pymysql = ["pymysql", "pymysql (<1)"]
+sqlcipher = ["sqlcipher3_binary"]
 
 [[package]]
 name = "strict-rfc3339"
@@ -1491,8 +1536,8 @@ python-versions = ">=3.7"
 pytz = "*"
 
 [package.extras]
-docs = ["sphinx", "jaraco.packaging (>=8.2)", "rst.linker (>=1.9)"]
-testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-cov", "pytest-enabler (>=1.0.1)", "backports.unittest-mock", "freezegun", "pytest-freezegun", "types-freezegun", "types-pytz", "pytest-black (>=0.3.7)", "pytest-mypy"]
+docs = ["jaraco.packaging (>=8.2)", "rst.linker (>=1.9)", "sphinx"]
+testing = ["backports.unittest-mock", "freezegun", "pytest (>=6)", "pytest-black (>=0.3.7)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=1.0.1)", "pytest-flake8", "pytest-freezegun", "pytest-mypy", "types-freezegun", "types-pytz"]
 
 [[package]]
 name = "tenacity"
@@ -1537,8 +1582,8 @@ optional = false
 python-versions = ">=3.5.3"
 
 [package.extras]
-doc = ["sphinx-rtd-theme", "sphinx-autodoc-typehints (>=1.2.0)"]
-test = ["pytest", "typing-extensions", "mypy"]
+doc = ["sphinx-autodoc-typehints (>=1.2.0)", "sphinx-rtd-theme"]
+test = ["mypy", "pytest", "typing-extensions"]
 
 [[package]]
 name = "typish"
@@ -1549,7 +1594,7 @@ optional = false
 python-versions = "*"
 
 [package.extras]
-test = ["numpy", "nptyping (>=1.3.0)", "pycodestyle", "pylint", "mypy", "pytest", "coverage", "codecov"]
+test = ["codecov", "coverage", "mypy", "nptyping (>=1.3.0)", "numpy", "pycodestyle", "pylint", "pytest"]
 
 [[package]]
 name = "tzdata"
@@ -1573,7 +1618,7 @@ tzdata = {version = "*", markers = "platform_system == \"Windows\""}
 
 [package.extras]
 devenv = ["black", "pyroma", "pytest-cov", "zest.releaser"]
-test = ["pytest-mock (>=3.3)", "pytest (>=4.3)"]
+test = ["pytest (>=4.3)", "pytest-mock (>=3.3)"]
 
 [[package]]
 name = "uritemplate"
@@ -1592,8 +1637,8 @@ optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, <4"
 
 [package.extras]
-brotli = ["brotlicffi (>=0.8.0)", "brotli (>=1.0.9)", "brotlipy (>=0.6.0)"]
-secure = ["pyOpenSSL (>=0.14)", "cryptography (>=1.3.4)", "idna (>=2.0.0)", "certifi", "ipaddress"]
+brotli = ["brotli (>=1.0.9)", "brotlicffi (>=0.8.0)", "brotlipy (>=0.6.0)"]
+secure = ["certifi", "cryptography (>=1.3.4)", "idna (>=2.0.0)", "ipaddress", "pyOpenSSL (>=0.14)"]
 socks = ["PySocks (>=1.5.6,!=1.5.7,<2.0)"]
 
 [[package]]
@@ -1610,7 +1655,7 @@ codestyle = ["flake8", "flake8-blind-except", "flake8-bugbear", "flake8-builtins
 coverage = ["coverage"]
 docs = ["recommonmark", "sphinx", "sphinx-autodoc-typehints"]
 optional = ["xxhash (>=1.2.0)"]
-release = ["wheel", "twine"]
+release = ["twine", "wheel"]
 tests = ["coverage", "xxhash"]
 
 [[package]]
@@ -1662,13 +1707,16 @@ category = "main"
 optional = false
 python-versions = "*"
 
+[package.dependencies]
+setuptools = "*"
+
 [package.extras]
 test = ["zope.testing"]
 
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "ad7beb868a0bdfb608c2a4ce1c5decb4498af9db54937bc1dcae0cbe8af70d10"
+content-hash = "be7fdafc1e38b988c7e2bf24873d020e9468c285f054f19711eff0b7bf5d742f"
 
 [metadata.files]
 aiodns = [
@@ -2007,6 +2055,10 @@ deprecated = [
     {file = "Deprecated-1.2.13-py2.py3-none-any.whl", hash = "sha256:64756e3e14c8c5eea9795d93c524551432a0be75629f8f29e67ab8caf076c76d"},
     {file = "Deprecated-1.2.13.tar.gz", hash = "sha256:43ac5335da90c31c24ba028af536a91d41d53f9e6901ddb021bcc572ce44e38d"},
 ]
+exceptiongroup = [
+    {file = "exceptiongroup-1.0.0rc9-py3-none-any.whl", hash = "sha256:2e3c3fc1538a094aab74fad52d6c33fc94de3dfee3ee01f187c0e0c72aec5337"},
+    {file = "exceptiongroup-1.0.0rc9.tar.gz", hash = "sha256:9086a4a21ef9b31c72181c77c040a074ba0889ee56a7b289ff0afb0d97655f96"},
+]
 fastjsonschema = [
     {file = "fastjsonschema-2.15.3-py3-none-any.whl", hash = "sha256:ddb0b1d8243e6e3abb822bd14e447a89f4ab7439342912d590444831fa00b6a0"},
     {file = "fastjsonschema-2.15.3.tar.gz", hash = "sha256:0a572f0836962d844c1fc435e200b2e4f4677e4e6611a2e3bdd01ba697c275ec"},
@@ -2325,8 +2377,8 @@ onelogin = [
     {file = "onelogin-2.0.3.tar.gz", hash = "sha256:ca2855175e84b43ad3d34e149d2f3f08e0c7dcdad9edcaf11141402e82cc3500"},
 ]
 paramiko = [
-    {file = "paramiko-2.10.4-py2.py3-none-any.whl", hash = "sha256:3c9ed6084f4b671ab66dc3c729092d32d96c3258f1426071301cb33654b09027"},
-    {file = "paramiko-2.10.4.tar.gz", hash = "sha256:3d2e650b6812ce6d160abff701d6ef4434ec97934b13e95cf1ad3da70ffb5c58"},
+    {file = "paramiko-2.11.0-py2.py3-none-any.whl", hash = "sha256:655f25dc8baf763277b933dfcea101d636581df8d6b9774d1fb653426b72c270"},
+    {file = "paramiko-2.11.0.tar.gz", hash = "sha256:003e6bee7c034c21fbb051bf83dc0a9ee4106204dd3c53054c71452cc4ec3938"},
 ]
 parsy = [
     {file = "parsy-1.4.0-py2.py3-none-any.whl", hash = "sha256:01aa47cf3aa2a911e4d8653193c061605acf229b802ab3a7c97692fd6aa790de"},
@@ -2581,101 +2633,105 @@ requests-toolbelt = [
     {file = "requests-toolbelt-0.9.1.tar.gz", hash = "sha256:968089d4584ad4ad7c171454f0a5c6dac23971e9472521ea3b6d49d610aa6fc0"},
     {file = "requests_toolbelt-0.9.1-py2.py3-none-any.whl", hash = "sha256:380606e1d10dc85c3bd47bf5a6095f815ec007be7a8b69c878507068df059e6f"},
 ]
+resoto-cattrs-snapshot-56eda37 = [
+    {file = "resoto-cattrs-snapshot-56eda37-22.2.0.dev0.tar.gz", hash = "sha256:ee037ef5e163b0d2c1be81d188e1937d81bb51e1c5e00ae4e58c7ca8c1e157b0"},
+    {file = "resoto_cattrs_snapshot_56eda37-22.2.0.dev0-py3-none-any.whl", hash = "sha256:289bc75104a0a0d4386ef10d80356c34821fc475c51c16ef476e78c383f53c03"},
+]
 resoto-plugin-aws = [
-    {file = "resoto-plugin-aws-2.3.1.tar.gz", hash = "sha256:8ec4e456ed2f4c4b7119d3db187676313cdc4bf6bcadc01500b0e1ce195f9671"},
-    {file = "resoto_plugin_aws-2.3.1-py3-none-any.whl", hash = "sha256:07615d0b8f4924cadd620d3903fdc02ce7e83b46b06ff6ce312da0a6f3395d0d"},
+    {file = "resoto-plugin-aws-2.4.1.tar.gz", hash = "sha256:98664eaa3f987a47728a3f5839408c70b595818784bfebd6ce553144025c9606"},
+    {file = "resoto_plugin_aws-2.4.1-py3-none-any.whl", hash = "sha256:c39fdbf02b14a1e6882140bd9cd7026d543c04050820f4ed698c0e64bfeb16a7"},
 ]
 resoto-plugin-cleanup-aws-alarms = [
-    {file = "resoto-plugin-cleanup-aws-alarms-2.3.1.tar.gz", hash = "sha256:3f21c3edec04b4506aa17a5b112122de800357165a6f5cbc0842b66e17572d16"},
-    {file = "resoto_plugin_cleanup_aws_alarms-2.3.1-py3-none-any.whl", hash = "sha256:50c48c787130a3955bc162c8ef01b7ac557c05b033d55522f9f5f1432fb20df3"},
+    {file = "resoto-plugin-cleanup-aws-alarms-2.4.1.tar.gz", hash = "sha256:39bb9dc0ee5bce23d96094a16721782c8b37f7970ac12ffdee6ba68196c6ea9a"},
+    {file = "resoto_plugin_cleanup_aws_alarms-2.4.1-py3-none-any.whl", hash = "sha256:c2bb64f0e3c9508e3fbf9d939d5cb63ae1824c5eba93d74256e57e5a6246bb34"},
 ]
 resoto-plugin-cleanup-aws-loadbalancers = [
-    {file = "resoto-plugin-cleanup-aws-loadbalancers-2.3.1.tar.gz", hash = "sha256:35c903d995802503cc2326a77fbed2a7cd931e0821031ac2b648d48261053f98"},
-    {file = "resoto_plugin_cleanup_aws_loadbalancers-2.3.1-py3-none-any.whl", hash = "sha256:4bc3712015ae6b89319c7d3c1b73c75812f26c677da8fe0a2ba76add414519f4"},
+    {file = "resoto-plugin-cleanup-aws-loadbalancers-2.4.1.tar.gz", hash = "sha256:fa05c9dc936b14db2834eb5be5e6b09374b90099d9aa9d82f87b5853d63bff9a"},
+    {file = "resoto_plugin_cleanup_aws_loadbalancers-2.4.1-py3-none-any.whl", hash = "sha256:a56444c30b22b3bde7218cc4279aa0b04b6af3a0561bdc78f269c99121ad1848"},
 ]
 resoto-plugin-cleanup-aws-vpcs = [
-    {file = "resoto-plugin-cleanup-aws-vpcs-2.3.1.tar.gz", hash = "sha256:69c26b2f7a20bfdb6b45457076beb37bba6aac3004dda8951634ea91c1a1deda"},
-    {file = "resoto_plugin_cleanup_aws_vpcs-2.3.1-py3-none-any.whl", hash = "sha256:a38d394d6a339eeaedff6f292065c5ec26a101c1b98e26edc0c187d6d3664747"},
+    {file = "resoto-plugin-cleanup-aws-vpcs-2.4.1.tar.gz", hash = "sha256:8e8bad4c0a0c36ef938a220d6baa77198c93888020e3af0a6f7428063eb99530"},
+    {file = "resoto_plugin_cleanup_aws_vpcs-2.4.1-py3-none-any.whl", hash = "sha256:6bb0282bfd1e892e2a2e31bd03821a20ae2b0690328094eb6cf3008d190ef83f"},
 ]
 resoto-plugin-cleanup-expired = [
-    {file = "resoto-plugin-cleanup-expired-2.3.1.tar.gz", hash = "sha256:29aa10c7ef986349db0e539fe3fe6b0c23182dd2589e4eb780f34d75f51d248b"},
-    {file = "resoto_plugin_cleanup_expired-2.3.1-py3-none-any.whl", hash = "sha256:a44ee2ae3e5a8a412bcccbd1858cb33924d82c4ff2fc56b6b40095683a77ea06"},
+    {file = "resoto-plugin-cleanup-expired-2.4.1.tar.gz", hash = "sha256:d6d62fdfadb3ee02627348eda32b38969dcf36b124000718f59b7bb8a7ad8beb"},
+    {file = "resoto_plugin_cleanup_expired-2.4.1-py3-none-any.whl", hash = "sha256:b31dfd6ef91d39e278438c21cff6135ef67ee1f6760c96fc0bfd37052412c83d"},
 ]
 resoto-plugin-cleanup-untagged = [
-    {file = "resoto-plugin-cleanup-untagged-2.3.1.tar.gz", hash = "sha256:0f6a72f7426863da024cab019036e60f4ddacdf0f5d292ca72cc6458e01a0721"},
-    {file = "resoto_plugin_cleanup_untagged-2.3.1-py3-none-any.whl", hash = "sha256:44cd9b5e463e7f65938fc2c8581bd577bfaa4f1093d671ca1a45e14982033204"},
+    {file = "resoto-plugin-cleanup-untagged-2.4.1.tar.gz", hash = "sha256:f2a5d818ab7e302fcb89cb3a6a110ffe98db356638c43f3890f05052862fe288"},
+    {file = "resoto_plugin_cleanup_untagged-2.4.1-py3-none-any.whl", hash = "sha256:ffe7aedfb43d8f80ce161189e85c9eb00a73e27e100a3372470a40480774fcb1"},
 ]
 resoto-plugin-cleanup-volumes = [
-    {file = "resoto-plugin-cleanup-volumes-2.3.1.tar.gz", hash = "sha256:e131b18bcc5db5b7b67a80b48820abb660c21d4a753c96e4f65aa47fe5c82f33"},
-    {file = "resoto_plugin_cleanup_volumes-2.3.1-py3-none-any.whl", hash = "sha256:b90f1805271fd3685275f18c16088bb6659a6860e83192cc69c604a6a2f72621"},
+    {file = "resoto-plugin-cleanup-volumes-2.4.1.tar.gz", hash = "sha256:2921c58bac4cecfa15dcaf4de08953d5b2902161682dcc5603a10ab5b1405663"},
+    {file = "resoto_plugin_cleanup_volumes-2.4.1-py3-none-any.whl", hash = "sha256:f707df7cc25ab3477c4d3c715339d8d462015ae7a30e328d56d924f4577e416c"},
 ]
 resoto-plugin-digitalocean = [
-    {file = "resoto-plugin-digitalocean-2.3.1.tar.gz", hash = "sha256:95609bbcacd841ac3bb649c59ef20855f6f26e4fdce1c7b78c5e4c505a0f037c"},
-    {file = "resoto_plugin_digitalocean-2.3.1-py3-none-any.whl", hash = "sha256:02c9cd12173b76fed528f03a358ea197aa13e30393fa46b088ac951af53ade7f"},
+    {file = "resoto-plugin-digitalocean-2.4.1.tar.gz", hash = "sha256:5aec0ee76cdcf239e0c0a8d8efd6a1b48139cb0cc68a3558a9bad9db37cf02f2"},
+    {file = "resoto_plugin_digitalocean-2.4.1-py3-none-any.whl", hash = "sha256:ca2e1015dcbc87d873767e0fd49296cc60b20c22e1273656d60da2d1d89af977"},
 ]
 resoto-plugin-example-collector = [
-    {file = "resoto-plugin-example-collector-2.3.1.tar.gz", hash = "sha256:1ac17fa04f643085909af3e7e4623da2f37f98a93bdf333a598c6c6f3b37b4a5"},
-    {file = "resoto_plugin_example_collector-2.3.1-py3-none-any.whl", hash = "sha256:a949c31468d28bf811ec674ccf086f8c5b21fa81531148183866b2b366d9458c"},
+    {file = "resoto-plugin-example-collector-2.4.1.tar.gz", hash = "sha256:2809ce8c10120a81f39c79b07cf0a8a9cee44ee3800e4fc9e31f407d724c6779"},
+    {file = "resoto_plugin_example_collector-2.4.1-py3-none-any.whl", hash = "sha256:51d2f9fd6df5df24df3fa26b8ad37cf67afea684462a2a1d7f9091310465ff65"},
 ]
 resoto-plugin-gcp = [
-    {file = "resoto-plugin-gcp-2.3.1.tar.gz", hash = "sha256:1c804231d7299a14449b2a6351d395e112359762f09dcbed511110466f2883b0"},
-    {file = "resoto_plugin_gcp-2.3.1-py3-none-any.whl", hash = "sha256:f03a7c1d4e94f7b435a39526081b692fc9229c147fbc4be7eef5063d5ea0fcf0"},
+    {file = "resoto-plugin-gcp-2.4.1.tar.gz", hash = "sha256:4b2eddecd2560288983e5d9036271a24d378389467b7ffda7bef4645fe407e28"},
+    {file = "resoto_plugin_gcp-2.4.1-py3-none-any.whl", hash = "sha256:941948d2c7f52a99e3c3943afb9242e1017168ebcd6028338ab68b0e2a78548a"},
 ]
 resoto-plugin-github = [
-    {file = "resoto-plugin-github-2.3.1.tar.gz", hash = "sha256:8db066c4554fcb30e06d38e4474e46e2305ea3512471c97f237aa6c46080aed9"},
-    {file = "resoto_plugin_github-2.3.1-py3-none-any.whl", hash = "sha256:1d924f2627d1547cffc84889a270e70d3fe8713901d8c823dc74ddc8453bbda8"},
+    {file = "resoto-plugin-github-2.4.1.tar.gz", hash = "sha256:e26818f1ab563f48abfd0ad4fdc1b3335b485bccab21cf972aea930f571d27de"},
+    {file = "resoto_plugin_github-2.4.1-py3-none-any.whl", hash = "sha256:406c9c690ccdf9e29ccf2b04ccb364946d1a0ca242f75d82294b3df7cba08f1d"},
 ]
 resoto-plugin-k8s = [
-    {file = "resoto-plugin-k8s-2.3.1.tar.gz", hash = "sha256:bbd5a899eec8736af9fe7036e71c3b2a16de8e742beef43439fbc95121541a34"},
-    {file = "resoto_plugin_k8s-2.3.1-py3-none-any.whl", hash = "sha256:2cec64e639ff14c2599c3b994c6b94b8d440fd53978bc5f6536f1739c3da55f3"},
+    {file = "resoto-plugin-k8s-2.4.1.tar.gz", hash = "sha256:84bcde9252d15d9381116f7b382e8faa4d1c711435b44b699ca5fead03776348"},
+    {file = "resoto_plugin_k8s-2.4.1-py3-none-any.whl", hash = "sha256:4c4ab53853650f2f89556080013ccf98734a9649e01fa4f1c5efee1678d4596b"},
 ]
 resoto-plugin-onelogin = [
-    {file = "resoto-plugin-onelogin-2.3.1.tar.gz", hash = "sha256:065108efdcda53ca0e03acea9de853ff21bc5129e925474c3f87a275dac8fca3"},
-    {file = "resoto_plugin_onelogin-2.3.1-py3-none-any.whl", hash = "sha256:6042e2746fa5921d93ea71964328351c1a6c1be961e10eb4bd7b92d76ee0559c"},
+    {file = "resoto-plugin-onelogin-2.4.1.tar.gz", hash = "sha256:7f42ea1b1650d2de159379929fd81f896ecfbcca4105708c6200a16183dd4476"},
+    {file = "resoto_plugin_onelogin-2.4.1-py3-none-any.whl", hash = "sha256:848309df2621963461910fc78b26e77637673b852bdb52feae3be7bee920f05a"},
 ]
 resoto-plugin-onprem = [
-    {file = "resoto-plugin-onprem-2.3.1.tar.gz", hash = "sha256:0d95c36baea5e0a5c93dd1621fd59af5471c5829d4f934af107dd91b82c2a34e"},
-    {file = "resoto_plugin_onprem-2.3.1-py3-none-any.whl", hash = "sha256:e9ea93425a33de17730bd882f53d8074be167e3deada913c59ab4a771c834212"},
+    {file = "resoto-plugin-onprem-2.4.1.tar.gz", hash = "sha256:c2d0635f1e8b23d9185c3e71e89b356d1731d3dd3ae26f5e98f6b953238affbb"},
+    {file = "resoto_plugin_onprem-2.4.1-py3-none-any.whl", hash = "sha256:287e6500370e2e70dc3904703260ca11b8c1cffe177574b6bab82ca5812f0efe"},
 ]
 resoto-plugin-protector = [
-    {file = "resoto-plugin-protector-2.3.1.tar.gz", hash = "sha256:c1bc5fdd8c1f9b8416ba10858c417cb2d3b22da63462ed6c610656cae5d2843f"},
-    {file = "resoto_plugin_protector-2.3.1-py3-none-any.whl", hash = "sha256:3ba79fc07844b2936c4f0551e0b62358b514d94b9a0549630d0256048e79a767"},
+    {file = "resoto-plugin-protector-2.4.1.tar.gz", hash = "sha256:098b8a44a074f9ce1ad899e9c4244b87228c67dbd6573551ccc1b132b20a0f7f"},
+    {file = "resoto_plugin_protector-2.4.1-py3-none-any.whl", hash = "sha256:9e2d88cf96d02249ddd9a2ea3c050277fe174e34dd0ac6a15c637fec55988a63"},
 ]
 resoto-plugin-slack = [
-    {file = "resoto-plugin-slack-2.3.1.tar.gz", hash = "sha256:5b43b6178bbc3847b6ea77f29a69bd41c91fd41af5ca68989c6cc34745100680"},
-    {file = "resoto_plugin_slack-2.3.1-py3-none-any.whl", hash = "sha256:a39568162d1dd62e4cca864a1a1ba6aa53278a9d986e9f753dd2fb6d3c571b99"},
+    {file = "resoto-plugin-slack-2.4.1.tar.gz", hash = "sha256:2d62e041065161be9906fa9b2031f49ce87d013974a4b725f5bc4a60b0ab6895"},
+    {file = "resoto_plugin_slack-2.4.1-py3-none-any.whl", hash = "sha256:934a12141f5f6f04ae4ea921c1f6fa4d798e8f11970b71255dcd2c2c0033fe80"},
 ]
 resoto-plugin-tagvalidator = [
-    {file = "resoto-plugin-tagvalidator-2.3.1.tar.gz", hash = "sha256:68c3b425b42df88d54e1cdc426e01adb91cc50b93387be295fa11eb7046e349f"},
-    {file = "resoto_plugin_tagvalidator-2.3.1-py3-none-any.whl", hash = "sha256:aa1960fed5138db00d533942ad7c607cedcefd9ba672f21bd9a563c908eb4936"},
+    {file = "resoto-plugin-tagvalidator-2.4.1.tar.gz", hash = "sha256:478ba95eb5a800d496950cd685ad26d4bb35df53da14f762dc0532291a684b2e"},
+    {file = "resoto_plugin_tagvalidator-2.4.1-py3-none-any.whl", hash = "sha256:fda660c8b66cdb3538144dafe889fe4e215253cda832bd153c81aac4bfdb10c8"},
 ]
 resoto-plugin-vsphere = [
-    {file = "resoto-plugin-vsphere-2.3.1.tar.gz", hash = "sha256:b712e6a5d82687888466c6e0da72a067f479e413edacaddcc031c20ec9f7170b"},
-    {file = "resoto_plugin_vsphere-2.3.1-py3-none-any.whl", hash = "sha256:d76d00a0ac055abd438d5ca05431b7d3d4f0df6f22751932aedd8dd7571c0ad0"},
+    {file = "resoto-plugin-vsphere-2.4.1.tar.gz", hash = "sha256:cdf16e8530e92c7ee1d6ac3ab825d519e05dc0e666f14dc45c26f2edbacb287a"},
+    {file = "resoto_plugin_vsphere-2.4.1-py3-none-any.whl", hash = "sha256:372821e997076fa80e2b0b659b1260ef0fb81863b2d7a181e359c9376d100233"},
 ]
 resotoclient = [
     {file = "resotoclient-0.1.12-py3-none-any.whl", hash = "sha256:8588b1f83fe2c5c091985043d1642348827992452b8850daa23e61af20d17838"},
     {file = "resotoclient-0.1.12.tar.gz", hash = "sha256:2014d19a6f8f3b60ede645773e88c2241c660facbd620d8b1e83629b84a2baca"},
 ]
 resotocore = [
-    {file = "resotocore-2.3.1-py2.py3-none-any.whl", hash = "sha256:7a0eced230d4ddcc188452f7706ab9235b9d76ff472e0e3091ef9579aa6578dd"},
-    {file = "resotocore-2.3.1.tar.gz", hash = "sha256:13be1abc5d71a238b4a25abc243229377f3e8706ad414bf7058f070bf38b060c"},
+    {file = "resotocore-2.4.1-py2.py3-none-any.whl", hash = "sha256:a7377879304c2a86249c3314af16524b2b94dc59a4066b7f0374fb139adec3f4"},
+    {file = "resotocore-2.4.1.tar.gz", hash = "sha256:4ef9b06c968cd29c48a02e67827268bcc360b69faa509905e838ccafd1e444e9"},
 ]
 resotolib = [
-    {file = "resotolib-2.3.1-py3-none-any.whl", hash = "sha256:7729ce54b1df08f7ac4c48662a186de5a7eb6e020d6b2a0c58c36c8d37e493ce"},
-    {file = "resotolib-2.3.1.tar.gz", hash = "sha256:2714fec03fa8cb8d494d1bc258a6f86198a8481e28ebed10494dcdad3623dbda"},
+    {file = "resotolib-2.4.1-py3-none-any.whl", hash = "sha256:dc0d46a3e2827bff7f90d4767638a287804144e13e4d2a13178cb5c257344aee"},
+    {file = "resotolib-2.4.1.tar.gz", hash = "sha256:bd4a552fe7b4ff584bb239736fe1aaa1153b79eaad55e36301c75a72907a02cd"},
 ]
 resotometrics = [
-    {file = "resotometrics-2.3.1-py3-none-any.whl", hash = "sha256:926fe4d132438c9198d46ab4a94ae8900daa8e87802e35d8abcd6d20248b0ce9"},
-    {file = "resotometrics-2.3.1.tar.gz", hash = "sha256:acc11c71c71c4368cbf1970fd0c6b527e1c5362f3ca8d9bd458d21b9fd2ce20d"},
+    {file = "resotometrics-2.4.1-py3-none-any.whl", hash = "sha256:8d2cf5c51245a4e06247544c30c7d8a4c374803d6e02abe2119bb8c01bfd18ab"},
+    {file = "resotometrics-2.4.1.tar.gz", hash = "sha256:f6481eba21d2e29e5a8ddf1922625d5d93830f92188bb9505a40cddc0d572f2c"},
 ]
 resotoshell = [
-    {file = "resotoshell-2.3.1-py3-none-any.whl", hash = "sha256:32db3cc53081de1194a7f16543e6d4ac2c184da677719225f12889e63b8bcc72"},
-    {file = "resotoshell-2.3.1.tar.gz", hash = "sha256:75360d07bb06856f372edc28c11712da9d06f2e646c00790e187f899617caf63"},
+    {file = "resotoshell-2.4.1-py3-none-any.whl", hash = "sha256:b16bc3f1853aaec716394ba8ebfbc55b544500074e8610ef854d96518982adb8"},
+    {file = "resotoshell-2.4.1.tar.gz", hash = "sha256:37a37c2bc68a913d6b967dede8da9a1c3d9ea735182255141172859e7d9f744a"},
 ]
 resotoworker = [
-    {file = "resotoworker-2.3.1-py3-none-any.whl", hash = "sha256:f4d65974c1f823d03ad4486d63a0dd664aa1945df4fbea356496d00e56bfa2ea"},
-    {file = "resotoworker-2.3.1.tar.gz", hash = "sha256:5faca943086a6802de465e71a4fe007c76e878c030914c2e1cf512e04a820f6f"},
+    {file = "resotoworker-2.4.1-py3-none-any.whl", hash = "sha256:af3577b75cefc623efd548b96adb8785268962193be88445c7b8e0552a764754"},
+    {file = "resotoworker-2.4.1.tar.gz", hash = "sha256:ddf924959be052d2c544aa5ef33f92fd79209e716630daac48dafe463154b12b"},
 ]
 retrying = [
     {file = "retrying-1.3.3.tar.gz", hash = "sha256:08c039560a6da2fe4f2c426d0766e284d3b736e355f8dd24b37367b0bb41973b"},
@@ -2691,6 +2747,10 @@ rsa = [
 s3transfer = [
     {file = "s3transfer-0.6.0-py3-none-any.whl", hash = "sha256:06176b74f3a15f61f1b4f25a1fc29a4429040b7647133a463da8fa5bd28d5ecd"},
     {file = "s3transfer-0.6.0.tar.gz", hash = "sha256:2ed07d3866f523cc561bf4a00fc5535827981b117dd7876f036b0c1aca42c947"},
+]
+setuptools = [
+    {file = "setuptools-65.3.0-py3-none-any.whl", hash = "sha256:2e24e0bec025f035a2e72cdd1961119f557d78ad331bb00ff82efb2ab8da8e82"},
+    {file = "setuptools-65.3.0.tar.gz", hash = "sha256:7732871f4f7fa58fb6bdcaeadb0161b2bd046c85905dbaa066bdcbcc81953b57"},
 ]
 six = [
     {file = "six-1.16.0-py2.py3-none-any.whl", hash = "sha256:8abb2f1d86890a2dfb989f9a77cfcfd3e47c2a354b01111771326f8aa26e0254"},
