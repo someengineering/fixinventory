@@ -37,5 +37,5 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           user: __token__
-          password: ${{ secrets.PYPI_RESOTOBUNDLE }}
+          password: ${{ secrets.PYPI_RESOTO }}
           packages_dir: ./resoto-bundle/dist/
