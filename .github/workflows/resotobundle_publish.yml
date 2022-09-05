@@ -34,7 +34,6 @@ jobs:
           poetry build
 
       - name: Publish distribution to PyPI
-        if: github.ref_type == 'tag'
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           user: __token__
