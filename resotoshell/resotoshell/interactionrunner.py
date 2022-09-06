@@ -5,7 +5,7 @@ import re
 from abc import ABC, abstractmethod
 from enum import Enum, unique
 from functools import reduce
-from typing import Optional, List, Dict, Any, Tuple, Union
+from typing import Optional, List, Dict, Any, Tuple, Union, Callable
 
 from attr import define, field
 from cattrs import Converter, gen
@@ -22,17 +22,16 @@ from resotoshell.dialogs import (
     message_dialog,
 )
 
-SimpleType = str | int | float | bool
 
-
-def value_in_path(js: Json, path: str) -> Optional[SimpleType]:
+def value_in_path(js: Json, path: str) -> Optional[JsonElement]:
     parts = path.split(".")
+    res = js
     for part in parts:
         if isinstance(js, dict):
-            js = js.get(part)
+            res = res.get(part)  # type: ignore
         else:
             return None
-    return js
+    return res
 
 
 @unique
@@ -48,14 +47,14 @@ class ActionResult:
     # which action to perform
     action: JsonAction
     # The value to replace
-    patch: Json
+    patch: JsonElement
 
-    def render(self, js: Json) -> Json:
+    def render(self, js: Optional[Json]) -> Json:
         parts = self.path.split(".") if self.path else []
         if len(parts) == 0 or js is None:
-            return self.patch
+            return self.patch  # type: ignore
         elif len(parts) == 1:
-            js[self.path] = self.patch
+            js[self.path] = self.patch  # type: ignore
             return js
         else:
             res_js = js
@@ -96,7 +95,7 @@ class PatchValueAction:
     def render(self, value: Union[str, List[str]]) -> List[ActionResult]:
         def single(v: str) -> JsonElement:
             replaced = self.value_template.replace("@value@", str(v) if not isinstance(value, str) else value)
-            return json.loads(replaced)
+            return json.loads(replaced)  # type: ignore
 
         if value is None:
             return []
@@ -112,7 +111,7 @@ class OnlyIf(ABC):
         pass
 
     @staticmethod
-    def from_json_hook(converter: Converter):
+    def from_json_hook(converter: Converter) -> Callable[[Json, Any], OnlyIf]:
         defined = gen.make_dict_structure_fn(OnlyIfDefined, converter)
         undefined = gen.make_dict_structure_fn(OnlyIfUndefined, converter)
         value = gen.make_dict_structure_fn(OnlyIfValue, converter)
@@ -196,7 +195,7 @@ class InteractionStep(ABC):
             return []
 
     @staticmethod
-    def from_json_hook(converter: Converter):
+    def from_json_hook(converter: Converter) -> Callable[[Json, Any], InteractionStep]:
         info = gen.make_dict_structure_fn(InteractionInfo, converter)
         input = gen.make_dict_structure_fn(InteractionInput, converter)
         sub = gen.make_dict_structure_fn(SubInteraction, converter)
@@ -235,13 +234,16 @@ class InteractionInput(InteractionStep):
     value_options: Optional[Dict[str, str]] = None
     # if this value is set, the input is splitted by this character and the result becomes a list
     split_result_by: Optional[str] = None
+    # if this field displays a password
+    password: bool = False
 
     def execute(self, conversation: Conversation) -> List[ActionResult]:
         base = super().execute(conversation)
-        result = ""
+        result: Union[None, str, List[str]] = ""
         if self.value_options is None:  # show simple text input field
             existing = value_in_path(conversation.json_document, self.action.path)
-            result = input_dialog(title=self.name, text=self.help, field_text=existing).run()
+            ex_str = ", ".join(existing) if isinstance(existing, list) else str(existing)
+            result = input_dialog(title=self.name, text=self.help, field_text=ex_str, password=self.password).run()
         else:
             width = reduce(lambda a, b: a + b, [len(a) for a in self.value_options])
 
@@ -259,7 +261,7 @@ class InteractionInput(InteractionStep):
             result = re.split("\\s*" + re.escape(split) + "\\s*", result)
         else:
             result = None if result == "" else result  # interpret empty string as None
-        return base + self.action.render(result)
+        return base + self.action.render(result)  # type: ignore # it can not be None here
 
 
 @define(kw_only=True)
@@ -299,11 +301,11 @@ class SubInteraction(InteractionStep):
     steps: List[InteractionStepUnion]
 
     def iterate(self, conversation: Conversation) -> Json:
-        js = None
+        js: Optional[Json] = None
         for step in self.steps:
             for result in step.execute_step(conversation):
                 js = result.render(js)
-        return js
+        return js or {}
 
     def execute(self, conversation: Conversation) -> List[ActionResult]:
         base = super().execute(conversation)
@@ -333,7 +335,7 @@ InteractionStepUnion = Union[
 ]
 
 converter = Converter()
-converter.register_structure_hook(JsonElement, lambda a, x: a)
+converter.register_structure_hook(JsonElement, lambda a, x: a)  # type: ignore
 converter.register_structure_hook(OnlyIf, OnlyIf.from_json_hook(converter))
 converter.register_structure_hook(InteractionStep, InteractionStep.from_json_hook(converter))
 

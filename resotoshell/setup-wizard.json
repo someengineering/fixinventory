@@ -61,6 +61,7 @@
                                             "kind": "input",
                                             "name": "AWS Secret Key",
                                             "help": "Enter the AWS Secret Key",
+                                            "password": true,
                                             "action": {
                                                 "action": "replace",
                                                 "path": "aws.secret_access_key",

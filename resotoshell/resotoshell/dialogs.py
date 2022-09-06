@@ -1,5 +1,5 @@
 import functools
-from typing import Any, Callable, List, Optional, Sequence, Tuple, TypeVar
+from typing import Any, Callable, List, Optional, Sequence, Tuple, TypeVar, Union
 
 from prompt_toolkit.application import Application
 from prompt_toolkit.application.current import get_app
@@ -12,10 +12,9 @@ from prompt_toolkit.key_binding import KeyPressEvent
 from prompt_toolkit.key_binding.bindings.focus import focus_next, focus_previous
 from prompt_toolkit.key_binding.defaults import load_key_bindings
 from prompt_toolkit.key_binding.key_bindings import KeyBindings, merge_key_bindings
-from prompt_toolkit.layout import Layout
+from prompt_toolkit.layout import Layout, UIControl
 from prompt_toolkit.layout.containers import AnyContainer, HSplit
 from prompt_toolkit.layout.dimension import Dimension as D
-from prompt_toolkit.layout.layout import FocusableElement
 from prompt_toolkit.styles import BaseStyle
 from prompt_toolkit.validation import Validator
 from prompt_toolkit.widgets import (
@@ -29,6 +28,8 @@ from prompt_toolkit.widgets import (
     TextArea,
     ValidationToolbar,
 )
+
+FocusableElement = Union[str, Buffer, UIControl, AnyContainer]
 
 
 class ConversationFinishedException(Exception):
@@ -76,7 +77,7 @@ _T = TypeVar("_T")
 def button_dialog(
     title: AnyFormattedText = "",
     text: AnyFormattedText = "",
-    buttons: List[Tuple[str, _T]] = None,
+    buttons: Optional[List[Tuple[str, _T]]] = None,
     style: Optional[BaseStyle] = None,
 ) -> Application[_T]:
     """
@@ -90,7 +91,7 @@ def button_dialog(
     dialog = Dialog(
         title=title,
         body=Label(text=text, dont_extend_height=True),
-        buttons=[Button(text=t, handler=functools.partial(button_handler, v)) for t, v in buttons],
+        buttons=[Button(text=t, handler=functools.partial(button_handler, v)) for t, v in (buttons or [])],
         with_background=True,
     )
 
