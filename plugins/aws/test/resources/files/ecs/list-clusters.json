@@ -1,0 +1,6 @@
+{
+    "clusterArns": [
+        "testcluster"
+    ],
+    "nextToken": "string"
+}

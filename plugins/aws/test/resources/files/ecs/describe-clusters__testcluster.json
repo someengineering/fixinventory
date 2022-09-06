@@ -1,0 +1,75 @@
+{
+    "clusters": [
+        {
+            "clusterArn": "arn:testcluster",
+            "clusterName": "testcluster",
+            "configuration": {
+                "executeCommandConfiguration": {
+                    "kmsKeyId": "string",
+                    "logging": "NONE",
+                    "logConfiguration": {
+                        "cloudWatchLogGroupName": "string",
+                        "cloudWatchEncryptionEnabled": true,
+                        "s3BucketName": "string",
+                        "s3EncryptionEnabled": true,
+                        "s3KeyPrefix": "string"
+                    }
+                }
+            },
+            "status": "ACTIVE",
+            "registeredContainerInstancesCount": 123,
+            "runningTasksCount": 123,
+            "pendingTasksCount": 123,
+            "activeServicesCount": 123,
+            "statistics": [
+                {
+                    "name": "string",
+                    "value": "string"
+                }
+            ],
+            "tags": [
+                {
+                    "key": "string",
+                    "value": "string"
+                }
+            ],
+            "settings": [
+                {
+                    "name": "containerInsights",
+                    "value": "string"
+                }
+            ],
+            "capacityProviders": [
+                "string"
+            ],
+            "defaultCapacityProviderStrategy": [
+                {
+                    "capacityProvider": "string",
+                    "weight": 123,
+                    "base": 123
+                }
+            ],
+            "attachments": [
+                {
+                    "id": "string",
+                    "type": "string",
+                    "status": "string",
+                    "details": [
+                        {
+                            "name": "string",
+                            "value": "string"
+                        }
+                    ]
+                }
+            ],
+            "attachmentsStatus": "string"
+        }
+    ],
+    "failures": [
+        {
+            "arn": "string",
+            "reason": "string",
+            "detail": "string"
+        }
+    ]
+}
