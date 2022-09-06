@@ -145,7 +145,7 @@ class AwsEcsContainerInstance(EcsTaggable, AwsResource):
     kind: ClassVar[str] = "aws_ecs_container_instance"
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("containerInstanceArn"),
-        "tags": S("Tags", default=[]) >> ToDict(),
+        "tags": S("tags", default=[]) >> ToDict(),
         "name": S("containerInstanceArn"),  # S("Tags", default=[]) >> TagsValue("Name"),
         "ctime": S("registeredAt"),
         # "mtime": K(None),
@@ -226,14 +226,6 @@ class AwsEcsClusterConfiguration:
 
 
 @define(eq=False, slots=False)
-class AwsEcsKeyValuePair:
-    kind: ClassVar[str] = "aws_ecs_key_value_pair"
-    mapping: ClassVar[Dict[str, Bender]] = {"name": S("name"), "value": S("value")}
-    name: Optional[str] = field(default=None)
-    value: Optional[str] = field(default=None)
-
-
-@define(eq=False, slots=False)
 class AwsEcsClusterSetting:
     kind: ClassVar[str] = "aws_ecs_cluster_setting"
     mapping: ClassVar[Dict[str, Bender]] = {"name": S("name"), "value": S("value")}
@@ -255,27 +247,12 @@ class AwsEcsCapacityProviderStrategyItem:
 
 
 @define(eq=False, slots=False)
-class AwsEcsAttachment:
-    kind: ClassVar[str] = "aws_ecs_attachment"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
-        "type": S("type"),
-        "status": S("status"),
-        "details": S("details", default=[]) >> ForallBend(AwsEcsKeyValuePair.mapping),
-    }
-    id: Optional[str] = field(default=None)
-    type: Optional[str] = field(default=None)
-    status: Optional[str] = field(default=None)
-    details: List[AwsEcsKeyValuePair] = field(factory=list)
-
-
-@define(eq=False, slots=False)
 class AwsEcsCluster(EcsTaggable, AwsResource):
     kind: ClassVar[str] = "aws_ecs_cluster"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ecs", "list-clusters", "clusterArns")  # list?
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"delete": ["aws_kms_key", "aws_s3_bucket"]},
-        "successors": {"default": ["aws_kms_key", "aws_s3_bucket"]},
+        "successors": {"default": ["aws_kms_key", "aws_s3_bucket", "aws_ecs_container_instance"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("clusterName"),
@@ -311,7 +288,12 @@ class AwsEcsCluster(EcsTaggable, AwsResource):
 
     @classmethod
     def called_apis(cls) -> List[AwsApiSpec]:
-        return [cls.api_spec, AwsApiSpec("ecs", "describe-clusters"), AwsApiSpec("ecs", "list-container-instances")]
+        return [
+            cls.api_spec,
+            AwsApiSpec("ecs", "describe-clusters"),
+            AwsApiSpec("ecs", "list-container-instances"),
+            AwsApiSpec("ecs", "describe-container-instances"),
+        ]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
