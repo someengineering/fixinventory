@@ -4,6 +4,8 @@ from attrs import define, field
 from resoto_plugin_aws.aws_client import AwsClient
 
 from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
+from resoto_plugin_aws.resource.kms import AwsKmsKey
+from resoto_plugin_aws.resource.s3 import AwsS3Bucket
 from resotolib.baseresources import ModelReference
 from resotolib.json_bender import Bender, S, Bend, ForallBend
 from resotolib.types import Json
@@ -47,7 +49,7 @@ class AwsEcsClusterConfiguration:
         "execute_command_configuration": S("executeCommandConfiguration")
         >> Bend(AwsEcsExecuteCommandConfiguration.mapping)
     }
-    execute_command_configuration: Optional[AwsEcsExecuteCommandConfiguration] = field(default=None)
+    execute_command_configuration: AwsEcsExecuteCommandConfiguration = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -131,9 +133,9 @@ class AwsEcsCluster(AwsResource):
     cluster_attachments: List[AwsEcsAttachment] = field(factory=list)
     cluster_attachments_status: Optional[str] = field(default=None)
 
-    # @classmethod
-    # def called_apis(cls) -> List[AwsApiSpec]:
-    #     return [cls.api_spec, AwsApiSpec("dynamodb", "describe-table"), AwsApiSpec("dynamodb", "list-tags-of-resource")]
+    @classmethod
+    def called_apis(cls) -> List[AwsApiSpec]:
+        return [cls.api_spec, AwsApiSpec("ecs", "describe-clusters")]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
@@ -142,10 +144,31 @@ class AwsEcsCluster(AwsResource):
                 "ecs",
                 "describe-clusters",
                 "clusters",
-                clusters=[cluster_arn]
+                clusters=[cluster_arn],
+                include=["ATTACHMENTS", "CONFIGURATIONS", "SETTINGS", "STATISTICS", "TAGS"],
             )
             instance = cls.from_api(cluster[0])
             builder.add_node(instance, cluster_arn)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if self.cluster_configuration:
+            if self.cluster_configuration.execute_command_configuration.kms_key_id:
+                builder.dependant_node(
+                    self,
+                    clazz=AwsKmsKey,
+                    id=AwsKmsKey.normalise_id(self.cluster_configuration.execute_command_configuration.kms_key_id),
+                )
+            if (
+                self.cluster_configuration.execute_command_configuration.log_configuration
+                and self.cluster_configuration.execute_command_configuration.log_configuration.s3_bucket_name
+            ):
+                builder.dependant_node(
+                    self,
+                    clazz=AwsS3Bucket,
+                    name=self.cluster_configuration.execute_command_configuration.log_configuration.s3_bucket_name,
+                )
+
+        # TODO add edge to CloudWatchLogs LogGroup when applicable
 
 
 resources: List[Type[AwsResource]] = [AwsEcsCluster]

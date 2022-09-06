@@ -460,8 +460,10 @@ models: Dict[str, List[AwsResotoModel]] = {
         # ),
         # AwsResotoModel("describe-network-acls", "NetworkAcls", "NetworkAcl", prefix="Ec2"),
     ],
-    "ecs" : [
-        AwsResotoModel("describe-clusters", "clusters", "DescribeClustersResponse", prefix="Ecs", prop_prefix="cluster_"),
+    "ecs": [
+        AwsResotoModel(
+            "describe-clusters", "clusters", "DescribeClustersResponse", prefix="Ecs", prop_prefix="cluster_"
+        ),
         # AwsResotoModel("describe-container-instances", "containerInstances", "DescribeContainerInstancesResponse", prefix="Ecs", prop_prefix="container_"),
         # AwsResotoModel("describe-tasks", "tasks", "DescribeTasksResponse", prefix="Ecs", prop_prefix="task_"),
         # AwsResotoModel("describe-task-definition", "taskDefinition", "DescribeTaskDefinitionResponse", prefix="Ecs", prop_prefix="task_definition_"),
