@@ -8,6 +8,7 @@ from prompt_toolkit.completion import Completer
 from prompt_toolkit.eventloop import get_event_loop, run_in_executor_with_context
 from prompt_toolkit.filters import FilterOrBool
 from prompt_toolkit.formatted_text import AnyFormattedText
+from prompt_toolkit.key_binding import KeyPressEvent
 from prompt_toolkit.key_binding.bindings.focus import focus_next, focus_previous
 from prompt_toolkit.key_binding.defaults import load_key_bindings
 from prompt_toolkit.key_binding.key_bindings import KeyBindings, merge_key_bindings
@@ -75,7 +76,7 @@ _T = TypeVar("_T")
 def button_dialog(
     title: AnyFormattedText = "",
     text: AnyFormattedText = "",
-    buttons: List[Tuple[str, _T]] = [],
+    buttons: List[Tuple[str, _T]] = None,
     style: Optional[BaseStyle] = None,
 ) -> Application[_T]:
     """
@@ -159,7 +160,7 @@ def message_dialog(
     """
     dialog = Dialog(
         title=title,
-        body=Label(text=text, dont_extend_height=False),
+        body=Label(text=text, dont_extend_height=True),
         buttons=[Button(text=ok_text, handler=_set_none)],
         with_background=True,
     )
@@ -301,6 +302,10 @@ def progress_dialog(
     return app
 
 
+def cancel(event: KeyPressEvent) -> None:
+    event.app.exit(exception=CancelledException("Escape pressed."))
+
+
 def _create_app(
     dialog: AnyContainer, style: Optional[BaseStyle], focused_element: Optional[FocusableElement] = None
 ) -> Application[Any]:
@@ -308,6 +313,7 @@ def _create_app(
     bindings = KeyBindings()
     bindings.add("tab")(focus_next)
     bindings.add("s-tab")(focus_previous)
+    bindings.add("escape")(cancel)
 
     return Application(
         layout=Layout(dialog, focused_element),
