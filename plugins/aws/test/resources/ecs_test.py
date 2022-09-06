@@ -1,5 +1,6 @@
+from collections import defaultdict
 from types import SimpleNamespace
-from typing import Any, cast
+from typing import Any, Dict, cast
 from resoto_plugin_aws.resource.ecs import AwsEcsCluster
 from test.resources import round_trip_for
 from resoto_plugin_aws.aws_client import AwsClient
@@ -8,6 +9,10 @@ from resoto_plugin_aws.aws_client import AwsClient
 def test_ecs_cluster() -> None:
     first, builder = round_trip_for(AwsEcsCluster)
     assert len(builder.resources_of(AwsEcsCluster)) == 1
+    type_count: Dict[str, int] = defaultdict(int)
+    for node in builder.graph.nodes:
+        type_count[node.kind] += 1
+    assert type_count["aws_ecs_container_instance"] == 2
 
 
 def test_tagging() -> None:
