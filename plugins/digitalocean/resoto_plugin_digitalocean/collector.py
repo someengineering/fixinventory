@@ -386,7 +386,7 @@ class DigitalOceanTeamCollector:
                     if isinstance(value, List):
                         values = value
                         for value in values:
-                            resource_instance.add_deferred_connection(  # type: ignore
+                            resource_instance.add_deferred_connection(
                                 attr,
                                 value,
                                 is_parent,  # type: ignore
