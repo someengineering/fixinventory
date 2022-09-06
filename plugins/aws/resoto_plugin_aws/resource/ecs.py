@@ -100,7 +100,10 @@ class AwsEcsAttachment:
 class AwsEcsCluster(AwsResource):
     kind: ClassVar[str] = "aws_ecs_cluster"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ecs", "list-clusters", "clusterArns")  # list?
-    reference_kinds: ClassVar[ModelReference] = {}
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"delete": ["aws_kms_key", "aws_s3_bucket"]},
+        "successors": {"default": ["aws_kms_key", "aws_s3_bucket"]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("clusterName"),
         "tags": S("tags", default=[]) >> ToDict(),
@@ -167,8 +170,11 @@ class AwsEcsCluster(AwsResource):
                     clazz=AwsS3Bucket,
                     name=self.cluster_configuration.execute_command_configuration.log_configuration.s3_bucket_name,
                 )
-
         # TODO add edge to CloudWatchLogs LogGroup when applicable
+
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(service=self.api_spec.service, action="delete-cluster", result_name=None, cluster=self.arn)
+        return True
 
 
 resources: List[Type[AwsResource]] = [AwsEcsCluster]
