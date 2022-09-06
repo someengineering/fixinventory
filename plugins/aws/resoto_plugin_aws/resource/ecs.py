@@ -5,6 +5,7 @@ from attrs import define, field
 from resoto_plugin_aws.aws_client import AwsClient
 
 from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
+from resoto_plugin_aws.resource.ec2 import AwsEc2Instance
 from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resoto_plugin_aws.resource.s3 import AwsS3Bucket
 from resotolib.baseresources import EdgeType, ModelReference
@@ -143,13 +144,15 @@ class AwsEcsContainerInstanceHealthStatus:
 @define(eq=False, slots=False)
 class AwsEcsContainerInstance(EcsTaggable, AwsResource):
     kind: ClassVar[str] = "aws_ecs_container_instance"
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"delete": ["aws_ec2_instance"]},
+        "successors": {"default": ["aws_ec2_instance"]}
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("containerInstanceArn"),
         "tags": S("tags", default=[]) >> ToDict(),
         "name": S("containerInstanceArn"),  # S("Tags", default=[]) >> TagsValue("Name"),
         "ctime": S("registeredAt"),
-        # "mtime": K(None),
-        # "atime": K(None),
         "arn": S("containerInstanceArn"),
         "ec2_instance_id": S("ec2InstanceId"),
         "capacity_provider_name": S("capacityProviderName"),
@@ -183,6 +186,14 @@ class AwsEcsContainerInstance(EcsTaggable, AwsResource):
     attributes: List[AwsEcsAttribute] = field(factory=list)
     attachments: List[AwsEcsAttachment] = field(factory=list)
     health_status: Optional[AwsEcsContainerInstanceHealthStatus] = field(default=None)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if self.ec2_instance_id:
+            builder.dependant_node(
+                self,
+                clazz=AwsEc2Instance,
+                id=self.ec2_instance_id,
+            )
 
 
 @define(eq=False, slots=False)
