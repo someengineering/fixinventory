@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 from abc import ABC, abstractmethod
 from enum import Enum, unique
@@ -377,13 +378,12 @@ class InteractionRunner:
     def run(self) -> None:
         orig = self.client.config(self.interaction.config)
         conversation = self.interact(orig)
-        print("Final config is: ", json.dumps(conversation.json_document, indent=2))
         self.client.put_config(self.interaction.config, conversation.json_document)
 
 
 if __name__ == "__main__":
 
-    with open("/Users/matthias/Documents/Work/someeng/resoto/resotoshell/setup-wizard.json") as f:
+    with open(os.path.abspath(os.path.dirname(__file__) + "/../setup-wizard.json")) as f:
         js = json.load(f)
         interaction = Interaction.from_json(js)
         runner = InteractionRunner(interaction, ResotoClient("https://localhost:8900", None))
