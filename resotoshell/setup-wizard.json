@@ -1,0 +1,161 @@
+{
+  "kind": "decision",
+  "name": "Which clouds do you use?",
+  "help": "Some really helpful description here.",
+  "select_multiple": true,
+  "step_options": {
+    "AWS": {
+      "kind": "seq",
+      "name": "AWS",
+      "help": "Configure AWS Collector",
+      "patches": [
+        {
+          "action": "merge",
+          "path": "resotoworker.collector",
+          "value": [
+            "aws"
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "kind": "decision",
+          "name": "AWS: how to access your AWS account(s)?",
+          "help": "AWS allows several access methods to connect to your account(s). Which one do you want to use?",
+          "select_multiple": false,
+          "step_options": {
+            "Resoto is running on a machine with a configured InstanceProfile": {
+              "kind": "info",
+              "name": "InstanceProfile",
+              "help": "Using an instance profile does not require any additional configuration. You are all set!"
+            },
+            "AWS access environment variables are provided to Resoto": {
+              "kind": "info",
+              "name": "Environment Variables",
+              "help": "Using environment variables does not require any additional configuration. You are all set!"
+            },
+            "I have an AWS AccessKey and Secret Key": {
+              "kind": "seq",
+              "name": "Access+Secret Key",
+              "help": "Configure Access and Secret Key",
+              "steps": [
+                {
+                  "kind": "input",
+                  "name": "AWS Access Key",
+                  "help": "Enter the AWS Access Key",
+                  "action": { "action": "replace", "path": "aws.access_key_id", "value_template": "\"@value@\"" }
+                },
+                {
+                  "kind": "input",
+                  "name": "AWS Secret Key",
+                  "help": "Enter the AWS Secret Key",
+                  "action": { "action": "replace", "path": "aws.secret_access_key", "value_template": "\"@value@\"" }
+                }
+              ]
+            },
+            "I would like to use AWS Profiles": {
+              "kind": "input",
+              "name": "AWS Profile(s) to use",
+              "help": "Enter the name of your profiles (separated by comma)",
+              "action": {
+                "action": "replace",
+                "path": "aws.profiles",
+                "value_template": "\"@value@\""
+              },
+              "split_result_by": ","
+            },
+            "The Option I would like to use is not listed here": {
+              "kind": "info",
+              "name": "Sorry",
+              "help": "This setup wizard is able to handle the most common cases to connect to AWS.\nIt looks we did not cover your use case.\nSince most options to connect to AWS are implemented,\nyou might be able tp configure the access yourself by adjusting the configuration.\nPlease visit\nhttps://resoto.com/docs/getting-started/configure-cloud-provider-access/aws\nto see the possible configuration options.\n",
+              "is_terminal": true
+            }
+          }
+        },
+        {
+          "kind": "input",
+          "name": "AWS: use a specific role?",
+          "help": "In case you have setup a role that Resoto should assume, enter the role name here.\nA role is not required, leave the field empty if you do not want to use a role.",
+          "action": {
+            "action": "replace",
+            "path": "aws.role",
+            "value_template": "\"@value@\""
+          }
+        },
+        {
+          "kind": "input",
+          "name": "AWS: scrape organizations?",
+          "help": "Do you want to scrape your organizations with the given role?",
+          "action": {
+            "action": "replace",
+            "path": "aws.scrape_org",
+            "value_template": "@value@"
+          },
+          "only_if": [ { "kind": "defined", "path": "aws.role" } ],
+          "value_options": { "yes": "true", "no": "false" }
+        },
+        {
+          "kind": "input",
+          "name": "AWS: Which accounts to scrape with this role?",
+          "help": "It is possible to scrape different accounts with the role you have specified.\nSince the organization should not be scraped, do you want to define the list of accounts to scrape?\nIf yes, enter all account ids separated by comma",
+          "action": { "action": "replace", "path": "aws.accounts", "value_template": "\"@value@\"" },
+          "only_if": [ { "kind": "value", "path": "aws.scrape_org", "value": false } ],
+          "split_result_by": ","
+        },
+        {
+          "kind": "input",
+          "name": "AWS: Do you want to exclude specific accounts?",
+          "help": "When the organization is scraped, all accounts in this organization are scraped.\nThis is usually the preferred behaviour.\n\nIn case you want to exclude specific accounts from Resoto,\nyou can define a comma separated list of account ids here.\nAll defined accounts will be excluded.",
+          "action": { "action": "replace", "path": "aws.accounts", "value_template": "\"@value@\"" },
+          "only_if": [ { "kind": "value", "path": "aws.scrape_org", "value": true } ],
+          "split_result_by": ","
+        }
+      ]
+    },
+    "GCP": {
+      "kind": "seq",
+      "name": "GCP",
+      "help": "Configure Google Cloud Collector",
+      "patches": [
+        {
+          "action": "merge",
+          "path": "resotoworker.collector",
+          "value": [
+            "gcp"
+          ]
+        }
+      ],
+      "steps": []
+    },
+    "Kubernetes": {
+      "kind": "seq",
+      "name": "Kubernetes",
+      "help": "Configure Kubernetes Collector",
+      "patches": [
+        {
+          "action": "merge",
+          "path": "resotoworker.collector",
+          "value": [
+            "k8s"
+          ]
+        }
+      ],
+      "steps": []
+    },
+    "Digital Ocean": {
+      "kind": "seq",
+      "name": "Digital Ocean",
+      "help": "Configure DigitalOcean Collector",
+      "patches": [
+        {
+          "action": "merge",
+          "path": "resotoworker.collector",
+          "value": [
+            "digitalocean"
+          ]
+        }
+      ],
+      "steps": []
+    }
+  }
+}
