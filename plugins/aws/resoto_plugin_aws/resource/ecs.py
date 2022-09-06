@@ -12,6 +12,36 @@ from resotolib.types import Json
 from resoto_plugin_aws.utils import ToDict
 
 
+class EcsTaggable:
+    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
+        if isinstance(self, AwsResource):
+            if spec := self.api_spec:
+                client.call(
+                    service=spec.service,
+                    action="tag-resource",
+                    result_name=None,
+                    resourceArn=self.arn,
+                    tags=[{"key": key, "value": value}],
+                )
+                return True
+            return False
+        return False
+
+    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
+        if isinstance(self, AwsResource):
+            if spec := self.api_spec:
+                client.call(
+                    service=spec.service,
+                    action="untag-resource",
+                    result_name=None,
+                    resourceArn=self.arn,
+                    tagKeys=[key],
+                )
+                return True
+            return False
+        return False
+
+
 @define(eq=False, slots=False)
 class AwsEcsExecuteCommandLogConfiguration:
     kind: ClassVar[str] = "aws_ecs_execute_command_log_configuration"
@@ -97,7 +127,7 @@ class AwsEcsAttachment:
 
 
 @define(eq=False, slots=False)
-class AwsEcsCluster(AwsResource):
+class AwsEcsCluster(EcsTaggable, AwsResource):
     kind: ClassVar[str] = "aws_ecs_cluster"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ecs", "list-clusters", "clusterArns")  # list?
     reference_kinds: ClassVar[ModelReference] = {
