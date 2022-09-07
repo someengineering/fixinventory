@@ -9,7 +9,7 @@
                 "arn:aws:cognito-idp:region:account_id:userpool/user_pool_id"
             ],
             "authType": "string",
-            "authorizerUri": "arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/arn:aws:lambda:us-west-2:1234:function:lambda-function-name/invocations",
+            "authorizerUri": "arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/arn:aws:lambda:us-west-2:1234:function:test-lambda-function/invocations",
             "authorizerCredentials": "this is potentially a IAM Role ARN",
             "identitySource": "string",
             "identityValidationExpression": "string",

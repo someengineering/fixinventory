@@ -7,8 +7,6 @@ from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpe
 from resoto_plugin_aws.resource.ec2 import AwsEc2VpcEndpoint
 from resoto_plugin_aws.resource.iam import AwsIamRole
 
-# from resoto_plugin_aws.resource.lambda_ import AwsLambdaFunction
-
 from resotolib.baseresources import EdgeType, ModelReference
 from resotolib.json import from_json
 from resotolib.json_bender import Bender, S, Bend, bend
@@ -147,9 +145,7 @@ class AwsApiGatewayResource(AwsResource):
     # collection of resource resources happens in AwsApiGatewayRestApi.collect()
     kind: ClassVar[str] = "aws_api_gateway_resource"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("apigateway", "get-resources", "items")
-    reference_kinds: ClassVar[ModelReference] = {
-        "successors": {"default": ["aws_api_gateway_authorizer"]}
-    }
+    reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["aws_api_gateway_authorizer"]}}
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "resource_parent_id": S("parentId"),
@@ -188,7 +184,10 @@ class AwsApiGatewayResource(AwsResource):
 class AwsApiGatewayAuthorizer(AwsResource):
     # collection of authorizer resources happens in AwsApiGatewayRestApi.collect()
     kind: ClassVar[str] = "aws_api_gateway_authorizer"
-    reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["aws_iam_role"]}}
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {"default": ["aws_iam_role", "aws_lambda_function"]},
+        "predecessors": {"delete": ["aws_lambda_function"]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "name": S("name"),
@@ -214,14 +213,13 @@ class AwsApiGatewayAuthorizer(AwsResource):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         # TODO add edge to Cognito User Pool when applicable (via self.authorizer_provider_arns)
 
-        # the following edge to a lambda function would lead to circular import errors
-        # if self.authorizer_uri:
-        #     lambda_name = self.authorizer_uri.split(":")[-1].removesuffix("/invocations")
-        #     builder.dependant_node(
-        #         self,
-        #         clazz=AwsLambdaFunction,
-        #         name=lambda_name,
-        #     )
+        if self.authorizer_uri:
+            lambda_name = self.authorizer_uri.split(":")[-1].removesuffix("/invocations")
+            builder.dependant_node(
+                self,
+                kind="aws_lambda_function",
+                name=lambda_name,
+            )
         if self.authorizer_credentials:
             builder.add_edge(self, edge_type=EdgeType.default, clazz=AwsIamRole, arn=self.authorizer_credentials)
 
