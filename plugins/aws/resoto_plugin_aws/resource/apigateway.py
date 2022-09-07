@@ -144,6 +144,7 @@ class AwsApiGatewayMethod:
 
 @define(eq=False, slots=False)
 class AwsApiGatewayResource(AwsResource):
+    # collection of resource resources happens in AwsApiGatewayRestApi.collect()
     kind: ClassVar[str] = "aws_api_gateway_resource"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("apigateway", "get-resources", "items")
     reference_kinds: ClassVar[ModelReference] = {
@@ -185,6 +186,7 @@ class AwsApiGatewayResource(AwsResource):
 
 @define(eq=False, slots=False)
 class AwsApiGatewayAuthorizer(AwsResource):
+    # collection of authorizer resources happens in AwsApiGatewayRestApi.collect()
     kind: ClassVar[str] = "aws_api_gateway_authorizer"
     reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["aws_iam_role"]}}
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -251,6 +253,7 @@ class AwsApiGatewayCanarySetting:
 
 @define(eq=False, slots=False)
 class AwsApiGatewayStage(ApiGatewayTaggable, AwsResource):
+    # collection of stage resources happens in AwsApiGatewayRestApi.collect()
     kind: ClassVar[str] = "aws_api_gateway_stage"
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("stageName"),
@@ -300,6 +303,7 @@ class AwsApiGatewayStage(ApiGatewayTaggable, AwsResource):
 
 @define(eq=False, slots=False)
 class AwsApiGatewayDeployment(AwsResource):
+    # collection of deployment resources happens in AwsApiGatewayRestApi.collect()
     kind: ClassVar[str] = "aws_api_gateway_deployment"
     reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["aws_api_gateway_stage"]}}
 
