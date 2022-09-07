@@ -452,7 +452,7 @@ class AwsApiGatewayMutualTlsAuthentication:
     mapping: ClassVar[Dict[str, Bender]] = {
         "truststore_uri": S("truststoreUri"),
         "truststore_version": S("truststoreVersion"),
-        "truststore_warnings": S("truststoreWarnings", default=[])
+        "truststore_warnings": S("truststoreWarnings", default=[]),
     }
     truststore_uri: Optional[str] = field(default=None)
     truststore_version: Optional[str] = field(default=None)
@@ -465,7 +465,7 @@ class AwsApiGatewayDomainName(ApiGatewayTaggable, AwsResource):
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("apigateway", "get-domain-names", "items")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"delete": ["aws_route53_zone"]},
-        "successors": {"default": ["aws_route53_zone"]}
+        "successors": {"default": ["aws_route53_zone"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("domainName"),
@@ -484,8 +484,9 @@ class AwsApiGatewayDomainName(ApiGatewayTaggable, AwsResource):
         "domain_domain_name_status": S("domainNameStatus"),
         "domain_domain_name_status_message": S("domainNameStatusMessage"),
         "domain_security_policy": S("securityPolicy"),
-        "domain_mutual_tls_authentication": S("mutualTlsAuthentication") >> Bend(AwsApiGatewayMutualTlsAuthentication.mapping),
-        "domain_ownership_verification_certificate_arn": S("ownershipVerificationCertificateArn")
+        "domain_mutual_tls_authentication": S("mutualTlsAuthentication")
+        >> Bend(AwsApiGatewayMutualTlsAuthentication.mapping),
+        "domain_ownership_verification_certificate_arn": S("ownershipVerificationCertificateArn"),
     }
     domain_certificate_name: Optional[str] = field(default=None)
     domain_certificate_arn: Optional[str] = field(default=None)
@@ -521,11 +522,12 @@ class AwsApiGatewayDomainName(ApiGatewayTaggable, AwsResource):
                 )
         # TODO add edge to ACM Certificates when applicable
 
+
 resources: List[Type[AwsResource]] = [
     AwsApiGatewayRestApi,
     AwsApiGatewayDeployment,
     AwsApiGatewayStage,
     AwsApiGatewayResource,
     AwsApiGatewayAuthorizer,
-    AwsApiGatewayDomainName
+    AwsApiGatewayDomainName,
 ]

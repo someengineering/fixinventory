@@ -50,6 +50,7 @@ def test_delete_api() -> None:
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
     api.delete_resource(client)
 
+
 def test_domain_names() -> None:
     api, builder = round_trip_for(AwsApiGatewayDomainName)
     assert len(builder.resources_of(AwsApiGatewayDomainName)) == 1
