@@ -14,7 +14,7 @@ from prompt_toolkit.key_binding.defaults import load_key_bindings
 from prompt_toolkit.key_binding.key_bindings import KeyBindings, merge_key_bindings
 from prompt_toolkit.layout import Layout, UIControl
 from prompt_toolkit.layout.containers import AnyContainer, HSplit
-from prompt_toolkit.layout.dimension import Dimension as D
+from prompt_toolkit.layout.dimension import Dimension
 from prompt_toolkit.styles import BaseStyle
 from prompt_toolkit.validation import Validator
 from prompt_toolkit.widgets import (
@@ -32,11 +32,11 @@ from prompt_toolkit.widgets import (
 FocusableElement = Union[str, Buffer, UIControl, AnyContainer]
 
 
-class ConversationFinishedException(Exception):
+class ConversationFinishedError(Exception):
     pass
 
 
-class CancelledException(Exception):
+class CancelledError(Exception):
     pass
 
 
@@ -141,7 +141,7 @@ def input_dialog(
                 textfield,
                 ValidationToolbar(),
             ],
-            padding=D(preferred=1, max=1),
+            padding=Dimension(preferred=1, max=1),
         ),
         buttons=[ok_button, cancel_button],
         with_background=True,
@@ -263,14 +263,14 @@ def progress_dialog(
         focusable=False,
         # Prefer this text area as big as possible, to avoid having a window
         # that keeps resizing when we add text to it.
-        height=D(preferred=10**10),
+        height=Dimension(preferred=10**10),
     )
 
     dialog = Dialog(
         body=HSplit(
             [
                 Box(Label(text=text)),
-                Box(text_area, padding=D.exact(1)),
+                Box(text_area, padding=Dimension.exact(1)),
                 progressbar,
             ]
         ),
@@ -304,7 +304,7 @@ def progress_dialog(
 
 
 def cancel(event: KeyPressEvent) -> None:
-    event.app.exit(exception=CancelledException("Escape pressed."))
+    event.app.exit(exception=CancelledError("Escape pressed."))
 
 
 def _create_app(

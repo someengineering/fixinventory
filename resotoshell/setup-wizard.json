@@ -106,7 +106,8 @@
                             "action": {
                                 "action": "replace",
                                 "path": "aws.scrape_org",
-                                "value_template": "@value@"
+                                "value_template": "@value@",
+                                "default": false
                             },
                             "only_if": [
                                 {
@@ -130,6 +131,10 @@
                             },
                             "only_if": [
                                 {
+                                    "kind": "defined",
+                                    "path": "aws.role"
+                                },
+                                {
                                     "kind": "value",
                                     "path": "aws.scrape_org",
                                     "value": false
@@ -152,7 +157,13 @@
                             ]
                         }
                     ],
-                    "steps": []
+                    "steps": [
+                        {
+                            "kind": "info",
+                            "name": "GCP: coming soon!",
+                            "help": "WIP"
+                        }
+                    ]
                 },
                 "Kubernetes": {
                     "kind": "seq",
@@ -167,7 +178,82 @@
                             ]
                         }
                     ],
-                    "steps": []
+                    "steps": [
+                        {
+                            "kind": "decision",
+                            "name": "Kubernetes: how to access your Kubernetes cluster(s)?",
+                            "help": "The simplest way to connect to your cluster is using a kubeconfig file.\nFor this method to work, resotoworker needs to have access to the configured file.\nIn case this is not possible, or difficult to achieve, you can configure the access directly",
+                            "select_multiple": false,
+                            "step_options": {
+                                "Resoto has access to a kubeconfig file": {
+                                    "kind": "sub_interaction",
+                                    "name": "Kubernetes: more kubeconfig files?",
+                                    "help": "Do you have more kubeconfig files to access other Kubernetes clusters?",
+                                    "path": "k8s.config_files",
+                                    "steps": [
+                                        {
+                                            "kind": "input",
+                                            "name": "Kubernetes: access via kubeconfig file",
+                                            "help": "Resoto can use a kubeconfig file to access your Kubernetes cluster(s).\nPlease enter the path to the kubeconfig file.",
+                                            "action": {
+                                                "action": "replace",
+                                                "path": "path",
+                                                "value_template": "\"@value@\""
+                                            }
+                                        }
+                                    ]
+                                },
+                                "Configure the access directly": {
+                                    "kind": "sub_interaction",
+                                    "name": "Kubernetes: more cluster configurations?",
+                                    "help": "Do you have more cluster configurations to add?",
+                                    "path": "k8s.configs",
+                                    "steps": [
+                                        {
+                                            "kind": "input",
+                                            "name": "Kubernetes access: name of the cluster",
+                                            "help": "Please enter the name of the cluster.\nThis name can be chosen freely, but should be unique.",
+                                            "action": {
+                                                "action": "replace",
+                                                "path": "name",
+                                                "value_template": "\"@value@\""
+                                            }
+                                        },
+                                        {
+                                            "kind": "input",
+                                            "name": "Kubernetes access: server url",
+                                            "help": "Please enter the url of the Kubernetes API server.\nThis is usually something like https://<ip>:<port>\nExample: https://k8s-cluster-server.example.com",
+                                            "action": {
+                                                "action": "replace",
+                                                "path": "server",
+                                                "value_template": "\"@value@\""
+                                            }
+                                        },
+                                        {
+                                            "kind": "input",
+                                            "name": "Kubernetes access: certificate authority data",
+                                            "help": "Please enter the certificate authority data.\nThis is the base64 encoded certificate authority data of the cluster.\nYou can find this data in the kubeconfig file in the related cluster section.\nOnly required in case of a custom certificate.\nLeave the field empty, if this is not the case.",
+                                            "action": {
+                                                "action": "replace",
+                                                "path": "certificate_authority_data",
+                                                "value_template": "\"@value@\""
+                                            }
+                                        },
+                                        {
+                                            "kind": "input",
+                                            "name": "Kubernetes access: access token",
+                                            "help": "Please enter the personal user access token.\n",
+                                            "action": {
+                                                "action": "replace",
+                                                "path": "token",
+                                                "value_template": "\"@value@\""
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    ]
                 },
                 "Digital Ocean": {
                     "kind": "seq",
@@ -182,9 +268,32 @@
                             ]
                         }
                     ],
-                    "steps": []
+                    "steps": [
+                        {
+                            "kind": "sub_interaction",
+                            "name": "DigitalOcean: more cluster tokens?",
+                            "help": "Do you have more cluster tokens to add?",
+                            "path": "digitalocean.api_tokens",
+                            "steps": [
+                                {
+                                    "kind": "input",
+                                    "name": "DigitalOcean: access token",
+                                    "help": "Please enter the token to access your account.\nYou can visit the following URL to retrieve the access token.",
+                                    "links": {
+                                        "DigitalOcean": "https://cloud.digitalocean.com/account/api/tokens"
+                                    },
+                                    "action": {
+                                        "action": "replace",
+                                        "path": "",
+                                        "value_template": "\"@value@\""
+                                    }
+                                }
+                            ]
+                        }
+                    ]
                 }
             }
         }
     ]
 }
+

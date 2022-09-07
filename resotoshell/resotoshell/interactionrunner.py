@@ -13,7 +13,7 @@ from cattrs import Converter, gen
 from resotoclient import ResotoClient
 
 from resotolib.types import Json, JsonElement
-from resotoshell.dialogs import CancelledException, ConversationFinishedException
+from resotoshell.dialogs import CancelledError, ConversationFinishedError
 from resotoshell.dialogs import (
     input_dialog,
     checkboxlist_dialog,
@@ -92,17 +92,18 @@ class PatchValueAction:
     path: str
     value_template: str
     action: JsonAction = JsonAction.replace
+    default: JsonElement = None
 
-    def render(self, value: Union[str, List[str]]) -> List[ActionResult]:
+    def render(self, value: Union[None, str, List[str]]) -> List[ActionResult]:
         def single(v: str) -> JsonElement:
             replaced = self.value_template.replace("@value@", str(v) if not isinstance(value, str) else value)
             return json.loads(replaced)  # type: ignore
 
         if value is None:
-            return []
+            js = None
         else:
             js = [single(v) for v in value] if isinstance(value, list) else single(value)
-            return [ActionResult(self.path, self.action, js)]
+        return [ActionResult(self.path, self.action, js)]
 
 
 @define
@@ -112,10 +113,10 @@ class OnlyIf(ABC):
         pass
 
     @staticmethod
-    def from_json_hook(converter: Converter) -> Callable[[Json, Any], OnlyIf]:
-        defined = gen.make_dict_structure_fn(OnlyIfDefined, converter)
-        undefined = gen.make_dict_structure_fn(OnlyIfUndefined, converter)
-        value = gen.make_dict_structure_fn(OnlyIfValue, converter)
+    def from_json_hook(cv: Converter) -> Callable[[Json, Any], OnlyIf]:
+        defined = gen.make_dict_structure_fn(OnlyIfDefined, cv)
+        undefined = gen.make_dict_structure_fn(OnlyIfUndefined, cv)
+        value = gen.make_dict_structure_fn(OnlyIfValue, cv)
 
         def from_json(js: Json, other: Any) -> OnlyIf:
             if js.get("kind") == "defined":
@@ -161,12 +162,40 @@ class Conversation:
     steps: List[Tuple[InteractionStep, List[ActionResult]]] = field(factory=list)
 
     def apply(self, step: InteractionStep, actions: List[ActionResult]) -> List[ActionResult]:
+        """
+        Apply the step and reflect the related changes in the json document.
+        """
         update = self.json_document.copy()
         for action in actions:
             update = action.render(update)
         self.json_document = update
         self.steps.append((step, actions))
         return actions
+
+    def skip(self, step: InteractionStep) -> None:
+        """
+        Skip the step and set the related patches to the default value.
+        This involves all transitives steps that are skipped with the current step.
+        """
+
+        def transitive_steps(s: InteractionStep) -> List[InteractionStep]:
+            si: List[InteractionStep] = [s]
+            if isinstance(s, (InteractionInput, InteractionInfo, SubInteraction)):
+                return si
+            elif isinstance(s, InteractionSequence):
+                return si + [b for a in s.steps for b in transitive_steps(a)]
+            elif isinstance(s, InteractionDecision):
+                return si + [b for a in s.step_options.values() for b in transitive_steps(a)]
+            else:
+                raise AttributeError(f"Don't know how to handle this step: {type(s)}")
+
+        # apply all skipped input steps with value None
+        for ts in transitive_steps(step):
+            if isinstance(ts, InteractionInput):
+                self.apply(ts, [ActionResult(ts.action.path, JsonAction.replace, ts.action.default)])
+            elif isinstance(ts, SubInteraction):
+                # set an empty array for the sub interaction path
+                self.apply(ts, [ActionResult(ts.path, JsonAction.replace, [])])
 
     def should_execute(self, step: InteractionStep) -> bool:
         return all(only_if.is_true(self.json_document) for only_if in (step.only_if or []))
@@ -180,6 +209,16 @@ class InteractionStep(ABC):
     id: Optional[str] = None
     only_if: Optional[List[OnlyIf]] = None
     is_terminal: bool = False
+    links: Optional[Dict[str, str]] = None  # Title -> URL
+
+    @property
+    def message(self) -> str:
+        result = self.help
+        if self.links:
+            result += "\n\n"
+            for title, url in self.links.items():
+                result += f"{title}: {url}\n"
+        return result
 
     @abstractmethod
     def execute(self, conversation: Conversation) -> List[ActionResult]:
@@ -190,24 +229,25 @@ class InteractionStep(ABC):
             actions = self.execute(conversation)
             result = conversation.apply(self, actions)
             if self.is_terminal:
-                raise ConversationFinishedException()
+                raise ConversationFinishedError()  # in case the step is terminal, we skip whatever comes next
             return result
         else:
+            conversation.skip(self)
             return []
 
     @staticmethod
-    def from_json_hook(converter: Converter) -> Callable[[Json, Any], InteractionStep]:
-        info = gen.make_dict_structure_fn(InteractionInfo, converter)
-        input = gen.make_dict_structure_fn(InteractionInput, converter)
-        sub = gen.make_dict_structure_fn(SubInteraction, converter)
-        seq = gen.make_dict_structure_fn(InteractionSequence, converter)
-        decision = gen.make_dict_structure_fn(InteractionDecision, converter)
+    def from_json_hook(cv: Converter) -> Callable[[Json, Any], InteractionStep]:
+        info = gen.make_dict_structure_fn(InteractionInfo, cv)
+        iinput = gen.make_dict_structure_fn(InteractionInput, cv)
+        sub = gen.make_dict_structure_fn(SubInteraction, cv)
+        seq = gen.make_dict_structure_fn(InteractionSequence, cv)
+        decision = gen.make_dict_structure_fn(InteractionDecision, cv)
 
         def from_json(js: Json, other: Any) -> InteractionStep:
             if js.get("kind") == "info":
                 return info(js, other)
             elif js.get("kind") == "input":
-                return input(js, other)
+                return iinput(js, other)
             elif js.get("kind") == "sub_interaction":
                 return sub(js, other)
             elif js.get("kind") == "seq":
@@ -224,7 +264,7 @@ class InteractionStep(ABC):
 class InteractionInfo(InteractionStep):
     def execute(self, conversation: Conversation) -> List[ActionResult]:
         result = super().execute(conversation)
-        message_dialog(title=self.name, text=self.help).run()
+        message_dialog(title=self.name, text=self.message).run()
         return result
 
 
@@ -237,32 +277,34 @@ class InteractionInput(InteractionStep):
     split_result_by: Optional[str] = None
     # if this field displays a password
     password: bool = False
+    # in case the value to enter should conform to a specific type
+    expected_type: Optional[str] = None
 
     def execute(self, conversation: Conversation) -> List[ActionResult]:
         base = super().execute(conversation)
-        result: Union[None, str, List[str]] = ""
+        result: Union[None, str, List[str]] = None
         if self.value_options is None:  # show simple text input field
             existing = value_in_path(conversation.json_document, self.action.path)
-            ex_str = ", ".join(existing) if isinstance(existing, list) else str(existing)
-            result = input_dialog(title=self.name, text=self.help, field_text=ex_str, password=self.password).run()
+            ex_str = ", ".join(existing) if isinstance(existing, list) else "" if existing is None else str(existing)
+            result = input_dialog(title=self.name, text=self.message, field_text=ex_str, password=self.password).run()
         else:
             width = reduce(lambda a, b: a + b, [len(a) for a in self.value_options])
 
             if width < 50:
                 result = button_dialog(
-                    title=self.name, text=self.help, buttons=[(k, v) for k, v in self.value_options.items()]
+                    title=self.name, text=self.message, buttons=[(k, v) for k, v in self.value_options.items()]
                 ).run()
             else:
                 result = radiolist_dialog(
-                    title=self.name, text=self.help, values=[(v, k) for k, v in self.value_options.items()]
+                    title=self.name, text=self.message, values=[(v, k) for k, v in self.value_options.items()]
                 ).run()
         if result is None:
-            raise CancelledException()
+            raise CancelledError()
         if split := self.split_result_by:
             result = re.split("\\s*" + re.escape(split) + "\\s*", result)
         else:
             result = None if result == "" else result  # interpret empty string as None
-        return base + self.action.render(result)  # type: ignore # it can not be None here
+        return base + self.action.render(result)
 
 
 @define(kw_only=True)
@@ -277,22 +319,28 @@ class InteractionDecision(InteractionStep):
             step_names = []
             if self.select_multiple:
                 step_names = checkboxlist_dialog(
-                    title=self.name, text=self.help, values=[(k, k) for k in self.step_options]
+                    title=self.name, text=self.message, values=[(k, k) for k in self.step_options]
                 ).run()
             else:
                 step_names = [
-                    radiolist_dialog(title=self.name, text=self.help, values=[(k, k) for k in self.step_options]).run()
+                    radiolist_dialog(
+                        title=self.name, text=self.message, values=[(k, k) for k in self.step_options]
+                    ).run()
                 ]
 
+            # safety check for the selection
             if step_names is None or any(s is None for s in step_names):
-                raise CancelledException()
+                raise CancelledError()
+
             try:
-                return base + [
-                    result
-                    for step_name in step_names
-                    for result in self.step_options[step_name].execute_step(conversation)
-                ]
-            except CancelledException:
+                actions = []
+                for name, step in self.step_options.items():
+                    if name in step_names:
+                        actions.extend(step.execute_step(conversation))
+                    else:
+                        conversation.skip(step)
+                return base + actions
+            except CancelledError:
                 pass  # user cancelled the sub dialog, represent the decision
 
 
@@ -302,10 +350,12 @@ class SubInteraction(InteractionStep):
     steps: List[InteractionStepUnion]
 
     def iterate(self, conversation: Conversation) -> Json:
-        js: Optional[Json] = None
+        js: Optional[Json] = {}
         for step in self.steps:
-            for result in step.execute_step(conversation):
-                js = result.render(js)
+            # we can not use the execute_step method here, since the result would be applied directly
+            if conversation.should_execute(step):
+                for result in step.execute(conversation):
+                    js = result.render(js)
         return js or {}
 
     def execute(self, conversation: Conversation) -> List[ActionResult]:
@@ -315,10 +365,10 @@ class SubInteraction(InteractionStep):
         while flag:
             try:
                 result_list.append(self.iterate(conversation))
-            except CancelledException:
+            except CancelledError:
                 pass
             # ask the user if he wants to do another
-            flag = yes_no_dialog(title=self.name, text=self.help).run()
+            flag = yes_no_dialog(title=self.name, text=self.message).run()
         return base + [ActionResult(self.path, JsonAction.replace, result_list)]
 
 
@@ -365,12 +415,12 @@ class InteractionRunner:
             try:
                 step.execute_step(conversation)
                 count += 1
-            except CancelledException:
+            except CancelledError:
                 # user cancelled this step, go back, if not already at the beginning
                 if count == 0:
                     raise
                 count -= 1
-            except ConversationFinishedException:
+            except ConversationFinishedError:
                 # terminal step reached for the current communication path. move on.
                 count += 1
         return conversation
@@ -384,7 +434,6 @@ class InteractionRunner:
 if __name__ == "__main__":
 
     with open(os.path.abspath(os.path.dirname(__file__) + "/../setup-wizard.json")) as f:
-        js = json.load(f)
-        interaction = Interaction.from_json(js)
-        runner = InteractionRunner(interaction, ResotoClient("https://localhost:8900", None))
+        ia = Interaction.from_json(json.load(f))
+        runner = InteractionRunner(ia, ResotoClient("https://localhost:8900", None))
         runner.run()
