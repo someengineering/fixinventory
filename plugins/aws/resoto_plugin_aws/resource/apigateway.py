@@ -146,6 +146,9 @@ class AwsApiGatewayMethod:
 class AwsApiGatewayResource(AwsResource):
     kind: ClassVar[str] = "aws_api_gateway_resource"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("apigateway", "get-resources", "items")
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {"default": ["aws_api_gateway_authorizer"]}
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "resource_parent_id": S("parentId"),
