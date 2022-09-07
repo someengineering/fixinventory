@@ -376,7 +376,7 @@ class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
     api_binary_media_types: List[str] = field(factory=list)
     api_minimum_compression_size: Optional[int] = field(default=None)
     api_key_source: Optional[str] = field(default=None)
-    api_endpoint_configuration: Optional[AwsApiGatewayEndpointConfiguration] = field(default=None)
+    api_endpoint_configuration: AwsApiGatewayEndpointConfiguration = field(default=None)
     api_policy: Optional[str] = field(default=None)
     api_disable_execute_api_endpoint: Optional[bool] = field(default=None)
 
@@ -427,14 +427,13 @@ class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
                 builder.add_edge(api_instance, EdgeType.default, node=resource_instance)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if self.api_endpoint_configuration:
-            for endpoint in self.api_endpoint_configuration.vpc_endpoint_ids:
-                builder.dependant_node(
-                    self,
-                    clazz=AwsEc2VpcEndpoint,
-                    delete_same_as_default=True,
-                    id=endpoint,
-                )
+        for endpoint in self.api_endpoint_configuration.vpc_endpoint_ids:
+            builder.dependant_node(
+                self,
+                clazz=AwsEc2VpcEndpoint,
+                delete_same_as_default=True,
+                id=endpoint,
+            )
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
@@ -497,7 +496,7 @@ class AwsApiGatewayDomainName(ApiGatewayTaggable, AwsResource):
     domain_regional_certificate_arn: Optional[str] = field(default=None)
     domain_distribution_domain_name: Optional[str] = field(default=None)
     domain_distribution_hosted_zone_id: Optional[str] = field(default=None)
-    domain_endpoint_configuration: Optional[AwsApiGatewayEndpointConfiguration] = field(default=None)
+    domain_endpoint_configuration: AwsApiGatewayEndpointConfiguration = field(default=None)
     domain_domain_name_status: Optional[str] = field(default=None)
     domain_domain_name_status_message: Optional[str] = field(default=None)
     domain_security_policy: Optional[str] = field(default=None)
@@ -512,14 +511,13 @@ class AwsApiGatewayDomainName(ApiGatewayTaggable, AwsResource):
                 delete_same_as_default=True,
                 id=self.domain_regional_hosted_zone_id,
             )
-        if self.domain_endpoint_configuration:
-            for endpoint in self.domain_endpoint_configuration.vpc_endpoint_ids:
-                builder.dependant_node(
-                    self,
-                    clazz=AwsEc2VpcEndpoint,
-                    delete_same_as_default=True,
-                    id=endpoint,
-                )
+        for endpoint in self.domain_endpoint_configuration.vpc_endpoint_ids:
+            builder.dependant_node(
+                self,
+                clazz=AwsEc2VpcEndpoint,
+                delete_same_as_default=True,
+                id=endpoint,
+            )
         # TODO add edge to ACM Certificates when applicable
 
 
