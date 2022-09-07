@@ -198,7 +198,7 @@ class AwsGlacierVault(AwsResource):
         for vault in json:
             vault_instance = cls.from_api(vault)
             builder.add_node(vault_instance, vault)
-            builder.submit_work_shared_pool(add_tags, vault_instance)
+            builder.submit_work(add_tags, vault_instance)
             for job in builder.client.list("glacier", "list-jobs", "JobList", vaultName=vault_instance.name):
                 job_instance = AwsGlacierJob.from_api(job)
                 builder.add_node(job_instance, job)

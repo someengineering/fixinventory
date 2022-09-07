@@ -386,18 +386,19 @@ class DigitalOceanTeamCollector:
                     if isinstance(value, List):
                         values = value
                         for value in values:
-                            resource_instance.add_deferred_connection(  # type: ignore
-                                attr,
-                                value,
-                                is_parent,  # type: ignore
+                            resource_instance.add_deferred_connection(
+                                {attr: value},
+                                is_parent,
                                 edge_type=edge_type,
                             )
                     elif isinstance(value, str):
-                        resource_instance.add_deferred_connection(  # type: ignore
-                            attr, value, is_parent, edge_type=edge_type  # type: ignore
+                        resource_instance.add_deferred_connection(
+                            {attr: value},
+                            is_parent,
+                            edge_type=edge_type,
                         )
                     else:
-                        log.error(("Unable to add deferred connection for" f" value {value} of type {type(value)}"))
+                        log.error("Unable to add deferred connection for" f" value {value} of type {type(value)}")
 
             def add_edge(search_map_key: str, is_parent: bool) -> None:
                 srs = search_results[search_map_key]

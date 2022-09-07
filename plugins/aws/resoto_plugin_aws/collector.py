@@ -148,20 +148,24 @@ class AwsAccountCollector:
             log.info(f"[Aws][{self.account.id} Collecting resources done.")
 
     def collect_region(self, region: AwsRegion, global_builder: GraphBuilder) -> None:
+        def collect_resource(resource: Type[AwsResource], rb: GraphBuilder) -> None:
+            resource.collect_resources(rb)
+            log.info(f"[Aws][{self.account.id}][{region.name}] finished collecting: {resource.kind}")
+
         try:
             regional_thread_name = f"aws_{self.account.id}_{region.id}"
             set_thread_name(regional_thread_name)
             with ThreadPoolExecutor(
-                thread_name_prefix=regional_thread_name,
-                max_workers=self.config.region_resources_pool_size,
+                thread_name_prefix=regional_thread_name, max_workers=self.config.region_resources_pool_size
             ) as executor:
-                queue = ExecutorQueue(executor, region.name)
+                # In case an exception is thrown for any resource, we should give up as quick as possible.
+                queue = ExecutorQueue(executor, region.name, fail_on_first_exception=True)
                 global_builder.add_node(region)
-                region_builder = global_builder.for_region(region, queue)
-                for resource in regional_resources:
-                    if self.config.should_collect(resource.kind):
-                        resource.collect_resources(region_builder)
-                        log.info(f"[Aws][{self.account.id}][{region.name}] finished collecting: {resource.kind}")
+                region_builder = global_builder.for_region(region)
+                for res in regional_resources:
+                    if self.config.should_collect(res.kind):
+                        queue.submit_work(collect_resource, res, region_builder)
+                queue.wait_for_submitted_work()
         except ClientError as e:
             code = e.response["Error"]["Code"]
             if code == "UnauthorizedOperation":

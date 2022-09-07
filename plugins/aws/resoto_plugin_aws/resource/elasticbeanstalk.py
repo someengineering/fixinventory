@@ -99,7 +99,7 @@ class AwsBeanstalkApplication(AwsResource):
         for js in json:
             instance = cls.from_api(js)
             builder.add_node(instance, js)
-            builder.submit_work_shared_pool(add_tags, instance)
+            builder.submit_work(add_tags, instance)
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(
@@ -282,7 +282,7 @@ class AwsBeanstalkEnvironment(AwsResource):
         for js in json:
             instance = cls.from_api(js)
             builder.add_node(instance, js)
-            builder.submit_work_shared_pool(add_tags, instance)
+            builder.submit_work(add_tags, instance)
             builder.submit_work(add_resources, instance)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:

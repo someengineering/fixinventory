@@ -3,13 +3,13 @@ from __future__ import annotations
 import concurrent
 import logging
 from abc import ABC
-from concurrent.futures import Executor, Future, ThreadPoolExecutor
+from concurrent.futures import Executor, Future
 from datetime import datetime, timezone
 from functools import lru_cache
 from threading import Lock
 from typing import ClassVar, Dict, Optional, List, Type, Any, TypeVar, Callable
 
-from attr import evolve
+from attr import evolve, field
 from attrs import define
 from boto3.exceptions import Boto3Error
 
@@ -265,20 +265,30 @@ T = TypeVar("T")
 class ExecutorQueue:
     executor: Executor
     name: str
-    futures: List[Future[Any]] = []
+    fail_on_first_exception: bool = False
+    futures: List[Future[Any]] = field(factory=list)
     _lock: Lock = Lock()
+    _exception: Optional[Exception] = None
 
     def submit_work(self, fn: Callable[..., T], *args: Any, **kwargs: Any) -> Future[T]:
-        future = self.executor.submit(fn, *args, **kwargs)
+        def do_work() -> T:
+            # in case we should fail on first future, let's fail fast and do not execute the function
+            if self._exception is None:
+                try:
+                    return fn(*args, **kwargs)
+                except Exception as e:
+                    # only store the first exception if we should fail on first future
+                    if self.fail_on_first_exception:
+                        self._exception = e
+                    raise e
+            else:
+                # rethrow the exception raised in another thread
+                raise self._exception
+
+        future = self.executor.submit(do_work)
+
         with self._lock:
             self.futures.append(future)
-        return future
-
-    def submitted_work(self) -> Future[None]:
-        # separate threadpool to avoid deadlocks
-        pool = ThreadPoolExecutor(max_workers=1)
-        future = pool.submit(self.wait_for_submitted_work)
-        future.add_done_callback(lambda f: pool.shutdown())
         return future
 
     def wait_for_submitted_work(self) -> None:
@@ -302,8 +312,7 @@ class GraphBuilder:
         account: AwsAccount,
         region: AwsRegion,
         client: AwsClient,
-        global_executor: ExecutorQueue,
-        region_executor: Optional[ExecutorQueue] = None,
+        executor: ExecutorQueue,
         global_instance_types: Optional[Dict[str, Any]] = None,
     ) -> None:
         self.graph = graph
@@ -311,24 +320,16 @@ class GraphBuilder:
         self.account = account
         self.region = region
         self.client = client
-        self.global_executor = global_executor
-        self.region_executor = region_executor
+        self.executor = executor
         self.name = f"AWS:{account.name}:{region.name}"
         self.global_instance_types: Dict[str, Any] = global_instance_types or {}
 
-    def submit_work(self, fn: Callable[..., T], *args: Any, **kwargs: Any) -> Future[T]:
+    def submit_work(self, fn: Callable[..., None], *args: Any, **kwargs: Any) -> Future[Any]:
         """
-        Use this method as default for submitting work. It uses a regional pool of resources that tries to
-        behave nicely with respect to other users of the cloud (e.g. limit the requests that are done in parallel).
-        """
-        return (self.region_executor or self.global_executor).submit_work(fn, *args, **kwargs)
-
-    def submit_work_shared_pool(self, fn: Callable[..., None], *args: Any, **kwargs: Any) -> Future[Any]:
-        """
-        Use this method for work that can be done in parallel more aggressively than the default.
+        Use this method for work that can be done in parallel.
         Example: fetching tags of a resource.
         """
-        return self.global_executor.submit_work(fn, *args, **kwargs)
+        return self.executor.submit_work(fn, *args, **kwargs)
 
     @property
     def config(self) -> AwsConfig:
@@ -395,18 +396,13 @@ class GraphBuilder:
         self.add_node(vt, {})
         return vt
 
-    def for_region(
-        self,
-        region: AwsRegion,
-        region_executor: ExecutorQueue,
-    ) -> GraphBuilder:
+    def for_region(self, region: AwsRegion) -> GraphBuilder:
         return GraphBuilder(
             self.graph,
             self.cloud,
             self.account,
             region,
             self.client.for_region(region.name),
-            self.global_executor,
-            region_executor,
+            self.executor,
             self.global_instance_types,
         )

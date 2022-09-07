@@ -314,8 +314,9 @@ class AwsDynamoDbTable(DynamoDbTaggable, AwsResource):
             if tags:
                 table.tags = bend(ToDict(), tags)
 
-        for table in json:
-            builder.submit_work(add_instance, table)
+        for js in json:
+            if isinstance(js, str):
+                add_instance(js)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.dynamodb_latest_stream_arn:
@@ -388,8 +389,8 @@ class AwsDynamoDbGlobalTable(DynamoDbTaggable, AwsResource):
             if tags:
                 table.tags = bend(ToDict(), tags)
 
-        for table in json:
-            builder.submit_work(add_instance, table)
+        for js in json:
+            add_instance(js)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.dynamodb_replication_group is not []:
