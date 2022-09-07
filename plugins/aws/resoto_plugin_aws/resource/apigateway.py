@@ -350,17 +350,6 @@ class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
             "delete": ["aws_vpc_endpoint"],
         }
     }
-
-    @classmethod
-    def called_apis(cls) -> List[AwsApiSpec]:
-        return [
-            cls.api_spec,
-            AwsApiSpec("apigateway", "get-deployments"),
-            AwsApiSpec("apigateway", "get-stages"),
-            AwsApiSpec("apigateway", "get-authorizers"),
-            AwsApiSpec("apigateway", "get-resources"),
-        ]
-
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "name": S("name"),
@@ -385,6 +374,16 @@ class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
     api_endpoint_configuration: Optional[AwsApiGatewayEndpointConfiguration] = field(default=None)
     api_policy: Optional[str] = field(default=None)
     api_disable_execute_api_endpoint: Optional[bool] = field(default=None)
+
+    @classmethod
+    def called_apis(cls) -> List[AwsApiSpec]:
+        return [
+            cls.api_spec,
+            AwsApiSpec("apigateway", "get-deployments"),
+            AwsApiSpec("apigateway", "get-stages"),
+            AwsApiSpec("apigateway", "get-authorizers"),
+            AwsApiSpec("apigateway", "get-resources"),
+        ]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
