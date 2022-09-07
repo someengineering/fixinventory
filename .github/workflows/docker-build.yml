@@ -424,7 +424,7 @@ jobs:
           yarn install --frozen-lockfile
           yarn format
 
-      - name: Create pull request
+      - name: Create someengineering/resoto.com pull request
         uses: peter-evans/create-pull-request@v4
         if: steps.release_type.outputs.prerelease == 'false'
         env:
@@ -435,6 +435,69 @@ jobs:
           title: "feat(news): v${{ steps.release_notes.outputs.tag }} release notes"
           body: |
             Adds automatically generated release notes for [v${{ steps.release_notes.outputs.tag }}](https://github.com/someengineering/resoto/releases/tag/${{ steps.release_notes.outputs.tag }}).
+          labels: |
+            🤖 bot
+          branch: release/v${{ steps.release_notes.outputs.tag }}
+          delete-branch: true
+          token: ${{ secrets.SOME_CI_PAT }}
+          committer: C.K. <98986935+some-ci@users.noreply.github.com>
+          author: C.K. <98986935+some-ci@users.noreply.github.com>
+
+      - name: Check out someengineering/helm-charts
+        uses: actions/checkout@v3
+        if: steps.release_type.outputs.prerelease == 'false'
+        with:
+          repository: someengineering/helm-charts
+          path: helm-charts
+          token: ${{ secrets.SOME_CI_PAT }}
+
+      - name: Get current chart version
+        id: current_chart_version
+        uses: mikefarah/yq@master
+        if: steps.release_type.outputs.prerelease == 'false'
+        with:
+          cmd: yq '.version' helm-charts/charts/resoto/Chart.yaml
+
+      - name: Get new chart version
+        id: new_chart_version
+        uses: WyriHaximus/github-action-next-semvers@v1
+        if: steps.release_type.outputs.prerelease == 'false'
+        with:
+          version: ${{ steps.current_chart_version.outputs.result }}
+
+      - name: Update appVersion and bump chart version
+        uses: mikefarah/yq@master
+        if: steps.release_type.outputs.prerelease == 'false'
+        with:
+          cmd: yq e -i '.version = "${{ steps.new_chart_version.outputs.patch }}" | .appVersion = "${{ steps.release_notes.outputs.tag }}"' helm-charts/charts/resoto/Chart.yaml
+
+      - name: Set up Helm
+        if: steps.release_type.outputs.prerelease == 'false'
+        uses: azure/setup-helm@v1
+        with:
+          version: v3.8.1
+
+      - name: Install helm-docs
+        if: steps.release_type.outputs.prerelease == 'false'
+        uses: supplypike/setup-bin@v1
+        with:
+          uri: https://github.com/norwoodj/helm-docs/releases/download/v1.11.0/helm-docs_1.11.0_Linux_x86_64.tar.gz
+          name: helm-docs
+          version: "1.11.0"
+
+      - name: Generate helm-charts README.md
+        if: steps.release_type.outputs.prerelease == 'false'
+        run: (cd helm-charts && helm-docs)
+
+      - name: Create someengineering/helm-charts pull request
+        uses: peter-evans/create-pull-request@v4
+        if: steps.release_type.outputs.prerelease == 'false'
+        with:
+          path: helm-charts
+          commit-message: "chore: bump appVersion to ${{ steps.release_notes.outputs.tag }}"
+          title: "chore: bump appVersion to ${{ steps.release_notes.outputs.tag }}"
+          body: |
+            Bumps Resoto version to [${{ steps.release_notes.outputs.tag }}](https://github.com/someengineering/resoto/releases/tag/${{ steps.release_notes.outputs.tag }}).
           labels: |
             🤖 bot
           branch: release/v${{ steps.release_notes.outputs.tag }}
