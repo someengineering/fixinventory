@@ -276,6 +276,7 @@ models: Dict[str, List[AwsResotoModel]] = {
         # AwsResotoModel("get-resources", "items", "Resource", prefix="ApiGateway"),
         # AwsResotoModel("get-domain-names", "items", "DomainName", prefix="ApiGateway"),
         # AwsResotoModel("get-client-certificates", "items", "ClientCertificate", prefix="ApiGateway"),
+        AwsResotoModel("get-domain-names", "items", "DomainName", prefix="ApiGateway", prop_prefix="domain_")
     ],
     "apigatewayv2": [
         # AwsResotoModel("get-domain-names", "Items", "DomainName", prefix="ApiGatewayV2"),
@@ -556,7 +557,7 @@ models: Dict[str, List[AwsResotoModel]] = {
         #     prefix="Lambda",
         #     prop_prefix="function_",
         # )
-        AwsResotoModel("get-policy", "Policy", "GetPolicyResponse", prefix="Lambda", prop_prefix="policy_")
+        # AwsResotoModel("get-policy", "Policy", "GetPolicyResponse", prefix="Lambda", prop_prefix="policy_")
     ],
     "iam": [
         # AwsResotoModel(

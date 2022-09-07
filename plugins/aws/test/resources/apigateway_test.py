@@ -3,7 +3,7 @@ from types import SimpleNamespace
 from typing import Any, Dict, cast
 from resoto_plugin_aws.aws_client import AwsClient
 from test.resources import round_trip_for
-from resoto_plugin_aws.resource.apigateway import AwsApiGatewayRestApi
+from resoto_plugin_aws.resource.apigateway import AwsApiGatewayRestApi, AwsApiGatewayDomainName
 
 
 def test_rest_apis() -> None:
@@ -49,3 +49,8 @@ def test_delete_api() -> None:
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
     api.delete_resource(client)
+
+def test_domain_names() -> None:
+    api, builder = round_trip_for(AwsApiGatewayDomainName)
+    assert len(builder.resources_of(AwsApiGatewayDomainName)) == 1
+    assert len(api.tags) == 1
