@@ -1,0 +1,31 @@
+{
+    "position": "string",
+    "items": [
+        {
+            "id": "seg4sg36",
+            "description": "string",
+            "createdDate": "2015-12-02T23:29:00Z",
+            "apiSummary": {
+                "string": {
+                    "string": {
+                        "authorizationType": "CUSTOM",
+                        "apiKeyRequired": true
+                    }
+                }
+            }
+        },
+        {
+            "id": "s8765",
+            "description": "string",
+            "createdDate": "2015-12-02T23:29:00Z",
+            "apiSummary": {
+                "string": {
+                    "string": {
+                        "authorizationType": "CUSTOM",
+                        "apiKeyRequired": true
+                    }
+                }
+            }
+        }
+    ]
+}

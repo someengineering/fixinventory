@@ -1,0 +1,24 @@
+
+{
+    "Policy": {
+        "Version": "2012-10-17",
+        "Id": "default",
+        "Statement": [
+          {
+            "Sid": "lambda-d68dc291-7910-4a7b-92c6-34164dda74cc",
+            "Effect": "Allow",
+            "Principal": {
+              "Service": "apigateway.amazonaws.com"
+            },
+            "Action": "lambda:InvokeFunction",
+            "Resource": "arn:aws:lambda:eu-central-1:1234:function:test",
+            "Condition": {
+              "ArnLike": {
+                "AWS:SourceArn": "arn:aws:execute-api:eu-central-1:1234:2lsd9i45ub/*/*/test"
+              }
+            }
+          }
+        ]
+      },
+    "RevisionId": "f1650b90-6215-4331-844d-bf34d9b3094a"
+}
