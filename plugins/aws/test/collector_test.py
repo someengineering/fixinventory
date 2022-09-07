@@ -25,8 +25,6 @@ def test_collect(account_collector: AwsAccountCollector) -> None:
                 count += 1
         return count
 
-    assert len(account_collector.graph.edges) == 342
-    assert count_kind(AwsResource) == 135
     to_ignore = {AwsIamServiceQuota}
     for resource in all_resources:
         if resource in to_ignore:
@@ -36,8 +34,8 @@ def test_collect(account_collector: AwsAccountCollector) -> None:
     # make sure all threads have been joined
     assert len(threading.enumerate()) == 1
     # ensure the correct number of nodes and edges
-    assert count_kind(AwsResource) == 129
-    assert len(account_collector.graph.edges) == 324
+    assert count_kind(AwsResource) == 135
+    assert len(account_collector.graph.edges) == 342
 
 
 def test_dependencies() -> None:

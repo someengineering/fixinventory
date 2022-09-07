@@ -246,7 +246,7 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
         for js in json:
             instance = cls.from_api(js)
             builder.add_node(instance, js)
-            builder.submit_work_shared_pool(add_tags, instance)
+            builder.submit_work(add_tags, instance)
             for policy in builder.client.list("lambda", "get-policy", FunctionName=instance.name, result_name=None):
                 if policy:
                     mapped = bend(AwsLambdaGetPolicyResponse.mapping, policy)
