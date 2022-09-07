@@ -87,7 +87,7 @@ class AwsRoute53Zone(AwsResource, BaseDNSZone):
         for js in json:
             zone: AwsRoute53Zone = cast(AwsRoute53Zone, cls.from_api(js))
             builder.add_node(zone, js)
-            builder.submit_work_shared_pool(add_tags, zone)
+            builder.submit_work(add_tags, zone)
             for rs_js in builder.client.list(
                 "route53", "list-resource-record-sets", "ResourceRecordSets", HostedZoneId=zone.id
             ):

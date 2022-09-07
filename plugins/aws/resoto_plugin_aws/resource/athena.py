@@ -10,7 +10,6 @@ from resotolib.types import Json
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.utils import ToDict
 from typing import Type, cast
-import concurrent.futures
 from resoto_plugin_aws.utils import arn_partition
 
 
@@ -116,15 +115,12 @@ class AwsAthenaWorkGroup(AwsResource):
             if tags:
                 data_catalog.tags = bend(S("Tags", default=[]) >> ToDict(), tags[0])
 
-        workgroups = [
-            builder.submit_work(fetch_workgroup, workgroup.get("Name")) for workgroup in json if workgroup.get("Name")
-        ]
-
-        for wgf in concurrent.futures.as_completed(workgroups):
-            wg = wgf.result()
-            if wg is not None:
-                builder.add_node(wg)
-                builder.submit_work(add_tags, wg)
+        for js in json:
+            if (name := js.get("Name")) is not None and isinstance(name, str):
+                wg = fetch_workgroup(name)
+                if wg is not None:
+                    builder.add_node(wg)
+                    builder.submit_work(add_tags, wg)
 
     # noinspection PyUnboundLocalVariable
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
@@ -213,17 +209,12 @@ class AwsAthenaDataCatalog(AwsResource):
             if tags:
                 data_catalog.tags = bend(S("Tags", default=[]) >> ToDict(), tags[0])
 
-        data_catalogs = [
-            builder.submit_work(fetch_data_catalog, data_catalog.get("CatalogName"))
-            for data_catalog in json
-            if data_catalog.get("CatalogName")
-        ]
-
-        for catalog_future in concurrent.futures.as_completed(data_catalogs):
-            catalog = catalog_future.result()
-            if catalog is not None:
-                builder.add_node(catalog)
-                builder.submit_work(add_tags, catalog)
+        for js in json:
+            if (name := js.get("CatalogName")) is not None and isinstance(name, str):
+                catalog = fetch_data_catalog(name)
+                if catalog is not None:
+                    builder.add_node(catalog)
+                    builder.submit_work(add_tags, catalog)
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(

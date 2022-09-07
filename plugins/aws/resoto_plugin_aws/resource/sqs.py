@@ -82,7 +82,7 @@ class AwsSqsQueue(AwsResource):
                 ).isoformat()
                 instance = cls.from_api(queue_attributes)
                 builder.add_node(instance)
-                builder.submit_work_shared_pool(add_tags, instance)
+                builder.submit_work(add_tags, instance)
 
         def add_tags(queue: AwsSqsQueue) -> None:
             tags = builder.client.list("sqs", "list-queue-tags", result_name="Tags", QueueUrl=[queue.sqs_queue_url])
@@ -90,7 +90,8 @@ class AwsSqsQueue(AwsResource):
                 queue.tags = cast(Dict[str, Optional[str]], tags)
 
         for queue_url in json:
-            builder.submit_work(add_instance, queue_url)
+            if isinstance(queue_url, str):
+                add_instance(queue_url)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.sqs_kms_master_key_id:

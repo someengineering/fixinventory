@@ -1,5 +1,6 @@
 import json
 import logging
+import threading
 from typing import Type
 
 from _pytest.logging import LogCaptureFixture
@@ -24,13 +25,17 @@ def test_collect(account_collector: AwsAccountCollector) -> None:
                 count += 1
         return count
 
-    assert len(account_collector.graph.edges) == 324
-    assert count_kind(AwsResource) == 129
     to_ignore = {AwsIamServiceQuota}
     for resource in all_resources:
         if resource in to_ignore:
             continue
         assert count_kind(resource) > 0, "No instances of {} found".format(resource.__name__)
+
+    # make sure all threads have been joined
+    assert len(threading.enumerate()) == 1
+    # ensure the correct number of nodes and edges
+    assert count_kind(AwsResource) == 129
+    assert len(account_collector.graph.edges) == 324
 
 
 def test_dependencies() -> None:
