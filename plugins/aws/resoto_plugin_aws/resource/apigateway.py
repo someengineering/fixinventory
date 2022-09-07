@@ -464,7 +464,7 @@ class AwsApiGatewayDomainName(ApiGatewayTaggable, AwsResource):
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("apigateway", "get-domain-names", "items")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"delete": ["aws_route53_zone"]},
-        "successors": {"default": ["aws_route53_zone"]},
+        "successors": {"default": ["aws_route53_zone", "aws_vpc_endpoint"], "delete": ["aws_vpc_endpoint"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("domainName"),
