@@ -375,6 +375,20 @@
                     ]
                 }
             }
+        },
+        {
+            "kind": "info",
+            "name": "Resoto: configuration summary",
+            "help": "You made it!\nConfiguration is now getting updated and a collection run is triggered.\n",
+            "commands": [
+                {"kind":  "put_config"},
+                {"kind":  "execute", "command": "workflows run collect"}
+            ]
+        },
+        {
+            "kind": "progress",
+            "name": "Resoto: Collect",
+            "help": "Resoto is now connecting to the cloud providers you have configured and collects resource data.\nThis may take a while, depending on the number of accounts, regions and amount of data to collect."
         }
     ]
 }

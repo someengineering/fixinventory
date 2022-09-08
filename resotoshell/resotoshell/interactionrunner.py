@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import time
 from abc import ABC, abstractmethod
 from enum import Enum, unique
 from functools import reduce
@@ -14,7 +15,7 @@ from resotoclient import ResotoClient
 
 from resotolib.logger import log
 from resotolib.types import Json, JsonElement
-from resotoshell.dialogs import CancelledError, ConversationFinishedError, AbortError
+from resotoshell.dialogs import CancelledError, ConversationFinishedError, AbortError, progress_dialog
 from resotoshell.dialogs import (
     input_dialog,
     checkboxlist_dialog,
@@ -184,8 +185,45 @@ class OnlyIfUndefined(OnlyIf):
 
 
 @define
+class ExecuteCommand(ABC):
+    def execute(self, cv: Conversation) -> JsonElement:
+        pass
+
+    @staticmethod
+    def from_json_hook(cv: Converter) -> Callable[[Json, Any], ExecuteCommand]:
+        execute = gen.make_dict_structure_fn(ExecuteCLICommand, cv)
+        put_config = gen.make_dict_structure_fn(PutConfiguration, cv)
+
+        def from_json(js: Json, other: Any) -> ExecuteCommand:
+            if js.get("kind") == "execute":
+                return execute(js, other)
+            elif js.get("kind") == "put_config":
+                return put_config(js, other)
+            else:
+                raise AttributeError(f"Don't know how to handle this step: {js}")
+
+        return from_json
+
+
+@define
+class ExecuteCLICommand(ExecuteCommand):
+    command: str
+
+    def execute(self, cv: Conversation) -> JsonElement:
+        return list(cv.client.cli_execute(self.command))
+
+
+@define
+class PutConfiguration(ExecuteCommand):
+    def execute(self, cv: Conversation) -> JsonElement:
+        return cv.client.put_config(cv.interaction.config, cv.json_document)  # type: ignore
+
+
+@define
 class Conversation:
+    interaction: Interaction
     json_document: Json
+    client: ResotoClient
     steps: List[Tuple[InteractionStep, List[ActionResult]]] = field(factory=list)
 
     def apply(self, step: InteractionStep, actions: List[ActionResult]) -> List[ActionResult]:
@@ -197,6 +235,10 @@ class Conversation:
             update = action.render(update)
         self.json_document = update
         self.steps.append((step, actions))
+        for cmd in step.commands:
+            exec_result = cmd.execute(self)
+            log.debug(f"Result of command {cmd} is {exec_result}")
+
         return actions
 
     def skip(self, step: InteractionStep) -> None:
@@ -237,6 +279,7 @@ class InteractionStep(ABC):
     only_if: Optional[List[OnlyIf]] = None
     is_terminal: bool = False
     links: Optional[Dict[str, str]] = None  # Title -> URL
+    commands: List[ExecuteCommand] = field(factory=list)
 
     @property
     def message(self) -> str:
@@ -269,6 +312,7 @@ class InteractionStep(ABC):
         sub = gen.make_dict_structure_fn(SubInteraction, cv)
         seq = gen.make_dict_structure_fn(InteractionSequence, cv)
         decision = gen.make_dict_structure_fn(InteractionDecision, cv)
+        progress = gen.make_dict_structure_fn(InteractionProgress, cv)
 
         def from_json(js: Json, other: Any) -> InteractionStep:
             if js.get("kind") == "info":
@@ -281,10 +325,37 @@ class InteractionStep(ABC):
                 return seq(js, other)
             elif js.get("kind") == "decision":
                 return decision(js, other)
+            elif js.get("kind") == "progress":
+                return progress(js, other)
             else:
                 raise AttributeError(f"Don't know how to handle this step: {js}")
 
         return from_json
+
+
+class InteractionProgress(InteractionStep):
+    def execute(self, conversation: Conversation) -> List[ActionResult]:
+        def update_progress(progress: Callable[[int], None], text: Callable[[str], None]) -> None:
+            start = int(time.time())
+            last_check: float = start
+            text("Collecting data... hang tight!")
+            while True:
+                now = time.time()
+                # 10 ticks / second
+                progress(int((now - start) * 10) % 99)
+                # only check every 1 second
+                if (now - last_check) > 1:
+                    last_check = now
+                    running = list(conversation.client.cli_execute("workflows running"))
+                    if not running:
+                        progress(100)
+                        text("Collecting data is done!")
+                        break
+                time.sleep(0.1)
+
+        progress_dialog(self.name, self.message, update_progress).run()
+
+        return []
 
 
 @define(kw_only=True)
@@ -416,6 +487,7 @@ InteractionStepUnion = Union[
 converter = Converter()
 converter.register_structure_hook(JsonElement, lambda a, x: a)  # type: ignore
 converter.register_structure_hook(OnlyIf, OnlyIf.from_json_hook(converter))
+converter.register_structure_hook(ExecuteCommand, ExecuteCommand.from_json_hook(converter))
 converter.register_structure_hook(InteractionStep, InteractionStep.from_json_hook(converter))
 
 
@@ -436,7 +508,7 @@ class InteractionRunner:
 
     def interact(self, original: Json) -> Conversation:
         count = 0
-        conversation = Conversation(original)
+        conversation = Conversation(self.interaction, original, self.client)
 
         while count < len(self.interaction.steps):
             step = self.interaction.steps[count]
@@ -456,8 +528,20 @@ class InteractionRunner:
     def run(self) -> None:
         try:
             orig = self.client.config(self.interaction.config)
-            conversation = self.interact(orig)
-            self.client.put_config(self.interaction.config, conversation.json_document)
+        except Exception:
+            log.info(f"Configuration {self.interaction.config} not found. Give up.")
+            message_dialog(
+                "Error",
+                f"Can not find the configuration {self.interaction.config}.\n"
+                "This usually indicates, that the installation has not been completed correctly.\n"
+                "In case you removed a configuration manually, you need to restart the respective component,\n"
+                "so a default configuration will be created.\n\n",
+                "Please try again later, when this issue is resolved.",
+            ).run()
+            return
+
+        try:
+            self.interact(orig)
         except (CancelledError, AbortError):
             log.info("User cancelled the dialog - no changes are propagated.")
 
