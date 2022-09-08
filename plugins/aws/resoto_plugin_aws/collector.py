@@ -48,8 +48,8 @@ global_resources: List[Type[AwsResource]] = (
     + service_quotas.global_resources
 )
 regional_resources: List[Type[AwsResource]] = (
-    # apigateway.resources
-    autoscaling.resources
+    apigateway.resources
+    + autoscaling.resources
     + athena.resources
     + cloudformation.resources
     + cloudwatch.resources
