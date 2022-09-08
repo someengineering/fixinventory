@@ -4,17 +4,17 @@ import json
 import os
 import re
 from abc import ABC, abstractmethod
-from contextlib import suppress
 from enum import Enum, unique
 from functools import reduce
-from typing import Optional, List, Dict, Any, Tuple, Union, Callable
+from typing import Optional, List, Dict, Any, Tuple, Union, Callable, Sized
 
 from attr import define, field
 from cattrs import Converter, gen
 from resotoclient import ResotoClient
 
+from resotolib.logger import log
 from resotolib.types import Json, JsonElement
-from resotoshell.dialogs import CancelledError, ConversationFinishedError
+from resotoshell.dialogs import CancelledError, ConversationFinishedError, AbortError
 from resotoshell.dialogs import (
     input_dialog,
     checkboxlist_dialog,
@@ -150,21 +150,20 @@ class OnlyIfLen(OnlyIf):
     value: int
 
     def is_true(self, js: Json) -> bool:
-        l = 0
-        with suppress(Exception):
-            l = len(value_in_path(js, self.path))
+        val = value_in_path(js, self.path)
+        ll = len(val) if isinstance(val, Sized) else 0
         if self.op in ("=", "=="):
-            return l == self.value
+            return ll == self.value
         elif self.op == ">":
-            return l > self.value
+            return ll > self.value
         elif self.op == ">=":
-            return l >= self.value
+            return ll >= self.value
         elif self.op == "<":
-            return l < self.value
+            return ll < self.value
         elif self.op == "<=":
-            return l <= self.value
+            return ll <= self.value
         else:
-            return False
+            raise AttributeError(f"Don't know how to handle this operator: {self.op}")
 
 
 @define
@@ -455,9 +454,12 @@ class InteractionRunner:
         return conversation
 
     def run(self) -> None:
-        orig = self.client.config(self.interaction.config)
-        conversation = self.interact(orig)
-        self.client.put_config(self.interaction.config, conversation.json_document)
+        try:
+            orig = self.client.config(self.interaction.config)
+            conversation = self.interact(orig)
+            self.client.put_config(self.interaction.config, conversation.json_document)
+        except (CancelledError, AbortError):
+            log.info("User cancelled the dialog - no changes are propagated.")
 
 
 if __name__ == "__main__":

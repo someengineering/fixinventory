@@ -4,7 +4,7 @@
         {
             "kind": "info",
             "name": "Resoto",
-            "help": "Welcome to Resoto!\n\nThis wizard will setup your system."
+            "help": "Welcome to Resoto!\n\nThis wizard will help you setting up your installation.\n\nYou can navigate through the steps using the mouse or buttons:\nUp/Down + Space: change a selection.\nTab/Shift+Tab: go to the next/previous element\nEsc: Go back one decision.\nF4: to exit the wizard at any time."
         },
         {
             "kind": "decision",
@@ -35,12 +35,18 @@
                                 "Resoto is running on a machine with a configured InstanceProfile": {
                                     "kind": "info",
                                     "name": "InstanceProfile",
-                                    "help": "Using an instance profile does not require any additional configuration. You are all set!"
+                                    "help": "Using an instance profile does not require any additional configuration.\nPlease make sure the permissions are set correctly in IAM for the instance ResotoWorker is running on.",
+                                    "links": {
+                                        "AWS Instance Profile": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2_instance-profiles.html"
+                                    }
                                 },
                                 "AWS access environment variables are provided to Resoto": {
                                     "kind": "info",
                                     "name": "Environment Variables",
-                                    "help": "Using environment variables does not require any additional configuration. You are all set!"
+                                    "help": "Using environment variables does not require any additional configuration.\nPlease make sure the variables are available to the ResotoWorker process.",
+                                    "links": {
+                                        "AWS Access": "https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html#environment-variables"
+                                    }
                                 },
                                 "I have an AWS AccessKey and Secret Key": {
                                     "kind": "seq",
