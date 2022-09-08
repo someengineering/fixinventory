@@ -96,8 +96,12 @@ class AwsServiceQuota(AwsResource, BaseQuota):
 
     @classmethod
     def collect_resources(cls: Type[AwsResource], builder: GraphBuilder) -> None:
-        for service, ms in CollectQuotas.items():
-            AwsServiceQuota.collect_service(service, ms, builder)
+        if builder.region.name == "global":
+            for service, ms in CollectIamQuotas.items():
+                AwsServiceQuota.collect_service(service, ms, builder)
+        else:
+            for service, ms in CollectQuotas.items():
+                AwsServiceQuota.collect_service(service, ms, builder)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
@@ -135,14 +139,6 @@ class AwsServiceQuota(AwsResource, BaseQuota):
             TagKeys=[key],
         )
         return True
-
-
-@define(eq=False, slots=False)
-class AwsIamServiceQuota(AwsServiceQuota):
-    @classmethod
-    def collect_resources(cls: Type[AwsResource], builder: GraphBuilder) -> None:
-        for service, ms in CollectIamQuotas.items():
-            AwsServiceQuota.collect_service(service, ms, builder)
 
 
 @define
@@ -210,4 +206,3 @@ CollectIamQuotas = {
 
 
 resources: List[Type[AwsResource]] = [AwsServiceQuota]
-global_resources: List[Type[AwsResource]] = [AwsIamServiceQuota]
