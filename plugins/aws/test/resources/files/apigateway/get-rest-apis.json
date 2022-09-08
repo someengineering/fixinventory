@@ -1,0 +1,33 @@
+{
+    "position": "string",
+    "items": [
+        {
+            "id": "2lsd9i45ub",
+            "name": "call-me-api",
+            "description": "string",
+            "createdDate": "2015-12-02T23:29:00Z",
+            "version": "v42",
+            "warnings": [
+                "string"
+            ],
+            "binaryMediaTypes": [
+                "string"
+            ],
+            "minimumCompressionSize": 123,
+            "apiKeySource": "HEADER",
+            "endpointConfiguration": {
+                "types": [
+                    "PRIVATE"
+                ],
+                "vpcEndpointIds": [
+                    "vpce-2"
+                ]
+            },
+            "policy": "string",
+            "tags": {
+                "SomeKey": "SomeValue"
+            },
+            "disableExecuteApiEndpoint": false
+        }
+    ]
+}

@@ -47,6 +47,7 @@ def group_by(f, iterable):
 
 def parse_commit(row: list[str]) -> Commit:
     commit_hash, author, msg, time = row
+
     brackets = re.findall("\\[([^]]+)]", msg)
     if len(brackets) == 2:
         component, group = brackets
@@ -56,8 +57,13 @@ def parse_commit(row: list[str]) -> Commit:
         component, group = brackets[0], "feat"
     else:
         component, group = "resoto", "feat"
-    msg_pr = re.fullmatch("(?:\\[[^]]+]\\s*){0,2}(.*)\\(#(\\d+)\\)", msg)
-    message, pr = msg_pr.groups() if msg_pr else (msg, "")
+
+    msg_pr = re.fullmatch("(?:\\[[^]]+]\\s*){0,2}(.*)(\\(#(\\d+)\\))?", msg)
+    if len(msg_pr.groups()) == 2:
+        message, pr = msg_pr.groups() if msg_pr else (msg, "")
+    else:
+        message, pr = msg_pr.groups()[0], None
+
     return Commit(
         commit_hash,
         author,
@@ -72,7 +78,10 @@ def parse_commit(row: list[str]) -> Commit:
 def show_log(from_tag: str, to_tag: str):
     grouped: Dict[str, List[Commit]] = group_by(
         lambda c: c.group,
-        [parse_commit(row) for row in csv.reader(git_commits(from_tag, to_tag), delimiter="§")],
+        [
+            parse_commit(row)
+            for row in csv.reader(git_commits(from_tag, to_tag), delimiter="§")
+        ],
     )
 
     print("---\ntags: [release notes]\n---")
@@ -81,7 +90,9 @@ def show_log(from_tag: str, to_tag: str):
 
     print("\n## What's Changed")
     # define sort order for groups: order of group names and then the rest
-    group_weights = defaultdict(lambda: 100, {a: num for num, a in enumerate(group_names)})
+    group_weights = defaultdict(
+        lambda: 100, {a: num for num, a in enumerate(group_names)}
+    )
     for group, commits in sorted(grouped.items(), key=lambda x: group_weights[x[0]]):
         print(f"\n### {group_names.get(group, group)}\n")
         for commit in commits:
