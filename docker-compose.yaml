@@ -29,7 +29,7 @@ services:
       - --web.console.libraries=/usr/share/prometheus/console_libraries
       - --web.console.templates=/usr/share/prometheus/consoles
   resotocore:
-    image: somecr.io/someengineering/resotocore:2.4
+    image: somecr.io/someengineering/resotocore:edge
     container_name: resotocore
     depends_on:
       - graphdb
@@ -53,7 +53,7 @@ services:
     restart: always
     stop_grace_period: 2m
   resotoworker:
-    image: somecr.io/someengineering/resotoworker:2.4
+    image: somecr.io/someengineering/resotoworker:edge
     container_name: resotoworker
     depends_on:
       - resotocore
@@ -67,7 +67,7 @@ services:
     restart: always
     stop_grace_period: 2m
   resotometrics:
-    image: somecr.io/someengineering/resotometrics:2.4
+    image: somecr.io/someengineering/resotometrics:edge
     container_name: resotometrics
     depends_on:
       - resotocore
@@ -81,7 +81,7 @@ services:
     restart: always
     stop_grace_period: 2m
   resotoshell:
-    image: somecr.io/someengineering/resotoshell:2.4
+    image: somecr.io/someengineering/resotoshell:edge
     container_name: resotoshell
     depends_on:
       - resotocore
