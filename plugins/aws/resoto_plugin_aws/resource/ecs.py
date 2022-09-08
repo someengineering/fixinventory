@@ -637,7 +637,7 @@ class AwsEcsCluster(EcsTaggable, AwsResource):
                 for service in services:
                     service_instance = AwsEcsService.from_api(service)
                     builder.add_node(service_instance, service)
-                    # builder.add_edge(cluster_instance, edge_type=EdgeType.default, node=container_instance)
+                    builder.add_edge(cluster_instance, edge_type=EdgeType.default, node=service_instance)
 
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
