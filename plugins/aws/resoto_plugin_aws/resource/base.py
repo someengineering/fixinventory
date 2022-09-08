@@ -286,7 +286,9 @@ class ExecutorQueue:
                         self._exception = e
                     raise e
             else:
-                raise CancelOnFirstError("Exception happened in another thread. Do not start work.")
+                raise CancelOnFirstError(
+                    "Exception happened in another thread. Do not start work."
+                ) from self._exception
 
         future = (
             self.executor.submit(do_work) if self.fail_on_first_exception else self.executor.submit(fn, *args, **kwargs)
