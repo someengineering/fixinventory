@@ -17,9 +17,7 @@ setup(
     packages=find_packages(),
     long_description=read("README.md"),
     long_description_content_type="text/markdown",
-    entry_points={
-        "resoto.plugins": ["aws_k8s_collector = resoto_plugin_aws_k8s:AWSK8sCollectorPlugin"]
-    },
+    entry_points={"resoto.plugins": ["aws_k8s_collector = resoto_plugin_aws_k8s:AWSK8sCollectorPlugin"]},
     include_package_data=True,
     zip_safe=False,
     install_requires=requirements,

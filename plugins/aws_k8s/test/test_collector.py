@@ -2,7 +2,6 @@ from resoto_plugin_aws_k8s import AWSK8sCollectorPlugin
 from resotolib.baseresources import BaseResource
 from resotolib.graph import Graph
 from typing import ClassVar
-from types import SimpleNamespace
 
 
 class KubernetesNode(BaseResource):
