@@ -4,6 +4,7 @@ import json
 import os
 import re
 from abc import ABC, abstractmethod
+from contextlib import suppress
 from enum import Enum, unique
 from functools import reduce
 from typing import Optional, List, Dict, Any, Tuple, Union, Callable
@@ -117,6 +118,7 @@ class OnlyIf(ABC):
         defined = gen.make_dict_structure_fn(OnlyIfDefined, cv)
         undefined = gen.make_dict_structure_fn(OnlyIfUndefined, cv)
         value = gen.make_dict_structure_fn(OnlyIfValue, cv)
+        if_len = gen.make_dict_structure_fn(OnlyIfLen, cv)
 
         def from_json(js: Json, other: Any) -> OnlyIf:
             if js.get("kind") == "defined":
@@ -125,6 +127,8 @@ class OnlyIf(ABC):
                 return undefined(js, other)
             elif js.get("kind") == "value":
                 return value(js, other)
+            elif js.get("kind") == "len":
+                return if_len(js, other)
             else:
                 raise AttributeError(f"Don't know how to handle this step: {js}")
 
@@ -137,6 +141,30 @@ class OnlyIfDefined(OnlyIf):
 
     def is_true(self, js: Json) -> bool:
         return value_in_path(js, self.path) is not None
+
+
+@define
+class OnlyIfLen(OnlyIf):
+    path: str
+    op: str
+    value: int
+
+    def is_true(self, js: Json) -> bool:
+        l = 0
+        with suppress(Exception):
+            l = len(value_in_path(js, self.path))
+        if self.op in ("=", "=="):
+            return l == self.value
+        elif self.op == ">":
+            return l > self.value
+        elif self.op == ">=":
+            return l >= self.value
+        elif self.op == "<":
+            return l < self.value
+        elif self.op == "<=":
+            return l <= self.value
+        else:
+            return False
 
 
 @define

@@ -91,30 +91,18 @@
                         },
                         {
                             "kind": "input",
-                            "name": "AWS: use a specific role?",
-                            "help": "In case you have setup a role that Resoto should assume, enter the role name here.\nA role is not required, leave the field empty if you do not want to use a role.",
-                            "action": {
-                                "action": "replace",
-                                "path": "aws.role",
-                                "value_template": "\"@value@\""
-                            }
-                        },
-                        {
-                            "kind": "input",
                             "name": "AWS: scrape organizations?",
-                            "help": "Do you want to scrape your organizations with the given role?",
+                            "help": "Do you want to scrape your accounts from the organizations?\nScraping the organization requires specific permissions.\nPlease find additional information using the links below.",
+                            "links": {
+                                "Setup AWS": "https://resoto.com/docs/getting-started/configure-cloud-provider-access/aws",
+                                "AWS IAM": "https://docs.aws.amazon.com/organizations/latest/userguide/orgs_security_iam.html"
+                            },
                             "action": {
                                 "action": "replace",
                                 "path": "aws.scrape_org",
                                 "value_template": "@value@",
                                 "default": false
                             },
-                            "only_if": [
-                                {
-                                    "kind": "defined",
-                                    "path": "aws.role"
-                                }
-                            ],
                             "value_options": {
                                 "yes": "true",
                                 "no": "false"
@@ -122,8 +110,8 @@
                         },
                         {
                             "kind": "input",
-                            "name": "AWS: Which accounts to scrape with this role?",
-                            "help": "It is possible to scrape different accounts with the role you have specified.\nSince the organization should not be scraped, do you want to define the list of accounts to scrape?\nIf yes, enter all account ids separated by comma",
+                            "name": "AWS: Which accounts to scrape?",
+                            "help": "It is possible to scrape different accounts.\nSince the organization should not be scraped, do you want to define the list of accounts to scrape?\nIf yes, enter all account ids separated by comma",
                             "action": {
                                 "action": "replace",
                                 "path": "aws.account",
@@ -131,16 +119,30 @@
                             },
                             "only_if": [
                                 {
-                                    "kind": "defined",
-                                    "path": "aws.role"
-                                },
-                                {
                                     "kind": "value",
                                     "path": "aws.scrape_org",
                                     "value": false
                                 }
                             ],
                             "split_result_by": ","
+                        },
+                        {
+                            "kind": "input",
+                            "name": "AWS: use a specific role?",
+                            "help": "In case you have setup a role that Resoto should assume, enter the role name here.\nA role is not required, leave the field empty if you do not want to use a role.",
+                            "action": {
+                                "action": "replace",
+                                "path": "aws.role",
+                                "value_template": "\"@value@\""
+                            },
+                            "only_if": [
+                                {
+                                    "kind": "len",
+                                    "path": "aws.profiles",
+                                    "op": "<=",
+                                    "value": 1
+                                }
+                            ]
                         }
                     ]
                 },
@@ -176,7 +178,9 @@
                                         {
                                             "action": "replace",
                                             "path": "gcp.service_account",
-                                            "value": [""]
+                                            "value": [
+                                                ""
+                                            ]
                                         }
                                     ],
                                     "step_options": {
