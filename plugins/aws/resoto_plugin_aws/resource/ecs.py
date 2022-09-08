@@ -5,7 +5,10 @@ from attrs import define, field
 from resoto_plugin_aws.aws_client import AwsClient
 
 from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
-from resoto_plugin_aws.resource.ec2 import AwsEc2Instance
+from resoto_plugin_aws.resource.ec2 import AwsEc2Instance, AwsEc2SecurityGroup, AwsEc2Subnet
+from resoto_plugin_aws.resource.elb import AwsElb
+from resoto_plugin_aws.resource.elbv2 import AwsAlbTargetGroup
+from resoto_plugin_aws.resource.iam import AwsIamRole
 from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resoto_plugin_aws.resource.s3 import AwsS3Bucket
 from resotolib.baseresources import EdgeType, ModelReference
@@ -262,6 +265,14 @@ class AwsEcsPlacementStrategy:
 class AwsEcsService(EcsTaggable, AwsResource):
     # collection of service resources happens in AwsEcsCluster.collect()
     kind: ClassVar[str] = "aws_ecs_service"
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {
+            "delete": ["aws_alb_target_group", "aws_elb", "aws_iam_role", "aws_ec2_subnet", "aws_ec2_security_group"]
+        },
+        "successors": {
+            "default": ["aws_alb_target_group", "aws_elb", "aws_iam_role", "aws_ec2_subnet", "aws_ec2_security_group"]
+        },
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("serviceName"),
         "tags": S("tags", default=[]) >> ToDict(),
@@ -326,6 +337,57 @@ class AwsEcsService(EcsTaggable, AwsResource):
     service_enable_ecs_managed_tags: Optional[bool] = field(default=None)
     service_propagate_tags: Optional[str] = field(default=None)
     service_enable_execute_command: Optional[bool] = field(default=None)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if self.service_load_balancers:
+            for lb in self.service_load_balancers:
+                if lb.target_group_arn:
+                    builder.dependant_node(
+                        self,
+                        clazz=AwsAlbTargetGroup,
+                        arn=lb.target_group_arn,
+                    )
+                if lb.load_balancer_name:
+                    builder.dependant_node(
+                        self,
+                        clazz=AwsElb,
+                        name=lb.load_balancer_name,
+                    )
+        # TODO add egde to ECS task definition
+        # TODO add edge to Cloud Map service registry when applicable
+        # TODO add edge to ECS Capacity Provider when applicable
+        # TODO add edge to ECS TaskSet when applicable
+        # TODO add edges to subnets and security groups in deployments... and task sets ...
+        if self.service_role_arn:
+            builder.dependant_node(
+                self,
+                clazz=AwsIamRole,
+                arn=self.service_role_arn,
+            )
+        aws_vpc_config = self.service_network_configuration.awsvpc_configuration
+        if aws_vpc_config:
+            for subnet in aws_vpc_config.subnets:
+                builder.dependant_node(
+                    self,
+                    clazz=AwsEc2Subnet,
+                    id=subnet,
+                )
+            for group in aws_vpc_config.security_groups:
+                builder.dependant_node(
+                    self,
+                    clazz=AwsEc2SecurityGroup,
+                    id=group,
+                )
+
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(
+            service=self.api_spec.service,
+            action="delete-service",
+            result_name=None,
+            cluster=self.cluster_arn,
+            service=self.name,
+        )
+        return True
 
 
 @define(eq=False, slots=False)
@@ -478,6 +540,16 @@ class AwsEcsContainerInstance(EcsTaggable, AwsResource):
                 clazz=AwsEc2Instance,
                 id=self.ec2_instance_id,
             )
+
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(
+            service=self.api_spec.service,
+            action="delete-service",
+            result_name=None,
+            cluster=self.cluster_arn,
+            service=self.name,
+        )
+        return True
 
 
 @define(eq=False, slots=False)

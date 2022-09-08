@@ -6,8 +6,8 @@
             "clusterArn": "testcluster",
             "loadBalancers": [
                 {
-                    "targetGroupArn": "string",
-                    "loadBalancerName": "string",
+                    "targetGroupArn": "tg1",
+                    "loadBalancerName": "elb-123",
                     "containerName": "string",
                     "containerPort": 123
                 }
