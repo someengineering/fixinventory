@@ -348,6 +348,7 @@ class InteractionDecision(InteractionStep):
 class SubInteraction(InteractionStep):
     path: str
     steps: List[InteractionStepUnion]
+    patch_action: JsonAction = field(default=JsonAction.replace)
 
     def iterate(self, conversation: Conversation) -> Json:
         js: Optional[Json] = {}
@@ -369,7 +370,7 @@ class SubInteraction(InteractionStep):
                 pass
             # ask the user if he wants to do another
             flag = yes_no_dialog(title=self.name, text=self.message).run()
-        return base + [ActionResult(self.path, JsonAction.replace, result_list)]
+        return base + [ActionResult(self.path, self.patch_action, result_list)]
 
 
 @define(kw_only=True)

@@ -159,9 +159,81 @@
                     ],
                     "steps": [
                         {
-                            "kind": "info",
-                            "name": "GCP: coming soon!",
-                            "help": "WIP"
+                            "kind": "decision",
+                            "name": "GCP: how to access your GCP account(s)?",
+                            "help": "Google Cloud is using service account files in order to connect to an account.\nResotoworker needs access to such a file to scrape the account.\nIf you have multiple accounts, you need to provide a service account file for each account.\n\nIf Resoto is running inside google cloud, it is possible to autodetect the accounts to scrape.\nIn this case permissions need to be set for the instance Resoto is running on.\nSee links for more information.",
+                            "links": {
+                                "GCP Access": "https://resoto.com/docs/getting-started/configure-cloud-provider-access/gcp",
+                                "Service Account": "https://cloud.google.com/iam/docs/creating-managing-service-account-keys"
+                            },
+                            "select_multiple": false,
+                            "step_options": {
+                                "Discover GCP projects automatically": {
+                                    "kind": "decision",
+                                    "name": "Additional GCP Project(s) to scrape",
+                                    "help": "",
+                                    "patches": [
+                                        {
+                                            "action": "replace",
+                                            "path": "gcp.service_account",
+                                            "value": [""]
+                                        }
+                                    ],
+                                    "step_options": {
+                                        "Everything is fine.": {
+                                            "kind": "info",
+                                            "name": "GCP",
+                                            "help": "Resoto will detect the accounts to scrape based on the instance profile ResotoWorker is running on.\nYou are all set!"
+                                        },
+                                        "Add additional GCP service account files": {
+                                            "kind": "sub_interaction",
+                                            "name": "Additional GCP Service Account(s)",
+                                            "help": "Add additional GCP service account files",
+                                            "path": "gcp.service_account",
+                                            "patch_action": "merge",
+                                            "steps": [
+                                                {
+                                                    "kind": "input",
+                                                    "name": "GCP Service Account File",
+                                                    "help": "Enter the path to the GCP service account file.\nPlease make sure that this file is accessible to ResotoWorker.",
+                                                    "links": {
+                                                        "GCP Access": "https://resoto.com/docs/getting-started/configure-cloud-provider-access/gcp",
+                                                        "Service Account": "https://cloud.google.com/iam/docs/creating-managing-service-account-keys"
+                                                    },
+                                                    "action": {
+                                                        "path": "",
+                                                        "action": "replace",
+                                                        "value_template": "\"@value@\""
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                },
+                                "Use service account file(s) to connect": {
+                                    "kind": "sub_interaction",
+                                    "name": "GCP: Define Service Account(s)",
+                                    "help": "Add additional GCP service account files",
+                                    "path": "gcp.service_account",
+                                    "patch_action": "merge",
+                                    "steps": [
+                                        {
+                                            "kind": "input",
+                                            "name": "GCP: Service Account(s)",
+                                            "help": "Enter the path to the GCP service account file.\nPlease make sure that this file is accessible to ResotoWorker.",
+                                            "links": {
+                                                "GCP Access": "https://resoto.com/docs/getting-started/configure-cloud-provider-access/gcp",
+                                                "Service Account": "https://cloud.google.com/iam/docs/creating-managing-service-account-keys"
+                                            },
+                                            "action": {
+                                                "path": "",
+                                                "action": "replace",
+                                                "value_template": "\"@value@\""
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
                         }
                     ]
                 },

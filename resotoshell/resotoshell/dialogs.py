@@ -40,6 +40,10 @@ class CancelledError(Exception):
     pass
 
 
+class AbortError(Exception):
+    pass
+
+
 def yes_no_dialog(
     title: AnyFormattedText = "",
     text: AnyFormattedText = "",
@@ -307,6 +311,10 @@ def cancel(event: KeyPressEvent) -> None:
     event.app.exit(exception=CancelledError("Escape pressed."))
 
 
+def abort(event: KeyPressEvent) -> None:
+    event.app.exit(exception=AbortError(f"Abort Key {event.key_sequence} pressed."))
+
+
 def _create_app(
     dialog: AnyContainer, style: Optional[BaseStyle], focused_element: Optional[FocusableElement] = None
 ) -> Application[Any]:
@@ -315,6 +323,7 @@ def _create_app(
     bindings.add("tab")(focus_next)
     bindings.add("s-tab")(focus_previous)
     bindings.add("escape")(cancel)
+    bindings.add("f4")(abort)
 
     return Application(
         layout=Layout(dialog, focused_element),
