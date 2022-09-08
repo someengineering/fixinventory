@@ -13,6 +13,7 @@ def test_ecs_cluster() -> None:
     for node in builder.graph.nodes:
         type_count[node.kind] += 1
     assert type_count["aws_ecs_container_instance"] == 2
+    assert type_count["aws_ecs_service"] == 1
 
 
 def test_tagging() -> None:

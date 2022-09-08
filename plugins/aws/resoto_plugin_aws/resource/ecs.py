@@ -46,6 +46,289 @@ class EcsTaggable:
 
 
 @define(eq=False, slots=False)
+class AwsEcsLoadBalancer:
+    kind: ClassVar[str] = "aws_ecs_load_balancer"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "target_group_arn": S("targetGroupArn"),
+        "load_balancer_name": S("loadBalancerName"),
+        "container_name": S("containerName"),
+        "container_port": S("containerPort")
+    }
+    target_group_arn: Optional[str] = field(default=None)
+    load_balancer_name: Optional[str] = field(default=None)
+    container_name: Optional[str] = field(default=None)
+    container_port: Optional[int] = field(default=None)
+
+@define(eq=False, slots=False)
+class AwsEcsServiceRegistry:
+    kind: ClassVar[str] = "aws_ecs_service_registry"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "registry_arn": S("registryArn"),
+        "port": S("port"),
+        "container_name": S("containerName"),
+        "container_port": S("containerPort")
+    }
+    registry_arn: Optional[str] = field(default=None)
+    port: Optional[int] = field(default=None)
+    container_name: Optional[str] = field(default=None)
+    container_port: Optional[int] = field(default=None)
+
+@define(eq=False, slots=False)
+class AwsEcsCapacityProviderStrategyItem:
+    kind: ClassVar[str] = "aws_ecs_capacity_provider_strategy_item"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "capacity_provider": S("capacityProvider"),
+        "weight": S("weight"),
+        "base": S("base")
+    }
+    capacity_provider: Optional[str] = field(default=None)
+    weight: Optional[int] = field(default=None)
+    base: Optional[int] = field(default=None)
+
+@define(eq=False, slots=False)
+class AwsEcsDeploymentCircuitBreaker:
+    kind: ClassVar[str] = "aws_ecs_deployment_circuit_breaker"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "enable": S("enable"),
+        "rollback": S("rollback")
+    }
+    enable: Optional[bool] = field(default=None)
+    rollback: Optional[bool] = field(default=None)
+
+@define(eq=False, slots=False)
+class AwsEcsDeploymentConfiguration:
+    kind: ClassVar[str] = "aws_ecs_deployment_configuration"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "deployment_circuit_breaker": S("deploymentCircuitBreaker") >> Bend(AwsEcsDeploymentCircuitBreaker.mapping),
+        "maximum_percent": S("maximumPercent"),
+        "minimum_healthy_percent": S("minimumHealthyPercent")
+    }
+    deployment_circuit_breaker: Optional[AwsEcsDeploymentCircuitBreaker] = field(default=None)
+    maximum_percent: Optional[int] = field(default=None)
+    minimum_healthy_percent: Optional[int] = field(default=None)
+
+@define(eq=False, slots=False)
+class AwsEcsAwsVpcConfiguration:
+    kind: ClassVar[str] = "aws_ecs_aws_vpc_configuration"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "subnets": S("subnets", default=[]),
+        "security_groups": S("securityGroups", default=[]),
+        "assign_public_ip": S("assignPublicIp")
+    }
+    subnets: List[str] = field(factory=list)
+    security_groups: List[str] = field(factory=list)
+    assign_public_ip: Optional[str] = field(default=None)
+
+@define(eq=False, slots=False)
+class AwsEcsNetworkConfiguration:
+    kind: ClassVar[str] = "aws_ecs_network_configuration"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "awsvpc_configuration": S("awsvpcConfiguration") >> Bend(AwsEcsAwsVpcConfiguration.mapping)
+    }
+    awsvpc_configuration: Optional[AwsEcsAwsVpcConfiguration] = field(default=None)
+
+@define(eq=False, slots=False)
+class AwsEcsScale:
+    kind: ClassVar[str] = "aws_ecs_scale"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "value": S("value"),
+        "unit": S("unit")
+    }
+    value: Optional[float] = field(default=None)
+    unit: Optional[str] = field(default=None)
+
+@define(eq=False, slots=False)
+class AwsEcsTaskSet:
+    kind: ClassVar[str] = "aws_ecs_task_set"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("id"),
+        "task_set_arn": S("taskSetArn"),
+        "service_arn": S("serviceArn"),
+        "cluster_arn": S("clusterArn"),
+        "started_by": S("startedBy"),
+        "external_id": S("externalId"),
+        "status": S("status"),
+        "task_definition": S("taskDefinition"),
+        "computed_desired_count": S("computedDesiredCount"),
+        "pending_count": S("pendingCount"),
+        "running_count": S("runningCount"),
+        "created_at": S("createdAt"),
+        "updated_at": S("updatedAt"),
+        "launch_type": S("launchType"),
+        "capacity_provider_strategy": S("capacityProviderStrategy", default=[]) >> ForallBend(AwsEcsCapacityProviderStrategyItem.mapping),
+        "platform_version": S("platformVersion"),
+        "platform_family": S("platformFamily"),
+        "network_configuration": S("networkConfiguration") >> Bend(AwsEcsNetworkConfiguration.mapping),
+        "load_balancers": S("loadBalancers", default=[]) >> ForallBend(AwsEcsLoadBalancer.mapping),
+        "service_registries": S("serviceRegistries", default=[]) >> ForallBend(AwsEcsServiceRegistry.mapping),
+        "scale": S("scale") >> Bend(AwsEcsScale.mapping),
+        "stability_status": S("stabilityStatus"),
+        "stability_status_at": S("stabilityStatusAt")
+    }
+    id: Optional[str] = field(default=None)
+    task_set_arn: Optional[str] = field(default=None)
+    service_arn: Optional[str] = field(default=None)
+    cluster_arn: Optional[str] = field(default=None)
+    started_by: Optional[str] = field(default=None)
+    external_id: Optional[str] = field(default=None)
+    status: Optional[str] = field(default=None)
+    task_definition: Optional[str] = field(default=None)
+    computed_desired_count: Optional[int] = field(default=None)
+    pending_count: Optional[int] = field(default=None)
+    running_count: Optional[int] = field(default=None)
+    created_at: Optional[datetime] = field(default=None)
+    updated_at: Optional[datetime] = field(default=None)
+    launch_type: Optional[str] = field(default=None)
+    capacity_provider_strategy: List[AwsEcsCapacityProviderStrategyItem] = field(factory=list)
+    platform_version: Optional[str] = field(default=None)
+    platform_family: Optional[str] = field(default=None)
+    network_configuration: Optional[AwsEcsNetworkConfiguration] = field(default=None)
+    load_balancers: List[AwsEcsLoadBalancer] = field(factory=list)
+    service_registries: List[AwsEcsServiceRegistry] = field(factory=list)
+    scale: Optional[AwsEcsScale] = field(default=None)
+    stability_status: Optional[str] = field(default=None)
+    stability_status_at: Optional[datetime] = field(default=None)
+
+@define(eq=False, slots=False)
+class AwsEcsDeployment:
+    kind: ClassVar[str] = "aws_ecs_deployment"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("id"),
+        "status": S("status"),
+        "task_definition": S("taskDefinition"),
+        "desired_count": S("desiredCount"),
+        "pending_count": S("pendingCount"),
+        "running_count": S("runningCount"),
+        "failed_tasks": S("failedTasks"),
+        "created_at": S("createdAt"),
+        "updated_at": S("updatedAt"),
+        "capacity_provider_strategy": S("capacityProviderStrategy", default=[]) >> ForallBend(AwsEcsCapacityProviderStrategyItem.mapping),
+        "launch_type": S("launchType"),
+        "platform_version": S("platformVersion"),
+        "platform_family": S("platformFamily"),
+        "network_configuration": S("networkConfiguration") >> Bend(AwsEcsNetworkConfiguration.mapping),
+        "rollout_state": S("rolloutState"),
+        "rollout_state_reason": S("rolloutStateReason")
+    }
+    id: Optional[str] = field(default=None)
+    status: Optional[str] = field(default=None)
+    task_definition: Optional[str] = field(default=None)
+    desired_count: Optional[int] = field(default=None)
+    pending_count: Optional[int] = field(default=None)
+    running_count: Optional[int] = field(default=None)
+    failed_tasks: Optional[int] = field(default=None)
+    created_at: Optional[datetime] = field(default=None)
+    updated_at: Optional[datetime] = field(default=None)
+    capacity_provider_strategy: List[AwsEcsCapacityProviderStrategyItem] = field(factory=list)
+    launch_type: Optional[str] = field(default=None)
+    platform_version: Optional[str] = field(default=None)
+    platform_family: Optional[str] = field(default=None)
+    network_configuration: Optional[AwsEcsNetworkConfiguration] = field(default=None)
+    rollout_state: Optional[str] = field(default=None)
+    rollout_state_reason: Optional[str] = field(default=None)
+
+@define(eq=False, slots=False)
+class AwsEcsServiceEvent:
+    kind: ClassVar[str] = "aws_ecs_service_event"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("id"),
+        "created_at": S("createdAt"),
+        "message": S("message")
+    }
+    id: Optional[str] = field(default=None)
+    created_at: Optional[datetime] = field(default=None)
+    message: Optional[str] = field(default=None)
+
+@define(eq=False, slots=False)
+class AwsEcsPlacementConstraint:
+    kind: ClassVar[str] = "aws_ecs_placement_constraint"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "type": S("type"),
+        "expression": S("expression")
+    }
+    type: Optional[str] = field(default=None)
+    expression: Optional[str] = field(default=None)
+
+@define(eq=False, slots=False)
+class AwsEcsPlacementStrategy:
+    kind: ClassVar[str] = "aws_ecs_placement_strategy"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "type": S("type"),
+        "field": S("field")
+    }
+    type: Optional[str] = field(default=None)
+    field: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsEcsService(EcsTaggable, AwsResource):
+    # collection of service resources happens in AwsEcsCluster.collect()
+    kind: ClassVar[str] = "aws_ecs_service"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("serviceName"),
+        "tags": S("tags", default=[]) >> ToDict(),
+        "name": S("serviceName"),
+        "ctime": S("createdAt"),
+        "arn": S("serviceArn"),
+        "cluster_arn": S("clusterArn"),
+        "service_load_balancers": S("loadBalancers", default=[]) >> ForallBend(AwsEcsLoadBalancer.mapping),
+        "service_registries": S("serviceRegistries", default=[]) >> ForallBend(AwsEcsServiceRegistry.mapping),
+        "status": S("status"),
+        "service_desired_count": S("desiredCount"),
+        "service_running_count": S("runningCount"),
+        "service_pending_count": S("pendingCount"),
+        "service_launch_type": S("launchType"),
+        "service_capacity_provider_strategy": S("capacityProviderStrategy", default=[]) >> ForallBend(AwsEcsCapacityProviderStrategyItem.mapping),
+        "service_platform_version": S("platformVersion"),
+        "service_platform_family": S("platformFamily"),
+        "service_task_definition": S("taskDefinition"),
+        "service_deployment_configuration": S("deploymentConfiguration") >> Bend(AwsEcsDeploymentConfiguration.mapping),
+        "service_task_sets": S("taskSets", default=[]) >> ForallBend(AwsEcsTaskSet.mapping),
+        "service_deployments": S("deployments", default=[]) >> ForallBend(AwsEcsDeployment.mapping),
+        "service_role_arn": S("roleArn"),
+        "service_events": S("events", default=[]) >> ForallBend(AwsEcsServiceEvent.mapping),
+        "service_placement_constraints": S("placementConstraints", default=[]) >> ForallBend(AwsEcsPlacementConstraint.mapping),
+        "service_placement_strategy": S("placementStrategy", default=[]) >> ForallBend(AwsEcsPlacementStrategy.mapping),
+        "service_network_configuration": S("networkConfiguration") >> Bend(AwsEcsNetworkConfiguration.mapping),
+        "service_health_check_grace_period_seconds": S("healthCheckGracePeriodSeconds"),
+        "service_scheduling_strategy": S("schedulingStrategy"),
+        "service_deployment_controller": S("deploymentController","type"),
+        "service_created_by": S("createdBy"),
+        "service_enable_ecs_managed_tags": S("enableECSManagedTags"),
+        "service_propagate_tags": S("propagateTags"),
+        "service_enable_execute_command": S("enableExecuteCommand")
+    }
+    arn: Optional[str] = field(default=None)
+    cluster_arn: Optional[str] = field(default=None)
+    service_load_balancers: List[AwsEcsLoadBalancer] = field(factory=list)
+    service_registries: List[AwsEcsServiceRegistry] = field(factory=list)
+    service_status: Optional[str] = field(default=None)
+    service_desired_count: Optional[int] = field(default=None)
+    service_running_count: Optional[int] = field(default=None)
+    service_pending_count: Optional[int] = field(default=None)
+    service_launch_type: Optional[str] = field(default=None)
+    service_capacity_provider_strategy: List[AwsEcsCapacityProviderStrategyItem] = field(factory=list)
+    service_platform_version: Optional[str] = field(default=None)
+    service_platform_family: Optional[str] = field(default=None)
+    service_task_definition: Optional[str] = field(default=None)
+    service_deployment_configuration: Optional[AwsEcsDeploymentConfiguration] = field(default=None)
+    service_task_sets: List[AwsEcsTaskSet] = field(factory=list)
+    service_deployments: List[AwsEcsDeployment] = field(factory=list)
+    service_role_arn: Optional[str] = field(default=None)
+    service_events: List[AwsEcsServiceEvent] = field(factory=list)
+    service_placement_constraints: List[AwsEcsPlacementConstraint] = field(factory=list)
+    service_placement_strategy: List[AwsEcsPlacementStrategy] = field(factory=list)
+    service_network_configuration: Optional[AwsEcsNetworkConfiguration] = field(default=None)
+    service_health_check_grace_period_seconds: Optional[int] = field(default=None)
+    service_scheduling_strategy: Optional[str] = field(default=None)
+    service_deployment_controller: Optional[str] = field(default=None)
+    service_created_by: Optional[str] = field(default=None)
+    service_enable_ecs_managed_tags: Optional[bool] = field(default=None)
+    service_propagate_tags: Optional[str] = field(default=None)
+    service_enable_execute_command: Optional[bool] = field(default=None)
+
+
+@define(eq=False, slots=False)
 class AwsEcsVersionInfo:
     kind: ClassVar[str] = "aws_ecs_version_info"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -143,6 +426,7 @@ class AwsEcsContainerInstanceHealthStatus:
 
 @define(eq=False, slots=False)
 class AwsEcsContainerInstance(EcsTaggable, AwsResource):
+    # collection of container instance resources happens in AwsEcsCluster.collect()
     kind: ClassVar[str] = "aws_ecs_container_instance"
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"delete": ["aws_ec2_instance"]},
@@ -304,6 +588,8 @@ class AwsEcsCluster(EcsTaggable, AwsResource):
             AwsApiSpec("ecs", "describe-clusters"),
             AwsApiSpec("ecs", "list-container-instances"),
             AwsApiSpec("ecs", "describe-container-instances"),
+            AwsApiSpec("ecs", "list-services"),
+            AwsApiSpec("ecs", "describe-services"),
         ]
 
     @classmethod
@@ -336,6 +622,24 @@ class AwsEcsCluster(EcsTaggable, AwsResource):
                     builder.add_node(container_instance, container)
                     builder.add_edge(cluster_instance, edge_type=EdgeType.default, node=container_instance)
 
+            service_arns = builder.client.list(
+                "ecs", "list-services", "serviceArns", cluster=cluster_arn
+            )
+            for chunk in chunks(service_arns, 10):
+                services = builder.client.list(
+                    "ecs",
+                    "describe-services",
+                    "services",
+                    cluster=cluster_arn,
+                    services=chunk,
+                    include=["TAGS"],
+                )
+                for service in services:
+                    service_instance = AwsEcsService.from_api(service)
+                    builder.add_node(service_instance, service)
+                    # builder.add_edge(cluster_instance, edge_type=EdgeType.default, node=container_instance)
+
+
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.cluster_configuration:
             if self.cluster_configuration.execute_command_configuration.kms_key_id:
@@ -360,4 +664,4 @@ class AwsEcsCluster(EcsTaggable, AwsResource):
         return True
 
 
-resources: List[Type[AwsResource]] = [AwsEcsCluster, AwsEcsContainerInstance]
+resources: List[Type[AwsResource]] = [AwsEcsCluster, AwsEcsContainerInstance, AwsEcsService]

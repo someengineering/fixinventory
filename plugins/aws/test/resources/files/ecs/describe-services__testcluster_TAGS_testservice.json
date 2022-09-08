@@ -1,0 +1,204 @@
+{
+    "services": [
+        {
+            "serviceArn": "testservice",
+            "serviceName": "testservice",
+            "clusterArn": "testcluster",
+            "loadBalancers": [
+                {
+                    "targetGroupArn": "string",
+                    "loadBalancerName": "string",
+                    "containerName": "string",
+                    "containerPort": 123
+                }
+            ],
+            "serviceRegistries": [
+                {
+                    "registryArn": "string",
+                    "port": 123,
+                    "containerName": "string",
+                    "containerPort": 123
+                }
+            ],
+            "status": "ACTIVE",
+            "desiredCount": 123,
+            "runningCount": 123,
+            "pendingCount": 123,
+            "launchType": "EC2",
+            "capacityProviderStrategy": [
+                {
+                    "capacityProvider": "string",
+                    "weight": 123,
+                    "base": 123
+                }
+            ],
+            "platformVersion": "LATEST",
+            "platformFamily": "string",
+            "taskDefinition": "string",
+            "deploymentConfiguration": {
+                "deploymentCircuitBreaker": {
+                    "enable": true,
+                    "rollback": false
+                },
+                "maximumPercent": 123,
+                "minimumHealthyPercent": 123
+            },
+            "taskSets": [
+                {
+                    "id": "string",
+                    "taskSetArn": "string",
+                    "serviceArn": "string",
+                    "clusterArn": "string",
+                    "startedBy": "string",
+                    "externalId": "string",
+                    "status": "string",
+                    "taskDefinition": "string",
+                    "computedDesiredCount": 123,
+                    "pendingCount": 123,
+                    "runningCount": 123,
+                    "createdAt": "2020-05-08T23:31:57+00:00",
+                    "updatedAt": "2020-05-08T23:31:57+00:00",
+                    "launchType": "EXTERNAL",
+                    "capacityProviderStrategy": [
+                        {
+                            "capacityProvider": "string",
+                            "weight": 123,
+                            "base": 123
+                        }
+                    ],
+                    "platformVersion": "string",
+                    "platformFamily": "string",
+                    "networkConfiguration": {
+                        "awsvpcConfiguration": {
+                            "subnets": [
+                                "string"
+                            ],
+                            "securityGroups": [
+                                "string"
+                            ],
+                            "assignPublicIp": "ENABLED"
+                        }
+                    },
+                    "loadBalancers": [
+                        {
+                            "targetGroupArn": "string",
+                            "loadBalancerName": "string",
+                            "containerName": "string",
+                            "containerPort": 123
+                        }
+                    ],
+                    "serviceRegistries": [
+                        {
+                            "registryArn": "string",
+                            "port": 123,
+                            "containerName": "string",
+                            "containerPort": 123
+                        }
+                    ],
+                    "scale": {
+                        "value": 123.0,
+                        "unit": "PERCENT"
+                    },
+                    "stabilityStatus": "STEADY_STATE",
+                    "stabilityStatusAt": "2020-05-08T23:31:57+00:00",
+                    "tags": [
+                        {
+                            "key": "string",
+                            "value": "string"
+                        }
+                    ]
+                }
+            ],
+            "deployments": [
+                {
+                    "id": "string",
+                    "status": "string",
+                    "taskDefinition": "string",
+                    "desiredCount": 123,
+                    "pendingCount": 123,
+                    "runningCount": 123,
+                    "failedTasks": 123,
+                    "createdAt": "2020-05-08T23:31:57+00:00",
+                    "updatedAt": "2020-05-08T23:31:57+00:00",
+                    "capacityProviderStrategy": [
+                        {
+                            "capacityProvider": "string",
+                            "weight": 123,
+                            "base": 123
+                        }
+                    ],
+                    "launchType": "EC2",
+                    "platformVersion": "string",
+                    "platformFamily": "string",
+                    "networkConfiguration": {
+                        "awsvpcConfiguration": {
+                            "subnets": [
+                                "string"
+                            ],
+                            "securityGroups": [
+                                "string"
+                            ],
+                            "assignPublicIp": "ENABLED"
+                        }
+                    },
+                    "rolloutState": "COMPLETED",
+                    "rolloutStateReason": "string"
+                }
+            ],
+            "roleArn": "string",
+            "events": [
+                {
+                    "id": "string",
+                    "createdAt": "2020-05-08T23:31:57+00:00",
+                    "message": "string"
+                }
+            ],
+            "createdAt": "2020-05-08T23:31:57+00:00",
+            "placementConstraints": [
+                {
+                    "type": "distinctInstance",
+                    "expression": "string"
+                }
+            ],
+            "placementStrategy": [
+                {
+                    "type": "random",
+                    "field": "string"
+                }
+            ],
+            "networkConfiguration": {
+                "awsvpcConfiguration": {
+                    "subnets": [
+                        "string"
+                    ],
+                    "securityGroups": [
+                        "string"
+                    ],
+                    "assignPublicIp": "ENABLED"
+                }
+            },
+            "healthCheckGracePeriodSeconds": 123,
+            "schedulingStrategy": "REPLICA",
+            "deploymentController": {
+                "type": "ECS"
+            },
+            "tags": [
+                {
+                    "key": "string",
+                    "value": "string"
+                }
+            ],
+            "createdBy": "string",
+            "enableECSManagedTags":false,
+            "propagateTags": "TASK_DEFINITION",
+            "enableExecuteCommand": false
+        }
+    ],
+    "failures": [
+        {
+            "arn": "string",
+            "reason": "string",
+            "detail": "string"
+        }
+    ]
+}

@@ -479,9 +479,9 @@ models: Dict[str, List[AwsResotoModel]] = {
         #     prefix="Ecs",
         #     prop_prefix="task_definition_",
         # ),
-        # AwsResotoModel(
-        #     "describe-services", "services", "DescribeServicesResponse", prefix="Ecs", prop_prefix="service_"
-        # ),
+        AwsResotoModel(
+            "describe-services", "services", "DescribeServicesResponse", prefix="Ecs", prop_prefix="service_"
+        ),
     ],
     "elasticbeanstalk": [
         # AwsResotoModel(
@@ -579,7 +579,7 @@ models: Dict[str, List[AwsResotoModel]] = {
         #     prefix="Lambda",
         #     prop_prefix="function_",
         # )
-        AwsResotoModel("get-policy", "Policy", "GetPolicyResponse", prefix="Lambda", prop_prefix="policy_")
+        # AwsResotoModel("get-policy", "Policy", "GetPolicyResponse", prefix="Lambda", prop_prefix="policy_")
     ],
     "iam": [
         # AwsResotoModel(
