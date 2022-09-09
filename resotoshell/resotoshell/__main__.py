@@ -20,7 +20,6 @@ from rich.console import Console
 
 def main() -> None:
     resotolib.proc.parent_pid = os.getpid()
-    resotolib.proc.initializer()
     setup_logger("resotoshell", json_format=False)
     arg_parser = ArgumentParser(description="resoto shell", env_args_prefix="RESOTOSHELL_")
     core_add_args(arg_parser)
@@ -31,10 +30,11 @@ def main() -> None:
     args: Namespace = arg_parser.parse_args()
 
     try:
-        wait_for_resotocore(resotocore.http_uri, timeout=5)
+        wait_for_resotocore(resotocore.http_uri, timeout=args.resotocore_wait)
     except TimeoutError:
         log.fatal(f"resotocore is not online at {resotocore.http_uri}")
         sys.exit(1)
+    resotolib.proc.initializer()
 
     client = ResotoClient(
         url=resotocore.http_uri,
@@ -153,6 +153,13 @@ def add_args(arg_parser: ArgumentParser) -> None:
         "--resotocore-graph",
         help="The name of the graph to use by default. If not set, the server default is used.",
         dest="resotocore_graph",
+    )
+    arg_parser.add_argument(
+        "--resotocore-wait",
+        help="How long to wait for resotocore to come online (default: 5 seconds).",
+        dest="resotocore_wait",
+        type=int,
+        default=5,
     )
     arg_parser.add_argument(
         "--download-directory",
