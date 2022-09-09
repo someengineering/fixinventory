@@ -103,7 +103,7 @@ class AwsBeanstalkApplication(AwsResource):
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(
-            service=self.api_spec.service,
+            aws_service=self.api_spec.service,
             action="update-tags-for-resource",
             result_name=None,
             ResourceArn=self.arn,
@@ -113,7 +113,7 @@ class AwsBeanstalkApplication(AwsResource):
 
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
         client.call(
-            service=self.api_spec.service,
+            aws_service=self.api_spec.service,
             action="update-tags-for-resource",
             result_name=None,
             ResourceArn=self.arn,
@@ -123,7 +123,7 @@ class AwsBeanstalkApplication(AwsResource):
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
-            service=self.api_spec.service, action="delete-application", result_name=None, ApplicationName=self.name
+            aws_service=self.api_spec.service, action="delete-application", result_name=None, ApplicationName=self.name
         )
         return True
 
@@ -330,7 +330,7 @@ class AwsBeanstalkEnvironment(AwsResource):
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(
-            service=self.api_spec.service,
+            aws_service=self.api_spec.service,
             action="update-tags-for-resource",
             result_name=None,
             ResourceArn=self.arn,
@@ -340,7 +340,7 @@ class AwsBeanstalkEnvironment(AwsResource):
 
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
         client.call(
-            service=self.api_spec.service,
+            aws_service=self.api_spec.service,
             action="update-tags-for-resource",
             result_name=None,
             ResourceArn=self.arn,
@@ -350,7 +350,10 @@ class AwsBeanstalkEnvironment(AwsResource):
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
-            service=self.api_spec.service, action="terminate-environment", result_name=None, EnvironmentName=self.name
+            aws_service=self.api_spec.service,
+            action="terminate-environment",
+            result_name=None,
+            EnvironmentName=self.name,
         )
         return True
 

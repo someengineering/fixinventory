@@ -109,7 +109,7 @@ class AwsRoute53Zone(AwsResource, BaseDNSZone):
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(
-            service="route53",
+            aws_service="route53",
             action="change-tags-for-resource",
             result_name=None,
             ResourceType="hostedzone",
@@ -120,7 +120,7 @@ class AwsRoute53Zone(AwsResource, BaseDNSZone):
 
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
         client.call(
-            service="route53",
+            aws_service="route53",
             action="change-tags-for-resource",
             result_name=None,
             ResourceType="hostedzone",
@@ -130,7 +130,7 @@ class AwsRoute53Zone(AwsResource, BaseDNSZone):
         return True
 
     def delete_resource(self, client: AwsClient) -> bool:
-        client.call(service="route53", action="delete-hosted-zone", result_name=None, Id=self.id.rsplit("/", 1)[-1])
+        client.call(aws_service="route53", action="delete-hosted-zone", result_name=None, Id=self.id.rsplit("/", 1)[-1])
         return True
 
 

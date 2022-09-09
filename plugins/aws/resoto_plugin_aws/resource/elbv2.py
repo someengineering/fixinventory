@@ -18,7 +18,7 @@ class ElbV2Taggable:
         if isinstance(self, AwsResource):
             if spec := self.api_spec:
                 client.call(
-                    service=spec.service,
+                    aws_service=spec.service,
                     action="add_tags",
                     result_name=None,
                     ResourceArns=[self.arn],
@@ -32,7 +32,7 @@ class ElbV2Taggable:
         if isinstance(self, AwsResource):
             if spec := self.api_spec:
                 client.call(
-                    service=spec.service,
+                    aws_service=spec.service,
                     action="remove_tags",
                     result_name=None,
                     ResourceArns=[self.arn],
@@ -315,7 +315,7 @@ class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
-            service=self.api_spec.service, action="delete_load_balancer", result_name=None, LoadBalancerArn=self.arn
+            aws_service=self.api_spec.service, action="delete_load_balancer", result_name=None, LoadBalancerArn=self.arn
         )
         return True
 
@@ -439,7 +439,7 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
-            service=self.api_spec.service, action="delete_target_group", result_name=None, TargetGroupArn=self.arn
+            aws_service=self.api_spec.service, action="delete_target_group", result_name=None, TargetGroupArn=self.arn
         )
         return True
 

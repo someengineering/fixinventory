@@ -43,7 +43,7 @@ class EC2Taggable:
         if isinstance(self, AwsResource):
             if spec := self.api_spec:
                 client.call(
-                    service=spec.service,
+                    aws_service=spec.service,
                     action="create_tags",
                     result_name=None,
                     Resources=[self.id],
@@ -57,7 +57,7 @@ class EC2Taggable:
         if isinstance(self, AwsResource):
             if spec := self.api_spec:
                 client.call(
-                    service=spec.service,
+                    aws_service=spec.service,
                     action="delete_tags",
                     result_name=None,
                     Resources=[self.id],
@@ -480,7 +480,7 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
-            service=self.api_spec.service,
+            aws_service=self.api_spec.service,
             action="delete_volume",
             result_name=None,
             VolumeId=self.id,
@@ -541,7 +541,7 @@ class AwsEc2Snapshot(EC2Taggable, AwsResource, BaseSnapshot):
             )
 
     def delete_resource(self, client: AwsClient) -> bool:
-        client.call(service=self.api_spec.service, action="delete_snapshot", result_name=None, SnapshotId=self.id)
+        client.call(aws_service=self.api_spec.service, action="delete_snapshot", result_name=None, SnapshotId=self.id)
 
         return True
 
@@ -576,7 +576,7 @@ class AwsEc2KeyPair(EC2Taggable, AwsResource):
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
-            service=self.api_spec.service,
+            aws_service=self.api_spec.service,
             action="delete_key_pair",
             result_name=None,
             KeyPairId=self.id,
@@ -1035,7 +1035,7 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
             self.log("Instance is already terminated")
             return True
         client.call(
-            service=self.api_spec.service,
+            aws_service=self.api_spec.service,
             action="terminate_instances",
             result_name=None,
             InstanceIds=[self.id],
@@ -1196,7 +1196,9 @@ class AwsEc2NetworkAcl(EC2Taggable, AwsResource):
             builder.dependant_node(self, reverse=True, clazz=AwsEc2Subnet, name=association.subnet_id)
 
     def delete_resource(self, client: AwsClient) -> bool:
-        client.call(service=self.api_spec.service, action="delete_network_acl", result_name=None, NetworkAclId=self.id)
+        client.call(
+            aws_service=self.api_spec.service, action="delete_network_acl", result_name=None, NetworkAclId=self.id
+        )
         return True
 
 
@@ -1254,7 +1256,7 @@ class AwsEc2ElasticIp(EC2Taggable, AwsResource, BaseIPAddress):
     def pre_delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         if self.ip_association_id:
             client.call(
-                service=self.api_spec.service,
+                aws_service=self.api_spec.service,
                 action="disassociate_address",
                 result_name=None,
                 AssociationId=self.ip_association_id,
@@ -1264,7 +1266,7 @@ class AwsEc2ElasticIp(EC2Taggable, AwsResource, BaseIPAddress):
     def delete_resource(self, client: AwsClient) -> bool:
 
         client.call(
-            service=self.api_spec.service,
+            aws_service=self.api_spec.service,
             action="release_address",
             result_name=None,
             AllocationId=self.ip_allocation_id,
@@ -1418,7 +1420,7 @@ class AwsEc2NetworkInterface(EC2Taggable, AwsResource, BaseNetworkInterface):
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
-            service=self.api_spec.service,
+            aws_service=self.api_spec.service,
             action="delete_network_interface",
             result_name=None,
             NetworkInterfaceId=self.id,
@@ -1501,7 +1503,7 @@ class AwsEc2Vpc(EC2Taggable, AwsResource, BaseNetwork):
             log_msg = f"Not removing the default VPC {self.id} - aborting delete request"
             self.log(log_msg)
             return False
-        client.call(service=self.api_spec.service, action="delete_vpc", result_name=None, VpcId=self.id)
+        client.call(aws_service=self.api_spec.service, action="delete_vpc", result_name=None, VpcId=self.id)
         return True
 
 
@@ -1579,7 +1581,7 @@ class AwsEc2VpcPeeringConnection(EC2Taggable, AwsResource, BasePeeringConnection
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
-            service=self.api_spec.service,
+            aws_service=self.api_spec.service,
             action="delete_vpc_peering_connection",
             result_name=None,
             VpcPeeringConnectionId=self.id,
@@ -1681,7 +1683,7 @@ class AwsEc2VpcEndpoint(EC2Taggable, AwsResource, BaseEndpoint):
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
-            service=self.api_spec.service, action="delete_vpc_endpoints", result_name=None, VpcEndpointIds=[self.id]
+            aws_service=self.api_spec.service, action="delete_vpc_endpoints", result_name=None, VpcEndpointIds=[self.id]
         )
         return True
 
@@ -1782,7 +1784,7 @@ class AwsEc2Subnet(EC2Taggable, AwsResource, BaseSubnet):
             builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsEc2Vpc, id=vpc_id)
 
     def delete_resource(self, client: AwsClient) -> bool:
-        client.call(service=self.api_spec.service, action="delete_subnet", result_name=None, SubnetId=self.id)
+        client.call(aws_service=self.api_spec.service, action="delete_subnet", result_name=None, SubnetId=self.id)
         return True
 
 
@@ -1885,7 +1887,7 @@ class AwsEc2SecurityGroup(EC2Taggable, AwsResource, BaseSecurityGroup):
         remove_egress = []
 
         security_groups = client.call(
-            service=self.api_spec.service,
+            aws_service=self.api_spec.service,
             action="describe_security_groups",
             result_name="SecurityGroups",
             GroupIds=[self.id],
@@ -1905,7 +1907,7 @@ class AwsEc2SecurityGroup(EC2Taggable, AwsResource, BaseSecurityGroup):
 
         if len(remove_ingress) > 0:
             client.call(
-                service=self.api_spec.service,
+                aws_service=self.api_spec.service,
                 action="revoke_security_group_ingress",
                 result_name=None,
                 IpPermissions=remove_ingress,
@@ -1913,7 +1915,7 @@ class AwsEc2SecurityGroup(EC2Taggable, AwsResource, BaseSecurityGroup):
 
         if len(remove_egress) > 0:
             client.call(
-                service=self.api_spec.service,
+                aws_service=self.api_spec.service,
                 action="revoke_security_group_egress",
                 result_name=None,
                 IpPermissions=remove_egress,
@@ -1922,7 +1924,7 @@ class AwsEc2SecurityGroup(EC2Taggable, AwsResource, BaseSecurityGroup):
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
-            service=self.api_spec.service,
+            aws_service=self.api_spec.service,
             action="delete_security_group",
             result_name=None,
             GroupId=self.id,
@@ -2006,7 +2008,9 @@ class AwsEc2NatGateway(EC2Taggable, AwsResource, BaseGateway):
                 builder.dependant_node(self, clazz=AwsEc2NetworkInterface, id=network_interface_id)
 
     def delete_resource(self, client: AwsClient) -> bool:
-        client.call(service=self.api_spec.service, action="delete_nat_gateway", result_name=None, NatGatewayId=self.id)
+        client.call(
+            aws_service=self.api_spec.service, action="delete_nat_gateway", result_name=None, NatGatewayId=self.id
+        )
         return True
 
 
@@ -2049,7 +2053,7 @@ class AwsEc2InternetGateway(EC2Taggable, AwsResource, BaseGateway):
                 log_msg = f"Detaching {predecessor.kind} {predecessor.dname}"
                 self.log(log_msg)
                 client.call(
-                    service=self.api_spec.service,
+                    aws_service=self.api_spec.service,
                     action="detach_internet_gateway",
                     result_name=None,
                     InternetGatewayId=self.id,
@@ -2059,7 +2063,7 @@ class AwsEc2InternetGateway(EC2Taggable, AwsResource, BaseGateway):
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
-            service=self.api_spec.service,
+            aws_service=self.api_spec.service,
             action="delete_internet_gateway",
             result_name=None,
             InternetGatewayId=self.id,
@@ -2169,7 +2173,7 @@ class AwsEc2RouteTable(EC2Taggable, AwsResource, BaseRoutingTable):
                 log_msg = f"Deleting route table association {rta.route_table_association_id}"
                 self.log(log_msg)
                 client.call(
-                    service=self.api_spec.service,
+                    aws_service=self.api_spec.service,
                     action="disassociate_route_table",
                     result_name=None,
                     AssociationId=rta.route_table_association_id,
@@ -2177,7 +2181,9 @@ class AwsEc2RouteTable(EC2Taggable, AwsResource, BaseRoutingTable):
         return True
 
     def delete_resource(self, client: AwsClient) -> bool:
-        client.call(service=self.api_spec.service, action="delete_route_table", result_name=None, RouteTableId=self.id)
+        client.call(
+            aws_service=self.api_spec.service, action="delete_route_table", result_name=None, RouteTableId=self.id
+        )
         return True
 
 
@@ -2292,7 +2298,7 @@ class AwsEc2Host(EC2Taggable, AwsResource):
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
-            service=self.api_spec.service,
+            aws_service=self.api_spec.service,
             action="release-hosts",
             result_name=None,
             HostIds=[self.id],

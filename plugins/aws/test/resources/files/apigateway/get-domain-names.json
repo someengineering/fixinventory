@@ -1,0 +1,39 @@
+{
+    "position": "string",
+    "items": [
+        {
+            "domainName": "custom-domain-name",
+            "certificateName": "string",
+            "certificateArn": "string",
+            "certificateUploadDate": "2015-12-02T23:29:00Z",
+            "regionalDomainName": "string",
+            "regionalHostedZoneId": "test_zone",
+            "regionalCertificateName": "string",
+            "regionalCertificateArn": "string",
+            "distributionDomainName": "string",
+            "distributionHostedZoneId": "string",
+            "endpointConfiguration": {
+                "types": [
+                    "PRIVATE"
+                ],
+                "vpcEndpointIds": [
+                    "string"
+                ]
+            },
+            "domainNameStatus": "AVAILABLE",
+            "domainNameStatusMessage": "string",
+            "securityPolicy": "TLS_1_2",
+            "tags": {
+                "string": "string"
+            },
+            "mutualTlsAuthentication": {
+                "truststoreUri": "string",
+                "truststoreVersion": "string",
+                "truststoreWarnings": [
+                    "string"
+                ]
+            },
+            "ownershipVerificationCertificateArn": "string"
+        }
+    ]
+}

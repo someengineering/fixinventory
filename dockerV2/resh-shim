@@ -7,5 +7,5 @@ export RESOTOSHELL_RESOTOCORE_URI
 if [ "$1" = "--wait" ]; then
     exec /usr/local/bin/resh-wait
 else
-    exec resh "$@"
+    exec resh --resotocore-wait 300 "$@"
 fi

@@ -102,15 +102,19 @@ class AwsSqsQueue(AwsResource):
             )
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
-        client.call(service="sqs", action="tag-queue", result_name=None, QueueUrl=self.sqs_queue_url, Tags={key: value})
+        client.call(
+            aws_service="sqs", action="tag-queue", result_name=None, QueueUrl=self.sqs_queue_url, Tags={key: value}
+        )
         return True
 
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
-        client.call(service="sqs", action="untag-queue", result_name=None, QueueUrl=self.sqs_queue_url, TagKeys=[key])
+        client.call(
+            aws_service="sqs", action="untag-queue", result_name=None, QueueUrl=self.sqs_queue_url, TagKeys=[key]
+        )
         return True
 
     def delete_resource(self, client: AwsClient) -> bool:
-        client.call(service="sqs", action="delete-queue", result_name=None, QueueUrl=self.sqs_queue_url)
+        client.call(aws_service="sqs", action="delete-queue", result_name=None, QueueUrl=self.sqs_queue_url)
         return True
 
 

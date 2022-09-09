@@ -28,6 +28,12 @@ class CheckClass:
 
 
 def check_overlap_for(models: List[Json]) -> None:
+    # make sure that all model names are unique
+    all_fqns = set()
+    for model in models:
+        if model["fqn"] in all_fqns:
+            raise Exception(f"Model {model['fqn']} is defined multiple times")
+        all_fqns.add(model["fqn"])
     # convert json representation to intermediate python structure
     classes = {model["fqn"]: from_json(model, CheckClass) for model in models if "properties" in model}
     # this variable holds all possible property paths

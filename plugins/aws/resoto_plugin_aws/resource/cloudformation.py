@@ -115,13 +115,14 @@ class AwsCloudFormationStack(AwsResource, BaseStack):
             return False
         service = self.api_spec.service
         stack = cast(
-            Json, client.call(service=service, action="describe_stacks", result_name="Stacks", StackName=self.name)[0]
+            Json,
+            client.call(aws_service=service, action="describe_stacks", result_name="Stacks", StackName=self.name)[0],
         )
         stack = self._wait_for_completion(client, stack, service)
 
         try:
             client.call(
-                service="cloudformation",
+                aws_service="cloudformation",
                 action="update_stack",
                 result_name=None,
                 StackName=self.name,
@@ -148,7 +149,8 @@ class AwsCloudFormationStack(AwsResource, BaseStack):
                 )
             time.sleep(5)
             stack = cast(
-                Json, client.call(service=service, action="describe_stacks", result_name="Stacks", StackName=self.name)
+                Json,
+                client.call(aws_service=service, action="describe_stacks", result_name="Stacks", StackName=self.name),
             )
         return stack
 
@@ -159,7 +161,7 @@ class AwsCloudFormationStack(AwsResource, BaseStack):
         return self._modify_tag(client, key, None, "delete")
 
     def delete_resource(self, client: AwsClient) -> bool:
-        client.call(service=self.api_spec.service, action="delete_stack", result_name=None, StackName=self.name)
+        client.call(aws_service=self.api_spec.service, action="delete_stack", result_name=None, StackName=self.name)
         return True
 
 
@@ -215,7 +217,7 @@ class AwsCloudFormationStackSet(AwsResource):
 
         try:
             client.call(
-                service="cloudformation",
+                aws_service="cloudformation",
                 action="update_stack_set",
                 result_name=None,
                 StackSetName=self.name,
@@ -242,7 +244,7 @@ class AwsCloudFormationStackSet(AwsResource):
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
-            service=self.api_spec.service,
+            aws_service=self.api_spec.service,
             action="delete_stack_set",
             result_name=None,
             StackSetName=self.name,

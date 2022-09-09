@@ -261,6 +261,10 @@ class AwsEc2VolumeType(AwsResource, BaseVolumeType):
 T = TypeVar("T")
 
 
+class CancelOnFirstError(Exception):
+    pass
+
+
 @define
 class ExecutorQueue:
     executor: Executor
@@ -272,20 +276,23 @@ class ExecutorQueue:
 
     def submit_work(self, fn: Callable[..., T], *args: Any, **kwargs: Any) -> Future[T]:
         def do_work() -> T:
-            # in case we should fail on first future, let's fail fast and do not execute the function
+            # in case of exception let's fail fast and do not execute the function
             if self._exception is None:
                 try:
                     return fn(*args, **kwargs)
                 except Exception as e:
                     # only store the first exception if we should fail on first future
-                    if self.fail_on_first_exception:
+                    if self._exception is None:
                         self._exception = e
                     raise e
             else:
-                # rethrow the exception raised in another thread
-                raise self._exception
+                raise CancelOnFirstError(
+                    "Exception happened in another thread. Do not start work."
+                ) from self._exception
 
-        future = self.executor.submit(do_work)
+        future = (
+            self.executor.submit(do_work) if self.fail_on_first_exception else self.executor.submit(fn, *args, **kwargs)
+        )
 
         with self._lock:
             self.futures.append(future)
@@ -299,6 +306,8 @@ class ExecutorQueue:
         for future in concurrent.futures.as_completed(to_wait):
             try:
                 future.result()
+            except CancelOnFirstError:
+                pass
             except Exception as ex:
                 log.exception(f"Unhandled exception in account {self.name}: {ex}")
                 raise

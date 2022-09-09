@@ -13,7 +13,7 @@ from prometheus_client import Counter
 import resotolib.config
 import resotolib.proc
 import time
-from typing import Dict, Optional
+from typing import Dict, Optional, Set
 
 # from multiprocessing import Process
 
@@ -243,6 +243,7 @@ class BasePostCollectPlugin(ABC):
 
     plugin_type = PluginType.POST_COLLECT  # Type of the Plugin
     name: str = NotImplemented  # Name of the cloud this plugin implements
+    activate_with: Set[str]  # List of clouds this plugin should be activated on
 
     def __init__(self) -> None:
         super().__init__()

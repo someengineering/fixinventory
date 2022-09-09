@@ -4,7 +4,7 @@ import re
 from concurrent.futures import Executor, Future
 
 from attrs import fields
-from typing import Type, Any, Callable, Set, Tuple
+from typing import Type, Any, Callable, Set, Tuple, Optional
 
 from boto3 import Session
 
@@ -128,12 +128,12 @@ def all_props_set(obj: AwsResourceType, ignore_props: Set[str]) -> None:
                 raise Exception(f"Prop >{prop}< is not set: {obj}")
 
 
-def build_graph(cls: Type[AwsResourceType]) -> GraphBuilder:
+def build_graph(cls: Type[AwsResourceType], region_name: Optional[str] = None) -> GraphBuilder:
     config = AwsConfig()
     config.sessions().session_class_factory = BotoFileBasedSession
-    client = AwsClient(config, "123456789012", role="role", region="us-east-1")
+    client = AwsClient(config, "123456789012", role="role", region=(region_name or "us-east-1"))
     queue = ExecutorQueue(DummyExecutor(), "test")
-    region = AwsRegion(id="eu-central-1")
+    region = AwsRegion(id="eu-central-1", name=(region_name or "eu-central-1"))
     builder = GraphBuilder(Graph(), Cloud(id="test"), AwsAccount(id="test"), region, client, queue)
     cls.collect_resources(builder)
     builder.executor.wait_for_submitted_work()
@@ -147,8 +147,12 @@ def check_single_node(node: AwsResource) -> None:
     assert again.to_json() == as_js, f"Left: {as_js}\nRight: {again.to_json()}"
 
 
-def round_trip_for(cls: Type[AwsResourceType], *ignore_props: str) -> Tuple[AwsResourceType, GraphBuilder]:
-    builder = build_graph(cls)
+def round_trip_for(
+    cls: Type[AwsResourceType],
+    *ignore_props: str,
+    region_name: Optional[str] = None,
+) -> Tuple[AwsResourceType, GraphBuilder]:
+    builder = build_graph(cls, region_name=region_name)
     assert len(builder.graph.nodes) > 0
     for node, data in builder.graph.nodes(data=True):
         node.connect_in_graph(builder, data["source"])

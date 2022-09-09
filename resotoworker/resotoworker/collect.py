@@ -71,7 +71,7 @@ class Collector:
 
         def post_collect(graph: Graph, post_collectors: List[Type[BasePostCollectPlugin]]) -> Graph:
             if len(post_collectors) == 0:
-                log.error("No workers configured or no collector plugins loaded - skipping collect")
+                log.error("No workers configured or no collector plugins loaded - skipping post collect")
                 return graph
             pool_args: Dict[str, Any] = {"max_workers": 1}
             pool_executor: Type[futures.Executor]

@@ -93,7 +93,7 @@ class AwsAthenaWorkGroup(AwsResource):
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def fetch_workgroup(name: str) -> Optional[AwsAthenaWorkGroup]:
             result = builder.client.get(
-                service="athena", action="get-work-group", result_name="WorkGroup", WorkGroup=name
+                aws_service="athena", action="get-work-group", result_name="WorkGroup", WorkGroup=name
             )
             if result is None:
                 return None
@@ -134,7 +134,7 @@ class AwsAthenaWorkGroup(AwsResource):
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(
-            service=self.api_spec.service,
+            aws_service=self.api_spec.service,
             action="tag_resource",
             result_name=None,
             ResourceARN=self.arn,
@@ -144,7 +144,7 @@ class AwsAthenaWorkGroup(AwsResource):
 
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
         client.call(
-            service=self.api_spec.service,
+            aws_service=self.api_spec.service,
             action="untag_resource",
             result_name=None,
             ResourceARN=self.arn,
@@ -154,7 +154,7 @@ class AwsAthenaWorkGroup(AwsResource):
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
-            service=self.api_spec.service,
+            aws_service=self.api_spec.service,
             action="delete-work-group",
             result_name=None,
             WorkGroup=self.name,
@@ -186,7 +186,7 @@ class AwsAthenaDataCatalog(AwsResource):
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def fetch_data_catalog(data_catalog_name: str) -> Optional[AwsAthenaDataCatalog]:
             result = builder.client.get(
-                service="athena",
+                aws_service="athena",
                 action="get-data-catalog",
                 result_name="DataCatalog",
                 Name=data_catalog_name,
@@ -218,7 +218,7 @@ class AwsAthenaDataCatalog(AwsResource):
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(
-            service=self.api_spec.service,
+            aws_service=self.api_spec.service,
             action="tag_resource",
             result_name=None,
             ResourceARN=self.arn,
@@ -228,7 +228,7 @@ class AwsAthenaDataCatalog(AwsResource):
 
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
         client.call(
-            service=self.api_spec.service,
+            aws_service=self.api_spec.service,
             action="untag_resource",
             result_name=None,
             ResourceARN=self.arn,
@@ -237,7 +237,7 @@ class AwsAthenaDataCatalog(AwsResource):
         return True
 
     def delete_resource(self, client: AwsClient) -> bool:
-        client.call(service="athena", action="delete-data-catalog", result_name=None, Name=self.name)
+        client.call(aws_service="athena", action="delete-data-catalog", result_name=None, Name=self.name)
         return True
 
 

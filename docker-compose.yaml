@@ -3,6 +3,7 @@ version: "3"
 services:
   graphdb:
     image: arangodb:3.8.6
+    container_name: graphdb
     platform: linux/amd64
     environment:
       - ARANGO_ROOT_PASSWORD=
@@ -16,6 +17,7 @@ services:
         hard: 65535
   tsdb:
     image: prom/prometheus:v2.33.4
+    container_name: tsdb
     ports:
       - "9090:9090"
     volumes:
@@ -28,6 +30,7 @@ services:
       - --web.console.templates=/usr/share/prometheus/consoles
   resotocore:
     image: somecr.io/someengineering/resotocore:edge
+    container_name: resotocore
     depends_on:
       - graphdb
     ports:
@@ -51,6 +54,7 @@ services:
     stop_grace_period: 2m
   resotoworker:
     image: somecr.io/someengineering/resotoworker:edge
+    container_name: resotoworker
     depends_on:
       - resotocore
     ports:
@@ -64,6 +68,7 @@ services:
     stop_grace_period: 2m
   resotometrics:
     image: somecr.io/someengineering/resotometrics:edge
+    container_name: resotometrics
     depends_on:
       - resotocore
     ports:
@@ -76,27 +81,8 @@ services:
     restart: always
     stop_grace_period: 2m
   resotoshell:
-    # This container is not started by default. To start a shell use this command:
-    # $> docker compose run --rm resotoshell
     image: somecr.io/someengineering/resotoshell:edge
-    profiles:
-      - do-not-start
-    depends_on:
-      - resotocore
-    environment:
-      - PSK
-      - RESOTOSHELL_RESOTOCORE_URI=https://resotocore:8900
-    restart: always
-    stop_grace_period: 2m
-  resotoshell-server:
-    # This container can be used as jump target to start a shell.
-    # Find the ID of the shell server and exec into it
-    # $> docker ps -f name=resoto_resotoshell-server_1 --format "{{.ID}}"
-    # $> docker exec -it <ID> resh
-    #
-    # Or to do it in one step
-    # $> docker exec -it $(docker ps -f name=resoto_resotoshell-server_1 --format "{{.ID}}") resh
-    image: somecr.io/someengineering/resotoshell:edge
+    container_name: resotoshell
     depends_on:
       - resotocore
     environment:

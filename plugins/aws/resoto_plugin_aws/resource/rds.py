@@ -19,7 +19,7 @@ class RdsTaggable:
         if isinstance(self, AwsResource):
             if spec := self.api_spec:
                 client.call(
-                    service=spec.service,
+                    aws_service=spec.service,
                     action="add_tags_to_resource",
                     result_name=None,
                     ResourceName=self.arn,
@@ -33,7 +33,7 @@ class RdsTaggable:
         if isinstance(self, AwsResource):
             if spec := self.api_spec:
                 client.call(
-                    service=spec.service,
+                    aws_service=spec.service,
                     action="remove_tags_from_resource",
                     result_name=None,
                     ResourceName=self.arn,
@@ -485,7 +485,7 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
-            service=self.api_spec.service,
+            aws_service=self.api_spec.service,
             action="delete_db_instance",
             result_name=None,
             DBInstanceIdentifier=self.id,

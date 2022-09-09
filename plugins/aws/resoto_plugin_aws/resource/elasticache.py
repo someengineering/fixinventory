@@ -19,7 +19,7 @@ class ElastiCacheTaggable:
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         if isinstance(self, AwsResource):
             client.call(
-                service="elasticache",
+                aws_service="elasticache",
                 action="add_tags_to_resource",
                 result_name=None,
                 ResourceName=self.arn,
@@ -31,7 +31,7 @@ class ElastiCacheTaggable:
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
         if isinstance(self, AwsResource):
             client.call(
-                service="elasticache",
+                aws_service="elasticache",
                 action="remove_tags_from_resource",
                 result_name=None,
                 ResourceName=self.arn,
@@ -254,7 +254,7 @@ class AwsElastiCacheCacheCluster(ElastiCacheTaggable, AwsResource):
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
-            service=self.api_spec.service, action="delete_cache_cluster", result_name=None, CacheClusterId=self.id
+            aws_service=self.api_spec.service, action="delete_cache_cluster", result_name=None, CacheClusterId=self.id
         )
         return True
 
@@ -473,7 +473,7 @@ class AwsElastiCacheReplicationGroup(ElastiCacheTaggable, AwsResource):
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
-            service=self.api_spec.service,
+            aws_service=self.api_spec.service,
             action="delete_replication_group",
             result_name=None,
             ReplicationGroupId=self.id,
