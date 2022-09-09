@@ -45,7 +45,7 @@ global_resources: List[Type[AwsResource]] = (
     + iam.resources
     + route53.resources
     + s3.resources
-    + service_quotas.global_resources
+    + service_quotas.resources
 )
 regional_resources: List[Type[AwsResource]] = (
     apigateway.resources
