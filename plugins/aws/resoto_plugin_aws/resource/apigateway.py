@@ -376,7 +376,7 @@ class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
     api_binary_media_types: List[str] = field(factory=list)
     api_minimum_compression_size: Optional[int] = field(default=None)
     api_key_source: Optional[str] = field(default=None)
-    api_endpoint_configuration: AwsApiGatewayEndpointConfiguration = field(default=None)
+    api_endpoint_configuration: Optional[AwsApiGatewayEndpointConfiguration] = field(default=None)
     api_policy: Optional[str] = field(default=None)
     api_disable_execute_api_endpoint: Optional[bool] = field(default=None)
 
@@ -427,13 +427,14 @@ class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
                 builder.add_edge(api_instance, EdgeType.default, node=resource_instance)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        for endpoint in self.api_endpoint_configuration.vpc_endpoint_ids:
-            builder.dependant_node(
-                self,
-                clazz=AwsEc2VpcEndpoint,
-                delete_same_as_default=True,
-                id=endpoint,
-            )
+        if self.api_endpoint_configuration:
+            for endpoint in self.api_endpoint_configuration.vpc_endpoint_ids:
+                builder.dependant_node(
+                    self,
+                    clazz=AwsEc2VpcEndpoint,
+                    delete_same_as_default=True,
+                    id=endpoint,
+                )
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
