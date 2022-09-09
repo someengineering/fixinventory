@@ -30,7 +30,7 @@ def value_in_path(js: Json, path: str) -> Optional[JsonElement]:
     parts = path.split(".")
     res = js
     for part in parts:
-        if isinstance(js, dict):
+        if isinstance(res, dict):
             res = res.get(part)  # type: ignore
         else:
             return None
@@ -145,6 +145,14 @@ class OnlyIfDefined(OnlyIf):
 
 
 @define
+class OnlyIfUndefined(OnlyIf):
+    path: str
+
+    def is_true(self, js: Json) -> bool:
+        return value_in_path(js, self.path) is None
+
+
+@define
 class OnlyIfLen(OnlyIf):
     path: str
     op: str
@@ -177,15 +185,8 @@ class OnlyIfValue(OnlyIf):
 
 
 @define
-class OnlyIfUndefined(OnlyIf):
-    path: str
-
-    def is_true(self, js: Json) -> bool:
-        return value_in_path(js, self.path) is None
-
-
-@define
 class ExecuteCommand(ABC):
+    @abstractmethod
     def execute(self, cv: Conversation) -> JsonElement:
         pass
 
@@ -275,7 +276,6 @@ class InteractionStep(ABC):
     name: str
     help: str
     patches: List[PatchStatic] = field(factory=list)
-    id: Optional[str] = None
     only_if: Optional[List[OnlyIf]] = None
     is_terminal: bool = False
     links: Optional[Dict[str, str]] = None  # Title -> URL
