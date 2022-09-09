@@ -4,7 +4,7 @@ from resotolib.graph import BySearchCriteria, ByNodeId, Graph
 
 from resotolib.logger import log
 import functools
-from typing import cast, Any
+from typing import cast, Any, Set
 
 
 def rgetattr(obj: Any, attr: str, *args: Any) -> Any:
@@ -47,6 +47,7 @@ def link_do_volume_to_pv(graph: Graph, resource: BaseResource) -> None:
 
 class DigitalOceanK8sCollectorPlugin(BasePostCollectPlugin):
     name = "digitalocean_k8s"
+    activate_with: Set[str] = {"digitalocean", "k8s"}
 
     def post_collect(self, graph: Graph) -> None:
         log.info("plugin: collecting DigitalOcean to k8s edges")

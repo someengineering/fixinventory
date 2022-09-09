@@ -1,7 +1,7 @@
 import pkg_resources
 import inspect
 from resotolib.logger import log
-from typing import List, Optional, Type, Union, Dict
+from typing import List, Optional, Type, Union, Dict, cast, Set
 from resotolib.args import ArgumentParser
 from resotolib.config import Config
 from resotolib.baseplugin import BaseCollectorPlugin, BasePostCollectPlugin, BasePlugin, BaseActionPlugin, PluginType
@@ -65,9 +65,20 @@ class PluginLoader:
         """Returns the list of Plugins of a certain PluginType"""
         if not self._initialized:
             self.find_plugins()
-        if plugin_type == PluginType.COLLECTOR and len(Config.resotoworker.collector) > 0:
+        configured_collectors: Set[str] = set(Config.resotoworker.collector)
+
+        if plugin_type == PluginType.POST_COLLECT and len(configured_collectors) > 0:
+            post_collect_plugins = cast(List[Type[BasePostCollectPlugin]], self._plugins.get(plugin_type, []))
+            return [
+                plugin
+                for plugin in post_collect_plugins
+                if plugin.activate_with.issubset(Config.resotoworker.collector)
+            ]
+
+        if plugin_type == PluginType.COLLECTOR and len(configured_collectors) > 0:
             plugins: List[Type[BaseCollectorPlugin]] = self._plugins.get(plugin_type, [])  # type: ignore
-            return [plugin for plugin in plugins if plugin.cloud in Config.resotoworker.collector]
+            return [plugin for plugin in plugins if plugin.cloud in configured_collectors]
+
         return self._plugins.get(plugin_type, [])  # type: ignore
 
     def add_plugin_args(self, arg_parser: ArgumentParser) -> None:

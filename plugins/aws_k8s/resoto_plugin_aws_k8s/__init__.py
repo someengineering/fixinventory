@@ -4,7 +4,7 @@ from resotolib.graph import BySearchCriteria, ByNodeId, Graph
 
 from resotolib.logger import log
 import functools
-from typing import Any
+from typing import Any, Set
 
 
 def rgetattr(obj: Any, attr: str, *args: Any) -> Any:
@@ -33,6 +33,7 @@ def link_k8s_cluster_to_eks_cluster(graph: Graph, resource: BaseResource) -> Non
 
 class AWSK8sCollectorPlugin(BasePostCollectPlugin):
     name = "aws_k8s"
+    activate_with: Set[str] = {"aws", "k8s"}
 
     def post_collect(self, graph: Graph) -> None:
         log.info("plugin: collecting AWS to k8s edges")
