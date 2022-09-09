@@ -111,7 +111,7 @@ class AwsKmsKey(AwsResource, BaseAccessKey):
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(
-            service="kms",
+            aws_service="kms",
             action="tag-resource",
             result_name=None,
             KeyId=self.id,
@@ -120,19 +120,23 @@ class AwsKmsKey(AwsResource, BaseAccessKey):
         return True
 
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
-        client.call(service="kms", action="untag-resource", result_name=None, KeyId=self.id, TagKeys=[key])
+        client.call(aws_service="kms", action="untag-resource", result_name=None, KeyId=self.id, TagKeys=[key])
         return True
 
     def delete_resource(self, client: AwsClient) -> bool:
         if self.access_key_status == "Disabled":
             client.call(
-                service="kms", action="schedule-key-deletion", result_name=None, KeyId=self.id, PendingWindowInDays=7
+                aws_service="kms",
+                action="schedule-key-deletion",
+                result_name=None,
+                KeyId=self.id,
+                PendingWindowInDays=7,
             )
             return True
         if self.access_key_status == "PendingDeletion":
             return True
 
-        client.call(service="kms", action="disable-key", result_name=None, KeyId=self.id)
+        client.call(aws_service="kms", action="disable-key", result_name=None, KeyId=self.id)
         return True
 
     @staticmethod

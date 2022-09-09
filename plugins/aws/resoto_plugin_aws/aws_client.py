@@ -61,21 +61,21 @@ class AwsClient:
         retry_on_exception=is_retryable_exception,
     )
     @log_runtime
-    def call(self, service: str, action: str, result_name: Optional[str], **kwargs: Any) -> JsonElement:
+    def call(self, aws_service: str, action: str, result_name: Optional[str], **kwargs: Any) -> JsonElement:
         arg_info = ""
         if kwargs:
             arg_info += " with args " + ", ".join([f"{key}={value}" for key, value in kwargs.items()])
-        log.debug(f"[Aws] calling service={service} action={action}{arg_info}")
+        log.debug(f"[Aws] calling service={aws_service} action={action}{arg_info}")
         py_action = action.replace("-", "_")
         # 5 attempts is the default, and the adaptive mode allows automated client-side throttling
         config = Config(retries={"max_attempts": 5, "mode": "adaptive"})
         session = self.config.sessions().session(self.account_id, self.role, self.profile)
-        client = session.client(service, region_name=self.region, config=config)
+        client = session.client(aws_service, region_name=self.region, config=config)
         if client.can_paginate(py_action):
             paginator = client.get_paginator(py_action)
             result: List[Json] = []
             for page in paginator.paginate(**kwargs):
-                log.debug(f"[Aws] Get next page for service={service} action={action}{arg_info}")
+                log.debug(f"[Aws] Get next page for service={aws_service} action={action}{arg_info}")
                 next_page: Json = self.__to_json(page)  # type: ignore
                 if result_name is None:
                     # the whole object is appended
@@ -85,17 +85,17 @@ class AwsClient:
                     result.extend(list_result)
                 else:
                     raise AttributeError(f"Expected list result under key '{result_name}'")
-            log.debug(f"[Aws] called service={service} action={action}{arg_info}: {len(result)} results.")
+            log.debug(f"[Aws] called service={aws_service} action={action}{arg_info}: {len(result)} results.")
             return result
         else:
             result = getattr(client, py_action)(**kwargs)
             single: Json = self.__to_json(result)  # type: ignore
-            log.debug(f"[Aws] called service={service} action={action}{arg_info}: single result")
+            log.debug(f"[Aws] called service={aws_service} action={action}{arg_info}: single result")
             return single.get(result_name) if result_name else [single]
 
-    def call_handle(self, service: str, action: str, result_name: Optional[str], **kwargs: Any) -> JsonElement:
+    def call_handle(self, aws_service: str, action: str, result_name: Optional[str], **kwargs: Any) -> JsonElement:
         try:
-            return self.call(service, action, result_name, **kwargs)  # type: ignore
+            return self.call(aws_service, action, result_name, **kwargs)  # type: ignore
         except ClientError as e:
             code = e.response["Error"]["Code"]
             if code == "AccessDenied":
@@ -108,17 +108,17 @@ class AwsClient:
             else:
                 log.exception(
                     (
-                        f"An AWS API error {code} occurred during resource collection of {service} action {action} in "
+                        f"An AWS API error {code} occurred during resource collection of {aws_service} action {action} in "  # noqa: E501
                         f"account {self.account_id} region {self.region} - skipping resources"
                     )
                 )
                 return None
 
-    def list(self, service: str, action: str, result_name: Optional[str], **kwargs: Any) -> List[Any]:
-        return self.call_handle(service, action, result_name, **kwargs) or []  # type: ignore
+    def list(self, aws_service: str, action: str, result_name: Optional[str], **kwargs: Any) -> List[Any]:
+        return self.call_handle(aws_service, action, result_name, **kwargs) or []  # type: ignore
 
-    def get(self, service: str, action: str, result_name: Optional[str], **kwargs: Any) -> Optional[Json]:
-        return self.call_handle(service, action, result_name, **kwargs)  # type: ignore
+    def get(self, aws_service: str, action: str, result_name: Optional[str], **kwargs: Any) -> Optional[Json]:
+        return self.call_handle(aws_service, action, result_name, **kwargs)  # type: ignore
 
     def for_region(self, region: str) -> AwsClient:
         return AwsClient(self.config, self.account_id, role=self.role, profile=self.profile, region=region)

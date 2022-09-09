@@ -206,18 +206,18 @@ class AwsGlacierVault(AwsResource):
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(
-            service="glacier", action="add-tags-to-vault", result_name=None, vaultName=self.name, Tags={key: value}
+            aws_service="glacier", action="add-tags-to-vault", result_name=None, vaultName=self.name, Tags={key: value}
         )
         return True
 
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
         client.call(
-            service="glacier", action="remove-tags-from-vault", result_name=None, vaultName=self.name, TagKeys=[key]
+            aws_service="glacier", action="remove-tags-from-vault", result_name=None, vaultName=self.name, TagKeys=[key]
         )
         return True
 
     def delete_resource(self, client: AwsClient) -> bool:
-        client.call(service="glacier", action="delete-vault", result_name=None, vaultName=self.name)
+        client.call(aws_service="glacier", action="delete-vault", result_name=None, vaultName=self.name)
         return True
 
 

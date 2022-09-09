@@ -38,7 +38,11 @@ class AwsS3Bucket(AwsResource, BaseBucket):
     def _set_tags(self, client: AwsClient, tags: Dict[str, str]) -> bool:
         tag_set = [{"Key": k, "Value": v} for k, v in tags.items()]
         client.call(
-            service="s3", action="put-bucket-tagging", result_name=None, Bucket=self.name, Tagging={"TagSet": tag_set}
+            aws_service="s3",
+            action="put-bucket-tagging",
+            result_name=None,
+            Bucket=self.name,
+            Tagging={"TagSet": tag_set},
         )
         return True
 
@@ -46,7 +50,9 @@ class AwsS3Bucket(AwsResource, BaseBucket):
         """Fetch the S3 buckets tags from the AWS API."""
         tags: Dict[str, str] = {}
         try:
-            response = client.call(service="s3", action="get-bucket-tagging", result_name="TagSet", Bucket=self.name)
+            response = client.call(
+                aws_service="s3", action="get-bucket-tagging", result_name="TagSet", Bucket=self.name
+            )
             tags = tags_as_dict(response)  # type: ignore
         except botocore.exceptions.ClientError as e:
             if e.response["Error"]["Code"] != "NoSuchTagSet":
@@ -67,7 +73,7 @@ class AwsS3Bucket(AwsResource, BaseBucket):
         return self._set_tags(client, tags)
 
     def delete_resource(self, client: AwsClient) -> bool:
-        client.call(service="s3", action="delete_bucket", result_name=None, Bucket=self.name)
+        client.call(aws_service="s3", action="delete_bucket", result_name=None, Bucket=self.name)
         return True
 
 

@@ -292,7 +292,7 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(
-            service=self.api_spec.service,
+            aws_service=self.api_spec.service,
             action="tag_resource",
             result_name=None,
             Resource=self.arn,
@@ -302,7 +302,7 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
 
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
         client.call(
-            service=self.api_spec.service,
+            aws_service=self.api_spec.service,
             action="untag_resource",
             result_name=None,
             Resource=self.arn,
@@ -311,7 +311,9 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
         return True
 
     def delete_resource(self, client: AwsClient) -> bool:
-        client.call(service=self.api_spec.service, action="delete_function", result_name=None, FunctionName=self.arn)
+        client.call(
+            aws_service=self.api_spec.service, action="delete_function", result_name=None, FunctionName=self.arn
+        )
         return True
 
 

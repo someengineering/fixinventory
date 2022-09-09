@@ -16,7 +16,7 @@ class DynamoDbTaggable:
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         if isinstance(self, AwsResource):
             client.call(
-                service="dynamodb",
+                aws_service="dynamodb",
                 action="tag-resource",
                 result_name=None,
                 ResourceArn=self.arn,
@@ -28,7 +28,7 @@ class DynamoDbTaggable:
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
         if isinstance(self, AwsResource):
             client.call(
-                service="dynamodb",
+                aws_service="dynamodb",
                 action="untag-resource",
                 result_name=None,
                 ResourceArn=self.arn,
@@ -340,7 +340,7 @@ class AwsDynamoDbTable(DynamoDbTaggable, AwsResource):
             )
 
     def delete_resource(self, client: AwsClient) -> bool:
-        client.call(service=self.api_spec.service, action="delete-table", result_name=None, TableName=self.name)
+        client.call(aws_service=self.api_spec.service, action="delete-table", result_name=None, TableName=self.name)
         return True
 
 
@@ -403,7 +403,7 @@ class AwsDynamoDbGlobalTable(DynamoDbTaggable, AwsResource):
                     )
 
     def delete_resource(self, client: AwsClient) -> bool:
-        client.call(service=self.api_spec.service, action="delete-table", result_name=None, TableName=self.name)
+        client.call(aws_service=self.api_spec.service, action="delete-table", result_name=None, TableName=self.name)
         return True
 
 

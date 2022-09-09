@@ -28,7 +28,7 @@ from resoto_plugin_aws.aws_client import AwsClient
 def iam_update_tag(resource: AwsResource, client: AwsClient, action: str, key: str, value: str, **kwargs: Any) -> bool:
     if spec := resource.api_spec:
         client.call(
-            service=spec.service,
+            aws_service=spec.service,
             action=action,
             result_name=None,
             Tags=[{"Key": key, "Value": value}],
@@ -41,7 +41,7 @@ def iam_update_tag(resource: AwsResource, client: AwsClient, action: str, key: s
 def iam_delete_tag(resource: AwsResource, client: AwsClient, action: str, key: str, **kwargs: Any) -> bool:
     if spec := resource.api_spec:
         client.call(
-            service=spec.service,
+            aws_service=spec.service,
             action=action,
             result_name=None,
             TagKeys=[key],
@@ -147,7 +147,7 @@ class AwsIamRole(AwsResource):
                 log_msg = f"Detaching {successor.rtdname}"
                 self.log(log_msg)
                 client.call(
-                    service="iam",
+                    aws_service="iam",
                     action="detach_role_policy",
                     result_name=None,
                     PolicyArn=successor.arn,
@@ -158,7 +158,7 @@ class AwsIamRole(AwsResource):
             log_msg = f"Deleting inline policy {role_policy}"
             self.log(log_msg)
             client.call(
-                service="iam",
+                aws_service="iam",
                 action="delete_role_policy",
                 result_name=None,
                 PolicyName=role_policy.policy_name,
@@ -168,7 +168,7 @@ class AwsIamRole(AwsResource):
         return True
 
     def delete_resource(self, client: AwsClient) -> bool:
-        client.call(service="iam", action="delete_role", result_name=None, RoleName=self.name)
+        client.call(aws_service="iam", action="delete_role", result_name=None, RoleName=self.name)
         return True
 
 
@@ -208,7 +208,7 @@ class AwsIamServerCertificate(AwsResource, BaseCertificate):
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
-            service=self.api_spec.service,
+            aws_service=self.api_spec.service,
             action="delete_server_certificate",
             result_name=None,
             ServerCertificateName=self.name,
@@ -262,7 +262,7 @@ class AwsIamPolicy(AwsResource, BasePolicy):
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
-            service="iam",
+            aws_service="iam",
             action="delete_policy",
             result_name=None,
             PolicyArn=self.arn,
@@ -300,7 +300,7 @@ class AwsIamGroup(AwsResource, BaseGroup):
                 log_msg = f"Detaching {successor.rtdname}"
                 self.log(log_msg)
                 client.call(
-                    service="iam",
+                    aws_service="iam",
                     action="detach_group_policy",
                     result_name=None,
                     GroupName=self.name,
@@ -311,7 +311,7 @@ class AwsIamGroup(AwsResource, BaseGroup):
             log_msg = f"Deleting inline policy {group_policy}"
             self.log(log_msg)
             client.call(
-                service="iam",
+                aws_service="iam",
                 action="delete_group_policy",
                 result_name=None,
                 GroupName=self.name,
@@ -322,7 +322,7 @@ class AwsIamGroup(AwsResource, BaseGroup):
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
-            service="iam",
+            aws_service="iam",
             action="delete_group",
             result_name=None,
             GroupName=self.name,
@@ -435,7 +435,7 @@ class AwsIamUser(AwsResource, BaseUser):
                 log_msg = f"Detaching {successor.rtdname}"
                 self.log(log_msg)
                 client.call(
-                    service="iam",
+                    aws_service="iam",
                     action="detach_user_policy",
                     result_name=None,
                     UserName=self.name,
@@ -446,7 +446,7 @@ class AwsIamUser(AwsResource, BaseUser):
             log_msg = f"Deleting inline policy {user_policy}"
             self.log(log_msg)
             client.call(
-                service="iam",
+                aws_service="iam",
                 action="delete_user_policy",
                 result_name=None,
                 UserName=self.name,
@@ -456,7 +456,7 @@ class AwsIamUser(AwsResource, BaseUser):
         return True
 
     def delete_resource(self, client: AwsClient) -> bool:
-        client.call(service="iam", action="delete_user", result_name=None, UserName=self.name)
+        client.call(aws_service="iam", action="delete_user", result_name=None, UserName=self.name)
         return True
 
 
@@ -494,7 +494,7 @@ class AwsIamInstanceProfile(AwsResource, BaseInstanceProfile):
                 log_msg = f"Detaching {predecessor.rtdname}"
                 self.log(log_msg)
                 client.call(
-                    service="iam",
+                    aws_service="iam",
                     action="remove_role_from_instance_profile",
                     result_name=None,
                     RoleName=predecessor.name,
@@ -503,7 +503,9 @@ class AwsIamInstanceProfile(AwsResource, BaseInstanceProfile):
         return True
 
     def delete_resource(self, client: AwsClient) -> bool:
-        client.call(service="iam", action="delete_instance_profile", result_name=None, InstanceProfileName=self.name)
+        client.call(
+            aws_service="iam", action="delete_instance_profile", result_name=None, InstanceProfileName=self.name
+        )
         return True
 
 

@@ -444,7 +444,7 @@ class AwsRedshiftCluster(AwsResource):
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(
-            service=self.api_spec.service,
+            aws_service=self.api_spec.service,
             action="create_tags",
             result_name=None,
             ResourceName=self.arn,
@@ -454,7 +454,7 @@ class AwsRedshiftCluster(AwsResource):
 
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
         client.call(
-            service=self.api_spec.service,
+            aws_service=self.api_spec.service,
             action="delete_tags",
             result_name=None,
             ResourceName=self.arn,
@@ -464,7 +464,7 @@ class AwsRedshiftCluster(AwsResource):
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
-            service=self.api_spec.service,
+            aws_service=self.api_spec.service,
             action="delete_cluster",
             result_name=None,
             ClusterIdentifier=self.id,

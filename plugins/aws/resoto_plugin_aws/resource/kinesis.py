@@ -101,7 +101,7 @@ class AwsKinesisStream(AwsResource):
 
         for stream_name in json:
             stream_description = builder.client.get(
-                service="kinesis",
+                aws_service="kinesis",
                 action="describe-stream",
                 result_name="StreamDescription",
                 StreamName=stream_name,
@@ -113,7 +113,7 @@ class AwsKinesisStream(AwsResource):
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(
-            service=self.api_spec.service,
+            aws_service=self.api_spec.service,
             action="add_tags_to_stream",
             result_name=None,
             StreamName=self.name,
@@ -123,7 +123,7 @@ class AwsKinesisStream(AwsResource):
 
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
         client.call(
-            service=self.api_spec.service,
+            aws_service=self.api_spec.service,
             action="remove_tags_from_stream",
             result_name=None,
             StreamName=self.name,
@@ -133,7 +133,7 @@ class AwsKinesisStream(AwsResource):
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
-            service=self.api_spec.service,
+            aws_service=self.api_spec.service,
             action="delete_stream",
             result_name=None,
             StreamName=self.name,
