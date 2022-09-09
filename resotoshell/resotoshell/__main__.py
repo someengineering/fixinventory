@@ -58,6 +58,7 @@ def main() -> None:
         if not args.no_setup:
             setup_system(client, info)  # will return immediately, if the system is already configured
     except Exception:
+        log.debug("Caught unhandled exception while setting up the system", exc_info=True)
         client.shutdown()
         sys.exit(1)
     if args.stdin or not sys.stdin.isatty():

@@ -4,7 +4,7 @@
         {
             "kind": "info",
             "name": "Resoto",
-            "help": "Welcome to Resoto!\n\nThis wizard will help you setting up your installation.\n\nYou can navigate through the steps using the mouse or buttons:\nUp/Down + Space: change a selection.\nTab/Shift+Tab: go to the next/previous element\nEsc: Go back one decision.\nF4: to exit the wizard at any time."
+            "help": "**Welcome to Resoto!**\n\nThis wizard will help you setting up your installation.\n\nYou can navigate through the steps using the mouse or buttons:\n- Up/Down + Space: change a selection.\n- Tab/Shift+Tab: go to the next/previous element\n- Esc: Go back one decision.\n- F4: to exit the wizard at any time."
         },
         {
             "kind": "decision",
@@ -35,7 +35,7 @@
                                 "Resoto is running on a machine with a configured InstanceProfile": {
                                     "kind": "info",
                                     "name": "InstanceProfile",
-                                    "help": "Using an instance profile does not require any additional configuration.\nPlease make sure the permissions are set correctly in IAM for the instance ResotoWorker is running on.",
+                                    "help": "Using an instance profile does not require any additional configuration.\n\nPlease make sure the permissions are set correctly in IAM for the instance ResotoWorker is running on.",
                                     "links": {
                                         "AWS Instance Profile": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2_instance-profiles.html"
                                     }
@@ -43,7 +43,7 @@
                                 "AWS access environment variables are provided to Resoto": {
                                     "kind": "info",
                                     "name": "Environment Variables",
-                                    "help": "Using environment variables does not require any additional configuration.\nPlease make sure the variables are available to the ResotoWorker process.",
+                                    "help": "Using environment variables does not require any additional configuration.\n\nPlease make sure the variables are available to the ResotoWorker process.",
                                     "links": {
                                         "AWS Access": "https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html#environment-variables"
                                     }
@@ -79,7 +79,7 @@
                                 "I would like to use AWS Profiles": {
                                     "kind": "input",
                                     "name": "AWS Profile(s) to use",
-                                    "help": "Enter the name of your profiles (separated by comma)",
+                                    "help": "Enter the name of your profile. You can enter multiple profiles separated by a comma.",
                                     "action": {
                                         "action": "replace",
                                         "path": "aws.profiles",
@@ -90,7 +90,10 @@
                                 "The Option I would like to use is not listed here": {
                                     "kind": "info",
                                     "name": "Sorry",
-                                    "help": "This setup wizard is able to handle the most common cases to connect to AWS.\nIt looks we did not cover your use case.\nSince most options to connect to AWS are implemented,\nyou might be able tp configure the access yourself by adjusting the configuration.\nPlease visit\nhttps://resoto.com/docs/getting-started/configure-cloud-provider-access/aws\nto see the possible configuration options.\n",
+                                    "help": "This setup wizard is able to handle the most common cases to connect to AWS. It looks we did not cover your use case. Since most options to connect to AWS are implemented, you might be able tp configure the access yourself by adjusting the configuration.",
+                                    "links": {
+                                        "AWS Access": "https://resoto.com/docs/getting-started/configure-cloud-provider-access/aws"
+                                    },
                                     "is_terminal": true
                                 }
                             }
@@ -98,7 +101,7 @@
                         {
                             "kind": "input",
                             "name": "AWS: scrape organizations?",
-                            "help": "Do you want to scrape your accounts from the organizations?\nScraping the organization requires specific permissions.\nPlease find additional information using the links below.",
+                            "help": "Do you want to scrape your accounts from the organizations? Scraping the organization requires specific permissions. Please find additional information using the links below.",
                             "links": {
                                 "Setup AWS": "https://resoto.com/docs/getting-started/configure-cloud-provider-access/aws",
                                 "AWS IAM": "https://docs.aws.amazon.com/organizations/latest/userguide/orgs_security_iam.html"
@@ -117,7 +120,7 @@
                         {
                             "kind": "input",
                             "name": "AWS: Which accounts to scrape?",
-                            "help": "It is possible to scrape different accounts.\nSince the organization should not be scraped, do you want to define the list of accounts to scrape?\nIf yes, enter all account ids separated by comma",
+                            "help": "It is possible to scrape different accounts. Since the organization should not be scraped, do you want to define the list of accounts to scrape? If yes, enter all account ids separated by comma",
                             "action": {
                                 "action": "replace",
                                 "path": "aws.account",
@@ -135,7 +138,7 @@
                         {
                             "kind": "input",
                             "name": "AWS: use a specific role?",
-                            "help": "In case you have setup a role that Resoto should assume, enter the role name here.\nA role is not required, leave the field empty if you do not want to use a role.",
+                            "help": "In case you have setup a role that Resoto should assume, enter the role name here. A role is not required, leave the field empty if you do not want to use a role.",
                             "action": {
                                 "action": "replace",
                                 "path": "aws.role",
@@ -169,7 +172,7 @@
                         {
                             "kind": "decision",
                             "name": "GCP: how to access your GCP account(s)?",
-                            "help": "Google Cloud is using service account files in order to connect to an account.\nResotoworker needs access to such a file to scrape the account.\nIf you have multiple accounts, you need to provide a service account file for each account.\n\nIf Resoto is running inside google cloud, it is possible to autodetect the accounts to scrape.\nIn this case permissions need to be set for the instance Resoto is running on.\nSee links for more information.",
+                            "help": "Google Cloud is using service account files in order to connect to an account. Resotoworker needs access to such a file to scrape the account. If you have multiple accounts, you need to provide a service account file for each account.\n\nIf Resoto is running inside Google Cloud, it is possible to autodetect the accounts to scrape. In this case permissions need to be set for the instance Resoto is running on. See links for more information.",
                             "links": {
                                 "GCP Access": "https://resoto.com/docs/getting-started/configure-cloud-provider-access/gcp",
                                 "Service Account": "https://cloud.google.com/iam/docs/creating-managing-service-account-keys"
@@ -193,7 +196,7 @@
                                         "Everything is fine.": {
                                             "kind": "info",
                                             "name": "GCP",
-                                            "help": "Resoto will detect the accounts to scrape based on the instance profile ResotoWorker is running on.\nYou are all set!"
+                                            "help": "Resoto will detect the accounts to scrape based on the instance profile ResotoWorker is running on.\n\nYou are all set!"
                                         },
                                         "Add additional GCP service account files": {
                                             "kind": "sub_interaction",
@@ -205,7 +208,7 @@
                                                 {
                                                     "kind": "input",
                                                     "name": "GCP Service Account File",
-                                                    "help": "Enter the path to the GCP service account file.\nPlease make sure that this file is accessible to ResotoWorker.",
+                                                    "help": "Enter the path to the GCP service account file. Please make sure that this file is accessible to ResotoWorker.",
                                                     "links": {
                                                         "GCP Access": "https://resoto.com/docs/getting-started/configure-cloud-provider-access/gcp",
                                                         "Service Account": "https://cloud.google.com/iam/docs/creating-managing-service-account-keys"
@@ -230,7 +233,7 @@
                                         {
                                             "kind": "input",
                                             "name": "GCP: Service Account(s)",
-                                            "help": "Enter the path to the GCP service account file.\nPlease make sure that this file is accessible to ResotoWorker.",
+                                            "help": "Enter the path to the GCP service account file. Please make sure that this file is accessible to ResotoWorker.",
                                             "links": {
                                                 "GCP Access": "https://resoto.com/docs/getting-started/configure-cloud-provider-access/gcp",
                                                 "Service Account": "https://cloud.google.com/iam/docs/creating-managing-service-account-keys"
@@ -264,7 +267,7 @@
                         {
                             "kind": "decision",
                             "name": "Kubernetes: how to access your Kubernetes cluster(s)?",
-                            "help": "The simplest way to connect to your cluster is using a kubeconfig file.\nFor this method to work, resotoworker needs to have access to the configured file.\nIn case this is not possible, or difficult to achieve, you can configure the access directly",
+                            "help": "The simplest way to connect to your cluster is using a kubeconfig file. For this method to work, resotoworker needs to have access to the configured file. In case this is not possible, or difficult to achieve, you can configure the access directly",
                             "select_multiple": false,
                             "step_options": {
                                 "Resoto has access to a kubeconfig file": {
@@ -276,7 +279,7 @@
                                         {
                                             "kind": "input",
                                             "name": "Kubernetes: access via kubeconfig file",
-                                            "help": "Resoto can use a kubeconfig file to access your Kubernetes cluster(s).\nPlease enter the path to the kubeconfig file.",
+                                            "help": "Resoto can use a kubeconfig file to access your Kubernetes cluster(s). Please enter the path to the kubeconfig file.",
                                             "action": {
                                                 "action": "replace",
                                                 "path": "path",
@@ -294,7 +297,7 @@
                                         {
                                             "kind": "input",
                                             "name": "Kubernetes access: name of the cluster",
-                                            "help": "Please enter the name of the cluster.\nThis name can be chosen freely, but should be unique.",
+                                            "help": "Please enter the name of the cluster. This name can be chosen freely, but should be unique.",
                                             "action": {
                                                 "action": "replace",
                                                 "path": "name",
@@ -304,7 +307,7 @@
                                         {
                                             "kind": "input",
                                             "name": "Kubernetes access: server url",
-                                            "help": "Please enter the url of the Kubernetes API server.\nThis is usually something like https://<ip>:<port>\nExample: https://k8s-cluster-server.example.com",
+                                            "help": "Please enter the url of the Kubernetes API server. This is usually something like `https://<ip>:<port>` Example: `https://k8s-cluster-server.example.com`",
                                             "action": {
                                                 "action": "replace",
                                                 "path": "server",
@@ -314,7 +317,7 @@
                                         {
                                             "kind": "input",
                                             "name": "Kubernetes access: certificate authority data",
-                                            "help": "Please enter the certificate authority data.\nThis is the base64 encoded certificate authority data of the cluster.\nYou can find this data in the kubeconfig file in the related cluster section.\nOnly required in case of a custom certificate.\nLeave the field empty, if this is not the case.",
+                                            "help": "Please enter the certificate authority data. This is the base64 encoded certificate authority data of the cluster. You can find this data in the kubeconfig file in the related cluster section. Only required in case of a custom certificate. Leave the field empty, if this is not the case.",
                                             "action": {
                                                 "action": "replace",
                                                 "path": "certificate_authority_data",
@@ -324,7 +327,7 @@
                                         {
                                             "kind": "input",
                                             "name": "Kubernetes access: access token",
-                                            "help": "Please enter the personal user access token.\n",
+                                            "help": "Please enter the personal user access token.",
                                             "action": {
                                                 "action": "replace",
                                                 "path": "token",
@@ -360,7 +363,7 @@
                                 {
                                     "kind": "input",
                                     "name": "DigitalOcean: access token",
-                                    "help": "Please enter the token to access your account.\nYou can visit the following URL to retrieve the access token.",
+                                    "help": "Please enter the token to access your account. You can visit the following URL to retrieve the access token.",
                                     "links": {
                                         "DigitalOcean": "https://cloud.digitalocean.com/account/api/tokens"
                                     },
@@ -379,7 +382,7 @@
         {
             "kind": "info",
             "name": "Resoto: configuration summary",
-            "help": "You made it!\nConfiguration is now getting updated and a collection run is triggered.\n",
+            "help": "**You made it!**\n\nConfiguration is now getting updated and a collection run is triggered.\n",
             "commands": [
                 {"kind":  "put_config"},
                 {"kind":  "execute", "command": "workflows run collect"}
@@ -388,12 +391,12 @@
         {
             "kind": "progress",
             "name": "Resoto: Collect",
-            "help": "Resoto is now connecting to the cloud providers you have configured and collects resource data.\nThis may take a while, depending on the number of accounts, regions and amount of data to collect."
+            "help": "Resoto is now connecting to the cloud providers you have configured and collects resource data.\n\nThis may take a while, depending on the number of accounts, regions and amount of data to collect."
         },
         {
             "kind": "info",
             "name": "Resoto: Setup of your system done.",
-            "help": "The system has been setup according to your configuration.\nIf you want to refine your configuration, you can do so with \nconfig edit resoto.worker\n\nIf you have any comments, ideas or face any issues, \nplease join our Discord channel and let us know!\n\nYou can now start using Resoto.",
+            "help": "The system has been setup according to your configuration. If you want to refine your configuration, you can do so with\n\n```> config edit resoto.worker```\n\nIf you have any comments, ideas or face any issues, please join our Discord channel and let us know!\n\nYou can now start using Resoto. Have a great day!",
             "links": {
                 "GitHub": "https://github.com/someengineering/resoto",
                 "Docs": "https://resoto.com",

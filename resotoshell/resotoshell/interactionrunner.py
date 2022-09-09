@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import shutil
 import time
 from abc import ABC, abstractmethod
 from enum import Enum, unique
@@ -11,7 +12,10 @@ from typing import Optional, List, Dict, Any, Tuple, Union, Callable, Sized
 
 from attr import define, field
 from cattrs import Converter, gen
+from prompt_toolkit import ANSI
 from resotoclient import ResotoClient
+from rich.console import Console
+from rich.markdown import Markdown
 
 from resotolib.logger import log
 from resotolib.types import Json, JsonElement
@@ -36,6 +40,10 @@ def value_in_path(js: Json, path: str) -> Optional[JsonElement]:
         else:
             return None
     return res
+
+
+tty_columns, tty_rows = shutil.get_terminal_size(fallback=(80, 25))
+console = Console(width=tty_columns - 10, height=tty_rows - 10, force_terminal=True)
 
 
 @unique
@@ -283,13 +291,15 @@ class InteractionStep(ABC):
     commands: List[ExecuteCommand] = field(factory=list)
 
     @property
-    def message(self) -> str:
+    def message(self) -> ANSI:
         result = self.help
         if self.links:
             result += "\n\n"
             for title, url in self.links.items():
-                result += f"{title}: {url}\n"
-        return result
+                result += f"- {title}: {url}\n"
+        with console.capture() as capture:
+            console.print(Markdown(result))
+        return ANSI(capture.get())
 
     @abstractmethod
     def execute(self, conversation: Conversation) -> List[ActionResult]:
