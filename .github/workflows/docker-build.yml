@@ -264,7 +264,7 @@ jobs:
 
   release:
     name: Create Release
-    if: github.ref_type == 'tag'
+    if: github.event_name != 'pull_request'
     needs:
       - split-build
     runs-on: ubuntu-latest
@@ -272,6 +272,7 @@ jobs:
     steps:
       - name: Determine release type
         id: release_type
+        if: github.ref_type == 'tag'
         shell: bash
         run: |
           if [[ ${{ github.ref }} =~ ^refs/tags/[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
@@ -287,132 +288,104 @@ jobs:
 
       - name: Check out someengineering/resoto.com
         uses: actions/checkout@v3
-        if: steps.release_type.outputs.prerelease == 'false'
         with:
           repository: someengineering/resoto.com
           path: resoto.com
           token: ${{ secrets.SOME_CI_PAT }}
 
       - name: Set up Python
+        if: github.ref_type == 'tag'
         uses: actions/setup-python@v2
-        if: steps.release_type.outputs.prerelease == 'false'
         with:
           python-version: 3.x
 
       - name: Generate release notes
+        if: github.ref_type == 'tag'
         id: release_notes
         shell: bash
         run: |
           mapfile -t tags < <(echo $(curl -sL https://api.github.com/repos/someengineering/resoto/tags?per_page=1) | jq -r '(.[] | .name)')
           echo ::set-output name=tag::${tags[0]}
-          if [[ ${{ github.ref }} =~ ^refs/tags/[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            prev_release=$(echo $(curl -sL https://api.github.com/repos/someengineering/resoto/releases/latest) | jq -r '.tag_name')
-            year=$(date +'%Y')
-            date=$(date +'%m-%d')
-            dir="resoto.com/news/${year}/${date}-v${tags[0]}"
-            file="${dir}/index.md"
-            mkdir -p $dir
-            python tools/release_notes.py ${prev_release} ${tags[0]} > $file
-            cat $file
-            echo ::set-output name=file::$file
-          fi
+          prev_release=$(echo $(curl -sL https://api.github.com/repos/someengineering/resoto/releases/latest) | jq -r '.tag_name')
+          year=$(date +'%Y')
+          date=$(date +'%m-%d')
+          dir="resoto.com/news/${year}"
+          mkdir -p $dir
+          file="${dir}/${date}-${tags[0]}.md"
+          python tools/release_notes.py ${prev_release} ${tags[0]} > $file
+          echo ::set-output name=file::$file
+          link="https://resoto.com/news/$(date +'%Y/%m/%d')/${tags[0]}"
+          echo ::set-output name=link::$link
 
-      - name: Modify resotocore API YAML
+      - name: Update released version & API YAML
+        if: github.ref_type == 'tag' && steps.release_type.outputs.prerelease == 'false'
+        shell: bash
+        run: |
+          cp resotocore/resotocore/static/api-doc.yaml resoto.com/openapi/resotocore.yml
+          echo '"${{ steps.release_notes.outputs.tag }}"' > resoto.com/latestRelease.json
+
+      - name: Modify released API YAML
+        if: github.ref_type == 'tag' && steps.release_type.outputs.prerelease == 'false'
         uses: mikefarah/yq@master
-        if: steps.release_type.outputs.prerelease == 'false'
         with:
           cmd: yq e -i '.servers[0].url = "http://localhost:8900" | del(.servers[0].description)' resoto.com/openapi/resotocore.yml
 
+      - name: Update edge API YAML
+        shell: bash
+        run: |
+          cp resotocore/resotocore/static/api-doc.yaml resoto.com/openapi/resotocore-edge.yml
+
+      - name: Modify edge API YAML
+        uses: mikefarah/yq@master
+        with:
+          cmd: yq e -i '.servers[0].url = "http://localhost:8900" | del(.servers[0].description)' resoto.com/openapi/resotocore-edge.yml
+
       - name: Format
-        if: steps.release_type.outputs.prerelease == 'false'
         working-directory: ./resoto.com
         run: |
           yarn install --frozen-lockfile
           yarn format
 
-      - name: Create someengineering/resoto.com pull request
+      - name: Create someengineering/resoto.com pull request for release
+        if: github.ref_type == 'tag' && steps.release_type.outputs.prerelease == 'false'
         uses: peter-evans/create-pull-request@v4
-        if: steps.release_type.outputs.prerelease == 'false'
         env:
           HUSKY: 0
         with:
           path: resoto.com
-          commit-message: "feat(news): v${{ steps.release_notes.outputs.tag }} release notes"
-          title: "feat(news): v${{ steps.release_notes.outputs.tag }} release notes"
+          commit-message: "feat(news): ${{ steps.release_notes.outputs.tag }} release notes"
+          title: "feat(news): ${{ steps.release_notes.outputs.tag }} release notes"
           body: |
-            Adds automatically generated release notes for [v${{ steps.release_notes.outputs.tag }}](https://github.com/someengineering/resoto/releases/tag/${{ steps.release_notes.outputs.tag }}).
+            Adds automatically generated release notes for [`${{ steps.release_notes.outputs.tag }}`](https://github.com/someengineering/resoto/releases/tag/${{ steps.release_notes.outputs.tag }}). Also updates Resoto Core API documentation.
           labels: |
             🤖 bot
-          branch: release/v${{ steps.release_notes.outputs.tag }}
+          branch: ${{ steps.release_notes.outputs.tag }}
           delete-branch: true
           token: ${{ secrets.SOME_CI_PAT }}
           committer: C.K. <98986935+some-ci@users.noreply.github.com>
           author: C.K. <98986935+some-ci@users.noreply.github.com>
 
-      - name: Check out someengineering/helm-charts
-        uses: actions/checkout@v3
-        if: steps.release_type.outputs.prerelease == 'false'
-        with:
-          repository: someengineering/helm-charts
-          path: helm-charts
-          token: ${{ secrets.SOME_CI_PAT }}
-
-      - name: Get current chart version
-        id: current_chart_version
-        uses: mikefarah/yq@master
-        if: steps.release_type.outputs.prerelease == 'false'
-        with:
-          cmd: yq '.version' helm-charts/charts/resoto/Chart.yaml
-
-      - name: Get new chart version
-        id: new_chart_version
-        uses: WyriHaximus/github-action-next-semvers@v1
-        if: steps.release_type.outputs.prerelease == 'false'
-        with:
-          version: ${{ steps.current_chart_version.outputs.result }}
-
-      - name: Update appVersion and bump chart version
-        uses: mikefarah/yq@master
-        if: steps.release_type.outputs.prerelease == 'false'
-        with:
-          cmd: yq e -i '.version = "${{ steps.new_chart_version.outputs.patch }}" | .appVersion = "${{ steps.release_notes.outputs.tag }}"' helm-charts/charts/resoto/Chart.yaml
-
-      - name: Set up Helm
-        if: steps.release_type.outputs.prerelease == 'false'
-        uses: azure/setup-helm@v1
-        with:
-          version: v3.8.1
-
-      - name: Install helm-docs
-        if: steps.release_type.outputs.prerelease == 'false'
-        uses: supplypike/setup-bin@v1
-        with:
-          uri: https://github.com/norwoodj/helm-docs/releases/download/v1.11.0/helm-docs_1.11.0_Linux_x86_64.tar.gz
-          name: helm-docs
-          version: "1.11.0"
-
-      - name: Generate helm-charts README.md
-        if: steps.release_type.outputs.prerelease == 'false'
-        run: (cd helm-charts && helm-docs)
-
-      - name: Create someengineering/helm-charts pull request
+      - name: Create someengineering/resoto.com pull request for edge
+        if: github.ref_type != 'tag' || steps.release_type.outputs.prerelease == 'true'
         uses: peter-evans/create-pull-request@v4
-        if: steps.release_type.outputs.prerelease == 'false'
+        env:
+          HUSKY: 0
         with:
-          path: helm-charts
-          commit-message: "chore: bump appVersion to ${{ steps.release_notes.outputs.tag }}"
-          title: "chore: bump appVersion to ${{ steps.release_notes.outputs.tag }}"
+          path: resoto.com
+          commit-message: "feat(docs): update edge API documentation"
+          title: "feat(docs): update edge API documentation"
           body: |
-            Bumps Resoto version to [${{ steps.release_notes.outputs.tag }}](https://github.com/someengineering/resoto/releases/tag/${{ steps.release_notes.outputs.tag }}).
+            Updates `edge` Resoto Core API documentation to reflect changes in [${{ github.sha }}](https://github.com/someengineering/resoto/commit/${{ github.sha }}).
           labels: |
             🤖 bot
-          branch: release/v${{ steps.release_notes.outputs.tag }}
+          branch: api-docs
           delete-branch: true
           token: ${{ secrets.SOME_CI_PAT }}
           committer: C.K. <98986935+some-ci@users.noreply.github.com>
           author: C.K. <98986935+some-ci@users.noreply.github.com>
 
       - name: Create release
+        if: github.ref_type == 'tag'
         uses: ncipollo/release-action@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
