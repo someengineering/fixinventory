@@ -15,6 +15,7 @@ from resotoclient import ResotoClient
 
 from resotolib.logger import log
 from resotolib.types import Json, JsonElement
+from resotolib.utils import utc_str
 from resotoshell.dialogs import CancelledError, ConversationFinishedError, AbortError, progress_dialog
 from resotoshell.dialogs import (
     input_dialog,
@@ -525,7 +526,7 @@ class InteractionRunner:
                 count += 1
         return conversation
 
-    def run(self) -> None:
+    def run(self) -> bool:
         try:
             orig = self.client.config(self.interaction.config)
         except Exception:
@@ -538,17 +539,33 @@ class InteractionRunner:
                 "so a default configuration will be created.\n\n",
                 "Please try again later, when this issue is resolved.",
             ).run()
-            return
+            return False
 
         try:
             self.interact(orig)
+            return True
         except (CancelledError, AbortError):
             log.info("User cancelled the dialog - no changes are propagated.")
+            return False
 
 
-if __name__ == "__main__":
-
+def run_system_setup(client: ResotoClient) -> bool:
     with open(os.path.abspath(os.path.dirname(__file__) + "/../setup-wizard.json")) as f:
         ia = Interaction.from_json(json.load(f))
-        runner = InteractionRunner(ia, ResotoClient("https://localhost:8900", None))
-        runner.run()
+    runner = InteractionRunner(ia, client)
+    return runner.run()
+
+
+def setup_system(client: ResotoClient, sys_info: Json) -> None:
+    config_id = "resoto.setup"
+    try:
+        client.config(config_id)
+    except AttributeError:
+        setup_completed = run_system_setup(client)
+        doc = {
+            "version": sys_info.get("version"),
+            "at": utc_str(),
+            "triggered_by": os.environ.get("USER", "unknown"),
+            "completed": setup_completed,
+        }
+        client.put_config(config_id, doc)

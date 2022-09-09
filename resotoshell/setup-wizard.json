@@ -389,6 +389,16 @@
             "kind": "progress",
             "name": "Resoto: Collect",
             "help": "Resoto is now connecting to the cloud providers you have configured and collects resource data.\nThis may take a while, depending on the number of accounts, regions and amount of data to collect."
+        },
+        {
+            "kind": "info",
+            "name": "Resoto: Setup of your system done.",
+            "help": "The system has been setup according to your configuration.\nIf you want to refine your configuration, you can do so with \nconfig edit resoto.worker\n\nIf you have any comments, ideas or face any issues, \nplease join our Discord channel and let us know!\n\nYou can now start using Resoto.",
+            "links": {
+                "GitHub": "https://github.com/someengineering/resoto",
+                "Docs": "https://resoto.com",
+                "Discord": "https://discord.gg/someengineering"
+            }
         }
     ]
 }

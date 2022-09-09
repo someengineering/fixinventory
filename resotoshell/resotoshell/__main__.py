@@ -13,6 +13,8 @@ from resotolib.core.ca import TLSData
 from resotolib.event import add_event_listener, Event as ResotoEvent, EventType
 from resotolib.jwt import add_args as jwt_add_args
 from resotolib.logger import log, setup_logger, add_args as logging_add_args
+from resotolib.types import Json
+from resotoshell.interactionrunner import setup_system
 from resotoshell.promptsession import PromptSession
 from resotoshell.shell import Shell
 from rich.console import Console
@@ -43,16 +45,18 @@ def main() -> None:
         verify=args.verify_certs,
     )
 
-    def check_system_info() -> None:
+    def check_system_info() -> Json:
         try:
-            list(client.cli_execute("system info"))
+            return list(client.cli_execute("system info"))[0]  # type: ignore
         except Exception as e:
             log.error(f"resotocore is not accessible: {e}")
             raise e
 
     try:
         client.start()
-        check_system_info()
+        info = check_system_info()
+        if not args.no_setup:
+            setup_system(client, info)  # will return immediately, if the system is already configured
     except Exception:
         client.shutdown()
         sys.exit(1)
@@ -171,6 +175,13 @@ def add_args(arg_parser: ArgumentParser) -> None:
         "--stdin",
         help="Read from STDIN instead of opening a shell",
         dest="stdin",
+        action="store_true",
+        default=False,
+    )
+    arg_parser.add_argument(
+        "--no-setup",
+        help="Do not run the setup command on startup",
+        dest="no_setup",
         action="store_true",
         default=False,
     )

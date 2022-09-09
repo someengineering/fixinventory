@@ -59,7 +59,9 @@ def test_only_if() -> None:
     assert not oif_val.is_true({"aws": {"scrape_org": True}})
     assert not oif_val.is_true({"aws": 123})
 
-    oif_len = converter.structure({"kind": "len", "path": "aws.scrape_org", "op": ">", "value": 2}, OnlyIf)  # type: ignore
+    oif_len = converter.structure(
+        {"kind": "len", "path": "aws.scrape_org", "op": ">", "value": 2}, OnlyIf  # type: ignore
+    )
     assert isinstance(oif_len, OnlyIfLen)
     assert oif_len.path == "aws.scrape_org"
     assert oif_len.op == ">"
