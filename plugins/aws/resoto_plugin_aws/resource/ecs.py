@@ -54,31 +54,28 @@ class AwsEcsPortMapping:
     mapping: ClassVar[Dict[str, Bender]] = {
         "container_port": S("containerPort"),
         "host_port": S("hostPort"),
-        "protocol": S("protocol")
+        "protocol": S("protocol"),
     }
     container_port: Optional[int] = field(default=None)
     host_port: Optional[int] = field(default=None)
     protocol: Optional[str] = field(default=None)
 
+
 @define(eq=False, slots=False)
 class AwsEcsKeyValuePair:
     kind: ClassVar[str] = "aws_ecs_key_value_pair"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "name": S("name"),
-        "value": S("value")
-    }
+    mapping: ClassVar[Dict[str, Bender]] = {"name": S("name"), "value": S("value")}
     name: Optional[str] = field(default=None)
     value: Optional[str] = field(default=None)
+
 
 @define(eq=False, slots=False)
 class AwsEcsEnvironmentFile:
     kind: ClassVar[str] = "aws_ecs_environment_file"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "value": S("value"),
-        "type": S("type")
-    }
+    mapping: ClassVar[Dict[str, Bender]] = {"value": S("value"), "type": S("type")}
     value: Optional[str] = field(default=None)
     type: Optional[str] = field(default=None)
+
 
 @define(eq=False, slots=False)
 class AwsEcsMountPoint:
@@ -86,31 +83,28 @@ class AwsEcsMountPoint:
     mapping: ClassVar[Dict[str, Bender]] = {
         "source_volume": S("sourceVolume"),
         "container_path": S("containerPath"),
-        "read_only": S("readOnly")
+        "read_only": S("readOnly"),
     }
     source_volume: Optional[str] = field(default=None)
     container_path: Optional[str] = field(default=None)
     read_only: Optional[bool] = field(default=None)
 
+
 @define(eq=False, slots=False)
 class AwsEcsVolumeFrom:
     kind: ClassVar[str] = "aws_ecs_volume_from"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "source_container": S("sourceContainer"),
-        "read_only": S("readOnly")
-    }
+    mapping: ClassVar[Dict[str, Bender]] = {"source_container": S("sourceContainer"), "read_only": S("readOnly")}
     source_container: Optional[str] = field(default=None)
     read_only: Optional[bool] = field(default=None)
+
 
 @define(eq=False, slots=False)
 class AwsEcsKernelCapabilities:
     kind: ClassVar[str] = "aws_ecs_kernel_capabilities"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "add": S("add", default=[]),
-        "drop": S("drop", default=[])
-    }
+    mapping: ClassVar[Dict[str, Bender]] = {"add": S("add", default=[]), "drop": S("drop", default=[])}
     add: List[str] = field(factory=list)
     drop: List[str] = field(factory=list)
+
 
 @define(eq=False, slots=False)
 class AwsEcsDevice:
@@ -118,11 +112,12 @@ class AwsEcsDevice:
     mapping: ClassVar[Dict[str, Bender]] = {
         "host_path": S("hostPath"),
         "container_path": S("containerPath"),
-        "permissions": S("permissions", default=[])
+        "permissions": S("permissions", default=[]),
     }
     host_path: Optional[str] = field(default=None)
     container_path: Optional[str] = field(default=None)
     permissions: List[str] = field(factory=list)
+
 
 @define(eq=False, slots=False)
 class AwsEcsTmpfs:
@@ -130,11 +125,12 @@ class AwsEcsTmpfs:
     mapping: ClassVar[Dict[str, Bender]] = {
         "container_path": S("containerPath"),
         "size": S("size"),
-        "mount_options": S("mountOptions", default=[])
+        "mount_options": S("mountOptions", default=[]),
     }
     container_path: Optional[str] = field(default=None)
     size: Optional[int] = field(default=None)
     mount_options: List[str] = field(factory=list)
+
 
 @define(eq=False, slots=False)
 class AwsEcsLinuxParameters:
@@ -146,7 +142,7 @@ class AwsEcsLinuxParameters:
         "shared_memory_size": S("sharedMemorySize"),
         "tmpfs": S("tmpfs", default=[]) >> ForallBend(AwsEcsTmpfs.mapping),
         "max_swap": S("maxSwap"),
-        "swappiness": S("swappiness")
+        "swappiness": S("swappiness"),
     }
     capabilities: Optional[AwsEcsKernelCapabilities] = field(default=None)
     devices: List[AwsEcsDevice] = field(factory=list)
@@ -156,35 +152,30 @@ class AwsEcsLinuxParameters:
     max_swap: Optional[int] = field(default=None)
     swappiness: Optional[int] = field(default=None)
 
+
 @define(eq=False, slots=False)
 class AwsEcsSecret:
     kind: ClassVar[str] = "aws_ecs_secret"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "name": S("name"),
-        "value_from": S("valueFrom")
-    }
+    mapping: ClassVar[Dict[str, Bender]] = {"name": S("name"), "value_from": S("valueFrom")}
     name: Optional[str] = field(default=None)
     value_from: Optional[str] = field(default=None)
+
 
 @define(eq=False, slots=False)
 class AwsEcsContainerDependency:
     kind: ClassVar[str] = "aws_ecs_container_dependency"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "container_name": S("containerName"),
-        "condition": S("condition")
-    }
+    mapping: ClassVar[Dict[str, Bender]] = {"container_name": S("containerName"), "condition": S("condition")}
     container_name: Optional[str] = field(default=None)
     condition: Optional[str] = field(default=None)
+
 
 @define(eq=False, slots=False)
 class AwsEcsHostEntry:
     kind: ClassVar[str] = "aws_ecs_host_entry"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "hostname": S("hostname"),
-        "ip_address": S("ipAddress")
-    }
+    mapping: ClassVar[Dict[str, Bender]] = {"hostname": S("hostname"), "ip_address": S("ipAddress")}
     hostname: Optional[str] = field(default=None)
     ip_address: Optional[str] = field(default=None)
+
 
 @define(eq=False, slots=False)
 class AwsEcsUlimit:
@@ -192,11 +183,12 @@ class AwsEcsUlimit:
     mapping: ClassVar[Dict[str, Bender]] = {
         "name": S("name"),
         "soft_limit": S("softLimit"),
-        "hard_limit": S("hardLimit")
+        "hard_limit": S("hardLimit"),
     }
     name: Optional[str] = field(default=None)
     soft_limit: Optional[int] = field(default=None)
     hard_limit: Optional[int] = field(default=None)
+
 
 @define(eq=False, slots=False)
 class AwsEcsLogConfiguration:
@@ -204,11 +196,12 @@ class AwsEcsLogConfiguration:
     mapping: ClassVar[Dict[str, Bender]] = {
         "log_driver": S("logDriver"),
         "options": S("options"),
-        "secret_options": S("secretOptions", default=[]) >> ForallBend(AwsEcsSecret.mapping)
+        "secret_options": S("secretOptions", default=[]) >> ForallBend(AwsEcsSecret.mapping),
     }
     log_driver: Optional[str] = field(default=None)
     options: Optional[Dict[str, str]] = field(default=None)
     secret_options: List[AwsEcsSecret] = field(factory=list)
+
 
 @define(eq=False, slots=False)
 class AwsEcsHealthCheck:
@@ -218,7 +211,7 @@ class AwsEcsHealthCheck:
         "interval": S("interval"),
         "timeout": S("timeout"),
         "retries": S("retries"),
-        "start_period": S("startPeriod")
+        "start_period": S("startPeriod"),
     }
     command: List[str] = field(factory=list)
     interval: Optional[int] = field(default=None)
@@ -226,35 +219,30 @@ class AwsEcsHealthCheck:
     retries: Optional[int] = field(default=None)
     start_period: Optional[int] = field(default=None)
 
+
 @define(eq=False, slots=False)
 class AwsEcsSystemControl:
     kind: ClassVar[str] = "aws_ecs_system_control"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "namespace": S("namespace"),
-        "value": S("value")
-    }
+    mapping: ClassVar[Dict[str, Bender]] = {"namespace": S("namespace"), "value": S("value")}
     namespace: Optional[str] = field(default=None)
     value: Optional[str] = field(default=None)
+
 
 @define(eq=False, slots=False)
 class AwsEcsResourceRequirement:
     kind: ClassVar[str] = "aws_ecs_resource_requirement"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "value": S("value"),
-        "type": S("type")
-    }
+    mapping: ClassVar[Dict[str, Bender]] = {"value": S("value"), "type": S("type")}
     value: Optional[str] = field(default=None)
     type: Optional[str] = field(default=None)
+
 
 @define(eq=False, slots=False)
 class AwsEcsFirelensConfiguration:
     kind: ClassVar[str] = "aws_ecs_firelens_configuration"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "type": S("type"),
-        "options": S("options")
-    }
+    mapping: ClassVar[Dict[str, Bender]] = {"type": S("type"), "options": S("options")}
     type: Optional[str] = field(default=None)
     options: Optional[Dict[str, str]] = field(default=None)
+
 
 @define(eq=False, slots=False)
 class AwsEcsContainerDefinition:
@@ -262,7 +250,7 @@ class AwsEcsContainerDefinition:
     mapping: ClassVar[Dict[str, Bender]] = {
         "name": S("name"),
         "image": S("image"),
-        "repository_credentials": S("repositoryCredentials","credentialsParameter"),
+        "repository_credentials": S("repositoryCredentials", "credentialsParameter"),
         "cpu": S("cpu"),
         "memory": S("memory"),
         "memory_reservation": S("memoryReservation"),
@@ -298,7 +286,7 @@ class AwsEcsContainerDefinition:
         "health_check": S("healthCheck") >> Bend(AwsEcsHealthCheck.mapping),
         "system_controls": S("systemControls", default=[]) >> ForallBend(AwsEcsSystemControl.mapping),
         "resource_requirements": S("resourceRequirements", default=[]) >> ForallBend(AwsEcsResourceRequirement.mapping),
-        "firelens_configuration": S("firelensConfiguration") >> Bend(AwsEcsFirelensConfiguration.mapping)
+        "firelens_configuration": S("firelensConfiguration") >> Bend(AwsEcsFirelensConfiguration.mapping),
     }
     name: Optional[str] = field(default=None)
     image: Optional[str] = field(default=None)
@@ -340,6 +328,7 @@ class AwsEcsContainerDefinition:
     resource_requirements: List[AwsEcsResourceRequirement] = field(factory=list)
     firelens_configuration: Optional[AwsEcsFirelensConfiguration] = field(default=None)
 
+
 @define(eq=False, slots=False)
 class AwsEcsDockerVolumeConfiguration:
     kind: ClassVar[str] = "aws_ecs_docker_volume_configuration"
@@ -348,7 +337,7 @@ class AwsEcsDockerVolumeConfiguration:
         "autoprovision": S("autoprovision"),
         "driver": S("driver"),
         "driver_opts": S("driverOpts"),
-        "labels": S("labels")
+        "labels": S("labels"),
     }
     scope: Optional[str] = field(default=None)
     autoprovision: Optional[bool] = field(default=None)
@@ -356,15 +345,14 @@ class AwsEcsDockerVolumeConfiguration:
     driver_opts: Optional[Dict[str, str]] = field(default=None)
     labels: Optional[Dict[str, str]] = field(default=None)
 
+
 @define(eq=False, slots=False)
 class AwsEcsEFSAuthorizationConfig:
     kind: ClassVar[str] = "aws_ecs_efs_authorization_config"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "access_point_id": S("accessPointId"),
-        "iam": S("iam")
-    }
+    mapping: ClassVar[Dict[str, Bender]] = {"access_point_id": S("accessPointId"), "iam": S("iam")}
     access_point_id: Optional[str] = field(default=None)
     iam: Optional[str] = field(default=None)
+
 
 @define(eq=False, slots=False)
 class AwsEcsEFSVolumeConfiguration:
@@ -374,7 +362,7 @@ class AwsEcsEFSVolumeConfiguration:
         "root_directory": S("rootDirectory"),
         "transit_encryption": S("transitEncryption"),
         "transit_encryption_port": S("transitEncryptionPort"),
-        "authorization_config": S("authorizationConfig") >> Bend(AwsEcsEFSAuthorizationConfig.mapping)
+        "authorization_config": S("authorizationConfig") >> Bend(AwsEcsEFSAuthorizationConfig.mapping),
     }
     file_system_id: Optional[str] = field(default=None)
     root_directory: Optional[str] = field(default=None)
@@ -382,15 +370,14 @@ class AwsEcsEFSVolumeConfiguration:
     transit_encryption_port: Optional[int] = field(default=None)
     authorization_config: Optional[AwsEcsEFSAuthorizationConfig] = field(default=None)
 
+
 @define(eq=False, slots=False)
 class AwsEcsFSxWindowsFileServerAuthorizationConfig:
     kind: ClassVar[str] = "aws_ecs_f_sx_windows_file_server_authorization_config"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "credentials_parameter": S("credentialsParameter"),
-        "domain": S("domain")
-    }
+    mapping: ClassVar[Dict[str, Bender]] = {"credentials_parameter": S("credentialsParameter"), "domain": S("domain")}
     credentials_parameter: Optional[str] = field(default=None)
     domain: Optional[str] = field(default=None)
+
 
 @define(eq=False, slots=False)
 class AwsEcsFSxWindowsFileServerVolumeConfiguration:
@@ -398,27 +385,32 @@ class AwsEcsFSxWindowsFileServerVolumeConfiguration:
     mapping: ClassVar[Dict[str, Bender]] = {
         "file_system_id": S("fileSystemId"),
         "root_directory": S("rootDirectory"),
-        "authorization_config": S("authorizationConfig") >> Bend(AwsEcsFSxWindowsFileServerAuthorizationConfig.mapping)
+        "authorization_config": S("authorizationConfig") >> Bend(AwsEcsFSxWindowsFileServerAuthorizationConfig.mapping),
     }
     file_system_id: Optional[str] = field(default=None)
     root_directory: Optional[str] = field(default=None)
     authorization_config: Optional[AwsEcsFSxWindowsFileServerAuthorizationConfig] = field(default=None)
+
 
 @define(eq=False, slots=False)
 class AwsEcsVolume:
     kind: ClassVar[str] = "aws_ecs_volume"
     mapping: ClassVar[Dict[str, Bender]] = {
         "name": S("name"),
-        "host": S("host","sourcePath"),
+        "host": S("host", "sourcePath"),
         "docker_volume_configuration": S("dockerVolumeConfiguration") >> Bend(AwsEcsDockerVolumeConfiguration.mapping),
         "efs_volume_configuration": S("efsVolumeConfiguration") >> Bend(AwsEcsEFSVolumeConfiguration.mapping),
-        "fsx_windows_file_server_volume_configuration": S("fsxWindowsFileServerVolumeConfiguration") >> Bend(AwsEcsFSxWindowsFileServerVolumeConfiguration.mapping)
+        "fsx_windows_file_server_volume_configuration": S("fsxWindowsFileServerVolumeConfiguration")
+        >> Bend(AwsEcsFSxWindowsFileServerVolumeConfiguration.mapping),
     }
     name: Optional[str] = field(default=None)
     host: Optional[str] = field(default=None)
     docker_volume_configuration: Optional[AwsEcsDockerVolumeConfiguration] = field(default=None)
     efs_volume_configuration: Optional[AwsEcsEFSVolumeConfiguration] = field(default=None)
-    fsx_windows_file_server_volume_configuration: Optional[AwsEcsFSxWindowsFileServerVolumeConfiguration] = field(default=None)
+    fsx_windows_file_server_volume_configuration: Optional[AwsEcsFSxWindowsFileServerVolumeConfiguration] = field(
+        default=None
+    )
+
 
 @define(eq=False, slots=False)
 class AwsEcsAttribute:
@@ -427,42 +419,40 @@ class AwsEcsAttribute:
         "name": S("name"),
         "value": S("value"),
         "target_type": S("targetType"),
-        "target_id": S("targetId")
+        "target_id": S("targetId"),
     }
     name: Optional[str] = field(default=None)
     value: Optional[str] = field(default=None)
     target_type: Optional[str] = field(default=None)
     target_id: Optional[str] = field(default=None)
 
+
 @define(eq=False, slots=False)
 class AwsEcsTaskDefinitionPlacementConstraint:
     kind: ClassVar[str] = "aws_ecs_task_definition_placement_constraint"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "type": S("type"),
-        "expression": S("expression")
-    }
+    mapping: ClassVar[Dict[str, Bender]] = {"type": S("type"), "expression": S("expression")}
     type: Optional[str] = field(default=None)
     expression: Optional[str] = field(default=None)
+
 
 @define(eq=False, slots=False)
 class AwsEcsRuntimePlatform:
     kind: ClassVar[str] = "aws_ecs_runtime_platform"
     mapping: ClassVar[Dict[str, Bender]] = {
         "cpu_architecture": S("cpuArchitecture"),
-        "operating_system_family": S("operatingSystemFamily")
+        "operating_system_family": S("operatingSystemFamily"),
     }
     cpu_architecture: Optional[str] = field(default=None)
     operating_system_family: Optional[str] = field(default=None)
 
+
 @define(eq=False, slots=False)
 class AwsEcsInferenceAccelerator:
     kind: ClassVar[str] = "aws_ecs_inference_accelerator"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "device_name": S("deviceName"),
-        "device_type": S("deviceType")
-    }
+    mapping: ClassVar[Dict[str, Bender]] = {"device_name": S("deviceName"), "device_type": S("deviceType")}
     device_name: Optional[str] = field(default=None)
     device_type: Optional[str] = field(default=None)
+
 
 @define(eq=False, slots=False)
 class AwsEcsProxyConfiguration:
@@ -470,7 +460,7 @@ class AwsEcsProxyConfiguration:
     mapping: ClassVar[Dict[str, Bender]] = {
         "type": S("type"),
         "container_name": S("containerName"),
-        "properties": S("properties", default=[]) >> ForallBend(AwsEcsKeyValuePair.mapping)
+        "properties": S("properties", default=[]) >> ForallBend(AwsEcsKeyValuePair.mapping),
     }
     type: Optional[str] = field(default=None)
     container_name: Optional[str] = field(default=None)
@@ -482,9 +472,9 @@ class AwsEcsTaskDefinition(EcsTaggable, AwsResource):
     kind: ClassVar[str] = "aws_ecs_task_definition"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ecs", "list-task-definitions", "taskDefinitionArns")
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("taskDefinitionArn"), #get id from arn?
+        "id": S("taskDefinitionArn"),  # get id from arn?
         "tags": S("tags", default=[]) >> ToDict(key="key", value="value"),
-        "name": S("taskDefinitionArn"), # name tag?
+        "name": S("taskDefinitionArn"),  # name tag?
         "ctime": S("registeredAt"),
         "arn": S("taskDefinitionArn"),
         "container_definitions": S("containerDefinitions", default=[]) >> ForallBend(AwsEcsContainerDefinition.mapping),
@@ -496,19 +486,21 @@ class AwsEcsTaskDefinition(EcsTaggable, AwsResource):
         "volumes": S("volumes", default=[]) >> ForallBend(AwsEcsVolume.mapping),
         "status": S("status"),
         "requires_attributes": S("requiresAttributes", default=[]) >> ForallBend(AwsEcsAttribute.mapping),
-        "placement_constraints": S("placementConstraints", default=[]) >> ForallBend(AwsEcsTaskDefinitionPlacementConstraint.mapping),
+        "placement_constraints": S("placementConstraints", default=[])
+        >> ForallBend(AwsEcsTaskDefinitionPlacementConstraint.mapping),
         "compatibilities": S("compatibilities", default=[]),
         "runtime_platform": S("runtimePlatform") >> Bend(AwsEcsRuntimePlatform.mapping),
         "requires_compatibilities": S("requiresCompatibilities", default=[]),
         "cpu": S("cpu"),
         "memory": S("memory"),
-        "inference_accelerators": S("inferenceAccelerators", default=[]) >> ForallBend(AwsEcsInferenceAccelerator.mapping),
+        "inference_accelerators": S("inferenceAccelerators", default=[])
+        >> ForallBend(AwsEcsInferenceAccelerator.mapping),
         "pid_mode": S("pidMode"),
         "ipc_mode": S("ipcMode"),
         "proxy_configuration": S("proxyConfiguration") >> Bend(AwsEcsProxyConfiguration.mapping),
         "deregistered_at": S("deregisteredAt"),
         "registered_by": S("registeredBy"),
-        "ephemeral_storage": S("ephemeralStorage","sizeInGiB")
+        "ephemeral_storage": S("ephemeralStorage", "sizeInGiB"),
     }
     container_definitions: List[AwsEcsContainerDefinition] = field(factory=list)
     family: Optional[str] = field(default=None)
@@ -542,11 +534,12 @@ class AwsEcsTaskDefinition(EcsTaggable, AwsResource):
                 taskDefinition=task_def_arn,
                 include=["TAGS"],
             )
-            task_definition=response[0]["taskDefinition"]
-            tags=response[0]["tags"]
-            task_definition["tags"]=tags
+            task_definition = response[0]["taskDefinition"]
+            tags = response[0]["tags"]
+            task_definition["tags"] = tags
             task_definition_instance = cls.from_api(task_definition)
             builder.add_node(task_definition_instance, task_def_arn)
+
 
 @define(eq=False, slots=False)
 class AwsEcsLoadBalancer:
@@ -864,7 +857,8 @@ class AwsEcsService(EcsTaggable, AwsResource):
                 clazz=AwsIamRole,
                 arn=self.service_role_arn,
             )
-        aws_vpc_config = self.service_network_configuration.awsvpc_configuration
+        if self.service_network_configuration:
+            aws_vpc_config = self.service_network_configuration.awsvpc_configuration
         if aws_vpc_config:
             for subnet in aws_vpc_config.subnets:
                 builder.dependant_node(
@@ -879,15 +873,15 @@ class AwsEcsService(EcsTaggable, AwsResource):
                     id=group,
                 )
 
-    # def delete_resource(self, client: AwsClient) -> bool:
-    #     client.call(
-    #         service=self.api_spec.service,
-    #         action="delete-service",
-    #         result_name=None,
-    #         cluster=self.cluster_arn,
-    #         service=self.name,
-    #     )
-    #     return True
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(
+            aws_service="ecs",
+            action="delete-service",
+            result_name=None,
+            cluster=self.cluster_arn,
+            service=self.name,
+        )
+        return True
 
 
 @define(eq=False, slots=False)
@@ -920,29 +914,6 @@ class AwsEcsResource:
     long_value: Optional[int] = field(default=None)
     integer_value: Optional[int] = field(default=None)
     string_set_value: List[str] = field(factory=list)
-
-
-@define(eq=False, slots=False)
-class AwsEcsAttribute:
-    kind: ClassVar[str] = "aws_ecs_attribute"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "name": S("name"),
-        "value": S("value"),
-        "target_type": S("targetType"),
-        "target_id": S("targetId"),
-    }
-    name: Optional[str] = field(default=None)
-    value: Optional[str] = field(default=None)
-    target_type: Optional[str] = field(default=None)
-    target_id: Optional[str] = field(default=None)
-
-
-@define(eq=False, slots=False)
-class AwsEcsKeyValuePair:
-    kind: ClassVar[str] = "aws_ecs_key_value_pair"
-    mapping: ClassVar[Dict[str, Bender]] = {"name": S("name"), "value": S("value")}
-    name: Optional[str] = field(default=None)
-    value: Optional[str] = field(default=None)
 
 
 @define(eq=False, slots=False)
