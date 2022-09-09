@@ -96,12 +96,11 @@ class AwsServiceQuota(AwsResource, BaseQuota):
 
     @classmethod
     def collect_resources(cls: Type[AwsResource], builder: GraphBuilder) -> None:
-        if builder.region.name == "global":
-            for service, ms in CollectIamQuotas.items():
-                AwsServiceQuota.collect_service(service, ms, builder)
-        else:
-            for service, ms in CollectQuotas.items():
-                AwsServiceQuota.collect_service(service, ms, builder)
+        # This collect run will be called for the global region as well as any configured region.
+        # We select the quotas to select based on the given region.
+        quotas = GlobalQuotas if builder.region.name == "global" else RegionalQuotas
+        for service, ms in quotas.items():
+            AwsServiceQuota.collect_service(service, ms, builder)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
@@ -156,7 +155,7 @@ class QuotaMatcher:
             return self.quota_name == quota.name
 
 
-CollectQuotas = {
+RegionalQuotas = {
     "ec2": [
         # Example: "Running On-Demand F instances" --> match InstanceTypes that start with F
         QuotaMatcher(
@@ -198,7 +197,7 @@ CollectQuotas = {
     ],
 }
 
-CollectIamQuotas = {
+GlobalQuotas = {
     "iam": [
         QuotaMatcher(quota_name="Server certificates per account", node_kind="aws_iam_server_certificate"),
     ],
