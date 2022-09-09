@@ -24,7 +24,7 @@ def link_k8s_node_to_aws_nodegroup(graph: Graph, resource: BaseResource) -> None
 
 
 def link_k8s_cluster_to_eks_cluster(graph: Graph, resource: BaseResource) -> None:
-    if resource.kind == "kubernetes_cluster":
+    if resource.kind == "kubernetes_cluster" and resource.id.startswith("arn:aws"):
         graph.add_deferred_edge(
             BySearchCriteria(f"is(aws_eks_cluster) and reported.arn={resource.id}"),
             ByNodeId(resource.chksum),
