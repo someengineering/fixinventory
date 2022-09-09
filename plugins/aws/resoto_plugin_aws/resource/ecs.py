@@ -483,8 +483,8 @@ class AwsEcsTaskDefinition(EcsTaggable, AwsResource):
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ecs", "list-task-definitions", "taskDefinitionArns")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("taskDefinitionArn"), #get id from arn?
-        "tags": S("tags", default=[]) >> ToDict(),
-        # "name": S("Tags", default=[]) >> TagsValue("Name"),
+        "tags": S("tags", default=[]) >> ToDict(key="key", value="value"),
+        "name": S("taskDefinitionArn"), # name tag?
         "ctime": S("registeredAt"),
         "arn": S("taskDefinitionArn"),
         "container_definitions": S("containerDefinitions", default=[]) >> ForallBend(AwsEcsContainerDefinition.mapping),
@@ -529,22 +529,24 @@ class AwsEcsTaskDefinition(EcsTaggable, AwsResource):
     pid_mode: Optional[str] = field(default=None)
     ipc_mode: Optional[str] = field(default=None)
     proxy_configuration: Optional[AwsEcsProxyConfiguration] = field(default=None)
-    registered_at: Optional[datetime] = field(default=None)
     registered_by: Optional[str] = field(default=None)
     ephemeral_storage: Optional[int] = field(default=None)
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for task_def_arn in json:
-            task_definition = builder.client.list(
+            response = builder.client.list(
                 "ecs",
-                "describe-task-definiton",
-                "taskDefinition",
+                "describe-task-definition",
+                None,
                 taskDefinition=task_def_arn,
                 include=["TAGS"],
             )
+            task_definition=response[0]["taskDefinition"]
+            tags=response[0]["tags"]
+            task_definition["tags"]=tags
             task_definition_instance = cls.from_api(task_definition)
-            # builder.add_node(cluster_instance, cluster_arn)
+            builder.add_node(task_definition_instance, task_def_arn)
 
 @define(eq=False, slots=False)
 class AwsEcsLoadBalancer:

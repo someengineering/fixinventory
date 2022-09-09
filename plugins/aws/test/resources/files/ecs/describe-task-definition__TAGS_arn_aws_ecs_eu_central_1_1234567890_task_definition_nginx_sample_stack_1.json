@@ -242,11 +242,14 @@
         },
         "registeredAt": "2022-09-08T17:58:27.823000+02:00",
         "registeredBy": "arn:aws:sts::882347060974:assumed-role/AWSReservedSSO_AdministratorAccess_f9ee601e176c4dfe/lukas@some.engineering",
-        "tags": [
-            {
-                "key": "string",
-                "value": "string"
-            }
-        ]
-    }
+        "ephemeralStorage": {
+            "sizeInGiB": 123
+        }
+    },
+    "tags": [
+        {
+            "key": "SomeKey",
+            "value": "SomeValue"
+        }
+    ]
 }
