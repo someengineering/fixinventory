@@ -281,7 +281,7 @@ class AwsAutoScalingGroup(AwsResource, BaseAutoScalingGroup):
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(
-            service="autoscaling",
+            aws_service="autoscaling",
             action="create_or_update_tags",
             result_name=None,
             Tags=[
@@ -298,7 +298,7 @@ class AwsAutoScalingGroup(AwsResource, BaseAutoScalingGroup):
 
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
         client.call(
-            service="autoscaling",
+            aws_service="autoscaling",
             action="delete_tags",
             result_name=None,
             Tags=[
@@ -313,7 +313,7 @@ class AwsAutoScalingGroup(AwsResource, BaseAutoScalingGroup):
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
-            service=self.api_spec.service,
+            aws_service=self.api_spec.service,
             action="delete_auto_scaling_group",
             result_name=None,
             AutoScalingGroupName=self.name,

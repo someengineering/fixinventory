@@ -21,7 +21,7 @@ class ApiGatewayTaggable:
         if isinstance(self, AwsResource):
             if spec := self.api_spec:
                 client.call(
-                    service=spec.service,
+                    aws_service=spec.service,
                     action="tag-resource",
                     result_name=None,
                     resourceArn=self.arn,
@@ -35,7 +35,7 @@ class ApiGatewayTaggable:
         if isinstance(self, AwsResource):
             if spec := self.api_spec:
                 client.call(
-                    service=spec.service,
+                    aws_service=spec.service,
                     action="untag-resource",
                     result_name=None,
                     resourceArn=self.arn,
@@ -172,7 +172,7 @@ class AwsApiGatewayResource(AwsResource):
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
-            service="apigateway",
+            aws_service="apigateway",
             action="delete-resource",
             result_name=None,
             restApiId=self.api_link,
@@ -226,7 +226,7 @@ class AwsApiGatewayAuthorizer(AwsResource):
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
-            service="apigateway",
+            aws_service="apigateway",
             action="delete-authorizer",
             result_name=None,
             restApiId=self.api_link,
@@ -291,7 +291,7 @@ class AwsApiGatewayStage(ApiGatewayTaggable, AwsResource):
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
-            service="apigateway",
+            aws_service="apigateway",
             action="delete-stage",
             result_name=None,
             restApiId=self.api_link,
@@ -319,7 +319,7 @@ class AwsApiGatewayDeployment(AwsResource):
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
-            service="apigateway",
+            aws_service="apigateway",
             action="delete-deployment",
             result_name=None,
             restApiId=self.api_link,
@@ -437,7 +437,7 @@ class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
-            service=self.api_spec.service,
+            aws_service=self.api_spec.service,
             action="delete-rest-api",
             result_name=None,
             restApiId=self.id,

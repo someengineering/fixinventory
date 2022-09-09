@@ -18,7 +18,7 @@ class EKSTaggable:
         if isinstance(self, AwsResource):
             if spec := self.api_spec:
                 client.call(
-                    service=spec.service,
+                    aws_service=spec.service,
                     action="tag_resource",
                     result_name=None,
                     resourceArn=self.arn,
@@ -32,7 +32,7 @@ class EKSTaggable:
         if isinstance(self, AwsResource):
             if spec := self.api_spec:
                 client.call(
-                    service=spec.service,
+                    aws_service=spec.service,
                     action="untag_resource",
                     result_name=None,
                     resourceArn=self.arn,
@@ -193,7 +193,7 @@ class AwsEksNodegroup(EKSTaggable, AwsResource):
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
-            service="eks",
+            aws_service="eks",
             action="delete_nodegroup",
             result_name=None,
             clusterName=self.cluster_name,
@@ -361,7 +361,7 @@ class AwsEksCluster(EKSTaggable, AwsResource):
         builder.add_edge(self, EdgeType.default, clazz=AwsIamRole, arn=self.cluster_role_arn)
 
     def delete_resource(self, client: AwsClient) -> bool:
-        client.call(service=self.api_spec.service, action="delete_cluster", result_name=None, name=self.name)
+        client.call(aws_service=self.api_spec.service, action="delete_cluster", result_name=None, name=self.name)
         return True
 
 

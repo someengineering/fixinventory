@@ -121,7 +121,7 @@ class AwsServiceQuota(AwsResource, BaseQuota):
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(
-            service="service-quotas",
+            aws_service="service-quotas",
             action="tag_resource",
             result_name=None,
             ResourceARN=self.arn,
@@ -131,7 +131,7 @@ class AwsServiceQuota(AwsResource, BaseQuota):
 
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
         client.call(
-            service="service-quotas",
+            aws_service="service-quotas",
             action="untag_resource",
             result_name=None,
             ResourceARN=self.arn,

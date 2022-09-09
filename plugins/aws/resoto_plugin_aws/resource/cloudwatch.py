@@ -20,7 +20,7 @@ class CloudwatchTaggable:
         if isinstance(self, AwsResource):
             if spec := self.api_spec:
                 client.call(
-                    service=spec.service,
+                    aws_service=spec.service,
                     action="tag_resource",
                     result_name=None,
                     ResourceARN=self.arn,
@@ -34,7 +34,7 @@ class CloudwatchTaggable:
         if isinstance(self, AwsResource):
             if spec := self.api_spec:
                 client.call(
-                    service=spec.service,
+                    aws_service=spec.service,
                     action="untag_resource",
                     result_name=None,
                     ResourceARN=self.arn,
@@ -185,7 +185,7 @@ class AwsCloudwatchAlarm(CloudwatchTaggable, AwsResource):
             )
 
     def delete_resource(self, client: AwsClient) -> bool:
-        client.call(service=self.api_spec.service, action="delete_alarms", result_name=None, AlarmNames=[self.name])
+        client.call(aws_service=self.api_spec.service, action="delete_alarms", result_name=None, AlarmNames=[self.name])
         return True
 
 
