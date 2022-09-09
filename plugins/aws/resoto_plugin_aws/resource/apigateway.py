@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import ClassVar, Dict, Optional, List, Type, Union
 
 from attrs import define, field
@@ -6,6 +7,7 @@ from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
 from resoto_plugin_aws.resource.ec2 import AwsEc2VpcEndpoint
 from resoto_plugin_aws.resource.iam import AwsIamRole
+from resoto_plugin_aws.resource.route53 import AwsRoute53Zone
 
 from resotolib.baseresources import EdgeType, ModelReference
 from resotolib.json import from_json
@@ -302,6 +304,7 @@ class AwsApiGatewayStage(ApiGatewayTaggable, AwsResource):
 class AwsApiGatewayDeployment(AwsResource):
     # collection of deployment resources happens in AwsApiGatewayRestApi.collect()
     kind: ClassVar[str] = "aws_api_gateway_deployment"
+    # edge to aws_api_gateway_stage is established in AwsApiGatewayRestApi.collect()
     reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["aws_api_gateway_stage"]}}
 
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -405,6 +408,7 @@ class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
                     stage_instance = AwsApiGatewayStage.from_api(stage)
                     stage_instance.api_link = api_instance.id
                     builder.add_node(stage_instance, stage)
+                    # reference kinds for this edge are maintained in AwsApiGatewayDeployment.reference_kinds
                     builder.add_edge(deploy_instance, EdgeType.default, node=stage_instance)
             for authorizer in builder.client.list("apigateway", "get-authorizers", "items", restApiId=api_instance.id):
                 auth_instance = AwsApiGatewayAuthorizer.from_api(authorizer)
@@ -441,10 +445,87 @@ class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
         return True
 
 
+@define(eq=False, slots=False)
+class AwsApiGatewayMutualTlsAuthentication:
+    kind: ClassVar[str] = "aws_api_gateway_mutual_tls_authentication"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "truststore_uri": S("truststoreUri"),
+        "truststore_version": S("truststoreVersion"),
+        "truststore_warnings": S("truststoreWarnings", default=[]),
+    }
+    truststore_uri: Optional[str] = field(default=None)
+    truststore_version: Optional[str] = field(default=None)
+    truststore_warnings: List[str] = field(factory=list)
+
+
+@define(eq=False, slots=False)
+class AwsApiGatewayDomainName(ApiGatewayTaggable, AwsResource):
+    kind: ClassVar[str] = "aws_api_gateway_domain_name"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("apigateway", "get-domain-names", "items")
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"delete": ["aws_route53_zone"]},
+        "successors": {"default": ["aws_route53_zone", "aws_vpc_endpoint"], "delete": ["aws_vpc_endpoint"]},
+    }
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("domainName"),
+        "tags": S("tags"),
+        "name": S("domainName"),
+        "domain_certificate_name": S("certificateName"),
+        "domain_certificate_arn": S("certificateArn"),
+        "domain_certificate_upload_date": S("certificateUploadDate"),
+        "domain_regional_domain_name": S("regionalDomainName"),
+        "domain_regional_hosted_zone_id": S("regionalHostedZoneId"),
+        "domain_regional_certificate_name": S("regionalCertificateName"),
+        "domain_regional_certificate_arn": S("regionalCertificateArn"),
+        "domain_distribution_domain_name": S("distributionDomainName"),
+        "domain_distribution_hosted_zone_id": S("distributionHostedZoneId"),
+        "domain_endpoint_configuration": S("endpointConfiguration") >> Bend(AwsApiGatewayEndpointConfiguration.mapping),
+        "domain_domain_name_status": S("domainNameStatus"),
+        "domain_domain_name_status_message": S("domainNameStatusMessage"),
+        "domain_security_policy": S("securityPolicy"),
+        "domain_mutual_tls_authentication": S("mutualTlsAuthentication")
+        >> Bend(AwsApiGatewayMutualTlsAuthentication.mapping),
+        "domain_ownership_verification_certificate_arn": S("ownershipVerificationCertificateArn"),
+    }
+    domain_certificate_name: Optional[str] = field(default=None)
+    domain_certificate_arn: Optional[str] = field(default=None)
+    domain_certificate_upload_date: Optional[datetime] = field(default=None)
+    domain_regional_domain_name: Optional[str] = field(default=None)
+    domain_regional_hosted_zone_id: Optional[str] = field(default=None)
+    domain_regional_certificate_name: Optional[str] = field(default=None)
+    domain_regional_certificate_arn: Optional[str] = field(default=None)
+    domain_distribution_domain_name: Optional[str] = field(default=None)
+    domain_distribution_hosted_zone_id: Optional[str] = field(default=None)
+    domain_endpoint_configuration: AwsApiGatewayEndpointConfiguration = field(default=None)
+    domain_domain_name_status: Optional[str] = field(default=None)
+    domain_domain_name_status_message: Optional[str] = field(default=None)
+    domain_security_policy: Optional[str] = field(default=None)
+    domain_mutual_tls_authentication: Optional[AwsApiGatewayMutualTlsAuthentication] = field(default=None)
+    domain_ownership_verification_certificate_arn: Optional[str] = field(default=None)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if self.domain_regional_hosted_zone_id:
+            builder.dependant_node(
+                self,
+                clazz=AwsRoute53Zone,
+                delete_same_as_default=True,
+                id=self.domain_regional_hosted_zone_id,
+            )
+        for endpoint in self.domain_endpoint_configuration.vpc_endpoint_ids:
+            builder.dependant_node(
+                self,
+                clazz=AwsEc2VpcEndpoint,
+                delete_same_as_default=True,
+                id=endpoint,
+            )
+        # TODO add edge to ACM Certificates when applicable
+
+
 resources: List[Type[AwsResource]] = [
     AwsApiGatewayRestApi,
     AwsApiGatewayDeployment,
     AwsApiGatewayStage,
     AwsApiGatewayResource,
     AwsApiGatewayAuthorizer,
+    AwsApiGatewayDomainName,
 ]
