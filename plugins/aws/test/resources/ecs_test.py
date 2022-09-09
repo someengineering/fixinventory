@@ -1,7 +1,7 @@
 from collections import defaultdict
 from types import SimpleNamespace
 from typing import Any, Dict, cast
-from resoto_plugin_aws.resource.ecs import AwsEcsCluster
+from resoto_plugin_aws.resource.ecs import AwsEcsCluster, AwsEcsTaskDefinition
 from test.resources import round_trip_for
 from resoto_plugin_aws.aws_client import AwsClient
 
@@ -45,3 +45,8 @@ def test_cluster_deletion() -> None:
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
     cluster.delete_resource(client)
+
+
+def test_ecs_task_definition() -> None:
+    first, builder = round_trip_for(AwsEcsTaskDefinition)
+    assert len(builder.resources_of(AwsEcsTaskDefinition)) == 1

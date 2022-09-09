@@ -1,0 +1,252 @@
+{
+    "taskDefinition": {
+        "taskDefinitionArn": "arn:aws:ecs:eu-central-1:1234567890:task-definition/nginx-sample-stack:1",
+        "containerDefinitions": [
+            {
+                "name": "nginx",
+                "image": "docker.io/bitnami/nginx",
+                "repositoryCredentials": {
+                    "credentialsParameter": "string"
+                },
+                "cpu": 256,
+                "memory": 256,
+                "memoryReservation": 123,
+                "links": [
+                    "string"
+                ],
+                "portMappings": [
+                    {
+                        "containerPort": 80,
+                        "hostPort": 0,
+                        "protocol": "tcp"
+                    }
+                ],
+                "essential": true,
+                "entryPoint": [
+                    "string"
+                ],
+                "command": [
+                    "string"
+                ],
+                "environment": [],
+                "environmentFiles": [
+                    {
+                        "value": "string",
+                        "type": "s3"
+                    }
+                ],
+                "mountPoints": [],
+                "volumesFrom": [],
+                "linuxParameters": {
+                    "capabilities": {
+                        "add": [
+                            "string"
+                        ],
+                        "drop": [
+                            "string"
+                        ]
+                    },
+                    "devices": [
+                        {
+                            "hostPath": "string",
+                            "containerPath": "string",
+                            "permissions": [
+                                "read"
+                            ]
+                        }
+                    ],
+                    "initProcessEnabled": true,
+                    "sharedMemorySize": 123,
+                    "tmpfs": [
+                        {
+                            "containerPath": "string",
+                            "size": 123,
+                            "mountOptions": [
+                                "string"
+                            ]
+                        }
+                    ],
+                    "maxSwap": 123,
+                    "swappiness": 123
+                },
+                "secrets": [
+                    {
+                        "name": "string",
+                        "valueFrom": "string"
+                    }
+                ],
+                "dependsOn": [
+                    {
+                        "containerName": "string",
+                        "condition": "START"
+                    }
+                ],
+                "startTimeout": 123,
+                "stopTimeout": 123,
+                "hostname": "string",
+                "user": "string",
+                "workingDirectory": "string",
+                "disableNetworking": false,
+                "privileged": false,
+                "readonlyRootFilesystem": true,
+                "dnsServers": [
+                    "string"
+                ],
+                "dnsSearchDomains": [
+                    "string"
+                ],
+                "extraHosts": [
+                    {
+                        "hostname": "string",
+                        "ipAddress": "string"
+                    }
+                ],
+                "dockerSecurityOptions": [
+                    "string"
+                ],
+                "interactive": true,
+                "pseudoTerminal": false,
+                "dockerLabels": {
+                    "string": "string"
+                },
+                "ulimits": [
+                    {
+                        "name": "core",
+                        "softLimit": 123,
+                        "hardLimit": 123
+                    }
+                ],
+                "logConfiguration": {
+                    "logDriver": "json-file",
+                    "options": {
+                        "string": "string"
+                    },
+                    "secretOptions": [
+                        {
+                            "name": "string",
+                            "valueFrom": "string"
+                        }
+                    ]
+                },
+                "healthCheck": {
+                    "command": [
+                        "string"
+                    ],
+                    "interval": 123,
+                    "timeout": 123,
+                    "retries": 123,
+                    "startPeriod": 123
+                },
+                "systemControls": [
+                    {
+                        "namespace": "string",
+                        "value": "string"
+                    }
+                ],
+                "resourceRequirements": [
+                    {
+                        "value": "string",
+                        "type": "GPU"
+                    }
+                ],
+                "firelensConfiguration": {
+                    "type": "fluentd",
+                    "options": {
+                        "string": "string"
+                    }
+                }
+            }
+        ],
+        "family": "nginx-sample-stack",
+        "taskRoleArn": "string",
+        "executionRoleArn": "string",
+        "networkMode": "bridge",
+        "revision": 1,
+        "volumes": [
+            {
+                "name": "string",
+                "host": {
+                    "sourcePath": "string"
+                },
+                "dockerVolumeConfiguration": {
+                    "scope": "task",
+                    "autoprovision": false,
+                    "driver": "string",
+                    "driverOpts": {
+                        "string": "string"
+                    },
+                    "labels": {
+                        "string": "string"
+                    }
+                },
+                "efsVolumeConfiguration": {
+                    "fileSystemId": "string",
+                    "rootDirectory": "string",
+                    "transitEncryption": "ENABLED",
+                    "transitEncryptionPort": 123,
+                    "authorizationConfig": {
+                        "accessPointId": "string",
+                        "iam": "ENABLED"
+                    }
+                },
+                "fsxWindowsFileServerVolumeConfiguration": {
+                    "fileSystemId": "string",
+                    "rootDirectory": "string",
+                    "authorizationConfig": {
+                        "credentialsParameter": "string",
+                        "domain": "string"
+                    }
+                }
+            }
+        ],
+        "status": "ACTIVE",
+        "requiresAttributes": [
+            {
+                "name": "string",
+                "value": "string",
+                "targetType": "container-instance",
+                "targetId": "string"
+            }
+        ],
+        "placementConstraints": [],
+        "compatibilities": [
+            "EXTERNAL",
+            "EC2"
+        ],
+        "runtimePlatform": {
+            "cpuArchitecture": "X86_64",
+            "operatingSystemFamily": "WINDOWS_SERVER_2019_FULL"
+        },
+        "requiresCompatibilities": [
+            "EC2"
+        ],
+        "cpu": "string",
+        "memory": "string",
+        "inferenceAccelerators": [
+            {
+                "deviceName": "string",
+                "deviceType": "string"
+            }
+        ],
+        "pidMode": "host",
+        "ipcMode": "host",
+        "proxyConfiguration": {
+            "type": "APPMESH",
+            "containerName": "string",
+            "properties": [
+                {
+                    "name": "string",
+                    "value": "string"
+                }
+            ]
+        },
+        "registeredAt": "2022-09-08T17:58:27.823000+02:00",
+        "registeredBy": "arn:aws:sts::882347060974:assumed-role/AWSReservedSSO_AdministratorAccess_f9ee601e176c4dfe/lukas@some.engineering",
+        "tags": [
+            {
+                "key": "string",
+                "value": "string"
+            }
+        ]
+    }
+}
