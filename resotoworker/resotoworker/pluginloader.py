@@ -72,7 +72,7 @@ class PluginLoader:
             return [
                 plugin
                 for plugin in post_collect_plugins
-                if plugin.activate_with.issubset(Config.resotoworker.collector)
+                if plugin.activate_with.issubset(configured_collectors) or plugin.name in configured_collectors
             ]
 
         if plugin_type == PluginType.COLLECTOR and len(configured_collectors) > 0:
