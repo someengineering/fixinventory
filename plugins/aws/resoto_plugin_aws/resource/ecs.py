@@ -252,8 +252,11 @@ class AwsEcsTask(EcsTaggable, AwsResource):
     # collection of task resources happens in AwsEcsCluster.collect()
     kind: ClassVar[str] = "aws_ecs_task"
     reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {"default": ["aws_ecs_task_definition", "aws_ecs_container_instance"], "delete": ["aws_iam_role"]},
-        "successors": {"default": ["aws_iam_role"], "delete": ["aws_ecs_container_instance"]}
+        "predecessors": {
+            "default": ["aws_ecs_task_definition", "aws_ecs_container_instance"],
+            "delete": ["aws_iam_role"],
+        },
+        "successors": {"default": ["aws_iam_role"], "delete": ["aws_ecs_container_instance"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("taskArn"),  # get id from arn
@@ -334,9 +337,13 @@ class AwsEcsTask(EcsTaggable, AwsResource):
             for role in [self.task_overrides.execution_role_arn, self.task_overrides.task_role_arn]:
                 builder.dependant_node(self, clazz=AwsIamRole, arn=role)
         if self.task_definition_arn:
-            builder.add_edge(self, edge_type=EdgeType.default, reverse=True, clazz=AwsEcsTaskDefinition, arn=self.task_definition_arn)
+            builder.add_edge(
+                self, edge_type=EdgeType.default, reverse=True, clazz=AwsEcsTaskDefinition, arn=self.task_definition_arn
+            )
         if self.task_container_instance_arn:
-            builder.dependant_node(self, reverse=True, clazz=AwsEcsContainerInstance, arn=self.task_container_instance_arn)
+            builder.dependant_node(
+                self, reverse=True, clazz=AwsEcsContainerInstance, arn=self.task_container_instance_arn
+            )
 
     def delete_resource(self, client: AwsClient) -> bool:
         return super().delete_resource(client)
@@ -1346,7 +1353,9 @@ class AwsEcsCluster(EcsTaggable, AwsResource):
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ecs", "list-clusters", "clusterArns")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"delete": ["aws_kms_key", "aws_s3_bucket"]},
-        "successors": {"default": ["aws_kms_key", "aws_s3_bucket", "aws_ecs_container_instance", "aws_ecs_service", "aws_ecs_task"]},
+        "successors": {
+            "default": ["aws_kms_key", "aws_s3_bucket", "aws_ecs_container_instance", "aws_ecs_service", "aws_ecs_task"]
+        },
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("clusterName"),
