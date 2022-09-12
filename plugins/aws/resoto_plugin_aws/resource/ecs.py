@@ -471,8 +471,16 @@ class AwsEcsProxyConfiguration:
 class AwsEcsTaskDefinition(EcsTaggable, AwsResource):
     kind: ClassVar[str] = "aws_ecs_task_definition"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ecs", "list-task-definitions", "taskDefinitionArns")
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {
+            "delete": ["aws_iam_role"]
+        },
+        "successors": {
+            "default": ["aws_iam_role"]
+        },
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("taskDefinitionArn"),  # get id from arn?
+        "id": S("taskDefinitionArn"),
         "tags": S("tags", default=[]) >> ToDict(key="key", value="value"),
         "name": S("taskDefinitionArn"),  # name tag?
         "ctime": S("registeredAt"),
@@ -539,6 +547,30 @@ class AwsEcsTaskDefinition(EcsTaggable, AwsResource):
             task_definition["tags"] = tags
             task_definition_instance = cls.from_api(task_definition)
             builder.add_node(task_definition_instance, task_def_arn)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if self.task_role_arn:
+            if self.service_role_arn:
+                builder.dependant_node(
+                    self,
+                    clazz=AwsIamRole,
+                    arn= self.task_role_arn,
+                )
+        if self.execution_role_arn:
+            builder.dependant_node(
+                    self,
+                    clazz=AwsIamRole,
+                    arn= self.execution_role_arn,
+                )
+
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(
+            aws_service="ecs",
+            action="deregister-task-definition",
+            result_name=None,
+            taskDefinition=f"{self.family}:{self.revision}",
+        )
+        return True
 
 
 @define(eq=False, slots=False)
@@ -848,7 +880,7 @@ class AwsEcsService(EcsTaggable, AwsResource):
                     )
         if self.service_task_definition:
             task_def = self.service_task_definition
-            # task_def is either full arn OR family:revision
+            # task_def is either full arn OR "family:revision"
             builder.add_edge(self, edge_type=EdgeType.default, clazz=AwsEcsTaskDefinition, arn=task_def)
             builder.add_edge(
                 self,

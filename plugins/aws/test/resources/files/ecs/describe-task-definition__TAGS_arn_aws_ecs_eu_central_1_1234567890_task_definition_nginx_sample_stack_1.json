@@ -241,7 +241,7 @@
             ]
         },
         "registeredAt": "2022-09-08T17:58:27.823000+02:00",
-        "registeredBy": "arn:aws:sts::882347060974:assumed-role/AWSReservedSSO_AdministratorAccess_f9ee601e176c4dfe/lukas@some.engineering",
+        "registeredBy": "arn:aws:sts::1234567890:assumed-role/AWSReservedSSO_AdministratorAccess_f9ee601e176c4dfe/dude@some.engineering",
         "ephemeralStorage": {
             "sizeInGiB": 123
         }
