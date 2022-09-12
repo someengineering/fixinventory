@@ -49,6 +49,300 @@ class EcsTaggable:
 
 
 @define(eq=False, slots=False)
+class AwsEcsKeyValuePair:
+    kind: ClassVar[str] = "aws_ecs_key_value_pair"
+    mapping: ClassVar[Dict[str, Bender]] = {"name": S("name"), "value": S("value")}
+    name: Optional[str] = field(default=None)
+    value: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsEcsAttachment:
+    kind: ClassVar[str] = "aws_ecs_attachment"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("id"),
+        "type": S("type"),
+        "status": S("status"),
+        "details": S("details", default=[]) >> ForallBend(AwsEcsKeyValuePair.mapping),
+    }
+    id: Optional[str] = field(default=None)
+    type: Optional[str] = field(default=None)
+    status: Optional[str] = field(default=None)
+    details: List[AwsEcsKeyValuePair] = field(factory=list)
+
+
+@define(eq=False, slots=False)
+class AwsEcsAttribute:
+    kind: ClassVar[str] = "aws_ecs_attribute"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "name": S("name"),
+        "value": S("value"),
+        "target_type": S("targetType"),
+        "target_id": S("targetId"),
+    }
+    name: Optional[str] = field(default=None)
+    value: Optional[str] = field(default=None)
+    target_type: Optional[str] = field(default=None)
+    target_id: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsEcsNetworkBinding:
+    kind: ClassVar[str] = "aws_ecs_network_binding"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "bind_ip": S("bindIP"),
+        "container_port": S("containerPort"),
+        "host_port": S("hostPort"),
+        "protocol": S("protocol"),
+    }
+    bind_ip: Optional[str] = field(default=None)
+    container_port: Optional[int] = field(default=None)
+    host_port: Optional[int] = field(default=None)
+    protocol: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsEcsNetworkInterface:
+    kind: ClassVar[str] = "aws_ecs_network_interface"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "attachment_id": S("attachmentId"),
+        "private_ipv4_address": S("privateIpv4Address"),
+        "ipv6_address": S("ipv6Address"),
+    }
+    attachment_id: Optional[str] = field(default=None)
+    private_ipv4_address: Optional[str] = field(default=None)
+    ipv6_address: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsEcsManagedAgent:
+    kind: ClassVar[str] = "aws_ecs_managed_agent"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "last_started_at": S("lastStartedAt"),
+        "name": S("name"),
+        "reason": S("reason"),
+        "last_status": S("lastStatus"),
+    }
+    last_started_at: Optional[datetime] = field(default=None)
+    name: Optional[str] = field(default=None)
+    reason: Optional[str] = field(default=None)
+    last_status: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsEcsContainer:
+    kind: ClassVar[str] = "aws_ecs_container"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "container_arn": S("containerArn"),
+        "task_arn": S("taskArn"),
+        "name": S("name"),
+        "image": S("image"),
+        "image_digest": S("imageDigest"),
+        "runtime_id": S("runtimeId"),
+        "last_status": S("lastStatus"),
+        "exit_code": S("exitCode"),
+        "reason": S("reason"),
+        "network_bindings": S("networkBindings", default=[]) >> ForallBend(AwsEcsNetworkBinding.mapping),
+        "network_interfaces": S("networkInterfaces", default=[]) >> ForallBend(AwsEcsNetworkInterface.mapping),
+        "health_status": S("healthStatus"),
+        "managed_agents": S("managedAgents", default=[]) >> ForallBend(AwsEcsManagedAgent.mapping),
+        "cpu": S("cpu"),
+        "memory": S("memory"),
+        "memory_reservation": S("memoryReservation"),
+        "gpu_ids": S("gpuIds", default=[]),
+    }
+    container_arn: Optional[str] = field(default=None)
+    task_arn: Optional[str] = field(default=None)
+    name: Optional[str] = field(default=None)
+    image: Optional[str] = field(default=None)
+    image_digest: Optional[str] = field(default=None)
+    runtime_id: Optional[str] = field(default=None)
+    last_status: Optional[str] = field(default=None)
+    exit_code: Optional[int] = field(default=None)
+    reason: Optional[str] = field(default=None)
+    network_bindings: List[AwsEcsNetworkBinding] = field(factory=list)
+    network_interfaces: List[AwsEcsNetworkInterface] = field(factory=list)
+    health_status: Optional[str] = field(default=None)
+    managed_agents: List[AwsEcsManagedAgent] = field(factory=list)
+    cpu: Optional[str] = field(default=None)
+    memory: Optional[str] = field(default=None)
+    memory_reservation: Optional[str] = field(default=None)
+    gpu_ids: List[str] = field(factory=list)
+
+
+@define(eq=False, slots=False)
+class AwsEcsInferenceAccelerator:
+    kind: ClassVar[str] = "aws_ecs_inference_accelerator"
+    mapping: ClassVar[Dict[str, Bender]] = {"device_name": S("deviceName"), "device_type": S("deviceType")}
+    device_name: Optional[str] = field(default=None)
+    device_type: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsEcsEnvironmentFile:
+    kind: ClassVar[str] = "aws_ecs_environment_file"
+    mapping: ClassVar[Dict[str, Bender]] = {"value": S("value"), "type": S("type")}
+    value: Optional[str] = field(default=None)
+    type: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsEcsResourceRequirement:
+    kind: ClassVar[str] = "aws_ecs_resource_requirement"
+    mapping: ClassVar[Dict[str, Bender]] = {"value": S("value"), "type": S("type")}
+    value: Optional[str] = field(default=None)
+    type: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsEcsContainerOverride:
+    kind: ClassVar[str] = "aws_ecs_container_override"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "name": S("name"),
+        "command": S("command", default=[]),
+        "environment": S("environment", default=[]) >> ForallBend(AwsEcsKeyValuePair.mapping),
+        "environment_files": S("environmentFiles", default=[]) >> ForallBend(AwsEcsEnvironmentFile.mapping),
+        "cpu": S("cpu"),
+        "memory": S("memory"),
+        "memory_reservation": S("memoryReservation"),
+        "resource_requirements": S("resourceRequirements", default=[]) >> ForallBend(AwsEcsResourceRequirement.mapping),
+    }
+    name: Optional[str] = field(default=None)
+    command: List[str] = field(factory=list)
+    environment: List[AwsEcsKeyValuePair] = field(factory=list)
+    environment_files: List[AwsEcsEnvironmentFile] = field(factory=list)
+    cpu: Optional[int] = field(default=None)
+    memory: Optional[int] = field(default=None)
+    memory_reservation: Optional[int] = field(default=None)
+    resource_requirements: List[AwsEcsResourceRequirement] = field(factory=list)
+
+
+@define(eq=False, slots=False)
+class AwsEcsInferenceAcceleratorOverride:
+    kind: ClassVar[str] = "aws_ecs_inference_accelerator_override"
+    mapping: ClassVar[Dict[str, Bender]] = {"device_name": S("deviceName"), "device_type": S("deviceType")}
+    device_name: Optional[str] = field(default=None)
+    device_type: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsEcsTaskOverride:
+    kind: ClassVar[str] = "aws_ecs_task_override"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "container_overrides": S("containerOverrides", default=[]) >> ForallBend(AwsEcsContainerOverride.mapping),
+        "cpu": S("cpu"),
+        "inference_accelerator_overrides": S("inferenceAcceleratorOverrides", default=[])
+        >> ForallBend(AwsEcsInferenceAcceleratorOverride.mapping),
+        "execution_role_arn": S("executionRoleArn"),
+        "memory": S("memory"),
+        "task_role_arn": S("taskRoleArn"),
+        "ephemeral_storage": S("ephemeralStorage", "sizeInGiB"),
+    }
+    container_overrides: List[AwsEcsContainerOverride] = field(factory=list)
+    cpu: Optional[str] = field(default=None)
+    inference_accelerator_overrides: List[AwsEcsInferenceAcceleratorOverride] = field(factory=list)
+    execution_role_arn: Optional[str] = field(default=None)
+    memory: Optional[str] = field(default=None)
+    task_role_arn: Optional[str] = field(default=None)
+    ephemeral_storage: Optional[int] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsEcsTask(EcsTaggable, AwsResource):
+    # collection of task resources happens in AwsEcsCluster.collect()
+    kind: ClassVar[str] = "aws_ecs_task"
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["aws_ecs_task_definition", "aws_ecs_container_instance"], "delete": ["aws_iam_role"]},
+        "successors": {"default": ["aws_iam_role"], "delete": ["aws_ecs_container_instance"]}
+    }
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("taskArn"),  # get id from arn
+        "tags": S("tags", default=[]) >> ToDict(key="key", value="value"),
+        "ctime": S("createdAt"),
+        "arn": S("taskArn"),
+        "task_attachments": S("attachments", default=[]) >> ForallBend(AwsEcsAttachment.mapping),
+        "task_attributes": S("attributes", default=[]) >> ForallBend(AwsEcsAttribute.mapping),
+        "task_availability_zone": S("availabilityZone"),
+        "task_capacity_provider_name": S("capacityProviderName"),
+        "task_cluster_arn": S("clusterArn"),
+        "task_connectivity": S("connectivity"),
+        "task_connectivity_at": S("connectivityAt"),
+        "task_container_instance_arn": S("containerInstanceArn"),
+        "task_containers": S("containers", default=[]) >> ForallBend(AwsEcsContainer.mapping),
+        "task_cpu": S("cpu"),
+        "task_desired_status": S("desiredStatus"),
+        "task_enable_execute_command": S("enableExecuteCommand"),
+        "task_execution_stopped_at": S("executionStoppedAt"),
+        "task_group": S("group"),
+        "task_health_status": S("healthStatus"),
+        "task_inference_accelerators": S("inferenceAccelerators", default=[])
+        >> ForallBend(AwsEcsInferenceAccelerator.mapping),
+        "task_last_status": S("lastStatus"),
+        "task_launch_type": S("launchType"),
+        "task_memory": S("memory"),
+        "task_overrides": S("overrides") >> Bend(AwsEcsTaskOverride.mapping),
+        "task_platform_version": S("platformVersion"),
+        "task_platform_family": S("platformFamily"),
+        "task_pull_started_at": S("pullStartedAt"),
+        "task_pull_stopped_at": S("pullStoppedAt"),
+        "task_started_at": S("startedAt"),
+        "task_started_by": S("startedBy"),
+        "task_stop_code": S("stopCode"),
+        "task_stopped_at": S("stoppedAt"),
+        "task_stopped_reason": S("stoppedReason"),
+        "task_stopping_at": S("stoppingAt"),
+        "task_definition_arn": S("taskDefinitionArn"),
+        "task_version": S("version"),
+        "task_ephemeral_storage": S("ephemeralStorage", "sizeInGiB"),
+    }
+    task_attachments: List[AwsEcsAttachment] = field(factory=list)
+    task_attributes: List[AwsEcsAttribute] = field(factory=list)
+    task_availability_zone: Optional[str] = field(default=None)
+    task_capacity_provider_name: Optional[str] = field(default=None)
+    task_cluster_arn: Optional[str] = field(default=None)
+    task_connectivity: Optional[str] = field(default=None)
+    task_connectivity_at: Optional[datetime] = field(default=None)
+    task_container_instance_arn: Optional[str] = field(default=None)
+    task_containers: List[AwsEcsContainer] = field(factory=list)
+    task_cpu: Optional[str] = field(default=None)
+    task_desired_status: Optional[str] = field(default=None)
+    task_enable_execute_command: Optional[bool] = field(default=None)
+    task_execution_stopped_at: Optional[datetime] = field(default=None)
+    task_group: Optional[str] = field(default=None)
+    task_health_status: Optional[str] = field(default=None)
+    task_inference_accelerators: List[AwsEcsInferenceAccelerator] = field(factory=list)
+    task_last_status: Optional[str] = field(default=None)
+    task_launch_type: Optional[str] = field(default=None)
+    task_memory: Optional[str] = field(default=None)
+    task_overrides: Optional[AwsEcsTaskOverride] = field(default=None)
+    task_platform_version: Optional[str] = field(default=None)
+    task_platform_family: Optional[str] = field(default=None)
+    task_pull_started_at: Optional[datetime] = field(default=None)
+    task_pull_stopped_at: Optional[datetime] = field(default=None)
+    task_started_at: Optional[datetime] = field(default=None)
+    task_started_by: Optional[str] = field(default=None)
+    task_stop_code: Optional[str] = field(default=None)
+    task_stopped_at: Optional[datetime] = field(default=None)
+    task_stopped_reason: Optional[str] = field(default=None)
+    task_stopping_at: Optional[datetime] = field(default=None)
+    task_definition_arn: Optional[str] = field(default=None)
+    task_version: Optional[int] = field(default=None)
+    task_ephemeral_storage: Optional[int] = field(default=None)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if self.task_overrides:
+            for role in [self.task_overrides.execution_role_arn, self.task_overrides.task_role_arn]:
+                builder.dependant_node(self, clazz=AwsIamRole, arn=role)
+        if self.task_definition_arn:
+            builder.add_edge(self, edge_type=EdgeType.default, reverse=True, clazz=AwsEcsTaskDefinition, arn=self.task_definition_arn)
+        if self.task_container_instance_arn:
+            builder.dependant_node(self, reverse=True, clazz=AwsEcsContainerInstance, arn=self.task_container_instance_arn)
+
+    def delete_resource(self, client: AwsClient) -> bool:
+        return super().delete_resource(client)
+
+
+@define(eq=False, slots=False)
 class AwsEcsPortMapping:
     kind: ClassVar[str] = "aws_ecs_port_mapping"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -59,22 +353,6 @@ class AwsEcsPortMapping:
     container_port: Optional[int] = field(default=None)
     host_port: Optional[int] = field(default=None)
     protocol: Optional[str] = field(default=None)
-
-
-@define(eq=False, slots=False)
-class AwsEcsKeyValuePair:
-    kind: ClassVar[str] = "aws_ecs_key_value_pair"
-    mapping: ClassVar[Dict[str, Bender]] = {"name": S("name"), "value": S("value")}
-    name: Optional[str] = field(default=None)
-    value: Optional[str] = field(default=None)
-
-
-@define(eq=False, slots=False)
-class AwsEcsEnvironmentFile:
-    kind: ClassVar[str] = "aws_ecs_environment_file"
-    mapping: ClassVar[Dict[str, Bender]] = {"value": S("value"), "type": S("type")}
-    value: Optional[str] = field(default=None)
-    type: Optional[str] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -226,14 +504,6 @@ class AwsEcsSystemControl:
     mapping: ClassVar[Dict[str, Bender]] = {"namespace": S("namespace"), "value": S("value")}
     namespace: Optional[str] = field(default=None)
     value: Optional[str] = field(default=None)
-
-
-@define(eq=False, slots=False)
-class AwsEcsResourceRequirement:
-    kind: ClassVar[str] = "aws_ecs_resource_requirement"
-    mapping: ClassVar[Dict[str, Bender]] = {"value": S("value"), "type": S("type")}
-    value: Optional[str] = field(default=None)
-    type: Optional[str] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -413,21 +683,6 @@ class AwsEcsVolume:
 
 
 @define(eq=False, slots=False)
-class AwsEcsAttribute:
-    kind: ClassVar[str] = "aws_ecs_attribute"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "name": S("name"),
-        "value": S("value"),
-        "target_type": S("targetType"),
-        "target_id": S("targetId"),
-    }
-    name: Optional[str] = field(default=None)
-    value: Optional[str] = field(default=None)
-    target_type: Optional[str] = field(default=None)
-    target_id: Optional[str] = field(default=None)
-
-
-@define(eq=False, slots=False)
 class AwsEcsTaskDefinitionPlacementConstraint:
     kind: ClassVar[str] = "aws_ecs_task_definition_placement_constraint"
     mapping: ClassVar[Dict[str, Bender]] = {"type": S("type"), "expression": S("expression")}
@@ -444,14 +699,6 @@ class AwsEcsRuntimePlatform:
     }
     cpu_architecture: Optional[str] = field(default=None)
     operating_system_family: Optional[str] = field(default=None)
-
-
-@define(eq=False, slots=False)
-class AwsEcsInferenceAccelerator:
-    kind: ClassVar[str] = "aws_ecs_inference_accelerator"
-    mapping: ClassVar[Dict[str, Bender]] = {"device_name": S("deviceName"), "device_type": S("deviceType")}
-    device_name: Optional[str] = field(default=None)
-    device_type: Optional[str] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -472,12 +719,8 @@ class AwsEcsTaskDefinition(EcsTaggable, AwsResource):
     kind: ClassVar[str] = "aws_ecs_task_definition"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ecs", "list-task-definitions", "taskDefinitionArns")
     reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {
-            "delete": ["aws_iam_role"]
-        },
-        "successors": {
-            "default": ["aws_iam_role"]
-        },
+        "predecessors": {"delete": ["aws_iam_role"]},
+        "successors": {"default": ["aws_iam_role"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("taskDefinitionArn"),
@@ -550,18 +793,18 @@ class AwsEcsTaskDefinition(EcsTaggable, AwsResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.task_role_arn:
-            if self.service_role_arn:
+            if self.task_role_arn:
                 builder.dependant_node(
                     self,
                     clazz=AwsIamRole,
-                    arn= self.task_role_arn,
+                    arn=self.task_role_arn,
                 )
         if self.execution_role_arn:
             builder.dependant_node(
-                    self,
-                    clazz=AwsIamRole,
-                    arn= self.execution_role_arn,
-                )
+                self,
+                clazz=AwsIamRole,
+                arn=self.execution_role_arn,
+            )
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
@@ -958,21 +1201,6 @@ class AwsEcsResource:
 
 
 @define(eq=False, slots=False)
-class AwsEcsAttachment:
-    kind: ClassVar[str] = "aws_ecs_attachment"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
-        "type": S("type"),
-        "status": S("status"),
-        "details": S("details", default=[]) >> ForallBend(AwsEcsKeyValuePair.mapping),
-    }
-    id: Optional[str] = field(default=None)
-    type: Optional[str] = field(default=None)
-    status: Optional[str] = field(default=None)
-    details: List[AwsEcsKeyValuePair] = field(factory=list)
-
-
-@define(eq=False, slots=False)
 class AwsEcsInstanceHealthCheckResult:
     kind: ClassVar[str] = "aws_ecs_instance_health_check_result"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1115,10 +1343,10 @@ class AwsEcsClusterSetting:
 @define(eq=False, slots=False)
 class AwsEcsCluster(EcsTaggable, AwsResource):
     kind: ClassVar[str] = "aws_ecs_cluster"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ecs", "list-clusters", "clusterArns")  # list?
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ecs", "list-clusters", "clusterArns")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"delete": ["aws_kms_key", "aws_s3_bucket"]},
-        "successors": {"default": ["aws_kms_key", "aws_s3_bucket", "aws_ecs_container_instance", "aws_ecs_service"]},
+        "successors": {"default": ["aws_kms_key", "aws_s3_bucket", "aws_ecs_container_instance", "aws_ecs_service", "aws_ecs_task"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("clusterName"),
@@ -1208,6 +1436,21 @@ class AwsEcsCluster(EcsTaggable, AwsResource):
                     builder.add_node(service_instance, service)
                     builder.add_edge(cluster_instance, edge_type=EdgeType.default, node=service_instance)
 
+            task_arns = builder.client.list("ecs", "list-tasks", "taskArns", cluster=cluster_arn)
+            for chunk in chunks(task_arns, 100):
+                tasks = builder.client.list(
+                    "ecs",
+                    "describe-tasks",
+                    "tasks",
+                    cluster=cluster_arn,
+                    tasks=chunk,
+                    include=["TAGS"],
+                )
+                for task in tasks:
+                    task_instance = AwsEcsTask.from_api(task)
+                    builder.add_node(task_instance, task)
+                    builder.add_edge(cluster_instance, edge_type=EdgeType.default, node=task_instance)
+
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.cluster_configuration:
             if self.cluster_configuration.execute_command_configuration.kms_key_id:
@@ -1232,4 +1475,10 @@ class AwsEcsCluster(EcsTaggable, AwsResource):
         return True
 
 
-resources: List[Type[AwsResource]] = [AwsEcsCluster, AwsEcsContainerInstance, AwsEcsService, AwsEcsTaskDefinition]
+resources: List[Type[AwsResource]] = [
+    AwsEcsCluster,
+    AwsEcsContainerInstance,
+    AwsEcsService,
+    AwsEcsTaskDefinition,
+    AwsEcsTask,
+]
