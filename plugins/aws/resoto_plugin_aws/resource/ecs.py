@@ -346,7 +346,14 @@ class AwsEcsTask(EcsTaggable, AwsResource):
             )
 
     def delete_resource(self, client: AwsClient) -> bool:
-        return super().delete_resource(client)
+        client.call(
+            aws_service="ecs",
+            action="stop-task",
+            result_name=None,
+            cluster=self.task_cluster_arn,
+            task=self.arn
+        )
+        return True
 
 
 @define(eq=False, slots=False)
