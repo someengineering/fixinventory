@@ -82,6 +82,7 @@ RUN /usr/local/python/bin/python3 -m ensurepip
 WORKDIR /usr/local
 RUN /usr/local/python/bin/python3 -m venv resoto-venv-python3
 RUN /usr/local/pypy/bin/pypy3 -m venv resoto-venv-pypy3
+RUN /usr/local/python/bin/python3 -m venv jupyterlite-venv-python3
 
 # Download and install ArangoDB client on x86 builds (there are no official ArangoDB binaries for arm64)
 WORKDIR /tmp/arangodb
@@ -117,8 +118,8 @@ RUN . /usr/local/resoto-venv-pypy3/bin/activate && pypy3 -m pip wheel -w /build-
 COPY resotocore /usr/src/resotocore
 WORKDIR /usr/src/resotocore
 #RUN if [ "X${TESTS:-false}" = Xtrue ]; then nohup bash -c "/usr/local/db/bin/arangod --database.directory /tmp --server.endpoint tcp://127.0.0.1:8529 --database.password root &"; sleep 5; tox; fi
-RUN . /usr/local/resoto-venv-python3/bin/activate && python -m pip install -r requirements-jupyterlite.txt
-RUN . /usr/local/resoto-venv-python3/bin/activate && python -m jupyter lite build
+RUN . /usr/local/jupyterlite-venv-python3/bin/activate && python -m pip install -r requirements-jupyterlite.txt
+RUN . /usr/local/jupyterlite-venv-python3/bin/activate && python -m jupyter lite build
 RUN . /usr/local/resoto-venv-python3/bin/activate && python -m pip wheel -w /build-python -f /build-python .
 RUN . /usr/local/resoto-venv-pypy3/bin/activate && pypy3 -m pip wheel -w /build-pypy -f /build-pypy .
 
