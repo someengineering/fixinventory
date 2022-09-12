@@ -40,7 +40,7 @@
                 }
             ],
             "capacityProviders": [
-                "string"
+                "sampleCapacityProvider"
             ],
             "defaultCapacityProviderStrategy": [
                 {

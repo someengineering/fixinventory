@@ -15,6 +15,7 @@ def test_ecs_cluster() -> None:
     assert type_count["aws_ecs_container_instance"] == 2
     assert type_count["aws_ecs_service"] == 1
     assert type_count["aws_ecs_task"] == 1
+    assert type_count["aws_ecs_capacity_provider"] == 1
 
 
 def test_tagging() -> None:

@@ -3,6 +3,7 @@ from typing import ClassVar, Dict, Optional, List, Type
 
 from attrs import define, field
 from resoto_plugin_aws.aws_client import AwsClient
+from resoto_plugin_aws.resource.autoscaling import AwsAutoScalingGroup
 
 from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
 from resoto_plugin_aws.resource.ec2 import AwsEc2Instance, AwsEc2SecurityGroup, AwsEc2Subnet
@@ -46,6 +47,69 @@ class EcsTaggable:
                 return True
             return False
         return False
+
+
+@define(eq=False, slots=False)
+class AwsEcsManagedScaling:
+    kind: ClassVar[str] = "aws_ecs_managed_scaling"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "status": S("status"),
+        "target_capacity": S("targetCapacity"),
+        "minimum_scaling_step_size": S("minimumScalingStepSize"),
+        "maximum_scaling_step_size": S("maximumScalingStepSize"),
+        "instance_warmup_period": S("instanceWarmupPeriod"),
+    }
+    status: Optional[str] = field(default=None)
+    target_capacity: Optional[int] = field(default=None)
+    minimum_scaling_step_size: Optional[int] = field(default=None)
+    maximum_scaling_step_size: Optional[int] = field(default=None)
+    instance_warmup_period: Optional[int] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsEcsAutoScalingGroupProvider:
+    kind: ClassVar[str] = "aws_ecs_auto_scaling_group_provider"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "auto_scaling_group_arn": S("autoScalingGroupArn"),
+        "managed_scaling": S("managedScaling") >> Bend(AwsEcsManagedScaling.mapping),
+        "managed_termination_protection": S("managedTerminationProtection"),
+    }
+    auto_scaling_group_arn: Optional[str] = field(default=None)
+    managed_scaling: Optional[AwsEcsManagedScaling] = field(default=None)
+    managed_termination_protection: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsEcsCapacityProvider(EcsTaggable, AwsResource):
+    # collection of capacity provider resources happens in AwsEcsCluster.collect()
+    kind: ClassVar[str] = "aws_ecs_capacity_provider"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("capacityProviderArn"),
+        "name": S("name"),
+        "tags": S("tags", default=[]) >> ToDict(key="key", value="value"),
+        "arn": S("capacityProviderArn"),
+        "status": S("status"),
+        "capacity_provider_auto_scaling_group_provider": S("autoScalingGroupProvider")
+        >> Bend(AwsEcsAutoScalingGroupProvider.mapping),
+        "capacity_provider_update_status": S("updateStatus"),
+        "capacity_provider_update_status_reason": S("updateStatusReason"),
+    }
+    status: Optional[str] = field(default=None)
+    capacity_provider_auto_scaling_group_provider: Optional[AwsEcsAutoScalingGroupProvider] = field(default=None)
+    capacity_provider_update_status: Optional[str] = field(default=None)
+    capacity_provider_update_status_reason: Optional[str] = field(default=None)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if self.capacity_provider_auto_scaling_group_provider:
+            builder.dependant_node(
+                self,
+                clazz=AwsAutoScalingGroup,
+                arn=self.capacity_provider_auto_scaling_group_provider.auto_scaling_group_arn,
+            )
+
+    def delete_resource(self, client: AwsClient) -> bool:
+        return super().delete_resource(client)
+        # Prior to a capacity provider being deleted, the capacity provider must be removed from the capacity provider strategy from all services. The UpdateService API can be used to remove a capacity provider from a service’s capacity provider strategy. When updating a service, the forceNewDeployment option can be used to ensure that any tasks using the Amazon EC2 instance capacity provided by the capacity provider are transitioned to use the capacity from the remaining capacity providers. Only capacity providers that aren’t associated with a cluster can be deleted. To remove a capacity provider from a cluster, you can either use PutClusterCapacityProviders or delete the cluster.
 
 
 @define(eq=False, slots=False)
@@ -344,14 +408,14 @@ class AwsEcsTask(EcsTaggable, AwsResource):
             builder.dependant_node(
                 self, reverse=True, clazz=AwsEcsContainerInstance, arn=self.task_container_instance_arn
             )
+        if self.task_capacity_provider_name:
+            builder.add_edge(
+                self, edge_type=EdgeType.default, clazz=AwsEcsCapacityProvider, name=self.task_capacity_provider_name
+            )
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
-            aws_service="ecs",
-            action="stop-task",
-            result_name=None,
-            cluster=self.task_cluster_arn,
-            task=self.arn
+            aws_service="ecs", action="stop-task", result_name=None, cluster=self.task_cluster_arn, task=self.arn
         )
         return True
 
@@ -1121,6 +1185,7 @@ class AwsEcsService(EcsTaggable, AwsResource):
     service_enable_execute_command: Optional[bool] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        # TODO add edge to Cloud Map service registry when applicable
         if self.service_load_balancers:
             for lb in self.service_load_balancers:
                 if lb.target_group_arn:
@@ -1135,6 +1200,7 @@ class AwsEcsService(EcsTaggable, AwsResource):
                         clazz=AwsElb,
                         name=lb.load_balancer_name,
                     )
+
         if self.service_task_definition:
             task_def = self.service_task_definition
             # task_def is either full arn OR "family:revision"
@@ -1146,30 +1212,51 @@ class AwsEcsService(EcsTaggable, AwsResource):
                 family=task_def.split(":")[0],
                 revision=int(task_def.split(":")[1]),
             )
-        # TODO add edge to Cloud Map service registry when applicable
-        # TODO add edge to ECS Capacity Provider when applicable
-        # TODO add edges to subnets and security groups in deployments... and task sets ... ??
+
         if self.service_role_arn:
             builder.dependant_node(
                 self,
                 clazz=AwsIamRole,
                 arn=self.service_role_arn,
             )
-        if self.service_network_configuration:
-            aws_vpc_config = self.service_network_configuration.awsvpc_configuration
-        if aws_vpc_config:
-            for subnet in aws_vpc_config.subnets:
-                builder.dependant_node(
-                    self,
-                    clazz=AwsEc2Subnet,
-                    id=subnet,
-                )
-            for group in aws_vpc_config.security_groups:
-                builder.dependant_node(
-                    self,
-                    clazz=AwsEc2SecurityGroup,
-                    id=group,
-                )
+
+        potential_sec_groups = []
+        potential_subnets = []
+        if self.service_network_configuration and self.service_network_configuration.awsvpc_configuration:
+            potential_sec_groups.append(self.service_network_configuration.awsvpc_configuration.security_groups)
+            potential_subnets.append(self.service_network_configuration.awsvpc_configuration.subnets)
+        for task_set in self.service_task_sets:
+            if task_set.network_configuration and task_set.network_configuration.awsvpc_configuration:
+                potential_sec_groups.append(task_set.network_configuration.awsvpc_configuration.security_groups)
+                potential_subnets.append(task_set.network_configuration.awsvpc_configuration.subnets)
+        for deployment in self.service_deployments:
+            if deployment.network_configuration and deployment.network_configuration.awsvpc_configuration:
+                potential_sec_groups.append(deployment.network_configuration.awsvpc_configuration.security_groups)
+                potential_subnets.append(deployment.network_configuration.awsvpc_configuration.subnets)
+        for group in sum(potential_sec_groups, []):
+            builder.dependant_node(
+                self,
+                clazz=AwsEc2SecurityGroup,
+                id=group,
+            )
+        for subnet in sum(potential_subnets, []):
+            builder.dependant_node(
+                self,
+                clazz=AwsEc2Subnet,
+                id=subnet,
+            )
+
+        potential_capacity_providers = []
+        for entry in self.service_capacity_provider_strategy:
+            potential_capacity_providers.append(entry.capacity_provider)
+        for task_set in self.service_task_sets:
+            for entry in task_set.capacity_provider_strategy:
+                potential_capacity_providers.append(entry.capacity_provider)
+        for deployment in self.service_deployments:
+            for entry in deployment.capacity_provider_strategy:
+                potential_capacity_providers.append(entry.capacity_provider)
+        for provider in potential_capacity_providers:
+            builder.add_edge(self, edge_type=EdgeType.default, clazz=AwsEcsCapacityProvider, name=provider)
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
@@ -1361,7 +1448,14 @@ class AwsEcsCluster(EcsTaggable, AwsResource):
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"delete": ["aws_kms_key", "aws_s3_bucket"]},
         "successors": {
-            "default": ["aws_kms_key", "aws_s3_bucket", "aws_ecs_container_instance", "aws_ecs_service", "aws_ecs_task"]
+            "default": [
+                "aws_kms_key",
+                "aws_s3_bucket",
+                "aws_ecs_container_instance",
+                "aws_ecs_service",
+                "aws_ecs_task",
+                "aws_ecs_capacity_provider",
+            ]
         },
     }
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1405,6 +1499,7 @@ class AwsEcsCluster(EcsTaggable, AwsResource):
             AwsApiSpec("ecs", "describe-container-instances"),
             AwsApiSpec("ecs", "list-services"),
             AwsApiSpec("ecs", "describe-services"),
+            AwsApiSpec("ecs", "describe-capacity-providers"),
         ]
 
     @classmethod
@@ -1417,7 +1512,7 @@ class AwsEcsCluster(EcsTaggable, AwsResource):
                 clusters=[cluster_arn],
                 include=["ATTACHMENTS", "CONFIGURATIONS", "SETTINGS", "STATISTICS", "TAGS"],
             )
-            cluster_instance = cls.from_api(cluster[0])
+            cluster_instance = AwsEcsCluster.from_api(cluster[0])
             builder.add_node(cluster_instance, cluster_arn)
 
             container_arns = builder.client.list(
@@ -1467,6 +1562,16 @@ class AwsEcsCluster(EcsTaggable, AwsResource):
                     builder.add_node(task_instance, task)
                     builder.add_edge(cluster_instance, edge_type=EdgeType.default, node=task_instance)
 
+            provider_names = cluster_instance.cluster_capacity_providers
+            for chunk in chunks(provider_names, 100):
+                providers = builder.client.list(
+                    "ecs", "describe-capacity-providers", "capacityProviders", capacityProviders=chunk, include=["TAGS"]
+                )
+                for provider in providers:
+                    provider_instance = AwsEcsCapacityProvider.from_api(provider)
+                    builder.add_node(provider_instance, provider)
+                    builder.add_edge(cluster_instance, edge_type=EdgeType.default, node=provider_instance)
+
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.cluster_configuration:
             if self.cluster_configuration.execute_command_configuration.kms_key_id:
@@ -1497,4 +1602,5 @@ resources: List[Type[AwsResource]] = [
     AwsEcsService,
     AwsEcsTaskDefinition,
     AwsEcsTask,
+    AwsEcsCapacityProvider,
 ]
