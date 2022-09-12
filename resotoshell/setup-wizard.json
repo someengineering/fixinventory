@@ -76,7 +76,7 @@
                                         }
                                     ]
                                 },
-                                "I would like to use AWS Profiles": {
+                                "I would like to use AWS Profiles (usually located at ~/.aws/config)": {
                                     "kind": "input",
                                     "name": "AWS Profile(s) to use",
                                     "help": "Enter the name of your profile. You can enter multiple profiles separated by a comma.",
@@ -384,8 +384,13 @@
             "name": "Resoto: configuration summary",
             "help": "**You made it!**\n\nConfiguration is now getting updated and a collection run is triggered.\n",
             "commands": [
-                {"kind":  "put_config"},
-                {"kind":  "execute", "command": "workflows run collect"}
+                {
+                    "kind": "put_config"
+                },
+                {
+                    "kind": "execute",
+                    "command": "workflows run collect"
+                }
             ]
         },
         {
@@ -405,4 +410,3 @@
         }
     ]
 }
-
