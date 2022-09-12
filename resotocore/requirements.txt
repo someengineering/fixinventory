@@ -2,7 +2,7 @@
 
 aiohttp-swagger3==0.7.2
 aiohttp[speedups]==3.8.1
-jsons==1.6.2
+jsons>=1.6.3, <1.7.0
 parsy==1.4.0
 plantuml==0.3.0
 python-arango==7.3.4
