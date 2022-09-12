@@ -34,7 +34,7 @@
             ],
             "platformVersion": "LATEST",
             "platformFamily": "string",
-            "taskDefinition": "string",
+            "taskDefinition": "nginx-sample-stack:1",
             "deploymentConfiguration": {
                 "deploymentCircuitBreaker": {
                     "enable": true,

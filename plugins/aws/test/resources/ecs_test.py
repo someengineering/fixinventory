@@ -50,3 +50,5 @@ def test_cluster_deletion() -> None:
 def test_ecs_task_definition() -> None:
     first, builder = round_trip_for(AwsEcsTaskDefinition)
     assert len(builder.resources_of(AwsEcsTaskDefinition)) == 1
+    assert first.family == "nginx-sample-stack"
+    assert first.revision == 1

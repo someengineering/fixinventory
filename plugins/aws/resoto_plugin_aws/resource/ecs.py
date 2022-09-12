@@ -846,11 +846,20 @@ class AwsEcsService(EcsTaggable, AwsResource):
                         clazz=AwsElb,
                         name=lb.load_balancer_name,
                     )
-        # TODO add egde to ECS task definition
+        if self.service_task_definition:
+            task_def = self.service_task_definition
+            # task_def is either full arn OR family:revision
+            builder.add_edge(self, edge_type=EdgeType.default, clazz=AwsEcsTaskDefinition, arn=task_def)
+            builder.add_edge(
+                self,
+                edge_type=EdgeType.default,
+                clazz=AwsEcsTaskDefinition,
+                family=task_def.split(":")[0],
+                revision=int(task_def.split(":")[1]),
+            )
         # TODO add edge to Cloud Map service registry when applicable
         # TODO add edge to ECS Capacity Provider when applicable
-        # TODO add edge to ECS TaskSet when applicable
-        # TODO add edges to subnets and security groups in deployments... and task sets ...
+        # TODO add edges to subnets and security groups in deployments... and task sets ... ??
         if self.service_role_arn:
             builder.dependant_node(
                 self,
