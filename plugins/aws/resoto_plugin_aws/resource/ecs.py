@@ -334,7 +334,7 @@ class AwsEcsTask(EcsTaggable, AwsResource):
             "default": ["aws_ecs_task_definition", "aws_ecs_container_instance"],
             "delete": ["aws_iam_role"],
         },
-        "successors": {"default": ["aws_iam_role"], "delete": ["aws_ecs_container_instance"]},
+        "successors": {"default": ["aws_iam_role", "aws_ecs_container_instance"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("taskArn"),  # get id from arn
@@ -420,7 +420,11 @@ class AwsEcsTask(EcsTaggable, AwsResource):
             )
         if self.task_container_instance_arn:
             builder.dependant_node(
-                self, reverse=True, clazz=AwsEcsContainerInstance, arn=self.task_container_instance_arn
+                self,
+                reverse=True,
+                delete_same_as_default=True,
+                clazz=AwsEcsContainerInstance,
+                arn=self.task_container_instance_arn,
             )
         if self.task_capacity_provider_name:
             builder.add_edge(
@@ -1370,8 +1374,7 @@ class AwsEcsContainerInstance(EcsTaggable, AwsResource):
     # collection of container instance resources happens in AwsEcsCluster.collect()
     kind: ClassVar[str] = "aws_ecs_container_instance"
     reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {"delete": ["aws_ec2_instance"]},
-        "successors": {"default": ["aws_ec2_instance"]},
+        "successors": {"default": ["aws_ec2_instance"], "delete": ["aws_ec2_instance"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("containerInstanceArn"),
@@ -1395,7 +1398,6 @@ class AwsEcsContainerInstance(EcsTaggable, AwsResource):
         "attachments": S("attachments", default=[]) >> ForallBend(AwsEcsAttachment.mapping),
         "health_status": S("healthStatus") >> Bend(AwsEcsContainerInstanceHealthStatus.mapping),
     }
-    container_instance_arn: Optional[str] = field(default=None)
     ec2_instance_id: Optional[str] = field(default=None)
     capacity_provider_name: Optional[str] = field(default=None)
     version: Optional[int] = field(default=None)
@@ -1411,24 +1413,20 @@ class AwsEcsContainerInstance(EcsTaggable, AwsResource):
     attributes: List[AwsEcsAttribute] = field(factory=list)
     attachments: List[AwsEcsAttachment] = field(factory=list)
     health_status: Optional[AwsEcsContainerInstanceHealthStatus] = field(default=None)
+    cluster_link: Optional[str] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.ec2_instance_id:
             builder.dependant_node(
                 self,
+                delete_same_as_default=True,
                 clazz=AwsEc2Instance,
                 id=self.ec2_instance_id,
             )
 
-    # def delete_resource(self, client: AwsClient) -> bool:
-    #     client.call(
-    #         service=self.api_spec.service,
-    #         action="delete-service",
-    #         result_name=None,
-    #         cluster=self.cluster_arn,
-    #         service=self.name,
-    #     )
-    #     return True
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call("ecs", "deregister-container-instance", None, cluster=self.cluster_link, containerInstance=self.arn)
+        return True
 
 
 @define(eq=False, slots=False)
@@ -1567,6 +1565,7 @@ class AwsEcsCluster(EcsTaggable, AwsResource):
                 )
                 for container in containers:
                     container_instance = AwsEcsContainerInstance.from_api(container)
+                    container_instance.cluster_link = cluster_instance.arn
                     builder.add_node(container_instance, container)
                     builder.add_edge(cluster_instance, edge_type=EdgeType.default, node=container_instance)
 
