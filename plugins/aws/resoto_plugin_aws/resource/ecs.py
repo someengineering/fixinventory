@@ -13,6 +13,7 @@ from resoto_plugin_aws.resource.iam import AwsIamRole
 from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resoto_plugin_aws.resource.s3 import AwsS3Bucket
 from resotolib.baseresources import EdgeType, ModelReference
+from resotolib.graph import Graph
 from resotolib.json_bender import Bender, S, Bend, ForallBend
 from resotolib.types import Json
 from resotolib.utils import chunks
@@ -83,6 +84,10 @@ class AwsEcsAutoScalingGroupProvider:
 class AwsEcsCapacityProvider(EcsTaggable, AwsResource):
     # collection of capacity provider resources happens in AwsEcsCluster.collect()
     kind: ClassVar[str] = "aws_ecs_capacity_provider"
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"delete": ["aws_autoscaling_group"]},
+        "successors": {"default": ["aws_autoscaling_group"]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("capacityProviderArn"),
         "name": S("name"),
@@ -107,9 +112,18 @@ class AwsEcsCapacityProvider(EcsTaggable, AwsResource):
                 arn=self.capacity_provider_auto_scaling_group_provider.auto_scaling_group_arn,
             )
 
+    def pre_delete_resource(self, client: AwsClient, graph: Graph) -> bool:
+        for predecessor in self.predecessors(graph=graph, edge_type=EdgeType.default):
+            if isinstance(predecessor, AwsEcsService):
+                predecessor.purge_capacity_provider(client=client, capacity_provider_name=self.name)
+            if isinstance(predecessor, AwsEcsCluster):
+                predecessor.disassociate_capacity_provider(client=client, capacity_provider_name=self.name)
+                # except ECS.Client.exceptions.ResourceInUseException when a task is still using the capacity provider?
+        return True
+
     def delete_resource(self, client: AwsClient) -> bool:
-        return super().delete_resource(client)
-        # Prior to a capacity provider being deleted, the capacity provider must be removed from the capacity provider strategy from all services. The UpdateService API can be used to remove a capacity provider from a service’s capacity provider strategy. When updating a service, the forceNewDeployment option can be used to ensure that any tasks using the Amazon EC2 instance capacity provided by the capacity provider are transitioned to use the capacity from the remaining capacity providers. Only capacity providers that aren’t associated with a cluster can be deleted. To remove a capacity provider from a cluster, you can either use PutClusterCapacityProviders or delete the cluster.
+        client.call("ecs", "delete-capacity-provider", None, capacityProvider=self.name)
+        return True
 
 
 @define(eq=False, slots=False)
@@ -1116,7 +1130,14 @@ class AwsEcsService(EcsTaggable, AwsResource):
             "delete": ["aws_alb_target_group", "aws_elb", "aws_iam_role", "aws_ec2_subnet", "aws_ec2_security_group"]
         },
         "successors": {
-            "default": ["aws_alb_target_group", "aws_elb", "aws_iam_role", "aws_ec2_subnet", "aws_ec2_security_group"]
+            "default": [
+                "aws_alb_target_group",
+                "aws_elb",
+                "aws_iam_role",
+                "aws_ec2_subnet",
+                "aws_ec2_security_group",
+                "aws_ecs_capacity_provider",
+            ]
         },
     }
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1220,26 +1241,26 @@ class AwsEcsService(EcsTaggable, AwsResource):
                 arn=self.service_role_arn,
             )
 
-        potential_sec_groups = []
-        potential_subnets = []
+        all_sec_groups = []
+        all_subnets = []
         if self.service_network_configuration and self.service_network_configuration.awsvpc_configuration:
-            potential_sec_groups.append(self.service_network_configuration.awsvpc_configuration.security_groups)
-            potential_subnets.append(self.service_network_configuration.awsvpc_configuration.subnets)
+            all_sec_groups.append(self.service_network_configuration.awsvpc_configuration.security_groups)
+            all_subnets.append(self.service_network_configuration.awsvpc_configuration.subnets)
         for task_set in self.service_task_sets:
             if task_set.network_configuration and task_set.network_configuration.awsvpc_configuration:
-                potential_sec_groups.append(task_set.network_configuration.awsvpc_configuration.security_groups)
-                potential_subnets.append(task_set.network_configuration.awsvpc_configuration.subnets)
+                all_sec_groups.append(task_set.network_configuration.awsvpc_configuration.security_groups)
+                all_subnets.append(task_set.network_configuration.awsvpc_configuration.subnets)
         for deployment in self.service_deployments:
             if deployment.network_configuration and deployment.network_configuration.awsvpc_configuration:
-                potential_sec_groups.append(deployment.network_configuration.awsvpc_configuration.security_groups)
-                potential_subnets.append(deployment.network_configuration.awsvpc_configuration.subnets)
-        for group in sum(potential_sec_groups, []):
+                all_sec_groups.append(deployment.network_configuration.awsvpc_configuration.security_groups)
+                all_subnets.append(deployment.network_configuration.awsvpc_configuration.subnets)
+        for group in sum(all_sec_groups, []):
             builder.dependant_node(
                 self,
                 clazz=AwsEc2SecurityGroup,
                 id=group,
             )
-        for subnet in sum(potential_subnets, []):
+        for subnet in sum(all_subnets, []):
             builder.dependant_node(
                 self,
                 clazz=AwsEc2Subnet,
@@ -1267,6 +1288,23 @@ class AwsEcsService(EcsTaggable, AwsResource):
             service=self.name,
         )
         return True
+
+    def purge_capacity_provider(self, client: AwsClient, capacity_provider_name: str) -> bool:
+        strategy = self.service_capacity_provider_strategy
+        try:
+            strategy.remove(next(item for item in strategy if item["capacity_provider"] == capacity_provider_name))
+            client.call(
+                "ecs",
+                "update-service",
+                None,
+                cluster=self.cluster_arn,
+                service=self.name,
+                capacityProviderStrategy=strategy,
+                forceNewDeployment=True,
+            )
+            return True
+        except ValueError:
+            return False
 
 
 @define(eq=False, slots=False)
@@ -1571,6 +1609,7 @@ class AwsEcsCluster(EcsTaggable, AwsResource):
                     provider_instance = AwsEcsCapacityProvider.from_api(provider)
                     builder.add_node(provider_instance, provider)
                     builder.add_edge(cluster_instance, edge_type=EdgeType.default, node=provider_instance)
+                    # provider_instance.delete_resource(client=builder.client)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.cluster_configuration:
@@ -1594,6 +1633,22 @@ class AwsEcsCluster(EcsTaggable, AwsResource):
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(service=self.api_spec.service, action="delete-cluster", result_name=None, cluster=self.arn)
         return True
+
+    def disassociate_capacity_provider(self, client: AwsClient, capacity_provider_name: str) -> bool:
+        try:
+            strategy = self.cluster_default_capacity_provider_strategy
+            strategy.remove(next(item for item in strategy if item["capacity_provider"] == capacity_provider_name))
+            client.call(
+                "ecs",
+                "put-cluster-capacity-providers",
+                None,
+                cluster=self.arn,
+                capacityProviders=self.cluster_capacity_providers.remove(capacity_provider_name),
+                defaultCapacityProviderStrategy=strategy,
+            )
+            return True
+        except ValueError:
+            return False
 
 
 resources: List[Type[AwsResource]] = [
