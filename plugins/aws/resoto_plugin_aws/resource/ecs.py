@@ -1292,7 +1292,7 @@ class AwsEcsService(EcsTaggable, AwsResource):
     def purge_capacity_provider(self, client: AwsClient, capacity_provider_name: str) -> bool:
         strategy = self.service_capacity_provider_strategy
         try:
-            strategy.remove(next(item for item in strategy if item["capacity_provider"] == capacity_provider_name))
+            strategy.remove(next(item for item in strategy if item.capacity_provider == capacity_provider_name))
             client.call(
                 "ecs",
                 "update-service",
@@ -1637,13 +1637,14 @@ class AwsEcsCluster(EcsTaggable, AwsResource):
     def disassociate_capacity_provider(self, client: AwsClient, capacity_provider_name: str) -> bool:
         try:
             strategy = self.cluster_default_capacity_provider_strategy
-            strategy.remove(next(item for item in strategy if item["capacity_provider"] == capacity_provider_name))
+            strategy.remove(next(item for item in strategy if item.capacity_provider == capacity_provider_name))
+            self.cluster_capacity_providers.remove(capacity_provider_name)
             client.call(
                 "ecs",
                 "put-cluster-capacity-providers",
                 None,
                 cluster=self.arn,
-                capacityProviders=self.cluster_capacity_providers.remove(capacity_provider_name),
+                capacityProviders=self.cluster_capacity_providers,
                 defaultCapacityProviderStrategy=strategy,
             )
             return True
