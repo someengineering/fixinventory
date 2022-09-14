@@ -17,7 +17,7 @@ from resotolib.graph import Graph
 from resotolib.json_bender import Bender, S, Bend, ForallBend
 from resotolib.types import Json
 from resotolib.utils import chunks
-from resoto_plugin_aws.utils import ToDict
+from resoto_plugin_aws.utils import TagsValue, ToDict
 
 
 class EcsTaggable:
@@ -118,7 +118,6 @@ class AwsEcsCapacityProvider(EcsTaggable, AwsResource):
                 predecessor.purge_capacity_provider(client=client, capacity_provider_name=self.name)
             if isinstance(predecessor, AwsEcsCluster):
                 predecessor.disassociate_capacity_provider(client=client, capacity_provider_name=self.name)
-                # except ECS.Client.exceptions.ResourceInUseException when a task is still using the capacity provider?
         return True
 
     def delete_resource(self, client: AwsClient) -> bool:
@@ -331,13 +330,16 @@ class AwsEcsTask(EcsTaggable, AwsResource):
     kind: ClassVar[str] = "aws_ecs_task"
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
-            "default": ["aws_ecs_task_definition", "aws_ecs_container_instance"],
+            "default": ["aws_ecs_task_definition"],
             "delete": ["aws_iam_role"],
         },
-        "successors": {"default": ["aws_iam_role", "aws_ecs_container_instance"]},
+        "successors": {
+            "default": ["aws_iam_role", "aws_ecs_container_instance"],
+            "delete": ["aws_ecs_container_instance"],
+        },
     }
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("taskArn"),  # get id from arn
+        "id": S("taskArn"),
         "tags": S("tags", default=[]) >> ToDict(key="key", value="value"),
         "ctime": S("createdAt"),
         "arn": S("taskArn"),
@@ -821,7 +823,7 @@ class AwsEcsTaskDefinition(EcsTaggable, AwsResource):
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("taskDefinitionArn"),
         "tags": S("tags", default=[]) >> ToDict(key="key", value="value"),
-        "name": S("taskDefinitionArn"),  # name tag?
+        "name": S("tags", default=[]) >> TagsValue("Name").or_else(S("taskDefinitionArn")),
         "ctime": S("registeredAt"),
         "arn": S("taskDefinitionArn"),
         "container_definitions": S("containerDefinitions", default=[]) >> ForallBend(AwsEcsContainerDefinition.mapping),
@@ -1271,16 +1273,16 @@ class AwsEcsService(EcsTaggable, AwsResource):
                 id=subnet,
             )
 
-        potential_capacity_providers = []
+        all_capacity_providers = []
         for entry in self.service_capacity_provider_strategy:
-            potential_capacity_providers.append(entry.capacity_provider)
+            all_capacity_providers.append(entry.capacity_provider)
         for task_set in self.service_task_sets:
             for entry in task_set.capacity_provider_strategy:
-                potential_capacity_providers.append(entry.capacity_provider)
+                all_capacity_providers.append(entry.capacity_provider)
         for deployment in self.service_deployments:
             for entry in deployment.capacity_provider_strategy:
-                potential_capacity_providers.append(entry.capacity_provider)
-        for provider in potential_capacity_providers:
+                all_capacity_providers.append(entry.capacity_provider)
+        for provider in all_capacity_providers:
             builder.add_edge(self, edge_type=EdgeType.default, clazz=AwsEcsCapacityProvider, name=provider)
 
     def delete_resource(self, client: AwsClient) -> bool:
@@ -1379,7 +1381,7 @@ class AwsEcsContainerInstance(EcsTaggable, AwsResource):
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("containerInstanceArn"),
         "tags": S("tags", default=[]) >> ToDict(),
-        "name": S("containerInstanceArn"),  # S("Tags", default=[]) >> TagsValue("Name"),
+        "name": S("containerInstanceArn"),
         "ctime": S("registeredAt"),
         "arn": S("containerInstanceArn"),
         "ec2_instance_id": S("ec2InstanceId"),
@@ -1608,9 +1610,9 @@ class AwsEcsCluster(EcsTaggable, AwsResource):
                     provider_instance = AwsEcsCapacityProvider.from_api(provider)
                     builder.add_node(provider_instance, provider)
                     builder.add_edge(cluster_instance, edge_type=EdgeType.default, node=provider_instance)
-                    # provider_instance.delete_resource(client=builder.client)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        # TODO add edge to CloudWatchLogs LogGroup when applicable
         if self.cluster_configuration:
             if self.cluster_configuration.execute_command_configuration.kms_key_id:
                 builder.dependant_node(
@@ -1627,7 +1629,6 @@ class AwsEcsCluster(EcsTaggable, AwsResource):
                     clazz=AwsS3Bucket,
                     name=self.cluster_configuration.execute_command_configuration.log_configuration.s3_bucket_name,
                 )
-        # TODO add edge to CloudWatchLogs LogGroup when applicable
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(service=self.api_spec.service, action="delete-cluster", result_name=None, cluster=self.arn)
