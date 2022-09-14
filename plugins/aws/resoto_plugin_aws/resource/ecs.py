@@ -1183,10 +1183,10 @@ class AwsEcsService(EcsTaggable, AwsResource):
         "service_enable_execute_command": S("enableExecuteCommand"),
     }
     arn: Optional[str] = field(default=None)
+    status: Optional[str] = field(default=None)
     cluster_arn: Optional[str] = field(default=None)
     service_load_balancers: List[AwsEcsLoadBalancer] = field(factory=list)
     service_registries: List[AwsEcsServiceRegistry] = field(factory=list)
-    service_status: Optional[str] = field(default=None)
     service_desired_count: Optional[int] = field(default=None)
     service_running_count: Optional[int] = field(default=None)
     service_pending_count: Optional[int] = field(default=None)
