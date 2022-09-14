@@ -314,7 +314,7 @@ jobs:
           file="${dir}/${date}-${tags[0]}.md"
           python tools/release_notes.py ${prev_release} ${tags[0]} > $file
           echo ::set-output name=file::$file
-          link="https://resoto.com/news/$(date +'%Y/%m/%d')/${tags[0]}"
+          link="$(date +'%Y/%m/%d')/${tags[0]}"
           echo ::set-output name=link::$link
 
       - name: Update released version & API YAML
@@ -322,7 +322,7 @@ jobs:
         shell: bash
         run: |
           cp resotocore/resotocore/static/api-doc.yaml resoto.com/openapi/resotocore.yml
-          echo '"${{ steps.release_notes.outputs.tag }}"' > resoto.com/latestRelease.json
+          echo '{"version": "${{ steps.release_notes.outputs.tag }}", "link": "${{ steps.release_notes.outputs.link }}"}' > resoto.com/latestRelease.json
 
       - name: Modify released API YAML
         if: github.ref_type == 'tag' && steps.release_type.outputs.prerelease == 'false'
@@ -393,7 +393,7 @@ jobs:
           body: |
             ### Release Notes
 
-            ${{ steps.release_notes.outputs.link }}
+            https://resoto.com/news/${{ steps.release_notes.outputs.link }}
 
             ### Docker Images
 
