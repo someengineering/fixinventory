@@ -5,8 +5,9 @@ from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
 from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resotolib.baseresources import ModelReference
-from resotolib.json_bender import Bender, S
+from resotolib.json_bender import F, Bender, S
 from resotolib.types import Json
+from resotolib.utils import utc_str
 
 
 @define(eq=False, slots=False)
@@ -20,6 +21,8 @@ class AwsSqsQueue(AwsResource):
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("QueueName"),
         "name": S("QueueName"),
+        "ctime": S("CreatedTimestamp") >> F(lambda x: utc_str(datetime.fromtimestamp(x))),
+        "mtime": S("LastModifiedTimestamp") >> F(lambda x: utc_str(datetime.fromtimestamp(x))),
         "arn": S("QueueArn"),
         "sqs_queue_url": S("QueueUrl"),
         "sqs_approximate_number_of_messages": S("ApproximateNumberOfMessages"),
@@ -74,12 +77,6 @@ class AwsSqsQueue(AwsResource):
             if queue_attributes is not None:
                 queue_attributes["QueueUrl"] = queue_url
                 queue_attributes["QueueName"] = queue_url.rsplit("/", 1)[-1]
-                queue_attributes["CreatedTimestamp"] = datetime.fromtimestamp(
-                    queue_attributes["CreatedTimestamp"]
-                ).isoformat()
-                queue_attributes["LastModifiedTimestamp"] = datetime.fromtimestamp(
-                    queue_attributes["LastModifiedTimestamp"]
-                ).isoformat()
                 instance = cls.from_api(queue_attributes)
                 builder.add_node(instance)
                 builder.submit_work(add_tags, instance)
