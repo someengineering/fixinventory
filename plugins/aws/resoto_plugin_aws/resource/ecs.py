@@ -1223,14 +1223,16 @@ class AwsEcsService(EcsTaggable, AwsResource):
         if self.service_task_definition:
             task_def = self.service_task_definition
             # task_def is either full arn OR "family:revision"
-            builder.add_edge(self, edge_type=EdgeType.default, clazz=AwsEcsTaskDefinition, arn=task_def)
-            builder.add_edge(
-                self,
-                edge_type=EdgeType.default,
-                clazz=AwsEcsTaskDefinition,
-                family=task_def.split(":")[0],
-                revision=int(task_def.split(":")[1]),
-            )
+            if task_def.startswith("arn:"):
+                builder.add_edge(self, edge_type=EdgeType.default, clazz=AwsEcsTaskDefinition, arn=task_def)
+            else:
+                builder.add_edge(
+                    self,
+                    edge_type=EdgeType.default,
+                    clazz=AwsEcsTaskDefinition,
+                    family=task_def.split(":")[0],
+                    revision=int(task_def.split(":")[1]),
+                )
 
         if self.service_role_arn:
             builder.dependant_node(
