@@ -9,7 +9,6 @@ from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.utils import tags_as_dict
 
 from resotolib.types import Json
-from resoto_plugin_aws.utils import arn_partition
 
 
 @define(eq=False, slots=False)
@@ -31,7 +30,7 @@ class AwsS3Bucket(AwsResource, BaseBucket):
 
         for js in json:
             bucket = cls.from_api(js)
-            bucket.arn = f"arn:{arn_partition(builder.region)}:s3:::{bucket.name}"
+            bucket.set_arn(builder=builder, region="", account="", resource=bucket.name)
             builder.add_node(bucket, js)
             builder.submit_work(add_tags, bucket, builder.client)
 

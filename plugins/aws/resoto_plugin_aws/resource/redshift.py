@@ -13,7 +13,6 @@ from datetime import datetime
 from resotolib.types import Json
 from resoto_plugin_aws.resource.ec2 import AwsEc2Vpc, AwsEc2SecurityGroup, AwsEc2Subnet
 from resoto_plugin_aws.resource.iam import AwsIamRole
-from resoto_plugin_aws.utils import arn_partition
 
 
 @define(eq=False, slots=False)
@@ -419,9 +418,7 @@ class AwsRedshiftCluster(AwsResource):
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for js in json:
             cluster = cls.from_api(js)
-            r_id = builder.region.id
-            a_id = builder.account.id
-            cluster.arn = f"arn:{arn_partition(builder.region)}:redshift:{r_id}:{a_id}:cluster:{cluster.id}"
+            cluster.set_arn(builder=builder, resource=f"cluster:{cluster.id}")
             builder.add_node(cluster, js)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
