@@ -21,8 +21,8 @@ class AwsSqsQueue(AwsResource):
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("QueueName"),
         "name": S("QueueName"),
-        "ctime": S("CreatedTimestamp") >> F(lambda x: utc_str(datetime.fromtimestamp(x))),
-        "mtime": S("LastModifiedTimestamp") >> F(lambda x: utc_str(datetime.fromtimestamp(x))),
+        "ctime": S("CreatedTimestamp") >> F(lambda x: utc_str(datetime.utcfromtimestamp(x))),
+        "mtime": S("LastModifiedTimestamp") >> F(lambda x: utc_str(datetime.utcfromtimestamp(x))),
         "arn": S("QueueArn"),
         "sqs_queue_url": S("QueueUrl"),
         "sqs_approximate_number_of_messages": S("ApproximateNumberOfMessages"),
