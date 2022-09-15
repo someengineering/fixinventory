@@ -400,7 +400,6 @@ class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
             builder.add_node(api_instance, js)
             for deployment in builder.client.list("apigateway", "get-deployments", "items", restApiId=api_instance.id):
                 deploy_instance = AwsApiGatewayDeployment.from_api(deployment)
-                # deploy_instance.arn = api_instance.arn + "/deployments/" + deploy_instance.id
                 deploy_instance.set_arn(
                     builder=builder,
                     account="",
