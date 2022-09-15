@@ -866,6 +866,13 @@ class AwsEcsTaskDefinition(EcsTaggable, AwsResource):
     ephemeral_storage: Optional[int] = field(default=None)
 
     @classmethod
+    def called_apis(cls) -> List[AwsApiSpec]:
+        return [
+            cls.api_spec,
+            AwsApiSpec("ecs", "describe-task-definition"),
+        ]
+
+    @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for task_def_arn in json:
             response = builder.client.list(
@@ -1531,6 +1538,8 @@ class AwsEcsCluster(EcsTaggable, AwsResource):
             AwsApiSpec("ecs", "describe-container-instances"),
             AwsApiSpec("ecs", "list-services"),
             AwsApiSpec("ecs", "describe-services"),
+            AwsApiSpec("ecs", "list-tasks"),
+            AwsApiSpec("ecs", "describe-tasks"),
             AwsApiSpec("ecs", "describe-capacity-providers"),
         ]
 
