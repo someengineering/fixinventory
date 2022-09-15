@@ -326,7 +326,7 @@ class AwsEcsTask(EcsTaggable, AwsResource):
             "delete": ["aws_iam_role"],
         },
         "successors": {
-            "default": ["aws_iam_role", "aws_ecs_container_instance"],
+            "default": ["aws_iam_role", "aws_ecs_container_instance", "aws_ecs_capacity_provider"],
             "delete": ["aws_ecs_container_instance"],
         },
     }
