@@ -295,21 +295,13 @@ class AwsEcsContainerOverride:
 
 
 @define(eq=False, slots=False)
-class AwsEcsInferenceAcceleratorOverride:
-    kind: ClassVar[str] = "aws_ecs_inference_accelerator_override"
-    mapping: ClassVar[Dict[str, Bender]] = {"device_name": S("deviceName"), "device_type": S("deviceType")}
-    device_name: Optional[str] = field(default=None)
-    device_type: Optional[str] = field(default=None)
-
-
-@define(eq=False, slots=False)
 class AwsEcsTaskOverride:
     kind: ClassVar[str] = "aws_ecs_task_override"
     mapping: ClassVar[Dict[str, Bender]] = {
         "container_overrides": S("containerOverrides", default=[]) >> ForallBend(AwsEcsContainerOverride.mapping),
         "cpu": S("cpu"),
         "inference_accelerator_overrides": S("inferenceAcceleratorOverrides", default=[])
-        >> ForallBend(AwsEcsInferenceAcceleratorOverride.mapping),
+        >> ForallBend(AwsEcsInferenceAccelerator.mapping),
         "execution_role_arn": S("executionRoleArn"),
         "memory": S("memory"),
         "task_role_arn": S("taskRoleArn"),
@@ -317,7 +309,7 @@ class AwsEcsTaskOverride:
     }
     container_overrides: List[AwsEcsContainerOverride] = field(factory=list)
     cpu: Optional[str] = field(default=None)
-    inference_accelerator_overrides: List[AwsEcsInferenceAcceleratorOverride] = field(factory=list)
+    inference_accelerator_overrides: List[AwsEcsInferenceAccelerator] = field(factory=list)
     execution_role_arn: Optional[str] = field(default=None)
     memory: Optional[str] = field(default=None)
     task_role_arn: Optional[str] = field(default=None)
