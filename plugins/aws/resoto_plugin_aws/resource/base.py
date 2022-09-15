@@ -67,24 +67,6 @@ class AwsResource(BaseResource, ABC):
     # The AWS specific identifier of the resource. Not available for all resources.
     arn: Optional[str] = None
 
-    def set_arn(
-        self,
-        builder: GraphBuilder,
-        region: Optional[str] = None,
-        service: Optional[str] = None,
-        account: Optional[str] = None,
-        resource: str = "",
-    ) -> None:
-        aws_region = builder.region
-        partition = arn_partition(aws_region)
-        if region is None:
-            region = aws_region.id
-        if service is None and self.api_spec:
-            service = self.api_spec.service
-        if account is None:
-            account = builder.account.id
-        self.arn = f"arn:{partition}:{service}:{region}:{account}:{resource}"
-
     # TODO: implement me
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         raise NotImplementedError
@@ -137,6 +119,24 @@ class AwsResource(BaseResource, ABC):
                 "api_spec",
             ),
         )
+
+    def set_arn(
+        self,
+        builder: GraphBuilder,
+        region: Optional[str] = None,
+        service: Optional[str] = None,
+        account: Optional[str] = None,
+        resource: str = "",
+    ) -> None:
+        aws_region = builder.region
+        partition = arn_partition(aws_region)
+        if region is None:
+            region = aws_region.id
+        if service is None and self.api_spec:
+            service = self.api_spec.service
+        if account is None:
+            account = builder.account.id
+        self.arn = f"arn:{partition}:{service}:{region}:{account}:{resource}"
 
     @classmethod
     def from_json(cls: Type[AwsResourceType], json: Json) -> AwsResourceType:
