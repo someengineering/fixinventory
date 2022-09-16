@@ -1,7 +1,17 @@
 import logging
+import multiprocessing
+from concurrent import futures
+from typing import List, Optional
 
 import botocore.exceptions
-import multiprocessing
+from prometheus_client import Summary, Counter
+
+import resotolib.logger
+import resotolib.proc
+from resoto_plugin_aws.aws_client import AwsClient
+from resotolib.args import ArgumentParser
+from resotolib.args import Namespace
+from resotolib.baseplugin import BaseCollectorPlugin
 from resotolib.baseresources import (
     BaseResource,
     metrics_resource_cleanup_exceptions,
@@ -9,25 +19,16 @@ from resotolib.baseresources import (
     BaseRegion,
     metrics_resource_pre_cleanup_exceptions,
 )
-import resotolib.proc
-import resotolib.logger
 from resotolib.baseresources import Cloud
-from resotolib.logger import log, setup_logger
-from concurrent import futures
-from resotolib.args import ArgumentParser
-from resotolib.args import Namespace
 from resotolib.config import Config, RunningConfig
 from resotolib.graph import Graph
+from resotolib.logger import log, setup_logger
+from resotolib.plugin_handler import resource_command
 from resotolib.utils import log_runtime
-from resotolib.baseplugin import BaseCollectorPlugin
-from .config import AwsConfig
-from .utils import aws_session
-from .resource.base import AwsAccount, AwsResource
 from .collector import AwsAccountCollector
-from prometheus_client import Summary, Counter
-from typing import List, Optional
-from resoto_plugin_aws.aws_client import AwsClient
-
+from .config import AwsConfig
+from .resource.base import AwsAccount, AwsResource
+from .utils import aws_session
 
 logging.getLogger("boto").setLevel(logging.CRITICAL)
 
@@ -101,6 +102,11 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
             else:
                 self.__regions = list(Config.aws.region)
         return self.__regions
+
+    @resource_command(name="aws", filter={"cloud": ["aws"]})
+    def call_aws_function(self, resource: BaseResource, argument: str) -> Optional[BaseResource]:
+        print(f"ACTION WAS CALLED!!!!! {argument}")
+        return resource
 
     @staticmethod
     def update_tag(config: Config, resource: BaseResource, key: str, value: str) -> bool:

@@ -1,19 +1,21 @@
+import time
 from abc import ABC, abstractmethod
 from enum import Enum, auto
-from resotolib.core.ca import TLSData
-from resotolib.graph import Graph
-from resotolib.core import resotocore
-from resotolib.core.actions import CoreActions
-from resotolib.args import ArgumentParser
-from resotolib.config import Config
-from resotolib.logger import log
-from resotolib.baseresources import BaseResource, Cloud
 from threading import Thread, current_thread
+from typing import Dict, Optional, Set
+
 from prometheus_client import Counter
+
 import resotolib.config
 import resotolib.proc
-import time
-from typing import Dict, Optional, Set
+from resotolib.args import ArgumentParser
+from resotolib.baseresources import BaseResource, Cloud
+from resotolib.config import Config
+from resotolib.core import resotocore
+from resotolib.core.actions import CoreActions
+from resotolib.core.ca import TLSData
+from resotolib.graph import Graph
+from resotolib.logger import log
 
 # from multiprocessing import Process
 

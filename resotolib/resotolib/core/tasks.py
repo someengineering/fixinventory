@@ -1,16 +1,80 @@
-import threading
-import queue
-import time
-import websocket
 import json
-import jsons
-from resotolib.event import EventType, remove_event_listener, add_event_listener, Event
-from resotolib.logger import log
-from resotolib.args import ArgumentParser
-from resotolib.jwt import encode_jwt_to_headers
-from resotolib.core.ca import TLSData
-from typing import Callable, Dict, Optional, List
+import queue
+import threading
+import time
+from typing import Callable, Dict, Optional, List, Any
 from urllib.parse import urlunsplit, urlencode, urlsplit
+
+import jsons
+import websocket
+from attr import define
+
+from resotolib.args import ArgumentParser
+from resotolib.baseresources import BaseResource
+from resotolib.core.ca import TLSData
+from resotolib.core.model_export import node_from_dict, node_to_dict
+from resotolib.event import EventType, remove_event_listener, add_event_listener, Event
+from resotolib.jwt import encode_jwt_to_headers
+from resotolib.logger import log
+from resotolib.types import Json
+
+
+@define
+class CoreTaskResult:
+    task_id: str
+    data: Optional[Json] = None
+    error: Optional[str] = None
+
+    def to_json(self) -> Json:
+        if self.error:
+            return {"task_id": self.task_id, "result": "error", "error": self.error}
+        else:
+            return {"task_id": self.task_id, "result": "done", "data": self.data}
+
+
+@define
+class CoreTaskHandler:
+    task_name: str
+    task_filter: Dict[str, List[str]]
+    expects_resource: bool
+    handler: Callable[..., Any]
+
+    def execute_direct(self, message: Json) -> CoreTaskResult:
+        task_id = message["task_id"]  # fail if there is no task_id
+        try:
+            task_data: Dict[str, Any] = message.get("data", {})
+            args: str = task_data.get("args", "")
+            result = self.handler(args)
+            return CoreTaskResult(task_id=task_id, data=jsons.dump(result))
+        except Exception as e:
+            return CoreTaskResult(task_id=task_id, error=str(e))
+
+    def execute_with_resource(self, message: Json) -> CoreTaskResult:
+        task_id = message["task_id"]  # fail if there is no task_id
+        try:
+            task_data: Dict[str, Any] = message.get("data", {})
+            node_data: Dict[str, Any] = task_data.get("node", {})
+            args: str = task_data.get("args", "")
+            nd = node_from_dict(node_data, include_select_ancestors=True)
+            result = self.handler(nd, args)
+            if isinstance(result, BaseResource):
+                result = node_to_dict(result)
+            return CoreTaskResult(task_id=task_id, data=jsons.dump(result))
+        except Exception as e:
+            return CoreTaskResult(task_id=task_id, error=str(e))
+
+    def execute(self, message: Json) -> CoreTaskResult:
+        return self.execute_with_resource(message) if self.expects_resource else self.execute_direct(message)
+
+    def url_str(self) -> str:
+        # task:filter_1=a,b,c;filter_2=d,e,f
+        return self.task_name + ":" + ";".join(k + "=" + ",".join(v) for k, v in self.task_filter.items())
+
+    def matches(self, js: Json) -> bool:
+        attrs: Json = js.get("attrs")
+        if not isinstance(attrs, dict):
+            return False
+        return all((attrs.get(n) in f) for n, f in self.task_filter.items())
 
 
 class CoreTasks(threading.Thread):
@@ -18,25 +82,19 @@ class CoreTasks(threading.Thread):
         self,
         identifier: str,
         resotocore_ws_uri: str,
-        tasks: List,
-        task_queue_filter: Optional[Dict[str, List[str]]] = None,
-        message_processor: Optional[Callable] = None,
+        task_handler: List[CoreTaskHandler],
         max_workers: int = 20,
         tls_data: Optional[TLSData] = None,
     ) -> None:
         super().__init__()
         self.identifier = identifier
         self.resotocore_ws_uri = resotocore_ws_uri
-        self.tasks = tasks
-        if task_queue_filter is None:
-            task_queue_filter = {}
-        self.task_queue_filter = task_queue_filter
-        self.message_processor = message_processor
+        self.task_handler = task_handler
         self.max_workers = max_workers
         self.tls_data = tls_data
         self.ws = None
         self.shutdown_event = threading.Event()
-        self.queue = queue.Queue()
+        self.queue: queue.Queue[Json] = queue.Queue()
 
     def __del__(self):
         remove_event_listener(EventType.SHUTDOWN, self.shutdown)
@@ -60,13 +118,16 @@ class CoreTasks(threading.Thread):
         while not self.shutdown_event.is_set():
             message = self.queue.get()
             log.debug(f"{self.identifier} received: {message}")
-            if self.message_processor is not None and callable(self.message_processor):
-                try:
-                    result = self.message_processor(message)
-                    log.debug(f"Sending reply {result}")
-                    self.ws.send(jsons.dumps(result))
-                except Exception:
-                    log.exception(f"Something went wrong while processing {message}")
+            for handler in self.task_handler:
+                if handler.matches(message):
+                    try:
+                        result = handler.execute(message)
+                        log.debug(f"Sending reply {result.to_json()}")
+                        self.ws.send(json.dumps(result.to_json()))
+                    except Exception as ex:
+                        log.exception(f"Something went wrong while processing {message}")
+                        if task_id := message.get("task_id"):
+                            self.ws.send(jsons.dumps(CoreTaskResult(task_id, error=str(ex)).to_json()))
             self.queue.task_done()
 
     def connect(self) -> None:
@@ -74,8 +135,7 @@ class CoreTasks(threading.Thread):
         scheme = resotocore_ws_uri_split.scheme
         netloc = resotocore_ws_uri_split.netloc
         path = resotocore_ws_uri_split.path + "/work/queue"
-        query_dict = {"task": ",".join(self.tasks)}
-        query_dict.update({k: ",".join(v) for k, v in self.task_queue_filter.items()})
+        query_dict = {"task": "::".join(a.url_str() for a in self.task_handler)}
         query = urlencode(query_dict)
         ws_uri = urlunsplit((scheme, netloc, path, query, ""))
 
@@ -106,7 +166,7 @@ class CoreTasks(threading.Thread):
 
     def on_message(self, ws, message):
         try:
-            message: Dict = json.loads(message)
+            message: Json = json.loads(message)
         except json.JSONDecodeError:
             log.exception(f"Unable to decode received message {message}")
             return

@@ -445,8 +445,17 @@ class Api:
         task_param = request.query.get("task")
         if not task_param:
             raise AttributeError("A worker needs to define at least one task that it can perform")
-        attrs = {k: re.split("\\s*,\\s*", v) for k, v in request.query.items() if k != "task"}
-        task_descriptions = [WorkerTaskDescription(name, attrs) for name in re.split("\\s*,\\s*", task_param)]
+        task_descriptions = []
+
+        # parse task parameter
+        for task_def in re.split("\\s*::\\s*", task_param):
+            task_name, task_attrs_joined = re.split("\\s*:\\s*", task_def, maxsplit=1)
+            task_attrs = {}
+            for task_attr in re.split("\\s*;\\s*", task_attrs_joined):
+                if task_attr:
+                    attr_name, attr_values = re.split("\\s*=\\s*", task_attr, maxsplit=1)
+                    task_attrs[attr_name] = re.split("\\s*,\\s*", attr_values)
+            task_descriptions.append(WorkerTaskDescription(task_name, task_attrs))
 
         async def handle_message(msg: str) -> None:
             tr = from_js(json.loads(msg), WorkerTaskResult)

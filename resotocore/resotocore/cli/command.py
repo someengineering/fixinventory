@@ -2695,6 +2695,56 @@ class SendWorkerTaskCommand(CLICommand, ABC):
 
         return stream.starmap(in_stream, send_to_queue, ordered=False, task_limit=self.task_limit())
 
+    def load_by_id_merged(self, model: Model, in_stream: Stream, variables: Optional[Set[str]], **env: str) -> Stream:
+        async def load_element(items: List[JsonElement]) -> AsyncIterator[JsonElement]:
+            # collect ids either from json dict or string
+            ids: List[str] = [i["id"] if is_node(i) else i for i in items]  # type: ignore
+            # one query to load all items that match given ids (max 1000 as defined in chunk size)
+            query = (
+                Query.by(P("_key").is_in(ids))
+                .merge_with("ancestors.cloud", NavigateUntilRoot, IsTerm(["cloud"]))
+                .merge_with("ancestors.account", NavigateUntilRoot, IsTerm(["account"]))
+                .merge_with("ancestors.region", NavigateUntilRoot, IsTerm(["region"]))
+                .merge_with("ancestors.zone", NavigateUntilRoot, IsTerm(["zone"]))
+            ).rewrite_for_ancestors_descendants(variables)
+            query_model = QueryModel(query, model)
+            async with await self.dependencies.db_access.get_graph_db(env["graph"]).search_list(query_model) as crs:
+                async for a in crs:
+                    yield a
+
+        return stream.flatmap(stream.chunks(in_stream, 1000), load_element)
+
+    async def no_update(self, _: WorkerTask, future_result: Future[Json]) -> Json:
+        return await future_result
+
+    def update_node_in_graphdb(self, model: Model, **env: str) -> Callable[[WorkerTask, Future[Json]], Awaitable[Json]]:
+        async def to_result(task: WorkerTask, future_result: Future[Json]) -> Json:
+            nid = js_value_at(task.data, ["node", "id"])
+            try:
+                result = await future_result
+                if is_node(result):
+                    db = self.dependencies.db_access.get_graph_db(env["graph"])
+                    try:
+                        updated: Json = await db.update_node(model, result["id"], result, True, None)
+                        return updated
+                    except ClientError as ex:
+                        # if the change could not be reflected in database, show success
+                        log.warning(
+                            f"Update not reflected in db. Wait until next collector run. Reason: {str(ex)}",
+                            exc_info=ex,
+                        )
+                        return result
+                else:
+                    log.warning(
+                        f"Result from worker is not a node. "
+                        f"Will not update the internal state. {json.dumps(result)}"
+                    )
+                    return result
+            except Exception as ex:
+                return {"error": str(ex), "id": nid}
+
+        return to_result
+
     # noinspection PyMethodMayBeStatic
     def task_limit(self) -> int:
         # override if this limit is not sufficient
@@ -2719,6 +2769,56 @@ class SendWorkerTaskCommand(CLICommand, ABC):
     @abstractmethod
     def timeout(self) -> timedelta:
         pass
+
+    def action_for(
+        self,
+        command_name: str,
+        expect_node_result: bool,
+        arg: Optional[str] = None,
+        ctx: CLIContext = EmptyContext,
+        **kwargs: Any,
+    ) -> CLIAction:
+        def call_function(jfn: Callable[[Json], Json]) -> Callable[[Json], Tuple[str, Dict[str, str], Json]]:
+            def update_single(item: Json) -> Tuple[str, Dict[str, str], Json]:
+                return command_name, self.carz_from_node(item), jfn(item)
+
+            return update_single
+
+        formatter, variables = ctx.formatter_with_variables(double_quoted_or_simple_string_dp.parse(arg))
+        fn = call_function(lambda item: {"args": formatter(item), "node": item})
+
+        def setup_stream(in_stream: Stream) -> Stream:
+            def with_dependencies(model: Model) -> Stream:
+                load = self.load_by_id_merged(model, in_stream, variables, **ctx.env)
+                handler = self.update_node_in_graphdb(model, **ctx.env) if expect_node_result else self.no_update
+                return self.send_to_queue_stream(stream.map(load, fn), handler, True)
+
+            # dependencies are not resolved directly (no async function is allowed here)
+            dependencies = stream.call(self.dependencies.model_handler.load_model)
+            return stream.flatmap(dependencies, with_dependencies)
+
+        def setup_source() -> Stream:
+            return self.send_to_queue_stream(stream.just((command_name, {}, {"args": arg})), self.no_update, True)
+
+        return CLISource.single(setup_source) if ctx.query is None else CLIFlow(setup_stream)
+
+
+class AwsCommand(SendWorkerTaskCommand):
+    @property
+    def name(self) -> str:
+        return "aws"
+
+    def args_info(self) -> ArgsInfo:
+        return {}
+
+    def info(self) -> str:
+        return "Send AWS commands to the worker"
+
+    def timeout(self) -> timedelta:
+        return timedelta(seconds=10)
+
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
+        return self.action_for("aws", False, arg, ctx, **kwargs)
 
 
 class TagCommand(SendWorkerTaskCommand):
@@ -2792,53 +2892,6 @@ class TagCommand(SendWorkerTaskCommand):
     def timeout(self) -> timedelta:
         return timedelta(seconds=30)
 
-    def load_by_id_merged(self, model: Model, in_stream: Stream, variables: Optional[Set[str]], **env: str) -> Stream:
-        async def load_element(items: List[JsonElement]) -> AsyncIterator[JsonElement]:
-            # collect ids either from json dict or string
-            ids: List[str] = [i["id"] if is_node(i) else i for i in items]  # type: ignore
-            # one query to load all items that match given ids (max 1000 as defined in chunk size)
-            query = (
-                Query.by(P("_key").is_in(ids))
-                .merge_with("ancestors.cloud", NavigateUntilRoot, IsTerm(["cloud"]))
-                .merge_with("ancestors.account", NavigateUntilRoot, IsTerm(["account"]))
-                .merge_with("ancestors.region", NavigateUntilRoot, IsTerm(["region"]))
-                .merge_with("ancestors.zone", NavigateUntilRoot, IsTerm(["zone"]))
-            ).rewrite_for_ancestors_descendants(variables)
-            query_model = QueryModel(query, model)
-            async with await self.dependencies.db_access.get_graph_db(env["graph"]).search_list(query_model) as crs:
-                async for a in crs:
-                    yield a
-
-        return stream.flatmap(stream.chunks(in_stream, 1000), load_element)
-
-    def handle_result(self, model: Model, **env: str) -> Callable[[WorkerTask, Future[Json]], Awaitable[Json]]:
-        async def to_result(task: WorkerTask, future_result: Future[Json]) -> Json:
-            nid = js_value_at(task.data, ["node", "id"])
-            try:
-                result = await future_result
-                if is_node(result):
-                    db = self.dependencies.db_access.get_graph_db(env["graph"])
-                    try:
-                        updated: Json = await db.update_node(model, result["id"], result, True, None)
-                        return updated
-                    except ClientError as ex:
-                        # if the change could not be reflected in database, show success
-                        log.warning(
-                            f"Tag update not reflected in db. Wait until next collector run. Reason: {str(ex)}",
-                            exc_info=ex,
-                        )
-                        return result
-                else:
-                    log.warning(
-                        f"Result from tag worker is not a node. "
-                        f"Will not update the internal state. {json.dumps(result)}"
-                    )
-                    return result
-            except Exception as ex:
-                return {"error": str(ex), "id": nid}
-
-        return to_result
-
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
         arg_tokens = args_parts_unquoted_parser.parse(arg if arg else "")
         p = NoExitArgumentParser()
@@ -2866,7 +2919,7 @@ class TagCommand(SendWorkerTaskCommand):
         def setup_stream(in_stream: Stream) -> Stream:
             def with_dependencies(model: Model) -> Stream:
                 load = self.load_by_id_merged(model, in_stream, variables, **ctx.env)
-                result_handler = self.handle_result(model, **ctx.env)
+                result_handler = self.update_node_in_graphdb(model, **ctx.env)
                 return self.send_to_queue_stream(stream.map(load, fn), result_handler, not ns.nowait)
 
             # dependencies are not resolved directly (no async function is allowed here)
@@ -4025,6 +4078,7 @@ class CertificateCommand(CLICommand):
 
 def all_commands(d: CLIDependencies) -> List[CLICommand]:
     commands = [
+        AwsCommand(d, "action"),
         AggregatePart(d, "search"),
         AggregateToCountCommand(d, "search"),
         AncestorsPart(d, "search"),

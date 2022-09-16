@@ -1,36 +1,38 @@
-from functools import partial
-from signal import SIGTERM
-import time
 import os
 import sys
 import threading
+import time
+from functools import partial
+from signal import SIGTERM
+from typing import List, Dict, Type, Optional, Any
+
+import requests
+
 import resotolib.proc
-from typing import List, Dict, Type, Optional, Any, cast
-from resotoworker.config import add_config
-from resotolib.config import Config
-from resotolib.logger import log, setup_logger, add_args as logging_add_args
-from resotolib.jwt import add_args as jwt_add_args
-from resotolib.baseplugin import BaseActionPlugin, BasePostCollectPlugin, BaseCollectorPlugin, PluginType
-from resotolib.web import WebServer
-from resotolib.web.metrics import WebApp
-from resotolib.proc import log_stats, increase_limits
 from resotolib.args import ArgumentParser
+from resotolib.baseplugin import BaseActionPlugin, BasePostCollectPlugin, BaseCollectorPlugin, PluginType
+from resotolib.config import Config
 from resotolib.core import add_args as core_add_args, resotocore, wait_for_resotocore
-from resotolib.core.ca import TLSData
 from resotolib.core.actions import CoreActions
-from resotolib.core.tasks import CoreTasks
-from resotoworker.pluginloader import PluginLoader
-from resotoworker.collect import Collector
-from resotoworker.cleanup import cleanup
-from resotoworker.tag import core_tag_tasks_processor
+from resotolib.core.ca import TLSData
+from resotolib.core.tasks import CoreTasks, CoreTaskHandler
 from resotolib.event import (
     add_event_listener,
     Event,
     EventType,
 )
+from resotolib.jwt import add_args as jwt_add_args
+from resotolib.logger import log, setup_logger, add_args as logging_add_args
+from resotolib.plugin_handler import task_definitions
+from resotolib.proc import log_stats, increase_limits
+from resotolib.web import WebServer
+from resotolib.web.metrics import WebApp
+from resotoworker.cleanup import cleanup
+from resotoworker.collect import Collector
+from resotoworker.config import add_config
+from resotoworker.pluginloader import PluginLoader
 from resotoworker.resotocore import Resotocore
-import requests
-
+from resotoworker.tag import core_tag_tasks_processor
 
 # This will be used in main() and shutdown()
 shutdown_event = threading.Event()
@@ -141,19 +143,26 @@ def main() -> None:
         tls_data=tls_data,
     )
 
-    task_queue_filter = {}
-    if len(Config.resotoworker.collector) > 0:
-        task_queue_filter = {"cloud": list(Config.resotoworker.collector)}
+    # make tagging by collectors available out of the box
+    collect_plugins: List[BaseCollectorPlugin] = plugin_loader.plugins(PluginType.COLLECTOR)  # type: ignore
+    task_handler = [
+        CoreTaskHandler("tag", {"cloud": [plugin.cloud]}, True, partial(core_tag_tasks_processor, plugin, config))
+        for plugin in collect_plugins
+    ]
+    # search all other plugins for possible task providers
+    for plugin_clazz in plugin_loader.all_plugins():
+        plugin = plugin_clazz()
+        for js in task_definitions(plugin_clazz):
+            handler = CoreTaskHandler(
+                js["task_name"], js["task_filter"], js["expects_resource"], partial(js["handler"], plugin)
+            )
+            log.info(f"Plugin {plugin.name}: Add task handler for task {handler.task_name} @ {handler.task_filter}")
+            task_handler.append(handler)
+
     core_tasks = CoreTasks(
-        identifier=f"{ArgumentParser.args.subscriber_id}-tagger",
+        identifier=f"{ArgumentParser.args.subscriber_id}-task-handler",
         resotocore_ws_uri=resotocore.ws_uri,
-        tasks=["tag"],
-        task_queue_filter=task_queue_filter,
-        message_processor=partial(
-            core_tag_tasks_processor,
-            {p.cloud: p for p in cast(List[Type[BaseCollectorPlugin]], plugin_loader.plugins(PluginType.COLLECTOR))},
-            config,
-        ),
+        task_handler=task_handler,
         tls_data=tls_data,
     )
     core_actions.start()
@@ -163,8 +172,8 @@ def main() -> None:
         assert issubclass(Plugin, BaseActionPlugin)
         try:
             log.debug(f"Starting action plugin {Plugin}")
-            plugin = Plugin(tls_data=tls_data)
-            plugin.start()
+            plugin_clazz = Plugin(tls_data=tls_data)
+            plugin_clazz.start()
         except Exception as e:
             log.exception(f"Caught unhandled persistent Plugin exception {e}")
 
