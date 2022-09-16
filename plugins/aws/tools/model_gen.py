@@ -693,6 +693,15 @@ models: Dict[str, List[AwsResotoModel]] = {
     "service-quotas": [
         # AwsResotoModel("list-service-quotas", "Quotas", "ServiceQuota", prefix="Quota", prop_prefix="quota_")
     ],
+    "sns": [
+        # AwsResotoModel(
+        #     "get-topic-attributes",
+        #     result_property="Attributes",
+        #     result_shape="GetTopicAttributesResponse",
+        #     prefix="Sns",
+        #     prop_prefix="topic_",
+        # )
+    ],
     "sqs": [
         # AwsResotoModel(
         #     "get-queue-attributes", "Attributes", "GetQueueAttributesResult", prefix="Sqs", prop_prefix="sqs_"
