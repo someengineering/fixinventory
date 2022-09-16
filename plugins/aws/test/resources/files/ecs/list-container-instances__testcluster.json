@@ -1,0 +1,7 @@
+{
+    "containerInstanceArns": [
+        "testcontainer",
+        "some_container"
+    ],
+    "nextToken": "string"
+}

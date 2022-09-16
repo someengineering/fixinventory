@@ -1,0 +1,171 @@
+{
+    "containerInstances": [
+        {
+            "containerInstanceArn": "testcontainer",
+            "ec2InstanceId": "string",
+            "capacityProviderName": "string",
+            "version": 123,
+            "versionInfo": {
+                "agentVersion": "string",
+                "agentHash": "string",
+                "dockerVersion": "string"
+            },
+            "remainingResources": [
+                {
+                    "name": "string",
+                    "type": "string",
+                    "doubleValue": 123.0,
+                    "longValue": 123,
+                    "integerValue": 123,
+                    "stringSetValue": [
+                        "string"
+                    ]
+                }
+            ],
+            "registeredResources": [
+                {
+                    "name": "string",
+                    "type": "string",
+                    "doubleValue": 123.0,
+                    "longValue": 123,
+                    "integerValue": 123,
+                    "stringSetValue": [
+                        "string"
+                    ]
+                }
+            ],
+            "status": "string",
+            "statusReason": "string",
+            "agentConnected": true,
+            "runningTasksCount": 123,
+            "pendingTasksCount": 123,
+            "agentUpdateStatus": "PENDING",
+            "attributes": [
+                {
+                    "name": "string",
+                    "value": "string",
+                    "targetType": "container-instance",
+                    "targetId": "string"
+                }
+            ],
+            "registeredAt": "2020-05-08T23:31:57+00:00",
+            "attachments": [
+                {
+                    "id": "string",
+                    "type": "string",
+                    "status": "string",
+                    "details": [
+                        {
+                            "name": "string",
+                            "value": "string"
+                        }
+                    ]
+                }
+            ],
+            "tags": [
+                {
+                    "key": "string",
+                    "value": "string"
+                }
+            ],
+            "healthStatus": {
+                "overallStatus": "OK",
+                "details": [
+                    {
+                        "type": "CONTAINER_RUNTIME",
+                        "status": "OK",
+                        "lastUpdated": "2020-05-08T23:31:57+00:00",
+                        "lastStatusChange": "2020-05-08T23:31:57+00:00"
+                    }
+                ]
+            }
+        },
+        {
+            "containerInstanceArn": "some_container",
+            "ec2InstanceId": "string",
+            "capacityProviderName": "string",
+            "version": 123,
+            "versionInfo": {
+                "agentVersion": "string",
+                "agentHash": "string",
+                "dockerVersion": "string"
+            },
+            "remainingResources": [
+                {
+                    "name": "string",
+                    "type": "string",
+                    "doubleValue": 123.0,
+                    "longValue": 123,
+                    "integerValue": 123,
+                    "stringSetValue": [
+                        "string"
+                    ]
+                }
+            ],
+            "registeredResources": [
+                {
+                    "name": "string",
+                    "type": "string",
+                    "doubleValue": 123.0,
+                    "longValue": 123,
+                    "integerValue": 123,
+                    "stringSetValue": [
+                        "string"
+                    ]
+                }
+            ],
+            "status": "string",
+            "statusReason": "string",
+            "agentConnected": true,
+            "runningTasksCount": 123,
+            "pendingTasksCount": 123,
+            "agentUpdateStatus": "PENDING",
+            "attributes": [
+                {
+                    "name": "string",
+                    "value": "string",
+                    "targetType": "container-instance",
+                    "targetId": "string"
+                }
+            ],
+            "registeredAt": "2020-05-08T23:31:57+00:00",
+            "attachments": [
+                {
+                    "id": "string",
+                    "type": "string",
+                    "status": "string",
+                    "details": [
+                        {
+                            "name": "string",
+                            "value": "string"
+                        }
+                    ]
+                }
+            ],
+            "tags": [
+                {
+                    "key": "string",
+                    "value": "string"
+                }
+            ],
+            "healthStatus": {
+                "overallStatus": "OK",
+                "details": [
+                    {
+                        "type": "CONTAINER_RUNTIME",
+                        "status": "OK",
+                        "lastUpdated": "2020-05-08T23:31:57+00:00",
+                        "lastStatusChange": "2020-05-08T23:31:57+00:00"
+                    }
+                ]
+            }
+        }
+    ],
+    "failures": [
+        {
+            "arn": "string",
+            "reason": "string",
+            "detail": "string"
+        }
+    ]
+}

@@ -276,7 +276,7 @@ models: Dict[str, List[AwsResotoModel]] = {
         # AwsResotoModel("get-resources", "items", "Resource", prefix="ApiGateway"),
         # AwsResotoModel("get-domain-names", "items", "DomainName", prefix="ApiGateway"),
         # AwsResotoModel("get-client-certificates", "items", "ClientCertificate", prefix="ApiGateway"),
-        AwsResotoModel("get-domain-names", "items", "DomainName", prefix="ApiGateway", prop_prefix="domain_")
+        # AwsResotoModel("get-domain-names", "items", "DomainName", prefix="ApiGateway", prop_prefix="domain_")
     ],
     "apigatewayv2": [
         # AwsResotoModel("get-domain-names", "Items", "DomainName", prefix="ApiGatewayV2"),
@@ -460,6 +460,36 @@ models: Dict[str, List[AwsResotoModel]] = {
         #     prop_prefix="reservation_",
         # ),
         # AwsResotoModel("describe-network-acls", "NetworkAcls", "NetworkAcl", prefix="Ec2"),
+    ],
+    "ecs": [
+        # AwsResotoModel(
+        #     "describe-clusters", "clusters", "DescribeClustersResponse", prefix="Ecs", prop_prefix="cluster_"
+        # ),
+        # AwsResotoModel(
+        #     "describe-container-instances",
+        #     "containerInstances",
+        #     "DescribeContainerInstancesResponse",
+        #     prefix="Ecs",
+        #     prop_prefix="container_",
+        # ),
+        # AwsResotoModel("describe-tasks", "tasks", "DescribeTasksResponse", prefix="Ecs", prop_prefix="task_"),
+        # AwsResotoModel(
+        #     "describe-task-definition",
+        #     "taskDefinition",
+        #     "DescribeTaskDefinitionResponse",
+        #     prefix="Ecs",
+        #     prop_prefix="task_definition_",
+        # ),
+        # AwsResotoModel(
+        # "describe-services", "services", "DescribeServicesResponse", prefix="Ecs", prop_prefix="service_"
+        # ),
+        # AwsResotoModel(
+        #     "describe-capacity-providers",
+        #     "capacityProviders",
+        #     "DescribeCapacityProvidersResponse",
+        #     prefix="Ecs",
+        #     prop_prefix="capacity_provider_",
+        # )
     ],
     "elasticbeanstalk": [
         # AwsResotoModel(
