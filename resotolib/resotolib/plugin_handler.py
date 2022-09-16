@@ -54,7 +54,7 @@ class resource_command:
     Expected signature of the underlying method:
 
     @resource_command(name="cmd_name", filter={"cloud": ["aws"]})
-    def call_name(self, resource: BaseResource, argument: str) -> Optional[BaseResource]:
+    def call_name(self, resource: Json, argument: str) -> Json:
        pass
     """
 
@@ -64,15 +64,3 @@ class resource_command:
 
     def __call__(self, fn: DecoratedFn) -> DecoratedFn:
         return _WorkerTaskDecorator(fn, self.name, self.filter, expects_resource=True)
-
-
-class source_command:
-    """
-    This is a command that does not expect nodes as input but can be executed directly.
-    """
-
-    def __init__(self, name: str) -> None:
-        self.name = name
-
-    def __call__(self, fn: DecoratedFn) -> DecoratedFn:
-        return _WorkerTaskDecorator(fn, self.name, {}, expects_resource=False)

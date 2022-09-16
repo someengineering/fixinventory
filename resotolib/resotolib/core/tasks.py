@@ -8,11 +8,10 @@ from urllib.parse import urlunsplit, urlencode, urlsplit
 import jsons
 import websocket
 from attr import define
-
 from resotolib.args import ArgumentParser
 from resotolib.baseresources import BaseResource
 from resotolib.core.ca import TLSData
-from resotolib.core.model_export import node_from_dict, node_to_dict
+from resotolib.core.model_export import node_to_dict
 from resotolib.event import EventType, remove_event_listener, add_event_listener, Event
 from resotolib.jwt import encode_jwt_to_headers
 from resotolib.logger import log
@@ -39,32 +38,18 @@ class CoreTaskHandler:
     expects_resource: bool
     handler: Callable[..., Any]
 
-    def execute_direct(self, message: Json) -> CoreTaskResult:
+    def execute(self, message: Json) -> CoreTaskResult:
         task_id = message["task_id"]  # fail if there is no task_id
         try:
-            task_data: Dict[str, Any] = message.get("data", {})
+            task_data: Json = message.get("data", {})
+            node_data: Json = task_data.get("node", {})
             args: str = task_data.get("args", "")
-            result = self.handler(args)
-            return CoreTaskResult(task_id=task_id, data=jsons.dump(result))
-        except Exception as e:
-            return CoreTaskResult(task_id=task_id, error=str(e))
-
-    def execute_with_resource(self, message: Json) -> CoreTaskResult:
-        task_id = message["task_id"]  # fail if there is no task_id
-        try:
-            task_data: Dict[str, Any] = message.get("data", {})
-            node_data: Dict[str, Any] = task_data.get("node", {})
-            args: str = task_data.get("args", "")
-            nd = node_from_dict(node_data, include_select_ancestors=True)
-            result = self.handler(nd, args)
+            result = self.handler(node_data, args)
             if isinstance(result, BaseResource):
                 result = node_to_dict(result)
             return CoreTaskResult(task_id=task_id, data=jsons.dump(result))
         except Exception as e:
             return CoreTaskResult(task_id=task_id, error=str(e))
-
-    def execute(self, message: Json) -> CoreTaskResult:
-        return self.execute_with_resource(message) if self.expects_resource else self.execute_direct(message)
 
     def url_str(self) -> str:
         # task:filter_1=a,b,c;filter_2=d,e,f

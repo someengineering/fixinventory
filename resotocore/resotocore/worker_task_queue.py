@@ -10,7 +10,7 @@ from datetime import timedelta, datetime
 from functools import reduce
 from typing import Any, Optional, AsyncGenerator, Dict, List
 
-from resotocore.types import Json
+from resotocore.types import Json, JsonElement
 from resotocore.util import utc, Periodic, set_future_result
 from resotocore.ids import TaskId, WorkerId
 
@@ -45,7 +45,7 @@ class WorkerTask:
 class WorkerTaskResult:
     task_id: TaskId
     result: str
-    data: Optional[Json] = None
+    data: Optional[JsonElement] = None
     error: Optional[str] = None
 
 
@@ -134,7 +134,9 @@ class WorkerTaskQueue:
         async with self.lock:
             await self.__add_task(task, retry_count)
 
-    async def acknowledge_task(self, worker_id: WorkerId, task_id: TaskId, result: Optional[Json] = None) -> None:
+    async def acknowledge_task(
+        self, worker_id: WorkerId, task_id: TaskId, result: Optional[JsonElement] = None
+    ) -> None:
         async with self.lock:
             await self.__acknowledge_task(worker_id, task_id, result)
 
@@ -190,7 +192,7 @@ class WorkerTaskQueue:
                 self.unassigned_tasks[task.id] = WorkerTaskOnHold(task, retry_count, utc() + task.timeout)
             return False
 
-    async def __acknowledge_task(self, worker_id: WorkerId, task_id: TaskId, result: Optional[Json]) -> None:
+    async def __acknowledge_task(self, worker_id: WorkerId, task_id: TaskId, result: Optional[JsonElement]) -> None:
         # remove task from internal list
         in_progress = self.outstanding_tasks.get(task_id, None)
         if in_progress:

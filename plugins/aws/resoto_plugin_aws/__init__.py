@@ -24,6 +24,7 @@ from resotolib.config import Config, RunningConfig
 from resotolib.graph import Graph
 from resotolib.logger import log, setup_logger
 from resotolib.plugin_handler import resource_command
+from resotolib.types import Json
 from resotolib.utils import log_runtime
 from .collector import AwsAccountCollector
 from .config import AwsConfig
@@ -104,7 +105,7 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
         return self.__regions
 
     @resource_command(name="aws", filter={"cloud": ["aws"]})
-    def call_aws_function(self, resource: BaseResource, argument: str) -> Optional[BaseResource]:
+    def call_aws_function(self, resource: Json, argument: str) -> Json:
         print(f"ACTION WAS CALLED!!!!! {argument}")
         return resource
 

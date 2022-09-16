@@ -2699,6 +2699,10 @@ class SendWorkerTaskCommand(CLICommand, ABC):
         async def load_element(items: List[JsonElement]) -> AsyncIterator[JsonElement]:
             # collect ids either from json dict or string
             ids: List[str] = [i["id"] if is_node(i) else i for i in items]  # type: ignore
+            # if there is an entry which is not a string, use the list as is (e.g. chunked)
+            if any(a for a in ids if not isinstance(a, str)):
+                for a in items:
+                    yield a
             # one query to load all items that match given ids (max 1000 as defined in chunk size)
             query = (
                 Query.by(P("_key").is_in(ids))
