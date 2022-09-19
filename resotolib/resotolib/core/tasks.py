@@ -71,6 +71,7 @@ class CoreTaskHandler:
             node = node_from_dict(node_data, include_select_ancestors=True)
             args = message.get("args", [])
             result = fn(target, node, args)
+            # expect either a base resource or json element as result
             if isinstance(result, BaseResource):
                 return node_to_dict(result)
             else:

@@ -125,10 +125,10 @@ class AwsClient:
                 return None
 
     def list(self, aws_service: str, action: str, result_name: Optional[str], **kwargs: Any) -> List[Any]:
-        return self.call_handle(aws_service, action, result_name, **kwargs) or []  # type: ignore
+        return self.call(aws_service, action, result_name, **kwargs) or []
 
     def get(self, aws_service: str, action: str, result_name: Optional[str], **kwargs: Any) -> Optional[Json]:
-        return self.call_handle(aws_service, action, result_name, **kwargs)  # type: ignore
+        return self.call(aws_service, action, result_name, **kwargs)  # type: ignore
 
     def for_region(self, region: str) -> AwsClient:
         return AwsClient(self.config, self.account_id, role=self.role, profile=self.profile, region=region)

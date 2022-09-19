@@ -1,7 +1,8 @@
 import logging
 import multiprocessing
 from concurrent import futures
-from typing import List, Optional
+from contextlib import suppress
+from typing import List, Optional, Union
 
 import botocore.exceptions
 from botocore.model import OperationModel
@@ -26,6 +27,7 @@ from resotolib.config import Config, RunningConfig
 from resotolib.graph import Graph
 from resotolib.logger import log, setup_logger
 from resotolib.plugin_task_handler import execute_command_on_resource
+from resotolib.types import Json, JsonElement
 from resotolib.utils import log_runtime, chunks
 from .collector import AwsAccountCollector
 from .config import AwsConfig
@@ -106,27 +108,35 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
         return self.__regions
 
     @execute_command_on_resource(name="aws", filter={"cloud": ["aws"]})
-    def call_aws_function(self, resource: BaseResource, args: List[str]) -> Optional[BaseResource]:
+    def call_aws_function(self, resource: BaseResource, args: List[str]) -> Union[JsonElement, BaseResource]:
+        # impossible to call the aws resource without service and function name
         if len(args) < 2:
             raise AttributeError("Not enough parameters! aws <service-name> <function-name> [function-args].")
         service_name = args[0]
         function_name = args[1]
+
+        # args have the form: --xxx yyy
         func_args = {}
         for single_arg in chunks(args[2:], 2):
             arg, value = single_arg
             func_args[pascalcase(arg.removeprefix("--"))] = value
 
-        client = get_client(Config, resource)
-        service_model = client.service_model(service_name)
-        operation: OperationModel = service_model.operation_model(pascalcase(function_name))
-        result = client.call_single(service_name, function_name, None, **func_args)
+        # create the client
+        client = get_client(Config, resource)  # type: ignore
+
+        # try to get the output shape of the function
+        output_shape: Optional[str] = None
+        with suppress(Exception):
+            service_model = client.service_model(service_name)
+            operation: OperationModel = service_model.operation_model(pascalcase(function_name))
+            output_shape = operation.output_shape.type_name
+
+        result: List[Json] = client.call_single(service_name, function_name, None, **func_args)  # type: ignore
+        # Remove the "ResponseMetadata" from the result
         for elem in result:
             if isinstance(elem, dict):
                 elem.pop("ResponseMetadata", None)
-        if operation.output_shape.type_name == "structure":
-            return result[0] if len(result) == 1 else None
-        else:
-            return result
+        return (result[0] if len(result) == 1 else None) if output_shape == "structure" else result
 
     @staticmethod
     def update_tag(config: Config, resource: BaseResource, key: str, value: str) -> bool:
