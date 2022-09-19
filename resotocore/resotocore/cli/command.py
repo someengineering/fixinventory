@@ -2774,7 +2774,45 @@ class SendWorkerTaskCommand(CLICommand, ABC):
     def timeout(self) -> timedelta:
         pass
 
-    def action_for(
+
+class ExecuteTaskCommand(SendWorkerTaskCommand):
+    """
+    ```
+    execute_task --command <command> --arg <arg> --no-node-result
+    ```
+
+    This command sends a task to the worker queue. The task is executed by a worker and the result is returned.
+    The kind of command is defined by the command name, the arguments are passed via the arg parameter.
+    Please note: the arg parameter can hold the complete argument string, containing multiple arguments.
+
+    ## Options
+    - `--no-node-result`: By default the result of this command should return a node. This node will be updated in the
+       database. If this option is set, the result is not a node and will not be updated in the database.
+
+    ## Parameters
+    - `--command`: The name of the command to execute.
+    - `--arg`: The argument string to pass to the command.
+
+    ## Examples
+    ```shell
+    > execute_task --command "aws" --arg "ec2 describe-instances"
+    ```
+    """
+
+    @property
+    def name(self) -> str:
+        return "execute_task"
+
+    def args_info(self) -> ArgsInfo:
+        return {}
+
+    def info(self) -> str:
+        return "Execute a registered task on the worker"
+
+    def timeout(self) -> timedelta:
+        return timedelta(seconds=10)
+
+    def send_command(
         self,
         command_name: str,
         expect_node_result: bool,
@@ -2806,23 +2844,13 @@ class SendWorkerTaskCommand(CLICommand, ABC):
 
         return CLISource.single(setup_source) if ctx.query is None else CLIFlow(setup_stream)
 
-
-class AwsCommand(SendWorkerTaskCommand):
-    @property
-    def name(self) -> str:
-        return "aws"
-
-    def args_info(self) -> ArgsInfo:
-        return {}
-
-    def info(self) -> str:
-        return "Send AWS commands to the worker"
-
-    def timeout(self) -> timedelta:
-        return timedelta(seconds=10)
-
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
-        return self.action_for("aws", False, arg, ctx, **kwargs)
+        parser = NoExitArgumentParser()
+        parser.add_argument("--command", required=True)
+        parser.add_argument("--arg")
+        parser.add_argument("--no-node-result", action="store_true", default=False)
+        ns = parser.parse_args(args_parts_unquoted_parser.parse(arg if arg else ""))
+        return self.send_command(ns.command, not ns.no_result, ns.arg, ctx, **kwargs)
 
 
 class TagCommand(SendWorkerTaskCommand):
@@ -4082,7 +4110,6 @@ class CertificateCommand(CLICommand):
 
 def all_commands(d: CLIDependencies) -> List[CLICommand]:
     commands = [
-        AwsCommand(d, "action"),
         AggregatePart(d, "search"),
         AggregateToCountCommand(d, "search"),
         AncestorsPart(d, "search"),
@@ -4095,6 +4122,7 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         DumpCommand(d, "format"),
         EchoCommand(d, "misc", allowed_in_source_position=True),
         EnvCommand(d, "misc", allowed_in_source_position=True),
+        ExecuteTaskCommand(d, "action"),
         ExecuteSearchCommand(d, "search", allowed_in_source_position=True),
         FlattenCommand(d, "misc"),
         FormatCommand(d, "format"),

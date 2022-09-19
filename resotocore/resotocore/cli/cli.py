@@ -452,9 +452,12 @@ class CLI:
             def expand_alias(alias_cmd: ParsedCommand) -> List[ParsedCommand]:
                 alias: AliasTemplate = self.alias_templates[alias_cmd.cmd]
                 props: Dict[str, JsonElement] = self.replacements(**{**self.cli_env, **context.env})  # type: ignore
+                props["args"] = alias_cmd.args
                 for p in alias.parameters:
                     props[p.name] = p.default
-                props.update(key_values_parser.parse(alias_cmd.args or ""))
+                # only parse properties, if there are any declared
+                if alias.parameters:
+                    props.update(key_values_parser.parse(alias_cmd.args or ""))
                 undefined = [k for k, v in props.items() if v is None]
                 if undefined:
                     raise AttributeError(f"Alias {alias_cmd.cmd} missing attributes: {', '.join(undefined)}")
