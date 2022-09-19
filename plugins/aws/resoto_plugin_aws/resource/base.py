@@ -140,6 +140,9 @@ class AwsResource(BaseResource, ABC):
             except Boto3Error as e:
                 log.error(f"Error while collecting {cls.__name__} in region {builder.region.name}: {e}")
                 raise
+            except Exception as e:
+                log.debug(f"Error while collecting {cls.__name__} in region {builder.region.name}: {e}")
+                raise
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
