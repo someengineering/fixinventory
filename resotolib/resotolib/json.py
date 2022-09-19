@@ -10,6 +10,7 @@ from cattrs.gen import make_dict_unstructure_fn
 from jsons import set_deserializer
 
 from resotolib.durations import parse_duration
+from resotolib.logger import log
 from resotolib.types import Json, JsonElement
 
 AnyT = TypeVar("AnyT")
@@ -64,7 +65,11 @@ def from_json(json: JsonElement, clazz: Type[AnyT], **kwargs: Any) -> AnyT:
     :param clazz: the type of the python object.
     :return: the loaded python object.
     """
-    return jsons.load(json, clazz, **kwargs) if clazz != dict else json  # type: ignore
+    try:
+        return jsons.load(json, clazz, **kwargs) if clazz != dict else json  # type: ignore
+    except Exception as e:
+        log.debug(f"Can not deserialize json into class {clazz.__name__}: {json}. Error: {e}")
+        raise
 
 
 # allow timedelta either as number of seconds or as duration string
