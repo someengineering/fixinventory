@@ -2778,7 +2778,7 @@ class SendWorkerTaskCommand(CLICommand, ABC):
 class ExecuteTaskCommand(SendWorkerTaskCommand):
     """
     ```
-    execute_task --command <command> --arg <arg> --no-node-result
+    execute-task --command <command> --arg <arg> --no-node-result
     ```
 
     This command sends a task to the worker queue. The task is executed by a worker and the result is returned.
@@ -2795,13 +2795,13 @@ class ExecuteTaskCommand(SendWorkerTaskCommand):
 
     ## Examples
     ```shell
-    > execute_task --command "aws" --arg "ec2 describe-instances"
+    > execute-task --command "aws" --arg "ec2 describe-instances"
     ```
     """
 
     @property
     def name(self) -> str:
-        return "execute_task"
+        return "execute-task"
 
     def args_info(self) -> ArgsInfo:
         return {}
@@ -2816,7 +2816,7 @@ class ExecuteTaskCommand(SendWorkerTaskCommand):
         self,
         command_name: str,
         expect_node_result: bool,
-        arg: Optional[str] = None,
+        args: Optional[str] = None,
         ctx: CLIContext = EmptyContext,
         **kwargs: Any,
     ) -> CLIAction:
@@ -2826,8 +2826,8 @@ class ExecuteTaskCommand(SendWorkerTaskCommand):
 
             return update_single
 
-        formatter, variables = ctx.formatter_with_variables(double_quoted_or_simple_string_dp.parse(arg))
-        fn = call_function(lambda item: {"args": formatter(item), "node": item})
+        formatter, variables = ctx.formatter_with_variables(double_quoted_or_simple_string_dp.parse(args))
+        fn = call_function(lambda item: {"args": args_parts_unquoted_parser.parse(formatter(item)), "node": item})
 
         def setup_stream(in_stream: Stream) -> Stream:
             def with_dependencies(model: Model) -> Stream:
@@ -2840,7 +2840,7 @@ class ExecuteTaskCommand(SendWorkerTaskCommand):
             return stream.flatmap(dependencies, with_dependencies)
 
         def setup_source() -> Stream:
-            return self.send_to_queue_stream(stream.just((command_name, {}, {"args": arg})), self.no_update, True)
+            return self.send_to_queue_stream(stream.just((command_name, {}, {"args": args})), self.no_update, True)
 
         return CLISource.single(setup_source) if ctx.query is None else CLIFlow(setup_stream)
 
@@ -2850,7 +2850,7 @@ class ExecuteTaskCommand(SendWorkerTaskCommand):
         parser.add_argument("--arg")
         parser.add_argument("--no-node-result", action="store_true", default=False)
         ns = parser.parse_args(args_parts_unquoted_parser.parse(arg if arg else ""))
-        return self.send_command(ns.command, not ns.no_result, ns.arg, ctx, **kwargs)
+        return self.send_command(ns.command, not ns.no_node_result, ns.arg, ctx, **kwargs)
 
 
 class TagCommand(SendWorkerTaskCommand):

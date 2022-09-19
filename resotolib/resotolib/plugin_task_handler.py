@@ -18,12 +18,12 @@ class _WorkerTaskDecorator:
     """
 
     def __init__(
-        self, fn: DecoratedFn, task_name: str, task_filter: Dict[str, List[str]], expects_resource: bool
+        self, fn: DecoratedFn, task_name: str, task_filter: Dict[str, List[str]], expect_resource: bool
     ) -> None:
         self.fn = fn
         self.task_name = task_name
         self.task_filter = task_filter
-        self.expects_resource = expects_resource
+        self.expect_resource = expect_resource
 
     def __set_name__(self, owner, name):
         # store this definition on the owners side (class)
@@ -33,8 +33,8 @@ class _WorkerTaskDecorator:
             {
                 "task_name": self.task_name,
                 "task_filter": self.task_filter,
-                "expects_resource": self.expects_resource,
                 "handler": self.fn,
+                "expect_resource": self.expect_resource,
             }
         )
         # make the function available at the call side (class)
@@ -45,16 +45,16 @@ class _WorkerTaskDecorator:
 
 
 # noinspection PyPep8Naming
-class resource_command:
+class execute_command:
     """
     In case you want to expose a method as worker task to the core, you can use this decorator.
     Annotate the method with the name of the task, as well as the filter attributes.
-    The worker will make sure to call this method when a task is received.a
+    You can execute the annotated method by executing `execute-command` on the core.
+    The argument passed is pared and provided to this function.
+    Please note: only tasks that matches the filter criteria are received by this function.
 
-    Expected signature of the underlying method:
-
-    @resource_command(name="cmd_name", filter={"cloud": ["aws"]})
-    def call_name(self, resource: Json, argument: str) -> Json:
+    @execute_command(name="cmd_name", filter={"cloud": ["aws"]})
+    def call_name(self, resource: Json, args: List[str]) -> Json:
        pass
     """
 
@@ -63,4 +63,25 @@ class resource_command:
         self.filter = filter or {}
 
     def __call__(self, fn: DecoratedFn) -> DecoratedFn:
-        return _WorkerTaskDecorator(fn, self.name, self.filter, expects_resource=True)
+        return _WorkerTaskDecorator(fn, self.name, self.filter, False)
+
+
+# noinspection PyPep8Naming
+class execute_command_on_resource:
+    """
+    See execute_command.
+
+    This decorator will convert the incoming message to a resource object
+    and a resulting object back to the json representation.
+
+    @execute_command_on_resource(name="cmd_name", filter={"cloud": ["aws"]})
+    def call_name(self, resource: BaseResource, args: List[str]) -> Optional[BaseResource]:
+       pass
+    """
+
+    def __init__(self, name: str, filter: Optional[Dict[str, List[str]]] = None) -> None:
+        self.name = name
+        self.filter = filter or {}
+
+    def __call__(self, fn: DecoratedFn) -> DecoratedFn:
+        return _WorkerTaskDecorator(fn, self.name, self.filter, True)

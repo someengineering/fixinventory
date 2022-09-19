@@ -23,7 +23,7 @@ from resotolib.event import (
 )
 from resotolib.jwt import add_args as jwt_add_args
 from resotolib.logger import log, setup_logger, add_args as logging_add_args
-from resotolib.plugin_handler import task_definitions
+from resotolib.plugin_task_handler import task_definitions
 from resotolib.proc import log_stats, increase_limits
 from resotolib.web import WebServer
 from resotolib.web.metrics import WebApp
@@ -146,16 +146,14 @@ def main() -> None:
     # make tagging by collectors available out of the box
     collect_plugins: List[BaseCollectorPlugin] = plugin_loader.plugins(PluginType.COLLECTOR)  # type: ignore
     task_handler = [
-        CoreTaskHandler("tag", {"cloud": [plugin.cloud]}, True, partial(core_tag_tasks_processor, plugin, config))
+        CoreTaskHandler("tag", {"cloud": [plugin.cloud]}, partial(core_tag_tasks_processor, plugin, config))
         for plugin in collect_plugins
     ]
     # search all other plugins for possible task providers
     for plugin_clazz in plugin_loader.all_plugins():
         plugin = plugin_clazz()
         for js in task_definitions(plugin_clazz):
-            handler = CoreTaskHandler(
-                js["task_name"], js["task_filter"], js["expects_resource"], partial(js["handler"], plugin)
-            )
+            handler = CoreTaskHandler.from_command_json(plugin, js)
             log.info(f"Plugin {plugin.name}: Add task handler for task {handler.task_name} @ {handler.task_filter}")
             task_handler.append(handler)
 

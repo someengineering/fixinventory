@@ -4,6 +4,8 @@ import logging
 from datetime import datetime
 from functools import cached_property
 from typing import Optional, Any, List
+
+from botocore.model import ServiceModel
 from retrying import retry
 
 from botocore.exceptions import ClientError
@@ -54,21 +56,21 @@ class AwsClient:
         else:
             raise AttributeError(f"Unsupported type: {type(node)}")
 
-    @retry(  # type: ignore
-        stop_max_attempt_number=10,
-        wait_exponential_multiplier=3000,
-        wait_exponential_max=300000,
-        retry_on_exception=is_retryable_exception,
-    )
-    @log_runtime
-    def call(self, aws_service: str, action: str, result_name: Optional[str], **kwargs: Any) -> JsonElement:
+    def service_model(self, aws_service: str) -> ServiceModel:
+        session = self.config.sessions().session(self.account_id, self.role, self.profile)
+        client = session.client(aws_service, region_name=self.region)
+        return client.meta.service_model
+
+    def call_single(
+        self, aws_service: str, action: str, result_name: Optional[str] = None, max_attempts: int = 1, **kwargs: Any
+    ) -> JsonElement:
         arg_info = ""
         if kwargs:
             arg_info += " with args " + ", ".join([f"{key}={value}" for key, value in kwargs.items()])
         log.debug(f"[Aws] calling service={aws_service} action={action}{arg_info}")
         py_action = action.replace("-", "_")
-        # 5 attempts is the default, and the adaptive mode allows automated client-side throttling
-        config = Config(retries={"max_attempts": 5, "mode": "adaptive"})
+        # adaptive mode allows automated client-side throttling
+        config = Config(retries={"max_attempts": max_attempts, "mode": "adaptive"})
         session = self.config.sessions().session(self.account_id, self.role, self.profile)
         client = session.client(aws_service, region_name=self.region, config=config)
         if client.can_paginate(py_action):
@@ -93,9 +95,17 @@ class AwsClient:
             log.debug(f"[Aws] called service={aws_service} action={action}{arg_info}: single result")
             return single.get(result_name) if result_name else [single]
 
-    def call_handle(self, aws_service: str, action: str, result_name: Optional[str], **kwargs: Any) -> JsonElement:
+    @retry(  # type: ignore
+        stop_max_attempt_number=10,
+        wait_exponential_multiplier=3000,
+        wait_exponential_max=300000,
+        retry_on_exception=is_retryable_exception,
+    )
+    @log_runtime
+    def call(self, aws_service: str, action: str, result_name: Optional[str], **kwargs: Any) -> JsonElement:
         try:
-            return self.call(aws_service, action, result_name, **kwargs)  # type: ignore
+            # 5 attempts is the default
+            return self.call_single(aws_service, action, result_name, max_attempts=5, **kwargs)
         except ClientError as e:
             code = e.response["Error"]["Code"]
             if code == "AccessDenied":

@@ -1,3 +1,4 @@
+from __future__ import annotations
 import json
 import queue
 import threading
@@ -11,17 +12,17 @@ from attr import define
 from resotolib.args import ArgumentParser
 from resotolib.baseresources import BaseResource
 from resotolib.core.ca import TLSData
-from resotolib.core.model_export import node_to_dict
+from resotolib.core.model_export import node_to_dict, node_from_dict
 from resotolib.event import EventType, remove_event_listener, add_event_listener, Event
 from resotolib.jwt import encode_jwt_to_headers
 from resotolib.logger import log
-from resotolib.types import Json
+from resotolib.types import Json, JsonElement
 
 
 @define
 class CoreTaskResult:
     task_id: str
-    data: Optional[Json] = None
+    data: JsonElement = None
     error: Optional[str] = None
 
     def to_json(self) -> Json:
@@ -35,19 +36,14 @@ class CoreTaskResult:
 class CoreTaskHandler:
     task_name: str
     task_filter: Dict[str, List[str]]
-    expects_resource: bool
-    handler: Callable[..., Any]
+    handler: Callable[[Json], JsonElement]
 
     def execute(self, message: Json) -> CoreTaskResult:
         task_id = message["task_id"]  # fail if there is no task_id
         try:
             task_data: Json = message.get("data", {})
-            node_data: Json = task_data.get("node", {})
-            args: str = task_data.get("args", "")
-            result = self.handler(node_data, args)
-            if isinstance(result, BaseResource):
-                result = node_to_dict(result)
-            return CoreTaskResult(task_id=task_id, data=jsons.dump(result))
+            result = self.handler(task_data)
+            return CoreTaskResult(task_id=task_id, data=result)
         except Exception as e:
             return CoreTaskResult(task_id=task_id, error=str(e))
 
@@ -57,9 +53,31 @@ class CoreTaskHandler:
 
     def matches(self, js: Json) -> bool:
         attrs: Json = js.get("attrs")
-        if not isinstance(attrs, dict):
+        if js.get("task_name") != self.task_name or not isinstance(attrs, dict):
             return False
         return all((attrs.get(n) in f) for n, f in self.task_filter.items())
+
+    @staticmethod
+    def from_command_json(target: Any, handler: Json) -> CoreTaskHandler:
+        fn = handler["handler"]
+
+        def handle_message(message: Json) -> JsonElement:
+            node_data = message.get("node", {})
+            args = message.get("args", [])
+            return fn(target, node_data, args)
+
+        def handle_resource(message: Json) -> JsonElement:
+            node_data = message.get("node", {})
+            node = node_from_dict(node_data, include_select_ancestors=True)
+            args = message.get("args", [])
+            result = fn(target, node, args)
+            if isinstance(result, BaseResource):
+                return node_to_dict(result)
+            else:
+                return result
+
+        to_call = handle_resource if handler["expect_resource"] else handle_message
+        return CoreTaskHandler(handler["task_name"], handler["task_filter"], to_call)
 
 
 class CoreTasks(threading.Thread):

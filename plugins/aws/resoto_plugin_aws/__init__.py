@@ -4,6 +4,8 @@ from concurrent import futures
 from typing import List, Optional
 
 import botocore.exceptions
+from botocore.model import OperationModel
+from jsons import pascalcase
 from prometheus_client import Summary, Counter
 
 import resotolib.logger
@@ -23,9 +25,8 @@ from resotolib.baseresources import Cloud
 from resotolib.config import Config, RunningConfig
 from resotolib.graph import Graph
 from resotolib.logger import log, setup_logger
-from resotolib.plugin_handler import resource_command
-from resotolib.types import Json
-from resotolib.utils import log_runtime
+from resotolib.plugin_task_handler import execute_command_on_resource
+from resotolib.utils import log_runtime, chunks
 from .collector import AwsAccountCollector
 from .config import AwsConfig
 from .resource.base import AwsAccount, AwsResource
@@ -104,10 +105,28 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
                 self.__regions = list(Config.aws.region)
         return self.__regions
 
-    @resource_command(name="aws", filter={"cloud": ["aws"]})
-    def call_aws_function(self, resource: Json, argument: str) -> Json:
-        print(f"ACTION WAS CALLED!!!!! {argument}")
-        return resource
+    @execute_command_on_resource(name="aws", filter={"cloud": ["aws"]})
+    def call_aws_function(self, resource: BaseResource, args: List[str]) -> Optional[BaseResource]:
+        if len(args) < 2:
+            raise AttributeError("Not enough parameters! aws <service-name> <function-name> [function-args].")
+        service_name = args[0]
+        function_name = args[1]
+        func_args = {}
+        for single_arg in chunks(args[2:], 2):
+            arg, value = single_arg
+            func_args[pascalcase(arg.removeprefix("--"))] = value
+
+        client = get_client(Config, resource)
+        service_model = client.service_model(service_name)
+        operation: OperationModel = service_model.operation_model(pascalcase(function_name))
+        result = client.call_single(service_name, function_name, None, **func_args)
+        for elem in result:
+            if isinstance(elem, dict):
+                elem.pop("ResponseMetadata", None)
+        if operation.output_shape.type_name == "structure":
+            return result[0] if len(result) == 1 else None
+        else:
+            return result
 
     @staticmethod
     def update_tag(config: Config, resource: BaseResource, key: str, value: str) -> bool:
