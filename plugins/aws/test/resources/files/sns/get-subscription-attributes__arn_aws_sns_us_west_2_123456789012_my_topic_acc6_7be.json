@@ -1,0 +1,17 @@
+{
+    "Attributes": {
+        "Endpoint": "my-email@example.com",
+        "Protocol": "email",
+        "RawMessageDelivery": "false",
+        "ConfirmationWasAuthenticated": "false",
+        "Owner": "123456789012",
+        "SubscriptionArn": "arn:aws:sns:us-west-2:123456789012:my-topic:acc6-7be",
+        "TopicArn": "arn:aws:sns:us-west-2:123456789012:my-topic",
+        "SubscriptionRoleArn": "",
+        "DeliveryPolicy": "some policy",
+        "EffectiveDeliveryPolicy": "some more policy",
+        "FilterPolicy": "some filter policy",
+        "RedrivePolicy": "some redrive policy",
+        "PendingConfirmation": "true"
+    }
+}

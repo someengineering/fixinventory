@@ -1,0 +1,12 @@
+{
+    "Subscriptions": [
+        {
+            "SubscriptionArn": "arn:aws:sns:us-west-2:123456789012:my-topic:acc6-7be",
+            "Owner": "string",
+            "Protocol": "string",
+            "Endpoint": "string",
+            "TopicArn": "arn:aws:sns:us-west-2:123456789012:my-topic"
+        }
+    ],
+    "NextToken": "string"
+}
