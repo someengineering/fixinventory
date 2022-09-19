@@ -210,6 +210,7 @@ class AwsAthenaDataCatalog(AwsResource):
                 data_catalog.tags = bend(S("Tags", default=[]) >> ToDict(), tags[0])
 
         for js in json:
+            # we filter out the default data catalog as it is not possible to do much with it
             if (name := js.get("CatalogName")) is not None and isinstance(name, str) and name != "AwsDataCatalog":
                 catalog = fetch_data_catalog(name)
                 if catalog is not None:
