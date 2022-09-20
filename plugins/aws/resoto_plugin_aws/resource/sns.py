@@ -5,7 +5,7 @@ from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilde
 from resoto_plugin_aws.resource.iam import AwsIamRole
 from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resoto_plugin_aws.utils import ToDict
-from resotolib.baseresources import ModelReference
+from resotolib.baseresources import EdgeType, ModelReference
 from resotolib.json_bender import F, Bender, S, bend
 from resotolib.types import Json
 
@@ -110,13 +110,13 @@ class AwsSnsSubscription(AwsResource):
         "id": S("SubscriptionArn"),
         "name": S("SubscriptionArn"),
         "arn": S("SubscriptionArn"),
-        "subscription_confirmation_was_authenticated": S("ConfirmationWasAuthenticated"),
+        "subscription_confirmation_was_authenticated": S("ConfirmationWasAuthenticated"),  # make boolean
         "subscription_delivery_policy": S("DeliveryPolicy"),
         "subscription_effective_delivery_policy": S("EffectiveDeliveryPolicy"),
         "subscription_filter_policy": S("FilterPolicy"),
         "subscription_owner": S("Owner"),
-        "subscription_pending_confirmation": S("PendingConfirmation"),
-        "subscription_raw_message_delivery": S("RawMessageDelivery"),
+        "subscription_pending_confirmation": S("PendingConfirmation"),  # make boolean
+        "subscription_raw_message_delivery": S("RawMessageDelivery"),  # make boolean
         "subscription_redrive_policy": S("RedrivePolicy"),
         "subscription_topic_arn": S("TopicArn"),
         "subscription_role_arn": S("SubscriptionRoleArn"),
@@ -165,4 +165,69 @@ class AwsSnsSubscription(AwsResource):
         return True
 
 
-resources: List[Type[AwsResource]] = [AwsSnsTopic, AwsSnsSubscription]
+@define(eq=False, slots=False)
+class AwsSnsPlatformApplication(AwsResource):
+    kind: ClassVar[str] = "aws_sns_platform_application"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sns", "list-platform-applications", "PlatformApplications")
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["aws_sns_topic"],
+        },
+    }
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("Arn"),
+        "arn": S("Arn"),
+        "application_apple_certificate_expiry_date": S("AppleCertificateExpiryDate"),
+        "application_apple_platform_team_id": S("ApplePlatformTeamID"),
+        "application_apple_platform_bundle_id": S("ApplePlatformBundleID"),
+        "application_event_endpoint_created": S("EventEndpointCreated"),
+        "application_event_endpoint_deleted": S("EventEndpointDeleted"),
+        "application_event_endpoint_updated": S("EventEndpointUpdated"),
+        "application_event_endpoint_failure": S("EventDeliveryFailure"),
+    }
+    application_apple_certificate_expiry_date: Optional[str] = field(default=None)
+    application_apple_platform_team_id: Optional[str] = field(default=None)
+    application_apple_platform_bundle_id: Optional[str] = field(default=None)
+    application_event_endpoint_created: Optional[str] = field(default=None)
+    application_event_endpoint_deleted: Optional[str] = field(default=None)
+    application_event_endpoint_updated: Optional[str] = field(default=None)
+    application_event_endpoint_failure: Optional[str] = field(default=None)
+
+    @classmethod
+    def called_apis(cls) -> List[AwsApiSpec]:
+        return [
+            cls.api_spec,
+            AwsApiSpec("sns", "get-platform-application-attributes"),
+        ]
+
+    @classmethod
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        for entry in json:
+            app = builder.client.get(
+                "sns",
+                "get-platform-application-attributes",
+                PlatformApplicationArn=entry["PlatformApplicationArn"],
+                result_name="Attributes",
+            )
+            if app:
+                app["Arn"] = entry["PlatformApplicationArn"]
+                app_instance = cls.from_api(app)
+                builder.add_node(app_instance, app)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        for topic in [
+            self.application_event_endpoint_created,
+            self.application_event_endpoint_deleted,
+            self.application_event_endpoint_updated,
+            self.application_event_endpoint_failure,
+        ]:
+            builder.add_edge(self, edge_type=EdgeType.default, clazz=AwsSnsTopic, arn=topic)
+
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(
+            aws_service="sns", action="delete-platform-application", result_name=None, PlatformApplicationArn=self.arn
+        )
+        return True
+
+
+resources: List[Type[AwsResource]] = [AwsSnsTopic, AwsSnsSubscription, AwsSnsPlatformApplication]

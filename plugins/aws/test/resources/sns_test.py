@@ -1,7 +1,7 @@
 from types import SimpleNamespace
 from typing import Any, cast
 from resoto_plugin_aws.aws_client import AwsClient
-from resoto_plugin_aws.resource.sns import AwsSnsTopic, AwsSnsSubscription
+from resoto_plugin_aws.resource.sns import AwsSnsTopic, AwsSnsSubscription, AwsSnsPlatformApplication
 from test.resources import round_trip_for
 
 
@@ -56,3 +56,19 @@ def test_delete_subs() -> None:
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
     sub.delete_resource(client)
+
+
+def test_apps() -> None:
+    first, builder = round_trip_for(AwsSnsPlatformApplication)
+    assert len(builder.resources_of(AwsSnsPlatformApplication)) == 1
+
+
+def test_delete_apps() -> None:
+    app, _ = round_trip_for(AwsSnsPlatformApplication)
+
+    def validate_delete_args(**kwargs: Any) -> None:
+        assert kwargs["action"] == "delete-platform-application"
+        assert kwargs["PlatformApplicationArn"] == app.arn
+
+    client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
+    app.delete_resource(client)
