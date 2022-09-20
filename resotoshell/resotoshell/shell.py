@@ -7,7 +7,7 @@ from tempfile import TemporaryDirectory
 from typing import Dict, Union, Optional, Tuple
 from urllib.parse import urlsplit
 
-from requests import Response
+from resotoclient import HttpResponse
 from requests.exceptions import ConnectionError
 from requests_toolbelt import MultipartDecoder
 from requests_toolbelt.multipart.decoder import BodyPart
@@ -56,7 +56,7 @@ class Shell:
                 }
             )
 
-        def handle_response(maybe: Optional[Response], upload: bool = False) -> None:
+        def handle_response(maybe: Optional[HttpResponse], upload: bool = False) -> None:
             if maybe is not None:
                 with maybe as response:
                     if response.status_code == 200:
@@ -64,7 +64,7 @@ class Shell:
                     elif response.status_code == 424 and not upload:
                         required = response.json().get("required", [])
                         to_upload = validate_paths({fp["name"]: fp["path"] for fp in required})
-                        mp: Response = self.client.cli_execute_raw(
+                        mp: HttpResponse = self.client.cli_execute_raw(
                             command=command,
                             files=to_upload,
                             graph=self.graph,
@@ -74,7 +74,7 @@ class Shell:
                         handle_response(mp, True)
                     else:
                         log.debug(f"HTTP error, code: {response.status_code}")
-                        print(response.text, file=sys.stderr)
+                        print(response.text(), file=sys.stderr)
                         return
 
         try:
@@ -96,7 +96,7 @@ class Shell:
         except Exception as ex:
             print(f"Error performing command: `{command}`\nReason: {ex}")
 
-    def handle_result(self, part: Union[Response, BodyPart], first: bool = True) -> None:
+    def handle_result(self, part: Union[HttpResponse, BodyPart], first: bool = True) -> None:
         # store the file from the part inside the given directory
         def store_file(directory: str) -> Tuple[str, str]:
             disposition = part.headers.get("Content-Disposition", "")
@@ -110,7 +110,10 @@ class Shell:
                 i += 1
                 filepath = os.path.join(directory, f"{filename}-{i}")
             with open(filepath, "wb+") as fh:
-                fh.write(part.content)
+                if isinstance(part, HttpResponse):
+                    fh.write(part.payload_bytes())
+                else:
+                    fh.write(part.content)
             return filename, filepath
 
         content_type = part.headers.get("Content-Type", "text/plain")
@@ -119,15 +122,16 @@ class Shell:
         line_delimiter = "---"
 
         # If we get a plain text result, we simply print it to the console.
-        if content_type == "text/plain":
+        if content_type == "text/plain" and isinstance(part, HttpResponse):
             # Received plain text: print it.
             if not first:
                 print(line_delimiter)
             if hasattr(part, "iter_lines"):
                 for line in part.iter_lines():
-                    print(line.decode("utf-8"))
+                    decoded = line.decode("utf-8")
+                    print(decoded)
             else:
-                print(part.text)
+                print(part.text())
         # File is sent in order to edit and return it.
         # We expect the command to define what should happen with the edited file.
         elif content_type == "application/octet-stream" and action == "edit" and command:
@@ -148,7 +152,10 @@ class Shell:
         # Multipart: handle each part separately
         elif content_type.startswith("multipart"):
             # Received a multipart response: parse the parts
-            decoder = MultipartDecoder.from_response(part)
+            if isinstance(part, HttpResponse):
+                decoder = MultipartDecoder(part.payload_bytes(), content_type, "utf-8")
+            else:
+                decoder = MultipartDecoder.from_response(part)
 
             def decode(value: Union[str, bytes]) -> str:
                 return value.decode("utf-8") if isinstance(value, bytes) else value
