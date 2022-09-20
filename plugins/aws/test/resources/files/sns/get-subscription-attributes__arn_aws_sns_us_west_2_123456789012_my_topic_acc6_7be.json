@@ -2,7 +2,7 @@
     "Attributes": {
         "Endpoint": "my-email@example.com",
         "Protocol": "email",
-        "RawMessageDelivery": "false",
+        "RawMessageDelivery": "true",
         "ConfirmationWasAuthenticated": "false",
         "Owner": "123456789012",
         "SubscriptionArn": "arn:aws:sns:us-west-2:123456789012:my-topic:acc6-7be",

@@ -102,21 +102,19 @@ class AwsSnsSubscription(AwsResource):
     kind: ClassVar[str] = "aws_sns_subscription"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sns", "list-subscriptions", "Subscriptions")
     reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {
-            "default": ["aws_sns_topic"],
-        },
+        "predecessors": {"default": ["aws_sns_topic", "aws_iam_role"], "delete": ["aws_iam_role"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("SubscriptionArn"),
         "name": S("SubscriptionArn"),
         "arn": S("SubscriptionArn"),
-        "subscription_confirmation_was_authenticated": S("ConfirmationWasAuthenticated"),  # make boolean
+        "subscription_confirmation_was_authenticated": S("ConfirmationWasAuthenticated") >> F(lambda x: x == "true"),
         "subscription_delivery_policy": S("DeliveryPolicy"),
         "subscription_effective_delivery_policy": S("EffectiveDeliveryPolicy"),
         "subscription_filter_policy": S("FilterPolicy"),
         "subscription_owner": S("Owner"),
-        "subscription_pending_confirmation": S("PendingConfirmation"),  # make boolean
-        "subscription_raw_message_delivery": S("RawMessageDelivery"),  # make boolean
+        "subscription_pending_confirmation": S("PendingConfirmation") >> F(lambda x: x == "true"),
+        "subscription_raw_message_delivery": S("RawMessageDelivery") >> F(lambda x: x == "true"),
         "subscription_redrive_policy": S("RedrivePolicy"),
         "subscription_topic_arn": S("TopicArn"),
         "subscription_role_arn": S("SubscriptionRoleArn"),
@@ -157,11 +155,31 @@ class AwsSnsSubscription(AwsResource):
                 clazz=AwsSnsTopic,
                 arn=self.subscription_topic_arn,
             )
-        # if self.subscription_role_arn:
-        #     builder.dependant_node(self, clazz=AwsIamRole, arn=self.subscription_role_arn)
+        if self.subscription_role_arn:
+            builder.dependant_node(
+                self, reverse=True, delete_same_as_default=True, clazz=AwsIamRole, arn=self.subscription_role_arn
+            )
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(aws_service="sns", action="unsubscribe", result_name=None, SubscriptionArn=self.arn)
+        return True
+
+
+@define(eq=False, slots=False)
+class AwsSnsEndpoint(AwsResource):
+    # collection of endpoint resources happens in AwsSnsPlatformApplication.collect()
+    kind: ClassVar[str] = "aws_sns_endpoint"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("Arn"),
+        "arn": S("Arn"),
+        "endpoint_enabled": S("Enabled") >> F(lambda x: x == "true"),
+        "endpoint_token": S("Token"),
+    }
+    endpoint_enabled: Optional[bool] = field(default=None)
+    endpoint_token: Optional[str] = field(default=None)
+
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(aws_service="sns", action="delete-endpoint", result_name=None, EndpointArn=self.arn)
         return True
 
 
@@ -171,7 +189,7 @@ class AwsSnsPlatformApplication(AwsResource):
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sns", "list-platform-applications", "PlatformApplications")
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
-            "default": ["aws_sns_topic"],
+            "default": ["aws_sns_topic", "aws_sns_endpoint"],
         },
     }
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -198,21 +216,36 @@ class AwsSnsPlatformApplication(AwsResource):
         return [
             cls.api_spec,
             AwsApiSpec("sns", "get-platform-application-attributes"),
+            AwsApiSpec("sns", "list-endpoints-by-platform-application"),
         ]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for entry in json:
+            app_arn = entry["PlatformApplicationArn"]
             app = builder.client.get(
                 "sns",
                 "get-platform-application-attributes",
-                PlatformApplicationArn=entry["PlatformApplicationArn"],
+                PlatformApplicationArn=app_arn,
                 result_name="Attributes",
             )
             if app:
-                app["Arn"] = entry["PlatformApplicationArn"]
+                app["Arn"] = app_arn
                 app_instance = cls.from_api(app)
                 builder.add_node(app_instance, app)
+            endpoints = builder.client.get(
+                "sns",
+                "list-endpoints-by-platform-application",
+                PlatformApplicationArn=app_arn,
+                result_name="Endpoints",
+            )
+            if endpoints:
+                for endpoint in endpoints:
+                    attributes = endpoint["Attributes"]
+                    attributes["Arn"] = endpoint["EndpointArn"]
+                    endpoint_instance = AwsSnsEndpoint.from_api(attributes)
+                    builder.add_node(endpoint_instance, attributes)
+                    builder.add_edge(app_instance, edge_type=EdgeType.default, node=endpoint_instance)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for topic in [
@@ -230,4 +263,4 @@ class AwsSnsPlatformApplication(AwsResource):
         return True
 
 
-resources: List[Type[AwsResource]] = [AwsSnsTopic, AwsSnsSubscription, AwsSnsPlatformApplication]
+resources: List[Type[AwsResource]] = [AwsSnsTopic, AwsSnsSubscription, AwsSnsPlatformApplication, AwsSnsEndpoint]
