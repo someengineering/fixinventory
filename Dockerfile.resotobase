@@ -98,6 +98,12 @@ RUN if [ ${TARGETPLATFORM} = "linux/amd64" ]; then \
         echo "Building for unknown platform - not copying ArangoDB client binaries"; \
     fi
 
+# Download AWS CLI
+WORKDIR /tmp/awscli
+RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+RUN unzip awscliv2.zip
+RUN ./aws/install -i /usr/local/aws-cli -b /usr/local/bin
+
 # Prepare PyPy whl build env
 RUN mkdir -p /build-python
 RUN mkdir -p /build-pypy
