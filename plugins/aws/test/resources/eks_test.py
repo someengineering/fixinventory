@@ -41,7 +41,7 @@ def test_tagging() -> None:
     def validate_update_args(**kwargs: Any) -> None:
         assert kwargs["action"] == "tag_resource"
         assert kwargs["resourceArn"] == cluster.arn
-        assert kwargs["tags"] == {"foo": "bar"}
+        assert kwargs["tags"] == [{"foo": "bar"}]
 
     def validate_delete_args(**kwargs: Any) -> None:
         assert kwargs["action"] == "untag_resource"
