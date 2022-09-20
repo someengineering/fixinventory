@@ -496,7 +496,7 @@ async def test_tag_command(
         # make sure that 2 warnings are emitted
         assert len(caplog.records) == 2
         for res in caplog.records:
-            assert res.message.startswith("Tag update not reflected in db. Wait until next collector run.")
+            assert res.message.startswith("Update not reflected in db. Wait until next collector run.")
     # tag updates can be put into background
     res6 = await cli.execute_cli_command('json ["root", "collector"] | tag update --nowait foo bla', stream.list)
     assert cli.dependencies.forked_tasks.qsize() == 2
