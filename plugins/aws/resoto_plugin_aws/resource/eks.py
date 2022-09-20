@@ -22,7 +22,7 @@ class EKSTaggable:
                     action="tag_resource",
                     result_name=None,
                     resourceArn=self.arn,
-                    tags=[{key: value}],
+                    tags={key: value},
                 )
                 return True
             return False
