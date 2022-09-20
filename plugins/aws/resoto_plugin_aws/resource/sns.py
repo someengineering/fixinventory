@@ -32,8 +32,8 @@ class AwsSnsTopic(AwsResource):
         "topic_effective_delivery_policy": S("EffectiveDeliveryPolicy"),
         "topic_owner": S("Owner"),
         "topic_kms_master_key_id": S("KmsMasterKeyId"),
-        "topic_fifo_topic": S("FifoTopic"),
-        "topic_content_based_deduplication": S("ContentBasedDeduplication"),
+        "topic_fifo_topic": S("FifoTopic") >> F(lambda x: x == "true"),
+        "topic_content_based_deduplication": S("ContentBasedDeduplication") >> F(lambda x: x == "true"),
     }
     topic_subscriptions_confirmed: Optional[int] = field(default=None)
     topic_subscriptions_deleted: Optional[int] = field(default=None)
@@ -233,7 +233,8 @@ class AwsSnsPlatformApplication(AwsResource):
                 app["Arn"] = app_arn
                 app_instance = cls.from_api(app)
                 builder.add_node(app_instance, app)
-            endpoints = builder.client.get(
+
+            endpoints = builder.client.list(
                 "sns",
                 "list-endpoints-by-platform-application",
                 PlatformApplicationArn=app_arn,
