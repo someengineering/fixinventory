@@ -166,12 +166,12 @@ def main() -> None:
     core_actions.start()
     core_tasks.start()
 
-    for Plugin in plugin_loader.plugins(PluginType.ACTION):
-        assert issubclass(Plugin, BaseActionPlugin)
+    for plugin_class in plugin_loader.plugins(PluginType.ACTION):
+        assert issubclass(plugin_class, BaseActionPlugin)
         try:
-            log.debug(f"Starting action plugin {Plugin}")
-            plugin_clazz = Plugin(tls_data=tls_data)
-            plugin_clazz.start()
+            log.debug(f"Starting action plugin {plugin_class}")
+            plugin = plugin_class(tls_data=tls_data)
+            plugin.start()
         except Exception as e:
             log.exception(f"Caught unhandled persistent Plugin exception {e}")
 

@@ -47,3 +47,5 @@ def core_tag_tasks_processor(plugin: Type[BaseCollectorPlugin], config: Config, 
 
     for k, v in update_tags.items():
         return update(nd, k, v)
+
+    raise AttributeError(f"Neither delete nor update tags were specified: {task_data}")

@@ -45,7 +45,7 @@ class _WorkerTaskDecorator:
 
 
 # noinspection PyPep8Naming
-class execute_command:
+class execute_command:  # noqa: N801
     """
     In case you want to expose a method as worker task to the core, you can use this decorator.
     Annotate the method with the name of the task, as well as the filter attributes.
@@ -67,7 +67,7 @@ class execute_command:
 
 
 # noinspection PyPep8Naming
-class execute_command_on_resource:
+class execute_command_on_resource:  # noqa: N801
     """
     See execute_command.
 
