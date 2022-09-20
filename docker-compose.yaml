@@ -39,6 +39,7 @@ services:
       - PSK
       - RESOTO_VERBOSE
       - RESOTO_LOG_TEXT
+      - RESOTOCORE_ANALYTICS_OPT_OUT
       - RESOTOCORE_GRAPHDB_SERVER=http://graphdb:8529
       # Resoto will create a new database and user with this password using the root account
       - RESOTOCORE_GRAPHDB_PASSWORD=changeme
