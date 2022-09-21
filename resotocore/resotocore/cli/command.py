@@ -2819,12 +2819,17 @@ class WorkerCustomCommand:
 class ExecuteTaskCommand(SendWorkerTaskCommand):
     """
     ```
-    execute-task --command <command> --arg <arg> --no-node-result
+    execute-task --command <command> --arg <arg> [--no-node-result] [--allowed-on <kind>]
     ```
 
     This command sends a task to the worker queue. The task is executed by a worker and the result is returned.
     The kind of command is defined by the command name, the arguments are passed via the arg parameter.
     Please note: the arg parameter can hold the complete argument string, containing multiple arguments.
+
+    The `execute-task` command can be used to run a command directly, or pass the result
+    of a previous command to a worker.
+
+    You will most likely never invoke this command directly, but use it as custom command with an alias name.
 
     ## Options
     - `--no-node-result`: By default the result of this command should return a node. This node will be updated in the
@@ -2837,7 +2842,14 @@ class ExecuteTaskCommand(SendWorkerTaskCommand):
 
     ## Examples
     ```shell
-    > execute-task --command "aws" --arg "ec2 describe-instances"
+    # Call the aws task and pass the arguments to the task
+    > execute-task --command "aws" --arg "sts get-caller-identity"
+
+    # Search for resources and execute the task for every incoming resource
+    > search is(aws_ec2_volume) | execute-task --command "aws" --arg "ec2 describe-volume-attribute --volume-id {id}"
+    AutoEnableIO:
+      Value: false
+    VolumeId: vol-009b0a28d2754927e
     ```
     """
 
@@ -2846,7 +2858,17 @@ class ExecuteTaskCommand(SendWorkerTaskCommand):
         return "execute-task"
 
     def args_info(self) -> ArgsInfo:
-        return {}
+        return [
+            ArgInfo("--command", True, help_text="The name of the command to execute"),
+            ArgInfo("--arg", True, help_text="The argument string to pass to the command"),
+            ArgInfo(
+                "--allowed-on",
+                True,
+                help_text="The kind of node this command is allowed to be executed on",
+                value_hint="kind",
+            ),
+            ArgInfo("--no-node-result", help_text="The task does not return a node, or the node should not be updated"),
+        ]
 
     def info(self) -> str:
         return "Execute a registered task on the worker"
@@ -4167,7 +4189,7 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         DumpCommand(d, "format"),
         EchoCommand(d, "misc", allowed_in_source_position=True),
         EnvCommand(d, "misc", allowed_in_source_position=True),
-        ExecuteTaskCommand(d, "action"),
+        ExecuteTaskCommand(d, "action", allowed_in_source_position=True),
         ExecuteSearchCommand(d, "search", allowed_in_source_position=True),
         FlattenCommand(d, "misc"),
         FormatCommand(d, "format"),
