@@ -19,7 +19,7 @@ test/.vagrant/*
 .gitignore
 .git
 .dockerignore
-Dockerfile
+Dockerfile*
 **/__pycache__
 venv*
 .vscode/
