@@ -130,7 +130,7 @@ class WorkerTaskQueue:
                 open_tasks = [task for task in self.outstanding_tasks.values() if task.worker.worker_id == worker_id]
                 await self.__retry_tasks(open_tasks)
 
-    async def add_task(self, task: WorkerTask, retry_count: int = 3) -> None:
+    async def add_task(self, task: WorkerTask, retry_count: int = 0) -> None:
         async with self.lock:
             await self.__add_task(task, retry_count)
 

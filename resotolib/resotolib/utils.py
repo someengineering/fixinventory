@@ -5,6 +5,7 @@ import re
 import socket
 import string
 import time
+from argparse import ArgumentParser
 from datetime import date, datetime, timezone, timedelta
 
 try:
@@ -15,7 +16,7 @@ from tzlocal import get_localzone_name
 from functools import wraps
 from pprint import pformat
 from tarfile import TarFile, TarInfo
-from typing import Dict, List, Tuple, Optional, Callable
+from typing import Dict, List, Tuple, Optional, NoReturn
 from resotolib.types import DecoratedFn
 
 import pkg_resources
@@ -480,3 +481,12 @@ def rrdata_as_dict(record_type: str, record_data: str) -> Dict:
         rrdata["record_value"] = record_elements[2]
 
     return rrdata
+
+
+class NoExitArgumentParser(ArgumentParser):
+    def error(self, message: str) -> NoReturn:
+        raise AttributeError(f"Could not parse arguments: {message}")
+
+    def exit(self, status: int = 0, message: Optional[str] = None) -> NoReturn:
+        msg = message if message else "unknown"
+        raise AttributeError(f"Could not parse arguments: {msg}")

@@ -79,7 +79,7 @@ class CoreTaskHandler:
 
         def handle_resource(message: Json) -> JsonElement:
             node_data = message.get("node", {})
-            node = node_from_dict(node_data, include_select_ancestors=True)
+            node = node_from_dict(node_data, include_select_ancestors=True) if node_data else None
             args = message.get("args", [])
             result = wtd.fn(target, node, args)
             # expect either a base resource or json element as result

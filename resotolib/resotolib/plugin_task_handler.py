@@ -55,10 +55,6 @@ class execute_command:  # noqa: N801
     You can execute the annotated method by executing `execute-command` on the core.
     The argument passed is pared and provided to this function.
     Please note: only tasks that matches the filter criteria are received by this function.
-
-    @execute_command(name="cmd_name", filter={"cloud": ["aws"]})
-    def call_name(self, resource: Json, args: List[str]) -> Json:
-       pass
     """
 
     def __init__(
@@ -100,10 +96,6 @@ class execute_command_on_resource:  # noqa: N801
 
     This decorator will convert the incoming message to a resource object
     and a resulting object back to the json representation.
-
-    @execute_command_on_resource(name="cmd_name", filter={"cloud": ["aws"]})
-    def call_name(self, resource: BaseResource, args: List[str]) -> Optional[BaseResource]:
-       pass
     """
 
     def __init__(

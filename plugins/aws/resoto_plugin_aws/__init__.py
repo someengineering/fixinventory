@@ -27,8 +27,8 @@ from resotolib.config import Config, RunningConfig
 from resotolib.graph import Graph
 from resotolib.logger import log, setup_logger
 from resotolib.plugin_task_handler import execute_command_on_resource
-from resotolib.types import Json, JsonElement
-from resotolib.utils import log_runtime, chunks
+from resotolib.types import JsonElement
+from resotolib.utils import log_runtime, NoExitArgumentParser, chunks
 from .collector import AwsAccountCollector
 from .config import AwsConfig
 from .resource.base import AwsAccount, AwsResource
@@ -127,30 +127,36 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
         "```\n\n",
         allowed_on_kind="aws_resource",
     )
-    def call_aws_function(self, resource: BaseResource, args: List[str]) -> Union[JsonElement, BaseResource]:
-        # impossible to call the aws resource without service and function name
-        if len(args) < 2:
-            raise AttributeError("Not enough parameters! aws <service-name> <function-name> [function-args].")
-        service_name = args[0]
-        function_name = args[1]
+    def call_aws_function(self, resource: Optional[BaseResource], args: List[str]) -> Union[JsonElement, BaseResource]:
+        parser = NoExitArgumentParser()
+        parser.add_argument("--account-id")
+        parser.add_argument("--role")
+        parser.add_argument("--profile")
+        parser.add_argument("--region")
+        parser.add_argument("service")
+        parser.add_argument("function")
+        p, remaining = parser.parse_known_args(args)
+        func_args = {pascalcase(k.removeprefix("--")): v for k, v in chunks(remaining, 2)}
+        cfg: AwsConfig = Config.aws
 
-        # args have the form: --xxx yyy
-        func_args = {}
-        for single_arg in chunks(args[2:], 2):
-            arg, value = single_arg
-            func_args[pascalcase(arg.removeprefix("--"))] = value
+        def create_client() -> AwsClient:
+            role = p.role or cfg.role
+            region = p.region or (cfg.region[0] if cfg.region else None)
+            profile = p.profile or (cfg.profiles[0] if cfg.profiles else None)
+            # alternative: lookup the current account id in case of none?
+            account_id = p.account_id or (cfg.account[0] if cfg.account else None)
+            return AwsClient(cfg, account_id, role=role, profile=profile, region=region)
 
-        # create the client
-        client = get_client(Config, resource)  # type: ignore
+        client = get_client(Config, resource) if resource else create_client()
 
         # try to get the output shape of the function
         output_shape: Optional[str] = None
         with suppress(Exception):
-            service_model = client.service_model(service_name)
-            operation: OperationModel = service_model.operation_model(pascalcase(function_name))
+            service_model = client.service_model(p.service)
+            operation: OperationModel = service_model.operation_model(pascalcase(p.function))
             output_shape = operation.output_shape.type_name
 
-        result: List[Json] = client.call_single(service_name, function_name, None, **func_args)  # type: ignore
+        result: List[Json] = client.call_single(p.service, p.function, None, **func_args)  # type: ignore
         # Remove the "ResponseMetadata" from the result
         for elem in result:
             if isinstance(elem, dict):

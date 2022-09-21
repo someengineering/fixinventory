@@ -2883,7 +2883,8 @@ class ExecuteTaskCommand(SendWorkerTaskCommand):
             return stream.flatmap(dependencies, with_dependencies)
 
         def setup_source() -> Stream:
-            return self.send_to_queue_stream(stream.just((command_name, {}, {"args": args})), self.no_update, True)
+            arg = {"args": args_parts_unquoted_parser.parse(formatter({}))}
+            return self.send_to_queue_stream(stream.just((command_name, {}, arg)), self.no_update, True)
 
         return CLISource.single(setup_source) if ctx.query is None else CLIFlow(setup_stream)
 
