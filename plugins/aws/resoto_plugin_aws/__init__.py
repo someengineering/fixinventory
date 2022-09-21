@@ -111,7 +111,7 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
         name="aws",
         info="Execute aws commands on AWS resources",
         args_description={
-            "--account-id": "[Optional] The AWS account id.",
+            "--account": "[Optional] The AWS account identifier.",
             "--role": "[Optional] The AWS role.",
             "--profile": "[Optional] The AWS profile to use.",
             "--region": "[Optional] The AWS region.",
@@ -119,22 +119,40 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
             "operation": "Defines the operation to execute.",
             "operation_args": "Defines the arguments for the operation. The parameters depend on the operation.",
         },
-        description="By default the operation runs with the same credentials as during the collect process.\n"
-        "You can override the credentials by providing the account-id, profile and region arguments.\n\n"
+        description="By default the operation runs with the same credentials as the collect process.\n"
+        "You can override the credentials by providing the account, role, profile and region arguments.\n\n"
+        "There are two modes of operation:\n"
+        "1. Use a search and then pipe the result of the search into the `aws` command. "
+        "Every resource matched by the search will invoke this command. "
+        "You can use templating parameter to define the exact invocation arguments.\n"
+        "2. Call the `aws` command directly without passing any resource to interact "
+        "with AWS using the credentials defined via configuration.\n\n"
         "## Examples\n\n"
         "```shell\n"
+        "# Search for all ec2 volumes and then call describe-volumes on each volume\n"
+        "# See AWS CLI for available services and commands.\n"
+        "# Please note the {id} parameter. The aws command is invoked for any volume and replaces the id parameter"
+        " with the volume id.\n"
         "> search is(aws_ec2_volume) | aws ec2 describe-volume-attribute --volume-id {id} --attribute autoEnableIO\n"
+        "AutoEnableIO:\n"
+        "Value: false\n"
+        "VolumeId: vol-009b0a28d2754927e\n\n"
+        "# Get the current caller identity\n"
+        "> aws sts get-caller-identity\n"
+        "UserId: AIDA42373XXXXXXXXXXXX\n"
+        "Account: '882376543210'\n"
+        "Arn: arn:aws:iam::882376543210:user/matthias\n"
         "```\n\n",
         allowed_on_kind="aws_resource",
     )
     def call_aws_function(self, resource: Optional[BaseResource], args: List[str]) -> Union[JsonElement, BaseResource]:
         parser = NoExitArgumentParser()
-        parser.add_argument("--account-id")
+        parser.add_argument("--account")
         parser.add_argument("--role")
         parser.add_argument("--profile")
         parser.add_argument("--region")
         parser.add_argument("service")
-        parser.add_argument("function")
+        parser.add_argument("operation")
         p, remaining = parser.parse_known_args(args)
         func_args = {pascalcase(k.removeprefix("--")): v for k, v in chunks(remaining, 2)}
         cfg: AwsConfig = Config.aws
@@ -144,19 +162,19 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
             region = p.region or (cfg.region[0] if cfg.region else None)
             profile = p.profile or (cfg.profiles[0] if cfg.profiles else None)
             # alternative: lookup the current account id in case of none?
-            account_id = p.account_id or (cfg.account[0] if cfg.account else None)
-            return AwsClient(cfg, account_id, role=role, profile=profile, region=region)
+            account = p.account or (cfg.account[0] if cfg.account else None)
+            return AwsClient(cfg, account, role=role, profile=profile, region=region)
 
         client = get_client(Config, resource) if resource else create_client()
 
-        # try to get the output shape of the function
+        # try to get the output shape of the operation
         output_shape: Optional[str] = None
         with suppress(Exception):
             service_model = client.service_model(p.service)
-            operation: OperationModel = service_model.operation_model(pascalcase(p.function))
+            operation: OperationModel = service_model.operation_model(pascalcase(p.operation))
             output_shape = operation.output_shape.type_name
 
-        result: List[Json] = client.call_single(p.service, p.function, None, **func_args)  # type: ignore
+        result: List[Json] = client.call_single(p.service, p.operation, None, **func_args)  # type: ignore
         # Remove the "ResponseMetadata" from the result
         for elem in result:
             if isinstance(elem, dict):
