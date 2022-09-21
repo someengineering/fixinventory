@@ -57,9 +57,9 @@ RUN apt-get -y install \
 # Download and install PyPy
 WORKDIR /build
 RUN mkdir -p /build/pypy
-RUN if [ ${TARGETPLATFORM} = "linux/amd64" ]; then \
+RUN if [ "${TARGETPLATFORM}" = "linux/amd64" ]; then \
         export PYPY_ARCH=linux64; \
-    elif [ ${TARGETPLATFORM} = "linux/arm64" ]; then \
+    elif [ "${TARGETPLATFORM}" = "linux/arm64" ]; then \
         export PYPY_ARCH=aarch64; \
     else \
         export PYPY_ARCH=linux64; \
@@ -90,23 +90,26 @@ COPY --from=arangodb-amd64-env /usr/bin/arangodump /tmp/arangodb/amd64/
 COPY --from=arangodb-amd64-env /usr/bin/arangorestore /tmp/arangodb/amd64/
 COPY --from=arangodb-arm64-env /usr/bin/arangodump /tmp/arangodb/arm64/
 COPY --from=arangodb-arm64-env /usr/bin/arangorestore /tmp/arangodb/arm64/
-RUN if [ ${TARGETPLATFORM} = "linux/amd64" ]; then \
+RUN if [ "${TARGETPLATFORM}" = "linux/amd64" ]; then \
         cp /tmp/arangodb/amd64/* /usr/local/bin/; \
-    elif [ ${TARGETPLATFORM} = "linux/arm64" ]; then \
+    elif [ "${TARGETPLATFORM}" = "linux/arm64" ]; then \
         cp /tmp/arangodb/arm64/* /usr/local/bin/; \
     else \
         echo "Building for unknown platform - not copying ArangoDB client binaries"; \
     fi
 
 # Download AWS CLI
-WORKDIR /tmp/awscli
-RUN if [ ${TARGETPLATFORM} = "linux/arm64" ]; then \
-        curl "https://awscli.amazonaws.com/awscli-exe-linux-aarch64.zip" -o "awscliv2.zip"; \
+WORKDIR /build/awscli
+RUN if [ "${TARGETPLATFORM}" = "linux/amd64" ]; then \
+        export AWSCLI_ARCH=x86_64; \
+    elif [ "${TARGETPLATFORM}" = "linux/arm64" ]; then \
+        export AWSCLI_ARCH=aarch64; \
     else \
-        curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"; \
+        export AWSCLI_ARCH=x86_64; \
     fi; \
-RUN unzip awscliv2.zip
-RUN ./aws/install -i /usr/local/aws-cli -b /usr/local/bin
+    curl -L -o /tmp/awscliv2.zip https://awscli.amazonaws.com/awscli-exe-linux-${AWSCLI_ARCH}.zip
+RUN unzip /tmp/awscliv2.zip
+RUN aws/install -i /usr/local/aws-cli -b /usr/local/bin
 
 # Prepare PyPy whl build env
 RUN mkdir -p /build-python
