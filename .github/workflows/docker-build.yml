@@ -305,7 +305,7 @@ jobs:
           commit-message: "feat(docs): update edge API documentation"
           title: "feat(docs): update edge API documentation"
           body: |
-            Updates `edge` Resoto Core API documentation to reflect changes in [${{ github.sha }}](https://github.com/someengineering/resoto/commit/${{ github.sha }}).
+            Updates `edge` Resoto Core API documentation to reflect changes in [`${{ github.sha }}`](https://github.com/someengineering/resoto/commit/${{ github.sha }}).
           labels: |
             🤖 bot
           branch: api-docs # stable branch name so any additional commits to main update the existing PR instead of creating a new one
