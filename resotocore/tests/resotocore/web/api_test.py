@@ -9,8 +9,11 @@ from aiohttp import ClientSession
 from arango.database import StandardDatabase
 
 from resotocore.__main__ import run
+from resotocore.analytics import NoEventSender
+from resotocore.db.db_access import DbAccess
+from resotocore.dependencies import empty_config
+from resotocore.model.adjust_node import NoAdjust
 from resotocore.model.model import predefined_kinds, Kind
-from resotocore.model.typed_model import to_js
 from resotocore.util import rnd_str, AccessJson
 
 # noinspection PyUnresolvedReferences
@@ -34,9 +37,15 @@ def graph_to_json(graph: MultiDiGraph) -> List[rc.JsObject]:
     return ga
 
 
+@fixture()
+def db_access(test_db: StandardDatabase) -> DbAccess:
+    access = DbAccess(test_db, NoEventSender(), NoAdjust(), empty_config())
+    return access
+
+
 @fixture
 async def core_client(
-    client_session: ClientSession, foo_kinds: List[Kind], test_db: StandardDatabase
+    client_session: ClientSession, foo_kinds: List[Kind], db_access: DbAccess
 ) -> AsyncIterator[ApiClient]:
     """
     Note: adding this fixture to a test: a complete resotocore process is started.
@@ -44,9 +53,11 @@ async def core_client(
           It also ensures to clean up the process, when the test is done.
     """
     port = 28900  # use a different port than the default one
+
     # wipe and cleanly import the test model
-    test_db.collection("model").truncate()
-    test_db.collection("model").insert_many([{"_key": elem.fqn, **to_js(elem)} for elem in foo_kinds])
+    await db_access.model_db.create_update_schema()
+    await db_access.model_db.wipe()
+    await db_access.model_db.update_many(foo_kinds)
 
     process = Process(
         target=run,
@@ -217,7 +228,7 @@ async def test_graph_api(core_client: ApiClient) -> None:
     assert result_list[0].get("id") == "3"  # first node is the parent node
 
     # aggregate
-    result_aggregate = core_client.search_aggregate("aggregate(reported.kind as kind: sum(1) as count): all", g)
+    result_aggregate = core_client.search_aggregate("aggregate(reported.kind as kind: sum(1) as count): all", graph=g)
     assert {r["group"]["kind"]: r["count"] for r in result_aggregate} == {
         "bla": 100,
         "cloud": 1,
