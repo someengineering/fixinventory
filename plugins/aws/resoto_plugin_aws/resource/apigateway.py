@@ -185,8 +185,8 @@ class AwsApiGatewayAuthorizer(AwsResource):
     # collection of authorizer resources happens in AwsApiGatewayRestApi.collect()
     kind: ClassVar[str] = "aws_api_gateway_authorizer"
     reference_kinds: ClassVar[ModelReference] = {
-        "successors": {"default": ["aws_iam_role", "aws_lambda_function"]},
-        "predecessors": {"delete": ["aws_lambda_function"]},
+        "successors": {"default": ["aws_lambda_function"]},
+        "predecessors": {"default": ["aws_iam_role"], "delete": ["aws_lambda_function", "aws_iam_role"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -221,7 +221,9 @@ class AwsApiGatewayAuthorizer(AwsResource):
                 name=lambda_name,
             )
         if self.authorizer_credentials:
-            builder.add_edge(self, edge_type=EdgeType.default, clazz=AwsIamRole, arn=self.authorizer_credentials)
+            builder.dependant_node(
+                self, reverse=True, delete_same_as_default=True, clazz=AwsIamRole, arn=self.authorizer_credentials
+            )
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(

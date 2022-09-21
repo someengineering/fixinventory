@@ -293,11 +293,11 @@ class AwsRedshiftCluster(AwsResource):
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["aws_vpc", "aws_ec2_security_group", "aws_iam_role", "aws_ec2_subnet"],
-            "delete": ["aws_kms_key"],
+            "delete": ["aws_kms_key", "aws_iam_role"],
         },
         "successors": {
             "default": ["aws_kms_key"],
-            "delete": ["aws_vpc", "aws_ec2_security_group", "aws_iam_role", "aws_ec2_subnet"],
+            "delete": ["aws_vpc", "aws_ec2_security_group", "aws_ec2_subnet"],
         },
     }
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -431,7 +431,9 @@ class AwsRedshiftCluster(AwsResource):
 
         for role in self.redshift_iam_roles:
             if role.iam_role_arn:
-                builder.dependant_node(self, reverse=True, clazz=AwsIamRole, arn=role.iam_role_arn)
+                builder.dependant_node(
+                    self, reverse=True, delete_same_as_default=True, clazz=AwsIamRole, arn=role.iam_role_arn
+                )
 
         if self.redshift_cluster_subnet_group_name:
             builder.dependant_node(self, reverse=True, clazz=AwsEc2Subnet, name=self.redshift_cluster_subnet_group_name)

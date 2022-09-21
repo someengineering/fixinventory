@@ -322,11 +322,11 @@ class AwsEcsTask(EcsTaggable, AwsResource):
     kind: ClassVar[str] = "aws_ecs_task"
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
-            "default": ["aws_ecs_task_definition"],
+            "default": ["aws_iam_role", "aws_ecs_task_definition"],
             "delete": ["aws_iam_role"],
         },
         "successors": {
-            "default": ["aws_iam_role", "aws_ecs_container_instance", "aws_ecs_capacity_provider"],
+            "default": ["aws_ecs_container_instance", "aws_ecs_capacity_provider"],
             "delete": ["aws_ecs_container_instance"],
         },
     }
@@ -407,7 +407,7 @@ class AwsEcsTask(EcsTaggable, AwsResource):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.task_overrides:
             for role in [self.task_overrides.execution_role_arn, self.task_overrides.task_role_arn]:
-                builder.dependant_node(self, clazz=AwsIamRole, arn=role)
+                builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsIamRole, arn=role)
         if self.task_definition_arn:
             builder.add_edge(
                 self, edge_type=EdgeType.default, reverse=True, clazz=AwsEcsTaskDefinition, arn=self.task_definition_arn
@@ -809,8 +809,7 @@ class AwsEcsTaskDefinition(EcsTaggable, AwsResource):
     kind: ClassVar[str] = "aws_ecs_task_definition"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ecs", "list-task-definitions", "taskDefinitionArns")
     reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {"delete": ["aws_iam_role"]},
-        "successors": {"default": ["aws_iam_role"]},
+        "predecessors": {"default": ["aws_iam_role"], "delete": ["aws_iam_role"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("taskDefinitionArn"),
@@ -889,18 +888,13 @@ class AwsEcsTaskDefinition(EcsTaggable, AwsResource):
             builder.add_node(task_definition_instance, task_def_arn)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if self.task_role_arn:
-            if self.task_role_arn:
-                builder.dependant_node(
-                    self,
-                    clazz=AwsIamRole,
-                    arn=self.task_role_arn,
-                )
-        if self.execution_role_arn:
+        for role in [self.task_role_arn, self.execution_role_arn]:
             builder.dependant_node(
                 self,
+                reverse=True,
+                delete_same_as_default=True,
                 clazz=AwsIamRole,
-                arn=self.execution_role_arn,
+                arn=role,
             )
 
     def delete_resource(self, client: AwsClient) -> bool:
@@ -1132,13 +1126,13 @@ class AwsEcsService(EcsTaggable, AwsResource):
     kind: ClassVar[str] = "aws_ecs_service"
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
-            "delete": ["aws_alb_target_group", "aws_elb", "aws_iam_role", "aws_ec2_subnet", "aws_ec2_security_group"]
+            "default": ["aws_iam_role"],
+            "delete": ["aws_alb_target_group", "aws_elb", "aws_iam_role", "aws_ec2_subnet", "aws_ec2_security_group"],
         },
         "successors": {
             "default": [
                 "aws_alb_target_group",
                 "aws_elb",
-                "aws_iam_role",
                 "aws_ec2_subnet",
                 "aws_ec2_security_group",
                 "aws_ecs_capacity_provider",
@@ -1244,6 +1238,8 @@ class AwsEcsService(EcsTaggable, AwsResource):
         if self.service_role_arn:
             builder.dependant_node(
                 self,
+                reverse=True,
+                delete_same_as_default=True,
                 clazz=AwsIamRole,
                 arn=self.service_role_arn,
             )
