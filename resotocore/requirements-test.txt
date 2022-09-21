@@ -5,4 +5,4 @@ pytest-runner==6.0.0
 pytest-asyncio==0.18.3
 deepdiff==5.8.1
 hypothesis==6.47.0
-resotoclient>=0.1.13
+resotoclient==0.1.13
