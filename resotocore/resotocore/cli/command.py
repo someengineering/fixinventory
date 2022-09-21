@@ -101,7 +101,7 @@ from resotocore.model.model import (
 )
 from resotocore.model.resolve_in_graph import NodePath
 from resotocore.model.typed_model import to_json, to_js
-from resotocore.query.model import Query, P, Template, NavigateUntilRoot
+from resotocore.query.model import Query, P, Template, NavigateUntilRoot, Term
 from resotocore.query.query_parser import parse_query
 from resotocore.query.template_expander import tpl_props_p
 from resotocore.task.task_description import Job, TimeTrigger, EventTrigger, ExecuteCommand, Workflow
@@ -2714,7 +2714,7 @@ class SendWorkerTaskCommand(CLICommand, ABC):
                     yield a
             else:
                 # one query to load all items that match given ids (max 1000 as defined in chunk size)
-                term = P("_key").is_in(ids)
+                term: Term = P("_key").is_in(ids)
                 if expected_kind is not None:
                     term &= P.of_kind(expected_kind)
                 query = (

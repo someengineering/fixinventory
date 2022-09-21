@@ -32,27 +32,17 @@ def test_alias_template() -> None:
     params = [AliasTemplateParameter("a", "some a"), AliasTemplateParameter("b", "some b", "bv")]
     tpl = AliasTemplate("foo", "does foes", "{{a}} | {{b}}", params)
     assert tpl.render({"a": "test", "b": "bla"}) == "test | bla"
-    assert tpl.rendered_help(CLIContext()) == dedent(
-        """
-        foo: does foes
-        ```shell
-        foo a=<value>, b=<value>
-        ```
-        ## Parameters
-        - `a`: some a
-        - `b` [default: bv]: some b
-
-        ## Template
-        ```shell
-        > {{a}} | {{b}}
-        ```
-
-        ## Example
-        ```shell
-        # Executing this alias template
-        > foo a="test_a"
-        # Will expand to this command
-        > test_a | bv
-        ```
-        """
+    assert (
+        dedent(
+            """
+            ## Example
+            ```shell
+            # Executing this alias template
+            > foo a="test_a"
+            # Will expand to this command
+            > test_a | bv
+            ```
+            """
+        )
+        in tpl.rendered_help(CLIContext())
     )

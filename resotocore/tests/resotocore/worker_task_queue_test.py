@@ -141,7 +141,7 @@ async def test_handle_outdated(
 
     all_tasks = [create_task(str(n), outdated_task.name) for n in range(0, 20)]
     for t in all_tasks:
-        await task_queue.add_task(t)
+        await task_queue.add_task(t, retry_count=3)
 
     await asyncio.sleep(0)
 
