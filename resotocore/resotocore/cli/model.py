@@ -383,11 +383,13 @@ class AliasTemplate:
     info: str
     template: str
     parameters: List[AliasTemplateParameter] = field(factory=list)
+    description: Optional[str] = None
+    args_description: Dict[str, str] = field(factory=dict)
 
     def render(self, props: Json) -> str:
         return render_template(self.template, props)
 
-    def help(self) -> str:
+    def help_with_params(self) -> str:
         args = ", ".join(f"{arg.name}=<value>" for arg in self.parameters)
 
         def param_info(p: AliasTemplateParameter) -> str:
@@ -399,27 +401,46 @@ class AliasTemplate:
         minimal = ", ".join(f'{p.name}="{p.example_value()}"' for p in self.parameters if p.default is None)
         return dedent(
             f"""
-                {self.name}: {self.info}
-                ```shell
-                {self.name} {args}
-                ```
-                ## Parameters
-                {arg_info}
+            {self.name}: {self.info}
+            ```shell
+            {self.name} {args}
+            ```
 
-                ## Template
-                ```shell
-                > {self.template}
-                ```
+            {self.description or ''}
 
-                ## Example
-                ```shell
-                # Executing this alias template
-                > {self.name} {minimal}
-                # Will expand to this command
-                > {self.render({p.name: p.example_value() for p in self.parameters})}
-                ```
-                """
+            ## Parameters
+            {arg_info}
+
+            ## Template
+            ```shell
+            > {self.template}
+            ```
+
+            ## Example
+            ```shell
+            # Executing this alias template
+            > {self.name} {minimal}
+            # Will expand to this command
+            > {self.render({p.name: p.example_value() for p in self.parameters})}
+            ```
+            """
         )
+
+    def help_no_params_args(self) -> str:
+        args = ""
+        args_info = ""
+        for arg_name, arg_description in self.args_description.items():
+            args += f" [{arg_name}]"
+            args_info += f"\n- `{arg_name}`: {arg_description}"
+
+        args_info = args_info or ("<args>" if "{args}" in self.template else "")
+        return (
+            f"{self.name}: {self.info}\n```shell\n{self.name} {args}\n```\n\n"
+            f"## Parameters\n {args_info}\n\n{self.description}\n\n"
+        )
+
+    def help(self) -> str:
+        return self.help_with_params() if self.parameters else self.help_no_params_args()
 
     def rendered_help(self, ctx: CLIContext) -> str:
         return ctx.render_console(self.help())
@@ -429,7 +450,7 @@ class AliasTemplate:
         def arg(p: AliasTemplateParameterConfig) -> AliasTemplateParameter:
             return AliasTemplateParameter(p.name, p.description, p.default)
 
-        return AliasTemplate(cfg.name, cfg.info, cfg.template, [arg(a) for a in cfg.parameters])
+        return AliasTemplate(cfg.name, cfg.info, cfg.template, [arg(a) for a in cfg.parameters], cfg.description)
 
 
 class InternalPart(ABC):

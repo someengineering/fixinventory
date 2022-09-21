@@ -4,11 +4,11 @@ import queue
 import threading
 import time
 from typing import Callable, Dict, Optional, List, Any
-from urllib.parse import urlunsplit, urlencode, urlsplit
+from urllib.parse import urlunsplit, urlsplit
 
 import jsons
 import websocket
-from attr import define
+from attrs import define, field
 from resotolib.args import ArgumentParser
 from resotolib.baseresources import BaseResource
 from resotolib.core.ca import TLSData
@@ -16,6 +16,7 @@ from resotolib.core.model_export import node_to_dict, node_from_dict
 from resotolib.event import EventType, remove_event_listener, add_event_listener, Event
 from resotolib.jwt import encode_jwt_to_headers
 from resotolib.logger import log
+from resotolib.plugin_task_handler import WorkerTaskDecorator
 from resotolib.types import Json, JsonElement
 
 
@@ -34,9 +35,14 @@ class CoreTaskResult:
 
 @define
 class CoreTaskHandler:
-    task_name: str
-    task_filter: Dict[str, List[str]]
+    name: str
+    info: str
+    description: str
     handler: Callable[[Json], JsonElement]
+    expect_node_result: bool = False
+    filter: Dict[str, List[str]] = field(factory=dict)
+    allowed_on_kind: Optional[str] = None
+    args_description: Dict[str, str] = field(factory=dict)
 
     def execute(self, message: Json) -> CoreTaskResult:
         task_id = message["task_id"]  # fail if there is no task_id
@@ -47,38 +53,52 @@ class CoreTaskHandler:
         except Exception as e:
             return CoreTaskResult(task_id=task_id, error=str(e))
 
-    def url_str(self) -> str:
-        # task:filter_1=a,b,c;filter_2=d,e,f
-        return self.task_name + ":" + ";".join(k + "=" + ",".join(v) for k, v in self.task_filter.items())
-
     def matches(self, js: Json) -> bool:
         attrs: Json = js.get("attrs")
-        if js.get("task_name") != self.task_name or not isinstance(attrs, dict):
+        if js.get("task_name") != self.name or not isinstance(attrs, dict):
             return False
-        return all((attrs.get(n) in f) for n, f in self.task_filter.items())
+        return all((attrs.get(n) in f) for n, f in self.filter.items())
+
+    def core_json(self) -> Json:
+        return {
+            "name": self.name,
+            "info": self.info,
+            "description": self.description,
+            "filter": self.filter,
+            "expect_node_result": self.expect_node_result,
+            "args_description": self.args_description,
+            "allowed_on_kind": self.allowed_on_kind,
+        }
 
     @staticmethod
-    def from_command_json(target: Any, handler: Json) -> CoreTaskHandler:
-        fn = handler["handler"]
-
+    def from_decorator(target: Any, wtd: WorkerTaskDecorator) -> CoreTaskHandler:
         def handle_message(message: Json) -> JsonElement:
             node_data = message.get("node", {})
             args = message.get("args", [])
-            return fn(target, node_data, args)
+            return wtd.fn(target, node_data, args)
 
         def handle_resource(message: Json) -> JsonElement:
             node_data = message.get("node", {})
             node = node_from_dict(node_data, include_select_ancestors=True)
             args = message.get("args", [])
-            result = fn(target, node, args)
+            result = wtd.fn(target, node, args)
             # expect either a base resource or json element as result
             if isinstance(result, BaseResource):
                 return node_to_dict(result)
             else:
                 return result
 
-        to_call = handle_resource if handler["expect_resource"] else handle_message
-        return CoreTaskHandler(handler["task_name"], handler["task_filter"], to_call)
+        to_call = handle_resource if wtd.expect_resource else handle_message
+        return CoreTaskHandler(
+            name=wtd.name,
+            info=wtd.info,
+            args_description=wtd.args_description,
+            description=wtd.description,
+            filter=wtd.filter,
+            expect_node_result=wtd.expect_node_result,
+            allowed_on_kind=wtd.allowed_on_kind,
+            handler=to_call,
+        )
 
 
 class CoreTasks(threading.Thread):
@@ -139,9 +159,7 @@ class CoreTasks(threading.Thread):
         scheme = resotocore_ws_uri_split.scheme
         netloc = resotocore_ws_uri_split.netloc
         path = resotocore_ws_uri_split.path + "/work/queue"
-        query_dict = {"task": "::".join(a.url_str() for a in self.task_handler)}
-        query = urlencode(query_dict)
-        ws_uri = urlunsplit((scheme, netloc, path, query, ""))
+        ws_uri = urlunsplit((scheme, netloc, path, "", ""))
 
         log.debug(f"{self.identifier} connecting to {ws_uri}")
         headers = {}
@@ -184,6 +202,7 @@ class CoreTasks(threading.Thread):
 
     def on_open(self, ws):
         log.debug(f"{self.identifier} connected to resotocore task queue")
+        ws.send(json.dumps([handler.core_json() for handler in self.task_handler]))
 
     def on_ping(self, ws, message):
         log.debug(f"{self.identifier} tasks ping from resotocore message bus")

@@ -146,15 +146,22 @@ def main() -> None:
     # make tagging by collectors available out of the box
     collect_plugins: List[BaseCollectorPlugin] = plugin_loader.plugins(PluginType.COLLECTOR)  # type: ignore
     task_handler = [
-        CoreTaskHandler("tag", {"cloud": [plugin.cloud]}, partial(core_tag_tasks_processor, plugin, config))
+        CoreTaskHandler(
+            name="tag",
+            info="already provided",
+            description="already provided",
+            filter={"cloud": [plugin.cloud]},
+            expect_node_result=True,
+            handler=partial(core_tag_tasks_processor, plugin, config),
+        )
         for plugin in collect_plugins
     ]
     # search all other plugins for possible task providers
     for plugin_clazz in plugin_loader.all_plugins():
         plugin = plugin_clazz()
-        for js in task_definitions(plugin_clazz):
-            handler = CoreTaskHandler.from_command_json(plugin, js)
-            log.info(f"Plugin {plugin.name}: Add task handler for task {handler.task_name} @ {handler.task_filter}")
+        for wtd in task_definitions(plugin_clazz):
+            handler = CoreTaskHandler.from_decorator(plugin, wtd)
+            log.info(f"Plugin {plugin.name}: Add task handler for task {handler.name} @ {handler.filter}")
             task_handler.append(handler)
 
     core_tasks = CoreTasks(

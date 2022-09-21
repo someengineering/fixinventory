@@ -15,7 +15,8 @@ from asyncio import Future, Task
 from asyncio.subprocess import Process
 from collections import defaultdict
 from contextlib import suppress
-from attrs import define
+
+from attrs import define, field
 from datetime import timedelta
 from functools import partial
 from itertools import dropwhile, chain
@@ -81,6 +82,7 @@ from resotocore.cli.model import (
     NoTerminalOutput,
     ArgsInfo,
     ArgInfo,
+    AliasTemplate,
 )
 from resotocore.config import ConfigEntity
 from resotocore.db.model import QueryModel
@@ -99,7 +101,7 @@ from resotocore.model.model import (
 )
 from resotocore.model.resolve_in_graph import NodePath
 from resotocore.model.typed_model import to_json, to_js
-from resotocore.query.model import Query, P, Template, NavigateUntilRoot, IsTerm
+from resotocore.query.model import Query, P, Template, NavigateUntilRoot
 from resotocore.query.query_parser import parse_query
 from resotocore.query.template_expander import tpl_props_p
 from resotocore.task.task_description import Job, TimeTrigger, EventTrigger, ExecuteCommand, Workflow
@@ -2695,7 +2697,14 @@ class SendWorkerTaskCommand(CLICommand, ABC):
 
         return stream.starmap(in_stream, send_to_queue, ordered=False, task_limit=self.task_limit())
 
-    def load_by_id_merged(self, model: Model, in_stream: Stream, variables: Optional[Set[str]], **env: str) -> Stream:
+    def load_by_id_merged(
+        self,
+        model: Model,
+        in_stream: Stream,
+        variables: Optional[Set[str]],
+        expected_kind: Optional[str] = None,
+        **env: str,
+    ) -> Stream:
         async def load_element(items: List[JsonElement]) -> AsyncIterator[JsonElement]:
             # collect ids either from json dict or string
             ids: List[str] = [i["id"] if is_node(i) else i for i in items]  # type: ignore
@@ -2703,18 +2712,22 @@ class SendWorkerTaskCommand(CLICommand, ABC):
             if any(a for a in ids if not isinstance(a, str)):
                 for a in items:
                     yield a
-            # one query to load all items that match given ids (max 1000 as defined in chunk size)
-            query = (
-                Query.by(P("_key").is_in(ids))
-                .merge_with("ancestors.cloud", NavigateUntilRoot, IsTerm(["cloud"]))
-                .merge_with("ancestors.account", NavigateUntilRoot, IsTerm(["account"]))
-                .merge_with("ancestors.region", NavigateUntilRoot, IsTerm(["region"]))
-                .merge_with("ancestors.zone", NavigateUntilRoot, IsTerm(["zone"]))
-            ).rewrite_for_ancestors_descendants(variables)
-            query_model = QueryModel(query, model)
-            async with await self.dependencies.db_access.get_graph_db(env["graph"]).search_list(query_model) as crs:
-                async for a in crs:
-                    yield a
+            else:
+                # one query to load all items that match given ids (max 1000 as defined in chunk size)
+                term = P("_key").is_in(ids)
+                if expected_kind is not None:
+                    term &= P.of_kind(expected_kind)
+                query = (
+                    Query.by(term)
+                    .merge_with("ancestors.cloud", NavigateUntilRoot, P.of_kind("cloud"))
+                    .merge_with("ancestors.account", NavigateUntilRoot, P.of_kind("account"))
+                    .merge_with("ancestors.region", NavigateUntilRoot, P.of_kind("region"))
+                    .merge_with("ancestors.zone", NavigateUntilRoot, P.of_kind("zone"))
+                ).rewrite_for_ancestors_descendants(variables)
+                query_model = QueryModel(query, model)
+                async with await self.dependencies.db_access.get_graph_db(env["graph"]).search_list(query_model) as crs:
+                    async for a in crs:
+                        yield a
 
         return stream.flatmap(stream.chunks(in_stream, 1000), load_element)
 
@@ -2775,6 +2788,34 @@ class SendWorkerTaskCommand(CLICommand, ABC):
         pass
 
 
+@define
+class WorkerCustomCommand:
+    """
+    A worker might provide custom commands. This definition is provided by the worker.
+    """
+
+    name: str
+    info: Optional[str] = None
+    args_description: Dict[str, str] = field(factory=dict)
+    description: Optional[str] = None
+    filter: Dict[str, List[str]] = field(factory=dict)
+    allowed_on_kind: Optional[str] = None
+    expect_node_result: bool = False
+
+    def to_template(self) -> AliasTemplate:
+        allowed_kind = f" --allowed-on {self.allowed_on_kind}" if self.allowed_on_kind else ""
+        result_flag = "" if self.expect_node_result else " --no-node-result"
+        command = f'--command "{self.name}"'
+        args = '--arg "{{args}}"'
+        return AliasTemplate(
+            name=self.name,
+            info=self.info or "",
+            args_description=self.args_description,
+            template=f"execute-task{result_flag}{allowed_kind} {command} {args}",
+            description=self.description,
+        )
+
+
 class ExecuteTaskCommand(SendWorkerTaskCommand):
     """
     ```
@@ -2792,6 +2833,7 @@ class ExecuteTaskCommand(SendWorkerTaskCommand):
     ## Parameters
     - `--command`: The name of the command to execute.
     - `--arg`: The argument string to pass to the command.
+    - `--allowed-on`: The kind of node this command is allowed to be executed on. If not provided: any value is allowed.
 
     ## Examples
     ```shell
@@ -2817,6 +2859,7 @@ class ExecuteTaskCommand(SendWorkerTaskCommand):
         command_name: str,
         expect_node_result: bool,
         args: Optional[str] = None,
+        allowed_on_kind: Optional[str] = None,
         ctx: CLIContext = EmptyContext,
         **kwargs: Any,
     ) -> CLIAction:
@@ -2831,7 +2874,7 @@ class ExecuteTaskCommand(SendWorkerTaskCommand):
 
         def setup_stream(in_stream: Stream) -> Stream:
             def with_dependencies(model: Model) -> Stream:
-                load = self.load_by_id_merged(model, in_stream, variables, **ctx.env)
+                load = self.load_by_id_merged(model, in_stream, variables, allowed_on_kind, **ctx.env)
                 handler = self.update_node_in_graphdb(model, **ctx.env) if expect_node_result else self.no_update
                 return self.send_to_queue_stream(stream.map(load, fn), handler, True)
 
@@ -2849,8 +2892,9 @@ class ExecuteTaskCommand(SendWorkerTaskCommand):
         parser.add_argument("--command", required=True)
         parser.add_argument("--arg")
         parser.add_argument("--no-node-result", action="store_true", default=False)
+        parser.add_argument("--allowed-on")
         ns = parser.parse_args(args_parts_unquoted_parser.parse(arg if arg else ""))
-        return self.send_command(ns.command, not ns.no_node_result, ns.arg, ctx, **kwargs)
+        return self.send_command(ns.command, not ns.no_node_result, ns.arg, ns.allowed_on, ctx, **kwargs)
 
 
 class TagCommand(SendWorkerTaskCommand):

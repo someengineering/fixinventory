@@ -1,15 +1,11 @@
 from typing import Any, Dict, List, Type, Optional
 
-from resotolib.types import DecoratedFn, Json
+from resotolib.types import DecoratedFn
 
 definitions = "__task_definitions"
 
 
-def task_definitions(clazz: Type[Any]) -> List[Json]:
-    return getattr(clazz, definitions, [])
-
-
-class _WorkerTaskDecorator:
+class WorkerTaskDecorator:
     """
     A final decorator is called by the interpreter once after the class is defined.
     (Not the case for decorators with attributes)
@@ -18,25 +14,32 @@ class _WorkerTaskDecorator:
     """
 
     def __init__(
-        self, fn: DecoratedFn, task_name: str, task_filter: Dict[str, List[str]], expect_resource: bool
+        self,
+        fn: DecoratedFn,
+        name: str,
+        info: str,
+        args_description: Dict[str, str],
+        description: str,
+        expect_node_result: bool = False,
+        expect_resource: bool = False,
+        allowed_on_kind: Optional[str] = None,
+        filter: Optional[Dict[str, List[str]]] = None,
     ) -> None:
         self.fn = fn
-        self.task_name = task_name
-        self.task_filter = task_filter
+        self.name = name
+        self.info = info
+        self.args_description = args_description
+        self.description = description
         self.expect_resource = expect_resource
+        self.expect_node_result = expect_node_result
+        self.allowed_on_kind = allowed_on_kind
+        self.filter = filter
 
     def __set_name__(self, owner, name):
         # store this definition on the owners side (class)
         if getattr(owner, definitions, None) is None:
             setattr(owner, definitions, [])
-        getattr(owner, definitions).append(
-            {
-                "task_name": self.task_name,
-                "task_filter": self.task_filter,
-                "handler": self.fn,
-                "expect_resource": self.expect_resource,
-            }
-        )
+        getattr(owner, definitions).append(self)
         # make the function available at the call side (class)
         setattr(owner, name, self.fn)
 
@@ -58,12 +61,36 @@ class execute_command:  # noqa: N801
        pass
     """
 
-    def __init__(self, name: str, filter: Optional[Dict[str, List[str]]] = None) -> None:
+    def __init__(
+        self,
+        name: str,
+        info: str,
+        args_description: Dict[str, str],
+        description: str,
+        expect_node_result: bool = False,
+        allowed_on_kind: Optional[str] = None,
+        filter: Optional[Dict[str, List[str]]] = None,
+    ) -> None:
         self.name = name
+        self.info = info
+        self.args_description = args_description
+        self.description = description
+        self.expect_node_result = expect_node_result
+        self.allowed_on_kind = allowed_on_kind
         self.filter = filter or {}
 
     def __call__(self, fn: DecoratedFn) -> DecoratedFn:
-        return _WorkerTaskDecorator(fn, self.name, self.filter, False)
+        return WorkerTaskDecorator(
+            fn,
+            name=self.name,
+            info=self.info,
+            args_description=self.args_description,
+            description=self.description,
+            expect_node_result=self.expect_node_result,
+            expect_resource=False,
+            allowed_on_kind=self.allowed_on_kind,
+            filter=self.filter,
+        )
 
 
 # noinspection PyPep8Naming
@@ -79,9 +106,37 @@ class execute_command_on_resource:  # noqa: N801
        pass
     """
 
-    def __init__(self, name: str, filter: Optional[Dict[str, List[str]]] = None) -> None:
+    def __init__(
+        self,
+        name: str,
+        info: str,
+        args_description: Dict[str, str],
+        description: str,
+        expect_node_result: bool = False,
+        allowed_on_kind: Optional[str] = None,
+        filter: Optional[Dict[str, List[str]]] = None,
+    ) -> None:
         self.name = name
+        self.info = info
+        self.args_description = args_description
+        self.description = description
+        self.expect_node_result = expect_node_result
+        self.allowed_on_kind = allowed_on_kind
         self.filter = filter or {}
 
     def __call__(self, fn: DecoratedFn) -> DecoratedFn:
-        return _WorkerTaskDecorator(fn, self.name, self.filter, True)
+        return WorkerTaskDecorator(
+            fn,
+            name=self.name,
+            info=self.info,
+            args_description=self.args_description,
+            description=self.description,
+            expect_node_result=self.expect_node_result,
+            expect_resource=True,
+            allowed_on_kind=self.allowed_on_kind,
+            filter=self.filter,
+        )
+
+
+def task_definitions(clazz: Type[Any]) -> List[WorkerTaskDecorator]:
+    return getattr(clazz, definitions, [])

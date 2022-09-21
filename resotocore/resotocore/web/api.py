@@ -2,18 +2,29 @@ import asyncio
 import json
 import logging
 import os
-import re
 import shutil
 import string
 import tempfile
 import uuid
-from asyncio import Future
-from attrs import evolve
+from asyncio import Future, Queue
+from contextlib import asynccontextmanager
 from datetime import timedelta
 from functools import partial
 from pathlib import Path
 from random import SystemRandom
-from typing import AsyncGenerator, Any, Optional, Sequence, Union, List, Dict, AsyncIterator, Tuple, Callable, Awaitable
+from typing import (
+    AsyncGenerator,
+    Any,
+    Optional,
+    Sequence,
+    Union,
+    List,
+    Dict,
+    AsyncIterator,
+    Tuple,
+    Callable,
+    Awaitable,
+)
 
 import prometheus_client
 import yaml
@@ -25,14 +36,12 @@ from aiohttp.web_exceptions import HTTPNotFound, HTTPNoContent, HTTPOk, HTTPNotA
 from aiohttp.web_routedef import AbstractRouteDef
 from aiohttp_swagger3 import SwaggerFile, SwaggerUiSettings
 from aiostream.core import Stream
+from attrs import evolve
 from networkx.readwrite import cytoscape_data
-from resotolib.asynchronous.web.auth import auth_handler
-from resotolib.asynchronous.web.ws_handler import accept_websocket, clean_ws_handler
-from resotolib.jwt import encode_jwt
 
 from resotocore.analytics import AnalyticsEventSender
 from resotocore.cli.cli import CLI
-from resotocore.cli.command import ListCommand, alias_names
+from resotocore.cli.command import ListCommand, alias_names, WorkerCustomCommand
 from resotocore.cli.model import (
     ParsedCommandLine,
     CLIContext,
@@ -42,13 +51,14 @@ from resotocore.cli.model import (
     InternalPart,
     AliasTemplate,
 )
-from resotocore.ids import TaskId, ConfigId, NodeId
 from resotocore.config import ConfigHandler, ConfigValidation, ConfigEntity
 from resotocore.console_renderer import ConsoleColorSystem, ConsoleRenderer
 from resotocore.core_config import CoreConfig
 from resotocore.db.db_access import DbAccess
 from resotocore.db.graphdb import GraphDB
 from resotocore.db.model import QueryModel
+from resotocore.ids import SubscriberId, WorkerId
+from resotocore.ids import TaskId, ConfigId, NodeId
 from resotocore.message_bus import MessageBus, Message, ActionDone, Action, ActionError
 from resotocore.model.db_updater import merge_graph_process
 from resotocore.model.graph_access import Section
@@ -57,7 +67,6 @@ from resotocore.model.model_handler import ModelHandler
 from resotocore.model.typed_model import to_json, from_js, to_js_str, to_js
 from resotocore.query import QueryParser
 from resotocore.task.model import Subscription
-from resotocore.ids import SubscriberId, WorkerId
 from resotocore.task.subscribers import SubscriptionHandler
 from resotocore.task.task_handler import TaskHandlerService
 from resotocore.types import Json, JsonElement
@@ -80,6 +89,9 @@ from resotocore.worker_task_queue import (
     WorkerTaskResult,
     WorkerTaskInProgress,
 )
+from resotolib.asynchronous.web.auth import auth_handler
+from resotolib.asynchronous.web.ws_handler import accept_websocket, clean_ws_handler
+from resotolib.jwt import encode_jwt
 
 log = logging.getLogger(__name__)
 
@@ -442,21 +454,22 @@ class Api:
 
     async def handle_work_tasks(self, request: Request) -> WebSocketResponse:
         worker_id = WorkerId(uuid_str())
-        task_param = request.query.get("task")
-        if not task_param:
-            raise AttributeError("A worker needs to define at least one task that it can perform")
-        attrs = {k: re.split("\\s*,\\s*", v) for k, v in request.query.items() if k != "task"}
-        task_descriptions = []
+        initialized = False
+        worker_descriptions: Future[List[WorkerTaskDescription]] = asyncio.get_event_loop().create_future()
 
-        # parse task parameter
-        for task_def in re.split("\\s*::\\s*", task_param):
-            task_name, task_attrs_joined = re.split("\\s*:\\s*", task_def, maxsplit=1)
-            task_attrs = attrs.copy()
-            for task_attr in re.split("\\s*;\\s*", task_attrs_joined):
-                if task_attr:
-                    attr_name, attr_values = re.split("\\s*=\\s*", task_attr, maxsplit=1)
-                    task_attrs[attr_name] = re.split("\\s*,\\s*", attr_values)
-            task_descriptions.append(WorkerTaskDescription(task_name, task_attrs))
+        async def handle_connect(msg: str) -> None:
+            nonlocal initialized
+            cmds = from_js(json.loads(msg), List[WorkerCustomCommand])
+            print("connected: ", cmds)
+
+            description = [WorkerTaskDescription(cmd.name, cmd.filter) for cmd in cmds]
+            # set the future and allow attaching the worker to the task queue
+            worker_descriptions.set_result(description)
+            # register the descriptions as custom command on the CLI
+            for cmd in cmds:
+                self.cli.register_worker_custom_command(cmd)
+            # mark the worker as initialized
+            initialized = True
 
         async def handle_message(msg: str) -> None:
             tr = from_js(json.loads(msg), WorkerTaskResult)
@@ -471,10 +484,19 @@ class Api:
         def task_json(task: WorkerTask) -> str:
             return to_js_str(task.to_json())
 
+        @asynccontextmanager
+        async def connect_to_task_queue() -> AsyncIterator[Queue[WorkerTask]]:
+            # we need to wait for the worker to send the list of commands it can handle
+            # before we can attach to the worker task queue
+            descriptions = await worker_descriptions
+            async with self.worker_task_queue.attach(worker_id, descriptions) as queue:
+                yield queue
+
+        # noinspection PyTypeChecker
         return await accept_websocket(
             request,
-            handle_incoming=handle_message,
-            outgoing_context=partial(self.worker_task_queue.attach, worker_id, task_descriptions),
+            handle_incoming=lambda msg: handle_connect(msg) if not initialized else handle_message(msg),
+            outgoing_context=connect_to_task_queue,
             websocket_handler=self.websocket_handler,
             outgoing_fn=task_json,
         )

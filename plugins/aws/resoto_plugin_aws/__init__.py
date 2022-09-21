@@ -107,7 +107,26 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
                 self.__regions = list(Config.aws.region)
         return self.__regions
 
-    @execute_command_on_resource(name="aws", filter={"cloud": ["aws"]})
+    @execute_command_on_resource(
+        name="aws",
+        info="Execute aws commands on AWS resources",
+        args_description={
+            "--account-id": "[Optional] The AWS account id.",
+            "--role": "[Optional] The AWS role.",
+            "--profile": "[Optional] The AWS profile to use.",
+            "--region": "[Optional] The AWS region.",
+            "service": "Defines the AWS service, like ec2, s3, iam, etc.",
+            "operation": "Defines the operation to execute.",
+            "operation_args": "Defines the arguments for the operation. The parameters depend on the operation.",
+        },
+        description="By default the operation runs with the same credentials as during the collect process.\n"
+        "You can override the credentials by providing the account-id, profile and region arguments.\n\n"
+        "## Examples\n\n"
+        "```shell\n"
+        "> search is(aws_ec2_volume) | aws ec2 describe-volume-attribute --volume-id {id} --attribute autoEnableIO\n"
+        "```\n\n",
+        allowed_on_kind="aws_resource",
+    )
     def call_aws_function(self, resource: BaseResource, args: List[str]) -> Union[JsonElement, BaseResource]:
         # impossible to call the aws resource without service and function name
         if len(args) < 2:
