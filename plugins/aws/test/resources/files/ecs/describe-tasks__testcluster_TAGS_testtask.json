@@ -1,0 +1,159 @@
+{
+    "tasks": [
+        {
+            "attachments": [
+                {
+                    "id": "string",
+                    "type": "string",
+                    "status": "string",
+                    "details": [
+                        {
+                            "name": "string",
+                            "value": "string"
+                        }
+                    ]
+                }
+            ],
+            "attributes": [
+                {
+                    "name": "ecs.cpu-architecture",
+                    "value": "x86_64",
+                    "targetType": "container-instance",
+                    "targetId": "string"
+                }
+            ],
+            "availabilityZone": "eu-central-1b",
+            "capacityProviderName": "string",
+            "clusterArn": "arn:aws:ecs:eu-central-1:1234567890:cluster/lukastest",
+            "connectivity": "CONNECTED",
+            "connectivityAt": "2022-09-08T17:59:24.733000+02:00",
+            "containerInstanceArn": "testcontainer",
+            "containers": [
+                {
+                    "containerArn": "arn:aws:ecs:eu-central-1:1234567890:container/lukastest/d7fca3e30fa54565b7764d976366bbbd/c51b726d-9306-4861-8569-e3de3f07e888",
+                    "taskArn": "arn:aws:ecs:eu-central-1:1234567890:task/lukastest/d7fca3e30fa54565b7764d976366bbbd",
+                    "name": "nginx",
+                    "image": "docker.io/bitnami/nginx",
+                    "imageDigest": "string",
+                    "runtimeId": "3c8b55df20da594c9e710c5a9f4172c95fc3edfb8b1abad454ba72f810e4a3fe",
+                    "lastStatus": "RUNNING",
+                    "exitCode": 123,
+                    "reason": "string",
+                    "networkBindings": [
+                        {
+                            "bindIP": "0.0.0.0",
+                            "containerPort": 80,
+                            "hostPort": 49153,
+                            "protocol": "tcp"
+                        }
+                    ],
+                    "networkInterfaces": [
+                        {
+                            "attachmentId": "string",
+                            "privateIpv4Address": "string",
+                            "ipv6Address": "string"
+                        }
+                    ],
+                    "healthStatus": "UNKNOWN",
+                    "managedAgents": [
+                        {
+                            "lastStartedAt": "2022-09-08T17:59:24.733000+02:00",
+                            "name": "ExecuteCommandAgent",
+                            "reason": "string",
+                            "lastStatus": "string"
+                        }
+                    ],
+                    "cpu": "256",
+                    "memory": "256",
+                    "memoryReservation": "string",
+                    "gpuIds": [
+                        "string"
+                    ]
+                }
+            ],
+            "cpu": "256",
+            "createdAt": "2022-09-08T17:59:24.733000+02:00",
+            "desiredStatus": "RUNNING",
+            "enableExecuteCommand": false,
+            "executionStoppedAt": "2022-09-08T17:59:24.733000+02:00",
+            "group": "service:nginx-service",
+            "healthStatus": "UNKNOWN",
+            "inferenceAccelerators": [
+                {
+                    "deviceName": "string",
+                    "deviceType": "string"
+                }
+            ],
+            "lastStatus": "RUNNING",
+            "launchType": "EC2",
+            "memory": "256",
+            "overrides": {
+                "containerOverrides": [
+                    {
+                        "name": "nginx",
+                        "command": [
+                            "string"
+                        ],
+                        "environment": [
+                            {
+                                "name": "string",
+                                "value": "string"
+                            }
+                        ],
+                        "environmentFiles": [
+                            {
+                                "value": "string",
+                                "type": "s3"
+                            }
+                        ],
+                        "cpu": 123,
+                        "memory": 123,
+                        "memoryReservation": 123,
+                        "resourceRequirements": [
+                            {
+                                "value": "string",
+                                "type": "GPU"
+                            }
+                        ]
+                    }
+                ],
+                "cpu": "string",
+                "inferenceAcceleratorOverrides": [
+                    {
+                        "deviceName": "string",
+                        "deviceType": "string"
+                    }
+                ],
+                "executionRoleArn": "string",
+                "memory": "string",
+                "taskRoleArn": "string",
+                "ephemeralStorage": {
+                    "sizeInGiB": 123
+                }
+            },
+            "platformVersion": "string",
+            "platformFamily": "string",
+            "pullStartedAt": "2022-09-08T17:59:25.854000+02:00",
+            "pullStoppedAt": "2022-09-08T17:59:32.485000+02:00",
+            "startedAt": "2022-09-08T17:59:33.396000+02:00",
+            "startedBy": "ecs-svc/3028330075359842582",
+            "stopCode": "TaskFailedToStart",
+            "stoppedAt": "2022-09-08T17:59:33.396000+02:00",
+            "stoppedReason": "string",
+            "stoppingAt": "2022-09-08T17:59:33.396000+02:00",
+            "tags": [
+                {
+                    "key": "Nice Key",
+                    "value": "Nice Value"
+                }
+            ],
+            "taskArn": "arn:aws:ecs:eu-central-1:1234567890:task/lukastest/d7fca3e30fa54565b7764d976366bbbd",
+            "taskDefinitionArn": "arn:aws:ecs:eu-central-1:1234567890:task-definition/nginx-sample-stack:1",
+            "version": 2,
+            "ephemeralStorage": {
+                "sizeInGiB": 123
+            }
+        }
+    ],
+    "failures": []
+}

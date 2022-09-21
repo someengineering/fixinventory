@@ -1,0 +1,36 @@
+{
+    "capacityProviders": [
+        {
+            "capacityProviderArn": "string",
+            "name": "sampleCapacityProvider",
+            "status": "ACTIVE",
+            "autoScalingGroupProvider": {
+                "autoScalingGroupArn": "string",
+                "managedScaling": {
+                    "status": "ENABLED",
+                    "targetCapacity": 123,
+                    "minimumScalingStepSize": 123,
+                    "maximumScalingStepSize": 123,
+                    "instanceWarmupPeriod": 123
+                },
+                "managedTerminationProtection": "ENABLED"
+            },
+            "updateStatus": "UPDATE_COMPLETE",
+            "updateStatusReason": "string",
+            "tags": [
+                {
+                    "key": "string",
+                    "value": "string"
+                }
+            ]
+        }
+    ],
+    "failures": [
+        {
+            "arn": "string",
+            "reason": "string",
+            "detail": "string"
+        }
+    ],
+    "nextToken": "string"
+}

@@ -69,7 +69,6 @@ RUN tar xjvf /tmp/pypy.tar.bz2 --strip-components=1 -C /build/pypy
 RUN mv /build/pypy /usr/local/pypy
 RUN /usr/local/pypy/bin/pypy3 -m ensurepip
 
-
 # Download and install CPython
 WORKDIR /build/python
 RUN curl -L -o /tmp/python.tar.gz  https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tgz
@@ -98,6 +97,16 @@ RUN if [ ${TARGETPLATFORM} = "linux/amd64" ]; then \
     else \
         echo "Building for unknown platform - not copying ArangoDB client binaries"; \
     fi
+
+# Download AWS CLI
+WORKDIR /tmp/awscli
+RUN if [ ${TARGETPLATFORM} = "linux/arm64" ]; then \
+        curl "https://awscli.amazonaws.com/awscli-exe-linux-aarch64.zip" -o "awscliv2.zip"; \
+    else \
+        curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"; \
+    fi; \
+RUN unzip awscliv2.zip
+RUN ./aws/install -i /usr/local/aws-cli -b /usr/local/bin
 
 # Prepare PyPy whl build env
 RUN mkdir -p /build-python

@@ -245,7 +245,7 @@ class AwsApiGatewayCanarySetting:
     }
     percent_traffic: int = field(default=None)
     deployment_id: str = field(default=None)
-    stage_variable_overrides: Dict[str, str] = field(default=None)
+    stage_variable_overrides: Optional[Dict[str, str]] = field(default=None)
     use_stage_cache: bool = field(default=None)
 
 
@@ -256,7 +256,7 @@ class AwsApiGatewayStage(ApiGatewayTaggable, AwsResource):
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("stageName"),
         "name": S("stageName"),
-        "tags": S("tags", default=[]),
+        "tags": S("tags", default={}),
         "ctime": S("createdDate"),
         "mtime": S("lastUpdatedDate"),
         "description": S("description"),
@@ -277,10 +277,10 @@ class AwsApiGatewayStage(ApiGatewayTaggable, AwsResource):
     stage_cache_cluster_enabled: bool = field(default=None)
     stage_cache_cluster_size: Optional[str] = field(default=None)
     stage_cache_status: Optional[str] = field(default=None)
-    stage_method_settings: Dict[str, Dict[str, Union[bool, str, int]]] = field(default=None)
-    stage_variables: Dict[str, str] = field(default=None)
+    stage_method_settings: Optional[Dict[str, Dict[str, Union[bool, str, int]]]] = field(default=None)
+    stage_variables: Optional[Dict[str, str]] = field(default=None)
     stage_documentation_version: Optional[str] = field(default=None)
-    stage_access_log_settings: Dict[str, str] = field(default=None)
+    stage_access_log_settings: Optional[Dict[str, str]] = field(default=None)
     stage_canary_settings: Optional[AwsApiGatewayCanarySetting] = field(default=None)
     stage_tracing_enabled: bool = field(default=None)
     stage_web_acl_arn: Optional[str] = field(default=None)
@@ -313,7 +313,7 @@ class AwsApiGatewayDeployment(AwsResource):
         "deployment_api_summary": S("apiSummary"),
     }
     description: Optional[str] = field(default=None)
-    deployment_api_summary: Dict[str, Dict[str, Dict[str, Union[str, bool]]]] = field(default=None)
+    deployment_api_summary: Optional[Dict[str, Dict[str, Dict[str, Union[str, bool]]]]] = field(default=None)
     api_link: str = field(default=None)
 
     def delete_resource(self, client: AwsClient) -> bool:
@@ -356,7 +356,7 @@ class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "name": S("name"),
-        "tags": S("tags", default=[]),
+        "tags": S("tags", default={}),
         "ctime": S("createdDate"),
         "description": S("description"),
         "api_version": S("version"),
@@ -474,7 +474,7 @@ class AwsApiGatewayDomainName(ApiGatewayTaggable, AwsResource):
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("domainName"),
-        "tags": S("tags"),
+        "tags": S("tags", default={}),
         "name": S("domainName"),
         "domain_certificate_name": S("certificateName"),
         "domain_certificate_arn": S("certificateArn"),

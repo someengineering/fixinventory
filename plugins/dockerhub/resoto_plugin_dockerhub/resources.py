@@ -34,7 +34,6 @@ class DockerHubRepository(DockerHubResource, BaseResource):
     kind: ClassVar[str] = "dockerhub_repository"
 
     repository_type: Optional[str] = None
-    status: Optional[int] = None
     is_private: Optional[bool] = None
     star_count: Optional[int] = None
     pull_count: Optional[int] = None
@@ -61,7 +60,7 @@ class DockerHubRepository(DockerHubResource, BaseResource):
         )
 
 
-def convert_date(date_str: str) -> datetime:
+def convert_date(date_str: str) -> Optional[datetime]:
     try:
         return datetime.strptime(date_str, "%Y-%m-%dT%H:%M:%S.%fZ")
     except ValueError:
