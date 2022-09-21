@@ -104,7 +104,7 @@ async def test_graphml(elements: List[Json]) -> None:
         async for elem in respond_graphml(streamer):
             result += elem
     # The resulting string can be parsed as xml
-    assert ElementTree.fromstring(result) is None
+    assert ElementTree.fromstring(result) is not None
 
 
 @pytest.mark.asyncio
