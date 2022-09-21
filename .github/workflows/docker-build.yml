@@ -8,7 +8,7 @@ on:
       - main
   pull_request:
     paths:
-      - "Dockerfile"
+      - "Dockerfile*"
       - "docker/**"
       - "dockerV2/**"
       - ".github/workflows/docker-build.yml"
