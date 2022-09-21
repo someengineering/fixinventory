@@ -262,9 +262,61 @@ jobs:
           rm -rf /tmp/.buildx-cache
           mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
+  edge-docs:
+    name: Update edge API Documentation
+    if: github.ref_type == 'branch' # on every commit to main
+    needs:
+      - split-build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v3
+
+      - name: Check out someengineering/resoto.com
+        uses: actions/checkout@v3
+        with:
+          repository: someengineering/resoto.com
+          path: resoto.com
+          token: ${{ secrets.SOME_CI_PAT }}
+
+      - name: Update resotocore API YAML
+        shell: bash
+        run: |
+          cp resotocore/resotocore/static/api-doc.yaml resoto.com/openapi/resotocore-edge.yml
+
+      - name: Modify resotocore API YAML
+        uses: mikefarah/yq@master
+        with:
+          cmd: yq e -i '.servers[0].url = "http://localhost:8900" | del(.servers[0].description)' resoto.com/openapi/resotocore-edge.yml
+
+      - name: Format
+        working-directory: ./resoto.com
+        run: |
+          yarn install --frozen-lockfile
+          yarn format
+
+      - name: Create someengineering/resoto.com pull request
+        uses: peter-evans/create-pull-request@v4
+        env:
+          HUSKY: 0
+        with:
+          path: resoto.com
+          commit-message: "feat(docs): update edge API documentation"
+          title: "feat(docs): update edge API documentation"
+          body: |
+            Updates `edge` Resoto Core API documentation to reflect changes in [`${{ github.sha }}`](https://github.com/someengineering/resoto/commit/${{ github.sha }}).
+          labels: |
+            🤖 bot
+          branch: api-docs # stable branch name so any additional commits to main update the existing PR instead of creating a new one
+          delete-branch: true
+          token: ${{ secrets.SOME_CI_PAT }}
+          committer: C.K. <98986935+some-ci@users.noreply.github.com>
+          author: C.K. <98986935+some-ci@users.noreply.github.com>
+
   release:
     name: Create Release
-    if: github.ref_type == 'tag'
+    if: github.ref_type == 'tag' # on tagging of releases and prereleases
     needs:
       - split-build
     runs-on: ubuntu-latest
@@ -287,7 +339,6 @@ jobs:
 
       - name: Check out someengineering/resoto.com
         uses: actions/checkout@v3
-        if: steps.release_type.outputs.prerelease == 'false'
         with:
           repository: someengineering/resoto.com
           path: resoto.com
@@ -295,7 +346,6 @@ jobs:
 
       - name: Set up Python
         uses: actions/setup-python@v2
-        if: steps.release_type.outputs.prerelease == 'false'
         with:
           python-version: 3.x
 
@@ -305,26 +355,31 @@ jobs:
         run: |
           mapfile -t tags < <(echo $(curl -sL https://api.github.com/repos/someengineering/resoto/tags?per_page=1) | jq -r '(.[] | .name)')
           echo ::set-output name=tag::${tags[0]}
-          if [[ ${{ github.ref }} =~ ^refs/tags/[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            prev_release=$(echo $(curl -sL https://api.github.com/repos/someengineering/resoto/releases/latest) | jq -r '.tag_name')
-            year=$(date +'%Y')
-            date=$(date +'%m-%d')
-            dir="resoto.com/news/${year}/${date}-v${tags[0]}"
-            file="${dir}/index.md"
-            mkdir -p $dir
-            python tools/release_notes.py ${prev_release} ${tags[0]} > $file
-            cat $file
-            echo ::set-output name=file::$file
-          fi
+          prev_release=$(echo $(curl -sL https://api.github.com/repos/someengineering/resoto/releases/latest) | jq -r '.tag_name')
+          year=$(date +'%Y')
+          date=$(date +'%m-%d')
+          dir="resoto.com/news/${year}"
+          mkdir -p $dir
+          file="${dir}/${date}-${tags[0]}.md"
+          python tools/release_notes.py ${prev_release} ${tags[0]} > $file
+          echo ::set-output name=file::$file
+          link="$(date +'%Y/%m/%d')/${tags[0]}"
+          echo ::set-output name=link::$link
+
+      - name: Update released version & resotocore API YAML
+        if: steps.release_type.outputs.prerelease == 'false'
+        shell: bash
+        run: |
+          cp resotocore/resotocore/static/api-doc.yaml resoto.com/openapi/resotocore.yml
+          echo '{"version": "${{ steps.release_notes.outputs.tag }}", "link": "${{ steps.release_notes.outputs.link }}"}' > resoto.com/latestRelease.json
 
       - name: Modify resotocore API YAML
-        uses: mikefarah/yq@master
         if: steps.release_type.outputs.prerelease == 'false'
+        uses: mikefarah/yq@master
         with:
           cmd: yq e -i '.servers[0].url = "http://localhost:8900" | del(.servers[0].description)' resoto.com/openapi/resotocore.yml
 
       - name: Format
-        if: steps.release_type.outputs.prerelease == 'false'
         working-directory: ./resoto.com
         run: |
           yarn install --frozen-lockfile
@@ -332,18 +387,17 @@ jobs:
 
       - name: Create someengineering/resoto.com pull request
         uses: peter-evans/create-pull-request@v4
-        if: steps.release_type.outputs.prerelease == 'false'
         env:
           HUSKY: 0
         with:
           path: resoto.com
-          commit-message: "feat(news): v${{ steps.release_notes.outputs.tag }} release notes"
-          title: "feat(news): v${{ steps.release_notes.outputs.tag }} release notes"
+          commit-message: "feat(news): ${{ steps.release_notes.outputs.tag }} release notes"
+          title: "feat(news): ${{ steps.release_notes.outputs.tag }} release notes"
           body: |
-            Adds automatically generated release notes for [v${{ steps.release_notes.outputs.tag }}](https://github.com/someengineering/resoto/releases/tag/${{ steps.release_notes.outputs.tag }}).
+            Adds automatically generated release notes for [`${{ steps.release_notes.outputs.tag }}`](https://github.com/someengineering/resoto/releases/tag/${{ steps.release_notes.outputs.tag }}).
           labels: |
             🤖 bot
-          branch: release/v${{ steps.release_notes.outputs.tag }}
+          branch: ${{ steps.release_notes.outputs.tag }}
           delete-branch: true
           token: ${{ secrets.SOME_CI_PAT }}
           committer: C.K. <98986935+some-ci@users.noreply.github.com>
@@ -420,7 +474,7 @@ jobs:
           body: |
             ### Release Notes
 
-            ${{ steps.release_notes.outputs.link }}
+            https://resoto.com/news/${{ steps.release_notes.outputs.link }}
 
             ### Docker Images
 
