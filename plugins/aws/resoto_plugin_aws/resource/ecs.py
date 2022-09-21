@@ -1127,7 +1127,7 @@ class AwsEcsService(EcsTaggable, AwsResource):
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["aws_iam_role"],
-            "delete": ["aws_alb_target_group", "aws_elb", "aws_iam_role", "aws_ec2_subnet", "aws_ec2_security_group"]
+            "delete": ["aws_alb_target_group", "aws_elb", "aws_iam_role", "aws_ec2_subnet", "aws_ec2_security_group"],
         },
         "successors": {
             "default": [

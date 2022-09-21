@@ -434,7 +434,9 @@ class AwsRedshiftCluster(AwsResource):
 
         for role in self.redshift_iam_roles:
             if role.iam_role_arn:
-                builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsIamRole, arn=role.iam_role_arn)
+                builder.dependant_node(
+                    self, reverse=True, delete_same_as_default=True, clazz=AwsIamRole, arn=role.iam_role_arn
+                )
 
         if self.redshift_cluster_subnet_group_name:
             builder.dependant_node(self, reverse=True, clazz=AwsEc2Subnet, name=self.redshift_cluster_subnet_group_name)

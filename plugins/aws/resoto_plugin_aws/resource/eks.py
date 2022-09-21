@@ -358,7 +358,9 @@ class AwsEksCluster(EKSTaggable, AwsResource):
                         builder.add_node(ng, ng_json)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsIamRole, arn=self.cluster_role_arn)
+        builder.dependant_node(
+            self, reverse=True, delete_same_as_default=True, clazz=AwsIamRole, arn=self.cluster_role_arn
+        )
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(aws_service=self.api_spec.service, action="delete_cluster", result_name=None, name=self.name)
