@@ -86,7 +86,7 @@ def show_log(from_tag: str, to_tag: str):
 
     print("---\ntags: [release notes]\n---")
 
-    print(f"\n# v{to_tag}")
+    print(f"\n# {to_tag}")
 
     print("\n## What's Changed")
     # define sort order for groups: order of group names and then the rest
