@@ -266,7 +266,6 @@ jobs:
     name: Update edge API Documentation
     if: github.ref_type == 'branch' # on every commit to main
     needs:
-      - build
       - split-build
     runs-on: ubuntu-latest
 
