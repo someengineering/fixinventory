@@ -266,7 +266,6 @@ jobs:
     name: Create Release
     if: github.ref_type == 'tag'
     needs:
-      - build
       - split-build
     runs-on: ubuntu-latest
 
