@@ -11,7 +11,7 @@ from retrying import retry
 from botocore.exceptions import ClientError
 from botocore.config import Config
 
-from resoto_plugin_aws.config import AwsConfig
+from resoto_plugin_aws.configuration import AwsConfig
 from resotolib.types import Json, JsonElement
 from resotolib.utils import utc_str, log_runtime
 

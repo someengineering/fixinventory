@@ -1,4 +1,4 @@
-from resoto_plugin_aws.config import AwsConfig
+from resoto_plugin_aws.configuration import AwsConfig
 from resoto_plugin_aws.aws_client import AwsClient
 from test.resources import BotoFileBasedSession
 

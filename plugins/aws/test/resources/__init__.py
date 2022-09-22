@@ -8,7 +8,7 @@ from typing import Type, Any, Callable, Set, Tuple, Optional
 
 from boto3 import Session
 
-from resoto_plugin_aws.config import AwsConfig
+from resoto_plugin_aws.configuration import AwsConfig
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import (
     GraphBuilder,

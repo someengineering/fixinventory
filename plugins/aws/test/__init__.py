@@ -1,7 +1,7 @@
 from pytest import fixture
 
 from resoto_plugin_aws.collector import AwsAccountCollector
-from resoto_plugin_aws.config import AwsConfig
+from resoto_plugin_aws.configuration import AwsConfig
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsAccount, AwsRegion, GraphBuilder, ExecutorQueue
 from resotolib.baseresources import Cloud

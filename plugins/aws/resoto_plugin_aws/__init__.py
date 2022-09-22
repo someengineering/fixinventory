@@ -23,14 +23,14 @@ from resotolib.baseresources import (
     metrics_resource_pre_cleanup_exceptions,
 )
 from resotolib.baseresources import Cloud
-from resotolib.config import Config, RunningConfig
+from resotolib.config import Config, RunningConfig, current_config
 from resotolib.graph import Graph
 from resotolib.logger import log, setup_logger
 from resotolib.plugin_task_handler import execute_command_on_resource
-from resotolib.types import JsonElement
+from resotolib.types import JsonElement, Json
 from resotolib.utils import log_runtime, NoExitArgumentParser, chunks
 from .collector import AwsAccountCollector
-from .config import AwsConfig
+from .configuration import AwsConfig
 from .resource.base import AwsAccount, AwsResource
 from .utils import aws_session
 
@@ -145,7 +145,9 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
         "```\n\n",
         allowed_on_kind="aws_resource",
     )
-    def call_aws_function(self, resource: Optional[BaseResource], args: List[str]) -> Union[JsonElement, BaseResource]:
+    def call_aws_function(
+        self, config: Config, resource: Optional[BaseResource], args: List[str]
+    ) -> Union[JsonElement, BaseResource]:
         parser = NoExitArgumentParser()
         parser.add_argument("--account")
         parser.add_argument("--role")
@@ -155,17 +157,17 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
         parser.add_argument("operation")
         p, remaining = parser.parse_known_args(args)
         func_args = {pascalcase(k.removeprefix("--")): v for k, v in chunks(remaining, 2)}
-        cfg: AwsConfig = Config.aws
+        cfg = config.aws
 
         def create_client() -> AwsClient:
             role = p.role or cfg.role
             region = p.region or (cfg.region[0] if cfg.region else None)
             profile = p.profile or (cfg.profiles[0] if cfg.profiles else None)
-            # alternative: lookup the current account id in case of none?
-            account = p.account or (cfg.account[0] if cfg.account else None)
+            # possibly expensive call: account id is looked up if not provided
+            account = p.account or (cfg.account[0] if cfg.account else current_account_id(profile))
             return AwsClient(cfg, account, role=role, profile=profile, region=region)
 
-        client = get_client(Config, resource) if resource else create_client()
+        client = get_client(current_config(), resource) if resource else create_client()
 
         # try to get the output shape of the operation
         output_shape: Optional[str] = None

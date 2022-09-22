@@ -11,6 +11,7 @@ import websocket
 from attrs import define, field
 from resotolib.args import ArgumentParser
 from resotolib.baseresources import BaseResource
+from resotolib.config import current_config
 from resotolib.core.ca import TLSData
 from resotolib.core.model_export import node_to_dict, node_from_dict
 from resotolib.event import EventType, remove_event_listener, add_event_listener, Event
@@ -75,13 +76,13 @@ class CoreTaskHandler:
         def handle_message(message: Json) -> JsonElement:
             node_data = message.get("node", {})
             args = message.get("args", [])
-            return wtd.fn(target, node_data, args)
+            return wtd.fn(target, current_config(), node_data, args)
 
         def handle_resource(message: Json) -> JsonElement:
             node_data = message.get("node", {})
             node = node_from_dict(node_data, include_select_ancestors=True) if node_data else None
             args = message.get("args", [])
-            result = wtd.fn(target, node, args)
+            result = wtd.fn(target, current_config(), node, args)
             # expect either a base resource or json element as result
             if isinstance(result, BaseResource):
                 return node_to_dict(result)
