@@ -5,7 +5,7 @@ from resotolib.types import DecoratedFn
 definitions = "__task_definitions"
 
 
-class WorkerTaskDecorator:
+class CommandDefinition:
     """
     A final decorator is called by the interpreter once after the class is defined.
     (Not the case for decorators with attributes)
@@ -95,7 +95,7 @@ class execute_command:  # noqa: N801
         self.filter = filter or {}
 
     def __call__(self, fn: DecoratedFn) -> DecoratedFn:
-        return WorkerTaskDecorator(
+        return CommandDefinition(
             fn,
             name=self.name,
             info=self.info,
@@ -158,7 +158,7 @@ class execute_command_on_resource:  # noqa: N801
         self.filter = filter or {}
 
     def __call__(self, fn: DecoratedFn) -> DecoratedFn:
-        return WorkerTaskDecorator(
+        return CommandDefinition(
             fn,
             name=self.name,
             info=self.info,
@@ -171,5 +171,5 @@ class execute_command_on_resource:  # noqa: N801
         )
 
 
-def task_definitions(clazz: Type[Any]) -> List[WorkerTaskDecorator]:
+def command_definitions(clazz: Type[Any]) -> List[CommandDefinition]:
     return getattr(clazz, definitions, [])

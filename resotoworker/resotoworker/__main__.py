@@ -23,7 +23,7 @@ from resotolib.event import (
 )
 from resotolib.jwt import add_args as jwt_add_args
 from resotolib.logger import log, setup_logger, add_args as logging_add_args
-from resotolib.plugin_task_handler import task_definitions
+from resotolib.core.custom_command import command_definitions
 from resotolib.proc import log_stats, increase_limits
 from resotolib.web import WebServer
 from resotolib.web.metrics import WebApp
@@ -159,8 +159,8 @@ def main() -> None:
     # search all other plugins for possible task providers
     for plugin_clazz in plugin_loader.all_plugins():
         plugin = plugin_clazz()
-        for wtd in task_definitions(plugin_clazz):
-            handler = CoreTaskHandler.from_decorator(plugin, wtd)
+        for wtd in command_definitions(plugin_clazz):
+            handler = CoreTaskHandler.from_definition(plugin, wtd)
             log.info(f"Plugin {plugin.name}: Add task handler for task {handler.name} @ {handler.filter}")
             task_handler.append(handler)
 

@@ -26,7 +26,7 @@ from resotolib.baseresources import Cloud
 from resotolib.config import Config, RunningConfig, current_config
 from resotolib.graph import Graph
 from resotolib.logger import log, setup_logger
-from resotolib.plugin_task_handler import execute_command_on_resource
+from resotolib.core.custom_command import execute_command_on_resource
 from resotolib.types import JsonElement, Json
 from resotolib.utils import log_runtime, NoExitArgumentParser, chunks
 from .collector import AwsAccountCollector

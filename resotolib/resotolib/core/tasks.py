@@ -17,7 +17,7 @@ from resotolib.core.model_export import node_to_dict, node_from_dict
 from resotolib.event import EventType, remove_event_listener, add_event_listener, Event
 from resotolib.jwt import encode_jwt_to_headers
 from resotolib.logger import log
-from resotolib.plugin_task_handler import WorkerTaskDecorator
+from resotolib.core.custom_command import CommandDefinition
 from resotolib.types import Json, JsonElement
 
 
@@ -73,7 +73,7 @@ class CoreTaskHandler:
         }
 
     @staticmethod
-    def from_decorator(target: Any, wtd: WorkerTaskDecorator) -> CoreTaskHandler:
+    def from_definition(target: Any, wtd: CommandDefinition) -> CoreTaskHandler:
         def handle_message(message: Json) -> JsonElement:
             node_data = message.get("node", {})
             args = message.get("args", [])
