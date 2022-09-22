@@ -396,18 +396,17 @@ class AliasTemplate:
             default = f" [default: {p.default}]" if p.default else ""
             return f"- `{p.name}`{default}: {p.description}"
 
-        indent = "                "
+        indent = "            "
         arg_info = f"\n{indent}".join(param_info(arg) for arg in sorted(self.parameters, key=attrgetter("name")))
         minimal = ", ".join(f'{p.name}="{p.example_value()}"' for p in self.parameters if p.default is None)
+        desc = f"\n{indent}{self.description}\n" if self.description else ""
         return dedent(
             f"""
             {self.name}: {self.info}
             ```shell
             {self.name} {args}
             ```
-
-            {self.description or ''}
-
+            {desc}
             ## Parameters
             {arg_info}
 

@@ -6,13 +6,13 @@ from jsons import set_deserializer
 # JsonElement = Union[ Mapping[str, JsonElement], Sequence[JsonElement], str, int, float, bool, None]
 # Sadly python does not support recursive types yet, so we try to narrow it to:
 JsonElement = Union[
-    Mapping[str, Any],
-    Sequence[Union[Mapping[str, Any], Sequence[Any], str, int, float, bool, None]],
     str,
     int,
     float,
     bool,
     None,
+    Mapping[str, Any],
+    Sequence[Union[Mapping[str, Any], Sequence[Any], str, int, float, bool, None]],
 ]
 JsonArray = Sequence[JsonElement]
 Json = Dict[str, Any]
@@ -30,4 +30,4 @@ def parse_js_element(elem: JsonElement, _: type = object, **kwargs: object) -> J
     return elem
 
 
-set_deserializer(parse_js_element, JsonElement)
+set_deserializer(parse_js_element, [str, int, float, bool, None])
