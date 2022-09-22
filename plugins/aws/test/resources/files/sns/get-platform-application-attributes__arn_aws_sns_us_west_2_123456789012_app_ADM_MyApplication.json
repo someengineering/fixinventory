@@ -1,0 +1,11 @@
+{
+    "Attributes": {
+        "AppleCertificateExpiryDate": "string",
+        "ApplePlatformTeamID": "string",
+        "ApplePlatformBundleID": "string",
+        "EventEndpointCreated": "arn:aws:sns:us-west-2:123456789012:my-topic",
+        "EventEndpointDeleted": "string",
+        "EventEndpointUpdated": "string",
+        "EventDeliveryFailure": "string"
+    }
+}
