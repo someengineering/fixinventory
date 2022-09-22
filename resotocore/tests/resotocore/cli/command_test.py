@@ -22,7 +22,7 @@ from pytest import fixture
 from resotocore import version
 from resotocore.cli import is_node
 from resotocore.cli.cli import CLI
-from resotocore.cli.command import HttpCommand, JqCommand
+from resotocore.cli.command import HttpCommand, JqCommand, WorkerCustomCommand
 from resotocore.cli.model import CLIDependencies, CLIContext
 from resotocore.console_renderer import ConsoleRenderer, ConsoleColorSystem
 from resotocore.db.jobdb import JobDb
@@ -880,3 +880,27 @@ async def test_certificate(cli: CLI) -> None:
     # will create 2 files
     assert len(result[0]) == 2
     assert [a.rsplit("/")[-1] for a in result[0]] == ["foo.resoto.com.key", "foo.resoto.com.crt"]
+
+
+@pytest.mark.asyncio
+async def test_execute_task(cli: CLI) -> None:
+    # translate a custom command to an alias template
+    command = WorkerCustomCommand("name", "info", {"a": "b"}, "description").to_template()
+    assert command.name == "name"
+    assert command.info == "info"
+    assert command.description == "description"
+    assert command.args_description == {"a": "b"}
+    assert command.template == 'execute-task --no-node-result --command "name" --arg "{{args}}"'
+
+    # execute-task in source position
+    source_result = await cli.execute_cli_command(
+        f'execute-task --command success_task --arg "--foo bla test"', stream.list
+    )
+    assert len(source_result[0]) == 1
+    assert source_result[0] == [{"result": "done!"}]
+
+    # execute task in flow position: every incoming node creates a new task
+    flow_result = await cli.execute_cli_command(
+        f'search all limit 3 | execute-task --command success_task --arg "--t {{id}}"', stream.list
+    )
+    assert len(flow_result[0]) == 3

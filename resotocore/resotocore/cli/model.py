@@ -435,7 +435,7 @@ class AliasTemplate:
         args_info = args_info or ("<args>" if "{args}" in self.template else "")
         return (
             f"{self.name}: {self.info}\n```shell\n{self.name} {args}\n```\n\n"
-            f"## Parameters\n {args_info}\n\n{self.description}\n\n"
+            f"## Parameters\n{args_info}\n\n{self.description}\n\n"
         )
 
     def help(self) -> str:

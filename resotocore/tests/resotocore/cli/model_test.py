@@ -57,3 +57,30 @@ def test_alias_template() -> None:
         ```
         """
     )
+
+    tpl_no_args = AliasTemplate(
+        "bla",
+        "does blas",
+        "bla {{args}}",
+        description="This is doing bla",
+        args_description={"p1": "is doing awesome", "p2": "enables after burners"},
+    )
+    assert tpl_no_args.render({"args": "something"}) == "bla something"
+    assert (
+        tpl_no_args.rendered_help(CLIContext()).strip()
+        == dedent(
+            """
+            bla: does blas
+            ```shell
+            bla  [p1] [p2]
+            ```
+
+            ## Parameters
+
+            - `p1`: is doing awesome
+            - `p2`: enables after burners
+
+            This is doing bla
+            """
+        ).strip()
+    )
