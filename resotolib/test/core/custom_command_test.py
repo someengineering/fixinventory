@@ -1,5 +1,7 @@
 from typing import List, Dict
 
+import pytest
+
 from resotolib.config import Config, current_config
 from resotolib.core.custom_command import (
     execute_command,
@@ -53,5 +55,6 @@ def test_command_definitions() -> None:
     assert result == {"js": {"foo": "bar"}, "args": ["arg1", "arg2"]}
 
     some_other = def_by_name["some_other"]
-    result = some_other.fn(SomeExamplePlugin(), current_config(), {"foo": "bar"}, ["arg1", "arg2"])
-    assert result == {"js": {"foo": "bar"}, "args": ["arg1", "arg2"]}
+    with pytest.raises(AttributeError) as ex:
+        some_other.fn(SomeExamplePlugin(), current_config(), {"foo": "bar"}, ["arg1", "arg2"])
+    assert str(ex.value) == "some error"
