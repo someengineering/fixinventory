@@ -1,7 +1,7 @@
 {
     "capacityProviders": [
         {
-            "capacityProviderArn": "string",
+            "capacityProviderArn": "arn:aws:ecs:us-west-2:123456789012:capacity-provider/MyCapacityProvider",
             "name": "sampleCapacityProvider",
             "status": "ACTIVE",
             "autoScalingGroupProvider": {

@@ -14,7 +14,7 @@ from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resoto_plugin_aws.resource.s3 import AwsS3Bucket
 from resotolib.baseresources import EdgeType, ModelReference
 from resotolib.graph import Graph
-from resotolib.json_bender import Bender, S, Bend, ForallBend
+from resotolib.json_bender import F, Bender, S, Bend, ForallBend
 from resotolib.types import Json
 from resotolib.utils import chunks
 from resoto_plugin_aws.utils import TagsValue, ToDict
@@ -89,7 +89,7 @@ class AwsEcsCapacityProvider(EcsTaggable, AwsResource):
         "successors": {"default": ["aws_autoscaling_group"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("capacityProviderArn"),
+        "id": S("name"),
         "name": S("name"),
         "tags": S("tags", default=[]) >> ToDict(key="key", value="value"),
         "arn": S("capacityProviderArn"),
@@ -331,7 +331,7 @@ class AwsEcsTask(EcsTaggable, AwsResource):
         },
     }
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("taskArn"),
+        "id": S("taskArn") >> F(AwsResource.id_from_arn),
         "tags": S("tags", default=[]) >> ToDict(key="key", value="value"),
         "ctime": S("createdAt"),
         "arn": S("taskArn"),
@@ -812,7 +812,7 @@ class AwsEcsTaskDefinition(EcsTaggable, AwsResource):
         "predecessors": {"default": ["aws_iam_role"], "delete": ["aws_iam_role"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("taskDefinitionArn"),
+        "id": S("taskDefinitionArn") >> F(AwsResource.id_from_arn),
         "tags": S("tags", default=[]) >> ToDict(key="key", value="value"),
         "name": S("tags", default=[]) >> TagsValue("Name").or_else(S("taskDefinitionArn")),
         "ctime": S("registeredAt"),
@@ -1376,7 +1376,7 @@ class AwsEcsContainerInstance(EcsTaggable, AwsResource):
         "successors": {"default": ["aws_ec2_instance"], "delete": ["aws_ec2_instance"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("containerInstanceArn"),
+        "id": S("containerInstanceArn") >> F(AwsResource.id_from_arn),
         "tags": S("tags", default=[]) >> ToDict(),
         "name": S("containerInstanceArn"),
         "ctime": S("registeredAt"),

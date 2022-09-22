@@ -138,6 +138,12 @@ class AwsResource(BaseResource, ABC):
             account = builder.account.id
         self.arn = f"arn:{partition}:{service}:{region}:{account}:{resource}"
 
+    @staticmethod
+    def id_from_arn(arn: str) -> str:
+        if "/" in arn:
+            return arn.rsplit("/")[-1]
+        return arn.rsplit(":")[-1]
+
     @classmethod
     def from_json(cls: Type[AwsResourceType], json: Json) -> AwsResourceType:
         return from_js(json, cls)
