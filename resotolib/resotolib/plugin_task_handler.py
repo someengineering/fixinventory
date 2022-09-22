@@ -51,10 +51,29 @@ class WorkerTaskDecorator:
 class execute_command:  # noqa: N801
     """
     In case you want to expose a method as worker task to the core, you can use this decorator.
-    Annotate the method with the name of the task, as well as the filter attributes.
-    You can execute the annotated method by executing `execute-command` on the core.
-    The argument passed is pared and provided to this function.
-    Please note: only tasks that matches the filter criteria are received by this function.
+    The definition is used to register a custom command at the core, when the worker connects.
+    The custom command can be executed with the provided name.
+    Note: any existing command or alias takes precedence over the custom command.
+
+    The expected signature of the function is this:
+
+    def some_name(self, config: Config, js: Json, args: List[str]) -> JsonElement:
+
+    Notes on the signature:
+    - the json is the node section of the core task data.
+    - the args contains the list of arguments provided by the user.
+    - the function returns json. None is a valid json element.
+
+    :param name: the name of the command
+    :param info: a short description of the command
+    :param args_description: a dictionary of argument names and their description
+    :param description: a longer description of the command
+    :param expect_node_result: if true, the returned json is a resource and the current node in the db will be updated.
+    :param allowed_on_kind: if set, the command will only be executed on resources of this kind
+    :param filter: filter attributes as selector for this command.
+           Multiple workers might register the same command on the same resource with different filters.
+           Based on the resource the task is delegated to the worker with the matching filter.
+    :return: the decorated function that will be registered as worker task.
     """
 
     def __init__(
@@ -96,6 +115,28 @@ class execute_command_on_resource:  # noqa: N801
 
     This decorator will convert the incoming message to a resource object
     and a resulting object back to the json representation.
+
+    The expected signature of the function is this:
+
+    def some_name(
+        self, config: Config, resource: Optional[BaseResource], args: List[str]
+    ) -> Union[JsonElement, BaseResource]:
+
+    Notes on the signature:
+    - the resource is marked as optional. In case the command is executed in source position, no resource is provided.
+    - the args contains the list of arguments provided by the user.
+    - the function can decide to return either a json element or a resource. None is a valid json element.
+
+    :param name: the name of the command
+    :param info: a short description of the command
+    :param args_description: a dictionary of argument names and their description
+    :param description: a longer description of the command
+    :param expect_node_result: if true, the returned resource will update the current node in the database.
+    :param allowed_on_kind: if set, the command will only be executed on resources of this kind
+    :param filter: filter attributes as selector for this command.
+           Multiple workers might register the same command on the same resource with different filters.
+           Based on the resource the task is delegated to the worker with the matching filter.
+    :return: the decorated function that will be registered as worker task.
     """
 
     def __init__(

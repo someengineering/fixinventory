@@ -52,6 +52,7 @@ class CoreTaskHandler:
             result = self.handler(task_data)
             return CoreTaskResult(task_id=task_id, data=result)
         except Exception as e:
+            log.debug(f"Error while executing task {self.name}: {e}")
             return CoreTaskResult(task_id=task_id, error=str(e))
 
     def matches(self, js: Json) -> bool:
@@ -153,6 +154,7 @@ class CoreTasks(threading.Thread):
                         log.exception(f"Something went wrong while processing {message}")
                         if task_id := message.get("task_id"):
                             self.ws.send(jsons.dumps(CoreTaskResult(task_id, error=str(ex)).to_json()))
+                    break
             self.queue.task_done()
 
     def connect(self) -> None:
@@ -202,7 +204,9 @@ class CoreTasks(threading.Thread):
         log.debug(f"{self.identifier} disconnected from resotocore task queue")
 
     def on_open(self, ws):
-        log.debug(f"{self.identifier} connected to resotocore task queue")
+        log.debug(f"{self.identifier} connected to resotocore, register at task queue")
+        # when we are connected, we register at the task queue
+        # by sending all task handler definitions
         ws.send(json.dumps([handler.core_json() for handler in self.task_handler]))
 
     def on_ping(self, ws, message):
