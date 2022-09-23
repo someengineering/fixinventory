@@ -155,7 +155,8 @@ metrics_collect_alert_policies = Summary(
     "Time it took the collect_alert_policies() method",
 )
 metrics_collect_droplet_sizes = Summary(
-    "resoto_plugin_digitalocean_collect_droplet_sizes_seconds", "Time it took the collect_droplet_sizes() method"
+    "resoto_plugin_digitalocean_collect_droplet_sizes_seconds",
+    "Time it took the collect_droplet_sizes() method",
 )
 
 
@@ -736,6 +737,12 @@ class DigitalOceanTeamCollector:
             else:
                 return volume_id(snapshot["resource_id"])
 
+        def get_region(snapshot: Json) -> str:
+            resource_id = get_resource_id(snapshot)
+            resource = self.graph.search_first("urn", resource_id)
+            region = region_id(resource.region().id)
+            return region
+
         snapshots = self.client.list_snapshots()
         self.collect_resource(
             snapshots,
@@ -749,7 +756,8 @@ class DigitalOceanTeamCollector:
                 "resource_type": "resource_type",
             },
             search_map={
-                "_region": [
+                "_region": ["urn", lambda s: get_region(s)],
+                "__available_regions": [
                     "urn",
                     lambda s: [region_id(region) for region in s["regions"]],
                 ],
@@ -759,7 +767,7 @@ class DigitalOceanTeamCollector:
                     lambda s: list(map(lambda tag: tag_id(tag), s.get("tags", []) or [])),
                 ],
             },
-            predecessors={EdgeType.default: ["__resource", "__tags"]},
+            predecessors={EdgeType.default: ["__resource", "__tags", "__available_regions"]},
         )
 
     @metrics_collect_load_balancers.time()  # type: ignore
