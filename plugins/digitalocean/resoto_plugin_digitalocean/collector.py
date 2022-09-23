@@ -155,7 +155,8 @@ metrics_collect_alert_policies = Summary(
     "Time it took the collect_alert_policies() method",
 )
 metrics_collect_droplet_sizes = Summary(
-    "resoto_plugin_digitalocean_collect_droplet_sizes_seconds", "Time it took the collect_droplet_sizes() method"
+    "resoto_plugin_digitalocean_collect_droplet_sizes_seconds",
+    "Time it took the collect_droplet_sizes() method",
 )
 
 
@@ -742,7 +743,6 @@ class DigitalOceanTeamCollector:
             resource = self.graph.search_first("urn", resource_id)
             region = region_id(resource.region().id)
             return region
-
 
         snapshots = self.client.list_snapshots()
         self.collect_resource(
