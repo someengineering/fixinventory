@@ -25,11 +25,20 @@ class SuggestionStrategy(ABC):
 
 
 class RandomSuggestionStrategy(SuggestionStrategy):
+    """
+    Makes a random suggestion from the list of searches.
+    """
     def suggest(self) -> SearchOfTheDay:
         return random.sample(searches, 1)[0]
 
 
 class RandomNonRepeatingSuggestionStrategy(SuggestionStrategy):
+    """
+    Makes a random suggestion from the list of searches, but does not repeat
+    a suggestion until all searches have been suggested.
+
+    Keeps track of the state based on the session id.
+    """
     def __init__(self):
         self._searches = list(searches)
 
