@@ -17,7 +17,7 @@ from collections import defaultdict
 from contextlib import suppress
 from attrs import define
 from datetime import timedelta
-from functools import partial
+from functools import partial, lru_cache
 from itertools import dropwhile, chain
 from tempfile import TemporaryDirectory
 from typing import Dict, List, Tuple, Optional, Any, AsyncIterator, Hashable, Iterable, Callable, Awaitable, cast, Set
@@ -82,7 +82,7 @@ from resotocore.cli.model import (
     ArgsInfo,
     ArgInfo,
 )
-from resotocore.cli import search_of_the_day
+from resotocore.cli.search_of_the_day import SuggestionStrategy, SuggestionPolicy, get_suggestion_strategy
 from resotocore.config import ConfigEntity
 from resotocore.db.model import QueryModel
 from resotocore.dependencies import system_info
@@ -3894,13 +3894,19 @@ class ConfigsCommand(CLICommand):
             return CLISource.single(lambda: stream.just(self.rendered_help(ctx)))
 
 
-def get_search_string() -> Tuple[str, str]:
-    strategy = search_of_the_day.get_strategy(search_of_the_day.SuggestionPolicy.RANDOM)
+@lru_cache(maxsize=1024)
+def get_session_strategy(policy: SuggestionPolicy, session_id: str):
+    return get_suggestion_strategy(policy)
+
+
+def get_search_string(ctx: CLIContext) -> Tuple[str, str]:
+    strategy = get_session_strategy(SuggestionPolicy.RANDOM_NON_REPEATING, ctx.env.get("session_id", ""))    
     sod = strategy.suggest()
     return sod.search, sod.description
 
-def add_sod_block(info: Table) -> None:
-    search_str, explanation = get_search_string()
+
+def add_sod_block(info: Table, ctx: CLIContext) -> None:
+    search_str, explanation = get_search_string(ctx)
     info.add_row(Text("Search of the day:", style="#762dd7 italic"))
     info.add_row(Text(search_str, style="bold"))
     info.add_row(Text(explanation, style="dim"))
@@ -3935,7 +3941,7 @@ class WelcomeCommand(CLICommand, InternalPart):
             info.add_row(Text(f"Version: {version()}", style="dim"))
 
             info.add_row(Padding("", pad=(0, 0, 0, 0)))
-            add_sod_block(info)
+            add_sod_block(info, ctx)
             # ck mascot is centered (rendered if color is enabled)
             center_horizont = (
                 int((ctx.console_renderer.width - 22) / 2)
@@ -3985,7 +3991,7 @@ class SearchOfTheDayCommand(CLICommand):
         async def sod() -> str:
             info = Table.grid(expand=True)
             info.add_column(justify="center")
-            add_sod_block(info)
+            add_sod_block(info, ctx)
 
             res = ctx.render_console(info)
             return res

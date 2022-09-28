@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from enum import Enum
 from abc import ABC, abstractmethod
 import random
+from typing import List
 
 
 @dataclass(frozen=True)
@@ -14,6 +15,7 @@ class SearchOfTheDay:
 
 class SuggestionPolicy(Enum):
     RANDOM = 1
+    RANDOM_NON_REPEATING = 2
 
 
 class SuggestionStrategy(ABC):
@@ -27,14 +29,26 @@ class RandomSuggestionStrategy(SuggestionStrategy):
         return random.sample(searches, 1)[0]
 
 
-def get_strategy(policy: SuggestionPolicy) -> SuggestionStrategy:
+class RandomNonRepeatingSuggestionStrategy(SuggestionStrategy):
+    def __init__(self):
+        self._searches = list(searches)
+
+    def suggest(self) -> SearchOfTheDay:
+        if not self._searches:
+            self._searches = list(searches)
+        return self._searches.pop(random.randrange(len(self._searches)))
+
+
+def get_suggestion_strategy(policy: SuggestionPolicy) -> SuggestionStrategy:
     if policy == SuggestionPolicy.RANDOM:
         return RandomSuggestionStrategy()
+    elif policy == SuggestionPolicy.RANDOM_NON_REPEATING:
+        return RandomNonRepeatingSuggestionStrategy()
     else:
         raise NotImplementedError
 
 
-searches = sorted(
+searches: List[SearchOfTheDay] = sorted(
     [
         SearchOfTheDay(
             description="AWS EBS Volumes older than 90 days that had no I/O in the past 30 days",
