@@ -16,7 +16,7 @@ class ScarfCollectorPlugin(BaseCollectorPlugin):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.scarf_uri = "https://scarf.sh/api/v1/"
+        self.scarf_uri = "https://scarf.sh/api/v1"
 
     def collect(self) -> None:
         log.debug("plugin: collecting Scarf resources")
@@ -24,11 +24,11 @@ class ScarfCollectorPlugin(BaseCollectorPlugin):
         for organization in Config.scarf.organizations:
             log.debug(f"Collecting Scarf packages in organization {organization}")
 
-            uri = f"{self.scarf_uri}{organization}"
+            uri = f"{self.scarf_uri}/organizations/{organization}"
 
             r = fetch_uri(uri)
 
-            o = ScarfNamespace.new(r)
+            o = ScarfOrganization.new(r)
             self.graph.add_resource(self.graph.root, o)
 
     @staticmethod

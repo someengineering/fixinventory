@@ -25,8 +25,8 @@ class ScarfResource:
 @define(eq=False, slots=False)
 class ScarfOrganization(ScarfResource, BaseAccount):
     kind: ClassVar[str] = "scarf_organization"
-    description: str
-    billing_email: str
+    description: Optional[str] = None
+    billing_email: Optional[str] = None
     website: Optional[str] = None
 
     @staticmethod
@@ -45,7 +45,7 @@ class ScarfOrganization(ScarfResource, BaseAccount):
 class ScarfPackage(ScarfResource, BaseResource):
     kind: ClassVar[str] = "scarf_package"
 
-    short_description: str
+    short_description: Optional[str] = None
     long_description: Optional[str] = None
     website: Optional[str] = None
     library_type: Optional[str] = None
