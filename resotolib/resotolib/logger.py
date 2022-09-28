@@ -157,7 +157,7 @@ def setup_logger(
 
 
 # via https://stackoverflow.com/a/35804945/92184
-def addLoggingLevel(level_name: str, level_num: int, method_name: Optional[str] = None):
+def add_logging_level(level_name: str, level_num: int, method_name: Optional[str] = None):
     """
     Comprehensively adds a new logging level to the `logging` module and the
     currently configured logging class.
@@ -174,10 +174,10 @@ def addLoggingLevel(level_name: str, level_num: int, method_name: Optional[str] 
 
     Example
     -------
-    >>> addLoggingLevel('TRACE', logging.DEBUG - 5)
+    >>> add_logging_level("TRACE", logging.DEBUG - 5)
     >>> logging.getLogger(__name__).setLevel("TRACE")
-    >>> logging.getLogger(__name__).trace('that worked')
-    >>> logging.trace('so did this')
+    >>> logging.getLogger(__name__).trace("that worked")
+    >>> logging.trace("so did this")
     >>> logging.TRACE
     5
 
@@ -192,24 +192,24 @@ def addLoggingLevel(level_name: str, level_num: int, method_name: Optional[str] 
     if hasattr(logging.getLoggerClass(), method_name):
         raise AttributeError("{} already defined in logger class".format(method_name))
 
-    def logForLevel(self, message, *args, **kwargs):
+    def log_for_level(self, message, *args, **kwargs):
         if self.isEnabledFor(level_num):
             self._log(level_num, message, args, **kwargs)
 
-    def logToRoot(message, *args, **kwargs):
+    def log_to_root(message, *args, **kwargs):
         logging.log(level_num, message, *args, **kwargs)
 
     logging.addLevelName(level_num, level_name)
     setattr(logging, level_name, level_num)
-    setattr(logging.getLoggerClass(), method_name, logForLevel)
-    setattr(logging, method_name, logToRoot)
+    setattr(logging.getLoggerClass(), method_name, log_for_level)
+    setattr(logging, method_name, log_to_root)
 
 
-addLoggingLevel("DEBUG2", DEBUG2)
-addLoggingLevel("DEBUG3", DEBUG3)
-addLoggingLevel("DEBUG4", DEBUG4)
-addLoggingLevel("DEBUG5", DEBUG5)
-addLoggingLevel("TRACE", TRACE)
+add_logging_level("DEBUG2", DEBUG2)
+add_logging_level("DEBUG3", DEBUG3)
+add_logging_level("DEBUG4", DEBUG4)
+add_logging_level("DEBUG5", DEBUG5)
+add_logging_level("TRACE", TRACE)
 
 setup_logger("resoto", force=False)
 log = getLogger("resoto")
