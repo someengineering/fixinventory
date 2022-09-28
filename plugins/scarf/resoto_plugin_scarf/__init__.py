@@ -31,6 +31,14 @@ class ScarfCollectorPlugin(BaseCollectorPlugin):
             o = ScarfOrganization.new(r)
             self.graph.add_resource(self.graph.root, o)
 
+        uri = f"{self.scarf_url}/packages"
+
+        for package in fetch_uri(uri):
+            p = ScarfPackage.new(package)
+            o = self.graph.search_first("id", p.get("owner"))
+            if o:
+                self.graph.add_resource(o, p)
+
     @staticmethod
     def add_config(config: Config) -> None:
         config.add_config(ScarfConfig)
