@@ -10,6 +10,7 @@ import re
 import shutil
 import tarfile
 import tempfile
+import random
 from abc import abstractmethod, ABC
 from asyncio import Future, Task
 from asyncio.subprocess import Process
@@ -82,6 +83,7 @@ from resotocore.cli.model import (
     ArgsInfo,
     ArgInfo,
 )
+from resotocore.cli import search_of_the_day
 from resotocore.config import ConfigEntity
 from resotocore.db.model import QueryModel
 from resotocore.dependencies import system_info
@@ -3893,6 +3895,17 @@ class ConfigsCommand(CLICommand):
             return CLISource.single(lambda: stream.just(self.rendered_help(ctx)))
 
 
+def get_search_string() -> Tuple[str, str]:
+    sod = random.sample(search_of_the_day.searches, 1)[0]
+    return sod.search, sod.description
+
+def add_sod_block(info: Table) -> None:
+    search_str, explanation = get_search_string()
+    info.add_row(Text("Search of the day:", style="#762dd7 italic"))
+    info.add_row(Text(search_str, style="bold"))
+    info.add_row(Text(explanation, style="dim"))
+
+
 class WelcomeCommand(CLICommand, InternalPart):
     """
     ```shell
@@ -3921,6 +3934,8 @@ class WelcomeCommand(CLICommand, InternalPart):
             info.add_row(Text("Resoto", style="bold"))
             info.add_row(Text(f"Version: {version()}", style="dim"))
 
+            info.add_row(Padding("", pad=(0, 0, 0, 0)))
+            add_sod_block(info)
             # ck mascot is centered (rendered if color is enabled)
             center_horizont = (
                 int((ctx.console_renderer.width - 22) / 2)
@@ -3938,12 +3953,44 @@ class WelcomeCommand(CLICommand, InternalPart):
             grid.add_row(Padding("", pad=(center_vertical, 0, 0, 0)))
             grid.add_row(Padding(WelcomeCommand.ck if ctx.supports_color() else "", pad=(0, 0, 1, center_horizont)))
             grid.add_row(info)
-            grid.add_row(Panel("[b]> help[/b] for on-line help\n[b]> help[/b] [i]<cmd>[/i] to get help on a command"))
+            grid.add_row(Panel("[b]> help[/b] for on-line help\n"
+                               "[b]> help[/b] [i]<cmd>[/i] to get help on a command\n"
+                               "[b]> sod[/b] to see another search of the day"))
 
             res = ctx.render_console(grid)
             return res
 
         return CLISource.single(lambda: stream.just(welcome()))
+
+
+class SearchOfTheDayCommand(CLICommand):
+    """
+    ```shell
+    sod
+    ```
+    Show the search of the day.
+    """
+
+    @property
+    def name(self) -> str:
+        return "sod"
+
+    def info(self) -> str:
+        return "Show the search of the day to the user."
+
+    def args_info(self) -> ArgsInfo:
+        return []
+
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
+        async def sod() -> str:
+            info = Table.grid(expand=True)
+            info.add_column(justify="center")
+            add_sod_block(info)
+
+            res = ctx.render_console(info)
+            return res
+
+        return CLISource.single(lambda: stream.just(sod()))
 
 
 class CertificateCommand(CLICommand):
@@ -4063,6 +4110,7 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         UniqCommand(d, "misc"),
         WorkflowsCommand(d, "action", allowed_in_source_position=True),
         WelcomeCommand(d, "misc", allowed_in_source_position=True),
+        SearchOfTheDayCommand(d, "misc", allowed_in_source_position=True),
         WriteCommand(d, "misc"),
     ]
     # commands that are only available when the system is started in debug mode
