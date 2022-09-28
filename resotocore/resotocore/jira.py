@@ -7,7 +7,7 @@ import json
 url = "https://some-engineering.atlassian.net/rest/api/2/issue"
 # https://some-engineering.atlassian.net/jira/software/projects/SOM/boards/1
 
-auth = HTTPBasicAuth("anja@some.engineering", "PycA9qfgTCmEgjM3DRtzA11A")
+auth = HTTPBasicAuth("anja@some.engineering", "PycA9qfgTCmEgjM3DRtzA11A") # needs to be a parameter/config
 
 headers = {
    "Accept": "application/json",
@@ -18,7 +18,7 @@ payload = json.dumps( {
   "update": {
   },
   "fields": {
-    "summary": "Resoto: Call to Cleanup",
+    "summary": "Resoto: Call to Action", # title?
     "parent": {
       "key": None
     },
@@ -26,19 +26,18 @@ payload = json.dumps( {
       "id": "10001"
     },
     "project": {
-      "id": "10000"
+      "id": "10000" # needs to be a parameter/config
     },
-    "description": "Please look at these resources! \n Issue created by Resoto",
+    "description": "Please look at these resources! \n Issue created by Resoto", # message?
     "reporter": {
-      "id": "6332bf1b234d44d406d208d1"
+      "id": "6332bf1b234d44d406d208d1" # needs to be a parameter/config
     },
     "labels": [
-      "resoto",
-      "cost-hazard"
+      "resoto"
     ],
-    # "assignee": {
-    #   "id": "5c8add8b-75d8-46a4-80ed-67cd01bda1b0"
-    # }
+    "assignee": {
+      "id": None # needs to be a parameter/config
+    }
   }
 } )
 
@@ -52,7 +51,7 @@ response = requests.request(
 
 print(json.dumps(json.loads(response.text), sort_keys=True, indent=4, separators=(",", ": ")))
 
-# Add Attachment
+# Add Attachment, Optional Feature for the future?
 # url = "https://your-domain.atlassian.net/rest/api/2/issue/{issueIdOrKey}/attachments"
 
 #  auth = HTTPBasicAuth("email@example.com", "")
