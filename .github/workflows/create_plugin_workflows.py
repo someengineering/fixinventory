@@ -83,9 +83,7 @@ step_run_test = """
 """
 
 
-plugins_path = os.path.abspath(
-    os.path.dirname(os.path.abspath(__file__)) + "/../../plugins"
-)
+plugins_path = os.path.abspath(os.path.dirname(os.path.abspath(__file__)) + "/../../plugins")
 for plugin in os.listdir(plugins_path):
     if os.path.isdir(os.path.join(plugins_path, plugin)):
         with open(f"check_pr_plugin_{plugin}.yml", "w") as yml:
@@ -93,7 +91,7 @@ for plugin in os.listdir(plugins_path):
             if "_aws_" in plugin:
                 yml.write(aws_plugin)
             yml.write(
-                step_run_test.replace("@directory@", f"./plugins/{plugin}").replace(
-                    "@name@", plugin
-                ).replace("@PKGNAME@", f"resoto_plugin_{plugin}".upper())
+                step_run_test.replace("@directory@", f"./plugins/{plugin}")
+                .replace("@name@", plugin)
+                .replace("@PKGNAME@", f"resoto_plugin_{plugin}".upper())
             )
