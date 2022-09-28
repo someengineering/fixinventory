@@ -49,16 +49,24 @@ class ScarfPackage(ScarfResource, BaseResource):
     long_description: Optional[str] = None
     website: Optional[str] = None
     library_type: Optional[str] = None
+    owner: Optional[str] = None
+    total_pulls: int = 0
 
     @staticmethod
     def new(data: Dict) -> BaseResource:
+        owner = data.get("owner", "")
+        name = data.get("name", "")
+        owner_prefix = f"{owner}/" if owner else ""
+        if name.startswith(owner_prefix):
+            name = name[len(owner_prefix) :]
         return ScarfPackage(
             id=data.get("uuid"),
-            name=data.get("name"),
+            name=name,
             short_description=data.get("shortDescription"),
             long_description=data.get("longDescription"),
             website=data.get("website"),
             library_type=data.get("libraryType"),
+            owner=owner,
             ctime=convert_date(data.get("createdAt")),
         )
 

@@ -4,38 +4,23 @@ from resotolib.baseplugin import BaseCollectorPlugin
 from resotolib.config import Config
 from .config import ScarfConfig
 from typing import Optional
-from .resources import (
-    ScarfOrganization,
-    ScarfPackage,
-)
-from base64 import b64encode
+from .scarf import ScarfAPI
 
 
 class ScarfCollectorPlugin(BaseCollectorPlugin):
     cloud = "scarf"
 
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self.scarf_uri = "https://scarf.sh/api/v1"
-
     def collect(self) -> None:
         log.debug("plugin: collecting Scarf resources")
+        scarf = ScarfAPI(Config.scarf.email, Config.scarf.password)
 
         for organization in Config.scarf.organizations:
             log.debug(f"Collecting Scarf packages in organization {organization}")
-
-            uri = f"{self.scarf_uri}/organizations/{organization}"
-
-            r = fetch_uri(uri)
-
-            o = ScarfOrganization.new(r)
+            o = scarf.organization(organization)
             self.graph.add_resource(self.graph.root, o)
 
-        uri = f"{self.scarf_uri}/packages"
-
-        for package in fetch_uri(uri):
-            p = ScarfPackage.new(package)
-            o = self.graph.search_first_all({"id": package.get("owner"), "kind": "scarf_organization"})
+        for p in scarf.packages():
+            o = self.graph.search_first_all({"id": p.owner, "kind": "scarf_organization"})
             if o:
                 self.graph.add_resource(o, p)
 
