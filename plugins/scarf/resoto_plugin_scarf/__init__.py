@@ -31,7 +31,7 @@ class ScarfCollectorPlugin(BaseCollectorPlugin):
             o = ScarfOrganization.new(r)
             self.graph.add_resource(self.graph.root, o)
 
-        uri = f"{self.scarf_url}/packages"
+        uri = f"{self.scarf_uri}/packages"
 
         for package in fetch_uri(uri):
             p = ScarfPackage.new(package)
