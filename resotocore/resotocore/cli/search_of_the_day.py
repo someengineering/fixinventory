@@ -3,7 +3,7 @@ from enum import Enum
 from abc import ABC, abstractmethod
 import random
 from typing import List
-
+from datetime import datetime
 
 @dataclass(frozen=True)
 class SearchOfTheDay:
@@ -16,6 +16,7 @@ class SearchOfTheDay:
 class SuggestionPolicy(Enum):
     RANDOM = 1
     RANDOM_NON_REPEATING = 2
+    DAILY = 3
 
 
 class SuggestionStrategy(ABC):
@@ -48,11 +49,22 @@ class RandomNonRepeatingSuggestionStrategy(SuggestionStrategy):
         return self._searches.pop(random.randrange(len(self._searches)))
 
 
+class DailySearchStrategy(SuggestionStrategy):
+    """
+    Makes a suggestion based on the day of the year. The search is determined
+    by the day of the year modulo the number of searches.
+    """
+    def suggest(self) -> SearchOfTheDay:
+        return searches[datetime.now().timetuple().tm_yday % len(searches)]
+
+
 def get_suggestion_strategy(policy: SuggestionPolicy) -> SuggestionStrategy:
     if policy == SuggestionPolicy.RANDOM:
         return RandomSuggestionStrategy()
     elif policy == SuggestionPolicy.RANDOM_NON_REPEATING:
         return RandomNonRepeatingSuggestionStrategy()
+    elif policy == SuggestionPolicy.DAILY:
+        return DailySearchStrategy()
     else:
         raise NotImplementedError
 

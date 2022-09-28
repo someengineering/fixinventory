@@ -3899,17 +3899,12 @@ def get_session_strategy(policy: SuggestionPolicy, session_id: str):
     return get_suggestion_strategy(policy)
 
 
-def get_search_string(ctx: CLIContext) -> Tuple[str, str]:
-    strategy = get_session_strategy(SuggestionPolicy.RANDOM_NON_REPEATING, ctx.env.get("session_id", ""))    
+def add_sod_block(info: Table, policy: SuggestionPolicy, session_id: str) -> None:
+    strategy = get_session_strategy(policy, session_id)
     sod = strategy.suggest()
-    return sod.search, sod.description
-
-
-def add_sod_block(info: Table, ctx: CLIContext) -> None:
-    search_str, explanation = get_search_string(ctx)
     info.add_row(Text("Search of the day:", style="#762dd7 italic"))
-    info.add_row(Text(search_str, style="bold"))
-    info.add_row(Text(explanation, style="dim"))
+    info.add_row(Text(sod.search, style="bold"))
+    info.add_row(Text(sod.description, style="dim"))
 
 
 class WelcomeCommand(CLICommand, InternalPart):
@@ -3941,7 +3936,7 @@ class WelcomeCommand(CLICommand, InternalPart):
             info.add_row(Text(f"Version: {version()}", style="dim"))
 
             info.add_row(Padding("", pad=(0, 0, 0, 0)))
-            add_sod_block(info, ctx)
+            add_sod_block(info, SuggestionPolicy.DAILY, ctx.env.get("session_id", ""))
             # ck mascot is centered (rendered if color is enabled)
             center_horizont = (
                 int((ctx.console_renderer.width - 22) / 2)
@@ -3991,7 +3986,7 @@ class SearchOfTheDayCommand(CLICommand):
         async def sod() -> str:
             info = Table.grid(expand=True)
             info.add_column(justify="center")
-            add_sod_block(info, ctx)
+            add_sod_block(info, SuggestionPolicy.RANDOM_NON_REPEATING, ctx.env.get("session_id", ""))
 
             res = ctx.render_console(info)
             return res
