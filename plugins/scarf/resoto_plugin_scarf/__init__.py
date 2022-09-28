@@ -35,7 +35,7 @@ class ScarfCollectorPlugin(BaseCollectorPlugin):
 
         for package in fetch_uri(uri):
             p = ScarfPackage.new(package)
-            o = self.graph.search_first("id", p.get("owner"))
+            o = self.graph.search_first("id", package.get("owner"))
             if o:
                 self.graph.add_resource(o, p)
 
