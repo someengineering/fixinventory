@@ -75,7 +75,7 @@ class AwsClient:
             paginator = client.get_paginator(py_action)
             result: List[Json] = []
             for page in paginator.paginate(**kwargs):
-                log.debug(f"[Aws] Get next page for service={aws_service} action={action}{arg_info}")
+                log.debug2(f"[Aws] Get next page for service={aws_service} action={action}{arg_info}")
                 next_page: Json = self.__to_json(page)  # type: ignore
                 if result_name is None:
                     # the whole object is appended
