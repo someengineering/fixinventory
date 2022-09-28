@@ -26,8 +26,8 @@ class ScarfResource:
 class ScarfOrganization(ScarfResource, BaseAccount):
     kind: ClassVar[str] = "scarf_organization"
     description: str
-    website: Optional[str] = None
     billing_email: str
+    website: Optional[str] = None
 
     @staticmethod
     def new(data: Dict) -> BaseResource:
