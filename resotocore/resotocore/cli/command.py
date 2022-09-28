@@ -10,7 +10,6 @@ import re
 import shutil
 import tarfile
 import tempfile
-import random
 from abc import abstractmethod, ABC
 from asyncio import Future, Task
 from asyncio.subprocess import Process
@@ -3896,7 +3895,8 @@ class ConfigsCommand(CLICommand):
 
 
 def get_search_string() -> Tuple[str, str]:
-    sod = random.sample(search_of_the_day.searches, 1)[0]
+    strategy = search_of_the_day.get_strategy(search_of_the_day.SuggestionPolicy.RANDOM)
+    sod = strategy.suggest()
     return sod.search, sod.description
 
 def add_sod_block(info: Table) -> None:
