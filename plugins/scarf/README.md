@@ -1,4 +1,4 @@
-# resoto-plugin-scarf
+# Resoto 💜 Scarf
 Scarf Collector Plugin for Resoto
 
 This collector plugin is used to collect data from Scarf. It is used internally at Some Engineering to create metrics about image downloads.
@@ -12,7 +12,7 @@ resotometrics:
       # Metric help text
       help: 'Scarf downloads'
       # Aggregation search to run
-      search: 'aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as namespace, id as repository: sum(pull_count) as scarf_downloads_total): is(scarf_repository)'
+      search: 'aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as organization, name as repository: sum(pull_count) as scarf_downloads_total): is(scarf_package)'
       # Type of metric (gauge or counter)
       type: 'counter'
 ```

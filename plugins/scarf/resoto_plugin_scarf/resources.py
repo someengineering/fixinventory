@@ -50,7 +50,7 @@ class ScarfPackage(ScarfResource, BaseResource):
     website: Optional[str] = None
     library_type: Optional[str] = None
     owner: Optional[str] = None
-    total_pulls: int = 0
+    pull_count: int = 0
 
     @staticmethod
     def new(data: Dict) -> BaseResource:

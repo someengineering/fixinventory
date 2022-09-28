@@ -45,10 +45,10 @@ class ScarfAPI:
         for package in r:
             p = ScarfPackage.new(package)
             metrics = self.insights(p, "2020-01-01", today)
-            total_pulls = 0
+            pull_count = 0
             for metric in metrics:
-                total_pulls += metric.get("count", 0)
-            p.total_pulls = total_pulls
+                pull_count += metric.get("count", 0)
+            p.pull_count = pull_count
             ps.append(p)
         return ps
 
