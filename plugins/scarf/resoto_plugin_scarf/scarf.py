@@ -17,8 +17,7 @@ class ScarfAPI:
         self.logged_in = False
 
     def login(self) -> None:
-        """Login to Scarf and store the token and cookie in self.session.
-        """
+        """Login to Scarf and store the token and cookie in self.session."""
         if self.logged_in:
             return
 
@@ -49,15 +48,13 @@ class ScarfAPI:
         self.logged_in = True
 
     def organization(self, org: str) -> ScarfOrganization:
-        """Returns a ScarfOrganization object for the given organization name.
-        """
+        """Returns a ScarfOrganization object for the given organization name."""
         uri = f"{self.public_api}/organizations/{org}"
         r = self._get(uri)
         return ScarfOrganization.new(r)
 
     def packages(self) -> List[ScarfPackage]:
-        """Returns a list of all packages for the logged in user.
-        """
+        """Returns a list of all packages for the logged in user."""
         uri = f"{self.public_api}/packages"
         r = self._get(uri)
         ps = []
@@ -83,8 +80,7 @@ class ScarfAPI:
         return self._get(uri, params=params)
 
     def _get(self, uri: str, headers: Optional[dict] = None, params: Optional[dict] = None) -> Optional[dict]:
-        """HTTP GET a Scarf URI and return the JSON response using the logged in session.
-        """
+        """HTTP GET a Scarf URI and return the JSON response using the logged in session."""
         self.login()
         log.debug(f"Getting {uri}")
         auth_headers = {"Authorization": f"Bearer {self.token}"}
