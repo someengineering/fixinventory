@@ -3523,7 +3523,7 @@ class HttpCommand(CLICommand):
                     compress=template.compress,
                     timeout=template.timeout,
                     ssl=False if template.no_ssl_verify else self.dependencies.cert_handler.client_context,
-                    auth=BasicAuth(login=authuser, password=(authpass if authpass else "")) if authuser else "",
+                    auth=BasicAuth(login=authuser, password=(authpass if authpass else "")) if authuser else None,
                 ) as response:
                     log.debug(f"Request performed: {response}")
                     if (200 <= response.status < 400) or retries_left == 0:
