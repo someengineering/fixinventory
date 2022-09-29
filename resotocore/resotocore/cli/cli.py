@@ -295,7 +295,7 @@ class CLI:
             except Exception as ex:
                 raise CLIParseError(f"{name} can not parse arg {arg}. Reason: {ex}") from ex
         else:
-            raise CLIParseError(f"Command >{name}< is not known. typo?")
+            raise CLIParseError(f"Command >{name}< is not known. Typo?")
 
     async def create_query(
         self, commands: List[ExecutableCommand], ctx: CLIContext

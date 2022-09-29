@@ -181,7 +181,7 @@ async def test_query_database(cli: CLI) -> None:
 async def test_unknown_command(cli: CLI) -> None:
     with pytest.raises(CLIParseError) as ex:
         await cli.evaluate_cli_command("echo foo | uniq |  some_not_existing_command")
-    assert str(ex.value) == "Command >some_not_existing_command< is not known. typo?"
+    assert str(ex.value) == "Command >some_not_existing_command< is not known. Typo?"
 
 
 @pytest.mark.asyncio
