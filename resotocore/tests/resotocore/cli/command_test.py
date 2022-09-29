@@ -24,6 +24,7 @@ from resotocore.cli import is_node
 from resotocore.cli.cli import CLI
 from resotocore.cli.command import HttpCommand, JqCommand
 from resotocore.cli.model import CLIDependencies, CLIContext
+from resotocore.cli.tip_of_the_day import generic_tips
 from resotocore.console_renderer import ConsoleRenderer, ConsoleColorSystem
 from resotocore.db.jobdb import JobDb
 from resotocore.error import CLIParseError
@@ -890,6 +891,13 @@ async def test_welcome(cli: CLI) -> None:
     ctx = CLIContext(console_renderer=ConsoleRenderer.default_renderer())
     result = await cli.execute_cli_command(f"welcome", stream.list, ctx)
     assert "Resoto" in result[0][0]
+
+
+@pytest.mark.asyncio
+async def test_tip_of_the_day(cli: CLI) -> None:
+    ctx = CLIContext(console_renderer=ConsoleRenderer.default_renderer())
+    result = await cli.execute_cli_command(f"totd", stream.list, ctx)
+    assert generic_tips[0].command_line in result[0][0]
 
 
 @pytest.mark.asyncio
