@@ -877,13 +877,33 @@ async def test_jira_alias(cli: CLI, echo_http_server: Tuple[int, List[Tuple[Requ
     print(requests[0][1])
     assert requests[0][1] == {
         "fields": {
-            "summary": "test",
-            "issuetype": {"id": "10001"},
-            "project": {"id": "10000"},
-            "description": "test message\n\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\n\nIssue created by Resoto",
-            "reporter": {"id": "test"},
-            "labels": ["created-by-resoto"],
-        }
+                "summary": "test",
+                "issuetype": {"id": "10001"},
+                "project": {"id": "10000"},
+                "description": "test message\n\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\n\nIssue created by Resoto",
+                "reporter": {"id": "test"},
+                "labels": ["created-by-resoto"],
+            }
+    }
+
+@pytest.mark.asyncio
+async def test_slack_alias(cli: CLI, echo_http_server: Tuple[int, List[Tuple[Request, Json]]]) -> None:
+    port, requests = echo_http_server
+    result = await cli.execute_cli_command(
+        f'search is(bla) | slack webhook="http://localhost:{port}/success" title=test message="test message"',
+        stream.list,
+    )
+    # 100 times bla, discord allows 25 fields -> 4 requests
+    assert result == [["4 requests with status 200 sent."]]
+    assert len(requests) == 4
+    print(requests[0][1])
+    assert requests[0][1] == {
+        "blocks": [
+            {"type": "header", "text": {"type": "plain_text", "text": "test"}},
+            {"type": "section", "text": {"type": "mrkdwn", "text": "test message"}},
+            {"type": "section", "fields": [{"type": "mrkdwn", "text": "*bla*\nyes or no"} for _ in range(0, 25)]},
+            {"type": "context", "elements": [{"type": "mrkdwn", "text": "Message created by Resoto"}]},
+        ],
     }
 
 
