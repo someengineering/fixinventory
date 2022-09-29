@@ -9,4 +9,3 @@ def test_config():
     assert Config.scarf.email == ""
     assert Config.scarf.password == ""
     assert Config.scarf.organizations == []
-
