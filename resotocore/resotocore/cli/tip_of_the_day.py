@@ -160,7 +160,8 @@ aws_tips: List[TipOfTheDay] = [
     ),
     TipOfTheDay(
         description="Find AWS ALB target groups of instance type that have no instances",
-        command_line="search is(aws_alb_target_group) and target_type == instance with(empty, --> is(aws_ec2_instance))",
+        command_line="search is(aws_alb_target_group) and "
+        "target_type == instance with(empty, --> is(aws_ec2_instance))",
         difficulty=5,
     ),
 ]

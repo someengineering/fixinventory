@@ -96,7 +96,7 @@ from resotocore.cli.model import (
     ArgsInfo,
     ArgInfo,
 )
-from resotocore.cli.tip_of_the_day import SuggestionPolicy, get_suggestion_strategy
+from resotocore.cli.tip_of_the_day import SuggestionPolicy, SuggestionStrategy, get_suggestion_strategy
 from resotocore.config import ConfigEntity
 from resotocore.db.model import QueryModel
 from resotocore.dependencies import system_info
@@ -3909,7 +3909,7 @@ class ConfigsCommand(CLICommand):
 
 
 @lru_cache(maxsize=1024)
-def get_session_strategy(policy: SuggestionPolicy, session_id: str, clouds: FrozenSet[str]):
+def get_session_strategy(policy: SuggestionPolicy, session_id: str, clouds: FrozenSet[str]) -> SuggestionStrategy:
     return get_suggestion_strategy(policy, clouds)
 
 
