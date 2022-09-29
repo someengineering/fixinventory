@@ -23,9 +23,9 @@ class PosthogCollectorPlugin(BaseCollectorPlugin):
             log.debug(f"Collecting Posthog resources in project {project}")
 
             p = posthog.project(project)
-            self.graph.add_resource(self.graph_root, p)
+            self.graph.add_resource(self.graph.root, p)
 
-            for e in posthog.events(p.id):
+            for e in posthog.events(p.project_id):
                 self.graph.add_resource(p, e)
 
     @staticmethod
