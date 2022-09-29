@@ -877,14 +877,15 @@ async def test_jira_alias(cli: CLI, echo_http_server: Tuple[int, List[Tuple[Requ
     print(requests[0][1])
     assert requests[0][1] == {
         "fields": {
-                "summary": "test",
-                "issuetype": {"id": "10001"},
-                "project": {"id": "10000"},
-                "description": "test message\n\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\n\nIssue created by Resoto",
-                "reporter": {"id": "test"},
-                "labels": ["created-by-resoto"],
-            }
+            "summary": "test",
+            "issuetype": {"id": "10001"},
+            "project": {"id": "10000"},
+            "description": "test message\n\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\n\nIssue created by Resoto",
+            "reporter": {"id": "test"},
+            "labels": ["created-by-resoto"],
+        }
     }
+
 
 @pytest.mark.asyncio
 async def test_slack_alias(cli: CLI, echo_http_server: Tuple[int, List[Tuple[Request, Json]]]) -> None:
