@@ -12,7 +12,7 @@ from datetime import timedelta
 from itertools import takewhile
 from operator import attrgetter
 from textwrap import dedent
-from typing import Dict, List, Tuple, Mapping
+from typing import Dict, List, Tuple
 from typing import Optional, Any
 
 from aiostream import stream
@@ -202,27 +202,6 @@ class HelpCommand(CLICommand):
 CLIArg = Tuple[CLICommand, Optional[str]]
 # If no sort is defined in the part, we use this default sort order
 DefaultSort = [Sort("/reported.kind"), Sort("/reported.name"), Sort("/reported.id")]
-
-
-class CIKeyDict(Dict[str, Any]):
-    """
-    Special purpose dict used to lookup replacement values:
-    - the dict should be case-insensitive: so now and NOW does not matter
-    - if no replacement value is found, the key is returned.
-    """
-
-    def __init__(self, **kwargs: Any) -> None:
-        super().__init__({k.lower(): v for k, v in kwargs.items()})
-
-    def __getitem__(self, item: str) -> Any:
-        key = item.lower()
-        return super().__getitem__(key) if key in self else item
-
-    def __setitem__(self, key: str, value: Any) -> Any:
-        return super().__setitem__(key.lower(), value)
-
-    def update(self, m: Mapping[str, Any], **kwargs) -> None:  # type: ignore
-        return super().update({k.lower(): v for k, v in m.items()}, **kwargs)
 
 
 class CLI:
@@ -521,7 +500,7 @@ class CLI:
             n = ut.astimezone(get_local_tzinfo())
         except Exception:
             n = ut
-        return CIKeyDict(
+        return dict(
             UTC=utc_str(ut),
             NOW=n.strftime("%Y-%m-%dT%H:%M:%S%z"),
             TODAY=t.strftime("%Y-%m-%d"),
@@ -550,4 +529,8 @@ class CLI:
         # We do not use the template renderer here on purpose:
         # - the string is processed before it is evaluated - there is no way to escape the @ symbol
         # - the string might contain @ symbols
-        return reduce(lambda res, kv: res.replace(f"@{kv[0]}@", kv[1]), CLI.replacements(**env).items(), cli_input)
+        result = reduce(lambda res, kv: res.replace(f"@{kv[0]}@", kv[1]), CLI.replacements(**env).items(), cli_input)
+        result = reduce(
+            lambda res, kv: res.replace(f"@{kv[0].lower()}@", kv[1]), CLI.replacements(**env).items(), result
+        )
+        return result

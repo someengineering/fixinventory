@@ -1,5 +1,4 @@
 from asyncio import Queue
-from datetime import timedelta
 from typing import Tuple, List, AsyncIterator
 
 import pytest
@@ -8,7 +7,7 @@ from pytest import fixture
 
 from resotocore.analytics import InMemoryEventSender
 from resotocore.cli import strip_quotes, js_value_at
-from resotocore.cli.cli import CLI, multi_command_parser, CIKeyDict
+from resotocore.cli.cli import CLI, multi_command_parser
 from resotocore.cli.command import (
     ExecuteSearchCommand,
     ChunkCommand,
@@ -32,7 +31,7 @@ from resotocore.model.adjust_node import NoAdjust
 from resotocore.model.graph_access import EdgeTypes
 from resotocore.model.model import Model
 from resotocore.query.template_expander import TemplateExpander
-from resotocore.util import utc, from_utc
+from resotocore.util import utc
 from resotocore.web.certificate_handler import CertificateHandler
 from resotocore.worker_task_queue import WorkerTaskQueue, WorkerTaskDescription
 
@@ -297,22 +296,10 @@ async def test_replacements(cli: CLI) -> None:
     assert await execute("@today@ and @TODAY@") == f"{today} and {today}"
 
     # if the value is not provided, but a function is called
-    in_3_days = utc() + timedelta(days=3)
-    assert abs(from_utc(await execute("@3d.from_now@")) - in_3_days) < timedelta(seconds=1)
+    assert await execute("@no_replacement@") == "@no_replacement@"
 
     # replacement is not touched if flag is set
     assert await execute("@today@", False) == "@today@"
-
-
-def test_ci_dict() -> None:
-    d = CIKeyDict(A=1, B=2)
-    # keys are lower case
-    assert d.keys() == {"a", "b"}
-    d["c"] = 3
-    d["C"] = 4
-    assert d == dict(a=1, b=2, c=4)
-    d.update({"a": 2, "c": 5})
-    assert d == dict(a=2, b=2, c=5)
 
 
 def test_js_value_at() -> None:
