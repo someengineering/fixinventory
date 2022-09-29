@@ -529,4 +529,8 @@ class CLI:
         # We do not use the template renderer here on purpose:
         # - the string is processed before it is evaluated - there is no way to escape the @ symbol
         # - the string might contain @ symbols
-        return reduce(lambda res, kv: res.replace(f"@{kv[0]}@", kv[1]), CLI.replacements(**env).items(), cli_input)
+        result = reduce(lambda res, kv: res.replace(f"@{kv[0]}@", kv[1]), CLI.replacements(**env).items(), cli_input)
+        result = reduce(
+            lambda res, kv: res.replace(f"@{kv[0].lower()}@", kv[1]), CLI.replacements(**env).items(), result
+        )
+        return result
