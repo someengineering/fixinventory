@@ -20,7 +20,20 @@ from datetime import timedelta
 from functools import partial, lru_cache
 from itertools import dropwhile, chain
 from tempfile import TemporaryDirectory
-from typing import Dict, List, Tuple, Optional, Any, AsyncIterator, Hashable, Iterable, Callable, Awaitable, cast, Set
+from typing import (
+    Dict,
+    List,
+    Tuple,
+    Optional,
+    Any,
+    AsyncIterator,
+    Hashable,
+    Iterable,
+    Callable,
+    Awaitable,
+    cast,
+    FrozenSet,
+)
 from urllib.parse import urlparse, urlunparse
 
 import aiofiles
@@ -3895,17 +3908,19 @@ class ConfigsCommand(CLICommand):
 
 
 @lru_cache(maxsize=1024)
-def get_session_strategy(policy: SuggestionPolicy, session_id: str):
-    return get_suggestion_strategy(policy)
+def get_session_strategy(policy: SuggestionPolicy, session_id: str, clouds: FrozenSet[str]):
+    return get_suggestion_strategy(policy, clouds)
 
 
-def add_sod_block(info: Table, policy: SuggestionPolicy, session_id: str) -> None:
-    strategy = get_session_strategy(policy, session_id)
+def add_sod_block(info: Table, policy: SuggestionPolicy, session_id: str, clouds: FrozenSet[str]) -> None:
+    strategy = get_session_strategy(policy, session_id, clouds)
     sod = strategy.suggest()
     info.add_row(Text("Search of the day:", style="#762dd7 italic"))
     info.add_row(Text(sod.search, style="bold"))
     info.add_row(Text(sod.description, style="dim"))
 
+
+ResotoWorkerConfigId = ConfigId("resoto.worker")
 
 class WelcomeCommand(CLICommand, InternalPart):
     """
@@ -3936,7 +3951,10 @@ class WelcomeCommand(CLICommand, InternalPart):
             info.add_row(Text(f"Version: {version()}", style="dim"))
 
             info.add_row(Padding("", pad=(0, 0, 0, 0)))
-            add_sod_block(info, SuggestionPolicy.DAILY, ctx.env.get("session_id", ""))
+            resotoworker_config = await self.dependencies.config_handler.get_config(ResotoWorkerConfigId)
+            confiugured_collectors = frozenset(resotoworker_config.config.get("resotoworker", {}).get("collector", []) or [])
+            
+            add_sod_block(info, SuggestionPolicy.DAILY, ctx.env.get("session_id", ""), confiugured_collectors)
             # ck mascot is centered (rendered if color is enabled)
             center_horizont = (
                 int((ctx.console_renderer.width - 22) / 2)
@@ -3954,9 +3972,13 @@ class WelcomeCommand(CLICommand, InternalPart):
             grid.add_row(Padding("", pad=(center_vertical, 0, 0, 0)))
             grid.add_row(Padding(WelcomeCommand.ck if ctx.supports_color() else "", pad=(0, 0, 1, center_horizont)))
             grid.add_row(info)
-            grid.add_row(Panel("[b]> help[/b] for on-line help\n"
-                               "[b]> help[/b] [i]<cmd>[/i] to get help on a command\n"
-                               "[b]> sod[/b] to see another search of the day"))
+            grid.add_row(
+                Panel(
+                    "[b]> help[/b] for on-line help\n"
+                    "[b]> help[/b] [i]<cmd>[/i] to get help on a command\n"
+                    "[b]> sod[/b] to see another search of the day"
+                )
+            )
 
             res = ctx.render_console(grid)
             return res
@@ -3986,7 +4008,11 @@ class SearchOfTheDayCommand(CLICommand):
         async def sod() -> str:
             info = Table.grid(expand=True)
             info.add_column(justify="center")
-            add_sod_block(info, SuggestionPolicy.RANDOM_NON_REPEATING, ctx.env.get("session_id", ""))
+            resotoworker_config = await self.dependencies.config_handler.get_config(ResotoWorkerConfigId)
+            confiugured_collectors = frozenset(resotoworker_config.config.get("resotoworker", {}).get("collector", []) or [])
+            add_sod_block(
+                info, SuggestionPolicy.RANDOM_NON_REPEATING, ctx.env.get("session_id", ""), confiugured_collectors
+            )
 
             res = ctx.render_console(info)
             return res

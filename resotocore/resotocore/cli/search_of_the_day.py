@@ -2,8 +2,9 @@ from dataclasses import dataclass
 from enum import Enum
 from abc import ABC, abstractmethod
 import random
-from typing import List
+from typing import List, FrozenSet, Deque, Tuple
 from datetime import datetime
+from collections import deque
 
 
 @dataclass(frozen=True)
@@ -21,6 +22,15 @@ class SuggestionPolicy(Enum):
 
 
 class SuggestionStrategy(ABC):
+    def __init__(self, cloud_providers: FrozenSet[str]):
+        self._cloud_providers = cloud_providers
+        search_builder = list(generic_searches)
+        if "aws" in self._cloud_providers:
+            search_builder.extend(aws_searches)
+        if "digitalocean" in self._cloud_providers:
+            search_builder.extend(digitalocean_searches)
+        self._searches: Tuple[SearchOfTheDay, ...] = tuple(search_builder)
+
     @abstractmethod
     def suggest(self) -> SearchOfTheDay:
         pass
@@ -32,7 +42,7 @@ class RandomSuggestionStrategy(SuggestionStrategy):
     """
 
     def suggest(self) -> SearchOfTheDay:
-        return random.sample(searches, 1)[0]
+        return random.sample(self._searches, 1)[0]
 
 
 class RandomNonRepeatingSuggestionStrategy(SuggestionStrategy):
@@ -43,13 +53,15 @@ class RandomNonRepeatingSuggestionStrategy(SuggestionStrategy):
     Keeps track of the state based on the session id.
     """
 
-    def __init__(self):
-        self._searches = list(searches)
+    def __init__(self, cloud_providers: FrozenSet[str]):
+        super().__init__(cloud_providers)
+        self._next_searches: Deque[SearchOfTheDay] = deque()
 
     def suggest(self) -> SearchOfTheDay:
-        if not self._searches:
-            self._searches = list(searches)
-        return self._searches.pop(random.randrange(len(self._searches)))
+        if not self._next_searches:
+            self._next_searches.extend(self._searches)
+        search = self._next_searches.popleft()
+        return search
 
 
 class DailySearchStrategy(SuggestionStrategy):
@@ -59,16 +71,16 @@ class DailySearchStrategy(SuggestionStrategy):
     """
 
     def suggest(self) -> SearchOfTheDay:
-        return searches[datetime.now().timetuple().tm_yday % len(searches)]
+        return self._searches[datetime.now().timetuple().tm_yday % len(self._searches)]
 
 
-def get_suggestion_strategy(policy: SuggestionPolicy) -> SuggestionStrategy:
+def get_suggestion_strategy(policy: SuggestionPolicy, configured_clouds: FrozenSet[str]) -> SuggestionStrategy:
     if policy == SuggestionPolicy.RANDOM:
-        return RandomSuggestionStrategy()
+        return RandomSuggestionStrategy(configured_clouds)
     elif policy == SuggestionPolicy.RANDOM_NON_REPEATING:
-        return RandomNonRepeatingSuggestionStrategy()
+        return RandomNonRepeatingSuggestionStrategy(configured_clouds)
     elif policy == SuggestionPolicy.DAILY:
-        return DailySearchStrategy()
+        return DailySearchStrategy(configured_clouds)
     else:
         raise NotImplementedError
 
@@ -86,8 +98,7 @@ generic_searches = [
     ),
 ]
 
-# the list of searches for aws resources
-searches_aws_resources: List[SearchOfTheDay] = [
+aws_searches: List[SearchOfTheDay] = [
     SearchOfTheDay(
         description="AWS EBS Volumes older than 90 days that had no I/O in the past 30 days",
         search="search is(aws_ec2_volume) and age > 90d and last_access > 30d",
@@ -145,7 +156,7 @@ searches_aws_resources: List[SearchOfTheDay] = [
     ),
 ]
 
-searches_digitalocean_resources: List[SearchOfTheDay] = [
+digitalocean_searches: List[SearchOfTheDay] = [
     SearchOfTheDay(
         description="Digitalocean Volumes older than 90 days that had no I/O in the past 30 days",
         search="search is(digitalocean_volume) and age > 90d and last_access > 30d",
@@ -177,5 +188,3 @@ searches_digitalocean_resources: List[SearchOfTheDay] = [
         difficulty=3,
     ),
 ]
-
-searches = generic_searches + searches_aws_resources + searches_digitalocean_resources
