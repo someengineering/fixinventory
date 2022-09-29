@@ -26,7 +26,7 @@ from urllib.parse import urlparse, urlunparse
 import aiofiles
 import jq
 import yaml
-from aiohttp import ClientTimeout, JsonPayload
+from aiohttp import ClientTimeout, JsonPayload, BasicAuth
 from aiostream import stream, pipe
 from aiostream.aiter_utils import is_async_iterable
 from aiostream.core import Stream
@@ -3357,13 +3357,14 @@ class HttpRequestTemplate:
     compress: bool
     no_ssl_verify: bool
     no_body: bool
+    auth: Optional[str]
 
 
 class HttpCommand(CLICommand):
     """
     ```shell
     http[s] [--compress] [--timeout <seconds>] [--no-ssl-verify] [--no-body] [--nr-of-retries <num>]
-            [http_method] <url> [headers] [query_params]
+            [--auth username:password] [http_method] <url> [headers] [query_params]
     ```
 
     This command takes every object from the incoming stream and sends this object to the defined http(s) endpoint.
@@ -3381,6 +3382,7 @@ class HttpCommand(CLICommand):
     - `--no-body` [optional]: if this flag is enabled, no content is sent in the request body
     - `--nr-of-retries` [optional, default=3]: in case the request is not successful (no 2xx), the request
       is retried this often. There will be an exponential backoff between the retries.
+    - `--auth` [optional]: if this option is set, the given username and password will be used for basic auth.
 
     ## Parameters
     - `http_method` [optional, default: POST]: one of GET, PUT, POST, DELETE or PATCH
@@ -3425,6 +3427,7 @@ class HttpCommand(CLICommand):
             ArgInfo("--no-ssl-verify"),
             ArgInfo("--no-body"),
             ArgInfo("--nr-of-retries", expects_value=True, help_text="Number of retries"),
+            ArgInfo("--auth", expects_value=True, help_text="Basic auth <username>:<password>"),
             ArgInfo(None, expects_value=True, help_text="<method> <url> <headers> <query_params>"),
         ]
 
@@ -3480,6 +3483,7 @@ class HttpCommand(CLICommand):
         arg_parser.add_argument("--timeout", dest="timeout", default=cls.default_timeout, type=parse_timeout)
         arg_parser.add_argument("--no-ssl-verify", dest="no_ssl_verify", default=False, action="store_true")
         arg_parser.add_argument("--no-body", dest="no_body", default=False, action="store_true")
+        arg_parser.add_argument("--auth", dest="auth", default=None, type=str)
         args, remaining = arg_parser.parse_known_args(args_parts_unquoted_parser.parse(arg.strip()) if arg else [])
         if remaining:
             method, remaining = parse_method(remaining)
@@ -3496,6 +3500,7 @@ class HttpCommand(CLICommand):
                 args.compress,
                 args.no_ssl_verify,
                 args.no_body,
+                args.auth,
             )
         else:
             raise AttributeError("No URL provided to connect to.")
@@ -3506,6 +3511,7 @@ class HttpCommand(CLICommand):
         async def perform_request(e: JsonElement) -> int:
             nonlocal retries_left
             data = None if template.no_body else (JsonPayload(e) if isinstance(e, (dict, list)) else e)
+            authuser, authpass = template.auth.split(':', 1) if template.auth else (None, None)
             log.debug(f"Perform request with this template={template} and data={data}")
             try:
                 async with self.dependencies.http_session.request(
@@ -3517,6 +3523,7 @@ class HttpCommand(CLICommand):
                     compress=template.compress,
                     timeout=template.timeout,
                     ssl=False if template.no_ssl_verify else self.dependencies.cert_handler.client_context,
+                    auth=BasicAuth(login=authuser, password=authpass) if authuser else None,
                 ) as response:
                     log.debug(f"Request performed: {response}")
                     if (200 <= response.status < 400) or retries_left == 0:
