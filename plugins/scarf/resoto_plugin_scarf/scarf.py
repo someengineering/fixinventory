@@ -83,8 +83,12 @@ class ScarfAPI:
         """HTTP GET a Scarf URI and return the JSON response using the logged in session."""
         self.login()
         log.debug(f"Getting {uri}")
+
         auth_headers = {"Authorization": f"Bearer {self.token}"}
-        headers = auth_headers if headers is None else headers.update(auth_headers)
+        if headers is None:
+            headers = auth_headers
+        else:
+            headers.update(auth_headers)
 
         r = self.session.get(uri, headers=headers, params=params)
         if r.status_code != 200:
