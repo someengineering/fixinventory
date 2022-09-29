@@ -3511,7 +3511,7 @@ class HttpCommand(CLICommand):
         async def perform_request(e: JsonElement) -> int:
             nonlocal retries_left
             data = None if template.no_body else (JsonPayload(e) if isinstance(e, (dict, list)) else e)
-            authuser, authpass = template.auth.split(':', 1) if template.auth else (None, None)
+            authuser, authpass = template.auth.split(":", 1) if template.auth else (None, None)
             log.debug(f"Perform request with this template={template} and data={data}")
             try:
                 async with self.dependencies.http_session.request(
@@ -3523,7 +3523,7 @@ class HttpCommand(CLICommand):
                     compress=template.compress,
                     timeout=template.timeout,
                     ssl=False if template.no_ssl_verify else self.dependencies.cert_handler.client_context,
-                    auth=BasicAuth(login=authuser, password=authpass) if authuser else None,
+                    auth=BasicAuth(login=authuser, password=(authpass if authpass else "")) if authuser else "",
                 ) as response:
                     log.debug(f"Request performed: {response}")
                     if (200 <= response.status < 400) or retries_left == 0:
