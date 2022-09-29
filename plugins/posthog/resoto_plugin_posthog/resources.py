@@ -26,6 +26,7 @@ class PosthogResource:
 class PosthogProject(PosthogResource, BaseResource):
     kind: ClassVar[str] = "posthog_project"
 
+    project_id: int = 2
     app_urls: Optional[List[str]] = (None,)
     slack_incoming_webhook: Optional[List[str]] = (None,)
     anonymize_ips: Optional[bool] = (None,)
@@ -46,7 +47,8 @@ class PosthogProject(PosthogResource, BaseResource):
     @staticmethod
     def new(data: Dict) -> BaseResource:
         return PosthogProject(
-            id=data.get("id"),
+            id=data.get("uuid"),
+            project_id=data.get("id"),
             name=data.get("name"),
             mtime=convert_date(data.get("updated_at")),
             ctime=convert_date(data.get("created_at")),
@@ -84,11 +86,11 @@ class PosthogEvent(PosthogResource, BaseResource):
     last_seen_at: Optional[str] = None
     verified: Optional[bool] = None
     verified_at: Optional[str] = None
-    is_action: Optional[str] = None
+    is_action: Optional[bool] = None
     action_id: Optional[int] = None
     is_calculating: Optional[bool] = None
     last_calculated_at: Optional[str] = None
-    post_to_slack: Optional[str] = None
+    post_to_slack: Optional[bool] = None
 
     @staticmethod
     def new(data: Dict) -> BaseResource:
