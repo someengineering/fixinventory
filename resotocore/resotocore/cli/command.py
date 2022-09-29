@@ -3986,7 +3986,7 @@ class WelcomeCommand(CLICommand, InternalPart):
                 Panel(
                     "[b]> help[/b] for on-line help\n"
                     "[b]> help[/b] [i]<cmd>[/i] to get help on a command\n"
-                    "[b]> tod[/b] to see another tip of the day"
+                    "[b]> totd[/b] to see another tip of the day"
                 )
             )
 
@@ -3999,14 +3999,14 @@ class WelcomeCommand(CLICommand, InternalPart):
 class TipOfTheDayCommand(CLICommand):
     """
     ```shell
-    tod
+    totd
     ```
     Show the tip of the day.
     """
 
     @property
     def name(self) -> str:
-        return "tod"
+        return "totd"
 
     def info(self) -> str:
         return "Show the tip of the day to the user."
@@ -4015,7 +4015,7 @@ class TipOfTheDayCommand(CLICommand):
         return []
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
-        async def tod() -> str:
+        async def totd() -> str:
             info = Table.grid(expand=True)
             info.add_column(justify="center")
             resotoworker_config = await self.dependencies.config_handler.get_config(ResotoWorkerConfigId)
@@ -4030,7 +4030,7 @@ class TipOfTheDayCommand(CLICommand):
             res = ctx.render_console(info)
             return res
 
-        return CLISource.single(lambda: stream.just(tod()))
+        return CLISource.single(lambda: stream.just(totd()))
 
 
 class CertificateCommand(CLICommand):
