@@ -47,7 +47,11 @@ class PosthogAPI:
 
     def insights(self, event: PosthogEvent, since: str):
         uri = f"{self.projects_api}/{event.project_id}/insights/trend/"
-        params = {"insight": "TRENDS", "events": [{"id": event.name, "name": event.name, "order": 0}], "date_from": since}
+        params = {
+            "insight": "TRENDS",
+            "events": [{"id": event.name, "name": event.name, "order": 0}],
+            "date_from": since,
+        }
         r = self._get(uri, headers={"Content-Type": "application/json"}, params=params)
         return r
 
