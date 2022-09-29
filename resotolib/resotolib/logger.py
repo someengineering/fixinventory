@@ -147,10 +147,10 @@ def setup_logger(
         log_format = os.environ.get("RESOTO_LOG_FORMAT", log_format)
         basicConfig(format=log_format, datefmt="%y-%m-%d %H:%M:%S", force=force)
     argv = sys.argv[1:]
-    if verbose or "-v" in argv or "--verbose" in argv or os.environ.get("RESOTO_VERBOSE", "false").lower() == "true":
-        getLogger("resoto").setLevel(DEBUG)
     if "--trace" in argv or os.environ.get("RESOTO_TRACE", "false").lower() == "true":
         getLogger("resoto").setLevel(TRACE)
+    elif verbose or "-v" in argv or "--verbose" in argv or os.environ.get("RESOTO_VERBOSE", "false").lower() == "true":
+        getLogger("resoto").setLevel(DEBUG)
     elif quiet or "--quiet" in argv or os.environ.get("RESOTO_QUIET", "false").lower() == "true":
         getLogger().setLevel(WARNING)
         getLogger("resoto").setLevel(CRITICAL)
