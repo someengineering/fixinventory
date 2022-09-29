@@ -23,10 +23,10 @@ class PosthogResource:
 
 
 @define(eq=False, slots=False)
-class PosthogProject(PosthogResource, BaseResource):
+class PosthogProject(PosthogResource, BaseAccount):
     kind: ClassVar[str] = "posthog_project"
 
-    project_id: int = 2
+    project_id: int
     app_urls: Optional[List[str]] = (None,)
     slack_incoming_webhook: Optional[List[str]] = (None,)
     anonymize_ips: Optional[bool] = (None,)
