@@ -40,14 +40,14 @@ class PosthogAPI:
             next = r.get("next")
 
         for event in events:
-            metrics = self.insights(event, "-2y")
-            event.count = metrics.get("result")[0].get("count")
+            metrics = self.insights(event, "-1h")
+            event.count = int(metrics.get("result")[0].get("count"))
 
         return events
 
     def insights(self, event: PosthogEvent, since: str):
         uri = f"{self.projects_api}/{event.project_id}/insights/trend/"
-        params = {"insight": "TRENDS", "events": [{"id": event.name, "name": event.name, "order": 0}], "date_from": "0d"}
+        params = {"insight": "TRENDS", "events": [{"id": event.name, "name": event.name, "order": 0}], "date_from": since}
         r = self._get(uri, headers={"Content-Type": "application/json"}, params=params)
         return r
 
