@@ -72,7 +72,7 @@ class PosthogProject(PosthogResource, BaseResource):
 
 
 @define(eq=False, slots=False)
-class PosthogEvent(PosthogResource, BaseAccount):
+class PosthogEvent(PosthogResource, BaseResource):
     kind: ClassVar[str] = "posthog_event"
 
     project_id: int
