@@ -180,14 +180,14 @@ def alias_templates() -> List[AliasTemplateConfig]:
         AliasTemplateConfig(
             "discord",
             "Send the result of a search to Discord",
-            # defines the fields to show in the message
+            # define the fields to show in the message
             "jq {name:{{key}}, value:{{value}}} | "
-            # discord limit: https://discord.com/developers/docs/resources/channel#embed-object-embed-limits
+            # Discord limit: https://discord.com/developers/docs/resources/channel#embed-object-embed-limits
             "chunk 25 | "
-            # define the discord webhook json
+            # define the Discord webhook JSON
             'jq {embeds: [{type: "rich", title: "{{title}}", {{#message}}description: "{{message}}",{{/message}} '
             'fields:., footer:{text: "Message created by Resoto"}}]} | '
-            # call the api
+            # call the API
             "http POST {{webhook}}",
             [
                 AliasTemplateParameterConfig("key", "Resource field to show as key", ".kind"),
@@ -196,7 +196,31 @@ def alias_templates() -> List[AliasTemplateConfig]:
                 AliasTemplateParameterConfig("title", "Alert title"),
                 AliasTemplateParameterConfig("webhook", "Discord Webhook URL"),
             ],
-        )
+        ),
+        AliasTemplateConfig(
+            "slack",
+            "Send the result of a search to Slack",
+            # define the fields to show in the message
+            'jq {type: "mrkdwn", text: ("*" + {{key}} + "*\n" + {{value}})} | '
+            # Slack limit: https://api.slack.com/reference/block-kit/blocks#actions
+            "chunk 25 | "
+            # define the Slack webhook JSON
+            "jq { blocks: ["
+            '{ type: "header", text: { type: "plain_text", text: "{{title}}" } }, '
+            '{{#message}}{ type: "section", text: { type: "mrkdwn", text: "{{message}}" } }, {{/message}}'
+            '{ type: "section", fields: . }, '
+            '{ type: "context", elements: [ { type: "mrkdwn", text: "Message created by Resoto" } ] } '
+            "] } | "
+            # call the API
+            "http POST {{webhook}}",
+            [
+                AliasTemplateParameterConfig("key", "Resource field to show as key", ".kind"),
+                AliasTemplateParameterConfig("value", "Resource field to show as value", ".name"),
+                AliasTemplateParameterConfig("message", "Alert message", ""),
+                AliasTemplateParameterConfig("title", "Alert title"),
+                AliasTemplateParameterConfig("webhook", "Slack Webhook URL"),
+            ],
+        ),
     ]
 
 
