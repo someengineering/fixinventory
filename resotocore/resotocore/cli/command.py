@@ -3512,6 +3512,7 @@ class HttpCommand(CLICommand):
             nonlocal retries_left
             data = None if template.no_body else (JsonPayload(e) if isinstance(e, (dict, list)) else e)
             authuser, authpass = template.auth.split(':', 1) if template.auth else (None, None)
+            log.debug(f"authuser={authuser}, authpass={authpass}")
             log.debug(f"Perform request with this template={template} and data={data}")
             try:
                 async with self.dependencies.http_session.request(
