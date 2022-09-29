@@ -28,6 +28,10 @@ class SuggestionStrategy(ABC):
             tip_builder.extend(aws_tips)
         if "digitalocean" in self._cloud_providers:
             tip_builder.extend(digitalocean_tips)
+        if "k8s" in self._cloud_providers:
+            tip_builder.extend(k8s_tips)
+        if "gcp" in self._cloud_providers:
+            tip_builder.extend(gcp_tips)
         tip_builder = sorted(tip_builder, key=lambda x: x.difficulty)
         self._tips: Tuple[TipOfTheDay, ...] = tuple(tip_builder)
 
@@ -87,7 +91,7 @@ def get_suggestion_strategy(policy: SuggestionPolicy, configured_clouds: FrozenS
 
 generic_tips = [
     TipOfTheDay(
-        description='Anything that contains "10.0.0.199"',
+        description='Find anything that contains "10.0.0.199"',
         command_line='search "10.0.0.199"',
         difficulty=1,
     ),
@@ -95,6 +99,16 @@ generic_tips = [
         description="Count your instances by kind",
         command_line="search is(instance) | count kind",
         difficulty=1,
+    ),
+    TipOfTheDay(
+        description="Format the result of your search as a json and write it to a file",
+        command_line="search is(instance) | format --json | write instances.json",
+        difficulty=2,
+    ),
+    TipOfTheDay(
+        description="Find first 10 volumes, get their id and size, and display them as a markdown table",
+        command_line="search is(volume) limit 10 | list id, volume_size --markdown",
+        difficulty=4,
     ),
 ]
 
@@ -118,11 +132,6 @@ aws_tips: List[TipOfTheDay] = [
         description='AWS network interfaces that contain "10.0.0.199" in any field',
         command_line='search is(aws_ec2_network_interface) and "10.0.0.199"',
         difficulty=2,
-    ),
-    TipOfTheDay(
-        description='Anything that contains "10.0.0.199"',
-        command_line='search "10.0.0.199"',
-        difficulty=1,
     ),
     TipOfTheDay(
         description="Find AWS EC2 instances and merge the instance type information into the instance data",
@@ -156,6 +165,14 @@ aws_tips: List[TipOfTheDay] = [
     ),
 ]
 
+gcp_tips: List[TipOfTheDay] = [
+    TipOfTheDay(
+        description="See the detailed information about a random GCP instance",
+        command_line="search is(gcp_instance) | tail 1 | dump",
+        difficulty=2,
+    ),
+]
+
 digitalocean_tips: List[TipOfTheDay] = [
     TipOfTheDay(
         description="Digitalocean Volumes older than 90 days that had no I/O in the past 30 days",
@@ -180,11 +197,19 @@ digitalocean_tips: List[TipOfTheDay] = [
     TipOfTheDay(
         description="See the detailed information about a random DigitalOcean droplet",
         command_line="search is(digitalocean_droplet) | tail 1 | dump",
-        difficulty=1,
+        difficulty=2,
     ),
     TipOfTheDay(
         description="Find all expired DigitalOceans certificates",
         command_line="search is(digitalocean_certificate) and expires < '@now@'",
+        difficulty=3,
+    ),
+]
+
+k8s_tips: List[TipOfTheDay] = [
+    TipOfTheDay(
+        description="Kubernetes pods that are missing the 'owner' tag",
+        command_line="search is(k8s_pod) and not has_key(labels, owner)",
         difficulty=3,
     ),
 ]
