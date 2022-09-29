@@ -1,6 +1,6 @@
 from datetime import datetime
 from attrs import define
-from typing import Optional, ClassVar, List, Dict
+from typing import Optional, ClassVar, Dict
 from resotolib.graph import Graph
 from resotolib.baseresources import (
     BaseAccount,
