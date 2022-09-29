@@ -5,6 +5,8 @@ import calendar
 import logging
 from asyncio import Task
 from contextlib import suppress
+from functools import reduce
+
 from attrs import evolve
 from datetime import timedelta
 from itertools import takewhile
@@ -72,7 +74,6 @@ from resotocore.query.model import (
     Sort,
 )
 from resotocore.query.query_parser import aggregate_parameter_parser, sort_args_p, limit_parser_direct
-from resotocore.query.template_expander import render_template
 from resotocore.types import JsonElement
 from resotocore.util import utc_str, utc, from_utc, group_by
 
@@ -546,4 +547,7 @@ class CLI:
 
     @staticmethod
     def replace_placeholder(cli_input: str, **env: str) -> str:
-        return render_template(cli_input, CLI.replacements(**env), tags=("@", "@"))
+        # We do not use the template renderer here on purpose:
+        # - the string is processed before it is evaluated - there is no way to escape the @ symbol
+        # - the string might contain @ symbols
+        return reduce(lambda res, kv: res.replace(f"@{kv[0]}@", kv[1]), CLI.replacements(**env).items(), cli_input)
