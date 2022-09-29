@@ -201,18 +201,16 @@ def alias_templates() -> List[AliasTemplateConfig]:
             "jira",
             "Send the result of a search to Jira",
             # defines the fields to show in the message
-            'jq ({{key}} + ": " + {{value}}) | '
-            'chunk 25 | '
-            'jq join("\n") | '
+            'jq ({{key}} + ": " + {{value}}) | ' "chunk 25 | " 'jq join("\n") | '
             # define the Jira webhook json
-            'jq {fields: { '
+            "jq {fields: { "
             'summary: "{{title}}", '
             'issuetype: {id: "10001"}, '
             'description: ("{{message}}" + "\n\n" + . + "\n\n" + "Issue created by Resoto"), '
             'project: {id: "{{project_id}}"}, '
             'reporter: {id: "{{reporter_id}}"}, '
             'labels: ["created-by-resoto"]'
-            '} } | '
+            "} } | "
             # call the api
             'http --auth "{{username}}:{{password}}" POST {{webhook}}',
             [
@@ -226,7 +224,7 @@ def alias_templates() -> List[AliasTemplateConfig]:
                 AliasTemplateParameterConfig("project_id", "Jira project ID"),
                 AliasTemplateParameterConfig("reporter_id", "Jira reporter user ID"),
             ],
-        )
+        ),
     ]
 
 
