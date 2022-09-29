@@ -9,7 +9,6 @@ from collections import deque
 
 @dataclass(frozen=True)
 class SearchOfTheDay:
-
     description: str
     search: str
     difficulty: int
@@ -17,7 +16,7 @@ class SearchOfTheDay:
 
 class SuggestionPolicy(Enum):
     RANDOM = 1
-    RANDOM_NON_REPEATING = 2
+    NON_REPEATING = 2
     DAILY = 3
 
 
@@ -29,6 +28,7 @@ class SuggestionStrategy(ABC):
             search_builder.extend(aws_searches)
         if "digitalocean" in self._cloud_providers:
             search_builder.extend(digitalocean_searches)
+        search_builder = sorted(search_builder, key=lambda x: x.difficulty)
         self._searches: Tuple[SearchOfTheDay, ...] = tuple(search_builder)
 
     @abstractmethod
@@ -45,7 +45,7 @@ class RandomSuggestionStrategy(SuggestionStrategy):
         return random.sample(self._searches, 1)[0]
 
 
-class RandomNonRepeatingSuggestionStrategy(SuggestionStrategy):
+class NonRepeatingSuggestionStrategy(SuggestionStrategy):
     """
     Makes a random suggestion from the list of searches, but does not repeat
     a suggestion until all searches have been suggested.
@@ -77,8 +77,8 @@ class DailySearchStrategy(SuggestionStrategy):
 def get_suggestion_strategy(policy: SuggestionPolicy, configured_clouds: FrozenSet[str]) -> SuggestionStrategy:
     if policy == SuggestionPolicy.RANDOM:
         return RandomSuggestionStrategy(configured_clouds)
-    elif policy == SuggestionPolicy.RANDOM_NON_REPEATING:
-        return RandomNonRepeatingSuggestionStrategy(configured_clouds)
+    elif policy == SuggestionPolicy.NON_REPEATING:
+        return NonRepeatingSuggestionStrategy(configured_clouds)
     elif policy == SuggestionPolicy.DAILY:
         return DailySearchStrategy(configured_clouds)
     else:

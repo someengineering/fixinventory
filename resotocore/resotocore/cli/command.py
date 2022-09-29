@@ -4011,7 +4011,7 @@ class SearchOfTheDayCommand(CLICommand):
             resotoworker_config = await self.dependencies.config_handler.get_config(ResotoWorkerConfigId)
             confiugured_collectors = frozenset(resotoworker_config.config.get("resotoworker", {}).get("collector", []) or [])
             add_sod_block(
-                info, SuggestionPolicy.RANDOM_NON_REPEATING, ctx.env.get("session_id", ""), confiugured_collectors
+                info, SuggestionPolicy.NON_REPEATING, ctx.env.get("session_id", ""), confiugured_collectors
             )
 
             res = ctx.render_console(info)
