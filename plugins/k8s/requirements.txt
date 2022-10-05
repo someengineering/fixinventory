@@ -1,2 +1,2 @@
-resotolib==2.4.3
+resotolib==2.4.2
 kubernetes==23.6.0
