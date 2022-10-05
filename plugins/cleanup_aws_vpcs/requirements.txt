@@ -1,3 +1,3 @@
-resotolib==2.4.1
-resoto-plugin-aws==2.4.1
+resotolib==2.4.2
+resoto-plugin-aws==2.4.2
 PyYAML==6.0
