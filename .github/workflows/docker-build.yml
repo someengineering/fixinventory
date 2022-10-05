@@ -510,7 +510,7 @@ jobs:
         uses: mikefarah/yq@master
         if: steps.release_type.outputs.prerelease == 'false'
         with:
-          cmd: yq '.version' helm-charts/charts/resoto/Chart.yaml
+          cmd: yq '.version' helm-charts/someengineering/resoto/Chart.yaml
 
       - name: Get new chart version
         id: new_chart_version
@@ -523,7 +523,7 @@ jobs:
         uses: mikefarah/yq@master
         if: steps.release_type.outputs.prerelease == 'false'
         with:
-          cmd: yq e -i '.version = "${{ steps.new_chart_version.outputs.patch }}" | .appVersion = "${{ steps.release_notes.outputs.tag }}"' helm-charts/charts/resoto/Chart.yaml
+          cmd: yq e -i '.version = "${{ steps.new_chart_version.outputs.patch }}" | .appVersion = "${{ steps.release_notes.outputs.tag }}"' helm-charts/someengineering/resoto/Chart.yaml
 
       - name: Set up Helm
         if: steps.release_type.outputs.prerelease == 'false'
