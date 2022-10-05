@@ -360,10 +360,10 @@ jobs:
           date=$(date +'%m-%d')
           dir="resoto.com/news/${year}"
           mkdir -p $dir
-          file="${dir}/${date}-${tags[0]}.md"
+          file="${dir}/${date}-${tags[0]}/index.md"
           python tools/release_notes.py ${prev_release} ${tags[0]} > $file
           echo ::set-output name=file::$file
-          link="$(date +'%Y/%m/%d')/${tags[0]}"
+          link="/news/$(date +'%Y/%m/%d')/${tags[0]}"
           echo ::set-output name=link::$link
 
       - name: Update released version & resotocore API YAML
@@ -474,7 +474,7 @@ jobs:
           body: |
             ### Release Notes
 
-            https://resoto.com/news/${{ steps.release_notes.outputs.link }}
+            https://resoto.com/${{ steps.release_notes.outputs.link }}
 
             ### Docker Images
 
