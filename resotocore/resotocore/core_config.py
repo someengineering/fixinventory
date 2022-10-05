@@ -194,7 +194,7 @@ def alias_templates() -> List[AliasTemplateConfig]:
                 AliasTemplateParameterConfig("value", "Resource field to show as value", ".name"),
                 AliasTemplateParameterConfig("message", "Alert message", ""),
                 AliasTemplateParameterConfig("title", "Alert title"),
-                AliasTemplateParameterConfig("webhook", "Discord Webhook URL"),
+                AliasTemplateParameterConfig("webhook", "Discord webhook URL"),
             ],
         ),
         AliasTemplateConfig(
@@ -218,7 +218,35 @@ def alias_templates() -> List[AliasTemplateConfig]:
                 AliasTemplateParameterConfig("value", "Resource field to show as value", ".name"),
                 AliasTemplateParameterConfig("message", "Alert message", ""),
                 AliasTemplateParameterConfig("title", "Alert title"),
-                AliasTemplateParameterConfig("webhook", "Slack Webhook URL"),
+                AliasTemplateParameterConfig("webhook", "Slack webhook URL"),
+            ],
+        ),
+        AliasTemplateConfig(
+            "jira",
+            "Send the result of a search to Jira",
+            # defines the fields to show in the message
+            'jq ({{key}} + ": " + {{value}}) | chunk 25 | jq join("\n") | '
+            # define the Jira webhook json
+            "jq {fields: { "
+            'summary: "{{title}}", '
+            'issuetype: {id: "10001"}, '
+            'description: ("{{message}}" + "\n\n" + . + "\n\n" + "Issue created by Resoto"), '
+            'project: {id: "{{project_id}}"}, '
+            'reporter: {id: "{{reporter_id}}"}, '
+            'labels: ["created-by-resoto"]'
+            "} } | "
+            # call the api
+            'http --auth "{{username}}:{{password}}" POST {{webhook}}',
+            [
+                AliasTemplateParameterConfig("key", "Resource field to show as key", ".kind"),
+                AliasTemplateParameterConfig("value", "Resource field to show as value", ".name"),
+                AliasTemplateParameterConfig("message", "Alert message", ""),
+                AliasTemplateParameterConfig("title", "Alert title"),
+                AliasTemplateParameterConfig("webhook", "Jira webhook URL"),
+                AliasTemplateParameterConfig("username", "Jira username"),
+                AliasTemplateParameterConfig("password", "Jira password"),
+                AliasTemplateParameterConfig("project_id", "Jira project ID"),
+                AliasTemplateParameterConfig("reporter_id", "Jira reporter user ID"),
             ],
         ),
     ]
