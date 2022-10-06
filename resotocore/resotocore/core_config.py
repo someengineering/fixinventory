@@ -236,15 +236,15 @@ def alias_templates() -> List[AliasTemplateConfig]:
             'labels: ["created-by-resoto"]'
             "} } | "
             # call the api
-            'http --auth "{{username}}:{{password}}" POST {{webhook}}',
+            'http --auth "{{username}}:{{token}}" POST {{url}}/rest/api/2/issue',
             [
                 AliasTemplateParameterConfig("key", "Resource field to show as key", ".kind"),
                 AliasTemplateParameterConfig("value", "Resource field to show as value", ".name"),
                 AliasTemplateParameterConfig("message", "Alert message", ""),
                 AliasTemplateParameterConfig("title", "Alert title"),
-                AliasTemplateParameterConfig("webhook", "Jira webhook URL"),
+                AliasTemplateParameterConfig("url", "Jira URL"),
                 AliasTemplateParameterConfig("username", "Jira username"),
-                AliasTemplateParameterConfig("password", "Jira password"),
+                AliasTemplateParameterConfig("token", "Jira API token"),
                 AliasTemplateParameterConfig("project_id", "Jira project ID"),
                 AliasTemplateParameterConfig("reporter_id", "Jira reporter user ID"),
             ],
