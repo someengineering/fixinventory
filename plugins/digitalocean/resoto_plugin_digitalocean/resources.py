@@ -26,6 +26,7 @@ from resotolib.baseresources import (
     ModelReference,
 )
 from resotolib.graph import Graph
+from resotolib.config import Config
 
 
 log = logging.getLogger("resoto." + __name__)
@@ -57,7 +58,8 @@ class DigitalOceanResource(BaseResource):
         if delete_uri_path:
             log.debug(f"Deleting resource {self.id} in account {self.account(graph).id} region {self.region(graph).id}")
             team = self.account(graph)
-            credentials = get_team_credentials(team.id)
+            config = Config
+            credentials = get_team_credentials(config, team.id)
             if credentials is None:
                 raise RuntimeError(f"Cannot delete resource {self.id}, credentials not found for team {team.id}")
             client = StreamingWrapper(
