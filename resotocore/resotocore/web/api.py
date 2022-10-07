@@ -239,7 +239,6 @@ class Api:
                 web.get(prefix + "/tsdb", self.forward("/tsdb/")),
                 web.get(prefix + "/ui", self.forward("/ui/index.html")),
                 web.get(prefix + "/ui/", self.forward("/ui/index.html")),
-                web.get(prefix + "/debug/ui/{commit}", self.forward_debug_ui),
                 web.get(prefix + "/debug/ui/{commit}/{path:.+}", self.serve_debug_ui),
                 *ui_route,
                 *tsdb_route,
@@ -712,11 +711,6 @@ class Api:
             "Please revisit your configuration (e.g. using the CLI command `config edit resoto.core`) "
             "and check the key: `api.ui_path`"
         )
-
-    @staticmethod
-    async def forward_debug_ui(request: Request) -> StreamResponse:
-        commit = request.match_info.get("commit", "default")
-        return web.HTTPFound(f"{commit}/index.html")
 
     async def serve_debug_ui(self, request: Request) -> FileResponse:
         """
