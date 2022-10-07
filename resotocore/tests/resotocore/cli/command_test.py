@@ -890,7 +890,7 @@ async def test_slack_alias(cli: CLI, echo_http_server: Tuple[int, List[Tuple[Req
 async def test_jira_alias(cli: CLI, echo_http_server: Tuple[int, List[Tuple[Request, Json]]]) -> None:
     port, requests = echo_http_server
     result = await cli.execute_cli_command(
-        f'search is(bla) | jira webhook="http://localhost:{port}/success" title=test message="test message" username=test password=test project_id=10000 reporter_id=test',
+        f'search is(bla) | jira url="http://localhost:{port}/success" title=test message="test message" username=test token=test project_id=10000 reporter_id=test',
         stream.list,
     )
     # 100 times bla, jira allows 25 fields -> 4 requests
