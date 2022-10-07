@@ -7,7 +7,11 @@ import shutil
 import string
 import tempfile
 import uuid
+import zipfile
 from asyncio import Future
+from io import BytesIO
+
+from aiohttp.web_fileresponse import FileResponse
 from attrs import evolve
 from datetime import timedelta
 from functools import partial
@@ -26,6 +30,8 @@ from aiohttp.web_routedef import AbstractRouteDef
 from aiohttp_swagger3 import SwaggerFile, SwaggerUiSettings
 from aiostream.core import Stream
 from networkx.readwrite import cytoscape_data
+
+from resotocore.error import NotFoundError
 from resotolib.asynchronous.web.auth import auth_handler
 from resotolib.asynchronous.web.ws_handler import accept_websocket, clean_ws_handler
 from resotolib.jwt import encode_jwt
@@ -133,12 +139,18 @@ class Api:
             ]
         )
         self.app.on_response_prepare.append(on_response_prepare)
-        self.session: Optional[ClientSession] = None
+        self._session: Optional[ClientSession] = None
         self.in_shutdown = False
         self.websocket_handler: Dict[str, Tuple[Future[Any], WebSocketResponse]] = {}
         path_part = config.api.web_path.strip().strip("/").strip()
         web_path = "" if path_part == "" else f"/{path_part}"
         self.__add_routes(web_path)
+
+    @property
+    def session(self) -> ClientSession:
+        if self._session is None:
+            self._session = ClientSession()
+        return self._session
 
     def __add_routes(self, prefix: str) -> None:
         static_path = os.path.abspath(os.path.dirname(__file__) + "/../static")
@@ -230,6 +242,8 @@ class Api:
                 web.get(prefix + "/tsdb", self.forward("/tsdb/")),
                 web.get(prefix + "/ui", self.forward("/ui/index.html")),
                 web.get(prefix + "/ui/", self.forward("/ui/index.html")),
+                web.get(prefix + "/debug/ui/{commit}", self.forward_debug_ui),
+                web.get(prefix + "/debug/ui/{commit}/{path:.+}", self.serve_debug_ui),
                 *ui_route,
                 *tsdb_route,
             ]
@@ -701,6 +715,31 @@ class Api:
             "Please revisit your configuration (e.g. using the CLI command `config edit resoto.core`) "
             "and check the key: `api.ui_path`"
         )
+
+    @staticmethod
+    async def forward_debug_ui(request: Request) -> StreamResponse:
+        commit = request.match_info.get("commit", "default")
+        return web.HTTPFound(f"{commit}/index.html")
+
+    async def serve_debug_ui(self, request: Request) -> FileResponse:
+        """
+        This is only for testing different versions of the UI during development.
+        """
+        commit = request.match_info.get("commit", "default")
+        path = request.match_info.get("path", "index.html")
+        dir_path = self.config.run.temp_dir / "ui" / commit
+        if not dir_path.exists():
+            dir_path.mkdir(parents=True)
+            async with self.session.get(f"https://cdn.some.engineering/resoto-ui/commits/{commit}.zip") as resp:
+                if resp.status != 200:
+                    raise NotFoundError(f"Commit not found: {commit}")
+                body = await resp.read()
+                with zipfile.ZipFile(BytesIO(body)) as zip_ref:
+                    zip_ref.extractall(dir_path)
+        file = dir_path / path
+        if not file.exists():
+            raise NotFoundError(f"File not found: {path}")
+        return FileResponse(file)
 
     async def wipe(self, request: Request) -> StreamResponse:
         graph_id = request.match_info.get("graph_id", "resoto")
