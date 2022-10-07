@@ -474,7 +474,7 @@ jobs:
           body: |
             ### Release Notes
 
-            https://resoto.com/${{ steps.release_notes.outputs.link }}
+            https://resoto.com${{ steps.release_notes.outputs.link }}
 
             ### Docker Images
 
