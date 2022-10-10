@@ -161,8 +161,6 @@ RUN . /usr/local/resoto-venv-python3/bin/activate && find plugins/ -maxdepth 1 -
 
 # Workaround until cattrs 22.2.0 is released
 RUN rm -f /build-python/cattrs-22.2.0.dev0-py3-none-any.whl /build-pypy/cattrs-22.2.0.dev0-py3-none-any.whl
-# Workaround until the aiohttp client is used instead of requests
-RUN rm -f /build-python/requests_toolbelt-0.10.0-py2.py3-none-any.whl /build-pypy/requests_toolbelt-0.10.0-py2.py3-none-any.whl
 
 # Install all wheels
 RUN . /usr/local/resoto-venv-python3/bin/activate && python -m pip install -f /build-python /build-python/*.whl
