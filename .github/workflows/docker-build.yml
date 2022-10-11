@@ -358,9 +358,9 @@ jobs:
           prev_release=$(echo $(curl -sL https://api.github.com/repos/someengineering/resoto/releases/latest) | jq -r '.tag_name')
           year=$(date +'%Y')
           date=$(date +'%m-%d')
-          dir="resoto.com/news/${year}"
+          dir="resoto.com/news/${year}/${date}-${tags[0]}"
           mkdir -p $dir
-          file="${dir}/${date}-${tags[0]}/index.md"
+          file="${dir}/index.md"
           python tools/release_notes.py ${prev_release} ${tags[0]} > $file
           echo ::set-output name=file::$file
           link="/news/$(date +'%Y/%m/%d')/${tags[0]}"
