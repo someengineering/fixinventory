@@ -1,9 +1,6 @@
 # switching the user
-whoami
 su - ec2-user
-whoami
 cd /home/ec2-user 
-whoami
 
 # docker setup 
 echo "installing docker"
@@ -21,7 +18,7 @@ sudo systemctl enable docker.service
 sudo systemctl start docker.service
 
 # resoto setup
-echo "installing resoto"q
+echo "installing resoto"
 mkdir -p resoto/dockerV2
 cd resoto
 curl -o docker-compose.yaml https://raw.githubusercontent.com/someengineering/resoto/2.4.3/docker-compose.yaml
