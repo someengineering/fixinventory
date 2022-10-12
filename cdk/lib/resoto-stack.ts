@@ -2,6 +2,7 @@ import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import { readFileSync } from 'fs';
 
 export class ResotoStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -37,28 +38,11 @@ export class ResotoStack extends cdk.Stack {
     });
 
 
-    const dockerComposeSetupCommands = ec2.UserData.forLinux();
-    dockerComposeSetupCommands.addCommands(
-      // docker setup
-      'sudo yum update',
-      'sudo yum install docker',
-      'sudo usermod -a -G docker ec2-user',
-      'id ec2-user',
-      'newgrp docker',
-      // docker compose setup
-      'wget https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)',
-      'sudo mv docker-compose-$(uname -s)-$(uname -m) /usr/local/bin/docker-compose',
-      'sudo chmod -v +x /usr/local/bin/docker-compose',
-      'sudo systemctl enable docker.service',
-      'sudo systemctl start docker.service',
-      // resoto setup
-      'mkdir -p resoto/dockerV2',
-      'cd resoto',
-      'curl -o docker-compose.yaml https://raw.githubusercontent.com/someengineering/resoto/2.4.3/docker-compose.yaml',
-      'curl -o dockerV2/prometheus.yml https://raw.githubusercontent.com/someengineering/resoto/2.4.3/dockerV2/prometheus.yml',
-      'docker-compose up -d',
-    )
-
+    const init = ec2.CloudFormationInit.fromElements(...
+      readFileSync("./lib/setup_resoto.sh", "utf-8")
+      .split("/n")
+      .map((line) => ec2.InitCommand.shellCommand(line))
+    );
 
     const instance = new ec2.Instance(this, 'resoto-instance', {
       vpc: vpc,
@@ -78,8 +62,11 @@ export class ResotoStack extends cdk.Stack {
           volume: ec2.BlockDeviceVolume.ebs(50),
         },
       ],
+      init: init,
+      initOptions: {
+        timeout: cdk.Duration.minutes(5),
+      },
       keyName: 'nm-resoto-ec2-keypair',
-      userData: dockerComposeSetupCommands,
     });
 
     // print the public IP of the instance in the end
@@ -88,7 +75,5 @@ export class ResotoStack extends cdk.Stack {
       description: 'Public IP of the resoto instance',
       exportName: 'resoto-public-ip',
     });
-
-
   }
 }
