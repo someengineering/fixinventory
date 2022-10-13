@@ -160,6 +160,7 @@ def with_config(
         cli,
         template_expander,
         config,
+        system_data,
     )
     event_emitter = emit_recurrent_events(
         event_sender, model, subscriptions, worker_task_queue, message_bus, timedelta(hours=1), timedelta(hours=1)

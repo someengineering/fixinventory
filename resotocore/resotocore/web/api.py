@@ -46,6 +46,7 @@ from resotocore.ids import TaskId, ConfigId, NodeId
 from resotocore.config import ConfigHandler, ConfigValidation, ConfigEntity
 from resotocore.console_renderer import ConsoleColorSystem, ConsoleRenderer
 from resotocore.core_config import CoreConfig
+from resotocore.db import SystemData
 from resotocore.db.db_access import DbAccess
 from resotocore.db.graphdb import GraphDB
 from resotocore.db.model import QueryModel
@@ -91,7 +92,7 @@ def section_of(request: Request) -> Optional[str]:
     return section
 
 
-AlwaysAllowed = {"/", "/metrics", "/api-doc.*", "/system/.*", "/ui.*", "/ca/cert", "/notebook.*"}
+AlwaysAllowed = {"/", "/metrics", "/api-doc.*", "/system/ping", "/system/ready", "/ui.*", "/ca/cert", "/notebook.*"}
 
 
 class Api:
@@ -109,6 +110,7 @@ class Api:
         cli: CLI,
         query_parser: QueryParser,
         config: CoreConfig,
+        system_data: SystemData,
     ):
         self.db = db
         self.model_handler = model_handler
@@ -122,6 +124,7 @@ class Api:
         self.cli = cli
         self.query_parser = query_parser
         self.config = config
+        self.system_data = system_data
         self.app = web.Application(
             # note on order: the middleware is passed in the order provided.
             middlewares=[
@@ -226,6 +229,7 @@ class Api:
                 # system operations
                 web.get(prefix + "/system/ping", self.ping),
                 web.get(prefix + "/system/ready", self.ready),
+                web.get(prefix + "/system/data", self.data),
                 # forwards
                 web.get(prefix + "/tsdb", self.forward("/tsdb/")),
                 web.get(prefix + "/ui", self.forward("/ui/index.html")),
@@ -265,6 +269,9 @@ class Api:
     @staticmethod
     async def ready(_: Request) -> StreamResponse:
         return web.HTTPOk(text="ok")
+
+    async def data(self, _: Request) -> StreamResponse:
+        return web.json_response(to_json(self.system_data))
 
     async def list_configs(self, request: Request) -> StreamResponse:
         return await self.stream_response_from_gen(request, self.config_handler.list_config_ids())
