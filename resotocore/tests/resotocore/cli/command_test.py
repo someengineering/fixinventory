@@ -893,20 +893,8 @@ async def test_jira_alias(cli: CLI, echo_http_server: Tuple[int, List[Tuple[Requ
         f'search is(bla) | jira url="http://localhost:{port}/success" title=test message="test message" username=test token=test project_id=10000 reporter_id=test',
         stream.list,
     )
-    # 100 times bla, jira allows 25 fields -> 4 requests
-    assert result == [["4 requests with status 200 sent."]]
-    assert len(requests) == 4
-    print(requests[0][1])
-    assert requests[0][1] == {
-        "fields": {
-            "summary": "test",
-            "issuetype": {"id": "10001"},
-            "project": {"id": "10000"},
-            "description": "test message\n\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\n\nIssue created by Resoto",
-            "reporter": {"id": "test"},
-            "labels": ["created-by-resoto"],
-        }
-    }
+    assert result == [["1 requests with status 200 sent."]]
+    assert len(requests) == 1
 
 
 @pytest.mark.asyncio
