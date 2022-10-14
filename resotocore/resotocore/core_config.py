@@ -225,7 +225,8 @@ def alias_templates() -> List[AliasTemplateConfig]:
             "jira",
             "Send the result of a search to Jira",
             # defines the fields to show in the message
-            'jq ({{key}} + ": " + {{value}}) | chunk 25 | jq join("\n") | '
+            'jq ({{key}} + ": " + {{value}}) | head 26 | chunk 26 | '
+            'jq "((.[:25] | join("\n")) + (if .[25] then "\n... (results truncated)" else "" end))" | '
             # define the Jira webhook json
             "jq {fields: { "
             'summary: "{{title}}", '
