@@ -119,7 +119,10 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
             "operation": "Defines the operation to execute.",
             "operation_args": "Defines the arguments for the operation. The parameters depend on the operation.",
         },
-        description="By default the operation runs with the same credentials as the collect process.\n"
+        description="Execute an operation on an AWS resource.\n"
+        "For a list of services with respective operations see "
+        "https://awscli.amazonaws.com/v2/documentation/api/latest/reference/index.html#available-services\n\n"
+        "By default the operation runs with the same credentials as the collect process.\n"
         "You can override the credentials by providing the account, role, profile and region arguments.\n\n"
         "There are two modes of operation:\n"
         "1. Use a search and then pipe the result of the search into the `aws` command. "
@@ -140,8 +143,8 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
         "# Get the current caller identity\n"
         "> aws sts get-caller-identity\n"
         "UserId: AIDA42373XXXXXXXXXXXX\n"
-        "Account: '882376543210'\n"
-        "Arn: arn:aws:iam::882376543210:user/matthias\n"
+        "Account: '882374444444'\n"
+        "Arn: arn:aws:iam::882374444444:user/matthias\n"
         "```\n\n",
         allowed_on_kind="aws_resource",
     )
