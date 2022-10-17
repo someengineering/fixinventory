@@ -717,6 +717,7 @@ class Api:
         This is only for testing different versions of the UI during development.
         """
         commit = request.match_info.get("commit", "default")
+        commit = commit[0:6] if len(commit) == 40 else commit  # shorten commit hash
         path = request.match_info.get("path", "index.html")
         dir_path = self.config.run.temp_dir / "ui" / commit
         if not dir_path.exists():
