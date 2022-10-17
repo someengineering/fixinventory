@@ -42,7 +42,7 @@ from aiostream.core import Stream
 from attrs import evolve
 from networkx.readwrite import cytoscape_data
 
-from resotocore.analytics import AnalyticsEventSender
+from resotocore.analytics import AnalyticsEventSender, AnalyticsEvent
 from resotocore.cli.cli import CLI
 from resotocore.cli.command import ListCommand, alias_names, WorkerCustomCommand
 from resotocore.cli.model import (
@@ -218,6 +218,7 @@ class Api:
                 web.get(prefix + "/cli/info", self.cli_info),
                 # Event operations
                 web.get(prefix + "/events", self.handle_events),
+                web.post(prefix + "/analytics", self.send_analytics_events),
                 # Worker operations
                 web.get(prefix + "/work/queue", self.handle_work_tasks),
                 web.get(prefix + "/work/create", self.create_work),
@@ -432,6 +433,12 @@ class Api:
     async def handle_events(self, request: Request) -> StreamResponse:
         show = request.query["show"].split(",") if "show" in request.query else ["*"]
         return await self.listen_to_events(request, SubscriberId(str(uuid.uuid1())), show)
+
+    async def send_analytics_events(self, request: Request) -> StreamResponse:
+        events_json = await self.json_from_request(request)
+        events = from_js(events_json, List[AnalyticsEvent])
+        await self.event_sender.capture(events)
+        return web.HTTPNoContent()
 
     async def listen_to_events(
         self,

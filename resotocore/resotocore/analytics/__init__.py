@@ -57,7 +57,7 @@ class AnalyticsEventSender(ABC):
         return event
 
     @abstractmethod
-    async def capture(self, event: AnalyticsEvent) -> None:
+    async def capture(self, event: Union[AnalyticsEvent, List[AnalyticsEvent]]) -> None:
         pass
 
     async def start(self) -> AnalyticsEventSender:
@@ -72,7 +72,7 @@ class NoEventSender(AnalyticsEventSender):
     Use this sender to not emit any events other than writing it to the log file.
     """
 
-    async def capture(self, event: AnalyticsEvent) -> None:
+    async def capture(self, event: Union[AnalyticsEvent, List[AnalyticsEvent]]) -> None:
         log.debug(event)
 
     async def start(self) -> AnalyticsEventSender:
@@ -88,5 +88,8 @@ class InMemoryEventSender(AnalyticsEventSender):
     def __init__(self) -> None:
         self.events: List[AnalyticsEvent] = []
 
-    async def capture(self, event: AnalyticsEvent) -> None:
-        self.events.append(event)
+    async def capture(self, event: Union[AnalyticsEvent, List[AnalyticsEvent]]) -> None:
+        if isinstance(event, list):
+            self.events.extend(event)
+        else:
+            self.events.append(event)

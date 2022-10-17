@@ -1201,6 +1201,27 @@ paths:
   # endregion
 
   # region events
+
+  /analytics:
+    post:
+      summary: "Send analytics events to the server"
+      description: |
+          Send analytics events to the server.
+          The server will either drop or forward the event based on the user defined settings.
+      tags:
+        - system
+      requestBody:
+        description: "The analytics events to send"
+        content:
+          application/json:
+            schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AnalyticsEvent"
+      responses:
+        "204":
+          description: "The events were accepted"
+
   /events:
     get:
       summary: "[WebSocket] Register as event listener and receive all events."
@@ -2042,6 +2063,29 @@ paths:
   # endregion
 components:
   schemas:
+    AnalyticsEvent:
+      description: "An analytics event."
+      type: object
+      properties:
+        system:
+          type: string
+          description: The system that emitted the event.
+        kind:
+          type: string
+          description: The kind of event.
+        context:
+          type: object
+          description: The context of the event.
+          additionalProperties:
+            type: string
+        counters:
+          type: object
+          description: The counters of the event.
+          additionalProperties:
+            type: integer
+        at:
+          type: string
+          description: The time of the event in IS0 8601 date time.
     Config:
       description: "A config object"
       type: object
