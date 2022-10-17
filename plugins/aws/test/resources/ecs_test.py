@@ -54,3 +54,4 @@ def test_ecs_task_definition() -> None:
     assert len(builder.resources_of(AwsEcsTaskDefinition)) == 1
     assert first.family == "nginx-sample-stack"
     assert first.revision == 1
+    assert first.id == "nginx-sample-stack:1"

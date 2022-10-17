@@ -5,12 +5,14 @@ import calendar
 import logging
 from asyncio import Task
 from contextlib import suppress
+from functools import reduce
+
 from attrs import evolve
 from datetime import timedelta
 from itertools import takewhile
 from operator import attrgetter
 from textwrap import dedent
-from typing import Dict, List, Tuple, Mapping
+from typing import Dict, List, Tuple
 from typing import Optional, Any
 
 from aiostream import stream
@@ -73,7 +75,6 @@ from resotocore.query.model import (
     Sort,
 )
 from resotocore.query.query_parser import aggregate_parameter_parser, sort_args_p, limit_parser_direct
-from resotocore.query.template_expander import render_template
 from resotocore.types import JsonElement
 from resotocore.util import utc_str, utc, from_utc, group_by
 
@@ -205,27 +206,6 @@ CLIArg = Tuple[CLICommand, Optional[str]]
 DefaultSort = [Sort("/reported.kind"), Sort("/reported.name"), Sort("/reported.id")]
 
 
-class CIKeyDict(Dict[str, Any]):
-    """
-    Special purpose dict used to lookup replacement values:
-    - the dict should be case-insensitive: so now and NOW does not matter
-    - if no replacement value is found, the key is returned.
-    """
-
-    def __init__(self, **kwargs: Any) -> None:
-        super().__init__({k.lower(): v for k, v in kwargs.items()})
-
-    def __getitem__(self, item: str) -> Any:
-        key = item.lower()
-        return super().__getitem__(key) if key in self else item
-
-    def __setitem__(self, key: str, value: Any) -> Any:
-        return super().__setitem__(key.lower(), value)
-
-    def update(self, m: Mapping[str, Any], **kwargs) -> None:  # type: ignore
-        return super().update({k.lower(): v for k, v in m.items()}, **kwargs)
-
-
 class CLI:
     """
     The CLI has a defined set of dependencies and knows a list if commands.
@@ -307,7 +287,7 @@ class CLI:
             except Exception as ex:
                 raise CLIParseError(f"{name} can not parse arg {arg}. Reason: {ex}") from ex
         else:
-            raise CLIParseError(f"Command >{name}< is not known. typo?")
+            raise CLIParseError(f"Command >{name}< is not known. Typo?")
 
     async def create_query(
         self, commands: List[ExecutableCommand], ctx: CLIContext
@@ -535,7 +515,7 @@ class CLI:
             n = ut.astimezone(get_local_tzinfo())
         except Exception:
             n = ut
-        return CIKeyDict(
+        return dict(
             UTC=utc_str(ut),
             NOW=n.strftime("%Y-%m-%dT%H:%M:%S%z"),
             TODAY=t.strftime("%Y-%m-%d"),
@@ -561,4 +541,11 @@ class CLI:
 
     @staticmethod
     def replace_placeholder(cli_input: str, **env: str) -> str:
-        return render_template(cli_input, CLI.replacements(**env), tags=("@", "@"))
+        # We do not use the template renderer here on purpose:
+        # - the string is processed before it is evaluated - there is no way to escape the @ symbol
+        # - the string might contain @ symbols
+        result = reduce(lambda res, kv: res.replace(f"@{kv[0]}@", kv[1]), CLI.replacements(**env).items(), cli_input)
+        result = reduce(
+            lambda res, kv: res.replace(f"@{kv[0].lower()}@", kv[1]), CLI.replacements(**env).items(), result
+        )
+        return result

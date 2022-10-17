@@ -358,12 +358,12 @@ jobs:
           prev_release=$(echo $(curl -sL https://api.github.com/repos/someengineering/resoto/releases/latest) | jq -r '.tag_name')
           year=$(date +'%Y')
           date=$(date +'%m-%d')
-          dir="resoto.com/news/${year}"
+          dir="resoto.com/news/${year}/${date}-${tags[0]}"
           mkdir -p $dir
-          file="${dir}/${date}-${tags[0]}.md"
+          file="${dir}/index.md"
           python tools/release_notes.py ${prev_release} ${tags[0]} > $file
           echo ::set-output name=file::$file
-          link="$(date +'%Y/%m/%d')/${tags[0]}"
+          link="/news/$(date +'%Y/%m/%d')/${tags[0]}"
           echo ::set-output name=link::$link
 
       - name: Update released version & resotocore API YAML
@@ -416,7 +416,7 @@ jobs:
         uses: mikefarah/yq@master
         if: steps.release_type.outputs.prerelease == 'false'
         with:
-          cmd: yq '.version' helm-charts/charts/resoto/Chart.yaml
+          cmd: yq '.version' helm-charts/someengineering/resoto/Chart.yaml
 
       - name: Get new chart version
         id: new_chart_version
@@ -429,7 +429,7 @@ jobs:
         uses: mikefarah/yq@master
         if: steps.release_type.outputs.prerelease == 'false'
         with:
-          cmd: yq e -i '.version = "${{ steps.new_chart_version.outputs.patch }}" | .appVersion = "${{ steps.release_notes.outputs.tag }}"' helm-charts/charts/resoto/Chart.yaml
+          cmd: yq e -i '.version = "${{ steps.new_chart_version.outputs.patch }}" | .appVersion = "${{ steps.release_notes.outputs.tag }}"' helm-charts/someengineering/resoto/Chart.yaml
 
       - name: Set up Helm
         if: steps.release_type.outputs.prerelease == 'false'
@@ -474,7 +474,7 @@ jobs:
           body: |
             ### Release Notes
 
-            https://resoto.com/news/${{ steps.release_notes.outputs.link }}
+            https://resoto.com${{ steps.release_notes.outputs.link }}
 
             ### Docker Images
 

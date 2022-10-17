@@ -339,10 +339,11 @@ class TeamCredentials:
     spaces_secret_key: str
 
 
-@lru_cache()
-def get_team_credentials(config: Config, team_id: TeamId) -> Optional[TeamCredentials]:
-    tokens = config.digitalocean.api_tokens
-    spaces_keys = config.digitalocean.spaces_access_keys
+@lru_cache(maxsize=256)
+def get_team_credentials(team_id: TeamId, cache_invalidation_key: int) -> Optional[TeamCredentials]:
+    # todo: do not use the global config
+    tokens = Config.digitalocean.api_tokens
+    spaces_keys = Config.digitalocean.spaces_access_keys
 
     spaces_keys = spaces_keys[: len(tokens)]
     spaces_keys.extend([":"] * (len(tokens) - len(spaces_keys)))

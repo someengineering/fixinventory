@@ -1,7 +1,6 @@
 import logging
 from typing import Callable, Awaitable
 
-from aiohttp import ClientSession
 from aiohttp.web import HTTPNotFound, Request, StreamResponse
 from resotocore.web import api  # pylint: disable=unused-import # prevent circular import
 from resotocore.web.directives import enable_compression
@@ -13,9 +12,6 @@ log = logging.getLogger(__name__)
 def tsdb(api_handler: "api.Api") -> Callable[[Request], Awaitable[StreamResponse]]:
     async def proxy_request(request: Request) -> StreamResponse:
         if api_handler.config.api.tsdb_proxy_url:
-            if api_handler.session is None:
-                api_handler.session = ClientSession()
-
             in_headers = request.headers.copy()
             # since we stream the content (chunked), we are not allowed to set the content length.
             in_headers.popall("Content-Length", "none")

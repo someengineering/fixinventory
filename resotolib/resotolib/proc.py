@@ -1,10 +1,8 @@
 import gc
 import os
 import re
-import resource
 import time
 import sys
-import fcntl
 from typing import Optional, Dict, List
 
 import psutil
@@ -15,6 +13,12 @@ from resotolib.event import dispatch_event, Event, EventType
 from signal import signal, Signals, SIGTERM, SIGINT
 
 from resotolib.utils import iec_size_format
+
+try:
+    import resource
+    import fcntl
+except ImportError:
+    pass
 
 try:
     from psutil import cpu_count

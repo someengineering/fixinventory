@@ -24,6 +24,7 @@ from resotocore.cli import is_node
 from resotocore.cli.cli import CLI
 from resotocore.cli.command import HttpCommand, JqCommand, WorkerCustomCommand
 from resotocore.cli.model import CLIDependencies, CLIContext
+from resotocore.cli.tip_of_the_day import generic_tips
 from resotocore.console_renderer import ConsoleRenderer, ConsoleColorSystem
 from resotocore.db.jobdb import JobDb
 from resotocore.error import CLIParseError
@@ -865,10 +866,60 @@ async def test_discord_alias(cli: CLI, echo_http_server: Tuple[int, List[Tuple[R
 
 
 @pytest.mark.asyncio
+async def test_slack_alias(cli: CLI, echo_http_server: Tuple[int, List[Tuple[Request, Json]]]) -> None:
+    port, requests = echo_http_server
+    result = await cli.execute_cli_command(
+        f'search is(bla) | slack webhook="http://localhost:{port}/success" title=test message="test message"',
+        stream.list,
+    )
+    # 100 times bla, discord allows 25 fields -> 4 requests
+    assert result == [["4 requests with status 200 sent."]]
+    assert len(requests) == 4
+    print(requests[0][1])
+    assert requests[0][1] == {
+        "blocks": [
+            {"type": "header", "text": {"type": "plain_text", "text": "test"}},
+            {"type": "section", "text": {"type": "mrkdwn", "text": "test message"}},
+            {"type": "section", "fields": [{"type": "mrkdwn", "text": "*bla*\nyes or no"} for _ in range(0, 25)]},
+            {"type": "context", "elements": [{"type": "mrkdwn", "text": "Message created by Resoto"}]},
+        ],
+    }
+
+
+@pytest.mark.asyncio
+async def test_jira_alias(cli: CLI, echo_http_server: Tuple[int, List[Tuple[Request, Json]]]) -> None:
+    port, requests = echo_http_server
+    result = await cli.execute_cli_command(
+        f'search is(bla) | jira url="http://localhost:{port}/success" title=test message="test message" username=test token=test project_id=10000 reporter_id=test',
+        stream.list,
+    )
+    assert result == [["1 requests with status 200 sent."]]
+    assert len(requests) == 1
+    print(requests[0][1])
+    assert requests[0][1] == {
+        "fields": {
+            "summary": "test",
+            "issuetype": {"id": "10001"},
+            "project": {"id": "10000"},
+            "description": "test message\n\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\n... (results truncated)\n\nIssue created by Resoto",
+            "reporter": {"id": "test"},
+            "labels": ["created-by-resoto"],
+        }
+    }
+
+
+@pytest.mark.asyncio
 async def test_welcome(cli: CLI) -> None:
     ctx = CLIContext(console_renderer=ConsoleRenderer.default_renderer())
     result = await cli.execute_cli_command(f"welcome", stream.list, ctx)
     assert "Resoto" in result[0][0]
+
+
+@pytest.mark.asyncio
+async def test_tip_of_the_day(cli: CLI) -> None:
+    ctx = CLIContext(console_renderer=ConsoleRenderer.default_renderer())
+    result = await cli.execute_cli_command(f"totd", stream.list, ctx)
+    assert generic_tips[0].command_line in result[0][0]
 
 
 @pytest.mark.asyncio

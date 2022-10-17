@@ -18,16 +18,30 @@ from contextlib import suppress
 
 from attrs import define, field
 from datetime import timedelta
-from functools import partial
+from functools import partial, lru_cache
 from itertools import dropwhile, chain
 from tempfile import TemporaryDirectory
-from typing import Dict, List, Tuple, Optional, Any, AsyncIterator, Hashable, Iterable, Callable, Awaitable, cast, Set
+from typing import (
+    Dict,
+    List,
+    Tuple,
+    Optional,
+    Any,
+    AsyncIterator,
+    Hashable,
+    Iterable,
+    Callable,
+    Awaitable,
+    cast,
+    Set,
+    FrozenSet,
+)
 from urllib.parse import urlparse, urlunparse
 
 import aiofiles
 import jq
 import yaml
-from aiohttp import ClientTimeout, JsonPayload
+from aiohttp import ClientTimeout, JsonPayload, BasicAuth
 from aiostream import stream, pipe
 from aiostream.aiter_utils import is_async_iterable
 from aiostream.core import Stream
@@ -84,6 +98,7 @@ from resotocore.cli.model import (
     ArgInfo,
     AliasTemplate,
 )
+from resotocore.cli.tip_of_the_day import SuggestionPolicy, SuggestionStrategy, get_suggestion_strategy
 from resotocore.config import ConfigEntity
 from resotocore.db.model import QueryModel
 from resotocore.dependencies import system_info
@@ -3509,13 +3524,14 @@ class HttpRequestTemplate:
     compress: bool
     no_ssl_verify: bool
     no_body: bool
+    auth: Optional[str]
 
 
 class HttpCommand(CLICommand):
     """
     ```shell
     http[s] [--compress] [--timeout <seconds>] [--no-ssl-verify] [--no-body] [--nr-of-retries <num>]
-            [http_method] <url> [headers] [query_params]
+            [--auth username:password] [http_method] <url> [headers] [query_params]
     ```
 
     This command takes every object from the incoming stream and sends this object to the defined http(s) endpoint.
@@ -3533,6 +3549,7 @@ class HttpCommand(CLICommand):
     - `--no-body` [optional]: if this flag is enabled, no content is sent in the request body
     - `--nr-of-retries` [optional, default=3]: in case the request is not successful (no 2xx), the request
       is retried this often. There will be an exponential backoff between the retries.
+    - `--auth` [optional]: if this option is set, the given username and password will be used for basic auth.
 
     ## Parameters
     - `http_method` [optional, default: POST]: one of GET, PUT, POST, DELETE or PATCH
@@ -3577,6 +3594,7 @@ class HttpCommand(CLICommand):
             ArgInfo("--no-ssl-verify"),
             ArgInfo("--no-body"),
             ArgInfo("--nr-of-retries", expects_value=True, help_text="Number of retries"),
+            ArgInfo("--auth", expects_value=True, help_text="Basic auth <username>:<password>"),
             ArgInfo(None, expects_value=True, help_text="<method> <url> <headers> <query_params>"),
         ]
 
@@ -3632,6 +3650,7 @@ class HttpCommand(CLICommand):
         arg_parser.add_argument("--timeout", dest="timeout", default=cls.default_timeout, type=parse_timeout)
         arg_parser.add_argument("--no-ssl-verify", dest="no_ssl_verify", default=False, action="store_true")
         arg_parser.add_argument("--no-body", dest="no_body", default=False, action="store_true")
+        arg_parser.add_argument("--auth", dest="auth", default=None, type=str)
         args, remaining = arg_parser.parse_known_args(args_parts_unquoted_parser.parse(arg.strip()) if arg else [])
         if remaining:
             method, remaining = parse_method(remaining)
@@ -3648,6 +3667,7 @@ class HttpCommand(CLICommand):
                 args.compress,
                 args.no_ssl_verify,
                 args.no_body,
+                args.auth,
             )
         else:
             raise AttributeError("No URL provided to connect to.")
@@ -3658,6 +3678,7 @@ class HttpCommand(CLICommand):
         async def perform_request(e: JsonElement) -> int:
             nonlocal retries_left
             data = None if template.no_body else (JsonPayload(e) if isinstance(e, (dict, list)) else e)
+            authuser, authpass = template.auth.split(":", 1) if template.auth else (None, None)
             log.debug(f"Perform request with this template={template} and data={data}")
             try:
                 async with self.dependencies.http_session.request(
@@ -3669,6 +3690,7 @@ class HttpCommand(CLICommand):
                     compress=template.compress,
                     timeout=template.timeout,
                     ssl=False if template.no_ssl_verify else self.dependencies.cert_handler.client_context,
+                    auth=BasicAuth(login=authuser, password=(authpass if authpass else "")) if authuser else None,
                 ) as response:
                     log.debug(f"Request performed: {response}")
                     if (200 <= response.status < 400) or retries_left == 0:
@@ -4045,6 +4067,25 @@ class ConfigsCommand(CLICommand):
             return CLISource.single(lambda: stream.just(self.rendered_help(ctx)))
 
 
+@lru_cache(maxsize=1024)
+def get_session_strategy(policy: SuggestionPolicy, session_id: str, clouds: FrozenSet[str]) -> SuggestionStrategy:
+    return get_suggestion_strategy(policy, clouds)
+
+
+def add_tod_block(info: Table, policy: SuggestionPolicy, session_id: str, clouds: FrozenSet[str]) -> None:
+    """
+    Add a block with the current tip of day to the info table.
+    """
+    strategy = get_session_strategy(policy, session_id, clouds)
+    sod = strategy.suggest()
+    info.add_row(Text("Tip of the day:", style="#762dd7 italic"))
+    info.add_row(Text(sod.command_line, style="bold"))
+    info.add_row(Text(sod.description, style="dim"))
+
+
+ResotoWorkerConfigId = ConfigId("resoto.worker")
+
+
 class WelcomeCommand(CLICommand, InternalPart):
     """
     ```shell
@@ -4073,6 +4114,16 @@ class WelcomeCommand(CLICommand, InternalPart):
             info.add_row(Text("Resoto", style="bold"))
             info.add_row(Text(f"Version: {version()}", style="dim"))
 
+            info.add_row(Padding("", pad=(0, 0, 0, 0)))
+            resotoworker_config = await self.dependencies.config_handler.get_config(ResotoWorkerConfigId)
+            if resotoworker_config:
+                confiugured_collectors = frozenset(
+                    resotoworker_config.config.get("resotoworker", {}).get("collector", []) or []
+                )
+            else:
+                confiugured_collectors = frozenset()
+
+            add_tod_block(info, SuggestionPolicy.DAILY, ctx.env.get("session_id", ""), confiugured_collectors)
             # ck mascot is centered (rendered if color is enabled)
             center_horizont = (
                 int((ctx.console_renderer.width - 22) / 2)
@@ -4090,12 +4141,55 @@ class WelcomeCommand(CLICommand, InternalPart):
             grid.add_row(Padding("", pad=(center_vertical, 0, 0, 0)))
             grid.add_row(Padding(WelcomeCommand.ck if ctx.supports_color() else "", pad=(0, 0, 1, center_horizont)))
             grid.add_row(info)
-            grid.add_row(Panel("[b]> help[/b] for on-line help\n[b]> help[/b] [i]<cmd>[/i] to get help on a command"))
+            grid.add_row(
+                Panel(
+                    "[b]> help[/b] for on-line help\n"
+                    "[b]> help[/b] [i]<cmd>[/i] to get help on a command\n"
+                    "[b]> totd[/b] to see another tip of the day"
+                )
+            )
 
             res = ctx.render_console(grid)
             return res
 
         return CLISource.single(lambda: stream.just(welcome()))
+
+
+class TipOfTheDayCommand(CLICommand):
+    """
+    ```shell
+    totd
+    ```
+    Show the tip of the day.
+    """
+
+    @property
+    def name(self) -> str:
+        return "totd"
+
+    def info(self) -> str:
+        return "Show the tip of the day to the user."
+
+    def args_info(self) -> ArgsInfo:
+        return []
+
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
+        async def totd() -> str:
+            info = Table.grid(expand=True)
+            info.add_column(justify="center")
+            resotoworker_config = await self.dependencies.config_handler.get_config(ResotoWorkerConfigId)
+            if resotoworker_config:
+                confiugured_collectors = frozenset(
+                    resotoworker_config.config.get("resotoworker", {}).get("collector", []) or []
+                )
+            else:
+                confiugured_collectors = frozenset()
+            add_tod_block(info, SuggestionPolicy.NON_REPEATING, ctx.env.get("session_id", ""), confiugured_collectors)
+
+            res = ctx.render_console(info)
+            return res
+
+        return CLISource.single(lambda: stream.just(totd()))
 
 
 class CertificateCommand(CLICommand):
@@ -4216,6 +4310,7 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         UniqCommand(d, "misc"),
         WorkflowsCommand(d, "action", allowed_in_source_position=True),
         WelcomeCommand(d, "misc", allowed_in_source_position=True),
+        TipOfTheDayCommand(d, "misc", allowed_in_source_position=True),
         WriteCommand(d, "misc"),
     ]
     # commands that are only available when the system is started in debug mode

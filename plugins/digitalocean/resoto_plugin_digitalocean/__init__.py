@@ -10,6 +10,7 @@ from resotolib.baseplugin import BaseCollectorPlugin
 from resotolib.logger import log
 from resotolib.graph import Graph
 from resotolib.baseresources import BaseResource
+import time
 
 
 class DigitalOceanCollectorPlugin(BaseCollectorPlugin):
@@ -82,7 +83,8 @@ class DigitalOceanCollectorPlugin(BaseCollectorPlugin):
 
             log.debug(f"Updating tag {key} on resource {resource.id}")
             team = resource.account()
-            credentials = get_team_credentials(config, team.id)
+            ten_minutes_bucket = int(time.time()) // 600
+            credentials = get_team_credentials(team.id, ten_minutes_bucket)
             if credentials is None:
                 raise RuntimeError(
                     f"Cannot update tag on resource {resource.id}, credentials not found for team {team.id}"
@@ -120,7 +122,8 @@ class DigitalOceanCollectorPlugin(BaseCollectorPlugin):
         if tag_resource_name:
             log.debug(f"Deleting tag {key} on resource {resource.id}")
             team = resource.account()
-            credentials = get_team_credentials(config, team.id)
+            ten_minutes_bucket = int(time.time()) // 600
+            credentials = get_team_credentials(team.id, ten_minutes_bucket)
             if credentials is None:
                 raise RuntimeError(
                     f"Cannot update tag on resource {resource.id}, credentials not found for team {team.id}"

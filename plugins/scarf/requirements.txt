@@ -1,0 +1,2 @@
+resotolib==3.0.0a0
+requests==2.27.1

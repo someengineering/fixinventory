@@ -10,7 +10,6 @@ from resotolib.types import Json
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.utils import ToDict
 from typing import Type, cast
-from resoto_plugin_aws.utils import arn_partition
 
 
 @define(eq=False, slots=False)
@@ -99,9 +98,10 @@ class AwsAthenaWorkGroup(AwsResource):
                 return None
 
             workgroup = cls.from_api(result)
-            r_id = builder.region.id
-            a_id = builder.account.id
-            workgroup.arn = f"arn:{arn_partition(builder.region)}:athena:{r_id}:{a_id}:workgroup/{workgroup.name}"
+            workgroup.set_arn(
+                builder=builder,
+                resource=f"workgroup/{workgroup.name}",
+            )
 
             return cast(AwsAthenaWorkGroup, workgroup)
 
@@ -194,9 +194,7 @@ class AwsAthenaDataCatalog(AwsResource):
             if result is None:
                 return None
             catalog = cls.from_api(result)
-            r_id = builder.region.id
-            a_id = builder.account.id
-            catalog.arn = f"arn:{arn_partition(builder.region)}:athena:{r_id}:{a_id}:datacatalog/{catalog.name}"
+            catalog.set_arn(builder=builder, resource=f"datacatalog/{catalog.name}")
             return cast(AwsAthenaDataCatalog, catalog)
 
         def add_tags(data_catalog: AwsAthenaDataCatalog) -> None:
