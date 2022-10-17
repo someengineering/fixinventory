@@ -86,6 +86,10 @@ class P:
         return IsTerm([name])
 
     @staticmethod
+    def all() -> Term:
+        return AllTerm()
+
+    @staticmethod
     def function(fn: str) -> PFunction:
         return PFunction(fn)
 

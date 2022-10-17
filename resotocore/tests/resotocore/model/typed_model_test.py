@@ -1,13 +1,16 @@
 import abc
 from datetime import datetime
+from typing import Union, List
 
+from attrs import define
 from deepdiff import DeepDiff
 from frozendict import frozendict
 
-from resotocore.model.typed_model import from_js, to_js
+from resotocore.model.typed_model import from_js, to_js, to_json
 from resotocore.query.model import Query, P
 from resotocore.query.query_parser import parse_query
 from resotocore.task.task_description import ExecuteOnCLI
+from resotocore.types import JsonElement
 
 
 class ModelBase(abc.ABC):
@@ -57,3 +60,39 @@ def test_marshal_query() -> None:
 def test_frozen_dict() -> None:
     res = ExecuteOnCLI("test", frozendict({"test": "foo"}))
     assert res == from_js(to_js(res), ExecuteOnCLI)
+
+
+@define
+class ClassWithJsonElement:
+    elem: JsonElement
+
+
+@define
+class ClassWithStr:
+    some_str: str
+
+
+@define
+class ClassWithInt:
+    some_int: int
+
+
+@define
+class ClassWithUnion:
+    elem: Union[ClassWithInt, ClassWithStr]
+
+
+def test_json_element() -> None:
+    elements = [None, True, False, 1, 1.23, "test", [1, 2, 3], {"test": "foo"}]
+    for e in elements:
+        t = ClassWithJsonElement(e)
+        again = from_js(to_json(t), ClassWithJsonElement)
+        assert t == again
+
+
+def test_union() -> None:
+    elements: List[Union[ClassWithInt, ClassWithStr]] = [ClassWithInt(1), ClassWithInt(1), ClassWithStr("test")]
+    for e in elements:
+        t = ClassWithUnion(e)
+        again = from_js(to_json(t), ClassWithUnion)
+        assert t == again

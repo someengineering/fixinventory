@@ -41,6 +41,7 @@ from resotocore.cli.command import (
     WelcomeCommand,
     SortPart,
     LimitPart,
+    WorkerCustomCommand,
 )
 from resotocore.cli.model import (
     ParsedCommand,
@@ -117,7 +118,7 @@ class HelpCommand(CLICommand):
         dependencies: CLIDependencies,
         parts: List[CLICommand],
         alias_names: Dict[str, str],
-        alias_templates: List[AliasTemplate],
+        alias_templates: Dict[str, AliasTemplate],
     ):
         super().__init__(dependencies, "misc", True)
         self.all_parts = {p.name: p for p in parts + [self]}
@@ -126,7 +127,7 @@ class HelpCommand(CLICommand):
         self.reverse_alias_names: Dict[str, List[str]] = {
             k: [e[0] for e in v] for k, v in group_by(lambda a: a[1], self.alias_names.items()).items()
         }
-        self.alias_templates = {a.name: a for a in sorted(alias_templates, key=attrgetter("name"))}
+        self.alias_templates = alias_templates
 
     @property
     def name(self) -> str:
@@ -146,7 +147,8 @@ class HelpCommand(CLICommand):
         def overview() -> str:
             all_parts = sorted(self.parts.values(), key=lambda p: p.name)
             parts = [p for p in all_parts if isinstance(p, CLICommand)]
-            alias_templates = "\n".join(f"- `{a.name}` - {a.info}" for a in self.alias_templates.values())
+            templates = list(sorted(self.alias_templates.values(), key=attrgetter("name")))
+            alias_templates = "\n".join(f"- `{a.name}` - {a.info}" for a in templates)
             result = f"## Custom Commands \n{alias_templates}\n"
             for category in ["search", "format", "action", "setup", "misc"]:
                 result += f"\n\n## {category.capitalize()} Commands\n"
@@ -214,7 +216,8 @@ class CLI:
         self, dependencies: CLIDependencies, parts: List[CLICommand], env: Dict[str, Any], alias_names: Dict[str, str]
     ):
         dependencies.extend(cli=self)
-        alias_templates = [AliasTemplate.from_config(cmd) for cmd in dependencies.config.custom_commands.commands]
+        alias_templates_list = [AliasTemplate.from_config(cmd) for cmd in dependencies.config.custom_commands.commands]
+        alias_templates = {a.name: a for a in alias_templates_list}
         help_cmd = HelpCommand(dependencies, parts, alias_names, alias_templates)
         cmds = {p.name: p for p in parts + [help_cmd]}
         alias_cmds = {alias: cmds[name] for alias, name in alias_names.items() if name in cmds and alias not in cmds}
@@ -224,8 +227,17 @@ class CLI:
         self.cli_env = env
         self.dependencies = dependencies
         self.alias_names = alias_names
-        self.alias_templates = {alias.name: alias for alias in alias_templates}
+        self.alias_templates = alias_templates
         self.reaper: Optional[Task[None]] = None
+
+    def register_worker_custom_command(self, command: WorkerCustomCommand) -> None:
+        """
+        Called when a worker connects that introduces a custom command.
+        The registered templated will always override any existing template.
+        """
+        if command.name not in self.direct_commands and command.name not in self.alias_commands:
+            template = command.to_template()
+            self.alias_templates[template.name] = template
 
     async def start(self) -> None:
         self.reaper = asyncio.create_task(self.reap_tasks())
@@ -432,9 +444,12 @@ class CLI:
             def expand_alias(alias_cmd: ParsedCommand) -> List[ParsedCommand]:
                 alias: AliasTemplate = self.alias_templates[alias_cmd.cmd]
                 props: Dict[str, JsonElement] = self.replacements(**{**self.cli_env, **context.env})  # type: ignore
+                props["args"] = alias_cmd.args
                 for p in alias.parameters:
                     props[p.name] = p.default
-                props.update(key_values_parser.parse(alias_cmd.args or ""))
+                # only parse properties, if there are any declared
+                if alias.parameters:
+                    props.update(key_values_parser.parse(alias_cmd.args or ""))
                 undefined = [k for k, v in props.items() if v is None]
                 if undefined:
                     raise AttributeError(f"Alias {alias_cmd.cmd} missing attributes: {', '.join(undefined)}")

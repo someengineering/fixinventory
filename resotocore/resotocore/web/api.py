@@ -2,19 +2,31 @@ import asyncio
 import json
 import logging
 import os
-import re
 import shutil
 import string
 import tempfile
 import uuid
 import zipfile
-from asyncio import Future
+from asyncio import Future, Queue
+from contextlib import asynccontextmanager
 from datetime import timedelta
 from functools import partial
 from io import BytesIO
 from pathlib import Path
 from random import SystemRandom
-from typing import AsyncGenerator, Any, Optional, Sequence, Union, List, Dict, AsyncIterator, Tuple, Callable, Awaitable
+from typing import (
+    AsyncGenerator,
+    Any,
+    Optional,
+    Sequence,
+    Union,
+    List,
+    Dict,
+    AsyncIterator,
+    Tuple,
+    Callable,
+    Awaitable,
+)
 
 import prometheus_client
 import yaml
@@ -32,7 +44,7 @@ from networkx.readwrite import cytoscape_data
 
 from resotocore.analytics import AnalyticsEventSender
 from resotocore.cli.cli import CLI
-from resotocore.cli.command import ListCommand, alias_names
+from resotocore.cli.command import ListCommand, alias_names, WorkerCustomCommand
 from resotocore.cli.model import (
     ParsedCommandLine,
     CLIContext,
@@ -452,11 +464,22 @@ class Api:
 
     async def handle_work_tasks(self, request: Request) -> WebSocketResponse:
         worker_id = WorkerId(uuid_str())
-        task_param = request.query.get("task")
-        if not task_param:
-            raise AttributeError("A worker needs to define at least one task that it can perform")
-        attrs = {k: re.split("\\s*,\\s*", v) for k, v in request.query.items() if k != "task"}
-        task_descriptions = [WorkerTaskDescription(name, attrs) for name in re.split("\\s*,\\s*", task_param)]
+        initialized = False
+        worker_descriptions: Future[List[WorkerTaskDescription]] = asyncio.get_event_loop().create_future()
+
+        async def handle_connect(msg: str) -> None:
+            nonlocal initialized
+            cmds = from_js(json.loads(msg), List[WorkerCustomCommand])
+            print("connected: ", cmds)
+
+            description = [WorkerTaskDescription(cmd.name, cmd.filter) for cmd in cmds]
+            # set the future and allow attaching the worker to the task queue
+            worker_descriptions.set_result(description)
+            # register the descriptions as custom command on the CLI
+            for cmd in cmds:
+                self.cli.register_worker_custom_command(cmd)
+            # mark the worker as initialized
+            initialized = True
 
         async def handle_message(msg: str) -> None:
             tr = from_js(json.loads(msg), WorkerTaskResult)
@@ -471,10 +494,19 @@ class Api:
         def task_json(task: WorkerTask) -> str:
             return to_js_str(task.to_json())
 
+        @asynccontextmanager
+        async def connect_to_task_queue() -> AsyncIterator[Queue[WorkerTask]]:
+            # we need to wait for the worker to send the list of commands it can handle
+            # before we can attach to the worker task queue
+            descriptions = await worker_descriptions
+            async with self.worker_task_queue.attach(worker_id, descriptions) as queue:
+                yield queue
+
+        # noinspection PyTypeChecker
         return await accept_websocket(
             request,
-            handle_incoming=handle_message,
-            outgoing_context=partial(self.worker_task_queue.attach, worker_id, task_descriptions),
+            handle_incoming=lambda msg: handle_connect(msg) if not initialized else handle_message(msg),
+            outgoing_context=connect_to_task_queue,
             websocket_handler=self.websocket_handler,
             outgoing_fn=task_json,
         )

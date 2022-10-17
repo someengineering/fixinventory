@@ -173,6 +173,7 @@ class AliasTemplateConfig(ConfigObject):
     parameters: List[AliasTemplateParameterConfig] = field(
         factory=list, metadata=dict(description="All template parameters.")
     )
+    description: Optional[str] = field(metadata=dict(description="A longer description of the command."), default=None)
 
 
 def alias_templates() -> List[AliasTemplateConfig]:
