@@ -7,10 +7,11 @@ import shutil
 import string
 import tempfile
 import uuid
+import zipfile
 from asyncio import Future
-from attrs import evolve
 from datetime import timedelta
 from functools import partial
+from io import BytesIO
 from pathlib import Path
 from random import SystemRandom
 from typing import AsyncGenerator, Any, Optional, Sequence, Union, List, Dict, AsyncIterator, Tuple, Callable, Awaitable
@@ -22,13 +23,12 @@ from aiohttp.abc import AbstractStreamWriter
 from aiohttp.hdrs import METH_ANY
 from aiohttp.web import Request, StreamResponse, WebSocketResponse
 from aiohttp.web_exceptions import HTTPNotFound, HTTPNoContent, HTTPOk, HTTPNotAcceptable
+from aiohttp.web_fileresponse import FileResponse
 from aiohttp.web_routedef import AbstractRouteDef
 from aiohttp_swagger3 import SwaggerFile, SwaggerUiSettings
 from aiostream.core import Stream
+from attrs import evolve
 from networkx.readwrite import cytoscape_data
-from resotolib.asynchronous.web.auth import auth_handler
-from resotolib.asynchronous.web.ws_handler import accept_websocket, clean_ws_handler
-from resotolib.jwt import encode_jwt
 
 from resotocore.analytics import AnalyticsEventSender
 from resotocore.cli.cli import CLI
@@ -42,13 +42,14 @@ from resotocore.cli.model import (
     InternalPart,
     AliasTemplate,
 )
-from resotocore.ids import TaskId, ConfigId, NodeId
 from resotocore.config import ConfigHandler, ConfigValidation, ConfigEntity
 from resotocore.console_renderer import ConsoleColorSystem, ConsoleRenderer
 from resotocore.core_config import CoreConfig
 from resotocore.db.db_access import DbAccess
 from resotocore.db.graphdb import GraphDB
 from resotocore.db.model import QueryModel
+from resotocore.error import NotFoundError
+from resotocore.ids import TaskId, ConfigId, NodeId, SubscriberId, WorkerId
 from resotocore.message_bus import MessageBus, Message, ActionDone, Action, ActionError
 from resotocore.model.db_updater import merge_graph_process
 from resotocore.model.graph_access import Section
@@ -57,7 +58,6 @@ from resotocore.model.model_handler import ModelHandler
 from resotocore.model.typed_model import to_json, from_js, to_js_str, to_js
 from resotocore.query import QueryParser
 from resotocore.task.model import Subscription
-from resotocore.ids import SubscriberId, WorkerId
 from resotocore.task.subscribers import SubscriptionHandler
 from resotocore.task.task_handler import TaskHandlerService
 from resotocore.types import Json, JsonElement
@@ -80,6 +80,9 @@ from resotocore.worker_task_queue import (
     WorkerTaskResult,
     WorkerTaskInProgress,
 )
+from resotolib.asynchronous.web.auth import auth_handler
+from resotolib.asynchronous.web.ws_handler import accept_websocket, clean_ws_handler
+from resotolib.jwt import encode_jwt
 
 log = logging.getLogger(__name__)
 
@@ -133,12 +136,18 @@ class Api:
             ]
         )
         self.app.on_response_prepare.append(on_response_prepare)
-        self.session: Optional[ClientSession] = None
+        self._session: Optional[ClientSession] = None
         self.in_shutdown = False
         self.websocket_handler: Dict[str, Tuple[Future[Any], WebSocketResponse]] = {}
         path_part = config.api.web_path.strip().strip("/").strip()
         web_path = "" if path_part == "" else f"/{path_part}"
         self.__add_routes(web_path)
+
+    @property
+    def session(self) -> ClientSession:
+        if self._session is None:
+            self._session = ClientSession()
+        return self._session
 
     def __add_routes(self, prefix: str) -> None:
         static_path = os.path.abspath(os.path.dirname(__file__) + "/../static")
@@ -230,6 +239,7 @@ class Api:
                 web.get(prefix + "/tsdb", self.forward("/tsdb/")),
                 web.get(prefix + "/ui", self.forward("/ui/index.html")),
                 web.get(prefix + "/ui/", self.forward("/ui/index.html")),
+                web.get(prefix + "/debug/ui/{commit}/{path:.+}", self.serve_debug_ui),
                 *ui_route,
                 *tsdb_route,
             ]
@@ -701,6 +711,27 @@ class Api:
             "Please revisit your configuration (e.g. using the CLI command `config edit resoto.core`) "
             "and check the key: `api.ui_path`"
         )
+
+    async def serve_debug_ui(self, request: Request) -> FileResponse:
+        """
+        This is only for testing different versions of the UI during development.
+        """
+        commit = request.match_info.get("commit", "default")
+        commit = commit[0:6] if len(commit) == 40 else commit  # shorten commit hash
+        path = request.match_info.get("path", "index.html")
+        dir_path = self.config.run.temp_dir / "ui" / commit
+        if not dir_path.exists():
+            dir_path.mkdir(parents=True)
+            async with self.session.get(f"https://cdn.some.engineering/resoto-ui/commits/{commit}.zip") as resp:
+                if resp.status != 200:
+                    raise NotFoundError(f"Commit not found: {commit}")
+                body = await resp.read()
+                with zipfile.ZipFile(BytesIO(body)) as zip_ref:
+                    zip_ref.extractall(dir_path)
+        file = dir_path / path
+        if not file.exists():
+            raise NotFoundError(f"File not found: {path}")
+        return FileResponse(file)
 
     async def wipe(self, request: Request) -> StreamResponse:
         graph_id = request.match_info.get("graph_id", "resoto")
