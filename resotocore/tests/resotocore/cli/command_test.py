@@ -65,7 +65,13 @@ from tests.resotocore.message_bus_test import message_bus
 from tests.resotocore.query.template_expander_test import expander
 
 # noinspection PyUnresolvedReferences
-from tests.resotocore.task.task_handler_test import task_handler, job_db, subscription_handler, test_workflow
+from tests.resotocore.task.task_handler_test import (
+    task_handler,
+    job_db,
+    subscription_handler,
+    test_workflow,
+    additional_workflows,
+)
 
 # noinspection PyUnresolvedReferences
 from tests.resotocore.worker_task_queue_test import worker, task_queue, performed_by, incoming_tasks
@@ -367,11 +373,20 @@ async def test_workflows_command(cli: CLI, task_handler: TaskHandlerService, tes
         ctx = CLIContext(cli.cli_env)
         return (await cli.execute_cli_command(cmd, stream.list, ctx))[0]  # type: ignore
 
-    assert await execute("workflows list") == ["test_workflow"]
+    assert await execute("workflows list") == ["sleep_workflow", "test_workflow"]
     assert await execute("workflows show test_workflow") == [to_js(test_workflow)]
     wf = await execute("workflows run test_workflow")
     assert wf[0].startswith("Workflow test_workflow started with id")  # type: ignore
     assert len(await execute("workflows running")) == 1
+
+    # executing an already running workflow will give a specific message
+    await execute("workflows run sleep_workflow")
+    sf = await execute("workflows run sleep_workflow")
+    assert sf[0].startswith("Workflow sleep_workflow already running with id ")  # type: ignore
+
+    # make sure to wait for all tasks to finish
+    for rt in await task_handler.running_tasks():
+        await task_handler.delete_running_task(rt)
 
 
 @pytest.mark.asyncio
