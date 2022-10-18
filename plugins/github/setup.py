@@ -11,7 +11,7 @@ def read(fname):
 
 setup(
     name="resoto-plugin-github",
-    version="2.4.3",
+    version="2.4.4",
     description="Resoto Github Collector Plugin",
     license="Apache 2.0",
     packages=find_packages(),
