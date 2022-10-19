@@ -326,7 +326,7 @@ class Workflow(TaskDescription):
         )
 
 
-class StepState(State):  # type: ignore
+class StepState(State):
     """
     Base class for all states in a task.
     There is always a related step definition inside a related task definition.

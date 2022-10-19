@@ -137,9 +137,8 @@ class EventEntityDb(EntityDb[K, T]):
         return self.db.all()
 
     async def update_many(self, elements: List[T]) -> None:
-        result = await self.db.update_many(elements)
+        await self.db.update_many(elements)
         await self.event_sender.core_event(f"{self.entity_name}-updated-many", count=len(elements))
-        return result
 
     async def get(self, key: K) -> Optional[T]:
         return await self.db.get(key)
