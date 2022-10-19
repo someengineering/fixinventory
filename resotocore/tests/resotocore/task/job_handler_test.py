@@ -1,6 +1,6 @@
 from typing import List, Optional, Dict
 
-from resotocore.task import TaskHandler
+from resotocore.task import TaskHandler, RunningTaskInfo
 from resotocore.task.task_description import RunningTask, Job, Workflow
 from resotocore.ids import TaskDescriptorId
 from resotocore.util import first
@@ -33,7 +33,7 @@ class InMemJobHandler(TaskHandler):
     ) -> Job:
         raise NotImplementedError()
 
-    async def start_task_by_descriptor_id(self, uid: TaskDescriptorId) -> Optional[RunningTask]:
+    async def start_task_by_descriptor_id(self, uid: TaskDescriptorId) -> Optional[RunningTaskInfo]:
         self.started_tasks.append(uid)
         return None
 
