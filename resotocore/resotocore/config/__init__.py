@@ -5,6 +5,7 @@ from attrs import define
 from typing import Optional, AsyncIterator, List
 
 from jsons import set_deserializer, set_serializer
+from resotocore.analytics import AnalyticsEventSender
 
 from resotocore.model.model import Model, Kind
 from resotocore.types import Json
@@ -38,6 +39,8 @@ class ConfigValidation:
 
 
 class ConfigHandler(ABC):
+    event_sender: AnalyticsEventSender
+
     @abstractmethod
     def list_config_ids(self) -> AsyncIterator[ConfigId]:
         pass

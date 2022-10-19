@@ -124,7 +124,12 @@ def with_config(
     model = ModelHandlerDB(db.get_model_db(), config.runtime.plantuml_server)
     template_expander = DBTemplateExpander(db.template_entity_db)
     config_handler = ConfigHandlerService(
-        db.config_entity_db, db.config_validation_entity_db, db.configs_model_db, worker_task_queue, message_bus
+        db.config_entity_db,
+        db.config_validation_entity_db,
+        db.configs_model_db,
+        worker_task_queue,
+        message_bus,
+        event_sender,
     )
     log_ship = event_stream(config, cert_handler.client_context)
     cli_deps = CLIDependencies(

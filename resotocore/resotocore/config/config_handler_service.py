@@ -1,6 +1,7 @@
 import asyncio
 from datetime import timedelta
 from typing import Optional, AsyncIterator, List
+from resotocore.analytics import AnalyticsEventSender, CoreEvent
 
 import yaml
 
@@ -23,12 +24,14 @@ class ConfigHandlerService(ConfigHandler):
         model_db: ModelDb,
         task_queue: WorkerTaskQueue,
         message_bus: MessageBus,
+        event_sender: AnalyticsEventSender,
     ) -> None:
         self.cfg_db = cfg_db
         self.validation_db = validation_db
         self.model_db = model_db
         self.task_queue = task_queue
         self.message_bus = message_bus
+        self.event_sender = event_sender
 
     async def coerce_and_check_model(self, cfg_id: ConfigId, config: Json, validate: bool = True) -> Json:
         model = await self.get_configs_model()
@@ -69,6 +72,7 @@ class ConfigHandlerService(ConfigHandler):
         if not existing or existing.config != cfg.config:
             result = await self.cfg_db.update(ConfigEntity(cfg.id, coerced, cfg.revision))
             await self.message_bus.emit_event(CoreMessage.ConfigUpdated, dict(id=result.id, revision=result.revision))
+            await self.event_sender.core_event(CoreEvent.SystemConfigurationChanged)
             return result
         else:
             return existing
@@ -79,12 +83,14 @@ class ConfigHandlerService(ConfigHandler):
         coerced = await self.coerce_and_check_model(cfg.id, deep_merge(current_config, cfg.config))
         result = await self.cfg_db.update(ConfigEntity(cfg.id, coerced, current.revision if current else None))
         await self.message_bus.emit_event(CoreMessage.ConfigUpdated, dict(id=result.id, revision=result.revision))
+        await self.event_sender.core_event(CoreEvent.SystemConfigurationChanged)
         return result
 
     async def delete_config(self, cfg_id: ConfigId) -> None:
         await self.cfg_db.delete(cfg_id)
         await self.validation_db.delete(cfg_id)
         await self.message_bus.emit_event(CoreMessage.ConfigDeleted, dict(id=cfg_id))
+        await self.event_sender.core_event(CoreEvent.SystemConfigurationChanged)
 
     def list_config_validation_ids(self) -> AsyncIterator[str]:
         return self.validation_db.keys()

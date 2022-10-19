@@ -3,6 +3,7 @@ from typing import List, Any
 
 import pytest
 from pytest import fixture
+from resotocore.analytics import InMemoryEventSender
 
 from resotocore.config import ConfigHandler, ConfigEntity, ConfigValidation
 from resotocore.config.config_handler_service import ConfigHandlerService
@@ -26,7 +27,8 @@ def config_handler(task_queue: WorkerTaskQueue, worker: Any, message_bus: Messag
     cfg_db = InMemoryDb(ConfigEntity, lambda c: c.id)
     validation_db = InMemoryDb(ConfigValidation, lambda c: c.id)
     model_db = InMemoryDb(Kind, lambda c: c.fqn)  # type: ignore
-    return ConfigHandlerService(cfg_db, validation_db, model_db, task_queue, message_bus)
+    event_sender = InMemoryEventSender()
+    return ConfigHandlerService(cfg_db, validation_db, model_db, task_queue, message_bus, event_sender)
 
 
 @fixture
@@ -78,6 +80,28 @@ async def test_config(config_handler: ConfigHandler) -> None:
 
     # list all configs
     assert [a async for a in config_handler.list_config_ids()] == []
+
+
+@pytest.mark.asyncio
+async def test_config_change_event(config_handler: ConfigHandler) -> None:
+    # list of events is empty on start
+    assert config_handler.event_sender.events == []
+
+    config_id = ConfigId("test")
+    # add one entry
+    entity = ConfigEntity(config_id, {"test": True})
+    await config_handler.put_config(entity) == entity
+    assert len(config_handler.event_sender.events) == 1
+
+    # patch the config
+    await config_handler.patch_config(ConfigEntity(config_id, {"rest": False})) == ConfigEntity(
+        config_id, {"test": True, "rest": False}
+    )
+    assert len(config_handler.event_sender.events) == 2
+
+    # delete the config
+    await config_handler.delete_config(config_id) is None
+    assert len(config_handler.event_sender.events) == 3
 
 
 @pytest.mark.asyncio
