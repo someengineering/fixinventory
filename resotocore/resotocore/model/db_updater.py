@@ -213,7 +213,7 @@ async def merge_graph_process(
                 try:
                     action = await run_async(read.get, True, stale)
                     if isinstance(action, EmitAnalyticsEvent):
-                        await event_sender.capture(action.event)
+                        await event_sender.capture([action.event])
                     elif isinstance(action, Result):
                         return action.get_value()
                 except Empty:
