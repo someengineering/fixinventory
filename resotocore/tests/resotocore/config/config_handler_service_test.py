@@ -105,6 +105,25 @@ async def test_config_change_event(config_handler: ConfigHandler) -> None:
 
 
 @pytest.mark.asyncio
+async def test_config_change_analytics(config_handler: ConfigHandler) -> None:
+
+    config_id = ConfigId("test")
+    worker_config = { # do this from a json file instead?
+        "resotoworker": {
+            "collector": ["aws", "k8s", "example"],
+            "aws": {
+                "access_key_id": None,
+                "secret_access_key": None
+            }
+        }
+    }
+    entity = ConfigEntity(config_id, worker_config)
+    analytics = entity.analytics()
+    assert analytics["collectors"] == ["aws", "k8s"]
+    assert analytics["how_many_providers"] == 2
+
+
+@pytest.mark.asyncio
 async def test_config_validation(config_handler: ConfigHandler, config_model: List[Kind]) -> None:
     await config_handler.update_configs_model(config_model)
     valid_config = {"section": {"some_number": 32, "some_string": "test", "some_sub": {"num": 32}}}

@@ -10,6 +10,7 @@ from resotocore.analytics import AnalyticsEventSender
 from resotocore.model.model import Model, Kind
 from resotocore.types import Json
 from resotocore.ids import ConfigId
+from resotocore.util import value_in_path
 
 
 @define(order=True, hash=True, frozen=True)
@@ -17,6 +18,21 @@ class ConfigEntity:
     id: ConfigId
     config: Json
     revision: Optional[str] = None
+
+
+    def analytics(self):
+        if "resotoworker" not in self.config:
+            return
+        analytics = {}
+        collectors = []
+        collectors.append(value_in_path(self.config, ["resotoworker", "collector"]))
+        collectors = sum(collectors, [])
+        if "example" in collectors:
+            collectors.remove("example")
+        analytics.update({"collectors": collectors})
+        analytics.update({"how_many_providers": len(collectors)})
+
+        return analytics
 
     # noinspection PyUnusedLocal
     @staticmethod
