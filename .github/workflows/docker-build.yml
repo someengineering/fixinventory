@@ -120,6 +120,17 @@ jobs:
         id: sha
         run: echo "::set-output name=short::${GITHUB_SHA::7}"
 
+      - name: Create swap for ARM builds
+        run: |
+          if [ "${{ github.ref_type }}" = tag ]; then
+            echo "Creating swap file for ARM builds"
+            time sudo dd if=/dev/zero of=/swapfile1 bs=10M count=1000
+            sudo chmod 600 /swapfile1
+            sudo mkswap /swapfile1
+            sudo swapon /swapfile1
+            free -h
+          fi
+
       - name: Set build platforms
         id: platform
         run: |
