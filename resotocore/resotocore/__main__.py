@@ -15,6 +15,7 @@ from typing import AsyncIterator, List, Union
 
 from aiohttp.web_app import Application
 from arango.database import StandardDatabase
+from os import environ as env
 from resotolib.asynchronous.web import runner
 from urllib3.exceptions import HTTPWarning
 
@@ -187,7 +188,12 @@ def with_config(
         await log_ship.start()
         await api.start()
         if created:
-            await event_sender.core_event(CoreEvent.SystemInstalled)
+            docker = env.get("INSIDE_DOCKER", "false").lower() in ("true", "yes", "1")
+            kubernetes = env.get("INSIDE_KUBERNETES", "false").lower() in ("true", "yes", "1")
+            await event_sender.core_event(
+                CoreEvent.SystemInstalled,
+                {"docker_install": docker, "k8s_install": kubernetes, "pip_install": not (docker or kubernetes)},
+            )
         await event_sender.core_event(
             CoreEvent.SystemStarted,
             {
