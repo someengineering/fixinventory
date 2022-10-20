@@ -31,11 +31,11 @@ class ConfigEntity:
         collectors.extend(cast(List[str], value_in_path(self.config, ["resotoworker", "collector"])))
         if "example" in collectors:
             collectors.remove("example")
-        analytics.update({"collectors": collectors})
         analytics.update({"how_many_providers": len(collectors)})
 
         # authentication information
         if "aws" in collectors:
+            analytics.update({"aws": True})
             analytics.update({"aws_use_access_secret_key": False})
             analytics.update({"aws_use_role": False})
             analytics.update({"aws_use_profiles": False})
@@ -55,6 +55,7 @@ class ConfigEntity:
                 analytics.update({"aws_use_scrape_org": True})
 
         if "digitalocean" in collectors:
+            analytics.update({"digitalocean": True})
             analytics.update({"do_use_config": False})
             analytics.update({"do_use_env": False})
             if value_in_path(self.config, ["resotoworker", "digitalocean", "api_tokens"]):
@@ -63,6 +64,7 @@ class ConfigEntity:
                 analytics.update({"do_use_env": True})
 
         if "gcp" in collectors:
+            analytics.update({"gcp": True})
             analytics.update({"gcp_use_file": False})
             analytics.update({"gcp_use_auto_discovery": False})
             if value_in_path(self.config, ["resotoworker", "gcp", "service_account"]) == "":
@@ -71,6 +73,7 @@ class ConfigEntity:
                 analytics.update({"gcp_use_file": True})
 
         if "k8s" in collectors:
+            analytics.update({"k8s": True})
             analytics.update({"k8s_use_kubeconfig": False})
             analytics.update({"k8s_use_manual": False})
             if value_in_path(self.config, ["resotoworker", "k8s", "config_files"]):
