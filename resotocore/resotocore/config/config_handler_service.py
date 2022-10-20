@@ -1,10 +1,10 @@
 import asyncio
 from datetime import timedelta
 from typing import Optional, AsyncIterator, List
-from resotocore.analytics import AnalyticsEventSender, CoreEvent
 
 import yaml
 
+from resotocore.analytics import AnalyticsEventSender, CoreEvent
 from resotocore.config import ConfigHandler, ConfigEntity, ConfigValidation
 from resotocore.db.configdb import ConfigEntityDb, ConfigValidationEntityDb
 from resotocore.db.modeldb import ModelDb
