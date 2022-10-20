@@ -32,7 +32,7 @@ class PostDevelopCommand(develop):
         import sys
 
         is_pypy = "__pypy__" in sys.builtin_module_names
-        if not is_pypy:
+        if False and not is_pypy:
             import pip
 
             pip.main(["install", "-r", "requirements-jupyterlite.txt"])

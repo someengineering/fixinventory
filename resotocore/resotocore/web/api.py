@@ -62,7 +62,7 @@ from resotocore.db.graphdb import GraphDB
 from resotocore.db.model import QueryModel
 from resotocore.error import NotFoundError
 from resotocore.ids import TaskId, ConfigId, NodeId, SubscriberId, WorkerId
-from resotocore.message_bus import MessageBus, Message, ActionDone, Action, ActionError
+from resotocore.message_bus import MessageBus, Message, ActionDone, Action, ActionError, ActionInfo, ActionProgress
 from resotocore.model.db_updater import merge_graph_process
 from resotocore.model.graph_access import Section
 from resotocore.model.model import Kind
@@ -447,6 +447,10 @@ class Api:
             message: Message = from_js(js, Message)
             if isinstance(message, Action):
                 raise AttributeError("Actors should not emit action messages. ")
+            elif isinstance(message, ActionInfo):
+                await self.workflow_handler.handle_action_info(message)
+            elif isinstance(message, ActionProgress):
+                await self.workflow_handler.handle_action_progress(message)
             elif isinstance(message, ActionDone):
                 await self.workflow_handler.handle_action_done(message)
             elif isinstance(message, ActionError):

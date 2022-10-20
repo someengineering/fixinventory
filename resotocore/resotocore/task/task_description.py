@@ -5,7 +5,7 @@ import uuid
 from abc import ABC
 from datetime import timedelta
 from enum import Enum
-from typing import Optional, Any, Sequence, MutableSequence, Callable, Dict, List, Set, Tuple
+from typing import Optional, Any, Sequence, MutableSequence, Callable, Dict, List, Set, Tuple, Union
 
 from attrs import define
 
@@ -18,12 +18,12 @@ from transitions import Machine, State, MachineError
 
 from resotocore.ids import TaskId
 from resotocore.task.model import Subscriber
-from resotocore.message_bus import Event, Action, ActionDone, Message, ActionError
+from resotocore.message_bus import Event, Action, ActionDone, Message, ActionError, ActionInfo
 from resotocore.model.typed_model import to_json, from_js, to_js
 from resotocore.types import Json
 from resotocore.util import first, interleave, empty, exist, identity, utc, utc_str
 from resotocore.ids import SubscriberId, TaskDescriptorId
-
+from resotolib.core.progress import ProgressList, Progress, ProgressDone
 
 log = logging.getLogger(__name__)
 
@@ -333,7 +333,7 @@ class StepState(State):  # type: ignore
     """
 
     def __init__(self, step: Step, instance: RunningTask):
-        super().__init__(step.name, "begin_step")
+        super().__init__(step.name, "begin_step", "end_step")
         self.step = step
         self.instance = instance
         self.timed_out = False
@@ -412,7 +412,7 @@ class StepState(State):  # type: ignore
     def export_state(self) -> Json:
         """
         This method is called when the state of the task needs to be persisted.
-        Since each state in the FSM can have it's own schema, we export a generic json blob here,
+        Since each state in the FSM can have its own schema, we export a generic json blob here,
         that has to be interpreted during import_state.
         :return: json representation of this state. empty by default.
         """
@@ -604,6 +604,11 @@ class RunningTask:
         self.step_started_at = self.task_started_at
         self.update_task: Optional[Task[None]] = None
         self.descriptor_alive = True
+        self.info_messages: List[Union[ActionInfo, ActionError]] = []
+        # step_name -> subscriber_id -> progress
+        self.progresses: Dict[str, Dict[str, Progress]] = {
+            step.name: {} for step in descriptor.steps if isinstance(step.action, PerformAction)
+        }
 
         steps = [StepState.from_step(step, self) for step in descriptor.steps]
         start = StartState(self)
@@ -623,7 +628,7 @@ class RunningTask:
                 # this method is defined dynamically by transitions
                 last_state = self.current_state
                 result: bool = self._next_state()  # type: ignore # pylint: disable=no-member
-                # safe guard: if state transition does not change the state
+                # safeguard: if state transition does not change the state
                 if result and self.current_state is last_state:
                     return False
                 return result
@@ -634,6 +639,25 @@ class RunningTask:
         while next_state():
             resulting_commands.extend(self.current_state.commands_to_execute())
         return resulting_commands
+
+    @staticmethod
+    def __step_progress(name: str, p: Dict[str, Progress]) -> Progress:
+        if len(p) == 0:
+            return ProgressDone(name, 0, 1)
+        elif len(p) == 1:
+            return next(iter(p.values()))
+        else:
+            return ProgressList(name, list(p.values()))
+
+    @property
+    def current_step_progress(self) -> Progress:
+        return self.__step_progress(self.current_step.name, self.progresses.get(self.current_step.name, {}))
+
+    @property
+    def progress(self) -> Progress:
+        return ProgressList(
+            self.descriptor.name, [self.__step_progress(name, progress) for name, progress in self.progresses.items()]
+        )
 
     @property
     def current_state(self) -> StepState:
@@ -661,8 +685,8 @@ class RunningTask:
         """
         An action could not be performed - the subscriber returned an error.
         Such a message only makes sense in a PerformAction step.
-        Whether or not this event leads to a state change is decided by the current state.
-        Whether or not this leads to the end of this task is decided by the current step error behaviour.
+        Whether this event leads to a state change is decided by the current state.
+        Whether this leads to the end of this task is decided by the current step error behaviour.
         """
         if not isinstance(self.current_step.action, PerformAction):
             log.info(
@@ -726,6 +750,19 @@ class RunningTask:
         # update the step started time, whenever a new state is entered
         self.step_started_at = utc()
         self.current_state.step_started()
+
+    def end_step(self) -> None:
+        log.debug(f"Task {self.id}: end of step {self.current_step.name}")
+        # mark all progresses as completed
+        if isinstance(self.current_step.action, PerformAction):
+            subscribers = self.progresses.get(self.current_step.name, {})
+            if subscribers:
+                for sub, ps in subscribers.items():
+                    info = ps.overall_progress()
+                    subscribers[sub] = ProgressDone(ps.name, info.total, info.total)
+            else:
+                # nobody reported any progress: create a progress done object
+                self.progresses[self.current_step.name] = {"task_handler": ProgressDone(self.current_step.name, 1, 1)}
 
 
 set_deserializer(StepAction.from_json, StepAction, high_prio=False)
