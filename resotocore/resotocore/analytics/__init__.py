@@ -15,6 +15,7 @@ log = logging.getLogger(__name__)
 class CoreEvent:
     SystemInstalled = "system.installed"
     SystemConfigurationChanged = "system.configuration-changed"
+    SystemConfigurationDeleted = "system.configuration-deleted"
     SystemStarted = "system.started"
     SystemStopped = "system.stopped"
     NodeCreated = "graphdb.node-created"

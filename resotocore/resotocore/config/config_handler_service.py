@@ -92,7 +92,7 @@ class ConfigHandlerService(ConfigHandler):
         await self.cfg_db.delete(cfg_id)
         await self.validation_db.delete(cfg_id)
         await self.message_bus.emit_event(CoreMessage.ConfigDeleted, dict(id=cfg_id))
-        await self.event_sender.core_event(CoreEvent.SystemConfigurationChanged)
+        await self.event_sender.core_event(CoreEvent.SystemConfigurationDeleted)
 
     def list_config_validation_ids(self) -> AsyncIterator[str]:
         return self.validation_db.keys()
