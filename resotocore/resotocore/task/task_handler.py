@@ -421,7 +421,7 @@ class TaskHandlerService(TaskHandler):
 
     async def handle_action_info(self, info: ActionInfo) -> None:
         if rt := self.tasks.get(info.task_id):
-            rt.info_messages.append(info)
+            rt.handle_info(info)
             if info.level == "error":
                 await self.message_bus.emit_event(
                     CoreMessage.ErrorMessage, {"workflow": rt.descriptor.name, "task": rt.id, "message": info.message}
@@ -430,7 +430,7 @@ class TaskHandlerService(TaskHandler):
     async def handle_action_progress(self, info: ActionProgress) -> None:
         if rt := self.tasks.get(info.task_id):  # get the related running task
             if info.step_name == rt.current_step.name:  # make sure this progress belongs to the current step
-                rt.progresses[info.step_name][info.subscriber_id] = info.progress
+                rt.handle_progress(info)
 
     async def execute_task_commands(
         self, wi: RunningTask, commands: Sequence[TaskCommand], origin_message: Optional[Message] = None

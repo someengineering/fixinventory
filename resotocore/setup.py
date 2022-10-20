@@ -32,6 +32,7 @@ class PostDevelopCommand(develop):
         import sys
 
         is_pypy = "__pypy__" in sys.builtin_module_names
+        # TODO: remove False once jupyter lite is working
         if False and not is_pypy:
             import pip
 

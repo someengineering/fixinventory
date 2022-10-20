@@ -18,7 +18,7 @@ from transitions import Machine, State, MachineError
 
 from resotocore.ids import TaskId
 from resotocore.task.model import Subscriber
-from resotocore.message_bus import Event, Action, ActionDone, Message, ActionError, ActionInfo
+from resotocore.message_bus import Event, Action, ActionDone, Message, ActionError, ActionInfo, ActionProgress
 from resotocore.model.typed_model import to_json, from_js, to_js
 from resotocore.types import Json
 from resotocore.util import first, interleave, empty, exist, identity, utc, utc_str
@@ -704,6 +704,12 @@ class RunningTask:
             )
             self.end()
             return []
+
+    def handle_info(self, info: ActionInfo) -> None:
+        self.info_messages.append(info)
+
+    def handle_progress(self, progress: ActionProgress) -> None:
+        self.progresses[self.current_step.name][progress.subscriber_id] = progress.progress
 
     def handle_command_results(self, results: Dict[TaskCommand, Any]) -> Sequence[TaskCommand]:
         self.current_state.handle_command_results(results)
