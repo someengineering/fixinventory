@@ -331,7 +331,7 @@ class Graph(networkx.MultiDiGraph):
         graph node is a member of.
         """
         queue = deque()
-        queue.append(node)
+        queue.extend(self.predecessors(node))
         while queue:
             current = queue.popleft()
             if isinstance(current, cls):
