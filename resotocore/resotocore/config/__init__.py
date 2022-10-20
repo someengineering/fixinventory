@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from attrs import define
-from typing import Optional, AsyncIterator, List
+from typing import Any, Dict, Optional, AsyncIterator, List, cast
 
 from jsons import set_deserializer, set_serializer
 from resotocore.analytics import AnalyticsEventSender
@@ -19,18 +19,64 @@ class ConfigEntity:
     config: Json
     revision: Optional[str] = None
 
-
-    def analytics(self):
+    def analytics(self) -> Dict[str, Any]:
+        analytics: Dict[str, Any] = {}
         if "resotoworker" not in self.config:
-            return
-        analytics = {}
-        collectors = []
-        collectors.append(value_in_path(self.config, ["resotoworker", "collector"]))
-        collectors = sum(collectors, [])
+            return analytics
+
+        # provider information
+        collectors: List[str] = []
+        # vault.tags = cast(Dict[str, Optional[str]], tags)
+
+        collectors.extend(cast(List[str], value_in_path(self.config, ["resotoworker", "collector"])))
         if "example" in collectors:
             collectors.remove("example")
         analytics.update({"collectors": collectors})
         analytics.update({"how_many_providers": len(collectors)})
+
+        # authentication information
+        if "aws" in collectors:
+            analytics.update({"aws_use_access_secret_key": False})
+            analytics.update({"aws_use_role": False})
+            analytics.update({"aws_use_profiles": False})
+            analytics.update({"aws_use_accounts": False})
+            analytics.update({"aws_use_scrape_org": False})
+            if value_in_path(self.config, ["resotoworker", "aws", "access_key_id"]) and value_in_path(
+                self.config, ["resotoworker", "aws", "secret_access_key"]
+            ):
+                analytics.update({"aws_use_access_secret_key": True})
+            if value_in_path(self.config, ["resotoworker", "aws", "role"]):
+                analytics.update({"aws_use_role": True})
+            if value_in_path(self.config, ["resotoworker", "aws", "profiles"]):
+                analytics.update({"aws_use_profiles": True})
+            if value_in_path(self.config, ["resotoworker", "aws", "account"]):
+                analytics.update({"aws_use_accounts": True})
+            if value_in_path(self.config, ["resotoworker", "aws", "scrape_org"]):
+                analytics.update({"aws_use_scrape_org": True})
+
+        if "digitalocean" in collectors:
+            analytics.update({"do_use_config": False})
+            analytics.update({"do_use_env": False})
+            if value_in_path(self.config, ["resotoworker", "digitalocean", "api_tokens"]):
+                analytics.update({"do_use_config": True})
+            else:
+                analytics.update({"do_use_env": True})
+
+        if "gcp" in collectors:
+            analytics.update({"gcp_use_file": False})
+            analytics.update({"gcp_use_auto_discovery": False})
+            if value_in_path(self.config, ["resotoworker", "gcp", "service_account"]) == "":
+                analytics.update({"gcp_use_auto_discovery": True})
+            else:
+                analytics.update({"gcp_use_file": True})
+
+        if "k8s" in collectors:
+            analytics.update({"k8s_use_kubeconfig": False})
+            analytics.update({"k8s_use_manual": False})
+            if value_in_path(self.config, ["resotoworker", "k8s", "config_files"]):
+                analytics.update({"k8s_use_kubeconfig": True})
+            if value_in_path(self.config, ["resotoworker", "k8s", "configs"]):
+                analytics.update({"k8s_use_manual": True})
 
         return analytics
 

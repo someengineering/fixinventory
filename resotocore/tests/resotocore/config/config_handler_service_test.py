@@ -108,19 +108,51 @@ async def test_config_change_event(config_handler: ConfigHandler) -> None:
 async def test_config_change_analytics(config_handler: ConfigHandler) -> None:
 
     config_id = ConfigId("test")
-    worker_config = { # do this from a json file instead?
+    worker_config_1 = {
         "resotoworker": {
-            "collector": ["aws", "k8s", "example"],
-            "aws": {
-                "access_key_id": None,
-                "secret_access_key": None
-            }
+            "collector": ["aws", "k8s", "example", "digitalocean", "gcp"],
+            "aws": {"access_key_id": None, "secret_access_key": None, "profiles": ["list", "of", "profiles"]},
+            "digitalocean": {"api_tokens": "123abc"},
+            "gcp": {"service_account": ""},
+            "k8s": {"config_files": "path to some file"},
         }
     }
-    entity = ConfigEntity(config_id, worker_config)
+    entity = ConfigEntity(config_id, worker_config_1)
     analytics = entity.analytics()
-    assert analytics["collectors"] == ["aws", "k8s"]
-    assert analytics["how_many_providers"] == 2
+    assert analytics["collectors"] == ["aws", "k8s", "digitalocean", "gcp"]
+    assert analytics["how_many_providers"] == 4
+    assert analytics["aws_use_profiles"]
+    assert not analytics["aws_use_role"]
+    assert analytics["do_use_config"]
+    assert analytics["gcp_use_auto_discovery"]
+    assert analytics["k8s_use_kubeconfig"]
+
+    worker_config_2 = {
+        "resotoworker": {
+            "collector": ["aws", "k8s", "example", "digitalocean", "gcp"],
+            "aws": {
+                "access_key_id": "abc",
+                "secret_access_key": "123",
+            },
+            "digitalocean": {"api_tokens": None},
+            "gcp": {"service_account": "some service account json file"},
+            "k8s": {
+                "configs": {
+                    "name": "dev",
+                    "certificate_authority_data": "xyz",
+                    "server": "https://k8s-cluster-server.example.com",
+                    "token": "some token",
+                }
+            },
+        }
+    }
+    entity = ConfigEntity(config_id, worker_config_2)
+    analytics = entity.analytics()
+    assert not analytics["aws_use_profiles"]
+    assert analytics["aws_use_access_secret_key"]
+    assert analytics["do_use_env"]
+    assert analytics["gcp_use_file"]
+    assert analytics["k8s_use_manual"]
 
 
 @pytest.mark.asyncio
