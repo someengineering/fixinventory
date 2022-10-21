@@ -2636,8 +2636,18 @@ class JobsCommand(CLICommand, PreserveOutputFormat):
             yield f"Job {job_id} deleted." if job else f"No job with this id: {job_id}"
 
         async def run_job(job_id: str) -> AsyncIterator[str]:
-            task = await self.dependencies.task_handler.start_task_by_descriptor_id(TaskDescriptorId(job_id))
-            yield f"Job {task.descriptor.id} started with id {task.id}." if task else f"No job with this id: {job_id}"
+            info = await self.dependencies.task_handler.start_task_by_descriptor_id(TaskDescriptorId(job_id))
+            if info and info.scheduled_next:
+                task = info.running_task
+                yield (
+                    f"Job {task.descriptor.id} is currently running with id {task.id}."
+                    "Scheduled next run after this one is completed"
+                )
+            elif info:
+                task = info.running_task
+                yield f"Job {task.descriptor.id} started with id {task.id}."
+            else:
+                yield f"No job with this id: {job_id}"
 
         async def activate_deactivate_job(job_id: str, active: bool) -> AsyncIterator[JsonElement]:
             matching = [job for job in await self.dependencies.task_handler.list_jobs() if job.name == job_id]
@@ -3851,12 +3861,18 @@ class WorkflowsCommand(CLICommand):
                 yield f"No workflow with this id: {wf_id}"
 
         async def run_workflow(wf_id: str) -> AsyncIterator[str]:
-            task = await self.dependencies.task_handler.start_task_by_descriptor_id(TaskDescriptorId(wf_id))
-            yield (
-                f"Workflow {task.descriptor.id} started with id {task.id}."
-                if task
-                else f"No workflow with this id: {wf_id}"
-            )
+            info = await self.dependencies.task_handler.start_task_by_descriptor_id(TaskDescriptorId(wf_id))
+            if info and info.scheduled_next:
+                task = info.running_task
+                yield (
+                    f"Workflow {task.descriptor.id} already running with id {task.id}. "
+                    "Scheduled next run after this one is completed"
+                )
+            elif info:
+                task = info.running_task
+                yield f"Workflow {task.descriptor.id} started with id {task.id}."
+            else:
+                yield f"No workflow with this id: {wf_id}"
 
         async def running_workflows() -> Tuple[int, Stream]:
             tasks = await self.dependencies.task_handler.running_tasks()

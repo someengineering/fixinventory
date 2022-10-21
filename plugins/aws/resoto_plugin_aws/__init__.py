@@ -338,7 +338,7 @@ def authenticated(account: AwsAccount) -> bool:
 def get_client(config: Config, resource: BaseResource) -> AwsClient:
     account = resource.account()
     assert isinstance(account, AwsAccount)
-    return AwsClient(config.aws, account.id, role=account.role, profile=account.profile, region=resource.region().name)
+    return AwsClient(config.aws, account.id, role=account.role, profile=account.profile, region=resource.region().id)
 
 
 def current_account_id(profile: Optional[str] = None) -> str:
