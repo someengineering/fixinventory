@@ -135,5 +135,4 @@ dmypy.json
 
 # jupyterlite
 resotocore/jupyterlite/*
-!resotocore/jupyterlite/README.md
 .jupyterlite.doit.db
