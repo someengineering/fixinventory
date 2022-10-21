@@ -36,7 +36,7 @@ Continue reading [the Quick Start Guide](https://resoto.com/docs/getting-started
 # Component list
 - [`resotocore`](resotocore/) the platform maintaining the [MultiDiGraph](https://en.wikipedia.org/wiki/Multigraph#Directed_multigraph_(edges_with_own_identity)).
 - [`resotoshell`](resotoshell/) the Resoto shell to interact with the core.
-- [`resotoworker`](resotoworker/) provides workers that load [plugins](plugins/) to perform, collect, and cleanup operations.
+- [`resotoworker`](resotoworker/) provides workers that load [plugins](plugins/) to perform collect and cleanup operations.
 - [`resotometrics`](resotometrics/) is a [Prometheus](https://prometheus.io/) [exporter](https://prometheus.io/docs/instrumenting/exporters/).
 - [`plugins`](plugins/) are a collection of worker plugins like [AWS](plugins/aws/)
 
