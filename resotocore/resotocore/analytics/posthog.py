@@ -1,9 +1,10 @@
 from __future__ import annotations
+
 import asyncio
 import logging
 from collections import deque
 from datetime import timedelta, datetime
-from typing import Any, MutableSequence, Optional
+from typing import Any, MutableSequence, Optional, List
 
 from aiohttp import ClientSession
 from posthog import Client
@@ -55,14 +56,14 @@ class PostHogEventSender(AnalyticsEventSender):
         self.last_fetched: Optional[datetime] = None
         self.session: Optional[ClientSession] = None
 
-    async def capture(self, event: AnalyticsEvent) -> None:
+    async def capture(self, event: List[AnalyticsEvent]) -> None:
         """
         Capture a single event by adding it to an internal queue.
         The queue is flushed by a scheduled function.
         Only in the rare case when the queue size reached its maximum the queue will be flushed directly.
         """
         async with self.lock:
-            self.queue.append(event)
+            self.queue.extend(event)
 
         if len(self.queue) >= self.flush_at:
             await self.flush()
@@ -101,7 +102,12 @@ class PostHogEventSender(AnalyticsEventSender):
                 self.client.capture(
                     distinct_id=self.system_data.system_id,
                     event=event.kind,
-                    properties={**event.context, **event.counters, "run_id": self.run_id},  # type: ignore
+                    properties={
+                        **event.context,  # type: ignore
+                        **event.counters,  # type: ignore
+                        "source": event.system,
+                        "run_id": self.run_id,
+                    },
                     timestamp=event.at,
                 )
             self.queue.clear()
