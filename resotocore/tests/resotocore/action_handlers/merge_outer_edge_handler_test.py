@@ -26,9 +26,6 @@ from resotocore.ids import TaskId, NodeId
 from resotocore.util import utc
 
 # noinspection PyUnresolvedReferences
-from tests.resotocore.task.task_handler_test import task_handler
-
-# noinspection PyUnresolvedReferences
 from tests.resotocore.db.graphdb_test import (
     filled_graph_db,
     graph_db,
@@ -67,7 +64,13 @@ from tests.resotocore.config.config_handler_service_test import config_handler
 from tests.resotocore.web.certificate_handler_test import cert_handler
 
 # noinspection PyUnresolvedReferences
-from tests.resotocore.task.task_handler_test import test_workflow, subscription_handler, job_db
+from tests.resotocore.task.task_handler_test import (
+    task_handler,
+    test_workflow,
+    subscription_handler,
+    job_db,
+    additional_workflows,
+)
 
 from tests.resotocore.model import ModelHandlerStatic
 
