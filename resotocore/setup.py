@@ -37,7 +37,7 @@ class PostDevelopCommand(develop):
             import pip
 
             pip.main(["install", "-r", "requirements-jupyterlite.txt"])
-            check_call(["jupyter", "lite", "build"])
+            check_call(["jupyter", "lite", "build", "--config", "jupyter_lite_config.json"])
 
 
 setup(
