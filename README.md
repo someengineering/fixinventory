@@ -26,7 +26,7 @@
 🤖 Automate Tasks: Tedious tasks like rule enforcement, resource tagging, and cleanup can be [automated using jobs](https://resoto.com/docs/concepts/automation/job).
 
 
-Currently Resoto can collect [AWS](plugins/aws/), [Google Cloud](plugins/gcp/), [DigitalOcean](plugins/digitalocean/), [VMWare Vsphere](plugins/vsphere/), [OneLogin](plugins/onelogin/) and [Slack](plugins/slack/) resources. If the cloud you are using is not listed it is easy to write your own collectors. An example can be found [here](plugins/example_collector/).
+Currently, Resoto can collect [AWS](plugins/aws/), [Google Cloud](plugins/gcp/), [DigitalOcean](plugins/digitalocean/), [VMWare Vsphere](plugins/vsphere/), [OneLogin](plugins/onelogin/), and [Slack](plugins/slack/) resources. If the cloud you are using is not listed, it is easy to write your own collectors. An example can be found [here](plugins/example_collector/).
 
 ## Getting started
 
@@ -36,13 +36,13 @@ Continue reading [the Quick Start Guide](https://resoto.com/docs/getting-started
 # Component list
 - [`resotocore`](resotocore/) the platform maintaining the [MultiDiGraph](https://en.wikipedia.org/wiki/Multigraph#Directed_multigraph_(edges_with_own_identity)).
 - [`resotoshell`](resotoshell/) the Resoto shell to interact with the core.
-- [`resotoworker`](resotoworker/) provides workers that load [plugins](plugins/) to perform collect and cleanup operations.
+- [`resotoworker`](resotoworker/) provides workers that load [plugins](plugins/) to perform, collect, and cleanup operations.
 - [`resotometrics`](resotometrics/) is a [Prometheus](https://prometheus.io/) [exporter](https://prometheus.io/docs/instrumenting/exporters/).
 - [`plugins`](plugins/) are a collection of worker plugins like [AWS](plugins/aws/)
 
 
 ## Contact
-If you have any questions feel free to [join our Discord](https://discord.gg/someengineering) or [open a GitHub issue](https://github.com/someengineering/resoto/issues/new).
+If you have any questions, feel free to [join our Discord](https://discord.gg/someengineering) or [open a GitHub issue](https://github.com/someengineering/resoto/issues/new).
 
 
 ## License
