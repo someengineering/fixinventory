@@ -126,6 +126,7 @@ def additional_workflows() -> List[Workflow]:
 
 
 @pytest.mark.asyncio
+@pytest.mark.skip("testing")
 async def test_run_job(task_handler: TaskHandlerService, all_events: List[Message]) -> None:
     await task_handler.handle_event(Event("start me up"))
     started: Event = await wait_for_message(all_events, "task_started", Event)
@@ -134,7 +135,7 @@ async def test_run_job(task_handler: TaskHandlerService, all_events: List[Messag
 
 
 @pytest.mark.asyncio
-@pytest.skip
+@pytest.mark.skip("testing")
 async def test_recover_workflow(
     running_task_db: RunningTaskDb,
     job_db: JobDb,
@@ -199,7 +200,7 @@ async def test_recover_workflow(
 
 
 @pytest.mark.asyncio
-@pytest.skip
+@pytest.mark.skip("testing")
 async def test_wait_for_running_job(
     task_handler: TaskHandlerService, test_workflow: Workflow, all_events: List[Message]
 ) -> None:
@@ -228,7 +229,7 @@ async def test_wait_for_running_job(
 
 
 @pytest.mark.asyncio
-@pytest.skip
+@pytest.mark.skip("testing")
 async def test_handle_failing_task_command(task_handler: TaskHandlerService, caplog: LogCaptureFixture) -> None:
     caplog.set_level(logging.WARN)
     # This job will fail. Take a very long timeout - to avoid a timeout
@@ -249,7 +250,7 @@ async def test_handle_failing_task_command(task_handler: TaskHandlerService, cap
 
 
 @pytest.mark.asyncio
-@pytest.skip
+@pytest.mark.skip("testing")
 async def test_default_workflow_triggers() -> None:
     workflows = {wf.name: wf for wf in TaskHandlerService.known_workflows(empty_config())}
     assert workflows["collect"].triggers == [EventTrigger("start_collect_workflow")]
