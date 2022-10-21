@@ -330,13 +330,16 @@ class Graph(networkx.MultiDiGraph):
         This is being used to search up the graph and e.g. find the account that the
         graph node is a member of.
         """
-        queue = deque()
-        queue.extend(self.predecessors(node))
+        queue = deque(self.predecessors(node))
+        already_checked = set(self.predecessors(node))
         while queue:
             current = queue.popleft()
             if isinstance(current, cls):
                 return current
-            queue.extend(self.predecessors(current))
+            for n in self.predecessors(current):
+                if n not in already_checked:
+                    already_checked.add(n)
+                    queue.append(n)
         return None
 
     @metrics_graph_resolve_deferred_connections.time()
