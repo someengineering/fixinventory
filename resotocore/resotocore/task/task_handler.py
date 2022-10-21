@@ -17,7 +17,17 @@ from resotocore.cli.model import CLIContext
 from resotocore.core_config import CoreConfig
 from resotocore.db.jobdb import JobDb
 from resotocore.db.runningtaskdb import RunningTaskData, RunningTaskDb
-from resotocore.message_bus import MessageBus, Event, Action, ActionDone, Message, ActionError
+from resotocore.message_bus import (
+    MessageBus,
+    Event,
+    Action,
+    ActionDone,
+    Message,
+    ActionError,
+    ActionInfo,
+    ActionProgress,
+    CoreMessage,
+)
 from resotocore.ids import SubscriberId, TaskDescriptorId
 from resotocore.task import TaskHandler, RunningTaskInfo
 from resotocore.task.model import Subscriber
@@ -390,7 +400,7 @@ class TaskHandlerService(TaskHandler):
         wi = self.tasks.get(done.task_id)
         if wi:
             commands = fn(wi)
-            return await self.execute_task_commands(wi, commands, done)
+            await self.execute_task_commands(wi, commands, done)
         else:
             log.warning(
                 f"Received an ack for an unknown task={done.task_id} "
@@ -402,7 +412,25 @@ class TaskHandlerService(TaskHandler):
 
     async def handle_action_error(self, err: ActionError) -> None:
         log.info(f"Received error: {err.error} {err.step_name}:{err.message_type} of {err.task_id}")
-        return await self.handle_action_result(err, lambda wi: wi.handle_error(err))
+        if rt := self.tasks.get(err.task_id):
+            await self.handle_action_result(err, lambda wi: wi.handle_error(err))
+            rt.info_messages.append(err)
+            await self.message_bus.emit_event(
+                CoreMessage.ErrorMessage, {"workflow": rt.descriptor.name, "task": rt.id, "message": err.error}
+            )
+
+    async def handle_action_info(self, info: ActionInfo) -> None:
+        if rt := self.tasks.get(info.task_id):
+            rt.handle_info(info)
+            if info.level == "error":
+                await self.message_bus.emit_event(
+                    CoreMessage.ErrorMessage, {"workflow": rt.descriptor.name, "task": rt.id, "message": info.message}
+                )
+
+    async def handle_action_progress(self, info: ActionProgress) -> None:
+        if rt := self.tasks.get(info.task_id):  # get the related running task
+            if info.step_name == rt.current_step.name:  # make sure this progress belongs to the current step
+                rt.handle_progress(info)
 
     async def execute_task_commands(
         self, wi: RunningTask, commands: Sequence[TaskCommand], origin_message: Optional[Message] = None

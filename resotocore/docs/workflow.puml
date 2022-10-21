@@ -180,3 +180,33 @@ Actor <|-- GCPCollector
 
 Actor -> PerformAction: subscribe
 @enduml
+
+@startuml
+actor user
+core --> aws_plugin: collect
+== happy case ==
+aws_plugin --> core: done
+
+== failing case ==
+aws_plugin --> core: failed
+note right
+Fatal error: no result is produced.
+E.g. No or wrong AWS credentials.
+end note
+core --> user: display error
+
+== partial success ==
+
+aws_plugin --> core: info level=error
+note right
+Could not sts into account2
+(but account1 worked).
+end note
+core --> user: display error
+aws_plugin --> core: info level=info
+note right
+- Could not scrape region eu-central-1.
+- No permission to list instances.
+end note
+aws_plugin --> core: done
+@enduml

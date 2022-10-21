@@ -119,7 +119,7 @@ from resotocore.model.typed_model import to_json, to_js
 from resotocore.query.model import Query, P, Template, NavigateUntilRoot, Term
 from resotocore.query.query_parser import parse_query
 from resotocore.query.template_expander import tpl_props_p
-from resotocore.task.task_description import Job, TimeTrigger, EventTrigger, ExecuteCommand, Workflow
+from resotocore.task.task_description import Job, TimeTrigger, EventTrigger, ExecuteCommand, Workflow, RunningTask
 from resotocore.types import Json, JsonElement, EdgeType
 from resotocore.util import (
     uuid_str,
@@ -3876,11 +3876,30 @@ class WorkflowsCommand(CLICommand):
 
         async def running_workflows() -> Tuple[int, Stream]:
             tasks = await self.dependencies.task_handler.running_tasks()
-            return len(tasks), stream.iterate(
-                {"workflow": t.descriptor.id, "started_at": to_json(t.task_started_at), "task-id": t.id}
-                for t in tasks
-                if isinstance(t.descriptor, Workflow)
-            )
+
+            def info(rt: RunningTask) -> JsonElement:
+                # show progress only if the task is still active
+                progress = (
+                    {
+                        "progress": f"{rt.progress.percentage}%",
+                        "current-step": rt.current_step.name,
+                        "step-info": rt.current_step_progress.info_json(),
+                    }
+                    if rt.is_active
+                    else {"progress": "done"}
+                )
+                # show messages only if there are messages to show
+                messages = {"messages": [msg.info() for msg in rt.info_messages]} if rt.info_messages else {}
+
+                return {
+                    "workflow": rt.descriptor.id,
+                    "started": to_json(rt.task_started_at),
+                    "task-id": rt.id,
+                    **progress,
+                    **messages,
+                }
+
+            return len(tasks), stream.iterate(info(t) for t in tasks if isinstance(t.descriptor, Workflow))
 
         args = re.split("\\s+", arg, maxsplit=1) if arg else []
         if arg and len(args) == 2 and args[0] == "show":
