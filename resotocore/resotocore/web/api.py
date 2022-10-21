@@ -163,7 +163,9 @@ class Api:
 
     def __add_routes(self, prefix: str) -> None:
         static_path = os.path.abspath(os.path.dirname(__file__) + "/../static")
-        jupyterlite_path = os.path.abspath(os.path.dirname(__file__) + "/../jupyterlite")
+        jupyterlite_path = Path(os.path.abspath(os.path.dirname(__file__) + "/../jupyterlite"))
+        if not jupyterlite_path.exists():
+            jupyterlite_path.mkdir(parents=True, exist_ok=True)
         ui_route: List[AbstractRouteDef] = (
             [web.static(f"{prefix}/ui/", self.config.api.ui_path)]
             if self.config.api.ui_path and Path(self.config.api.ui_path).exists()
