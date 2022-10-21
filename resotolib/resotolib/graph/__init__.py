@@ -334,12 +334,12 @@ class Graph(networkx.MultiDiGraph):
         already_checked = set()
         while queue:
             current = queue.popleft()
-            if current in already_checked:
-                continue
             if isinstance(current, cls):
                 return current
-            already_checked.add(current)
-            queue.extend(self.predecessors(current))
+            for n in self.predecessors(current):
+                if n not in already_checked:
+                    already_checked.add(n)
+                    queue.append(n)
         return None
 
     @metrics_graph_resolve_deferred_connections.time()
