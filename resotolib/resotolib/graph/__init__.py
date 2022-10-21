@@ -330,7 +330,7 @@ class Graph(networkx.MultiDiGraph):
         This is being used to search up the graph and e.g. find the account that the
         graph node is a member of.
         """
-        queue = deque([self.predecessors(node)])
+        queue = deque(self.predecessors(node))
         already_checked = set()
         while queue:
             current = queue.popleft()
