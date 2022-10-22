@@ -1,2 +1,2 @@
-resotolib==2.4.4
+resotolib==2.4.5
 PyYAML==6.0

@@ -1,2 +1,2 @@
-resotolib==2.4.4
+resotolib==2.4.5
 tenacity==8.0.1
