@@ -25,7 +25,7 @@ jobs:
 
       - name: Get short commit SHA
         id: sha
-        run: echo "::set-output name=short::${GITHUB_SHA::7}"
+        run: echo "short=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
 
       - name: Create swap for ARM builds
         if: github.ref_type == 'tag' # on tagging of releases and prereleases
@@ -43,17 +43,17 @@ jobs:
           GITHUB_REF="${{ github.ref }}"
           GITHUB_TAG=${GITHUB_REF##*/}
           if [ "${{ github.ref_type }}" = tag ]; then
-              echo "::set-output name=targets::linux/amd64,linux/arm64"
-              echo "::set-output name=uitag::latest"
+              echo "targets=linux/amd64,linux/arm64" >> $GITHUB_OUTPUT
+              echo "uitag=latest" >> $GITHUB_OUTPUT
               if [[ "$GITHUB_TAG" =~ [0-9]([ab]|rc)[0-9]* ]]; then
-                echo "::set-output name=latest::false"
+                echo "latest=false" >> $GITHUB_OUTPUT
               else
-                echo "::set-output name=latest::true"
+                echo "latest=true" >> $GITHUB_OUTPUT
               fi
           else
-              echo "::set-output name=targets::linux/amd64"
-              echo "::set-output name=uitag::edge"
-              echo "::set-output name=latest::false"
+              echo "targets=linux/amd64" >> $GITHUB_OUTPUT
+              echo "uitag=edge" >> $GITHUB_OUTPUT
+              echo "latest=false" >> $GITHUB_OUTPUT
           fi
 
       - name: Check short commit SHA and build targets
@@ -337,9 +337,9 @@ jobs:
         shell: bash
         run: |
           if [[ ${{ github.ref }} =~ ^refs/tags/[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo ::set-output name=prerelease::false
+            echo "prerelease=false" >> $GITHUB_OUTPUT
           else
-            echo ::set-output name=prerelease::true
+            echo "prerelease=true" >> $GITHUB_OUTPUT
           fi
 
       - name: Check out repository
@@ -364,7 +364,7 @@ jobs:
         shell: bash
         run: |
           mapfile -t tags < <(echo $(curl -sL https://api.github.com/repos/someengineering/resoto/tags?per_page=1) | jq -r '(.[] | .name)')
-          echo ::set-output name=tag::${tags[0]}
+          echo "tag=${tags[0]}" >> $GITHUB_OUTPUT
           prev_release=$(echo $(curl -sL https://api.github.com/repos/someengineering/resoto/releases/latest) | jq -r '.tag_name')
           year=$(date +'%Y')
           date=$(date +'%m-%d')
@@ -372,9 +372,9 @@ jobs:
           mkdir -p $dir
           file="${dir}/index.md"
           python tools/release_notes.py ${prev_release} ${tags[0]} > $file
-          echo ::set-output name=file::$file
+          echo "file=$file" >> $GITHUB_OUTPUT
           link="/news/$(date +'%Y/%m/%d')/${tags[0]}"
-          echo ::set-output name=link::$link
+          echo "link=$link" >> $GITHUB_OUTPUT
 
       - name: Update released version & resotocore API YAML
         if: steps.release_type.outputs.prerelease == 'false'
