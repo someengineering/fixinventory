@@ -140,7 +140,7 @@ class SendMessage(TaskCommand):
 class ExecuteOnCLI(TaskCommand):
     command: str
     # noinspection PyUnresolvedReferences
-    env: frozendict  # type: ignore
+    env: frozendict
 
 
 # endregion
@@ -326,7 +326,7 @@ class Workflow(TaskDescription):
         )
 
 
-class StepState(State):  # type: ignore
+class StepState(State):
     """
     Base class for all states in a task.
     There is always a related step definition inside a related task definition.
