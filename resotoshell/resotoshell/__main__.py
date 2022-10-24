@@ -39,7 +39,7 @@ async def main() -> None:
     client = ResotoClient(
         url=resotocore.http_uri,
         psk=args.psk,
-        # custom_ca_cert_path=args.ca_cert,
+        custom_ca_cert_path=args.ca_cert,
         verify=args.verify_certs,
     )
 
@@ -59,14 +59,9 @@ async def main() -> None:
         sys.exit(1)
     if args.stdin or not sys.stdin.isatty():
         await handle_from_stdin(client) 
-        # assert client.async_client
-        # client.event_loop_thread.run_coroutine(handle_from_stdin(client))
     else:
-        # assert client.async_client
         cmds, kinds, props = await core_metadata(client)
-        # cmds, kinds, props = client.event_loop_thread.run_coroutine(core_metadata(client.async_client))
         session = PromptSession(cmds=cmds, kinds=kinds, props=props)
-        # client.event_loop_thread.run_coroutine(repl(client, args, session))
         await repl(client, args, session)
     await client.shutdown()
     resotolib.proc.kill_children(SIGTERM, ensure_death=True)
@@ -80,9 +75,7 @@ async def repl(
     session: PromptSession,
 ) -> None:
     shutdown_event = Event()
-    # assert client.async_client, "Client is not started"
     shell = Shell(client, True, detect_color_system(args))
-    # cmds, kinds, props = client.event_loop_thread.run_coroutine(core_metadata(client.async_client))
 
     log.debug("Starting interactive session")
 
@@ -115,7 +108,6 @@ async def repl(
 
 
 async def handle_from_stdin(client: ResotoClient) -> None:
-    # assert client.async_client, "Client is not started"
     shell = Shell(client, False, "monochrome")
     log.debug("Reading commands from STDIN")
     try:

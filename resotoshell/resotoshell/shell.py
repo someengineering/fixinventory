@@ -191,9 +191,6 @@ class Shell:
                     f"Found not expected response type: {type(response)} for content type {content_type}"
                 )
             
-            if reader.at_eof():
-                return
-
             num = 0
             async for part in reader:
                 await self.handle_result(part, num == 0)

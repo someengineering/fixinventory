@@ -938,7 +938,7 @@ class Api:
                         content, content_type="application/octet-stream", filename=path.name, headers=cmd_line.envelope
                     )
                     mp.append_payload(pl)
-                    await mp.write(response, close_boundary=True)
+                    await mp.write(response, close_boundary=False)
                     send_files_counter += 1
         # in case we did not send any file, we need to close the boundary
         if send_files_counter == 0:
