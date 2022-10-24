@@ -4,7 +4,7 @@ import shutil
 import sys
 from subprocess import call
 from tempfile import TemporaryDirectory
-from typing import Dict, Union, Optional, Tuple, cast
+from typing import Dict, Union, Optional, Tuple
 from urllib.parse import urlsplit
 
 from resotoclient.async_client import HttpResponse
@@ -14,7 +14,6 @@ from resotolib.logger import log
 from resotoshell.protected_files import validate_paths
 from resotoclient.async_client import ResotoClient
 import aiohttp
-from requests_toolbelt import MultipartDecoder
 
 
 class Shell:
