@@ -5,7 +5,7 @@ from deepdiff import DeepDiff
 from frozendict import frozendict
 from pytest import fixture
 
-from resotocore.message_bus import MessageBus, Action, ActionDone, ActionError, Event
+from resotocore.message_bus import MessageBus, Action, ActionDone, ActionError, Event, ActionProgress, ActionInfo
 from resotocore.model.typed_model import from_js, to_js
 from resotocore.task.model import Subscriber, Subscription
 from resotocore.ids import SubscriberId, TaskDescriptorId
@@ -25,6 +25,8 @@ from resotocore.task.task_description import (
     SendMessage,
     ExecuteOnCLI,
 )
+from resotolib.core.progress import ProgressDone
+from resotolib.utils import utc
 from tests.resotocore.db.entitydb import InMemoryDb
 
 # noinspection PyUnresolvedReferences
@@ -157,9 +159,11 @@ def test_complete_workflow(
     wi, events = RunningTask.empty(init.descriptor, lambda: subscriptions)
     assert wi.current_step.name == "start"
     assert len(events) == 2
+    assert wi.progress.percentage == 0
     events = wi.handle_done(ActionDone("start", wi.id, "start", s1.id))
     assert wi.current_step.name == "wait"
     assert len(events) == 0
+    assert wi.progress.percentage == 33
     handled, events = wi.handle_event(Event("godot", {"a": 2}))
     assert wi.current_step.name == "wait"
     assert handled is False
@@ -168,7 +172,16 @@ def test_complete_workflow(
     assert wi.current_step.name == "collect"
     assert handled is True
     assert len(events) == 2  # event from EmitEvent and action from PerformAction
-    events = wi.handle_done(ActionDone("start", wi.id, "start", s1.id))  #
+    assert wi.progress.percentage == 33
+    wi.handle_progress(ActionProgress("start", wi.id, "start", s1.id, ProgressDone("Test", 0, 100), utc()))
+    wi.handle_progress(ActionProgress("start", wi.id, "start", s2.id, ProgressDone("Test", 50, 100), utc()))
+    assert wi.progress.percentage == 41
+    wi.handle_progress(ActionProgress("start", wi.id, "start", s1.id, ProgressDone("Test", 90, 100), utc()))
+    wi.handle_progress(ActionProgress("start", wi.id, "start", s2.id, ProgressDone("Test", 80, 100), utc()))
+    assert wi.progress.percentage == 61
+    wi.handle_info(ActionInfo("start", wi.id, "start", s1.id, "error", "echt jetzt"))
+    assert len(wi.info_messages) == 1
+    events = wi.handle_done(ActionDone("start", wi.id, "start", s1.id))
     assert wi.current_step.name == "collect"
     assert len(events) == 0
     events = wi.handle_done(ActionDone("collect", wi.id, "collect", s1.id))
@@ -177,11 +190,13 @@ def test_complete_workflow(
     events = wi.handle_done(ActionDone("collect", wi.id, "collect", s2.id))
     assert wi.current_step.name == "done"
     assert len(events) == 1
+    assert wi.progress.percentage == 66
     events = wi.handle_done(ActionDone("done", wi.id, "done", s1.id))
     assert len(events) == 0
     assert wi.current_step.name == "done"
     events = wi.handle_done(ActionDone("done", wi.id, "done", s2.id))
     assert len(events) == 1
+    assert wi.progress.percentage == 100
     assert wi.is_active is False
 
 

@@ -86,12 +86,13 @@ async def task_handler(
     subscription_handler: SubscriptionHandler,
     cli: CLI,
     test_workflow: Workflow,
+    additional_workflows: List[Workflow],
 ) -> AsyncGenerator[TaskHandlerService, None]:
     config = empty_config()
     task_handler = TaskHandlerService(
         running_task_db, job_db, message_bus, event_sender, subscription_handler, Scheduler(), cli, config
     )
-    task_handler.task_descriptions = [test_workflow]
+    task_handler.task_descriptions = additional_workflows + [test_workflow]
     cli.dependencies.lookup["task_handler"] = task_handler
     async with task_handler:
         yield task_handler
@@ -109,6 +110,19 @@ def test_workflow() -> Workflow:
         ],
         [EventTrigger("start me up"), TimeTrigger("1 1 1 1 1")],
     )
+
+
+@fixture
+def additional_workflows() -> List[Workflow]:
+    return [
+        Workflow(
+            TaskDescriptorId("sleep_workflow"),
+            "Speakable name of workflow",
+            [Step("sleep", ExecuteCommand("sleep 0.1"), timedelta(seconds=10))],
+            triggers=[],
+            on_surpass=TaskSurpassBehaviour.Wait,
+        )
+    ]
 
 
 @pytest.mark.asyncio

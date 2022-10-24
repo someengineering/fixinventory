@@ -119,7 +119,7 @@ from resotocore.model.typed_model import to_json, to_js
 from resotocore.query.model import Query, P, Template, NavigateUntilRoot, Term
 from resotocore.query.query_parser import parse_query
 from resotocore.query.template_expander import tpl_props_p
-from resotocore.task.task_description import Job, TimeTrigger, EventTrigger, ExecuteCommand, Workflow
+from resotocore.task.task_description import Job, TimeTrigger, EventTrigger, ExecuteCommand, Workflow, RunningTask
 from resotocore.types import Json, JsonElement, EdgeType
 from resotocore.util import (
     uuid_str,
@@ -2636,8 +2636,18 @@ class JobsCommand(CLICommand, PreserveOutputFormat):
             yield f"Job {job_id} deleted." if job else f"No job with this id: {job_id}"
 
         async def run_job(job_id: str) -> AsyncIterator[str]:
-            task = await self.dependencies.task_handler.start_task_by_descriptor_id(TaskDescriptorId(job_id))
-            yield f"Job {task.descriptor.id} started with id {task.id}." if task else f"No job with this id: {job_id}"
+            info = await self.dependencies.task_handler.start_task_by_descriptor_id(TaskDescriptorId(job_id))
+            if info and info.scheduled_next:
+                task = info.running_task
+                yield (
+                    f"Job {task.descriptor.id} is currently running with id {task.id}."
+                    "Scheduled next run after this one is completed"
+                )
+            elif info:
+                task = info.running_task
+                yield f"Job {task.descriptor.id} started with id {task.id}."
+            else:
+                yield f"No job with this id: {job_id}"
 
         async def activate_deactivate_job(job_id: str, active: bool) -> AsyncIterator[JsonElement]:
             matching = [job for job in await self.dependencies.task_handler.list_jobs() if job.name == job_id]
@@ -3851,20 +3861,45 @@ class WorkflowsCommand(CLICommand):
                 yield f"No workflow with this id: {wf_id}"
 
         async def run_workflow(wf_id: str) -> AsyncIterator[str]:
-            task = await self.dependencies.task_handler.start_task_by_descriptor_id(TaskDescriptorId(wf_id))
-            yield (
-                f"Workflow {task.descriptor.id} started with id {task.id}."
-                if task
-                else f"No workflow with this id: {wf_id}"
-            )
+            info = await self.dependencies.task_handler.start_task_by_descriptor_id(TaskDescriptorId(wf_id))
+            if info and info.scheduled_next:
+                task = info.running_task
+                yield (
+                    f"Workflow {task.descriptor.id} already running with id {task.id}. "
+                    "Scheduled next run after this one is completed"
+                )
+            elif info:
+                task = info.running_task
+                yield f"Workflow {task.descriptor.id} started with id {task.id}."
+            else:
+                yield f"No workflow with this id: {wf_id}"
 
         async def running_workflows() -> Tuple[int, Stream]:
             tasks = await self.dependencies.task_handler.running_tasks()
-            return len(tasks), stream.iterate(
-                {"workflow": t.descriptor.id, "started_at": to_json(t.task_started_at), "task-id": t.id}
-                for t in tasks
-                if isinstance(t.descriptor, Workflow)
-            )
+
+            def info(rt: RunningTask) -> JsonElement:
+                # show progress only if the task is still active
+                progress = (
+                    {
+                        "progress": f"{rt.progress.percentage}%",
+                        "current-step": rt.current_step.name,
+                        "step-info": rt.current_step_progress.info_json(),
+                    }
+                    if rt.is_active
+                    else {"progress": "done"}
+                )
+                # show messages only if there are messages to show
+                messages = {"messages": [msg.info() for msg in rt.info_messages]} if rt.info_messages else {}
+
+                return {
+                    "workflow": rt.descriptor.id,
+                    "started": to_json(rt.task_started_at),
+                    "task-id": rt.id,
+                    **progress,
+                    **messages,
+                }
+
+            return len(tasks), stream.iterate(info(t) for t in tasks if isinstance(t.descriptor, Workflow))
 
         args = re.split("\\s+", arg, maxsplit=1) if arg else []
         if arg and len(args) == 2 and args[0] == "show":

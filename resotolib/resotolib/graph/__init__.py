@@ -36,7 +36,7 @@ from typing import Dict, Iterator, List, Tuple, Optional, Union
 from io import BytesIO
 from typeguard import check_type
 from time import time
-from collections import defaultdict, namedtuple
+from collections import defaultdict, namedtuple, deque
 from attrs import define, fields
 
 
@@ -330,18 +330,17 @@ class Graph(networkx.MultiDiGraph):
         This is being used to search up the graph and e.g. find the account that the
         graph node is a member of.
         """
-        ret = None
-        try:
-            for predecessor_node in list(self.predecessors(node)):
-                if isinstance(predecessor_node, cls):
-                    ret = predecessor_node
-                else:
-                    ret = self.search_first_parent_class(predecessor_node, cls)
-                if ret:
-                    break
-        except RecursionError:
-            log.exception(f"Recursive search error triggered for node {node}'s parent class {cls}")
-        return ret
+        queue = deque(self.predecessors(node))
+        already_checked = set(self.predecessors(node))
+        while queue:
+            current = queue.popleft()
+            if isinstance(current, cls):
+                return current
+            for n in self.predecessors(current):
+                if n not in already_checked:
+                    already_checked.add(n)
+                    queue.append(n)
+        return None
 
     @metrics_graph_resolve_deferred_connections.time()
     def resolve_deferred_connections(self):

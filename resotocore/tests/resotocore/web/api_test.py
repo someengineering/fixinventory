@@ -9,12 +9,13 @@ from aiohttp import ClientSession
 from arango.database import StandardDatabase
 
 from resotocore.__main__ import run
-from resotocore.analytics import NoEventSender
+from resotocore.analytics import NoEventSender, AnalyticsEvent
 from resotocore.db.db_access import DbAccess
 from resotocore.dependencies import empty_config
 from resotocore.model.adjust_node import NoAdjust
 from resotocore.model.model import predefined_kinds, Kind
-from resotocore.util import rnd_str, AccessJson
+from resotocore.model.typed_model import to_js
+from resotocore.util import rnd_str, AccessJson, utc
 
 # noinspection PyUnresolvedReferences
 from tests.resotocore.db.graphdb_test import foo_kinds, test_db, create_graph, system_db, local_client
@@ -108,6 +109,10 @@ async def test_system_api(core_client: ApiClient, client_session: ClientSession)
     # make sure we get redirected to the api docs
     async with client_session.get(core_client.resotocore_url, allow_redirects=False) as r:
         assert r.headers["location"] == "/ui/index.html"
+    # analytics events can be sent to the server
+    events = [AnalyticsEvent("test", "test.event", {"foo": "bar"}, {"counter": 1}, utc())]
+    async with client_session.post(core_client.resotocore_url + "/analytics", json=to_js(events)) as r:
+        assert r.status == 204
 
 
 @pytest.mark.asyncio

@@ -42,7 +42,7 @@ from aiostream.core import Stream
 from attrs import evolve
 from networkx.readwrite import cytoscape_data
 
-from resotocore.analytics import AnalyticsEventSender
+from resotocore.analytics import AnalyticsEventSender, AnalyticsEvent
 from resotocore.cli.cli import CLI
 from resotocore.cli.command import ListCommand, alias_names, WorkerCustomCommand
 from resotocore.cli.model import (
@@ -62,7 +62,7 @@ from resotocore.db.graphdb import GraphDB
 from resotocore.db.model import QueryModel
 from resotocore.error import NotFoundError
 from resotocore.ids import TaskId, ConfigId, NodeId, SubscriberId, WorkerId
-from resotocore.message_bus import MessageBus, Message, ActionDone, Action, ActionError
+from resotocore.message_bus import MessageBus, Message, ActionDone, Action, ActionError, ActionInfo, ActionProgress
 from resotocore.model.db_updater import merge_graph_process
 from resotocore.model.graph_access import Section
 from resotocore.model.model import Kind
@@ -163,7 +163,9 @@ class Api:
 
     def __add_routes(self, prefix: str) -> None:
         static_path = os.path.abspath(os.path.dirname(__file__) + "/../static")
-        jupyterlite_path = os.path.abspath(os.path.dirname(__file__) + "/../jupyterlite")
+        jupyterlite_path = Path(os.path.abspath(os.path.dirname(__file__) + "/../jupyterlite"))
+        if not jupyterlite_path.exists():
+            jupyterlite_path.mkdir(parents=True, exist_ok=True)
         ui_route: List[AbstractRouteDef] = (
             [web.static(f"{prefix}/ui/", self.config.api.ui_path)]
             if self.config.api.ui_path and Path(self.config.api.ui_path).exists()
@@ -218,6 +220,7 @@ class Api:
                 web.get(prefix + "/cli/info", self.cli_info),
                 # Event operations
                 web.get(prefix + "/events", self.handle_events),
+                web.post(prefix + "/analytics", self.send_analytics_events),
                 # Worker operations
                 web.get(prefix + "/work/queue", self.handle_work_tasks),
                 web.get(prefix + "/work/create", self.create_work),
@@ -433,6 +436,12 @@ class Api:
         show = request.query["show"].split(",") if "show" in request.query else ["*"]
         return await self.listen_to_events(request, SubscriberId(str(uuid.uuid1())), show)
 
+    async def send_analytics_events(self, request: Request) -> StreamResponse:
+        events_json = await self.json_from_request(request)
+        events = from_js(events_json, List[AnalyticsEvent])
+        await self.event_sender.capture(events)
+        return web.HTTPNoContent()
+
     async def listen_to_events(
         self,
         request: Request,
@@ -447,6 +456,10 @@ class Api:
             message: Message = from_js(js, Message)
             if isinstance(message, Action):
                 raise AttributeError("Actors should not emit action messages. ")
+            elif isinstance(message, ActionInfo):
+                await self.workflow_handler.handle_action_info(message)
+            elif isinstance(message, ActionProgress):
+                await self.workflow_handler.handle_action_progress(message)
             elif isinstance(message, ActionDone):
                 await self.workflow_handler.handle_action_done(message)
             elif isinstance(message, ActionError):
