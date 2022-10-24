@@ -55,18 +55,14 @@ class Shell:
                 }
             )
 
-        async def handle_response(
-            maybe: Optional[HttpResponse], upload: bool = False
-        ) -> None:
+        async def handle_response(maybe: Optional[HttpResponse], upload: bool = False) -> None:
             if maybe is not None:
                 with maybe as response:
                     if response.status_code == 200:
                         await self.handle_result(response)
                     elif response.status_code == 424 and not upload:
                         required = response.json().get("required", [])
-                        to_upload = validate_paths(
-                            {fp["name"]: fp["path"] for fp in required}
-                        )
+                        to_upload = validate_paths({fp["name"]: fp["path"] for fp in required})
                         mp: HttpResponse = await self.client.cli_execute_raw(
                             command=command,
                             files=to_upload,
@@ -105,9 +101,7 @@ class Shell:
         first: bool = True,
     ) -> None:
         # store the file from the part inside the given directory
-        async def store_file(
-            response: Union[HttpResponse, aiohttp.BodyPartReader], directory: str
-        ) -> Tuple[str, str]:
+        async def store_file(response: Union[HttpResponse, aiohttp.BodyPartReader], directory: str) -> Tuple[str, str]:
             disposition = response.headers.get("Content-Disposition", "")
             match = re.findall('filename="([^"]+)"', disposition)
             filename = match[0] if match else "out"
@@ -148,9 +142,7 @@ class Shell:
                 raise ValueError(f"Found not expected response type: {type(response)}")
         # File is sent in order to edit and return it.
         # We expect the command to define what should happen with the edited file.
-        elif (
-            content_type == "application/octet-stream" and action == "edit" and command
-        ):
+        elif content_type == "application/octet-stream" and action == "edit" and command:
             with TemporaryDirectory() as tmp:
                 if isinstance(response, aiohttp.MultipartReader):
                     raise ValueError(
@@ -170,13 +162,9 @@ class Shell:
         # File is sent: save it to local disk
         elif content_type == "application/octet-stream":
             if isinstance(response, aiohttp.MultipartReader):
-                raise ValueError(
-                    f"Found not expected response type: {type(response)} for content type {content_type}"
-                )
+                raise ValueError(f"Found not expected response type: {type(response)} for content type {content_type}")
 
-            filename, filepath = await store_file(
-                response, ArgumentParser.args.download_directory # type: ignore
-            )
+            filename, filepath = await store_file(response, ArgumentParser.args.download_directory)  # type: ignore
             print(f"Received a file {filename}, which is stored to {filepath}.")
         # Multipart: handle each part separately
         elif content_type.startswith("multipart"):
@@ -187,10 +175,8 @@ class Shell:
             elif isinstance(response, aiohttp.MultipartReader):
                 reader = response
             else:
-                raise ValueError(
-                    f"Found not expected response type: {type(response)} for content type {content_type}"
-                )
-            
+                raise ValueError(f"Found not expected response type: {type(response)} for content type {content_type}")
+
             num = 0
             async for part in reader:
                 await self.handle_result(part, num == 0)

@@ -18,6 +18,7 @@ from resotoshell.shell import Shell
 from rich.console import Console
 import asyncio
 
+
 async def main() -> None:
     resotolib.proc.parent_pid = os.getpid()
     setup_logger("resotoshell", json_format=False)
@@ -58,7 +59,7 @@ async def main() -> None:
         await client.shutdown()
         sys.exit(1)
     if args.stdin or not sys.stdin.isatty():
-        await handle_from_stdin(client) 
+        await handle_from_stdin(client)
     else:
         cmds, kinds, props = await core_metadata(client)
         session = PromptSession(cmds=cmds, kinds=kinds, props=props)
