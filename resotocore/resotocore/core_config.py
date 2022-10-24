@@ -173,6 +173,7 @@ class AliasTemplateConfig(ConfigObject):
     parameters: List[AliasTemplateParameterConfig] = field(
         factory=list, metadata=dict(description="All template parameters.")
     )
+    description: Optional[str] = field(metadata=dict(description="A longer description of the command."), default=None)
 
 
 def alias_templates() -> List[AliasTemplateConfig]:
@@ -180,23 +181,76 @@ def alias_templates() -> List[AliasTemplateConfig]:
         AliasTemplateConfig(
             "discord",
             "Send the result of a search to Discord",
-            # defines the fields to show in the message
+            # define the fields to show in the message
             "jq {name:{{key}}, value:{{value}}} | "
-            # discord limit: https://discord.com/developers/docs/resources/channel#embed-object-embed-limits
+            # Discord limit: https://discord.com/developers/docs/resources/channel#embed-object-embed-limits
             "chunk 25 | "
-            # define the discord webhook json
+            # define the Discord webhook JSON
             'jq {embeds: [{type: "rich", title: "{{title}}", {{#message}}description: "{{message}}",{{/message}} '
             'fields:., footer:{text: "Message created by Resoto"}}]} | '
-            # call the api
+            # call the API
             "http POST {{webhook}}",
             [
                 AliasTemplateParameterConfig("key", "Resource field to show as key", ".kind"),
                 AliasTemplateParameterConfig("value", "Resource field to show as value", ".name"),
                 AliasTemplateParameterConfig("message", "Alert message", ""),
                 AliasTemplateParameterConfig("title", "Alert title"),
-                AliasTemplateParameterConfig("webhook", "Discord Webhook URL"),
+                AliasTemplateParameterConfig("webhook", "Discord webhook URL"),
             ],
-        )
+        ),
+        AliasTemplateConfig(
+            "slack",
+            "Send the result of a search to Slack",
+            # define the fields to show in the message
+            'jq {type: "mrkdwn", text: ("*" + {{key}} + "*\n" + {{value}})} | '
+            # Slack limit: https://api.slack.com/reference/block-kit/blocks#actions
+            "chunk 25 | "
+            # define the Slack webhook JSON
+            "jq { blocks: ["
+            '{ type: "header", text: { type: "plain_text", text: "{{title}}" } }, '
+            '{{#message}}{ type: "section", text: { type: "mrkdwn", text: "{{message}}" } }, {{/message}}'
+            '{ type: "section", fields: . }, '
+            '{ type: "context", elements: [ { type: "mrkdwn", text: "Message created by Resoto" } ] } '
+            "] } | "
+            # call the API
+            "http POST {{webhook}}",
+            [
+                AliasTemplateParameterConfig("key", "Resource field to show as key", ".kind"),
+                AliasTemplateParameterConfig("value", "Resource field to show as value", ".name"),
+                AliasTemplateParameterConfig("message", "Alert message", ""),
+                AliasTemplateParameterConfig("title", "Alert title"),
+                AliasTemplateParameterConfig("webhook", "Slack webhook URL"),
+            ],
+        ),
+        AliasTemplateConfig(
+            "jira",
+            "Send the result of a search to Jira",
+            # defines the fields to show in the message
+            'jq ({{key}} + ": " + {{value}}) | head 26 | chunk 26 | '
+            'jq "((.[:25] | join("\n")) + (if .[25] then "\n... (results truncated)" else "" end))" | '
+            # define the Jira webhook json
+            "jq {fields: { "
+            'summary: "{{title}}", '
+            'issuetype: {id: "10001"}, '
+            'description: ("{{message}}" + "\n\n" + . + "\n\n" + "Issue created by Resoto"), '
+            'project: {id: "{{project_id}}"}, '
+            'reporter: {id: "{{reporter_id}}"}, '
+            'labels: ["created-by-resoto"]'
+            "} } | "
+            # call the api
+            'http --auth "{{username}}:{{token}}" POST {{url}}/rest/api/2/issue',
+            [
+                AliasTemplateParameterConfig("key", "Resource field to show as key", ".kind"),
+                AliasTemplateParameterConfig("value", "Resource field to show as value", ".name"),
+                AliasTemplateParameterConfig("message", "Alert message", ""),
+                AliasTemplateParameterConfig("title", "Alert title"),
+                AliasTemplateParameterConfig("url", "Jira URL"),
+                AliasTemplateParameterConfig("username", "Jira username"),
+                AliasTemplateParameterConfig("token", "Jira API token"),
+                AliasTemplateParameterConfig("project_id", "Jira project ID"),
+                AliasTemplateParameterConfig("reporter_id", "Jira reporter user ID"),
+            ],
+        ),
     ]
 
 

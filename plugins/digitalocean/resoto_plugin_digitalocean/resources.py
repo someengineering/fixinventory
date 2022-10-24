@@ -26,7 +26,7 @@ from resotolib.baseresources import (
     ModelReference,
 )
 from resotolib.graph import Graph
-
+import time
 
 log = logging.getLogger("resoto." + __name__)
 
@@ -57,7 +57,8 @@ class DigitalOceanResource(BaseResource):
         if delete_uri_path:
             log.debug(f"Deleting resource {self.id} in account {self.account(graph).id} region {self.region(graph).id}")
             team = self.account(graph)
-            credentials = get_team_credentials(team.id)
+            ten_minutes_bucket = int(time.time()) // 600
+            credentials = get_team_credentials(team.id, ten_minutes_bucket)
             if credentials is None:
                 raise RuntimeError(f"Cannot delete resource {self.id}, credentials not found for team {team.id}")
             client = StreamingWrapper(
@@ -383,7 +384,8 @@ class DigitalOceanFloatingIP(DigitalOceanResource, BaseIPAddress):
     def delete(self, graph: Graph) -> bool:
         log.debug(f"Deleting resource {self.id} in account {self.account(graph).id} region {self.region(graph).id}")
         team = self.account(graph)
-        credentials = get_team_credentials(team.id)
+        ten_minutes_bucket = int(time.time()) // 600
+        credentials = get_team_credentials(team.id, ten_minutes_bucket)
         if credentials is None:
             raise RuntimeError(f"Cannot delete resource {self.id}, credentials not found for team {team.id}")
         client = StreamingWrapper(
@@ -433,7 +435,8 @@ class DigitalOceanSpace(DigitalOceanResource, BaseBucket):
     def delete(self, graph: Graph) -> bool:
         log.debug(f"Deleting space {self.id} in account {self.account(graph).id} region {self.region(graph).id}")
         team = self.account(graph)
-        credentials = get_team_credentials(team.id)
+        ten_minutes_bucket = int(time.time()) // 600
+        credentials = get_team_credentials(team.id, ten_minutes_bucket)
         if credentials is None:
             raise RuntimeError(f"Cannot delete resource {self.id}, credentials not found for team {team.id}")
         client = StreamingWrapper(
@@ -509,7 +512,8 @@ class DigitalOceanContainerRegistry(DigitalOceanResource, BaseResource):
 
         log.debug(f"Deleting registry {self.id} in account {self.account(graph).id} region {self.region(graph).id}")
         team = self.account(graph)
-        credentials = get_team_credentials(team.id)
+        ten_minutes_bucket = int(time.time()) // 600
+        credentials = get_team_credentials(team.id, ten_minutes_bucket)
         if credentials is None:
             raise RuntimeError(f"Cannot delete resource {self.id}, credentials not found for team {team.id}")
         client = StreamingWrapper(

@@ -9,9 +9,13 @@ from aiohttp import ClientSession
 from arango.database import StandardDatabase
 
 from resotocore.__main__ import run
+from resotocore.analytics import NoEventSender, AnalyticsEvent
+from resotocore.db.db_access import DbAccess
+from resotocore.dependencies import empty_config
+from resotocore.model.adjust_node import NoAdjust
 from resotocore.model.model import predefined_kinds, Kind
 from resotocore.model.typed_model import to_js
-from resotocore.util import rnd_str, AccessJson
+from resotocore.util import rnd_str, AccessJson, utc
 
 # noinspection PyUnresolvedReferences
 from tests.resotocore.db.graphdb_test import foo_kinds, test_db, create_graph, system_db, local_client
@@ -34,9 +38,15 @@ def graph_to_json(graph: MultiDiGraph) -> List[rc.JsObject]:
     return ga
 
 
+@fixture()
+def db_access(test_db: StandardDatabase) -> DbAccess:
+    access = DbAccess(test_db, NoEventSender(), NoAdjust(), empty_config())
+    return access
+
+
 @fixture
 async def core_client(
-    client_session: ClientSession, foo_kinds: List[Kind], test_db: StandardDatabase
+    client_session: ClientSession, foo_kinds: List[Kind], db_access: DbAccess
 ) -> AsyncIterator[ApiClient]:
     """
     Note: adding this fixture to a test: a complete resotocore process is started.
@@ -44,9 +54,11 @@ async def core_client(
           It also ensures to clean up the process, when the test is done.
     """
     port = 28900  # use a different port than the default one
+
     # wipe and cleanly import the test model
-    test_db.collection("model").truncate()
-    test_db.collection("model").insert_many([{"_key": elem.fqn, **to_js(elem)} for elem in foo_kinds])
+    await db_access.model_db.create_update_schema()
+    await db_access.model_db.wipe()
+    await db_access.model_db.update_many(foo_kinds)
 
     process = Process(
         target=run,
@@ -97,6 +109,10 @@ async def test_system_api(core_client: ApiClient, client_session: ClientSession)
     # make sure we get redirected to the api docs
     async with client_session.get(core_client.resotocore_url, allow_redirects=False) as r:
         assert r.headers["location"] == "/ui/index.html"
+    # analytics events can be sent to the server
+    events = [AnalyticsEvent("test", "test.event", {"foo": "bar"}, {"counter": 1}, utc())]
+    async with client_session.post(core_client.resotocore_url + "/analytics", json=to_js(events)) as r:
+        assert r.status == 204
 
 
 @pytest.mark.asyncio
@@ -217,7 +233,7 @@ async def test_graph_api(core_client: ApiClient) -> None:
     assert result_list[0].get("id") == "3"  # first node is the parent node
 
     # aggregate
-    result_aggregate = core_client.search_aggregate("aggregate(reported.kind as kind: sum(1) as count): all", g)
+    result_aggregate = core_client.search_aggregate("aggregate(reported.kind as kind: sum(1) as count): all", graph=g)
     assert {r["group"]["kind"]: r["count"] async for r in result_aggregate} == {
         "bla": 100,
         "cloud": 1,
@@ -289,7 +305,7 @@ async def test_cli(core_client: ApiClient) -> None:
 
     # list all cli commands
     info = AccessJson(await core_client.cli_info())
-    assert len(info.commands) == 37
+    assert len(info.commands) == 39
 
 
 @pytest.mark.asyncio

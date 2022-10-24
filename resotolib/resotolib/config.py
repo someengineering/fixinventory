@@ -292,3 +292,10 @@ class Config(metaclass=MetaConfig):
             default=[],
             nargs="+",
         )
+
+
+# Note: the config is mutable.
+def current_config() -> Config:
+    # metaclass makes it possible to use the class as instance.
+    # use this accessor here to get a typed instance of the config
+    return Config  # type: ignore

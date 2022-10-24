@@ -13,7 +13,6 @@ from datetime import datetime
 from resotolib.types import Json
 from resoto_plugin_aws.resource.ec2 import AwsEc2Vpc, AwsEc2SecurityGroup, AwsEc2Subnet
 from resoto_plugin_aws.resource.iam import AwsIamRole
-from resoto_plugin_aws.utils import arn_partition
 
 
 @define(eq=False, slots=False)
@@ -294,11 +293,11 @@ class AwsRedshiftCluster(AwsResource):
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["aws_vpc", "aws_ec2_security_group", "aws_iam_role", "aws_ec2_subnet"],
-            "delete": ["aws_kms_key"],
+            "delete": ["aws_kms_key", "aws_iam_role"],
         },
         "successors": {
             "default": ["aws_kms_key"],
-            "delete": ["aws_vpc", "aws_ec2_security_group", "aws_iam_role", "aws_ec2_subnet"],
+            "delete": ["aws_vpc", "aws_ec2_security_group", "aws_ec2_subnet"],
         },
     }
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -419,9 +418,7 @@ class AwsRedshiftCluster(AwsResource):
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for js in json:
             cluster = cls.from_api(js)
-            r_id = builder.region.id
-            a_id = builder.account.id
-            cluster.arn = f"arn:{arn_partition(builder.region)}:redshift:{r_id}:{a_id}:cluster:{cluster.id}"
+            cluster.set_arn(builder=builder, resource=f"cluster:{cluster.id}")
             builder.add_node(cluster, js)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
@@ -434,7 +431,9 @@ class AwsRedshiftCluster(AwsResource):
 
         for role in self.redshift_iam_roles:
             if role.iam_role_arn:
-                builder.dependant_node(self, reverse=True, clazz=AwsIamRole, arn=role.iam_role_arn)
+                builder.dependant_node(
+                    self, reverse=True, delete_same_as_default=True, clazz=AwsIamRole, arn=role.iam_role_arn
+                )
 
         if self.redshift_cluster_subnet_group_name:
             builder.dependant_node(self, reverse=True, clazz=AwsEc2Subnet, name=self.redshift_cluster_subnet_group_name)

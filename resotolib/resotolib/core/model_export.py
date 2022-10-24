@@ -300,7 +300,7 @@ def get_node_attributes(node: BaseResource) -> Dict:
         raise ValueError(f"Node {node.rtdname} is neither a dataclass nor has a to_json method")
 
 
-def node_to_dict(node: BaseResource, changes_only: bool = False, include_revision: bool = False) -> Dict:
+def node_to_dict(node: BaseResource, changes_only: bool = False, include_revision: bool = False) -> Json:
     node_dict = {"id": node._resotocore_id if node._resotocore_id else node.chksum}
     if changes_only:
         node_dict.update(node.changes.get())

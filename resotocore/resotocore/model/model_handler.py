@@ -9,7 +9,7 @@ from plantuml import PlantUML
 from resotocore.async_extensions import run_async
 from resotocore.db.modeldb import ModelDb
 from resotocore.types import EdgeType
-from resotocore.model.model import Model, Kind, ComplexKind
+from resotocore.model.model import Model, Kind, ComplexKind, Property
 from resotocore.util import exist
 
 log = logging.getLogger(__name__)
@@ -138,7 +138,12 @@ class ModelHandlerDB(ModelHandler):
                 return ar_visible and exist(lambda r: r.fullmatch(k.fqn), show)
 
         def class_node(cpx: ComplexKind) -> str:
-            props = "\n".join([f"**{p.name}**: {p.kind}" for p in cpx.properties]) if with_properties else ""
+            sth = {k.prop.name: k for k in cpx.synthetic_props() if len(k.path.path) == 1}
+
+            def kind_name(p: Property) -> str:
+                return (sth[p.name].simple_kind.runtime_kind if p.name in sth else p.kind) if p.synthetic else p.kind
+
+            props = "\n".join([f"**{p.name}**: {kind_name(p)}" for p in cpx.properties]) if with_properties else ""
             link = f" [[#{cpx.fqn}]]" if link_classes else ""
             return f"class {cpx.fqn}{link} {{\n{props}\n}}"
 

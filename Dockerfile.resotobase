@@ -57,9 +57,9 @@ RUN apt-get -y install \
 # Download and install PyPy
 WORKDIR /build
 RUN mkdir -p /build/pypy
-RUN if [ ${TARGETPLATFORM} = "linux/amd64" ]; then \
+RUN if [ "${TARGETPLATFORM}" = "linux/amd64" ]; then \
         export PYPY_ARCH=linux64; \
-    elif [ ${TARGETPLATFORM} = "linux/arm64" ]; then \
+    elif [ "${TARGETPLATFORM}" = "linux/arm64" ]; then \
         export PYPY_ARCH=aarch64; \
     else \
         export PYPY_ARCH=linux64; \
@@ -68,7 +68,6 @@ RUN if [ ${TARGETPLATFORM} = "linux/amd64" ]; then \
 RUN tar xjvf /tmp/pypy.tar.bz2 --strip-components=1 -C /build/pypy
 RUN mv /build/pypy /usr/local/pypy
 RUN /usr/local/pypy/bin/pypy3 -m ensurepip
-
 
 # Download and install CPython
 WORKDIR /build/python
@@ -91,13 +90,26 @@ COPY --from=arangodb-amd64-env /usr/bin/arangodump /tmp/arangodb/amd64/
 COPY --from=arangodb-amd64-env /usr/bin/arangorestore /tmp/arangodb/amd64/
 COPY --from=arangodb-arm64-env /usr/bin/arangodump /tmp/arangodb/arm64/
 COPY --from=arangodb-arm64-env /usr/bin/arangorestore /tmp/arangodb/arm64/
-RUN if [ ${TARGETPLATFORM} = "linux/amd64" ]; then \
+RUN if [ "${TARGETPLATFORM}" = "linux/amd64" ]; then \
         cp /tmp/arangodb/amd64/* /usr/local/bin/; \
-    elif [ ${TARGETPLATFORM} = "linux/arm64" ]; then \
+    elif [ "${TARGETPLATFORM}" = "linux/arm64" ]; then \
         cp /tmp/arangodb/arm64/* /usr/local/bin/; \
     else \
         echo "Building for unknown platform - not copying ArangoDB client binaries"; \
     fi
+
+# Download AWS CLI
+WORKDIR /build/awscli
+RUN if [ "${TARGETPLATFORM}" = "linux/amd64" ]; then \
+        export AWSCLI_ARCH=x86_64; \
+    elif [ "${TARGETPLATFORM}" = "linux/arm64" ]; then \
+        export AWSCLI_ARCH=aarch64; \
+    else \
+        export AWSCLI_ARCH=x86_64; \
+    fi; \
+    curl -L -o /tmp/awscliv2.zip https://awscli.amazonaws.com/awscli-exe-linux-${AWSCLI_ARCH}.zip
+RUN unzip /tmp/awscliv2.zip
+RUN aws/install -i /usr/local/aws-cli -b /usr/local/bin
 
 # Prepare PyPy whl build env
 RUN mkdir -p /build-python
@@ -119,7 +131,7 @@ COPY resotocore /usr/src/resotocore
 WORKDIR /usr/src/resotocore
 #RUN if [ "X${TESTS:-false}" = Xtrue ]; then nohup bash -c "/usr/local/db/bin/arangod --database.directory /tmp --server.endpoint tcp://127.0.0.1:8529 --database.password root &"; sleep 5; tox; fi
 RUN . /build/jupyterlite-venv-python3/bin/activate && python -m pip install -r requirements-jupyterlite.txt
-RUN . /build/jupyterlite-venv-python3/bin/activate && python -m jupyter lite build
+RUN . /build/jupyterlite-venv-python3/bin/activate && python -m jupyter lite build --config jupyter_lite_config.json
 RUN . /usr/local/resoto-venv-python3/bin/activate && python -m pip wheel -w /build-python -f /build-python .
 RUN . /usr/local/resoto-venv-pypy3/bin/activate && pypy3 -m pip wheel -w /build-pypy -f /build-pypy .
 

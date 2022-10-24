@@ -78,21 +78,16 @@ def parse_commit(row: list[str]) -> Commit:
 def show_log(from_tag: str, to_tag: str):
     grouped: Dict[str, List[Commit]] = group_by(
         lambda c: c.group,
-        [
-            parse_commit(row)
-            for row in csv.reader(git_commits(from_tag, to_tag), delimiter="§")
-        ],
+        [parse_commit(row) for row in csv.reader(git_commits(from_tag, to_tag), delimiter="§")],
     )
 
     print("---\ntags: [release notes]\n---")
 
-    print(f"\n# v{to_tag}")
+    print(f"\n# {to_tag}")
 
     print("\n## What's Changed")
     # define sort order for groups: order of group names and then the rest
-    group_weights = defaultdict(
-        lambda: 100, {a: num for num, a in enumerate(group_names)}
-    )
+    group_weights = defaultdict(lambda: 100, {a: num for num, a in enumerate(group_names)})
     for group, commits in sorted(grouped.items(), key=lambda x: group_weights[x[0]]):
         print(f"\n### {group_names.get(group, group)}\n")
         for commit in commits:

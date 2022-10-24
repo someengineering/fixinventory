@@ -22,8 +22,9 @@ from pytest import fixture
 from resotocore import version
 from resotocore.cli import is_node
 from resotocore.cli.cli import CLI
-from resotocore.cli.command import HttpCommand, JqCommand
+from resotocore.cli.command import HttpCommand, JqCommand, WorkerCustomCommand
 from resotocore.cli.model import CLIDependencies, CLIContext
+from resotocore.cli.tip_of_the_day import generic_tips
 from resotocore.console_renderer import ConsoleRenderer, ConsoleColorSystem
 from resotocore.db.jobdb import JobDb
 from resotocore.error import CLIParseError
@@ -64,7 +65,13 @@ from tests.resotocore.message_bus_test import message_bus
 from tests.resotocore.query.template_expander_test import expander
 
 # noinspection PyUnresolvedReferences
-from tests.resotocore.task.task_handler_test import task_handler, job_db, subscription_handler, test_workflow
+from tests.resotocore.task.task_handler_test import (
+    task_handler,
+    job_db,
+    subscription_handler,
+    test_workflow,
+    additional_workflows,
+)
 
 # noinspection PyUnresolvedReferences
 from tests.resotocore.worker_task_queue_test import worker, task_queue, performed_by, incoming_tasks
@@ -366,11 +373,20 @@ async def test_workflows_command(cli: CLI, task_handler: TaskHandlerService, tes
         ctx = CLIContext(cli.cli_env)
         return (await cli.execute_cli_command(cmd, stream.list, ctx))[0]  # type: ignore
 
-    assert await execute("workflows list") == ["test_workflow"]
+    assert await execute("workflows list") == ["sleep_workflow", "test_workflow"]
     assert await execute("workflows show test_workflow") == [to_js(test_workflow)]
     wf = await execute("workflows run test_workflow")
     assert wf[0].startswith("Workflow test_workflow started with id")  # type: ignore
     assert len(await execute("workflows running")) == 1
+
+    # executing an already running workflow will give a specific message
+    await execute("workflows run sleep_workflow")
+    sf = await execute("workflows run sleep_workflow")
+    assert sf[0].startswith("Workflow sleep_workflow already running with id ")  # type: ignore
+
+    # make sure to wait for all tasks to finish
+    for rt in await task_handler.running_tasks():
+        await task_handler.delete_running_task(rt)
 
 
 @pytest.mark.asyncio
@@ -496,7 +512,7 @@ async def test_tag_command(
         # make sure that 2 warnings are emitted
         assert len(caplog.records) == 2
         for res in caplog.records:
-            assert res.message.startswith("Tag update not reflected in db. Wait until next collector run.")
+            assert res.message.startswith("Update not reflected in db. Wait until next collector run.")
     # tag updates can be put into background
     res6 = await cli.execute_cli_command('json ["root", "collector"] | tag update --nowait foo bla', stream.list)
     assert cli.dependencies.forked_tasks.qsize() == 2
@@ -865,10 +881,60 @@ async def test_discord_alias(cli: CLI, echo_http_server: Tuple[int, List[Tuple[R
 
 
 @pytest.mark.asyncio
+async def test_slack_alias(cli: CLI, echo_http_server: Tuple[int, List[Tuple[Request, Json]]]) -> None:
+    port, requests = echo_http_server
+    result = await cli.execute_cli_command(
+        f'search is(bla) | slack webhook="http://localhost:{port}/success" title=test message="test message"',
+        stream.list,
+    )
+    # 100 times bla, discord allows 25 fields -> 4 requests
+    assert result == [["4 requests with status 200 sent."]]
+    assert len(requests) == 4
+    print(requests[0][1])
+    assert requests[0][1] == {
+        "blocks": [
+            {"type": "header", "text": {"type": "plain_text", "text": "test"}},
+            {"type": "section", "text": {"type": "mrkdwn", "text": "test message"}},
+            {"type": "section", "fields": [{"type": "mrkdwn", "text": "*bla*\nyes or no"} for _ in range(0, 25)]},
+            {"type": "context", "elements": [{"type": "mrkdwn", "text": "Message created by Resoto"}]},
+        ],
+    }
+
+
+@pytest.mark.asyncio
+async def test_jira_alias(cli: CLI, echo_http_server: Tuple[int, List[Tuple[Request, Json]]]) -> None:
+    port, requests = echo_http_server
+    result = await cli.execute_cli_command(
+        f'search is(bla) | jira url="http://localhost:{port}/success" title=test message="test message" username=test token=test project_id=10000 reporter_id=test',
+        stream.list,
+    )
+    assert result == [["1 requests with status 200 sent."]]
+    assert len(requests) == 1
+    print(requests[0][1])
+    assert requests[0][1] == {
+        "fields": {
+            "summary": "test",
+            "issuetype": {"id": "10001"},
+            "project": {"id": "10000"},
+            "description": "test message\n\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\n... (results truncated)\n\nIssue created by Resoto",
+            "reporter": {"id": "test"},
+            "labels": ["created-by-resoto"],
+        }
+    }
+
+
+@pytest.mark.asyncio
 async def test_welcome(cli: CLI) -> None:
     ctx = CLIContext(console_renderer=ConsoleRenderer.default_renderer())
     result = await cli.execute_cli_command(f"welcome", stream.list, ctx)
     assert "Resoto" in result[0][0]
+
+
+@pytest.mark.asyncio
+async def test_tip_of_the_day(cli: CLI) -> None:
+    ctx = CLIContext(console_renderer=ConsoleRenderer.default_renderer())
+    result = await cli.execute_cli_command(f"totd", stream.list, ctx)
+    assert generic_tips[0].command_line in result[0][0]
 
 
 @pytest.mark.asyncio
@@ -880,3 +946,27 @@ async def test_certificate(cli: CLI) -> None:
     # will create 2 files
     assert len(result[0]) == 2
     assert [a.rsplit("/")[-1] for a in result[0]] == ["foo.resoto.com.key", "foo.resoto.com.crt"]
+
+
+@pytest.mark.asyncio
+async def test_execute_task(cli: CLI) -> None:
+    # translate a custom command to an alias template
+    command = WorkerCustomCommand("name", "info", {"a": "b"}, "description").to_template()
+    assert command.name == "name"
+    assert command.info == "info"
+    assert command.description == "description"
+    assert command.args_description == {"a": "b"}
+    assert command.template == 'execute-task --no-node-result --command "name" --arg "{{args}}"'
+
+    # execute-task in source position
+    source_result = await cli.execute_cli_command(
+        f'execute-task --command success_task --arg "--foo bla test"', stream.list
+    )
+    assert len(source_result[0]) == 1
+    assert source_result[0] == [{"result": "done!"}]
+
+    # execute task in flow position: every incoming node creates a new task
+    flow_result = await cli.execute_cli_command(
+        f'search all limit 3 | execute-task --command success_task --arg "--t {{id}}"', stream.list
+    )
+    assert len(flow_result[0]) == 3

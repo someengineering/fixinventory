@@ -4,6 +4,7 @@ import logging
 from abc import ABC
 from asyncio import Queue
 from contextlib import asynccontextmanager
+from datetime import datetime
 from typing import Any, Optional, Dict, List, AsyncGenerator
 
 from frozendict import frozendict
@@ -11,8 +12,9 @@ from jsons import set_deserializer, set_serializer
 from resotocore.ids import TaskId
 
 from resotocore.types import Json
-from resotocore.util import pop_keys
+from resotocore.util import pop_keys, utc_str, from_utc
 from resotocore.ids import SubscriberId
+from resotolib.core.progress import Progress
 
 log = logging.getLogger(__name__)
 
@@ -22,6 +24,7 @@ class CoreMessage:
     Disconnected = "message-listener-disconnected"
     ConfigUpdated = "config-updated"
     ConfigDeleted = "config-deleted"
+    ErrorMessage = "error-message"
 
 
 class Message(ABC):
@@ -67,6 +70,19 @@ class Message(ABC):
         elif kind == "action_done":
             res_data = pop_keys(data, ["task", "step", "subscriber_id"])
             return ActionDone(message_type, data["task"], data["step"], data["subscriber_id"], res_data)
+        elif kind == "action_info":
+            return ActionInfo(
+                message_type, data["task"], data["step"], data["subscriber_id"], data["level"], data["message"]
+            )
+        elif kind == "action_progress":
+            return ActionProgress(
+                message_type,
+                data["task"],
+                data["step"],
+                data["subscriber_id"],
+                Progress.from_json(data["progress"]),
+                from_utc(data["at"]),
+            )
         elif kind == "action_error":
             res_data = pop_keys(data, ["task", "step", "subscriber_id", "error"])
             return ActionError(
@@ -92,10 +108,20 @@ class Message(ABC):
             }
         elif isinstance(o, ActionDone):
             extra_data = {"task": o.task_id, "step": o.step_name, "subscriber_id": o.subscriber_id}
+            return {"kind": "action_done", "message_type": o.message_type, "data": {**o.data, **extra_data}}
+        elif isinstance(o, ActionProgress):
+            extra_data = {"task": o.task_id, "step": o.step_name, "subscriber_id": o.subscriber_id}
             return {
-                "kind": "action_done",
+                "kind": "action_progress",
                 "message_type": o.message_type,
-                "data": {**o.data, **extra_data},
+                "data": {**o.data, **extra_data, "progress": o.progress.to_json(), "at": utc_str(o.at)},
+            }
+        elif isinstance(o, ActionInfo):
+            extra_data = {"task": o.task_id, "step": o.step_name, "subscriber_id": o.subscriber_id}
+            return {
+                "kind": "action_info",
+                "message_type": o.message_type,
+                "data": {**o.data, **extra_data, "level": o.level, "message": o.message},
             }
         elif isinstance(o, ActionError):
             extra_data = {
@@ -143,6 +169,41 @@ class ActionDone(ActionMessage):
         self.subscriber_id = subscriber_id
 
 
+class ActionProgress(ActionMessage):
+    def __init__(
+        self,
+        message_type: str,
+        task_id: TaskId,
+        step_name: str,
+        subscriber_id: SubscriberId,
+        progress: Progress,
+        at: datetime,
+    ):
+        super().__init__(message_type, task_id, step_name)
+        self.subscriber_id = subscriber_id
+        self.progress = progress
+        self.at = at
+
+
+class ActionInfo(ActionMessage):
+    def __init__(
+        self,
+        message_type: str,
+        task_id: TaskId,
+        step_name: str,
+        subscriber_id: SubscriberId,
+        level: str,
+        message: str,
+    ):
+        super().__init__(message_type, task_id, step_name)
+        self.subscriber_id = subscriber_id
+        self.level = level
+        self.message = message
+
+    def info(self) -> str:
+        return f"{self.level.capitalize()}: {self.message}"
+
+
 class ActionError(ActionMessage):
     def __init__(
         self,
@@ -156,6 +217,9 @@ class ActionError(ActionMessage):
         super().__init__(message_type, task_id, step_name, data)
         self.subscriber_id = subscriber_id
         self.error = error
+
+    def info(self) -> str:
+        return f"Fatal: could not perform action {self.step_name}. Reason: {self.error}"
 
 
 class MessageBus:

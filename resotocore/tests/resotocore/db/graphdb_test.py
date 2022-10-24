@@ -347,12 +347,12 @@ async def test_mark_update(filled_graph_db: ArangoGraphDB) -> None:
     # make sure all changes are empty
     await db.db.truncate(db.in_progress)
     # change on 00 is allowed
-    assert await db.mark_update(["00"], ["0", "sub_root", "root"], "update 00", False) is None
+    await db.mark_update(["00"], ["0", "sub_root", "root"], "update 00", False)
     # change on 01 is allowed
-    assert await db.mark_update(["01"], ["0", "sub_root", "root"], "update 01", True) is None
+    await db.mark_update(["01"], ["0", "sub_root", "root"], "update 01", True)
     # same change id which tries to update the same subgraph root
     with pytest.raises(InvalidBatchUpdate):
-        assert await db.mark_update(["01"], ["0", "sub_root", "root"], "update 01", True) is None
+        await db.mark_update(["01"], ["0", "sub_root", "root"], "update 01", True)
     # change on 0 is rejected, since there are changes "below" this node
     with pytest.raises(ConflictingChangeInProgress):
         await db.mark_update(["0"], ["sub_root"], "update 0 under node sub_root", False)

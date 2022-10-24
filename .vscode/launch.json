@@ -1,0 +1,70 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Debug Tests",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "purpose": ["debug-test"],
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+        },
+        {
+            "name": "resotocore",
+            "type": "python",
+            "request": "launch",
+            "program": "./resotocore/resotocore/__main__.py",
+            "args": ["--psk", "changeme"],
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "env": {
+                "RESOTOCORE_ANALYTICS_OPT_OUT": "True"
+            },
+            "autoReload": {
+                "enable": true
+            }
+        },
+        {
+            "name": "resotoworker",
+            "type": "python",
+            "request": "launch",
+            "program": "./resotoworker/resotoworker/__main__.py",
+            "args": ["--psk", "changeme"],
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "env": {
+                "RESOTOCORE_ANALYTICS_OPT_OUT": "True"
+            },
+            "autoReload": {
+                "enable": true
+            }
+        },
+        {
+            "name": "resotoshell",
+            "type": "python",
+            "request": "launch",
+            "program": "./resotoshell/resotoshell/__main__.py",
+            "args": ["--psk", "changeme"],
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "env": {
+                "RESOTOCORE_ANALYTICS_OPT_OUT": "True"
+            },
+            "autoReload": {
+                "enable": true
+            }
+        },
+    ]
+}

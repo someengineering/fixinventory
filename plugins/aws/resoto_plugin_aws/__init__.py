@@ -1,7 +1,20 @@
 import logging
+import multiprocessing
+from concurrent import futures
+from contextlib import suppress
+from typing import List, Optional, Union
 
 import botocore.exceptions
-import multiprocessing
+from botocore.model import OperationModel
+from jsons import pascalcase
+from prometheus_client import Summary, Counter
+
+import resotolib.logger
+import resotolib.proc
+from resoto_plugin_aws.aws_client import AwsClient
+from resotolib.args import ArgumentParser
+from resotolib.args import Namespace
+from resotolib.baseplugin import BaseCollectorPlugin
 from resotolib.baseresources import (
     BaseResource,
     metrics_resource_cleanup_exceptions,
@@ -9,25 +22,17 @@ from resotolib.baseresources import (
     BaseRegion,
     metrics_resource_pre_cleanup_exceptions,
 )
-import resotolib.proc
-import resotolib.logger
 from resotolib.baseresources import Cloud
-from resotolib.logger import log, setup_logger
-from concurrent import futures
-from resotolib.args import ArgumentParser
-from resotolib.args import Namespace
-from resotolib.config import Config, RunningConfig
+from resotolib.config import Config, RunningConfig, current_config
 from resotolib.graph import Graph
-from resotolib.utils import log_runtime
-from resotolib.baseplugin import BaseCollectorPlugin
-from .config import AwsConfig
-from .utils import aws_session
-from .resource.base import AwsAccount, AwsResource
+from resotolib.logger import log, setup_logger
+from resotolib.core.custom_command import execute_command_on_resource
+from resotolib.types import JsonElement, Json
+from resotolib.utils import log_runtime, NoExitArgumentParser, chunks
 from .collector import AwsAccountCollector
-from prometheus_client import Summary, Counter
-from typing import List, Optional
-from resoto_plugin_aws.aws_client import AwsClient
-
+from .configuration import AwsConfig
+from .resource.base import AwsAccount, AwsResource
+from .utils import aws_session
 
 logging.getLogger("boto").setLevel(logging.CRITICAL)
 
@@ -101,6 +106,85 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
             else:
                 self.__regions = list(Config.aws.region)
         return self.__regions
+
+    @execute_command_on_resource(
+        name="aws",
+        info="Execute aws commands on AWS resources",
+        args_description={
+            "--account": "[Optional] The AWS account identifier.",
+            "--role": "[Optional] The AWS role.",
+            "--profile": "[Optional] The AWS profile to use.",
+            "--region": "[Optional] The AWS region.",
+            "service": "Defines the AWS service, like ec2, s3, iam, etc.",
+            "operation": "Defines the operation to execute.",
+            "operation_args": "Defines the arguments for the operation. The parameters depend on the operation.",
+        },
+        description="Execute an operation on an AWS resource.\n"
+        "For a list of services with respective operations see "
+        "https://awscli.amazonaws.com/v2/documentation/api/latest/reference/index.html#available-services\n\n"
+        "By default the operation runs with the same credentials as the collect process.\n"
+        "You can override the credentials by providing the account, role, profile and region arguments.\n\n"
+        "There are two modes of operation:\n"
+        "1. Use a search and then pipe the result of the search into the `aws` command. "
+        "Every resource matched by the search will invoke this command. "
+        "You can use templating parameter to define the exact invocation arguments.\n"
+        "2. Call the `aws` command directly without passing any resource to interact "
+        "with AWS using the credentials defined via configuration.\n\n"
+        "## Examples\n\n"
+        "```shell\n"
+        "# Search for all ec2 volumes and then call describe-volumes on each volume\n"
+        "# See AWS CLI for available services and commands.\n"
+        "# Please note the {id} parameter. The aws command is invoked for any volume and replaces the id parameter"
+        " with the volume id.\n"
+        "> search is(aws_ec2_volume) | aws ec2 describe-volume-attribute --volume-id {id} --attribute autoEnableIO\n"
+        "AutoEnableIO:\n"
+        "Value: false\n"
+        "VolumeId: vol-009b0a28d2754927e\n\n"
+        "# Get the current caller identity\n"
+        "> aws sts get-caller-identity\n"
+        "UserId: AIDA42373XXXXXXXXXXXX\n"
+        "Account: '882374444444'\n"
+        "Arn: arn:aws:iam::882374444444:user/matthias\n"
+        "```\n\n",
+        allowed_on_kind="aws_resource",
+    )
+    def call_aws_function(
+        self, config: Config, resource: Optional[BaseResource], args: List[str]
+    ) -> Union[JsonElement, BaseResource]:
+        parser = NoExitArgumentParser()
+        parser.add_argument("--account")
+        parser.add_argument("--role")
+        parser.add_argument("--profile")
+        parser.add_argument("--region")
+        parser.add_argument("service")
+        parser.add_argument("operation")
+        p, remaining = parser.parse_known_args(args)
+        func_args = {pascalcase(k.removeprefix("--")): v for k, v in chunks(remaining, 2)}
+        cfg = config.aws
+
+        def create_client() -> AwsClient:
+            role = p.role or cfg.role
+            region = p.region or (cfg.region[0] if cfg.region else None)
+            profile = p.profile or (cfg.profiles[0] if cfg.profiles else None)
+            # possibly expensive call: account id is looked up if not provided
+            account = p.account or (cfg.account[0] if cfg.account else current_account_id(profile))
+            return AwsClient(cfg, account, role=role, profile=profile, region=region)
+
+        client = get_client(current_config(), resource) if resource else create_client()
+
+        # try to get the output shape of the operation
+        output_shape: Optional[str] = None
+        with suppress(Exception):
+            service_model = client.service_model(p.service)
+            operation: OperationModel = service_model.operation_model(pascalcase(p.operation))
+            output_shape = operation.output_shape.type_name
+
+        result: List[Json] = client.call_single(p.service, p.operation, None, **func_args)  # type: ignore
+        # Remove the "ResponseMetadata" from the result
+        for elem in result:
+            if isinstance(elem, dict):
+                elem.pop("ResponseMetadata", None)
+        return (result[0] if len(result) == 1 else None) if output_shape == "structure" else result
 
     @staticmethod
     def update_tag(config: Config, resource: BaseResource, key: str, value: str) -> bool:
@@ -254,7 +338,7 @@ def authenticated(account: AwsAccount) -> bool:
 def get_client(config: Config, resource: BaseResource) -> AwsClient:
     account = resource.account()
     assert isinstance(account, AwsAccount)
-    return AwsClient(config.aws, account.id, role=account.role, profile=account.profile, region=resource.region().name)
+    return AwsClient(config.aws, account.id, role=account.role, profile=account.profile, region=resource.region().id)
 
 
 def current_account_id(profile: Optional[str] = None) -> str:

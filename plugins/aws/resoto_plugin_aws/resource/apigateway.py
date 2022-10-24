@@ -12,7 +12,6 @@ from resoto_plugin_aws.resource.route53 import AwsRoute53Zone
 from resotolib.baseresources import EdgeType, ModelReference
 from resotolib.json import from_json
 from resotolib.json_bender import Bender, S, Bend, bend
-from resoto_plugin_aws.utils import arn_partition
 from resotolib.types import Json
 
 
@@ -186,8 +185,8 @@ class AwsApiGatewayAuthorizer(AwsResource):
     # collection of authorizer resources happens in AwsApiGatewayRestApi.collect()
     kind: ClassVar[str] = "aws_api_gateway_authorizer"
     reference_kinds: ClassVar[ModelReference] = {
-        "successors": {"default": ["aws_iam_role", "aws_lambda_function"]},
-        "predecessors": {"delete": ["aws_lambda_function"]},
+        "successors": {"default": ["aws_lambda_function"]},
+        "predecessors": {"default": ["aws_iam_role"], "delete": ["aws_lambda_function", "aws_iam_role"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -222,7 +221,9 @@ class AwsApiGatewayAuthorizer(AwsResource):
                 name=lambda_name,
             )
         if self.authorizer_credentials:
-            builder.add_edge(self, edge_type=EdgeType.default, clazz=AwsIamRole, arn=self.authorizer_credentials)
+            builder.dependant_node(
+                self, reverse=True, delete_same_as_default=True, clazz=AwsIamRole, arn=self.authorizer_credentials
+            )
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
@@ -393,12 +394,19 @@ class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for js in json:
             api_instance = cls.from_api(js)
-            region = builder.region
-            api_instance.arn = f"arn:{arn_partition(region)}:apigateway:{region.id}::/restapis/{api_instance.id}"
+            api_instance.set_arn(
+                builder=builder,
+                account="",
+                resource=f"/restapis/{api_instance.id}",
+            )
             builder.add_node(api_instance, js)
             for deployment in builder.client.list("apigateway", "get-deployments", "items", restApiId=api_instance.id):
                 deploy_instance = AwsApiGatewayDeployment.from_api(deployment)
-                deploy_instance.arn = api_instance.arn + "/deployments/" + deploy_instance.id
+                deploy_instance.set_arn(
+                    builder=builder,
+                    account="",
+                    resource=f"/restapis/{api_instance.id}/deployments/{deploy_instance.id}",
+                )
                 deploy_instance.api_link = api_instance.id
                 builder.add_node(deploy_instance, deployment)
                 builder.add_edge(api_instance, EdgeType.default, node=deploy_instance)

@@ -81,6 +81,11 @@ class PluginLoader:
 
         return self._plugins.get(plugin_type, [])  # type: ignore
 
+    def all_plugins(self) -> List[Union[Type[BasePlugin], Type[BaseActionPlugin], Type[BasePostCollectPlugin]]]:
+        if not self._initialized:
+            self.find_plugins()
+        return [plugin for plugins in self._plugins.values() for plugin in plugins]
+
     def add_plugin_args(self, arg_parser: ArgumentParser) -> None:
         """Add args to the arg parser"""
         if not self._initialized:

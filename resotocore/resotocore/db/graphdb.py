@@ -1096,9 +1096,8 @@ class EventGraphDB(GraphDB):
         return result
 
     async def delete_node(self, node_id: NodeId) -> None:
-        result = await self.real.delete_node(node_id)
+        await self.real.delete_node(node_id)
         await self.event_sender.core_event(CoreEvent.NodeDeleted, {"graph": self.graph_name})
-        return result
 
     def update_nodes(
         self, model: Model, patches_by_id: Dict[NodeId, Json], **kwargs: Any
@@ -1205,9 +1204,8 @@ class EventGraphDB(GraphDB):
         return await self.real.explain(query)
 
     async def wipe(self) -> None:
-        result = await self.real.wipe()
+        await self.real.wipe()
         await self.event_sender.core_event(CoreEvent.GraphDBWiped, {"graph": self.graph_name})
-        return result
 
     async def to_query(self, query_model: QueryModel, with_edges: bool = False) -> Tuple[str, Json]:
         return await self.real.to_query(query_model, with_edges)

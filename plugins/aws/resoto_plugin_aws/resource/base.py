@@ -13,9 +13,10 @@ from attr import evolve, field
 from attrs import define
 from boto3.exceptions import Boto3Error
 
-from resoto_plugin_aws.config import AwsConfig
+from resoto_plugin_aws.configuration import AwsConfig
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.pricing import AwsPricingPrice
+from resoto_plugin_aws.utils import arn_partition
 from resotolib.baseresources import (
     BaseResource,
     EdgeType,
@@ -118,6 +119,30 @@ class AwsResource(BaseResource, ABC):
                 "api_spec",
             ),
         )
+
+    def set_arn(
+        self,
+        builder: GraphBuilder,
+        region: Optional[str] = None,
+        service: Optional[str] = None,
+        account: Optional[str] = None,
+        resource: str = "",
+    ) -> None:
+        aws_region = builder.region
+        partition = arn_partition(aws_region)
+        if region is None:
+            region = aws_region.id
+        if service is None and self.api_spec:
+            service = self.api_spec.service
+        if account is None:
+            account = builder.account.id
+        self.arn = f"arn:{partition}:{service}:{region}:{account}:{resource}"
+
+    @staticmethod
+    def id_from_arn(arn: str) -> str:
+        if "/" in arn:
+            return arn.rsplit("/")[-1]
+        return arn.rsplit(":")[-1]
 
     @classmethod
     def from_json(cls: Type[AwsResourceType], json: Json) -> AwsResourceType:

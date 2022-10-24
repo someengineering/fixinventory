@@ -5,7 +5,7 @@ from typing import List, Type
 from botocore.exceptions import ClientError
 
 from resoto_plugin_aws.aws_client import AwsClient
-from resoto_plugin_aws.config import AwsConfig
+from resoto_plugin_aws.configuration import AwsConfig
 from resoto_plugin_aws.resource import (
     apigateway,
     athena,
@@ -29,6 +29,7 @@ from resoto_plugin_aws.resource import (
     route53,
     s3,
     service_quotas,
+    sns,
     sqs,
     redshift,
 )
@@ -68,6 +69,7 @@ regional_resources: List[Type[AwsResource]] = (
     + lambda_.resources
     + rds.resources
     + service_quotas.resources
+    + sns.resources
     + sqs.resources
     + redshift.resources
 )

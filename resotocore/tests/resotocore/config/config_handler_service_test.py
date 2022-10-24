@@ -74,7 +74,7 @@ async def test_config(config_handler: ConfigHandler) -> None:
     assert [a async for a in config_handler.list_config_ids()] == ["test"]
 
     # delete the config
-    assert await config_handler.delete_config(config_id) is None
+    await config_handler.delete_config(config_id)
 
     # list all configs
     assert [a async for a in config_handler.list_config_ids()] == []

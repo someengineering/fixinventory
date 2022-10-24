@@ -15,18 +15,33 @@ from asyncio import Future, Task
 from asyncio.subprocess import Process
 from collections import defaultdict
 from contextlib import suppress
-from attrs import define
+
+from attrs import define, field
 from datetime import timedelta
-from functools import partial
+from functools import partial, lru_cache
 from itertools import dropwhile, chain
 from tempfile import TemporaryDirectory
-from typing import Dict, List, Tuple, Optional, Any, AsyncIterator, Hashable, Iterable, Callable, Awaitable, cast, Set
+from typing import (
+    Dict,
+    List,
+    Tuple,
+    Optional,
+    Any,
+    AsyncIterator,
+    Hashable,
+    Iterable,
+    Callable,
+    Awaitable,
+    cast,
+    Set,
+    FrozenSet,
+)
 from urllib.parse import urlparse, urlunparse
 
 import aiofiles
 import jq
 import yaml
-from aiohttp import ClientTimeout, JsonPayload
+from aiohttp import ClientTimeout, JsonPayload, BasicAuth
 from aiostream import stream, pipe
 from aiostream.aiter_utils import is_async_iterable
 from aiostream.core import Stream
@@ -81,7 +96,9 @@ from resotocore.cli.model import (
     NoTerminalOutput,
     ArgsInfo,
     ArgInfo,
+    AliasTemplate,
 )
+from resotocore.cli.tip_of_the_day import SuggestionPolicy, SuggestionStrategy, get_suggestion_strategy
 from resotocore.config import ConfigEntity
 from resotocore.db.model import QueryModel
 from resotocore.dependencies import system_info
@@ -99,10 +116,10 @@ from resotocore.model.model import (
 )
 from resotocore.model.resolve_in_graph import NodePath
 from resotocore.model.typed_model import to_json, to_js
-from resotocore.query.model import Query, P, Template, NavigateUntilRoot, IsTerm
+from resotocore.query.model import Query, P, Template, NavigateUntilRoot, Term
 from resotocore.query.query_parser import parse_query
 from resotocore.query.template_expander import tpl_props_p
-from resotocore.task.task_description import Job, TimeTrigger, EventTrigger, ExecuteCommand, Workflow
+from resotocore.task.task_description import Job, TimeTrigger, EventTrigger, ExecuteCommand, Workflow, RunningTask
 from resotocore.types import Json, JsonElement, EdgeType
 from resotocore.util import (
     uuid_str,
@@ -2619,8 +2636,18 @@ class JobsCommand(CLICommand, PreserveOutputFormat):
             yield f"Job {job_id} deleted." if job else f"No job with this id: {job_id}"
 
         async def run_job(job_id: str) -> AsyncIterator[str]:
-            task = await self.dependencies.task_handler.start_task_by_descriptor_id(TaskDescriptorId(job_id))
-            yield f"Job {task.descriptor.id} started with id {task.id}." if task else f"No job with this id: {job_id}"
+            info = await self.dependencies.task_handler.start_task_by_descriptor_id(TaskDescriptorId(job_id))
+            if info and info.scheduled_next:
+                task = info.running_task
+                yield (
+                    f"Job {task.descriptor.id} is currently running with id {task.id}."
+                    "Scheduled next run after this one is completed"
+                )
+            elif info:
+                task = info.running_task
+                yield f"Job {task.descriptor.id} started with id {task.id}."
+            else:
+                yield f"No job with this id: {job_id}"
 
         async def activate_deactivate_job(job_id: str, active: bool) -> AsyncIterator[JsonElement]:
             matching = [job for job in await self.dependencies.task_handler.list_jobs() if job.name == job_id]
@@ -2695,6 +2722,71 @@ class SendWorkerTaskCommand(CLICommand, ABC):
 
         return stream.starmap(in_stream, send_to_queue, ordered=False, task_limit=self.task_limit())
 
+    def load_by_id_merged(
+        self,
+        model: Model,
+        in_stream: Stream,
+        variables: Optional[Set[str]],
+        expected_kind: Optional[str] = None,
+        **env: str,
+    ) -> Stream:
+        async def load_element(items: List[JsonElement]) -> AsyncIterator[JsonElement]:
+            # collect ids either from json dict or string
+            ids: List[str] = [i["id"] if is_node(i) else i for i in items]  # type: ignore
+            # if there is an entry which is not a string, use the list as is (e.g. chunked)
+            if any(a for a in ids if not isinstance(a, str)):
+                for a in items:
+                    yield a
+            else:
+                # one query to load all items that match given ids (max 1000 as defined in chunk size)
+                term: Term = P("_key").is_in(ids)
+                if expected_kind is not None:
+                    term &= P.of_kind(expected_kind)
+                query = (
+                    Query.by(term)
+                    .merge_with("ancestors.cloud", NavigateUntilRoot, P.of_kind("cloud"))
+                    .merge_with("ancestors.account", NavigateUntilRoot, P.of_kind("account"))
+                    .merge_with("ancestors.region", NavigateUntilRoot, P.of_kind("region"))
+                    .merge_with("ancestors.zone", NavigateUntilRoot, P.of_kind("zone"))
+                ).rewrite_for_ancestors_descendants(variables)
+                query_model = QueryModel(query, model)
+                async with await self.dependencies.db_access.get_graph_db(env["graph"]).search_list(query_model) as crs:
+                    async for a in crs:
+                        yield a
+
+        return stream.flatmap(stream.chunks(in_stream, 1000), load_element)
+
+    async def no_update(self, _: WorkerTask, future_result: Future[Json]) -> Json:
+        return await future_result
+
+    def update_node_in_graphdb(self, model: Model, **env: str) -> Callable[[WorkerTask, Future[Json]], Awaitable[Json]]:
+        async def to_result(task: WorkerTask, future_result: Future[Json]) -> Json:
+            nid = js_value_at(task.data, ["node", "id"])
+            try:
+                result = await future_result
+                if is_node(result):
+                    db = self.dependencies.db_access.get_graph_db(env["graph"])
+                    try:
+                        updated: Json = await db.update_node(model, result["id"], result, True, None)
+                        return updated
+                    except ClientError as ex:
+                        # if the change could not be reflected in database, show success
+                        log.warning(
+                            f"Update not reflected in db. Wait until next collector run. Reason: {str(ex)}",
+                            exc_info=ex,
+                        )
+                        return result
+                else:
+                    log.warning(
+                        f"Result from worker is not a node. "
+                        f"Will not update the internal state. {json.dumps(result)}"
+                    )
+                    return result
+            except Exception as ex:
+                return {"error": str(ex), "id": nid}
+
+        return to_result
+
     # noinspection PyMethodMayBeStatic
     def task_limit(self) -> int:
         # override if this limit is not sufficient
@@ -2719,6 +2811,138 @@ class SendWorkerTaskCommand(CLICommand, ABC):
     @abstractmethod
     def timeout(self) -> timedelta:
         pass
+
+
+@define
+class WorkerCustomCommand:
+    """
+    A worker might provide custom commands. This definition is provided by the worker.
+    """
+
+    name: str
+    info: Optional[str] = None
+    args_description: Dict[str, str] = field(factory=dict)
+    description: Optional[str] = None
+    filter: Dict[str, List[str]] = field(factory=dict)
+    allowed_on_kind: Optional[str] = None
+    expect_node_result: bool = False
+
+    def to_template(self) -> AliasTemplate:
+        allowed_kind = f" --allowed-on {self.allowed_on_kind}" if self.allowed_on_kind else ""
+        result_flag = "" if self.expect_node_result else " --no-node-result"
+        command = f'--command "{self.name}"'
+        args = '--arg "{{args}}"'
+        return AliasTemplate(
+            name=self.name,
+            info=self.info or "",
+            args_description=self.args_description,
+            template=f"execute-task{result_flag}{allowed_kind} {command} {args}",
+            description=self.description,
+        )
+
+
+class ExecuteTaskCommand(SendWorkerTaskCommand):
+    """
+    ```
+    execute-task --command <command> --arg <arg> [--no-node-result] [--allowed-on <kind>]
+    ```
+
+    This command sends a task to the worker queue. The task is executed by a worker and the result is returned.
+    The kind of command is defined by the command name, the arguments are passed via the arg parameter.
+    Please note: the arg parameter can hold the complete argument string, containing multiple arguments.
+
+    The `execute-task` command can be used to run a command directly, or pass the result
+    of a previous command to a worker.
+
+    You will most likely never invoke this command directly, but use it as custom command with an alias name.
+
+    ## Options
+    - `--no-node-result`: By default the result of this command should return a node. This node will be updated in the
+       database. If this option is set, the result is not a node and will not be updated in the database.
+
+    ## Parameters
+    - `--command`: The name of the command to execute.
+    - `--arg`: The argument string to pass to the command.
+    - `--allowed-on`: The kind of node this command is allowed to be executed on. If not provided: any value is allowed.
+
+    ## Examples
+    ```shell
+    # Call the aws task and pass the arguments to the task
+    > execute-task --command "aws" --arg "sts get-caller-identity"
+
+    # Search for resources and execute the task for every incoming resource
+    > search is(aws_ec2_volume) | execute-task --command "aws" --arg "ec2 describe-volume-attribute --volume-id {id}"
+    AutoEnableIO:
+      Value: false
+    VolumeId: vol-009b0a28d2754927e
+    ```
+    """
+
+    @property
+    def name(self) -> str:
+        return "execute-task"
+
+    def args_info(self) -> ArgsInfo:
+        return [
+            ArgInfo("--command", True, help_text="The name of the command to execute"),
+            ArgInfo("--arg", True, help_text="The argument string to pass to the command"),
+            ArgInfo(
+                "--allowed-on",
+                True,
+                help_text="The kind of node this command is allowed to be executed on",
+                value_hint="kind",
+            ),
+            ArgInfo("--no-node-result", help_text="The task does not return a node, or the node should not be updated"),
+        ]
+
+    def info(self) -> str:
+        return "Execute a registered task on the worker"
+
+    def timeout(self) -> timedelta:
+        return timedelta(seconds=10)
+
+    def send_command(
+        self,
+        command_name: str,
+        expect_node_result: bool,
+        args: Optional[str] = None,
+        allowed_on_kind: Optional[str] = None,
+        ctx: CLIContext = EmptyContext,
+        **kwargs: Any,
+    ) -> CLIAction:
+        def call_function(jfn: Callable[[Json], Json]) -> Callable[[Json], Tuple[str, Dict[str, str], Json]]:
+            def update_single(item: Json) -> Tuple[str, Dict[str, str], Json]:
+                return command_name, self.carz_from_node(item), jfn(item)
+
+            return update_single
+
+        formatter, variables = ctx.formatter_with_variables(double_quoted_or_simple_string_dp.parse(args))
+        fn = call_function(lambda item: {"args": args_parts_unquoted_parser.parse(formatter(item)), "node": item})
+
+        def setup_stream(in_stream: Stream) -> Stream:
+            def with_dependencies(model: Model) -> Stream:
+                load = self.load_by_id_merged(model, in_stream, variables, allowed_on_kind, **ctx.env)
+                handler = self.update_node_in_graphdb(model, **ctx.env) if expect_node_result else self.no_update
+                return self.send_to_queue_stream(stream.map(load, fn), handler, True)
+
+            # dependencies are not resolved directly (no async function is allowed here)
+            dependencies = stream.call(self.dependencies.model_handler.load_model)
+            return stream.flatmap(dependencies, with_dependencies)
+
+        def setup_source() -> Stream:
+            arg = {"args": args_parts_unquoted_parser.parse(formatter({}))}
+            return self.send_to_queue_stream(stream.just((command_name, {}, arg)), self.no_update, True)
+
+        return CLISource.single(setup_source) if ctx.query is None else CLIFlow(setup_stream)
+
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
+        parser = NoExitArgumentParser()
+        parser.add_argument("--command", required=True)
+        parser.add_argument("--arg")
+        parser.add_argument("--no-node-result", action="store_true", default=False)
+        parser.add_argument("--allowed-on")
+        ns = parser.parse_args(args_parts_unquoted_parser.parse(arg if arg else ""))
+        return self.send_command(ns.command, not ns.no_node_result, ns.arg, ns.allowed_on, ctx, **kwargs)
 
 
 class TagCommand(SendWorkerTaskCommand):
@@ -2792,53 +3016,6 @@ class TagCommand(SendWorkerTaskCommand):
     def timeout(self) -> timedelta:
         return timedelta(seconds=30)
 
-    def load_by_id_merged(self, model: Model, in_stream: Stream, variables: Optional[Set[str]], **env: str) -> Stream:
-        async def load_element(items: List[JsonElement]) -> AsyncIterator[JsonElement]:
-            # collect ids either from json dict or string
-            ids: List[str] = [i["id"] if is_node(i) else i for i in items]  # type: ignore
-            # one query to load all items that match given ids (max 1000 as defined in chunk size)
-            query = (
-                Query.by(P("_key").is_in(ids))
-                .merge_with("ancestors.cloud", NavigateUntilRoot, IsTerm(["cloud"]))
-                .merge_with("ancestors.account", NavigateUntilRoot, IsTerm(["account"]))
-                .merge_with("ancestors.region", NavigateUntilRoot, IsTerm(["region"]))
-                .merge_with("ancestors.zone", NavigateUntilRoot, IsTerm(["zone"]))
-            ).rewrite_for_ancestors_descendants(variables)
-            query_model = QueryModel(query, model)
-            async with await self.dependencies.db_access.get_graph_db(env["graph"]).search_list(query_model) as crs:
-                async for a in crs:
-                    yield a
-
-        return stream.flatmap(stream.chunks(in_stream, 1000), load_element)
-
-    def handle_result(self, model: Model, **env: str) -> Callable[[WorkerTask, Future[Json]], Awaitable[Json]]:
-        async def to_result(task: WorkerTask, future_result: Future[Json]) -> Json:
-            nid = js_value_at(task.data, ["node", "id"])
-            try:
-                result = await future_result
-                if is_node(result):
-                    db = self.dependencies.db_access.get_graph_db(env["graph"])
-                    try:
-                        updated: Json = await db.update_node(model, result["id"], result, True, None)
-                        return updated
-                    except ClientError as ex:
-                        # if the change could not be reflected in database, show success
-                        log.warning(
-                            f"Tag update not reflected in db. Wait until next collector run. Reason: {str(ex)}",
-                            exc_info=ex,
-                        )
-                        return result
-                else:
-                    log.warning(
-                        f"Result from tag worker is not a node. "
-                        f"Will not update the internal state. {json.dumps(result)}"
-                    )
-                    return result
-            except Exception as ex:
-                return {"error": str(ex), "id": nid}
-
-        return to_result
-
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
         arg_tokens = args_parts_unquoted_parser.parse(arg if arg else "")
         p = NoExitArgumentParser()
@@ -2866,7 +3043,7 @@ class TagCommand(SendWorkerTaskCommand):
         def setup_stream(in_stream: Stream) -> Stream:
             def with_dependencies(model: Model) -> Stream:
                 load = self.load_by_id_merged(model, in_stream, variables, **ctx.env)
-                result_handler = self.handle_result(model, **ctx.env)
+                result_handler = self.update_node_in_graphdb(model, **ctx.env)
                 return self.send_to_queue_stream(stream.map(load, fn), result_handler, not ns.nowait)
 
             # dependencies are not resolved directly (no async function is allowed here)
@@ -3357,13 +3534,14 @@ class HttpRequestTemplate:
     compress: bool
     no_ssl_verify: bool
     no_body: bool
+    auth: Optional[str]
 
 
 class HttpCommand(CLICommand):
     """
     ```shell
     http[s] [--compress] [--timeout <seconds>] [--no-ssl-verify] [--no-body] [--nr-of-retries <num>]
-            [http_method] <url> [headers] [query_params]
+            [--auth username:password] [http_method] <url> [headers] [query_params]
     ```
 
     This command takes every object from the incoming stream and sends this object to the defined http(s) endpoint.
@@ -3381,6 +3559,7 @@ class HttpCommand(CLICommand):
     - `--no-body` [optional]: if this flag is enabled, no content is sent in the request body
     - `--nr-of-retries` [optional, default=3]: in case the request is not successful (no 2xx), the request
       is retried this often. There will be an exponential backoff between the retries.
+    - `--auth` [optional]: if this option is set, the given username and password will be used for basic auth.
 
     ## Parameters
     - `http_method` [optional, default: POST]: one of GET, PUT, POST, DELETE or PATCH
@@ -3425,6 +3604,7 @@ class HttpCommand(CLICommand):
             ArgInfo("--no-ssl-verify"),
             ArgInfo("--no-body"),
             ArgInfo("--nr-of-retries", expects_value=True, help_text="Number of retries"),
+            ArgInfo("--auth", expects_value=True, help_text="Basic auth <username>:<password>"),
             ArgInfo(None, expects_value=True, help_text="<method> <url> <headers> <query_params>"),
         ]
 
@@ -3480,6 +3660,7 @@ class HttpCommand(CLICommand):
         arg_parser.add_argument("--timeout", dest="timeout", default=cls.default_timeout, type=parse_timeout)
         arg_parser.add_argument("--no-ssl-verify", dest="no_ssl_verify", default=False, action="store_true")
         arg_parser.add_argument("--no-body", dest="no_body", default=False, action="store_true")
+        arg_parser.add_argument("--auth", dest="auth", default=None, type=str)
         args, remaining = arg_parser.parse_known_args(args_parts_unquoted_parser.parse(arg.strip()) if arg else [])
         if remaining:
             method, remaining = parse_method(remaining)
@@ -3496,6 +3677,7 @@ class HttpCommand(CLICommand):
                 args.compress,
                 args.no_ssl_verify,
                 args.no_body,
+                args.auth,
             )
         else:
             raise AttributeError("No URL provided to connect to.")
@@ -3506,6 +3688,7 @@ class HttpCommand(CLICommand):
         async def perform_request(e: JsonElement) -> int:
             nonlocal retries_left
             data = None if template.no_body else (JsonPayload(e) if isinstance(e, (dict, list)) else e)
+            authuser, authpass = template.auth.split(":", 1) if template.auth else (None, None)
             log.debug(f"Perform request with this template={template} and data={data}")
             try:
                 async with self.dependencies.http_session.request(
@@ -3517,6 +3700,7 @@ class HttpCommand(CLICommand):
                     compress=template.compress,
                     timeout=template.timeout,
                     ssl=False if template.no_ssl_verify else self.dependencies.cert_handler.client_context,
+                    auth=BasicAuth(login=authuser, password=(authpass if authpass else "")) if authuser else None,
                 ) as response:
                     log.debug(f"Request performed: {response}")
                     if (200 <= response.status < 400) or retries_left == 0:
@@ -3677,20 +3861,45 @@ class WorkflowsCommand(CLICommand):
                 yield f"No workflow with this id: {wf_id}"
 
         async def run_workflow(wf_id: str) -> AsyncIterator[str]:
-            task = await self.dependencies.task_handler.start_task_by_descriptor_id(TaskDescriptorId(wf_id))
-            yield (
-                f"Workflow {task.descriptor.id} started with id {task.id}."
-                if task
-                else f"No workflow with this id: {wf_id}"
-            )
+            info = await self.dependencies.task_handler.start_task_by_descriptor_id(TaskDescriptorId(wf_id))
+            if info and info.scheduled_next:
+                task = info.running_task
+                yield (
+                    f"Workflow {task.descriptor.id} already running with id {task.id}. "
+                    "Scheduled next run after this one is completed"
+                )
+            elif info:
+                task = info.running_task
+                yield f"Workflow {task.descriptor.id} started with id {task.id}."
+            else:
+                yield f"No workflow with this id: {wf_id}"
 
         async def running_workflows() -> Tuple[int, Stream]:
             tasks = await self.dependencies.task_handler.running_tasks()
-            return len(tasks), stream.iterate(
-                {"workflow": t.descriptor.id, "started_at": to_json(t.task_started_at), "task-id": t.id}
-                for t in tasks
-                if isinstance(t.descriptor, Workflow)
-            )
+
+            def info(rt: RunningTask) -> JsonElement:
+                # show progress only if the task is still active
+                progress = (
+                    {
+                        "progress": f"{rt.progress.percentage}%",
+                        "current-step": rt.current_step.name,
+                        "step-info": rt.current_step_progress.info_json(),
+                    }
+                    if rt.is_active
+                    else {"progress": "done"}
+                )
+                # show messages only if there are messages to show
+                messages = {"messages": [msg.info() for msg in rt.info_messages]} if rt.info_messages else {}
+
+                return {
+                    "workflow": rt.descriptor.id,
+                    "started": to_json(rt.task_started_at),
+                    "task-id": rt.id,
+                    **progress,
+                    **messages,
+                }
+
+            return len(tasks), stream.iterate(info(t) for t in tasks if isinstance(t.descriptor, Workflow))
 
         args = re.split("\\s+", arg, maxsplit=1) if arg else []
         if arg and len(args) == 2 and args[0] == "show":
@@ -3893,6 +4102,25 @@ class ConfigsCommand(CLICommand):
             return CLISource.single(lambda: stream.just(self.rendered_help(ctx)))
 
 
+@lru_cache(maxsize=1024)
+def get_session_strategy(policy: SuggestionPolicy, session_id: str, clouds: FrozenSet[str]) -> SuggestionStrategy:
+    return get_suggestion_strategy(policy, clouds)
+
+
+def add_tod_block(info: Table, policy: SuggestionPolicy, session_id: str, clouds: FrozenSet[str]) -> None:
+    """
+    Add a block with the current tip of day to the info table.
+    """
+    strategy = get_session_strategy(policy, session_id, clouds)
+    sod = strategy.suggest()
+    info.add_row(Text("Tip of the day:", style="#762dd7 italic"))
+    info.add_row(Text(sod.command_line, style="bold"))
+    info.add_row(Text(sod.description, style="dim"))
+
+
+ResotoWorkerConfigId = ConfigId("resoto.worker")
+
+
 class WelcomeCommand(CLICommand, InternalPart):
     """
     ```shell
@@ -3921,6 +4149,16 @@ class WelcomeCommand(CLICommand, InternalPart):
             info.add_row(Text("Resoto", style="bold"))
             info.add_row(Text(f"Version: {version()}", style="dim"))
 
+            info.add_row(Padding("", pad=(0, 0, 0, 0)))
+            resotoworker_config = await self.dependencies.config_handler.get_config(ResotoWorkerConfigId)
+            if resotoworker_config:
+                confiugured_collectors = frozenset(
+                    resotoworker_config.config.get("resotoworker", {}).get("collector", []) or []
+                )
+            else:
+                confiugured_collectors = frozenset()
+
+            add_tod_block(info, SuggestionPolicy.DAILY, ctx.env.get("session_id", ""), confiugured_collectors)
             # ck mascot is centered (rendered if color is enabled)
             center_horizont = (
                 int((ctx.console_renderer.width - 22) / 2)
@@ -3938,12 +4176,55 @@ class WelcomeCommand(CLICommand, InternalPart):
             grid.add_row(Padding("", pad=(center_vertical, 0, 0, 0)))
             grid.add_row(Padding(WelcomeCommand.ck if ctx.supports_color() else "", pad=(0, 0, 1, center_horizont)))
             grid.add_row(info)
-            grid.add_row(Panel("[b]> help[/b] for on-line help\n[b]> help[/b] [i]<cmd>[/i] to get help on a command"))
+            grid.add_row(
+                Panel(
+                    "[b]> help[/b] for on-line help\n"
+                    "[b]> help[/b] [i]<cmd>[/i] to get help on a command\n"
+                    "[b]> totd[/b] to see another tip of the day"
+                )
+            )
 
             res = ctx.render_console(grid)
             return res
 
         return CLISource.single(lambda: stream.just(welcome()))
+
+
+class TipOfTheDayCommand(CLICommand):
+    """
+    ```shell
+    totd
+    ```
+    Show the tip of the day.
+    """
+
+    @property
+    def name(self) -> str:
+        return "totd"
+
+    def info(self) -> str:
+        return "Show the tip of the day to the user."
+
+    def args_info(self) -> ArgsInfo:
+        return []
+
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
+        async def totd() -> str:
+            info = Table.grid(expand=True)
+            info.add_column(justify="center")
+            resotoworker_config = await self.dependencies.config_handler.get_config(ResotoWorkerConfigId)
+            if resotoworker_config:
+                confiugured_collectors = frozenset(
+                    resotoworker_config.config.get("resotoworker", {}).get("collector", []) or []
+                )
+            else:
+                confiugured_collectors = frozenset()
+            add_tod_block(info, SuggestionPolicy.NON_REPEATING, ctx.env.get("session_id", ""), confiugured_collectors)
+
+            res = ctx.render_console(info)
+            return res
+
+        return CLISource.single(lambda: stream.just(totd()))
 
 
 class CertificateCommand(CLICommand):
@@ -4037,6 +4318,7 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         DumpCommand(d, "format"),
         EchoCommand(d, "misc", allowed_in_source_position=True),
         EnvCommand(d, "misc", allowed_in_source_position=True),
+        ExecuteTaskCommand(d, "action", allowed_in_source_position=True),
         ExecuteSearchCommand(d, "search", allowed_in_source_position=True),
         FlattenCommand(d, "misc"),
         FormatCommand(d, "format"),
@@ -4063,6 +4345,7 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         UniqCommand(d, "misc"),
         WorkflowsCommand(d, "action", allowed_in_source_position=True),
         WelcomeCommand(d, "misc", allowed_in_source_position=True),
+        TipOfTheDayCommand(d, "misc", allowed_in_source_position=True),
         WriteCommand(d, "misc"),
     ]
     # commands that are only available when the system is started in debug mode

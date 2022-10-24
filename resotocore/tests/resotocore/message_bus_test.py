@@ -1,15 +1,25 @@
 import asyncio
 from typing import AsyncGenerator, Any, Type, List
 
-from datetime import timedelta
+from datetime import timedelta, datetime, timezone
 from deepdiff import DeepDiff
 from pytest import fixture, mark
 
-from resotocore.message_bus import MessageBus, Message, Event, Action, ActionDone, ActionError
+from resotocore.message_bus import (
+    MessageBus,
+    Message,
+    Event,
+    Action,
+    ActionDone,
+    ActionError,
+    ActionInfo,
+    ActionProgress,
+)
 from resotocore.model.typed_model import to_js, from_js
 from resotocore.ids import SubscriberId
 from resotocore.util import AnyT, utc, first
 from resotocore.ids import TaskId
+from resotolib.core.progress import ProgressDone, ProgressList
 
 
 @fixture
@@ -86,6 +96,7 @@ async def test_handler(message_bus: MessageBus) -> None:
 def test_message_serialization() -> None:
     task_id = TaskId("123")
     subsctiber_id = SubscriberId("sub")
+    now = datetime(2022, 10, 23, 12, 0, 0, 0, timezone.utc)
     roundtrip(Event("test", {"a": "b", "c": 1, "d": "bla"}))
     roundtrip(Action("test", task_id, "step_name"))
     roundtrip(Action("test", task_id, "step_name", {"test": 1}))
@@ -93,6 +104,13 @@ def test_message_serialization() -> None:
     roundtrip(ActionDone("test", task_id, "step_name", subsctiber_id, {"test": 1}))
     roundtrip(ActionError("test", task_id, "step_name", subsctiber_id, "oops"))
     roundtrip(ActionError("test", task_id, "step_name", subsctiber_id, "oops", {"test": 23}))
+    roundtrip(ActionInfo("test", task_id, "step_name", subsctiber_id, "error", "Error message"))
+    roundtrip(ActionProgress("test", task_id, "step_name", subsctiber_id, ProgressDone("region", 1, 2), now))
+    roundtrip(
+        ActionProgress(
+            "test", task_id, "step_name", subsctiber_id, ProgressList("account1", [ProgressDone("region", 1, 2)]), now
+        ),
+    )
 
 
 def roundtrip(obj: Any) -> None:
