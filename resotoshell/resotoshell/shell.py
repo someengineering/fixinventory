@@ -150,7 +150,7 @@ class Shell:
                     )
                 filename, filepath = await store_file(response, tmp)
                 original_shasum = sha256sum(filepath)
-                call([os.environ.get("EDITOR", "vi"), filepath])  # type: ignore
+                call([os.environ.get("EDITOR", "vi"), filepath])
                 new_shasum = sha256sum(filepath)
                 log.debug(f"Original config sha256: {original_shasum}," f" new sha256: {new_shasum}")
                 if new_shasum != original_shasum:
@@ -164,7 +164,7 @@ class Shell:
             if isinstance(response, aiohttp.MultipartReader):
                 raise ValueError(f"Found not expected response type: {type(response)} for content type {content_type}")
 
-            filename, filepath = await store_file(response, ArgumentParser.args.download_directory)  # type: ignore
+            filename, filepath = await store_file(response, ArgumentParser.args.download_directory)
             print(f"Received a file {filename}, which is stored to {filepath}.")
         # Multipart: handle each part separately
         elif content_type.startswith("multipart"):
