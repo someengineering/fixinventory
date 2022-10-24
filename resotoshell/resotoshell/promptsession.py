@@ -23,7 +23,7 @@ from prompt_toolkit.completion import (
 from prompt_toolkit.document import Document
 from prompt_toolkit.history import FileHistory
 from prompt_toolkit.styles import Style
-from resotoclient import ResotoClient
+from resotoclient.async_client import ResotoClient
 from resotoclient.models import Property
 
 from resotolib.logger import log
@@ -735,11 +735,12 @@ class PromptSession:
 
     def __init__(
         self,
-        client: ResotoClient,
+        cmds: List[CommandInfo],
+        kinds: List[str],
+        props: List[str],
         history_file: str = str(pathlib.Path.home() / ".resotoshell_history"),
     ):
         history = FileHistory(history_file)
-        cmds, kinds, props = self.__core_metadata(client)
         _, tty_rows = get_terminal_size(fallback=(80, 25))
         reserved_row_ratio = 1 / 4
         min_reserved_rows = 4
@@ -753,44 +754,46 @@ class PromptSession:
             self.prompt_message,  # type: ignore
             completer=SafeCompleter(self.completer),
             complete_while_typing=True,
+            complete_in_thread=True,
             style=self.style,
             auto_suggest=AutoSuggestFromHistory(),
+            in_thread=True,
         )
 
-    @staticmethod
-    def __core_metadata(
-        client: ResotoClient,
-    ) -> Tuple[List[CommandInfo], List[str], List[str]]:
 
-        try:
-            log.debug("Fetching core metadata..")
-            model = client.model()
+async def core_metadata(
+    client: ResotoClient,
+) -> Tuple[List[CommandInfo], List[str], List[str]]:
 
-            def path(p: Property) -> List[str]:
-                kind = p.kind
-                name = p.name
-                result = [name]
-                if p.kind.endswith("[]"):
-                    kind = kind[:-2]
-                    name += "[*]"
-                    result.append(name)
+    try:
+        log.debug("Fetching core metadata..")
+        model = await client.model()
 
-                kd = model.kinds.get(kind)
-                if kd is not None and kd.properties:
-                    result.extend(name + "." + pp for prop in kd.properties for pp in path(prop))
-                return result
+        def path(p: Property) -> List[str]:
+            kind = p.kind
+            name = p.name
+            result = [name]
+            if p.kind.endswith("[]"):
+                kind = kind[:-2]
+                name += "[*]"
+                result.append(name)
 
-            aggregate_roots = {
-                k: v for k, v in model.kinds.items() if getattr(v, "aggregate_root", True) and v.properties is not None
-            }
+            kd = model.kinds.get(kind)
+            if kd is not None and kd.properties:
+                result.extend(name + "." + pp for prop in kd.properties for pp in path(prop))
+            return result
 
-            known_props = {p for v in aggregate_roots.values() for prop in v.properties or [] for p in path(prop)}
-            info = client.cli_info()
-            cmds = [jsons.load(cmd, CommandInfo) for cmd in info.get("commands", [])]
-            return cmds, sorted(aggregate_roots.keys()), sorted(known_props)
-        except Exception as ex:
-            log.warning(
-                f"Can not load metadata from core: {ex}. No suggestions as fallback.",
-                exc_info=ex,
-            )
-            return [], [], []
+        aggregate_roots = {
+            k: v for k, v in model.kinds.items() if getattr(v, "aggregate_root", True) and v.properties is not None
+        }
+
+        known_props = {p for v in aggregate_roots.values() for prop in v.properties or [] for p in path(prop)}
+        info = await client.cli_info()
+        cmds = [jsons.load(cmd, CommandInfo) for cmd in info.get("commands", [])]
+        return cmds, sorted(aggregate_roots.keys()), sorted(known_props)
+    except Exception as ex:
+        log.warning(
+            f"Can not load metadata from core: {ex}. No suggestions as fallback.",
+            exc_info=ex,
+        )
+        return [], [], []
