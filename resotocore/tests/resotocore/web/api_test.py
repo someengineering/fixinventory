@@ -161,7 +161,9 @@ async def test_graph_api(core_client: ApiClient) -> None:
 
     # create a node in the graph
     uid = rnd_str()
-    node = AccessJson(await core_client.create_node("root", uid, {"identifier": uid, "kind": "child", "name": "max"}, g))
+    node = AccessJson(
+        await core_client.create_node("root", uid, {"identifier": uid, "kind": "child", "name": "max"}, g)
+    )
     assert node.id == uid
     assert node.reported.name == "max"
 
@@ -223,12 +225,12 @@ async def test_graph_api(core_client: ApiClient) -> None:
     assert cost.rating == rc.EstimatedQueryCostRating.simple
 
     # search list
-    result_list = [ res async for res in core_client.search_list('id("3") -[0:]->', graph=g)]
+    result_list = [res async for res in core_client.search_list('id("3") -[0:]->', graph=g)]
     assert len(result_list) == 11  # one parent node and 10 child nodes
     assert result_list[0].get("id") == "3"  # first node is the parent node
 
     # search graph
-    result_graph = [ res async for res in core_client.search_graph('id("3") -[0:]->', graph=g)]
+    result_graph = [res async for res in core_client.search_graph('id("3") -[0:]->', graph=g)]
     assert len(result_graph) == 21  # 11 nodes + 10 edges
     assert result_list[0].get("id") == "3"  # first node is the parent node
 
