@@ -387,7 +387,12 @@ class AwsIamUser(AwsResource, BaseUser):
 
     @classmethod
     def called_apis(cls) -> List[AwsApiSpec]:
-        return [cls.api_spec, AwsApiSpec("iam", "list-access-keys"), AwsApiSpec("iam", "get-access-key-last-used")]
+        return [
+            cls.api_spec,
+            AwsApiSpec("iam", "list-access-keys"),
+            AwsApiSpec("iam", "get-access-key-last-used"),
+            AwsApiSpec("iam", "get-user"),
+        ]
 
     @classmethod
     def collect(cls: Type[AwsResource], json_list: List[Json], builder: GraphBuilder) -> None:
