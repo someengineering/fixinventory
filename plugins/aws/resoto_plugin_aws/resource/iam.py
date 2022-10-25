@@ -402,6 +402,9 @@ class AwsIamUser(AwsResource, BaseUser):
                 builder.add_node(AwsIamPolicy.from_api(js), js)
 
             for js in json.get("UserDetailList", []):
+                user_details = builder.client.get("iam", "get-user", "User", UserName=js["UserName"])
+                if user_details:
+                    js["PasswordLastUsed"] = user_details["PasswordLastUsed"]
                 user = AwsIamUser.from_api(js)
                 builder.add_node(user, js)
                 # add all iam access keys for this user
