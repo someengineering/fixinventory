@@ -1,7 +1,7 @@
 from resotolib.baseplugin import BaseCollectorPlugin
 from resotolib.args import ArgumentParser
 from resotolib.baseresources import BaseResource
-from typing import ClassVar
+from typing import ClassVar, Any
 from attrs import define
 
 
@@ -16,7 +16,7 @@ class SomeTestResource(BaseResource):
 class SomeTestPlugin(BaseCollectorPlugin):
     cloud = "test"
 
-    def collect(self) -> None:
+    def collect(self, **kwargs: Any) -> None:
         account = SomeTestResource(id="Example Account", tags={})
         self.graph.add_resource(self.root, account)
 

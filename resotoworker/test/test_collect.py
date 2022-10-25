@@ -1,4 +1,6 @@
 from argparse import ArgumentParser
+from queue import Queue
+
 from resotoworker.collect import Collector
 from typing import Optional, cast
 from resotolib.graph import Graph
@@ -52,8 +54,8 @@ def test_collect_and_send() -> None:
         ),
     )
 
-    collector = Collector(send_to_resotocore, config)
+    collector = Collector(send_to_resotocore, config, Queue())
 
-    collector.collect_and_send([ExampleCollectorPlugin], [], "task_123")
+    collector.collect_and_send([ExampleCollectorPlugin], [], "task_123", "collect")
 
     assert sent_task_id == "task_123"

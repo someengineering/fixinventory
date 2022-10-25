@@ -1,15 +1,80 @@
 import threading
 import time
+from contextlib import suppress
+from logging import Logger
+from queue import Queue
+
 import websocket
 import requests
 import json
 from concurrent.futures import ThreadPoolExecutor
+
+from attr import define, evolve, field
+
+from resotolib.core.progress import Progress, ProgressDone
 from resotolib.logger import log
 from resotolib.event import EventType, remove_event_listener, add_event_listener, Event
 from resotolib.args import ArgumentParser
 from resotolib.jwt import encode_jwt_to_headers
 from resotolib.core.ca import TLSData
-from typing import Callable, Dict, Optional
+from typing import Callable, Dict, Optional, List
+
+from resotolib.types import Json
+from resotolib.utils import utc_str
+
+
+@define(frozen=True)
+class CoreFeedback:
+    task_id: str
+    step_name: str
+    message_type: str
+    core_messages: Queue[Json]
+    context: List[str] = field(factory=list)
+
+    def progress_done(self, name: str, current: int, total: int, context: Optional[List[str]] = None) -> None:
+        self.progress(ProgressDone(name, current, total, path=context or self.context))
+
+    def progress(self, progress: Progress) -> None:
+        message = {
+            "kind": "action_progress",
+            "message_type": self.message_type,
+            "data": {
+                "task": self.task_id,
+                "step": self.step_name,
+                "context": self.context,
+                "progress": progress.to_json(),
+                "at": utc_str(),
+            },
+        }
+        self.core_messages.put(message)
+
+    def info(self, message: str, logger: Optional[Logger] = None) -> None:
+        if logger:
+            logger.info(message)
+        self._info_message("info", message)
+
+    def error(self, message: str, logger: Optional[Logger] = None) -> None:
+        if logger:
+            logger.error(message)
+        self._info_message("error", message)
+
+    def _info_message(self, level: str, message: str) -> None:
+        ctx = "[" + (":".join(self.context)) + "] " if self.context else ""
+        self.core_messages.put(
+            {
+                "kind": "action_info",
+                "message_type": self.message_type,
+                "data": {
+                    "task": self.task_id,
+                    "step": self.step_name,
+                    "level": level,
+                    "message": ctx + message,
+                },
+            }
+        )
+
+    def with_context(self, context: List[str]) -> "CoreFeedback":
+        return evolve(self, context=context)
 
 
 class CoreActions(threading.Thread):
@@ -19,6 +84,7 @@ class CoreActions(threading.Thread):
         resotocore_uri: str,
         resotocore_ws_uri: str,
         actions: Dict,
+        incoming_messages: Optional[Queue[Json]] = None,
         message_processor: Optional[Callable] = None,
         tls_data: Optional[TLSData] = None,
         max_concurrent_actions: int = 5,
@@ -30,13 +96,24 @@ class CoreActions(threading.Thread):
         self.actions = actions
         self.message_processor = message_processor
         self.ws = None
+        self.incoming_messages = incoming_messages
         self.tls_data = tls_data
         self.shutdown_event = threading.Event()
-        self.executor = ThreadPoolExecutor(max_workers=max_concurrent_actions, thread_name_prefix=self.identifier)
+        # one thread is taken by the queue listener
+        self.executor = ThreadPoolExecutor(max_workers=max_concurrent_actions + 1, thread_name_prefix=self.identifier)
 
     def run(self) -> None:
+        def listen_on_queue(in_messages: Queue) -> None:
+            while not self.shutdown_event.is_set():
+                with suppress(Exception):
+                    message = in_messages.get(timeout=1)
+                    log.debug("Got feedback message. Send it to core", message)
+                    self.ws.send(json.dumps(message))
+
         self.name = self.identifier
         add_event_listener(EventType.SHUTDOWN, self.shutdown)
+        if self.incoming_messages:
+            self.executor.submit(listen_on_queue, self.incoming_messages)
         while not self.shutdown_event.is_set():
             log.debug("Connecting to resotocore message bus")
             try:
@@ -117,20 +194,12 @@ class CoreActions(threading.Thread):
             raise RuntimeError(f'Error during (un)registration for "{action}"' f" actions: {r.content.decode('utf-8')}")
         return True
 
-    def dispatch_event(self, message: Dict) -> bool:
-        if self.ws is None:
-            return False
-        ws = websocket.create_connection(f"{self.resotocore_ws_uri}/events")
-        ws.send(json.dumps(message))
-        ws.close()
-        return True
-
-    def on_message(self, ws, message):
+    def on_message(self, _: websocket.WebSocketApp, message: str) -> None:
         self.executor.submit(self.process_message, message)
 
-    def process_message(self, message) -> None:
+    def process_message(self, message: str) -> None:
         try:
-            message: Dict = json.loads(message)
+            message: Json = json.loads(message)
         except json.JSONDecodeError:
             log.exception(f"Unable to decode received message {message}")
             return
@@ -146,19 +215,19 @@ class CoreActions(threading.Thread):
             except Exception:
                 log.exception(f"Something went wrong while processing {message}")
 
-    def on_error(self, ws, e):
+    def on_error(self, _: websocket.WebSocketApp, e: Exception) -> None:
         log.debug(f"{self.identifier} message bus error: {e!r}")
 
-    def on_close(self, ws, close_status_code, close_msg):
-        log.debug(f"{self.identifier} disconnected from resotocore message bus")
+    def on_close(self, _: websocket.WebSocketApp, close_status_code: int, close_msg: str):
+        log.debug(f"{self.identifier} disconnected from resotocore message bus: {close_status_code}: {close_msg}")
 
-    def on_open(self, ws):
+    def on_open(self, _: websocket.WebSocketApp) -> None:
         log.debug(f"{self.identifier} connected to resotocore message bus")
 
-    def on_ping(self, ws, message):
+    def on_ping(self, _: websocket.WebSocketApp, message: str) -> None:
         log.debug(f"{self.identifier} actions ping from resotocore message bus")
 
-    def on_pong(self, ws, message):
+    def on_pong(self, _: websocket.WebSocketApp, message: str) -> None:
         log.debug(f"{self.identifier} actions pong from resotocore message bus")
 
     @staticmethod

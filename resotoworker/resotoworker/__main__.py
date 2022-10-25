@@ -1,8 +1,10 @@
+import multiprocessing
 import os
 import sys
 import threading
 import time
 from functools import partial
+from queue import Queue
 from signal import SIGTERM
 from typing import List, Dict, Type, Optional, Any
 
@@ -25,6 +27,7 @@ from resotolib.jwt import add_args as jwt_add_args
 from resotolib.logger import log, setup_logger, add_args as logging_add_args
 from resotolib.core.custom_command import command_definitions
 from resotolib.proc import log_stats, increase_limits
+from resotolib.types import Json
 from resotolib.web import WebServer
 from resotolib.web.metrics import WebApp
 from resotoworker.cleanup import cleanup
@@ -101,7 +104,11 @@ def main() -> None:
 
     core = Resotocore(send_request, config)
 
-    collector = Collector(core.send_to_resotocore, config)
+    # the multiprocessing manager is used to share data between processes
+    mp_manager = multiprocessing.Manager()
+    core_messages: Queue[Json] = mp_manager.Queue()
+
+    collector = Collector(config, core.send_to_resotocore, core_messages)
 
     # Handle Ctrl+c and other means of termination/shutdown
     resotolib.proc.initializer()
@@ -141,6 +148,7 @@ def main() -> None:
         },
         message_processor=partial(core_actions_processor, config, plugin_loader, tls_data, collector),
         tls_data=tls_data,
+        incoming_messages=core_messages,
     )
 
     # make tagging by collectors available out of the box
@@ -209,12 +217,13 @@ def core_actions_processor(
     message_type = message.get("message_type")
     data = message.get("data")
     task_id = data.get("task")  # type: ignore
+    step_name = data.get("step")  # type: ignore
     log.debug(f"Received message of kind {kind}, type {message_type}, data: {data}")
     if kind == "action":
         try:
             if message_type == "collect":
                 start_time = time.time()
-                collector.collect_and_send(collectors, post_collectors, task_id=task_id)
+                collector.collect_and_send(collectors, post_collectors, task_id=task_id, step_name=step_name)
                 run_time = int(time.time() - start_time)
                 log.info(f"Collect ran for {run_time} seconds")
             elif message_type == "cleanup":

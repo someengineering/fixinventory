@@ -26,6 +26,7 @@ from resotolib.baseresources import (
     BaseVolumeType,
     ModelReference,
 )
+from resotolib.core.actions import CoreFeedback
 from resotolib.graph import Graph
 from resotolib.json import to_json as to_js, from_json as from_js
 from resotolib.json_bender import Bender, bend
@@ -163,10 +164,12 @@ class AwsResource(BaseResource, ABC):
                 items = builder.client.list(spec.service, spec.api_action, spec.result_property, **kwargs)
                 cls.collect(items, builder)
             except Boto3Error as e:
-                log.error(f"Error while collecting {cls.__name__} in region {builder.region.name}: {e}")
+                msg = f"Error while collecting {cls.__name__} in region {builder.region.name}: {e}"
+                builder.core_feedback.error(msg, log)
                 raise
             except Exception as e:
-                log.debug(f"Error while collecting {cls.__name__} in region {builder.region.name}: {e}")
+                msg = f"Error while collecting {cls.__name__} in region {builder.region.name}: {e}"
+                builder.core_feedback.info(msg, log)
                 raise
 
     @classmethod
@@ -371,6 +374,10 @@ class GraphBuilder:
     @property
     def config(self) -> AwsConfig:
         return self.client.config
+
+    @property
+    def core_feedback(self) -> CoreFeedback:
+        return self.client.core_feedback
 
     def node(self, clazz: Optional[Type[AwsResourceType]] = None, **node: Any) -> Optional[AwsResourceType]:
         if isinstance(nd := node.get("node"), AwsResource):

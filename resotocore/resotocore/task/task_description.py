@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import uuid
 from abc import ABC
+from contextlib import suppress
 from datetime import timedelta
 from enum import Enum
 from typing import Optional, Any, Sequence, MutableSequence, Callable, Dict, List, Set, Tuple, Union
@@ -23,7 +24,7 @@ from resotocore.model.typed_model import to_json, from_js, to_js
 from resotocore.types import Json
 from resotocore.util import first, interleave, empty, exist, identity, utc, utc_str
 from resotocore.ids import SubscriberId, TaskDescriptorId
-from resotolib.core.progress import ProgressList, Progress, ProgressDone
+from resotolib.core.progress import ProgressTree, Progress, ProgressDone
 
 log = logging.getLogger(__name__)
 
@@ -605,10 +606,11 @@ class RunningTask:
         self.update_task: Optional[Task[None]] = None
         self.descriptor_alive = True
         self.info_messages: List[Union[ActionInfo, ActionError]] = []
-        # step_name -> subscriber_id -> progress
-        self.progresses: Dict[str, Dict[str, Progress]] = {
-            step.name: {} for step in descriptor.steps if isinstance(step.action, PerformAction)
-        }
+        # step_name -> progress_id -> progress
+        self.progresses: ProgressTree = Progress.from_progresses(
+            self.descriptor.name,
+            [ProgressDone(step.name, 0, 1) for step in descriptor.steps if isinstance(step.action, PerformAction)],
+        )
 
         steps = [StepState.from_step(step, self) for step in descriptor.steps]
         start = StartState(self)
@@ -640,24 +642,13 @@ class RunningTask:
             resulting_commands.extend(self.current_state.commands_to_execute())
         return resulting_commands
 
-    @staticmethod
-    def __step_progress(name: str, p: Dict[str, Progress]) -> Progress:
-        if len(p) == 0:
-            return ProgressDone(name, 0, 1)
-        elif len(p) == 1:
-            return next(iter(p.values()))
-        else:
-            return ProgressList(name, list(p.values()))
-
     @property
     def current_step_progress(self) -> Progress:
-        return self.__step_progress(self.current_step.name, self.progresses.get(self.current_step.name, {}))
+        return self.progresses.sub_progress(self.current_step.name) or ProgressDone(self.current_step.name, 0, 1)
 
     @property
     def progress(self) -> Progress:
-        return ProgressList(
-            self.descriptor.name, [self.__step_progress(name, progress) for name, progress in self.progresses.items()]
-        )
+        return self.progresses
 
     @property
     def current_state(self) -> StepState:
@@ -708,8 +699,11 @@ class RunningTask:
     def handle_info(self, info: ActionInfo) -> None:
         self.info_messages.append(info)
 
-    def handle_progress(self, progress: ActionProgress) -> None:
-        self.progresses[self.current_step.name][progress.subscriber_id] = progress.progress
+    def handle_progress(self, msg: ActionProgress) -> None:
+        # make sure the step name is part of the progress
+        msg.progress.path = [self.current_step.name, *msg.progress.path]
+        with suppress(Exception):
+            self.progresses.add_progress(msg.progress)
 
     def handle_command_results(self, results: Dict[TaskCommand, Any]) -> Sequence[TaskCommand]:
         self.current_state.handle_command_results(results)
@@ -761,14 +755,11 @@ class RunningTask:
         log.debug(f"Task {self.id}: end of step {self.current_step.name}")
         # mark all progresses as completed
         if isinstance(self.current_step.action, PerformAction):
-            subscribers = self.progresses.get(self.current_step.name, {})
-            if subscribers:
-                for sub, ps in subscribers.items():
-                    info = ps.overall_progress()
-                    subscribers[sub] = ProgressDone(ps.name, info.total, info.total)
+            if step_node := self.progresses.by_path(self.current_step.name):
+                self.progresses.add_progress(step_node.mark_done())
             else:
                 # nobody reported any progress: create a progress done object
-                self.progresses[self.current_step.name] = {"task_handler": ProgressDone(self.current_step.name, 1, 1)}
+                self.progresses.add_progress(ProgressDone(self.current_step.name, 1, 1))
 
 
 set_deserializer(StepAction.from_json, StepAction, high_prio=False)

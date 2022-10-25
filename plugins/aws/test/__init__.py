@@ -1,3 +1,5 @@
+from queue import Queue
+
 from pytest import fixture
 
 from resoto_plugin_aws.collector import AwsAccountCollector
@@ -5,6 +7,7 @@ from resoto_plugin_aws.configuration import AwsConfig
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsAccount, AwsRegion, GraphBuilder, ExecutorQueue
 from resotolib.baseresources import Cloud
+from resotolib.core.actions import CoreFeedback
 from resotolib.graph import Graph
 from test.resources import BotoFileBasedSession, DummyExecutor
 
@@ -28,6 +31,11 @@ def builder(aws_client: AwsClient) -> GraphBuilder:
 
 
 @fixture
-def account_collector(aws_config: AwsConfig) -> AwsAccountCollector:
+def no_feedback() -> CoreFeedback:
+    return CoreFeedback("123", "step1", "collect", Queue())
+
+
+@fixture
+def account_collector(aws_config: AwsConfig, no_feedback: CoreFeedback) -> AwsAccountCollector:
     account = AwsAccount(id="123")
-    return AwsAccountCollector(aws_config, Cloud(id="aws"), account, ["us-east-1"])
+    return AwsAccountCollector(aws_config, Cloud(id="aws"), account, ["us-east-1"], no_feedback)

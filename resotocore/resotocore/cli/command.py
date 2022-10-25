@@ -3895,8 +3895,8 @@ class WorkflowsCommand(CLICommand):
                     "workflow": rt.descriptor.id,
                     "started": to_json(rt.task_started_at),
                     "task-id": rt.id,
-                    **progress,
                     **messages,
+                    **progress,
                 }
 
             return len(tasks), stream.iterate(info(t) for t in tasks if isinstance(t.descriptor, Workflow))

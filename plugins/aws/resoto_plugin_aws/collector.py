@@ -35,6 +35,7 @@ from resoto_plugin_aws.resource import (
 )
 from resoto_plugin_aws.resource.base import AwsRegion, AwsAccount, AwsResource, GraphBuilder, ExecutorQueue, AwsApiSpec
 from resotolib.baseresources import Cloud, EdgeType
+from resotolib.core.actions import CoreFeedback
 from resotolib.graph import Graph
 from resotolib.proc import set_thread_name
 
@@ -88,14 +89,24 @@ def called_collect_apis() -> List[AwsApiSpec]:
 
 
 class AwsAccountCollector:
-    def __init__(self, config: AwsConfig, cloud: Cloud, account: AwsAccount, regions: List[str]) -> None:
+    def __init__(
+        self, config: AwsConfig, cloud: Cloud, account: AwsAccount, regions: List[str], core_feedback: CoreFeedback
+    ) -> None:
         self.config = config
         self.cloud = cloud
         self.account = account
+        self.core_feedback = core_feedback
         self.global_region = AwsRegion(id="us-east-1", tags={}, name="global", account=account)
         self.regions = [AwsRegion(id=region, tags={}, account=account) for region in regions]
         self.graph = Graph(root=self.account)
-        self.client = AwsClient(config, account.id, role=account.role, profile=account.profile, region="us-east-1")
+        self.client = AwsClient(
+            config,
+            account.id,
+            role=account.role,
+            profile=account.profile,
+            region="us-east-1",
+            core_feedback=core_feedback,
+        )
 
     def collect(self) -> None:
         with ThreadPoolExecutor(
@@ -109,17 +120,19 @@ class AwsAccountCollector:
             global_builder = GraphBuilder(
                 self.graph, self.cloud, self.account, self.global_region, self.client, shared_queue
             )
+            global_builder.core_feedback.progress_done("collect-global", 0, 1)
             global_builder.add_node(self.global_region)
 
-            log.info(f"[Aws][{self.account.id} Collect global resources.")
+            log.info(f"[Aws:{self.account.id}] Collect global resources.")
 
             # all global resources
             for resource in global_resources:
                 if self.config.should_collect(resource.kind):
                     resource.collect_resources(global_builder)
             shared_queue.wait_for_submitted_work()
+            global_builder.core_feedback.progress_done("collect-global", 1, 1)
 
-            log.info(f"[Aws][{self.account.id} Collect regional resources.")
+            log.info(f"[Aws:{self.account.id}] Collect regional resources.")
 
             # all regions are collected in parallel.
             # note: when the thread pool context is left, all submitted work is done (or an exception has been thrown)
@@ -127,9 +140,9 @@ class AwsAccountCollector:
                 thread_name_prefix=f"aws_{self.account.id}_regions", max_workers=self.config.region_pool_size
             ) as per_region_executor:
                 for region in self.regions:
-                    per_region_executor.submit(self.collect_region, region, global_builder)
+                    per_region_executor.submit(self.collect_region, region, global_builder.for_region(region))
 
-            log.info(f"[Aws][{self.account.id} Connect resources and create edges.")
+            log.info(f"[Aws:{self.account.id}] Connect resources and create edges.")
 
             # connect nodes
             for node, data in list(self.graph.nodes(data=True)):
@@ -148,13 +161,14 @@ class AwsAccountCollector:
 
             # wait for all futures to finish
             shared_queue.wait_for_submitted_work()
+            self.core_feedback.progress_done(self.account.id, 1, 1, context=["aws"])
 
-            log.info(f"[Aws][{self.account.id} Collecting resources done.")
+            log.info(f"[Aws:{self.account.id}] Collecting resources done.")
 
-    def collect_region(self, region: AwsRegion, global_builder: GraphBuilder) -> None:
+    def collect_region(self, region: AwsRegion, regional_builder: GraphBuilder) -> None:
         def collect_resource(resource: Type[AwsResource], rb: GraphBuilder) -> None:
             resource.collect_resources(rb)
-            log.info(f"[Aws][{self.account.id}][{region.name}] finished collecting: {resource.kind}")
+            log.info(f"[Aws:{self.account.id}:{region.name}] finished collecting: {resource.kind}")
 
         try:
             regional_thread_name = f"aws_{self.account.id}_{region.id}"
@@ -162,21 +176,24 @@ class AwsAccountCollector:
             with ThreadPoolExecutor(
                 thread_name_prefix=regional_thread_name, max_workers=self.config.region_resources_pool_size
             ) as executor:
+                regional_builder.core_feedback.progress_done(f"collect-{region.id}", 0, 1)
                 # In case an exception is thrown for any resource, we should give up as quick as possible.
                 queue = ExecutorQueue(executor, region.name, fail_on_first_exception=True)
-                global_builder.add_node(region)
-                region_builder = global_builder.for_region(region)
+                regional_builder.add_node(region)
                 for res in regional_resources:
                     if self.config.should_collect(res.kind):
-                        queue.submit_work(collect_resource, res, region_builder)
+                        queue.submit_work(collect_resource, res, regional_builder)
                 queue.wait_for_submitted_work()
+                regional_builder.core_feedback.progress_done(f"collect-{region.id}", 1, 1)
         except ClientError as e:
             code = e.response["Error"]["Code"]
             if code == "UnauthorizedOperation":
-                log.error(f"Not authorized to collect resources in account {self.account.id} region {region.id}")
+                msg = f"Not authorized to collect resources in account {self.account.id} region {region.id}"
+                self.core_feedback.error(msg, log)
                 return None
             else:
-                log.error(f"Error collecting resources in account {self.account.id} region {region.id}", exc_info=True)
+                msg = f"Error collecting resources in account {self.account.id} region {region.id}: {e}"
+                self.core_feedback.error(msg, log)
                 raise
 
     def update_account(self) -> None:
@@ -185,7 +202,7 @@ class AwsAccountCollector:
             if account_aliases := self.client.list("iam", "list_account_aliases", "AccountAliases"):
                 self.account.name = self.account.account_alias = account_aliases[0]
         except ClientError as e:
-            log.debug(f"Could not get account aliases: {e}")
+            self.core_feedback.info(f"Could not get account aliases: {e}", log)
 
         log.info(f"Collecting AWS IAM Account Summary in account {self.account.dname}")
         sm = self.client.get("iam", "get-account-summary", "SummaryMap") or {}
@@ -215,4 +232,4 @@ class AwsAccountCollector:
             self.account.password_reuse_prevention = int(app.get("PasswordReusePrevention", 0))
             self.account.hard_expiry = bool(app.get("HardExpiry", None))
         except Exception:
-            log.debug(f"The Password Policy for account {self.account.dname} cannot be found.")
+            self.core_feedback.info(f"The Password Policy for account {self.account.dname} cannot be found.")

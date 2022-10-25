@@ -24,9 +24,10 @@ from resotolib.baseresources import (
 )
 from resotolib.baseresources import Cloud
 from resotolib.config import Config, RunningConfig, current_config
+from resotolib.core.actions import CoreFeedback
+from resotolib.core.custom_command import execute_command_on_resource
 from resotolib.graph import Graph
 from resotolib.logger import log, setup_logger
-from resotolib.core.custom_command import execute_command_on_resource
 from resotolib.types import JsonElement, Json
 from resotolib.utils import log_runtime, NoExitArgumentParser, chunks
 from .collector import AwsAccountCollector
@@ -50,6 +51,7 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
     def __init__(self) -> None:
         super().__init__()
         self.__regions: List[str] = []
+        self.core_feedback: Optional[CoreFeedback] = None
 
     @staticmethod
     def add_config(cfg: Config) -> None:
@@ -58,6 +60,7 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
     @metrics_collect.time()  # type: ignore
     def collect(self) -> None:
         log.debug("plugin: AWS collecting resources")
+        assert self.core_feedback, "core_feedback is not set"
 
         accounts = get_accounts()
         if len(accounts) == 0:
@@ -88,6 +91,7 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
                     self.regions(profile=account.profile),
                     ArgumentParser.args,
                     Config.running_config,
+                    self.core_feedback,
                 )
                 for account in accounts
             ]
@@ -443,10 +447,7 @@ def all_regions(profile: Optional[str] = None) -> List[str]:
 
 @log_runtime
 def collect_account(
-    account: AwsAccount,
-    regions: List[str],
-    args: Namespace,
-    running_config: RunningConfig,
+    account: AwsAccount, regions: List[str], args: Namespace, running_config: RunningConfig, core_feedback: CoreFeedback
 ) -> Optional[Graph]:
     collector_name = f"aws_{account.id}"
     resotolib.proc.set_thread_name(collector_name)
@@ -463,7 +464,8 @@ def collect_account(
 
     log.debug(f"Starting new collect process for account {account.dname}")
 
-    aac = AwsAccountCollector(Config.aws, Cloud(id="aws", name="AWS"), account, regions)
+    feedback = core_feedback.with_context(["aws", account.id])
+    aac = AwsAccountCollector(Config.aws, Cloud(id="aws", name="AWS"), account, regions, feedback)
     try:
         aac.collect()
     except botocore.exceptions.ClientError as e:

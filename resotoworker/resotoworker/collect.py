@@ -1,29 +1,37 @@
 import multiprocessing
+from queue import Queue
+
 import resotolib.proc
 from time import time
 from concurrent import futures
 from resotolib.baseplugin import BaseCollectorPlugin, BasePostCollectPlugin
 from resotolib.baseresources import GraphRoot
+from resotolib.core.actions import CoreFeedback
 from resotolib.graph import Graph, sanitize
 from resotolib.logger import log, setup_logger
 from resotolib.args import ArgumentParser
 from argparse import Namespace
 from typing import List, Optional, Callable, Type, Dict, Any
 from resotolib.config import Config, RunningConfig
+from resotolib.types import Json
 
 TaskId = str
 
 
 class Collector:
-    def __init__(self, send_to_resotocore: Callable[[Graph, TaskId], None], config: Config) -> None:
+    def __init__(
+        self, config: Config, send_to_resotocore: Callable[[Graph, TaskId], None], core_messages: Queue[Json]
+    ) -> None:
         self._send_to_resotocore = send_to_resotocore
         self._config = config
+        self.core_messages = core_messages
 
     def collect_and_send(
         self,
         collectors: List[Type[BaseCollectorPlugin]],
         post_collectors: List[Type[BasePostCollectPlugin]],
         task_id: str,
+        step_name: str,
     ) -> None:
         def collect(collectors: List[Type[BaseCollectorPlugin]]) -> Optional[Graph]:
             graph = Graph(root=GraphRoot(id="root", tags={}))
@@ -46,6 +54,7 @@ class Collector:
                 collect_args = {
                     "args": ArgumentParser.args,
                     "running_config": self._config.running_config,
+                    "core_feedback": CoreFeedback(task_id, step_name, "collect", self.core_messages),
                 }
             else:
                 pool_executor = futures.ThreadPoolExecutor
@@ -118,9 +127,12 @@ def run_post_collect_plugin(
     graph: Graph,
     args: Optional[Namespace] = None,
     running_config: Optional[RunningConfig] = None,
+    core_feedback: Optional[CoreFeedback] = None,
 ) -> Optional[Graph]:
     try:
         post_collector: BasePostCollectPlugin = post_collector_plugin()
+        if core_feedback and hasattr(post_collector, "core_feedback"):
+            setattr(post_collector, "core_feedback", core_feedback)
 
         if args is not None:
             ArgumentParser.args = args  # type: ignore
@@ -146,9 +158,12 @@ def collect_plugin_graph(
     collector_plugin: Type[BaseCollectorPlugin],
     args: Optional[Namespace] = None,
     running_config: Optional[RunningConfig] = None,
+    core_feedback: Optional[CoreFeedback] = None,
 ) -> Optional[Graph]:
     try:
         collector: BaseCollectorPlugin = collector_plugin()
+        if core_feedback and hasattr(collector, "core_feedback"):
+            setattr(collector, "core_feedback", core_feedback)
         collector_name = f"collector_{collector.cloud}"
         resotolib.proc.set_thread_name(collector_name)
 

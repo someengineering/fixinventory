@@ -24,7 +24,8 @@ class CoreMessage:
     Disconnected = "message-listener-disconnected"
     ConfigUpdated = "config-updated"
     ConfigDeleted = "config-deleted"
-    ErrorMessage = "error-message"
+    ErrorMessage = "error"
+    ProgressMessage = "progress"
 
 
 class Message(ABC):
