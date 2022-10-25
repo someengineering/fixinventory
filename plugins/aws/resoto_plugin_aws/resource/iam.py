@@ -398,7 +398,7 @@ class AwsIamUser(AwsResource, BaseUser):
     def collect(cls: Type[AwsResource], json_list: List[Json], builder: GraphBuilder) -> None:
         name_password_last_used_map: Dict[str, str] = {"UserName": "PasswordLastUsed"}
         for user in builder.client.list("iam", "list-users", "Users"):
-            name_password_last_used_map[user["UserName"]] = user["PasswordLastUsed"]
+            name_password_last_used_map[user["UserId"]] = user["PasswordLastUsed"]
         for json in json_list:
             for js in json.get("GroupDetailList", []):
                 builder.add_node(AwsIamGroup.from_api(js), js)
@@ -410,7 +410,7 @@ class AwsIamUser(AwsResource, BaseUser):
                 builder.add_node(AwsIamPolicy.from_api(js), js)
 
             for js in json.get("UserDetailList", []):
-                js["PasswordLastUsed"] = name_password_last_used_map[js["UserName"]]
+                js["PasswordLastUsed"] = name_password_last_used_map.get(js["UserId"])
                 user = AwsIamUser.from_api(js)
                 builder.add_node(user, js)
                 # add all iam access keys for this user

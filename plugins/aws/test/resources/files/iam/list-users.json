@@ -3,7 +3,7 @@
         {
             "Path": "string",
             "UserName": "test_user",
-            "UserId": "string",
+            "UserId": "user-123",
             "Arn": "string",
             "CreateDate": "2018-08-16T13:32:10+00:00",
             "PasswordLastUsed": "2018-08-16T13:32:10+00:00",
@@ -21,7 +21,7 @@
         {
             "Path": "string",
             "UserName": "ReposSync",
-            "UserId": "string",
+            "UserId": "user-234",
             "Arn": "string",
             "CreateDate": "2018-08-16T13:32:10+00:00",
             "PasswordLastUsed": "2018-08-16T13:32:10+00:00",
@@ -39,7 +39,7 @@
         {
             "Path": "string",
             "UserName": "SaltCloud",
-            "UserId": "string",
+            "UserId": "user-345",
             "Arn": "string",
             "CreateDate": "2018-08-16T13:32:10+00:00",
             "PasswordLastUsed": "2018-08-16T13:32:10+00:00",
