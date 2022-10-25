@@ -116,7 +116,7 @@ class AwsServiceQuota(AwsResource, BaseQuota):
             for node in builder.graph.nodes:
                 if (
                     node.kind == matcher.node_kind
-                    and node.region().id == matcher.region.id
+                    and (matcher.region is None or node.region().id == matcher.region.id)
                     and all(prop_matches(getattr(node, k, None), v) for k, v in matcher.node_selector.items())
                 ):
                     builder.add_edge(self, EdgeType.default, node=node)
