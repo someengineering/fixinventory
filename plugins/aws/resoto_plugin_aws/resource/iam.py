@@ -396,7 +396,7 @@ class AwsIamUser(AwsResource, BaseUser):
 
     @classmethod
     def collect(cls: Type[AwsResource], json_list: List[Json], builder: GraphBuilder) -> None:
-        name_password_last_used_map: Dict[str, str] = {"UserName": "PasswordLastUsed"}
+        name_password_last_used_map: Dict[str, str] = {}
         for user in builder.client.list("iam", "list-users", "Users"):
             name_password_last_used_map[user["UserId"]] = user["PasswordLastUsed"]
         for json in json_list:
