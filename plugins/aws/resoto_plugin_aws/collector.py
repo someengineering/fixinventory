@@ -118,7 +118,7 @@ class AwsAccountCollector:
             shared_queue = ExecutorQueue(executor, self.account.name)
             shared_queue.submit_work(self.update_account)
             global_builder = GraphBuilder(
-                self.graph, self.cloud, self.account, self.global_region, self.client, shared_queue
+                self.graph, self.cloud, self.account, self.global_region, self.client, shared_queue, self.core_feedback
             )
             global_builder.core_feedback.progress_done("collect-global", 0, 1)
             global_builder.add_node(self.global_region)

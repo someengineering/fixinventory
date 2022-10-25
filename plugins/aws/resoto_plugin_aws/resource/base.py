@@ -353,6 +353,7 @@ class GraphBuilder:
         region: AwsRegion,
         client: AwsClient,
         executor: ExecutorQueue,
+        core_feedback: CoreFeedback,
         global_instance_types: Optional[Dict[str, Any]] = None,
     ) -> None:
         self.graph = graph
@@ -363,6 +364,7 @@ class GraphBuilder:
         self.executor = executor
         self.name = f"AWS:{account.name}:{region.name}"
         self.global_instance_types: Dict[str, Any] = global_instance_types or {}
+        self.core_feedback = core_feedback
 
     def submit_work(self, fn: Callable[..., None], *args: Any, **kwargs: Any) -> Future[Any]:
         """
@@ -374,10 +376,6 @@ class GraphBuilder:
     @property
     def config(self) -> AwsConfig:
         return self.client.config
-
-    @property
-    def core_feedback(self) -> CoreFeedback:
-        return self.client.core_feedback
 
     def node(self, clazz: Optional[Type[AwsResourceType]] = None, **node: Any) -> Optional[AwsResourceType]:
         if isinstance(nd := node.get("node"), AwsResource):
@@ -448,5 +446,6 @@ class GraphBuilder:
             region,
             self.client.for_region(region.name),
             self.executor,
+            self.core_feedback,
             self.global_instance_types,
         )

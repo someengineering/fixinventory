@@ -175,10 +175,10 @@ def test_complete_workflow(
     assert wi.progress.percentage == 33
     wi.handle_progress(ActionProgress("start", wi.id, "start", s1.id, ProgressDone("Test", 0, 100), utc()))
     wi.handle_progress(ActionProgress("start", wi.id, "start", s2.id, ProgressDone("Test", 50, 100), utc()))
-    assert wi.progress.percentage == 41
+    assert wi.progress.percentage == 50
     wi.handle_progress(ActionProgress("start", wi.id, "start", s1.id, ProgressDone("Test", 90, 100), utc()))
     wi.handle_progress(ActionProgress("start", wi.id, "start", s2.id, ProgressDone("Test", 80, 100), utc()))
-    assert wi.progress.percentage == 61
+    assert wi.progress.percentage == 60
     wi.handle_info(ActionInfo("start", wi.id, "start", s1.id, "error", "echt jetzt"))
     assert len(wi.info_messages) == 1
     events = wi.handle_done(ActionDone("start", wi.id, "start", s1.id))

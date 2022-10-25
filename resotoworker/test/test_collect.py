@@ -54,7 +54,7 @@ def test_collect_and_send() -> None:
         ),
     )
 
-    collector = Collector(send_to_resotocore, config, Queue())
+    collector = Collector(config, send_to_resotocore, Queue())
 
     collector.collect_and_send([ExampleCollectorPlugin], [], "task_123", "collect")
 

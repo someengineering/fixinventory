@@ -2,6 +2,7 @@ import json
 import os
 import re
 from concurrent.futures import Executor, Future
+from queue import Queue
 
 from attrs import fields
 from typing import Type, Any, Callable, Set, Tuple, Optional
@@ -20,6 +21,7 @@ from resoto_plugin_aws.resource.base import (
     ExecutorQueue,
 )
 from resotolib.baseresources import Cloud
+from resotolib.core.actions import CoreFeedback
 from resotolib.graph import Graph
 
 
@@ -134,7 +136,8 @@ def build_graph(cls: Type[AwsResourceType], region_name: Optional[str] = None) -
     client = AwsClient(config, "123456789012", role="role", region=(region_name or "us-east-1"))
     queue = ExecutorQueue(DummyExecutor(), "test")
     region = AwsRegion(id="eu-central-1", name=(region_name or "eu-central-1"))
-    builder = GraphBuilder(Graph(), Cloud(id="test"), AwsAccount(id="test"), region, client, queue)
+    feedback = CoreFeedback("test", "test", "collect", Queue())
+    builder = GraphBuilder(Graph(), Cloud(id="test"), AwsAccount(id="test"), region, client, queue, feedback)
     cls.collect_resources(builder)
     builder.executor.wait_for_submitted_work()
     return builder

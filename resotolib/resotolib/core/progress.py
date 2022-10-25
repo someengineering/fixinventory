@@ -138,7 +138,7 @@ class ProgressTree(Progress):
     sub_tree: Tree = field(factory=Tree)
 
     def sub_progress(self, nid: str) -> Optional[Progress]:
-        nid = nid if nid.startswith("root.") else "root." + nid
+        nid = nid if nid.startswith(_TreeRoot) else _TreeRoot + "." + nid
         node = self.sub_tree.get_node(nid)
         if node is None:
             return None
@@ -148,7 +148,7 @@ class ProgressTree(Progress):
             return evolve(self, sub_tree=Tree(self.sub_tree.subtree(nid), deep=True))
 
     def by_path(self, nid: str) -> Optional[Progress]:
-        nid = nid if nid.startswith("root.") else "root." + nid
+        nid = nid if nid.startswith(_TreeRoot) else _TreeRoot + "." + nid
         node = self.sub_tree.get_node(nid)
         return node.data if node and node.data else None
 

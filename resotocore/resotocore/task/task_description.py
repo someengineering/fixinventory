@@ -606,7 +606,7 @@ class RunningTask:
         self.update_task: Optional[Task[None]] = None
         self.descriptor_alive = True
         self.info_messages: List[Union[ActionInfo, ActionError]] = []
-        # step_name -> progress_id -> progress
+        # ProgressTree: [step_name, path, to progress] -> progress
         self.progresses: ProgressTree = Progress.from_progresses(
             self.descriptor.name,
             [ProgressDone(step.name, 0, 1) for step in descriptor.steps if isinstance(step.action, PerformAction)],

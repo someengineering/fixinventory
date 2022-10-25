@@ -25,9 +25,11 @@ def aws_client(aws_config: AwsConfig) -> AwsClient:
 
 
 @fixture
-def builder(aws_client: AwsClient) -> GraphBuilder:
+def builder(aws_client: AwsClient, no_feedback: CoreFeedback) -> GraphBuilder:
     queue = ExecutorQueue(DummyExecutor(), "dummy")
-    return GraphBuilder(Graph(), Cloud(id="aws"), AwsAccount(id="test"), AwsRegion(id="us-east-1"), aws_client, queue)
+    return GraphBuilder(
+        Graph(), Cloud(id="aws"), AwsAccount(id="test"), AwsRegion(id="us-east-1"), aws_client, queue, no_feedback
+    )
 
 
 @fixture
