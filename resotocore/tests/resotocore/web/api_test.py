@@ -71,6 +71,7 @@ async def core_client(
                 "--graphdb-password",
                 "test",
                 "--debug",
+                "--analytics-opt-out",
                 "--no-tls",
                 "--override",
                 f"resotocore.api.web_port={port}",
