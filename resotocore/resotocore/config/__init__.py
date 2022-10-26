@@ -34,23 +34,21 @@ class ConfigEntity:
         # authentication information
         if "aws" in collectors:
             analytics.update({"aws": True})
-            analytics.update({"aws_use_access_secret_key": False})
-            analytics.update({"aws_use_role": False})
-            analytics.update({"aws_use_profiles": False})
-            analytics.update({"aws_use_accounts": False})
-            analytics.update({"aws_use_scrape_org": False})
-            if value_in_path(self.config, ["resotoworker", "aws", "access_key_id"]) and value_in_path(
-                self.config, ["resotoworker", "aws", "secret_access_key"]
-            ):
-                analytics.update({"aws_use_access_secret_key": True})
-            if value_in_path(self.config, ["resotoworker", "aws", "role"]):
-                analytics.update({"aws_use_role": True})
-            if value_in_path(self.config, ["resotoworker", "aws", "profiles"]):
-                analytics.update({"aws_use_profiles": True})
-            if value_in_path(self.config, ["resotoworker", "aws", "account"]):
-                analytics.update({"aws_use_accounts": True})
-            if value_in_path(self.config, ["resotoworker", "aws", "scrape_org"]):
-                analytics.update({"aws_use_scrape_org": True})
+
+            aws_use_access_secret_key = (
+                value_in_path(self.config, ["resotoworker", "aws", "access_key_id"]) is not None
+                and value_in_path(self.config, ["resotoworker", "aws", "secret_access_key"]) is not None
+            )
+            aws_use_role = value_in_path(self.config, ["resotoworker", "aws", "role"]) is not None
+            aws_use_profiles = value_in_path(self.config, ["resotoworker", "aws", "profiles"]) is not None
+            aws_use_accounts = value_in_path(self.config, ["resotoworker", "aws", "account"]) is not None
+            aws_use_scrape_org = value_in_path(self.config, ["resotoworker", "aws", "scrape_org"])
+
+            analytics.update({"aws_use_access_secret_key": aws_use_access_secret_key})
+            analytics.update({"aws_use_role": aws_use_role})
+            analytics.update({"aws_use_profiles": aws_use_profiles})
+            analytics.update({"aws_use_accounts": aws_use_accounts})
+            analytics.update({"aws_use_scrape_org": aws_use_scrape_org})
 
         if "digitalocean" in collectors:
             analytics.update({"digitalocean": True})
