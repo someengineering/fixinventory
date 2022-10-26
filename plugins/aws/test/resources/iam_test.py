@@ -27,6 +27,7 @@ def test_user_roles_groups_policies_keys() -> None:
     # users ------------
     assert len(builder.resources_of(AwsIamUser)) == 3
     assert (test_user := builder.node(clazz=AwsIamUser, name="test_user")) is not None
+    assert test_user.atime is not None
     assert [p.policy_name for p in test_user.user_policies] == ["stsAssumeRole"]
 
     # keys ------------
