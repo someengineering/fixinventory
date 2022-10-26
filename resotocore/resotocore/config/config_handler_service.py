@@ -72,7 +72,7 @@ class ConfigHandlerService(ConfigHandler):
         if not existing or existing.config != cfg.config:
             result = await self.cfg_db.update(ConfigEntity(cfg.id, coerced, cfg.revision))
             await self.message_bus.emit_event(CoreMessage.ConfigUpdated, dict(id=result.id, revision=result.revision))
-            context = ConfigEntity(cfg.id, coerced, cfg.revision).analytics()
+            context = result.analytics()
             await self.event_sender.core_event(CoreEvent.SystemConfigurationChanged, context)
             return result
         else:
@@ -84,7 +84,7 @@ class ConfigHandlerService(ConfigHandler):
         coerced = await self.coerce_and_check_model(cfg.id, deep_merge(current_config, cfg.config))
         result = await self.cfg_db.update(ConfigEntity(cfg.id, coerced, current.revision if current else None))
         await self.message_bus.emit_event(CoreMessage.ConfigUpdated, dict(id=result.id, revision=result.revision))
-        context = ConfigEntity(cfg.id, coerced, current.revision if current else None).analytics()
+        context = result.analytics()
         await self.event_sender.core_event(CoreEvent.SystemConfigurationChanged, context)
         return result
 
