@@ -20,7 +20,7 @@ class ConfigEntity:
     revision: Optional[str] = None
 
     def analytics(self) -> Dict[str, Any]:
-        analytics: Dict[str, Any] = {}
+        analytics: Dict[str, Any] = {"config_id": self.id}
         if "resotoworker" not in self.config:
             return analytics
 
