@@ -62,6 +62,28 @@ def inside_docker() -> bool:
     )
 
 
+def inside_kubernetes() -> bool:
+    """
+    Try to detect if we are running on kubernetes.
+    """
+    return (
+        # environment variables have to be set explicitly
+        os.environ.get("HELM_HELM_VERSION", "false") != "false"
+        or os.environ.get("KUBERNETES_SERVICE_HOST", "false") != "false"
+    )
+
+
+def helm_installation() -> bool:
+    """
+    Try to detect if we were installed via helm chart.
+    """
+    return (
+        # environment variables have to be set explicitly
+        os.environ.get("HELM_HELM_VERSION", "false")
+        != "false"
+    )
+
+
 def default_hosts() -> List[str]:
     return ["0.0.0.0"] if inside_docker() else ["localhost"]
 

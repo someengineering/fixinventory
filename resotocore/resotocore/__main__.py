@@ -15,7 +15,6 @@ from typing import AsyncIterator, List, Union
 
 from aiohttp.web_app import Application
 from arango.database import StandardDatabase
-from os import environ as env
 from resotolib.asynchronous.web import runner
 from urllib3.exceptions import HTTPWarning
 
@@ -29,7 +28,14 @@ from resotocore.cli.command import alias_names, all_commands
 from resotocore.cli.model import CLIDependencies
 from resotocore.config.config_handler_service import ConfigHandlerService
 from resotocore.config.core_config_handler import CoreConfigHandler
-from resotocore.core_config import config_from_db, CoreConfig, RunConfig
+from resotocore.core_config import (
+    config_from_db,
+    CoreConfig,
+    RunConfig,
+    inside_docker,
+    inside_kubernetes,
+    helm_installation,
+)
 from resotocore.db import SystemData
 from resotocore.db.db_access import DbAccess
 from resotocore.dependencies import db_access, setup_process, parse_args, system_info, reconfigure_logging, event_stream
@@ -188,11 +194,17 @@ def with_config(
         await log_ship.start()
         await api.start()
         if created:
-            docker = env.get("INSIDE_DOCKER", "false").lower() in ("true", "yes", "1")
-            kubernetes = env.get("INSIDE_KUBERNETES", "false").lower() in ("true", "yes", "1")
+            docker = inside_docker()
+            kubernetes = inside_kubernetes()
+            helm = helm_installation()
             await event_sender.core_event(
                 CoreEvent.SystemInstalled,
-                {"docker_install": docker, "k8s_install": kubernetes, "pip_install": not (docker or kubernetes)},
+                {
+                    "docker_install": docker,
+                    "k8s_install": kubernetes,
+                    "helm_install": helm,
+                    "pip_install": not (docker or kubernetes or helm),
+                },
             )
         await event_sender.core_event(
             CoreEvent.SystemStarted,
