@@ -100,7 +100,7 @@ async def test_config_change_event(config_handler: ConfigHandler) -> None:
     assert len(config_handler.event_sender.events) == 2
 
     # delete the config
-    await config_handler.delete_config(config_id) is None
+    await config_handler.delete_config(config_id)
     assert len(config_handler.event_sender.events) == 3
 
 
