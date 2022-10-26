@@ -68,7 +68,7 @@ def inside_kubernetes() -> bool:
     """
     return (
         # environment variables have to be set explicitly
-        os.environ.get("HELM_HELM_VERSION", "false") != "false"
+        os.environ.get("HELM_VERSION", "false") != "false"
         or os.environ.get("KUBERNETES_SERVICE_HOST", "false") != "false"
     )
 
@@ -79,7 +79,7 @@ def helm_installation() -> bool:
     """
     return (
         # environment variables have to be set explicitly
-        os.environ.get("HELM_HELM_VERSION", "false")
+        os.environ.get("HELM_VERSION", "false")
         != "false"
     )
 
