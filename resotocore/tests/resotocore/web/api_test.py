@@ -235,7 +235,7 @@ async def test_graph_api(core_client: ApiClient) -> None:
     assert result_list[0].get("id") == "3"  # first node is the parent node
 
     # aggregate
-    result_aggregate = core_client.search_aggregate("aggregate(reported.kind as kind: sum(1) as count): all", graph=g)
+    result_aggregate = core_client.search_aggregate("aggregate(kind as kind: sum(1) as count): all", graph=g)
     assert {r["group"]["kind"]: r["count"] async for r in result_aggregate} == {
         "bla": 100,
         "cloud": 1,
