@@ -26,8 +26,6 @@ class ConfigEntity:
 
         # provider information
         collectors: List[str] = []
-        # vault.tags = cast(Dict[str, Optional[str]], tags)
-
         collectors.extend(cast(List[str], value_in_path(self.config, ["resotoworker", "collector"])))
         if "example" in collectors:
             collectors.remove("example")
