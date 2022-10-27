@@ -19,7 +19,7 @@ from rich.console import Console
 import asyncio
 
 
-async def main() -> None:
+async def main_async() -> None:
     resotolib.proc.parent_pid = os.getpid()
     setup_logger("resotoshell", json_format=False)
     arg_parser = ArgumentParser(description="resoto shell", env_args_prefix="RESOTOSHELL_")
@@ -65,9 +65,6 @@ async def main() -> None:
         session = PromptSession(cmds=cmds, kinds=kinds, props=props)
         await repl(client, args, session)
     await client.shutdown()
-    resotolib.proc.kill_children(SIGTERM, ensure_death=True)
-    log.debug("Shutdown complete")
-    sys.exit(0)
 
 
 async def repl(
@@ -91,7 +88,7 @@ async def repl(
     await shell.handle_command("welcome")
     while not shutdown_event.is_set():
         try:
-            command = session.prompt()
+            command = await session.prompt()
             if command == "":
                 continue
             if command == "quit":
@@ -188,5 +185,12 @@ def add_args(arg_parser: ArgumentParser) -> None:
     )
 
 
+def main() -> None:
+    asyncio.run(main_async())
+    resotolib.proc.kill_children(SIGTERM, ensure_death=True)
+    log.debug("Shutdown complete")
+    sys.exit(0)
+
+
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()

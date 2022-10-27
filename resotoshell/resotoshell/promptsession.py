@@ -749,15 +749,13 @@ class PromptSession:
         self.completer = CommandLineCompleter.create_completer(cmds, kinds, props)
         self.session: PTSession[str] = PTSession(history=history, reserve_space_for_menu=reserved_space_for_menu)
 
-    def prompt(self) -> str:
-        return self.session.prompt(
+    async def prompt(self) -> str:
+        return await self.session.prompt_async(
             self.prompt_message,  # type: ignore
             completer=SafeCompleter(self.completer),
             complete_while_typing=True,
-            complete_in_thread=True,
             style=self.style,
             auto_suggest=AutoSuggestFromHistory(),
-            in_thread=True,
         )
 
 

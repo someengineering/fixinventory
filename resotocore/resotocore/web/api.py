@@ -1014,6 +1014,6 @@ class Api:
                     )
                     mp.append_payload(pl)
                     await mp.write(response, close_boundary=False)
-        
+
         with MultipartWriter(boundary=boundary) as mp:
             await mp.write(response, close_boundary=True)
