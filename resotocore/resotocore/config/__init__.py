@@ -55,7 +55,9 @@ class ConfigEntity:
             analytics["do_use_env"] = not do_has_tokens
 
         if "gcp" in collectors:
-            gcp_service_accounts = value_in_path_get(self.config, ["resotoworker", "gcp", "service_account"], [])
+            gcp_service_accounts: List[str] = value_in_path_get(
+                self.config, ["resotoworker", "gcp", "service_account"], []
+            )
             gcp_auto_discovery = any(s == "" for s in gcp_service_accounts)
             gcp_use_file = any(s != "" for s in gcp_service_accounts)
             analytics["gcp"] = True
