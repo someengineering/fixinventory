@@ -120,7 +120,6 @@ async def test_config_change_analytics(config_handler: ConfigHandler) -> None:
     entity = ConfigEntity(config_id, worker_config_1)
     analytics = entity.analytics()
 
-    assert analytics["collectors"] == ["aws", "k8s", "digitalocean", "gcp"]
     assert analytics["how_many_providers"] == 4
     assert analytics["aws"]
     assert analytics["k8s"]
@@ -156,7 +155,7 @@ async def test_config_change_analytics(config_handler: ConfigHandler) -> None:
     analytics = entity.analytics()
     assert not analytics["aws_use_profiles"]
     assert analytics["aws_use_access_secret_key"]
-    assert analytics["do_use_env"]
+    assert not analytics["do_use_config"]
     assert analytics["gcp_use_file"]
     assert analytics["k8s_use_manual"]
 

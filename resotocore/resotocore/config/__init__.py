@@ -28,7 +28,6 @@ class ConfigEntity:
         collectors.extend(cast(List[str], value_in_path(self.config, ["resotoworker", "collector"])))
         if "example" in collectors:
             collectors.remove("example")
-        analytics["collectors"] = collectors
         analytics["how_many_providers"] = len(collectors)
 
         # authentication information
@@ -52,7 +51,6 @@ class ConfigEntity:
             do_has_tokens = bool(value_in_path_get(self.config, ["resotoworker", "digitalocean", "api_tokens"], []))
             analytics["digitalocean"] = True
             analytics["do_use_config"] = do_has_tokens
-            analytics["do_use_env"] = not do_has_tokens
 
         if "gcp" in collectors:
             gcp_service_accounts: List[str] = value_in_path_get(
