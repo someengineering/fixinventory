@@ -150,7 +150,7 @@ def detect_color_system(args: Namespace) -> str:
             "truecolor": "truecolor",
             "windows": "legacy_windows",
         }
-        cs = lookup.get(Console().color_system)
+        cs = lookup.get(Console().color_system, "standard")
         log.debug(f"Detected color system is: {cs}")
         return cs
 
