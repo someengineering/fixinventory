@@ -79,8 +79,7 @@ def helm_installation() -> bool:
     """
     return (
         # environment variables have to be set explicitly
-        os.environ.get("HELM_VERSION", "false")
-        != "false"
+        "HELM_VERSION" in os.environ
     )
 
 
