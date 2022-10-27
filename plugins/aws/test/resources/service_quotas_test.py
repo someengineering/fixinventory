@@ -1,12 +1,17 @@
-from resoto_plugin_aws.resource.base import GraphBuilder
+from types import SimpleNamespace
+from typing import cast, Any
+
+from attr import evolve
+
+from resoto_plugin_aws import AwsResource
+from resoto_plugin_aws.aws_client import AwsClient
+from resoto_plugin_aws.resource.base import GraphBuilder, AwsRegion
 from resoto_plugin_aws.resource.ec2 import AwsEc2InstanceType, AwsEc2Vpc
 from resoto_plugin_aws.resource.elbv2 import AwsAlb
 from resoto_plugin_aws.resource.iam import AwsIamServerCertificate
-from test.resources import round_trip_for
-from types import SimpleNamespace
-from typing import cast, Any
-from resoto_plugin_aws.aws_client import AwsClient
-from resoto_plugin_aws.resource.service_quotas import AwsServiceQuota
+from resoto_plugin_aws.resource.service_quotas import AwsServiceQuota, RegionalQuotas
+from resotolib.baseresources import EdgeType
+from test.resources import round_trip_for, build_graph
 
 
 def test_service_quotas() -> None:
@@ -46,6 +51,34 @@ def test_iam_server_certificate_quotas() -> None:
     assert len(builder.resources_of(AwsServiceQuota)) == 1
     AwsIamServerCertificate.collect_resources(builder)
     expect_quotas(builder, 2)
+
+
+def test_regional_matcher() -> None:
+    builder = build_graph(AwsResource)
+    assert len(builder.resources_of(AwsResource)) == 0  # empty graph
+
+    # create 2 regions
+    region1 = builder.add_node(AwsRegion(id="eu-central-1", tags={}, name="eu-central-1"))
+    region2 = builder.add_node(AwsRegion(id="us-east-1", tags={}, name="us-east-1"))
+    # add instance types
+    t1 = builder.add_node(AwsEc2InstanceType(id="t1", name="t1"))
+    t2 = builder.add_node(AwsEc2InstanceType(id="t2", name="t2"))
+    t1._region = region1
+    t2._region = region2
+    # add service quotas
+    sq1 = builder.add_node(AwsServiceQuota(1, id="q1", region=region1))
+    sq2 = builder.add_node(AwsServiceQuota(2, id="q2", region=region2))
+    sq1._region = region1
+    sq2._region = region2
+
+    # connect both quotas in graph
+    sq1.connect_in_graph(builder, {"matcher": evolve(RegionalQuotas["ec2"][0], region=region1)})
+    sq2.connect_in_graph(builder, {"matcher": evolve(RegionalQuotas["ec2"][0], region=region2)})
+
+    # sq1 is only connected to t1
+    assert list(builder.graph.successors(sq1, EdgeType.default)) == [t1]
+    # sq2 is only connected to t2
+    assert list(builder.graph.successors(sq2, EdgeType.default)) == [t2]
 
 
 def expect_quotas(builder: GraphBuilder, quotas: int) -> None:
