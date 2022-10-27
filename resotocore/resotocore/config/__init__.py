@@ -29,11 +29,11 @@ class ConfigEntity:
         collectors.extend(cast(List[str], value_in_path(self.config, ["resotoworker", "collector"])))
         if "example" in collectors:
             collectors.remove("example")
-        analytics.update({"how_many_providers": len(collectors)})
+        analytics["how_many_providers"] = len(collectors)
 
         # authentication information
         if "aws" in collectors:
-            analytics.update({"aws": True})
+            analytics["aws"] = True
 
             aws_use_access_secret_key = (
                 value_in_path(self.config, ["resotoworker", "aws", "access_key_id"]) is not None
@@ -44,38 +44,38 @@ class ConfigEntity:
             aws_use_accounts = value_in_path(self.config, ["resotoworker", "aws", "account"]) is not None
             aws_use_scrape_org = value_in_path(self.config, ["resotoworker", "aws", "scrape_org"])
 
-            analytics.update({"aws_use_access_secret_key": aws_use_access_secret_key})
-            analytics.update({"aws_use_role": aws_use_role})
-            analytics.update({"aws_use_profiles": aws_use_profiles})
-            analytics.update({"aws_use_accounts": aws_use_accounts})
-            analytics.update({"aws_use_scrape_org": aws_use_scrape_org})
+            analytics["aws_use_access_secret_key"] = aws_use_access_secret_key
+            analytics["aws_use_role"] = aws_use_role
+            analytics["aws_use_profiles"] = aws_use_profiles
+            analytics["aws_use_accounts"] = aws_use_accounts
+            analytics["aws_use_scrape_org"] = aws_use_scrape_org
 
         if "digitalocean" in collectors:
-            analytics.update({"digitalocean": True})
-            analytics.update({"do_use_config": False})
-            analytics.update({"do_use_env": False})
+            analytics["digitalocean"] = True
+            analytics["do_use_config"] = False
+            analytics["do_use_env"] = False
             if value_in_path(self.config, ["resotoworker", "digitalocean", "api_tokens"]):
-                analytics.update({"do_use_config": True})
+                analytics["do_use_config"] = True
             else:
-                analytics.update({"do_use_env": True})
+                analytics["do_use_env"] = True
 
         if "gcp" in collectors:
-            analytics.update({"gcp": True})
-            analytics.update({"gcp_use_file": False})
-            analytics.update({"gcp_use_auto_discovery": False})
+            analytics["gcp"] = True
+            analytics["gcp_use_file"] = False
+            analytics["gcp_use_auto_discovery"] = False
             if value_in_path(self.config, ["resotoworker", "gcp", "service_account"]) == "":
-                analytics.update({"gcp_use_auto_discovery": True})
+                analytics["gcp_use_auto_discovery"] = True
             else:
-                analytics.update({"gcp_use_file": True})
+                analytics["gcp_use_file"] = True
 
         if "k8s" in collectors:
-            analytics.update({"k8s": True})
-            analytics.update({"k8s_use_kubeconfig": False})
-            analytics.update({"k8s_use_manual": False})
+            analytics["k8s"] = True
+            analytics["k8s_use_kubeconfig"] = False
+            analytics["k8s_use_manual"] = False
             if value_in_path(self.config, ["resotoworker", "k8s", "config_files"]):
-                analytics.update({"k8s_use_kubeconfig": True})
+                analytics["k8s_use_kubeconfig"] = True
             if value_in_path(self.config, ["resotoworker", "k8s", "configs"]):
-                analytics.update({"k8s_use_manual": True})
+                analytics["k8s_use_manual"] = True
 
         return analytics
 
