@@ -28,7 +28,14 @@ from resotocore.cli.command import alias_names, all_commands
 from resotocore.cli.model import CLIDependencies
 from resotocore.config.config_handler_service import ConfigHandlerService
 from resotocore.config.core_config_handler import CoreConfigHandler
-from resotocore.core_config import config_from_db, CoreConfig, RunConfig
+from resotocore.core_config import (
+    config_from_db,
+    CoreConfig,
+    RunConfig,
+    inside_docker,
+    inside_kubernetes,
+    helm_installation,
+)
 from resotocore.db import SystemData
 from resotocore.db.db_access import DbAccess
 from resotocore.dependencies import db_access, setup_process, parse_args, system_info, reconfigure_logging, event_stream
@@ -124,7 +131,12 @@ def with_config(
     model = ModelHandlerDB(db.get_model_db(), config.runtime.plantuml_server)
     template_expander = DBTemplateExpander(db.template_entity_db)
     config_handler = ConfigHandlerService(
-        db.config_entity_db, db.config_validation_entity_db, db.configs_model_db, worker_task_queue, message_bus
+        db.config_entity_db,
+        db.config_validation_entity_db,
+        db.configs_model_db,
+        worker_task_queue,
+        message_bus,
+        event_sender,
     )
     log_ship = event_stream(config, cert_handler.client_context)
     cli_deps = CLIDependencies(
@@ -182,7 +194,18 @@ def with_config(
         await log_ship.start()
         await api.start()
         if created:
-            await event_sender.core_event(CoreEvent.SystemInstalled)
+            docker = inside_docker()
+            kubernetes = inside_kubernetes()
+            helm = helm_installation()
+            await event_sender.core_event(
+                CoreEvent.SystemInstalled,
+                {
+                    "docker_install": docker,
+                    "k8s_install": kubernetes,
+                    "helm_install": helm,
+                    "pip_install": not (docker or kubernetes or helm),
+                },
+            )
         await event_sender.core_event(
             CoreEvent.SystemStarted,
             {

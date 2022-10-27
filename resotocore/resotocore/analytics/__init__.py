@@ -14,6 +14,8 @@ log = logging.getLogger(__name__)
 
 class CoreEvent:
     SystemInstalled = "system.installed"
+    SystemConfigurationChanged = "system.configuration-changed"
+    SystemConfigurationDeleted = "system.configuration-deleted"
     SystemStarted = "system.started"
     SystemStopped = "system.stopped"
     NodeCreated = "graphdb.node-created"
@@ -49,6 +51,8 @@ class AnalyticsEvent:
 
 
 class AnalyticsEventSender(ABC):
+    events: List[AnalyticsEvent]
+
     async def core_event(
         self, kind: str, context: Optional[Mapping[str, JsonElement]] = None, **counters: Union[int, float]
     ) -> AnalyticsEvent:

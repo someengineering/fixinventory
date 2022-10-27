@@ -3,6 +3,7 @@ from typing import List, Any
 
 import pytest
 from pytest import fixture
+from resotocore.analytics import InMemoryEventSender
 
 from resotocore.config import ConfigHandler, ConfigEntity, ConfigValidation
 from resotocore.config.config_handler_service import ConfigHandlerService
@@ -21,12 +22,13 @@ from tests.resotocore.message_bus_test import message_bus, wait_for_message, all
 
 
 @fixture
-def config_handler(task_queue: WorkerTaskQueue, worker: Any, message_bus: MessageBus) -> ConfigHandler:
+def config_handler(task_queue: WorkerTaskQueue, worker: Any, message_bus: MessageBus) -> ConfigHandlerService:
     # Note: the worker fixture is required, since it starts worker tasks
     cfg_db = InMemoryDb(ConfigEntity, lambda c: c.id)
     validation_db = InMemoryDb(ConfigValidation, lambda c: c.id)
     model_db = InMemoryDb(Kind, lambda c: c.fqn)  # type: ignore
-    return ConfigHandlerService(cfg_db, validation_db, model_db, task_queue, message_bus)
+    event_sender = InMemoryEventSender()
+    return ConfigHandlerService(cfg_db, validation_db, model_db, task_queue, message_bus, event_sender)
 
 
 @fixture
@@ -78,6 +80,84 @@ async def test_config(config_handler: ConfigHandler) -> None:
 
     # list all configs
     assert [a async for a in config_handler.list_config_ids()] == []
+
+
+@pytest.mark.asyncio
+async def test_config_change_event(config_handler: ConfigHandlerService) -> None:
+    # list of events is empty on start
+    assert config_handler.event_sender.events == []
+
+    config_id = ConfigId("test")
+    # add one entry
+    entity = ConfigEntity(config_id, {"test": True})
+    assert await config_handler.put_config(entity) == entity
+    assert len(config_handler.event_sender.events) == 1
+
+    # patch the config
+    assert await config_handler.patch_config(ConfigEntity(config_id, {"rest": False})) == ConfigEntity(
+        config_id, {"test": True, "rest": False}
+    )
+    assert len(config_handler.event_sender.events) == 2
+
+    # delete the config
+    await config_handler.delete_config(config_id)
+    assert len(config_handler.event_sender.events) == 3
+
+
+@pytest.mark.asyncio
+async def test_config_change_analytics(config_handler: ConfigHandler) -> None:
+
+    config_id = ConfigId("test")
+    worker_config_1 = {
+        "resotoworker": {
+            "collector": ["aws", "k8s", "example", "digitalocean", "gcp"],
+            "aws": {"access_key_id": None, "secret_access_key": None, "profiles": ["list", "of", "profiles"]},
+            "digitalocean": {"api_tokens": ["123abc"]},
+            "gcp": {"service_account": [""]},
+            "k8s": {"config_files": ["/path/to/some/file"]},
+        }
+    }
+    entity = ConfigEntity(config_id, worker_config_1)
+    analytics = entity.analytics()
+
+    assert analytics["how_many_providers"] == 4
+    assert analytics["aws"]
+    assert analytics["k8s"]
+    assert analytics["gcp"]
+    assert analytics["digitalocean"]
+    assert analytics["aws_use_profiles"]
+    assert not analytics["aws_use_role"]
+    assert analytics["do_use_config"]
+    assert analytics["gcp_use_auto_discovery"]
+    assert analytics["k8s_use_kubeconfig"]
+
+    worker_config_2 = {
+        "resotoworker": {
+            "collector": ["aws", "k8s", "example", "digitalocean", "gcp"],
+            "aws": {
+                "access_key_id": "abc",
+                "secret_access_key": "123",
+            },
+            "gcp": {"service_account": ["some service account json file"]},
+            "k8s": {
+                "configs": [
+                    {
+                        "name": "dev",
+                        "certificate_authority_data": "xyz",
+                        "server": "https://k8s-cluster-server.example.com",
+                        "token": "some token",
+                    }
+                ]
+            },
+        }
+    }
+    entity = ConfigEntity(config_id, worker_config_2)
+    analytics = entity.analytics()
+    assert not analytics["aws_use_profiles"]
+    assert analytics["aws_use_access_secret_key"]
+    assert not analytics["do_use_config"]
+    assert analytics["gcp_use_file"]
+    assert analytics["k8s_use_manual"]
 
 
 @pytest.mark.asyncio

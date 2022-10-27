@@ -2,13 +2,14 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from attrs import define
-from typing import Optional, AsyncIterator, List
+from typing import Any, Dict, Optional, AsyncIterator, List, cast
 
 from jsons import set_deserializer, set_serializer
 
 from resotocore.model.model import Model, Kind
 from resotocore.types import Json
 from resotocore.ids import ConfigId
+from resotocore.util import value_in_path, value_in_path_get
 
 
 @define(order=True, hash=True, frozen=True)
@@ -16,6 +17,59 @@ class ConfigEntity:
     id: ConfigId
     config: Json
     revision: Optional[str] = None
+
+    def analytics(self) -> Dict[str, Any]:
+        analytics: Dict[str, Any] = {"config_id": self.id}
+        if "resotoworker" not in self.config:
+            return analytics
+
+        # provider information
+        collectors: List[str] = []
+        collectors.extend(cast(List[str], value_in_path(self.config, ["resotoworker", "collector"])))
+        if "example" in collectors:
+            collectors.remove("example")
+        analytics["how_many_providers"] = len(collectors)
+
+        # authentication information
+        if "aws" in collectors:
+            aws_use_access_secret_key = (
+                value_in_path(self.config, ["resotoworker", "aws", "access_key_id"]) is not None
+                and value_in_path(self.config, ["resotoworker", "aws", "secret_access_key"]) is not None
+            )
+            aws_use_role = value_in_path(self.config, ["resotoworker", "aws", "role"]) is not None
+            aws_use_profiles = value_in_path(self.config, ["resotoworker", "aws", "profiles"]) is not None
+            aws_use_accounts = value_in_path(self.config, ["resotoworker", "aws", "account"]) is not None
+            aws_use_scrape_org = value_in_path(self.config, ["resotoworker", "aws", "scrape_org"])
+            analytics["aws"] = True
+            analytics["aws_use_access_secret_key"] = aws_use_access_secret_key
+            analytics["aws_use_role"] = aws_use_role
+            analytics["aws_use_profiles"] = aws_use_profiles
+            analytics["aws_use_accounts"] = aws_use_accounts
+            analytics["aws_use_scrape_org"] = aws_use_scrape_org
+
+        if "digitalocean" in collectors:
+            do_has_tokens = bool(value_in_path_get(self.config, ["resotoworker", "digitalocean", "api_tokens"], []))
+            analytics["digitalocean"] = True
+            analytics["do_use_config"] = do_has_tokens
+
+        if "gcp" in collectors:
+            gcp_service_accounts: List[str] = value_in_path_get(
+                self.config, ["resotoworker", "gcp", "service_account"], []
+            )
+            gcp_auto_discovery = any(s == "" for s in gcp_service_accounts)
+            gcp_use_file = any(s != "" for s in gcp_service_accounts)
+            analytics["gcp"] = True
+            analytics["gcp_use_auto_discovery"] = gcp_auto_discovery
+            analytics["gcp_use_file"] = gcp_use_file
+
+        if "k8s" in collectors:
+            k8s_has_cfg_files = bool(value_in_path_get(self.config, ["resotoworker", "k8s", "config_files"], []))
+            k8s_has_cfgs = bool(value_in_path_get(self.config, ["resotoworker", "k8s", "configs"], []))
+            analytics["k8s"] = True
+            analytics["k8s_use_kubeconfig"] = k8s_has_cfg_files
+            analytics["k8s_use_manual"] = k8s_has_cfgs
+
+        return analytics
 
     # noinspection PyUnusedLocal
     @staticmethod
