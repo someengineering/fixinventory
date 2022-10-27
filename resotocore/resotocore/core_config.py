@@ -66,22 +66,16 @@ def inside_kubernetes() -> bool:
     """
     Try to detect if we are running on kubernetes.
     """
-    return (
-        # environment variables have to be set explicitly
-        "HELM_VERSION" in os.environ
-        or any((True for x in os.environ if x.startswith("KUBERNETES_")))
-    )
+    # environment variables have to be set explicitly
+    return "HELM_VERSION" in os.environ or any(True for x in os.environ if x.startswith("KUBERNETES_"))
 
 
 def helm_installation() -> bool:
     """
     Try to detect if we were installed via helm chart.
     """
-    return (
-        # environment variables have to be set explicitly
-        "HELM_VERSION"
-        in os.environ
-    )
+    # environment variables have to be set explicitly
+    return "HELM_VERSION" in os.environ
 
 
 def default_hosts() -> List[str]:

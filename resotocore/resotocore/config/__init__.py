@@ -5,12 +5,11 @@ from attrs import define
 from typing import Any, Dict, Optional, AsyncIterator, List, cast
 
 from jsons import set_deserializer, set_serializer
-from resotocore.analytics import AnalyticsEventSender
 
 from resotocore.model.model import Model, Kind
 from resotocore.types import Json
 from resotocore.ids import ConfigId
-from resotocore.util import value_in_path
+from resotocore.util import value_in_path, value_in_path_get
 
 
 @define(order=True, hash=True, frozen=True)
@@ -29,12 +28,11 @@ class ConfigEntity:
         collectors.extend(cast(List[str], value_in_path(self.config, ["resotoworker", "collector"])))
         if "example" in collectors:
             collectors.remove("example")
+        analytics["collectors"] = collectors
         analytics["how_many_providers"] = len(collectors)
 
         # authentication information
         if "aws" in collectors:
-            analytics["aws"] = True
-
             aws_use_access_secret_key = (
                 value_in_path(self.config, ["resotoworker", "aws", "access_key_id"]) is not None
                 and value_in_path(self.config, ["resotoworker", "aws", "secret_access_key"]) is not None
@@ -43,7 +41,7 @@ class ConfigEntity:
             aws_use_profiles = value_in_path(self.config, ["resotoworker", "aws", "profiles"]) is not None
             aws_use_accounts = value_in_path(self.config, ["resotoworker", "aws", "account"]) is not None
             aws_use_scrape_org = value_in_path(self.config, ["resotoworker", "aws", "scrape_org"])
-
+            analytics["aws"] = True
             analytics["aws_use_access_secret_key"] = aws_use_access_secret_key
             analytics["aws_use_role"] = aws_use_role
             analytics["aws_use_profiles"] = aws_use_profiles
@@ -51,31 +49,25 @@ class ConfigEntity:
             analytics["aws_use_scrape_org"] = aws_use_scrape_org
 
         if "digitalocean" in collectors:
+            do_has_tokens = bool(value_in_path_get(self.config, ["resotoworker", "digitalocean", "api_tokens"], []))
             analytics["digitalocean"] = True
-            analytics["do_use_config"] = False
-            analytics["do_use_env"] = False
-            if value_in_path(self.config, ["resotoworker", "digitalocean", "api_tokens"]):
-                analytics["do_use_config"] = True
-            else:
-                analytics["do_use_env"] = True
+            analytics["do_use_config"] = do_has_tokens
+            analytics["do_use_env"] = not do_has_tokens
 
         if "gcp" in collectors:
+            gcp_service_accounts = value_in_path_get(self.config, ["resotoworker", "gcp", "service_account"], [])
+            gcp_auto_discovery = any(s == "" for s in gcp_service_accounts)
+            gcp_use_file = any(s != "" for s in gcp_service_accounts)
             analytics["gcp"] = True
-            analytics["gcp_use_file"] = False
-            analytics["gcp_use_auto_discovery"] = False
-            if value_in_path(self.config, ["resotoworker", "gcp", "service_account"]) == "":
-                analytics["gcp_use_auto_discovery"] = True
-            else:
-                analytics["gcp_use_file"] = True
+            analytics["gcp_use_auto_discovery"] = gcp_auto_discovery
+            analytics["gcp_use_file"] = gcp_use_file
 
         if "k8s" in collectors:
+            k8s_has_cfg_files = bool(value_in_path_get(self.config, ["resotoworker", "k8s", "config_files"], []))
+            k8s_has_cfgs = bool(value_in_path_get(self.config, ["resotoworker", "k8s", "configs"], []))
             analytics["k8s"] = True
-            analytics["k8s_use_kubeconfig"] = False
-            analytics["k8s_use_manual"] = False
-            if value_in_path(self.config, ["resotoworker", "k8s", "config_files"]):
-                analytics["k8s_use_kubeconfig"] = True
-            if value_in_path(self.config, ["resotoworker", "k8s", "configs"]):
-                analytics["k8s_use_manual"] = True
+            analytics["k8s_use_kubeconfig"] = k8s_has_cfg_files
+            analytics["k8s_use_manual"] = k8s_has_cfgs
 
         return analytics
 
@@ -100,8 +92,6 @@ class ConfigValidation:
 
 
 class ConfigHandler(ABC):
-    event_sender: AnalyticsEventSender
-
     @abstractmethod
     def list_config_ids(self) -> AsyncIterator[ConfigId]:
         pass
