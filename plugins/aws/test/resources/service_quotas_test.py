@@ -3,7 +3,7 @@ from typing import cast, Any
 
 from attr import evolve
 
-from resoto_plugin_aws import AwsResource
+from resoto_plugin_aws.resource.base import AwsResource
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import GraphBuilder, AwsRegion
 from resoto_plugin_aws.resource.ec2 import AwsEc2InstanceType, AwsEc2Vpc
@@ -66,8 +66,8 @@ def test_regional_matcher() -> None:
     t1._region = region1
     t2._region = region2
     # add service quotas
-    sq1 = builder.add_node(AwsServiceQuota(1, id="q1", region=region1))
-    sq2 = builder.add_node(AwsServiceQuota(2, id="q2", region=region2))
+    sq1 = builder.add_node(AwsServiceQuota(quota=1, id="q1"))
+    sq2 = builder.add_node(AwsServiceQuota(quota=2, id="q2"))
     sq1._region = region1
     sq2._region = region2
 
