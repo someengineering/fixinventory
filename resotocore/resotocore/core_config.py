@@ -68,7 +68,7 @@ def inside_kubernetes() -> bool:
     """
     return (
         # environment variables have to be set explicitly
-        os.environ.get("HELM_VERSION", "false") != "false"
+        "HELM_VERSION" in os.environ
         or any((True for x in os.environ if x.startswith("KUBERNETES_")))
     )
 
