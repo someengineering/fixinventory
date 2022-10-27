@@ -1003,7 +1003,6 @@ class Api:
     async def multi_file_response(
         cmd_line: ParsedCommandLine, results: AsyncIterator[str], boundary: str, response: StreamResponse
     ) -> None:
-        send_files_counter = 0
         async for file_path in results:
             path = Path(file_path)
             if not (path.exists() and path.is_file()):
@@ -1015,8 +1014,6 @@ class Api:
                     )
                     mp.append_payload(pl)
                     await mp.write(response, close_boundary=False)
-                    send_files_counter += 1
-        # in case we did not send any file, we need to close the boundary
-        if send_files_counter == 0:
-            with MultipartWriter(boundary=boundary) as mp:
-                await mp.write(response, close_boundary=True)
+        
+        with MultipartWriter(boundary=boundary) as mp:
+            await mp.write(response, close_boundary=True)
