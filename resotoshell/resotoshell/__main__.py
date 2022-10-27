@@ -1,22 +1,24 @@
+import asyncio
 import os
 import sys
 from argparse import Namespace
+from datetime import datetime
 from signal import SIGTERM
-from threading import Event, Thread
+from threading import Event
 from typing import Callable
 
-import resotolib.proc
+from prompt_toolkit.formatted_text import FormattedText
 from resotoclient.async_client import ResotoClient
+from rich.console import Console
+
+import resotolib.proc
 from resotolib.args import ArgumentParser
 from resotolib.core import resotocore, add_args as core_add_args, wait_for_resotocore
 from resotolib.core.ca import TLSData
-from resotolib.event import add_event_listener, Event as ResotoEvent, EventType
 from resotolib.jwt import add_args as jwt_add_args
 from resotolib.logger import log, setup_logger, add_args as logging_add_args
 from resotoshell.promptsession import PromptSession, core_metadata
 from resotoshell.shell import Shell
-from rich.console import Console
-import asyncio
 
 
 async def main_async() -> None:
@@ -67,42 +69,59 @@ async def main_async() -> None:
     await client.shutdown()
 
 
-async def repl(
-    client: ResotoClient,
-    args: Namespace,
-    session: PromptSession,
-) -> None:
+async def repl(client: ResotoClient, args: Namespace, session: PromptSession) -> None:
     shutdown_event = Event()
     shell = Shell(client, True, detect_color_system(args))
-
     log.debug("Starting interactive session")
-
-    def shutdown(event: ResotoEvent) -> None:
-        shutdown_event.set()
-        kt = Thread(target=resotolib.proc.delayed_exit, name="shutdown")
-        kt.start()
-
-    add_event_listener(EventType.SHUTDOWN, shutdown)
 
     # send the welcome command to the core
     await shell.handle_command("welcome")
+
+    event_listener = asyncio.create_task(attach_to_event_stream(client, shell, shutdown_event))
+    try:
+        while not shutdown_event.is_set():
+            try:
+                await asyncio.sleep(0.1)
+                command = await session.prompt()
+                if command == "":
+                    continue
+                if command == "quit":
+                    shutdown_event.set()
+                    continue
+                await shell.handle_command(command)
+            except KeyboardInterrupt:
+                pass
+            except EOFError:
+                shutdown_event.set()
+            except (RuntimeError, ValueError) as e:
+                log.error(e)
+            except Exception:
+                log.exception("Caught unhandled exception while processing CLI command")
+    finally:
+        if event_listener:
+            event_listener.cancel()
+
+
+async def attach_to_event_stream(client: ResotoClient, shell: Shell, shutdown_event: Event) -> None:
     while not shutdown_event.is_set():
         try:
-            command = await session.prompt()
-            if command == "":
-                continue
-            if command == "quit":
-                shutdown_event.set()
-                continue
-            await shell.handle_command(command)
-        except KeyboardInterrupt:
-            pass
-        except EOFError:
-            shutdown_event.set()
-        except (RuntimeError, ValueError) as e:
-            log.error(e)
-        except Exception:
-            log.exception("Caught unhandled exception while processing CLI command")
+            async for event in client.events({"error"}):
+                data = event.get("data", {})
+                message = data.get("message")
+                context = ",".join([f"{k}={v}" for k, v in data.items() if k != "message"])
+                if message:
+                    shell.stderr(
+                        FormattedText(
+                            [
+                                ("green", f'{datetime.now().strftime("%H:%M:%S")}'),
+                                ("blue", f" {context} "),
+                                ("bold red", message),
+                            ]
+                        )
+                    )
+        except Exception as ex:
+            log.debug("Could not attach to event stream: %s", ex)
+            await asyncio.sleep(1)
 
 
 async def handle_from_stdin(client: ResotoClient) -> None:
@@ -131,7 +150,7 @@ def detect_color_system(args: Namespace) -> str:
             "truecolor": "truecolor",
             "windows": "legacy_windows",
         }
-        cs = lookup.get(Console().color_system, "standard")
+        cs = lookup.get(Console().color_system)
         log.debug(f"Detected color system is: {cs}")
         return cs
 

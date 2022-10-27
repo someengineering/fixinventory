@@ -7,13 +7,26 @@ from tempfile import TemporaryDirectory
 from typing import Dict, Union, Optional, Tuple
 from urllib.parse import urlsplit
 
-from resotoclient.async_client import HttpResponse
-from resotolib.args import ArgumentParser
-from resotolib.utils import sha256sum
-from resotolib.logger import log
-from resotoshell.protected_files import validate_paths
-from resotoclient.async_client import ResotoClient
 import aiohttp
+from prompt_toolkit import HTML, ANSI, print_formatted_text
+from prompt_toolkit.formatted_text import FormattedText
+from prompt_toolkit.output import ColorDepth
+from resotoclient.async_client import HttpResponse
+from resotoclient.async_client import ResotoClient
+from rich.markdown import Markdown
+
+from resotolib.args import ArgumentParser
+from resotolib.logger import log
+from resotolib.utils import sha256sum
+from resotoshell.protected_files import validate_paths
+
+color_system_to_color_depth = {
+    "monochrome": ColorDepth.DEPTH_1_BIT,
+    "standard": ColorDepth.DEPTH_8_BIT,
+    "eight_bit": ColorDepth.DEPTH_8_BIT,
+    "truecolor": ColorDepth.DEPTH_24_BIT,
+    "legacy_windows": ColorDepth.DEPTH_4_BIT,
+}
 
 
 class Shell:
@@ -28,6 +41,7 @@ class Shell:
         self.client = client
         self.tty = tty
         self.color_system = color_system
+        self.color_depth = color_system_to_color_depth.get(color_system) or ColorDepth.DEPTH_8_BIT
         self.graph = graph
         self.section = section
 
@@ -60,7 +74,8 @@ class Shell:
                     if response.status_code == 200:
                         await self.handle_result(response)
                     elif response.status_code == 424 and not upload:
-                        required = response.json().get("required", [])
+                        js_data = await response.json()
+                        required = js_data.get("required", [])
                         to_upload = validate_paths({fp["name"]: fp["path"] for fp in required})
                         mp: HttpResponse = await self.client.cli_execute_raw(
                             command=command,
@@ -72,7 +87,7 @@ class Shell:
                         await handle_response(mp, True)
                     else:
                         log.debug(f"HTTP error, code: {response.status_code}")
-                        print(await response.text(), file=sys.stderr)
+                        self.stderr(await response.text())
                         return
 
         try:
@@ -90,9 +105,9 @@ class Shell:
                 f" at {urlsplit(self.client.resotocore_url).netloc}."
                 " Is it up and reachable?"
             )
-            print(err, file=sys.stderr)
+            self.stderr(err)
         except Exception as ex:
-            print(f"Error performing command: `{command}`\nReason: {ex}")
+            self.stderr(f"Error performing command: `{command}`\nReason: {ex}")
 
     async def handle_result(
         self,
@@ -128,11 +143,11 @@ class Shell:
         if content_type == "text/plain":
             # Received plain text: print it.
             if not first:
-                print(line_delimiter)
+                self.stdout(line_delimiter)
             if isinstance(response, HttpResponse):
                 async for line in response.async_iter_lines():
                     decoded = line.decode("utf-8")
-                    print(decoded)
+                    self.stdout(decoded)
             elif isinstance(response, aiohttp.BodyPartReader):
                 while line := await response.readline():
                     decoded = line.decode("utf-8")
@@ -157,14 +172,14 @@ class Shell:
                         command=f"{command} {filename}", additional_headers={}, files={filename: filepath}
                     )
                 else:
-                    print("No change made while editing the file. Update aborted.")
+                    self.stderr("No change made while editing the file. Update aborted.")
         # File is sent: save it to local disk
         elif content_type == "application/octet-stream":
             if isinstance(response, aiohttp.MultipartReader):
                 raise ValueError(f"Found not expected response type: {type(response)} for content type {content_type}")
 
             filename, filepath = await store_file(response, ArgumentParser.args.download_directory)
-            print(f"Received a file {filename}, which is stored to {filepath}.")
+            self.stdout(f"Received a file {filename}, which is stored to {filepath}.")
         # Multipart: handle each part separately
         elif content_type.startswith("multipart"):
             # Received a multipart response: parse the parts
@@ -180,3 +195,9 @@ class Shell:
             async for part in reader:
                 await self.handle_result(part, num == 0)
                 num += 1
+
+    def stdout(self, text: str) -> None:
+        print(text)
+
+    def stderr(self, text: Union[str, FormattedText, Markdown, HTML, ANSI]) -> None:
+        print_formatted_text(text, file=sys.stderr, color_depth=self.color_depth)

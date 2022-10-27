@@ -5,7 +5,7 @@ websocket-client==1.4.1
 psutil==5.9.3
 requests==2.28.1
 prometheus-client==0.15.0
-PyJWT==2.5.0
+PyJWT==2.6.0
 CherryPy==18.8.0
 cryptography==38.0.1
 aiohttp[speedups]==3.8.3
