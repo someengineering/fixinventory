@@ -100,7 +100,7 @@ def get_signed_cert(
 class TLSData:
     def __init__(
         self,
-        common_name: str = None,
+        common_name: str,
         san_dns_names: Optional[List[str]] = None,
         san_ip_addresses: Optional[List[str]] = None,
         tempdir: str = None,

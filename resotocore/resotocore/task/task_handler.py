@@ -430,7 +430,12 @@ class TaskHandlerService(TaskHandler):
     async def handle_action_progress(self, info: ActionProgress) -> None:
         if rt := self.tasks.get(info.task_id):  # get the related running task
             if info.step_name == rt.current_step.name:  # make sure this progress belongs to the current step
+                log.debug("Received progress: %s", info)
                 rt.handle_progress(info)
+                await self.message_bus.emit_event(
+                    CoreMessage.ProgressMessage,
+                    {"workflow": rt.descriptor.name, "task": rt.id, "message": rt.progress.to_json()},
+                )
 
     async def execute_task_commands(
         self, wi: RunningTask, commands: Sequence[TaskCommand], origin_message: Optional[Message] = None

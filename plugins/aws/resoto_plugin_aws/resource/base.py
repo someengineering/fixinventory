@@ -26,6 +26,7 @@ from resotolib.baseresources import (
     BaseVolumeType,
     ModelReference,
 )
+from resotolib.core.actions import CoreFeedback
 from resotolib.graph import Graph
 from resotolib.json import to_json as to_js, from_json as from_js
 from resotolib.json_bender import Bender, bend
@@ -163,10 +164,12 @@ class AwsResource(BaseResource, ABC):
                 items = builder.client.list(spec.service, spec.api_action, spec.result_property, **kwargs)
                 cls.collect(items, builder)
             except Boto3Error as e:
-                log.error(f"Error while collecting {cls.__name__} in region {builder.region.name}: {e}")
+                msg = f"Error while collecting {cls.__name__} in region {builder.region.name}: {e}"
+                builder.core_feedback.error(msg, log)
                 raise
             except Exception as e:
-                log.debug(f"Error while collecting {cls.__name__} in region {builder.region.name}: {e}")
+                msg = f"Error while collecting {cls.__name__} in region {builder.region.name}: {e}"
+                builder.core_feedback.info(msg, log)
                 raise
 
     @classmethod
@@ -350,6 +353,7 @@ class GraphBuilder:
         region: AwsRegion,
         client: AwsClient,
         executor: ExecutorQueue,
+        core_feedback: CoreFeedback,
         global_instance_types: Optional[Dict[str, Any]] = None,
     ) -> None:
         self.graph = graph
@@ -360,6 +364,7 @@ class GraphBuilder:
         self.executor = executor
         self.name = f"AWS:{account.name}:{region.name}"
         self.global_instance_types: Dict[str, Any] = global_instance_types or {}
+        self.core_feedback = core_feedback
 
     def submit_work(self, fn: Callable[..., None], *args: Any, **kwargs: Any) -> Future[Any]:
         """
@@ -441,5 +446,6 @@ class GraphBuilder:
             region,
             self.client.for_region(region.name),
             self.executor,
+            self.core_feedback,
             self.global_instance_types,
         )

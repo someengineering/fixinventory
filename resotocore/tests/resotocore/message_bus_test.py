@@ -19,7 +19,7 @@ from resotocore.model.typed_model import to_js, from_js
 from resotocore.ids import SubscriberId
 from resotocore.util import AnyT, utc, first
 from resotocore.ids import TaskId
-from resotolib.core.progress import ProgressDone, ProgressList
+from resotolib.core.progress import ProgressDone, Progress
 
 
 @fixture
@@ -106,11 +106,9 @@ def test_message_serialization() -> None:
     roundtrip(ActionError("test", task_id, "step_name", subsctiber_id, "oops", {"test": 23}))
     roundtrip(ActionInfo("test", task_id, "step_name", subsctiber_id, "error", "Error message"))
     roundtrip(ActionProgress("test", task_id, "step_name", subsctiber_id, ProgressDone("region", 1, 2), now))
-    roundtrip(
-        ActionProgress(
-            "test", task_id, "step_name", subsctiber_id, ProgressList("account1", [ProgressDone("region", 1, 2)]), now
-        ),
-    )
+    nested = Progress.from_progresses("account1", [ProgressDone("region", 1, 2)])
+    pg = ActionProgress("test", task_id, "step_name", subsctiber_id, nested, now)
+    assert to_js(pg) == to_js(from_js(to_js(pg), ActionProgress))
 
 
 def roundtrip(obj: Any) -> None:

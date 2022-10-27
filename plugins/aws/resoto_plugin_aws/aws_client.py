@@ -12,6 +12,7 @@ from botocore.exceptions import ClientError
 from botocore.config import Config
 
 from resoto_plugin_aws.configuration import AwsConfig
+from resotolib.core.actions import CoreFeedback
 from resotolib.types import Json, JsonElement
 from resotolib.utils import utc_str, log_runtime
 
@@ -37,12 +38,14 @@ class AwsClient:
         role: Optional[str] = None,
         profile: Optional[str] = None,
         region: Optional[str] = None,
+        core_feedback: Optional[CoreFeedback] = None,
     ) -> None:
         self.config = config
         self.account_id = account_id
         self.role = role
         self.profile = profile
         self.region = region
+        self.core_feedback = core_feedback
 
     def __to_json(self, node: Any, **kwargs: Any) -> JsonElement:
         if node is None or isinstance(node, (str, int, float, bool)):
@@ -116,12 +119,13 @@ class AwsClient:
             elif code in RetryableErrors:
                 raise  # already have been retried, give up here
             else:
-                log.exception(
-                    (
-                        f"An AWS API error {code} occurred during resource collection of {aws_service} action {action} in "  # noqa: E501
-                        f"account {self.account_id} region {self.region} - skipping resources"
-                    )
+                msg = (
+                    f"An AWS API error {code} occurred during resource collection of {aws_service} action {action} in "  # noqa: E501
+                    f"account {self.account_id} region {self.region} - skipping resources"
                 )
+                log.exception(msg)
+                if self.core_feedback:
+                    self.core_feedback.error(msg)
                 return None
 
     def list(self, aws_service: str, action: str, result_name: Optional[str], **kwargs: Any) -> List[Any]:
@@ -131,7 +135,14 @@ class AwsClient:
         return self.call(aws_service, action, result_name, **kwargs)  # type: ignore
 
     def for_region(self, region: str) -> AwsClient:
-        return AwsClient(self.config, self.account_id, role=self.role, profile=self.profile, region=region)
+        return AwsClient(
+            self.config,
+            self.account_id,
+            role=self.role,
+            profile=self.profile,
+            region=region,
+            core_feedback=self.core_feedback,
+        )
 
     @cached_property
     def global_region(self) -> AwsClient:
