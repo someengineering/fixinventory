@@ -6,19 +6,20 @@ from threading import Event, Thread
 from typing import Callable
 
 import resotolib.proc
-from resotoclient import ResotoClient
+from resotoclient.async_client import ResotoClient
 from resotolib.args import ArgumentParser
 from resotolib.core import resotocore, add_args as core_add_args, wait_for_resotocore
 from resotolib.core.ca import TLSData
 from resotolib.event import add_event_listener, Event as ResotoEvent, EventType
 from resotolib.jwt import add_args as jwt_add_args
 from resotolib.logger import log, setup_logger, add_args as logging_add_args
-from resotoshell.promptsession import PromptSession
+from resotoshell.promptsession import PromptSession, core_metadata
 from resotoshell.shell import Shell
 from rich.console import Console
+import asyncio
 
 
-def main() -> None:
+async def main_async() -> None:
     resotolib.proc.parent_pid = os.getpid()
     setup_logger("resotoshell", json_format=False)
     arg_parser = ArgumentParser(description="resoto shell", env_args_prefix="RESOTOSHELL_")
@@ -43,36 +44,37 @@ def main() -> None:
         verify=args.verify_certs,
     )
 
-    def check_system_info() -> None:
+    async def check_system_info() -> None:
         try:
-            list(client.cli_execute("system info"))
+            async for line in client.cli_execute("system info"):
+                break
         except Exception as e:
             log.error(f"resotocore is not accessible: {e}")
             raise e
 
     try:
-        client.start()
-        check_system_info()
+        await client.start()
+        await check_system_info()
     except Exception:
-        client.shutdown()
+        await client.shutdown()
         sys.exit(1)
     if args.stdin or not sys.stdin.isatty():
-        handle_from_stdin(client)
+        await handle_from_stdin(client)
     else:
-        repl(client, args)
-    client.shutdown()
-    resotolib.proc.kill_children(SIGTERM, ensure_death=True)
-    log.debug("Shutdown complete")
-    sys.exit(0)
+        cmds, kinds, props = await core_metadata(client)
+        session = PromptSession(cmds=cmds, kinds=kinds, props=props)
+        await repl(client, args, session)
+    await client.shutdown()
 
 
-def repl(
+async def repl(
     client: ResotoClient,
     args: Namespace,
+    session: PromptSession,
 ) -> None:
     shutdown_event = Event()
     shell = Shell(client, True, detect_color_system(args))
-    session = PromptSession(client)
+
     log.debug("Starting interactive session")
 
     def shutdown(event: ResotoEvent) -> None:
@@ -83,16 +85,16 @@ def repl(
     add_event_listener(EventType.SHUTDOWN, shutdown)
 
     # send the welcome command to the core
-    shell.handle_command("welcome")
+    await shell.handle_command("welcome")
     while not shutdown_event.is_set():
         try:
-            command = session.prompt()
+            command = await session.prompt()
             if command == "":
                 continue
             if command == "quit":
                 shutdown_event.set()
                 continue
-            shell.handle_command(command)
+            await shell.handle_command(command)
         except KeyboardInterrupt:
             pass
         except EOFError:
@@ -103,13 +105,13 @@ def repl(
             log.exception("Caught unhandled exception while processing CLI command")
 
 
-def handle_from_stdin(client: ResotoClient) -> None:
+async def handle_from_stdin(client: ResotoClient) -> None:
     shell = Shell(client, False, "monochrome")
     log.debug("Reading commands from STDIN")
     try:
         for command in sys.stdin.readlines():
             command = command.rstrip()
-            shell.handle_command(command)
+            await shell.handle_command(command)
     except KeyboardInterrupt:
         pass
     except (RuntimeError, ValueError) as e:
@@ -181,6 +183,13 @@ def add_args(arg_parser: ArgumentParser) -> None:
         action="store_true",
         default=False,
     )
+
+
+def main() -> None:
+    asyncio.run(main_async())
+    resotolib.proc.kill_children(SIGTERM, ensure_death=True)
+    log.debug("Shutdown complete")
+    sys.exit(0)
 
 
 if __name__ == "__main__":

@@ -1013,4 +1013,7 @@ class Api:
                         content, content_type="application/octet-stream", filename=path.name, headers=cmd_line.envelope
                     )
                     mp.append_payload(pl)
-                    await mp.write(response, close_boundary=True)
+                    await mp.write(response, close_boundary=False)
+
+        with MultipartWriter(boundary=boundary) as mp:
+            await mp.write(response, close_boundary=True)
