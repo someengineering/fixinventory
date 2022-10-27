@@ -24,7 +24,6 @@
             "UserId": "user-234",
             "Arn": "string",
             "CreateDate": "2018-08-16T13:32:10+00:00",
-            "PasswordLastUsed": "2018-08-16T13:32:10+00:00",
             "PermissionsBoundary": {
                 "PermissionsBoundaryType": "PermissionsBoundaryPolicy",
                 "PermissionsBoundaryArn": "string"

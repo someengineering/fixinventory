@@ -398,7 +398,8 @@ class AwsIamUser(AwsResource, BaseUser):
     def collect(cls: Type[AwsResource], json_list: List[Json], builder: GraphBuilder) -> None:
         name_password_last_used_map: Dict[str, str] = {}
         for user in builder.client.list("iam", "list-users", "Users"):
-            name_password_last_used_map[user["UserId"]] = user["PasswordLastUsed"]
+            if "PasswordLastUsed" in user and "UserId" in user:
+                name_password_last_used_map[user["UserId"]] = user["PasswordLastUsed"]
         for json in json_list:
             for js in json.get("GroupDetailList", []):
                 builder.add_node(AwsIamGroup.from_api(js), js)
