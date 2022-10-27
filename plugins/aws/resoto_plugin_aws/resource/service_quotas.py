@@ -2,10 +2,10 @@ import logging
 import re
 from typing import ClassVar, Dict, Optional, Type, Any, List, Pattern, Union
 
-from attr import field
+from attr import field, evolve
 from attrs import define
 
-from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
+from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec, AwsRegion
 from resotolib.baseresources import BaseAccount, BaseQuota, EdgeType, ModelReference  # noqa: F401
 from resotolib.json_bender import Bender, S, Bend
 from resotolib.types import Json
@@ -92,7 +92,7 @@ class AwsServiceQuota(AwsResource, BaseQuota):
             quota = AwsServiceQuota.from_api(js)
             for matcher in matchers:
                 if matcher.match(quota):
-                    builder.add_node(quota, dict(source=js, matcher=matcher))
+                    builder.add_node(quota, dict(source=js, matcher=evolve(matcher, region=builder.region)))
 
     @classmethod
     def collect_resources(cls: Type[AwsResource], builder: GraphBuilder) -> None:
@@ -114,8 +114,10 @@ class AwsServiceQuota(AwsResource, BaseQuota):
 
         if matcher:
             for node in builder.graph.nodes:
-                if node.kind == matcher.node_kind and all(
-                    prop_matches(getattr(node, k, None), v) for k, v in matcher.node_selector.items()
+                if (
+                    node.kind == matcher.node_kind
+                    and (matcher.region is None or node.region().id == matcher.region.id)
+                    and all(prop_matches(getattr(node, k, None), v) for k, v in matcher.node_selector.items())
                 ):
                     builder.add_edge(self, EdgeType.default, node=node)
 
@@ -145,6 +147,7 @@ class QuotaMatcher:
     quota_name: Union[str, Pattern[str], None]
     node_kind: str
     node_selector: Dict[str, Any] = field(factory=dict)
+    region: Optional[AwsRegion] = None
 
     def match(self, quota: AwsServiceQuota) -> bool:
         if self.quota_name is None:
