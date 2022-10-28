@@ -147,6 +147,10 @@ class ProgressTree(Progress):
         else:
             return evolve(self, sub_tree=Tree(self.sub_tree.subtree(nid), deep=True))
 
+    def has_path(self, nid: str) -> bool:
+        nid = nid if nid.startswith(_TreeRoot) else _TreeRoot + "." + nid
+        return nid in self.sub_tree
+
     def by_path(self, nid: str) -> Optional[Progress]:
         nid = nid if nid.startswith(_TreeRoot) else _TreeRoot + "." + nid
         node = self.sub_tree.get_node(nid)

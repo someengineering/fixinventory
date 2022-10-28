@@ -17,7 +17,7 @@ import time
 class DigitalOceanCollectorPlugin(BaseCollectorPlugin):
     cloud = "digitalocean"
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.core_feedback: Optional[CoreFeedback] = None
 
@@ -59,21 +59,21 @@ class DigitalOceanCollectorPlugin(BaseCollectorPlugin):
         log.info(f"plugin: collecting DigitalOcean resources for {len(tokens)} teams")
         for token, space_key_tuple in zip(tokens, spaces_keys):
             client = StreamingWrapper(token, space_key_tuple[0], space_key_tuple[1])
-            team_graph = self.collect_team(client)
+            team_graph = self.collect_team(client, self.core_feedback.with_context("digitalocean"))
             if team_graph:
                 self.graph.merge(team_graph)
 
-    def collect_team(self, client: StreamingWrapper) -> Optional[Graph]:
+    def collect_team(self, client: StreamingWrapper, feedback: CoreFeedback) -> Optional[Graph]:
         """Collects an individual team."""
         team_id = client.get_team_id()
         team = DigitalOceanTeam(id=team_id, tags={}, urn=f"do:team:{team_id}")
-        feedback = self.core_feedback.with_context("digitalocean", team_id)
 
         try:
-            feedback.progress_done(team_id, 0, 1, context=["digitalocean"])
-            dopc = DigitalOceanTeamCollector(team, client.with_feedback(feedback))
+            feedback.progress_done(team_id, 0, 1)
+            team_feedback = feedback.with_context("digitalocean", client.get_team_id())
+            dopc = DigitalOceanTeamCollector(team, client.with_feedback(team_feedback))
             dopc.collect()
-            feedback.progress_done(team_id, 1, 1, context=["digitalocean"])
+            feedback.progress_done(team_id, 1, 1)
         except Exception:
             log.exception(f"An unhandled error occurred while collecting team {team_id}")
             return None

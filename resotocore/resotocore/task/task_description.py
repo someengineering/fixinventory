@@ -392,7 +392,6 @@ class StepState(State):
         Override this method in deriving classes to define initial progress.
         :param progress: the progress tree to update.
         """
-        pass
 
     @staticmethod
     def from_step(step: Step, instance: RunningTask) -> StepState:
@@ -768,8 +767,8 @@ class RunningTask:
     def end_step(self) -> None:
         log.debug(f"Task {self.id}: end of step {self.current_step.name}")
         # mark all progresses as completed
-        if step_node := self.progresses.by_path(self.current_step.name):
-            self.progresses.add_progress(step_node.mark_done())
+        if self.progresses.has_path(self.current_step.name):
+            self.progresses.add_progress(ProgressDone(self.current_step.name, 1, 1))
 
 
 set_deserializer(StepAction.from_json, StepAction, high_prio=False)
