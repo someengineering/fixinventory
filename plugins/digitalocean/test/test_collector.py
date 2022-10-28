@@ -1,6 +1,7 @@
 from resoto_plugin_digitalocean.collector import DigitalOceanTeamCollector
 from resoto_plugin_digitalocean.resources import DigitalOceanTeam, DigitalOceanVolume, DigitalOceanDropletSize
 from resoto_plugin_digitalocean.client import StreamingWrapper
+from resotolib.core.actions import CoreFeedback
 from .fixtures import (
     droplets,
     regions,
@@ -37,6 +38,9 @@ from typing import Dict, Any, List, cast
 class ClientMock(StreamingWrapper, object):
     def __init__(self, responses: Dict[str, Any]) -> None:
         self.responses = responses
+
+    def with_feedback(self, core_feedback: CoreFeedback) -> StreamingWrapper:
+        return ClientMock(self.responses)
 
     def __getattribute__(self, name):  # type: ignore
         responses = super().__getattribute__("responses")
