@@ -1,4 +1,6 @@
 import multiprocessing
+
+from resotolib.core.actions import CoreFeedback
 from resotolib.logger import log, setup_logger
 import resotolib.proc
 from concurrent import futures
@@ -23,6 +25,10 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
 
     cloud = "gcp"
 
+    def __init__(self):
+        super().__init__()
+        self.core_feedback: Optional[CoreFeedback] = None
+
     def collect(self) -> None:
         """Run by resoto during the global collect() run.
 
@@ -31,6 +37,7 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
         it with the global production graph.
         """
         log.debug("plugin: GCP collecting resources")
+        assert self.core_feedback, "core_feedback is not set"  # will be set by the outer collector plugin
 
         credentials = Credentials.all()
         if len(Config.gcp.project) > 0:
@@ -63,6 +70,7 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
                 executor.submit(
                     self.collect_project,
                     project_id,
+                    self.core_feedback.with_context("gcp"),
                     **collect_args,
                 )
                 for project_id in credentials.keys()
@@ -77,6 +85,7 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
     @staticmethod
     def collect_project(
         project_id: str,
+        core_feedback: CoreFeedback,
         args: Namespace = None,
         running_config: RunningConfig = None,
         credentials=None,
@@ -107,10 +116,12 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
         log.debug(f"Starting new collect process for project {project.dname}")
 
         try:
+            core_feedback.progress_done(project_id, 0, 1)
             gpc = GCPProjectCollector(project)
             gpc.collect()
-        except Exception:
-            log.exception(f"An unhandled error occurred while collecting {project.rtdname}")
+            core_feedback.progress_done(project_id, 1, 1)
+        except Exception as ex:
+            core_feedback.with_context("gcp", project_id).error(f"Failed to collect project: {ex}", log)
         else:
             return gpc.graph
 

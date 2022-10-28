@@ -33,7 +33,7 @@ class DigitalOceanCollectorPlugin(BaseCollectorPlugin):
         tokens = Config.digitalocean.api_tokens
         spaces_access_keys: List[str] = Config.digitalocean.spaces_access_keys
         spaces_keys: List[Tuple[Optional[str], Optional[str]]] = []
-        assert self.core_feedback, "core_feedback is not set"
+        assert self.core_feedback, "core_feedback is not set"  # will be set by the outer collector plugin
 
         def spaces_keys_valid(keys: List[str]) -> bool:
             return all([len(key.split(":")) == 2 for key in keys])
@@ -67,11 +67,13 @@ class DigitalOceanCollectorPlugin(BaseCollectorPlugin):
         """Collects an individual team."""
         team_id = client.get_team_id()
         team = DigitalOceanTeam(id=team_id, tags={}, urn=f"do:team:{team_id}")
-        feedback_client = client.with_feedback(self.core_feedback.with_context("digitalocean", team_id))
+        feedback = self.core_feedback.with_context("digitalocean", team_id)
 
         try:
-            dopc = DigitalOceanTeamCollector(team, feedback_client)
+            feedback.progress_done(team_id, 0, 1, context=["digitalocean"])
+            dopc = DigitalOceanTeamCollector(team, client.with_feedback(feedback))
             dopc.collect()
+            feedback.progress_done(team_id, 1, 1, context=["digitalocean"])
         except Exception:
             log.exception(f"An unhandled error occurred while collecting team {team_id}")
             return None
