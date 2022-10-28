@@ -162,6 +162,7 @@ def collect_plugin_graph(
 ) -> Optional[Graph]:
     try:
         collector: BaseCollectorPlugin = collector_plugin()
+        core_feedback.progress_done(collector.cloud, 0, 1)
         if core_feedback and hasattr(collector, "core_feedback"):
             setattr(collector, "core_feedback", core_feedback)
         collector_name = f"collector_{collector.cloud}"
@@ -177,6 +178,7 @@ def collect_plugin_graph(
         start_time = time()
         collector.start()
         collector.join(Config.resotoworker.timeout)
+        core_feedback.progress_done(collector.cloud, 1, 1)
         elapsed = time() - start_time
         if not collector.is_alive():  # The plugin has finished its work
             if not collector.finished:

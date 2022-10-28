@@ -9,6 +9,7 @@ from _pytest.fixtures import SubRequest
 from kubernetes.client import Configuration
 from resoto_plugin_k8s.base import K8sApiResource, K8sClient
 from resoto_plugin_k8s.base import KubernetesResourceType
+from resotolib.core.actions import CoreFeedback
 from resotolib.types import Json
 
 
@@ -39,6 +40,9 @@ class StaticFileClient(K8sClient):
         self._config = config
         self.patches: List[Tuple[type, Optional[str], Optional[str], Json]] = []
         self.deletes: List[Tuple[type, Optional[str], Optional[str]]] = []
+
+    def with_feedback(self, core_feedback: CoreFeedback) -> "K8sClient":
+        return self
 
     def call_api(
         self, method: str, path: str, body: Optional[Json] = None, headers: Optional[Dict[str, str]] = None

@@ -8,6 +8,7 @@ from threading import RLock
 from typing import ClassVar, TypeVar, Any, Callable
 from typing import List, Type, Optional, Tuple, Dict
 
+from resotolib.core.actions import CoreFeedback
 from resotolib.json import to_json as to_js, from_json as from_js
 from kubernetes.client import ApiClient, Configuration, ApiException
 from kubernetes.config import load_kube_config, list_kube_config_contexts
@@ -253,7 +254,9 @@ class K8sConfig:
     def is_allowed(self, kind: str) -> bool:
         return (not self.collect or kind in self.collect) and kind not in self.no_collect
 
-    def cluster_access_configs(self, tmp_dir: str) -> Dict[str, Configuration]:
+    def cluster_access_configs(
+        self, tmp_dir: str, core_feedback: Optional[CoreFeedback] = None
+    ) -> Dict[str, Configuration]:
         with self._lock:
             result = {}
             cfg_files = self.config_files
@@ -267,13 +270,21 @@ class K8sConfig:
 
             # load all kubeconfig files
             for cf in cfg_files:
-                all_contexts, active_context = list_kube_config_contexts(cf.path)
-                contexts = all_contexts if cf.all_contexts else [a for a in all_contexts if a["name"] in cf.contexts]
-                for ctx in contexts:
-                    name = ctx["name"]
-                    config = Configuration()
-                    load_kube_config(cf.path, name, client_configuration=config)
-                    result[name] = config
+                try:
+                    all_contexts, active_context = list_kube_config_contexts(cf.path)
+                    contexts = (
+                        all_contexts if cf.all_contexts else [a for a in all_contexts if a["name"] in cf.contexts]
+                    )
+                    for ctx in contexts:
+                        name = ctx["name"]
+                        config = Configuration()
+                        load_kube_config(cf.path, name, client_configuration=config)
+                        result[name] = config
+                except Exception as e:
+                    msg = f"Failed to load kubeconfig from file {cf.path}: {e}"
+                    if core_feedback:
+                        core_feedback.error(msg)
+                    log.error(msg)
 
             return result
 
@@ -362,6 +373,10 @@ class K8sClient(ABC):
     @property
     @abstractmethod
     def host(self) -> str:
+        pass
+
+    @abstractmethod
+    def with_feedback(self, core_feedback: CoreFeedback) -> "K8sClient":
         pass
 
     def get(self, path: str) -> Json:
@@ -462,9 +477,13 @@ class K8sClient(ABC):
 
 
 class K8sApiClient(K8sClient):
-    def __init__(self, cluster_id: str, api_client: ApiClient):
+    def __init__(self, cluster_id: str, api_client: ApiClient, core_feedback: Optional[CoreFeedback] = None):
         self._cluster_id = cluster_id
         self.api_client = api_client
+        self.core_feedback = core_feedback
+
+    def with_feedback(self, core_feedback: CoreFeedback) -> "K8sClient":
+        return K8sApiClient(self._cluster_id, self.api_client, core_feedback)
 
     def call_api(
         self, method: str, path: str, body: Optional[Json] = None, headers: Optional[Dict[str, str]] = None
@@ -514,7 +533,10 @@ class K8sApiClient(K8sClient):
                 for resource in resources["resources"]:
                     add_resource(part, resource)
             except ApiException as ex:
-                log.warning(f"Failed to retrieve resource APIs for {part}. Reason: {ex}. Ignore.")
+                msg = f"Failed to retrieve resource APIs for {part}. Reason: {ex}. Ignore."
+                if self.core_feedback:
+                    self.core_feedback.error(msg)
+                log.warning(msg)
 
         return self.filter_apis(result)
 
@@ -525,7 +547,10 @@ class K8sApiClient(K8sClient):
             result = self.get(path or resource.list_path)
             return [(clazz.from_json(r), r) for r in result.get("items", [])]  # type: ignore
         except ApiException as ex:
-            log.warning(f"Failed to list resources: {resource.kind} on {resource.base}. Reason: {ex}. Ignore.")
+            msg = f"Failed to list resources: {resource.kind} on {resource.base}. Reason: {ex}. Ignore."
+            if self.core_feedback:
+                self.core_feedback.info(msg)
+            log.warning(msg)
             return []
 
     @staticmethod

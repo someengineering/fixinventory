@@ -464,7 +464,7 @@ def collect_account(
 
     log.debug(f"Starting new collect process for account {account.dname}")
 
-    feedback = core_feedback.with_context(["aws", account.id])
+    feedback = core_feedback.with_context("aws", account.id)
     aac = AwsAccountCollector(Config.aws, Cloud(id="aws", name="AWS"), account, regions, feedback)
     try:
         aac.collect()
