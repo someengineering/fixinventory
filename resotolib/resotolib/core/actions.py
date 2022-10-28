@@ -50,16 +50,19 @@ class CoreFeedback:
 
     def info(self, message: str, logger: Optional[Logger] = None) -> None:
         if logger:
-            logger.info(message)
+            logger.warning(self.context_str + message)
         self._info_message("info", message)
 
     def error(self, message: str, logger: Optional[Logger] = None) -> None:
         if logger:
-            logger.error(message)
+            logger.error(self.context_str + message)
         self._info_message("error", message)
 
+    @property
+    def context_str(self) -> str:
+        return "[" + (":".join(self.context)) + "] " if self.context else ""
+
     def _info_message(self, level: str, message: str) -> None:
-        ctx = "[" + (":".join(self.context)) + "] " if self.context else ""
         self.core_messages.put(
             {
                 "kind": "action_info",
@@ -68,7 +71,7 @@ class CoreFeedback:
                     "task": self.task_id,
                     "step": self.step_name,
                     "level": level,
-                    "message": ctx + message,
+                    "message": self.context_str + message,
                 },
             }
         )
