@@ -33,6 +33,8 @@ class Collector:
         task_id: str,
         step_name: str,
     ) -> None:
+        core_feedback = CoreFeedback(task_id, step_name, "collect", self.core_messages)
+
         def collect(collectors: List[Type[BaseCollectorPlugin]]) -> Optional[Graph]:
             graph = Graph(root=GraphRoot(id="root", tags={}))
 
@@ -54,7 +56,6 @@ class Collector:
                 collect_args = {
                     "args": ArgumentParser.args,
                     "running_config": self._config.running_config,
-                    "core_feedback": CoreFeedback(task_id, step_name, "collect", self.core_messages),
                 }
             else:
                 pool_executor = futures.ThreadPoolExecutor
@@ -65,6 +66,7 @@ class Collector:
                     executor.submit(
                         collect_plugin_graph,
                         collector,
+                        core_feedback,
                         **collect_args,
                     )
                     for collector in collectors
@@ -98,7 +100,9 @@ class Collector:
 
             with pool_executor(**pool_args) as executor:
                 for post_collector in post_collectors:
-                    future = executor.submit(run_post_collect_plugin, post_collector, graph, **collect_args)
+                    future = executor.submit(
+                        run_post_collect_plugin, post_collector, graph, core_feedback, **collect_args
+                    )
                     try:
                         new_graph = future.result(Config.resotoworker.timeout)
                     except TimeoutError as e:
@@ -125,9 +129,9 @@ class Collector:
 def run_post_collect_plugin(
     post_collector_plugin: Type[BasePostCollectPlugin],
     graph: Graph,
+    core_feedback: CoreFeedback,
     args: Optional[Namespace] = None,
     running_config: Optional[RunningConfig] = None,
-    core_feedback: Optional[CoreFeedback] = None,
 ) -> Optional[Graph]:
     try:
         post_collector: BasePostCollectPlugin = post_collector_plugin()
@@ -156,12 +160,13 @@ def run_post_collect_plugin(
 
 def collect_plugin_graph(
     collector_plugin: Type[BaseCollectorPlugin],
+    core_feedback: CoreFeedback,
     args: Optional[Namespace] = None,
     running_config: Optional[RunningConfig] = None,
-    core_feedback: Optional[CoreFeedback] = None,
 ) -> Optional[Graph]:
     try:
         collector: BaseCollectorPlugin = collector_plugin()
+        core_feedback.progress_done(collector.cloud, 0, 1)
         if core_feedback and hasattr(collector, "core_feedback"):
             setattr(collector, "core_feedback", core_feedback)
         collector_name = f"collector_{collector.cloud}"
@@ -177,6 +182,7 @@ def collect_plugin_graph(
         start_time = time()
         collector.start()
         collector.join(Config.resotoworker.timeout)
+        core_feedback.progress_done(collector.cloud, 1, 1)
         elapsed = time() - start_time
         if not collector.is_alive():  # The plugin has finished its work
             if not collector.finished:

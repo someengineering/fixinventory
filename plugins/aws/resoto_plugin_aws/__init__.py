@@ -62,7 +62,7 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
         log.debug("plugin: AWS collecting resources")
         assert self.core_feedback, "core_feedback is not set"
 
-        accounts = get_accounts()
+        accounts = get_accounts(self.core_feedback.with_context("aws"))
         if len(accounts) == 0:
             log.error("No accounts found")
             return
@@ -91,7 +91,7 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
                     self.regions(profile=account.profile),
                     ArgumentParser.args,
                     Config.running_config,
-                    self.core_feedback,
+                    self.core_feedback.with_context("aws", account.id),
                 )
                 for account in accounts
             ]
@@ -317,22 +317,22 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
         raise RuntimeError(f"Unsupported resource type: {resource.rtdname}")
 
 
-def authenticated(account: AwsAccount) -> bool:
+def authenticated(account: AwsAccount, core_feedback: CoreFeedback) -> bool:
     try:
         log.debug(f"AWS testing credentials for {account.rtdname}")
         session = aws_session(account.id, account.role, account.profile)
         _ = session.client("sts").get_caller_identity().get("Account")
     except botocore.exceptions.NoCredentialsError:
-        log.error(f"No AWS credentials found for {account.rtdname}")
+        core_feedback.error(f"No AWS credentials found for {account.rtdname}", log)
     except botocore.exceptions.ClientError as e:
         if e.response["Error"]["Code"] == "AuthFailure":
-            log.error(f"AWS was unable to validate the provided access credentials for {account.rtdname}")
+            core_feedback.error(f"Unable to validate the provided access credentials for {account.rtdname}", log)
         elif e.response["Error"]["Code"] == "InvalidClientTokenId":
-            log.error(f"AWS was unable to validate the provided security token for {account.rtdname}")
+            core_feedback.error(f"Unable to validate the provided security token for {account.rtdname}", log)
         elif e.response["Error"]["Code"] == "ExpiredToken":
-            log.error(f"AWS security token included in the request is expired for {account.rtdname}")
+            core_feedback.error(f"Security token included in the request is expired for {account.rtdname}", log)
         elif e.response["Error"]["Code"] == "AccessDenied":
-            log.error(f"AWS denied access to {account.rtdname}")
+            core_feedback.error(f"Access Denied to {account.rtdname}", log)
         else:
             raise
         return False
@@ -350,25 +350,29 @@ def current_account_id(profile: Optional[str] = None) -> str:
     return session.client("sts").get_caller_identity().get("Account")  # type: ignore
 
 
-def get_accounts() -> List[AwsAccount]:
+def get_accounts(core_feedback: CoreFeedback) -> List[AwsAccount]:
     accounts = []
     profiles = [None]
 
     if Config.aws.assume_current and not Config.aws.do_not_scrape_current:
-        raise ValueError(
+        msg = (
             "You specified assume_current but not do_not_scrape_current! "
             "This will result in the same account being collected twice and is likely not what you want."
         )
+        core_feedback.error(msg)
+        raise ValueError(msg)
 
     if isinstance(Config.aws.profiles, list) and len(Config.aws.profiles) > 0:
         log.debug("Using specified AWS profiles")
         profiles = Config.aws.profiles
         if Config.aws.account and len(Config.aws.profiles) > 1:
-            raise ValueError(
+            msg = (
                 "You specified both a list of accounts and more than one profile! "
                 "This will result in the attempt to collect the same accounts for "
                 "every profile and is likely not what you want."
             )
+            core_feedback.error(msg)
+            raise ValueError(msg)
 
     for profile in profiles:
         if profile is not None:
@@ -381,7 +385,9 @@ def get_accounts() -> List[AwsAccount]:
                     [
                         AwsAccount(id=aws_account_id, role=Config.aws.role, profile=profile)
                         for aws_account_id in get_org_accounts(
-                            filter_current_account=not Config.aws.assume_current, profile=profile
+                            filter_current_account=not Config.aws.assume_current,
+                            profile=profile,
+                            core_feedback=core_feedback,
                         )
                         if aws_account_id not in Config.aws.scrape_exclude_account
                     ]
@@ -399,23 +405,25 @@ def get_accounts() -> List[AwsAccount]:
             else:
                 accounts.extend([AwsAccount(id=current_account_id(profile=profile), profile=profile)])
         except botocore.exceptions.NoCredentialsError:
-            log.error(f"No AWS credentials found for {profile}")
+            core_feedback.error(f"No AWS credentials found for {profile}", log)
         except botocore.exceptions.ClientError as e:
             if e.response["Error"]["Code"] == "AuthFailure":
-                log.error(f"AWS was unable to validate the provided access credentials for {profile}")
+                core_feedback.error(f"Unable to validate the provided access credentials for {profile}", log)
             elif e.response["Error"]["Code"] == "InvalidClientTokenId":
-                log.error(f"AWS was unable to validate the provided security token for {profile}")
+                core_feedback.error(f"Unable to validate the provided security token for {profile}", log)
             elif e.response["Error"]["Code"] == "ExpiredToken":
-                log.error(f"AWS security token included in the request is expired for {profile}")
+                core_feedback.error(f"AWS security token included in the request is expired for {profile}", log)
             elif e.response["Error"]["Code"] == "AccessDenied":
-                log.error(f"AWS denied access for {profile}")
+                core_feedback.error(f"Access denied for profile {profile}", log)
             else:
                 raise
+        except botocore.exceptions.BotoCoreError as e:
+            core_feedback.error(f"Unable to get accounts for profile {profile}: {e}", log)
 
     return accounts
 
 
-def get_org_accounts(filter_current_account: bool = False, profile: Optional[str] = None) -> List[str]:
+def get_org_accounts(filter_current_account: bool, profile: Optional[str], core_feedback: CoreFeedback) -> List[str]:
     session = aws_session(profile=profile)
     client = session.client("organizations")
     accounts = []
@@ -427,7 +435,7 @@ def get_org_accounts(filter_current_account: bool = False, profile: Optional[str
             accounts.extend(response.get("Accounts", []))
     except botocore.exceptions.ClientError as e:
         if e.response["Error"]["Code"] == "AccessDeniedException":
-            log.error("AWS error - missing permissions to list organization accounts")
+            core_feedback.error("Missing permissions to list organization accounts", log)
         else:
             raise
     filter_account_id = current_account_id(profile=profile) if filter_current_account else -1
@@ -447,7 +455,7 @@ def all_regions(profile: Optional[str] = None) -> List[str]:
 
 @log_runtime
 def collect_account(
-    account: AwsAccount, regions: List[str], args: Namespace, running_config: RunningConfig, core_feedback: CoreFeedback
+    account: AwsAccount, regions: List[str], args: Namespace, running_config: RunningConfig, feedback: CoreFeedback
 ) -> Optional[Graph]:
     collector_name = f"aws_{account.id}"
     resotolib.proc.set_thread_name(collector_name)
@@ -458,22 +466,23 @@ def collect_account(
     if running_config is not None:
         Config.running_config.apply(running_config)
 
-    if not authenticated(account):
+    if not authenticated(account, feedback):
         log.error(f"Skipping {account.rtdname} due to authentication failure")
         return None
 
     log.debug(f"Starting new collect process for account {account.dname}")
 
-    feedback = core_feedback.with_context(["aws", account.id])
     aac = AwsAccountCollector(Config.aws, Cloud(id="aws", name="AWS"), account, regions, feedback)
     try:
         aac.collect()
     except botocore.exceptions.ClientError as e:
-        log.exception(f"An AWS {e.response['Error']['Code']} error occurred while collecting account {account.dname}")
+        feedback.error(
+            f"An AWS {e.response['Error']['Code']} error occurred while collecting account {account.dname}", log
+        )
         metrics_unhandled_account_exceptions.labels(account=account.dname).inc()
         return None
     except Exception:
-        log.exception(f"An unhandled error occurred while collecting AWS account {account.dname}")
+        feedback.error(f"An unhandled error occurred while collecting AWS account {account.dname}", log)
         metrics_unhandled_account_exceptions.labels(account=account.dname).inc()
         return None
 

@@ -11,6 +11,7 @@ from retrying import retry as retry_decorator
 from resoto_plugin_digitalocean.utils import RetryableHttpError
 from resoto_plugin_digitalocean.utils import retry_on_error
 from resotolib.config import Config
+from resotolib.core.actions import CoreFeedback
 from resotolib.types import Json
 
 F = TypeVar("F", bound=Callable[..., Any])
@@ -38,19 +39,24 @@ class StreamingWrapper:
         token: str,
         spaces_access_key: Optional[str],
         spaces_secret_key: Optional[str],
+        core_feedback: Optional[CoreFeedback] = None,
     ) -> None:
+        self.token = token
+        self.spaces_access_key = spaces_access_key
+        self.spaces_secret_key = spaces_secret_key
+        self.core_feedback = core_feedback
         self.do_api_endpoint = "https://api.digitalocean.com/v2"
-
         self.headers = {
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json",
         }
-        self.spaces_access_key = spaces_access_key
-        self.spaces_secret_key = spaces_secret_key
         if spaces_access_key and spaces_secret_key:
             self.session = boto3.session.Session()
         else:
             self.session = None
+
+    def with_feedback(self, core_feedback: CoreFeedback) -> "StreamingWrapper":
+        return StreamingWrapper(self.token, self.spaces_access_key, self.spaces_secret_key, core_feedback)
 
     def check_status_code(self, response: requests.Response) -> bool:
         status_code = response.status_code
@@ -59,9 +65,14 @@ class StreamingWrapper:
         if status_code == 429:
             raise RetryableHttpError(f"Too many requests: {method} {url} {response.reason} {response.text}")
         if status_code // 100 == 5:
-            raise RetryableHttpError(f"Server error: {method} {url} {response.reason} {response.text}")
+            msg = f"Server error: {method} {url} {response.reason} {response.text}"
+            if self.core_feedback:
+                self.core_feedback.error(msg, log)
+            raise RetryableHttpError(msg)
         if status_code // 100 == 4:
-            log.warning(f"Client error: {method} {url} {response.reason} {response.text}")
+            msg = f"Client error: {method} {url} {response.reason} {response.text}"
+            if self.core_feedback:
+                self.core_feedback.error(msg, log)
             return False
         if status_code // 100 == 2:
             log.debug(f"Success: {method} {url}")
@@ -81,7 +92,10 @@ class StreamingWrapper:
             if response.status_code == 429:
                 raise RetryableHttpError(f"Too many requests: {response.reason} {response.text}")
             if response.status_code / 100 == 5:
-                raise RetryableHttpError(f"Server error: {response.reason} {response.text}")
+                msg = f"Server error: {response.reason} {response.text}"
+                if self.core_feedback:
+                    self.core_feedback.error(msg, log)
+                raise RetryableHttpError(msg)
             return response
 
         json_response = validate_status(requests.get(url, headers=self.headers, allow_redirects=True)).json()

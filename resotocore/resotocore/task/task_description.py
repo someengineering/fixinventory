@@ -387,6 +387,12 @@ class StepState(State):
             return True
         return False
 
+    def initial_progress(self, progress: ProgressTree) -> None:
+        """
+        Override this method in deriving classes to define initial progress.
+        :param progress: the progress tree to update.
+        """
+
     @staticmethod
     def from_step(step: Step, instance: RunningTask) -> StepState:
         """
@@ -485,6 +491,11 @@ class PerformActionState(StepState):
         wait_for = js.get("wait_for", [])
         # filter all existing subscriber from the list of subscribers to wait_for
         self.wait_for = list(filter(identity, (existing.get(sid) for sid in wait_for)))  # type: ignore
+
+    def initial_progress(self, progress: ProgressTree) -> None:
+        super().initial_progress(progress)
+        if self.wait_for:
+            progress.add_progress(ProgressDone(self.step.name, 0, 1))
 
 
 class WaitForEventState(StepState):
@@ -607,12 +618,14 @@ class RunningTask:
         self.descriptor_alive = True
         self.info_messages: List[Union[ActionInfo, ActionError]] = []
         # ProgressTree: [step_name, path, to progress] -> progress
-        self.progresses: ProgressTree = Progress.from_progresses(
-            self.descriptor.name,
-            [ProgressDone(step.name, 0, 1) for step in descriptor.steps if isinstance(step.action, PerformAction)],
-        )
+        self.progresses: ProgressTree = ProgressTree(self.descriptor.name)
 
-        steps = [StepState.from_step(step, self) for step in descriptor.steps]
+        steps = []
+        for step in descriptor.steps:
+            step_state = StepState.from_step(step, self)
+            step_state.initial_progress(self.progresses)
+            steps.append(step_state)
+
         start = StartState(self)
         end = EndState(self)
         states: List[StepState] = [start, *steps, end]
@@ -754,12 +767,8 @@ class RunningTask:
     def end_step(self) -> None:
         log.debug(f"Task {self.id}: end of step {self.current_step.name}")
         # mark all progresses as completed
-        if isinstance(self.current_step.action, PerformAction):
-            if step_node := self.progresses.by_path(self.current_step.name):
-                self.progresses.add_progress(step_node.mark_done())
-            else:
-                # nobody reported any progress: create a progress done object
-                self.progresses.add_progress(ProgressDone(self.current_step.name, 1, 1))
+        if self.progresses.has_path(self.current_step.name):
+            self.progresses.add_progress(ProgressDone(self.current_step.name, 1, 1))
 
 
 set_deserializer(StepAction.from_json, StepAction, high_prio=False)

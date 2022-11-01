@@ -7,6 +7,7 @@ from resoto_plugin_digitalocean.config import DigitalOceanCollectorConfig
 from resoto_plugin_digitalocean.utils import dump_tag
 from resotolib.config import Config
 from resotolib.baseplugin import BaseCollectorPlugin
+from resotolib.core.actions import CoreFeedback
 from resotolib.logger import log
 from resotolib.graph import Graph
 from resotolib.baseresources import BaseResource
@@ -15,6 +16,10 @@ import time
 
 class DigitalOceanCollectorPlugin(BaseCollectorPlugin):
     cloud = "digitalocean"
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.core_feedback: Optional[CoreFeedback] = None
 
     def collect(self) -> None:
         """This method is being called by resoto whenever the collector runs
@@ -28,6 +33,7 @@ class DigitalOceanCollectorPlugin(BaseCollectorPlugin):
         tokens = Config.digitalocean.api_tokens
         spaces_access_keys: List[str] = Config.digitalocean.spaces_access_keys
         spaces_keys: List[Tuple[Optional[str], Optional[str]]] = []
+        assert self.core_feedback, "core_feedback is not set"  # will be set by the outer collector plugin
 
         def spaces_keys_valid(keys: List[str]) -> bool:
             return all([len(key.split(":")) == 2 for key in keys])
@@ -53,18 +59,21 @@ class DigitalOceanCollectorPlugin(BaseCollectorPlugin):
         log.info(f"plugin: collecting DigitalOcean resources for {len(tokens)} teams")
         for token, space_key_tuple in zip(tokens, spaces_keys):
             client = StreamingWrapper(token, space_key_tuple[0], space_key_tuple[1])
-            team_graph = self.collect_team(client)
+            team_graph = self.collect_team(client, self.core_feedback.with_context("digitalocean"))
             if team_graph:
                 self.graph.merge(team_graph)
 
-    def collect_team(self, client: StreamingWrapper) -> Optional[Graph]:
+    def collect_team(self, client: StreamingWrapper, feedback: CoreFeedback) -> Optional[Graph]:
         """Collects an individual team."""
         team_id = client.get_team_id()
         team = DigitalOceanTeam(id=team_id, tags={}, urn=f"do:team:{team_id}")
 
         try:
-            dopc = DigitalOceanTeamCollector(team, client)
+            feedback.progress_done(team_id, 0, 1)
+            team_feedback = feedback.with_context("digitalocean", client.get_team_id())
+            dopc = DigitalOceanTeamCollector(team, client.with_feedback(team_feedback))
             dopc.collect()
+            feedback.progress_done(team_id, 1, 1)
         except Exception:
             log.exception(f"An unhandled error occurred while collecting team {team_id}")
             return None

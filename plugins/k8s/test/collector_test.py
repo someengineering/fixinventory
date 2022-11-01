@@ -1,3 +1,4 @@
+from queue import Queue
 from typing import Tuple, List
 
 import jsons
@@ -7,6 +8,7 @@ from resoto_plugin_k8s.base import K8sConfig, K8sAccess, K8sApiResource, K8sClie
 from resoto_plugin_k8s import KubernetesCollectorPlugin
 from resoto_plugin_k8s.resources import KubernetesCluster, KubernetesClusterInfo, KubernetesConfigMap
 from resotolib.config import Config
+from resotolib.core.actions import CoreFeedback
 from resotolib.graph import Graph
 from pytest import fixture
 
@@ -44,6 +46,7 @@ def test_collect() -> None:
     Config.running_config.data["k8s"] = cfg
 
     plugin = KubernetesCollectorPlugin()
+    plugin.core_feedback = CoreFeedback("test", "test", "test", Queue())
     # start a collect: use the static file client to get the static json files
     plugin.collect(client_factory=StaticFileClient.static)
     assert len(plugin.graph.nodes) == 562

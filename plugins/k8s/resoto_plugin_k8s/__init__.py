@@ -3,7 +3,7 @@ import multiprocessing
 from concurrent import futures
 from concurrent.futures import Executor
 from tempfile import TemporaryDirectory
-from typing import Dict, Any, Type
+from typing import Dict, Any, Type, Optional
 
 import resotolib.logger
 import resotolib.proc
@@ -16,6 +16,7 @@ from resoto_plugin_k8s.base import K8sConfig
 from resotolib.args import ArgumentParser, Namespace
 from resotolib.baseplugin import BaseCollectorPlugin
 from resotolib.config import Config, RunningConfig
+from resotolib.core.actions import CoreFeedback
 from resotolib.graph import Graph
 
 log = logging.getLogger("resoto.plugins.k8s")
@@ -24,12 +25,18 @@ log = logging.getLogger("resoto.plugins.k8s")
 class KubernetesCollectorPlugin(BaseCollectorPlugin):
     cloud = "k8s"
 
+    def __init__(self) -> None:
+        super().__init__()
+        # once defined, it will be set by the worker
+        self.core_feedback: Optional[CoreFeedback] = None
+
     def collect(self, **kwargs: Any) -> None:
         log.debug("plugin: Kubernetes collecting resources")
+        assert self.core_feedback, "core_feedback is not set"
 
         k8s: K8sConfig = Config.k8s
         with TemporaryDirectory() as tmpdir:
-            cluster_access = k8s.cluster_access_configs(tmpdir)
+            cluster_access = k8s.cluster_access_configs(tmpdir, self.core_feedback)
 
             if len(cluster_access) == 0:
                 log.warning("Kubernetes plugin enabled, but no clusters configured. Ignore.")
@@ -52,6 +59,7 @@ class KubernetesCollectorPlugin(BaseCollectorPlugin):
                         cluster_config,
                         ArgumentParser.args,
                         Config.running_config,
+                        self.core_feedback.with_context("k8s", cluster_id),
                         **kwargs,
                     )
                     for cluster_id, cluster_config in cluster_access.items()
@@ -65,7 +73,12 @@ class KubernetesCollectorPlugin(BaseCollectorPlugin):
 
     @staticmethod
     def collect_cluster(
-        cluster_id: str, cluster_config: Configuration, args: Namespace, running_config: RunningConfig, **kwargs: Any
+        cluster_id: str,
+        cluster_config: Configuration,
+        args: Namespace,
+        running_config: RunningConfig,
+        core_feedback: CoreFeedback,
+        **kwargs: Any,
     ) -> Graph:
         """
         Collects an individual Kubernetes Cluster.
@@ -80,17 +93,19 @@ class KubernetesCollectorPlugin(BaseCollectorPlugin):
         log.debug(f"Starting new collect process for {cluster_id}")
 
         try:
-            k8s_client: K8sClient = kwargs.get("client_factory", K8sApiClient.from_config)(cluster_id, cluster_config)
+            k8s_client: K8sClient = kwargs.get("client_factory", K8sApiClient.from_config)(
+                cluster_id, cluster_config
+            ).with_feedback(core_feedback)
             kc = KubernetesCollector(Config.k8s, k8s_client)
             kc.collect()
         except ApiException as e:
             if e.reason == "Unauthorized":
-                log.error(f"Unable to authenticate with {cluster_id}")
+                core_feedback.error(f"Unable to authenticate with {cluster_id}", log)
             else:
-                log.exception(f"An unhandled error occurred while collecting {cluster_id}: {e}")
+                core_feedback.error(f"An unhandled error occurred while collecting {cluster_id}: {e}", log)
             raise
         except Exception as e:
-            log.exception(f"An unhandled error occurred while collecting {cluster_id}: {e}")
+            core_feedback.error(f"An unhandled error occurred while collecting {cluster_id}: {e}", log)
             raise
         else:
             return kc.graph

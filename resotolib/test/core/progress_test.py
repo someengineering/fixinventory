@@ -57,6 +57,7 @@ def test_invalid() -> None:
 
 
 def test_path(progress: ProgressTree) -> None:
+    assert progress.has_path("account1.region1")
     res = progress.by_path("account1.region1")
     assert res is not None
     assert res.percentage == 50
