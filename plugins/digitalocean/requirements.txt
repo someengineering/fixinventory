@@ -1,5 +1,5 @@
 resotolib==3.0.0a0
-boto3==1.24.93
-requests>=2.27.1
-botocore==1.27.93
-retrying>=1.3.3
+boto3>=1
+requests>=2.27
+botocore>=1
+retrying>=1.3

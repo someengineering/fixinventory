@@ -1,4 +1,4 @@
-build==0.8.0
-jupyterlab==3.4.5
+build==0.9.0
+jupyterlab==3.5.0
 jupyterlite==0.1.0b13
-plotly==5.10.0
+plotly==5.11.0
