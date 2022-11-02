@@ -312,15 +312,22 @@ class Api:
     async def put_config(self, request: Request) -> StreamResponse:
         config_id = ConfigId(request.match_info["config_id"])
         validate = request.query.get("validate", "true").lower() != "false"
+        dry_run = request.query.get("dry_run", "false").lower() == "true"
         config = await self.json_from_request(request)
-        result = await self.config_handler.put_config(ConfigEntity(config_id, config), validate)
+        result = await self.config_handler.put_config(
+            ConfigEntity(config_id, config), validate=validate, dry_run=dry_run
+        )
         headers = {"Resoto-Config-Revision": result.revision}
         return await single_result(request, result.config, headers)
 
     async def patch_config(self, request: Request) -> StreamResponse:
         config_id = ConfigId(request.match_info["config_id"])
+        validate = request.query.get("validate", "true").lower() != "false"
+        dry_run = request.query.get("dry_run", "false").lower() == "true"
         patch = await self.json_from_request(request)
-        updated = await self.config_handler.patch_config(ConfigEntity(config_id, patch))
+        updated = await self.config_handler.patch_config(
+            ConfigEntity(config_id, patch), validate=validate, dry_run=dry_run
+        )
         headers = {"Resoto-Config-Revision": updated.revision}
         return await single_result(request, updated.config, headers)
 

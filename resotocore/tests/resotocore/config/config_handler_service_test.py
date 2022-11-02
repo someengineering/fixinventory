@@ -105,6 +105,20 @@ async def test_config_change_event(config_handler: ConfigHandlerService) -> None
 
 
 @pytest.mark.asyncio
+async def test_dry_run(config_handler: ConfigHandlerService) -> None:
+    config_id = ConfigId("test_dry_run")
+    entity = ConfigEntity(config_id, {"test": True})
+
+    # put dry run -> config is not stored
+    assert await config_handler.put_config(entity, dry_run=True) == entity
+    assert await config_handler.get_config(config_id) is None
+
+    # patch dry run -> config is not stored
+    assert await config_handler.patch_config(entity, dry_run=True) == entity
+    assert await config_handler.get_config(config_id) is None
+
+
+@pytest.mark.asyncio
 async def test_config_change_analytics(config_handler: ConfigHandler) -> None:
 
     config_id = ConfigId("test")

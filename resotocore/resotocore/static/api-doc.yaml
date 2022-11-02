@@ -1711,6 +1711,14 @@ paths:
             In case it is not defined or not set to false, every configuaration value is validated.
           schema:
             type: boolean
+        - name: dry_run
+          required: false
+          in: query
+          description: |
+            This parameter can be used to test if the config could be updated without really changing it.
+            It will perform all validations but not store the new value.
+          schema:
+            type: boolean
       requestBody:
         content:
           application/json:
@@ -1744,6 +1752,22 @@ paths:
           description: the identifier of the config to get.
           schema:
             type: string
+        - name: validate
+          required: false
+          in: query
+          description: |
+            This parameter can be used to turn off config validation.
+            In case it is not defined or not set to false, every configuaration value is validated.
+          schema:
+            type: boolean
+        - name: dry_run
+          required: false
+          in: query
+          description: |
+            This parameter can be used to test if the config could be patched without really changing it.
+            It will perform all validations but not store the new value.
+          schema:
+            type: boolean
       requestBody:
         content:
           application/json:

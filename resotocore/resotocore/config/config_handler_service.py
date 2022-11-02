@@ -66,25 +66,28 @@ class ConfigHandlerService(ConfigHandler):
     async def get_config(self, cfg_id: ConfigId) -> Optional[ConfigEntity]:
         return await self.cfg_db.get(cfg_id)
 
-    async def put_config(self, cfg: ConfigEntity, validate: bool = True) -> ConfigEntity:
+    async def put_config(self, cfg: ConfigEntity, *, validate: bool = True, dry_run: bool = False) -> ConfigEntity:
         coerced = await self.coerce_and_check_model(cfg.id, cfg.config, validate)
         existing = await self.cfg_db.get(cfg.id)
-        if not existing or existing.config != cfg.config:
+        if not dry_run and (not existing or existing.config != cfg.config):
             result = await self.cfg_db.update(ConfigEntity(cfg.id, coerced, cfg.revision))
             await self.message_bus.emit_event(CoreMessage.ConfigUpdated, dict(id=result.id, revision=result.revision))
             await self.event_sender.core_event(CoreEvent.SystemConfigurationChanged, result.analytics())
             return result
         else:
-            return existing
+            return cfg
 
-    async def patch_config(self, cfg: ConfigEntity) -> ConfigEntity:
+    async def patch_config(self, cfg: ConfigEntity, *, validate: bool = True, dry_run: bool = False) -> ConfigEntity:
         current = await self.cfg_db.get(cfg.id)
         current_config = current.config if current else {}
-        coerced = await self.coerce_and_check_model(cfg.id, deep_merge(current_config, cfg.config))
-        result = await self.cfg_db.update(ConfigEntity(cfg.id, coerced, current.revision if current else None))
-        await self.message_bus.emit_event(CoreMessage.ConfigUpdated, dict(id=result.id, revision=result.revision))
-        await self.event_sender.core_event(CoreEvent.SystemConfigurationChanged, result.analytics())
-        return result
+        coerced = await self.coerce_and_check_model(cfg.id, deep_merge(current_config, cfg.config), validate)
+        if not dry_run and (not current or current_config != coerced):
+            result = await self.cfg_db.update(ConfigEntity(cfg.id, coerced, current.revision if current else None))
+            await self.message_bus.emit_event(CoreMessage.ConfigUpdated, dict(id=result.id, revision=result.revision))
+            await self.event_sender.core_event(CoreEvent.SystemConfigurationChanged, result.analytics())
+            return result
+        else:
+            return cfg
 
     async def delete_config(self, cfg_id: ConfigId) -> None:
         await self.cfg_db.delete(cfg_id)

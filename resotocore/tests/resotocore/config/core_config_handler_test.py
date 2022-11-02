@@ -103,6 +103,9 @@ async def test_detect_usage_metrics_turned_off(
 ) -> None:
     # make sure usage metrics are enabled
     core_config_handler_started.config.runtime.usage_metrics = True
+    await config_handler.patch_config(
+        ConfigEntity(ResotoCoreConfigId, {ResotoCoreRoot: {"runtime": {"usage_metrics": True}}})
+    )
     # disable usage metrics
     await config_handler.patch_config(
         ConfigEntity(ResotoCoreConfigId, {ResotoCoreRoot: {"runtime": {"usage_metrics": False}}})
