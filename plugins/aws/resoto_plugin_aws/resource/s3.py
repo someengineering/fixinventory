@@ -1,13 +1,12 @@
 from typing import ClassVar, Dict, List, Type, Optional, cast  # noqa: F401
 
 from attrs import define
-import botocore.exceptions
+
+from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
+from resoto_plugin_aws.utils import tags_as_dict
 from resotolib.baseresources import BaseBucket, BaseAccount  # noqa: F401
 from resotolib.json_bender import Bender, S
-from resoto_plugin_aws.aws_client import AwsClient
-from resoto_plugin_aws.utils import tags_as_dict
-
 from resotolib.types import Json
 
 
@@ -47,16 +46,14 @@ class AwsS3Bucket(AwsResource, BaseBucket):
 
     def _get_tags(self, client: AwsClient) -> Dict[str, str]:
         """Fetch the S3 buckets tags from the AWS API."""
-        tags: Dict[str, str] = {}
-        try:
-            response = client.call(
-                aws_service="s3", action="get-bucket-tagging", result_name="TagSet", Bucket=self.name
-            )
-            tags = tags_as_dict(response)  # type: ignore
-        except botocore.exceptions.ClientError as e:
-            if e.response["Error"]["Code"] != "NoSuchTagSet":
-                raise
-        return tags
+        tag_list = client.list(
+            aws_service="s3",
+            action="get-bucket-tagging",
+            result_name="TagSet",
+            expected_errors=["NoSuchTagSet"],
+            Bucket=self.name,
+        )
+        return tags_as_dict(tag_list)  # type: ignore
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         tags = self._get_tags(client)

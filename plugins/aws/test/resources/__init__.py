@@ -101,10 +101,15 @@ class BotoErrorClient:
 
 # use this factory in tests, to check how the collector behaves n terms of errors
 class BotoErrorSession(Session):  # type: ignore
-    exception: Exception = Exception("Test exception")
+    def __init__(self, exception: Exception = Exception("Test exception"), **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        self.exception = exception
 
     def client(self, service_name: str, **kwargs: Any) -> Any:
         return BotoErrorClient(self.exception)
+
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
+        return self
 
 
 def all_props_set(obj: AwsResourceType, ignore_props: Set[str]) -> None:

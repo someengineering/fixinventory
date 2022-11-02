@@ -186,7 +186,9 @@ class AwsSnsEndpoint(AwsResource):
 @define(eq=False, slots=False)
 class AwsSnsPlatformApplication(AwsResource):
     kind: ClassVar[str] = "aws_sns_platform_application"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sns", "list-platform-applications", "PlatformApplications")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
+        "sns", "list-platform-applications", "PlatformApplications", expected_errors=["InvalidAction"]
+    )
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": ["aws_sns_topic", "aws_sns_endpoint"],
@@ -234,13 +236,12 @@ class AwsSnsPlatformApplication(AwsResource):
                 app_instance = cls.from_api(app)
                 builder.add_node(app_instance, app)
 
-            endpoints = builder.client.list(
-                "sns",
-                "list-endpoints-by-platform-application",
-                PlatformApplicationArn=app_arn,
-                result_name="Endpoints",
-            )
-            if endpoints:
+                endpoints = builder.client.list(
+                    "sns",
+                    "list-endpoints-by-platform-application",
+                    PlatformApplicationArn=app_arn,
+                    result_name="Endpoints",
+                )
                 for endpoint in endpoints:
                     attributes = endpoint["Attributes"]
                     attributes["Arn"] = endpoint["EndpointArn"]

@@ -59,8 +59,9 @@ def test_dependencies() -> None:
 def test_collect_region(
     account_collector: AwsAccountCollector, builder: GraphBuilder, caplog: LogCaptureFixture
 ) -> None:
-    BotoErrorSession.exception = ClientError({"Error": {"Code": "UnauthorizedOperation"}}, "test")
-    account_collector.config.sessions().session_class_factory = BotoErrorSession
+    account_collector.config.sessions().session_class_factory = BotoErrorSession(
+        ClientError({"Error": {"Code": "UnauthorizedOperation"}}, "test")
+    )
 
     with caplog.at_level(logging.ERROR):
         account_collector.collect_region(AwsRegion(id="us-east-1", name="us-east-1"), builder)
