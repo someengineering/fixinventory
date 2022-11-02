@@ -89,6 +89,8 @@ services:
     environment:
       - PSK
       - RESOTOSHELL_RESOTOCORE_URI=https://resotocore:8900
+    volumes:
+      - ~/resoto-downloads:/home/resoto/downloads
     command:
       - --wait
     restart: always
