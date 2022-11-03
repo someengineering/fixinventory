@@ -45,6 +45,7 @@ class AwsApiSpec:
     api_action: str
     result_property: Optional[str] = None
     parameter: Optional[Dict[str, Any]] = None
+    expected_errors: Optional[List[str]] = None
 
     def action_string(self) -> str:
         action = "".join(word.title() for word in self.api_action.split("-"))
@@ -161,7 +162,13 @@ class AwsResource(BaseResource, ABC):
         if spec := cls.api_spec:
             try:
                 kwargs = spec.parameter or {}
-                items = builder.client.list(spec.service, spec.api_action, spec.result_property, **kwargs)
+                items = builder.client.list(
+                    aws_service=spec.service,
+                    action=spec.api_action,
+                    result_name=spec.result_property,
+                    expected_errors=spec.expected_errors,
+                    **kwargs,
+                )
                 cls.collect(items, builder)
             except Boto3Error as e:
                 msg = f"Error while collecting {cls.__name__} in region {builder.region.name}: {e}"

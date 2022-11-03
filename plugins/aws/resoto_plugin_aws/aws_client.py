@@ -105,34 +105,69 @@ class AwsClient:
         retry_on_exception=is_retryable_exception,
     )
     @log_runtime
-    def call(self, aws_service: str, action: str, result_name: Optional[str], **kwargs: Any) -> JsonElement:
+    def call(
+        self,
+        aws_service: str,
+        action: str,
+        result_name: Optional[str],
+        expected_errors: Optional[List[str]] = None,
+        **kwargs: Any,
+    ) -> JsonElement:
+        def log_error(message: str) -> None:
+            log.exception(message)
+            if self.core_feedback:
+                self.core_feedback.error(message)
+
         try:
             # 5 attempts is the default
             return self.call_single(aws_service, action, result_name, max_attempts=5, **kwargs)
         except ClientError as e:
-            code = e.response["Error"]["Code"]
-            if code == "AccessDenied":
-                log.error(f"Access denied to collect resources in account {self.account_id} region {self.region}")
+            expected_errors = expected_errors or []
+            code = e.response["Error"]["Code"] or "Unknown Code"
+            if code in expected_errors:
+                log.debug(f"Expected error: {code}")
+                return None
+            if code.lower().startswith("accessdenied"):
+                log_error(
+                    f"Access denied to call service {aws_service} with action {action} code {code} "
+                    f"in account {self.account_id} region {self.region}"
+                )
                 return None
             elif code == "UnauthorizedOperation":
+                log_error(
+                    f"Call to {aws_service} action {action} in account {self.account_id} region {self.region}"
+                    " is not authorized! Give up."
+                )
                 raise  # not allowed to collect in account/region
             elif code in RetryableErrors:
+                log_error(f"Call to {aws_service} action {action} has been retried too many times. Give up.")
                 raise  # already have been retried, give up here
             else:
-                msg = (
+                log_error(
                     f"An AWS API error {code} occurred during resource collection of {aws_service} action {action} in "  # noqa: E501
                     f"account {self.account_id} region {self.region} - skipping resources"
                 )
-                log.exception(msg)
-                if self.core_feedback:
-                    self.core_feedback.error(msg)
                 return None
 
-    def list(self, aws_service: str, action: str, result_name: Optional[str], **kwargs: Any) -> List[Any]:
-        return self.call(aws_service, action, result_name, **kwargs) or []
+    def list(
+        self,
+        aws_service: str,
+        action: str,
+        result_name: Optional[str],
+        expected_errors: Optional[List[str]] = None,
+        **kwargs: Any,
+    ) -> List[Any]:
+        return self.call(aws_service, action, result_name, expected_errors, **kwargs) or []
 
-    def get(self, aws_service: str, action: str, result_name: Optional[str], **kwargs: Any) -> Optional[Json]:
-        return self.call(aws_service, action, result_name, **kwargs)  # type: ignore
+    def get(
+        self,
+        aws_service: str,
+        action: str,
+        result_name: Optional[str],
+        expected_errors: Optional[List[str]] = None,
+        **kwargs: Any,
+    ) -> Optional[Json]:
+        return self.call(aws_service, action, result_name, expected_errors, **kwargs)  # type: ignore
 
     def for_region(self, region: str) -> AwsClient:
         return AwsClient(

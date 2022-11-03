@@ -33,10 +33,10 @@ def test_tagging() -> None:
             assert kwargs["Bucket"] == bucket.name
             assert kwargs["Tagging"] == {"TagSet": []}
 
-    client = cast(AwsClient, SimpleNamespace(call=validate_update_args))
+    client = cast(AwsClient, SimpleNamespace(list=validate_update_args, call=validate_update_args))
     bucket.update_resource_tag(client, "foo", "bar")
 
-    client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
+    client = cast(AwsClient, SimpleNamespace(list=validate_delete_args, call=validate_delete_args))
     bucket.delete_resource_tag(client, "foo")
 
 

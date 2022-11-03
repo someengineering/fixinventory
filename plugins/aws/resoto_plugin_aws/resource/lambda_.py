@@ -247,7 +247,13 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
             instance = cls.from_api(js)
             builder.add_node(instance, js)
             builder.submit_work(add_tags, instance)
-            for policy in builder.client.list("lambda", "get-policy", FunctionName=instance.name, result_name=None):
+            for policy in builder.client.list(
+                "lambda",
+                "get-policy",
+                expected_errors=["ResourceNotFoundException"],  # policy is optional
+                FunctionName=instance.name,
+                result_name=None,
+            ):
                 if policy:
                     mapped = bend(AwsLambdaGetPolicyResponse.mapping, policy)
                     policy_instance = from_json(mapped, AwsLambdaGetPolicyResponse)
