@@ -77,7 +77,9 @@ async def repl(client: ResotoClient, args: Namespace, session: PromptSession) ->
     # send the welcome command to the core
     await shell.handle_command("welcome")
 
-    event_listener = asyncio.create_task(attach_to_event_stream(client, shell, shutdown_event))
+    event_listener = (
+        None if args.no_events else asyncio.create_task(attach_to_event_stream(client, shell, shutdown_event))
+    )
     try:
         while not shutdown_event.is_set():
             try:
@@ -197,8 +199,15 @@ def add_args(arg_parser: ArgumentParser) -> None:
     )
     arg_parser.add_argument(
         "--stdin",
-        help="Read from STDIN instead of opening a shell",
+        help="Read from STDIN instead of opening a shell.",
         dest="stdin",
+        action="store_true",
+        default=False,
+    )
+    arg_parser.add_argument(
+        "--no-events",
+        help="Do not attach to the servers event stream. No event messages will be shown.",
+        dest="no_events",
         action="store_true",
         default=False,
     )
