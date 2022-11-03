@@ -101,11 +101,11 @@ class ConfigHandler(ABC):
         pass
 
     @abstractmethod
-    async def put_config(self, cfg: ConfigEntity, validate: bool = True) -> ConfigEntity:
+    async def put_config(self, cfg: ConfigEntity, *, validate: bool = True, dry_run: bool = False) -> ConfigEntity:
         pass
 
     @abstractmethod
-    async def patch_config(self, cfg: ConfigEntity) -> ConfigEntity:
+    async def patch_config(self, cfg: ConfigEntity, *, validate: bool = True, dry_run: bool = False) -> ConfigEntity:
         pass
 
     @abstractmethod

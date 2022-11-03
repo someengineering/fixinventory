@@ -127,7 +127,7 @@ class CoreConfigHandler:
             updated = deep_merge(empty, existing.config) if existing else empty
             updated = migrate_config(updated)
             if existing is None or updated != existing.config:
-                await self.config_handler.put_config(ConfigEntity(ResotoCoreConfigId, updated), False)
+                await self.config_handler.put_config(ConfigEntity(ResotoCoreConfigId, updated), validate=False)
                 log.info("Default resoto config updated.")
         except Exception as ex:
             log.error(f"Could not update resoto default configuration: {ex}", exc_info=ex)
@@ -138,7 +138,7 @@ class CoreConfigHandler:
             existing_commands = await self.config_handler.get_config(ResotoCoreCommandsConfigId)
             if existing_commands is None:
                 await self.config_handler.put_config(
-                    ConfigEntity(ResotoCoreCommandsConfigId, CustomCommandsConfig().json()), False
+                    ConfigEntity(ResotoCoreCommandsConfigId, CustomCommandsConfig().json()), validate=False
                 )
                 log.info("Default resoto commands config updated.")
         except Exception as ex:
