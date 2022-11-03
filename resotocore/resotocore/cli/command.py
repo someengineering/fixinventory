@@ -1940,7 +1940,7 @@ class FormatCommand(CLICommand, OutputTransformer):
        Subsequent object will be separated by `---`.
     - `--ndjson` [Optional] - will create a json object for every element, where one element fits on one line.
     - `--text` [Optional] - will create a text representation of every element.
-    - `--cytoscape` [Optional] - will create a string representation in the well known cytoscape format.
+    - `--cytoscape` [Optional] - will create a string representation in the well known Cytoscape .cyjs format.
       See: [https://js.cytoscape.org/#notation/elements-json](https://js.cytoscape.org/#notation/elements-json)
     - `--graphml` [Optional] - will create string representaion of the result in graphml format.
       See: [http://graphml.graphdrawing.org](http://graphml.graphdrawing.org)
