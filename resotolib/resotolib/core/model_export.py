@@ -1,20 +1,22 @@
+import re
 from collections import defaultdict
+from datetime import datetime, date, timedelta, timezone
+from enum import Enum
+from functools import lru_cache, reduce
+from pydoc import locate
+from types import UnionType, NoneType
+from typing import List, MutableSet, Union, Tuple, Dict, Set, Any, TypeVar, Type, Optional, Literal
+from typing import get_args, get_origin
 
 import attrs
 import cattrs
 from attr import resolve_types
 from attrs import Attribute
-from datetime import datetime, date, timedelta, timezone
-from functools import lru_cache, reduce
-from pydoc import locate
-from typing import List, MutableSet, Union, Tuple, Dict, Set, Any, TypeVar, Type, Optional
+
 from resotolib.baseresources import BaseResource
 from resotolib.durations import duration_str
 from resotolib.types import Json
 from resotolib.utils import type_str, str2timedelta, str2timezone, utc_str
-from typing import get_args, get_origin
-from enum import Enum
-import re
 
 
 # List[X] -> list, list -> list
@@ -351,10 +353,24 @@ def convert_datetime(value: datetime) -> datetime:
     return datetime.fromisoformat(datetime_str)
 
 
+def is_primitive_or_primitive_union(t: Any) -> bool:
+    if t in (str, bytes, int, float, bool, NoneType):
+        return True
+    origin = get_origin(t)
+    if origin is Literal:
+        return True
+    if (basetype := cattrs._compat.get_newtype_base(t)) is not None:
+        return is_primitive_or_primitive_union(basetype)
+    if origin in (UnionType, Union):
+        return all(is_primitive_or_primitive_union(ty) for ty in get_args(t))
+
+
 converter.register_structure_hook(datetime, lambda obj, typ: convert_datetime(obj))
 converter.register_structure_hook(date, lambda obj, typ: date.fromisoformat(obj))
 converter.register_structure_hook(timedelta, lambda obj, typ: str2timedelta(obj))
 converter.register_structure_hook(timezone, lambda obj, typ: str2timezone(obj))
+# work around until this is solved: https://github.com/python-attrs/cattrs/issues/278
+converter.register_structure_hook_func(is_primitive_or_primitive_union, lambda v, ty: v)
 
 
 def node_from_dict(node_data: Dict, include_select_ancestors: bool = False) -> BaseResource:

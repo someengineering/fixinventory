@@ -1,21 +1,29 @@
-from resotolib.logger import log
-from resotolib.core.search import CoreGraph
-from resotolib.core.ca import TLSData
-from networkx import DiGraph  # type: ignore
-from resotolib.graph import Graph
-from resotolib.baseresources import BaseResource, EdgeType
-from resotolib.graph.graph_extensions import dependent_node_iterator
-from resotolib.utils import ordinal
-from resotolib.config import Config
 from concurrent.futures import ThreadPoolExecutor
-from prometheus_client import Summary
 from typing import Optional, List, Type, Dict
+
+from networkx import DiGraph  # type: ignore
+from prometheus_client import Summary
+
 from resotolib.baseplugin import BaseCollectorPlugin
+from resotolib.baseresources import BaseResource, EdgeType
+from resotolib.config import Config
+from resotolib.core.actions import CoreFeedback
+from resotolib.core.ca import TLSData
+from resotolib.core.search import CoreGraph
+from resotolib.graph import Graph
+from resotolib.graph.graph_extensions import dependent_node_iterator
+from resotolib.logger import log
+from resotolib.utils import ordinal
 
 metrics_cleanup = Summary("resoto_cleanup_seconds", "Time it took the cleanup() method")
 
 
-def cleanup(config: Config, plugins: Dict[str, Type[BaseCollectorPlugin]], tls_data: Optional[TLSData] = None) -> None:
+def cleanup(
+    config: Config,
+    plugins: Dict[str, Type[BaseCollectorPlugin]],
+    core_feedback: CoreFeedback,
+    tls_data: Optional[TLSData] = None,
+) -> None:
     """Run resource cleanup"""
 
     log.info("Running cleanup")
@@ -32,19 +40,20 @@ def cleanup(config: Config, plugins: Dict[str, Type[BaseCollectorPlugin]], tls_d
     )
 
     graph = cg.graph(search)
-    cleaner = Cleaner(graph)
+    cleaner = Cleaner(graph, core_feedback)
     cleaner.cleanup(config, plugins)
     cg.patch_nodes(graph)
 
 
 class Cleaner:
-    def __init__(self, graph: Graph) -> None:
+    def __init__(self, graph: Graph, feedback: CoreFeedback) -> None:
         self.graph = graph
+        self.feedback = feedback
 
     @metrics_cleanup.time()  # type: ignore
     def cleanup(self, config: Config, plugins: Dict[str, Type[BaseCollectorPlugin]]) -> None:
         if not Config.resotoworker.cleanup:
-            log.debug(("Cleanup called but resotoworker.cleanup not configured" " - ignoring call"))
+            log.debug("Cleanup called but resotoworker.cleanup not configured" " - ignoring call")
             return
 
         log.info("Running cleanup")
@@ -102,8 +111,10 @@ class Cleaner:
         log.info(f"{log_prefix}, calling pre cleanup method")
         try:
             plugin.pre_cleanup(config, node, self.graph)
-        except Exception:
-            log.exception(("An exception occurred when running resource pre cleanup on" f" {node.rtdname}"))
+        except Exception as ex:
+            self.feedback.with_context(plugin.cloud).error(
+                f"An exception occurred when running resource pre cleanup on {node.rtdname}: {ex}", log
+            )
 
     def clean(self, config: Config, plugins: Dict[str, Type[BaseCollectorPlugin]], node: BaseResource) -> None:
         log_prefix = f"Resource {node.rtdname} is marked for removal"
@@ -118,5 +129,7 @@ class Cleaner:
         log.info(f"{log_prefix}, calling cleanup method")
         try:
             plugin.cleanup(config, node, self.graph)
-        except Exception:
-            log.exception(f"An exception occurred when running resource cleanup on {node.rtdname}")
+        except Exception as ex:
+            self.feedback.with_context(plugin.cloud).error(
+                f"An exception occurred when running resource cleanup on {node.rtdname}: {ex}", log
+            )

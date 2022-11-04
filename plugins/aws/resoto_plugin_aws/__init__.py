@@ -221,11 +221,12 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
 
             if resource.protected:
                 log.error(f"Resource {resource.rtdname} is protected - refusing modification")
-                resource.log(("Modification was requested even though resource is protected" " - refusing"))
+                resource.log("Modification was requested even though resource is protected" " - refusing")
                 return False
 
             if resource.phantom:
-                raise RuntimeError(f"Can't cleanup phantom resource {resource.rtdname}")
+                log.error(f"Can't cleanup phantom resource {resource.rtdname}")
+                return False
 
             if resource.cleaned:
                 log.debug(f"Resource {resource.rtdname} has already been cleaned up")
@@ -234,7 +235,7 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
             account = resource.account(graph)
             region = resource.region(graph)
             if not isinstance(account, BaseAccount) or not isinstance(region, BaseRegion):
-                log.error(("Could not determine account or region for pre cleanup of" f" {resource.rtdname}"))
+                log.error(f"Could not determine account or region for pre cleanup of {resource.rtdname}")
                 return False
 
             log_suffix = f" in account {account.dname} region {region.name}"
@@ -257,7 +258,7 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
                     region=region.name,
                     kind=resource.kind,
                 ).inc()
-                return False
+                raise
             return True
 
         raise RuntimeError(f"Unsupported resource type: {resource.rtdname}")
@@ -287,20 +288,16 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
             account = resource.account(graph)
             region = resource.region(graph)
             if not isinstance(account, BaseAccount) or not isinstance(region, BaseRegion):
-                log.error(f"Could not determine account or region for cleanup of {resource.rtdname}")
-                return False
+                raise RuntimeError(f"Could not determine account or region for cleanup of {resource.rtdname}")
 
             log_suffix = f" in account {account.dname} region {region.name}"
             resource.log("Trying to clean up")
             log.debug(f"Trying to clean up {resource.rtdname}{log_suffix}")
             try:
-                if not resource.delete_resource(client):
-                    resource.log("Failed to clean up")
-                    log.error(f"Failed to clean up {resource.rtdname}{log_suffix}")
-                    return False
-                resource._cleaned = True
-                resource.log("Successfully cleaned up")
-                log.info(f"Successfully cleaned up {resource.rtdname}{log_suffix}")
+                if deleted := resource.delete_resource(client):
+                    resource._cleaned = True
+                    resource.log("Successfully cleaned up")
+                    log.info(f"Successfully cleaned up {resource.rtdname}{log_suffix}")
             except Exception as e:
                 resource.log("An error occurred during clean up", exception=e)
                 log.exception(f"An error occurred during clean up {resource.rtdname}{log_suffix}")
@@ -312,6 +309,8 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
                     kind=resource.kind,
                 ).inc()
                 return False
+            if not deleted:
+                raise RuntimeError(f"Failed to clean up {resource.rtdname}{log_suffix}")
             return True
 
         raise RuntimeError(f"Unsupported resource type: {resource.rtdname}")

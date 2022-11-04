@@ -15,7 +15,7 @@ from resotolib.args import ArgumentParser
 from resotolib.baseplugin import BaseActionPlugin, BasePostCollectPlugin, BaseCollectorPlugin, PluginType
 from resotolib.config import Config
 from resotolib.core import add_args as core_add_args, resotocore, wait_for_resotocore
-from resotolib.core.actions import CoreActions
+from resotolib.core.actions import CoreActions, CoreFeedback
 from resotolib.core.ca import TLSData
 from resotolib.core.tasks import CoreTasks, CoreTaskHandler
 from resotolib.event import (
@@ -233,9 +233,11 @@ def core_actions_processor(
                     if Config.resotoworker.cleanup_dry_run:
                         log.info("Cleanup called with dry run configured" " (resotoworker.cleanup_dry_run)")
                     start_time = time.time()
+                    feedback = CoreFeedback(task_id, step_name, "cleanup", collector.core_messages)
                     cleanup(
                         config,
                         {p.cloud: p for p in collectors},
+                        feedback,
                         tls_data=tls_data,
                     )
                     run_time = int(time.time() - start_time)
@@ -243,7 +245,9 @@ def core_actions_processor(
             else:
                 raise ValueError(f"Unknown message type {message_type}")
         except Exception as e:
-            log.exception(f"Failed to {message_type}: {e}")
+            msg = f"Failed to {message_type}: {e}"
+            data["error"] = msg
+            log.exception(msg)
             reply_kind = "action_error"
         else:
             reply_kind = "action_done"
