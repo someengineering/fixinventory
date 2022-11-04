@@ -3868,6 +3868,12 @@ class WorkflowsCommand(CLICommand):
     task_started_at: '2022-11-04T08:31:01Z'
     duration: 87.786464
     errors: 19
+
+    # show the log of a specific workflow run
+    > workflows log 037f23c6-5c1b-11ed-bb8b-dad780437c53
+    2022-11-04T08:31:01Z: collect: collect: aws: 882347060974: collect-global: in progress
+    [aws:123456789] Access Denied to aws_account 123456789
+    [aws:234567890] An AWS UnauthorizedOperation error occurred while collecting account test
     ```
     """
 
