@@ -1,10 +1,12 @@
+from datetime import timedelta
+
 import pytest
 from arango.database import StandardDatabase
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Any
 
 from resotocore.db import runningtaskdb
 from resotocore.db.async_arangodb import AsyncArangoDB
-from resotocore.db.runningtaskdb import RunningTaskData, RunningTaskDb
+from resotocore.db.runningtaskdb import RunningTaskData, RunningTaskDb, RunningTaskStepInfo
 from resotocore.message_bus import ActionDone
 from resotocore.util import utc
 from resotocore.task.model import Subscriber
@@ -36,9 +38,29 @@ def instances() -> List[RunningTaskData]:
     messages = [ActionDone(str(a), TaskId("test"), "bla", SubscriberId("sf")) for a in range(0, 10)]
     state_data = {"test": 1}
     return [
-        RunningTaskData(TaskId(str(a)), TaskDescriptorId(str(a)), "task_123", messages, "start", state_data, utc())
+        RunningTaskData(
+            TaskId(f"task_{a}"),
+            TaskDescriptorId(str(a)),
+            "task_123",
+            messages,
+            "start",
+            state_data,
+            [RunningTaskStepInfo(f"step_{a}", False, utc(), utc()) for a in range(0, 3)],
+            task_started_at=utc(),
+            task_duration=timedelta(seconds=10),
+            done=a > 5,
+            has_info=a > 6,
+            has_error=a > 7,
+        )
         for a in range(0, 10)
     ]
+
+
+@pytest.mark.asyncio
+async def test_load_running(running_task_db: RunningTaskDb, instances: List[RunningTaskData]) -> None:
+    await running_task_db.update_many(instances)
+    not_done = list(filter(lambda x: not x.done, instances))
+    assert not_done.sort() == [sub async for sub in running_task_db.all_running()].sort()
 
 
 @pytest.mark.asyncio
@@ -46,6 +68,28 @@ async def test_load(running_task_db: RunningTaskDb, instances: List[RunningTaskD
     await running_task_db.update_many(instances)
     loaded = [sub async for sub in running_task_db.all()]
     assert instances.sort() == loaded.sort()
+
+
+@pytest.mark.asyncio
+async def test_filtered(running_task_db: RunningTaskDb, instances: List[RunningTaskData]) -> None:
+    await running_task_db.update_many(instances)
+
+    async def filtered_list(**kwargs: Any) -> List[TaskId]:
+        async with await running_task_db.filtered(**kwargs) as crsr:
+            return [elem.id async for elem in crsr]
+
+    assert len(await filtered_list()) == len(instances)
+    assert len(await filtered_list(limit=1)) == 1
+    assert len(await filtered_list(descriptor_name="task_123")) == len(instances)
+    assert await filtered_list(task_id=TaskId("task_1")) == [TaskId("task_1")]
+    assert len(await filtered_list(started_from=utc() + timedelta(minutes=1))) == 0
+    assert len(await filtered_list(started_from=utc() - timedelta(minutes=1))) == 10
+    assert len(await filtered_list(started_until=utc() + timedelta(minutes=1))) == 10
+    assert len(await filtered_list(started_until=utc() - timedelta(minutes=1))) == 0
+    assert len(await filtered_list(with_info=True)) == 3
+    assert len(await filtered_list(with_info=False)) == 7
+    assert len(await filtered_list(with_error=True)) == 2
+    assert len(await filtered_list(with_error=False)) == 8
 
 
 @pytest.mark.asyncio

@@ -73,7 +73,7 @@ from resotocore.task.model import Subscription
 from resotocore.task.subscribers import SubscriptionHandler
 from resotocore.task.task_handler import TaskHandlerService
 from resotocore.types import Json, JsonElement
-from resotocore.util import uuid_str, force_gen, rnd_str, if_set, duration
+from resotocore.util import uuid_str, force_gen, rnd_str, if_set, duration, utc_str
 from resotocore.web.certificate_handler import CertificateHandler
 from resotocore.web.content_renderer import result_binary_gen, single_result
 from resotocore.web.directives import (
@@ -460,6 +460,7 @@ class Api:
             js = json.loads(msg)
             if "data" in js:
                 js["data"]["subscriber_id"] = listener_id
+                js["data"]["received_at"] = utc_str()
             message: Message = from_js(js, Message)
             if isinstance(message, Action):
                 raise AttributeError("Actors should not emit action messages. ")

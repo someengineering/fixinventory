@@ -4,7 +4,7 @@ import logging
 import uuid
 from abc import ABC
 from contextlib import suppress
-from datetime import timedelta
+from datetime import timedelta, datetime
 from enum import Enum
 from typing import Optional, Any, Sequence, MutableSequence, Callable, Dict, List, Set, Tuple, Union
 
@@ -338,6 +338,8 @@ class StepState(State):
         self.step = step
         self.instance = instance
         self.timed_out = False
+        self.started_at: Optional[datetime] = None
+        self.finished_at: Optional[datetime] = None
 
     def current_step_done(self) -> bool:
         """
@@ -382,7 +384,7 @@ class StepState(State):
         Return true if the internal state of the fsm has changed by this event.
         This method is called periodically by the cleaner task.
         """
-        if (self.instance.step_started_at + self.timeout()) < utc():
+        if self.started_at is not None and ((self.started_at + self.timeout()) < utc()):
             self.timed_out = True
             return True
         return False
@@ -414,6 +416,14 @@ class StepState(State):
         This method is called when the fsm enters this state.
         Override in subsequent classes, if action is required in such a scenario.
         """
+        self.started_at = utc()
+
+    def step_finished(self) -> None:
+        """
+        This method is called when the fsm enters this state.
+        Override in subsequent classes, if action is required in such a scenario.
+        """
+        self.finished_at = utc()
 
     # noinspection PyMethodMayBeStatic
     def export_state(self) -> Json:
@@ -480,6 +490,7 @@ class PerformActionState(StepState):
         return [SendMessage(Action(self.perform.message_type, self.instance.id, self.step.name))]
 
     def step_started(self) -> None:
+        super().step_started()
         # refresh the list of subscribers when the step has started
         self.wait_for = self.instance.subscribers_by_event().get(self.perform.message_type, [])
 
@@ -592,6 +603,10 @@ class EndState(StepState):
     def commands_to_execute(self) -> Sequence[TaskCommand]:
         return [SendMessage(self.event)]
 
+    def step_started(self) -> None:
+        super().step_started()
+        self.instance.task_duration = utc() - self.instance.task_started_at
+
 
 class RunningTask:
     @staticmethod
@@ -613,7 +628,7 @@ class RunningTask:
         self.received_messages: MutableSequence[Message] = []
         self.subscribers_by_event = subscribers_by_event
         self.task_started_at = utc()
-        self.step_started_at = self.task_started_at
+        self.task_duration: Optional[timedelta] = None
         self.update_task: Optional[Task[None]] = None
         self.descriptor_alive = True
         self.info_messages: List[Union[ActionInfo, ActionError]] = []
@@ -629,6 +644,7 @@ class RunningTask:
         start = StartState(self)
         end = EndState(self)
         states: List[StepState] = [start, *steps, end]
+        self.states: Dict[str, StepState] = {state.step.name: state for state in states}
         self.machine = Machine(self, states, start, auto_transitions=False, queued=True)
 
         for current_state, next_state in interleave(states):
@@ -760,12 +776,11 @@ class RunningTask:
 
     def begin_step(self) -> None:
         log.info(f"Task {self.id}: begin step is: {self.current_step.name}")
-        # update the step started time, whenever a new state is entered
-        self.step_started_at = utc()
         self.current_state.step_started()
 
     def end_step(self) -> None:
         log.debug(f"Task {self.id}: end of step {self.current_step.name}")
+        self.current_state.step_finished()
         # mark all progresses as completed
         if self.progresses.has_path(self.current_step.name):
             self.progresses.add_progress(ProgressDone(self.current_step.name, 1, 1))

@@ -52,7 +52,7 @@ from resotocore.task.task_description import (
     RestartAgainStepAction,
     Trigger,
 )
-from resotocore.util import first, Periodic, group_by, utc_str, utc
+from resotocore.util import first, Periodic, group_by, utc_str, utc, partition_by
 
 log = logging.getLogger(__name__)
 
@@ -183,21 +183,27 @@ class TaskHandlerService(TaskHandler):
         descriptions = {w.id: w for w in self.task_descriptions}
 
         def reset_state(wi: RunningTask, task_data: RunningTaskData) -> RunningTask:
+            infos, messages = partition_by(lambda x: isinstance(x, ActionInfo), task_data.received_messages)
             # reset the received messages
-            wi.received_messages = task_data.received_messages  # type: ignore
+            wi.received_messages = messages
+            wi.info_messages = infos  # type: ignore
             # move the fsm into the last known state
             wi.machine.set_state(task_data.current_state_name)
             # import state of the current step
             wi.current_state.import_state(task_data.current_state_snapshot)
+            for si in task_data.step_states:
+                if step_state := wi.states.get(si.step_name):
+                    step_state.started_at = si.started_at
+                    step_state.finished_at = si.finished_at
+                    step_state.timed_out = si.timed_out
             # reset times
             wi.task_started_at = task_data.task_started_at
-            wi.step_started_at = task_data.step_started_at
             # ignore all messages that would be emitted
             wi.move_to_next_state()
             return wi
 
         instances: List[RunningTask] = []
-        async for data in self.running_task_db.all():
+        async for data in self.running_task_db.all_running():
             descriptor = descriptions.get(data.task_descriptor_id)
             if descriptor:
                 # we have captured the timestamp when the task has been started
@@ -343,9 +349,7 @@ class TaskHandlerService(TaskHandler):
 
         # mark step as error
         task.end()
-        # remove from database
-        with suppress(Exception):
-            await self.running_task_db.delete(task.id)
+        await self.mark_done_in_database(task)
 
     async def delete_job(self, job_id: str) -> Optional[Job]:
         job: Job = first(lambda td: td.id == job_id and isinstance(td, Job), self.task_descriptions)  # type: ignore
@@ -422,6 +426,7 @@ class TaskHandlerService(TaskHandler):
     async def handle_action_info(self, info: ActionInfo) -> None:
         if rt := self.tasks.get(info.task_id):
             rt.handle_info(info)
+            await self.running_task_db.update_state(rt, info)
             if info.level == "error":
                 await self.message_bus.emit_event(
                     CoreMessage.ErrorMessage, {"workflow": rt.descriptor.name, "task": rt.id, "message": info.message}
@@ -484,11 +489,21 @@ class TaskHandlerService(TaskHandler):
         if wi.is_active:
             await self.running_task_db.update_state(wi, origin_message)
         elif wi.id in self.tasks:
-            await self.running_task_db.delete(wi.id)
+            # only here as safeguard: in case of a core restart, the task would be restarted again
+            # cleanup happens in the overdue handler
+            await self.mark_done_in_database(wi)
 
     async def list_all_pending_actions_for(self, subscriber: Subscriber) -> List[Action]:
         pending = map(lambda x: x.pending_action_for(subscriber), self.tasks.values())
         return [x for x in pending if x]
+
+    async def mark_done_in_database(self, task: RunningTask) -> None:
+        # workflows are kept in database, jobs are deleted
+        with suppress(Exception):
+            if isinstance(task.descriptor, Job):
+                await self.running_task_db.delete(task.id)
+            else:
+                await self.running_task_db.update_state(task)
 
     # endregion
 
@@ -519,8 +534,8 @@ class TaskHandlerService(TaskHandler):
                         await self.store_running_task_state(task)
             # check again for active (might have changed for overdue tasks)
             if not task.is_active:
-                if task.update_task:
-                    with suppress(Exception):
+                if task.update_task and not task.update_task.cancelled():
+                    with suppress(Exception, CancelledError):
                         await task.update_task
                 await self.delete_running_task(task)
             # if the task is finished, check if there is already the next run to start

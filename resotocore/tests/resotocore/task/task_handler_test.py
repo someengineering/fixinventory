@@ -183,6 +183,9 @@ async def test_recover_workflow(
         assert len(wf2.tasks) == 1
         wfi = list(wf2.tasks.values())[0]
         assert wfi.current_state.name == "act"
+        s1 = await wf2.list_all_pending_actions_for(sub1)
+        s2 = await wf2.list_all_pending_actions_for(sub2)
+        s3 = await wf2.list_all_pending_actions_for(sub3)
         assert (await wf2.list_all_pending_actions_for(sub1)) == []
         assert (await wf2.list_all_pending_actions_for(sub2)) == [Action("collect", wfi.id, "act", {})]
         assert (await wf2.list_all_pending_actions_for(sub3)) == []
