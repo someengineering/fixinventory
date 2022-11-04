@@ -1,21 +1,17 @@
 from datetime import timedelta
+from typing import List, Dict, Tuple, Any
 
 import pytest
 from arango.database import StandardDatabase
-from typing import List, Dict, Tuple, Any
 
 from resotocore.db import runningtaskdb
 from resotocore.db.async_arangodb import AsyncArangoDB
 from resotocore.db.runningtaskdb import RunningTaskData, RunningTaskDb, RunningTaskStepInfo
-from resotocore.message_bus import ActionDone
-from resotocore.util import utc
-from resotocore.task.model import Subscriber
 from resotocore.ids import TaskId, SubscriberId, TaskDescriptorId
-
-from resotocore.task.task_description import RunningTask
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.task.task_description_test import workflow_instance, test_workflow
+from resotocore.message_bus import ActionDone
+from resotocore.task.model import Subscriber
+from resotocore.task.task_description import RunningTask, Workflow
+from resotocore.util import utc, utc_str
 
 # noinspection PyUnresolvedReferences
 from tests.resotocore.db.graphdb_test import test_db, local_client, system_db
@@ -23,11 +19,16 @@ from tests.resotocore.db.graphdb_test import test_db, local_client, system_db
 # noinspection PyUnresolvedReferences
 from tests.resotocore.message_bus_test import message_bus, all_events
 
+# noinspection PyUnresolvedReferences
+from tests.resotocore.task.task_description_test import workflow_instance, test_workflow
+
+now = utc()
+
 
 @pytest.fixture
 async def running_task_db(test_db: StandardDatabase) -> RunningTaskDb:
     async_db = AsyncArangoDB(test_db)
-    task_db = runningtaskdb.running_task_db(async_db, "running_task")
+    task_db = runningtaskdb.running_task_db(async_db, "running_tasks")
     await task_db.create_update_schema()
     await task_db.wipe()
     return task_db
@@ -40,13 +41,14 @@ def instances() -> List[RunningTaskData]:
     return [
         RunningTaskData(
             TaskId(f"task_{a}"),
-            TaskDescriptorId(str(a)),
+            TaskDescriptorId("task_123"),
             "task_123",
+            Workflow.__name__,
             messages,
             "start",
             state_data,
-            [RunningTaskStepInfo(f"step_{a}", False, utc(), utc()) for a in range(0, 3)],
-            task_started_at=utc(),
+            [RunningTaskStepInfo(f"step_{a}", False, now, now) for a in range(0, 3)],
+            task_started_at=now,
             task_duration=timedelta(seconds=10),
             done=a > 5,
             has_info=a > 6,
@@ -80,16 +82,25 @@ async def test_filtered(running_task_db: RunningTaskDb, instances: List[RunningT
 
     assert len(await filtered_list()) == len(instances)
     assert len(await filtered_list(limit=1)) == 1
-    assert len(await filtered_list(descriptor_name="task_123")) == len(instances)
+    assert len(await filtered_list(descriptor_id="task_123")) == len(instances)
     assert await filtered_list(task_id=TaskId("task_1")) == [TaskId("task_1")]
-    assert len(await filtered_list(started_from=utc() + timedelta(minutes=1))) == 0
-    assert len(await filtered_list(started_from=utc() - timedelta(minutes=1))) == 10
-    assert len(await filtered_list(started_until=utc() + timedelta(minutes=1))) == 10
-    assert len(await filtered_list(started_until=utc() - timedelta(minutes=1))) == 0
+    assert len(await filtered_list(started_after=now + timedelta(minutes=1))) == 0
+    assert len(await filtered_list(started_after=now - timedelta(minutes=1))) == 10
+    assert len(await filtered_list(started_before=now + timedelta(minutes=1))) == 10
+    assert len(await filtered_list(started_before=now - timedelta(minutes=1))) == 0
     assert len(await filtered_list(with_info=True)) == 3
     assert len(await filtered_list(with_info=False)) == 7
     assert len(await filtered_list(with_error=True)) == 2
     assert len(await filtered_list(with_error=False)) == 8
+
+
+@pytest.mark.asyncio
+async def test_aggregated(running_task_db: RunningTaskDb, instances: List[RunningTaskData]) -> None:
+    await running_task_db.update_many(instances)
+    res = await running_task_db.aggregated_history()
+    assert res == {
+        "task_123": {"count": 10, "last_run": utc_str(now), "runs_with_errors": 2, "average_duration": "10s"}
+    }
 
 
 @pytest.mark.asyncio

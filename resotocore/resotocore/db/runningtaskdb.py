@@ -2,12 +2,11 @@ from __future__ import annotations
 
 import logging
 from abc import abstractmethod
-from functools import partial
-
-from attrs import define, field
 from datetime import datetime, timedelta
+from functools import partial
 from typing import Sequence, Optional, List, AsyncGenerator, Dict
 
+from attrs import define, field
 from jsons import JsonsError
 
 from resotocore.db.async_arangodb import AsyncArangoDB, AsyncCursorContext
@@ -18,6 +17,7 @@ from resotocore.model.typed_model import to_js, from_js
 from resotocore.task.task_description import RunningTask
 from resotocore.types import Json, JsonElement
 from resotocore.util import utc, utc_str
+from resotolib.durations import duration_str
 
 log = logging.getLogger(__name__)
 
@@ -44,6 +44,8 @@ class RunningTaskData:
     id: TaskId
     # id of the related task descriptor
     task_descriptor_id: TaskDescriptorId
+    # kind of the descriptor
+    task_descriptor_kind: str
     # name of the related task descriptor
     task_descriptor_name: str
     # all messages that have been received by this task
@@ -65,11 +67,15 @@ class RunningTaskData:
     # indicates if this task had errors
     has_error: bool = False
 
+    def info_messages(self) -> List[ActionInfo]:
+        return [m for m in iter(self.received_messages) if isinstance(m, ActionInfo)]
+
     @staticmethod
     def data(wi: RunningTask) -> RunningTaskData:
         return RunningTaskData(
             wi.id,
             wi.descriptor.id,
+            type(wi.descriptor).__name__,
             wi.descriptor.name,
             wi.received_messages,
             wi.current_state.name,
@@ -97,13 +103,17 @@ class RunningTaskDb(EntityDb[str, RunningTaskData]):
         pass
 
     @abstractmethod
+    async def aggregated_history(self) -> Dict[str, Json]:
+        pass
+
+    @abstractmethod
     async def filtered(
         self,
         *,
         task_id: Optional[TaskId] = None,
-        descriptor_name: Optional[str] = None,
-        started_from: Optional[datetime] = None,
-        started_until: Optional[datetime] = None,
+        descriptor_id: Optional[str] = None,
+        started_after: Optional[datetime] = None,
+        started_before: Optional[datetime] = None,
         with_info: Optional[bool] = None,
         with_error: Optional[bool] = None,
         limit: Optional[int] = None,
@@ -165,13 +175,28 @@ class ArangoRunningTaskDb(ArangoEntityDb[str, RunningTaskData], RunningTaskDb):
 
         await self.db.aql(aql, bind_vars=bind)
 
+    async def aggregated_history(self) -> Dict[str, Json]:
+        aql = f"""
+        FOR rt in {self.collection_name}
+        COLLECT name=rt.task_descriptor_id
+        AGGREGATE c=sum(1), l=max(rt.task_started_at), e=sum(abs(rt.has_error)), d=avg(rt.task_duration)
+        RETURN {{"name": name, "count": c, "last_run": l, "runs_with_errors": e, "average_duration": ceil(d)}}
+        """
+        result = {}
+        with await self.db.aql(aql) as crsr:
+            for elem in crsr:
+                name = elem.pop("name")
+                elem["average_duration"] = duration_str(timedelta(seconds=elem["average_duration"]), precision=2)
+                result[name] = elem
+        return result
+
     async def filtered(
         self,
         *,
         task_id: Optional[TaskId] = None,
-        descriptor_name: Optional[str] = None,
-        started_from: Optional[datetime] = None,
-        started_until: Optional[datetime] = None,
+        descriptor_id: Optional[str] = None,
+        started_after: Optional[datetime] = None,
+        started_before: Optional[datetime] = None,
         with_info: Optional[bool] = None,
         with_error: Optional[bool] = None,
         limit: Optional[int] = None,
@@ -181,15 +206,15 @@ class ArangoRunningTaskDb(ArangoEntityDb[str, RunningTaskData], RunningTaskDb):
         if task_id:
             filters.append("doc.id == @task_id")
             bind["task_id"] = task_id
-        if descriptor_name:
-            filters.append("doc.task_descriptor_name == @descriptor_name")
-            bind["descriptor_name"] = descriptor_name
-        if started_from:
-            filters.append("doc.task_started_at >= @started_from")
-            bind["started_from"] = utc_str(started_from)
-        if started_until:
-            filters.append("doc.task_started_at <= @started_until")
-            bind["started_until"] = utc_str(started_until)
+        if descriptor_id:
+            filters.append("doc.task_descriptor_id == @descriptor_id")
+            bind["descriptor_id"] = descriptor_id
+        if started_after:
+            filters.append("doc.task_started_at >= @started_after")
+            bind["started_after"] = utc_str(started_after)
+        if started_before:
+            filters.append("doc.task_started_at <= @started_before")
+            bind["started_before"] = utc_str(started_before)
         if with_info is not None:
             filters.append("doc.has_info == @with_info")
             bind["with_info"] = with_info
@@ -198,7 +223,8 @@ class ArangoRunningTaskDb(ArangoEntityDb[str, RunningTaskData], RunningTaskDb):
             bind["with_error"] = with_error
         filter_stmt = " FILTER " + (" AND ".join(filters)) if filters else ""
         limit_stmt = f" LIMIT {limit}" if limit else ""
-        aql = f"""FOR doc IN {self.collection_name}{filter_stmt}{limit_stmt} RETURN doc"""
+        res = f"FOR doc IN {self.collection_name}{filter_stmt} SORT doc.task_started_at DESC {limit_stmt} RETURN doc"
+        aql = f"LET r = ({res}) FOR res in REVERSE(r) RETURN res"
         return await self.db.aql_cursor(query=aql, bind_vars=bind, trafo=partial(from_js, clazz=RunningTaskData))
 
     async def insert(self, task: RunningTask) -> RunningTaskData:
