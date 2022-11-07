@@ -215,9 +215,9 @@ def core_actions_processor(
         return None
     kind = message.get("kind")
     message_type = message.get("message_type")
-    data = message.get("data")
-    task_id = data.get("task")  # type: ignore
-    step_name = data.get("step")  # type: ignore
+    data = message.get("data") or {}
+    task_id: str = data.get("task")  # type: ignore
+    step_name: str = data.get("step")  # type: ignore
     log.debug(f"Received message of kind {kind}, type {message_type}, data: {data}")
     if kind == "action":
         try:
