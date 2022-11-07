@@ -96,6 +96,21 @@ def uuid_str(from_object: Optional[Any] = None) -> str:
         return str(uuid.uuid1())
 
 
+def partition_by(f: Callable[[AnyT], bool], iterable: Iterable[AnyT]) -> Tuple[List[AnyT], List[AnyT]]:
+    """
+    Partition a list based on provided function.
+    :param f: the function to test every element.
+    :param iterable: the iterable to walk.
+    :return: a tuple with two lists. The first list contains all elements for which the function returned True
+             the second list contains all elements for which the function returned False.
+    """
+    left: List[AnyT] = []
+    right: List[AnyT] = []
+    for p in iterable:
+        (left if f(p) else right).append(p)
+    return left, right
+
+
 def group_by(f: Callable[[AnyT], AnyR], iterable: Iterable[AnyT]) -> Dict[AnyR, List[AnyT]]:
     """
     Group iterable by key provided by given key function.

@@ -388,6 +388,22 @@ async def test_workflows_command(cli: CLI, task_handler: TaskHandlerService, tes
     for rt in await task_handler.running_tasks():
         await task_handler.delete_running_task(rt)
 
+    # access the history of all workflows
+    history = AccessJson.wrap_list(await execute("workflows history"))
+    assert len(history) == 1
+    assert history[0].sleep_workflow.count == 1
+    assert history[0].test_workflow.count == 1
+
+    # access the history of a specific workflow
+    history_test = AccessJson.wrap_list(await execute("workflows history test_workflow"))
+    assert len(history_test) == 1
+    wf_run = history_test[0]
+    assert all(n in wf_run for n in ["id", "task_started_at", "duration"])
+
+    # access the log of a specific workflow run
+    task_log = await execute(f"workflows log {wf_run['id']}")
+    assert len(task_log) == 1
+
 
 @pytest.mark.asyncio
 async def test_jobs_command(cli: CLI, task_handler: TaskHandlerService, job_db: JobDb) -> None:

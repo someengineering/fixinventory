@@ -15,6 +15,7 @@ from resotocore.util import (
     rnd_str,
     del_value_in_path,
     deep_merge,
+    partition_by,
 )
 
 
@@ -23,6 +24,12 @@ def not_in_path(name: str, *other: str) -> bool:
         if shutil.which(n) is None:
             return True
     return False
+
+
+def test_partition_by() -> None:
+    even, odd = partition_by(lambda x: x % 2 == 0, range(10))
+    assert even == [0, 2, 4, 6, 8]
+    assert odd == [1, 3, 5, 7, 9]
 
 
 def test_access_json() -> None:

@@ -15,8 +15,6 @@ from asyncio import Future, Task
 from asyncio.subprocess import Process
 from collections import defaultdict
 from contextlib import suppress
-
-from attrs import define, field
 from datetime import timedelta
 from functools import partial, lru_cache
 from itertools import dropwhile, chain
@@ -45,20 +43,9 @@ from aiohttp import ClientTimeout, JsonPayload, BasicAuth
 from aiostream import stream, pipe
 from aiostream.aiter_utils import is_async_iterable
 from aiostream.core import Stream
+from attrs import define, field
+from dateutil import parser as date_parser
 from parsy import Parser, string
-from resotolib.x509 import write_cert_to_file, write_key_to_file
-from resotolib.utils import safe_members_in_tarfile, get_local_tzinfo
-from resotolib.parse_util import (
-    double_quoted_or_simple_string_dp,
-    space_dp,
-    make_parser,
-    variable_dp,
-    literal_dp,
-    comma_p,
-    variable_p,
-    equals_p,
-    json_value_p,
-)
 from rich.padding import Padding
 from rich.panel import Panel
 from rich.table import Table
@@ -78,7 +65,6 @@ from resotocore.cli import (
     js_value_at,
     js_value_get,
 )
-from resotocore.ids import ConfigId, TaskId
 from resotocore.cli.model import (
     CLICommand,
     CLIContext,
@@ -100,9 +86,14 @@ from resotocore.cli.model import (
 )
 from resotocore.cli.tip_of_the_day import SuggestionPolicy, SuggestionStrategy, get_suggestion_strategy
 from resotocore.config import ConfigEntity
+from resotocore.db.async_arangodb import AsyncCursor
 from resotocore.db.model import QueryModel
+from resotocore.db.runningtaskdb import RunningTaskData
 from resotocore.dependencies import system_info
 from resotocore.error import CLIParseError, ClientError, CLIExecutionError
+from resotocore.ids import ConfigId, TaskId
+from resotocore.ids import TaskDescriptorId
+from resotocore.message_bus import ActionInfo
 from resotocore.model.graph_access import Section, EdgeTypes
 from resotocore.model.model import (
     Model,
@@ -141,7 +132,19 @@ from resotocore.web.content_renderer import (
     respond_cytoscape,
 )
 from resotocore.worker_task_queue import WorkerTask, WorkerTaskName
-from resotocore.ids import TaskDescriptorId
+from resotolib.parse_util import (
+    double_quoted_or_simple_string_dp,
+    space_dp,
+    make_parser,
+    variable_dp,
+    literal_dp,
+    comma_p,
+    variable_p,
+    equals_p,
+    json_value_p,
+)
+from resotolib.utils import safe_members_in_tarfile, get_local_tzinfo
+from resotolib.x509 import write_cert_to_file, write_key_to_file
 
 log = logging.getLogger(__name__)
 
@@ -3748,12 +3751,18 @@ class WorkflowsCommand(CLICommand):
     workflows show <id>
     workflows run <id>
     workflows running
+    workflows history
+    workflows history <id> --started-before <date> --started-after <date> --has-errors --limit <num>
+    workflows log <workflow-run-id>
     ```
 
     - `workflows list`: get the list of all workflows in the system
     - `workflows show <id>`: show the current definition of the workflow defined by given identifier.
     - `workflows run <id>`: run the workflow as if the trigger would be triggered.
     - `workflows running`: show all currently running workflows.
+    - `workflows history`: aggregated history of all workflows.
+    - `workflows history <id>`: show all runs of this workflow based on defined filter criteria.
+    - `workflows log <workflow-run-id>`: show the log of the workflow run.
 
     The workflows that currently available are all hard-wired into resotocore.
     We will support user defined workflows in the future.
@@ -3765,6 +3774,10 @@ class WorkflowsCommand(CLICommand):
 
     ## Options
     - `--id` <id> [optional]: The identifier of this workflow.
+    - `--started-before` <date> [optional]: Filter for workflow runs that started before this date.
+    - `--started-after` <date> [optional]: Filter for workflow runs that started after this date.
+    - `--has-errors` [optional]: Filter for workflow runs that have errors.
+    - `--limit` <num> [optional]: Limit the number of workflow runs to show.
 
     ## Examples
 
@@ -3822,9 +3835,45 @@ class WorkflowsCommand(CLICommand):
 
     # show all currently running workflows
     > workflows running
-    workflow: collect
-    started_at: '2022-02-15T17:08:02Z'
-    task-id: d54f92b8-8e81-11ec-8fc0-dad780437c54
+    workflow: collect_and_cleanup
+    started: '2022-11-04T12:33:32Z'
+    task-id: e514fbd2-5c3c-11ed-894d-dad780437c53
+    progress: 16%
+    current-step: collect
+    step-info:
+      collect:
+        digitalocean:
+          '10225075': in progress
+        aws:
+          '882347060974':
+            collect-global: in progress
+        k8s: done
+
+    # show the history of all workflows
+    > workflows history
+    collect:
+      count: 264
+      last_run: '2022-11-04T12:33:32Z'
+      runs_with_errors: 1
+      average_duration: 18s
+    collect_and_cleanup:
+      count: 3416
+      last_run: '2022-11-04T12:00:00Z'
+      runs_with_errors: 0
+      average_duration: 34s
+
+    # show the history of a specific workflow
+    > workflows history collect --started-after 2022-11-03 --started-before 2022-11-05 --has-errors --limit 10
+    id: 037f23c6-5c1b-11ed-bb8b-dad780437c53
+    task_started_at: '2022-11-04T08:31:01Z'
+    duration: 87.786464
+    errors: 19
+
+    # show the log of a specific workflow run
+    > workflows log 037f23c6-5c1b-11ed-bb8b-dad780437c53
+    2022-11-04T08:31:01Z: collect: collect: aws: 882347060974: collect-global: in progress
+    [aws:123456789] Access Denied to aws_account 123456789
+    [aws:234567890] An AWS UnauthorizedOperation error occurred while collecting account test
     ```
     """
 
@@ -3841,6 +3890,14 @@ class WorkflowsCommand(CLICommand):
             "list": [],
             "run": [ArgInfo(None, help_text="<workflow-id>")],
             "running": [],
+            "history": [
+                ArgInfo(None, help_text="<workflow-id>"),
+                ArgInfo("--started-before", help_text="<date>", value_hint="date", expects_value=True),
+                ArgInfo("--started-after", help_text="<date>", value_hint="date", expects_value=True),
+                ArgInfo("--limit", help_text="<number of entries>", expects_value=True),
+                ArgInfo("--has-errors"),
+            ],
+            "log": [ArgInfo(None, help_text="<workflow-run-id>")],
         }
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLISource:
@@ -3888,9 +3945,8 @@ class WorkflowsCommand(CLICommand):
                     if rt.is_active
                     else {"progress": "done"}
                 )
-                # show messages only if there are messages to show
-                messages = {"messages": [msg.info() for msg in rt.info_messages]} if rt.info_messages else {}
-
+                # only show the number of error messages, not the actual messages (it can get big)
+                messages = {"errors": f"{len(rt.info_messages)} errors"} if rt.info_messages else {}
                 return {
                     "workflow": rt.descriptor.id,
                     "started": to_json(rt.task_started_at),
@@ -3901,9 +3957,61 @@ class WorkflowsCommand(CLICommand):
 
             return len(tasks), stream.iterate(info(t) for t in tasks if isinstance(t.descriptor, Workflow))
 
+        async def show_log(wf_id: str) -> Tuple[int, AsyncIterator[JsonElement]]:
+            rtd = await self.dependencies.db_access.running_task_db.get(wf_id)
+            if rtd:
+                messages = [msg.info() for msg in rtd.info_messages() if isinstance(msg, ActionInfo)]
+                if messages:
+                    return len(messages), stream.iterate(messages)
+                else:
+                    return 0, stream.just("No error messages for this run.")
+            else:
+                return 0, stream.just(f"No workflow task with this id: {wf_id}")
+
+        def running_task_data(rtd: RunningTaskData) -> Json:
+            result = {
+                "id": rtd.id,
+                "task_started_at": to_json(rtd.task_started_at),
+                "duration": to_json(rtd.task_duration),
+            }
+            if rtd.has_error or rtd.has_info:
+                result["errors"] = len(rtd.info_messages())
+            return result
+
+        async def history_aggregation() -> Stream:
+            info = await self.dependencies.db_access.running_task_db.aggregated_history()
+            return stream.just(info)
+
+        async def history_of(history_args: List[str]) -> Tuple[int, Stream]:
+            parser = NoExitArgumentParser()
+            parser.add_argument("workflow")
+            parser.add_argument("--started-after", dest="started_after", type=date_parser.parse)
+            parser.add_argument("--started-before", dest="started_before", type=date_parser.parse)
+            parser.add_argument("--has-errors", dest="has_errors", action="store_true", default=None)
+            parser.add_argument("--limit", type=int, default=10)
+            parsed = parser.parse_args(history_args)
+            context = await self.dependencies.db_access.running_task_db.filtered(
+                descriptor_id=parsed.workflow,
+                started_after=parsed.started_after,
+                started_before=parsed.started_before,
+                with_error=parsed.has_errors,
+                limit=parsed.limit,
+            )
+            cursor: AsyncCursor = context.cursor
+            try:
+                return cursor.count() or 0, stream.map(cursor, running_task_data)
+            finally:
+                cursor.close()
+
         args = re.split("\\s+", arg, maxsplit=1) if arg else []
         if arg and len(args) == 2 and args[0] == "show":
             return CLISource.single(partial(show_workflow, args[1].strip()))
+        elif arg and len(args) == 1 and args[0] == "history":
+            return CLISource.single(history_aggregation)
+        elif arg and len(args) == 2 and args[0] == "history":
+            return CLISource(partial(history_of, re.split("\\s+", args[1])))
+        elif arg and len(args) == 2 and args[0] == "log":
+            return CLISource(partial(show_log, args[1].strip()))
         elif arg and len(args) == 2 and args[0] == "run":
             return CLISource.single(partial(run_workflow, args[1].strip()))
         elif arg and len(args) == 1 and args[0] == "running":

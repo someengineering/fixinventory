@@ -34,8 +34,8 @@ from resotocore.util import identity
 log = logging.getLogger(__name__)
 
 
-class AsyncCursor(AsyncIterator[Json]):
-    def __init__(self, cursor: Cursor, trafo: Optional[Callable[[Json], Optional[Json]]]):
+class AsyncCursor(AsyncIterator[Any]):
+    def __init__(self, cursor: Cursor, trafo: Optional[Callable[[Json], Optional[Any]]]):
         self.cursor = cursor
         self.visited_node: Set[str] = set()
         self.visited_edge: Set[str] = set()
@@ -46,7 +46,7 @@ class AsyncCursor(AsyncIterator[Json]):
         self.on_hold: Optional[Json] = None
         self.get_next: Callable[[], Awaitable[Optional[Json]]] = self.next_filtered if trafo else self.next_from_db
 
-    async def __anext__(self) -> Json:
+    async def __anext__(self) -> Any:
         # if there is an on-hold element: unset and return it
         # background: a graph node contains vertex and edge information.
         # since this method can only return one element at a time, the edge is put on-hold for vertex+edge data.
@@ -138,7 +138,7 @@ class AsyncCursor(AsyncIterator[Json]):
 
 
 class AsyncCursorContext(AsyncContextManager[AsyncCursor]):
-    def __init__(self, cursor: Cursor, trafo: Optional[Callable[[Json], Optional[Json]]]):
+    def __init__(self, cursor: Cursor, trafo: Optional[Callable[[Json], Optional[Any]]]):
         self._cursor = cursor
         self._trafo = trafo
 
@@ -161,7 +161,7 @@ class AsyncArangoDBBase:
     async def aql_cursor(
         self,
         query: str,
-        trafo: Optional[Callable[[Json], Optional[Json]]] = None,
+        trafo: Optional[Callable[[Json], Optional[Any]]] = None,
         count: bool = False,
         batch_size: Optional[int] = None,
         ttl: Optional[Number] = None,
