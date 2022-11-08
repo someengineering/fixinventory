@@ -256,7 +256,7 @@ class AwsApiGatewayStage(ApiGatewayTaggable, AwsResource):
     # collection of stage resources happens in AwsApiGatewayRestApi.collect()
     kind: ClassVar[str] = "aws_api_gateway_stage"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("stageName"),
+        "id": S("syntheticId"),  # created by Resoto to avoid collision with duplicate stage names
         "name": S("stageName"),
         "tags": S("tags", default={}),
         "ctime": S("createdDate"),
@@ -413,6 +413,7 @@ class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
                 for stage in builder.client.list(
                     "apigateway", "get-stages", "item", restApiId=api_instance.id, deploymentId=deploy_instance.id
                 ):
+                    stage["syntheticId"] = f'{api_instance.id}_{stage["stageName"]}'  # create unique id
                     stage_instance = AwsApiGatewayStage.from_api(stage)
                     stage_instance.api_link = api_instance.id
                     builder.add_node(stage_instance, stage)

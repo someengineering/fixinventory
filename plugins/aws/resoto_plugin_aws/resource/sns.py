@@ -21,7 +21,7 @@ class AwsSnsTopic(AwsResource):
         "successors": {"default": ["aws_kms_key"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("DisplayName"),
+        "id": S("TopicArn"),
         "name": S("DisplayName"),
         "arn": S("TopicArn"),
         "topic_subscriptions_confirmed": S("SubscriptionsConfirmed") >> F(lambda x: int(x)),

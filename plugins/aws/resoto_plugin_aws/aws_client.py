@@ -113,10 +113,15 @@ class AwsClient:
         expected_errors: Optional[List[str]] = None,
         **kwargs: Any,
     ) -> JsonElement:
-        def log_error(message: str) -> None:
-            log.exception(message)
-            if self.core_feedback:
-                self.core_feedback.error(message)
+        def log_error(message: str, as_warning: bool = False) -> None:
+            if as_warning:
+                log.warning(message)
+                if self.core_feedback:
+                    self.core_feedback.info(message)
+            else:
+                log.error(message)
+                if self.core_feedback:
+                    self.core_feedback.error(message)
 
         try:
             # 5 attempts is the default
@@ -128,9 +133,11 @@ class AwsClient:
                 log.debug(f"Expected error: {code}")
                 return None
             if code.lower().startswith("accessdenied"):
+                # report access denied errors as warnings
                 log_error(
                     f"Access denied to call service {aws_service} with action {action} code {code} "
-                    f"in account {self.account_id} region {self.region}"
+                    f"in account {self.account_id} region {self.region}",
+                    as_warning=True,
                 )
                 return None
             elif code == "UnauthorizedOperation":

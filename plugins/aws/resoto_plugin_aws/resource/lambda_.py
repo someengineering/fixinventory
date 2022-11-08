@@ -1,3 +1,4 @@
+import json
 import re
 from typing import ClassVar, Dict, Optional, List, Type, cast
 
@@ -68,10 +69,10 @@ class AwsLambdaPolicyDetails:
 class AwsLambdaGetPolicyResponse:
     kind: ClassVar[str] = "aws_lambda_get_policy_response"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "policy_policy": S("Policy") >> Bend(AwsLambdaPolicyDetails.mapping),
+        "policy": S("Policy") >> F(json.loads) >> Bend(AwsLambdaPolicyDetails.mapping),
         "policy_revision_id": S("RevisionId"),
     }
-    policy_policy: AwsLambdaPolicyDetails = field(default=None)
+    policy: AwsLambdaPolicyDetails = field(default=None)
     policy_revision_id: Optional[str] = field(default=None)
 
 
@@ -257,7 +258,7 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
                 if policy:
                     mapped = bend(AwsLambdaGetPolicyResponse.mapping, policy)
                     policy_instance = from_json(mapped, AwsLambdaGetPolicyResponse)
-                    for statement in policy_instance.policy_policy.policy_statement:
+                    for statement in policy_instance.policy.policy_statement:
                         if (
                             statement.principal["Service"] == "apigateway.amazonaws.com"
                             and statement.condition.arn_like
