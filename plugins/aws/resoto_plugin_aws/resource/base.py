@@ -69,19 +69,25 @@ class AwsResource(BaseResource, ABC):
     # The AWS specific identifier of the resource. Not available for all resources.
     arn: Optional[str] = None
 
-    # TODO: implement me
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         raise NotImplementedError
 
-    # TODO: implement me
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
         raise NotImplementedError
 
+    def delete_resource(self, client: AwsClient) -> bool:
+        return False
+
+    # legacy interface
+    def update_tag(self, key: str, value: str) -> bool:
+        return False
+
+    # legacy interface
+    def delete_tag(self, key: str) -> bool:
+        return False
+
     # legacy interface
     def delete(self, graph: Graph) -> bool:
-        raise NotImplementedError
-
-    def delete_resource(self, client: AwsClient) -> bool:
         return False
 
     def to_json(self) -> Json:
