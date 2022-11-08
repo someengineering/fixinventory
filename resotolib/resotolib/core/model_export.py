@@ -1,10 +1,10 @@
 import re
+import sys
 from collections import defaultdict
 from datetime import datetime, date, timedelta, timezone
 from enum import Enum
 from functools import lru_cache, reduce
 from pydoc import locate
-from types import UnionType, NoneType
 from typing import List, MutableSet, Union, Tuple, Dict, Set, Any, TypeVar, Type, Optional, Literal
 from typing import get_args, get_origin
 
@@ -17,6 +17,12 @@ from resotolib.baseresources import BaseResource
 from resotolib.durations import duration_str
 from resotolib.types import Json
 from resotolib.utils import type_str, str2timedelta, str2timezone, utc_str
+
+if sys.version_info >= (3, 10):
+    from types import UnionType, NoneType
+else:
+    UnionType = Union
+    NoneType = type(None)
 
 
 # List[X] -> list, list -> list
@@ -363,6 +369,7 @@ def is_primitive_or_primitive_union(t: Any) -> bool:
         return is_primitive_or_primitive_union(basetype)
     if origin in (UnionType, Union):
         return all(is_primitive_or_primitive_union(ty) for ty in get_args(t))
+    return False
 
 
 converter.register_structure_hook(datetime, lambda obj, typ: convert_datetime(obj))
