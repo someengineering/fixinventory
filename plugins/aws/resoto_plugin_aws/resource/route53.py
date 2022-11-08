@@ -217,5 +217,21 @@ class AwsRoute53ResourceRecordSet(AwsResource, BaseDNSRecordSet):
     record_traffic_policy_instance_id: Optional[str] = field(default=None)
     record_cidr_routing_config: Optional[AwsRoute53CidrRoutingConfig] = field(default=None)
 
+    def _keys(self) -> tuple[str, str, str, str, str, str, str, str, str, Optional[str]]:
+        if self._graph is None:
+            raise RuntimeError(f"_keys() called on {self.rtdname} before resource was added to graph")
+        return (
+            self.kind,
+            self.cloud().id,
+            self.account().id,
+            self.region().id,
+            self.zone().id,
+            self.dns_zone().id,
+            self.id,
+            self.name,
+            self.record_type,
+            self.record_set_identifier,
+        )
+
 
 resources: List[Type[AwsResource]] = [AwsRoute53Zone, AwsRoute53ResourceRecord, AwsRoute53ResourceRecordSet]
