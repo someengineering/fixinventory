@@ -1,6 +1,6 @@
 from test.resources import round_trip_for
 from types import SimpleNamespace
-from typing import cast, Any
+from typing import cast, Any, Callable
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.s3 import AwsS3Bucket
 
@@ -43,9 +43,8 @@ def test_tagging() -> None:
 def test_deletion() -> None:
     bucket, _ = round_trip_for(AwsS3Bucket)
 
-    def validate_delete_args(**kwargs: Any) -> Any:
-        assert kwargs["action"] == "delete_bucket"
-        assert kwargs["Bucket"] == bucket.name
+    def validate_delete_args(aws_service: str, fn: Callable[[Any], None]) -> Any:
+        assert aws_service == "s3"
 
-    client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
+    client = cast(AwsClient, SimpleNamespace(with_resource=validate_delete_args))
     bucket.delete_resource(client)

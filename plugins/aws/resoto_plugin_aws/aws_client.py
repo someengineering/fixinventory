@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime
 from functools import cached_property
-from typing import Optional, Any, List
+from typing import Optional, Any, List, TypeVar, Callable
 
 from botocore.model import ServiceModel
 from retrying import retry
@@ -19,6 +19,7 @@ from resotolib.utils import utc_str, log_runtime
 log = logging.getLogger("resoto.plugins.aws")
 
 RetryableErrors = ("RequestLimitExceeded", "Throttling", "TooManyRequestsException")
+T = TypeVar("T")
 
 
 def is_retryable_exception(e: Exception) -> bool:
@@ -63,6 +64,23 @@ class AwsClient:
         session = self.config.sessions().session(self.account_id, self.role, self.profile)
         client = session.client(aws_service, region_name=self.region)
         return client.meta.service_model
+
+    def with_resource(self, aws_service: str, fn: Callable[[Any], T]) -> Optional[T]:
+        """
+        Create a boto service resource model and call the given function with it.
+        The service model is created dynamically in boto3, so we can not give it a proper type, hence Any.
+        Advantage: the scope of the resource is defined by this function, exceptions are handled in the client.
+        :param aws_service: the service to use.
+        :param fn: loan pattern: the function is handed the resource and the result is returned.
+        :return: the result of the function.
+        """
+        session = self.config.sessions().session(self.account_id, self.role, self.profile)
+        resource = session.resource(aws_service, region_name=self.region)
+        try:
+            return fn(resource)
+        except ClientError as e:
+            self.__handle_client_error(e, aws_service, "service_resource")  # might reraise the exception
+            return None
 
     def call_single(
         self, aws_service: str, action: str, result_name: Optional[str] = None, max_attempts: int = 1, **kwargs: Any
@@ -113,48 +131,12 @@ class AwsClient:
         expected_errors: Optional[List[str]] = None,
         **kwargs: Any,
     ) -> JsonElement:
-        def log_error(message: str, as_warning: bool = False) -> None:
-            if as_warning:
-                log.warning(message)
-                if self.core_feedback:
-                    self.core_feedback.info(message)
-            else:
-                log.error(message)
-                if self.core_feedback:
-                    self.core_feedback.error(message)
-
         try:
             # 5 attempts is the default
             return self.call_single(aws_service, action, result_name, max_attempts=5, **kwargs)
         except ClientError as e:
-            expected_errors = expected_errors or []
-            code = e.response["Error"]["Code"] or "Unknown Code"
-            if code in expected_errors:
-                log.debug(f"Expected error: {code}")
-                return None
-            if code.lower().startswith("accessdenied"):
-                # report access denied errors as warnings
-                log_error(
-                    f"Access denied to call service {aws_service} with action {action} code {code} "
-                    f"in account {self.account_id} region {self.region}",
-                    as_warning=True,
-                )
-                return None
-            elif code == "UnauthorizedOperation":
-                log_error(
-                    f"Call to {aws_service} action {action} in account {self.account_id} region {self.region}"
-                    " is not authorized! Give up."
-                )
-                raise  # not allowed to collect in account/region
-            elif code in RetryableErrors:
-                log_error(f"Call to {aws_service} action {action} has been retried too many times. Give up.")
-                raise  # already have been retried, give up here
-            else:
-                log_error(
-                    f"An AWS API error {code} occurred during resource collection of {aws_service} action {action} in "  # noqa: E501
-                    f"account {self.account_id} region {self.region} - skipping resources"
-                )
-                return None
+            self.__handle_client_error(e, aws_service, action, expected_errors)  # might reraise the exception
+            return None
 
     def list(
         self,
@@ -185,6 +167,44 @@ class AwsClient:
             region=region,
             core_feedback=self.core_feedback,
         )
+
+    def __handle_client_error(
+        self, e: ClientError, aws_service: str, action: str, expected_errors: Optional[List[str]] = None
+    ) -> None:
+        def log_error(message: str, as_warning: bool = False) -> None:
+            if as_warning:
+                log.warning(message)
+                if self.core_feedback:
+                    self.core_feedback.info(message)
+            else:
+                log.error(message)
+                if self.core_feedback:
+                    self.core_feedback.error(message)
+
+        expected_errors = expected_errors or []
+        code = e.response["Error"]["Code"] or "Unknown Code"
+        if code in expected_errors:
+            log.debug(f"Expected error: {code}")
+        elif code.lower().startswith("accessdenied"):
+            log_error(
+                f"Access denied to call service {aws_service} with action {action} code {code} "
+                f"in account {self.account_id} region {self.region}",
+                as_warning=True,
+            )
+        elif code == "UnauthorizedOperation":
+            log_error(
+                f"Call to {aws_service} action {action} in account {self.account_id} region {self.region}"
+                " is not authorized! Give up."
+            )
+            raise e  # not allowed to collect in account/region
+        elif code in RetryableErrors:
+            log_error(f"Call to {aws_service} action {action} has been retried too many times. Give up.")
+            raise e  # already have been retried, give up here
+        else:
+            log_error(
+                f"An AWS API error {code} occurred during resource collection of {aws_service} action {action} in "  # noqa: E501
+                f"account {self.account_id} region {self.region} - skipping resources"
+            )
 
     @cached_property
     def global_region(self) -> AwsClient:

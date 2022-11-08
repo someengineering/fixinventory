@@ -1,4 +1,4 @@
-from typing import ClassVar, Dict, List, Type, Optional, cast  # noqa: F401
+from typing import ClassVar, Dict, List, Type, Optional, cast, Any  # noqa: F401
 
 from attrs import define
 
@@ -69,8 +69,13 @@ class AwsS3Bucket(AwsResource, BaseBucket):
         return self._set_tags(client, tags)
 
     def delete_resource(self, client: AwsClient) -> bool:
-        client.call(aws_service="s3", action="delete_bucket", result_name=None, Bucket=self.name)
-        return True
+        def delete_bucket_content(s3: Any) -> bool:
+            bucket = s3.Bucket(self.name)
+            bucket.objects.delete()
+            bucket.delete()
+            return True
+
+        return client.with_resource("s3", delete_bucket_content) or False
 
 
 resources: List[Type[AwsResource]] = [AwsS3Bucket]
