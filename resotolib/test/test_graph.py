@@ -1,10 +1,11 @@
+from platform import python_implementation
+
 import pytest
 from resotolib.graph import Graph, GraphContainer, GraphExportIterator
 from resotolib.baseresources import BaseResource, EdgeType, GraphRoot
 import resotolib.logger as logger
 from attrs import define
 from typing import ClassVar
-from sys import getrefcount
 
 logger.getLogger("resoto").setLevel(logger.DEBUG)
 
@@ -102,6 +103,7 @@ def test_multidigraph():
     assert g.is_dag_per_edge_type() is False
 
 
+# noinspection PyStatementEffect
 def test_baseresource_chksum():
     g = Graph()
     a = SomeTestResource(id="a", tags={})
@@ -111,7 +113,10 @@ def test_baseresource_chksum():
     assert isinstance(a.chksum, str)
 
 
+@pytest.mark.skipif(condition=python_implementation() != "CPython", reason="not implemented")
 def test_graph_export_iterator():
+    from sys import getrefcount
+
     g = Graph(root=GraphRoot(id="root", tags={}))
     a = SomeTestResource(id="a", tags={})
     g.add_resource(g.root, a)
