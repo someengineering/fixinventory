@@ -4,7 +4,6 @@ from datetime import datetime, timezone, timedelta
 from copy import deepcopy
 import base64
 import hashlib
-import uuid
 import weakref
 from resotolib.logger import log
 from enum import Enum
@@ -371,20 +370,16 @@ class BaseResource(ABC):
         account = self.account(graph)
         region = self.region(graph)
         if not isinstance(account, BaseAccount) or not isinstance(region, BaseRegion):
-            log.error(f"Could not determine account or region for cleanup of {self.rtdname}")
-            return False
+            raise RuntimeError(f"Could not determine account or region for cleanup of {self.rtdname}")
 
         log_suffix = f" in account {account.dname} region {region.name}"
         self.log("Trying to clean up")
         log.debug(f"Trying to clean up {self.rtdname}{log_suffix}")
         try:
-            if not self.delete(graph):
-                self.log("Failed to clean up")
-                log.error(f"Failed to clean up {self.rtdname}{log_suffix}")
-                return False
-            self._cleaned = True
-            self.log("Successfully cleaned up")
-            log.info(f"Successfully cleaned up {self.rtdname}{log_suffix}")
+            if deleted := self.delete(graph):
+                self._cleaned = True
+                self.log("Successfully cleaned up")
+                log.info(f"Successfully cleaned up {self.rtdname}{log_suffix}")
         except Exception as e:
             self.log("An error occurred during clean up", exception=e)
             log.exception(f"An error occurred during clean up {self.rtdname}{log_suffix}")
@@ -395,7 +390,9 @@ class BaseResource(ABC):
                 region=region.name,
                 kind=self.kind,
             ).inc()
-            return False
+            raise
+        if not deleted:
+            raise RuntimeError(f"Failed to clean up {self.rtdname}{log_suffix}")
         return True
 
     # deprecated. future collectors plugins should be responsible for running pre_cleanup
@@ -441,7 +438,7 @@ class BaseResource(ABC):
                 region=region.name,
                 kind=self.kind,
             ).inc()
-            return False
+            raise
         return True
 
     @unless_protected
@@ -512,7 +509,7 @@ class BaseResource(ABC):
         cloud = self.cloud(graph)
         if cloud.name != "undefined":
             return cloud
-        return UnknownLocation("undefined", {})
+        return UnknownLocation(id="undefined", tags={})
 
     def add_deferred_connection(
         self, search: Dict, parent: bool = True, edge_type: EdgeType = EdgeType.default
@@ -655,11 +652,7 @@ class BaseInstanceType(BaseType):
     ondemand_cost: Optional[float] = None
     reservations: Optional[int] = None
 
-    def __attrs_post_init__(
-        self,
-        *args,
-        **kwargs,
-    ) -> None:
+    def __attrs_post_init__(self) -> None:
         super().__attrs_post_init__()
         if self.instance_type is None:
             self.instance_type = self.id
