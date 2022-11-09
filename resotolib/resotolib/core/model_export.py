@@ -69,7 +69,7 @@ def dict_types(clazz: type) -> Tuple[type, type]:
 
 
 # walk class hierarchy, as well as all properties to find transitive data classes
-def transitive_classes(classes: Set[type]) -> Set[type]:
+def transitive_classes(classes: Set[type], walk_subclasses: bool = True) -> Set[type]:
     all_classes: MutableSet[type] = set()
 
     def check(to_check: type) -> None:
@@ -86,8 +86,9 @@ def transitive_classes(classes: Set[type]) -> Set[type]:
             all_classes.add(clazz)
             for mro_clazz in clazz.mro()[1:]:
                 check(mro_clazz)
-            for subclass in clazz.__subclasses__():
-                check(subclass)
+            if walk_subclasses:
+                for subclass in clazz.__subclasses__():
+                    check(subclass)
             for field in attrs.fields(clazz):
                 check(field.type)
         elif is_enum(clazz):
@@ -146,7 +147,10 @@ def should_export(field: Attribute) -> bool:
 
 
 def dataclasses_to_resotocore_model(
-    classes: Set[type], allow_unknown_props: bool = False, aggregate_root: Optional[type] = None
+    classes: Set[type],
+    allow_unknown_props: bool = False,
+    aggregate_root: Optional[type] = None,
+    walk_subclasses: bool = True,
 ) -> List[Json]:
     """
     Analyze all transitive dataclasses and create the model
@@ -157,6 +161,7 @@ def dataclasses_to_resotocore_model(
     :param classes: all dataclasses to analyze.
     :param allow_unknown_props: allow properties in json that are not defined in the model.
     :param aggregate_root: if a type is a subtype of this type, it will be considered an aggregate root.
+    :param walk_subclasses: if true, all subclasses of the given classes will be analyzed as well.
     :return: the model definition in the resotocore json format.
     """
 
@@ -196,7 +201,7 @@ def dataclasses_to_resotocore_model(
         return [json(name, kind, required, desc)] + synthetics
 
     model: List[Json] = []
-    all_classes = transitive_classes(classes)
+    all_classes = transitive_classes(classes, walk_subclasses)
 
     # type edge_type -> list of types
     successors: Dict[str, Dict[str, List[str]]] = defaultdict(lambda: defaultdict(list))
