@@ -65,3 +65,10 @@ def test_path(progress: ProgressTree) -> None:
     sub = progress.sub_progress("account1")
     assert sub is not None
     assert sub.percentage == 75
+
+
+def test_equality(progress: ProgressTree) -> None:
+    pgc = progress.copy()
+    assert pgc == progress
+    pgc.add_progress(ProgressDone("region1", 2, 2, path=["account1"]))
+    assert pgc != progress
