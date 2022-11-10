@@ -59,7 +59,8 @@ class SqlModel:
         return kind.replace(".", "_")
 
     def link_table_name(self, from_kind: str, to_kind: str) -> str:
-        return f"link_{self.table_name(from_kind)}_{self.table_name(to_kind)}"
+        # postgres table names are not allowed to be longer than 63 characters
+        return f"link_{self.table_name(from_kind)[0:28]}_{self.table_name(to_kind)[0:28]}"
 
     def kind_properties(self, kind: Kind) -> Tuple[List[Property], List[str]]:
         visited = set()

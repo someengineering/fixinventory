@@ -1,5 +1,6 @@
 import concurrent
 import multiprocessing
+from argparse import Namespace
 from contextlib import suppress
 from threading import Event
 from concurrent.futures import ThreadPoolExecutor, Future
@@ -99,13 +100,13 @@ def show_messages(core_messages: Queue[Json], end: Event) -> None:
                 print(msg)
 
 
-def collect_from_plugins(engine: Engine) -> None:
+def collect_from_plugins(engine: Engine, args: Namespace) -> None:
     # the multiprocessing manager is used to share data between processes
     mp_manager = multiprocessing.Manager()
     core_messages: Queue[Json] = mp_manager.Queue()
     feedback = CoreFeedback("cloud2sql", "collect", "collect", core_messages)
     all_collectors = collectors(feedback)
-    configure("/Users/matthias/config.yaml")  # get path via args
+    configure(args.config)  # configure collectors *after* the collectors are loaded
     end = Event()
     with ThreadPoolExecutor(max_workers=4) as executor:
         try:
@@ -115,7 +116,5 @@ def collect_from_plugins(engine: Engine) -> None:
                 futures.append(executor.submit(collect, collector, engine, feedback))
             for future in concurrent.futures.as_completed(futures):
                 future.result()
-        except Exception as e:
-            print("GOT ERROR", e)
         finally:
             end.set()
