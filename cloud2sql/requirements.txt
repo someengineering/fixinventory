@@ -3,7 +3,7 @@
 setuptools==65.5.1
 SQLAlchemy==2.0.0b3
 PyYAML==6.0
-resotoclient==1.2.0
+resotoclient==1.2.1
 # resoto-plugin-aws==2.4.5
 resotolib
 resoto-plugin-k8s
