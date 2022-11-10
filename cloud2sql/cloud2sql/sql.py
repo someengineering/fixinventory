@@ -5,6 +5,7 @@ from typing import List, Any, Type, Tuple, Dict, Optional
 from resotoclient.models import Kind, Model, Property, JsObject
 from resotolib import baseresources
 from resotolib.baseresources import BaseResource
+from resotolib.types import Json
 from sqlalchemy import (
     MetaData,
     Table,
@@ -26,6 +27,13 @@ class SqlModel:
     def __init__(self, model: Model):
         self.model = model
         self.metadata = MetaData()
+
+    carz = [
+        Property("cloud", "string"),
+        Property("account", "string"),
+        Property("region", "string"),
+        Property("zone", "string"),
+    ]
 
     @staticmethod
     def column_type_from(kind: str) -> Type[TypeEngine[Any]]:
@@ -53,15 +61,17 @@ class SqlModel:
     def link_table_name(self, from_kind: str, to_kind: str) -> str:
         return f"link_{self.table_name(from_kind)}_{self.table_name(to_kind)}"
 
-    def base_props(self, kind: Kind) -> Tuple[List[Property], List[str]]:
+    def kind_properties(self, kind: Kind) -> Tuple[List[Property], List[str]]:
         visited = set()
 
         def base_props_not_visited(kd: Kind) -> Tuple[List[Property], List[str]]:
             if kd.fqn in visited:
                 return [], []
             visited.add(kd.fqn)
+            # take all properties that are not synthetic
+            # also ignore the kind property, since it is available in the table name
             properties: Dict[str, Property] = {
-                prop.name: prop for prop in (kd.properties or []) if not prop.name.startswith("trafo")
+                prop.name: prop for prop in (kd.properties or []) if prop.synthetic is None and prop.name != "kind"
             }
             defaults = kd.successor_kinds.get("default") if kd.successor_kinds else None
             successors: List[str] = defaults.copy() if defaults else []
@@ -73,13 +83,14 @@ class SqlModel:
                     successors.extend(succs)
             return list(properties.values()), successors
 
-        return base_props_not_visited(kind)
+        prs, scs = base_props_not_visited(kind)
+        return prs + self.carz, scs
 
     def create_schema(self) -> MetaData:
         def table_schema(kind: Kind) -> None:
             table_name = self.table_name(kind.fqn)
             if table_name not in self.metadata.tables:
-                properties, _ = self.base_props(kind)
+                properties, _ = self.kind_properties(kind)
                 Table(
                     self.table_name(kind.fqn),
                     self.metadata,
@@ -106,11 +117,13 @@ class SqlModel:
                 )
 
         def link_table_schema_from_successors(kind: Kind) -> None:
-            _, successors = self.base_props(kind)
+            _, successors = self.kind_properties(kind)
             # create link table for all linked entities
             for successor in successors:
                 link_table_schema(kind.fqn, successor)
 
+        # This set will hold the names of all "base" resources
+        # Since that are abstract classes, there will be no instances of them - hence we do not need a table for them.
         base_kinds = {
             clazz.kind
             for _, clazz in inspect.getmembers(baseresources, inspect.isclass)
@@ -143,11 +156,13 @@ class SqlUpdater:
         return maybe_insert.values(values) if maybe_insert is not None else None
 
     def insert_node(self, node: JsObject) -> Optional[ValuesBase]:
-        if node.get("id") == "HE_Nx0mOIMN3WA9OYSOgEw":
-            print(node)
         if node.get("type") == "node" and "id" in node and "reported" in node:
-            reported = node["reported"]
+            reported: Json = node.get("reported", {})
             reported["_id"] = node["id"]
+            reported["cloud"] = node["ancestors"]["cloud"]["reported"]["id"]
+            reported["account"] = node["ancestors"]["account"]["reported"]["id"]
+            reported["region"] = node["ancestors"]["region"]["reported"]["id"]
+            reported["zone"] = node["ancestors"]["zone"]["reported"]["id"]
             kind = reported.pop("kind")
             self.kind_by_id[node["id"]] = kind
             return self.insert_value(kind, reported)

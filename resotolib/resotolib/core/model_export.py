@@ -287,6 +287,8 @@ def format_value_for_export(value: Any) -> Any:
         return utc_str(value)
     elif isinstance(value, (timedelta, timezone)):
         return duration_str(value)
+    elif isinstance(value, Enum):
+        return value.value
     return value
 
 

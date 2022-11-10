@@ -461,7 +461,7 @@ def collect_account(
 
     if args is not None:
         ArgumentParser.args = args
-        setup_logger("resotoworker-aws")
+        setup_logger("resotoworker-aws", force=False)
     if running_config is not None:
         Config.running_config.apply(running_config)
 

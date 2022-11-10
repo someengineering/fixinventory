@@ -5,7 +5,7 @@ from onelogin.api.models.user import User
 from resotolib.baseplugin import BaseCollectorPlugin
 from resotolib.config import Config
 from resotolib.utils import make_valid_timestamp
-from resotolib.baseresources import BaseAccount, BaseRegion, BaseUser
+from resotolib.baseresources import BaseAccount, BaseRegion, BaseUser, ModelReference
 from resotolib.graph import Graph
 from attrs import define, field
 from typing import ClassVar, Optional, Dict, List
@@ -25,6 +25,7 @@ class OneLoginResource:
 @define(eq=False, slots=False)
 class OneLoginAccount(OneLoginResource, BaseAccount):
     kind: ClassVar[str] = "onelogin_account"
+    reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["onelogin_user"]}}
 
 
 @define(eq=False, slots=False)

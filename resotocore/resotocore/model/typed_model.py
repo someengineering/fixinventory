@@ -44,6 +44,7 @@ def to_json(node: Any, **kwargs: Any) -> JsonElement:
         node,
         strip_privates=True,
         strip_microseconds=True,
+        strip_nulls=True,
         # strip_class_variables=True,
         **kwargs,
     )

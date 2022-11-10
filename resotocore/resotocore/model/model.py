@@ -1061,6 +1061,7 @@ predefined_kinds = [
         "graph_root",
         [],
         [
+            Property("id", "string", False, None, "The id of this node."),
             Property("name", "string", False, None, "The name of this node."),
             Property("tags", "dictionary[string, string]", False, None, "All attached tags of this node."),
         ],

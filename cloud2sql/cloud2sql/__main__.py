@@ -7,7 +7,7 @@ log = getLogger("cloud2sql")
 
 
 def main() -> None:
-    basicConfig(level="INFO", force=True)
+    basicConfig(level="INFO", filename="cloud2sql.log", force=True)
     engine = create_engine("sqlite:////tmp/resoto.db")
     collect_from_plugins(engine)
 
