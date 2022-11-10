@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import abstractmethod, ABC
-from typing import List, Optional
+from typing import List, Optional, Any, Dict
 
 from attr import define, field, evolve
 from treelib import Tree, Node
@@ -133,9 +133,22 @@ class ProgressDone(Progress):
         return evolve(self, current=self.total)
 
 
-@define
+@define(eq=False)
 class ProgressTree(Progress):
     sub_tree: Tree = field(factory=Tree)
+
+    def __attrs_post_init__(self) -> None:
+        if not self.sub_tree.root:
+            self.sub_tree.create_node(_TreeRoot, _TreeRoot)
+
+    def __eq__(self, other: Any) -> bool:
+        def data_nodes(tree: Tree) -> Dict[str, Progress]:
+            return {nid: node.data for nid, node in tree.nodes.items() if node.data is not None}
+
+        if isinstance(other, ProgressTree):
+            return data_nodes(self.sub_tree) == data_nodes(other.sub_tree)
+        else:
+            return False
 
     def sub_progress(self, nid: str) -> Optional[Progress]:
         nid = nid if nid.startswith(_TreeRoot) else _TreeRoot + "." + nid
@@ -187,8 +200,6 @@ class ProgressTree(Progress):
         return cloned
 
     def add_progress(self, progress: Progress) -> None:
-        if not self.sub_tree.root:
-            self.sub_tree.create_node(_TreeRoot, _TreeRoot)
         last = self.sub_tree.root
         last_path = last
         path = last
@@ -203,3 +214,6 @@ class ProgressTree(Progress):
         if nid in self.sub_tree and nid != self.sub_tree.root:
             self.sub_tree.remove_node(nid)
         self.sub_tree.create_node(progress.name, nid, parent=last_path, data=progress)
+
+    def copy(self) -> ProgressTree:
+        return evolve(self, sub_tree=Tree(self.sub_tree.subtree(self.sub_tree.root), deep=True))

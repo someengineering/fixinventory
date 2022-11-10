@@ -403,8 +403,13 @@ class TaskHandlerService(TaskHandler):
     ) -> None:
         wi = self.tasks.get(done.task_id)
         if wi:
+            progress = wi.progresses.copy()
             commands = fn(wi)
             await self.execute_task_commands(wi, commands, done)
+            # check if progress has changed in the meantime (by the running task itself)
+            if wi.progresses != progress:
+                msg = {"workflow": wi.descriptor.name, "task": wi.id, "message": wi.progress.to_json()}
+                await self.message_bus.emit_event(CoreMessage.ProgressMessage, msg)
         else:
             log.warning(
                 f"Received an ack for an unknown task={done.task_id} "
