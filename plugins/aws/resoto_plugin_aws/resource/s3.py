@@ -1,11 +1,11 @@
-from typing import ClassVar, Dict, List, Type, Optional, cast, Any  # noqa: F401
+from typing import ClassVar, Dict, List, Type, Optional, cast, Any
 
 from attrs import define
 
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
 from resoto_plugin_aws.utils import tags_as_dict
-from resotolib.baseresources import BaseBucket, BaseAccount  # noqa: F401
+from resotolib.baseresources import BaseBucket
 from resotolib.json_bender import Bender, S
 from resotolib.types import Json
 

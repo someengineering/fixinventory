@@ -6,7 +6,7 @@ from attrs import define, field
 from resoto_plugin_aws.resource.autoscaling import AwsAutoScalingGroup
 from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
 from resoto_plugin_aws.resource.iam import AwsIamRole
-from resotolib.baseresources import BaseAccount, EdgeType, ModelReference  # noqa: F401
+from resotolib.baseresources import ModelReference
 from resotolib.json_bender import Bender, S, Bend, ForallBend
 from resotolib.types import Json
 from resoto_plugin_aws.aws_client import AwsClient

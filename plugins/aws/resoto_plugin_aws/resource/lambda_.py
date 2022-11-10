@@ -9,13 +9,7 @@ from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpe
 from resoto_plugin_aws.resource.apigateway import AwsApiGatewayRestApi, AwsApiGatewayResource
 from resoto_plugin_aws.resource.ec2 import AwsEc2Subnet, AwsEc2SecurityGroup, AwsEc2Vpc
 from resoto_plugin_aws.resource.kms import AwsKmsKey
-from resotolib.baseresources import (  # noqa: F401
-    BaseCertificate,
-    BasePolicy,
-    BaseGroup,
-    BaseAccount,
-    BaseAccessKey,
-    BaseUser,
+from resotolib.baseresources import (
     BaseServerlessFunction,
     ModelReference,
 )

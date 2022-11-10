@@ -7,11 +7,10 @@ from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpe
 from resoto_plugin_aws.resource.ec2 import AwsEc2IamInstanceProfile
 from resoto_plugin_aws.utils import ToDict
 
-from resotolib.baseresources import (  # noqa: F401
+from resotolib.baseresources import (
     BaseCertificate,
     BasePolicy,
     BaseGroup,
-    BaseAccount,
     BaseAccessKey,
     BaseUser,
     BaseInstanceProfile,

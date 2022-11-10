@@ -6,7 +6,7 @@ from resoto_plugin_aws.resource.cloudwatch import AwsCloudwatchQuery, AwsCloudwa
 from resoto_plugin_aws.resource.ec2 import AwsEc2SecurityGroup, AwsEc2Subnet, AwsEc2Vpc
 from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resoto_plugin_aws.utils import ToDict
-from resotolib.baseresources import BaseAccount, BaseDatabase, ModelReference  # noqa: F401
+from resotolib.baseresources import BaseDatabase, ModelReference
 from resotolib.json_bender import F, K, S, Bend, Bender, ForallBend, bend
 from resotolib.types import Json
 from resotolib.utils import utc

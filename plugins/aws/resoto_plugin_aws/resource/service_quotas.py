@@ -6,7 +6,7 @@ from attr import field, evolve
 from attrs import define
 
 from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec, AwsRegion
-from resotolib.baseresources import BaseAccount, BaseQuota, EdgeType, ModelReference  # noqa: F401
+from resotolib.baseresources import BaseQuota, EdgeType, ModelReference
 from resotolib.json_bender import Bender, S, Bend
 from resotolib.types import Json
 from resoto_plugin_aws.aws_client import AwsClient
