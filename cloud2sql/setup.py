@@ -30,9 +30,9 @@ setup(
     long_description=readme,
     long_description_content_type="text/markdown",
     include_package_data=True,
-    packages=find_packages(include=["cloud2sql"]),
+    packages=find_packages(include=["cloud2sql", "cloud2sql.*"]),
     setup_requires=setup_requirements,
     test_suite="tests",
     tests_require=test_required,
-    url="https://github.com/someengineering/resoto/cloud2sql"
+    url="https://github.com/someengineering/resoto/cloud2sql",
 )

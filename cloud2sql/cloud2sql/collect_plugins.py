@@ -1,11 +1,11 @@
 import concurrent
 import multiprocessing
 from argparse import Namespace
-from contextlib import suppress
-from threading import Event
 from concurrent.futures import ThreadPoolExecutor, Future
+from contextlib import suppress
 from logging import getLogger
 from queue import Queue
+from threading import Event
 from typing import Dict, Optional, List
 
 import pkg_resources
@@ -16,11 +16,14 @@ from resotolib.baseresources import BaseResource
 from resotolib.config import Config
 from resotolib.core.actions import CoreFeedback
 from resotolib.core.model_export import node_to_dict
-from resotolib.core.progress import ProgressTree, Progress
 from resotolib.json import from_json
+from resotolib.proc import emergency_shutdown
 from resotolib.types import Json
+from rich.live import Live
+from rich import print as rich_print
 from sqlalchemy import Engine
 
+from cloud2sql.show_progress import CollectInfo
 from cloud2sql.sql import SqlModel, SqlUpdater
 
 log = getLogger("cloud2sql")
@@ -87,17 +90,15 @@ def collect(collector: BaseCollectorPlugin, engine: Engine, feedback: CoreFeedba
 
 
 def show_messages(core_messages: Queue[Json], end: Event) -> None:
-    progress = ProgressTree("collect")
+    info = CollectInfo()
 
     while not end.is_set():
-        with suppress(Exception):
-            message = core_messages.get(timeout=1)
-            if message.get("kind") == "action_progress":
-                update = Progress.from_json(message["data"]["progress"])
-                progress.add_progress(update)
-                progress.sub_tree.show()
-            elif msg := message.get("message"):
-                print(msg)
+        with Live(info.render(), auto_refresh=False, transient=True) as live:
+            with suppress(Exception):
+                info.handle_message(core_messages.get(timeout=1))
+                live.update(info.render())
+    for message in info.rendered_messages():
+        rich_print(message)
 
 
 def collect_from_plugins(engine: Engine, args: Namespace) -> None:
@@ -116,5 +117,9 @@ def collect_from_plugins(engine: Engine, args: Namespace) -> None:
                 futures.append(executor.submit(collect, collector, engine, feedback))
             for future in concurrent.futures.as_completed(futures):
                 future.result()
+        except Exception as e:
+            log.error("Error while collecting", exc_info=e)
+            print(f"Encountered Error. Giving up. {e}")
+            emergency_shutdown()
         finally:
             end.set()
