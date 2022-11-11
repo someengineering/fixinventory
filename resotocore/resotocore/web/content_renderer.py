@@ -32,9 +32,9 @@ async def respond_json(gen: AsyncIterator[JsonElement], **json_args: Any) -> Asy
     yield "]"
 
 
-async def respond_ndjson(gen: AsyncIterator[JsonElement]) -> AsyncGenerator[str, None]:
+async def respond_ndjson(gen: AsyncIterator[JsonElement], **kwargs: Any) -> AsyncGenerator[str, None]:
     async for item in gen:
-        js = json.dumps(to_json(item), check_circular=False)
+        js = json.dumps(to_json(item, **kwargs), check_circular=False)
         yield js
 
 

@@ -43,7 +43,8 @@ async def test_json(elements: List[JsonElement]) -> None:
 async def test_ndjson(elements: List[JsonElement]) -> None:
     async with stream.iterate(elements).stream() as streamer:
         result = []
-        async for elem in respond_ndjson(streamer):
+        # with null stripping enabled, a dict {"a": null} will become {} which is not bijective, so turn it off here
+        async for elem in respond_ndjson(streamer, strip_nulls=False):
             result.append(json.loads(elem.strip()))
         assert result == elements
 

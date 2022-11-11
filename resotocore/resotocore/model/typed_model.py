@@ -40,14 +40,13 @@ def to_json(node: Any, **kwargs: Any) -> JsonElement:
     # shortcut: assume a dict is already a json value
     if isinstance(node, dict) and not kwargs.get("force_dict", False):
         return node
-    return jsons.dump(  # type: ignore
-        node,
-        strip_privates=True,
-        strip_microseconds=True,
-        strip_nulls=True,
-        # strip_class_variables=True,
-        **kwargs,
-    )
+    if "strip_privates" not in kwargs:
+        kwargs["strip_privates"] = True
+    if "strip_microseconds" not in kwargs:
+        kwargs["strip_microseconds"] = True
+    if "strip_nulls" not in kwargs:
+        kwargs["strip_nulls"] = True
+    return jsons.dump(node, **kwargs)  # type: ignore
 
 
 def to_js_str(node: Any) -> str:
