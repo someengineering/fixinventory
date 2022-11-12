@@ -274,7 +274,7 @@ jobs:
 
   edge-docs:
     name: Update edge API Documentation
-    if: github.ref_type == 'branch' # on every commit to main
+    if: github.event_name != 'pull_request' && github.ref_type == 'branch' # on every commit to main
     needs:
       - split-build
     runs-on: ubuntu-latest
