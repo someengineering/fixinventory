@@ -5,7 +5,8 @@ from concurrent.futures import ThreadPoolExecutor, Future
 from contextlib import suppress
 from logging import getLogger
 from queue import Queue
-from threading import Event, Lock
+from threading import Event
+from time import sleep
 from typing import Dict, Optional, List
 
 import pkg_resources
@@ -19,8 +20,8 @@ from resotolib.core.model_export import node_to_dict
 from resotolib.json import from_json
 from resotolib.proc import emergency_shutdown
 from resotolib.types import Json
-from rich.live import Live
 from rich import print as rich_print
+from rich.live import Live
 from sqlalchemy import Engine
 
 from cloud2sql.show_progress import CollectInfo
@@ -62,6 +63,10 @@ def collect(collector: BaseCollectorPlugin, engine: Engine, feedback: CoreFeedba
     # read the kinds created from this collector
     kinds = [from_json(m, Kind) for m in collector.graph.export_model(walk_subclasses=False)]
     model = SqlModel(Model({k.fqn: k for k in kinds}))
+    node_edge_count = len(collector.graph.nodes) + len(collector.graph.edges)
+    ne_current = 0
+    progress_update = 5000
+    feedback.progress_done("sync_db", 0, node_edge_count, context=[collector.cloud])
     with engine.connect() as conn:
         # create the ddl metadata from the kinds
         model.create_schema(conn, args)
@@ -81,12 +86,18 @@ def collect(collector: BaseCollectorPlugin, engine: Engine, feedback: CoreFeedba
             stmt = updater.insert_node(exported)
             if stmt is not None:
                 conn.execute(stmt)
+            ne_current += 1
+            if ne_current % progress_update == 0:
+                feedback.progress_done("sync_db", ne_current, node_edge_count, context=[collector.cloud])
         for edge in collector.graph.edges:
             from_node = edge[0]
             to_node = edge[1]
             stmt = updater.insert_node({"from": from_node, "to": to_node, "type": "edge"})
             if stmt is not None:
                 conn.execute(stmt)
+            ne_current += 1
+            if ne_current % progress_update == 0:
+                feedback.progress_done("sync_db", ne_current, node_edge_count, context=[collector.cloud])
         conn.commit()
     feedback.progress_done(collector.cloud, 1, 1)
 
@@ -120,6 +131,9 @@ def collect_from_plugins(engine: Engine, args: Namespace) -> None:
             for future in concurrent.futures.as_completed(futures):
                 future.result()
         except Exception as e:
+            # set end and wait for live to finish, otherwise the cursor is not reset
+            end.set()
+            sleep(1)
             print(f"Encountered Error. Giving up. {e}")
             emergency_shutdown()
         finally:

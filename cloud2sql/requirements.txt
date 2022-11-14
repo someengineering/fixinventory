@@ -1,12 +1,20 @@
 # Only list production dependencies. Everything else can be added to requirements-test.txt and requirements-dev.txt.
 
-setuptools==65.5.1
+# required for cloud2sql to run
 SQLAlchemy==2.0.0b3
 PyYAML==6.0
-resotoclient==1.2.1
 rich==12.6.0
-# resoto-plugin-aws==2.4.5
-resotolib
-resoto-plugin-k8s
-# resoto-plugin-digitalocean
+resotolib==3.0.0a0
+resotoclient==1.2.1
+
+# bundle popular db drivers
+psycopg2==2.9.5 # postgres
+pymysql==1.0.2 # mysql + mariadb
+cx_Oracle==8.3.0 # oracle
+
+# all collector plugins
+resoto-plugin-aws==3.0.0a0
+resoto-plugin-digitalocean==3.0.0a0
+resoto-plugin-gcp==3.0.0a0
+resoto-plugin-k8s==3.0.0a0
 
