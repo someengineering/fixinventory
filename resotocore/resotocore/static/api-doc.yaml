@@ -1807,22 +1807,22 @@ paths:
 
   /config/{config_id}/validation:
     get:
-      summary: "Get a configuration by its id"
+      summary: "Get a configuration validation by its id"
       description: |
         **Experimental**: This API is not stable and might be subject of change.<br/>
-        Fetch the model of a configuration by id.
+        Fetch the validation of a configuration by id.
       tags:
         - config_validation
       parameters:
         - name: config_id
           required: true
           in: path
-          description: the identifier of the config.
+          description: the identifier of the configuration validation.
           schema:
             type: string
       responses:
         "200":
-          description: The configuration model.
+          description: The configuration validation.
           content:
             application/json:
               schema:
@@ -1831,20 +1831,20 @@ paths:
               schema:
                 $ref: "#/components/schemas/ConfigValidation"
         "404":
-          description: No configuration model for this key.
+          description: No config validation for this key.
 
     put:
-      summary: "Replace a configuration model with given id"
+      summary: "Replace a configuration validation with given id"
       description: |
         **Experimental**: This API is not stable and might be subject of change.<br/>
-        Replace a configuration model identified by id with provided value.
+        Replace a configuration validation identified by id with provided value.
       tags:
         - config_validation
       parameters:
         - name: config_id
           required: true
           in: path
-          description: the identifier of the config to get.
+          description: the identifier of the configuration validation to replace.
           schema:
             type: string
       requestBody:
@@ -1854,7 +1854,7 @@ paths:
               $ref: "#/components/schemas/ConfigValidation"
       responses:
         "200":
-          description: The configuration model.
+          description: The configuration validation.
           content:
             application/json:
               schema:
