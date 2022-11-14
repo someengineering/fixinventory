@@ -120,7 +120,7 @@ class AwsAccountCollector:
             global_builder = GraphBuilder(
                 self.graph, self.cloud, self.account, self.global_region, self.client, shared_queue, self.core_feedback
             )
-            global_builder.core_feedback.progress_done("global", 0, 1)
+            global_builder.core_feedback.progress_done(self.global_region.name, 0, 1)
             global_builder.add_node(self.global_region)
 
             log.info(f"[Aws:{self.account.id}] Collect global resources.")
@@ -130,7 +130,7 @@ class AwsAccountCollector:
                 if self.config.should_collect(resource.kind):
                     resource.collect_resources(global_builder)
             shared_queue.wait_for_submitted_work()
-            global_builder.core_feedback.progress_done("global", 1, 1)
+            global_builder.core_feedback.progress_done(self.global_region.name, 1, 1)
 
             log.info(f"[Aws:{self.account.id}] Collect regional resources.")
 
@@ -161,7 +161,7 @@ class AwsAccountCollector:
 
             # wait for all futures to finish
             shared_queue.wait_for_submitted_work()
-            self.core_feedback.progress_done(self.account.id, 1, 1, context=["aws"])
+            self.core_feedback.progress_done(self.account.dname, 1, 1, context=[self.cloud.id])
 
             log.info(f"[Aws:{self.account.id}] Collecting resources done.")
 
@@ -186,7 +186,7 @@ class AwsAccountCollector:
             with ThreadPoolExecutor(
                 thread_name_prefix=regional_thread_name, max_workers=self.config.region_resources_pool_size
             ) as executor:
-                regional_builder.core_feedback.progress_done(f"{region.id}", 0, 1)
+                regional_builder.core_feedback.progress_done(region.name, 0, 1)
                 # In case an exception is thrown for any resource, we should give up as quick as possible.
                 queue = ExecutorQueue(executor, region.name, fail_on_first_exception=True)
                 regional_builder.add_node(region)
@@ -194,20 +194,13 @@ class AwsAccountCollector:
                     if self.config.should_collect(res.kind):
                         queue.submit_work(collect_resource, res, regional_builder)
                 queue.wait_for_submitted_work()
-                regional_builder.core_feedback.progress_done(f"{region.id}", 1, 1)
+                regional_builder.core_feedback.progress_done(region.name, 1, 1)
         except Exception as e:
             msg = f"Error collecting resources in account {self.account.id} region {region.id}: {e} - skipping region"
             self.core_feedback.error(msg, log)
             return None
 
     def update_account(self) -> None:
-        # account alias
-        try:
-            if account_aliases := self.client.list("iam", "list_account_aliases", "AccountAliases"):
-                self.account.name = self.account.account_alias = account_aliases[0]
-        except ClientError as e:
-            self.core_feedback.info(f"Could not get account aliases: {e}", log)
-
         log.info(f"Collecting AWS IAM Account Summary in account {self.account.dname}")
         sm = self.client.get("iam", "get-account-summary", "SummaryMap") or {}
         self.account.users = int(sm.get("Users", 0))
