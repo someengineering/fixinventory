@@ -167,9 +167,18 @@ class AwsAccountCollector:
 
     def collect_region(self, region: AwsRegion, regional_builder: GraphBuilder) -> None:
         def collect_resource(resource: Type[AwsResource], rb: GraphBuilder) -> None:
-            resource.collect_resources(rb)
-            log.info(f"[Aws:{self.account.id}:{region.name}] finished collecting: {resource.kind}")
-
+            try:
+                resource.collect_resources(rb)
+                log.info(f"[Aws:{self.account.id}:{region.name}] finished collecting: {resource.kind}")
+            except ClientError as e:
+                code = e.response["Error"]["Code"]
+                if code == "UnauthorizedOperation":
+                    msg = (
+                        f"Not authorized to collect {resource.kind} resources in account"
+                        f" {self.account.id} region {region.id} - skipping resource"
+                    )
+                    self.core_feedback.error(msg, log)
+                    return None
         try:
             regional_thread_name = f"aws_{self.account.id}_{region.id}"
             set_thread_name(regional_thread_name)
@@ -185,16 +194,10 @@ class AwsAccountCollector:
                         queue.submit_work(collect_resource, res, regional_builder)
                 queue.wait_for_submitted_work()
                 regional_builder.core_feedback.progress_done(f"{region.id}", 1, 1)
-        except ClientError as e:
-            code = e.response["Error"]["Code"]
-            if code == "UnauthorizedOperation":
-                msg = f"Not authorized to collect resources in account {self.account.id} region {region.id} - skipping region"
-                self.core_feedback.error(msg, log)
-                return None
-            else:
-                msg = f"Error collecting resources in account {self.account.id} region {region.id}: {e} - skipping region"
-                self.core_feedback.error(msg, log)
-                return None
+        except Exception as e:
+            msg = f"Error collecting resources in account {self.account.id} region {region.id}: {e} - skipping region"
+            self.core_feedback.error(msg, log)
+            return None
 
     def update_account(self) -> None:
         # account alias
