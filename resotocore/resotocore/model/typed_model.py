@@ -44,8 +44,6 @@ def to_json(node: Any, **kwargs: Any) -> JsonElement:
         kwargs["strip_privates"] = True
     if "strip_microseconds" not in kwargs:
         kwargs["strip_microseconds"] = True
-    if "strip_nulls" not in kwargs:
-        kwargs["strip_nulls"] = True
     return jsons.dump(node, **kwargs)  # type: ignore
 
 
