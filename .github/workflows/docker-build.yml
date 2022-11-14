@@ -274,7 +274,7 @@ jobs:
 
   edge-docs:
     name: Update edge API Documentation
-    if: github.ref_type == 'branch' # on every commit to main
+    if: github.event_name != 'pull_request' && github.ref_type == 'branch' # on every commit to main
     needs:
       - split-build
     runs-on: ubuntu-latest
@@ -298,12 +298,13 @@ jobs:
       - name: Modify resotocore API YAML
         uses: mikefarah/yq@master
         with:
-          cmd: yq e -i '.servers[0].url = "http://localhost:8900" | del(.servers[0].description)' resoto.com/openapi/resotocore-edge.yml
+          cmd: yq e -i '.servers[0].url = "https://{host}:{port}" | .servers[0].variables.host.default="localhost" | .servers[0].variables.port.default="8900" | del(.servers[0].description)' resoto.com/openapi/resotocore-edge.yml
 
-      - name: Format
+      - name: Regenerate API docs & format with Prettier
         working-directory: ./resoto.com
         run: |
           yarn install --frozen-lockfile
+          yarn gen-api-docs
           yarn format
 
       - name: Create someengineering/resoto.com pull request
@@ -387,12 +388,13 @@ jobs:
         if: steps.release_type.outputs.prerelease == 'false'
         uses: mikefarah/yq@master
         with:
-          cmd: yq e -i '.servers[0].url = "http://localhost:8900" | del(.servers[0].description)' resoto.com/openapi/resotocore.yml
+          cmd: yq e -i '.servers[0].url = "https://{host}:{port}" | .servers[0].variables.host.default="localhost" | .servers[0].variables.port.default="8900" | del(.servers[0].description)' resoto.com/openapi/resotocore.yml
 
-      - name: Format
+      - name: Regenerate API docs & format with Prettier
         working-directory: ./resoto.com
         run: |
           yarn install --frozen-lockfile
+          yarn gen-api-docs
           yarn format
 
       - name: Create someengineering/resoto.com pull request
