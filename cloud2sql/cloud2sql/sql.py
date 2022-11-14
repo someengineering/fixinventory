@@ -4,20 +4,22 @@ from typing import List, Any, Type, Tuple, Dict, Optional
 
 from resotoclient.models import Kind, Model, Property, JsObject
 from resotolib import baseresources
+from resotolib.args import Namespace
 from resotolib.baseresources import BaseResource
 from resotolib.types import Json
 from sqlalchemy import (
-    MetaData,
-    Table,
-    Integer,
-    Column,
-    String,
-    JSON,
     Boolean,
-    Float,
+    Column,
+    Connection,
     Double,
+    Float,
     ForeignKey,
     Insert,
+    Integer,
+    JSON,
+    MetaData,
+    String,
+    Table,
     ValuesBase,
 )
 from sqlalchemy.sql.type_api import TypeEngine
@@ -87,7 +89,7 @@ class SqlModel:
         prs, scs = base_props_not_visited(kind)
         return prs + self.carz, scs
 
-    def create_schema(self) -> MetaData:
+    def create_schema(self, connection: Connection, args: Namespace) -> MetaData:
         def table_schema(kind: Kind) -> None:
             table_name = self.table_name(kind.fqn)
             if table_name not in self.metadata.tables:
@@ -139,6 +141,14 @@ class SqlModel:
         for kind in self.model.kinds.values():
             if kind.aggregate_root and kind.runtime_kind is None and kind.fqn not in base_kinds:
                 link_table_schema_from_successors(kind)
+
+        # drop tables if requested
+        if args.drop:
+            self.metadata.drop_all(connection)
+
+        # create the tables
+        self.metadata.create_all(connection)
+
         return self.metadata
 
 
