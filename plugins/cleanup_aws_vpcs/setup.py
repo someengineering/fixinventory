@@ -11,7 +11,7 @@ def read(fname):
 
 setup(
     name="resoto-plugin-cleanup-aws-vpcs",
-    version="2.4.6",
+    version="2.4.7",
     description="AWS VPC Cleaner Plugin",
     license="Apache 2.0",
     packages=find_packages(),

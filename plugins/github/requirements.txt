@@ -1,2 +1,2 @@
-resotolib==2.4.6
+resotolib==2.4.7
 PyGithub==1.55
