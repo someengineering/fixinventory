@@ -179,6 +179,7 @@ class AwsAccountCollector:
                     )
                     self.core_feedback.error(msg, log)
                     return None
+
         try:
             regional_thread_name = f"aws_{self.account.id}_{region.id}"
             set_thread_name(regional_thread_name)
