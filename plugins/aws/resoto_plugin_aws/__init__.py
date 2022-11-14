@@ -365,7 +365,7 @@ def set_account_name(account: AwsAccount) -> None:
         pass
 
 
-def set_account_names(accounts: List[AwsAccount]):
+def set_account_names(accounts: List[AwsAccount]) -> None:
     if len(accounts) == 0:
         return
     max_workers = len(accounts) if len(accounts) < Config.aws.account_pool_size else Config.aws.account_pool_size
