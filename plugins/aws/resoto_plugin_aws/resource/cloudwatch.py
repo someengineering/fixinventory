@@ -7,7 +7,7 @@ from attr import define, field
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
 from resoto_plugin_aws.utils import ToDict
-from resotolib.baseresources import BaseAccount, ModelReference  # noqa: F401
+from resotolib.baseresources import ModelReference
 from resotolib.json import from_json
 from resotolib.json_bender import S, Bend, Bender, ForallBend, bend
 from resotolib.types import Json

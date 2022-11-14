@@ -6,13 +6,7 @@ from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
 from resoto_plugin_aws.utils import ToDict
 
-from resotolib.baseresources import (  # noqa: F401
-    BaseCertificate,
-    BasePolicy,
-    BaseGroup,
-    BaseAccount,
-    BaseAccessKey,
-    BaseUser,
+from resotolib.baseresources import (
     BaseDNSZone,
     BaseDNSRecord,
     EdgeType,

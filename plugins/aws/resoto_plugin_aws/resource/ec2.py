@@ -9,7 +9,7 @@ from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpe
 from resoto_plugin_aws.resource.cloudwatch import AwsCloudwatchQuery, AwsCloudwatchMetricData
 from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resoto_plugin_aws.utils import ToDict, TagsValue
-from resotolib.baseresources import (  # noqa: F401
+from resotolib.baseresources import (
     BaseInstance,
     EdgeType,
     BaseVolume,
