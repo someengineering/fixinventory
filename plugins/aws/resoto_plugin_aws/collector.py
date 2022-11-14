@@ -120,7 +120,7 @@ class AwsAccountCollector:
             global_builder = GraphBuilder(
                 self.graph, self.cloud, self.account, self.global_region, self.client, shared_queue, self.core_feedback
             )
-            global_builder.core_feedback.progress_done("collect-global", 0, 1)
+            global_builder.core_feedback.progress_done("global", 0, 1)
             global_builder.add_node(self.global_region)
 
             log.info(f"[Aws:{self.account.id}] Collect global resources.")
@@ -130,7 +130,7 @@ class AwsAccountCollector:
                 if self.config.should_collect(resource.kind):
                     resource.collect_resources(global_builder)
             shared_queue.wait_for_submitted_work()
-            global_builder.core_feedback.progress_done("collect-global", 1, 1)
+            global_builder.core_feedback.progress_done("global", 1, 1)
 
             log.info(f"[Aws:{self.account.id}] Collect regional resources.")
 
@@ -176,7 +176,7 @@ class AwsAccountCollector:
             with ThreadPoolExecutor(
                 thread_name_prefix=regional_thread_name, max_workers=self.config.region_resources_pool_size
             ) as executor:
-                regional_builder.core_feedback.progress_done(f"collect-{region.id}", 0, 1)
+                regional_builder.core_feedback.progress_done(f"{region.id}", 0, 1)
                 # In case an exception is thrown for any resource, we should give up as quick as possible.
                 queue = ExecutorQueue(executor, region.name, fail_on_first_exception=True)
                 regional_builder.add_node(region)
@@ -184,17 +184,17 @@ class AwsAccountCollector:
                     if self.config.should_collect(res.kind):
                         queue.submit_work(collect_resource, res, regional_builder)
                 queue.wait_for_submitted_work()
-                regional_builder.core_feedback.progress_done(f"collect-{region.id}", 1, 1)
+                regional_builder.core_feedback.progress_done(f"{region.id}", 1, 1)
         except ClientError as e:
             code = e.response["Error"]["Code"]
             if code == "UnauthorizedOperation":
-                msg = f"Not authorized to collect resources in account {self.account.id} region {region.id}"
+                msg = f"Not authorized to collect resources in account {self.account.id} region {region.id} - skipping region"
                 self.core_feedback.error(msg, log)
                 return None
             else:
-                msg = f"Error collecting resources in account {self.account.id} region {region.id}: {e}"
+                msg = f"Error collecting resources in account {self.account.id} region {region.id}: {e} - skipping region"
                 self.core_feedback.error(msg, log)
-                raise
+                return None
 
     def update_account(self) -> None:
         # account alias
