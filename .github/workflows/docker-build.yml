@@ -281,6 +281,7 @@ jobs:
           token: ${{ secrets.SOME_CI_PAT }}
 
       - name: Update resource data models
+        continue-on-error: true
         shell: bash
         run: |
           PSK= RESOTOCORE_ANALYTICS_OPT_OUT=true docker-compose up -d
@@ -390,6 +391,7 @@ jobs:
 
       - name: Update resource data models
         if: steps.release_type.outputs.prerelease == 'false'
+        continue-on-error: true
         shell: bash
         run: |
           PSK= RESOTOCORE_ANALYTICS_OPT_OUT=true docker-compose up -d
@@ -434,6 +436,23 @@ jobs:
           token: ${{ secrets.SOME_CI_PAT }}
           committer: C.K. <98986935+some-ci@users.noreply.github.com>
           author: C.K. <98986935+some-ci@users.noreply.github.com>
+
+      - name: Create release
+        uses: ncipollo/release-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          prerelease: ${{steps.release_type.outputs.prerelease}}
+          body: |
+            ### Release Notes
+
+            https://resoto.com${{ steps.release_notes.outputs.link }}
+
+            ### Docker Images
+
+            - `somecr.io/someengineering/resotocore:${{ steps.release_notes.outputs.tag }}`
+            - `somecr.io/someengineering/resotoworker:${{ steps.release_notes.outputs.tag }}`
+            - `somecr.io/someengineering/resotoshell:${{ steps.release_notes.outputs.tag }}`
+            - `somecr.io/someengineering/resotometrics:${{ steps.release_notes.outputs.tag }}`
 
       - name: Check out someengineering/helm-charts
         uses: actions/checkout@v3
@@ -497,20 +516,3 @@ jobs:
           token: ${{ secrets.SOME_CI_PAT }}
           committer: C.K. <98986935+some-ci@users.noreply.github.com>
           author: C.K. <98986935+some-ci@users.noreply.github.com>
-
-      - name: Create release
-        uses: ncipollo/release-action@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          prerelease: ${{steps.release_type.outputs.prerelease}}
-          body: |
-            ### Release Notes
-
-            https://resoto.com${{ steps.release_notes.outputs.link }}
-
-            ### Docker Images
-
-            - `somecr.io/someengineering/resotocore:${{ steps.release_notes.outputs.tag }}`
-            - `somecr.io/someengineering/resotoworker:${{ steps.release_notes.outputs.tag }}`
-            - `somecr.io/someengineering/resotoshell:${{ steps.release_notes.outputs.tag }}`
-            - `somecr.io/someengineering/resotometrics:${{ steps.release_notes.outputs.tag }}`
