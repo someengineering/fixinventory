@@ -18,6 +18,8 @@ from resotolib.core.events import CoreEvents
 from typing import Dict, Any, List, Optional, Type
 from attrs import fields
 
+from resotolib.types import Json
+
 
 class RunningConfig:
     def __init__(self) -> None:
@@ -123,18 +125,7 @@ class Config(metaclass=MetaConfig):
                 pass
             else:
                 log.info(f"Loaded config {self.config_name} revision {new_config_revision}")
-                new_config = {}
-                for config_id, config_data in config.items():
-                    if config_id in Config.running_config.classes:
-                        log.debug(f"Loading config section {config_id}")
-                        clazz: Type[Any] = Config.running_config.classes.get(config_id, Any)
-                        # use the from_json class from config, if available
-                        if loader := getattr(clazz, "from_json", None):
-                            new_config[config_id] = loader(config_data)
-                        else:
-                            new_config[config_id] = from_json(config_data, clazz)
-                    else:
-                        log.warning(f"Unknown config section {config_id}")
+                new_config = Config.read_config(config)
                 if reload and self.restart_required(new_config):
                     restart()
                 Config.running_config.data = new_config
@@ -151,6 +142,22 @@ class Config(metaclass=MetaConfig):
             if not self._ce.is_alive():
                 log.debug("Starting config event listener")
                 self._ce.start()
+
+    @staticmethod
+    def read_config(config: Json) -> Dict[str, Any]:
+        new_config = {}
+        for config_id, config_data in config.items():
+            if config_id in Config.running_config.classes:
+                log.debug(f"Loading config section {config_id}")
+                clazz: Type[Any] = Config.running_config.classes.get(config_id, Any)
+                # use the from_json class from config, if available
+                if loader := getattr(clazz, "from_json", None):
+                    new_config[config_id] = loader(config_data)
+                else:
+                    new_config[config_id] = from_json(config_data, clazz)
+            else:
+                log.warning(f"Unknown config section {config_id}")
+        return new_config
 
     @staticmethod
     def restart_required(new_config: Dict) -> bool:

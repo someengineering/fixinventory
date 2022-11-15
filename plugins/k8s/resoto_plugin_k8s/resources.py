@@ -1091,6 +1091,7 @@ class KubernetesCluster(KubernetesResource, BaseAccount):
                 "kubernetes_csi_driver",
                 "kubernetes_cluster_role_binding",
                 "kubernetes_cluster_role",
+                "kubernetes_ingress_class",
             ],
             "delete": [],
         }
