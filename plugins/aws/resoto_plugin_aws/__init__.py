@@ -351,23 +351,23 @@ def current_account_id(profile: Optional[str] = None) -> str:
     return session.client("sts").get_caller_identity().get("Account")  # type: ignore
 
 
-def set_account_name(account: AwsAccount) -> None:
-    try:
-        account_aliases = (
-            aws_session(account.id, account.role, account.profile)
-            .client("iam")
-            .list_account_aliases()
-            .get("AccountAliases", [])
-        )
-        if len(account_aliases) > 0:
-            account.name = account_aliases[0]
-    except Exception:
-        pass
-
-
 def set_account_names(accounts: List[AwsAccount]) -> None:
+    def set_account_name(account: AwsAccount) -> None:
+        try:
+            account_aliases = (
+                aws_session(account.id, account.role, account.profile)
+                .client("iam")
+                .list_account_aliases()
+                .get("AccountAliases", [])
+            )
+            if len(account_aliases) > 0:
+                account.name = account_aliases[0]
+        except Exception:
+            pass
+
     if len(accounts) == 0:
         return
+
     max_workers = len(accounts) if len(accounts) < Config.aws.account_pool_size else Config.aws.account_pool_size
     with futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
         executor.map(set_account_name, accounts)
