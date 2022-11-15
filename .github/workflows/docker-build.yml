@@ -396,7 +396,7 @@ jobs:
         shell: bash
         run: |
           PSK= RESOTOCORE_ANALYTICS_OPT_OUT=true docker-compose up -d
-          cd resoto.com/versioned_docs/version-$(cat resoto.com/versions.json | jq -r '.[0]')/reference/data-models
+          cd resoto.com/versioned_docs/version-${{steps.release_type.outputs.majorVersion}}.X/reference/data-models
           find . -mindepth 2 -type d -name img -prune -exec rm -rf {} \;
           python ${{ github.workspace }}/resoto.com/tools/export_model_images.py
           yarn optimize
