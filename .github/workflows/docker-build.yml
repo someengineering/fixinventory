@@ -285,8 +285,8 @@ jobs:
         shell: bash
         run: |
           PSK= RESOTOCORE_ANALYTICS_OPT_OUT=true docker-compose up -d
-          sleep 1m
           cd resoto.com/docs/reference/data-models
+          find . -mindepth 2 -type d -name img -prune -exec rm -rf {} \;
           python ${{ github.workspace }}/resoto.com/tools/export_model_images.py
 
       - name: Update resotocore API YAML
@@ -396,8 +396,8 @@ jobs:
         shell: bash
         run: |
           PSK= RESOTOCORE_ANALYTICS_OPT_OUT=true docker-compose up -d
-          sleep 1m
           cd resoto.com/versioned_docs/version-$(cat resoto.com/versions.json | jq -r '.[0]')/reference/data-models
+          find . -mindepth 2 -type d -name img -prune -exec rm -rf {} \;
           python ${{ github.workspace }}/resoto.com/tools/export_model_images.py
           yarn optimize
 
