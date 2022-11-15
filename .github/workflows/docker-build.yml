@@ -31,7 +31,7 @@ jobs:
         if: github.ref_type == 'tag' # on tagging of releases and prereleases
         run: |
           echo "Creating swap file for ARM builds"
-          time sudo dd if=/dev/zero of=/swapfile1 bs=10M count=1000
+          time sudo dd if=/dev/zero of=/swapfile1 bs=10M count=2000
           sudo chmod 600 /swapfile1
           sudo mkswap /swapfile1
           sudo swapon /swapfile1
