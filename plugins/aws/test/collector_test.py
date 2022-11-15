@@ -65,7 +65,10 @@ def test_collect_region(
 
     with caplog.at_level(logging.ERROR):
         account_collector.collect_region(AwsRegion(id="us-east-1", name="us-east-1"), builder)
-    assert "Not authorized to collect resources in account 123 region us-east-1" in caplog.text
+    assert (
+        "Not authorized to collect aws_redshift_cluster resources"
+        " in account 123 region us-east-1 - skipping resource"
+    ) in caplog.text
 
 
 def test_all_called_apis() -> None:

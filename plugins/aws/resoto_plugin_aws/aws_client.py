@@ -188,22 +188,22 @@ class AwsClient:
         elif code.lower().startswith("accessdenied"):
             log_error(
                 f"Access denied to call service {aws_service} with action {action} code {code} "
-                f"in account {self.account_id} region {self.region}",
+                f"in account {self.account_id} region {self.region}.",
                 as_warning=True,
             )
         elif code == "UnauthorizedOperation":
             log_error(
                 f"Call to {aws_service} action {action} in account {self.account_id} region {self.region}"
-                " is not authorized! Give up."
+                " is not authorized! Giving up."
             )
             raise e  # not allowed to collect in account/region
         elif code in RetryableErrors:
-            log_error(f"Call to {aws_service} action {action} has been retried too many times. Give up.")
+            log_error(f"Call to {aws_service} action {action} has been retried too many times. Giving up.")
             raise e  # already have been retried, give up here
         else:
             log_error(
                 f"An AWS API error {code} occurred during resource collection of {aws_service} action {action} in "  # noqa: E501
-                f"account {self.account_id} region {self.region} - skipping resources"
+                f"account {self.account_id} region {self.region} - skipping resources."
             )
 
     @cached_property

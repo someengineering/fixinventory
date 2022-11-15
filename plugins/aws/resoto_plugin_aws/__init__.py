@@ -61,8 +61,9 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
     def collect(self) -> None:
         log.debug("plugin: AWS collecting resources")
         assert self.core_feedback, "core_feedback is not set"
+        cloud = Cloud(id=self.cloud, name="AWS")
 
-        accounts = get_accounts(self.core_feedback.with_context("aws"))
+        accounts = get_accounts(self.core_feedback.with_context(cloud.id))
         if len(accounts) == 0:
             log.error("No accounts found")
             return
@@ -91,7 +92,8 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
                     self.regions(profile=account.profile),
                     ArgumentParser.args,
                     Config.running_config,
-                    self.core_feedback.with_context("aws", account.id),
+                    self.core_feedback.with_context(cloud.id, account.dname),
+                    cloud,
                 )
                 for account in accounts
             ]
@@ -349,6 +351,28 @@ def current_account_id(profile: Optional[str] = None) -> str:
     return session.client("sts").get_caller_identity().get("Account")  # type: ignore
 
 
+def set_account_names(accounts: List[AwsAccount]) -> None:
+    def set_account_name(account: AwsAccount) -> None:
+        try:
+            account_aliases = (
+                aws_session(account.id, account.role, account.profile)
+                .client("iam")
+                .list_account_aliases()
+                .get("AccountAliases", [])
+            )
+            if len(account_aliases) > 0:
+                account.name = account_aliases[0]
+        except Exception:
+            pass
+
+    if len(accounts) == 0:
+        return
+
+    max_workers = len(accounts) if len(accounts) < Config.aws.account_pool_size else Config.aws.account_pool_size
+    with futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+        executor.map(set_account_name, accounts)
+
+
 def get_accounts(core_feedback: CoreFeedback) -> List[AwsAccount]:
     accounts = []
     profiles = [None]
@@ -419,6 +443,7 @@ def get_accounts(core_feedback: CoreFeedback) -> List[AwsAccount]:
         except botocore.exceptions.BotoCoreError as e:
             core_feedback.error(f"Unable to get accounts for profile {profile}: {e}", log)
 
+    set_account_names(accounts)
     return accounts
 
 
@@ -454,7 +479,12 @@ def all_regions(profile: Optional[str] = None) -> List[str]:
 
 @log_runtime
 def collect_account(
-    account: AwsAccount, regions: List[str], args: Namespace, running_config: RunningConfig, feedback: CoreFeedback
+    account: AwsAccount,
+    regions: List[str],
+    args: Namespace,
+    running_config: RunningConfig,
+    feedback: CoreFeedback,
+    cloud: Cloud,
 ) -> Optional[Graph]:
     collector_name = f"aws_{account.id}"
     resotolib.proc.set_thread_name(collector_name)
@@ -471,7 +501,7 @@ def collect_account(
 
     log.debug(f"Starting new collect process for account {account.dname}")
 
-    aac = AwsAccountCollector(Config.aws, Cloud(id="aws", name="AWS"), account, regions, feedback)
+    aac = AwsAccountCollector(Config.aws, cloud, account, regions, feedback)
     try:
         aac.collect()
     except botocore.exceptions.ClientError as e:
