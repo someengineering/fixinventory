@@ -16,7 +16,7 @@ on:
 
 jobs:
   split-build:
-    name: Build split Docker Images
+    name: Build split Docker images
     runs-on: ubuntu-latest
 
     steps:
@@ -263,7 +263,7 @@ jobs:
           labels: ${{ steps.shellmeta.outputs.labels }}
 
   edge-docs:
-    name: Update edge API Documentation
+    name: Update edge docs
     if: github.event_name != 'pull_request' && github.ref_type == 'branch' # on every commit to main
     needs:
       - split-build
@@ -285,6 +285,7 @@ jobs:
         shell: bash
         run: |
           PSK= RESOTOCORE_ANALYTICS_OPT_OUT=true docker-compose up -d
+          sleep 1m
           cd resoto.com/docs/reference/data-models
           python ${{ github.workspace }}/resoto.com/tools/export_model_images.py
 
@@ -325,7 +326,7 @@ jobs:
           author: C.K. <98986935+some-ci@users.noreply.github.com>
 
   release:
-    name: Create Release
+    name: Update stable docs & create release
     if: github.ref_type == 'tag' # on tagging of releases and prereleases
     needs:
       - split-build
@@ -395,6 +396,7 @@ jobs:
         shell: bash
         run: |
           PSK= RESOTOCORE_ANALYTICS_OPT_OUT=true docker-compose up -d
+          sleep 1m
           cd resoto.com/versioned_docs/version-$(cat resoto.com/versions.json | jq -r '.[0]')/reference/data-models
           python ${{ github.workspace }}/resoto.com/tools/export_model_images.py
           yarn optimize
