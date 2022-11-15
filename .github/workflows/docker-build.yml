@@ -280,6 +280,13 @@ jobs:
           path: resoto.com
           token: ${{ secrets.SOME_CI_PAT }}
 
+      - name: Update resource data models
+        shell: bash
+        run: |
+          PSK= RESOTOCORE_ANALYTICS_OPT_OUT=true docker-compose up -d
+          cd resoto.com/docs/reference/data-models
+          python ${{ github.workspace }}/resoto.com/tools/export_model_images.py
+
       - name: Update resotocore API YAML
         shell: bash
         run: |
@@ -295,6 +302,7 @@ jobs:
         run: |
           yarn install --frozen-lockfile
           yarn gen-api-docs
+          yarn optimize
           yarn format
 
       - name: Create someengineering/resoto.com pull request
@@ -329,6 +337,8 @@ jobs:
         run: |
           if [[ ${{ github.ref }} =~ ^refs/tags/[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "prerelease=false" >> $GITHUB_OUTPUT
+            GITHUB_REF="${{ github.ref }}"
+            echo "majorVersion=$(cut -d '.' -f 1 <<< ${GITHUB_REF##*/})" >> $GITHUB_OUTPUT
           else
             echo "prerelease=true" >> $GITHUB_OUTPUT
           fi
@@ -345,10 +355,21 @@ jobs:
           path: resoto.com
           token: ${{ secrets.SOME_CI_PAT }}
 
+      - name: Install dependencies
+        working-directory: ./resoto.com
+        run: |
+          yarn install --frozen-lockfile
+
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
           python-version: 3.x
+
+      - name: Tag docs version
+        if: steps.release_type.outputs.prerelease == 'false'
+        continue-on-error: true # Versioned doc may already exist
+        run: |
+          yarn run docusaurus docs:version "${{steps.release_type.outputs.majorVersion}}.X"
 
       - name: Generate release notes
         id: release_notes
@@ -367,12 +388,21 @@ jobs:
           link="/news/$(date +'%Y/%m/%d')/${tags[0]}"
           echo "link=$link" >> $GITHUB_OUTPUT
 
+      - name: Update resource data models
+        if: steps.release_type.outputs.prerelease == 'false'
+        shell: bash
+        run: |
+          PSK= RESOTOCORE_ANALYTICS_OPT_OUT=true docker-compose up -d
+          cd resoto.com/versioned_docs/version-$(cat resoto.com/versions.json | jq -r '.[0]')/reference/data-models
+          python ${{ github.workspace }}/resoto.com/tools/export_model_images.py
+          yarn optimize
+
       - name: Update released version & resotocore API YAML
         if: steps.release_type.outputs.prerelease == 'false'
         shell: bash
         run: |
-          cp resotocore/resotocore/static/api-doc.yaml resoto.com/openapi/resotocore.yml
-          echo '{"version": "${{ steps.release_notes.outputs.tag }}", "link": "${{ steps.release_notes.outputs.link }}"}' > resoto.com/latestRelease.json
+          cp resotocore/resotocore/static/api-doc.yaml resoto.com/openapi/resotocore-${{steps.release_type.outputs.majorVersion}}.X.yml
+          jq '.["${{steps.release_type.outputs.majorVersion}}.X"].version="${{ steps.release_notes.outputs.tag }}" | .["${{steps.release_type.outputs.majorVersion}}.X"].link="${{ steps.release_notes.outputs.link }}"' resoto.com/latestRelease.json > resoto.com/latestRelease.json
 
       - name: Modify resotocore API YAML
         if: steps.release_type.outputs.prerelease == 'false'
@@ -383,8 +413,8 @@ jobs:
       - name: Regenerate API docs & format with Prettier
         working-directory: ./resoto.com
         run: |
-          yarn install --frozen-lockfile
           yarn gen-api-docs
+          yarn optimize
           yarn format
 
       - name: Create someengineering/resoto.com pull request
