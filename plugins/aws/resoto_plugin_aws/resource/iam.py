@@ -55,7 +55,7 @@ class AwsIamPolicyDetail:
     kind: ClassVar[str] = "aws_iam_policy_detail"
     mapping: ClassVar[Dict[str, Bender]] = {"policy_name": S("PolicyName"), "policy_document": S("PolicyDocument")}
     policy_name: Optional[str] = field(default=None)
-    policy_document: Optional[str] = field(default=None)
+    policy_document: Optional[Json] = field(default=None)
 
 
 @define(eq=False, slots=False)
