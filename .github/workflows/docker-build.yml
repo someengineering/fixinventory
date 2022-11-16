@@ -340,7 +340,7 @@ jobs:
           if [[ ${{ github.ref }} =~ ^refs/tags/[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "prerelease=false" >> $GITHUB_OUTPUT
             GITHUB_REF="${{ github.ref }}"
-            echo "majorVersion=$(cut -d '.' -f 1 <<< ${GITHUB_REF##*/})" >> $GITHUB_OUTPUT
+            echo "docsVersion=$(cut -d '.' -f 1 <<< ${GITHUB_REF##*/}).X" >> $GITHUB_OUTPUT
           else
             echo "prerelease=true" >> $GITHUB_OUTPUT
           fi
@@ -371,7 +371,7 @@ jobs:
         if: steps.release_type.outputs.prerelease == 'false'
         continue-on-error: true # Versioned doc may already exist
         run: |
-          yarn run docusaurus docs:version "${{steps.release_type.outputs.majorVersion}}.X"
+          yarn run docusaurus docs:version "${{steps.release_type.outputs.docsVersion}}"
 
       - name: Generate release notes
         id: release_notes
@@ -396,7 +396,7 @@ jobs:
         shell: bash
         run: |
           PSK= RESOTOCORE_ANALYTICS_OPT_OUT=true docker-compose up -d
-          cd resoto.com/versioned_docs/version-${{steps.release_type.outputs.majorVersion}}.X/reference/data-models
+          cd resoto.com/versioned_docs/version-${{steps.release_type.outputs.docsVersion}}/reference/data-models
           find . -mindepth 2 -type d -name img -prune -exec rm -rf {} \;
           python ${{ github.workspace }}/resoto.com/tools/export_model_images.py
           yarn optimize
@@ -405,8 +405,8 @@ jobs:
         if: steps.release_type.outputs.prerelease == 'false'
         shell: bash
         run: |
-          cp resotocore/resotocore/static/api-doc.yaml resoto.com/openapi/resotocore-${{steps.release_type.outputs.majorVersion}}.X.yml
-          jq '.["${{steps.release_type.outputs.majorVersion}}.X"].version="${{ steps.release_notes.outputs.tag }}" | .["${{steps.release_type.outputs.majorVersion}}.X"].link="${{ steps.release_notes.outputs.link }}"' resoto.com/latestRelease.json > resoto.com/latestRelease.json
+          cp resotocore/resotocore/static/api-doc.yaml resoto.com/openapi/resotocore-${{steps.release_type.outputs.docsVersion}}.yml
+          jq '.["${{steps.release_type.outputs.docsVersion}}"].version="${{ steps.release_notes.outputs.tag }}" | .["${{steps.release_type.outputs.docsVersion}}"].link="${{ steps.release_notes.outputs.link }}"' resoto.com/latestRelease.json > resoto.com/latestRelease.json
 
       - name: Modify resotocore API YAML
         if: steps.release_type.outputs.prerelease == 'false'
