@@ -171,9 +171,6 @@ class Api:
             if self.config.api.ui_path and Path(self.config.api.ui_path).exists()
             else [web.get(f"{prefix}/ui/index.html", self.no_ui)]
         )
-        tsdb_route = (
-            [web.route(METH_ANY, prefix + "/tsdb/{tail:.+}", tsdb(self))] if self.config.api.tsdb_proxy_url else []
-        )
         self.app.add_routes(
             [
                 # Model operations
@@ -255,8 +252,9 @@ class Api:
                 web.get(prefix + "/ui", self.forward("/ui/index.html")),
                 web.get(prefix + "/ui/", self.forward("/ui/index.html")),
                 web.get(prefix + "/debug/ui/{commit}/{path:.+}", self.serve_debug_ui),
+                # tsdb operations
+                web.route(METH_ANY, prefix + "/tsdb/{tail:.+}", tsdb(self)),
                 *ui_route,
-                *tsdb_route,
             ]
         )
         SwaggerFile(
