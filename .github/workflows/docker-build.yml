@@ -30,7 +30,6 @@ jobs:
         run: echo "short=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
 
       - name: Create swap for ARM builds
-        if: github.event_name != 'workflow_dispatch'
         if: github.ref_type == 'tag' # on tagging of releases and prereleases
         run: |
           echo "Creating 20GB swap files for ARM builds"
