@@ -313,8 +313,8 @@ jobs:
           HUSKY: 0
         with:
           path: resoto.com
-          commit-message: "feat(docs): update edge API documentation"
-          title: "feat(docs): update edge API documentation"
+          commit-message: "feat(docs): update edge documentation"
+          title: "feat(docs): update edge documentation"
           body: |
             Updates `edge` Resoto Core API documentation to reflect changes in [`${{ github.sha }}`](https://github.com/someengineering/resoto/commit/${{ github.sha }}).
           labels: |
@@ -431,6 +431,8 @@ jobs:
           title: "feat(news): ${{ steps.release_notes.outputs.tag }} release notes"
           body: |
             Adds automatically generated release notes for [`${{ steps.release_notes.outputs.tag }}`](https://github.com/someengineering/resoto/releases/tag/${{ steps.release_notes.outputs.tag }}).
+
+            Also updates `${{steps.release_type.outputs.docsVersion}}` docs.
           labels: |
             🤖 bot
           branch: ${{ steps.release_notes.outputs.tag }}
