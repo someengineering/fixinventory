@@ -13,7 +13,7 @@ def core_tag_tasks_processor(plugin: Type[BaseCollectorPlugin], config: Config, 
     update_tags: Dict[str, str] = task_data.get("update", {})
     node_data: Dict[str, Any] = task_data.get("node", {})
 
-    def delete(node: BaseResource, key: str) -> Json:
+    def delete(node: BaseResource, key: str) -> None:
         log.debug(f"Calling parent resource to delete tag {key} in cloud")
         if plugin.delete_tag(config, node, key):
             log_msg = f"Successfully deleted tag {key} in cloud"
@@ -21,13 +21,12 @@ def core_tag_tasks_processor(plugin: Type[BaseCollectorPlugin], config: Config, 
             node.log(log_msg)
             log.info(f"{log_msg} for {node.kind}:{node.id}")
             del node.tags[key]
-            return node_to_dict(node)
         else:
             log_msg = f"Error deleting tag {key} in cloud"
             node.log(log_msg)
             raise AttributeError(f"{log_msg} for {node.kind}:{node.id}")
 
-    def update(node: BaseResource, key: str, value: str) -> Json:
+    def update(node: BaseResource, key: str, value: str) -> None:
         log.debug(f"Calling parent resource to set tag {key} to {value} in cloud")
         if plugin.update_tag(config, node, key, value):
             log_msg = f"Successfully set tag {key} to {value} in cloud"
@@ -35,7 +34,6 @@ def core_tag_tasks_processor(plugin: Type[BaseCollectorPlugin], config: Config, 
             node.log(log_msg)
             log.info(f"{log_msg} for {node.kind}:{node.id}")
             node.tags[key] = value
-            return node_to_dict(node)
         else:
             log_msg = f"Error setting tag {key} to {value} in cloud"
             node.log(log_msg)
@@ -43,9 +41,9 @@ def core_tag_tasks_processor(plugin: Type[BaseCollectorPlugin], config: Config, 
 
     nd = node_from_dict(node_data, include_select_ancestors=True)
     for delete_tag in delete_tags:
-        return delete(nd, delete_tag)
+        delete(nd, delete_tag)
 
     for k, v in update_tags.items():
-        return update(nd, k, v)
+        update(nd, k, v)
 
-    raise AttributeError(f"Neither delete nor update tags were specified: {task_data}")
+    return node_to_dict(nd)
