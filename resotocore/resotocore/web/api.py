@@ -589,13 +589,13 @@ class Api:
 
     async def get_model(self, request: Request) -> StreamResponse:
         md = await self.model_handler.load_model()
-        return await single_result(request, to_js(md.kinds.values()))
+        return await single_result(request, to_js(md.kinds.values(), strip_nulls=True))
 
     async def update_model(self, request: Request) -> StreamResponse:
         js = await self.json_from_request(request)
         kinds: List[Kind] = from_js(js, List[Kind])
         model = await self.model_handler.update_model(kinds)
-        return await single_result(request, to_js(model))
+        return await single_result(request, to_js(model, strip_nulls=True))
 
     async def get_node(self, request: Request) -> StreamResponse:
         graph_id = request.match_info.get("graph_id", "resoto")

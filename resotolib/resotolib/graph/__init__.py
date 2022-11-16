@@ -32,7 +32,7 @@ from resotolib.event import (
     remove_event_listener,
 )
 from prometheus_client import Summary
-from typing import Dict, Iterator, List, Tuple, Optional, Union
+from typing import Dict, Iterator, List, Tuple, Optional, Union, Any
 from io import BytesIO
 from typeguard import check_type
 from time import time
@@ -349,12 +349,12 @@ class Graph(networkx.MultiDiGraph):
             if isinstance(node, BaseResource):
                 node.resolve_deferred_connections(self)
 
-    def export_model(self) -> List[Json]:
+    def export_model(self, **kwargs: Any) -> List[Json]:
         """Return the graph node dataclass model in resotocore format"""
         classes = set()
         for node in self.nodes:
             classes.add(type(node))
-        model = dataclasses_to_resotocore_model(classes, aggregate_root=BaseResource)
+        model = dataclasses_to_resotocore_model(classes, aggregate_root=BaseResource, **kwargs)
 
         # fixme: workaround to report kind
         for resource_model in model:
