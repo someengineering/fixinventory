@@ -1,6 +1,6 @@
 import asyncio
 import string
-from abc import ABC
+from abc import ABC, abstractmethod
 from attrs import define
 from datetime import date, datetime
 from random import SystemRandom
@@ -39,7 +39,7 @@ class BaseResource(ABC):
     ) -> None:
         self.identifier = str(identifier)
 
-    # this method should be defined in all resources
+    @abstractmethod
     def kind(self) -> str:
         pass
 
