@@ -21,13 +21,16 @@ jobs:
 
     steps:
       - name: Check out repository
+        if: github.event_name != 'workflow_dispatch'
         uses: actions/checkout@v3
 
       - name: Get short commit SHA
+        if: github.event_name != 'workflow_dispatch'
         id: sha
         run: echo "short=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
 
       - name: Create swap for ARM builds
+        if: github.event_name != 'workflow_dispatch'
         if: github.ref_type == 'tag' # on tagging of releases and prereleases
         run: |
           echo "Creating 20GB swap files for ARM builds"
@@ -44,6 +47,7 @@ jobs:
           free -m
 
       - name: Set build platforms
+        if: github.event_name != 'workflow_dispatch'
         id: platform
         run: |
           GITHUB_REF="${{ github.ref }}"
@@ -63,6 +67,7 @@ jobs:
           fi
 
       - name: Check short commit SHA and build targets
+        if: github.event_name != 'workflow_dispatch'
         run: |
           echo ${{ steps.sha.outputs.short }}
           echo ${{ steps.platform.outputs.targets }}
@@ -70,6 +75,7 @@ jobs:
           echo ${{ steps.platform.outputs.latest }}
 
       - name: Docker resotobase meta
+        if: github.event_name != 'workflow_dispatch'
         id: basemeta
         uses: docker/metadata-action@v4
         with:
@@ -90,6 +96,7 @@ jobs:
             org.opencontainers.image.vendor=Some Engineering Inc.
 
       - name: Docker resotocore meta
+        if: github.event_name != 'pull_request' && github.event_name != 'workflow_dispatch'
         id: coremeta
         uses: docker/metadata-action@v3
         with:
@@ -110,6 +117,7 @@ jobs:
             org.opencontainers.image.vendor=Some Engineering Inc.
 
       - name: Docker resotoworker meta
+        if: github.event_name != 'pull_request' && github.event_name != 'workflow_dispatch'
         id: workermeta
         uses: docker/metadata-action@v4
         with:
@@ -130,6 +138,7 @@ jobs:
             org.opencontainers.image.vendor=Some Engineering Inc.
 
       - name: Docker resotometrics meta
+        if: github.event_name != 'pull_request' && github.event_name != 'workflow_dispatch'
         id: metricsmeta
         uses: docker/metadata-action@v4
         with:
@@ -150,6 +159,7 @@ jobs:
             org.opencontainers.image.vendor=Some Engineering Inc.
 
       - name: Docker resotoshell meta
+        if: github.event_name != 'pull_request' && github.event_name != 'workflow_dispatch'
         id: shellmeta
         uses: docker/metadata-action@v4
         with:
@@ -172,24 +182,26 @@ jobs:
             org.opencontainers.image.vendor=Some Engineering Inc.
 
       - name: Set up QEMU
+        if: github.event_name != 'workflow_dispatch'
         id: qemu
         uses: docker/setup-qemu-action@v2
         with:
           platforms: arm64,amd64
 
       - name: Set up Docker Buildx
+        if: github.event_name != 'workflow_dispatch'
         id: buildx
         uses: docker/setup-buildx-action@v2
 
       - name: Log in to Docker Hub
-        if: github.event_name != 'pull_request'
+        if: github.event_name != 'pull_request' && github.event_name != 'workflow_dispatch'
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USER }}
           password: ${{ secrets.DOCKERHUB_PASS }}
 
       - name: Log in to GitHub Container Registry
-        if: github.event_name != 'pull_request'
+        if: github.event_name != 'pull_request' && github.event_name != 'workflow_dispatch'
         uses: docker/login-action@v2
         with:
           registry: ghcr.io
@@ -197,6 +209,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push resotobase Docker image
+        if: github.event_name != 'workflow_dispatch'
         uses: docker/build-push-action@v3
         with:
           context: .
@@ -211,7 +224,7 @@ jobs:
           labels: ${{ steps.basemeta.outputs.labels }}
 
       - name: Build and push resotocore Docker image
-        if: github.event_name != 'pull_request'
+        if: github.event_name != 'pull_request' && github.event_name != 'workflow_dispatch'
         uses: docker/build-push-action@v3
         with:
           context: .
@@ -224,7 +237,7 @@ jobs:
           labels: ${{ steps.coremeta.outputs.labels }}
 
       - name: Build and push resotoworker Docker image
-        if: github.event_name != 'pull_request'
+        if: github.event_name != 'pull_request' && github.event_name != 'workflow_dispatch'
         uses: docker/build-push-action@v3
         with:
           context: .
@@ -237,7 +250,7 @@ jobs:
           labels: ${{ steps.workermeta.outputs.labels }}
 
       - name: Build and push resotometrics Docker image
-        if: github.event_name != 'pull_request'
+        if: github.event_name != 'pull_request' && github.event_name != 'workflow_dispatch'
         uses: docker/build-push-action@v3
         with:
           context: .
@@ -250,7 +263,7 @@ jobs:
           labels: ${{ steps.metricsmeta.outputs.labels }}
 
       - name: Build and push resotoshell Docker image
-        if: github.event_name != 'pull_request'
+        if: github.event_name != 'pull_request' && github.event_name != 'workflow_dispatch'
         uses: docker/build-push-action@v3
         with:
           context: .
@@ -264,7 +277,7 @@ jobs:
 
   edge-docs:
     name: Update edge docs
-    if: github.event_name != 'pull_request' && github.ref_type == 'branch' # on every commit to main
+    if: github.ref == 'refs/heads/main'
     needs:
       - split-build
     runs-on: ubuntu-latest
@@ -281,13 +294,13 @@ jobs:
           token: ${{ secrets.SOME_CI_PAT }}
 
       - name: Update resource data models
-        continue-on-error: true
+        if: github.event_name == 'workflow_dispatch' # only when triggered manually
         shell: bash
         run: |
           PSK= RESOTOCORE_ANALYTICS_OPT_OUT=true docker-compose up -d
           cd resoto.com/docs/reference/data-models
           find . -mindepth 2 -type d -name img -prune -exec rm -rf {} \;
-          python ${{ github.workspace }}/resoto.com/tools/export_model_images.py
+          python3 ${{ github.workspace }}/resoto.com/tools/export_model_images.py
 
       - name: Update resotocore API YAML
         shell: bash
@@ -362,14 +375,10 @@ jobs:
         run: |
           yarn install --frozen-lockfile
 
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.x
-
       - name: Tag docs version
         if: steps.release_type.outputs.prerelease == 'false'
         continue-on-error: true # Versioned doc may already exist
+        working-directory: ./resoto.com
         run: |
           yarn run docusaurus docs:version "${{steps.release_type.outputs.docsVersion}}"
 
@@ -385,7 +394,7 @@ jobs:
           dir="resoto.com/news/${year}/${date}-${tags[0]}"
           mkdir -p $dir
           file="${dir}/index.md"
-          python tools/release_notes.py ${prev_release} ${tags[0]} > $file
+          python3 tools/release_notes.py ${prev_release} ${tags[0]} > $file
           echo "file=$file" >> $GITHUB_OUTPUT
           link="/news/$(date +'%Y/%m/%d')/${tags[0]}"
           echo "link=$link" >> $GITHUB_OUTPUT
@@ -398,7 +407,7 @@ jobs:
           PSK= RESOTOCORE_ANALYTICS_OPT_OUT=true docker-compose up -d
           cd resoto.com/versioned_docs/version-${{steps.release_type.outputs.docsVersion}}/reference/data-models
           find . -mindepth 2 -type d -name img -prune -exec rm -rf {} \;
-          python ${{ github.workspace }}/resoto.com/tools/export_model_images.py
+          python3 ${{ github.workspace }}/resoto.com/tools/export_model_images.py
           yarn optimize
 
       - name: Update released version & resotocore API YAML
@@ -406,13 +415,13 @@ jobs:
         shell: bash
         run: |
           cp resotocore/resotocore/static/api-doc.yaml resoto.com/openapi/resotocore-${{steps.release_type.outputs.docsVersion}}.yml
-          jq '.["${{steps.release_type.outputs.docsVersion}}"].version="${{ steps.release_notes.outputs.tag }}" | .["${{steps.release_type.outputs.docsVersion}}"].link="${{ steps.release_notes.outputs.link }}"' resoto.com/latestRelease.json > resoto.com/latestRelease.json
+          echo $(jq '.["${{steps.release_type.outputs.docsVersion}}"].version="${{ steps.release_notes.outputs.tag }}" | .["${{steps.release_type.outputs.docsVersion}}"].link="${{ steps.release_notes.outputs.link }}"' resoto.com/latestRelease.json) > resoto.com/latestRelease.json
 
       - name: Modify resotocore API YAML
         if: steps.release_type.outputs.prerelease == 'false'
         uses: mikefarah/yq@master
         with:
-          cmd: yq e -i '.servers[0].url = "https://{host}:{port}" | .servers[0].variables.host.default="localhost" | .servers[0].variables.port.default="8900" | del(.servers[0].description)' resoto.com/openapi/resotocore.yml
+          cmd: yq e -i '.servers[0].url = "https://{host}:{port}" | .servers[0].variables.host.default="localhost" | .servers[0].variables.port.default="8900" | del(.servers[0].description)' resoto.com/openapi/resotocore-${{steps.release_type.outputs.docsVersion}}.yml
 
       - name: Regenerate API docs & format with Prettier
         working-directory: ./resoto.com
