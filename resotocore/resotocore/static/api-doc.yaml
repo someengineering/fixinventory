@@ -30,6 +30,8 @@ tags:
     description: Endpoints to get information about the system.
   - name: debug
     description: Endpoints to debug the system.
+  - name: tsdb
+    description: Endpoints to access the time series database.
 
 paths:
 
@@ -2085,6 +2087,198 @@ paths:
                 example: pong
 
   # endregion
+
+  # region tsdb
+
+  /tsdb/{path}:
+    get:
+      summary: Proxy request to a configured tsdb server.
+      parameters:
+        - name: path
+          description: "Note: swagger does not allow to define a nested path with slashes."
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "api/v1/metadata"
+      tags:
+        - tsdb
+      responses:
+        "404":
+          description: "If the response is coming from Resoto (no ResotoVia header), this means that tsdb is not configured, so a request can not be made."
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "404: No tsdb defined. No tsdb defined. Adjust resoto.core configuration."
+        "502":
+          description: "If the response is coming from Resoto (no ResotoVia header), this means that the configured tsdb server can not be reached."
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "502. tsdb server is not reachable"
+        default:
+            headers:
+              ViaResoto:
+                description: |
+                  This header indicates, that the response is created by the tsdb server and Resoto is only a proxy.
+                  Depending on this header: you have to interpret the response differently.
+                schema:
+                  type: string
+                  example: "1.1 node1"
+            description: "The response from the tsdb."
+    put:
+      summary: Proxy request to a configured tsdb server.
+      parameters:
+        - name: path
+          description: "Note: swagger does not allow to define a nested path with slashes."
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "api/v1/metadata"
+      tags:
+        - tsdb
+      responses:
+        "404":
+          description: "If the response is coming from Resoto (no ResotoVia header), this means that tsdb is not configured, so a request can not be made."
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "404: No tsdb defined. No tsdb defined. Adjust resoto.core configuration."
+        "502":
+          description: "If the response is coming from Resoto (no ResotoVia header), this means that the configured tsdb server can not be reached."
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "502. tsdb server is not reachable"
+        default:
+          headers:
+            ViaResoto:
+              description: |
+                This header indicates, that the response is created by the tsdb server and Resoto is only a proxy.
+                Depending on this header: you have to interpret the response differently.
+              schema:
+                type: string
+                example: "1.1 node1"
+          description: "The response from the tsdb."
+    post:
+      summary: Proxy request to a configured tsdb server.
+      parameters:
+        - name: path
+          description: "Note: swagger does not allow to define a nested path with slashes."
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "api/v1/metadata"
+      tags:
+        - tsdb
+      responses:
+        "404":
+          description: "If the response is coming from Resoto (no ResotoVia header), this means that tsdb is not configured, so a request can not be made."
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "404: No tsdb defined. No tsdb defined. Adjust resoto.core configuration."
+        "502":
+          description: "If the response is coming from Resoto (no ResotoVia header), this means that the configured tsdb server can not be reached."
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "502. tsdb server is not reachable"
+        default:
+          headers:
+            ViaResoto:
+              description: |
+                This header indicates, that the response is created by the tsdb server and Resoto is only a proxy.
+                Depending on this header: you have to interpret the response differently.
+              schema:
+                type: string
+                example: "1.1 node1"
+          description: "The response from the tsdb."
+    delete:
+      summary: Proxy request to a configured tsdb server.
+      parameters:
+        - name: path
+          description: "Note: swagger does not allow to define a nested path with slashes."
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "api/v1/metadata"
+      tags:
+        - tsdb
+      responses:
+        "404":
+          description: "If the response is coming from Resoto (no ResotoVia header), this means that tsdb is not configured, so a request can not be made."
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "404: No tsdb defined. No tsdb defined. Adjust resoto.core configuration."
+        "502":
+          description: "If the response is coming from Resoto (no ResotoVia header), this means that the configured tsdb server can not be reached."
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "502. tsdb server is not reachable"
+        default:
+          headers:
+            ViaResoto:
+              description: |
+                This header indicates, that the response is created by the tsdb server and Resoto is only a proxy.
+                Depending on this header: you have to interpret the response differently.
+              schema:
+                type: string
+                example: "1.1 node1"
+          description: "The response from the tsdb."
+    patch:
+      summary: Proxy request to a configured tsdb server.
+      parameters:
+        - name: path
+          description: "Note: swagger does not allow to define a nested path with slashes."
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "api/v1/metadata"
+      tags:
+        - tsdb
+      responses:
+        "404":
+          description: "If the response is coming from Resoto (no ResotoVia header), this means that tsdb is not configured, so a request can not be made."
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "404: No tsdb defined. No tsdb defined. Adjust resoto.core configuration."
+        "502":
+          description: "If the response is coming from Resoto (no ResotoVia header), this means that the configured tsdb server can not be reached."
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "502. tsdb server is not reachable"
+        default:
+          headers:
+            ViaResoto:
+              description: |
+                This header indicates, that the response is created by the tsdb server and Resoto is only a proxy.
+                Depending on this header: you have to interpret the response differently.
+              schema:
+                type: string
+                example: "1.1 node1"
+          description: "The response from the tsdb."
+
+  # endregion
+
 components:
   schemas:
     AnalyticsEvent:

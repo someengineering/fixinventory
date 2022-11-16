@@ -1,10 +1,10 @@
 import logging
 from re import RegexFlag, fullmatch
-from typing import Optional, Callable, Awaitable
+from typing import Optional, Callable, Awaitable, Tuple
 
 from aiohttp.hdrs import METH_OPTIONS, METH_GET, METH_HEAD, METH_POST, METH_PUT, METH_DELETE, METH_PATCH
 from aiohttp.web import HTTPRedirection, HTTPNotFound, HTTPBadRequest, HTTPException, HTTPNoContent
-from aiohttp.web_exceptions import HTTPServiceUnavailable
+from aiohttp.web_exceptions import HTTPServiceUnavailable, HTTPError
 from aiohttp.web_middlewares import middleware
 from aiohttp.web_request import Request
 from aiohttp.web_response import StreamResponse
@@ -89,29 +89,32 @@ def error_handler(
 
     @middleware
     async def error_handler_middleware(request: Request, handler: RequestHandler) -> StreamResponse:
+        def message_from_error(e: Exception) -> Tuple[str, str, str]:
+            kind = type(e).__name__
+            ex_str = str(e)
+            return f"Error: {kind}\nMessage: {ex_str}", kind, ex_str
+
         try:
             return await handler(request)
         except HTTPRedirection as e:
             # redirects are implemented as exceptions in aiohttp for whatever reason...
             raise e
+        except HTTPError as e:
+            log.warning(f"Request {request} has failed with exception: {str(e)}")
+            raise e
         except NotFoundError as e:
-            kind = type(e).__name__
-            message = f"Error: {kind}\nMessage: {str(e)}"
+            message, _, _ = message_from_error(e)
             log.info(f"Request {request} has failed with exception: {message}", exc_info=exc_info(e))
             raise HTTPNotFound(text=message) from e
         except (ClientError, AttributeError) as e:
-            kind = type(e).__name__
-            ex_str = str(e)
-            message = f"Error: {kind}\nMessage: {ex_str}"
+            message, kind, ex_str = message_from_error(e)
             log.info(f"Request {request} has failed with exception: {message}", exc_info=exc_info(e))
             await event_sender.core_event(
                 CoreEvent.ClientError, {"version": version(), "kind": kind, "message": ex_str}
             )
             raise HTTPBadRequest(text=message) from e
         except Exception as e:
-            kind = type(e).__name__
-            ex_str = str(e)
-            message = f"Error: {kind}\nMessage: {ex_str}"
+            message, kind, ex_str = message_from_error(e)
             log.warning(f"Request {request} has failed with exception: {message}", exc_info=exc_info(e))
             await event_sender.core_event(
                 CoreEvent.ServerError, {"version": version(), "kind": kind, "message": ex_str}
