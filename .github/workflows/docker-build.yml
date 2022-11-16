@@ -408,7 +408,6 @@ jobs:
           cd resoto.com/versioned_docs/version-${{steps.release_type.outputs.docsVersion}}/reference/data-models
           find . -mindepth 2 -type d -name img -prune -exec rm -rf {} \;
           python3 ${{ github.workspace }}/resoto.com/tools/export_model_images.py
-          yarn optimize
 
       - name: Update released version & resotocore API YAML
         if: steps.release_type.outputs.prerelease == 'false'
