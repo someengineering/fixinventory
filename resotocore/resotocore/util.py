@@ -339,6 +339,18 @@ class AccessNone:
         return True
 
 
+class AccessJsonList(List[Any]):
+    def __init__(self, seq: Iterable[Any], not_existent: Any = None):
+        super().__init__(seq)
+        self.__not_existent = AccessNone(not_existent)
+
+    def __getitem__(self, item: Any) -> Any:
+        try:
+            return super().__getitem__(item)
+        except Exception:
+            return AccessNone(self.__not_existent)
+
+
 class AccessJson(Dict[Any, Any]):
     """
     Extend dict in order to allow python like property access
@@ -374,7 +386,7 @@ class AccessJson(Dict[Any, Any]):
         return False
 
     @staticmethod
-    def wrap(obj: Any, not_existent: Any = AccessNone(None), simple_formatter: Callable[[Any], Any] = identity) -> Any:
+    def wrap(obj: Any, not_existent: Any = None, simple_formatter: Callable[[Any], Any] = identity) -> Any:
         if isinstance(obj, (str, int, float, AccessJson)):
             return simple_formatter(obj)
         # dict like data structure -> wrap whole element
@@ -382,7 +394,7 @@ class AccessJson(Dict[Any, Any]):
             return AccessJson(obj, not_existent, simple_formatter)
         # list like data structure -> wrap all elements
         elif isinstance(obj, Sequence):
-            return [AccessJson.wrap(item, not_existent, simple_formatter) for item in obj]
+            return AccessJsonList((AccessJson.wrap(item, not_existent, simple_formatter) for item in obj), not_existent)
         # simply return the object
         else:
             return obj

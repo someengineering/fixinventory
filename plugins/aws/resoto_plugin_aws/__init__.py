@@ -511,8 +511,8 @@ def collect_account(
         )
         metrics_unhandled_account_exceptions.labels(account=account.dname).inc()
         return None
-    except Exception:
-        feedback.error(f"An unhandled error occurred while collecting AWS account {account.dname}", log)
+    except Exception as ex:
+        feedback.error(f"An unhandled error occurred while collecting AWS account {account.dname}. {ex}", log)
         metrics_unhandled_account_exceptions.labels(account=account.dname).inc()
         return None
 
