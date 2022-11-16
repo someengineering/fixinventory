@@ -344,7 +344,7 @@ class AccessJsonList(List[Any]):
         super().__init__(seq)
         self.__not_existent = AccessNone(not_existent)
 
-    def __getitem__(self, item) -> Any:
+    def __getitem__(self, item: Any) -> Any:
         try:
             return super().__getitem__(item)
         except Exception:
