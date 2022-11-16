@@ -1,8 +1,8 @@
 networkx==2.8 # 2.8.1 increase the refcounts which leads to a failing test.
 jsons==1.6.3
 typeguard==2.13.3
-websocket-client==1.4.1
-psutil==5.9.3
+websocket-client==1.4.2
+psutil==5.9.4
 requests==2.28.1
 prometheus-client==0.15.0
 PyJWT==2.6.0
@@ -15,3 +15,4 @@ tzlocal==4.2
 tzdata==2022.6
 resoto-cattrs-snapshot-56eda37==22.2.0.dev0
 treelib==1.6.1
+setuptools==65.5.1

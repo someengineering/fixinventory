@@ -9,14 +9,14 @@ python-arango==7.5.2
 python-dateutil==2.8.2
 toolz==0.12.0
 transitions==0.9.0
-APScheduler==3.9.1
+APScheduler==3.9.1.post1
 aiostream==0.4.5
 tzlocal==4.2
 frozendict==2.1.3 # 2.2.0 can not be marshalled as json any longer
 PyYAML==6.0
 resotolib==3.0.0a0
 jq==1.3.0
-posthog==2.1.2
+posthog==2.2.0
 ustache==0.1.5
 aiofiles==22.1.0
 cryptography==38.0.3
