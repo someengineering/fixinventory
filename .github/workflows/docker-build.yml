@@ -345,24 +345,29 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Determine release type
-        id: release_type
+      - name: Get release tag and type
+        id: release
         shell: bash
         run: |
+          GITHUB_REF="${{ github.ref }}"
+          tag=${GITHUB_REF##*/}
+          echo "tag=${tag}" >> $GITHUB_OUTPUT
+
           if [[ ${{ github.ref }} =~ ^refs/tags/[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "prerelease=false" >> $GITHUB_OUTPUT
-            GITHUB_REF="${{ github.ref }}"
             echo "docsVersion=$(cut -d '.' -f 1 <<< ${GITHUB_REF##*/}).X" >> $GITHUB_OUTPUT
           else
             echo "prerelease=true" >> $GITHUB_OUTPUT
           fi
 
       - name: Check out repository
+        if: steps.release.outputs.prerelease == 'false'
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
       - name: Check out someengineering/resoto.com
+        if: steps.release.outputs.prerelease == 'false'
         uses: actions/checkout@v3
         with:
           repository: someengineering/resoto.com
@@ -370,58 +375,64 @@ jobs:
           token: ${{ secrets.SOME_CI_PAT }}
 
       - name: Install dependencies
+        if: steps.release.outputs.prerelease == 'false'
         working-directory: ./resoto.com
         run: |
           yarn install --frozen-lockfile
 
       - name: Tag docs version
-        if: steps.release_type.outputs.prerelease == 'false'
+        if: steps.release.outputs.prerelease == 'false'
         continue-on-error: true # Versioned doc may already exist
         working-directory: ./resoto.com
         run: |
-          yarn run docusaurus docs:version "${{steps.release_type.outputs.docsVersion}}"
+          yarn run docusaurus docs:version "${{steps.release.outputs.docsVersion}}"
 
       - name: Generate release notes
+        if: steps.release.outputs.prerelease == 'false'
         id: release_notes
         shell: bash
         run: |
-          mapfile -t tags < <(echo $(curl -sL https://api.github.com/repos/someengineering/resoto/tags?per_page=1) | jq -r '(.[] | .name)')
-          echo "tag=${tags[0]}" >> $GITHUB_OUTPUT
-          prev_release=$(echo $(curl -sL https://api.github.com/repos/someengineering/resoto/releases/latest) | jq -r '.tag_name')
+          GITHUB_REF="${{ github.ref }}"
+          tag=${GITHUB_REF##*/}
+          version_major=$(cut -d '.' -f 1 <<< ${GITHUB_REF##*/})
+          prev_release=$(echo $(curl -sL https://api.github.com/repos/someengineering/resoto/releases) | jq -r "map(select(.tag_name | startswith(\"${version_major}.\")) | select(.prerelease == false))[0].tag_name")
+          [ -n "$prev_release" ] && prev_release=$(echo $(curl -sL https://api.github.com/repos/someengineering/resoto/releases/latest) | jq -r '.tag_name')
           year=$(date +'%Y')
           date=$(date +'%m-%d')
-          dir="resoto.com/news/${year}/${date}-${tags[0]}"
+          dir="resoto.com/news/${year}/${date}-${{ steps.release.outputs.tag }}"
           mkdir -p $dir
           file="${dir}/index.md"
-          python3 tools/release_notes.py ${prev_release} ${tags[0]} > $file
+          python3 tools/release_notes.py ${prev_release} ${{ steps.release.outputs.tag }} > $file
+          link="/news/$(date +'%Y/%m/%d')/${{ steps.release.outputs.tag }}"
+          echo "tag=${{ steps.release.outputs.tag }}" >> $GITHUB_OUTPUT
           echo "file=$file" >> $GITHUB_OUTPUT
-          link="/news/$(date +'%Y/%m/%d')/${tags[0]}"
           echo "link=$link" >> $GITHUB_OUTPUT
 
       - name: Update resource data models
-        if: steps.release_type.outputs.prerelease == 'false'
+        if: steps.release.outputs.prerelease == 'false'
         continue-on-error: true
         shell: bash
         run: |
           PSK= RESOTOCORE_ANALYTICS_OPT_OUT=true docker-compose up -d
-          cd resoto.com/versioned_docs/version-${{steps.release_type.outputs.docsVersion}}/reference/data-models
+          cd resoto.com/versioned_docs/version-${{steps.release.outputs.docsVersion}}/reference/data-models
           find . -mindepth 2 -type d -name img -prune -exec rm -rf {} \;
           python3 ${{ github.workspace }}/resoto.com/tools/export_model_images.py
 
       - name: Update released version & resotocore API YAML
-        if: steps.release_type.outputs.prerelease == 'false'
+        if: steps.release.outputs.prerelease == 'false'
         shell: bash
         run: |
-          cp resotocore/resotocore/static/api-doc.yaml resoto.com/openapi/resotocore-${{steps.release_type.outputs.docsVersion}}.yml
-          echo $(jq '.["${{steps.release_type.outputs.docsVersion}}"].version="${{ steps.release_notes.outputs.tag }}" | .["${{steps.release_type.outputs.docsVersion}}"].link="${{ steps.release_notes.outputs.link }}"' resoto.com/latestRelease.json) > resoto.com/latestRelease.json
+          cp resotocore/resotocore/static/api-doc.yaml resoto.com/openapi/resotocore-${{steps.release.outputs.docsVersion}}.yml
+          echo $(jq '.["${{steps.release.outputs.docsVersion}}"].version="${{ steps.release.outputs.tag }}" | .["${{steps.release.outputs.docsVersion}}"].link="${{ steps.release_notes.outputs.link }}"' resoto.com/latestRelease.json) > resoto.com/latestRelease.json
 
       - name: Modify resotocore API YAML
-        if: steps.release_type.outputs.prerelease == 'false'
+        if: steps.release.outputs.prerelease == 'false'
         uses: mikefarah/yq@master
         with:
-          cmd: yq e -i '.servers[0].url = "https://{host}:{port}" | .servers[0].variables.host.default="localhost" | .servers[0].variables.port.default="8900" | del(.servers[0].description)' resoto.com/openapi/resotocore-${{steps.release_type.outputs.docsVersion}}.yml
+          cmd: yq e -i '.servers[0].url = "https://{host}:{port}" | .servers[0].variables.host.default="localhost" | .servers[0].variables.port.default="8900" | del(.servers[0].description)' resoto.com/openapi/resotocore-${{steps.release.outputs.docsVersion}}.yml
 
       - name: Regenerate API docs & format with Prettier
+        if: steps.release.outputs.prerelease == 'false'
         working-directory: ./resoto.com
         run: |
           yarn gen-api-docs
@@ -429,45 +440,46 @@ jobs:
           yarn format
 
       - name: Create someengineering/resoto.com pull request
+        if: steps.release.outputs.prerelease == 'false'
         uses: peter-evans/create-pull-request@v4
         env:
           HUSKY: 0
         with:
           path: resoto.com
-          commit-message: "feat(news): ${{ steps.release_notes.outputs.tag }} release notes"
-          title: "feat(news): ${{ steps.release_notes.outputs.tag }} release notes"
+          commit-message: "feat(news): ${{ steps.release.outputs.tag }} release notes"
+          title: "feat(news): ${{ steps.release.outputs.tag }} release notes"
           body: |
-            Adds automatically generated release notes for [`${{ steps.release_notes.outputs.tag }}`](https://github.com/someengineering/resoto/releases/tag/${{ steps.release_notes.outputs.tag }}).
+            Adds automatically generated release notes for [`${{ steps.release.outputs.tag }}`](https://github.com/someengineering/resoto/releases/tag/${{ steps.release.outputs.tag }}).
 
-            Also updates `${{steps.release_type.outputs.docsVersion}}` docs.
+            Also updates `${{steps.release.outputs.docsVersion}}` docs.
           labels: |
             🤖 bot
-          branch: ${{ steps.release_notes.outputs.tag }}
+          branch: ${{ steps.release.outputs.tag }}
           delete-branch: true
           token: ${{ secrets.SOME_CI_PAT }}
           committer: C.K. <98986935+some-ci@users.noreply.github.com>
           author: C.K. <98986935+some-ci@users.noreply.github.com>
 
+      - name: Write release body
+        shell: bash
+        run: |
+          [ ${{ steps.release.outputs.prerelease }} == 'false' ] && echo -e "### Release Notes\n\nhttps://resoto.com${{ steps.release_notes.outputs.link }}\n" > release_body.txt
+          echo -e "### Docker Images\n" >> release_body.txt
+          echo -e "- \`somecr.io/someengineering/resotocore:${{ steps.release.outputs.tag }}\`" >> release_body.txt
+          echo -e "- \`somecr.io/someengineering/resotoworker:${{ steps.release.outputs.tag }}\`" >> release_body.txt
+          echo -e "- \`somecr.io/someengineering/resotoshell:${{ steps.release.outputs.tag }}\`" >> release_body.txt
+          echo -e "- \`somecr.io/someengineering/resotometrics:${{ steps.release.outputs.tag }}\`" >> release_body.txt
+
       - name: Create release
         uses: ncipollo/release-action@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          prerelease: ${{steps.release_type.outputs.prerelease}}
-          body: |
-            ### Release Notes
-
-            https://resoto.com${{ steps.release_notes.outputs.link }}
-
-            ### Docker Images
-
-            - `somecr.io/someengineering/resotocore:${{ steps.release_notes.outputs.tag }}`
-            - `somecr.io/someengineering/resotoworker:${{ steps.release_notes.outputs.tag }}`
-            - `somecr.io/someengineering/resotoshell:${{ steps.release_notes.outputs.tag }}`
-            - `somecr.io/someengineering/resotometrics:${{ steps.release_notes.outputs.tag }}`
+          prerelease: ${{steps.release.outputs.prerelease}}
+          bodyFile: release_body.txt
 
       - name: Check out someengineering/helm-charts
         uses: actions/checkout@v3
-        if: steps.release_type.outputs.prerelease == 'false'
+        if: steps.release.outputs.prerelease == 'false'
         with:
           repository: someengineering/helm-charts
           path: helm-charts
@@ -476,31 +488,31 @@ jobs:
       - name: Get current chart version
         id: current_chart_version
         uses: mikefarah/yq@master
-        if: steps.release_type.outputs.prerelease == 'false'
+        if: steps.release.outputs.prerelease == 'false'
         with:
           cmd: yq '.version' helm-charts/someengineering/resoto/Chart.yaml
 
       - name: Get new chart version
         id: new_chart_version
         uses: WyriHaximus/github-action-next-semvers@v1
-        if: steps.release_type.outputs.prerelease == 'false'
+        if: steps.release.outputs.prerelease == 'false'
         with:
           version: ${{ steps.current_chart_version.outputs.result }}
 
       - name: Update appVersion and bump chart version
         uses: mikefarah/yq@master
-        if: steps.release_type.outputs.prerelease == 'false'
+        if: steps.release.outputs.prerelease == 'false'
         with:
-          cmd: yq e -i '.version = "${{ steps.new_chart_version.outputs.patch }}" | .appVersion = "${{ steps.release_notes.outputs.tag }}"' helm-charts/someengineering/resoto/Chart.yaml
+          cmd: yq e -i '.version = "${{ steps.new_chart_version.outputs.patch }}" | .appVersion = "${{ steps.release.outputs.tag }}"' helm-charts/someengineering/resoto/Chart.yaml
 
       - name: Set up Helm
-        if: steps.release_type.outputs.prerelease == 'false'
+        if: steps.release.outputs.prerelease == 'false'
         uses: azure/setup-helm@v1
         with:
           version: v3.8.1
 
       - name: Install helm-docs
-        if: steps.release_type.outputs.prerelease == 'false'
+        if: steps.release.outputs.prerelease == 'false'
         uses: supplypike/setup-bin@v1
         with:
           uri: https://github.com/norwoodj/helm-docs/releases/download/v1.11.0/helm-docs_1.11.0_Linux_x86_64.tar.gz
@@ -508,21 +520,21 @@ jobs:
           version: "1.11.0"
 
       - name: Generate helm-charts README.md
-        if: steps.release_type.outputs.prerelease == 'false'
+        if: steps.release.outputs.prerelease == 'false'
         run: (cd helm-charts && helm-docs)
 
       - name: Create someengineering/helm-charts pull request
         uses: peter-evans/create-pull-request@v4
-        if: steps.release_type.outputs.prerelease == 'false'
+        if: steps.release.outputs.prerelease == 'false'
         with:
           path: helm-charts
-          commit-message: "chore: bump appVersion to ${{ steps.release_notes.outputs.tag }}"
-          title: "chore: bump appVersion to ${{ steps.release_notes.outputs.tag }}"
+          commit-message: "chore: bump appVersion to ${{ steps.release.outputs.tag }}"
+          title: "chore: bump appVersion to ${{ steps.release.outputs.tag }}"
           body: |
-            Bumps Resoto version to [${{ steps.release_notes.outputs.tag }}](https://github.com/someengineering/resoto/releases/tag/${{ steps.release_notes.outputs.tag }}).
+            Bumps Resoto version to [${{ steps.release.outputs.tag }}](https://github.com/someengineering/resoto/releases/tag/${{ steps.release.outputs.tag }}).
           labels: |
             🤖 bot
-          branch: release/v${{ steps.release_notes.outputs.tag }}
+          branch: release/v${{ steps.release.outputs.tag }}
           delete-branch: true
           token: ${{ secrets.SOME_CI_PAT }}
           committer: C.K. <98986935+some-ci@users.noreply.github.com>
