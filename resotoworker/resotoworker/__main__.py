@@ -304,7 +304,7 @@ class WorkerWebApp(WebApp):
     @cherrypy.expose  # type: ignore
     @cherrypy.tools.json_out()  # type: ignore
     @cherrypy.tools.allow(methods=["GET"])  # type: ignore
-    def info(self) -> Dict[str, Any]:
+    def info(self) -> Dict[str, List[str]]:
         active_collectors: List[str] = [
             plugin.cloud for plugin in self.plugin_loader.plugins(PluginType.COLLECTOR)  # type: ignore
         ]
