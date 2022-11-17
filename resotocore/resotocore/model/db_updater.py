@@ -168,7 +168,7 @@ class DbUpdaterProcess(Process):
             log.info(f"Import process started: {self.pid}")
             result = asyncio.run(self.setup_and_merge())
             self.write_queue.put(Result(result))
-            log.info(f"Update process done: {self.pid} Exit.")
+            log.info(f"Update process done: {self.pid}. {result} Exit.")
             shutdown_process(0)
         except Exception as ex:
             # not all exceptions can be pickled. Use string representation.

@@ -13,6 +13,7 @@ from arango.typings import Json
 from networkx import MultiDiGraph
 
 from resotocore.analytics import AnalyticsEventSender, CoreEvent, InMemoryEventSender
+from resotocore.core_config import GraphUpdateConfig
 from resotocore.db.async_arangodb import AsyncArangoDB
 from resotocore.db.graphdb import ArangoGraphDB, GraphDB, EventGraphDB
 
@@ -249,7 +250,7 @@ def test_db(local_client: ArangoClient, system_db: StandardDatabase) -> Standard
 @pytest.fixture
 async def graph_db(test_db: StandardDatabase) -> ArangoGraphDB:
     async_db = AsyncArangoDB(test_db)
-    graph_db = ArangoGraphDB(async_db, "ns", NoAdjust())
+    graph_db = ArangoGraphDB(async_db, "ns", NoAdjust(), GraphUpdateConfig())
     await graph_db.create_update_schema()
     await async_db.truncate(graph_db.in_progress)
     return graph_db

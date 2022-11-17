@@ -316,6 +316,10 @@ class GraphUpdateConfig(ConfigObject):
         default=4 * 3600,
         metadata={"description": "If a graph update takes longer than this duration, the update is aborted."},
     )
+    keep_history: bool = field(
+        default=True,
+        metadata={"description": "If true, changes of the graph are stored and are available via history."},
+    )
 
     def merge_max_wait_time(self) -> timedelta:
         return timedelta(seconds=self.merge_max_wait_time_seconds)
