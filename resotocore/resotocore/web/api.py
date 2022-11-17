@@ -58,7 +58,7 @@ from resotocore.config import ConfigHandler, ConfigValidation, ConfigEntity
 from resotocore.console_renderer import ConsoleColorSystem, ConsoleRenderer
 from resotocore.core_config import CoreConfig
 from resotocore.db.db_access import DbAccess
-from resotocore.db.graphdb import GraphDB
+from resotocore.db.graphdb import GraphDB, HistoryChange
 from resotocore.db.model import QueryModel
 from resotocore.error import NotFoundError
 from resotocore.ids import TaskId, ConfigId, NodeId, SubscriberId, WorkerId
@@ -73,7 +73,7 @@ from resotocore.task.model import Subscription
 from resotocore.task.subscribers import SubscriptionHandler
 from resotocore.task.task_handler import TaskHandlerService
 from resotocore.types import Json, JsonElement
-from resotocore.util import uuid_str, force_gen, rnd_str, if_set, duration, utc_str
+from resotocore.util import uuid_str, force_gen, rnd_str, if_set, duration, utc_str, from_utc
 from resotocore.web.certificate_handler import CertificateHandler
 from resotocore.web.content_renderer import result_binary_gen, single_result
 from resotocore.web.directives import (
@@ -188,6 +188,7 @@ class Api:
                 web.post(prefix + "/graph/{graph_id}/search/list", self.query_list),
                 web.post(prefix + "/graph/{graph_id}/search/graph", self.query_graph_stream),
                 web.post(prefix + "/graph/{graph_id}/search/aggregate", self.query_aggregation),
+                web.post(prefix + "/graph/{graph_id}/search/history", self.query_history),
                 # maintain the graph
                 web.patch(prefix + "/graph/{graph_id}/nodes", self.update_nodes),
                 web.post(prefix + "/graph/{graph_id}/merge", self.merge_graph),
@@ -753,6 +754,19 @@ class Api:
     async def query_aggregation(self, request: Request) -> StreamResponse:
         graph_db, query_model = await self.graph_query_model_from_request(request)
         async with await graph_db.search_aggregation(query_model) as gen:
+            return await self.stream_response_from_gen(request, gen)
+
+    async def query_history(self, request: Request) -> StreamResponse:
+        graph_db, query_model = await self.graph_query_model_from_request(request)
+        start = request.query.get("start")
+        until = request.query.get("until")
+        change = request.query.get("change")
+        async with await graph_db.search_history(
+            query=query_model,
+            change=HistoryChange[change] if change else None,
+            start=from_utc(start) if start else None,
+            until=from_utc(until) if until else None,
+        ) as gen:
             return await self.stream_response_from_gen(request, gen)
 
     @staticmethod

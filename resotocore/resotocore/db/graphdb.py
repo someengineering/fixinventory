@@ -4,6 +4,7 @@ import uuid
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from datetime import datetime, timedelta
+from enum import Enum
 from functools import partial
 from numbers import Number
 from typing import DefaultDict, Optional, Callable, AsyncGenerator, Any, Iterable, Dict, List, Tuple, TypeVar, cast
@@ -12,6 +13,7 @@ from arango import AnalyzerGetError
 from arango.collection import VertexCollection, StandardCollection, EdgeCollection
 from arango.graph import Graph
 from arango.typings import Json
+from attr import evolve
 from networkx import MultiDiGraph
 
 from resotocore.analytics import CoreEvent, AnalyticsEventSender
@@ -25,12 +27,18 @@ from resotocore.model.adjust_node import AdjustNode
 from resotocore.model.graph_access import GraphAccess, GraphBuilder, EdgeTypes, Section
 from resotocore.model.model import Model, ComplexKind, TransformKind
 from resotocore.model.resolve_in_graph import NodePath, GraphResolver
-from resotocore.query.model import Query
+from resotocore.query.model import Query, FulltextTerm, MergeTerm, P
 from resotocore.types import JsonElement, EdgeType
 from resotocore.util import first, value_in_path_get, utc_str, uuid_str, value_in_path, json_hash, set_value_in_path
 from resotocore.ids import NodeId
 
 log = logging.getLogger(__name__)
+
+
+class HistoryChange(Enum):
+    node_created = "node_created"
+    node_updated = "node_updated"
+    node_deleted = "node_deleted"
 
 
 class GraphDB(ABC):
@@ -100,6 +108,19 @@ class GraphDB(ABC):
     @abstractmethod
     async def search_list(
         self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None, **kwargs: Any
+    ) -> AsyncCursorContext:
+        pass
+
+    @abstractmethod
+    async def search_history(
+        self,
+        query: QueryModel,
+        change: Optional[HistoryChange] = None,
+        start: Optional[datetime] = None,
+        until: Optional[datetime] = None,
+        with_count: bool = False,
+        timeout: Optional[timedelta] = None,
+        **kwargs: Any,
     ) -> AsyncCursorContext:
         pass
 
@@ -383,6 +404,41 @@ class ArangoGraphDB(GraphDB):
             ttl=cast(Number, int(timeout.total_seconds())) if timeout else None,
         )
 
+    async def search_history(
+        self,
+        query: QueryModel,
+        change: Optional[HistoryChange] = None,
+        start: Optional[datetime] = None,
+        until: Optional[datetime] = None,
+        with_count: bool = False,
+        timeout: Optional[timedelta] = None,
+        **kwargs: Any,
+    ) -> AsyncCursorContext:
+        more_than_one = len(query.query.parts) > 1
+        has_invalid_terms = any(query.query.find_terms(lambda t: isinstance(t, (FulltextTerm, MergeTerm))))
+        has_navigation = any(p.navigation for p in query.query.parts)
+        if more_than_one and has_invalid_terms or has_navigation:
+            raise AttributeError("Fulltext, merge terms and navigation is not supported in history queries!")
+        # adjust query
+        term = query.query.current_part.term
+        if change:
+            term = term.and_term(P.single("action").eq(change.value))
+        if start:
+            term = term.and_term(P.single("changed").gt(utc_str(start)))
+        if until:
+            term = term.and_term(P.single("changed").lt(utc_str(until)))
+        query = QueryModel(evolve(query.query, parts=[evolve(query.query.current_part, term=term)]), query.model)
+        q_string, bind = arango_query.to_query(self, query, from_collection=self.node_history)
+        print(q_string)
+        return await self.db.aql_cursor(
+            query=q_string,
+            trafo=self.document_to_instance_fn(query.model, query.query, ["action", "created", "updated", "deleted"]),
+            count=with_count,
+            bind_vars=bind,
+            batch_size=10000,
+            ttl=cast(Number, int(timeout.total_seconds())) if timeout else None,
+        )
+
     async def search_graph_gen(
         self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None
     ) -> AsyncCursorContext:
@@ -423,7 +479,9 @@ class ArangoGraphDB(GraphDB):
         await self.insert_genesis_data()
 
     @staticmethod
-    def document_to_instance_fn(model: Model, query: Optional[Query] = None) -> Callable[[Json], Optional[Json]]:
+    def document_to_instance_fn(
+        model: Model, query: Optional[Query] = None, additional_root_props: Optional[List[str]] = None
+    ) -> Callable[[Json], Optional[Json]]:
         def props(doc: Json, result: Json, definition: Iterable[str]) -> None:
             for prop in definition:
                 if prop in doc and doc[prop]:
@@ -440,7 +498,7 @@ class ArangoGraphDB(GraphDB):
                         if source_value:
                             reported_out[synth.prop.name] = synth.kind.transform(source_value)
 
-        def render_prop(doc: Json, lookup_props: bool) -> Json:
+        def render_prop(doc: Json, root_level: bool) -> Json:
             if Section.reported in doc or Section.desired in doc or Section.metadata in doc:
                 # side note: the dictionary remembers insertion order
                 # this order is also used to render the output (e.g. yaml property order)
@@ -448,8 +506,10 @@ class ArangoGraphDB(GraphDB):
                 if "_rev" in doc:
                     result["revision"] = doc["_rev"]
                 props(doc, result, Section.content)
-                if lookup_props:
+                if root_level:
                     props(doc, result, Section.lookup_sections_ordered)
+                    if additional_root_props:
+                        props(doc, result, additional_root_props)
                 synth_props(doc, result)
                 return result
             else:
@@ -1186,6 +1246,20 @@ class EventGraphDB(GraphDB):
         counters, context = query.query.analytics()
         await self.event_sender.core_event(CoreEvent.Query, context, **counters)
         return await self.real.search_list(query, with_count, timeout, **kwargs)
+
+    async def search_history(
+        self,
+        query: QueryModel,
+        change: Optional[HistoryChange] = None,
+        start: Optional[datetime] = None,
+        until: Optional[datetime] = None,
+        with_count: bool = False,
+        timeout: Optional[timedelta] = None,
+        **kwargs: Any,
+    ) -> AsyncCursorContext:
+        counters, context = query.query.analytics()
+        await self.event_sender.core_event(CoreEvent.HistoryQuery, context, **counters)
+        return await self.real.search_history(query, change, start, until, with_count, timeout, **kwargs)
 
     async def search_graph_gen(
         self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None
