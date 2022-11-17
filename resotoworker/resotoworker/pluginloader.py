@@ -81,9 +81,13 @@ class PluginLoader:
 
         return self._plugins.get(plugin_type, [])  # type: ignore
 
-    def all_plugins(self) -> List[Union[Type[BasePlugin], Type[BaseActionPlugin], Type[BasePostCollectPlugin]]]:
+    def all_plugins(
+        self, plugin_type: Optional[PluginType] = None
+    ) -> List[Union[Type[BasePlugin], Type[BaseActionPlugin], Type[BasePostCollectPlugin]]]:
         if not self._initialized:
             self.find_plugins()
+        if plugin_type is not None:
+            return self._plugins.get(plugin_type, [])  # type: ignore
         return [plugin for plugins in self._plugins.values() for plugin in plugins]
 
     def add_plugin_args(self, arg_parser: ArgumentParser) -> None:

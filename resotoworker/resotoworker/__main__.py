@@ -2,7 +2,7 @@ import multiprocessing
 import os
 import sys
 import threading
-import cherrypy
+import cherrypy  # type: ignore
 import time
 from functools import partial
 from queue import Queue
@@ -297,16 +297,21 @@ def add_args(arg_parser: ArgumentParser) -> None:
 
 
 class WorkerWebApp(WebApp):
-    def __init__(self, *args, plugin_loader: PluginLoader, **kwargs) -> None:
+    def __init__(self, *args, plugin_loader: PluginLoader, **kwargs) -> None:  # type: ignore
         super().__init__(*args, **kwargs)
         self.plugin_loader = plugin_loader
 
-    @cherrypy.expose
-    @cherrypy.tools.json_out()
-    @cherrypy.tools.allow(methods=["GET"])
-    def info(self):
-        collectors: List[str] = [plugin.cloud for plugin in self.plugin_loader.plugins(PluginType.COLLECTOR)]
-        return {"collectors": collectors}
+    @cherrypy.expose  # type: ignore
+    @cherrypy.tools.json_out()  # type: ignore
+    @cherrypy.tools.allow(methods=["GET"])  # type: ignore
+    def info(self) -> Dict[str, Any]:
+        active_collectors: List[str] = [
+            plugin.cloud for plugin in self.plugin_loader.plugins(PluginType.COLLECTOR)  # type: ignore
+        ]
+        all_collectors: List[str] = [
+            plugin.cloud for plugin in self.plugin_loader.all_plugins(PluginType.COLLECTOR)  # type: ignore
+        ]
+        return {"active_collectors": active_collectors, "all_collectors": all_collectors}
 
 
 if __name__ == "__main__":
