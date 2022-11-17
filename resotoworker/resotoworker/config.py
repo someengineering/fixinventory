@@ -14,7 +14,7 @@ class ResotoWorkerConfig:
     kind: ClassVar[str] = "resotoworker"
     collector: List[str] = field(
         factory=lambda: ["example"],
-        metadata={"description": "List of collectors to run"},
+        metadata={"description": "List of collectors to run", "restart_required": True},
     )
     graph: str = field(
         default="resoto",

@@ -2,6 +2,7 @@ import multiprocessing
 import os
 import sys
 import threading
+import cherrypy  # type: ignore
 import time
 from functools import partial
 from queue import Queue
@@ -124,7 +125,7 @@ def main() -> None:
             "ssl_key": tls_data.key_path,
         }
     web_server = WebServer(
-        WebApp(mountpoint=Config.resotoworker.web_path),
+        WorkerWebApp(mountpoint=Config.resotoworker.web_path, plugin_loader=plugin_loader),
         web_host=Config.resotoworker.web_host,
         web_port=Config.resotoworker.web_port,
         **web_server_args,
@@ -293,6 +294,24 @@ def add_args(arg_parser: ArgumentParser) -> None:
         dest="subscriber_id",
         type=str,
     )
+
+
+class WorkerWebApp(WebApp):
+    def __init__(self, *args, plugin_loader: PluginLoader, **kwargs) -> None:  # type: ignore
+        super().__init__(*args, **kwargs)
+        self.plugin_loader = plugin_loader
+
+    @cherrypy.expose  # type: ignore
+    @cherrypy.tools.json_out()  # type: ignore
+    @cherrypy.tools.allow(methods=["GET"])  # type: ignore
+    def info(self) -> Dict[str, List[str]]:
+        active_collectors: List[str] = [
+            plugin.cloud for plugin in self.plugin_loader.plugins(PluginType.COLLECTOR)  # type: ignore
+        ]
+        all_collectors: List[str] = [
+            plugin.cloud for plugin in self.plugin_loader.all_plugins(PluginType.COLLECTOR)  # type: ignore
+        ]
+        return {"active_collectors": active_collectors, "all_collectors": all_collectors}
 
 
 if __name__ == "__main__":
