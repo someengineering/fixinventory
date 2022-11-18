@@ -4,6 +4,7 @@ import uuid
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from datetime import datetime, timedelta
+from enum import Enum
 from functools import partial
 from numbers import Number
 from typing import DefaultDict, Optional, Callable, AsyncGenerator, Any, Iterable, Dict, List, Tuple, TypeVar, cast
@@ -12,9 +13,11 @@ from arango import AnalyzerGetError
 from arango.collection import VertexCollection, StandardCollection, EdgeCollection
 from arango.graph import Graph
 from arango.typings import Json
+from attr import evolve
 from networkx import MultiDiGraph
 
 from resotocore.analytics import CoreEvent, AnalyticsEventSender
+from resotocore.core_config import GraphUpdateConfig
 from resotocore.db import arango_query, EstimatedSearchCost
 from resotocore.db.arango_query import fulltext_delimiter
 from resotocore.db.async_arangodb import AsyncArangoDB, AsyncArangoTransactionDB, AsyncArangoDBBase, AsyncCursorContext
@@ -24,12 +27,18 @@ from resotocore.model.adjust_node import AdjustNode
 from resotocore.model.graph_access import GraphAccess, GraphBuilder, EdgeTypes, Section
 from resotocore.model.model import Model, ComplexKind, TransformKind
 from resotocore.model.resolve_in_graph import NodePath, GraphResolver
-from resotocore.query.model import Query
+from resotocore.query.model import Query, FulltextTerm, MergeTerm, P
 from resotocore.types import JsonElement, EdgeType
 from resotocore.util import first, value_in_path_get, utc_str, uuid_str, value_in_path, json_hash, set_value_in_path
 from resotocore.ids import NodeId
 
 log = logging.getLogger(__name__)
+
+
+class HistoryChange(Enum):
+    node_created = "node_created"
+    node_updated = "node_updated"
+    node_deleted = "node_deleted"
 
 
 class GraphDB(ABC):
@@ -103,6 +112,19 @@ class GraphDB(ABC):
         pass
 
     @abstractmethod
+    async def search_history(
+        self,
+        query: QueryModel,
+        change: Optional[HistoryChange] = None,
+        before: Optional[datetime] = None,
+        after: Optional[datetime] = None,
+        with_count: bool = False,
+        timeout: Optional[timedelta] = None,
+        **kwargs: Any,
+    ) -> AsyncCursorContext:
+        pass
+
+    @abstractmethod
     async def search_graph_gen(
         self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None
     ) -> AsyncCursorContext:
@@ -134,13 +156,15 @@ class GraphDB(ABC):
 
 
 class ArangoGraphDB(GraphDB):
-    def __init__(self, db: AsyncArangoDB, name: str, adjust_node: AdjustNode) -> None:
+    def __init__(self, db: AsyncArangoDB, name: str, adjust_node: AdjustNode, config: GraphUpdateConfig) -> None:
         super().__init__()
         self._name = name
         self.node_adjuster = adjust_node
         self.vertex_name = name
         self.in_progress = f"{name}_in_progress"
+        self.node_history = f"{name}_node_history"
         self.db = db
+        self.config = config
 
     @property
     def name(self) -> str:
@@ -380,6 +404,43 @@ class ArangoGraphDB(GraphDB):
             ttl=cast(Number, int(timeout.total_seconds())) if timeout else None,
         )
 
+    async def search_history(
+        self,
+        query: QueryModel,
+        change: Optional[HistoryChange] = None,
+        before: Optional[datetime] = None,
+        after: Optional[datetime] = None,
+        with_count: bool = False,
+        timeout: Optional[timedelta] = None,
+        **kwargs: Any,
+    ) -> AsyncCursorContext:
+        more_than_one = len(query.query.parts) > 1
+        has_invalid_terms = any(query.query.find_terms(lambda t: isinstance(t, (FulltextTerm, MergeTerm))))
+        has_navigation = any(p.navigation for p in query.query.parts)
+        if more_than_one and has_invalid_terms or has_navigation:
+            raise AttributeError("Fulltext, merge terms and navigation is not supported in history queries!")
+        # adjust query
+        term = query.query.current_part.term
+        if change:
+            term = term.and_term(P.single("change").eq(change.value))
+        if after:
+            term = term.and_term(P.single("changed_at").gt(utc_str(after)))
+        if before:
+            term = term.and_term(P.single("changed_at").lt(utc_str(before)))
+        query = QueryModel(evolve(query.query, parts=[evolve(query.query.current_part, term=term)]), query.model)
+        q_string, bind = arango_query.to_query(self, query, from_collection=self.node_history)
+        trafo = (
+            None
+            if query.query.aggregate
+            else self.document_to_instance_fn(
+                query.model, query.query, ["change", "changed_at", "created", "updated", "deleted"]
+            )
+        )
+        ttl = cast(Number, int(timeout.total_seconds())) if timeout else None
+        return await self.db.aql_cursor(
+            query=q_string, trafo=trafo, count=with_count, bind_vars=bind, batch_size=10000, ttl=ttl
+        )
+
     async def search_graph_gen(
         self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None
     ) -> AsyncCursorContext:
@@ -420,7 +481,9 @@ class ArangoGraphDB(GraphDB):
         await self.insert_genesis_data()
 
     @staticmethod
-    def document_to_instance_fn(model: Model, query: Optional[Query] = None) -> Callable[[Json], Optional[Json]]:
+    def document_to_instance_fn(
+        model: Model, query: Optional[Query] = None, additional_root_props: Optional[List[str]] = None
+    ) -> Callable[[Json], Optional[Json]]:
         def props(doc: Json, result: Json, definition: Iterable[str]) -> None:
             for prop in definition:
                 if prop in doc and doc[prop]:
@@ -437,7 +500,7 @@ class ArangoGraphDB(GraphDB):
                         if source_value:
                             reported_out[synth.prop.name] = synth.kind.transform(source_value)
 
-        def render_prop(doc: Json, lookup_props: bool) -> Json:
+        def render_prop(doc: Json, root_level: bool) -> Json:
             if Section.reported in doc or Section.desired in doc or Section.metadata in doc:
                 # side note: the dictionary remembers insertion order
                 # this order is also used to render the output (e.g. yaml property order)
@@ -445,8 +508,10 @@ class ArangoGraphDB(GraphDB):
                 if "_rev" in doc:
                     result["revision"] = doc["_rev"]
                 props(doc, result, Section.content)
-                if lookup_props:
+                if root_level:
                     props(doc, result, Section.lookup_sections_ordered)
+                    if additional_root_props:
+                        props(doc, result, additional_root_props)
                 synth_props(doc, result)
                 return result
             else:
@@ -501,15 +566,21 @@ class ArangoGraphDB(GraphDB):
             f"remove e.data in {self.edge_collection(a)}"
             for a in EdgeTypes.all
         ]
-        updates = "\n".join(
+        history_updates = [
+            f'for e in {temp_name} filter e.action=="node_created" insert MERGE({{change: e.action, changed_at: e.data.created}}, UNSET(e.data, "_key", "flat", "hash")) in {self.node_history}',  # noqa: E501
+            f'for e in {temp_name} filter e.action=="node_updated" insert MERGE({{change: e.action, changed_at: e.data.updated}}, UNSET(e.data, "_key", "flat", "hash")) in {self.node_history}',  # noqa: E501
+            f'for e in {temp_name} filter e.action=="node_deleted" let node = Document(CONCAT("{self.vertex_name}/", e.data._key)) insert MERGE({{change: "node_deleted", deleted: e.data.deleted, changed_at: e.data.deleted}}, UNSET(node, "_key", "_id", "_rev", "flat", "hash")) in {self.node_history}',  # noqa: E501
+        ]
+        updates = ";\n".join(
             map(
-                lambda aql: f"db._createStatement({{ query: `{aql}` }}).execute();",
-                [
-                    f'for e in {temp_name} filter e.action=="node_insert" insert e.data in {self.vertex_name}'
+                lambda aql: f"db._createStatement({{ query: `{aql}` }}).execute()",
+                (history_updates if self.config.keep_history else [])
+                + [
+                    f'for e in {temp_name} filter e.action=="node_created" insert e.data in {self.vertex_name}'
                     ' OPTIONS{overwriteMode: "replace"}',
-                    f'for e in {temp_name} filter e.action=="node_update" update e.data in {self.vertex_name}'
+                    f'for e in {temp_name} filter e.action=="node_updated" update e.data in {self.vertex_name}'
                     " OPTIONS {mergeObjects: false}",
-                    f'for e in {temp_name} filter e.action=="node_delete" remove e.data in {self.vertex_name}',
+                    f'for e in {temp_name} filter e.action=="node_deleted" remove e.data in {self.vertex_name}',
                 ]
                 + edge_inserts
                 + edge_deletes
@@ -519,7 +590,8 @@ class ArangoGraphDB(GraphDB):
         await self.db.execute_transaction(
             f'function () {{\nvar db=require("@arangodb").db;\n{updates}\n}}',
             read=[temp_name],
-            write=[self.edge_collection(a) for a in EdgeTypes.all] + [self.vertex_name, self.in_progress],
+            write=[self.edge_collection(a) for a in EdgeTypes.all]
+            + [self.vertex_name, self.in_progress, self.node_history],
         )
         log.info(f"Move temp->proper data: change_id={change_id} done.")
 
@@ -590,12 +662,12 @@ class ArangoGraphDB(GraphDB):
             elem = access.node(key)
             if elem is None:
                 # node is in db, but not in the graph any longer: delete node
-                resource_deletes.append({"_key": key})
+                resource_deletes.append({"_key": key, "deleted": access.at_json})
                 info.nodes_deleted += 1
             elif elem["hash"] != hash_string:
                 # node is in db and in the graph, content is different
                 adjusted: Json = self.adjust_node(model, elem, node["created"])
-                js = {"_key": key, "updated": access.at_json}
+                js = {"_key": key, "created": node["created"], "updated": access.at_json}
                 for prop in optional_properties:
                     value = adjusted.get(prop, None)
                     if value:
@@ -771,30 +843,11 @@ class ArangoGraphDB(GraphDB):
                 array[idx] = entry
             await execute_many_async(async_fn, name, array)
 
-        async def update_directly() -> None:
-            log.debug(f"Persist the changes directly ({info.all_changes()} changes).")
-            edge_collections = [self.edge_collection(a) for a in EdgeTypes.all]
-            update_many_no_merge = partial(self.db.update_many, merge=False)
-            async with self.db.begin_transaction(write=edge_collections + [self.vertex_name, self.in_progress]) as tx:
-                # note: all requests are done sequentially on purpose
-                # https://www.arangodb.com/docs/stable/http/transaction-stream-transaction.html#concurrent-requests
-                await execute_many_async(self.db.insert_many, self.vertex_name, resource_inserts, overwrite=True)
-                # noinspection PyTypeChecker
-                await execute_many_async(update_many_no_merge, self.vertex_name, resource_updates)
-                await execute_many_async(self.db.delete_many, self.vertex_name, resource_deletes)
-                for ed_i_type, ed_insert in edge_inserts.items():
-                    await execute_many_async(
-                        self.db.insert_many, self.edge_collection(ed_i_type), ed_insert, overwrite=True
-                    )
-                for ed_d_type, ed_delete in edge_deletes.items():
-                    await execute_many_async(self.db.delete_many, self.edge_collection(ed_d_type), ed_delete)
-                await self.delete_marked_update(change_id, tx)
-
         async def store_to_tmp_collection(temp: StandardCollection) -> None:
             tmp = temp.name
-            ri = trafo_many(self.db.insert_many, tmp, resource_inserts, {"action": "node_insert"})
-            ru = trafo_many(self.db.insert_many, tmp, resource_updates, {"action": "node_update"})
-            rd = trafo_many(self.db.insert_many, tmp, resource_deletes, {"action": "node_delete"})
+            ri = trafo_many(self.db.insert_many, tmp, resource_inserts, {"action": "node_created"})
+            ru = trafo_many(self.db.insert_many, tmp, resource_updates, {"action": "node_updated"})
+            rd = trafo_many(self.db.insert_many, tmp, resource_deletes, {"action": "node_deleted"})
             edge_i = [
                 trafo_many(self.db.insert_many, tmp, inserts, {"action": "edge_insert", "edge_type": tpe})
                 for tpe, inserts in edge_inserts.items()
@@ -807,7 +860,7 @@ class ArangoGraphDB(GraphDB):
 
         async def update_via_temp_collection() -> None:
             temp = await self.get_tmp_collection(change_id)
-            log.debug(f"Update is too big for tx size ({info.all_changes()} changes): use temp collection {temp.name}")
+            log.debug(f"Store change in temp collection {temp.name}")
             try:
                 await store_to_tmp_collection(temp)
                 await self.move_temp_to_proper(change_id, temp.name)
@@ -823,8 +876,6 @@ class ArangoGraphDB(GraphDB):
         if is_batch:
             await update_batch()
             await self.refresh_marked_update(change_id)
-        elif info.all_changes() < 100000:  # work around to not run into the 128MB tx limit
-            await update_directly()
         else:
             await update_via_temp_collection()
         log.debug("Persist update done.")
@@ -874,7 +925,10 @@ class ArangoGraphDB(GraphDB):
             )
             return graph, vertex_collection, edge_collection
 
-        def create_update_collection_indexes(nodes: VertexCollection, progress: StandardCollection) -> None:
+        def create_update_collection_indexes(
+            nodes: VertexCollection, progress: StandardCollection, node_history: StandardCollection
+        ) -> None:
+            # node indexes ------
             node_idxes = {idx["name"]: idx for idx in nodes.indexes()}
             # this index will hold all the necessary data to query for an update (index only query)
             if "update_nodes_ref_id" not in node_idxes:
@@ -893,6 +947,7 @@ class ArangoGraphDB(GraphDB):
                     sparse=False,
                     name="kinds_id_name_ctime",
                 )
+            # progress indexes ------
             progress_idxes = {idx["name"]: idx for idx in progress.indexes()}
             if "parent_nodes" not in progress_idxes:
                 log.info(f"Add index parent_nodes on {progress.name}")
@@ -900,6 +955,16 @@ class ArangoGraphDB(GraphDB):
             if "root_nodes" not in progress_idxes:
                 log.info(f"Add index root_nodes on {progress.name}")
                 progress.add_persistent_index(["root_nodes[*]"], name="root_nodes")
+            # history indexes ------
+            node_history_indexes = {idx["name"]: idx for idx in node_history.indexes()}
+            if "history_access" not in node_history_indexes:
+                node_history.add_persistent_index(
+                    ["change", "changed_at", "kinds[*]", "reported.id", "reported.name", "reported.ctime"],
+                    sparse=False,
+                    name="history_access",
+                )
+            if "ttl_index" not in node_history_indexes:
+                node_history.add_ttl_index(["changed"], int(timedelta(days=14).total_seconds()), name="ttl_index")
 
         def create_update_edge_indexes(edges: EdgeCollection) -> None:
             edge_idxes = {idx["name"]: idx for idx in edges.indexes()}
@@ -962,7 +1027,8 @@ class ArangoGraphDB(GraphDB):
 
         vertex = db.graph(self.name).vertex_collection(self.vertex_name)
         in_progress = await create_collection(self.in_progress)
-        create_update_collection_indexes(vertex, in_progress)
+        node_history_collection = await create_collection(self.node_history)
+        create_update_collection_indexes(vertex, in_progress, node_history_collection)
         for edge_type in EdgeTypes.all:
             edge_collection = db.graph(self.name).edge_collection(self.edge_collection(edge_type))
             create_update_edge_indexes(edge_collection)
@@ -1182,6 +1248,20 @@ class EventGraphDB(GraphDB):
         counters, context = query.query.analytics()
         await self.event_sender.core_event(CoreEvent.Query, context, **counters)
         return await self.real.search_list(query, with_count, timeout, **kwargs)
+
+    async def search_history(
+        self,
+        query: QueryModel,
+        change: Optional[HistoryChange] = None,
+        before: Optional[datetime] = None,
+        after: Optional[datetime] = None,
+        with_count: bool = False,
+        timeout: Optional[timedelta] = None,
+        **kwargs: Any,
+    ) -> AsyncCursorContext:
+        counters, context = query.query.analytics()
+        await self.event_sender.core_event(CoreEvent.HistoryQuery, context, **counters)
+        return await self.real.search_history(query, change, before, after, with_count, timeout, **kwargs)
 
     async def search_graph_gen(
         self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None

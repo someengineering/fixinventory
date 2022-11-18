@@ -56,5 +56,12 @@ class GraphUpdate(ABC):
             f"{self.edges_updated},{self.edges_deleted}]]"
         )
 
+    def __str__(self) -> str:
+        return (
+            f"GraphUpdate(nodes_created={self.nodes_created}, nodes_updated={self.nodes_updated}, "
+            f"nodes_deleted={self.nodes_deleted}, edges_created={self.edges_created}, "
+            f"edges_updated={self.edges_updated}, edges_deleted={self.edges_deleted})"
+        )
+
     def __eq__(self, other: Any) -> bool:
         return self.__dict__ == other.__dict__ if isinstance(other, GraphUpdate) else False

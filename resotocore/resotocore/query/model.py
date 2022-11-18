@@ -192,9 +192,6 @@ class Term(abc.ABC):
     def __and__(self, other: Term) -> Term:
         return self.and_term(other)
 
-    def __eq__(self, other: Any) -> bool:
-        return self.__dict__ == other.__dict__ if isinstance(other, Term) else False
-
     def not_term(self) -> NotTerm:
         return NotTerm(self)
 
@@ -312,6 +309,7 @@ class Term(abc.ABC):
             raise AttributeError(f"Can not parse json into query: {js}")
 
 
+@define(order=True, hash=True, frozen=True)
 class AllTerm(Term):
     _instance = None
 
@@ -975,6 +973,9 @@ class Query:
         Returns a list of all predicates in this query.
         """
         return [pred for part in self.parts for pred in part.predicates]
+
+    def find_terms(self, fn: Callable[[Term], bool]) -> List[Term]:
+        return [t for p in self.parts for t in p.term.find_terms(fn)]
 
     def analytics(self) -> Tuple[Dict[str, int], Dict[str, List[str]]]:
         counters: Dict[str, int] = defaultdict(lambda: 0)

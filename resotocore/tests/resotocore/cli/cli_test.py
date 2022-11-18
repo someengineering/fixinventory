@@ -240,7 +240,7 @@ async def test_create_query_parts(cli: CLI) -> None:
     assert commands[0].commands[0].name == "execute_search"
     assert (
         commands[0].executable_commands[0].arg
-        == f'(reported.some_int == 0 and reported.identifier =~ "9_") {sort} -default[1:]-> all {sort}'
+        == f"'(reported.some_int == 0 and reported.identifier =~ \"9_\") {sort} -default[1:]-> all {sort}'"
     )
     commands = await cli.evaluate_cli_command("search some_int==0 | descendants")
     assert "-default[1:]->" in commands[0].executable_commands[0].arg  # type: ignore
@@ -264,25 +264,25 @@ async def test_create_query_parts(cli: CLI) -> None:
     commands = await cli.evaluate_cli_command("search some_int==0 | aggregate foo, bla as bla: sum(bar)")
     assert (
         commands[0].executable_commands[0].arg
-        == f"aggregate(reported.foo, reported.bla as bla: sum(reported.bar)):reported.some_int == 0 {sort}"
+        == f"'aggregate(reported.foo, reported.bla as bla: sum(reported.bar)):reported.some_int == 0 {sort}'"
     )
 
     # multiple head/tail commands are combined correctly
     commands = await cli.evaluate_cli_command("search is(volume) | head -10 | tail -5 | head -3")
-    assert commands[0].executable_commands[0].arg == f'is("volume") {sort} limit 5, 3'
+    assert commands[0].executable_commands[0].arg == f"'is(\"volume\") {sort} limit 5, 3'"
     commands = await cli.evaluate_cli_command("search is(volume) sort name asc | head -10 | tail -5 | head -3")
-    assert commands[0].executable_commands[0].arg == 'is("volume") sort reported.name asc limit 5, 3'
+    assert commands[0].executable_commands[0].arg == "'is(\"volume\") sort reported.name asc limit 5, 3'"
     commands = await cli.evaluate_cli_command("search is(volume) | head -10 | tail -5 | head -3 | tail 10 | head 100")
-    assert commands[0].executable_commands[0].arg == f'is("volume") {sort} limit 5, 3'
+    assert commands[0].executable_commands[0].arg == f"'is(\"volume\") {sort} limit 5, 3'"
     commands = await cli.evaluate_cli_command("search is(volume) | tail -10")
     assert (
         commands[0].executable_commands[0].arg
-        == f'is("volume") sort reported.kind desc, reported.name desc, reported.id desc limit 10 reversed '
+        == f"'is(\"volume\") sort reported.kind desc, reported.name desc, reported.id desc limit 10 reversed '"
     )
     commands = await cli.evaluate_cli_command("search is(volume) sort name | tail -10 | head 5")
-    assert commands[0].executable_commands[0].arg == 'is("volume") sort reported.name desc limit 5, 5 reversed '
+    assert commands[0].executable_commands[0].arg == "'is(\"volume\") sort reported.name desc limit 5, 5 reversed '"
     commands = await cli.evaluate_cli_command("search is(volume) sort name | tail -10 | head 5 | head 3 | tail 2")
-    assert commands[0].executable_commands[0].arg == 'is("volume") sort reported.name desc limit 7, 2 reversed '
+    assert commands[0].executable_commands[0].arg == "'is(\"volume\") sort reported.name desc limit 7, 2 reversed '"
 
 
 @pytest.mark.asyncio

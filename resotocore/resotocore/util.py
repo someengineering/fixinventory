@@ -29,7 +29,7 @@ from typing import (
     Sequence,
 )
 
-from dateutil.parser import isoparse
+from dateutil.parser import isoparse, parse as parse_date
 from resotolib.asynchronous import periodic
 
 from resotolib.durations import parse_duration
@@ -78,11 +78,29 @@ def utc() -> datetime:
 
 
 def utc_str(dt: datetime = utc()) -> str:
+    if dt.tzinfo is not None and dt.tzname() != "UTC":
+        offset = dt.tzinfo.utcoffset(dt)
+        if offset is not None and offset.total_seconds() != 0:
+            dt = (dt - offset).replace(tzinfo=timezone.utc)
     return dt.strftime(UTC_Date_Format)
 
 
 def from_utc(date_string: str) -> datetime:
     return isoparse(date_string)
+
+
+def parse_utc(date_string: str) -> datetime:
+    try:
+        dt = datetime.fromisoformat(date_string)
+    except Exception:
+        dt = parse_date(date_string)
+    if (
+        not dt.tzinfo
+        or dt.tzinfo.utcoffset(None) is None
+        or dt.tzinfo.utcoffset(None).total_seconds() != 0  # type: ignore
+    ):
+        dt = dt.astimezone(timezone.utc)
+    return dt
 
 
 def duration(d: str) -> timedelta:

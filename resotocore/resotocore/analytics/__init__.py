@@ -31,6 +31,7 @@ class CoreEvent:
     GraphDBWiped = "graphdb.wiped"
     CLICommand = "cli.command"
     Query = "graphdb.query"
+    HistoryQuery = "graphdb.query.history"
     ModelInfo = "model.info"
     SubscriberInfo = "subscriber.info"
     WorkerQueueInfo = "worker-queue.info"

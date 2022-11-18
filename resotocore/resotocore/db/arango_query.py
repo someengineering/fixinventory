@@ -77,11 +77,14 @@ ancestor_merges = {
 array_marker_in_path_regexp = re.compile(r"\[]|\[[*]](?=[.])")
 
 
-def to_query(db: Any, query_model: QueryModel, with_edges: bool = False) -> Tuple[str, Json]:
+def to_query(
+    db: Any, query_model: QueryModel, with_edges: bool = False, from_collection: Optional[str] = None
+) -> Tuple[str, Json]:
     count: Dict[str, int] = defaultdict(lambda: 0)
     query = query_model.query
     bind_vars: Json = {}
-    cursor, query_str = query_string(db, query, query_model, db.vertex_name, with_edges, bind_vars, count)
+    start = from_collection or db.vertex_name
+    cursor, query_str = query_string(db, query, query_model, start, with_edges, bind_vars, count)
     return f"""{query_str} FOR result in {cursor} RETURN UNSET(result, {unset_props})""", bind_vars
 
 

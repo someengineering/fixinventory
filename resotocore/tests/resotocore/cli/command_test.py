@@ -26,6 +26,7 @@ from resotocore.cli.command import HttpCommand, JqCommand, WorkerCustomCommand
 from resotocore.cli.model import CLIDependencies, CLIContext
 from resotocore.cli.tip_of_the_day import generic_tips
 from resotocore.console_renderer import ConsoleRenderer, ConsoleColorSystem
+from resotocore.db.graphdb import ArangoGraphDB
 from resotocore.db.jobdb import JobDb
 from resotocore.error import CLIParseError
 from resotocore.model.model import Model, ComplexKind
@@ -34,7 +35,7 @@ from resotocore.query.model import Template, Query
 from resotocore.task.task_description import TimeTrigger, Workflow, EventTrigger
 from resotocore.task.task_handler import TaskHandlerService
 from resotocore.types import JsonElement, Json
-from resotocore.util import AccessJson, utc_str
+from resotocore.util import AccessJson, utc_str, utc
 from resotocore.worker_task_queue import WorkerTask
 
 # noinspection PyUnresolvedReferences
@@ -986,3 +987,28 @@ async def test_execute_task(cli: CLI) -> None:
         f'search all limit 3 | execute-task --command success_task --arg "--t {{id}}"', stream.list
     )
     assert len(flow_result[0]) == 3
+
+
+@pytest.mark.asyncio
+async def test_history(cli: CLI, filled_graph_db: ArangoGraphDB) -> None:
+    async def history_count(cmd: str) -> int:
+        result = await cli.execute_cli_command(cmd, stream.list)
+        return len(result[0])
+
+    now = utc()
+    five_min_ago = utc_str(now - timedelta(minutes=5))
+    five_min_later = utc_str(now + timedelta(minutes=5))
+    assert await history_count("history") == 113  # 112 inserts and 1 update for the filled graph db
+    assert await history_count(f"history --after {five_min_ago}") == 113
+    assert await history_count(f"history --after {five_min_later}") == 0
+    assert await history_count(f"history --before {five_min_ago}") == 0
+    assert await history_count(f"history --change node_created") == 112
+    assert await history_count(f"history --change node_updated") == 1
+    assert await history_count(f"history --change node_deleted") == 0
+    assert await history_count(f"history --change node_deleted") == 0
+    assert await history_count(f"history is(foo)") == 11
+    # combine all selectors
+    assert (
+        await history_count(f"history --after {five_min_ago} --before {five_min_later} --change node_created is(foo)")
+        == 11
+    )

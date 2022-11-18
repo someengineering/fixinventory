@@ -42,6 +42,7 @@ from resotocore.cli.command import (
     SortPart,
     LimitPart,
     WorkerCustomCommand,
+    HistoryPart,
 )
 from resotocore.cli.model import (
     ParsedCommand,
@@ -204,6 +205,8 @@ class HelpCommand(CLICommand):
 CLIArg = Tuple[CLICommand, Optional[str]]
 # If no sort is defined in the part, we use this default sort order
 DefaultSort = [Sort("/reported.kind"), Sort("/reported.name"), Sort("/reported.id")]
+# Default sort order for history searches
+HistorySort = [Sort("/changed_at"), Sort("/reported.kind"), Sort("/reported.name"), Sort("/reported.id")]
 
 
 class CLI:
@@ -309,6 +312,8 @@ class CLI:
             nonlocal parsed_options
             parsed, query_part = ExecuteSearchCommand.parse_known(query_arg)
             parsed_options = {**parsed_options, **parsed}
+            # empty string is interpreted as no filter
+            query_part = "all" if query_part.strip() == "" else query_part
             # section expansion is disabled here: it will happen on the final query after all parts have been combined
             return await self.dependencies.template_expander.parse_query(
                 "".join(query_part), None, omit_section_expansion=True, **ctx.env
@@ -324,6 +329,11 @@ class CLI:
             arg = command.arg if command.arg else ""
             if isinstance(part, SearchPart):
                 query = query.combine(await parse_query(arg))
+            elif isinstance(part, HistoryPart):
+                parsed_options["history"] = True
+                query = query.combine(await parse_query(arg))
+                if not query.current_part.sort and not query.aggregate:
+                    query = query.set_sort(*HistorySort)
             elif isinstance(part, SortPart):
                 if query.current_part.sort == DefaultSort:
                     query = query.set_sort(*sort_args_p.parse(arg))
@@ -406,7 +416,7 @@ class CLI:
         final_query = with_sort.on_section(ctx.env.get("section", PathRoot))
         options = ExecuteSearchCommand.argument_string(parsed_options)
         query_string = str(final_query)
-        execute_search = self.command("execute_search", options + query_string, ctx)
+        execute_search = self.command("execute_search", f"{options}'{query_string}'", ctx)
         return final_query, parsed_options, [execute_search, *additional_commands]
 
     async def evaluate_cli_command(
