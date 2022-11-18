@@ -429,14 +429,14 @@ class ArangoGraphDB(GraphDB):
             term = term.and_term(P.single("changed").lt(utc_str(until)))
         query = QueryModel(evolve(query.query, parts=[evolve(query.query.current_part, term=term)]), query.model)
         q_string, bind = arango_query.to_query(self, query, from_collection=self.node_history)
-        print(q_string)
+        trafo = (
+            None
+            if query.query.aggregate
+            else self.document_to_instance_fn(query.model, query.query, ["action", "created", "updated", "deleted"])
+        )
+        ttl = cast(Number, int(timeout.total_seconds())) if timeout else None
         return await self.db.aql_cursor(
-            query=q_string,
-            trafo=self.document_to_instance_fn(query.model, query.query, ["action", "created", "updated", "deleted"]),
-            count=with_count,
-            bind_vars=bind,
-            batch_size=10000,
-            ttl=cast(Number, int(timeout.total_seconds())) if timeout else None,
+            query=q_string, trafo=trafo, count=with_count, bind_vars=bind, batch_size=10000, ttl=ttl
         )
 
     async def search_graph_gen(

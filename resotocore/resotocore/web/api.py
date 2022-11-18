@@ -188,7 +188,8 @@ class Api:
                 web.post(prefix + "/graph/{graph_id}/search/list", self.query_list),
                 web.post(prefix + "/graph/{graph_id}/search/graph", self.query_graph_stream),
                 web.post(prefix + "/graph/{graph_id}/search/aggregate", self.query_aggregation),
-                web.post(prefix + "/graph/{graph_id}/search/history", self.query_history),
+                web.post(prefix + "/graph/{graph_id}/search/history/list", self.query_history),
+                web.post(prefix + "/graph/{graph_id}/search/history/aggregate", self.query_history),
                 # maintain the graph
                 web.patch(prefix + "/graph/{graph_id}/nodes", self.update_nodes),
                 web.post(prefix + "/graph/{graph_id}/merge", self.merge_graph),
