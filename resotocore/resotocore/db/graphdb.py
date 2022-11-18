@@ -116,8 +116,8 @@ class GraphDB(ABC):
         self,
         query: QueryModel,
         change: Optional[HistoryChange] = None,
-        start: Optional[datetime] = None,
-        until: Optional[datetime] = None,
+        before: Optional[datetime] = None,
+        after: Optional[datetime] = None,
         with_count: bool = False,
         timeout: Optional[timedelta] = None,
         **kwargs: Any,
@@ -408,8 +408,8 @@ class ArangoGraphDB(GraphDB):
         self,
         query: QueryModel,
         change: Optional[HistoryChange] = None,
-        start: Optional[datetime] = None,
-        until: Optional[datetime] = None,
+        before: Optional[datetime] = None,
+        after: Optional[datetime] = None,
         with_count: bool = False,
         timeout: Optional[timedelta] = None,
         **kwargs: Any,
@@ -422,17 +422,19 @@ class ArangoGraphDB(GraphDB):
         # adjust query
         term = query.query.current_part.term
         if change:
-            term = term.and_term(P.single("action").eq(change.value))
-        if start:
-            term = term.and_term(P.single("changed").gt(utc_str(start)))
-        if until:
-            term = term.and_term(P.single("changed").lt(utc_str(until)))
+            term = term.and_term(P.single("change").eq(change.value))
+        if after:
+            term = term.and_term(P.single("changed_at").gt(utc_str(after)))
+        if before:
+            term = term.and_term(P.single("changed_at").lt(utc_str(before)))
         query = QueryModel(evolve(query.query, parts=[evolve(query.query.current_part, term=term)]), query.model)
         q_string, bind = arango_query.to_query(self, query, from_collection=self.node_history)
         trafo = (
             None
             if query.query.aggregate
-            else self.document_to_instance_fn(query.model, query.query, ["action", "created", "updated", "deleted"])
+            else self.document_to_instance_fn(
+                query.model, query.query, ["change", "changed_at", "created", "updated", "deleted"]
+            )
         )
         ttl = cast(Number, int(timeout.total_seconds())) if timeout else None
         return await self.db.aql_cursor(
@@ -565,9 +567,9 @@ class ArangoGraphDB(GraphDB):
             for a in EdgeTypes.all
         ]
         history_updates = [
-            f'for e in {temp_name} filter e.action=="node_created" insert MERGE({{action: e.action, changed: e.data.created}}, UNSET(e.data, "_key", "flat", "hash")) in {self.node_history}',  # noqa: E501
-            f'for e in {temp_name} filter e.action=="node_updated" insert MERGE({{action: e.action, changed: e.data.updated}}, UNSET(e.data, "_key", "flat", "hash")) in {self.node_history}',  # noqa: E501
-            f'for e in {temp_name} filter e.action=="node_deleted" let node = Document(CONCAT("{self.vertex_name}/", e.data._key)) insert MERGE({{action: "node_deleted", deleted: e.data.deleted, changed: e.data.deleted}}, UNSET(node, "_key", "_id", "_rev", "flat", "hash")) in {self.node_history}',  # noqa: E501
+            f'for e in {temp_name} filter e.action=="node_created" insert MERGE({{change: e.action, changed_at: e.data.created}}, UNSET(e.data, "_key", "flat", "hash")) in {self.node_history}',  # noqa: E501
+            f'for e in {temp_name} filter e.action=="node_updated" insert MERGE({{change: e.action, changed_at: e.data.updated}}, UNSET(e.data, "_key", "flat", "hash")) in {self.node_history}',  # noqa: E501
+            f'for e in {temp_name} filter e.action=="node_deleted" let node = Document(CONCAT("{self.vertex_name}/", e.data._key)) insert MERGE({{change: "node_deleted", deleted: e.data.deleted, changed_at: e.data.deleted}}, UNSET(node, "_key", "_id", "_rev", "flat", "hash")) in {self.node_history}',  # noqa: E501
         ]
         updates = ";\n".join(
             map(
@@ -957,7 +959,7 @@ class ArangoGraphDB(GraphDB):
             node_history_indexes = {idx["name"]: idx for idx in node_history.indexes()}
             if "history_access" not in node_history_indexes:
                 node_history.add_persistent_index(
-                    ["action", "changed", "kinds[*]", "reported.id", "reported.name", "reported.ctime"],
+                    ["change", "changed_at", "kinds[*]", "reported.id", "reported.name", "reported.ctime"],
                     sparse=False,
                     name="history_access",
                 )
@@ -1251,15 +1253,15 @@ class EventGraphDB(GraphDB):
         self,
         query: QueryModel,
         change: Optional[HistoryChange] = None,
-        start: Optional[datetime] = None,
-        until: Optional[datetime] = None,
+        before: Optional[datetime] = None,
+        after: Optional[datetime] = None,
         with_count: bool = False,
         timeout: Optional[timedelta] = None,
         **kwargs: Any,
     ) -> AsyncCursorContext:
         counters, context = query.query.analytics()
         await self.event_sender.core_event(CoreEvent.HistoryQuery, context, **counters)
-        return await self.real.search_history(query, change, start, until, with_count, timeout, **kwargs)
+        return await self.real.search_history(query, change, before, after, with_count, timeout, **kwargs)
 
     async def search_graph_gen(
         self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None

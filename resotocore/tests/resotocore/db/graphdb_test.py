@@ -2,9 +2,9 @@ import asyncio
 import string
 from abc import ABC, abstractmethod
 from attrs import define
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from random import SystemRandom
-from typing import List, Optional
+from typing import List, Optional, Any
 
 import pytest
 from arango import ArangoClient
@@ -15,7 +15,7 @@ from networkx import MultiDiGraph
 from resotocore.analytics import AnalyticsEventSender, CoreEvent, InMemoryEventSender
 from resotocore.core_config import GraphUpdateConfig
 from resotocore.db.async_arangodb import AsyncArangoDB
-from resotocore.db.graphdb import ArangoGraphDB, GraphDB, EventGraphDB
+from resotocore.db.graphdb import ArangoGraphDB, GraphDB, EventGraphDB, HistoryChange
 
 from resotocore.db.model import QueryModel, GraphUpdate
 from resotocore.error import ConflictingChangeInProgress, NoSuchChangeError, InvalidBatchUpdate
@@ -258,6 +258,7 @@ async def graph_db(test_db: StandardDatabase) -> ArangoGraphDB:
 
 @pytest.fixture
 async def filled_graph_db(graph_db: ArangoGraphDB, foo_model: Model) -> ArangoGraphDB:
+    graph_db.db.collection(graph_db.node_history).truncate()
     if await graph_db.db.has_collection("model"):
         graph_db.db.collection("model").truncate()
     await graph_db.wipe()
@@ -384,6 +385,21 @@ async def test_query_not(filled_graph_db: ArangoGraphDB, foo_model: Model) -> No
     async with await filled_graph_db.search_list(QueryModel(blas.on_section("reported"), foo_model)) as gen:
         result = [from_js(x["reported"], Bla) async for x in gen]
         assert len(result) == 102
+
+
+@pytest.mark.asyncio
+async def test_query_history(filled_graph_db: ArangoGraphDB, foo_model: Model) -> None:
+    async def nodes(query: Query, **args: Any) -> List[Json]:
+        async with await filled_graph_db.search_history(QueryModel(query, foo_model), **args) as crsr:
+            return [x async for x in crsr]
+
+    now = utc()
+    five_min_ago = now - timedelta(minutes=5)
+    assert len(await nodes(Query.by("foo"))) == 11
+    assert len(await nodes(Query.by("foo"), after=five_min_ago)) == 11
+    assert len(await nodes(Query.by("foo"), before=five_min_ago)) == 0
+    assert len(await nodes(Query.by("foo"), after=five_min_ago, change=HistoryChange.node_created)) == 11
+    assert len(await nodes(Query.by("foo"), after=five_min_ago, change=HistoryChange.node_deleted)) == 0
 
 
 @pytest.mark.asyncio

@@ -87,6 +87,7 @@ from resotocore.cli.model import (
 from resotocore.cli.tip_of_the_day import SuggestionPolicy, SuggestionStrategy, get_suggestion_strategy
 from resotocore.config import ConfigEntity
 from resotocore.db.async_arangodb import AsyncCursor
+from resotocore.db.graphdb import HistoryChange
 from resotocore.db.model import QueryModel
 from resotocore.db.runningtaskdb import RunningTaskData
 from resotocore.dependencies import system_info
@@ -121,6 +122,7 @@ from resotocore.util import (
     rnd_str,
     set_value_in_path,
     restart_service,
+    parse_utc,
 )
 from resotocore.web.content_renderer import (
     respond_ndjson,
@@ -364,6 +366,67 @@ class SearchPart(SearchCLIPart):
         return [
             ArgInfo(expects_value=True, value_hint="search"),
             ArgInfo("--with-edges", help_text="include edges in result"),
+        ]
+
+
+class HistoryPart(SearchCLIPart):
+    """
+    ```shell
+    history [--before <timestamp>] [--after <timestamp>] [--change <change>] [search-statement]
+    ```
+
+    Return all changes of the graph based on the given criteria.
+
+    Whenever changes are given to Resoto, a dedicated change event is written as separate entity.
+    Following changes are supported:
+    - node_created: a node is added to the graph that has not been seen before.
+    - node_updated: a node is delivered and is different to the one in the graph.
+    - node_deleted: a node is no longer reported and gets deleted from the graph.
+
+    ## Options
+    - `--before` <timestamp>: only show changes before this timestamp
+    - `--after` <timestamp>: only show changes after this timestamp
+    - `--change` <change>: one of `node_created`, `node_deleted`, `node_updated`
+
+    ## Parameters
+    - `search-statement`: a search statement to filter the history
+
+    ## Examples
+    ```shell
+    # Show all nodes changed on 1.1.2020 between 03:00 and 06:00 (UTC)
+    > history --after 2022-01-01T03:00:00Z --before 2022-01-02T06:00:00Z
+    kind=kubernetes_config_map, id=73616434 name=leader, changed_at=2022-01-01T03:00:59Z, change=node_updated, cloud=k8s
+    kind=aws_vpc, id=vpc-1, name=resoto-eks, changed_at=2022-01-01T04:40:59Z, change=node_deleted, cloud=aws
+
+    # Show all nodes created on 1.1.2020 between 03:00 and 06:00 (UTC)
+    > history --change node_created --after 2022-01-01T03:00:00Z --before 2022-01-02T06:00:00Z
+    kind=aws_iam_role, id=AROA, name=some-role, changed_at=2022-01-01T05:40:59Z, change=node_created, cloud=aws
+
+    # Show all changes to kubernetes resources in the kube-system namespace
+    > history is(kubernetes_resource) and namespace=kube-system
+    kind=kubernetes_role, name=eks, namespace=kube-system, change=node_created, changed_at=2022-11-18T12:00:49Z
+    kind=kubernetes_config_map, name=cert, namespace=kube-system, change=node_updated, changed_at=2022-11-18T12:00:50Z
+    ```
+    """
+
+    @property
+    def name(self) -> str:
+        return "history"
+
+    def info(self) -> str:
+        return "Search the history of nodes."
+
+    def args_info(self) -> ArgsInfo:
+        return [
+            ArgInfo("--after", help_text="changes after this timestamp", expects_value=True, value_hint="timestamp"),
+            ArgInfo("--before", help_text="changes before this timestamp", expects_value=True, value_hint="timestamp"),
+            ArgInfo(
+                "--change",
+                help_text="type of change",
+                expects_value=True,
+                possible_values=[e.value for e in list(HistoryChange)],
+            ),
+            ArgInfo(expects_value=True, value_hint="search"),
         ]
 
 
@@ -1163,15 +1226,22 @@ class ExecuteSearchCommand(CLICommand, InternalPart):
         parser = NoExitArgumentParser()
         parser.add_argument("--with-edges", dest="with-edges", default=None, action="store_true")
         parser.add_argument("--explain", dest="explain", default=None, action="store_true")
-        parsed, rest = parser.parse_known_args(arg.split(maxsplit=2))
+        parser.add_argument("--history", dest="history", default=None, action="store_true")
+        parser.add_argument("--after", dest="after", default=None)
+        parser.add_argument("--before", dest="before", default=None)
+        parser.add_argument("--change", dest="change", default=None)
+        parsed, rest = parser.parse_known_args(list(args_parts_parser.parse(arg)))
         return {k: v for k, v in vars(parsed).items() if v is not None}, " ".join(rest)
 
     @staticmethod
     def argument_string(args: Dict[str, Any]) -> str:
         result = []
         for key, value in args.items():
-            if value is True:
-                result.append(f"--{key}")
+            if value is None or value is False:
+                continue
+            result.append(f"--{key}")
+            if value is not True:
+                result.append(f"'{value}'")  # put the value into single quotes to maintain the spaces
         return " ".join(result) + " " if result else ""
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLISource:
@@ -1184,6 +1254,7 @@ class ExecuteSearchCommand(CLICommand, InternalPart):
         parsed, rest = self.parse_known(arg)
         with_edges: bool = parsed.get("with-edges", False)
         explain: bool = parsed.get("explain", False)
+        history: bool = parsed.get("history", False)
 
         # all templates are expanded at this point, so we can call the parser directly.
         query = parse_query(rest, **ctx.env)
@@ -1204,15 +1275,17 @@ class ExecuteSearchCommand(CLICommand, InternalPart):
             query_model = await load_query_model()
             count = ctx.env.get("count", "true").lower() != "false"
             timeout = if_set(ctx.env.get("search_timeout"), duration)
-            context = (
-                await db.search_aggregation(query_model)
-                if query.aggregate
-                else (
-                    await db.search_graph_gen(query_model, with_count=count, timeout=timeout)
-                    if with_edges
-                    else await db.search_list(query_model, with_count=count, timeout=timeout)
-                )
-            )
+            if history:
+                before = if_set(parsed.get("before"), lambda x: parse_utc(strip_quotes(x)))  # type: ignore
+                after = if_set(parsed.get("after"), lambda x: parse_utc(strip_quotes(x)))  # type: ignore
+                change = if_set(parsed.get("change"), lambda x: HistoryChange[strip_quotes(x)])  # type: ignore
+                context = await db.search_history(query_model, change, before, after, timeout=timeout)
+            elif query.aggregate:
+                context = await db.search_aggregation(query_model)
+            elif with_edges:
+                context = await db.search_graph_gen(query_model, with_count=count, timeout=timeout)
+            else:
+                context = await db.search_list(query_model, with_count=count, timeout=timeout)
             cursor = context.cursor
 
             # since we can not use context boundaries here,
@@ -2221,15 +2294,27 @@ class ListCommand(CLICommand, OutputTransformer):
         (["reported", "id"], "id"),
         (["reported", "name"], "name"),
     ]
-    default_context_properties_to_show = [
+    default_live_properties_to_show = [
         (["reported", "age"], "age"),
         (["reported", "last_update"], "last_update"),
+    ]
+    default_context_properties_to_show = [
         (["ancestors", "cloud", "reported", "name"], "cloud"),
         (["ancestors", "account", "reported", "name"], "account"),
         (["ancestors", "region", "reported", "name"], "region"),
         (["ancestors", "zone", "reported", "name"], "zone"),
     ]
-    all_default_props = {".".join(path) for path, _ in default_properties_to_show + default_context_properties_to_show}
+    default_history_properties_to_show = [
+        (["change"], "change"),
+        (["changed_at"], "changed_at"),
+    ]
+    all_default_props = {
+        ".".join(path)
+        for path, _ in default_properties_to_show
+        + default_context_properties_to_show
+        + default_history_properties_to_show
+        + default_live_properties_to_show
+    }
     dot_re = re.compile("[.]")
 
     @property
@@ -2264,6 +2349,8 @@ class ListCommand(CLICommand, OutputTransformer):
             # with the object id, if edges are requested
             if ctx.query_options.get("with-edges") is True:
                 result.append((["id"], "node_id"))
+            if ctx.query_options.get("history") is True:
+                result.extend(self.default_history_properties_to_show)
             # add all default props
             result.extend(self.default_properties_to_show)
             # add all predicates the user has queried
@@ -2276,6 +2363,8 @@ class ListCommand(CLICommand, OutputTransformer):
                     if name not in self.all_default_props and name not in local_paths:
                         local_paths.add(name)
                         result.append((self.dot_re.split(name), name.rsplit(".", 1)[-1]))
+            if ctx.query_options.get("history") is not True:
+                result.extend(self.default_live_properties_to_show)
             # add all context properties
             result.extend(self.default_context_properties_to_show)
             return result
@@ -4431,6 +4520,7 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         FlattenCommand(d, "misc"),
         FormatCommand(d, "format"),
         HeadCommand(d, "misc"),
+        HistoryPart(d, "search", allowed_in_source_position=True),
         HttpCommand(d, "action"),
         JobsCommand(d, "action", allowed_in_source_position=True),
         JqCommand(d, "misc"),
