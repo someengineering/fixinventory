@@ -765,8 +765,8 @@ class Api:
         async with await graph_db.search_history(
             query=query_model,
             change=HistoryChange[change] if change else None,
-            before=parse_utc(after) if after else None,
-            after=parse_utc(before) if before else None,
+            before=parse_utc(before) if before else None,
+            after=parse_utc(after) if after else None,
         ) as gen:
             return await self.stream_response_from_gen(request, gen)
 
