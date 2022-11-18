@@ -1264,12 +1264,24 @@ class KubernetesPersistentVolumeStatus:
     reason: Optional[str] = field(default=None)
 
 
+@define(eq=False, slots=False)
+class KubernetesPersistentVolumeSpecAwsElasticBlockStore:
+    kind: ClassVar[str] = "kubernetes_persistent_volume_spec_aws_elastic_block_store"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "volume_id": S("volumeID"),
+        "fs_type": S("fsType"),
+    }
+    volume_id: Optional[str] = field(default=None)
+    fs_type: Optional[str] = field(default=None)
+
+
 @define
 class KubernetesPersistentVolumeSpec:
     kind: ClassVar[str] = "kubernetes_persistent_volume_spec"
     mapping: ClassVar[Dict[str, Bender]] = {
         "access_modes": S("accessModes", default=[]),
-        "aws_elastic_block_store": S("awsElasticBlockStore"),
+        "aws_elastic_block_store": S("awsElasticBlockStore")
+        >> Bend(KubernetesPersistentVolumeSpecAwsElasticBlockStore.mapping),
         "azure_disk": S("azureDisk"),
         "azure_file": S("azureFile"),
         "capacity": S("capacity"),
@@ -1300,7 +1312,7 @@ class KubernetesPersistentVolumeSpec:
         "vsphere_volume": S("vsphereVolume"),
     }
     access_modes: List[str] = field(factory=list)
-    aws_elastic_block_store: Optional[str] = field(default=None)
+    aws_elastic_block_store: Optional[KubernetesPersistentVolumeSpecAwsElasticBlockStore] = field(default=None)
     azure_disk: Optional[str] = field(default=None)
     azure_file: Optional[str] = field(default=None)
     capacity: Optional[str] = field(default=None)
