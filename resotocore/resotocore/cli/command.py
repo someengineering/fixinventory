@@ -393,19 +393,19 @@ class HistoryPart(SearchCLIPart):
 
     ## Examples
     ```shell
-    # Show all nodes changed on 1.1.2020 between 03:00 and 06:00 (UTC)
+    # Show all nodes changed on 1.1.2022 between 03:00 and 06:00 (UTC)
     > history --after 2022-01-01T03:00:00Z --before 2022-01-02T06:00:00Z
-    kind=kubernetes_config_map, id=73616434 name=leader, changed_at=2022-01-01T03:00:59Z, change=node_updated, cloud=k8s
-    kind=aws_vpc, id=vpc-1, name=resoto-eks, changed_at=2022-01-01T04:40:59Z, change=node_deleted, cloud=aws
+    change=node_updated, changed_at=2022-01-01T03:00:59Z, kind=kubernetes_config_map, id=73616434 name=leader, cloud=k8s
+    change=node_deleted, changed_at=2022-01-01T04:40:59Z, kind=aws_vpc, id=vpc-1, name=resoto-eks, cloud=aws
 
-    # Show all nodes created on 1.1.2020 between 03:00 and 06:00 (UTC)
+    # Show all nodes created on 1.1.2022 between 03:00 and 06:00 (UTC)
     > history --change node_created --after 2022-01-01T03:00:00Z --before 2022-01-02T06:00:00Z
-    kind=aws_iam_role, id=AROA, name=some-role, changed_at=2022-01-01T05:40:59Z, change=node_created, cloud=aws
+    change=node_created, changed_at=2022-01-01T05:40:59Z, kind=aws_iam_role, id=AROA, name=some-role, cloud=aws
 
     # Show all changes to kubernetes resources in the kube-system namespace
     > history is(kubernetes_resource) and namespace=kube-system
-    kind=kubernetes_role, name=eks, namespace=kube-system, change=node_created, changed_at=2022-11-18T12:00:49Z
-    kind=kubernetes_config_map, name=cert, namespace=kube-system, change=node_updated, changed_at=2022-11-18T12:00:50Z
+    change=node_created, changed_at=2022-11-18T12:00:49Z, kind=kubernetes_role, name=eks, namespace=kube-system
+    change=node_updated, changed_at=2022-11-18T12:00:50Z, kind=kubernetes_config_map, name=cert, namespace=kube-system
     ```
     """
 
