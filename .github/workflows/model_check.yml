@@ -38,9 +38,9 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ~/.cache/pip
-          key: $\{\{runner.os}}-pip-$\{\{hashFiles('setup.py')}}
+          key: ${{ runner.os }}-pip-${{ hashFiles('setup.py') }}
           restore-keys: |
-            $\{\{ runner.os }}-pip-
+            ${{ runner.os }}-pip-
 
       - name: Install Dependencies
         run: |
