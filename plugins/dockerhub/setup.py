@@ -11,7 +11,7 @@ def read(fname):
 
 setup(
     name="resoto-plugin-dockerhub",
-    version="3.0.0a0",
+    version="3.0.0a1",
     description="Resoto Docker Hub Collector Plugin",
     license="Apache 2.0",
     packages=find_packages(),
