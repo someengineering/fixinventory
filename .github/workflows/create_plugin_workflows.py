@@ -13,7 +13,7 @@ on:
     tags:
       - "*.*.*"
     branches:
-        - main
+      - main
   pull_request:
     paths:
       - 'resotolib/**'
