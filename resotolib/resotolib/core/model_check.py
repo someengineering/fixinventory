@@ -111,16 +111,19 @@ def check_overlap(*base: Type[BaseResource]) -> None:
     # List of all plugin classes that need to be imported.
     model_classes = {
         *dynamic_import("resoto_plugin_aws.collector.all_resources"),
-        *dynamic_import("resoto_plugin_gcp.resources.GCPResource"),
         *dynamic_import("resoto_plugin_digitalocean.resources.DigitalOceanResource"),
+        *dynamic_import("resoto_plugin_dockerhub.resources.DockerHubResource"),
+        *dynamic_import("resoto_plugin_example_collector.ExampleResource"),
+        *dynamic_import("resoto_plugin_gcp.resources.GCPResource"),
+        *dynamic_import("resoto_plugin_github.resources.GithubResource"),
         *dynamic_import("resoto_plugin_k8s.resources.KubernetesResource"),
         *dynamic_import("resoto_plugin_onelogin.OneLoginResource"),
-        *dynamic_import("resoto_plugin_example_collector.ExampleResource"),
-        *dynamic_import("resoto_plugin_github.resources.GithubResource"),
         *dynamic_import("resoto_plugin_onprem.resources.OnpremResource"),
+        *dynamic_import("resoto_plugin_posthog.resources.PosthogResource"),
+        *dynamic_import("resoto_plugin_random.resources.RandomResource"),
+        *dynamic_import("resoto_plugin_scarf.resources.ScarfResource"),
         *dynamic_import("resoto_plugin_slack.resources.SlackResource"),
         *dynamic_import("resoto_plugin_vsphere.resources.VSphereResource"),
-        *dynamic_import("resoto_plugin_onelogin.OneLoginResource"),
         *base,
     }
     # check overlap for all plugin classes

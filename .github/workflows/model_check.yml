@@ -49,12 +49,16 @@ jobs:
           pip install --upgrade --editable resotolib/
           pip install --upgrade --editable plugins/aws/
           pip install --upgrade --editable plugins/digitalocean/
+          pip install --upgrade --editable plugins/dockerhub/
           pip install --upgrade --editable plugins/example_collector/
           pip install --upgrade --editable plugins/gcp/
           pip install --upgrade --editable plugins/github/
           pip install --upgrade --editable plugins/k8s/
           pip install --upgrade --editable plugins/onelogin/
           pip install --upgrade --editable plugins/onprem/
+          pip install --upgrade --editable plugins/posthog/
+          pip install --upgrade --editable plugins/random/
+          pip install --upgrade --editable plugins/scarf/
           pip install --upgrade --editable plugins/slack/
           pip install --upgrade --editable plugins/vsphere/
           pip install pytest
