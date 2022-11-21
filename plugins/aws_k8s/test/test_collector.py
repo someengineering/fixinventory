@@ -27,6 +27,7 @@ from types import SimpleNamespace
 
 #     assert len(graph.deferred_edges) == 1
 
+
 class KubernetesNode(BaseResource):
     kind: ClassVar[str] = "kubernetes_node"
     node_spec = SimpleNamespace(provider_id="aws:///eu-central-1a/123")
@@ -37,7 +38,7 @@ class KubernetesNode(BaseResource):
 
 def test_post_collect() -> None:
 
-    plugin =  AWSK8sCollectorPlugin()
+    plugin = AWSK8sCollectorPlugin()
 
     node = KubernetesNode(id="123")
 
