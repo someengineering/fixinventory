@@ -14,7 +14,7 @@ def rgetattr(obj: Any, attr: str, *args: Any) -> Any:
     return functools.reduce(_getattr, [obj] + attr.split("."))
 
 
-def link_do_droplet_to_node(graph: Graph, resource: BaseResource) -> None:
+def link_node_to_do_droplet(graph: Graph, resource: BaseResource) -> None:
     if resource.kind == "kubernetes_node":
         if (pid := rgetattr(resource, "node_spec.provider_id", None)) and (pid.startswith("digitalocean://")):
             _, droplet_id = pid.split("digitalocean://")
@@ -24,7 +24,7 @@ def link_do_droplet_to_node(graph: Graph, resource: BaseResource) -> None:
             )
 
 
-def link_do_lb_to_service(graph: Graph, resource: BaseResource) -> None:
+def link_service_to_do_lb(graph: Graph, resource: BaseResource) -> None:
     if resource.kind == "kubernetes_service":
         if lb_id := resource.tags.get("kubernetes.digitalocean.com/load-balancer-id"):
             graph.add_deferred_edge(
@@ -33,7 +33,7 @@ def link_do_lb_to_service(graph: Graph, resource: BaseResource) -> None:
             )
 
 
-def link_do_volume_to_pv(graph: Graph, resource: BaseResource) -> None:
+def link_pv_to_do_volume(graph: Graph, resource: BaseResource) -> None:
     if resource.kind == "kubernetes_persistent_volume":
         if (
             (csi := rgetattr(resource, "persistent_volume_spec.csi", None))
@@ -53,6 +53,6 @@ class DigitalOceanK8sCollectorPlugin(BasePostCollectPlugin):
         log.info("plugin: collecting DigitalOcean to k8s edges")
         for node in graph.nodes:
             node = cast(BaseResource, node)
-            link_do_droplet_to_node(graph, node)
-            link_do_lb_to_service(graph, node)
-            link_do_volume_to_pv(graph, node)
+            link_node_to_do_droplet(graph, node)
+            link_service_to_do_lb(graph, node)
+            link_pv_to_do_volume(graph, node)
