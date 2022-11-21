@@ -7,7 +7,7 @@ on:
     tags:
       - "*.*.*"
     branches:
-        - main
+      - main
   pull_request:
     paths:
       - 'resotolib/**'
@@ -29,12 +29,12 @@ jobs:
           architecture: 'x64'
 
       - name: Restore dependency cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ~/.cache/pip
-          key: $\{\{runner.os}}-pip-$\{\{hashFiles('setup.py')}}
+          key: ${{runner.os}}-pip-${{hashFiles('./plugins/cleanup_expired/requirements.txt')}}
           restore-keys: |
-            $\{\{ runner.os }}-pip-
+            ${{runner.os}}-pip-
 
       - name: Install Dependencies
         run: |

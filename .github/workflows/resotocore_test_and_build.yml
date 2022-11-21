@@ -42,12 +42,12 @@ jobs:
           toolchain: stable
           override: true
       - name: Restore dependency cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           # This path is specific to Ubuntu
           path: ~/.cache/pip
           # Look to see if there is a cache hit for the corresponding requirements file
-          key: ${{runner.os}}-pip-${{hashFiles('requirements.txt')}}-${{hashFiles('requirements-dev.txt')}}-${{hashFiles('requirements-test.txt')}}
+          key: ${{runner.os}}-pip-${{hashFiles('./resotocore/requirements.txt')}}-${{hashFiles('./resotocore/requirements-dev.txt')}}-${{hashFiles('./resotocore/requirements-test.txt')}}
           restore-keys: |
             ${{ runner.os }}-pip-
             ${{ runner.os }}-
@@ -65,7 +65,7 @@ jobs:
       - name: Set up CPython for jupyter lite
         uses: actions/setup-python@v2
         with:
-          python-version: '3.10' 
+          python-version: '3.10'
           architecture: 'x64'
       - name: Build Jupyter lite static assets
         run: |

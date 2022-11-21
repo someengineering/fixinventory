@@ -13,7 +13,7 @@ on:
     tags:
       - "*.*.*"
     branches:
-        - main
+      - main
   pull_request:
     paths:
       - 'resotolib/**'
@@ -35,12 +35,12 @@ jobs:
           architecture: 'x64'
 
       - name: Restore dependency cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ~/.cache/pip
-          key: $\{\{runner.os}}-pip-$\{\{hashFiles('setup.py')}}
+          key: ${{runner.os}}-pip-${{hashFiles('@directory@/requirements.txt')}}
           restore-keys: |
-            $\{\{ runner.os }}-pip-
+            ${{runner.os}}-pip-
 
       - name: Install Dependencies
         run: |
@@ -87,7 +87,11 @@ plugins_path = os.path.abspath(os.path.dirname(os.path.abspath(__file__)) + "/..
 for plugin in os.listdir(plugins_path):
     if os.path.isdir(os.path.join(plugins_path, plugin)):
         with open(f"check_pr_plugin_{plugin}.yml", "w") as yml:
-            yml.write(install.replace("@name@", plugin).replace("@PKGNAME@", f"resoto_plugin_{plugin}".upper()))
+            yml.write(
+                install.replace("@directory@", f"./plugins/{plugin}")
+                .replace("@name@", plugin)
+                .replace("@PKGNAME@", f"resoto_plugin_{plugin}".upper())
+            )
             if "_aws_" in plugin:
                 yml.write(aws_plugin)
             yml.write(
