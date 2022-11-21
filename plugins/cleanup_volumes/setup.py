@@ -11,7 +11,7 @@ def read(fname):
 
 setup(
     name="resoto-plugin-cleanup-volumes",
-    version="3.0.0a1",
+    version="3.0.0a2",
     description="Volume Cleaner Plugin",
     license="Apache 2.0",
     packages=find_packages(),

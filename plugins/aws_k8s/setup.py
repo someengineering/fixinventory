@@ -11,7 +11,7 @@ def read(fname):
 
 setup(
     name="resoto-plugin-aws-k8s",
-    version="3.0.0a1",
+    version="3.0.0a2",
     description="Resoto AWS-K8s Collector Plugin",
     license="Apache 2.0",
     packages=find_packages(),

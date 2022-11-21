@@ -11,7 +11,7 @@ def read(fname):
 
 setup(
     name="resoto-plugin-protector",
-    version="3.0.0a1",
+    version="3.0.0a2",
     description="Resoto Protector Plugin",
     license="Apache 2.0",
     packages=find_packages(),
