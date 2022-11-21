@@ -14,7 +14,7 @@ def rgetattr(obj: Any, attr: str, *args: Any) -> Any:
     return functools.reduce(_getattr, [obj] + attr.split("."))
 
 
-def link_k8s_node_to_aws_nodegroup(graph: Graph, resource: BaseResource) -> None:
+def link_k8s_node_to_aws_nodegroup_or_ec2_instance(graph: Graph, resource: BaseResource) -> None:
     if resource.kind == "kubernetes_node":
         if (labels := rgetattr(resource, "labels", {})) and (nodegroup := labels.get("eks.amazonaws.com/nodegroup")):
             graph.add_deferred_edge(
@@ -66,10 +66,9 @@ class AWSK8sCollectorPlugin(BasePostCollectPlugin):
         log.info("plugin: collecting AWS to k8s edges")
         for node in graph.nodes:
             if isinstance(node, BaseResource):
-                link_k8s_node_to_aws_nodegroup(graph, node)
+                link_k8s_node_to_aws_nodegroup_or_ec2_instance(graph, node)
                 link_k8s_cluster_to_eks_cluster(graph, node)
                 link_pv_to_ebs_volume(graph, node)
                 link_service_to_elb(graph, node)
-                link_node_to_ec2_instance(graph, node)
             else:
                 log.warn(f"Node {node} is not a BaseResource")
