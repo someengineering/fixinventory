@@ -26,12 +26,12 @@ jobs:
           architecture: 'x64'
 
       - name: Restore dependency cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('./resotoeventlog/setup.py') }}
+          key: ${{runner.os}}-pip-${{hashFiles('./resotoeventlog/requirements.txt')}}-${{hashFiles('./resotoeventlog/requirements-dev.txt')}}-${{hashFiles('./resotoeventlog/requirements-test.txt')}}
           restore-keys: |
-            ${{ runner.os }}-pip-
+            ${{runner.os}}-pip-
 
       - name: Install Dependencies
         run: |
