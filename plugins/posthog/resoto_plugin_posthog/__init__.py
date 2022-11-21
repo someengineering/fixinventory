@@ -1,13 +1,7 @@
-import requests
-from resotolib.logger import log
 from resotolib.baseplugin import BaseCollectorPlugin
 from resotolib.config import Config
+from resotolib.logger import log
 from .config import PosthogConfig
-from typing import Optional
-from .resources import (
-    PosthogProject,
-    PosthogEvent,
-)
 from .posthog import PosthogAPI
 
 

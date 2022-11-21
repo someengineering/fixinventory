@@ -2,10 +2,7 @@ from datetime import datetime
 from attrs import define
 from typing import Optional, ClassVar, List, Dict
 from resotolib.graph import Graph
-from resotolib.baseresources import (
-    BaseAccount,
-    BaseResource,
-)
+from resotolib.baseresources import BaseAccount, BaseResource
 
 
 @define(eq=False, slots=False)
@@ -45,7 +42,7 @@ class PosthogProject(PosthogResource, BaseAccount):
     recording_domains: Optional[List[str]] = None
 
     @staticmethod
-    def new(data: Dict) -> BaseResource:
+    def new(data: Dict) -> "PosthogProject":
         return PosthogProject(
             id=data.get("uuid"),
             project_id=data.get("id"),
@@ -86,8 +83,6 @@ class PosthogEvent(PosthogResource, BaseResource):
     last_seen_at: Optional[str] = None
     verified: Optional[bool] = None
     verified_at: Optional[str] = None
-    is_action: Optional[bool] = None
-    action_id: Optional[int] = None
     is_calculating: Optional[bool] = None
     last_calculated_at: Optional[str] = None
     post_to_slack: Optional[bool] = None

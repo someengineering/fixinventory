@@ -1,8 +1,8 @@
-from resotolib.logger import log
-from .resources import PosthogProject, PosthogEvent
 from typing import Optional, List
+
 import requests
-import datetime
+
+from .resources import PosthogProject, PosthogEvent
 
 
 class PosthogAPI:
@@ -26,7 +26,7 @@ class PosthogAPI:
     def events(self, project_id: int) -> List[PosthogEvent]:
         """Return all event definitions for a specific posthog project"""
         next = f"{self.projects_api}/{project_id}/event_definitions"
-        events = []
+        events: List[PosthogEvent] = []
 
         while next is not None:
             r = self._get(next)
