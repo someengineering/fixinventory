@@ -93,3 +93,12 @@ def test_escape_property_path(foo_model: Model, graph_db: GraphDB) -> None:
     query = to_query(graph_db, QueryModel(parse_query(raw), foo_model))[0]
     # aql keywords are escaped with backslashes
     assert "m0.metadata.`replace`.`with`.`filter`.`sort`.bla" in query
+
+
+def test_with_query_with_limit(foo_model: Model, graph_db: GraphDB) -> None:
+    query = "is(foo) with(empty, -->) limit 2"
+    query_str, _ = to_query(graph_db, QueryModel(parse_query(query), foo_model))
+    # make sure, there is no limit in the filter statement
+    assert "LET filter0 = (FOR m0 in ns FILTER @b0 IN m0.kinds  RETURN m0)" in query_str
+    # make sure the limit is applied to the with statement
+    assert "FILTER counter1==1  LIMIT 0, 2 RETURN l0_l0_res" in query_str

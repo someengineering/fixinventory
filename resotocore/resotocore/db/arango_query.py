@@ -340,7 +340,7 @@ def query_string(
                 for_stmt = f"LET {nested_distinct} = ({for_stmt} RETURN DISTINCT {crsr})"
                 crsr = next_crs()
                 sort_by = sort(crsr, p.sort) if p.sort else " "
-                for_stmt = f"{for_stmt} FOR {crsr} in {nested_distinct}{sort_by}{limited} "
+                for_stmt = f"{for_stmt} FOR {crsr} in {nested_distinct}{sort_by}{limited}"
             else:
                 sort_by = sort(crsr, p.sort) if p.sort else " "
                 for_stmt = f"{for_stmt}{sort_by}{limited}"
@@ -350,7 +350,7 @@ def query_string(
             query_part += f"LET {filtered_out} = {reverse}({for_stmt}{return_stmt})"
             return filtered_out
 
-        def with_clause(in_crsr: str, clause: WithClause) -> str:
+        def with_clause(in_crsr: str, clause: WithClause, limit: Optional[Limit]) -> str:
             nonlocal query_part
             # this is the general structure of the with_clause that is created
             #
@@ -416,10 +416,12 @@ def query_string(
 
             out = next_crs()
 
+            limited = f" LIMIT {limit.offset}, {limit.length} " if limit else " "
             query_part += (
                 f"LET {out} =( FOR {l0crsr} in {in_crsr} "
                 + traversal_filter(clause, l0crsr, 1)
                 + collect_filter(clause, 1)
+                + limited
                 + "RETURN l0_l0_res) "
             )
             return out
@@ -473,6 +475,9 @@ def query_string(
                 query_part += f"LET {nav_crsr} = UNION_DISTINCT({all_walks_combined})"
                 return nav_crsr
 
+        # apply the limit in the filter statement only, when no with clause is present
+        # otherwise the limit is applied in the with clause
+        filter_limit = p.limit if p.with_clause is None else None
         if isinstance(p.term, MergeTerm):
             # do not allow a limit in the prefilter
             filter_cursor = filter_statement(in_cursor, p.term.pre_filter, None)
@@ -480,10 +485,10 @@ def query_string(
             query_part += merge_part
             post = p.term.post_filter if p.term.post_filter else AllTerm()
             # always do the post filter in case of sort or limit
-            cursor = filter_statement(cursor, post, p.limit)
+            cursor = filter_statement(cursor, post, filter_limit)
         else:
-            cursor = filter_statement(in_cursor, p.term, p.limit)
-        cursor = with_clause(cursor, p.with_clause) if p.with_clause else cursor
+            cursor = filter_statement(in_cursor, p.term, filter_limit)
+        cursor = with_clause(cursor, p.with_clause, p.limit) if p.with_clause else cursor
         cursor = navigation(cursor, p.navigation) if p.navigation else cursor
         return p, cursor, filtered_out, query_part
 
