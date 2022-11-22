@@ -13,6 +13,6 @@ Pint==0.20.1
 parsy==2.0
 tzlocal==4.2
 tzdata==2022.6
-resoto-cattrs-snapshot-56eda37==22.2.0.dev0
+cattrs==22.2.0
 treelib==1.6.1
 setuptools==65.5.1
