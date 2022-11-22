@@ -28,7 +28,7 @@ from resotolib.core.custom_command import execute_command_on_resource
 from resotolib.graph import Graph
 from resotolib.logger import log, setup_logger
 from resotolib.types import JsonElement, Json
-from resotolib.utils import log_runtime, NoExitArgumentParser, chunks
+from resotolib.utils import log_runtime, NoExitArgumentParser
 from .collector import AwsAccountCollector
 from .configuration import AwsConfig
 from .resource.base import AwsAccount, AwsResource
@@ -175,6 +175,34 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
                 # map and structure types are currently not supported
                 raise ValueError(f"Cannot convert {o} to {shape}")
 
+        def coerce_args(fn_args: List[str], om: OperationModel) -> Dict[str, Any]:
+            members: Dict[str, Shape] = om.input_shape.members if isinstance(om.input_shape, StructureShape) else {}
+            param_name: Optional[str] = None
+            param_shape: Optional[Shape] = None
+            arg_val: Dict[str, Any] = {}
+            for arg in fn_args:
+                if arg.startswith("--"):
+                    param_name = pascalcase(arg.removeprefix("--"))
+                    param_shape = members.get(param_name)
+                    bool_value = True
+                    if param_shape is None and arg.startswith("--no-"):
+                        param_name = param_name[2:]
+                        param_shape = members.get(param_name)
+                        bool_value = False
+                    if param_shape is None:
+                        raise ValueError(f"AWS: Unknown parameter {arg}")
+                    if param_shape.name == "Boolean" or param_shape.type_name == "Boolean":
+                        arg_val[param_name] = bool_value
+                        param_shape = None
+                        param_name = None
+                elif param_name is not None:
+                    arg_val[param_name] = adjust_shape(arg, param_shape)
+                    param_name = None
+                    param_shape = None
+                else:
+                    raise ValueError(f"AWS: Unexpected argument {arg}")
+            return arg_val
+
         def create_client() -> AwsClient:
             role = p.role or cfg.role
             region = p.region or (cfg.region[0] if cfg.region else None)
@@ -189,11 +217,7 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
         service_model = client.service_model(p.service)
         op: OperationModel = service_model.operation_model(pascalcase(p.operation))
         output_shape = op.output_shape.type_name
-        members: Dict[str, Shape] = op.input_shape.members if isinstance(op.input_shape, StructureShape) else {}
-        func_args = {}
-        for arg, arg_value in chunks(remaining, 2):
-            name = pascalcase(arg.removeprefix("--"))
-            func_args[name] = adjust_shape(arg_value, members.get(name))
+        func_args = coerce_args(remaining, op)
 
         result: List[Json] = client.call_single(p.service, p.operation, None, **func_args)  # type: ignore
         # Remove the "ResponseMetadata" from the result

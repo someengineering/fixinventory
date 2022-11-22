@@ -132,7 +132,7 @@ class BaseResource(ABC):
 
     id: str
     tags: Dict[str, Optional[str]] = Factory(dict)
-    name: str = None
+    name: Optional[str] = None
     _cloud: "Optional[BaseCloud]" = field(default=None, repr=False)
     _account: "Optional[BaseAccount]" = field(default=None, repr=False)
     _region: "Optional[BaseRegion]" = field(default=None, repr=False)
@@ -171,14 +171,6 @@ class BaseResource(ABC):
             self._atime = None
         if not hasattr(self, "_mtime"):
             self._mtime = None
-
-    def __repr__(self) -> str:
-        return (
-            f"{self.__class__.__name__}('{self.id}', name='{self.name}',"
-            f" region='{self.region().name}', zone='{self.zone().name}',"
-            f" account='{self.account().dname}', kind='{self.kind}',"
-            f" ctime={self.ctime!r}, chksum={self.chksum})"
-        )
 
     def _keys(self) -> tuple:
         """Return a tuple of all keys that make this resource unique
