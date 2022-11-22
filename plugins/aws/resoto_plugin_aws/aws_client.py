@@ -103,11 +103,14 @@ class AwsClient:
                 if result_name is None:
                     # the whole object is appended
                     result.append(next_page)
-                elif isinstance(list_result := next_page.get(result_name, []), list):
-                    # extend the list with the list result under given key
-                    result.extend(list_result)
                 else:
-                    raise AttributeError(f"Expected list result under key '{result_name}'")
+                    child = next_page.get(result_name)
+                    if isinstance(child, list):
+                        result.extend(child)
+                    elif child is not None:
+                        result.append(child)
+                    else:
+                        raise AttributeError(f"Expected result under key '{result_name}'")
             log.debug(f"[Aws] called service={aws_service} action={action}{arg_info}: {len(result)} results.")
             return result
         else:
