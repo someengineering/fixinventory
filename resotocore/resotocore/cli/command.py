@@ -3008,7 +3008,7 @@ class ExecuteTaskCommand(SendWorkerTaskCommand):
 
             return update_single
 
-        formatter, variables = ctx.formatter_with_variables(args)
+        formatter, variables = ctx.formatter_with_variables(args or "")
         fn = call_function(lambda item: {"args": args_parts_unquoted_parser.parse(formatter(item)), "node": item})
 
         def setup_stream(in_stream: Stream) -> Stream:
