@@ -31,7 +31,7 @@ from resotolib.types import JsonElement, Json
 from resotolib.utils import log_runtime, NoExitArgumentParser
 from .collector import AwsAccountCollector
 from .configuration import AwsConfig
-from .resource.base import AwsAccount, AwsResource
+from .resource.base import AwsAccount, AwsResource, get_client
 from .utils import aws_session
 
 logging.getLogger("boto").setLevel(logging.CRITICAL)
@@ -374,12 +374,6 @@ def authenticated(account: AwsAccount, core_feedback: CoreFeedback) -> bool:
             raise
         return False
     return True
-
-
-def get_client(config: Config, resource: BaseResource) -> AwsClient:
-    account = resource.account()
-    assert isinstance(account, AwsAccount)
-    return AwsClient(config.aws, account.id, role=account.role, profile=account.profile, region=resource.region().id)
 
 
 def current_account_id(profile: Optional[str] = None) -> str:

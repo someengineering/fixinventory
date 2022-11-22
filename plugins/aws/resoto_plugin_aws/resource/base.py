@@ -26,6 +26,7 @@ from resotolib.baseresources import (
     BaseVolumeType,
     ModelReference,
 )
+from resotolib.config import Config, current_config
 from resotolib.core.actions import CoreFeedback
 from resotolib.graph import Graph
 from resotolib.json import to_json as to_js, from_json as from_js
@@ -33,6 +34,12 @@ from resotolib.json_bender import Bender, bend
 from resotolib.types import Json
 
 log = logging.getLogger("resoto.plugins.aws")
+
+
+def get_client(config: Config, resource: BaseResource) -> AwsClient:
+    account = resource.account()
+    assert isinstance(account, AwsAccount)
+    return AwsClient(config.aws, account.id, role=account.role, profile=account.profile, region=resource.region().id)
 
 
 @define
@@ -80,15 +87,15 @@ class AwsResource(BaseResource, ABC):
 
     # legacy interface
     def update_tag(self, key: str, value: str) -> bool:
-        return False
+        return self.update_resource_tag(get_client(current_config(), self), key, value)
 
     # legacy interface
     def delete_tag(self, key: str) -> bool:
-        return False
+        return self.delete_resource_tag(get_client(current_config(), self), key)
 
     # legacy interface
     def delete(self, graph: Graph) -> bool:
-        return False
+        return self.delete_resource(get_client(current_config(), self))
 
     def to_json(self) -> Json:
         return to_js(
