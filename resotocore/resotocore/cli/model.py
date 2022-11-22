@@ -104,7 +104,7 @@ class CLIContext:
 
         def format_variable(name: str) -> str:
             assert "__" not in name, "No dunder attributes allowed"
-            if name == "." or name == "/":
+            if name in (".", "/"):
                 in_section = self_name
             else:
                 in_section = self.variable_in_section(name)
