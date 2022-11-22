@@ -22,7 +22,7 @@ setup_requirements = [
 
 setup(
     name="resotoeventlog",
-    version="3.0.0a2",
+    version="3.0.0a3",
     description="Event log aggregator for resoto.",
     python_requires=">=3.5",
     classifiers=["Programming Language :: Python :: 3"],
