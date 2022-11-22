@@ -215,7 +215,7 @@ class AwsAccountCollector:
         self.account.global_endpoint_token_version = int(sm.get("GlobalEndpointTokenVersion", 0))
         self.account.server_certificates = int(sm.get("ServerCertificates", 0))
 
-        # client returns None when there is no Custom PasswordPolicy defined (only AWS Default). This is intended behaviour.
+        # client returns None when there is no Custom PasswordPolicy defined (only AWS Default).
         app = self.client.get("iam", "get-account-password-policy", "PasswordPolicy", expected_errors=["NoSuchEntity"])
         if app:
             self.account.minimum_password_length = int(app.get("MinimumPasswordLength", 0))
