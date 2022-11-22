@@ -460,7 +460,7 @@ class CLI:
                 # only parse properties, if there are any declared
                 if alias.parameters:
                     props.update(key_values_parser.parse(alias_cmd.args or ""))
-                undefined = [k for k, v in props.items() if v is None]
+                undefined = [k for k, v in props.items() if k != "args" and v is None]
                 if undefined:
                     raise AttributeError(f"Alias {alias_cmd.cmd} missing attributes: {', '.join(undefined)}")
                 rendered = alias.render(props)

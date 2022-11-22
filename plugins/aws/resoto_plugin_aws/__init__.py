@@ -1,11 +1,10 @@
 import logging
 import multiprocessing
 from concurrent import futures
-from contextlib import suppress
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Any, Dict
 
 import botocore.exceptions
-from botocore.model import OperationModel
+from botocore.model import OperationModel, Shape, StringShape, ListShape, StructureShape
 from jsons import pascalcase
 from prometheus_client import Summary, Counter
 
@@ -165,8 +164,16 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
         parser.add_argument("service")
         parser.add_argument("operation")
         p, remaining = parser.parse_known_args(args)
-        func_args = {pascalcase(k.removeprefix("--")): v for k, v in chunks(remaining, 2)}
         cfg = config.aws
+
+        def adjust_shape(o: str, shape: Optional[Shape]) -> Any:
+            if shape is None or isinstance(shape, StringShape):
+                return o
+            elif isinstance(shape, ListShape):
+                return o.split(",")
+            else:
+                # map and structure types are currently not supported
+                raise ValueError(f"Cannot convert {o} to {shape}")
 
         def create_client() -> AwsClient:
             role = p.role or cfg.role
@@ -179,11 +186,14 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
         client = get_client(current_config(), resource) if resource else create_client()
 
         # try to get the output shape of the operation
-        output_shape: Optional[str] = None
-        with suppress(Exception):
-            service_model = client.service_model(p.service)
-            operation: OperationModel = service_model.operation_model(pascalcase(p.operation))
-            output_shape = operation.output_shape.type_name
+        service_model = client.service_model(p.service)
+        op: OperationModel = service_model.operation_model(pascalcase(p.operation))
+        output_shape = op.output_shape.type_name
+        members: Dict[str, Shape] = op.input_shape.members if isinstance(op.input_shape, StructureShape) else {}
+        func_args = {}
+        for arg, arg_value in chunks(remaining, 2):
+            name = pascalcase(arg.removeprefix("--"))
+            func_args[name] = adjust_shape(arg_value, members.get(name))
 
         result: List[Json] = client.call_single(p.service, p.operation, None, **func_args)  # type: ignore
         # Remove the "ResponseMetadata" from the result
