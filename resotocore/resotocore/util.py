@@ -376,11 +376,16 @@ class AccessJson(Dict[Any, Any]):
     """
 
     def __init__(
-        self, mapping: Mapping[Any, Any], not_existent: Any = None, simple_formatter: Callable[[Any], Any] = identity
+        self,
+        mapping: Mapping[Any, Any],
+        not_existent: Any = None,
+        simple_formatter: Callable[[Any], Any] = identity,
+        self_name: Optional[str] = None,  # the whole object is returned if this property name is requested.
     ) -> None:
         super().__init__(mapping)
         self.__not_existent = AccessNone(not_existent)
         self.__simple_formatter = simple_formatter
+        self.__self_name = self_name
 
     def __getitem__(self, item: Any) -> Any:
         if item in self:
@@ -390,6 +395,8 @@ class AccessJson(Dict[Any, Any]):
                 if iv is not None
                 else self.__not_existent
             )
+        elif self.__self_name is not None and item == self.__self_name:
+            return self
         else:
             return self.__not_existent
 
@@ -404,15 +411,22 @@ class AccessJson(Dict[Any, Any]):
         return False
 
     @staticmethod
-    def wrap(obj: Any, not_existent: Any = None, simple_formatter: Callable[[Any], Any] = identity) -> Any:
+    def wrap(
+        obj: Any,
+        not_existent: Any = None,
+        simple_formatter: Callable[[Any], Any] = identity,
+        self_name: Optional[str] = None,
+    ) -> Any:
         if isinstance(obj, (str, int, float, AccessJson)):
             return simple_formatter(obj)
         # dict like data structure -> wrap whole element
         elif isinstance(obj, Mapping):
-            return AccessJson(obj, not_existent, simple_formatter)
+            return AccessJson(obj, not_existent, simple_formatter, self_name)
         # list like data structure -> wrap all elements
         elif isinstance(obj, Sequence):
-            return AccessJsonList((AccessJson.wrap(item, not_existent, simple_formatter) for item in obj), not_existent)
+            return AccessJsonList(
+                (AccessJson.wrap(item, not_existent, simple_formatter, self_name) for item in obj), not_existent
+            )
         # simply return the object
         else:
             return obj
