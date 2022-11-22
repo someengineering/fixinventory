@@ -215,9 +215,9 @@ class AwsAccountCollector:
         self.account.global_endpoint_token_version = int(sm.get("GlobalEndpointTokenVersion", 0))
         self.account.server_certificates = int(sm.get("ServerCertificates", 0))
 
-        # boto will fail, when there is no Custom PasswordPolicy defined (only AWS Default). This is intended behaviour.
-        try:
-            app = self.client.get("iam", "get-account-password-policy", "PasswordPolicy") or {}
+        # client returns None when there is no Custom PasswordPolicy defined (only AWS Default). This is intended behaviour.
+        app = self.client.get("iam", "get-account-password-policy", "PasswordPolicy", expected_errors=["NoSuchEntity"])
+        if app:
             self.account.minimum_password_length = int(app.get("MinimumPasswordLength", 0))
             self.account.require_symbols = bool(app.get("RequireSymbols", None))
             self.account.require_numbers = bool(app.get("RequireNumbers", None))
@@ -228,5 +228,3 @@ class AwsAccountCollector:
             self.account.max_password_age = int(app.get("MaxPasswordAge", 0))
             self.account.password_reuse_prevention = int(app.get("PasswordReusePrevention", 0))
             self.account.hard_expiry = bool(app.get("HardExpiry", None))
-        except Exception:
-            self.core_feedback.info(f"The Password Policy for account {self.account.dname} cannot be found.")
