@@ -132,7 +132,7 @@ class BaseResource(ABC):
 
     id: str
     tags: Dict[str, Optional[str]] = Factory(dict)
-    name: Optional[str] = None
+    name: Optional[str] = field(default=None)
     _cloud: "Optional[BaseCloud]" = field(default=None, repr=False)
     _account: "Optional[BaseAccount]" = field(default=None, repr=False)
     _region: "Optional[BaseRegion]" = field(default=None, repr=False)
@@ -193,13 +193,9 @@ class BaseResource(ABC):
             self.name,
         )
 
-    #    def __hash__(self):
-    #        return hash(self._keys())
-
-    #    def __eq__(self, other):
-    #        if isinstance(other, type(self)):
-    #            return self._keys() == other._keys()
-    #        return NotImplemented
+    @property
+    def safe_name(self) -> str:
+        return self.name or self.id
 
     @property
     def dname(self) -> str:

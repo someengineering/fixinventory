@@ -115,13 +115,13 @@ class AwsEcsCapacityProvider(EcsTaggable, AwsResource):
     def pre_delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         for predecessor in self.predecessors(graph=graph, edge_type=EdgeType.default):
             if isinstance(predecessor, AwsEcsService):
-                predecessor.purge_capacity_provider(client=client, capacity_provider_name=self.name)
+                predecessor.purge_capacity_provider(client=client, capacity_provider_name=self.safe_name)
             if isinstance(predecessor, AwsEcsCluster):
-                predecessor.disassociate_capacity_provider(client=client, capacity_provider_name=self.name)
+                predecessor.disassociate_capacity_provider(client=client, capacity_provider_name=self.safe_name)
         return True
 
     def delete_resource(self, client: AwsClient) -> bool:
-        client.call("ecs", "delete-capacity-provider", None, capacityProvider=self.name)
+        client.call("ecs", "delete-capacity-provider", None, capacityProvider=self.safe_name)
         return True
 
 

@@ -182,17 +182,19 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
             arg_val: Dict[str, Any] = {}
             for arg in fn_args:
                 if arg.startswith("--"):
-                    param_name = pascalcase(arg.removeprefix("--"))
-                    param_shape = members.get(param_name)
+                    name = pascalcase(arg.removeprefix("--"))
+                    param_name = name
+                    param_shape = members.get(name)
                     bool_value = True
                     if param_shape is None and arg.startswith("--no-"):
-                        param_name = param_name[2:]
-                        param_shape = members.get(param_name)
+                        name = name[2:]
+                        param_name = name
+                        param_shape = members.get(name)
                         bool_value = False
                     if param_shape is None:
                         raise ValueError(f"AWS: Unknown parameter {arg}")
                     if param_shape.name == "Boolean" or param_shape.type_name == "Boolean":
-                        arg_val[param_name] = bool_value
+                        arg_val[name] = bool_value
                         param_shape = None
                         param_name = None
                 elif param_name is not None:

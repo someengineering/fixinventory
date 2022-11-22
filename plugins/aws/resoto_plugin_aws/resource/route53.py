@@ -222,7 +222,7 @@ class AwsRoute53ResourceRecordSet(AwsResource, BaseDNSRecordSet):
             self.zone().id,
             self.dns_zone().id,
             self.id,
-            self.name,
+            self.safe_name,
             self.record_type,
             self.record_set_identifier,
         )

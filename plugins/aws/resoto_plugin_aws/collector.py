@@ -115,12 +115,12 @@ class AwsAccountCollector:
             # The shared executor is used to parallelize the collection of resources "as fast as possible"
             # It should only be used in scenarios, where it is safe to do so.
             # This executor is shared between all regions.
-            shared_queue = ExecutorQueue(executor, self.account.name)
+            shared_queue = ExecutorQueue(executor, self.account.safe_name)
             shared_queue.submit_work(self.update_account)
             global_builder = GraphBuilder(
                 self.graph, self.cloud, self.account, self.global_region, self.client, shared_queue, self.core_feedback
             )
-            global_builder.core_feedback.progress_done(self.global_region.name, 0, 1)
+            global_builder.core_feedback.progress_done(self.global_region.safe_name, 0, 1)
             global_builder.add_node(self.global_region)
 
             log.info(f"[Aws:{self.account.id}] Collect global resources.")
@@ -130,7 +130,7 @@ class AwsAccountCollector:
                 if self.config.should_collect(resource.kind):
                     resource.collect_resources(global_builder)
             shared_queue.wait_for_submitted_work()
-            global_builder.core_feedback.progress_done(self.global_region.name, 1, 1)
+            global_builder.core_feedback.progress_done(self.global_region.safe_name, 1, 1)
 
             log.info(f"[Aws:{self.account.id}] Collect regional resources.")
 
@@ -169,7 +169,7 @@ class AwsAccountCollector:
         def collect_resource(resource: Type[AwsResource], rb: GraphBuilder) -> None:
             try:
                 resource.collect_resources(rb)
-                log.info(f"[Aws:{self.account.id}:{region.name}] finished collecting: {resource.kind}")
+                log.info(f"[Aws:{self.account.id}:{region.safe_name}] finished collecting: {resource.kind}")
             except ClientError as e:
                 code = e.response["Error"]["Code"]
                 if code == "UnauthorizedOperation":
@@ -186,15 +186,15 @@ class AwsAccountCollector:
             with ThreadPoolExecutor(
                 thread_name_prefix=regional_thread_name, max_workers=self.config.region_resources_pool_size
             ) as executor:
-                regional_builder.core_feedback.progress_done(region.name, 0, 1)
+                regional_builder.core_feedback.progress_done(region.safe_name, 0, 1)
                 # In case an exception is thrown for any resource, we should give up as quick as possible.
-                queue = ExecutorQueue(executor, region.name, fail_on_first_exception=True)
+                queue = ExecutorQueue(executor, region.safe_name, fail_on_first_exception=True)
                 regional_builder.add_node(region)
                 for res in regional_resources:
                     if self.config.should_collect(res.kind):
                         queue.submit_work(collect_resource, res, regional_builder)
                 queue.wait_for_submitted_work()
-                regional_builder.core_feedback.progress_done(region.name, 1, 1)
+                regional_builder.core_feedback.progress_done(region.safe_name, 1, 1)
         except Exception as e:
             msg = f"Error collecting resources in account {self.account.id} region {region.id}: {e} - skipping region"
             self.core_feedback.error(msg, log)
