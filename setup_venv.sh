@@ -10,7 +10,7 @@ set -euo pipefail
 # Alpine packages:
 #   curl bash python3 python3-dev git make gcc g++ linux-headers libffi-dev
 
-declare -a supported_versions=(python3.10 python3.9 python3.8 python3.7)
+declare -a supported_versions=(python3.11 python3.10 python3.9)
 declare -a debian_packages=(curl bash python3-minimal python3-venv python3-dev git make gcc g++)
 declare -a centos_packages=(curl bash python39 python39-devel git make gcc gcc-c++)
 declare -a fedora_packages=(curl bash python3 python3-devel git make gcc gcc-c++ findutils)
