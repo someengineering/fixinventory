@@ -29,7 +29,7 @@ class AwsS3Bucket(AwsResource, BaseBucket):
 
         for js in json:
             bucket = cls.from_api(js)
-            bucket.set_arn(builder=builder, region="", account="", resource=bucket.name)
+            bucket.set_arn(builder=builder, region="", account="", resource=bucket.safe_name)
             builder.add_node(bucket, js)
             builder.submit_work(add_tags, bucket, builder.client)
 

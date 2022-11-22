@@ -347,7 +347,7 @@ class AwsEc2InstanceType(AwsResource, BaseInstanceType):
             it = AwsEc2InstanceType.from_api(js)
             # only store this information in the builder, not directly in the graph
             # reason: pricing is region-specific - this is enriched in the builder on demand
-            builder.global_instance_types[it.name] = it
+            builder.global_instance_types[it.safe_name] = it
 
 
 # endregion

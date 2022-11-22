@@ -436,12 +436,12 @@ class GraphBuilder:
     def instance_type(self, instance_type: str) -> Optional[Any]:
         if (global_type := self.global_instance_types.get(instance_type)) is None:
             return None  # instance type not found
-        price = AwsPricingPrice.instance_type_price(self.client, instance_type, self.region.name)
+        price = AwsPricingPrice.instance_type_price(self.client, instance_type, self.region.safe_name)
         return evolve(global_type, region=self.region, ondemand_cost=price.on_demand_price_usd if price else None)
 
     @lru_cache(maxsize=None)
     def volume_type(self, volume_type: str) -> Optional[Any]:
-        price = AwsPricingPrice.volume_type_price(self.client, volume_type, self.region.name)
+        price = AwsPricingPrice.volume_type_price(self.client, volume_type, self.region.safe_name)
         vt = AwsEc2VolumeType(
             id=volume_type,
             name=volume_type,
@@ -457,7 +457,7 @@ class GraphBuilder:
             self.cloud,
             self.account,
             region,
-            self.client.for_region(region.name),
+            self.client.for_region(region.safe_name),
             self.executor,
             self.core_feedback,
             self.global_instance_types,

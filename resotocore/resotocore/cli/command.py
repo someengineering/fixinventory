@@ -2922,8 +2922,8 @@ class WorkerCustomCommand:
     def to_template(self) -> AliasTemplate:
         allowed_kind = f" --allowed-on {self.allowed_on_kind}" if self.allowed_on_kind else ""
         result_flag = "" if self.expect_node_result else " --no-node-result"
-        command = f'--command "{self.name}"'
-        args = '--arg "{{args}}"'
+        command = f"--command '{self.name}'"
+        args = "--arg '{{args}}'"
         return AliasTemplate(
             name=self.name,
             info=self.info or "",
@@ -3008,7 +3008,7 @@ class ExecuteTaskCommand(SendWorkerTaskCommand):
 
             return update_single
 
-        formatter, variables = ctx.formatter_with_variables(double_quoted_or_simple_string_dp.parse(args))
+        formatter, variables = ctx.formatter_with_variables(args or "")
         fn = call_function(lambda item: {"args": args_parts_unquoted_parser.parse(formatter(item)), "node": item})
 
         def setup_stream(in_stream: Stream) -> Stream:

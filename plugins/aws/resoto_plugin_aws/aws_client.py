@@ -109,8 +109,6 @@ class AwsClient:
                         result.extend(child)
                     elif child is not None:
                         result.append(child)
-                    else:
-                        raise AttributeError(f"Expected result under key '{result_name}'")
             log.debug(f"[Aws] called service={aws_service} action={action}{arg_info}: {len(result)} results.")
             return result
         else:

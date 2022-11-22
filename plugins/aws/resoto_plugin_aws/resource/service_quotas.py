@@ -153,9 +153,9 @@ class QuotaMatcher:
         if self.quota_name is None:
             return False
         elif isinstance(self.quota_name, Pattern):
-            return self.quota_name.match(quota.name) is not None
+            return self.quota_name.match(quota.safe_name) is not None
         else:
-            return self.quota_name == quota.name
+            return self.quota_name == quota.safe_name
 
 
 RegionalQuotas = {

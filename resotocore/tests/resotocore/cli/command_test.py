@@ -973,7 +973,7 @@ async def test_execute_task(cli: CLI) -> None:
     assert command.info == "info"
     assert command.description == "description"
     assert command.args_description == {"a": "b"}
-    assert command.template == 'execute-task --no-node-result --command "name" --arg "{{args}}"'
+    assert command.template == "execute-task --no-node-result --command 'name' --arg '{{args}}'"
 
     # execute-task in source position
     source_result = await cli.execute_cli_command(
