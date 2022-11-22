@@ -4,7 +4,6 @@ import inspect
 import json
 from abc import ABC, abstractmethod
 from asyncio import Queue, Task, iscoroutine
-from attrs import define, field
 from enum import Enum
 from operator import attrgetter
 from textwrap import dedent
@@ -13,26 +12,27 @@ from typing import Optional, List, Any, Dict, Tuple, Callable, Union, Awaitable,
 from aiohttp import ClientSession, TCPConnector
 from aiostream import stream
 from aiostream.core import Stream
-from rich.jupyter import JupyterMixin
+from attrs import define, field
 from parsy import test_char, string
+from rich.jupyter import JupyterMixin
 
-from resotolib.parse_util import l_curly_dp, r_curly_dp
 from resotocore.analytics import AnalyticsEventSender
 from resotocore.cli import JsGen, T, Sink
 from resotocore.config import ConfigHandler
+from resotocore.console_renderer import ConsoleRenderer, ConsoleColorSystem
 from resotocore.core_config import CoreConfig, AliasTemplateConfig, AliasTemplateParameterConfig
 from resotocore.db.db_access import DbAccess
 from resotocore.error import CLIParseError
-from resotocore.console_renderer import ConsoleRenderer, ConsoleColorSystem
 from resotocore.message_bus import MessageBus
 from resotocore.model.model_handler import ModelHandler
 from resotocore.query.model import Query, variable_to_absolute, PathRoot
 from resotocore.query.template_expander import TemplateExpander, render_template
 from resotocore.task import TaskHandler
 from resotocore.types import Json, JsonElement
-from resotocore.util import AccessJson
+from resotocore.util import AccessJson, uuid_str
 from resotocore.web.certificate_handler import CertificateHandler
 from resotocore.worker_task_queue import WorkerTaskQueue
+from resotolib.parse_util import l_curly_dp, r_curly_dp
 
 
 class MediaType(Enum):
@@ -56,6 +56,9 @@ no_bracket_p = test_char(lambda x: x not in ("{", "}"), "No opening bracket").at
 double_curly_open_dp = string("{{")
 double_curly_close_dp = string("}}")
 l_or_r_curly_dp = string("{") | string("}")
+
+# use this property name as reference to self when defined via .
+self_name = "self_" + uuid_str()
 
 
 @define(frozen=True)
@@ -101,13 +104,16 @@ class CLIContext:
 
         def format_variable(name: str) -> str:
             assert "__" not in name, "No dunder attributes allowed"
-            in_section = self.variable_in_section(name)
-            if collect_variables:
-                variables.add(in_section)  # type: ignore
+            if name in (".", "/"):
+                in_section = self_name
+            else:
+                in_section = self.variable_in_section(name)
+                if collect_variables:
+                    variables.add(in_section)  # type: ignore
             return "{" + in_section + "}"
 
         def render_simple_property(prop: Any) -> str:
-            return json.dumps(prop) if isinstance(prop, bool) else str(prop)
+            return json.dumps(prop) if prop is None or isinstance(prop, bool) else str(prop)
 
         variable = (l_curly_dp >> no_closing_p << r_curly_dp).map(format_variable)
         token = double_curly_open_dp | double_curly_close_dp | no_bracket_p | variable | l_or_r_curly_dp
@@ -115,7 +121,7 @@ class CLIContext:
         formatter: str = format_string_parser.parse(format_string)
 
         def format_object(obj: Any) -> str:
-            return formatter.format_map(AccessJson.wrap(obj, "null", render_simple_property))
+            return formatter.format_map(AccessJson.wrap(obj, "null", render_simple_property, self_name))
 
         return format_object, variables
 
