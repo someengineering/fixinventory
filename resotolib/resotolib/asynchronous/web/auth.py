@@ -38,7 +38,7 @@ def check_jwt(psk: str, always_allowed_paths: Set[str]) -> Middleware:
 
     @middleware
     async def valid_jwt_handler(request: Request, handler: RequestHandler) -> StreamResponse:
-        auth_header = request.headers.get("authorization")
+        auth_header = request.headers.get("authorization") or request.cookies.get("resoto_authorization")
         if always_allowed(request):
             return await handler(request)
         elif auth_header:
