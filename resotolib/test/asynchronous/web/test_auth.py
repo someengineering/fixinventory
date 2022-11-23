@@ -41,6 +41,14 @@ async def test_correct_psk(aiohttp_client: Any, app_with_auth: Application) -> N
 
 
 @mark.asyncio
+async def test_correct_psk_as_cookie(aiohttp_client: Any, app_with_auth: Application) -> None:
+    client: TestClient = await aiohttp_client(app_with_auth)
+    jwt = encode_jwt({"foo": "bla"}, "test")
+    resp = await client.get("/", cookies=CIMultiDict({"resoto_authorization": f"Bearer {jwt}"}))
+    assert resp.status == 200
+
+
+@mark.asyncio
 async def test_wrong_psk(aiohttp_client: Any, app_with_auth: Application) -> None:
     client: TestClient = await aiohttp_client(app_with_auth)
     jwt = encode_jwt({"foo": "bla"}, "wrong!")
