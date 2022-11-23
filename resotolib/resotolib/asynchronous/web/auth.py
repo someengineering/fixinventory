@@ -42,6 +42,13 @@ def check_jwt(psk: str, always_allowed_paths: Set[str]) -> Middleware:
         if always_allowed(request):
             return await handler(request)
         elif auth_header:
+            origin = request.headers.get("Origin")
+            host = request.headers.get("Host")
+            if origin is not None and host is not None:
+                origin = origin.split("://", 1)[1]
+                if origin != host:
+                    log.warning(f"Origin {origin} is not allowed in request from {request.remote} to {request.path}")
+                    raise web.HTTPForbidden()
             try:
                 # note: the expiration is already checked by this function
                 jwt = ck_jwt.decode_jwt_from_header_value(auth_header, psk)
