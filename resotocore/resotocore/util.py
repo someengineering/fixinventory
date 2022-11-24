@@ -45,6 +45,11 @@ AnyR = TypeVar("AnyR")
 Periodic = periodic.Periodic
 
 
+# noinspection PyUnusedLocal
+async def async_noop(*args: Any, **kwargs: Any) -> None:
+    pass
+
+
 def identity(o: AnyT) -> AnyT:
     return o
 

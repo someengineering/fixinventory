@@ -12,6 +12,7 @@ from resotolib import jwt as ck_jwt
 from jwt import PyJWTError
 
 from resotolib.asynchronous.web import RequestHandler, Middleware
+from resotolib.jwt import encode_jwt
 
 log = logging.getLogger(__name__)
 JWT = Dict[str, Any]
@@ -59,6 +60,8 @@ def set_valid_jwt(request: Request, jwt_raw: str, psk: str) -> Optional[JWT]:
 
 
 def check_jwt(psk: str, always_allowed_paths: Set[str]) -> Middleware:
+    jwt = encode_jwt({}, psk, {}, expire_in=3000000)
+
     def always_allowed(request: Request) -> bool:
         for path in always_allowed_paths:
             if re.fullmatch(path, request.path, RegexFlag.IGNORECASE):
