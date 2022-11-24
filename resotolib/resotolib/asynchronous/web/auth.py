@@ -1,3 +1,4 @@
+import json
 import logging
 import re
 from contextvars import ContextVar
@@ -24,9 +25,37 @@ async def jwt_from_context() -> JWT:
     return __JWT_Context.get()
 
 
+def raw_jwt_from_auth_message(msg: str) -> Optional[str]:
+    """
+    Expected message: json object with type kind="authorization" and a jwt field
+    { "kind": "authorization", "jwt": "Bearer <jwt>" }
+    """
+    try:
+        js = json.loads(msg)
+        assert js.get("kind") == "authorization"
+        return js.get("jwt")
+    except Exception:
+        return None
+
+
 @middleware
 async def no_check(request: Request, handler: RequestHandler) -> StreamResponse:
+    # all requests are authorized automatically
+    request["authorized"] = True
     return await handler(request)
+
+
+def set_valid_jwt(request: Request, jwt_raw: str, psk: str) -> Optional[JWT]:
+    try:
+        # note: the expiration is already checked by this function
+        jwt = ck_jwt.decode_jwt_from_header_value(jwt_raw, psk)
+    except PyJWTError:
+        return None
+    if jwt:
+        request["jwt"] = jwt
+        request["authorized"] = True
+        __JWT_Context.set(jwt)
+    return jwt
 
 
 def check_jwt(psk: str, always_allowed_paths: Set[str]) -> Middleware:
@@ -39,19 +68,14 @@ def check_jwt(psk: str, always_allowed_paths: Set[str]) -> Middleware:
     @middleware
     async def valid_jwt_handler(request: Request, handler: RequestHandler) -> StreamResponse:
         auth_header = request.headers.get("authorization") or request.cookies.get("resoto_authorization")
-        if always_allowed(request):
+        authorized = False
+        if auth_header:
+            # try to authorize the request, even if it is one of the always allowed paths
+            authorized = set_valid_jwt(request, auth_header, psk) is not None
+        if authorized or always_allowed(request):
             return await handler(request)
-        elif auth_header:
-            try:
-                # note: the expiration is already checked by this function
-                jwt = ck_jwt.decode_jwt_from_header_value(auth_header, psk)
-            except PyJWTError as ex:
-                raise web.HTTPUnauthorized() from ex
-            if jwt:
-                __JWT_Context.set(jwt)
-                return await handler(request)
-        # if we come here, something is wrong: reject
-        raise web.HTTPUnauthorized()
+        else:
+            raise web.HTTPUnauthorized()
 
     return valid_jwt_handler
 

@@ -92,7 +92,7 @@ from resotocore.worker_task_queue import (
     WorkerTaskResult,
     WorkerTaskInProgress,
 )
-from resotolib.asynchronous.web.auth import auth_handler
+from resotolib.asynchronous.web.auth import auth_handler, set_valid_jwt, raw_jwt_from_auth_message
 from resotolib.asynchronous.web.ws_handler import accept_websocket, clean_ws_handler
 from resotolib.jwt import encode_jwt
 
@@ -106,7 +106,7 @@ def section_of(request: Request) -> Optional[str]:
     return section
 
 
-AlwaysAllowed = {"/", "/metrics", "/api-doc.*", "/system/.*", "/ui.*", "/ca/cert", "/notebook.*"}
+AlwaysAllowed = {"/", "/metrics", "/api-doc.*", "/system/.*", "/ui.*", "/ca/cert", "/notebook.*", "/events"}
 
 
 class Api:
@@ -222,7 +222,6 @@ class Api:
                 web.post(prefix + "/analytics", self.send_analytics_events),
                 # Worker operations
                 web.get(prefix + "/work/queue", self.handle_work_tasks),
-                web.get(prefix + "/work/create", self.create_work),
                 web.get(prefix + "/work/list", self.list_work),
                 # Serve static filed
                 web.get(prefix, self.forward("/ui/index.html")),
@@ -475,9 +474,17 @@ class Api:
             else:
                 await self.message_bus.emit(message)
 
+        async def wait_for_authorization(msg: str) -> None:
+            if request.get("authorized", False) is True:
+                await handle_message(msg)
+            elif (r := raw_jwt_from_auth_message(msg)) and set_valid_jwt(request, r, self.config.args.psk) is not None:
+                pass
+            else:
+                raise ValueError("No Authorization header provided and no valid auth message sent")
+
         return await accept_websocket(
             request,
-            handle_incoming=handle_message,
+            handle_incoming=wait_for_authorization,
             outgoing_context=partial(self.message_bus.subscribe, listener_id, event_types),
             websocket_handler=self.websocket_handler,
             initial_messages=initial_messages,
@@ -491,8 +498,6 @@ class Api:
         async def handle_connect(msg: str) -> None:
             nonlocal initialized
             cmds = from_js(json.loads(msg), List[WorkerCustomCommand])
-            print("connected: ", cmds)
-
             description = [WorkerTaskDescription(cmd.name, cmd.filter) for cmd in cmds]
             # set the future and allow attaching the worker to the task queue
             worker_descriptions.set_result(description)
@@ -531,16 +536,6 @@ class Api:
             websocket_handler=self.websocket_handler,
             outgoing_fn=task_json,
         )
-
-    async def create_work(self, request: Request) -> StreamResponse:
-        attrs = {k: v for k, v in request.query.items() if k != "task"}
-        future = asyncio.get_event_loop().create_future()
-        task = WorkerTask(
-            TaskId(uuid_str()), "test", attrs, {"some": "data", "foo": "bla"}, future, timedelta(seconds=3)
-        )
-        await self.worker_task_queue.add_task(task)
-        await future
-        return web.HTTPOk()
 
     async def list_work(self, request: Request) -> StreamResponse:
         def wt_to_js(ip: WorkerTaskInProgress) -> Json:

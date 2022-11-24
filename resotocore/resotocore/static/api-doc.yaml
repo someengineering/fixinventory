@@ -1441,11 +1441,18 @@ paths:
   /events:
     get:
       summary: "[WebSocket] Register as event listener and receive all events."
-      description:
+      description: |
         ## WebSocket Endpoint
         The client needs to send all the required headers for a ws connection
         and has to handle the websocket protocol.<br/>
         **Note this can not be tested from within swagger!**
+
+        ## Authorization
+        In case Resoto has a PSK infrastructure in place, the client needs to send a JWT token via the `Authorization` header
+        or via the `resoto_authorization` cookie.
+        It is also possible to omit header or cookie and send an Authorization message as first message on the websocket.
+        Example
+        { "kind": "authorization", "jwt": "Bearer <jwt>" }
 
       parameters:
         - name: show
