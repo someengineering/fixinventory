@@ -53,6 +53,16 @@ async def accept_websocket(
     await ws.prepare(request)
     wsid = str(uuid1())
 
+    # in case we wait for an initial authorization message, only wait for a limited amount of tine
+    async def wait_for_authorization() -> None:
+        counter = 10
+        while request.get("authorized", False) is not True and counter >= 0:
+            await asyncio.sleep(1)
+            counter -= 1
+        if counter <= 0:
+            log.info(f"Wait for authorization: message listener {wsid}: Timeout. Hang up.")
+            await clean_ws_handler(wsid, websocket_handler)
+
     async def receive() -> None:
         try:
             async for msg in ws:
@@ -73,6 +83,14 @@ async def accept_websocket(
 
     async def send(ctx: Callable[[], AsyncContextManager[Queue[T]]]) -> None:
         try:
+            # wait for the request to become authorized, before we will send any message
+            while request.get("authorized", False) is not True:
+                await asyncio.sleep(1)
+            # send all initial messages
+            if initial_messages:
+                for msg in initial_messages:
+                    await ws.send_str(outgoing_fn(msg) + "\n")
+            # attach to the queue and wait for messages
             async with ctx() as events:
                 while True:
                     event = await events.get()
@@ -83,17 +101,13 @@ async def accept_websocket(
         finally:
             await clean_ws_handler(wsid, websocket_handler)
 
-    receive_task = asyncio.create_task(receive())
-    to_wait = (
-        asyncio.gather(receive_task, asyncio.create_task(send(outgoing_context)))
-        if outgoing_context is not None
-        else receive_task
-    )
+    tasks = [asyncio.create_task(receive())]
+    if outgoing_context is not None:
+        tasks.append(asyncio.create_task(send(outgoing_context)))
+    if request.get("authorized", False) is not True:
+        tasks.append(asyncio.create_task(wait_for_authorization()))
 
-    if initial_messages:
-        for msg in initial_messages:
-            await ws.send_str(outgoing_fn(msg) + "\n")
-
+    to_wait = asyncio.gather(*tasks)
     websocket_handler[wsid] = (to_wait, ws)
     await to_wait
     return ws

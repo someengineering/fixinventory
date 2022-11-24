@@ -73,7 +73,7 @@ from resotocore.task.model import Subscription
 from resotocore.task.subscribers import SubscriptionHandler
 from resotocore.task.task_handler import TaskHandlerService
 from resotocore.types import Json, JsonElement
-from resotocore.util import uuid_str, force_gen, rnd_str, if_set, duration, utc_str, parse_utc
+from resotocore.util import uuid_str, force_gen, rnd_str, if_set, duration, utc_str, parse_utc, async_noop
 from resotocore.web.certificate_handler import CertificateHandler
 from resotocore.web.content_renderer import result_binary_gen, single_result
 from resotocore.web.directives import (
@@ -92,7 +92,7 @@ from resotocore.worker_task_queue import (
     WorkerTaskResult,
     WorkerTaskInProgress,
 )
-from resotolib.asynchronous.web.auth import auth_handler
+from resotolib.asynchronous.web.auth import auth_handler, set_valid_jwt, raw_jwt_from_auth_message
 from resotolib.asynchronous.web.ws_handler import accept_websocket, clean_ws_handler
 from resotolib.jwt import encode_jwt
 
@@ -106,7 +106,10 @@ def section_of(request: Request) -> Optional[str]:
     return section
 
 
+# No Authorization required for following paths
 AlwaysAllowed = {"/", "/metrics", "/api-doc.*", "/system/.*", "/ui.*", "/ca/cert", "/notebook.*"}
+# Authorization is not required, but implemented as part of the request handler
+DeferredCheck = {"/events"}
 
 
 class Api:
@@ -141,7 +144,7 @@ class Api:
             # note on order: the middleware is passed in the order provided.
             middlewares=[
                 metrics_handler,
-                auth_handler(config.args.psk, AlwaysAllowed),
+                auth_handler(config.args.psk, AlwaysAllowed | DeferredCheck),
                 cors_handler,
                 error_handler(config, event_sender),
                 default_middleware(self),
@@ -222,7 +225,6 @@ class Api:
                 web.post(prefix + "/analytics", self.send_analytics_events),
                 # Worker operations
                 web.get(prefix + "/work/queue", self.handle_work_tasks),
-                web.get(prefix + "/work/create", self.create_work),
                 web.get(prefix + "/work/list", self.list_work),
                 # Serve static filed
                 web.get(prefix, self.forward("/ui/index.html")),
@@ -456,6 +458,15 @@ class Api:
         event_types: List[str],
         initial_messages: Optional[Sequence[Message]] = None,
     ) -> WebSocketResponse:
+        handler: Callable[[str], Awaitable[None]] = async_noop
+
+        async def authorize_request(msg: str) -> None:
+            nonlocal handler
+            if (r := raw_jwt_from_auth_message(msg)) and set_valid_jwt(request, r, self.config.args.psk) is not None:
+                handler = handle_message
+            else:
+                raise ValueError("No Authorization header provided and no valid auth message sent")
+
         async def handle_message(msg: str) -> None:
             js = json.loads(msg)
             if "data" in js:
@@ -475,9 +486,10 @@ class Api:
             else:
                 await self.message_bus.emit(message)
 
+        handler = authorize_request if request.get("authorized", False) is False else handle_message
         return await accept_websocket(
             request,
-            handle_incoming=handle_message,
+            handle_incoming=lambda x: handler(x),  # pylint: disable=unnecessary-lambda # it is required!
             outgoing_context=partial(self.message_bus.subscribe, listener_id, event_types),
             websocket_handler=self.websocket_handler,
             initial_messages=initial_messages,
@@ -485,22 +497,27 @@ class Api:
 
     async def handle_work_tasks(self, request: Request) -> WebSocketResponse:
         worker_id = WorkerId(uuid_str())
-        initialized = False
         worker_descriptions: Future[List[WorkerTaskDescription]] = asyncio.get_event_loop().create_future()
+        handler: Callable[[str], Awaitable[None]] = async_noop
+
+        async def authorize_request(msg: str) -> None:
+            nonlocal handler
+            if (r := raw_jwt_from_auth_message(msg)) and set_valid_jwt(request, r, self.config.args.psk) is not None:
+                handler = handle_connect
+            else:
+                raise ValueError("No Authorization header provided and no valid auth message sent")
 
         async def handle_connect(msg: str) -> None:
-            nonlocal initialized
+            nonlocal handler
             cmds = from_js(json.loads(msg), List[WorkerCustomCommand])
-            print("connected: ", cmds)
-
             description = [WorkerTaskDescription(cmd.name, cmd.filter) for cmd in cmds]
             # set the future and allow attaching the worker to the task queue
             worker_descriptions.set_result(description)
             # register the descriptions as custom command on the CLI
             for cmd in cmds:
                 self.cli.register_worker_custom_command(cmd)
-            # mark the worker as initialized
-            initialized = True
+            # the connect process is done, define the final handler
+            handler = handle_message
 
         async def handle_message(msg: str) -> None:
             tr = from_js(json.loads(msg), WorkerTaskResult)
@@ -523,26 +540,17 @@ class Api:
             async with self.worker_task_queue.attach(worker_id, descriptions) as queue:
                 yield queue
 
+        handler = authorize_request if request.get("authorized", False) is False else handle_connect
         # noinspection PyTypeChecker
         return await accept_websocket(
             request,
-            handle_incoming=lambda msg: handle_connect(msg) if not initialized else handle_message(msg),
+            handle_incoming=lambda x: handler(x),  # pylint: disable=unnecessary-lambda # it is required!
             outgoing_context=connect_to_task_queue,
             websocket_handler=self.websocket_handler,
             outgoing_fn=task_json,
         )
 
-    async def create_work(self, request: Request) -> StreamResponse:
-        attrs = {k: v for k, v in request.query.items() if k != "task"}
-        future = asyncio.get_event_loop().create_future()
-        task = WorkerTask(
-            TaskId(uuid_str()), "test", attrs, {"some": "data", "foo": "bla"}, future, timedelta(seconds=3)
-        )
-        await self.worker_task_queue.add_task(task)
-        await future
-        return web.HTTPOk()
-
-    async def list_work(self, request: Request) -> StreamResponse:
+    async def list_work(self, _: Request) -> StreamResponse:
         def wt_to_js(ip: WorkerTaskInProgress) -> Json:
             return {
                 "task": ip.task.to_json(),
@@ -870,7 +878,7 @@ class Api:
                 temp = tempfile.mkdtemp()
                 temp_dir = temp
                 files = {}
-                # for now we assume that all multi-parts are file uploads
+                # for now, we assume that all multi-parts are file uploads
                 async for part in MultipartReader(request.headers, request.content):
                     name = part.name
                     if not name:
