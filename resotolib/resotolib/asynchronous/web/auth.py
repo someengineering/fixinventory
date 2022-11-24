@@ -3,6 +3,7 @@ import re
 from contextvars import ContextVar
 from re import RegexFlag
 from typing import Any, Dict, Optional, Set
+from urllib.parse import urlparse
 
 from aiohttp import web
 from aiohttp.web import Request, StreamResponse
@@ -38,10 +39,18 @@ def check_jwt(psk: str, always_allowed_paths: Set[str]) -> Middleware:
 
     @middleware
     async def valid_jwt_handler(request: Request, handler: RequestHandler) -> StreamResponse:
-        auth_header = request.headers.get("authorization") or request.cookies.get("resoto_authorization")
+        auth_header = request.headers.get("Authorization") or request.cookies.get("resoto_authorization")
         if always_allowed(request):
             return await handler(request)
         elif auth_header:
+            origin: Optional[str] = urlparse(request.headers.get("Origin")).hostname
+            host: Optional[str] = request.headers.get("Host")
+            if host is not None and origin is not None:
+                if ":" in host:
+                    host = host.split(":")[0]
+                if origin.lower() != host.lower():
+                    log.warning(f"Origin {origin} is not allowed in request from {request.remote} to {request.path}")
+                    raise web.HTTPForbidden()
             try:
                 # note: the expiration is already checked by this function
                 jwt = ck_jwt.decode_jwt_from_header_value(auth_header, psk)
