@@ -1,4 +1,4 @@
-resotolib==3.0.0a3
+resotolib==3.0.0a4
 google-api-python-client==2.65.0
 oauth2client==4.1.3
 retrying==1.3.3
