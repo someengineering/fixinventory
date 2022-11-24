@@ -1,2 +1,2 @@
-resotolib==3.0.0a4
+resotolib==3.0.0a5
 kubernetes==25.3.0
