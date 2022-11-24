@@ -42,11 +42,11 @@ def check_jwt(psk: str, always_allowed_paths: Set[str]) -> Middleware:
         if always_allowed(request):
             return await handler(request)
         elif auth_header:
-            origin = request.headers.get("Origin")
-            host = request.headers.get("Host")
+            origin: Optional[str] = request.headers.get("Origin")
+            host: Optional[str] = request.headers.get("Host")
             if origin is not None and host is not None:
                 origin = origin.split("://", 1)[1]
-                if origin != host:
+                if origin.lower() != host.lower():
                     log.warning(f"Origin {origin} is not allowed in request from {request.remote} to {request.path}")
                     raise web.HTTPForbidden()
             try:
