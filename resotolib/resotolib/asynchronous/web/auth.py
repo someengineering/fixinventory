@@ -71,6 +71,7 @@ def check_jwt(psk: str, always_allowed_paths: Set[str]) -> Middleware:
         auth_header = request.headers.get("Authorization") or request.cookies.get("resoto_authorization")
         authorized = False
         if auth_header:
+            # make sure origin and host match, so the request is valid
             origin: Optional[str] = urlparse(request.headers.get("Origin")).hostname
             host: Optional[str] = request.headers.get("Host")
             if host is not None and origin is not None:
