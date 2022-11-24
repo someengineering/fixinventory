@@ -106,7 +106,10 @@ def section_of(request: Request) -> Optional[str]:
     return section
 
 
-AlwaysAllowed = {"/", "/metrics", "/api-doc.*", "/system/.*", "/ui.*", "/ca/cert", "/notebook.*", "/events"}
+# No Authorization required for following paths
+AlwaysAllowed = {"/", "/metrics", "/api-doc.*", "/system/.*", "/ui.*", "/ca/cert", "/notebook.*"}
+# Authorization is not required, but implemented as part of the request handler
+DeferredCheck = {"/events"}
 
 
 class Api:
@@ -141,7 +144,7 @@ class Api:
             # note on order: the middleware is passed in the order provided.
             middlewares=[
                 metrics_handler,
-                auth_handler(config.args.psk, AlwaysAllowed),
+                auth_handler(config.args.psk, AlwaysAllowed | DeferredCheck),
                 cors_handler,
                 error_handler(config, event_sender),
                 default_middleware(self),
