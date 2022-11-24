@@ -46,11 +46,9 @@ def check_jwt(psk: str, always_allowed_paths: Set[str]) -> Middleware:
             origin: Optional[str] = urlparse(request.headers.get("Origin")).hostname
             host: Optional[str] = request.headers.get("Host")
             if host is not None and origin is not None:
-                origin = origin.lower()
-                host = host.lower()
                 if ":" in host:
                     host = host.split(":")[0]
-                if origin != host:
+                if origin.lower() != host.lower():
                     log.warning(f"Origin {origin} is not allowed in request from {request.remote} to {request.path}")
                     raise web.HTTPForbidden()
             try:
