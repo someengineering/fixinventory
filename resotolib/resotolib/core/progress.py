@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import abstractmethod, ABC
-from typing import List, Optional, Any, Dict
+from typing import List, Optional, Any, Dict, Callable
 
 from attr import define, field, evolve
 from treelib import Tree, Node
@@ -53,7 +53,7 @@ class Progress(ABC):
             updated.add_progress(p)
         return updated
 
-    def to_json(self) -> Json:
+    def to_json(self, key: Optional[Callable[[Progress], Any]] = None) -> Json:
         p = {"path": self.path} if self.path else {}
         if isinstance(self, ProgressDone):
             return {
@@ -64,12 +64,9 @@ class Progress(ABC):
                 "total": self.total,
             }
         elif isinstance(self, ProgressTree):
-            return {
-                "kind": "tree",
-                "name": self.name,
-                **p,
-                "parts": [part.data.to_json() for part in self.sub_tree.all_nodes() if part.data is not None],
-            }
+            node_iter = (part.data for part in self.sub_tree.all_nodes_itr() if part.data is not None)
+            nodes: List[Progress] = sorted(node_iter, key=key) if key else list(node_iter)  # type: ignore
+            return {"kind": "tree", "name": self.name, **p, "parts": [part.to_json() for part in nodes]}
         else:
             raise AttributeError("No handler to marshal progress")
 

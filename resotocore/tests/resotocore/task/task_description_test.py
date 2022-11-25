@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import Any, List, Dict, Tuple
+from typing import Any, List, Dict, Tuple, Callable
 
 from deepdiff import DeepDiff
 from frozendict import frozendict
@@ -236,3 +236,40 @@ def roundtrip(obj: Any) -> None:
     js = to_js(obj)
     again = from_js(js, type(obj))
     assert DeepDiff(obj, again) == {}, f"Json: {js} serialized as {again}"
+
+
+def test_task_progress() -> None:
+    actions = ["collect", "encode"]
+    wf = Workflow(TaskDescriptorId("test_workflow"), "name", [Step(a, PerformAction(a)) for a in actions], [])
+    sb = Subscriber(SubscriberId("test"), {s: Subscription(s) for s in actions})
+    rt, _ = RunningTask.empty(wf, lambda: {s: [sb] for s in actions})
+
+    def progress(step: str, fn: Callable[[int], ProgressDone]) -> None:
+        # use revers order to test that the correct order is used
+        for idx in range(3):
+            rt.handle_progress(ActionProgress(step, rt.id, step, sb.id, fn(idx), utc()))
+
+    # report progress start on the collect step
+    progress("collect", lambda idx: ProgressDone(str(idx), 0, 100, path=["foo", "bla"]))
+    assert [x["name"] for x in rt.progress_json()["parts"]] == ["0", "1", "2", "encode"]
+
+    # report index as progress on the collect step
+    progress("collect", lambda idx: ProgressDone(str(idx), idx, 100, path=["foo", "bla"]))
+    assert [x["name"] for x in rt.progress_json()["parts"]] == ["2", "1", "0", "encode"]
+
+    # report progress done on the collect step
+    rt.handle_done(ActionDone("collect", rt.id, "collect", sb.id))
+    assert [x["name"] for x in rt.progress_json()["parts"]] == ["collect", "encode"]
+    assert rt.progress.overall_progress().percentage == 50
+
+    # report progress done on the encode step
+    progress("encode", lambda idx: ProgressDone(str(idx), 0, 100, path=["foo", "bla"]))
+    assert [x["name"] for x in rt.progress_json()["parts"]] == ["collect", "0", "1", "2"]
+
+    # report index as progress on the collect step
+    progress("collect", lambda idx: ProgressDone(str(idx), idx, 100, path=["foo", "bla"]))
+    assert [x["name"] for x in rt.progress_json()["parts"]] == ["collect", "2", "1", "0"]
+
+    rt.handle_done(ActionDone("encode", rt.id, "encode", sb.id))
+    assert [x["name"] for x in rt.progress_json()["parts"]] == ["collect", "encode"]
+    assert rt.progress.overall_progress().percentage == 100
