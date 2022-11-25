@@ -3,7 +3,7 @@
 aiohttp-swagger3==0.7.2
 aiohttp[speedups]==3.8.3
 aiostream==0.4.5
-resotolib==3.0.0a5
+resotolib==3.0.0rc1
 
 setuptools==65.5.1
 jsons~=1.6.2
