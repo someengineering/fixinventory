@@ -11,7 +11,7 @@ __description__ = "resoto core."
 __author__ = "Some Engineering Inc."
 __license__ = "Apache 2.0"
 __copyright__ = "Copyright © 2022 Some Engineering Inc."
-__version__ = "3.0.0a5"
+__version__ = "3.0.0rc1"
 
 
 def version() -> str:
