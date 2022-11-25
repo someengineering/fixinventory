@@ -364,6 +364,9 @@ models: Dict[str, List[AwsResotoModel]] = {
         #     "get-metric-data", "GetMetricDataResult", "MetricDataResult", prefix="Cloudwatch", prop_prefix="metric_"
         # )
     ],
+    "cognito-idp": [
+        AwsResotoModel("list-user-pools", "UserPools", "ListUserPoolsResponse", prefix="Cognito", prop_prefix="user_pool_")
+    ],
     "dynamodb": [
         # AwsResotoModel("list-tables", "TableNames", "TableDescription", prefix="DynamoDb", prop_prefix="dynamodb_"),
         # AwsResotoModel(
