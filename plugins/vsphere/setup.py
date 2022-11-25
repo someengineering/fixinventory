@@ -11,7 +11,7 @@ def read(fname):
 
 setup(
     name="resoto-plugin-vsphere",
-    version="3.0.0rc1",
+    version="3.0.0rc2",
     description="Resoto VSphere Collector Plugin",
     license="Apache 2.0",
     packages=find_packages(),
