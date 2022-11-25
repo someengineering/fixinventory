@@ -408,7 +408,7 @@ class TaskHandlerService(TaskHandler):
             await self.execute_task_commands(wi, commands, done)
             # check if progress has changed in the meantime (by the running task itself)
             if wi.progresses != progress:
-                msg = {"workflow": wi.descriptor.name, "task": wi.id, "message": wi.progress.to_json()}
+                msg = {"workflow": wi.descriptor.name, "task": wi.id, "message": wi.progress_json()}
                 await self.message_bus.emit_event(CoreMessage.ProgressMessage, msg)
         else:
             log.warning(
@@ -444,7 +444,7 @@ class TaskHandlerService(TaskHandler):
                 rt.handle_progress(info)
                 await self.message_bus.emit_event(
                     CoreMessage.ProgressMessage,
-                    {"workflow": rt.descriptor.name, "task": rt.id, "message": rt.progress.to_json()},
+                    {"workflow": rt.descriptor.name, "task": rt.id, "message": rt.progress_json()},
                 )
 
     async def execute_task_commands(
