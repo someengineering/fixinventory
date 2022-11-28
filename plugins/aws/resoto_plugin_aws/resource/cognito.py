@@ -1,31 +1,28 @@
 from attrs import define, field
-from datetime import datetime
 from typing import ClassVar, Dict, List, Optional, Type, cast
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
 from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resoto_plugin_aws.resource.lambda_ import AwsLambdaFunction
 from resotolib.baseresources import EdgeType
-from resotolib.json_bender import K, S, Bend, Bender, ForallBend
+from resotolib.json_bender import S, Bend, Bender, ForallBend
 from resotolib.types import Json
 
 
 @define(eq=False, slots=False)
 class AwsCognitoAttributeType:
     kind: ClassVar[str] = "aws_cognito_attribute_type"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "name": S("Name"),
-        "value": S("Value")
-    }
+    mapping: ClassVar[Dict[str, Bender]] = {"name": S("Name"), "value": S("Value")}
     name: Optional[str] = field(default=None)
     value: Optional[str] = field(default=None)
+
 
 @define(eq=False, slots=False)
 class AwsCognitoMFAOptionType:
     kind: ClassVar[str] = "aws_cognito_mfa_option_type"
     mapping: ClassVar[Dict[str, Bender]] = {
         "delivery_medium": S("DeliveryMedium"),
-        "attribute_name": S("AttributeName")
+        "attribute_name": S("AttributeName"),
     }
     delivery_medium: Optional[str] = field(default=None)
     attribute_name: Optional[str] = field(default=None)
@@ -42,32 +39,29 @@ class AwsCognitoUser(AwsResource):
         "attributes": S("Attributes", default=[]) >> ForallBend(AwsCognitoAttributeType.mapping),
         "enabled": S("Enabled"),
         "user_status": S("UserStatus"),
-        "mfa_options": S("MFAOptions", default=[]) >> ForallBend(AwsCognitoMFAOptionType.mapping)
+        "mfa_options": S("MFAOptions", default=[]) >> ForallBend(AwsCognitoMFAOptionType.mapping),
     }
     attributes: List[AwsCognitoAttributeType] = field(factory=list)
     enabled: Optional[bool] = field(default=None)
     user_status: Optional[str] = field(default=None)
     mfa_options: List[AwsCognitoMFAOptionType] = field(factory=list)
 
+
 @define(eq=False, slots=False)
 class AwsCognitoCustomSMSLambdaVersionConfigType:
     kind: ClassVar[str] = "aws_cognito_custom_sms_lambda_version_config_type"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "lambda_version": S("LambdaVersion"),
-        "lambda_arn": S("LambdaArn")
-    }
+    mapping: ClassVar[Dict[str, Bender]] = {"lambda_version": S("LambdaVersion"), "lambda_arn": S("LambdaArn")}
     lambda_version: str = field(default=None)
     lambda_arn: str = field(default=None)
+
 
 @define(eq=False, slots=False)
 class AwsCognitoCustomEmailLambdaVersionConfigType:
     kind: ClassVar[str] = "aws_cognito_custom_email_lambda_version_config_type"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "lambda_version": S("LambdaVersion"),
-        "lambda_arn": S("LambdaArn")
-    }
+    mapping: ClassVar[Dict[str, Bender]] = {"lambda_version": S("LambdaVersion"), "lambda_arn": S("LambdaArn")}
     lambda_version: str = field(default=None)
     lambda_arn: str = field(default=None)
+
 
 @define(eq=False, slots=False)
 class AwsCognitoLambdaConfigType:
@@ -85,7 +79,7 @@ class AwsCognitoLambdaConfigType:
         "user_migration": S("UserMigration"),
         "custom_sms_sender": S("CustomSMSSender") >> Bend(AwsCognitoCustomSMSLambdaVersionConfigType.mapping),
         "custom_email_sender": S("CustomEmailSender") >> Bend(AwsCognitoCustomEmailLambdaVersionConfigType.mapping),
-        "kms_key_id": S("KMSKeyID")
+        "kms_key_id": S("KMSKeyID"),
     }
     pre_sign_up: Optional[str] = field(default=None)
     custom_message: Optional[str] = field(default=None)
@@ -112,14 +106,18 @@ class AwsCognitoUserPool(AwsResource):
         "lambda_config": S("LambdaConfig") >> Bend(AwsCognitoLambdaConfigType.mapping),
         "status": S("Status"),
         "mtime": S("LastModifiedDate"),
-        "ctime": S("CreationDate")
+        "ctime": S("CreationDate"),
     }
     lambda_config: Optional[AwsCognitoLambdaConfigType] = field(default=None)
     status: Optional[str] = field(default=None)
 
     @classmethod
     def called_apis(cls) -> List[AwsApiSpec]:
-        return [cls.api_spec, AwsApiSpec("cognito-idp", "list-tags-for-resource"), AwsApiSpec("cognito-idp", "list-users")]
+        return [
+            cls.api_spec,
+            AwsApiSpec("cognito-idp", "list-tags-for-resource"),
+            AwsApiSpec("cognito-idp", "list-users"),
+        ]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
@@ -136,28 +134,28 @@ class AwsCognitoUserPool(AwsResource):
             for user in builder.client.list("cognito-idp", "list-users", "Users", UserPoolId=pool_instance.id):
                 user_instance = AwsCognitoUser.from_api(user)
                 builder.add_node(user_instance, user)
-                builder.add_edge(from_node = pool_instance, edge_type = EdgeType.default, node = user_instance)
+                builder.add_edge(from_node=pool_instance, edge_type=EdgeType.default, node=user_instance)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.lambda_config:
             if self.lambda_config.custom_sms_sender:
                 builder.dependant_node(
-                self,
-                clazz=AwsLambdaFunction,
-                arn=self.lambda_config.custom_sms_sender.lambda_arn,
-            )
+                    self,
+                    clazz=AwsLambdaFunction,
+                    arn=self.lambda_config.custom_sms_sender.lambda_arn,
+                )
             if self.lambda_config.custom_email_sender:
                 builder.dependant_node(
-                self,
-                clazz=AwsLambdaFunction,
-                arn=self.lambda_config.custom_email_sender.lambda_arn,
-            )
+                    self,
+                    clazz=AwsLambdaFunction,
+                    arn=self.lambda_config.custom_email_sender.lambda_arn,
+                )
             if self.lambda_config.kms_key_id:
                 builder.dependant_node(
-                self,
-                clazz=AwsKmsKey,
-                id=AwsKmsKey.normalise_id(self.lambda_config.kms_key_id),
-            )
+                    self,
+                    clazz=AwsKmsKey,
+                    id=AwsKmsKey.normalise_id(self.lambda_config.kms_key_id),
+                )
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(
