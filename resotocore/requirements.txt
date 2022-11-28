@@ -5,7 +5,7 @@ aiohttp[speedups]==3.8.3
 jsons==1.6.3
 parsy==2.0
 plantuml==0.3.0
-python-arango==7.5.2
+python-arango==7.5.3
 python-dateutil==2.8.2
 toolz==0.12.0
 transitions==0.9.0
@@ -19,7 +19,7 @@ jq==1.3.0
 posthog==2.2.0
 ustache==0.1.5
 aiofiles==22.1.0
-cryptography==38.0.3
+cryptography==38.0.4
 rich==12.6.0
 Cerberus~=1.3.4
-setuptools>=65.5.1 # not directly required, pinned by Snyk to avoid a vulnerability
+setuptools>=65.5.3 # not directly required, pinned by Snyk to avoid a vulnerability

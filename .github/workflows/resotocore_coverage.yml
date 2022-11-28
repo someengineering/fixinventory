@@ -22,7 +22,7 @@ jobs:
         working-directory: ./resotocore
     services:
       arangodb:
-        image: arangodb:3.8.3
+        image: arangodb:3.8.8
         env:
           ARANGO_NO_AUTH: 1
         ports:
