@@ -36,6 +36,10 @@ class AwsCognitoGroup(AwsResource):
         if self.role_arn:
             builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsIamRole, arn=self.role_arn)
 
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(aws_service="cognito-idp", action="delete-group", result_name=None, GroupName=self.name, UserPoolId=self.id)
+        return True
+
 
 @define(eq=False, slots=False)
 class AwsCognitoAttributeType:
