@@ -1,5 +1,6 @@
+from collections import defaultdict
 from types import SimpleNamespace
-from typing import Any, cast
+from typing import Any, Dict, cast
 from resoto_plugin_aws.aws_client import AwsClient
 from test.resources import round_trip_for
 from resoto_plugin_aws.resource.cognito import AwsCognitoUserPool
@@ -9,6 +10,10 @@ def test_user_pools() -> None:
     assert len(builder.resources_of(AwsCognitoUserPool)) == 1
     assert first.arn =="arn:aws:cognito-idp:eu-central-1:test:userpool/hot-tub-123"
     assert first.tags["model"] == "santorini pro"
+    type_count: Dict[str, int] = defaultdict(int)
+    for node in builder.graph.nodes:
+        type_count[node.kind] += 1
+    assert type_count["aws_cognito_user"] == 1
 
 def test_tagging_pools() -> None:
     pool, _ = round_trip_for(AwsCognitoUserPool)

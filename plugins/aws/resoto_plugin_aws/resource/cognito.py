@@ -3,9 +3,51 @@ from datetime import datetime
 from typing import ClassVar, Dict, List, Optional, Type, cast
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
+from resoto_plugin_aws.resource.kms import AwsKmsKey
+from resoto_plugin_aws.resource.lambda_ import AwsLambdaFunction
+from resotolib.baseresources import EdgeType
 from resotolib.json_bender import K, S, Bend, Bender, ForallBend
 from resotolib.types import Json
 
+
+@define(eq=False, slots=False)
+class AwsCognitoAttributeType:
+    kind: ClassVar[str] = "aws_cognito_attribute_type"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "name": S("Name"),
+        "value": S("Value")
+    }
+    name: Optional[str] = field(default=None)
+    value: Optional[str] = field(default=None)
+
+@define(eq=False, slots=False)
+class AwsCognitoMFAOptionType:
+    kind: ClassVar[str] = "aws_cognito_mfa_option_type"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "delivery_medium": S("DeliveryMedium"),
+        "attribute_name": S("AttributeName")
+    }
+    delivery_medium: Optional[str] = field(default=None)
+    attribute_name: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsCognitoUser(AwsResource):
+    kind: ClassVar[str] = "aws_cognito_user"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("Username"),
+        "name": S("Username"),
+        "ctime": S("UserCreateDate"),
+        "mtime": S("UserLastModifiedDate"),
+        "attributes": S("Attributes", default=[]) >> ForallBend(AwsCognitoAttributeType.mapping),
+        "enabled": S("Enabled"),
+        "user_status": S("UserStatus"),
+        "mfa_options": S("MFAOptions", default=[]) >> ForallBend(AwsCognitoMFAOptionType.mapping)
+    }
+    attributes: List[AwsCognitoAttributeType] = field(factory=list)
+    enabled: Optional[bool] = field(default=None)
+    user_status: Optional[str] = field(default=None)
+    mfa_options: List[AwsCognitoMFAOptionType] = field(factory=list)
 
 @define(eq=False, slots=False)
 class AwsCognitoCustomSMSLambdaVersionConfigType:
@@ -14,8 +56,8 @@ class AwsCognitoCustomSMSLambdaVersionConfigType:
         "lambda_version": S("LambdaVersion"),
         "lambda_arn": S("LambdaArn")
     }
-    lambda_version: Optional[str] = field(default=None)
-    lambda_arn: Optional[str] = field(default=None)
+    lambda_version: str = field(default=None)
+    lambda_arn: str = field(default=None)
 
 @define(eq=False, slots=False)
 class AwsCognitoCustomEmailLambdaVersionConfigType:
@@ -24,8 +66,8 @@ class AwsCognitoCustomEmailLambdaVersionConfigType:
         "lambda_version": S("LambdaVersion"),
         "lambda_arn": S("LambdaArn")
     }
-    lambda_version: Optional[str] = field(default=None)
-    lambda_arn: Optional[str] = field(default=None)
+    lambda_version: str = field(default=None)
+    lambda_arn: str = field(default=None)
 
 @define(eq=False, slots=False)
 class AwsCognitoLambdaConfigType:
@@ -77,7 +119,7 @@ class AwsCognitoUserPool(AwsResource):
 
     @classmethod
     def called_apis(cls) -> List[AwsApiSpec]:
-        return [cls.api_spec, AwsApiSpec("cognito-idp", "list-tags-for-resource")]
+        return [cls.api_spec, AwsApiSpec("cognito-idp", "list-tags-for-resource"), AwsApiSpec("cognito-idp", "list-users")]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
@@ -91,9 +133,31 @@ class AwsCognitoUserPool(AwsResource):
             pool_instance.set_arn(builder=builder, resource=f"userpool/{pool_instance.id}")
             builder.add_node(pool_instance, pool)
             builder.submit_work(add_tags, pool_instance)
-            # for user in builder.client.list("cognito-idp", "list-users", "Users", UserPoolId=pool_instance.id):
-            #     user_instance = AwsCognitoUser.from_api(user)
-            #     builder.add_node(user_instance, user)
+            for user in builder.client.list("cognito-idp", "list-users", "Users", UserPoolId=pool_instance.id):
+                user_instance = AwsCognitoUser.from_api(user)
+                builder.add_node(user_instance, user)
+                builder.add_edge(from_node = pool_instance, edge_type = EdgeType.default, node = user_instance)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if self.lambda_config:
+            if self.lambda_config.custom_sms_sender:
+                builder.dependant_node(
+                self,
+                clazz=AwsLambdaFunction,
+                arn=self.lambda_config.custom_sms_sender.lambda_arn,
+            )
+            if self.lambda_config.custom_email_sender:
+                builder.dependant_node(
+                self,
+                clazz=AwsLambdaFunction,
+                arn=self.lambda_config.custom_email_sender.lambda_arn,
+            )
+            if self.lambda_config.kms_key_id:
+                builder.dependant_node(
+                self,
+                clazz=AwsKmsKey,
+                id=AwsKmsKey.normalise_id(self.lambda_config.kms_key_id),
+            )
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(
@@ -112,4 +176,4 @@ class AwsCognitoUserPool(AwsResource):
         return True
 
 
-resources: List[Type[AwsResource]] = [AwsCognitoUserPool]
+resources: List[Type[AwsResource]] = [AwsCognitoUserPool, AwsCognitoUser]

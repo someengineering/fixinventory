@@ -365,7 +365,8 @@ models: Dict[str, List[AwsResotoModel]] = {
         # )
     ],
     "cognito-idp": [
-        AwsResotoModel("list-user-pools", "UserPools", "ListUserPoolsResponse", prefix="Cognito", prop_prefix="user_pool_")
+        # AwsResotoModel("list-user-pools", "UserPools", "ListUserPoolsResponse", prefix="Cognito", prop_prefix="user_pool_")
+        # AwsResotoModel("list-users", "Users", "ListUsersResponse", prefix="Cognito", prop_prefix="user_")
     ],
     "dynamodb": [
         # AwsResotoModel("list-tables", "TableNames", "TableDescription", prefix="DynamoDb", prop_prefix="dynamodb_"),
