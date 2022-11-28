@@ -3,6 +3,7 @@ from attrs import define, field
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
 from resoto_plugin_aws.resource.kms import AwsKmsKey
+from resoto_plugin_aws.resource.sns import AwsSnsTopic
 from resotolib.baseresources import EdgeType, ModelReference
 from resotolib.json_bender import S, Bend, Bender, ForallBend
 from resotolib.types import Json
@@ -155,7 +156,8 @@ class AwsGlacierJob(AwsResource):
                 clazz=AwsKmsKey,
                 id=AwsKmsKey.normalise_id(self.glacier_job_output_location.s3.encryption.kms_key_id),
             )
-        # TODO add edge to SNS Topic once implemented
+        if self.glacier_job_sns_topic:
+            builder.add_edge(self, clazz=AwsSnsTopic, arn=self.glacier_job_sns_topic)
 
 
 @define(eq=False, slots=False)
