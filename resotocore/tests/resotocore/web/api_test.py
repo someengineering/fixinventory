@@ -5,7 +5,7 @@ from typing import AsyncIterator, List
 
 import pytest
 from _pytest.fixtures import fixture
-from aiohttp import ClientSession
+from aiohttp import ClientSession, MultipartReader
 from arango.database import StandardDatabase
 
 from resotocore.__main__ import run
@@ -305,6 +305,11 @@ async def test_cli(core_client: ApiClient) -> None:
     # execute search with count
     executed = [result async for result in core_client.cli_execute("search is(foo) or is(bla) | count kind", g)]
     assert executed == ["cloud: 1", "foo: 11", "bla: 100", "total matched: 112", "total unmatched: 0"]
+
+    # execute multiple commands
+    response = await core_client.cli_execute_raw("echo foo; echo bar; echo bla")
+    reader: MultipartReader = MultipartReader.from_response(response.undrelying)  # type: ignore
+    assert [await p.text() async for p in reader] == ['"foo"', '"bar"', '"bla"']
 
     # list all cli commands
     info = AccessJson(await core_client.cli_info())
