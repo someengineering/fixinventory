@@ -5,7 +5,7 @@ from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilde
 from resoto_plugin_aws.resource.iam import AwsIamRole
 from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resoto_plugin_aws.resource.lambda_ import AwsLambdaFunction
-from resotolib.baseresources import EdgeType
+from resotolib.baseresources import EdgeType, ModelReference
 from resotolib.json_bender import S, Bend, Bender, ForallBend
 from resotolib.types import Json
 
@@ -14,6 +14,9 @@ from resotolib.types import Json
 class AwsCognitoGroup(AwsResource):
     # collection of group resources happens in AwsCognitoUserPool.collect()
     kind: ClassVar[str] = "aws_cognito_group"
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["aws_iam_role"], "delete": ["aws_iam_role"]}
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("GroupName"),
         "name": S("GroupName"),
@@ -126,6 +129,10 @@ class AwsCognitoLambdaConfigType:
 class AwsCognitoUserPool(AwsResource):
     kind: ClassVar[str] = "aws_cognito_user_pool"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cognito-idp", "list-user-pools", "UserPools")
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {"default": ["aws_cognito_user", "aws_cognito_group", "aws_lambda_function", "aws_kms_key"]},
+        "predecessors": {"delete": ["aws_lambda_function", "aws_kms_key"]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Id"),
         "name": S("Name"),
