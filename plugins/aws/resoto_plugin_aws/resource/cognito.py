@@ -2,11 +2,36 @@ from attrs import define, field
 from typing import ClassVar, Dict, List, Optional, Type, cast
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
+from resoto_plugin_aws.resource.iam import AwsIamRole
 from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resoto_plugin_aws.resource.lambda_ import AwsLambdaFunction
 from resotolib.baseresources import EdgeType
 from resotolib.json_bender import S, Bend, Bender, ForallBend
 from resotolib.types import Json
+
+
+@define(eq=False, slots=False)
+class AwsCognitoGroup(AwsResource):
+    # collection of group resources happens in AwsCognitoUserPool.collect()
+    kind: ClassVar[str] = "aws_cognito_group"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("GroupName"),
+        "name": S("GroupName"),
+        "ctime": S("CreationDate"),
+        "mtime": S("LastModifiedDate"),
+        "user_pool_id": S("UserPoolId"),
+        "description": S("Description"),
+        "role_arn": S("RoleArn"),
+        "precedence": S("Precedence"),
+    }
+    user_pool_id: Optional[str] = field(default=None)
+    description: Optional[str] = field(default=None)
+    role_arn: Optional[str] = field(default=None)
+    precedence: Optional[int] = field(default=None)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if self.role_arn:
+            builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsIamRole, arn=self.role_arn)
 
 
 @define(eq=False, slots=False)
@@ -30,6 +55,7 @@ class AwsCognitoMFAOptionType:
 
 @define(eq=False, slots=False)
 class AwsCognitoUser(AwsResource):
+    # collection of user resources happens in AwsCognitoUserPool.collect()
     kind: ClassVar[str] = "aws_cognito_user"
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Username"),
@@ -117,6 +143,7 @@ class AwsCognitoUserPool(AwsResource):
             cls.api_spec,
             AwsApiSpec("cognito-idp", "list-tags-for-resource"),
             AwsApiSpec("cognito-idp", "list-users"),
+            AwsApiSpec("cognito-idp", "list-groups"),
         ]
 
     @classmethod
@@ -135,6 +162,10 @@ class AwsCognitoUserPool(AwsResource):
                 user_instance = AwsCognitoUser.from_api(user)
                 builder.add_node(user_instance, user)
                 builder.add_edge(from_node=pool_instance, edge_type=EdgeType.default, node=user_instance)
+            for group in builder.client.list("cognito-idp", "list-groups", "Groups", UserPoolId=pool_instance.id):
+                group_instance = AwsCognitoGroup.from_api(group)
+                builder.add_node(group_instance, group)
+                builder.add_edge(from_node=pool_instance, edge_type=EdgeType.default, node=group_instance)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.lambda_config:
@@ -174,4 +205,4 @@ class AwsCognitoUserPool(AwsResource):
         return True
 
 
-resources: List[Type[AwsResource]] = [AwsCognitoUserPool, AwsCognitoUser]
+resources: List[Type[AwsResource]] = [AwsCognitoUserPool, AwsCognitoUser, AwsCognitoGroup]

@@ -15,6 +15,7 @@ def test_user_pools() -> None:
     for node in builder.graph.nodes:
         type_count[node.kind] += 1
     assert type_count["aws_cognito_user"] == 1
+    assert type_count["aws_cognito_group"] == 1
 
 
 def test_tagging_pools() -> None:
