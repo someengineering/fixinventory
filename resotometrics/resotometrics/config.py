@@ -50,6 +50,13 @@ class ResotoMetricsConfig:
             "description": ("Metrics config\n" "See https://resoto.com/docs/reference/cli/aggregate for syntax details")
         },
     )
+    no_tls: bool = field(
+        default=False,
+        metadata={
+            "description": "Disable TLS for the web server, even if Resoto Core uses TLS.",
+            "restart_required": True,
+        },
+    )
     web_host: str = field(
         default="::",
         metadata={
