@@ -211,8 +211,6 @@ class AwsApiGatewayAuthorizer(AwsResource):
     api_link: str = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        # TODO add edge to Cognito User Pool when applicable (via self.authorizer_provider_arns)
-
         if self.authorizer_uri:
             lambda_name = self.authorizer_uri.split(":")[-1].removesuffix("/invocations")
             builder.dependant_node(
@@ -224,6 +222,8 @@ class AwsApiGatewayAuthorizer(AwsResource):
             builder.dependant_node(
                 self, reverse=True, delete_same_as_default=True, clazz=AwsIamRole, arn=self.authorizer_credentials
             )
+        for user_pool in self.authorizer_provider_arns:
+            builder.add_edge(self, edge_type=EdgeType.default, kind="aws_cognito_user_pool", arn=user_pool)
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
