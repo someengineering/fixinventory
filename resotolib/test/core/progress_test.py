@@ -1,3 +1,5 @@
+from typing import Callable, Any, List
+
 from pytest import fixture, raises
 
 from resotolib.core.progress import ProgressDone, Progress, ProgressInfo, ProgressTree
@@ -72,3 +74,17 @@ def test_equality(progress: ProgressTree) -> None:
     assert pgc == progress
     pgc.add_progress(ProgressDone("region1", 2, 2, path=["account1"]))
     assert pgc != progress
+
+
+def test_order() -> None:
+    def order(key: Callable[[Progress], Any]) -> List[str]:
+        pt = ProgressTree("test")
+        pt.add_progress(ProgressDone("a", 10, 10))
+        pt.add_progress(ProgressDone("b", 8, 10))
+        pt.add_progress(ProgressDone("c", 3, 10))
+        pt.add_progress(ProgressDone("d", 1, 10))
+        js = pt.to_json(key=key)
+        return [x["name"] for x in js["parts"]]
+
+    assert order(lambda x: x.name) == ["a", "b", "c", "d"]
+    assert order(lambda x: x.overall_progress().percentage) == ["d", "c", "b", "a"]

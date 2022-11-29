@@ -7,7 +7,7 @@ requests==2.28.1
 prometheus-client==0.15.0
 PyJWT==2.6.0
 CherryPy==18.8.0
-cryptography==38.0.3
+cryptography==38.0.4
 aiohttp[speedups]==3.8.3
 Pint==0.20.1
 parsy==2.0
@@ -15,4 +15,4 @@ tzlocal==4.2
 tzdata==2022.6
 cattrs==22.2.0
 treelib==1.6.1
-setuptools==65.5.1
+setuptools==65.6.3

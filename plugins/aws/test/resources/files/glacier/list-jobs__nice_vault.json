@@ -12,7 +12,7 @@
             "StatusMessage": "string",
             "ArchiveSizeInBytes": 123,
             "InventorySizeInBytes": 123,
-            "SNSTopic": "string",
+            "SNSTopic": "arn:aws:sns:us-west-2:123456789012:my-topic",
             "CompletionDate": "2012-03-20T17:03:43.221Z",
             "SHA256TreeHash": "string",
             "ArchiveSHA256TreeHash": "string",

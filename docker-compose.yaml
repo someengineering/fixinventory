@@ -2,7 +2,7 @@ version: "3"
 
 services:
   graphdb:
-    image: arangodb:3.8.6
+    image: arangodb:3.8.8
     container_name: graphdb
     platform: linux/amd64
     environment:

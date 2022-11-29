@@ -645,6 +645,7 @@ class RunningTask:
         end = EndState(self)
         states: List[StepState] = [start, *steps, end]
         self.states: Dict[str, StepState] = {state.step.name: state for state in states}
+        self.step_name_index = {step.name: i for i, step in enumerate(descriptor.steps)}
         self.machine = Machine(self, states, start, auto_transitions=False, queued=True)
 
         for current_state, next_state in interleave(states):
@@ -676,8 +677,23 @@ class RunningTask:
         return self.progresses.sub_progress(self.current_step.name) or ProgressDone(self.current_step.name, 0, 1)
 
     @property
-    def progress(self) -> Progress:
+    def progress(self) -> ProgressTree:
         return self.progresses
+
+    def progress_json(self) -> Json:
+        max_idx = len(self.step_name_index)
+
+        def order_progress(p: Progress) -> Tuple[int, int, str]:
+            # if the progress is nested, take the first path else the name of the progress
+            step_name = p.path[0] if len(p.path) > 0 else p.name
+            # lookup the index of the step or fallback to the max index
+            idx = self.step_name_index.get(step_name)
+            index = idx if idx is not None else max_idx
+            progress = p.overall_progress().percentage
+            # order by step, progress (done first and in progress later) and name
+            return index, -progress, p.name
+
+        return self.progresses.to_json(key=order_progress)
 
     @property
     def current_state(self) -> StepState:

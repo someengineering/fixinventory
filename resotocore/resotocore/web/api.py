@@ -904,7 +904,7 @@ class Api:
         not_met_requirements = [not_met for line in parsed for not_met in line.unmet_requirements]
         # what is the accepted content type
         # only required for multipart requests
-        boundary = "----cli"
+        boundary = "cli-part"
         mp_response = web.StreamResponse(
             status=200, reason="OK", headers={"Content-Type": f"multipart/mixed;boundary={boundary}"}
         )
@@ -935,6 +935,7 @@ class Api:
                 elif first_result.produces.file_path:
                     await mp_response.prepare(request)
                     await Api.multi_file_response(first_result, gen, boundary, mp_response)
+                    await Api.close_multi_part_response(mp_response, boundary)
                     return mp_response
                 else:
                     raise AttributeError(f"Can not handle type: {first_result.produces}")
@@ -950,12 +951,12 @@ class Api:
                             mp.append_payload(
                                 AsyncIterablePayload(result_stream, content_type=content_type, headers=single.envelope)
                             )
-                            await mp.write(mp_response, close_boundary=True)
+                            await mp.write(mp_response, close_boundary=False)
                     elif single.produces.file_path:
                         await Api.multi_file_response(single, gen, boundary, mp_response)
                     else:
                         raise AttributeError(f"Can not handle type: {single.produces}")
-            await mp_response.write_eof()
+            await Api.close_multi_part_response(mp_response, boundary)
             return mp_response
         else:
             raise AttributeError("No command could be parsed!")
@@ -1044,5 +1045,8 @@ class Api:
                     mp.append_payload(pl)
                     await mp.write(response, close_boundary=False)
 
+    @staticmethod
+    async def close_multi_part_response(response: StreamResponse, boundary: str) -> None:
         with MultipartWriter(boundary=boundary) as mp:
             await mp.write(response, close_boundary=True)
+        await response.write_eof()
