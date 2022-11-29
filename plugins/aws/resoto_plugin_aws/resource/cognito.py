@@ -71,12 +71,12 @@ class AwsCognitoUser(AwsResource):
         "name": S("Username"),
         "ctime": S("UserCreateDate"),
         "mtime": S("UserLastModifiedDate"),
-        "attributes": S("Attributes", default=[]) >> ForallBend(AwsCognitoAttributeType.mapping),
+        "user_attributes": S("Attributes", default=[]) >> ForallBend(AwsCognitoAttributeType.mapping),
         "enabled": S("Enabled"),
         "user_status": S("UserStatus"),
         "mfa_options": S("MFAOptions", default=[]) >> ForallBend(AwsCognitoMFAOptionType.mapping),
     }
-    attributes: List[AwsCognitoAttributeType] = field(factory=list)
+    user_attributes: List[AwsCognitoAttributeType] = field(factory=list)
     enabled: Optional[bool] = field(default=None)
     user_status: Optional[str] = field(default=None)
     mfa_options: List[AwsCognitoMFAOptionType] = field(factory=list)
