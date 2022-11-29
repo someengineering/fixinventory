@@ -1,10 +1,23 @@
-version: "3"
+version: "3.8"
 
 services:
+  graphdb-upgrade:
+    image: arangodb:3.10.1
+    container_name: graphdb-upgrade
+    environment:
+      - ARANGO_ROOT_PASSWORD=
+    ports:
+      - "8529:8529"
+    volumes:
+      - resoto_graphdb_data:/var/lib/arangodb3
+    command:
+      - --database.auto-upgrade
   graphdb:
-    image: arangodb:3.8.8
+    image: arangodb:3.10.1
+    depends_on:
+      graphdb-upgrade:
+        condition: service_completed_successfully
     container_name: graphdb
-    platform: linux/amd64
     environment:
       - ARANGO_ROOT_PASSWORD=
     ports:
