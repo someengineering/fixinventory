@@ -9,7 +9,7 @@ from resoto_plugin_aws.resource.cognito import AwsCognitoUserPool
 def test_user_pools() -> None:
     first, builder = round_trip_for(AwsCognitoUserPool)
     assert len(builder.resources_of(AwsCognitoUserPool)) == 1
-    assert first.arn == "arn:aws:cognito-idp:eu-central-1:test:userpool/eu-central-1_123"
+    assert first.arn == "arn:aws:cognito-idp:eu-central-1:test:userpool/123"
     assert first.tags["model"] == "santorini pro"
     type_count: Dict[str, int] = defaultdict(int)
     for node in builder.graph.nodes:
