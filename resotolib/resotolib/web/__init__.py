@@ -50,7 +50,7 @@ class WebServer(threading.Thread):
         ssl_args = {}
         if self.ssl_cert and self.ssl_key:
             ssl_args = {
-                "server.ssl_module": "builtin",
+                "server.ssl_module": "pyOpenSSL",
                 "server.ssl_certificate": self.ssl_cert,
                 "server.ssl_private_key": self.ssl_key,
             }
