@@ -1,7 +1,7 @@
 {
     "UserPools": [
         {
-            "Id": "hot-tub-123",
+            "Id": "123",
             "Name": "jacuzzi",
             "LambdaConfig": {
                 "PreSignUp": "string",

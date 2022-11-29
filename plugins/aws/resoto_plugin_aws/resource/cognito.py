@@ -168,7 +168,7 @@ class AwsCognitoUserPool(AwsResource):
 
         for pool in json:
             pool_instance = cls.from_api(pool)
-            pool_instance.set_arn(builder=builder, resource=f"userpool/{pool_instance.id}")
+            pool_instance.set_arn(builder=builder, resource=f"userpool/{builder.region.id}_{pool_instance.id}")
             builder.add_node(pool_instance, pool)
             builder.submit_work(add_tags, pool_instance)
             for user in builder.client.list("cognito-idp", "list-users", "Users", UserPoolId=pool_instance.id):

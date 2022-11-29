@@ -6,8 +6,7 @@
             "name": "Authorization Authority",
             "type": "COGNITO_USER_POOLS",
             "providerARNs": [
-                "arn:aws:cognito-idp:region:account_id:userpool/user_pool_id",
-                "arn:aws:cognito-idp:eu-central-1:test:userpool/hot-tub-123"
+                "arn:aws:cognito-idp:eu-central-1:test:userpool/eu-central-1_123"
             ],
             "authType": "string",
             "authorizerUri": "arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/arn:aws:lambda:us-west-2:1234:function:test-lambda-function/invocations",
