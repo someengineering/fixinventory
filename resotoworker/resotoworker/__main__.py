@@ -119,7 +119,7 @@ def main() -> None:
     increase_limits()
 
     web_server_args = {}
-    if tls_data:
+    if tls_data and not Config.resotoworker.no_tls:
         web_server_args = {
             "ssl_cert": tls_data.cert_path,
             "ssl_key": tls_data.key_path,

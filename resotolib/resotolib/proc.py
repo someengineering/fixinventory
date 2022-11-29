@@ -68,7 +68,11 @@ def close_fds(safety_margin: int = 1024) -> None:
     if sys.platform == "win32":
         return
 
-    num_open = max([f.fd for f in psutil.Process().open_files()])
+    open_fds = [f.fd for f in psutil.Process().open_files()]
+    if len(open_fds) == 0:
+        return
+
+    num_open = max(open_fds)
 
     try:
         sc_open_max = os.sysconf("SC_OPEN_MAX")
