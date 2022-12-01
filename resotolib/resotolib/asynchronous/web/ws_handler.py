@@ -49,7 +49,7 @@ async def accept_websocket(
     initial_messages: Optional[Sequence[Any]] = None,
     outgoing_fn: Callable[[T], str] = js_str,
 ) -> WebSocketResponse:
-    ws = WebSocketResponse()
+    ws = WebSocketResponse(autoping=True, heartbeat=20)
     await ws.prepare(request)
     wsid = str(uuid1())
 
