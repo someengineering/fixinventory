@@ -11,7 +11,7 @@ def read(fname):
 
 setup(
     name="resoto-plugin-gcp",
-    version="3.0.0rc4",
+    version="3.0.0rc5",
     description="Resoto GCP Collector Plugin",
     license="Apache 2.0",
     packages=find_packages(),

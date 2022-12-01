@@ -1,2 +1,2 @@
-resotolib==3.0.0rc4
+resotolib==3.0.0rc5
 pyvmomi==7.0.3
