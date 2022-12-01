@@ -15,12 +15,12 @@ def test_tagging() -> None:
     stream, _ = round_trip_for(AwsKinesisStream)
 
     def validate_update_args(**kwargs: Any) -> None:
-        assert kwargs["action"] == "add_tags_to_stream"
+        assert kwargs["action"] == "add-tags-to-stream"
         assert kwargs["StreamName"] == stream.name
         assert kwargs["Tags"] == {"foo": "bar"}
 
     def validate_delete_args(**kwargs: Any) -> None:
-        assert kwargs["action"] == "remove_tags_from_stream"
+        assert kwargs["action"] == "remove-tags-from-stream"
         assert kwargs["StreamName"] == stream.name
         assert kwargs["TagKeys"] == ["foo"]
 
@@ -35,7 +35,7 @@ def test_deletion() -> None:
     stream, _ = round_trip_for(AwsKinesisStream)
 
     def validate_delete_args(**kwargs: Any) -> None:
-        assert kwargs["action"] == "delete_stream"
+        assert kwargs["action"] == "delete-stream"
         assert kwargs["StreamName"] == stream.name
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))

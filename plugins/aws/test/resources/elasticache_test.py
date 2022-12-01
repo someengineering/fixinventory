@@ -24,12 +24,12 @@ def test_tagging() -> None:
     resource, _ = round_trip_for(AwsElastiCacheReplicationGroup)
 
     def validate_update_args(**kwargs: Any) -> None:
-        assert kwargs["action"] == "add_tags_to_resource"
+        assert kwargs["action"] == "add-tags-to-resource"
         assert kwargs["ResourceName"] == resource.arn
         assert kwargs["Tags"] == [{"Key": "foo", "Value": "bar"}]
 
     def validate_delete_args(**kwargs: Any) -> None:
-        assert kwargs["action"] == "remove_tags_from_resource"
+        assert kwargs["action"] == "remove-tags-from-resource"
         assert kwargs["ResourceName"] == resource.arn
         assert kwargs["TagKeys"] == ["foo"]
 
@@ -44,7 +44,7 @@ def test_replication_group_deletion() -> None:
     group, _ = round_trip_for(AwsElastiCacheReplicationGroup)
 
     def validate_delete_args(**kwargs: Any) -> None:
-        assert kwargs["action"] == "delete_replication_group"
+        assert kwargs["action"] == "delete-replication-group"
         assert kwargs["ReplicationGroupId"] == group.id
         assert kwargs["RetainPrimaryCluster"] is False
 
@@ -56,7 +56,7 @@ def test_cluster_deletion() -> None:
     cluster, _ = round_trip_for(AwsElastiCacheCacheCluster)
 
     def validate_delete_args(**kwargs: Any) -> None:
-        assert kwargs["action"] == "delete_cache_cluster"
+        assert kwargs["action"] == "delete-cache-cluster"
         assert kwargs["CacheClusterId"] == cluster.id
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))

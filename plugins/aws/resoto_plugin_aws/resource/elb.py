@@ -18,7 +18,7 @@ class ElbTaggable:
             if spec := self.api_spec:
                 client.call(
                     aws_service=spec.service,
-                    action="add_tags",
+                    action="add-tags",
                     result_name=None,
                     LoadBalancerNames=[self.name],
                     Tags=[{"Key": key, "Value": value}],
@@ -32,7 +32,7 @@ class ElbTaggable:
             if spec := self.api_spec:
                 client.call(
                     aws_service=spec.service,
-                    action="remove_tags",
+                    action="remove-tags",
                     result_name=None,
                     LoadBalancerNames=[self.name],
                     Tags=[{"Key": key}],
@@ -40,6 +40,13 @@ class ElbTaggable:
                 return True
             return False
         return False
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec("elb", "add-tags", override_iam_permission="elasticloadbalancing:AddTags"),
+            AwsApiSpec("elb", "remove-tags", override_iam_permission="elasticloadbalancing:RemoveTags"),
+        ]
 
 
 @define(eq=False, slots=False)
@@ -143,7 +150,12 @@ class AwsElbSourceSecurityGroup:
 @define(eq=False, slots=False)
 class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
     kind: ClassVar[str] = "aws_elb"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("elb", "describe-load-balancers", "LoadBalancerDescriptions")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
+        "elb",
+        "describe-load-balancers",
+        "LoadBalancerDescriptions",
+        override_iam_permission="elasticloadbalancing:DescribeLoadBalancers",
+    )
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["aws_vpc", "aws_ec2_subnet", "aws_ec2_security_group"],
@@ -182,8 +194,15 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
     elb_source_security_group: Optional[AwsElbSourceSecurityGroup] = field(default=None)
 
     @classmethod
-    def called_apis(cls) -> List[AwsApiSpec]:
-        return [cls.api_spec, AwsApiSpec(cls.api_spec.service, "describe-tags")]
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
+        return [
+            cls.api_spec,
+            AwsApiSpec(
+                cls.api_spec.service,
+                "describe-tags",
+                override_iam_permission="elasticloadbalancing:DescribeTags",
+            ),
+        ]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
@@ -211,11 +230,19 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
             aws_service=self.api_spec.service,
-            action="delete_load_balancer",
+            action="delete-load-balancer",
             result_name=None,
             LoadBalancerName=self.name,
         )
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [
+            AwsApiSpec(
+                "elb", "delete-load-balancer", override_iam_permission="elasticloadbalancing:DeleteLoadBalancer"
+            ),
+        ]
 
 
 resources: List[Type[AwsResource]] = [AwsElb]

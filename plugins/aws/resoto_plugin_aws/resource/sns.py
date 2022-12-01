@@ -47,7 +47,7 @@ class AwsSnsTopic(AwsResource):
     topic_content_based_deduplication: Optional[bool] = field(default=None)
 
     @classmethod
-    def called_apis(cls) -> List[AwsApiSpec]:
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
         return [
             cls.api_spec,
             AwsApiSpec("sns", "get-topic-attributes"),
@@ -96,6 +96,14 @@ class AwsSnsTopic(AwsResource):
         client.call(aws_service="sns", action="delete-topic", result_name=None, TopicArn=self.arn)
         return True
 
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec("sns", "tag-resource"),
+            AwsApiSpec("sns", "untag-resource"),
+            AwsApiSpec("sns", "delete-topic"),
+        ]
+
 
 @define(eq=False, slots=False)
 class AwsSnsSubscription(AwsResource):
@@ -131,7 +139,7 @@ class AwsSnsSubscription(AwsResource):
     subscription_role_arn: Optional[str] = field(default=None)
 
     @classmethod
-    def called_apis(cls) -> List[AwsApiSpec]:
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
         return [
             cls.api_spec,
             AwsApiSpec("sns", "get-subscription-attributes"),
@@ -164,6 +172,10 @@ class AwsSnsSubscription(AwsResource):
         client.call(aws_service="sns", action="unsubscribe", result_name=None, SubscriptionArn=self.arn)
         return True
 
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [AwsApiSpec("sns", "unsubscribe")]
+
 
 @define(eq=False, slots=False)
 class AwsSnsEndpoint(AwsResource):
@@ -181,6 +193,10 @@ class AwsSnsEndpoint(AwsResource):
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(aws_service="sns", action="delete-endpoint", result_name=None, EndpointArn=self.arn)
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [AwsApiSpec("sns", "delete-endpoint")]
 
 
 @define(eq=False, slots=False)
@@ -214,7 +230,7 @@ class AwsSnsPlatformApplication(AwsResource):
     application_event_endpoint_failure: Optional[str] = field(default=None)
 
     @classmethod
-    def called_apis(cls) -> List[AwsApiSpec]:
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
         return [
             cls.api_spec,
             AwsApiSpec("sns", "get-platform-application-attributes"),
@@ -263,6 +279,10 @@ class AwsSnsPlatformApplication(AwsResource):
             aws_service="sns", action="delete-platform-application", result_name=None, PlatformApplicationArn=self.arn
         )
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [AwsApiSpec("sns", "delete-platform-application")]
 
 
 resources: List[Type[AwsResource]] = [AwsSnsTopic, AwsSnsSubscription, AwsSnsPlatformApplication, AwsSnsEndpoint]

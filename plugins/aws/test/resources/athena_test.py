@@ -23,12 +23,12 @@ def test_data_catalogs_tagging() -> None:
     res, builder = round_trip_for(AwsAthenaDataCatalog)
 
     def validate_update_args(**kwargs: Any) -> None:
-        assert kwargs["action"] == "tag_resource"
+        assert kwargs["action"] == "tag-resource"
         assert kwargs["ResourceARN"] == res.arn
         assert kwargs["Tags"] == [{"Key": "foo", "Value": "bar"}]
 
     def validate_delete_args(**kwargs: Any) -> None:
-        assert kwargs["action"] == "untag_resource"
+        assert kwargs["action"] == "untag-resource"
         assert kwargs["ResourceARN"] == res.arn
         assert kwargs["TagKeys"] == ["foo"]
 
@@ -43,12 +43,12 @@ def test_workgroup_tagging() -> None:
     res, builder = round_trip_for(AwsAthenaWorkGroup)
 
     def validate_update_args(**kwargs: Any) -> None:
-        assert kwargs["action"] == "tag_resource"
+        assert kwargs["action"] == "tag-resource"
         assert kwargs["ResourceARN"] == res.arn
         assert kwargs["Tags"] == [{"Key": "foo", "Value": "bar"}]
 
     def validate_delete_args(**kwargs: Any) -> None:
-        assert kwargs["action"] == "untag_resource"
+        assert kwargs["action"] == "untag-resource"
         assert kwargs["ResourceARN"] == res.arn
         assert kwargs["TagKeys"] == ["foo"]
 

@@ -65,7 +65,7 @@ class AwsSqsQueue(AwsResource):
     sqs_managed_sse_enabled: Optional[bool] = field(default=None)
 
     @classmethod
-    def called_apis(cls) -> List[AwsApiSpec]:
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
         return [cls.api_spec, AwsApiSpec("sqs", "get-queue-attributes"), AwsApiSpec("sqs", "list-queue-tags")]
 
     @classmethod
@@ -113,6 +113,14 @@ class AwsSqsQueue(AwsResource):
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(aws_service="sqs", action="delete-queue", result_name=None, QueueUrl=self.sqs_queue_url)
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec("sqs", "tag-queue"),
+            AwsApiSpec("sqs", "untag-queue"),
+            AwsApiSpec("sqs", "delete-queue"),
+        ]
 
 
 resources: List[Type[AwsResource]] = [AwsSqsQueue]

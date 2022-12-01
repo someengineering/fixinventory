@@ -1,14 +1,14 @@
 import json
 import logging
 import threading
-from typing import Type
+from typing import Type, List, Tuple, Set
 
 from _pytest.logging import LogCaptureFixture
 from botocore.exceptions import ClientError
 from networkx import DiGraph, is_directed_acyclic_graph
 
-from resoto_plugin_aws.collector import AwsAccountCollector, all_resources, called_collect_apis
-from resoto_plugin_aws.resource.base import AwsResource, AwsRegion, GraphBuilder
+from resoto_plugin_aws.collector import AwsAccountCollector, all_resources, called_collect_apis, called_mutator_apis
+from resoto_plugin_aws.resource.base import AwsResource, AwsRegion, GraphBuilder, AwsApiSpec
 from resotolib.core.model_export import dataclasses_to_resotocore_model
 from test import account_collector, builder, aws_client, aws_config, no_feedback  # noqa: F401
 from test.resources import BotoErrorSession
@@ -72,20 +72,16 @@ def test_collect_region(
 
 
 def test_all_called_apis() -> None:
-    allow = [api.action_string() for api in called_collect_apis()]
-    allowed = ", ".join(f'"{a}"' for a in allow)
-    statement = f"""{{
-    "Version": "2012-10-17",
-    "Statement": [
-        {{
-            "Sid": "AllowResotoAccess",
-            "Effect": "Allow",
-            "Action": [{allowed}],
-            "Resource": "*"
-        }}
-    ]
-    }}
-    """
-    assert json.loads(statement)
-    assert len(allow) >= 74
-    assert "s3:ListBuckets" in allow
+    def iam_statement(name: str, apis: List[AwsApiSpec]) -> Tuple[Set[str], str]:
+        permissions = {api.iam_permission() for api in apis}
+        doc = dict(Sid=name, Effect="Allow", Action=sorted(permissions), Resource="*")
+        return permissions, json.dumps(doc, indent=2)
+
+    collect_allow, collect_statement = iam_statement("ResotoCollectPermission", called_collect_apis())
+    print("\n\n", collect_statement, "\n\n")
+    assert json.loads(collect_statement)
+    assert len(collect_allow) >= 74
+    assert "s3:ListBucket" in collect_allow
+
+    mutate_allow, mutate_statement = iam_statement("ResotoMutatePermission", called_mutator_apis())
+    print("\n\n", mutate_statement, "\n\n")

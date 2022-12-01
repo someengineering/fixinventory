@@ -28,12 +28,12 @@ def test_tagging() -> None:
     alarm, _ = round_trip_for(AwsCloudwatchAlarm)
 
     def validate_update_args(**kwargs: Any) -> None:
-        assert kwargs["action"] == "tag_resource"
+        assert kwargs["action"] == "tag-resource"
         assert kwargs["ResourceARN"] == alarm.arn
         assert kwargs["Tags"] == [{"Key": "foo", "Value": "bar"}]
 
     def validate_delete_args(**kwargs: Any) -> None:
-        assert kwargs["action"] == "untag_resource"
+        assert kwargs["action"] == "untag-resource"
         assert kwargs["ResourceARN"] == alarm.arn
         assert kwargs["TagKeys"] == ["foo"]
 
@@ -48,7 +48,7 @@ def test_deletion() -> None:
     alarm, _ = round_trip_for(AwsCloudwatchAlarm)
 
     def validate_delete_args(**kwargs: Any) -> None:
-        assert kwargs["action"] == "delete_alarms"
+        assert kwargs["action"] == "delete-alarms"
         assert kwargs["AlarmNames"] == [alarm.name]
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))

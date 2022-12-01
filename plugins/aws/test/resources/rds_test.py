@@ -15,12 +15,12 @@ def test_tagging() -> None:
     instance, _ = round_trip_for(AwsRdsInstance)
 
     def validate_update_args(**kwargs: Any) -> None:
-        assert kwargs["action"] == "add_tags_to_resource"
+        assert kwargs["action"] == "add-tags-to-resource"
         assert kwargs["ResourceName"] == instance.arn
         assert kwargs["Tags"] == [{"Key": "foo", "Value": "bar"}]
 
     def validate_delete_args(**kwargs: Any) -> None:
-        assert kwargs["action"] == "remove_tags_from_resource"
+        assert kwargs["action"] == "remove-tags-from-resource"
         assert kwargs["ResourceName"] == instance.arn
         assert kwargs["TagKeys"] == ["foo"]
 
@@ -35,7 +35,7 @@ def test_deletion() -> None:
     instance, _ = round_trip_for(AwsRdsInstance)
 
     def validate_delete_args(**kwargs: Any) -> None:
-        assert kwargs["action"] == "delete_db_instance"
+        assert kwargs["action"] == "delete-db-instance"
         assert kwargs["DBInstanceIdentifier"] == instance.name
         assert kwargs["SkipFinalSnapshot"] is True
 

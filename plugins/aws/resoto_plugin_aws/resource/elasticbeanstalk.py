@@ -84,7 +84,7 @@ class AwsBeanstalkApplication(AwsResource):
     beanstalk_resource_lifecycle_config: Optional[AwsBeanstalkApplicationResourceLifecycleConfig] = field(default=None)
 
     @classmethod
-    def called_apis(cls) -> List[AwsApiSpec]:
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
         return [cls.api_spec, AwsApiSpec(cls.api_spec.service, "list-tags-for-resource")]
 
     @classmethod
@@ -126,6 +126,13 @@ class AwsBeanstalkApplication(AwsResource):
             aws_service=self.api_spec.service, action="delete-application", result_name=None, ApplicationName=self.name
         )
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec("elasticbeanstalk", "update-tags-for-resource"),
+            AwsApiSpec("elasticbeanstalk", "delete-application"),
+        ]
 
 
 @define(eq=False, slots=False)
@@ -253,7 +260,7 @@ class AwsBeanstalkEnvironment(AwsResource):
     beanstalk_operations_role: Optional[str] = field(default=None)
 
     @classmethod
-    def called_apis(cls) -> List[AwsApiSpec]:
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
         return [
             cls.api_spec,
             AwsApiSpec(cls.api_spec.service, "describe-environment-resources"),
@@ -356,6 +363,13 @@ class AwsBeanstalkEnvironment(AwsResource):
             EnvironmentName=self.name,
         )
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec("elasticbeanstalk", "update-tags-for-resource"),
+            AwsApiSpec("elasticbeanstalk", "terminate-environment"),
+        ]
 
 
 resources: List[Type[AwsResource]] = [AwsBeanstalkApplication, AwsBeanstalkEnvironment]

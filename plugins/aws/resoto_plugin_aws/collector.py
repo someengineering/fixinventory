@@ -83,9 +83,16 @@ def called_collect_apis() -> List[AwsApiSpec]:
     """
     # list all calls here, that are not defined in any resource.
     additional_calls = [AwsApiSpec("pricing", "get-products")]
-    specs = [spec for r in all_resources for spec in r.called_apis()] + additional_calls
-    unique_specs = {f"{spec.service}::{spec.api_action}": spec for spec in specs}
-    return sorted(unique_specs.values(), key=lambda s: s.service + "::" + s.api_action)
+    specs = [spec for r in all_resources for spec in r.called_collect_apis()] + additional_calls
+    return sorted(specs, key=lambda s: s.service + "::" + s.api_action)
+
+
+def called_mutator_apis() -> List[AwsApiSpec]:
+    """
+    Return a list of all the APIs that are called to mutate resources.
+    """
+    specs = [spec for r in all_resources for spec in r.called_mutator_apis()]
+    return sorted(specs, key=lambda s: s.service + "::" + s.api_action)
 
 
 class AwsAccountCollector:
