@@ -32,6 +32,10 @@ class AwsCognitoGroup(AwsResource):
     role_arn: Optional[str] = field(default=None)
     precedence: Optional[int] = field(default=None)
 
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [AwsApiSpec("cognito-idp", "delete-group")]
+
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.role_arn:
             builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsIamRole, arn=self.role_arn)
@@ -151,12 +155,20 @@ class AwsCognitoUserPool(AwsResource):
     status: Optional[str] = field(default=None)
 
     @classmethod
-    def called_apis(cls) -> List[AwsApiSpec]:
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
         return [
             cls.api_spec,
             AwsApiSpec("cognito-idp", "list-tags-for-resource"),
             AwsApiSpec("cognito-idp", "list-users"),
             AwsApiSpec("cognito-idp", "list-groups"),
+        ]
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec("cognito-idp", "tag-resource"),
+            AwsApiSpec("cognito-idp", "untag-resource"),
+            AwsApiSpec("cognito-idp", "delete-user-pool"),
         ]
 
     @classmethod
