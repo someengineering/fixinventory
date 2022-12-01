@@ -91,7 +91,9 @@ def called_mutator_apis() -> List[AwsApiSpec]:
     """
     Return a list of all the APIs that are called to mutate resources.
     """
-    specs = [spec for r in all_resources for spec in r.called_mutator_apis()]
+    # explicitly list all calls here, that should be allowed to mutate resources.
+    additional_calls = [AwsApiSpec("ec2", "start-instances"), AwsApiSpec("ec2", "stop-instances")]
+    specs = [spec for r in all_resources for spec in r.called_mutator_apis()] + additional_calls
     return sorted(specs, key=lambda s: s.service + "::" + s.api_action)
 
 
