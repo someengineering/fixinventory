@@ -5,7 +5,7 @@ from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilde
 from resoto_plugin_aws.resource.iam import AwsIamRole
 from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resoto_plugin_aws.resource.lambda_ import AwsLambdaFunction
-from resotolib.baseresources import EdgeType, ModelReference
+from resotolib.baseresources import BaseUser, EdgeType, ModelReference
 from resotolib.json_bender import S, Bend, Bender, ForallBend
 from resotolib.types import Json
 
@@ -63,7 +63,7 @@ class AwsCognitoMFAOptionType:
 
 
 @define(eq=False, slots=False)
-class AwsCognitoUser(AwsResource):
+class AwsCognitoUser(AwsResource, BaseUser):
     # collection of user resources happens in AwsCognitoUserPool.collect()
     kind: ClassVar[str] = "aws_cognito_user"
     mapping: ClassVar[Dict[str, Bender]] = {
