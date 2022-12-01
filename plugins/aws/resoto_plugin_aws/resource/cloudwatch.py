@@ -21,7 +21,7 @@ class CloudwatchTaggable:
             if spec := self.api_spec:
                 client.call(
                     aws_service=spec.service,
-                    action="tag_resource",
+                    action="tag-resource",
                     result_name=None,
                     ResourceARN=self.arn,
                     Tags=[{"Key": key, "Value": value}],
@@ -35,7 +35,7 @@ class CloudwatchTaggable:
             if spec := self.api_spec:
                 client.call(
                     aws_service=spec.service,
-                    action="untag_resource",
+                    action="untag-resource",
                     result_name=None,
                     ResourceARN=self.arn,
                     TagKeys=[key],
@@ -43,6 +43,10 @@ class CloudwatchTaggable:
                 return True
             return False
         return False
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [AwsApiSpec("cloudwatch", "tag-resource"), AwsApiSpec("cloudwatch", "untag-resource")]
 
 
 @define(eq=False, slots=False)
@@ -185,8 +189,12 @@ class AwsCloudwatchAlarm(CloudwatchTaggable, AwsResource):
             )
 
     def delete_resource(self, client: AwsClient) -> bool:
-        client.call(aws_service=self.api_spec.service, action="delete_alarms", result_name=None, AlarmNames=[self.name])
+        client.call(aws_service=self.api_spec.service, action="delete-alarms", result_name=None, AlarmNames=[self.name])
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [AwsApiSpec("cloudwatch", "delete-alarms")]
 
 
 @define(hash=True, frozen=True)

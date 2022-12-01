@@ -228,7 +228,7 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
     function_ephemeral_storage: Optional[int] = field(default=None)
 
     @classmethod
-    def called_apis(cls) -> List[AwsApiSpec]:
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
         return [cls.api_spec, AwsApiSpec("lambda", "list-tags")]
 
     @classmethod
@@ -294,7 +294,7 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(
             aws_service=self.api_spec.service,
-            action="tag_resource",
+            action="tag-resource",
             result_name=None,
             Resource=self.arn,
             Tags={key: value},
@@ -304,7 +304,7 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
         client.call(
             aws_service=self.api_spec.service,
-            action="untag_resource",
+            action="untag-resource",
             result_name=None,
             Resource=self.arn,
             TagKeys=[key],
@@ -313,9 +313,17 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
-            aws_service=self.api_spec.service, action="delete_function", result_name=None, FunctionName=self.arn
+            aws_service=self.api_spec.service, action="delete-function", result_name=None, FunctionName=self.arn
         )
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec("lambda", "tag-resource"),
+            AwsApiSpec("lambda", "untag-resource"),
+            AwsApiSpec("lambda", "delete-function"),
+        ]
 
 
 resources: List[Type[AwsResource]] = [AwsLambdaFunction]

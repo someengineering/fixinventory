@@ -21,11 +21,11 @@ def test_cloud_formation_stack_tagging() -> None:
 
     def validate_args(delete: bool, **kwargs: Any) -> Any:
 
-        assert kwargs["action"] in {"describe_stacks", "update_stack"}
+        assert kwargs["action"] in {"describe_stacks", "update-stack"}
         if kwargs["action"] == "describe_stacks":
             assert kwargs["StackName"] == cf.name
             return [{"StackStatus": "complete"}]
-        if kwargs["action"] == "update_stack":
+        if kwargs["action"] == "update-stack":
             tags = cf.tags
             if delete:
                 del tags[tag]
@@ -50,7 +50,7 @@ def test_cloud_formation_stack_delete() -> None:
     cf, _ = round_trip_for(AwsCloudFormationStack)
 
     def validate_args(**kwargs: Any) -> Any:
-        assert kwargs["action"] == "delete_stack"
+        assert kwargs["action"] == "delete-stack"
         assert kwargs["StackName"] == cf.name
 
     client = cast(AwsClient, SimpleNamespace(call=partial(validate_args)))
@@ -63,7 +63,7 @@ def test_cloud_formation_stack_set_tagging() -> None:
 
     def validate_args(delete: bool, **kwargs: Any) -> None:
 
-        assert kwargs["action"] == "update_stack_set"
+        assert kwargs["action"] == "update-stack-set"
         tags = cf.tags
         if delete:
             del tags["bar"]
@@ -89,7 +89,7 @@ def test_cloud_formation_stack_set_delete() -> None:
     cf, _ = round_trip_for(AwsCloudFormationStackSet)
 
     def validate_args(**kwargs: Any) -> None:
-        assert kwargs["action"] == "delete_stack_set"
+        assert kwargs["action"] == "delete-stack-set"
         assert kwargs["StackSetName"] == cf.name
 
     client = cast(AwsClient, SimpleNamespace(call=partial(validate_args)))

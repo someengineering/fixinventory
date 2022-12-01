@@ -58,7 +58,7 @@ def test_delete_shapshot() -> None:
     snapshot, _ = round_trip_for(AwsEc2Snapshot)
 
     def validate_delete_args(**kwargs: Any) -> None:
-        assert kwargs["action"] == "delete_snapshot"
+        assert kwargs["action"] == "delete-snapshot"
         assert kwargs["SnapshotId"] == snapshot.id
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
@@ -73,7 +73,7 @@ def test_delete_keypair() -> None:
     keypair, _ = round_trip_for(AwsEc2KeyPair)
 
     def validate_delete_args(**kwargs: Any) -> None:
-        assert kwargs["action"] == "delete_key_pair"
+        assert kwargs["action"] == "delete-key-pair"
         assert kwargs["KeyPairId"] == keypair.id
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
@@ -88,7 +88,7 @@ def test_delete_instances() -> None:
     instance, _ = round_trip_for(AwsEc2Instance)
 
     def validate_delete_args(**kwargs: Any) -> None:
-        assert kwargs["action"] == "terminate_instances"
+        assert kwargs["action"] == "terminate-instances"
         assert kwargs["InstanceIds"] == [instance.id]
         assert kwargs["DryRun"] is False
 
@@ -104,7 +104,7 @@ def test_delete_network_acl() -> None:
     network_acl, _ = round_trip_for(AwsEc2NetworkAcl)
 
     def validate_delete_args(**kwargs: Any) -> None:
-        assert kwargs["action"] == "delete_network_acl"
+        assert kwargs["action"] == "delete-network-acl"
         assert kwargs["NetworkAclId"] == network_acl.id
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
@@ -120,10 +120,10 @@ def test_delete_elastic_ips() -> None:
 
     def validate_delete_args(**kwargs: Any) -> None:
 
-        assert kwargs["action"] in {"release_address", "disassociate_address"}
-        if kwargs["action"] == "disassociate_address":
+        assert kwargs["action"] in {"release-address", "disassociate-address"}
+        if kwargs["action"] == "disassociate-address":
             assert kwargs["AssociationId"] == elastic_ip.ip_association_id
-        if kwargs["action"] == "release_address":
+        if kwargs["action"] == "release-address":
             assert kwargs["AllocationId"] == elastic_ip.ip_allocation_id
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
@@ -143,7 +143,7 @@ def test_delete_network_interfaces() -> None:
     network_interface, _ = round_trip_for(AwsEc2NetworkInterface)
 
     def validate_delete_args(**kwargs: Any) -> None:
-        assert kwargs["action"] == "delete_network_interface"
+        assert kwargs["action"] == "delete-network-interface"
         assert kwargs["NetworkInterfaceId"] == network_interface.id
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
@@ -158,7 +158,7 @@ def test_delete_vpcs() -> None:
     vpc, _ = round_trip_for(AwsEc2Vpc)
 
     def validate_delete_args(**kwargs: Any) -> None:
-        assert kwargs["action"] == "delete_vpc"
+        assert kwargs["action"] == "delete-vpc"
         assert kwargs["VpcId"] == vpc.id
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
@@ -173,7 +173,7 @@ def test_delete_vpc_peering_connections() -> None:
     vpc_peering_connection, _ = round_trip_for(AwsEc2VpcPeeringConnection)
 
     def validate_delete_args(**kwargs: Any) -> None:
-        assert kwargs["action"] == "delete_vpc_peering_connection"
+        assert kwargs["action"] == "delete-vpc-peering-connection"
         assert kwargs["VpcPeeringConnectionId"] == vpc_peering_connection.id
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
@@ -188,7 +188,7 @@ def test_delete_vpc_endpoints() -> None:
     vpc_endpoint, _ = round_trip_for(AwsEc2VpcEndpoint)
 
     def validate_delete_args(**kwargs: Any) -> None:
-        assert kwargs["action"] == "delete_vpc_endpoints"
+        assert kwargs["action"] == "delete-vpc-endpoints"
         assert kwargs["VpcEndpointIds"] == [vpc_endpoint.id]
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
@@ -203,7 +203,7 @@ def test_delete_subnets() -> None:
     subnet, _ = round_trip_for(AwsEc2Subnet)
 
     def validate_delete_args(**kwargs: Any) -> None:
-        assert kwargs["action"] == "delete_subnet"
+        assert kwargs["action"] == "delete-subnet"
         assert kwargs["SubnetId"] == subnet.id
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
@@ -218,7 +218,7 @@ def test_delete_route_table() -> None:
     route_table, _ = round_trip_for(AwsEc2RouteTable)
 
     def validate_delete_args(**kwargs: Any) -> None:
-        assert kwargs["action"] == "delete_route_table"
+        assert kwargs["action"] == "delete-route-table"
         assert kwargs["RouteTableId"] == route_table.id
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
@@ -233,10 +233,10 @@ def test_delete_security_groups() -> None:
     security_group, _ = round_trip_for(AwsEc2SecurityGroup)
 
     def validate_delete_args(**kwargs: Any) -> Any:
-        if kwargs["action"] == "describe_security_groups":
+        if kwargs["action"] == "describe-security-groups":
             return [dict()]
 
-        if kwargs["action"] == "delete_security_group":
+        if kwargs["action"] == "delete-security-group":
             assert kwargs["GroupId"] == security_group.id
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
@@ -251,7 +251,7 @@ def test_delete_nat_gateways() -> None:
     nat_gateway, _ = round_trip_for(AwsEc2NatGateway)
 
     def validate_delete_args(**kwargs: Any) -> None:
-        assert kwargs["action"] == "delete_nat_gateway"
+        assert kwargs["action"] == "delete-nat-gateway"
         assert kwargs["NatGatewayId"] == nat_gateway.id
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
@@ -266,7 +266,7 @@ def test_delete_internet_gateways() -> None:
     internet_gateway, _ = round_trip_for(AwsEc2InternetGateway)
 
     def validate_delete_args(**kwargs: Any) -> None:
-        assert kwargs["action"] == "delete_internet_gateway"
+        assert kwargs["action"] == "delete-internet-gateway"
         assert kwargs["InternetGatewayId"] == internet_gateway.id
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
@@ -292,12 +292,12 @@ def test_tagging() -> None:
     instance, _ = round_trip_for(AwsEc2Instance)
 
     def validate_update_args(**kwargs: Any) -> None:
-        assert kwargs["action"] == "create_tags"
+        assert kwargs["action"] == "create-tags"
         assert kwargs["Resources"] == [instance.id]
         assert kwargs["Tags"] == [{"Key": "foo", "Value": "bar"}]
 
     def validate_delete_args(**kwargs: Any) -> None:
-        assert kwargs["action"] == "delete_tags"
+        assert kwargs["action"] == "delete-tags"
         assert kwargs["Resources"] == [instance.id]
         assert kwargs["Tags"] == [{"Key": "foo"}]
 

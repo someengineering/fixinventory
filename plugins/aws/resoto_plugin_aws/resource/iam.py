@@ -124,7 +124,7 @@ class AwsIamRole(AwsResource):
         return iam_update_tag(
             resource=self,
             client=client,
-            action="tag_role",
+            action="tag-role",
             key=key,
             value=value,
             RoleName=self.name,
@@ -134,7 +134,7 @@ class AwsIamRole(AwsResource):
         return iam_delete_tag(
             resource=self,
             client=client,
-            action="untag_role",
+            action="untag-role",
             key=key,
             RoleName=self.name,
         )
@@ -147,7 +147,7 @@ class AwsIamRole(AwsResource):
                 self.log(log_msg)
                 client.call(
                     aws_service="iam",
-                    action="detach_role_policy",
+                    action="detach-role-policy",
                     result_name=None,
                     PolicyArn=successor.arn,
                     RoleName=self.name,
@@ -158,7 +158,7 @@ class AwsIamRole(AwsResource):
             self.log(log_msg)
             client.call(
                 aws_service="iam",
-                action="delete_role_policy",
+                action="delete-role-policy",
                 result_name=None,
                 PolicyName=role_policy.policy_name,
                 RoleName=self.name,
@@ -167,8 +167,18 @@ class AwsIamRole(AwsResource):
         return True
 
     def delete_resource(self, client: AwsClient) -> bool:
-        client.call(aws_service="iam", action="delete_role", result_name=None, RoleName=self.name)
+        client.call(aws_service="iam", action="delete-role", result_name=None, RoleName=self.name)
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec("iam", "tag-role"),
+            AwsApiSpec("iam", "untag-role"),
+            AwsApiSpec("iam", "detach-role-policy"),
+            AwsApiSpec("iam", "delete-role-policy"),
+            AwsApiSpec("iam", "delete-role"),
+        ]
 
 
 @define(eq=False, slots=False)
@@ -190,7 +200,7 @@ class AwsIamServerCertificate(AwsResource, BaseCertificate):
         return iam_update_tag(
             resource=self,
             client=client,
-            action="tag_server_certificate",
+            action="tag-server-certificate",
             key=key,
             value=value,
             ServerCertificateName=self.name,
@@ -200,7 +210,7 @@ class AwsIamServerCertificate(AwsResource, BaseCertificate):
         return iam_delete_tag(
             resource=self,
             client=client,
-            action="untag_server_certificate",
+            action="untag-server-certificate",
             key=key,
             ServerCertificateName=self.name,
         )
@@ -208,11 +218,19 @@ class AwsIamServerCertificate(AwsResource, BaseCertificate):
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
             aws_service=self.api_spec.service,
-            action="delete_server_certificate",
+            action="delete-server-certificate",
             result_name=None,
             ServerCertificateName=self.name,
         )
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec("iam", "tag-server-certificate"),
+            AwsApiSpec("iam", "untag-server-certificate"),
+            AwsApiSpec("iam", "delete-server-certificate"),
+        ]
 
 
 @define(eq=False, slots=False)
@@ -244,7 +262,7 @@ class AwsIamPolicy(AwsResource, BasePolicy):
         return iam_update_tag(
             resource=self,
             client=client,
-            action="tag_policy",
+            action="tag-policy",
             key=key,
             value=value,
             PolicyArn=self.arn,
@@ -254,7 +272,7 @@ class AwsIamPolicy(AwsResource, BasePolicy):
         return iam_delete_tag(
             resource=self,
             client=client,
-            action="untag_policy",
+            action="untag-policy",
             key=key,
             PolicyArn=self.arn,
         )
@@ -262,11 +280,19 @@ class AwsIamPolicy(AwsResource, BasePolicy):
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
             aws_service="iam",
-            action="delete_policy",
+            action="delete-policy",
             result_name=None,
             PolicyArn=self.arn,
         )
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec("iam", "tag-policy"),
+            AwsApiSpec("iam", "untag-policy"),
+            AwsApiSpec("iam", "delete-policy"),
+        ]
 
 
 @define(eq=False, slots=False)
@@ -300,7 +326,7 @@ class AwsIamGroup(AwsResource, BaseGroup):
                 self.log(log_msg)
                 client.call(
                     aws_service="iam",
-                    action="detach_group_policy",
+                    action="detach-group-policy",
                     result_name=None,
                     GroupName=self.name,
                     PolicyArn=successor.arn,
@@ -311,7 +337,7 @@ class AwsIamGroup(AwsResource, BaseGroup):
             self.log(log_msg)
             client.call(
                 aws_service="iam",
-                action="delete_group_policy",
+                action="delete-group-policy",
                 result_name=None,
                 GroupName=self.name,
                 PolicyName=group_policy,
@@ -322,11 +348,19 @@ class AwsIamGroup(AwsResource, BaseGroup):
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
             aws_service="iam",
-            action="delete_group",
+            action="delete-group",
             result_name=None,
             GroupName=self.name,
         )
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec("iam", "detach-group-policy"),
+            AwsApiSpec("iam", "delete-group-policy"),
+            AwsApiSpec("iam", "delete-group"),
+        ]
 
 
 @define(eq=False, slots=False)
@@ -385,7 +419,7 @@ class AwsIamUser(AwsResource, BaseUser):
     user_permissions_boundary: Optional[AwsIamAttachedPermissionsBoundary] = field(default=None)
 
     @classmethod
-    def called_apis(cls) -> List[AwsApiSpec]:
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
         return [
             cls.api_spec,
             AwsApiSpec("iam", "list-access-keys"),
@@ -433,10 +467,10 @@ class AwsIamUser(AwsResource, BaseUser):
             builder.add_edge(self, reverse=True, clazz=AwsIamGroup, arn=arn)
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
-        return iam_update_tag(resource=self, client=client, action="tag_user", key=key, value=value, UserName=self.name)
+        return iam_update_tag(resource=self, client=client, action="tag-user", key=key, value=value, UserName=self.name)
 
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
-        return iam_delete_tag(resource=self, client=client, action="untag_user", key=key, UserName=self.name)
+        return iam_delete_tag(resource=self, client=client, action="untag-user", key=key, UserName=self.name)
 
     def pre_delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         for successor in self.successors(graph, edge_type=EdgeType.delete):
@@ -445,7 +479,7 @@ class AwsIamUser(AwsResource, BaseUser):
                 self.log(log_msg)
                 client.call(
                     aws_service="iam",
-                    action="detach_user_policy",
+                    action="detach-user-policy",
                     result_name=None,
                     UserName=self.name,
                     PolicyArn=successor.arn,
@@ -456,7 +490,7 @@ class AwsIamUser(AwsResource, BaseUser):
             self.log(log_msg)
             client.call(
                 aws_service="iam",
-                action="delete_user_policy",
+                action="delete-user-policy",
                 result_name=None,
                 UserName=self.name,
                 PolicyName=user_policy.policy_name,
@@ -465,8 +499,18 @@ class AwsIamUser(AwsResource, BaseUser):
         return True
 
     def delete_resource(self, client: AwsClient) -> bool:
-        client.call(aws_service="iam", action="delete_user", result_name=None, UserName=self.name)
+        client.call(aws_service="iam", action="delete-user", result_name=None, UserName=self.name)
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec("iam", "tag-user"),
+            AwsApiSpec("iam", "untag-user"),
+            AwsApiSpec("iam", "detach-user-policy"),
+            AwsApiSpec("iam", "delete-user-policy"),
+            AwsApiSpec("iam", "delete-user"),
+        ]
 
 
 @define(eq=False, slots=False)
@@ -486,7 +530,7 @@ class AwsIamInstanceProfile(AwsResource, BaseInstanceProfile):
         return iam_update_tag(
             resource=self,
             client=client,
-            action="tag_instance_profile",
+            action="tag-instance-profile",
             key=key,
             value=value,
             InstanceProfileName=self.name,
@@ -494,7 +538,7 @@ class AwsIamInstanceProfile(AwsResource, BaseInstanceProfile):
 
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
         return iam_delete_tag(
-            resource=self, client=client, action="untag_instance_profile", key=key, InstanceProfileName=self.name
+            resource=self, client=client, action="untag-instance-profile", key=key, InstanceProfileName=self.name
         )
 
     def pre_delete_resource(self, client: AwsClient, graph: Graph) -> bool:
@@ -504,7 +548,7 @@ class AwsIamInstanceProfile(AwsResource, BaseInstanceProfile):
                 self.log(log_msg)
                 client.call(
                     aws_service="iam",
-                    action="remove_role_from_instance_profile",
+                    action="remove-role-from-instance-profile",
                     result_name=None,
                     RoleName=predecessor.name,
                     InstanceProfileName=self.name,
@@ -513,9 +557,18 @@ class AwsIamInstanceProfile(AwsResource, BaseInstanceProfile):
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
-            aws_service="iam", action="delete_instance_profile", result_name=None, InstanceProfileName=self.name
+            aws_service="iam", action="delete-instance-profile", result_name=None, InstanceProfileName=self.name
         )
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec("iam", "tag-instance-profile"),
+            AwsApiSpec("iam", "untag-instance-profile"),
+            AwsApiSpec("iam", "remove-role-from-instance-profile"),
+            AwsApiSpec("iam", "delete-instance-profile"),
+        ]
 
 
 resources: List[Type[AwsResource]] = [

@@ -20,7 +20,7 @@ class ElastiCacheTaggable:
         if isinstance(self, AwsResource):
             client.call(
                 aws_service="elasticache",
-                action="add_tags_to_resource",
+                action="add-tags-to-resource",
                 result_name=None,
                 ResourceName=self.arn,
                 Tags=[{"Key": key, "Value": value}],
@@ -32,13 +32,20 @@ class ElastiCacheTaggable:
         if isinstance(self, AwsResource):
             client.call(
                 aws_service="elasticache",
-                action="remove_tags_from_resource",
+                action="remove-tags-from-resource",
                 result_name=None,
                 ResourceName=self.arn,
                 TagKeys=[key],
             )
             return True
         return False
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec("elasticache", "add-tags-to-resource"),
+            AwsApiSpec("elasticache", "remove-tags-from-resource"),
+        ]
 
 
 @define(eq=False, slots=False)
@@ -254,12 +261,16 @@ class AwsElastiCacheCacheCluster(ElastiCacheTaggable, AwsResource):
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
-            aws_service=self.api_spec.service, action="delete_cache_cluster", result_name=None, CacheClusterId=self.id
+            aws_service=self.api_spec.service, action="delete-cache-cluster", result_name=None, CacheClusterId=self.id
         )
         return True
 
     @classmethod
-    def called_apis(cls) -> List[AwsApiSpec]:
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [AwsApiSpec("elasticache", "delete-cache-cluster")]
+
+    @classmethod
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
         return [cls.api_spec, AwsApiSpec(cls.api_spec.service, "list-tags-for-resource")]
 
     @classmethod
@@ -444,7 +455,7 @@ class AwsElastiCacheReplicationGroup(ElastiCacheTaggable, AwsResource):
     replication_group_data_tiering: Optional[str] = field(default=None)
 
     @classmethod
-    def called_apis(cls) -> List[AwsApiSpec]:
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
         return [cls.api_spec, AwsApiSpec(cls.api_spec.service, "list-tags-for-resource")]
 
     @classmethod
@@ -474,12 +485,16 @@ class AwsElastiCacheReplicationGroup(ElastiCacheTaggable, AwsResource):
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
             aws_service=self.api_spec.service,
-            action="delete_replication_group",
+            action="delete-replication-group",
             result_name=None,
             ReplicationGroupId=self.id,
             RetainPrimaryCluster=False,
         )
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [AwsApiSpec("elasticache", "delete-replication-group")]
 
 
 resources: List[Type[AwsResource]] = [AwsElastiCacheReplicationGroup, AwsElastiCacheCacheCluster]

@@ -49,6 +49,10 @@ class EcsTaggable:
             return False
         return False
 
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [AwsApiSpec("ecs", "tag-resource"), AwsApiSpec("ecs", "untag-resource")]
+
 
 @define(eq=False, slots=False)
 class AwsEcsManagedScaling:
@@ -123,6 +127,16 @@ class AwsEcsCapacityProvider(EcsTaggable, AwsResource):
     def delete_resource(self, client: AwsClient) -> bool:
         client.call("ecs", "delete-capacity-provider", None, capacityProvider=self.safe_name)
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+
+        return super().called_mutator_apis() + [
+            AwsApiSpec("ecs", "update-service"),
+            AwsApiSpec("ecs", "put-cluster-capacity-providers"),
+            AwsApiSpec("ecs", "delete-capacity-provider"),
+            AwsApiSpec("ecs", "put-cluster-capacity-providers"),
+        ]
 
 
 @define(eq=False, slots=False)
@@ -430,6 +444,10 @@ class AwsEcsTask(EcsTaggable, AwsResource):
             aws_service="ecs", action="stop-task", result_name=None, cluster=self.task_cluster_arn, task=self.arn
         )
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [AwsApiSpec("ecs", "stop-task")]
 
 
 @define(eq=False, slots=False)
@@ -865,7 +883,7 @@ class AwsEcsTaskDefinition(EcsTaggable, AwsResource):
     ephemeral_storage: Optional[int] = field(default=None)
 
     @classmethod
-    def called_apis(cls) -> List[AwsApiSpec]:
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
         return [
             cls.api_spec,
             AwsApiSpec("ecs", "describe-task-definition"),
@@ -905,6 +923,10 @@ class AwsEcsTaskDefinition(EcsTaggable, AwsResource):
             taskDefinition=f"{self.family}:{self.revision}",
         )
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [AwsApiSpec("ecs", "deregister-task-definition")]
 
 
 @define(eq=False, slots=False)
@@ -1309,6 +1331,13 @@ class AwsEcsService(EcsTaggable, AwsResource):
         except ValueError:
             return False
 
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [
+            AwsApiSpec("ecs", "update-service"),
+            AwsApiSpec("ecs", "delete-service"),
+        ]
+
 
 @define(eq=False, slots=False)
 class AwsEcsVersionInfo:
@@ -1427,6 +1456,10 @@ class AwsEcsContainerInstance(EcsTaggable, AwsResource):
         client.call("ecs", "deregister-container-instance", None, cluster=self.cluster_link, containerInstance=self.arn)
         return True
 
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [AwsApiSpec("ecs", "deregister-container-instance")]
+
 
 @define(eq=False, slots=False)
 class AwsEcsExecuteCommandLogConfiguration:
@@ -1526,7 +1559,7 @@ class AwsEcsCluster(EcsTaggable, AwsResource):
     cluster_attachments_status: Optional[str] = field(default=None)
 
     @classmethod
-    def called_apis(cls) -> List[AwsApiSpec]:
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
         return [
             cls.api_spec,
             AwsApiSpec("ecs", "describe-clusters"),
@@ -1649,6 +1682,10 @@ class AwsEcsCluster(EcsTaggable, AwsResource):
             return True
         except ValueError:
             return False
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [AwsApiSpec("ecs", "delete-cluster")]
 
 
 resources: List[Type[AwsResource]] = [

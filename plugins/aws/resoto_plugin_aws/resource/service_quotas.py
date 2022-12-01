@@ -82,8 +82,12 @@ class AwsServiceQuota(AwsResource, BaseQuota):
     quota_error_reason: Optional[AwsQuotaErrorReason] = field(default=None)
 
     @classmethod
-    def called_apis(cls) -> List[AwsApiSpec]:
-        return [AwsApiSpec("service-quotas", "list_service_quotas")]
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec(
+                "service-quotas", "list-service-quotas", override_iam_permission="servicequotas:ListServiceQuotas"
+            )
+        ]
 
     @classmethod
     def collect_service(cls, service_code: str, matchers: List["QuotaMatcher"], builder: GraphBuilder) -> None:
@@ -124,7 +128,7 @@ class AwsServiceQuota(AwsResource, BaseQuota):
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(
             aws_service="service-quotas",
-            action="tag_resource",
+            action="tag-resource",
             result_name=None,
             ResourceARN=self.arn,
             Tags=[{"Key": key, "Value": value}],
@@ -134,12 +138,19 @@ class AwsServiceQuota(AwsResource, BaseQuota):
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
         client.call(
             aws_service="service-quotas",
-            action="untag_resource",
+            action="untag-resource",
             result_name=None,
             ResourceARN=self.arn,
             TagKeys=[key],
         )
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec("service-quotas", "tag-resource", override_iam_permission="servicequotas:TagResource"),
+            AwsApiSpec("service-quotas", "untag-resource", override_iam_permission="servicequotas:UntagResource"),
+        ]
 
 
 @define

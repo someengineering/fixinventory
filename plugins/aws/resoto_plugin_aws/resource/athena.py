@@ -85,8 +85,16 @@ class AwsAthenaWorkGroup(AwsResource):
     }
 
     @classmethod
-    def called_apis(cls) -> List[AwsApiSpec]:
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
         return [cls.api_spec, AwsApiSpec("athena", "get-work-group"), AwsApiSpec("athena", "list-tags-for-resource")]
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec("athena", "tag-resource"),
+            AwsApiSpec("athena", "untag-resource"),
+            AwsApiSpec("athena", "delete-work-group"),
+        ]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
@@ -135,7 +143,7 @@ class AwsAthenaWorkGroup(AwsResource):
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(
             aws_service=self.api_spec.service,
-            action="tag_resource",
+            action="tag-resource",
             result_name=None,
             ResourceARN=self.arn,
             Tags=[{"Key": key, "Value": value}],
@@ -145,7 +153,7 @@ class AwsAthenaWorkGroup(AwsResource):
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
         client.call(
             aws_service=self.api_spec.service,
-            action="untag_resource",
+            action="untag-resource",
             result_name=None,
             ResourceARN=self.arn,
             TagKeys=[key],
@@ -179,8 +187,16 @@ class AwsAthenaDataCatalog(AwsResource):
     datacatalog_parameters: Optional[Dict[str, str]] = None
 
     @classmethod
-    def called_apis(cls) -> List[AwsApiSpec]:
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
         return [cls.api_spec, AwsApiSpec("athena", "get-data-catalog"), AwsApiSpec("athena", "list-tags-for-resource")]
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec("athena", "tag-resource"),
+            AwsApiSpec("athena", "untag-resource"),
+            AwsApiSpec("athena", "delete-data-catalog"),
+        ]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
@@ -218,7 +234,7 @@ class AwsAthenaDataCatalog(AwsResource):
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(
             aws_service=self.api_spec.service,
-            action="tag_resource",
+            action="tag-resource",
             result_name=None,
             ResourceARN=self.arn,
             Tags=[{"Key": key, "Value": value}],
@@ -228,7 +244,7 @@ class AwsAthenaDataCatalog(AwsResource):
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
         client.call(
             aws_service=self.api_spec.service,
-            action="untag_resource",
+            action="untag-resource",
             result_name=None,
             ResourceARN=self.arn,
             TagKeys=[key],

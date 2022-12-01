@@ -19,7 +19,7 @@ class EKSTaggable:
             if spec := self.api_spec:
                 client.call(
                     aws_service=spec.service,
-                    action="tag_resource",
+                    action="tag-resource",
                     result_name=None,
                     resourceArn=self.arn,
                     tags={key: value},
@@ -33,7 +33,7 @@ class EKSTaggable:
             if spec := self.api_spec:
                 client.call(
                     aws_service=spec.service,
-                    action="untag_resource",
+                    action="untag-resource",
                     result_name=None,
                     resourceArn=self.arn,
                     tagKeys=[key],
@@ -41,6 +41,10 @@ class EKSTaggable:
                 return True
             return False
         return False
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [AwsApiSpec("eks", "tag-resource"), AwsApiSpec("eks", "untag-resource")]
 
 
 @define(eq=False, slots=False)
@@ -194,12 +198,16 @@ class AwsEksNodegroup(EKSTaggable, AwsResource):
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
             aws_service="eks",
-            action="delete_nodegroup",
+            action="delete-nodegroup",
             result_name=None,
             clusterName=self.cluster_name,
             nodegroupName=self.name,
         )
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [AwsApiSpec("eks", "delete-nodegroup")]
 
 
 @define(eq=False, slots=False)
@@ -334,7 +342,7 @@ class AwsEksCluster(EKSTaggable, AwsResource):
     cluster_connector_config: Optional[AwsEksConnectorConfig] = field(default=None)
 
     @classmethod
-    def called_apis(cls) -> List[AwsApiSpec]:
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
         return [
             cls.api_spec,
             AwsApiSpec("eks", "describe-cluster"),
@@ -363,8 +371,12 @@ class AwsEksCluster(EKSTaggable, AwsResource):
         )
 
     def delete_resource(self, client: AwsClient) -> bool:
-        client.call(aws_service=self.api_spec.service, action="delete_cluster", result_name=None, name=self.name)
+        client.call(aws_service=self.api_spec.service, action="delete-cluster", result_name=None, name=self.name)
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [AwsApiSpec("eks", "delete-cluster")]
 
 
 resources: List[Type[AwsResource]] = [AwsEksNodegroup, AwsEksCluster]

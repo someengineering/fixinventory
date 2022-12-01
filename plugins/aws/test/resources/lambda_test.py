@@ -15,12 +15,12 @@ def test_tagging() -> None:
     res, _ = round_trip_for(AwsLambdaFunction)
 
     def validate_update_args(**kwargs: Any) -> None:
-        assert kwargs["action"] == "tag_resource"
+        assert kwargs["action"] == "tag-resource"
         assert kwargs["Tags"] == {"foo": "bar"}
         assert kwargs["Resource"] == res.arn
 
     def validate_delete_args(**kwargs: Any) -> None:
-        assert kwargs["action"] == "untag_resource"
+        assert kwargs["action"] == "untag-resource"
         assert kwargs["TagKeys"] == ["foo"]
         assert kwargs["Resource"] == res.arn
 
@@ -35,7 +35,7 @@ def test_deletion() -> None:
     res, _ = round_trip_for(AwsLambdaFunction)
 
     def validate_delete_args(**kwargs: Any) -> None:
-        assert kwargs["action"] == "delete_function"
+        assert kwargs["action"] == "delete-function"
         assert kwargs["FunctionName"] == res.arn
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))

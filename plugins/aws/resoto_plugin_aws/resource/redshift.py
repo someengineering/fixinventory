@@ -444,7 +444,7 @@ class AwsRedshiftCluster(AwsResource):
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(
             aws_service=self.api_spec.service,
-            action="create_tags",
+            action="create-tags",
             result_name=None,
             ResourceName=self.arn,
             Tags=[{"Key": key, "Value": value}],
@@ -454,7 +454,7 @@ class AwsRedshiftCluster(AwsResource):
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
         client.call(
             aws_service=self.api_spec.service,
-            action="delete_tags",
+            action="delete-tags",
             result_name=None,
             ResourceName=self.arn,
             TagKeys=[key],
@@ -464,12 +464,20 @@ class AwsRedshiftCluster(AwsResource):
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
             aws_service=self.api_spec.service,
-            action="delete_cluster",
+            action="delete-cluster",
             result_name=None,
             ClusterIdentifier=self.id,
             SkipFinalClusterSnapshot=True,
         )
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec("redshift", "create-tags"),
+            AwsApiSpec("redshift", "delete-tags"),
+            AwsApiSpec("redshift", "delete-cluster"),
+        ]
 
 
 resources: List[Type[AwsResource]] = [AwsRedshiftCluster]

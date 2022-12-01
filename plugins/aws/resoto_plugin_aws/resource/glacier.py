@@ -183,7 +183,7 @@ class AwsGlacierVault(AwsResource):
     glacier_size_in_bytes: Optional[int] = field(default=None)
 
     @classmethod
-    def called_apis(cls) -> List[AwsApiSpec]:
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
         return [
             cls.api_spec,
             AwsApiSpec(cls.api_spec.service, "list-tags-for-vault"),
@@ -221,6 +221,14 @@ class AwsGlacierVault(AwsResource):
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(aws_service="glacier", action="delete-vault", result_name=None, vaultName=self.name)
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec("glacier", "add-tags-to-vault"),
+            AwsApiSpec("glacier", "remove-tags-from-vault"),
+            AwsApiSpec("glacier", "delete-vault"),
+        ]
 
 
 resources: List[Type[AwsResource]] = [AwsGlacierVault, AwsGlacierJob]

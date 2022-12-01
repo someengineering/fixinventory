@@ -89,7 +89,7 @@ class AwsKmsKey(AwsResource, BaseAccessKey):
     kms_mac_algorithms: List[str] = field(factory=list)
 
     @classmethod
-    def called_apis(cls) -> List[AwsApiSpec]:
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
         return [cls.api_spec, AwsApiSpec("kms", "describe-key"), AwsApiSpec("kms", "list-resource-tags")]
 
     @classmethod
@@ -140,6 +140,15 @@ class AwsKmsKey(AwsResource, BaseAccessKey):
 
         client.call(aws_service="kms", action="disable-key", result_name=None, KeyId=self.id)
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec("kms", "tag-resource"),
+            AwsApiSpec("kms", "untag-resource"),
+            AwsApiSpec("kms", "schedule-key-deletion"),
+            AwsApiSpec("kms", "disable-key"),
+        ]
 
     @staticmethod
     def normalise_id(identifier: str) -> str:

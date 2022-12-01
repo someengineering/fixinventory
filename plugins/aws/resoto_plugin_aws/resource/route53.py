@@ -58,7 +58,7 @@ class AwsRoute53Zone(AwsResource, BaseDNSZone):
     zone_linked_service: Optional[AwsRoute53LinkedService] = field(default=None)
 
     @classmethod
-    def called_apis(cls) -> List[AwsApiSpec]:
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
         return [
             cls.api_spec,
             AwsApiSpec("route53", "list-resource-record-sets"),
@@ -126,6 +126,13 @@ class AwsRoute53Zone(AwsResource, BaseDNSZone):
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(aws_service="route53", action="delete-hosted-zone", result_name=None, Id=self.id.rsplit("/", 1)[-1])
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec("route53", "change-tags-for-resource"),
+            AwsApiSpec("route53", "delete-hosted-zone"),
+        ]
 
 
 @define(eq=False, slots=False)

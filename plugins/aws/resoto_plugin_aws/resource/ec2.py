@@ -44,7 +44,7 @@ class EC2Taggable:
             if spec := self.api_spec:
                 client.call(
                     aws_service=spec.service,
-                    action="create_tags",
+                    action="create-tags",
                     result_name=None,
                     Resources=[self.id],
                     Tags=[{"Key": key, "Value": value}],
@@ -58,7 +58,7 @@ class EC2Taggable:
             if spec := self.api_spec:
                 client.call(
                     aws_service=spec.service,
-                    action="delete_tags",
+                    action="delete-tags",
                     result_name=None,
                     Resources=[self.id],
                     Tags=[{"Key": key}],
@@ -66,6 +66,10 @@ class EC2Taggable:
                 return True
             return False
         return False
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [AwsApiSpec("ec2", "create-tags"), AwsApiSpec("ec2", "delete-tags")]
 
 
 @define(eq=False, slots=False)
@@ -487,6 +491,10 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
         )
         return True
 
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [AwsApiSpec("ec2", "delete-volume")]
+
 
 # endregion
 
@@ -541,9 +549,12 @@ class AwsEc2Snapshot(EC2Taggable, AwsResource, BaseSnapshot):
             )
 
     def delete_resource(self, client: AwsClient) -> bool:
-        client.call(aws_service=self.api_spec.service, action="delete_snapshot", result_name=None, SnapshotId=self.id)
-
+        client.call(aws_service=self.api_spec.service, action="delete-snapshot", result_name=None, SnapshotId=self.id)
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [AwsApiSpec("ec2", "delete-snapshot")]
 
 
 # endregion
@@ -577,11 +588,15 @@ class AwsEc2KeyPair(EC2Taggable, AwsResource):
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
             aws_service=self.api_spec.service,
-            action="delete_key_pair",
+            action="delete-key-pair",
             result_name=None,
             KeyPairId=self.id,
         )
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [AwsApiSpec("ec2", "delete-key-pair")]
 
 
 # endregion
@@ -1036,12 +1051,16 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
             return True
         client.call(
             aws_service=self.api_spec.service,
-            action="terminate_instances",
+            action="terminate-instances",
             result_name=None,
             InstanceIds=[self.id],
             DryRun=False,
         )
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [AwsApiSpec("ec2", "terminate-instances")]
 
 
 # endregion
@@ -1197,9 +1216,13 @@ class AwsEc2NetworkAcl(EC2Taggable, AwsResource):
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
-            aws_service=self.api_spec.service, action="delete_network_acl", result_name=None, NetworkAclId=self.id
+            aws_service=self.api_spec.service, action="delete-network-acl", result_name=None, NetworkAclId=self.id
         )
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [AwsApiSpec("ec2", "delete-network-acl")]
 
 
 # endregion
@@ -1257,22 +1280,27 @@ class AwsEc2ElasticIp(EC2Taggable, AwsResource, BaseIPAddress):
         if self.ip_association_id:
             client.call(
                 aws_service=self.api_spec.service,
-                action="disassociate_address",
+                action="disassociate-address",
                 result_name=None,
                 AssociationId=self.ip_association_id,
             )
         return True
 
     def delete_resource(self, client: AwsClient) -> bool:
-
         client.call(
             aws_service=self.api_spec.service,
-            action="release_address",
+            action="release-address",
             result_name=None,
             AllocationId=self.ip_allocation_id,
         )
-
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [
+            AwsApiSpec("ec2", "disassociate-address"),
+            AwsApiSpec("ec2", "release-address"),
+        ]
 
 
 # endregion
@@ -1421,11 +1449,15 @@ class AwsEc2NetworkInterface(EC2Taggable, AwsResource, BaseNetworkInterface):
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
             aws_service=self.api_spec.service,
-            action="delete_network_interface",
+            action="delete-network-interface",
             result_name=None,
             NetworkInterfaceId=self.id,
         )
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [AwsApiSpec("ec2", "delete-network-interface")]
 
 
 # endregion
@@ -1503,8 +1535,12 @@ class AwsEc2Vpc(EC2Taggable, AwsResource, BaseNetwork):
             log_msg = f"Not removing the default VPC {self.id} - aborting delete request"
             self.log(log_msg)
             return False
-        client.call(aws_service=self.api_spec.service, action="delete_vpc", result_name=None, VpcId=self.id)
+        client.call(aws_service=self.api_spec.service, action="delete-vpc", result_name=None, VpcId=self.id)
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [AwsApiSpec("ec2", "delete-vpc")]
 
 
 # endregion
@@ -1582,11 +1618,17 @@ class AwsEc2VpcPeeringConnection(EC2Taggable, AwsResource, BasePeeringConnection
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
             aws_service=self.api_spec.service,
-            action="delete_vpc_peering_connection",
+            action="delete-vpc-peering-connection",
             result_name=None,
             VpcPeeringConnectionId=self.id,
         )
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [
+            AwsApiSpec("ec2", "delete-vpc-peering-connection"),
+        ]
 
 
 # endregion
@@ -1683,9 +1725,13 @@ class AwsEc2VpcEndpoint(EC2Taggable, AwsResource, BaseEndpoint):
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
-            aws_service=self.api_spec.service, action="delete_vpc_endpoints", result_name=None, VpcEndpointIds=[self.id]
+            aws_service=self.api_spec.service, action="delete-vpc-endpoints", result_name=None, VpcEndpointIds=[self.id]
         )
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [AwsApiSpec("ec2", "delete-vpc-endpoints")]
 
 
 # endregion
@@ -1784,8 +1830,12 @@ class AwsEc2Subnet(EC2Taggable, AwsResource, BaseSubnet):
             builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsEc2Vpc, id=vpc_id)
 
     def delete_resource(self, client: AwsClient) -> bool:
-        client.call(aws_service=self.api_spec.service, action="delete_subnet", result_name=None, SubnetId=self.id)
+        client.call(aws_service=self.api_spec.service, action="delete-subnet", result_name=None, SubnetId=self.id)
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [AwsApiSpec("ec2", "delete-subnet")]
 
 
 # endregion
@@ -1888,7 +1938,7 @@ class AwsEc2SecurityGroup(EC2Taggable, AwsResource, BaseSecurityGroup):
 
         security_groups = client.call(
             aws_service=self.api_spec.service,
-            action="describe_security_groups",
+            action="describe-security-groups",
             result_name="SecurityGroups",
             GroupIds=[self.id],
         )
@@ -1908,7 +1958,7 @@ class AwsEc2SecurityGroup(EC2Taggable, AwsResource, BaseSecurityGroup):
         if len(remove_ingress) > 0:
             client.call(
                 aws_service=self.api_spec.service,
-                action="revoke_security_group_ingress",
+                action="revoke-security-group-ingress",
                 result_name=None,
                 IpPermissions=remove_ingress,
             )
@@ -1916,7 +1966,7 @@ class AwsEc2SecurityGroup(EC2Taggable, AwsResource, BaseSecurityGroup):
         if len(remove_egress) > 0:
             client.call(
                 aws_service=self.api_spec.service,
-                action="revoke_security_group_egress",
+                action="revoke-security-group-egress",
                 result_name=None,
                 IpPermissions=remove_egress,
             )
@@ -1925,12 +1975,19 @@ class AwsEc2SecurityGroup(EC2Taggable, AwsResource, BaseSecurityGroup):
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
             aws_service=self.api_spec.service,
-            action="delete_security_group",
+            action="delete-security-group",
             result_name=None,
             GroupId=self.id,
         )
-
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [
+            AwsApiSpec("ec2", "revoke-security-group-ingress"),
+            AwsApiSpec("ec2", "revoke-security-group-egress"),
+            AwsApiSpec("ec2", "delete-security-group"),
+        ]
 
 
 # endregion
@@ -2009,9 +2066,13 @@ class AwsEc2NatGateway(EC2Taggable, AwsResource, BaseGateway):
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
-            aws_service=self.api_spec.service, action="delete_nat_gateway", result_name=None, NatGatewayId=self.id
+            aws_service=self.api_spec.service, action="delete-nat-gateway", result_name=None, NatGatewayId=self.id
         )
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [AwsApiSpec("ec2", "delete-nat-gateway")]
 
 
 # endregion
@@ -2054,7 +2115,7 @@ class AwsEc2InternetGateway(EC2Taggable, AwsResource, BaseGateway):
                 self.log(log_msg)
                 client.call(
                     aws_service=self.api_spec.service,
-                    action="detach_internet_gateway",
+                    action="detach-internet-gateway",
                     result_name=None,
                     InternetGatewayId=self.id,
                     VpcId=predecessor.id,
@@ -2064,11 +2125,18 @@ class AwsEc2InternetGateway(EC2Taggable, AwsResource, BaseGateway):
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
             aws_service=self.api_spec.service,
-            action="delete_internet_gateway",
+            action="delete-internet-gateway",
             result_name=None,
             InternetGatewayId=self.id,
         )
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [
+            AwsApiSpec("ec2", "detach-internet-gateway"),
+            AwsApiSpec("ec2", "delete-internet-gateway"),
+        ]
 
 
 # endregion
@@ -2174,7 +2242,7 @@ class AwsEc2RouteTable(EC2Taggable, AwsResource, BaseRoutingTable):
                 self.log(log_msg)
                 client.call(
                     aws_service=self.api_spec.service,
-                    action="disassociate_route_table",
+                    action="disassociate-route-table",
                     result_name=None,
                     AssociationId=rta.route_table_association_id,
                 )
@@ -2182,9 +2250,16 @@ class AwsEc2RouteTable(EC2Taggable, AwsResource, BaseRoutingTable):
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
-            aws_service=self.api_spec.service, action="delete_route_table", result_name=None, RouteTableId=self.id
+            aws_service=self.api_spec.service, action="delete-route-table", result_name=None, RouteTableId=self.id
         )
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [
+            AwsApiSpec("ec2", "disassociate-route-table"),
+            AwsApiSpec("ec2", "delete-route-table"),
+        ]
 
 
 @define(eq=False, slots=False)
@@ -2304,6 +2379,10 @@ class AwsEc2Host(EC2Taggable, AwsResource):
             HostIds=[self.id],
         )
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [AwsApiSpec("ec2", "release-hosts")]
 
 
 # endregion
