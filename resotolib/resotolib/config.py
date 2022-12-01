@@ -147,6 +147,8 @@ class Config(metaclass=MetaConfig):
     def read_config(config: Json) -> Dict[str, Any]:
         new_config = {}
         for config_id, config_data in config.items():
+            if config_data is None:
+                config_data = {}
             if config_id in Config.running_config.classes:
                 log.debug(f"Loading config section {config_id}")
                 clazz: Type[Any] = Config.running_config.classes.get(config_id, Any)
