@@ -274,7 +274,7 @@ class AwsCloudwatchMetricData:
         return None
 
     @classmethod
-    def called_apis(cls) -> List[AwsApiSpec]:
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
         return [AwsApiSpec("cloudwatch", "get_metric_data")]
 
     @staticmethod
