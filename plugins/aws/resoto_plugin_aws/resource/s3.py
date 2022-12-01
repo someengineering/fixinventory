@@ -13,11 +13,13 @@ from resotolib.types import Json
 @define(eq=False, slots=False)
 class AwsS3Bucket(AwsResource, BaseBucket):
     kind: ClassVar[str] = "aws_s3_bucket"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("s3", "list-buckets", "Buckets")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
+        "s3", "list-buckets", "Buckets", override_iam_permission="s3:ListBucket"
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"id": S("Name"), "name": S("Name"), "ctime": S("CreationDate")}
 
     @classmethod
-    def called_apis(cls) -> List[AwsApiSpec]:
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
         return [cls.api_spec, AwsApiSpec("s3", "get-bucket-tagging")]
 
     @classmethod
@@ -76,6 +78,14 @@ class AwsS3Bucket(AwsResource, BaseBucket):
             return True
 
         return client.with_resource("s3", delete_bucket_content) or False
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec("s3", "put-bucket-tagging"),
+            AwsApiSpec("s3", "delete-object"),
+            AwsApiSpec("s3", "delete-bucket"),
+        ]
 
 
 resources: List[Type[AwsResource]] = [AwsS3Bucket]

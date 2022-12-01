@@ -57,7 +57,7 @@ def test_server_certificate_deletion() -> None:
     res, _ = round_trip_for(AwsIamServerCertificate, "dns_names", "sha1_fingerprint")
 
     def validate_update_args(**kwargs: Any) -> None:
-        assert kwargs["action"] == "delete_server_certificate"
+        assert kwargs["action"] == "delete-server-certificate"
         assert kwargs["ServerCertificateName"] == res.name
 
     client = cast(AwsClient, SimpleNamespace(call=validate_update_args))
@@ -69,7 +69,7 @@ def test_aws_iam_policy_deletion() -> None:
     res = builder.resources_of(AwsIamPolicy)[0]
 
     def validate_update_args(**kwargs: Any) -> None:
-        assert kwargs["action"] == "delete_policy"
+        assert kwargs["action"] == "delete-policy"
         assert kwargs["PolicyArn"] == res.arn
 
     client = cast(AwsClient, SimpleNamespace(call=validate_update_args))
@@ -81,7 +81,7 @@ def test_aws_iam_group_deletion() -> None:
     res = builder.resources_of(AwsIamGroup)[0]
 
     def validate_update_args(**kwargs: Any) -> None:
-        assert kwargs["action"] == "delete_group"
+        assert kwargs["action"] == "delete-group"
         assert kwargs["GroupName"] == res.name
 
     client = cast(AwsClient, SimpleNamespace(call=validate_update_args))
@@ -93,7 +93,7 @@ def test_aws_iam_role_deletion() -> None:
     res = builder.resources_of(AwsIamRole)[0]
 
     def validate_update_args(**kwargs: Any) -> None:
-        assert kwargs["action"] == "delete_role"
+        assert kwargs["action"] == "delete-role"
         assert kwargs["RoleName"] == res.name
 
     client = cast(AwsClient, SimpleNamespace(call=validate_update_args))
@@ -105,7 +105,7 @@ def test_aws_iam_user_deletion() -> None:
     res = builder.resources_of(AwsIamUser)[0]
 
     def validate_update_args(**kwargs: Any) -> None:
-        assert kwargs["action"] == "delete_user"
+        assert kwargs["action"] == "delete-user"
         assert kwargs["UserName"] == res.name
 
     client = cast(AwsClient, SimpleNamespace(call=validate_update_args))
@@ -116,7 +116,7 @@ def test_aws_iam_instance_profile_deletion() -> None:
     res, _ = round_trip_for(AwsIamInstanceProfile)
 
     def validate_update_args(**kwargs: Any) -> None:
-        assert kwargs["action"] == "delete_instance_profile"
+        assert kwargs["action"] == "delete-instance-profile"
         assert kwargs["InstanceProfileName"] == res.name
 
     client = cast(AwsClient, SimpleNamespace(call=validate_update_args))
@@ -128,12 +128,12 @@ def test_tagging() -> None:
     res, _ = round_trip_for(AwsIamServerCertificate, "dns_names", "sha1_fingerprint")
 
     def validate_update_args(**kwargs: Any) -> None:
-        assert kwargs["action"] == "tag_server_certificate"
+        assert kwargs["action"] == "tag-server-certificate"
         assert kwargs["Tags"] == [{"Key": "foo", "Value": "bar"}]
         assert kwargs["ServerCertificateName"] == res.name
 
     def validate_delete_args(**kwargs: Any) -> None:
-        assert kwargs["action"] == "untag_server_certificate"
+        assert kwargs["action"] == "untag-server-certificate"
         assert kwargs["TagKeys"] == ["foo"]
         assert kwargs["ServerCertificateName"] == res.name
 

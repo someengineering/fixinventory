@@ -13,7 +13,7 @@ def test_tagging() -> None:
     asg, _ = round_trip_for(AwsAutoScalingGroup)
 
     def validate_update_args(**kwargs: Any) -> None:
-        assert kwargs["action"] == "create_or_update_tags"
+        assert kwargs["action"] == "create-or-update-tags"
         assert kwargs["Tags"] == [
             {
                 "ResourceId": asg.name,
@@ -25,7 +25,7 @@ def test_tagging() -> None:
         ]
 
     def validate_delete_args(**kwargs: Any) -> None:
-        assert kwargs["action"] == "delete_tags"
+        assert kwargs["action"] == "delete-tags"
         assert kwargs["Tags"] == [
             {
                 "ResourceId": asg.name,
@@ -45,7 +45,7 @@ def test_deletion() -> None:
     asg, _ = round_trip_for(AwsAutoScalingGroup)
 
     def validate_args(**kwargs: Any) -> None:
-        assert kwargs["action"] == "delete_auto_scaling_group"
+        assert kwargs["action"] == "delete-auto-scaling-group"
         assert kwargs["AutoScalingGroupName"] == asg.name
         assert kwargs["ForceDelete"] is True
 

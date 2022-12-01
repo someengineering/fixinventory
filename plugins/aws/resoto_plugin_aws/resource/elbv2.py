@@ -19,7 +19,7 @@ class ElbV2Taggable:
             if spec := self.api_spec:
                 client.call(
                     aws_service=spec.service,
-                    action="add_tags",
+                    action="add-tags",
                     result_name=None,
                     ResourceArns=[self.arn],
                     Tags=[{"Key": key, "Value": value}],
@@ -33,7 +33,7 @@ class ElbV2Taggable:
             if spec := self.api_spec:
                 client.call(
                     aws_service=spec.service,
-                    action="remove_tags",
+                    action="remove-tags",
                     result_name=None,
                     ResourceArns=[self.arn],
                     TagKeys=[key],
@@ -41,6 +41,13 @@ class ElbV2Taggable:
                 return True
             return False
         return False
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec("elb", "add-tags", override_iam_permission="elasticloadbalancing:AddTags"),
+            AwsApiSpec("elb", "remove-tags", override_iam_permission="elasticloadbalancing:RemoveTags"),
+        ]
 
 
 @define(eq=False, slots=False)
@@ -254,7 +261,12 @@ class AwsAlbListener:
 @define(eq=False, slots=False)
 class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
     kind: ClassVar[str] = "aws_alb"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("elbv2", "describe-load-balancers", "LoadBalancers")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
+        "elbv2",
+        "describe-load-balancers",
+        "LoadBalancers",
+        override_iam_permission="elasticloadbalancing:DescribeLoadBalancers",
+    )
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["aws_vpc", "aws_ec2_subnet", "aws_ec2_security_group"],
@@ -290,8 +302,12 @@ class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
     alb_listener: List[AwsAlbListener] = field(factory=list)
 
     @classmethod
-    def called_apis(cls) -> List[AwsApiSpec]:
-        return [cls.api_spec, AwsApiSpec("elbv2", "describe-listeners"), AwsApiSpec("elbv2", "describe-tags")]
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
+        return [
+            cls.api_spec,
+            AwsApiSpec("elbv2", "describe-listeners", override_iam_permission="elasticloadbalancing:DescribeListeners"),
+            AwsApiSpec("elbv2", "describe-tags", override_iam_permission="elasticloadbalancing:DescribeTags"),
+        ]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
@@ -315,9 +331,17 @@ class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
-            aws_service=self.api_spec.service, action="delete_load_balancer", result_name=None, LoadBalancerArn=self.arn
+            aws_service=self.api_spec.service, action="delete-load-balancer", result_name=None, LoadBalancerArn=self.arn
         )
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [
+            AwsApiSpec(
+                "elbv2", "delete-load-balancer", override_iam_permission="elasticloadbalancing:DeleteLoadBalancer"
+            ),
+        ]
 
 
 @define(eq=False, slots=False)
@@ -353,7 +377,12 @@ class AwsAlbTargetHealth:
 @define(eq=False, slots=False)
 class AwsAlbTargetHealthDescription:
     kind: ClassVar[str] = "aws_alb_target_health_description"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("elbv2", "describe-target-health", "TargetHealthDescriptions")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
+        "elbv2",
+        "describe-target-health",
+        "TargetHealthDescriptions",
+        override_iam_permission="elasticloadbalancing:DescribeTargetHealth",
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "target": S("Target") >> Bend(AwsAlbTargetDescription.mapping),
         "health_check_port": S("HealthCheckPort"),
@@ -367,7 +396,12 @@ class AwsAlbTargetHealthDescription:
 @define(eq=False, slots=False)
 class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
     kind: ClassVar[str] = "aws_alb_target_group"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("elbv2", "describe-target-groups", "TargetGroups")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
+        "elbv2",
+        "describe-target-groups",
+        "TargetGroups",
+        override_iam_permission="elasticloadbalancing:DescribeTargetGroups",
+    )
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_vpc", "aws_alb"], "delete": ["aws_ec2_instance", "aws_vpc"]},
         "successors": {"delete": ["aws_alb"], "default": ["aws_ec2_instance"]},
@@ -409,8 +443,14 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
     alb_target_health: List[AwsAlbTargetHealthDescription] = field(factory=list)
 
     @classmethod
-    def called_apis(cls) -> List[AwsApiSpec]:
-        return [cls.api_spec, AwsApiSpec("elbv2", "describe-target-health"), AwsApiSpec("elbv2", "describe-tags")]
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
+        return [
+            cls.api_spec,
+            AwsApiSpec(
+                "elbv2", "describe-target-health", override_iam_permission="elasticloadbalancing:DescribeTargetHealth"
+            ),
+            AwsApiSpec("elbv2", "describe-tags", override_iam_permission="elasticloadbalancing:DescribeTags"),
+        ]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
@@ -439,9 +479,17 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
-            aws_service=self.api_spec.service, action="delete_target_group", result_name=None, TargetGroupArn=self.arn
+            aws_service=self.api_spec.service, action="delete-target-group", result_name=None, TargetGroupArn=self.arn
         )
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [
+            AwsApiSpec(
+                "elbv2", "delete-target-group", override_iam_permission="elasticloadbalancing:DeleteTargetGroup"
+            ),
+        ]
 
 
 resources: List[Type[AwsResource]] = [AwsAlb, AwsAlbTargetGroup]

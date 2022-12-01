@@ -53,10 +53,14 @@ class AwsApiSpec:
     result_property: Optional[str] = None
     parameter: Optional[Dict[str, Any]] = None
     expected_errors: Optional[List[str]] = None
+    override_iam_permission: Optional[str] = None  # only set if the permission can not be derived
 
-    def action_string(self) -> str:
-        action = "".join(word.title() for word in self.api_action.split("-"))
-        return f"{self.service}:{action}"
+    def iam_permission(self) -> str:
+        if self.override_iam_permission:
+            return self.override_iam_permission
+        else:
+            action = "".join(word.title() for word in self.api_action.split("-"))
+            return f"{self.service}:{action}"
 
 
 @define(eq=False, slots=False)
@@ -204,13 +208,17 @@ class AwsResource(BaseResource, ABC):
             builder.add_node(instance, js)
 
     @classmethod
-    def called_apis(cls) -> List[AwsApiSpec]:
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
         # The default implementation will return the defined api_spec if defined, otherwise an empty list.
         # In case your resource needs more than this api call, please override this method and return the proper list.
         if spec := cls.api_spec:
             return [spec]
         else:
             return []
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return []
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         # Default behavior: add resource to the namespace

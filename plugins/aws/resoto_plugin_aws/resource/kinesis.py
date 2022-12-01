@@ -89,8 +89,8 @@ class AwsKinesisStream(AwsResource):
     kinesis_key_id: Optional[str] = field(default=None)
 
     @classmethod
-    def called_apis(cls) -> List[AwsApiSpec]:
-        return [cls.api_spec, AwsApiSpec("kinesis", "describe-stream"), AwsApiSpec("kinesis", "list_tags_for_stream")]
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
+        return [cls.api_spec, AwsApiSpec("kinesis", "describe-stream"), AwsApiSpec("kinesis", "list-tags-for-stream")]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
@@ -114,7 +114,7 @@ class AwsKinesisStream(AwsResource):
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(
             aws_service=self.api_spec.service,
-            action="add_tags_to_stream",
+            action="add-tags-to-stream",
             result_name=None,
             StreamName=self.name,
             Tags={key: value},
@@ -124,7 +124,7 @@ class AwsKinesisStream(AwsResource):
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
         client.call(
             aws_service=self.api_spec.service,
-            action="remove_tags_from_stream",
+            action="remove-tags-from-stream",
             result_name=None,
             StreamName=self.name,
             TagKeys=[key],
@@ -134,11 +134,19 @@ class AwsKinesisStream(AwsResource):
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
             aws_service=self.api_spec.service,
-            action="delete_stream",
+            action="delete-stream",
             result_name=None,
             StreamName=self.name,
         )
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec("kinesis", "add-tags-to-stream"),
+            AwsApiSpec("kinesis", "remove-tags-from-stream"),
+            AwsApiSpec("kinesis", "delete-stream"),
+        ]
 
 
 resources: List[Type[AwsResource]] = [AwsKinesisStream]

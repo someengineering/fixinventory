@@ -20,7 +20,7 @@ class RdsTaggable:
             if spec := self.api_spec:
                 client.call(
                     aws_service=spec.service,
-                    action="add_tags_to_resource",
+                    action="add-tags-to-resource",
                     result_name=None,
                     ResourceName=self.arn,
                     Tags=[{"Key": key, "Value": value}],
@@ -34,7 +34,7 @@ class RdsTaggable:
             if spec := self.api_spec:
                 client.call(
                     aws_service=spec.service,
-                    action="remove_tags_from_resource",
+                    action="remove-tags-from-resource",
                     result_name=None,
                     ResourceName=self.arn,
                     TagKeys=[key],
@@ -42,6 +42,10 @@ class RdsTaggable:
                 return True
             return False
         return False
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [AwsApiSpec("rds", "add-tags-to-resource"), AwsApiSpec("rds", "remove-tags-from-resource")]
 
 
 @define(eq=False, slots=False)
@@ -408,7 +412,7 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
     rds_network_type: Optional[str] = field(default=None)
 
     @classmethod
-    def called_apis(cls) -> List[AwsApiSpec]:
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
         return [cls.api_spec, AwsApiSpec(cls.api_spec.service, "list-tags-for-resource")]
 
     @classmethod
@@ -486,12 +490,16 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
             aws_service=self.api_spec.service,
-            action="delete_db_instance",
+            action="delete-db-instance",
             result_name=None,
             DBInstanceIdentifier=self.id,
             SkipFinalSnapshot=True,
         )
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [AwsApiSpec("rds", "delete-db-instance")]
 
 
 resources: List[Type[AwsResource]] = [AwsRdsInstance]

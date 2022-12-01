@@ -93,12 +93,12 @@ def test_tagging() -> None:
     quota, _ = round_trip_for(AwsServiceQuota, "usage", "quota_type")
 
     def validate_update_args(**kwargs: Any) -> None:
-        assert kwargs["action"] == "tag_resource"
+        assert kwargs["action"] == "tag-resource"
         assert kwargs["ResourceARN"] == quota.arn
         assert kwargs["Tags"] == [{"Key": "foo", "Value": "bar"}]
 
     def validate_delete_args(**kwargs: Any) -> None:
-        assert kwargs["action"] == "untag_resource"
+        assert kwargs["action"] == "untag-resource"
         assert kwargs["ResourceARN"] == quota.arn
         assert kwargs["TagKeys"] == ["foo"]
 

@@ -37,6 +37,10 @@ class DynamoDbTaggable:
             return True
         return False
 
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [AwsApiSpec("dynamodb", "tag-resource"), AwsApiSpec("dynamodb", "untag-resource")]
+
 
 @define(eq=False, slots=False)
 class AwsDynamoDbAttributeDefinition:
@@ -297,7 +301,7 @@ class AwsDynamoDbTable(DynamoDbTaggable, AwsResource):
     dynamodb_table_class_summary: Optional[AwsDynamoDbTableClassSummary] = field(default=None)
 
     @classmethod
-    def called_apis(cls) -> List[AwsApiSpec]:
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
         return [cls.api_spec, AwsApiSpec("dynamodb", "describe-table"), AwsApiSpec("dynamodb", "list-tags-of-resource")]
 
     @classmethod
@@ -343,6 +347,10 @@ class AwsDynamoDbTable(DynamoDbTaggable, AwsResource):
         client.call(aws_service=self.api_spec.service, action="delete-table", result_name=None, TableName=self.name)
         return True
 
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [AwsApiSpec("dynamodb", "delete-table")]
+
 
 @define(eq=False, slots=False)
 class AwsDynamoDbGlobalTable(DynamoDbTaggable, AwsResource):
@@ -366,7 +374,7 @@ class AwsDynamoDbGlobalTable(DynamoDbTaggable, AwsResource):
     dynamodb_global_table_status: Optional[str] = field(default=None)
 
     @classmethod
-    def called_apis(cls) -> List[AwsApiSpec]:
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
         return [
             cls.api_spec,
             AwsApiSpec("dynamodb", "describe-global-table"),
@@ -405,6 +413,10 @@ class AwsDynamoDbGlobalTable(DynamoDbTaggable, AwsResource):
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(aws_service=self.api_spec.service, action="delete-table", result_name=None, TableName=self.name)
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [AwsApiSpec("dynamodb", "delete-table")]
 
 
 global_resources: List[Type[AwsResource]] = [AwsDynamoDbGlobalTable]

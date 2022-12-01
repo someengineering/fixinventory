@@ -16,12 +16,12 @@ def test_tagging() -> None:
     cluster, _ = round_trip_for(AwsRedshiftCluster)
 
     def validate_update_args(**kwargs: Any) -> None:
-        assert kwargs["action"] == "create_tags"
+        assert kwargs["action"] == "create-tags"
         assert kwargs["ResourceName"] == cluster.arn
         assert kwargs["Tags"] == [{"Key": "foo", "Value": "bar"}]
 
     def validate_delete_args(**kwargs: Any) -> None:
-        assert kwargs["action"] == "delete_tags"
+        assert kwargs["action"] == "delete-tags"
         assert kwargs["ResourceName"] == cluster.arn
         assert kwargs["TagKeys"] == ["foo"]
 
@@ -36,7 +36,7 @@ def test_deletion() -> None:
     cluster, _ = round_trip_for(AwsRedshiftCluster)
 
     def validate_delete_args(**kwargs: Any) -> None:
-        assert kwargs["action"] == "delete_cluster"
+        assert kwargs["action"] == "delete-cluster"
         assert kwargs["ClusterIdentifier"] == cluster.id
         assert kwargs["SkipFinalClusterSnapshot"] is True
 

@@ -123,7 +123,7 @@ class AwsCloudFormationStack(AwsResource, BaseStack):
         try:
             client.call(
                 aws_service="cloudformation",
-                action="update_stack",
+                action="update-stack",
                 result_name=None,
                 StackName=self.name,
                 Capabilities=["CAPABILITY_NAMED_IAM"],
@@ -161,8 +161,12 @@ class AwsCloudFormationStack(AwsResource, BaseStack):
         return self._modify_tag(client, key, None, "delete")
 
     def delete_resource(self, client: AwsClient) -> bool:
-        client.call(aws_service=self.api_spec.service, action="delete_stack", result_name=None, StackName=self.name)
+        client.call(aws_service=self.api_spec.service, action="delete-stack", result_name=None, StackName=self.name)
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [AwsApiSpec("cloudformation", "update-stack"), AwsApiSpec("cloudformation", "delete-stack")]
 
 
 @define(eq=False, slots=False)
@@ -218,7 +222,7 @@ class AwsCloudFormationStackSet(AwsResource):
         try:
             client.call(
                 aws_service="cloudformation",
-                action="update_stack_set",
+                action="update-stack-set",
                 result_name=None,
                 StackSetName=self.name,
                 Capabilities=["CAPABILITY_NAMED_IAM"],
@@ -245,11 +249,15 @@ class AwsCloudFormationStackSet(AwsResource):
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
             aws_service=self.api_spec.service,
-            action="delete_stack_set",
+            action="delete-stack-set",
             result_name=None,
             StackSetName=self.name,
         )
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [AwsApiSpec("cloudformation", "update-stack-set"), AwsApiSpec("cloudformation", "delete-stack-set")]
 
 
 resources: List[Type[AwsResource]] = [AwsCloudFormationStack, AwsCloudFormationStackSet]
