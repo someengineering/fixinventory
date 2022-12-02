@@ -100,14 +100,18 @@ class AwsKinesisStream(AwsResource):
                 stream.tags = bend(S("Tags", default=[]) >> ToDict(), tags[0])
 
         for stream_name in json:
-            stream_description = builder.client.get(
+            # this call is paginated and will return a list
+            stream_description = builder.client.list(
                 aws_service="kinesis",
                 action="describe-stream",
                 result_name="StreamDescription",
                 StreamName=stream_name,
             )
+            # note: bandaid, since list does not make sure to return a list. Proper fix will follow.
+            if isinstance(stream_description, list) and len(stream_description) == 1:
+                stream_description = stream_description[0]
             if stream_description is not None:
-                stream = AwsKinesisStream.from_api(stream_description)
+                stream = AwsKinesisStream.from_api(stream_description)  # type: ignore
                 builder.add_node(stream)
                 builder.submit_work(add_tags, stream)
 
