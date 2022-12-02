@@ -11,7 +11,7 @@ def read(fname):
 
 setup(
     name="resoto-plugin-digitalocean-k8s",
-    version="3.0.0rc5",
+    version="3.0.0",
     description="Resoto DigitalOcean-K8s Collector Plugin",
     license="Apache 2.0",
     packages=find_packages(),
