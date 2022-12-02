@@ -103,10 +103,10 @@ class AwsKmsKey(AwsResource, BaseAccessKey):
 
         def add_tags(key: AwsKmsKey) -> None:
             tags = builder.client.list(
-                "kms", "list-resource-tags", result_name=None, expected_errors=["AccessDeniedException"], KeyId=key.id
+                "kms", "list-resource-tags", result_name="Tags", expected_errors=["AccessDeniedException"], KeyId=key.id
             )
             if tags:
-                key.tags = bend(S("Tags", default=[]) >> ToDict(key="TagKey", value="TagValue"), tags[0])
+                key.tags = bend(ToDict(key="TagKey", value="TagValue"), tags)
 
         for js in json:
             add_instance(js)

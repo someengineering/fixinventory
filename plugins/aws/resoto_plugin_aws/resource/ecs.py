@@ -892,18 +892,19 @@ class AwsEcsTaskDefinition(EcsTaggable, AwsResource):
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for task_def_arn in json:
-            response = builder.client.list(
+            response = builder.client.get(
                 "ecs",
                 "describe-task-definition",
                 None,
                 taskDefinition=task_def_arn,
                 include=["TAGS"],
             )
-            task_definition = response[0]["taskDefinition"]
-            tags = response[0]["tags"]
-            task_definition["tags"] = tags
-            task_definition_instance = cls.from_api(task_definition)
-            builder.add_node(task_definition_instance, task_def_arn)
+            if response is not None:
+                task_definition = response["taskDefinition"]
+                tags = response["tags"]
+                task_definition["tags"] = tags
+                task_definition_instance = cls.from_api(task_definition)
+                builder.add_node(task_definition_instance, task_def_arn)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for role in [self.task_role_arn, self.execution_role_arn]:

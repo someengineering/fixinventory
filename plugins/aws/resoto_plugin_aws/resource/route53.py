@@ -68,7 +68,7 @@ class AwsRoute53Zone(AwsResource, BaseDNSZone):
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_tags(zone: AwsRoute53Zone) -> None:
-            tags = builder.client.list(
+            tags = builder.client.get(
                 "route53",
                 "list-tags-for-resource",
                 result_name="ResourceTagSet",

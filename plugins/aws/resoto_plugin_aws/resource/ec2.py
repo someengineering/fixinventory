@@ -1936,7 +1936,7 @@ class AwsEc2SecurityGroup(EC2Taggable, AwsResource, BaseSecurityGroup):
         remove_ingress = []
         remove_egress = []
 
-        security_groups = client.call(
+        security_groups = client.list(
             aws_service=self.api_spec.service,
             action="describe-security-groups",
             result_name="SecurityGroups",

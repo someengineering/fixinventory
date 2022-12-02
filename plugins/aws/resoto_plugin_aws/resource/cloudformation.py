@@ -116,7 +116,7 @@ class AwsCloudFormationStack(AwsResource, BaseStack):
         service = self.api_spec.service
         stack = cast(
             Json,
-            client.call(aws_service=service, action="describe_stacks", result_name="Stacks", StackName=self.name)[0],
+            client.list(aws_service=service, action="describe_stacks", result_name="Stacks", StackName=self.name)[0],
         )
         stack = self._wait_for_completion(client, stack, service)
 
@@ -150,7 +150,9 @@ class AwsCloudFormationStack(AwsResource, BaseStack):
             time.sleep(5)
             stack = cast(
                 Json,
-                client.call(aws_service=service, action="describe_stacks", result_name="Stacks", StackName=self.name),
+                client.list(aws_service=service, action="describe_stacks", result_name="Stacks", StackName=self.name)[
+                    0
+                ],
             )
         return stack
 
