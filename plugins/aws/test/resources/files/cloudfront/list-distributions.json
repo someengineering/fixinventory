@@ -7,11 +7,11 @@
         "Quantity": 123,
         "Items": [
             {
-                "Id": "string",
-                "ARN": "string",
+                "Id": "EDFDVBD632BHDS5",
+                "ARN": "arn:aws:cloudfront::123456789012:distribution/EDFDVBD632BHDS5",
                 "Status": "string",
                 "LastModifiedTime": "2022-08-08T09:36:55Z",
-                "DomainName": "string",
+                "DomainName": "d111111abcdef8.cloudfront.net",
                 "Aliases": {
                     "Quantity": 123,
                     "Items": [
