@@ -94,7 +94,6 @@ from resotocore.dependencies import system_info
 from resotocore.error import CLIParseError, ClientError, CLIExecutionError
 from resotocore.ids import ConfigId, TaskId
 from resotocore.ids import TaskDescriptorId
-from resotocore.message_bus import ActionInfo
 from resotocore.model.graph_access import Section, EdgeTypes
 from resotocore.model.model import (
     Model,
@@ -4049,7 +4048,7 @@ class WorkflowsCommand(CLICommand):
         async def show_log(wf_id: str) -> Tuple[int, AsyncIterator[JsonElement]]:
             rtd = await self.dependencies.db_access.running_task_db.get(wf_id)
             if rtd:
-                messages = [msg.info() for msg in rtd.info_messages() if isinstance(msg, ActionInfo)]
+                messages = [msg.info() for msg in rtd.info_messages()]
                 if messages:
                     return len(messages), stream.iterate(messages)
                 else:
