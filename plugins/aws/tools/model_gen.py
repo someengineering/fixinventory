@@ -352,6 +352,15 @@ models: Dict[str, List[AwsResotoModel]] = {
         #     "list-stack-sets", "Summaries", "StackSetSummary", prefix="CloudFormation", prop_prefix="stack_set_"
         # ),
     ],
+    "cloudfront": [
+        AwsResotoModel("list-distributions", "DistributionList", "ListDistributionsResult", prefix="CloudFront", prop_prefix="distribution_"),
+        # AwsResotoModel("list-functions", "FunctionList", "ListFunctionsResult", prefix="CloudFront", prop_prefix="function_"),
+        # AwsResotoModel("list-invalidations", "InvalidationList", "ListInvalidationsResult", prefix="CloudFront", prop_prefix="invalidation_"),
+        # AwsResotoModel("list-public-keys", "PublicKeyList", "ListPublicKeysResult", prefix="CloudFront", prop_prefix="public_key_"),
+        # AwsResotoModel("list-realtime-log-configs", "RealtimeLogConfigs", "ListRealtimeLogConfigResult", prefix="CloudFront", prop_prefix="realtime_log_"),
+        # AwsResotoModel("list-response-headers-policies", "ResponseHeadersPolicyList", "ListResponseHeaderPoliciesResult", prefix="CloudFront", prop_prefix="response_header_policy_"),
+        # AwsResotoModel("list-streaming-distributions", "StreamingDistributionList", "ListStreamingDistributionsResult", prefix="CloudFront", prop_prefix="streaming_distribution_"),
+    ],
     "cloudwatch": [
         # AwsResotoModel(
         #     "describe-alarms",
