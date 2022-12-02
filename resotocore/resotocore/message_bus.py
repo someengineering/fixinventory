@@ -202,7 +202,7 @@ class ActionInfo(ActionMessage):
         self.message = message
 
     def info(self) -> str:
-        return f"{self.level.capitalize()}: {self.message}"
+        return f"{self.level.capitalize()}: could not perform action {self.step_name}. Reason: {self.message}"
 
 
 class ActionError(ActionMessage):
