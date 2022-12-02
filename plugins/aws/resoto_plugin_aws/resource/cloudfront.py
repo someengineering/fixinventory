@@ -14,7 +14,7 @@ from resotolib.types import Json
 
 @define(eq=False, slots=False)
 class AwsCloudFrontAliases:
-    kind: ClassVar[str] = "aws_cloud_front_aliases"
+    kind: ClassVar[str] = "aws_cloudfront_aliases"
     mapping: ClassVar[Dict[str, Bender]] = {
         "quantity": S("Quantity"),
         "items": S("Items", default=[])
@@ -24,7 +24,7 @@ class AwsCloudFrontAliases:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontOriginCustomHeader:
-    kind: ClassVar[str] = "aws_cloud_front_origin_custom_header"
+    kind: ClassVar[str] = "aws_cloudfront_origin_custom_header"
     mapping: ClassVar[Dict[str, Bender]] = {
         "header_name": S("HeaderName"),
         "header_value": S("HeaderValue")
@@ -34,7 +34,7 @@ class AwsCloudFrontOriginCustomHeader:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontCustomHeaders:
-    kind: ClassVar[str] = "aws_cloud_front_custom_headers"
+    kind: ClassVar[str] = "aws_cloudfront_custom_headers"
     mapping: ClassVar[Dict[str, Bender]] = {
         "quantity": S("Quantity"),
         "items": S("Items", default=[]) >> ForallBend(AwsCloudFrontOriginCustomHeader.mapping)
@@ -44,7 +44,7 @@ class AwsCloudFrontCustomHeaders:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontOriginSslProtocols:
-    kind: ClassVar[str] = "aws_cloud_front_origin_ssl_protocols"
+    kind: ClassVar[str] = "aws_cloudfront_origin_ssl_protocols"
     mapping: ClassVar[Dict[str, Bender]] = {
         "quantity": S("Quantity"),
         "items": S("Items", default=[])
@@ -54,7 +54,7 @@ class AwsCloudFrontOriginSslProtocols:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontCustomOriginConfig:
-    kind: ClassVar[str] = "aws_cloud_front_custom_origin_config"
+    kind: ClassVar[str] = "aws_cloudfront_custom_origin_config"
     mapping: ClassVar[Dict[str, Bender]] = {
         "http_port": S("HTTPPort"),
         "https_port": S("HTTPSPort"),
@@ -72,7 +72,7 @@ class AwsCloudFrontCustomOriginConfig:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontOriginShield:
-    kind: ClassVar[str] = "aws_cloud_front_origin_shield"
+    kind: ClassVar[str] = "aws_cloudfront_origin_shield"
     mapping: ClassVar[Dict[str, Bender]] = {
         "enabled": S("Enabled"),
         "origin_shield_region": S("OriginShieldRegion")
@@ -82,7 +82,7 @@ class AwsCloudFrontOriginShield:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontOrigin:
-    kind: ClassVar[str] = "aws_cloud_front_origin"
+    kind: ClassVar[str] = "aws_cloudfront_origin"
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Id"),
         "domain_name": S("DomainName"),
@@ -108,7 +108,7 @@ class AwsCloudFrontOrigin:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontOrigins:
-    kind: ClassVar[str] = "aws_cloud_front_origins"
+    kind: ClassVar[str] = "aws_cloudfront_origins"
     mapping: ClassVar[Dict[str, Bender]] = {
         "quantity": S("Quantity"),
         "items": S("Items", default=[]) >> ForallBend(AwsCloudFrontOrigin.mapping)
@@ -118,7 +118,7 @@ class AwsCloudFrontOrigins:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontStatusCodes:
-    kind: ClassVar[str] = "aws_cloud_front_status_codes"
+    kind: ClassVar[str] = "aws_cloudfront_status_codes"
     mapping: ClassVar[Dict[str, Bender]] = {
         "quantity": S("Quantity"),
         "items": S("Items", default=[])
@@ -128,7 +128,7 @@ class AwsCloudFrontStatusCodes:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontOriginGroupFailoverCriteria:
-    kind: ClassVar[str] = "aws_cloud_front_origin_group_failover_criteria"
+    kind: ClassVar[str] = "aws_cloudfront_origin_group_failover_criteria"
     mapping: ClassVar[Dict[str, Bender]] = {
         "status_codes": S("StatusCodes") >> Bend(AwsCloudFrontStatusCodes.mapping)
     }
@@ -136,7 +136,7 @@ class AwsCloudFrontOriginGroupFailoverCriteria:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontOriginGroupMembers:
-    kind: ClassVar[str] = "aws_cloud_front_origin_group_members"
+    kind: ClassVar[str] = "aws_cloudfront_origin_group_members"
     mapping: ClassVar[Dict[str, Bender]] = {
         "quantity": S("Quantity"),
         "items": S("Items", default=[]) >> ForallBend(S("OriginId"))
@@ -146,7 +146,7 @@ class AwsCloudFrontOriginGroupMembers:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontOriginGroup:
-    kind: ClassVar[str] = "aws_cloud_front_origin_group"
+    kind: ClassVar[str] = "aws_cloudfront_origin_group"
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Id"),
         "failover_criteria": S("FailoverCriteria") >> Bend(AwsCloudFrontOriginGroupFailoverCriteria.mapping),
@@ -158,7 +158,7 @@ class AwsCloudFrontOriginGroup:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontOriginGroups:
-    kind: ClassVar[str] = "aws_cloud_front_origin_groups"
+    kind: ClassVar[str] = "aws_cloudfront_origin_groups"
     mapping: ClassVar[Dict[str, Bender]] = {
         "quantity": S("Quantity"),
         "items": S("Items", default=[]) >> ForallBend(AwsCloudFrontOriginGroup.mapping)
@@ -168,7 +168,7 @@ class AwsCloudFrontOriginGroups:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontTrustedSigners:
-    kind: ClassVar[str] = "aws_cloud_front_trusted_signers"
+    kind: ClassVar[str] = "aws_cloudfront_trusted_signers"
     mapping: ClassVar[Dict[str, Bender]] = {
         "enabled": S("Enabled"),
         "quantity": S("Quantity"),
@@ -180,7 +180,7 @@ class AwsCloudFrontTrustedSigners:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontTrustedKeyGroups:
-    kind: ClassVar[str] = "aws_cloud_front_trusted_key_groups"
+    kind: ClassVar[str] = "aws_cloudfront_trusted_key_groups"
     mapping: ClassVar[Dict[str, Bender]] = {
         "enabled": S("Enabled"),
         "quantity": S("Quantity"),
@@ -192,7 +192,7 @@ class AwsCloudFrontTrustedKeyGroups:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontCachedMethods:
-    kind: ClassVar[str] = "aws_cloud_front_cached_methods"
+    kind: ClassVar[str] = "aws_cloudfront_cached_methods"
     mapping: ClassVar[Dict[str, Bender]] = {
         "quantity": S("Quantity"),
         "items": S("Items", default=[])
@@ -202,7 +202,7 @@ class AwsCloudFrontCachedMethods:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontAllowedMethods:
-    kind: ClassVar[str] = "aws_cloud_front_allowed_methods"
+    kind: ClassVar[str] = "aws_cloudfront_allowed_methods"
     mapping: ClassVar[Dict[str, Bender]] = {
         "quantity": S("Quantity"),
         "items": S("Items", default=[]),
@@ -214,7 +214,7 @@ class AwsCloudFrontAllowedMethods:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontLambdaFunctionAssociation:
-    kind: ClassVar[str] = "aws_cloud_front_lambda_function_association"
+    kind: ClassVar[str] = "aws_cloudfront_lambda_function_association"
     mapping: ClassVar[Dict[str, Bender]] = {
         "lambda_function_arn": S("LambdaFunctionARN"),
         "event_type": S("EventType"),
@@ -226,7 +226,7 @@ class AwsCloudFrontLambdaFunctionAssociation:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontLambdaFunctionAssociations:
-    kind: ClassVar[str] = "aws_cloud_front_lambda_function_associations"
+    kind: ClassVar[str] = "aws_cloudfront_lambda_function_associations"
     mapping: ClassVar[Dict[str, Bender]] = {
         "quantity": S("Quantity"),
         "items": S("Items", default=[]) >> ForallBend(AwsCloudFrontLambdaFunctionAssociation.mapping)
@@ -236,7 +236,7 @@ class AwsCloudFrontLambdaFunctionAssociations:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontFunctionAssociation:
-    kind: ClassVar[str] = "aws_cloud_front_function_association"
+    kind: ClassVar[str] = "aws_cloudfront_function_association"
     mapping: ClassVar[Dict[str, Bender]] = {
         "function_arn": S("FunctionARN"),
         "event_type": S("EventType")
@@ -246,7 +246,7 @@ class AwsCloudFrontFunctionAssociation:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontFunctionAssociations:
-    kind: ClassVar[str] = "aws_cloud_front_function_associations"
+    kind: ClassVar[str] = "aws_cloudfront_function_associations"
     mapping: ClassVar[Dict[str, Bender]] = {
         "quantity": S("Quantity"),
         "items": S("Items", default=[]) >> ForallBend(AwsCloudFrontFunctionAssociation.mapping)
@@ -256,7 +256,7 @@ class AwsCloudFrontFunctionAssociations:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontCookieNames:
-    kind: ClassVar[str] = "aws_cloud_front_cookie_names"
+    kind: ClassVar[str] = "aws_cloudfront_cookie_names"
     mapping: ClassVar[Dict[str, Bender]] = {
         "quantity": S("Quantity"),
         "items": S("Items", default=[])
@@ -266,7 +266,7 @@ class AwsCloudFrontCookieNames:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontCookiePreference:
-    kind: ClassVar[str] = "aws_cloud_front_cookie_preference"
+    kind: ClassVar[str] = "aws_cloudfront_cookie_preference"
     mapping: ClassVar[Dict[str, Bender]] = {
         "forward": S("Forward"),
         "whitelisted_names": S("WhitelistedNames") >> Bend(AwsCloudFrontCookieNames.mapping)
@@ -276,7 +276,7 @@ class AwsCloudFrontCookiePreference:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontHeaders:
-    kind: ClassVar[str] = "aws_cloud_front_headers"
+    kind: ClassVar[str] = "aws_cloudfront_headers"
     mapping: ClassVar[Dict[str, Bender]] = {
         "quantity": S("Quantity"),
         "items": S("Items", default=[])
@@ -286,7 +286,7 @@ class AwsCloudFrontHeaders:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontQueryStringCacheKeys:
-    kind: ClassVar[str] = "aws_cloud_front_query_string_cache_keys"
+    kind: ClassVar[str] = "aws_cloudfront_query_string_cache_keys"
     mapping: ClassVar[Dict[str, Bender]] = {
         "quantity": S("Quantity"),
         "items": S("Items", default=[])
@@ -296,7 +296,7 @@ class AwsCloudFrontQueryStringCacheKeys:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontForwardedValues:
-    kind: ClassVar[str] = "aws_cloud_front_forwarded_values"
+    kind: ClassVar[str] = "aws_cloudfront_forwarded_values"
     mapping: ClassVar[Dict[str, Bender]] = {
         "query_string": S("QueryString"),
         "cookies": S("Cookies") >> Bend(AwsCloudFrontCookiePreference.mapping),
@@ -310,7 +310,7 @@ class AwsCloudFrontForwardedValues:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontDefaultCacheBehavior:
-    kind: ClassVar[str] = "aws_cloud_front_default_cache_behavior"
+    kind: ClassVar[str] = "aws_cloudfront_default_cache_behavior"
     mapping: ClassVar[Dict[str, Bender]] = {
         "target_origin_id": S("TargetOriginId"),
         "trusted_signers": S("TrustedSigners") >> Bend(AwsCloudFrontTrustedSigners.mapping),
@@ -352,7 +352,7 @@ class AwsCloudFrontDefaultCacheBehavior:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontCacheBehavior:
-    kind: ClassVar[str] = "aws_cloud_front_cache_behavior"
+    kind: ClassVar[str] = "aws_cloudfront_cache_behavior"
     mapping: ClassVar[Dict[str, Bender]] = {
         "path_pattern": S("PathPattern"),
         "target_origin_id": S("TargetOriginId"),
@@ -396,7 +396,7 @@ class AwsCloudFrontCacheBehavior:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontCacheBehaviors:
-    kind: ClassVar[str] = "aws_cloud_front_cache_behaviors"
+    kind: ClassVar[str] = "aws_cloudfront_cache_behaviors"
     mapping: ClassVar[Dict[str, Bender]] = {
         "quantity": S("Quantity"),
         "items": S("Items", default=[]) >> ForallBend(AwsCloudFrontCacheBehavior.mapping)
@@ -406,7 +406,7 @@ class AwsCloudFrontCacheBehaviors:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontCustomErrorResponse:
-    kind: ClassVar[str] = "aws_cloud_front_custom_error_response"
+    kind: ClassVar[str] = "aws_cloudfront_custom_error_response"
     mapping: ClassVar[Dict[str, Bender]] = {
         "error_code": S("ErrorCode"),
         "response_page_path": S("ResponsePagePath"),
@@ -420,7 +420,7 @@ class AwsCloudFrontCustomErrorResponse:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontCustomErrorResponses:
-    kind: ClassVar[str] = "aws_cloud_front_custom_error_responses"
+    kind: ClassVar[str] = "aws_cloudfront_custom_error_responses"
     mapping: ClassVar[Dict[str, Bender]] = {
         "quantity": S("Quantity"),
         "items": S("Items", default=[]) >> ForallBend(AwsCloudFrontCustomErrorResponse.mapping)
@@ -430,9 +430,9 @@ class AwsCloudFrontCustomErrorResponses:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontViewerCertificate:
-    kind: ClassVar[str] = "aws_cloud_front_viewer_certificate"
+    kind: ClassVar[str] = "aws_cloudfront_viewer_certificate"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "cloud_front_default_certificate": S("CloudFrontDefaultCertificate"),
+        "cloudfront_default_certificate": S("CloudFrontDefaultCertificate"),
         "iam_certificate_id": S("IAMCertificateId"),
         "acm_certificate_arn": S("ACMCertificateArn"),
         "ssl_support_method": S("SSLSupportMethod"),
@@ -440,7 +440,7 @@ class AwsCloudFrontViewerCertificate:
         "certificate": S("Certificate"),
         "certificate_source": S("CertificateSource")
     }
-    cloud_front_default_certificate: Optional[bool] = field(default=None)
+    cloudfront_default_certificate: Optional[bool] = field(default=None)
     iam_certificate_id: Optional[str] = field(default=None)
     acm_certificate_arn: Optional[str] = field(default=None)
     ssl_support_method: Optional[str] = field(default=None)
@@ -450,7 +450,7 @@ class AwsCloudFrontViewerCertificate:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontGeoRestriction:
-    kind: ClassVar[str] = "aws_cloud_front_geo_restriction"
+    kind: ClassVar[str] = "aws_cloudfront_geo_restriction"
     mapping: ClassVar[Dict[str, Bender]] = {
         "restriction_type": S("RestrictionType"),
         "quantity": S("Quantity"),
@@ -462,7 +462,7 @@ class AwsCloudFrontGeoRestriction:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontRestrictions:
-    kind: ClassVar[str] = "aws_cloud_front_restrictions"
+    kind: ClassVar[str] = "aws_cloudfront_restrictions"
     mapping: ClassVar[Dict[str, Bender]] = {
         "geo_restriction": S("GeoRestriction") >> Bend(AwsCloudFrontGeoRestriction.mapping)
     }
@@ -470,7 +470,7 @@ class AwsCloudFrontRestrictions:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontAliasICPRecordal:
-    kind: ClassVar[str] = "aws_cloud_front_alias_icp_recordal"
+    kind: ClassVar[str] = "aws_cloudfront_alias_icp_recordal"
     mapping: ClassVar[Dict[str, Bender]] = {
         "cname": S("CNAME"),
         "icp_recordal_status": S("ICPRecordalStatus")
@@ -480,7 +480,7 @@ class AwsCloudFrontAliasICPRecordal:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontDistribution(AwsResource):
-    kind: ClassVar[str] = "aws_cloud_front_distribution"
+    kind: ClassVar[str] = "aws_cloudfront_distribution"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudfront", "list-distributions", "DistributionList")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Id"),
@@ -529,5 +529,71 @@ class AwsCloudFrontDistribution(AwsResource):
         for js in json["Items"]:
             instance = cls.from_api(js)
             builder.add_node(instance, js)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        #TODO lambda function
+        #TODO cloudfront realtime log config
+        #TODO acm certificate
+        #TODO cloudfront origin access control
+        #TODO response headers policy (and cache policy and origin request policy)
+        #TODO iam certificate
+        #TODO web acl
+        #TODO field level encryption
+        return super().connect_in_graph(builder, source)
+
+    def delete_resource(self, client: AwsClient) -> bool:
+        #TODO
+        return super().delete_resource(client)
+
+
+@define(eq=False, slots=False)
+class AwsCloudFrontFunctionConfig:
+    kind: ClassVar[str] = "aws_cloudfront_function_config"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "comment": S("Comment"),
+        "runtime": S("Runtime")
+    }
+    comment: Optional[str] = field(default=None)
+    runtime: Optional[str] = field(default=None)
+
+@define(eq=False, slots=False)
+class AwsCloudFrontFunctionMetadata:
+    kind: ClassVar[str] = "aws_cloudfront_function_metadata"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "function_arn": S("FunctionARN"),
+        "stage": S("Stage"),
+        "created_time": S("CreatedTime"),
+        "last_modified_time": S("LastModifiedTime")
+    }
+    function_arn: Optional[str] = field(default=None)
+    stage: Optional[str] = field(default=None)
+    created_time: Optional[datetime] = field(default=None)
+    last_modified_time: Optional[datetime] = field(default=None)
+
+@define(eq=False, slots=False)
+class AwsCloudFrontFunction(AwsResource):
+    kind: ClassVar[str] = "aws_cloudfront_function"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudfront", "list-functions", "FunctionList")
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("Name"),
+        # "tags": S("Tags", default=[]) >> ToDict(),
+        "name": S("Name"),
+        "ctime": K(None),
+        "mtime": K(None),
+        "atime": K(None),
+        "function_status": S("Status"),
+        "function_config": S("FunctionConfig") >> Bend(AwsCloudFrontFunctionConfig.mapping),
+        "function_metadata": S("FunctionMetadata") >> Bend(AwsCloudFrontFunctionMetadata.mapping)
+    }
+    function_status: Optional[str] = field(default=None)
+    function_config: Optional[AwsCloudFrontFunctionConfig] = field(default=None)
+    function_metadata: Optional[AwsCloudFrontFunctionMetadata] = field(default=None)
+
+    @classmethod
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        for js in json["Items"]:
+            instance = cls.from_api(js)
+            builder.add_node(instance, js)
+
 
 resources: List[Type[AwsResource]] = [AwsCloudFrontDistribution]
