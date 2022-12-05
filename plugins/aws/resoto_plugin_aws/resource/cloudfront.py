@@ -556,19 +556,6 @@ class AwsCloudFrontFunctionConfig:
     comment: Optional[str] = field(default=None)
     runtime: Optional[str] = field(default=None)
 
-@define(eq=False, slots=False)
-class AwsCloudFrontFunctionMetadata:
-    kind: ClassVar[str] = "aws_cloudfront_function_metadata"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "function_arn": S("FunctionARN"),
-        "stage": S("Stage"),
-        "created_time": S("CreatedTime"),
-        "last_modified_time": S("LastModifiedTime")
-    }
-    function_arn: Optional[str] = field(default=None)
-    stage: Optional[str] = field(default=None)
-    created_time: Optional[datetime] = field(default=None)
-    last_modified_time: Optional[datetime] = field(default=None)
 
 @define(eq=False, slots=False)
 class AwsCloudFrontFunction(AwsResource):
@@ -576,22 +563,25 @@ class AwsCloudFrontFunction(AwsResource):
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudfront", "list-functions", "FunctionList")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Name"),
+        "arn": S("arn"),
         # "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("Name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
+        "ctime": S("ctime"),
+        "mtime": S("mtime"),
         "function_status": S("Status"),
+        "function_stage" : S("stage"),
         "function_config": S("FunctionConfig") >> Bend(AwsCloudFrontFunctionConfig.mapping),
-        "function_metadata": S("FunctionMetadata") >> Bend(AwsCloudFrontFunctionMetadata.mapping)
     }
     function_status: Optional[str] = field(default=None)
     function_config: Optional[AwsCloudFrontFunctionConfig] = field(default=None)
-    function_metadata: Optional[AwsCloudFrontFunctionMetadata] = field(default=None)
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for js in json["Items"]:
+            js["arn"] = js["FunctionMetadata"]["FunctionARN"]
+            js["stage"] = js["FunctionMetadata"]["Stage"]
+            js["ctime"] = js["FunctionMetadata"]["CreatedTime"]
+            js["mtime"] = js["FunctionMetadata"]["LastModifiedTime"]
             instance = cls.from_api(js)
             builder.add_node(instance, js)
 
