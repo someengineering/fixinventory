@@ -627,4 +627,46 @@ class AwsCloudFrontPublicKey(AwsResource):
             builder.add_node(instance, js)
 
 
-resources: List[Type[AwsResource]] = [AwsCloudFrontDistribution, AwsCloudFrontFunction, AwsCloudFrontInvalidation, AwsCloudFrontPublicKey]
+@define(eq=False, slots=False)
+class AwsCloudFrontKinesisStreamConfig:
+    kind: ClassVar[str] = "aws_cloud_front_kinesis_stream_config"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "role_arn": S("RoleARN"),
+        "stream_arn": S("StreamARN")
+    }
+    role_arn: Optional[str] = field(default=None)
+    stream_arn: Optional[str] = field(default=None)
+
+@define(eq=False, slots=False)
+class AwsCloudFrontEndPoint:
+    kind: ClassVar[str] = "aws_cloud_front_end_point"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "stream_type": S("StreamType"),
+        "kinesis_stream_config": S("KinesisStreamConfig") >> Bend(AwsCloudFrontKinesisStreamConfig.mapping)
+    }
+    stream_type: Optional[str] = field(default=None)
+    kinesis_stream_config: Optional[AwsCloudFrontKinesisStreamConfig] = field(default=None)
+
+@define(eq=False, slots=False)
+class AwsCloudFrontRealtimeLogConfig(AwsResource):
+    kind: ClassVar[str] = "aws_cloud_front_realtime_log_config"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudfront", "list-realtime-log-configs", "RealtimeLogConfigs")
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("Name"),
+        "name": S("Name"),
+        "arn": S("ARN"),
+        "realtime_log_sampling_rate": S("SamplingRate"),
+        "realtime_log_end_points": S("EndPoints", default=[]) >> ForallBend(AwsCloudFrontEndPoint.mapping),
+        "realtime_log_fields": S("Fields", default=[])
+    }
+    realtime_log_sampling_rate: Optional[int] = field(default=None)
+    realtime_log_end_points: List[AwsCloudFrontEndPoint] = field(factory=list)
+    realtime_log_fields: List[str] = field(factory=list)
+
+    @classmethod
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        for js in json["Items"]:
+            instance = cls.from_api(js)
+            builder.add_node(instance, js)
+
+resources: List[Type[AwsResource]] = [AwsCloudFrontDistribution, AwsCloudFrontFunction, AwsCloudFrontInvalidation, AwsCloudFrontPublicKey, AwsCloudFrontRealtimeLogConfig]
