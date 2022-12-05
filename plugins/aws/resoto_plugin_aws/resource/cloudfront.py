@@ -605,4 +605,26 @@ class AwsCloudFrontInvalidation(AwsResource):
             builder.add_node(instance, js)
 
 
-resources: List[Type[AwsResource]] = [AwsCloudFrontDistribution]
+
+@define(eq=False, slots=False)
+class AwsCloudFrontPublicKey(AwsResource):
+    kind: ClassVar[str] = "aws_cloud_front_public_key"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudfront", "list-public-keys", "PublicKeyList")
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("Id"),
+        "name": S("Name"),
+        "ctime": S("CreatedTime"),
+        "public_key_encoded_key": S("EncodedKey"),
+        "public_key_comment": S("Comment")
+    }
+    public_key_encoded_key: Optional[str] = field(default=None)
+    public_key_comment: Optional[str] = field(default=None)
+
+    @classmethod
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        for js in json["Items"]:
+            instance = cls.from_api(js)
+            builder.add_node(instance, js)
+
+
+resources: List[Type[AwsResource]] = [AwsCloudFrontDistribution, AwsCloudFrontFunction, AwsCloudFrontInvalidation, AwsCloudFrontPublicKey]

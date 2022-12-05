@@ -356,7 +356,7 @@ models: Dict[str, List[AwsResotoModel]] = {
         # AwsResotoModel("list-distributions", "DistributionSummary", "DistributionSummary", prefix="CloudFront", prop_prefix="distribution_"),
         # AwsResotoModel("list-functions", "FunctionSummary", "FunctionSummary", prefix="CloudFront", prop_prefix="function_"),
         # AwsResotoModel("list-invalidations", "InvalidationSummary", "InvalidationSummary", prefix="CloudFront", prop_prefix="invalidation_"),
-        # AwsResotoModel("list-public-keys", "PublicKeyList", "ListPublicKeysResult", prefix="CloudFront", prop_prefix="public_key_"),
+        AwsResotoModel("list-public-keys", "PublicKeySummary", "PublicKeySummary", prefix="CloudFront", prop_prefix="public_key_"),
         # AwsResotoModel("list-realtime-log-configs", "RealtimeLogConfigs", "ListRealtimeLogConfigResult", prefix="CloudFront", prop_prefix="realtime_log_"),
         # AwsResotoModel("list-response-headers-policies", "ResponseHeadersPolicyList", "ListResponseHeaderPoliciesResult", prefix="CloudFront", prop_prefix="response_header_policy_"),
         # AwsResotoModel("list-streaming-distributions", "StreamingDistributionList", "ListStreamingDistributionsResult", prefix="CloudFront", prop_prefix="streaming_distribution_"),
