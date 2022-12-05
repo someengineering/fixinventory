@@ -4,7 +4,7 @@ from types import SimpleNamespace
 from test.resources import round_trip_for
 
 from resoto_plugin_aws.aws_client import AwsClient
-from resoto_plugin_aws.resource.cloudfront import AwsCloudFrontDistribution, AwsCloudFrontFunction
+from resoto_plugin_aws.resource.cloudfront import AwsCloudFrontDistribution, AwsCloudFrontFunction, AwsCloudFrontInvalidation
 from test import aws_client, aws_config  # noqa: F401
 
 
@@ -17,3 +17,7 @@ def test_functions() -> None:
     first, builder = round_trip_for(AwsCloudFrontFunction)
     assert len(builder.resources_of(AwsCloudFrontFunction)) == 1
     # assert len(first.tags) == 1
+
+def test_invalidations() -> None:
+    first, builder = round_trip_for(AwsCloudFrontInvalidation)
+    assert len(builder.resources_of(AwsCloudFrontInvalidation)) == 1

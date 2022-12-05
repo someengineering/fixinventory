@@ -586,4 +586,23 @@ class AwsCloudFrontFunction(AwsResource):
             builder.add_node(instance, js)
 
 
+@define(eq=False, slots=False)
+class AwsCloudFrontInvalidation(AwsResource):
+    kind: ClassVar[str] = "aws_cloud_front_invalidation"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudfront", "list-invalidations", "InvalidationList")
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("Id"),
+        # "name": S("Tags", default=[]) >> TagsValue("Name"),
+        "ctime": S("CreateTime"),
+        "invalidation_status": S("Status")
+    }
+    invalidation_status: Optional[str] = field(default=None)
+
+    @classmethod
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        for js in json["Items"]:
+            instance = cls.from_api(js)
+            builder.add_node(instance, js)
+
+
 resources: List[Type[AwsResource]] = [AwsCloudFrontDistribution]
