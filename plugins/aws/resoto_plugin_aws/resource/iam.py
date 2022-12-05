@@ -234,6 +234,21 @@ class AwsIamServerCertificate(AwsResource, BaseCertificate):
 
 
 @define(eq=False, slots=False)
+class AwsIamPolicyVersion:
+    kind: ClassVar[str] = "aws_iam_policy_version"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "document": S("Document"),
+        "version_id": S("VersionId"),
+        "is_default_version": S("IsDefaultVersion"),
+        "create_date": S("CreateDate"),
+    }
+    document: Optional[str] = field(default=None)
+    version_id: Optional[str] = field(default=None)
+    is_default_version: Optional[bool] = field(default=None)
+    create_date: Optional[datetime] = field(default=None)
+
+
+@define(eq=False, slots=False)
 class AwsIamPolicy(AwsResource, BasePolicy):
     # Note: this resource is collected via AwsIamUser.collect.
     kind: ClassVar[str] = "aws_iam_policy"
@@ -250,6 +265,7 @@ class AwsIamPolicy(AwsResource, BasePolicy):
         "policy_permissions_boundary_usage_count": S("PermissionsBoundaryUsageCount"),
         "policy_is_attachable": S("IsAttachable"),
         "policy_description": S("Description"),
+        "policy_version_list": S("PolicyVersionList", default=[]) >> ForallBend(AwsIamPolicyVersion.mapping),
     }
     path: Optional[str] = field(default=None)
     policy_default_version_id: Optional[str] = field(default=None)
@@ -257,6 +273,7 @@ class AwsIamPolicy(AwsResource, BasePolicy):
     policy_permissions_boundary_usage_count: Optional[int] = field(default=None)
     policy_is_attachable: Optional[bool] = field(default=None)
     policy_description: Optional[str] = field(default=None)
+    policy_version_list: List[AwsIamPolicyVersion] = field(factory=list)
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         return iam_update_tag(
