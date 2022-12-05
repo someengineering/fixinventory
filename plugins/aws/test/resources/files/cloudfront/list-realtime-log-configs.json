@@ -18,6 +18,23 @@
                 "Fields": [
                     "string"
                 ]
+            },
+            {
+                "ARN": "string2",
+                "Name": "string2",
+                "SamplingRate": 1234,
+                "EndPoints": [
+                    {
+                        "StreamType": "string2",
+                        "KinesisStreamConfig": {
+                            "RoleARN": "string2",
+                            "StreamARN": "string2"
+                        }
+                    }
+                ],
+                "Fields": [
+                    "string2"
+                ]
             }
         ],
         "IsTruncated": false,
