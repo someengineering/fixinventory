@@ -1,4 +1,4 @@
-resotolib==3.0.0rc5
+resotolib==3.0.1
 retrying==1.3.3
 boto3==1.26.10
 botocore==1.29.10

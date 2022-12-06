@@ -4,7 +4,7 @@ import logging
 from abc import abstractmethod
 from datetime import datetime, timedelta
 from functools import partial
-from typing import Sequence, Optional, List, AsyncGenerator, Dict
+from typing import Sequence, Optional, List, AsyncGenerator, Dict, Union
 
 from attrs import define, field
 from jsons import JsonsError
@@ -12,7 +12,7 @@ from jsons import JsonsError
 from resotocore.db.async_arangodb import AsyncArangoDB, AsyncCursorContext
 from resotocore.db.entitydb import EntityDb, ArangoEntityDb
 from resotocore.ids import TaskId, TaskDescriptorId
-from resotocore.message_bus import Message, ActionInfo
+from resotocore.message_bus import Message, ActionInfo, ActionError
 from resotocore.model.typed_model import to_js, from_js
 from resotocore.task.task_description import RunningTask
 from resotocore.types import Json, JsonElement
@@ -67,8 +67,8 @@ class RunningTaskData:
     # indicates if this task had errors
     has_error: bool = False
 
-    def info_messages(self) -> List[ActionInfo]:
-        return [m for m in iter(self.received_messages) if isinstance(m, ActionInfo)]
+    def info_messages(self) -> List[Union[ActionInfo, ActionError]]:
+        return [m for m in iter(self.received_messages) if isinstance(m, (ActionInfo, ActionError))]
 
     @staticmethod
     def data(wi: RunningTask) -> RunningTaskData:
@@ -85,7 +85,11 @@ class RunningTaskData:
             wi.task_duration,
             not wi.is_active,
             any(True for msg in wi.info_messages if isinstance(msg, ActionInfo) and msg.level == "info"),
-            any(True for msg in wi.info_messages if isinstance(msg, ActionInfo) and msg.level == "error"),
+            any(
+                True
+                for msg in wi.info_messages
+                if (isinstance(msg, ActionInfo) and msg.level == "error") or isinstance(msg, ActionError)
+            ),
         )
 
 

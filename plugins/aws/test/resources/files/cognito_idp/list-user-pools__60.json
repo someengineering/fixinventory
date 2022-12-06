@@ -1,0 +1,33 @@
+{
+    "UserPools": [
+        {
+            "Id": "123",
+            "Name": "jacuzzi",
+            "LambdaConfig": {
+                "PreSignUp": "string",
+                "CustomMessage": "string",
+                "PostConfirmation": "string",
+                "PreAuthentication": "string",
+                "PostAuthentication": "string",
+                "DefineAuthChallenge": "string",
+                "CreateAuthChallenge": "string",
+                "VerifyAuthChallengeResponse": "string",
+                "PreTokenGeneration": "string",
+                "UserMigration": "string",
+                "CustomSMSSender": {
+                    "LambdaVersion": "V1_0",
+                    "LambdaArn": "string"
+                },
+                "CustomEmailSender": {
+                    "LambdaVersion": "V1_0",
+                    "LambdaArn": "arn:aws:lambda:us-east-1:test:function:dcos-versions-lambda-dev-commit"
+                },
+                "KMSKeyID": "string"
+            },
+            "Status": "Enabled",
+            "LastModifiedDate": "2022-08-08T09:36:55Z",
+            "CreationDate": "2022-08-08T09:36:55Z"
+        }
+    ],
+    "NextToken": "string"
+}
