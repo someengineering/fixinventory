@@ -1,14 +1,15 @@
-from datetime import datetime
 import time
+from datetime import datetime
 from typing import Any, ClassVar, Dict, Literal, Optional, List, Type, cast
 
 from attrs import define, field
 
-from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec
+from resoto_plugin_aws.aws_client import AwsClient
+from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
 from resoto_plugin_aws.utils import ToDict
 from resotolib.baseresources import BaseStack
+from resotolib.graph import ByNodeId, BySearchCriteria
 from resotolib.json_bender import Bender, S, Bend, ForallBend
-from resoto_plugin_aws.aws_client import AwsClient
 from resotolib.types import Json
 
 
@@ -206,6 +207,19 @@ class AwsCloudFormationStackSet(AwsResource):
     stack_set_managed_execution: Optional[bool] = field(default=None)
     stack_set_parameters: Optional[Dict[str, Any]] = None
 
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        def deferred_edge_to_stack_instances() -> None:
+            for si in builder.client.list(
+                "cloudformation", "list-stack-instances", "Summaries", StackSetName=self.name
+            ):
+                if stack_id := si.get("StackId"):
+                    builder.graph.add_deferred_edge(
+                        ByNodeId(self.chksum),
+                        BySearchCriteria(f'is(aws_cloudformation_stack) and reported.id="{stack_id}"'),
+                    )
+
+        builder.submit_work(deferred_edge_to_stack_instances)
+
     def _modify_tag(self, client: AwsClient, key: str, value: Optional[str], mode: Literal["update", "delete"]) -> bool:
         tags = dict(self.tags)
         if mode == "delete":
@@ -254,6 +268,10 @@ class AwsCloudFormationStackSet(AwsResource):
             StackSetName=self.name,
         )
         return True
+
+    @classmethod
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
+        return [cls.api_spec, AwsApiSpec("cloudformation", "list-stack-instances")]
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:

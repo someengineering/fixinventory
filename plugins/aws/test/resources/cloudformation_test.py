@@ -11,7 +11,13 @@ def test_cloud_formation_stacks() -> None:
 
 
 def test_cloud_formation_stack_sets() -> None:
-    round_trip_for(AwsCloudFormationStack)
+    stack_set, builder = round_trip_for(AwsCloudFormationStackSet)
+
+    # stack sets
+    assert len(builder.resources_of(AwsCloudFormationStackSet)) == 1
+
+    # deferred edges to stack set instances
+    assert len(builder.graph.deferred_edges) == 2
 
 
 def test_cloud_formation_stack_tagging() -> None:
