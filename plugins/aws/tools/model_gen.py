@@ -351,6 +351,13 @@ models: Dict[str, List[AwsResotoModel]] = {
         # AwsResotoModel(
         #     "list-stack-sets", "Summaries", "StackSetSummary", prefix="CloudFormation", prop_prefix="stack_set_"
         # ),
+        # AwsResotoModel(
+        #     "list-stack-instances",
+        #     "Summaries",
+        #     "StackInstanceSummary",
+        #     prefix="CloudFormation",
+        #     prop_prefix="stack_instance_",
+        # ),
     ],
     "cloudwatch": [
         # AwsResotoModel(

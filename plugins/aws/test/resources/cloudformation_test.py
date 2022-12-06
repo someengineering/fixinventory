@@ -1,4 +1,8 @@
-from resoto_plugin_aws.resource.cloudformation import AwsCloudFormationStack, AwsCloudFormationStackSet
+from resoto_plugin_aws.resource.cloudformation import (
+    AwsCloudFormationStack,
+    AwsCloudFormationStackSet,
+    AwsCloudFormationStackInstanceSummary,
+)
 from resoto_plugin_aws.aws_client import AwsClient
 from test.resources import round_trip_for
 from typing import Any, cast
@@ -15,6 +19,8 @@ def test_cloud_formation_stack_sets() -> None:
 
     # stack sets
     assert len(builder.resources_of(AwsCloudFormationStackSet)) == 1
+    # stack set instance summaries
+    assert len(builder.resources_of(AwsCloudFormationStackInstanceSummary)) == 2
 
     # deferred edges to stack set instances
     assert len(builder.graph.deferred_edges) == 2
