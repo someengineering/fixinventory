@@ -1,3 +1,5 @@
+import logging
+from boto3.exceptions import Boto3Error
 from datetime import datetime
 from typing import ClassVar, Dict, List, Optional, Type, cast
 
@@ -10,6 +12,39 @@ from resotolib.baseresources import ModelReference
 from resotolib.json import from_json
 from resotolib.json_bender import K, S, Bend, Bender, ForallBend, bend
 from resotolib.types import Json
+
+log = logging.getLogger("resoto.plugins.aws")
+
+
+class CloudFrontResource:
+    # TODO define tagging here
+
+    @classmethod
+    def collect_resources(cls: Type[AwsResource], builder: GraphBuilder) -> None:
+        # Default behavior: in case the class has an ApiSpec, call the api and call collect.
+        log.debug(f"Collecting {cls.__name__} in region {builder.region.name}")
+        if spec := cls.api_spec:
+            try:
+                kwargs = spec.parameter or {}
+                items = builder.client.list(
+                    aws_service=spec.service,
+                    action=spec.api_action,
+                    result_name=spec.result_property,
+                    expected_errors=spec.expected_errors,
+                    **kwargs,
+                )
+                if isinstance(items, List):
+                    cls.collect(items, builder)
+                if isinstance(items, Dict):
+                    cls.collect(items["Items"], builder)
+            except Boto3Error as e:
+                msg = f"Error while collecting {cls.__name__} in region {builder.region.name}: {e}"
+                builder.core_feedback.error(msg, log)
+                raise
+            except Exception as e:
+                msg = f"Error while collecting {cls.__name__} in region {builder.region.name}: {e}"
+                builder.core_feedback.info(msg, log)
+                raise
 
 
 @define(eq=False, slots=False)
@@ -481,7 +516,7 @@ class AwsCloudFrontAliasICPRecordal:
 
 
 @define(eq=False, slots=False)
-class AwsCloudFrontDistribution(AwsResource):
+class AwsCloudFrontDistribution(CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_distribution"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudfront", "list-distributions", "DistributionList")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -529,12 +564,6 @@ class AwsCloudFrontDistribution(AwsResource):
     distribution_is_ipv6_enabled: Optional[bool] = field(default=None)
     distribution_alias_icp_recordals: List[AwsCloudFrontAliasICPRecordal] = field(factory=list)
 
-    @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
-        for js in json["Items"]:
-            instance = cls.from_api(js)
-            builder.add_node(instance, js)
-
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         # TODO lambda function
         # TODO cloudfront realtime log config
@@ -560,7 +589,7 @@ class AwsCloudFrontFunctionConfig:
 
 
 @define(eq=False, slots=False)
-class AwsCloudFrontFunction(AwsResource):
+class AwsCloudFrontFunction(CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_function"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudfront", "list-functions", "FunctionList")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -579,7 +608,7 @@ class AwsCloudFrontFunction(AwsResource):
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
-        for js in json["Items"]:
+        for js in json:
             js["arn"] = js["FunctionMetadata"]["FunctionARN"]
             js["stage"] = js["FunctionMetadata"]["Stage"]
             js["ctime"] = js["FunctionMetadata"]["CreatedTime"]
@@ -589,7 +618,7 @@ class AwsCloudFrontFunction(AwsResource):
 
 
 @define(eq=False, slots=False)
-class AwsCloudFrontInvalidation(AwsResource):
+class AwsCloudFrontInvalidation(CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloud_front_invalidation"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudfront", "list-invalidations", "InvalidationList")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -600,15 +629,9 @@ class AwsCloudFrontInvalidation(AwsResource):
     }
     invalidation_status: Optional[str] = field(default=None)
 
-    @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
-        for js in json["Items"]:
-            instance = cls.from_api(js)
-            builder.add_node(instance, js)
-
 
 @define(eq=False, slots=False)
-class AwsCloudFrontPublicKey(AwsResource):
+class AwsCloudFrontPublicKey(CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloud_front_public_key"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudfront", "list-public-keys", "PublicKeyList")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -620,12 +643,6 @@ class AwsCloudFrontPublicKey(AwsResource):
     }
     public_key_encoded_key: Optional[str] = field(default=None)
     public_key_comment: Optional[str] = field(default=None)
-
-    @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
-        for js in json["Items"]:
-            instance = cls.from_api(js)
-            builder.add_node(instance, js)
 
 
 @define(eq=False, slots=False)
@@ -648,7 +665,7 @@ class AwsCloudFrontEndPoint:
 
 
 @define(eq=False, slots=False)
-class AwsCloudFrontRealtimeLogConfig(AwsResource):
+class AwsCloudFrontRealtimeLogConfig(CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloud_front_realtime_log_config"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudfront", "list-realtime-log-configs", "RealtimeLogConfigs")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -662,12 +679,6 @@ class AwsCloudFrontRealtimeLogConfig(AwsResource):
     realtime_log_sampling_rate: Optional[int] = field(default=None)
     realtime_log_end_points: List[AwsCloudFrontEndPoint] = field(factory=list)
     realtime_log_fields: List[str] = field(factory=list)
-
-    @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
-        for js in json["Items"]:
-            instance = cls.from_api(js)
-            builder.add_node(instance, js)
 
 
 @define(eq=False, slots=False)
@@ -866,7 +877,7 @@ class AwsCloudFrontResponseHeadersPolicyConfig:
 
 
 @define(eq=False, slots=False)
-class AwsCloudFrontResponseHeadersPolicy(AwsResource):
+class AwsCloudFrontResponseHeadersPolicy(CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloud_front_response_headers_policy"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         "cloudfront", "list-response-headers-policies", "ResponseHeadersPolicyList"
@@ -884,9 +895,9 @@ class AwsCloudFrontResponseHeadersPolicy(AwsResource):
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
-        for js in json["Items"]:
+        for js in json:
             policy = js["ResponseHeadersPolicy"]
-            instance = cls.from_api(policy)
+            instance = AwsCloudFrontResponseHeadersPolicy.from_api(policy)
             instance.response_headers_policy_type = js["Type"]
             builder.add_node(instance, policy)
 
@@ -922,28 +933,7 @@ class AwsCloudFrontS3Origin:
 
 
 @define(eq=False, slots=False)
-class AwsCloudFrontAliases:
-    kind: ClassVar[str] = "aws_cloud_front_aliases"
-    mapping: ClassVar[Dict[str, Bender]] = {"quantity": S("Quantity"), "items": S("Items", default=[])}
-    quantity: Optional[int] = field(default=None)
-    items: List[str] = field(factory=list)
-
-
-@define(eq=False, slots=False)
-class AwsCloudFrontTrustedSigners:
-    kind: ClassVar[str] = "aws_cloud_front_trusted_signers"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "enabled": S("Enabled"),
-        "quantity": S("Quantity"),
-        "items": S("Items", default=[]),
-    }
-    enabled: Optional[bool] = field(default=None)
-    quantity: Optional[int] = field(default=None)
-    items: List[str] = field(factory=list)
-
-
-@define(eq=False, slots=False)
-class AwsCloudFrontStreamingDistribution(AwsResource):
+class AwsCloudFrontStreamingDistribution(CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloud_front_streaming_distribution"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         "cloudfront", "list-streaming-distributions", "StreamingDistributionList"
@@ -970,15 +960,9 @@ class AwsCloudFrontStreamingDistribution(AwsResource):
     streaming_distribution_price_class: Optional[str] = field(default=None)
     streaming_distribution_enabled: Optional[bool] = field(default=None)
 
-    @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
-        for js in json["Items"]:
-            instance = cls.from_api(js)
-            builder.add_node(instance, js)
-
 
 @define(eq=False, slots=False)
-class AwsCloudFrontOriginAccessControl(AwsResource):
+class AwsCloudFrontOriginAccessControl(CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloud_front_origin_access_control"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudfront", "list-origin-access-controls", "OriginAccessControlList")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -987,79 +971,54 @@ class AwsCloudFrontOriginAccessControl(AwsResource):
         "origin_access_control_description": S("Description"),
         "origin_access_control_signing_protocol": S("SigningProtocol"),
         "origin_access_control_signing_behavior": S("SigningBehavior"),
-        "origin_access_control_origin_access_control_origin_type": S("OriginAccessControlOriginType")
+        "origin_access_control_origin_access_control_origin_type": S("OriginAccessControlOriginType"),
     }
     origin_access_control_description: Optional[str] = field(default=None)
     origin_access_control_signing_protocol: Optional[str] = field(default=None)
     origin_access_control_signing_behavior: Optional[str] = field(default=None)
     origin_access_control_origin_access_control_origin_type: Optional[str] = field(default=None)
 
-    @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
-        for js in json["Items"]:
-            instance = cls.from_api(js)
-            builder.add_node(instance, js)
-
-
-@define(eq=False, slots=False)
-class AwsCloudFrontHeaders:
-    kind: ClassVar[str] = "aws_cloud_front_headers"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "quantity": S("Quantity"),
-        "items": S("Items", default=[])
-    }
-    quantity: Optional[int] = field(default=None)
-    items: List[str] = field(factory=list)
 
 @define(eq=False, slots=False)
 class AwsCloudFrontCachePolicyHeadersConfig:
     kind: ClassVar[str] = "aws_cloud_front_cache_policy_headers_config"
     mapping: ClassVar[Dict[str, Bender]] = {
         "header_behavior": S("HeaderBehavior"),
-        "headers": S("Headers") >> Bend(AwsCloudFrontHeaders.mapping)
+        "headers": S("Headers") >> Bend(AwsCloudFrontHeaders.mapping),
     }
     header_behavior: Optional[str] = field(default=None)
     headers: Optional[AwsCloudFrontHeaders] = field(default=None)
 
-@define(eq=False, slots=False)
-class AwsCloudFrontCookieNames:
-    kind: ClassVar[str] = "aws_cloud_front_cookie_names"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "quantity": S("Quantity"),
-        "items": S("Items", default=[])
-    }
-    quantity: Optional[int] = field(default=None)
-    items: List[str] = field(factory=list)
 
 @define(eq=False, slots=False)
 class AwsCloudFrontCachePolicyCookiesConfig:
     kind: ClassVar[str] = "aws_cloud_front_cache_policy_cookies_config"
     mapping: ClassVar[Dict[str, Bender]] = {
         "cookie_behavior": S("CookieBehavior"),
-        "cookies": S("Cookies") >> Bend(AwsCloudFrontCookieNames.mapping)
+        "cookies": S("Cookies") >> Bend(AwsCloudFrontCookieNames.mapping),
     }
     cookie_behavior: Optional[str] = field(default=None)
     cookies: Optional[AwsCloudFrontCookieNames] = field(default=None)
 
+
 @define(eq=False, slots=False)
 class AwsCloudFrontQueryStringNames:
     kind: ClassVar[str] = "aws_cloud_front_query_string_names"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "quantity": S("Quantity"),
-        "items": S("Items", default=[])
-    }
+    mapping: ClassVar[Dict[str, Bender]] = {"quantity": S("Quantity"), "items": S("Items", default=[])}
     quantity: Optional[int] = field(default=None)
     items: List[str] = field(factory=list)
+
 
 @define(eq=False, slots=False)
 class AwsCloudFrontCachePolicyQueryStringsConfig:
     kind: ClassVar[str] = "aws_cloud_front_cache_policy_query_strings_config"
     mapping: ClassVar[Dict[str, Bender]] = {
         "query_string_behavior": S("QueryStringBehavior"),
-        "query_strings": S("QueryStrings") >> Bend(AwsCloudFrontQueryStringNames.mapping)
+        "query_strings": S("QueryStrings") >> Bend(AwsCloudFrontQueryStringNames.mapping),
     }
     query_string_behavior: Optional[str] = field(default=None)
     query_strings: Optional[AwsCloudFrontQueryStringNames] = field(default=None)
+
 
 @define(eq=False, slots=False)
 class AwsCloudFrontParametersInCacheKeyAndForwardedToOrigin:
@@ -1069,13 +1028,14 @@ class AwsCloudFrontParametersInCacheKeyAndForwardedToOrigin:
         "enable_accept_encoding_brotli": S("EnableAcceptEncodingBrotli"),
         "headers_config": S("HeadersConfig") >> Bend(AwsCloudFrontCachePolicyHeadersConfig.mapping),
         "cookies_config": S("CookiesConfig") >> Bend(AwsCloudFrontCachePolicyCookiesConfig.mapping),
-        "query_strings_config": S("QueryStringsConfig") >> Bend(AwsCloudFrontCachePolicyQueryStringsConfig.mapping)
+        "query_strings_config": S("QueryStringsConfig") >> Bend(AwsCloudFrontCachePolicyQueryStringsConfig.mapping),
     }
     enable_accept_encoding_gzip: Optional[bool] = field(default=None)
     enable_accept_encoding_brotli: Optional[bool] = field(default=None)
     headers_config: Optional[AwsCloudFrontCachePolicyHeadersConfig] = field(default=None)
     cookies_config: Optional[AwsCloudFrontCachePolicyCookiesConfig] = field(default=None)
     query_strings_config: Optional[AwsCloudFrontCachePolicyQueryStringsConfig] = field(default=None)
+
 
 @define(eq=False, slots=False)
 class AwsCloudFrontCachePolicyConfig:
@@ -1086,34 +1046,39 @@ class AwsCloudFrontCachePolicyConfig:
         "default_ttl": S("DefaultTTL"),
         "max_ttl": S("MaxTTL"),
         "min_ttl": S("MinTTL"),
-        "parameters_in_cache_key_and_forwarded_to_origin": S("ParametersInCacheKeyAndForwardedToOrigin") >> Bend(AwsCloudFrontParametersInCacheKeyAndForwardedToOrigin.mapping)
+        "parameters_in_cache_key_and_forwarded_to_origin": S("ParametersInCacheKeyAndForwardedToOrigin")
+        >> Bend(AwsCloudFrontParametersInCacheKeyAndForwardedToOrigin.mapping),
     }
     comment: Optional[str] = field(default=None)
     name: Optional[str] = field(default=None)
     default_ttl: Optional[int] = field(default=None)
     max_ttl: Optional[int] = field(default=None)
     min_ttl: Optional[int] = field(default=None)
-    parameters_in_cache_key_and_forwarded_to_origin: Optional[AwsCloudFrontParametersInCacheKeyAndForwardedToOrigin] = field(default=None)
+    parameters_in_cache_key_and_forwarded_to_origin: Optional[
+        AwsCloudFrontParametersInCacheKeyAndForwardedToOrigin
+    ] = field(default=None)
+
 
 @define(eq=False, slots=False)
-class AwsCloudFrontCachePolicy(AwsResource):
+class AwsCloudFrontCachePolicy(CloudFrontResource,AwsResource):
     kind: ClassVar[str] = "aws_cloud_front_cache_policy"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudfront", "list-cache-policies", "CachePolicyList")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Id"),
         "mtime": S("LastModifiedTime"),
         "cache_policy_last_modified_time": S("LastModifiedTime"),
-        "cache_policy_cache_policy_config": S("CachePolicyConfig") >> Bend(AwsCloudFrontCachePolicyConfig.mapping)
+        "cache_policy_cache_policy_config": S("CachePolicyConfig") >> Bend(AwsCloudFrontCachePolicyConfig.mapping),
     }
     cache_policy_last_modified_time: Optional[datetime] = field(default=None)
     cache_policy_cache_policy_config: Optional[AwsCloudFrontCachePolicyConfig] = field(default=None)
-    #TODO map name to correct level
+    # TODO map name to correct level
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
-        for js in json["Items"]:
+        for js in json:
             instance = cls.from_api(js["CachePolicy"])
             builder.add_node(instance, js)
+
 
 resources: List[Type[AwsResource]] = [
     AwsCloudFrontDistribution,
@@ -1124,5 +1089,5 @@ resources: List[Type[AwsResource]] = [
     AwsCloudFrontResponseHeadersPolicy,
     AwsCloudFrontStreamingDistribution,
     AwsCloudFrontOriginAccessControl,
-    AwsCloudFrontCachePolicy
+    AwsCloudFrontCachePolicy,
 ]
