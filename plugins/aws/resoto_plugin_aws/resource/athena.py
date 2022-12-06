@@ -116,7 +116,7 @@ class AwsAthenaWorkGroup(AwsResource):
         def add_tags(data_catalog: AwsAthenaWorkGroup) -> None:
             tags = builder.client.list(
                 "athena",
-                "list_tags_for_resource",
+                "list-tags-for-resource",
                 "Tags",
                 ResourceARN=data_catalog.arn,
             )

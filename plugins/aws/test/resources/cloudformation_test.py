@@ -21,8 +21,8 @@ def test_cloud_formation_stack_tagging() -> None:
 
     def validate_args(delete: bool, **kwargs: Any) -> Any:
 
-        assert kwargs["action"] in {"describe_stacks", "update-stack"}
-        if kwargs["action"] == "describe_stacks":
+        assert kwargs["action"] in {"describe-stacks", "update-stack"}
+        if kwargs["action"] == "describe-stacks":
             assert kwargs["StackName"] == cf.name
             return [{"StackStatus": "complete"}]
         if kwargs["action"] == "update-stack":

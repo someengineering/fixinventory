@@ -95,7 +95,7 @@ class AwsKinesisStream(AwsResource):
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_tags(stream: AwsKinesisStream) -> None:
-            tags = builder.client.list(stream.api_spec.service, "list_tags_for_stream", "Tags", StreamName=stream.name)
+            tags = builder.client.list(stream.api_spec.service, "list-tags-for-stream", "Tags", StreamName=stream.name)
             if tags:
                 stream.tags = bend(ToDict(), tags)
 
