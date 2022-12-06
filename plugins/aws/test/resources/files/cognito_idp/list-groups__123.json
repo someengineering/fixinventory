@@ -1,0 +1,14 @@
+{
+    "Groups": [
+        {
+            "GroupName": "user-group-123",
+            "UserPoolId": "hot-tub-123",
+            "Description": "string",
+            "RoleArn": "string",
+            "Precedence": 123,
+            "LastModifiedDate": "2022-08-08T09:36:55Z",
+            "CreationDate": "2022-08-08T09:36:55Z"
+        }
+    ],
+    "NextToken": "string"
+}
