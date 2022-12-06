@@ -138,6 +138,7 @@ class AwsCognitoLambdaConfigType:
 @define(eq=False, slots=False)
 class AwsCognitoUserPool(AwsResource):
     kind: ClassVar[str] = "aws_cognito_user_pool"
+    # this call requires the MaxResult parameter, 60 is the maximum valid input
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cognito-idp", "list-user-pools", "UserPools", {"MaxResults": 60})
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["aws_cognito_user", "aws_cognito_group", "aws_lambda_function", "aws_kms_key"]},
