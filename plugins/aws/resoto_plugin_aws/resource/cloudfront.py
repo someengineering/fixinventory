@@ -16,7 +16,7 @@ from resotolib.types import Json
 log = logging.getLogger("resoto.plugins.aws")
 
 
-class CloudFrontResource:
+class CloudFrontResource(AwsResource):
     # TODO define tagging here
 
     @classmethod
@@ -516,7 +516,7 @@ class AwsCloudFrontAliasICPRecordal:
 
 
 @define(eq=False, slots=False)
-class AwsCloudFrontDistribution(CloudFrontResource, AwsResource):
+class AwsCloudFrontDistribution(CloudFrontResource):
     kind: ClassVar[str] = "aws_cloudfront_distribution"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudfront", "list-distributions", "DistributionList")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -589,7 +589,7 @@ class AwsCloudFrontFunctionConfig:
 
 
 @define(eq=False, slots=False)
-class AwsCloudFrontFunction(CloudFrontResource, AwsResource):
+class AwsCloudFrontFunction(CloudFrontResource):
     kind: ClassVar[str] = "aws_cloudfront_function"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudfront", "list-functions", "FunctionList")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -618,7 +618,7 @@ class AwsCloudFrontFunction(CloudFrontResource, AwsResource):
 
 
 @define(eq=False, slots=False)
-class AwsCloudFrontInvalidation(CloudFrontResource, AwsResource):
+class AwsCloudFrontInvalidation(CloudFrontResource):
     kind: ClassVar[str] = "aws_cloud_front_invalidation"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudfront", "list-invalidations", "InvalidationList")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -631,7 +631,7 @@ class AwsCloudFrontInvalidation(CloudFrontResource, AwsResource):
 
 
 @define(eq=False, slots=False)
-class AwsCloudFrontPublicKey(CloudFrontResource, AwsResource):
+class AwsCloudFrontPublicKey(CloudFrontResource):
     kind: ClassVar[str] = "aws_cloud_front_public_key"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudfront", "list-public-keys", "PublicKeyList")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -665,7 +665,7 @@ class AwsCloudFrontEndPoint:
 
 
 @define(eq=False, slots=False)
-class AwsCloudFrontRealtimeLogConfig(CloudFrontResource, AwsResource):
+class AwsCloudFrontRealtimeLogConfig(CloudFrontResource):
     kind: ClassVar[str] = "aws_cloud_front_realtime_log_config"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudfront", "list-realtime-log-configs", "RealtimeLogConfigs")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -877,7 +877,7 @@ class AwsCloudFrontResponseHeadersPolicyConfig:
 
 
 @define(eq=False, slots=False)
-class AwsCloudFrontResponseHeadersPolicy(CloudFrontResource, AwsResource):
+class AwsCloudFrontResponseHeadersPolicy(CloudFrontResource):
     kind: ClassVar[str] = "aws_cloud_front_response_headers_policy"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         "cloudfront", "list-response-headers-policies", "ResponseHeadersPolicyList"
@@ -933,7 +933,7 @@ class AwsCloudFrontS3Origin:
 
 
 @define(eq=False, slots=False)
-class AwsCloudFrontStreamingDistribution(CloudFrontResource, AwsResource):
+class AwsCloudFrontStreamingDistribution(CloudFrontResource):
     kind: ClassVar[str] = "aws_cloud_front_streaming_distribution"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         "cloudfront", "list-streaming-distributions", "StreamingDistributionList"
@@ -962,7 +962,7 @@ class AwsCloudFrontStreamingDistribution(CloudFrontResource, AwsResource):
 
 
 @define(eq=False, slots=False)
-class AwsCloudFrontOriginAccessControl(CloudFrontResource, AwsResource):
+class AwsCloudFrontOriginAccessControl(CloudFrontResource):
     kind: ClassVar[str] = "aws_cloud_front_origin_access_control"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudfront", "list-origin-access-controls", "OriginAccessControlList")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1060,7 +1060,7 @@ class AwsCloudFrontCachePolicyConfig:
 
 
 @define(eq=False, slots=False)
-class AwsCloudFrontCachePolicy(CloudFrontResource,AwsResource):
+class AwsCloudFrontCachePolicy(CloudFrontResource):
     kind: ClassVar[str] = "aws_cloud_front_cache_policy"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudfront", "list-cache-policies", "CachePolicyList")
     mapping: ClassVar[Dict[str, Bender]] = {
