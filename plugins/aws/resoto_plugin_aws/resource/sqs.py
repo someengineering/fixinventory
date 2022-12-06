@@ -1,6 +1,8 @@
-from typing import ClassVar, Dict, List, Optional, Type, cast
-from attrs import define, field
 from datetime import datetime
+from typing import ClassVar, Dict, List, Optional, Type
+
+from attrs import define, field
+
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
 from resoto_plugin_aws.resource.kms import AwsKmsKey
@@ -82,9 +84,9 @@ class AwsSqsQueue(AwsResource):
                 builder.submit_work(add_tags, instance)
 
         def add_tags(queue: AwsSqsQueue) -> None:
-            tags = builder.client.list("sqs", "list-queue-tags", result_name="Tags", QueueUrl=[queue.sqs_queue_url])
+            tags = builder.client.get("sqs", "list-queue-tags", result_name="Tags", QueueUrl=[queue.sqs_queue_url])
             if tags:
-                queue.tags = cast(Dict[str, Optional[str]], tags)
+                queue.tags = tags
 
         for queue_url in json:
             if isinstance(queue_url, str):

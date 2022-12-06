@@ -277,13 +277,10 @@ class AwsElastiCacheCacheCluster(ElastiCacheTaggable, AwsResource):
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_tags(resource: AwsElastiCacheCacheCluster) -> None:
             tags = builder.client.list(
-                resource.api_spec.service,
-                "list-tags-for-resource",
-                None,
-                ResourceName=resource.arn,
+                resource.api_spec.service, "list-tags-for-resource", "TagList", ResourceName=resource.arn
             )
             if tags:
-                resource.tags = bend(S("TagList", default=[]) >> ToDict(), tags[0])
+                resource.tags = bend(ToDict(), tags)
 
         for js in json:
             instance = cls.from_api(js)
@@ -462,10 +459,10 @@ class AwsElastiCacheReplicationGroup(ElastiCacheTaggable, AwsResource):
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_tags(resource: AwsElastiCacheReplicationGroup) -> None:
             tags = builder.client.list(
-                resource.api_spec.service, "list-tags-for-resource", None, ResourceName=resource.arn
+                resource.api_spec.service, "list-tags-for-resource", "TagList", ResourceName=resource.arn
             )
             if tags:
-                resource.tags = bend(S("TagList", default=[]) >> ToDict(), tags[0])
+                resource.tags = bend(ToDict(), tags)
 
         for js in json:
             instance = cls.from_api(js)

@@ -1,5 +1,5 @@
 from attrs import define, field
-from typing import ClassVar, Dict, List, Optional, Type, cast
+from typing import ClassVar, Dict, List, Optional, Type
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
 from resoto_plugin_aws.resource.iam import AwsIamRole
@@ -175,9 +175,9 @@ class AwsCognitoUserPool(AwsResource):
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_tags(pool: AwsCognitoUserPool) -> None:
-            tags = builder.client.list("cognito-idp", "list-tags-for-resource", "Tags", ResourceArn=pool.arn)
+            tags = builder.client.get("cognito-idp", "list-tags-for-resource", "Tags", ResourceArn=pool.arn)
             if tags:
-                pool.tags = cast(Dict[str, Optional[str]], tags)
+                pool.tags = tags
 
         for pool in json:
             pool_instance = cls.from_api(pool)

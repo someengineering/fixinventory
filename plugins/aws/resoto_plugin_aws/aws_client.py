@@ -115,7 +115,7 @@ class AwsClient:
             result = getattr(client, py_action)(**kwargs)
             single: Json = self.__to_json(result)  # type: ignore
             log.debug(f"[Aws] called service={aws_service} action={action}{arg_info}: single result")
-            return single.get(result_name) if result_name else [single]
+            return single.get(result_name) if result_name else single
 
     @retry(  # type: ignore
         stop_max_attempt_number=10,
@@ -147,7 +147,13 @@ class AwsClient:
         expected_errors: Optional[List[str]] = None,
         **kwargs: Any,
     ) -> List[Any]:
-        return self.call(aws_service, action, result_name, expected_errors, **kwargs) or []
+        res = self.call(aws_service, action, result_name, expected_errors, **kwargs)
+        if res is None:
+            return []
+        elif isinstance(res, list):
+            return res
+        else:
+            return [res]
 
     def get(
         self,

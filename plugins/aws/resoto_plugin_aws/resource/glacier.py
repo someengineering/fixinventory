@@ -1,5 +1,7 @@
-from typing import ClassVar, Dict, List, Optional, Type, cast
+from typing import ClassVar, Dict, List, Optional, Type
+
 from attrs import define, field
+
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
 from resoto_plugin_aws.resource.kms import AwsKmsKey
@@ -193,9 +195,9 @@ class AwsGlacierVault(AwsResource):
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_tags(vault: AwsGlacierVault) -> None:
-            tags = builder.client.list("glacier", "list-tags-for-vault", "Tags", vaultName=vault.name)
+            tags = builder.client.get("glacier", "list-tags-for-vault", "Tags", vaultName=vault.name)
             if tags:
-                vault.tags = cast(Dict[str, Optional[str]], tags)
+                vault.tags = tags
 
         for vault in json:
             vault_instance = cls.from_api(vault)

@@ -277,12 +277,12 @@ class AwsBeanstalkEnvironment(AwsResource):
                 env.tags = bend(ToDict(), tags)
 
         def add_resources(env: AwsBeanstalkEnvironment) -> None:
-            resources = builder.client.list(
+            resources_description = builder.client.get(
                 "elasticbeanstalk", "describe-environment-resources", "EnvironmentResources", EnvironmentId=env.id
             )
-            if resources:
+            if resources_description:
                 env.beanstalk_resources = from_json(
-                    bend(AwsBeanstalkEnvironmentResourcesDescription.mapping, resources),
+                    bend(AwsBeanstalkEnvironmentResourcesDescription.mapping, resources_description),
                     AwsBeanstalkEnvironmentResourcesDescription,
                 )
 
