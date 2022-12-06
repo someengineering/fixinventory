@@ -1080,6 +1080,134 @@ class AwsCloudFrontCachePolicy(CloudFrontResource):
             builder.add_node(instance, js)
 
 
+@define(eq=False, slots=False)
+class AwsCloudFrontQueryArgProfile:
+    kind: ClassVar[str] = "aws_cloud_front_query_arg_profile"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "query_arg": S("QueryArg"),
+        "profile_id": S("ProfileId")
+    }
+    query_arg: Optional[str] = field(default=None)
+    profile_id: Optional[str] = field(default=None)
+
+@define(eq=False, slots=False)
+class AwsCloudFrontQueryArgProfiles:
+    kind: ClassVar[str] = "aws_cloud_front_query_arg_profiles"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "quantity": S("Quantity"),
+        "items": S("Items", default=[]) >> ForallBend(AwsCloudFrontQueryArgProfile.mapping)
+    }
+    quantity: Optional[int] = field(default=None)
+    items: List[AwsCloudFrontQueryArgProfile] = field(factory=list)
+
+@define(eq=False, slots=False)
+class AwsCloudFrontQueryArgProfileConfig:
+    kind: ClassVar[str] = "aws_cloud_front_query_arg_profile_config"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "forward_when_query_arg_profile_is_unknown": S("ForwardWhenQueryArgProfileIsUnknown"),
+        "query_arg_profiles": S("QueryArgProfiles") >> Bend(AwsCloudFrontQueryArgProfiles.mapping)
+    }
+    forward_when_query_arg_profile_is_unknown: Optional[bool] = field(default=None)
+    query_arg_profiles: Optional[AwsCloudFrontQueryArgProfiles] = field(default=None)
+
+@define(eq=False, slots=False)
+class AwsCloudFrontContentTypeProfile:
+    kind: ClassVar[str] = "aws_cloud_front_content_type_profile"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "format": S("Format"),
+        "profile_id": S("ProfileId"),
+        "content_type": S("ContentType")
+    }
+    format: Optional[str] = field(default=None)
+    profile_id: Optional[str] = field(default=None)
+    content_type: Optional[str] = field(default=None)
+
+@define(eq=False, slots=False)
+class AwsCloudFrontContentTypeProfiles:
+    kind: ClassVar[str] = "aws_cloud_front_content_type_profiles"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "quantity": S("Quantity"),
+        "items": S("Items", default=[]) >> ForallBend(AwsCloudFrontContentTypeProfile.mapping)
+    }
+    quantity: Optional[int] = field(default=None)
+    items: List[AwsCloudFrontContentTypeProfile] = field(factory=list)
+
+@define(eq=False, slots=False)
+class AwsCloudFrontContentTypeProfileConfig:
+    kind: ClassVar[str] = "aws_cloud_front_content_type_profile_config"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "forward_when_content_type_is_unknown": S("ForwardWhenContentTypeIsUnknown"),
+        "content_type_profiles": S("ContentTypeProfiles") >> Bend(AwsCloudFrontContentTypeProfiles.mapping)
+    }
+    forward_when_content_type_is_unknown: Optional[bool] = field(default=None)
+    content_type_profiles: Optional[AwsCloudFrontContentTypeProfiles] = field(default=None)
+
+@define(eq=False, slots=False)
+class AwsCloudFrontFieldLevelEncryptionConfig(CloudFrontResource):
+    kind: ClassVar[str] = "aws_cloud_front_field_level_encryption_config"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudfront", "list-field-level-encryption-configs", "FieldLevelEncryptionList")
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("Id"),
+        "mtime": S("LastModifiedTime"),
+        "field_level_encryption_config_comment": S("Comment"),
+        "field_level_encryption_config_query_arg_profile_config": S("QueryArgProfileConfig") >> Bend(AwsCloudFrontQueryArgProfileConfig.mapping),
+        "field_level_encryption_config_content_type_profile_config": S("ContentTypeProfileConfig") >> Bend(AwsCloudFrontContentTypeProfileConfig.mapping)
+    }
+    field_level_encryption_config_comment: Optional[str] = field(default=None)
+    field_level_encryption_config_query_arg_profile_config: Optional[AwsCloudFrontQueryArgProfileConfig] = field(default=None)
+    field_level_encryption_config_content_type_profile_config: Optional[AwsCloudFrontContentTypeProfileConfig] = field(default=None)
+
+    #TODO edge to profile
+
+
+@define(eq=False, slots=False)
+class AwsCloudFrontFieldPatterns:
+    kind: ClassVar[str] = "aws_cloud_front_field_patterns"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "quantity": S("Quantity"),
+        "items": S("Items", default=[])
+    }
+    quantity: Optional[int] = field(default=None)
+    items: List[str] = field(factory=list)
+
+@define(eq=False, slots=False)
+class AwsCloudFrontEncryptionEntity:
+    kind: ClassVar[str] = "aws_cloud_front_encryption_entity"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "public_key_id": S("PublicKeyId"),
+        "provider_id": S("ProviderId"),
+        "field_patterns": S("FieldPatterns") >> Bend(AwsCloudFrontFieldPatterns.mapping)
+    }
+    public_key_id: Optional[str] = field(default=None)
+    provider_id: Optional[str] = field(default=None)
+    field_patterns: Optional[AwsCloudFrontFieldPatterns] = field(default=None)
+
+@define(eq=False, slots=False)
+class AwsCloudFrontEncryptionEntities:
+    kind: ClassVar[str] = "aws_cloud_front_encryption_entities"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "quantity": S("Quantity"),
+        "items": S("Items", default=[]) >> ForallBend(AwsCloudFrontEncryptionEntity.mapping)
+    }
+    quantity: Optional[int] = field(default=None)
+    items: List[AwsCloudFrontEncryptionEntity] = field(factory=list)
+
+@define(eq=False, slots=False)
+class AwsCloudFrontFieldLevelEncryptionProfile(CloudFrontResource):
+    kind: ClassVar[str] = "aws_cloud_front_field_level_encryption_profile"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudfront", "list-field-level-encryption-profiles", "FieldLevelEncryptionProfileList")
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("Id"),
+        "name": S("Name"),
+        "mtime": S("LastModifiedTime"),
+        "field_level_encryption_profile_encryption_entities": S("EncryptionEntities") >> Bend(AwsCloudFrontEncryptionEntities.mapping),
+        "field_level_encryption_profile_comment": S("Comment")
+    }
+    field_level_encryption_profile_encryption_entities: Optional[AwsCloudFrontEncryptionEntities] = field(default=None)
+    field_level_encryption_profile_comment: Optional[str] = field(default=None)
+
+    #TODO edge to public key
+
 resources: List[Type[AwsResource]] = [
     AwsCloudFrontDistribution,
     AwsCloudFrontFunction,
@@ -1090,4 +1218,6 @@ resources: List[Type[AwsResource]] = [
     AwsCloudFrontStreamingDistribution,
     AwsCloudFrontOriginAccessControl,
     AwsCloudFrontCachePolicy,
+    AwsCloudFrontFieldLevelEncryptionConfig,
+    AwsCloudFrontFieldLevelEncryptionProfile
 ]

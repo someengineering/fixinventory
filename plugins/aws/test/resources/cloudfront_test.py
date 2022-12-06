@@ -14,6 +14,8 @@ from resoto_plugin_aws.resource.cloudfront import (
     AwsCloudFrontStreamingDistribution,
     AwsCloudFrontOriginAccessControl,
     AwsCloudFrontCachePolicy,
+    AwsCloudFrontFieldLevelEncryptionConfig,
+    AwsCloudFrontFieldLevelEncryptionProfile
 )
 from test import aws_client, aws_config  # noqa: F401
 
@@ -63,3 +65,13 @@ def test_origin_access_controls() -> None:
 def test_cache_policies() -> None:
     first, builder = round_trip_for(AwsCloudFrontCachePolicy)
     assert len(builder.resources_of(AwsCloudFrontCachePolicy)) == 1
+
+
+def test_field_level_encryption_configs() -> None:
+    first, builder = round_trip_for(AwsCloudFrontFieldLevelEncryptionConfig)
+    assert len(builder.resources_of(AwsCloudFrontFieldLevelEncryptionConfig)) == 1
+
+
+def test_field_level_encryption_profiles() -> None:
+    first, builder = round_trip_for(AwsCloudFrontFieldLevelEncryptionProfile)
+    assert len(builder.resources_of(AwsCloudFrontFieldLevelEncryptionProfile)) == 1

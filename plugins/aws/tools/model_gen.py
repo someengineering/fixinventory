@@ -408,6 +408,20 @@ models: Dict[str, List[AwsResotoModel]] = {
         #     prefix="CloudFront",
         #     prop_prefix="cache_policy_",
         # ),
+        # AwsResotoModel(
+        #     "list-field-level-encryption-configs",
+        #     "FieldLevelEncryptionList",
+        #     "FieldLevelEncryptionConfig",
+        #     prefix="CloudFront",
+        #     prop_prefix="field_level_encryption_config_",
+        # ),
+        # AwsResotoModel(
+        #     "list-field-level-encryption-profiles",
+        #     "FieldLevelEncryptionProfileList",
+        #     "FieldLevelEncryptionProfileSummary",
+        #     prefix="CloudFront",
+        #     prop_prefix="field_level_encryption_profile_",
+        # ),
     ],
     "cloudwatch": [
         # AwsResotoModel(
