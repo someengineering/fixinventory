@@ -394,6 +394,20 @@ models: Dict[str, List[AwsResotoModel]] = {
         #     prefix="CloudFront",
         #     prop_prefix="streaming_distribution_",
         # ),
+        # AwsResotoModel(
+        #     "list-origin-access-controls",
+        #     "OriginAccessControlList",
+        #     "OriginAccessControlConfig",
+        #     prefix="CloudFront",
+        #     prop_prefix="origin_access_control_",
+        # ),
+        # AwsResotoModel(
+        #     "list-cache-policies",
+        #     "CachePolicyList",
+        #     "CachePolicy",
+        #     prefix="CloudFront",
+        #     prop_prefix="cache_policy_",
+        # ),
     ],
     "cloudwatch": [
         # AwsResotoModel(

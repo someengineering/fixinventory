@@ -12,6 +12,8 @@ from resoto_plugin_aws.resource.cloudfront import (
     AwsCloudFrontRealtimeLogConfig,
     AwsCloudFrontResponseHeadersPolicy,
     AwsCloudFrontStreamingDistribution,
+    AwsCloudFrontOriginAccessControl,
+    AwsCloudFrontCachePolicy
 )
 from test import aws_client, aws_config  # noqa: F401
 
@@ -51,3 +53,11 @@ def test_response_headers_policies() -> None:
 def test_streaming_distributions() -> None:
     first, builder = round_trip_for(AwsCloudFrontStreamingDistribution)
     assert len(builder.resources_of(AwsCloudFrontStreamingDistribution)) == 1
+
+def test_origin_access_controls() -> None:
+    first, builder = round_trip_for(AwsCloudFrontOriginAccessControl)
+    assert len(builder.resources_of(AwsCloudFrontOriginAccessControl)) == 1
+
+def test_cache_policies() -> None:
+    first, builder = round_trip_for(AwsCloudFrontCachePolicy)
+    assert len(builder.resources_of(AwsCloudFrontCachePolicy)) == 1
