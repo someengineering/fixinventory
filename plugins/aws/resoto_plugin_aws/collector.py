@@ -13,6 +13,7 @@ from resoto_plugin_aws.resource import (
     cloudformation,
     cloudfront,
     cloudwatch,
+    cognito,
     dynamodb,
     ec2,
     ecs,
@@ -58,6 +59,7 @@ regional_resources: List[Type[AwsResource]] = (
     + athena.resources
     + cloudformation.resources
     + cloudwatch.resources
+    + cognito.resources
     + dynamodb.resources
     + ec2.resources
     + ecs.resources
