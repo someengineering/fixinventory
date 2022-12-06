@@ -1,14 +1,15 @@
-from datetime import datetime
 import time
+from datetime import datetime
 from typing import Any, ClassVar, Dict, Literal, Optional, List, Type, cast
 
 from attrs import define, field
 
-from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec
+from resoto_plugin_aws.aws_client import AwsClient
+from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
 from resoto_plugin_aws.utils import ToDict
 from resotolib.baseresources import BaseStack
-from resotolib.json_bender import Bender, S, Bend, ForallBend
-from resoto_plugin_aws.aws_client import AwsClient
+from resotolib.graph import ByNodeId, BySearchCriteria
+from resotolib.json_bender import Bender, S, Bend, ForallBend, F
 from resotolib.types import Json
 
 
@@ -208,6 +209,22 @@ class AwsCloudFormationStackSet(AwsResource):
     stack_set_managed_execution: Optional[bool] = field(default=None)
     stack_set_parameters: Optional[Dict[str, Any]] = None
 
+    @classmethod
+    def collect(cls, json: List[Json], builder: GraphBuilder) -> None:
+        def stack_set_instances(ss: AwsCloudFormationStackSet) -> None:
+            for sij in builder.client.list("cloudformation", "list-stack-instances", "Summaries", StackSetName=ss.name):
+                sii = builder.add_node(AwsCloudFormationStackInstanceSummary.from_api(sij))
+                builder.add_edge(ss, node=sii)
+                builder.graph.add_deferred_edge(
+                    ByNodeId(ss.chksum),
+                    BySearchCriteria(f'is(aws_cloudformation_stack) and reported.id="{sii.stack_instance_stack_id}"'),
+                )
+
+        for js in json:
+            stack_set = cls.from_api(js)
+            builder.add_node(stack_set, js)
+            builder.submit_work(stack_set_instances, stack_set)
+
     def _modify_tag(self, client: AwsClient, key: str, value: Optional[str], mode: Literal["update", "delete"]) -> bool:
         tags = dict(self.tags)
         if mode == "delete":
@@ -258,8 +275,56 @@ class AwsCloudFormationStackSet(AwsResource):
         return True
 
     @classmethod
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
+        return [cls.api_spec, AwsApiSpec("cloudformation", "list-stack-instances")]
+
+    @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return [AwsApiSpec("cloudformation", "update-stack-set"), AwsApiSpec("cloudformation", "delete-stack-set")]
 
 
-resources: List[Type[AwsResource]] = [AwsCloudFormationStack, AwsCloudFormationStackSet]
+def _stack_instance_id(stack: Json) -> str:
+    stack_id = stack.get("StackId", "").rsplit("/", 1)[-1]
+    stack_set_id = stack.get("StackSetId", "")
+    account = stack.get("Account", "")
+    region = stack.get("Region", "")
+    return f"{stack_set_id}/{stack_id}/{account}/{region}"
+
+
+@define(eq=False, slots=False)
+class AwsCloudFormationStackInstanceSummary(AwsResource):
+    # note: resource is collected via AwsCloudFormationStackSet
+    kind: ClassVar[str] = "aws_cloud_formation_stack_instance_summary"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudformation", "list-stack-instances", "Summaries")
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": F(_stack_instance_id),
+        "stack_instance_stack_set_id": S("StackSetId"),
+        "stack_instance_region": S("Region"),
+        "stack_instance_account": S("Account"),
+        "stack_instance_stack_id": S("StackId"),
+        "stack_instance_status": S("Status"),
+        "stack_instance_status_reason": S("StatusReason"),
+        "stack_instance_stack_instance_status": S("StackInstanceStatus", "DetailedStatus"),
+        "stack_instance_organizational_unit_id": S("OrganizationalUnitId"),
+        "stack_instance_drift_status": S("DriftStatus"),
+        "stack_instance_last_drift_check_timestamp": S("LastDriftCheckTimestamp"),
+        "stack_instance_last_operation_id": S("LastOperationId"),
+    }
+    stack_instance_stack_set_id: Optional[str] = field(default=None)
+    stack_instance_region: Optional[str] = field(default=None)
+    stack_instance_account: Optional[str] = field(default=None)
+    stack_instance_stack_id: Optional[str] = field(default=None)
+    stack_instance_status: Optional[str] = field(default=None)
+    stack_instance_status_reason: Optional[str] = field(default=None)
+    stack_instance_stack_instance_status: Optional[str] = field(default=None)
+    stack_instance_organizational_unit_id: Optional[str] = field(default=None)
+    stack_instance_drift_status: Optional[str] = field(default=None)
+    stack_instance_last_drift_check_timestamp: Optional[datetime] = field(default=None)
+    stack_instance_last_operation_id: Optional[str] = field(default=None)
+
+
+resources: List[Type[AwsResource]] = [
+    AwsCloudFormationStack,
+    AwsCloudFormationStackSet,
+    AwsCloudFormationStackInstanceSummary,
+]
