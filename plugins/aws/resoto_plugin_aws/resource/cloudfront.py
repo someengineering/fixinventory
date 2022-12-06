@@ -576,8 +576,8 @@ class AwsCloudFrontDistribution(CloudFrontResource):
         return super().connect_in_graph(builder, source)
 
     def delete_resource(self, client: AwsClient) -> bool:
-        # TODO
-        return super().delete_resource(client)
+        client.call(aws_service=self.api_spec.service, action="delete-distribution", result_name=None, Id=self.id)
+        return True
 
 
 @define(eq=False, slots=False)
@@ -616,6 +616,11 @@ class AwsCloudFrontFunction(CloudFrontResource):
             instance = cls.from_api(js)
             builder.add_node(instance, js)
 
+    # def delete_resource(self, client: AwsClient) -> bool:
+    #     #TODO retrieve ETag value of function (describe-function)
+    #     client.call(aws_service=self.api_spec.service, action="delete-function", result_name=None, Name=self.name, IfMatch="ETag value")
+    #     return True
+
 
 @define(eq=False, slots=False)
 class AwsCloudFrontInvalidation(CloudFrontResource):
@@ -643,6 +648,10 @@ class AwsCloudFrontPublicKey(CloudFrontResource):
     }
     public_key_encoded_key: Optional[str] = field(default=None)
     public_key_comment: Optional[str] = field(default=None)
+
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(aws_service=self.api_spec.service, action="delete-public-key", result_name=None, Id=self.id)
+        return True
 
 
 @define(eq=False, slots=False)
@@ -679,6 +688,12 @@ class AwsCloudFrontRealtimeLogConfig(CloudFrontResource):
     realtime_log_sampling_rate: Optional[int] = field(default=None)
     realtime_log_end_points: List[AwsCloudFrontEndPoint] = field(factory=list)
     realtime_log_fields: List[str] = field(factory=list)
+
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(
+            aws_service=self.api_spec.service, action="delete-realtime-log-config", result_name=None, Name=self.name
+        )
+        return True
 
 
 @define(eq=False, slots=False)
@@ -901,6 +916,12 @@ class AwsCloudFrontResponseHeadersPolicy(CloudFrontResource):
             instance.response_headers_policy_type = js["Type"]
             builder.add_node(instance, policy)
 
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(
+            aws_service=self.api_spec.service, action="delete-response-headers-policy", result_name=None, Id=self.id
+        )
+        return True
+
 
 @define(eq=False, slots=False)
 class AwsCloudFrontKeyPairIds:
@@ -960,6 +981,12 @@ class AwsCloudFrontStreamingDistribution(CloudFrontResource):
     streaming_distribution_price_class: Optional[str] = field(default=None)
     streaming_distribution_enabled: Optional[bool] = field(default=None)
 
+    # deleting streaming distributions is a multi step process:
+    # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/cloudfront.html#CloudFront.Client.delete_streaming_distribution
+    # def delete_resource(self, client: AwsClient) -> bool:
+    #     client.call(aws_service=self.api_spec.service, action="delete-streaming-distribution", result_name=None, Id=self.id, IfMatch="ETag value")
+    #     return True
+
 
 @define(eq=False, slots=False)
 class AwsCloudFrontOriginAccessControl(CloudFrontResource):
@@ -977,6 +1004,12 @@ class AwsCloudFrontOriginAccessControl(CloudFrontResource):
     origin_access_control_signing_protocol: Optional[str] = field(default=None)
     origin_access_control_signing_behavior: Optional[str] = field(default=None)
     origin_access_control_origin_access_control_origin_type: Optional[str] = field(default=None)
+
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(
+            aws_service=self.api_spec.service, action="delete-origin-access-control", result_name=None, Id=self.id
+        )
+        return True
 
 
 @define(eq=False, slots=False)
@@ -1079,36 +1112,41 @@ class AwsCloudFrontCachePolicy(CloudFrontResource):
             instance = cls.from_api(js["CachePolicy"])
             builder.add_node(instance, js)
 
+    # TODO check if IfMatch is necessary
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(aws_service=self.api_spec.service, action="delete-cache-policy", result_name=None, Id=self.id)
+        return True
+
 
 @define(eq=False, slots=False)
 class AwsCloudFrontQueryArgProfile:
     kind: ClassVar[str] = "aws_cloud_front_query_arg_profile"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "query_arg": S("QueryArg"),
-        "profile_id": S("ProfileId")
-    }
+    mapping: ClassVar[Dict[str, Bender]] = {"query_arg": S("QueryArg"), "profile_id": S("ProfileId")}
     query_arg: Optional[str] = field(default=None)
     profile_id: Optional[str] = field(default=None)
+
 
 @define(eq=False, slots=False)
 class AwsCloudFrontQueryArgProfiles:
     kind: ClassVar[str] = "aws_cloud_front_query_arg_profiles"
     mapping: ClassVar[Dict[str, Bender]] = {
         "quantity": S("Quantity"),
-        "items": S("Items", default=[]) >> ForallBend(AwsCloudFrontQueryArgProfile.mapping)
+        "items": S("Items", default=[]) >> ForallBend(AwsCloudFrontQueryArgProfile.mapping),
     }
     quantity: Optional[int] = field(default=None)
     items: List[AwsCloudFrontQueryArgProfile] = field(factory=list)
+
 
 @define(eq=False, slots=False)
 class AwsCloudFrontQueryArgProfileConfig:
     kind: ClassVar[str] = "aws_cloud_front_query_arg_profile_config"
     mapping: ClassVar[Dict[str, Bender]] = {
         "forward_when_query_arg_profile_is_unknown": S("ForwardWhenQueryArgProfileIsUnknown"),
-        "query_arg_profiles": S("QueryArgProfiles") >> Bend(AwsCloudFrontQueryArgProfiles.mapping)
+        "query_arg_profiles": S("QueryArgProfiles") >> Bend(AwsCloudFrontQueryArgProfiles.mapping),
     }
     forward_when_query_arg_profile_is_unknown: Optional[bool] = field(default=None)
     query_arg_profiles: Optional[AwsCloudFrontQueryArgProfiles] = field(default=None)
+
 
 @define(eq=False, slots=False)
 class AwsCloudFrontContentTypeProfile:
@@ -1116,59 +1154,76 @@ class AwsCloudFrontContentTypeProfile:
     mapping: ClassVar[Dict[str, Bender]] = {
         "format": S("Format"),
         "profile_id": S("ProfileId"),
-        "content_type": S("ContentType")
+        "content_type": S("ContentType"),
     }
     format: Optional[str] = field(default=None)
     profile_id: Optional[str] = field(default=None)
     content_type: Optional[str] = field(default=None)
+
 
 @define(eq=False, slots=False)
 class AwsCloudFrontContentTypeProfiles:
     kind: ClassVar[str] = "aws_cloud_front_content_type_profiles"
     mapping: ClassVar[Dict[str, Bender]] = {
         "quantity": S("Quantity"),
-        "items": S("Items", default=[]) >> ForallBend(AwsCloudFrontContentTypeProfile.mapping)
+        "items": S("Items", default=[]) >> ForallBend(AwsCloudFrontContentTypeProfile.mapping),
     }
     quantity: Optional[int] = field(default=None)
     items: List[AwsCloudFrontContentTypeProfile] = field(factory=list)
+
 
 @define(eq=False, slots=False)
 class AwsCloudFrontContentTypeProfileConfig:
     kind: ClassVar[str] = "aws_cloud_front_content_type_profile_config"
     mapping: ClassVar[Dict[str, Bender]] = {
         "forward_when_content_type_is_unknown": S("ForwardWhenContentTypeIsUnknown"),
-        "content_type_profiles": S("ContentTypeProfiles") >> Bend(AwsCloudFrontContentTypeProfiles.mapping)
+        "content_type_profiles": S("ContentTypeProfiles") >> Bend(AwsCloudFrontContentTypeProfiles.mapping),
     }
     forward_when_content_type_is_unknown: Optional[bool] = field(default=None)
     content_type_profiles: Optional[AwsCloudFrontContentTypeProfiles] = field(default=None)
 
+
 @define(eq=False, slots=False)
 class AwsCloudFrontFieldLevelEncryptionConfig(CloudFrontResource):
     kind: ClassVar[str] = "aws_cloud_front_field_level_encryption_config"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudfront", "list-field-level-encryption-configs", "FieldLevelEncryptionList")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
+        "cloudfront", "list-field-level-encryption-configs", "FieldLevelEncryptionList"
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Id"),
         "mtime": S("LastModifiedTime"),
         "field_level_encryption_config_comment": S("Comment"),
-        "field_level_encryption_config_query_arg_profile_config": S("QueryArgProfileConfig") >> Bend(AwsCloudFrontQueryArgProfileConfig.mapping),
-        "field_level_encryption_config_content_type_profile_config": S("ContentTypeProfileConfig") >> Bend(AwsCloudFrontContentTypeProfileConfig.mapping)
+        "field_level_encryption_config_query_arg_profile_config": S("QueryArgProfileConfig")
+        >> Bend(AwsCloudFrontQueryArgProfileConfig.mapping),
+        "field_level_encryption_config_content_type_profile_config": S("ContentTypeProfileConfig")
+        >> Bend(AwsCloudFrontContentTypeProfileConfig.mapping),
     }
     field_level_encryption_config_comment: Optional[str] = field(default=None)
-    field_level_encryption_config_query_arg_profile_config: Optional[AwsCloudFrontQueryArgProfileConfig] = field(default=None)
-    field_level_encryption_config_content_type_profile_config: Optional[AwsCloudFrontContentTypeProfileConfig] = field(default=None)
+    field_level_encryption_config_query_arg_profile_config: Optional[AwsCloudFrontQueryArgProfileConfig] = field(
+        default=None
+    )
+    field_level_encryption_config_content_type_profile_config: Optional[AwsCloudFrontContentTypeProfileConfig] = field(
+        default=None
+    )
 
-    #TODO edge to profile
+    # TODO edge to profile
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(
+            aws_service=self.api_spec.service,
+            action="delete-field-level-encryption-config",
+            result_name=None,
+            Id=self.id,
+        )
+        return True
 
 
 @define(eq=False, slots=False)
 class AwsCloudFrontFieldPatterns:
     kind: ClassVar[str] = "aws_cloud_front_field_patterns"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "quantity": S("Quantity"),
-        "items": S("Items", default=[])
-    }
+    mapping: ClassVar[Dict[str, Bender]] = {"quantity": S("Quantity"), "items": S("Items", default=[])}
     quantity: Optional[int] = field(default=None)
     items: List[str] = field(factory=list)
+
 
 @define(eq=False, slots=False)
 class AwsCloudFrontEncryptionEntity:
@@ -1176,37 +1231,52 @@ class AwsCloudFrontEncryptionEntity:
     mapping: ClassVar[Dict[str, Bender]] = {
         "public_key_id": S("PublicKeyId"),
         "provider_id": S("ProviderId"),
-        "field_patterns": S("FieldPatterns") >> Bend(AwsCloudFrontFieldPatterns.mapping)
+        "field_patterns": S("FieldPatterns") >> Bend(AwsCloudFrontFieldPatterns.mapping),
     }
     public_key_id: Optional[str] = field(default=None)
     provider_id: Optional[str] = field(default=None)
     field_patterns: Optional[AwsCloudFrontFieldPatterns] = field(default=None)
+
 
 @define(eq=False, slots=False)
 class AwsCloudFrontEncryptionEntities:
     kind: ClassVar[str] = "aws_cloud_front_encryption_entities"
     mapping: ClassVar[Dict[str, Bender]] = {
         "quantity": S("Quantity"),
-        "items": S("Items", default=[]) >> ForallBend(AwsCloudFrontEncryptionEntity.mapping)
+        "items": S("Items", default=[]) >> ForallBend(AwsCloudFrontEncryptionEntity.mapping),
     }
     quantity: Optional[int] = field(default=None)
     items: List[AwsCloudFrontEncryptionEntity] = field(factory=list)
 
+
 @define(eq=False, slots=False)
 class AwsCloudFrontFieldLevelEncryptionProfile(CloudFrontResource):
     kind: ClassVar[str] = "aws_cloud_front_field_level_encryption_profile"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudfront", "list-field-level-encryption-profiles", "FieldLevelEncryptionProfileList")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
+        "cloudfront", "list-field-level-encryption-profiles", "FieldLevelEncryptionProfileList"
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Id"),
         "name": S("Name"),
         "mtime": S("LastModifiedTime"),
-        "field_level_encryption_profile_encryption_entities": S("EncryptionEntities") >> Bend(AwsCloudFrontEncryptionEntities.mapping),
-        "field_level_encryption_profile_comment": S("Comment")
+        "field_level_encryption_profile_encryption_entities": S("EncryptionEntities")
+        >> Bend(AwsCloudFrontEncryptionEntities.mapping),
+        "field_level_encryption_profile_comment": S("Comment"),
     }
     field_level_encryption_profile_encryption_entities: Optional[AwsCloudFrontEncryptionEntities] = field(default=None)
     field_level_encryption_profile_comment: Optional[str] = field(default=None)
 
-    #TODO edge to public key
+    # TODO edge to public key
+
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(
+            aws_service=self.api_spec.service,
+            action="delete-field-level-encryption-profile",
+            result_name=None,
+            Id=self.id,
+        )
+        return True
+
 
 resources: List[Type[AwsResource]] = [
     AwsCloudFrontDistribution,
@@ -1219,5 +1289,5 @@ resources: List[Type[AwsResource]] = [
     AwsCloudFrontOriginAccessControl,
     AwsCloudFrontCachePolicy,
     AwsCloudFrontFieldLevelEncryptionConfig,
-    AwsCloudFrontFieldLevelEncryptionProfile
+    AwsCloudFrontFieldLevelEncryptionProfile,
 ]
