@@ -1,11 +1,13 @@
 import re
 from argparse import ArgumentParser
+from datetime import datetime
 from functools import lru_cache
 from typing import TypeVar, Union, Any, Callable, AsyncIterator, NoReturn, Optional, Awaitable, Tuple, List
 
 from aiostream.core import Stream
 from parsy import Parser, regex
 
+from resotolib.durations import parse_duration, DurationRe
 from resotolib.parse_util import (
     make_parser,
     literal_dp,
@@ -21,7 +23,7 @@ from resotolib.parse_util import (
 )
 from resotocore.model.graph_access import Section
 from resotocore.types import JsonElement
-from resotocore.util import AnyT
+from resotocore.util import AnyT, utc, parse_utc
 
 T = TypeVar("T")
 # Allow the function to return either a coroutine or the result directly
@@ -111,6 +113,11 @@ def parse_path_index(path: str) -> Tuple[str, Union[bool, int, None]]:
             raise ValueError(f"Invalid path index: {path}")
     else:
         return path, None
+
+
+# Is able to read iso timestamps: 2020-01-01T00:00:00.000Z, as well as durations like 1d, 3h, 5m, 10s
+def parse_time_or_delta(time_or_delta: str) -> datetime:
+    return utc() - parse_duration(time_or_delta) if DurationRe.fullmatch(time_or_delta) else parse_utc(time_or_delta)
 
 
 def js_value_get(element: JsonElement, path_or_name: Union[List[str], str], if_none: AnyT) -> AnyT:
