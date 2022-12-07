@@ -16,8 +16,22 @@ from resotolib.types import Json
 log = logging.getLogger("resoto.plugins.aws")
 
 
+class CloudFrontTaggable:
+    #TODO list mutator api calls here
+    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
+        client.call(
+            aws_service="cloudfront", action="tag-resource", result_name=None, Resource=self.arn, Tags={"Items":[{"Key":key, "Value": value}]}
+        )
+        return True
+
+    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
+        client.call(
+            aws_service="cloudfront", action="untag-resource", result_name=None, Resource=self.arn, TagKeys={"Items":[key]}
+        )
+        return True
+
+
 class CloudFrontResource(AwsResource):
-    # TODO define tagging here
 
     @classmethod
     def collect_resources(cls: Type[AwsResource], builder: GraphBuilder) -> None:
@@ -516,7 +530,7 @@ class AwsCloudFrontAliasICPRecordal:
 
 
 @define(eq=False, slots=False)
-class AwsCloudFrontDistribution(CloudFrontResource):
+class AwsCloudFrontDistribution(CloudFrontTaggable, CloudFrontResource):
     kind: ClassVar[str] = "aws_cloudfront_distribution"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudfront", "list-distributions", "DistributionList")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -589,7 +603,7 @@ class AwsCloudFrontFunctionConfig:
 
 
 @define(eq=False, slots=False)
-class AwsCloudFrontFunction(CloudFrontResource):
+class AwsCloudFrontFunction(CloudFrontTaggable, CloudFrontResource):
     kind: ClassVar[str] = "aws_cloudfront_function"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudfront", "list-functions", "FunctionList")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -674,7 +688,7 @@ class AwsCloudFrontEndPoint:
 
 
 @define(eq=False, slots=False)
-class AwsCloudFrontRealtimeLogConfig(CloudFrontResource):
+class AwsCloudFrontRealtimeLogConfig(CloudFrontTaggable, CloudFrontResource):
     kind: ClassVar[str] = "aws_cloud_front_realtime_log_config"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudfront", "list-realtime-log-configs", "RealtimeLogConfigs")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -954,7 +968,7 @@ class AwsCloudFrontS3Origin:
 
 
 @define(eq=False, slots=False)
-class AwsCloudFrontStreamingDistribution(CloudFrontResource):
+class AwsCloudFrontStreamingDistribution(CloudFrontTaggable, CloudFrontResource):
     kind: ClassVar[str] = "aws_cloud_front_streaming_distribution"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         "cloudfront", "list-streaming-distributions", "StreamingDistributionList"

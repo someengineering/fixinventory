@@ -26,6 +26,26 @@ def test_distributions() -> None:
     # assert len(first.tags) == 1
 
 
+def test_tagging() -> None:
+    dist, _ = round_trip_for(AwsCloudFrontDistribution)
+
+    def validate_update_args(**kwargs: Any) -> Any:
+        if kwargs["action"] == "tag-resource":
+            assert kwargs["Resource"] == dist.arn
+            assert kwargs["Tags"] == {"Items": [{"Key": "foo", "Value": "bar"}]}
+
+    def validate_delete_args(**kwargs: Any) -> Any:
+        if kwargs["action"] == "untag-resource":
+            assert kwargs["Resource"] == dist.arn
+            assert kwargs["TagKeys"] == {"Items": ["foo"]}
+
+    client = cast(AwsClient, SimpleNamespace(call=validate_update_args))
+    dist.update_resource_tag(client, "foo", "bar")
+
+    client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
+    dist.delete_resource_tag(client, "foo")
+
+
 def test_distribution_deletion() -> None:
     dist, _ = round_trip_for(AwsCloudFrontDistribution)
 
