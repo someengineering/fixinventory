@@ -369,7 +369,7 @@ def authenticated(account: AwsAccount, core_feedback: CoreFeedback) -> bool:
         elif e.response["Error"]["Code"] == "ExpiredToken":
             core_feedback.error(f"Security token included in the request is expired for {account.rtdname}", log)
         elif e.response["Error"]["Code"] == "AccessDenied":
-            core_feedback.error(f"Access Denied to {account.rtdname}", log)
+            core_feedback.error(f"Access Denied to {account.rtdname}: {e}", log)
         else:
             raise
         return False
@@ -489,7 +489,7 @@ def get_org_accounts(filter_current_account: bool, profile: Optional[str], core_
             accounts.extend(response.get("Accounts", []))
     except botocore.exceptions.ClientError as e:
         if e.response["Error"]["Code"] == "AccessDeniedException":
-            core_feedback.error("Missing permissions to list organization accounts", log)
+            core_feedback.error(f"Missing permissions to list organization accounts: {e}", log)
         else:
             raise
     filter_account_id = current_account_id(profile=profile) if filter_current_account else -1
