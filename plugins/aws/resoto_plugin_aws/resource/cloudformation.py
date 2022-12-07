@@ -295,7 +295,6 @@ def _stack_instance_id(stack: Json) -> str:
 class AwsCloudFormationStackInstanceSummary(AwsResource):
     # note: resource is collected via AwsCloudFormationStackSet
     kind: ClassVar[str] = "aws_cloud_formation_stack_instance_summary"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudformation", "list-stack-instances", "Summaries")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": F(_stack_instance_id),
         "stack_instance_stack_set_id": S("StackSetId"),
