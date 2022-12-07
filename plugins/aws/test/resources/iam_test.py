@@ -46,7 +46,7 @@ def test_user_roles_groups_policies_keys() -> None:
     assert len(builder.resources_of(AwsIamPolicy)) == 4
     assert (policy := builder.node(clazz=AwsIamPolicy, name="master-elb")) is not None
     assert policy.policy_attachment_count == 1
-    assert len(policy.policy_version_list) == 1
+    assert policy.policy_document is not None
 
     # roles
     assert len(builder.resources_of(AwsIamRole)) == 2

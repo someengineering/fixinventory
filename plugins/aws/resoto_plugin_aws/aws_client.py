@@ -8,7 +8,7 @@ from typing import Optional, Any, List, TypeVar, Callable
 from botocore.model import ServiceModel
 from retrying import retry
 
-from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError, EndpointConnectionError
 from botocore.config import Config
 
 from resoto_plugin_aws.configuration import AwsConfig
@@ -81,6 +81,9 @@ class AwsClient:
         except ClientError as e:
             self.__handle_client_error(e, aws_service, "service_resource")  # might reraise the exception
             return None
+        except EndpointConnectionError as e:
+            log.debug(f"The Aws endpoint does not exist in this region. Skipping. {e}")
+            return None
 
     def call_single(
         self, aws_service: str, action: str, result_name: Optional[str] = None, max_attempts: int = 1, **kwargs: Any
@@ -137,6 +140,9 @@ class AwsClient:
             return self.call_single(aws_service, action, result_name, max_attempts=5, **kwargs)
         except ClientError as e:
             self.__handle_client_error(e, aws_service, action, expected_errors)  # might reraise the exception
+            return None
+        except EndpointConnectionError as e:
+            log.debug(f"The Aws endpoint does not exist in this region. Skipping. {e}")
             return None
 
     def list(
