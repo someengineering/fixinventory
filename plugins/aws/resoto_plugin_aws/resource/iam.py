@@ -253,7 +253,7 @@ def default_policy_document(policy: Json) -> Optional[AwsIamPolicyVersion]:
     # select the default policy from the version list
     for p in policy.get("PolicyVersionList", []):
         if p.get("VersionId") == default_version:
-            return bend(AwsIamPolicyVersion.mapping, p)
+            return bend(AwsIamPolicyVersion.mapping, p)  # type: ignore
     return None
 
 
