@@ -17,22 +17,51 @@ log = logging.getLogger("resoto.plugins.aws")
 
 
 class CloudFrontTaggable:
-    #TODO list mutator api calls here
+    @classmethod
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def add_tags(res: CloudFrontResource) -> None:
+            tags = builder.client.get("cloudfront", "list-tags-for-resource", "Tags", Resource=res.arn)
+            if tags:
+                res.tags = bend(ToDict(), tags["Items"])
+
+        for js in json:
+            instance = cls.from_api(js)
+            builder.add_node(instance, js)
+            builder.submit_work(add_tags, instance)
+
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
-        client.call(
-            aws_service="cloudfront", action="tag-resource", result_name=None, Resource=self.arn, Tags={"Items":[{"Key":key, "Value": value}]}
-        )
-        return True
+        if isinstance(self, AwsResource):
+            client.call(
+                aws_service="cloudfront",
+                action="tag-resource",
+                result_name=None,
+                Resource=self.arn,
+                Tags={"Items": [{"Key": key, "Value": value}]},
+            )
+            return True
+        return False
 
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
-        client.call(
-            aws_service="cloudfront", action="untag-resource", result_name=None, Resource=self.arn, TagKeys={"Items":[key]}
-        )
-        return True
+        if isinstance(self, AwsResource):
+            client.call(
+                aws_service="cloudfront",
+                action="untag-resource",
+                result_name=None,
+                Resource=self.arn,
+                TagKeys={"Items": [key]},
+            )
+            return True
+        return False
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec("cloudfront", "tag-resource"),
+            AwsApiSpec("cloudfront", "untag-resource"),
+        ]
 
 
 class CloudFrontResource(AwsResource):
-
     @classmethod
     def collect_resources(cls: Type[AwsResource], builder: GraphBuilder) -> None:
         # Default behavior: in case the class has an ApiSpec, call the api and call collect.
@@ -622,12 +651,18 @@ class AwsCloudFrontFunction(CloudFrontTaggable, CloudFrontResource):
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def add_tags(func: AwsCloudFrontFunction) -> None:
+            tags = builder.client.get("cloudfront", "list-tags-for-resource", "Tags", Resource=func.arn)
+            if tags["Items"]:
+                func.tags = bend(ToDict(), tags["Items"])
+
         for js in json:
             js["arn"] = js["FunctionMetadata"]["FunctionARN"]
             js["stage"] = js["FunctionMetadata"]["Stage"]
             js["ctime"] = js["FunctionMetadata"]["CreatedTime"]
             js["mtime"] = js["FunctionMetadata"]["LastModifiedTime"]
             instance = cls.from_api(js)
+            builder.submit_work(add_tags, instance)
             builder.add_node(instance, js)
 
     # def delete_resource(self, client: AwsClient) -> bool:
@@ -1281,6 +1316,14 @@ class AwsCloudFrontFieldLevelEncryptionProfile(CloudFrontResource):
     field_level_encryption_profile_comment: Optional[str] = field(default=None)
 
     # TODO edge to public key
+    # def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+    #     if self.field_level_encryption_profile_encryption_entities:
+    #         for entry in self.field_level_encryption_profile_encryption_entities.items:
+    #             builder.dependant_node(
+    #                 self,
+    #                 clazz=AwsCloudFrontPublicKey,
+    #                 id=entry.public_key_id,
+    #             )
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(

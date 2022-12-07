@@ -9,11 +9,18 @@ class DateTimeEncoder(json.JSONEncoder):
             if isinstance(obj, (date, datetime)):
                 return utc_str(obj)
 
-
 # 1. paste the boto3 Response Syntax example here
 # 2. find and replace '|' with a space or anything that's not a bitwise operator
 # 3. run
-response = {}
-
+response = {
+    'Tags': {
+        'Items': [
+            {
+                'Key': 'string',
+                'Value': 'string'
+            },
+        ]
+    }
+}
 
 print (json.dumps(response, indent=4, cls=DateTimeEncoder))

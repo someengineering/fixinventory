@@ -12,7 +12,7 @@
                     "Runtime": "cloudfront-js-1.0"
                 },
                 "FunctionMetadata": {
-                    "FunctionARN": "string",
+                    "FunctionARN": "arn",
                     "Stage": "DEVELOPMENT",
                     "CreatedTime": "2022-08-08T09:36:55Z",
                     "LastModifiedTime": "2022-08-08T09:36:55Z"
