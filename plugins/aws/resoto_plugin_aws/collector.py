@@ -87,6 +87,7 @@ def called_collect_apis() -> List[AwsApiSpec]:
     additional_calls = [
         AwsApiSpec("pricing", "get-products"),
         AwsApiSpec("ec2", "describe-regions"),
+        AwsApiSpec("iam", "get-account-summary"),
         AwsApiSpec("iam", "list-account-aliases"),
         AwsApiSpec("organizations", "list-accounts"),
     ]
