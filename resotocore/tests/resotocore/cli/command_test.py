@@ -698,8 +698,8 @@ async def test_system_backup_command(cli: CLI) -> None:
             async for s in streamer:
                 assert isinstance(s, str)
                 assert os.path.exists(s)
-                # backup should have size between 30k and 250k (adjust size if necessary)
-                assert 30000 < os.path.getsize(s) < 250000
+                # backup should have size between 30k and 500k (adjust size if necessary)
+                assert 30000 < os.path.getsize(s) < 500000
                 assert only_one
                 only_one = False
 
@@ -1000,15 +1000,14 @@ async def test_history(cli: CLI, filled_graph_db: ArangoGraphDB) -> None:
     five_min_later = utc_str(now + timedelta(minutes=5))
     assert await history_count("history") == 113  # 112 inserts and 1 update for the filled graph db
     assert await history_count(f"history --after {five_min_ago}") == 113
+    assert await history_count(f"history --after 5m") == 113
     assert await history_count(f"history --after {five_min_later}") == 0
     assert await history_count(f"history --before {five_min_ago}") == 0
+    assert await history_count(f"history --before 5m") == 0
     assert await history_count(f"history --change node_created") == 112
     assert await history_count(f"history --change node_updated") == 1
     assert await history_count(f"history --change node_deleted") == 0
     assert await history_count(f"history --change node_deleted") == 0
     assert await history_count(f"history is(foo)") == 11
     # combine all selectors
-    assert (
-        await history_count(f"history --after {five_min_ago} --before {five_min_later} --change node_created is(foo)")
-        == 11
-    )
+    assert await history_count(f"history --after 5m --before {five_min_later} --change node_created is(foo)") == 11
