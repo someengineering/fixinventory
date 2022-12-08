@@ -14,7 +14,7 @@ from resotolib.types import Json
 class AwsS3Bucket(AwsResource, BaseBucket):
     kind: ClassVar[str] = "aws_s3_bucket"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
-        "s3", "list-buckets", "Buckets", override_iam_permission="s3:ListBucket"
+        "s3", "list-buckets", "Buckets", override_iam_permission="s3:ListAllMyBuckets"
     )
     mapping: ClassVar[Dict[str, Bender]] = {"id": S("Name"), "name": S("Name"), "ctime": S("CreationDate")}
 

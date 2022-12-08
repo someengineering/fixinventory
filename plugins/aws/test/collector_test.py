@@ -81,7 +81,7 @@ def test_all_called_apis() -> None:
     print("\n\n", collect_statement, "\n\n")
     assert json.loads(collect_statement)
     assert len(collect_allow) >= 74
-    assert "s3:ListBucket" in collect_allow
+    assert "s3:ListAllMyBuckets" in collect_allow
 
     mutate_allow, mutate_statement = iam_statement("ResotoMutatePermission", called_mutator_apis())
     print("\n\n", mutate_statement, "\n\n")

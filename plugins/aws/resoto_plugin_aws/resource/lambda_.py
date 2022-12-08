@@ -229,7 +229,7 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
-        return [cls.api_spec, AwsApiSpec("lambda", "list-tags")]
+        return [cls.api_spec, AwsApiSpec("lambda", "get-policy"), AwsApiSpec("lambda", "list-tags")]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
