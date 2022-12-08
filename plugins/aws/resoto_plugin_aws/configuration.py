@@ -12,6 +12,7 @@ from boto3.session import Session as BotoSession
 from resotolib.durations import parse_duration
 from resotolib.json import from_json as from_js
 from resotolib.types import Json
+from resotolib.proc import num_default_threads
 
 log = logging.getLogger("resoto.plugins.aws")
 
@@ -121,7 +122,7 @@ class AwsConfig:
     assume_current: bool = field(default=False, metadata={"description": "Assume given role in current account"})
     do_not_scrape_current: bool = field(default=False, metadata={"description": "Do not scrape current account"})
     account_pool_size: int = field(
-        default=2,
+        default=num_default_threads(2),
         metadata={
             "description": "Number of accounts to scrape in parallel. "
             "For a large number of accounts we recommend to increase this number and use fork_process."
