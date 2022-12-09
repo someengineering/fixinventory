@@ -17,6 +17,7 @@ from resotolib.types import Json
 
 log = logging.getLogger("resoto.plugins.aws")
 
+
 class CloudFrontResource(AwsResource):
     @classmethod
     def collect_resources(cls: Type[AwsResource], builder: GraphBuilder) -> None:
