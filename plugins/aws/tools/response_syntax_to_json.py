@@ -13,14 +13,21 @@ class DateTimeEncoder(json.JSONEncoder):
 # 2. find and replace '|' with a space or anything that's not a bitwise operator
 # 3. run
 response = {
-    'Tags': {
-        'Items': [
-            {
-                'Key': 'string',
-                'Value': 'string'
-            },
-        ]
+    'FunctionSummary': {
+        'Name': 'string',
+        'Status': 'string',
+        'FunctionConfig': {
+            'Comment': 'string',
+            'Runtime': 'cloudfront-js-1.0'
+        },
+        'FunctionMetadata': {
+            'FunctionARN': 'string',
+            'Stage': 'DEVELOPMENT'|'LIVE',
+            'CreatedTime': datetime(2015, 1, 1),
+            'LastModifiedTime': datetime(2015, 1, 1)
+        }
     }
 }
+
 
 print (json.dumps(response, indent=4, cls=DateTimeEncoder))

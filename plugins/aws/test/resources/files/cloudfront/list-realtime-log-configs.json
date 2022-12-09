@@ -3,7 +3,7 @@
         "MaxItems": 123,
         "Items": [
             {
-                "ARN": "string",
+                "ARN": "realtime-log-config-arn",
                 "Name": "string",
                 "SamplingRate": 123,
                 "EndPoints": [

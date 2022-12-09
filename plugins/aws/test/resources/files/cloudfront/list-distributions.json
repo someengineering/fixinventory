@@ -56,7 +56,7 @@
                                 "Enabled": false,
                                 "OriginShieldRegion": "string"
                             },
-                            "OriginAccessControlId": "string"
+                            "OriginAccessControlId": "oac-id-123"
                         }
                     ]
                 },
@@ -119,7 +119,7 @@
                         "Quantity": 123,
                         "Items": [
                             {
-                                "LambdaFunctionARN": "string",
+                                "LambdaFunctionARN": "some-other-lambda-arn",
                                 "EventType": "viewer-request",
                                 "IncludeBody": false
                             }
@@ -135,7 +135,7 @@
                         ]
                     },
                     "FieldLevelEncryptionId": "string",
-                    "RealtimeLogConfigArn": "string",
+                    "RealtimeLogConfigArn": "realtime-log-config-arn",
                     "CachePolicyId": "string",
                     "OriginRequestPolicyId": "string",
                     "ResponseHeadersPolicyId": "string",
@@ -206,7 +206,7 @@
                                 "Quantity": 123,
                                 "Items": [
                                     {
-                                        "LambdaFunctionARN": "string",
+                                        "LambdaFunctionARN": "some-lambda-arn",
                                         "EventType": "viewer-request",
                                         "IncludeBody": true
                                     }
@@ -272,7 +272,7 @@
                 "Enabled": false,
                 "ViewerCertificate": {
                     "CloudFrontDefaultCertificate": false,
-                    "IAMCertificateId": "string",
+                    "IAMCertificateId": "1234",
                     "ACMCertificateArn": "string",
                     "SSLSupportMethod": "sni-only",
                     "MinimumProtocolVersion": "SSLv3",

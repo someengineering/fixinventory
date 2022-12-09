@@ -7,7 +7,7 @@
      "Quantity": 123,
      "Items": [
       {
-       "Id": "string",
+       "Id": "oac-id-123",
        "Description": "string",
        "Name": "string",
        "SigningProtocol": "sigv4",

@@ -7,6 +7,8 @@ from attr import define, field
 
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
+from resoto_plugin_aws.resource.iam import AwsIamServerCertificate
+from resoto_plugin_aws.resource.lambda_ import AwsLambdaFunction
 from resoto_plugin_aws.utils import ToDict
 from resotolib.baseresources import ModelReference
 from resotolib.json import from_json
@@ -562,6 +564,20 @@ class AwsCloudFrontAliasICPRecordal:
 class AwsCloudFrontDistribution(CloudFrontTaggable, CloudFrontResource):
     kind: ClassVar[str] = "aws_cloudfront_distribution"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudfront", "list-distributions", "DistributionList")
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [
+                "aws_lambda_function",
+                "aws_iam_server_certificate",
+                "aws_cloudfront_function",
+                "aws_cloudfront_realtime_log_config",
+                "aws_cloudfront_field_level_encryption_config",
+                "aws_cloudfront_response_headers_policy",
+                "aws_cloudfront_cache_policy",
+                "aws_cloudfront_origin_access_control",
+            ]
+        }
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Id"),
         "ctime": S("LastModifiedTime"),
@@ -608,15 +624,55 @@ class AwsCloudFrontDistribution(CloudFrontTaggable, CloudFrontResource):
     distribution_alias_icp_recordals: List[AwsCloudFrontAliasICPRecordal] = field(factory=list)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        # TODO lambda function
-        # TODO cloudfront realtime log config
-        # TODO acm certificate
-        # TODO cloudfront origin access control
-        # TODO response headers policy (and cache policy and origin request policy)
-        # TODO iam certificate
-        # TODO web acl
-        # TODO field level encryption
-        return super().connect_in_graph(builder, source)
+        # edges from default cache behaviour
+        if dcb := self.distribution_default_cache_behavior:
+            if dcb.lambda_function_associations:
+                for item in dcb.lambda_function_associations.items:
+                    builder.add_edge(self, clazz=AwsLambdaFunction, arn=item.lambda_function_arn)
+            if dcb.function_associations:
+                for item in dcb.function_associations.items:
+                    builder.add_edge(self, clazz=AwsCloudFrontFunction, arn=item.function_arn)
+            if dcb.realtime_log_config_arn:
+                builder.add_edge(self, clazz=AwsCloudFrontRealtimeLogConfig, arn=dcb.realtime_log_config_arn)
+            if dcb.field_level_encryption_id:
+                builder.add_edge(self, clazz=AwsCloudFrontFieldLevelEncryptionConfig, id=dcb.field_level_encryption_id)
+            if dcb.response_headers_policy_id:
+                builder.add_edge(self, clazz=AwsCloudFrontResponseHeadersPolicy, id=dcb.response_headers_policy_id)
+            if dcb.cache_policy_id:
+                builder.add_edge(self, clazz=AwsCloudFrontCachePolicy, id=dcb.cache_policy_id)
+
+        # edges from other cache behaviours
+        if self.distribution_cache_behaviors:
+            for item in self.distribution_cache_behaviors.items:
+                if item.lambda_function_associations:
+                    for entry in item.lambda_function_associations.items:
+                        builder.add_edge(self, clazz=AwsLambdaFunction, arn=entry.lambda_function_arn)
+                if item.function_associations:
+                    for entry in item.function_associations.items:
+                        builder.add_edge(self, clazz=AwsCloudFrontFunction, arn=entry.function_arn)
+                if item.field_level_encryption_id:
+                    builder.add_edge(
+                        self, clazz=AwsCloudFrontFieldLevelEncryptionConfig, id=item.field_level_encryption_id
+                    )
+                if item.realtime_log_config_arn:
+                    builder.add_edge(self, clazz=AwsCloudFrontRealtimeLogConfig, arn=item.realtime_log_config_arn)
+                if item.cache_policy_id:
+                    builder.add_edge(self, clazz=AwsCloudFrontCachePolicy, id=item.cache_policy_id)
+                if item.response_headers_policy_id:
+                    builder.add_edge(self, clazz=AwsCloudFrontResponseHeadersPolicy, id=item.response_headers_policy_id)
+
+        # other edges
+        if self.distribution_origins:
+            for entry in self.distribution_origins.items:
+                builder.add_edge(self, clazz=AwsCloudFrontOriginAccessControl, id=entry.origin_access_control_id)
+
+        if self.distribution_viewer_certificate and self.distribution_viewer_certificate.iam_certificate_id:
+            builder.add_edge(
+                self, clazz=AwsIamServerCertificate, id=self.distribution_viewer_certificate.iam_certificate_id
+            )
+
+        # TODO edge to ACM certificate when applicable (via self.distribution_viewer_certificate.acm_certificate_arn)
+        # TODO edge to Web Acl when applicable (via self.distribution_web_acl_id)
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(aws_service=self.api_spec.service, action="delete-distribution", result_name=None, Id=self.id)
@@ -638,7 +694,6 @@ class AwsCloudFrontFunction(CloudFrontTaggable, CloudFrontResource):
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Name"),
         "arn": S("arn"),
-        # "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("Name"),
         "ctime": S("ctime"),
         "mtime": S("mtime"),
@@ -653,7 +708,7 @@ class AwsCloudFrontFunction(CloudFrontTaggable, CloudFrontResource):
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_tags(func: AwsCloudFrontFunction) -> None:
             tags = builder.client.get("cloudfront", "list-tags-for-resource", "Tags", Resource=func.arn)
-            if tags["Items"]:
+            if tags:
                 func.tags = bend(ToDict(), tags["Items"])
 
         for js in json:
@@ -673,7 +728,7 @@ class AwsCloudFrontFunction(CloudFrontTaggable, CloudFrontResource):
 
 @define(eq=False, slots=False)
 class AwsCloudFrontInvalidation(CloudFrontResource):
-    kind: ClassVar[str] = "aws_cloud_front_invalidation"
+    kind: ClassVar[str] = "aws_cloudfront_invalidation"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudfront", "list-invalidations", "InvalidationList")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Id"),
@@ -686,7 +741,7 @@ class AwsCloudFrontInvalidation(CloudFrontResource):
 
 @define(eq=False, slots=False)
 class AwsCloudFrontPublicKey(CloudFrontResource):
-    kind: ClassVar[str] = "aws_cloud_front_public_key"
+    kind: ClassVar[str] = "aws_cloudfront_public_key"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudfront", "list-public-keys", "PublicKeyList")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Id"),
@@ -705,7 +760,7 @@ class AwsCloudFrontPublicKey(CloudFrontResource):
 
 @define(eq=False, slots=False)
 class AwsCloudFrontKinesisStreamConfig:
-    kind: ClassVar[str] = "aws_cloud_front_kinesis_stream_config"
+    kind: ClassVar[str] = "aws_cloudfront_kinesis_stream_config"
     mapping: ClassVar[Dict[str, Bender]] = {"role_arn": S("RoleARN"), "stream_arn": S("StreamARN")}
     role_arn: Optional[str] = field(default=None)
     stream_arn: Optional[str] = field(default=None)
@@ -713,7 +768,7 @@ class AwsCloudFrontKinesisStreamConfig:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontEndPoint:
-    kind: ClassVar[str] = "aws_cloud_front_end_point"
+    kind: ClassVar[str] = "aws_cloudfront_end_point"
     mapping: ClassVar[Dict[str, Bender]] = {
         "stream_type": S("StreamType"),
         "kinesis_stream_config": S("KinesisStreamConfig") >> Bend(AwsCloudFrontKinesisStreamConfig.mapping),
@@ -724,7 +779,7 @@ class AwsCloudFrontEndPoint:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontRealtimeLogConfig(CloudFrontTaggable, CloudFrontResource):
-    kind: ClassVar[str] = "aws_cloud_front_realtime_log_config"
+    kind: ClassVar[str] = "aws_cloudfront_realtime_log_config"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudfront", "list-realtime-log-configs", "RealtimeLogConfigs")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Name"),
@@ -747,7 +802,7 @@ class AwsCloudFrontRealtimeLogConfig(CloudFrontTaggable, CloudFrontResource):
 
 @define(eq=False, slots=False)
 class AwsCloudFrontResponseHeadersPolicyAccessControlAllowOrigins:
-    kind: ClassVar[str] = "aws_cloud_front_response_headers_policy_access_control_allow_origins"
+    kind: ClassVar[str] = "aws_cloudfront_response_headers_policy_access_control_allow_origins"
     mapping: ClassVar[Dict[str, Bender]] = {"quantity": S("Quantity"), "items": S("Items", default=[])}
     quantity: Optional[int] = field(default=None)
     items: List[str] = field(factory=list)
@@ -755,7 +810,7 @@ class AwsCloudFrontResponseHeadersPolicyAccessControlAllowOrigins:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontResponseHeadersPolicyAccessControlAllowHeaders:
-    kind: ClassVar[str] = "aws_cloud_front_response_headers_policy_access_control_allow_headers"
+    kind: ClassVar[str] = "aws_cloudfront_response_headers_policy_access_control_allow_headers"
     mapping: ClassVar[Dict[str, Bender]] = {"quantity": S("Quantity"), "items": S("Items", default=[])}
     quantity: Optional[int] = field(default=None)
     items: List[str] = field(factory=list)
@@ -763,7 +818,7 @@ class AwsCloudFrontResponseHeadersPolicyAccessControlAllowHeaders:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontResponseHeadersPolicyAccessControlAllowMethods:
-    kind: ClassVar[str] = "aws_cloud_front_response_headers_policy_access_control_allow_methods"
+    kind: ClassVar[str] = "aws_cloudfront_response_headers_policy_access_control_allow_methods"
     mapping: ClassVar[Dict[str, Bender]] = {"quantity": S("Quantity"), "items": S("Items", default=[])}
     quantity: Optional[int] = field(default=None)
     items: List[str] = field(factory=list)
@@ -771,7 +826,7 @@ class AwsCloudFrontResponseHeadersPolicyAccessControlAllowMethods:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontResponseHeadersPolicyAccessControlExposeHeaders:
-    kind: ClassVar[str] = "aws_cloud_front_response_headers_policy_access_control_expose_headers"
+    kind: ClassVar[str] = "aws_cloudfront_response_headers_policy_access_control_expose_headers"
     mapping: ClassVar[Dict[str, Bender]] = {"quantity": S("Quantity"), "items": S("Items", default=[])}
     quantity: Optional[int] = field(default=None)
     items: List[str] = field(factory=list)
@@ -779,7 +834,7 @@ class AwsCloudFrontResponseHeadersPolicyAccessControlExposeHeaders:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontResponseHeadersPolicyCorsConfig:
-    kind: ClassVar[str] = "aws_cloud_front_response_headers_policy_cors_config"
+    kind: ClassVar[str] = "aws_cloudfront_response_headers_policy_cors_config"
     mapping: ClassVar[Dict[str, Bender]] = {
         "access_control_allow_origins": S("AccessControlAllowOrigins")
         >> Bend(AwsCloudFrontResponseHeadersPolicyAccessControlAllowOrigins.mapping),
@@ -812,7 +867,7 @@ class AwsCloudFrontResponseHeadersPolicyCorsConfig:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontResponseHeadersPolicyXSSProtection:
-    kind: ClassVar[str] = "aws_cloud_front_response_headers_policy_xss_protection"
+    kind: ClassVar[str] = "aws_cloudfront_response_headers_policy_xss_protection"
     mapping: ClassVar[Dict[str, Bender]] = {
         "override": S("Override"),
         "protection": S("Protection"),
@@ -827,7 +882,7 @@ class AwsCloudFrontResponseHeadersPolicyXSSProtection:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontResponseHeadersPolicyFrameOptions:
-    kind: ClassVar[str] = "aws_cloud_front_response_headers_policy_frame_options"
+    kind: ClassVar[str] = "aws_cloudfront_response_headers_policy_frame_options"
     mapping: ClassVar[Dict[str, Bender]] = {"override": S("Override"), "frame_option": S("FrameOption")}
     override: Optional[bool] = field(default=None)
     frame_option: Optional[str] = field(default=None)
@@ -835,7 +890,7 @@ class AwsCloudFrontResponseHeadersPolicyFrameOptions:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontResponseHeadersPolicyReferrerPolicy:
-    kind: ClassVar[str] = "aws_cloud_front_response_headers_policy_referrer_policy"
+    kind: ClassVar[str] = "aws_cloudfront_response_headers_policy_referrer_policy"
     mapping: ClassVar[Dict[str, Bender]] = {"override": S("Override"), "referrer_policy": S("ReferrerPolicy")}
     override: Optional[bool] = field(default=None)
     referrer_policy: Optional[str] = field(default=None)
@@ -843,7 +898,7 @@ class AwsCloudFrontResponseHeadersPolicyReferrerPolicy:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontResponseHeadersPolicyContentSecurityPolicy:
-    kind: ClassVar[str] = "aws_cloud_front_response_headers_policy_content_security_policy"
+    kind: ClassVar[str] = "aws_cloudfront_response_headers_policy_content_security_policy"
     mapping: ClassVar[Dict[str, Bender]] = {
         "override": S("Override"),
         "content_security_policy": S("ContentSecurityPolicy"),
@@ -854,7 +909,7 @@ class AwsCloudFrontResponseHeadersPolicyContentSecurityPolicy:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontResponseHeadersPolicyStrictTransportSecurity:
-    kind: ClassVar[str] = "aws_cloud_front_response_headers_policy_strict_transport_security"
+    kind: ClassVar[str] = "aws_cloudfront_response_headers_policy_strict_transport_security"
     mapping: ClassVar[Dict[str, Bender]] = {
         "override": S("Override"),
         "include_subdomains": S("IncludeSubdomains"),
@@ -869,7 +924,7 @@ class AwsCloudFrontResponseHeadersPolicyStrictTransportSecurity:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontResponseHeadersPolicySecurityHeadersConfig:
-    kind: ClassVar[str] = "aws_cloud_front_response_headers_policy_security_headers_config"
+    kind: ClassVar[str] = "aws_cloudfront_response_headers_policy_security_headers_config"
     mapping: ClassVar[Dict[str, Bender]] = {
         "xss_protection": S("XSSProtection") >> Bend(AwsCloudFrontResponseHeadersPolicyXSSProtection.mapping),
         "frame_options": S("FrameOptions") >> Bend(AwsCloudFrontResponseHeadersPolicyFrameOptions.mapping),
@@ -890,7 +945,7 @@ class AwsCloudFrontResponseHeadersPolicySecurityHeadersConfig:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontResponseHeadersPolicyServerTimingHeadersConfig:
-    kind: ClassVar[str] = "aws_cloud_front_response_headers_policy_server_timing_headers_config"
+    kind: ClassVar[str] = "aws_cloudfront_response_headers_policy_server_timing_headers_config"
     mapping: ClassVar[Dict[str, Bender]] = {"enabled": S("Enabled"), "sampling_rate": S("SamplingRate")}
     enabled: Optional[bool] = field(default=None)
     sampling_rate: Optional[float] = field(default=None)
@@ -898,7 +953,7 @@ class AwsCloudFrontResponseHeadersPolicyServerTimingHeadersConfig:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontResponseHeadersPolicyCustomHeader:
-    kind: ClassVar[str] = "aws_cloud_front_response_headers_policy_custom_header"
+    kind: ClassVar[str] = "aws_cloudfront_response_headers_policy_custom_header"
     mapping: ClassVar[Dict[str, Bender]] = {"header": S("Header"), "value": S("Value"), "override": S("Override")}
     header: Optional[str] = field(default=None)
     value: Optional[str] = field(default=None)
@@ -907,7 +962,7 @@ class AwsCloudFrontResponseHeadersPolicyCustomHeader:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontResponseHeadersPolicyCustomHeadersConfig:
-    kind: ClassVar[str] = "aws_cloud_front_response_headers_policy_custom_headers_config"
+    kind: ClassVar[str] = "aws_cloudfront_response_headers_policy_custom_headers_config"
     mapping: ClassVar[Dict[str, Bender]] = {
         "quantity": S("Quantity"),
         "items": S("Items", default=[]) >> ForallBend(AwsCloudFrontResponseHeadersPolicyCustomHeader.mapping),
@@ -918,7 +973,7 @@ class AwsCloudFrontResponseHeadersPolicyCustomHeadersConfig:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontResponseHeadersPolicyConfig:
-    kind: ClassVar[str] = "aws_cloud_front_response_headers_policy_config"
+    kind: ClassVar[str] = "aws_cloudfront_response_headers_policy_config"
     mapping: ClassVar[Dict[str, Bender]] = {
         "comment": S("Comment"),
         "name": S("Name"),
@@ -942,7 +997,7 @@ class AwsCloudFrontResponseHeadersPolicyConfig:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontResponseHeadersPolicy(CloudFrontResource):
-    kind: ClassVar[str] = "aws_cloud_front_response_headers_policy"
+    kind: ClassVar[str] = "aws_cloudfront_response_headers_policy"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         "cloudfront", "list-response-headers-policies", "ResponseHeadersPolicyList"
     )
@@ -974,7 +1029,7 @@ class AwsCloudFrontResponseHeadersPolicy(CloudFrontResource):
 
 @define(eq=False, slots=False)
 class AwsCloudFrontKeyPairIds:
-    kind: ClassVar[str] = "aws_cloud_front_key_pair_ids"
+    kind: ClassVar[str] = "aws_cloudfront_key_pair_ids"
     mapping: ClassVar[Dict[str, Bender]] = {"quantity": S("Quantity"), "items": S("Items", default=[])}
     quantity: Optional[int] = field(default=None)
     items: List[str] = field(factory=list)
@@ -982,7 +1037,7 @@ class AwsCloudFrontKeyPairIds:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontSigner:
-    kind: ClassVar[str] = "aws_cloud_front_signer"
+    kind: ClassVar[str] = "aws_cloudfront_signer"
     mapping: ClassVar[Dict[str, Bender]] = {
         "aws_account_number": S("AwsAccountNumber"),
         "key_pair_ids": S("KeyPairIds") >> Bend(AwsCloudFrontKeyPairIds.mapping),
@@ -993,7 +1048,7 @@ class AwsCloudFrontSigner:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontS3Origin:
-    kind: ClassVar[str] = "aws_cloud_front_s3_origin"
+    kind: ClassVar[str] = "aws_cloudfront_s3_origin"
     mapping: ClassVar[Dict[str, Bender]] = {
         "domain_name": S("DomainName"),
         "origin_access_identity": S("OriginAccessIdentity"),
@@ -1004,7 +1059,7 @@ class AwsCloudFrontS3Origin:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontStreamingDistribution(CloudFrontTaggable, CloudFrontResource):
-    kind: ClassVar[str] = "aws_cloud_front_streaming_distribution"
+    kind: ClassVar[str] = "aws_cloudfront_streaming_distribution"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         "cloudfront", "list-streaming-distributions", "StreamingDistributionList"
     )
@@ -1039,7 +1094,7 @@ class AwsCloudFrontStreamingDistribution(CloudFrontTaggable, CloudFrontResource)
 
 @define(eq=False, slots=False)
 class AwsCloudFrontOriginAccessControl(CloudFrontResource):
-    kind: ClassVar[str] = "aws_cloud_front_origin_access_control"
+    kind: ClassVar[str] = "aws_cloudfront_origin_access_control"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudfront", "list-origin-access-controls", "OriginAccessControlList")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Id"),
@@ -1063,7 +1118,7 @@ class AwsCloudFrontOriginAccessControl(CloudFrontResource):
 
 @define(eq=False, slots=False)
 class AwsCloudFrontCachePolicyHeadersConfig:
-    kind: ClassVar[str] = "aws_cloud_front_cache_policy_headers_config"
+    kind: ClassVar[str] = "aws_cloudfront_cache_policy_headers_config"
     mapping: ClassVar[Dict[str, Bender]] = {
         "header_behavior": S("HeaderBehavior"),
         "headers": S("Headers") >> Bend(AwsCloudFrontHeaders.mapping),
@@ -1074,7 +1129,7 @@ class AwsCloudFrontCachePolicyHeadersConfig:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontCachePolicyCookiesConfig:
-    kind: ClassVar[str] = "aws_cloud_front_cache_policy_cookies_config"
+    kind: ClassVar[str] = "aws_cloudfront_cache_policy_cookies_config"
     mapping: ClassVar[Dict[str, Bender]] = {
         "cookie_behavior": S("CookieBehavior"),
         "cookies": S("Cookies") >> Bend(AwsCloudFrontCookieNames.mapping),
@@ -1085,7 +1140,7 @@ class AwsCloudFrontCachePolicyCookiesConfig:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontQueryStringNames:
-    kind: ClassVar[str] = "aws_cloud_front_query_string_names"
+    kind: ClassVar[str] = "aws_cloudfront_query_string_names"
     mapping: ClassVar[Dict[str, Bender]] = {"quantity": S("Quantity"), "items": S("Items", default=[])}
     quantity: Optional[int] = field(default=None)
     items: List[str] = field(factory=list)
@@ -1093,7 +1148,7 @@ class AwsCloudFrontQueryStringNames:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontCachePolicyQueryStringsConfig:
-    kind: ClassVar[str] = "aws_cloud_front_cache_policy_query_strings_config"
+    kind: ClassVar[str] = "aws_cloudfront_cache_policy_query_strings_config"
     mapping: ClassVar[Dict[str, Bender]] = {
         "query_string_behavior": S("QueryStringBehavior"),
         "query_strings": S("QueryStrings") >> Bend(AwsCloudFrontQueryStringNames.mapping),
@@ -1104,7 +1159,7 @@ class AwsCloudFrontCachePolicyQueryStringsConfig:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontParametersInCacheKeyAndForwardedToOrigin:
-    kind: ClassVar[str] = "aws_cloud_front_parameters_in_cache_key_and_forwarded_to_origin"
+    kind: ClassVar[str] = "aws_cloudfront_parameters_in_cache_key_and_forwarded_to_origin"
     mapping: ClassVar[Dict[str, Bender]] = {
         "enable_accept_encoding_gzip": S("EnableAcceptEncodingGzip"),
         "enable_accept_encoding_brotli": S("EnableAcceptEncodingBrotli"),
@@ -1121,7 +1176,7 @@ class AwsCloudFrontParametersInCacheKeyAndForwardedToOrigin:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontCachePolicyConfig:
-    kind: ClassVar[str] = "aws_cloud_front_cache_policy_config"
+    kind: ClassVar[str] = "aws_cloudfront_cache_policy_config"
     mapping: ClassVar[Dict[str, Bender]] = {
         "comment": S("Comment"),
         "name": S("Name"),
@@ -1143,7 +1198,7 @@ class AwsCloudFrontCachePolicyConfig:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontCachePolicy(CloudFrontResource):
-    kind: ClassVar[str] = "aws_cloud_front_cache_policy"
+    kind: ClassVar[str] = "aws_cloudfront_cache_policy"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudfront", "list-cache-policies", "CachePolicyList")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Id"),
@@ -1169,7 +1224,7 @@ class AwsCloudFrontCachePolicy(CloudFrontResource):
 
 @define(eq=False, slots=False)
 class AwsCloudFrontQueryArgProfile:
-    kind: ClassVar[str] = "aws_cloud_front_query_arg_profile"
+    kind: ClassVar[str] = "aws_cloudfront_query_arg_profile"
     mapping: ClassVar[Dict[str, Bender]] = {"query_arg": S("QueryArg"), "profile_id": S("ProfileId")}
     query_arg: Optional[str] = field(default=None)
     profile_id: Optional[str] = field(default=None)
@@ -1177,7 +1232,7 @@ class AwsCloudFrontQueryArgProfile:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontQueryArgProfiles:
-    kind: ClassVar[str] = "aws_cloud_front_query_arg_profiles"
+    kind: ClassVar[str] = "aws_cloudfront_query_arg_profiles"
     mapping: ClassVar[Dict[str, Bender]] = {
         "quantity": S("Quantity"),
         "items": S("Items", default=[]) >> ForallBend(AwsCloudFrontQueryArgProfile.mapping),
@@ -1188,7 +1243,7 @@ class AwsCloudFrontQueryArgProfiles:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontQueryArgProfileConfig:
-    kind: ClassVar[str] = "aws_cloud_front_query_arg_profile_config"
+    kind: ClassVar[str] = "aws_cloudfront_query_arg_profile_config"
     mapping: ClassVar[Dict[str, Bender]] = {
         "forward_when_query_arg_profile_is_unknown": S("ForwardWhenQueryArgProfileIsUnknown"),
         "query_arg_profiles": S("QueryArgProfiles") >> Bend(AwsCloudFrontQueryArgProfiles.mapping),
@@ -1199,7 +1254,7 @@ class AwsCloudFrontQueryArgProfileConfig:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontContentTypeProfile:
-    kind: ClassVar[str] = "aws_cloud_front_content_type_profile"
+    kind: ClassVar[str] = "aws_cloudfront_content_type_profile"
     mapping: ClassVar[Dict[str, Bender]] = {
         "format": S("Format"),
         "profile_id": S("ProfileId"),
@@ -1212,7 +1267,7 @@ class AwsCloudFrontContentTypeProfile:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontContentTypeProfiles:
-    kind: ClassVar[str] = "aws_cloud_front_content_type_profiles"
+    kind: ClassVar[str] = "aws_cloudfront_content_type_profiles"
     mapping: ClassVar[Dict[str, Bender]] = {
         "quantity": S("Quantity"),
         "items": S("Items", default=[]) >> ForallBend(AwsCloudFrontContentTypeProfile.mapping),
@@ -1223,7 +1278,7 @@ class AwsCloudFrontContentTypeProfiles:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontContentTypeProfileConfig:
-    kind: ClassVar[str] = "aws_cloud_front_content_type_profile_config"
+    kind: ClassVar[str] = "aws_cloudfront_content_type_profile_config"
     mapping: ClassVar[Dict[str, Bender]] = {
         "forward_when_content_type_is_unknown": S("ForwardWhenContentTypeIsUnknown"),
         "content_type_profiles": S("ContentTypeProfiles") >> Bend(AwsCloudFrontContentTypeProfiles.mapping),
@@ -1234,10 +1289,13 @@ class AwsCloudFrontContentTypeProfileConfig:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontFieldLevelEncryptionConfig(CloudFrontResource):
-    kind: ClassVar[str] = "aws_cloud_front_field_level_encryption_config"
+    kind: ClassVar[str] = "aws_cloudfront_field_level_encryption_config"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         "cloudfront", "list-field-level-encryption-configs", "FieldLevelEncryptionList"
     )
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {"default": ["aws_cloudfront_field_level_encryption_profile"]}
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Id"),
         "mtime": S("LastModifiedTime"),
@@ -1255,7 +1313,18 @@ class AwsCloudFrontFieldLevelEncryptionConfig(CloudFrontResource):
         default=None
     )
 
-    # TODO edge to profile
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if (
+            self.field_level_encryption_config_content_type_profile_config
+            and self.field_level_encryption_config_content_type_profile_config.content_type_profiles
+        ):
+            for entry in self.field_level_encryption_config_content_type_profile_config.content_type_profiles.items:
+                builder.add_edge(
+                    self,
+                    clazz=AwsCloudFrontFieldLevelEncryptionProfile,
+                    id=entry.profile_id,
+                )
+
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
             aws_service=self.api_spec.service,
@@ -1268,7 +1337,7 @@ class AwsCloudFrontFieldLevelEncryptionConfig(CloudFrontResource):
 
 @define(eq=False, slots=False)
 class AwsCloudFrontFieldPatterns:
-    kind: ClassVar[str] = "aws_cloud_front_field_patterns"
+    kind: ClassVar[str] = "aws_cloudfront_field_patterns"
     mapping: ClassVar[Dict[str, Bender]] = {"quantity": S("Quantity"), "items": S("Items", default=[])}
     quantity: Optional[int] = field(default=None)
     items: List[str] = field(factory=list)
@@ -1276,7 +1345,7 @@ class AwsCloudFrontFieldPatterns:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontEncryptionEntity:
-    kind: ClassVar[str] = "aws_cloud_front_encryption_entity"
+    kind: ClassVar[str] = "aws_cloudfront_encryption_entity"
     mapping: ClassVar[Dict[str, Bender]] = {
         "public_key_id": S("PublicKeyId"),
         "provider_id": S("ProviderId"),
@@ -1289,7 +1358,7 @@ class AwsCloudFrontEncryptionEntity:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontEncryptionEntities:
-    kind: ClassVar[str] = "aws_cloud_front_encryption_entities"
+    kind: ClassVar[str] = "aws_cloudfront_encryption_entities"
     mapping: ClassVar[Dict[str, Bender]] = {
         "quantity": S("Quantity"),
         "items": S("Items", default=[]) >> ForallBend(AwsCloudFrontEncryptionEntity.mapping),
@@ -1300,10 +1369,13 @@ class AwsCloudFrontEncryptionEntities:
 
 @define(eq=False, slots=False)
 class AwsCloudFrontFieldLevelEncryptionProfile(CloudFrontResource):
-    kind: ClassVar[str] = "aws_cloud_front_field_level_encryption_profile"
+    kind: ClassVar[str] = "aws_cloudfront_field_level_encryption_profile"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         "cloudfront", "list-field-level-encryption-profiles", "FieldLevelEncryptionProfileList"
     )
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {"default": ["aws_cloudfront_public_key"]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Id"),
         "name": S("Name"),
@@ -1315,15 +1387,14 @@ class AwsCloudFrontFieldLevelEncryptionProfile(CloudFrontResource):
     field_level_encryption_profile_encryption_entities: Optional[AwsCloudFrontEncryptionEntities] = field(default=None)
     field_level_encryption_profile_comment: Optional[str] = field(default=None)
 
-    # TODO edge to public key
-    # def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-    #     if self.field_level_encryption_profile_encryption_entities:
-    #         for entry in self.field_level_encryption_profile_encryption_entities.items:
-    #             builder.dependant_node(
-    #                 self,
-    #                 clazz=AwsCloudFrontPublicKey,
-    #                 id=entry.public_key_id,
-    #             )
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if self.field_level_encryption_profile_encryption_entities:
+            for entry in self.field_level_encryption_profile_encryption_entities.items:
+                builder.add_edge(
+                    self,
+                    clazz=AwsCloudFrontPublicKey,
+                    id=entry.public_key_id,
+                )
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
