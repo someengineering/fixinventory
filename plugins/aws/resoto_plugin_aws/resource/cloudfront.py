@@ -1011,7 +1011,6 @@ class AwsCloudFrontResponseHeadersPolicy(CloudFrontResource):
 
     response_headers_policy_type: Optional[str] = field(default=None)
     response_headers_policy_config: Optional[AwsCloudFrontResponseHeadersPolicyConfig] = field(default=None)
-    # TODO map name to the correct level, add type
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
@@ -1019,6 +1018,7 @@ class AwsCloudFrontResponseHeadersPolicy(CloudFrontResource):
             policy = js["ResponseHeadersPolicy"]
             instance = AwsCloudFrontResponseHeadersPolicy.from_api(policy)
             instance.response_headers_policy_type = js["Type"]
+            instance.name = instance.response_headers_policy_config.name
             builder.add_node(instance, policy)
 
     def delete_resource(self, client: AwsClient) -> bool:
@@ -1205,16 +1205,16 @@ class AwsCloudFrontCachePolicy(CloudFrontResource):
         "id": S("Id"),
         "mtime": S("LastModifiedTime"),
         "cache_policy_last_modified_time": S("LastModifiedTime"),
-        "cache_policy_cache_policy_config": S("CachePolicyConfig") >> Bend(AwsCloudFrontCachePolicyConfig.mapping),
+        "cache_policy_config": S("CachePolicyConfig") >> Bend(AwsCloudFrontCachePolicyConfig.mapping),
     }
     cache_policy_last_modified_time: Optional[datetime] = field(default=None)
-    cache_policy_cache_policy_config: Optional[AwsCloudFrontCachePolicyConfig] = field(default=None)
-    # TODO map name to correct level
+    cache_policy_config: Optional[AwsCloudFrontCachePolicyConfig] = field(default=None)
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for js in json:
             instance = cls.from_api(js["CachePolicy"])
+            instance.name = instance.cache_policy_config.name
             builder.add_node(instance, js)
 
     # TODO check if IfMatch is necessary

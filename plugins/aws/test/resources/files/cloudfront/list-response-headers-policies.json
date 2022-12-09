@@ -11,7 +11,7 @@
                     "LastModifiedTime": "2022-08-08T09:36:55Z",
                     "ResponseHeadersPolicyConfig": {
                         "Comment": "string",
-                        "Name": "string",
+                        "Name": "Some Name",
                         "CorsConfig": {
                             "AccessControlAllowOrigins": {
                                 "Quantity": 123,
