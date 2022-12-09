@@ -174,7 +174,7 @@ def increase_limits() -> None:
             log.error(f"Failed to increase {limit_name} {soft_limit} -> {hard_limit}")
 
 
-def num_default_threads(num_min_threads: int = 4) -> int:
+def num_default_threads(num_min_threads: int = 2) -> int:
     count = num_min_threads
     try:
         # try to get the number of usable cores first

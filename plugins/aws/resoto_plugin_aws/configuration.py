@@ -3,16 +3,15 @@ import threading
 import time
 import uuid
 from datetime import timedelta
-
-from resotolib.types import Json
-from attrs import define, field, fields_dict
 from functools import lru_cache
 from typing import List, ClassVar, Optional, Type, Any, Dict
 
-from resotolib.json import from_json as from_js
+from attrs import define, field, fields_dict
 from boto3.session import Session as BotoSession
 
 from resotolib.durations import parse_duration
+from resotolib.json import from_json as from_js
+from resotolib.types import Json
 from resotolib.proc import num_default_threads
 
 log = logging.getLogger("resoto.plugins.aws")
@@ -110,8 +109,11 @@ class AwsConfig:
     )
     scrape_org: bool = field(default=False, metadata={"description": "Scrape the entire AWS organization"})
     fork_process: bool = field(
-        default=True,
-        metadata={"description": "Fork collector process instead of using threads"},
+        default=False,
+        metadata={
+            "description": "Fork collector process instead of using threads. "
+            "Recommended if you want to scrape many accounts in parallel."
+        },
     )
     scrape_exclude_account: List[str] = field(
         factory=list,
@@ -120,16 +122,22 @@ class AwsConfig:
     assume_current: bool = field(default=False, metadata={"description": "Assume given role in current account"})
     do_not_scrape_current: bool = field(default=False, metadata={"description": "Do not scrape current account"})
     account_pool_size: int = field(
-        factory=num_default_threads,
-        metadata={"description": "Account thread/process pool size"},
+        default=num_default_threads(2),
+        metadata={
+            "description": "Number of accounts to scrape in parallel. "
+            "For a large number of accounts we recommend to increase this number and use fork_process."
+            "Note: increasing this number will result in increased cpu and memory usage."
+        },
     )
-    region_pool_size: int = field(default=128, metadata={"description": "Region thread pool size"})
+    region_pool_size: int = field(
+        default=4, metadata={"description": "Number of regions to scrape in parallel per account."}
+    )
     shared_pool_size: int = field(
-        default=128,
-        metadata={"description": "Number of threads available shared for all regions"},
+        default=32,
+        metadata={"description": "Number of shared threads available per account."},
     )
     region_resources_pool_size: int = field(
-        default=2, metadata={"description": "Number of threads to collect a single region"}
+        default=2, metadata={"description": "Number of resource types to collect in parallel per single region."}
     )
     collect: List[str] = field(
         factory=list,
