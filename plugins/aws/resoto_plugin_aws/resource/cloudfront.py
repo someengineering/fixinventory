@@ -17,8 +17,36 @@ from resotolib.types import Json
 
 log = logging.getLogger("resoto.plugins.aws")
 
+class CloudFrontResource(AwsResource):
+    @classmethod
+    def collect_resources(cls: Type[AwsResource], builder: GraphBuilder) -> None:
+        # Default behavior: in case the class has an ApiSpec, call the api and call collect.
+        log.debug(f"Collecting {cls.__name__} in region {builder.region.name}")
+        if spec := cls.api_spec:
+            try:
+                kwargs = spec.parameter or {}
+                items = builder.client.list(
+                    aws_service=spec.service,
+                    action=spec.api_action,
+                    result_name=spec.result_property,
+                    expected_errors=spec.expected_errors,
+                    **kwargs,
+                )
+                if isinstance(items, List):
+                    cls.collect(items, builder)
+                if isinstance(items, Dict):
+                    cls.collect(items["Items"], builder)
+            except Boto3Error as e:
+                msg = f"Error while collecting {cls.__name__} in region {builder.region.name}: {e}"
+                builder.core_feedback.error(msg, log)
+                raise
+            except Exception as e:
+                msg = f"Error while collecting {cls.__name__} in region {builder.region.name}: {e}"
+                builder.core_feedback.info(msg, log)
+                raise
 
-class CloudFrontTaggable:
+
+class CloudFrontTaggable(CloudFrontResource):
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_tags(res: CloudFrontResource) -> None:
@@ -61,35 +89,6 @@ class CloudFrontTaggable:
             AwsApiSpec("cloudfront", "tag-resource"),
             AwsApiSpec("cloudfront", "untag-resource"),
         ]
-
-
-class CloudFrontResource(AwsResource):
-    @classmethod
-    def collect_resources(cls: Type[AwsResource], builder: GraphBuilder) -> None:
-        # Default behavior: in case the class has an ApiSpec, call the api and call collect.
-        log.debug(f"Collecting {cls.__name__} in region {builder.region.name}")
-        if spec := cls.api_spec:
-            try:
-                kwargs = spec.parameter or {}
-                items = builder.client.list(
-                    aws_service=spec.service,
-                    action=spec.api_action,
-                    result_name=spec.result_property,
-                    expected_errors=spec.expected_errors,
-                    **kwargs,
-                )
-                if isinstance(items, List):
-                    cls.collect(items, builder)
-                if isinstance(items, Dict):
-                    cls.collect(items["Items"], builder)
-            except Boto3Error as e:
-                msg = f"Error while collecting {cls.__name__} in region {builder.region.name}: {e}"
-                builder.core_feedback.error(msg, log)
-                raise
-            except Exception as e:
-                msg = f"Error while collecting {cls.__name__} in region {builder.region.name}: {e}"
-                builder.core_feedback.info(msg, log)
-                raise
 
 
 @define(eq=False, slots=False)
@@ -627,11 +626,11 @@ class AwsCloudFrontDistribution(CloudFrontTaggable, CloudFrontResource):
         # edges from default cache behaviour
         if dcb := self.distribution_default_cache_behavior:
             if dcb.lambda_function_associations:
-                for item in dcb.lambda_function_associations.items:
-                    builder.add_edge(self, clazz=AwsLambdaFunction, arn=item.lambda_function_arn)
+                for a in dcb.lambda_function_associations.items:
+                    builder.add_edge(self, clazz=AwsLambdaFunction, arn=a.lambda_function_arn)
             if dcb.function_associations:
-                for item in dcb.function_associations.items:
-                    builder.add_edge(self, clazz=AwsCloudFrontFunction, arn=item.function_arn)
+                for b in dcb.function_associations.items:
+                    builder.add_edge(self, clazz=AwsCloudFrontFunction, arn=b.function_arn)
             if dcb.realtime_log_config_arn:
                 builder.add_edge(self, clazz=AwsCloudFrontRealtimeLogConfig, arn=dcb.realtime_log_config_arn)
             if dcb.field_level_encryption_id:
@@ -643,23 +642,25 @@ class AwsCloudFrontDistribution(CloudFrontTaggable, CloudFrontResource):
 
         # edges from other cache behaviours
         if self.distribution_cache_behaviors:
-            for item in self.distribution_cache_behaviors.items:
-                if item.lambda_function_associations:
-                    for entry in item.lambda_function_associations.items:
-                        builder.add_edge(self, clazz=AwsLambdaFunction, arn=entry.lambda_function_arn)
-                if item.function_associations:
-                    for entry in item.function_associations.items:
-                        builder.add_edge(self, clazz=AwsCloudFrontFunction, arn=entry.function_arn)
-                if item.field_level_encryption_id:
+            for cb_item in self.distribution_cache_behaviors.items:
+                if cb_item.lambda_function_associations:
+                    for c in cb_item.lambda_function_associations.items:
+                        builder.add_edge(self, clazz=AwsLambdaFunction, arn=c.lambda_function_arn)
+                if cb_item.function_associations:
+                    for d in cb_item.function_associations.items:
+                        builder.add_edge(self, clazz=AwsCloudFrontFunction, arn=d.function_arn)
+                if cb_item.field_level_encryption_id:
                     builder.add_edge(
-                        self, clazz=AwsCloudFrontFieldLevelEncryptionConfig, id=item.field_level_encryption_id
+                        self, clazz=AwsCloudFrontFieldLevelEncryptionConfig, id=cb_item.field_level_encryption_id
                     )
-                if item.realtime_log_config_arn:
-                    builder.add_edge(self, clazz=AwsCloudFrontRealtimeLogConfig, arn=item.realtime_log_config_arn)
-                if item.cache_policy_id:
-                    builder.add_edge(self, clazz=AwsCloudFrontCachePolicy, id=item.cache_policy_id)
-                if item.response_headers_policy_id:
-                    builder.add_edge(self, clazz=AwsCloudFrontResponseHeadersPolicy, id=item.response_headers_policy_id)
+                if cb_item.realtime_log_config_arn:
+                    builder.add_edge(self, clazz=AwsCloudFrontRealtimeLogConfig, arn=cb_item.realtime_log_config_arn)
+                if cb_item.cache_policy_id:
+                    builder.add_edge(self, clazz=AwsCloudFrontCachePolicy, id=cb_item.cache_policy_id)
+                if cb_item.response_headers_policy_id:
+                    builder.add_edge(
+                        self, clazz=AwsCloudFrontResponseHeadersPolicy, id=cb_item.response_headers_policy_id
+                    )
 
         # other edges
         if self.distribution_origins:
