@@ -15,12 +15,12 @@ def test_default_config() -> None:
     assert Config.aws.account is None
     assert Config.aws.region is None
     assert Config.aws.scrape_org is False
-    assert Config.aws.fork_process is True
+    assert Config.aws.fork_process is False
     assert Config.aws.scrape_exclude_account == []
     assert Config.aws.assume_current is False
     assert Config.aws.do_not_scrape_current is False
     assert Config.aws.account_pool_size == num_default_threads()
-    assert Config.aws.region_pool_size == 128
+    assert Config.aws.region_pool_size == 4
     assert len(Config.aws.collect) == 0
     assert len(Config.aws.no_collect) == 0
 
