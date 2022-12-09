@@ -987,7 +987,7 @@ class AwsCloudFrontResponseHeadersPolicyConfig:
         >> Bend(AwsCloudFrontResponseHeadersPolicyCustomHeadersConfig.mapping),
     }
     comment: Optional[str] = field(default=None)
-    name: Optional[str] = field(default=None)
+    name: str = field(default=None)
     cors_config: Optional[AwsCloudFrontResponseHeadersPolicyCorsConfig] = field(default=None)
     security_headers_config: Optional[AwsCloudFrontResponseHeadersPolicySecurityHeadersConfig] = field(default=None)
     server_timing_headers_config: Optional[AwsCloudFrontResponseHeadersPolicyServerTimingHeadersConfig] = field(
@@ -1018,7 +1018,8 @@ class AwsCloudFrontResponseHeadersPolicy(CloudFrontResource):
             policy = js["ResponseHeadersPolicy"]
             instance = AwsCloudFrontResponseHeadersPolicy.from_api(policy)
             instance.response_headers_policy_type = js["Type"]
-            instance.name = instance.response_headers_policy_config.name
+            if instance.response_headers_policy_config:
+                instance.name = instance.response_headers_policy_config.name
             builder.add_node(instance, policy)
 
     def delete_resource(self, client: AwsClient) -> bool:
@@ -1066,7 +1067,6 @@ class AwsCloudFrontStreamingDistribution(CloudFrontTaggable, CloudFrontResource)
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Id"),
-        # "name": S("Id"),
         "mtime": S("LastModifiedTime"),
         "arn": S("ARN"),
         "streaming_distribution_status": S("Status"),
@@ -1078,7 +1078,6 @@ class AwsCloudFrontStreamingDistribution(CloudFrontTaggable, CloudFrontResource)
         "streaming_distribution_price_class": S("PriceClass"),
         "streaming_distribution_enabled": S("Enabled"),
     }
-    # TODO double check the actual response structure interactively
     streaming_distribution_status: Optional[str] = field(default=None)
     streaming_distribution_domain_name: Optional[str] = field(default=None)
     streaming_distribution_trusted_signers: Optional[AwsCloudFrontTrustedSigners] = field(default=None)
@@ -1088,9 +1087,6 @@ class AwsCloudFrontStreamingDistribution(CloudFrontTaggable, CloudFrontResource)
 
     # deleting streaming distributions is a multi step process:
     # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/cloudfront.html#CloudFront.Client.delete_streaming_distribution
-    # def delete_resource(self, client: AwsClient) -> bool:
-    #     client.call(aws_service=self.api_spec.service, action="delete-streaming-distribution", result_name=None, Id=self.id, IfMatch="ETag value")
-    #     return True
 
 
 @define(eq=False, slots=False)
@@ -1188,7 +1184,7 @@ class AwsCloudFrontCachePolicyConfig:
         >> Bend(AwsCloudFrontParametersInCacheKeyAndForwardedToOrigin.mapping),
     }
     comment: Optional[str] = field(default=None)
-    name: Optional[str] = field(default=None)
+    name: str = field(default=None)
     default_ttl: Optional[int] = field(default=None)
     max_ttl: Optional[int] = field(default=None)
     min_ttl: Optional[int] = field(default=None)
@@ -1213,8 +1209,9 @@ class AwsCloudFrontCachePolicy(CloudFrontResource):
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for js in json:
-            instance = cls.from_api(js["CachePolicy"])
-            instance.name = instance.cache_policy_config.name
+            instance = AwsCloudFrontCachePolicy.from_api(js["CachePolicy"])
+            if instance.cache_policy_config:
+                instance.name = instance.cache_policy_config.name
             builder.add_node(instance, js)
 
     # TODO check if IfMatch is necessary
