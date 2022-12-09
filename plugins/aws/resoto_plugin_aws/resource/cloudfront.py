@@ -32,10 +32,7 @@ class CloudFrontResource(AwsResource):
                     expected_errors=spec.expected_errors,
                     **kwargs,
                 )
-                if isinstance(items, List):
-                    cls.collect(items, builder)
-                if isinstance(items, Dict):
-                    cls.collect(items["Items"], builder)
+                cls.collect(items[0]["Items"], builder)
             except Boto3Error as e:
                 msg = f"Error while collecting {cls.__name__} in region {builder.region.name}: {e}"
                 builder.core_feedback.error(msg, log)
