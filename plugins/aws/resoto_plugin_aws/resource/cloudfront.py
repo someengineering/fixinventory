@@ -20,7 +20,7 @@ log = logging.getLogger("resoto.plugins.aws")
 class CloudFrontResource(AwsResource):
     @classmethod
     def collect_resources(cls: Type[AwsResource], builder: GraphBuilder) -> None:
-        # Default behavior: in case the class has an ApiSpec, call the api and call collect.
+        # overriding the default behaviour because the response structure differs systematically
         log.debug(f"Collecting {cls.__name__} in region {builder.region.name}")
         if spec := cls.api_spec:
             try:
@@ -675,9 +675,10 @@ class AwsCloudFrontDistribution(CloudFrontTaggable, CloudFrontResource):
         # TODO edge to ACM certificate when applicable (via self.distribution_viewer_certificate.acm_certificate_arn)
         # TODO edge to Web Acl when applicable (via self.distribution_web_acl_id)
 
-    def delete_resource(self, client: AwsClient) -> bool:
-        client.call(aws_service=self.api_spec.service, action="delete-distribution", result_name=None, Id=self.id)
-        return True
+    # TODO implement this after more research
+    # def delete_resource(self, client: AwsClient) -> bool:
+    #     client.call(aws_service=self.api_spec.service, action="delete-distribution", result_name=None, Id=self.id)
+    #     return True
 
 
 @define(eq=False, slots=False)
@@ -721,8 +722,8 @@ class AwsCloudFrontFunction(CloudFrontTaggable, CloudFrontResource):
             builder.submit_work(add_tags, instance)
             builder.add_node(instance, js)
 
+    # TODO implement this after more research
     # def delete_resource(self, client: AwsClient) -> bool:
-    #     #TODO retrieve ETag value of function (describe-function)
     #     client.call(
     #       aws_service=self.api_spec.service,
     #       action="delete-function",
@@ -758,9 +759,10 @@ class AwsCloudFrontPublicKey(CloudFrontResource):
     public_key_encoded_key: Optional[str] = field(default=None)
     public_key_comment: Optional[str] = field(default=None)
 
-    def delete_resource(self, client: AwsClient) -> bool:
-        client.call(aws_service=self.api_spec.service, action="delete-public-key", result_name=None, Id=self.id)
-        return True
+    # TODO implement this after more research
+    # def delete_resource(self, client: AwsClient) -> bool:
+    #     client.call(aws_service=self.api_spec.service, action="delete-public-key", result_name=None, Id=self.id)
+    #     return True
 
 
 @define(eq=False, slots=False)
@@ -1026,11 +1028,12 @@ class AwsCloudFrontResponseHeadersPolicy(CloudFrontResource):
                 instance.name = instance.response_headers_policy_config.name
             builder.add_node(instance, policy)
 
-    def delete_resource(self, client: AwsClient) -> bool:
-        client.call(
-            aws_service=self.api_spec.service, action="delete-response-headers-policy", result_name=None, Id=self.id
-        )
-        return True
+    # TODO implement this after more research
+    # def delete_resource(self, client: AwsClient) -> bool:
+    #     client.call(
+    #         aws_service=self.api_spec.service, action="delete-response-headers-policy", result_name=None, Id=self.id
+    #     )
+    #     return True
 
 
 @define(eq=False, slots=False)
@@ -1110,11 +1113,12 @@ class AwsCloudFrontOriginAccessControl(CloudFrontResource):
     origin_access_control_signing_behavior: Optional[str] = field(default=None)
     origin_access_control_origin_access_control_origin_type: Optional[str] = field(default=None)
 
-    def delete_resource(self, client: AwsClient) -> bool:
-        client.call(
-            aws_service=self.api_spec.service, action="delete-origin-access-control", result_name=None, Id=self.id
-        )
-        return True
+    # TODO implement this after more research
+    # def delete_resource(self, client: AwsClient) -> bool:
+    #     client.call(
+    #         aws_service=self.api_spec.service, action="delete-origin-access-control", result_name=None, Id=self.id
+    #     )
+    #     return True
 
 
 @define(eq=False, slots=False)
@@ -1218,10 +1222,10 @@ class AwsCloudFrontCachePolicy(CloudFrontResource):
                 instance.name = instance.cache_policy_config.name
             builder.add_node(instance, js)
 
-    # TODO check if IfMatch is necessary
-    def delete_resource(self, client: AwsClient) -> bool:
-        client.call(aws_service=self.api_spec.service, action="delete-cache-policy", result_name=None, Id=self.id)
-        return True
+    # TODO implement this after more research
+    # def delete_resource(self, client: AwsClient) -> bool:
+    #     client.call(aws_service=self.api_spec.service, action="delete-cache-policy", result_name=None, Id=self.id)
+    #     return True
 
 
 @define(eq=False, slots=False)
@@ -1327,14 +1331,15 @@ class AwsCloudFrontFieldLevelEncryptionConfig(CloudFrontResource):
                     id=entry.profile_id,
                 )
 
-    def delete_resource(self, client: AwsClient) -> bool:
-        client.call(
-            aws_service=self.api_spec.service,
-            action="delete-field-level-encryption-config",
-            result_name=None,
-            Id=self.id,
-        )
-        return True
+    # TODO implement this after more research
+    # def delete_resource(self, client: AwsClient) -> bool:
+    #     client.call(
+    #         aws_service=self.api_spec.service,
+    #         action="delete-field-level-encryption-config",
+    #         result_name=None,
+    #         Id=self.id,
+    #     )
+    #     return True
 
 
 @define(eq=False, slots=False)
@@ -1398,14 +1403,15 @@ class AwsCloudFrontFieldLevelEncryptionProfile(CloudFrontResource):
                     id=entry.public_key_id,
                 )
 
-    def delete_resource(self, client: AwsClient) -> bool:
-        client.call(
-            aws_service=self.api_spec.service,
-            action="delete-field-level-encryption-profile",
-            result_name=None,
-            Id=self.id,
-        )
-        return True
+    # TODO implement this after more research
+    # def delete_resource(self, client: AwsClient) -> bool:
+    #     client.call(
+    #         aws_service=self.api_spec.service,
+    #         action="delete-field-level-encryption-profile",
+    #         result_name=None,
+    #         Id=self.id,
+    #     )
+    #     return True
 
 
 resources: List[Type[AwsResource]] = [
