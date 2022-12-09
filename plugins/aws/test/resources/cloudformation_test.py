@@ -1,4 +1,8 @@
-from resoto_plugin_aws.resource.cloudformation import AwsCloudFormationStack, AwsCloudFormationStackSet
+from resoto_plugin_aws.resource.cloudformation import (
+    AwsCloudFormationStack,
+    AwsCloudFormationStackSet,
+    AwsCloudFormationStackInstanceSummary,
+)
 from resoto_plugin_aws.aws_client import AwsClient
 from test.resources import round_trip_for
 from typing import Any, cast
@@ -11,7 +15,15 @@ def test_cloud_formation_stacks() -> None:
 
 
 def test_cloud_formation_stack_sets() -> None:
-    round_trip_for(AwsCloudFormationStack)
+    stack_set, builder = round_trip_for(AwsCloudFormationStackSet)
+
+    # stack sets
+    assert len(builder.resources_of(AwsCloudFormationStackSet)) == 1
+    # stack set instance summaries
+    assert len(builder.resources_of(AwsCloudFormationStackInstanceSummary)) == 2
+
+    # deferred edges to stack set instances
+    assert len(builder.graph.deferred_edges) == 2
 
 
 def test_cloud_formation_stack_tagging() -> None:
@@ -21,8 +33,8 @@ def test_cloud_formation_stack_tagging() -> None:
 
     def validate_args(delete: bool, **kwargs: Any) -> Any:
 
-        assert kwargs["action"] in {"describe_stacks", "update-stack"}
-        if kwargs["action"] == "describe_stacks":
+        assert kwargs["action"] in {"describe-stacks", "update-stack"}
+        if kwargs["action"] == "describe-stacks":
             assert kwargs["StackName"] == cf.name
             return [{"StackStatus": "complete"}]
         if kwargs["action"] == "update-stack":
@@ -39,10 +51,12 @@ def test_cloud_formation_stack_tagging() -> None:
                 {"ParameterKey": parameter, "UsePreviousValue": True} for parameter in cf.stack_parameters.keys()
             ]
 
-    client = cast(AwsClient, SimpleNamespace(call=partial(validate_args, delete=False)))
+    fn = partial(validate_args, delete=False)
+    client = cast(AwsClient, SimpleNamespace(list=fn, call=fn))
     cf.update_resource_tag(client, "foo", "bar")
 
-    client = cast(AwsClient, SimpleNamespace(call=partial(validate_args, delete=True)))
+    fn = partial(validate_args, delete=True)
+    client = cast(AwsClient, SimpleNamespace(list=fn, call=fn))
     cf.delete_resource_tag(client, tag)
 
 

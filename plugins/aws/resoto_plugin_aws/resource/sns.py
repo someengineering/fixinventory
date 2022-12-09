@@ -57,9 +57,9 @@ class AwsSnsTopic(AwsResource):
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_tags(topic: AwsSnsTopic) -> None:
-            tags = builder.client.list("sns", "list-tags-for-resource", result_name=None, ResourceArn=topic.arn)
+            tags = builder.client.list("sns", "list-tags-for-resource", result_name="Tags", ResourceArn=topic.arn)
             if tags:
-                topic.tags = bend(S("Tags", default=[]) >> ToDict(), tags[0])
+                topic.tags = bend(ToDict(), tags)
 
         for entry in json:
             topic = builder.client.get(

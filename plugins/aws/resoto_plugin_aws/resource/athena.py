@@ -1,15 +1,15 @@
 from typing import ClassVar, Dict, Optional, List
+from typing import Type
 
 from attrs import define
 
+from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
 from resoto_plugin_aws.resource.kms import AwsKmsKey
+from resoto_plugin_aws.utils import ToDict
 from resotolib.baseresources import ModelReference
 from resotolib.json_bender import Bender, S, Bend, bend
 from resotolib.types import Json
-from resoto_plugin_aws.aws_client import AwsClient
-from resoto_plugin_aws.utils import ToDict
-from typing import Type, cast
 
 
 @define(eq=False, slots=False)
@@ -105,23 +105,23 @@ class AwsAthenaWorkGroup(AwsResource):
             if result is None:
                 return None
 
-            workgroup = cls.from_api(result)
+            workgroup = AwsAthenaWorkGroup.from_api(result)
             workgroup.set_arn(
                 builder=builder,
                 resource=f"workgroup/{workgroup.name}",
             )
 
-            return cast(AwsAthenaWorkGroup, workgroup)
+            return workgroup
 
         def add_tags(data_catalog: AwsAthenaWorkGroup) -> None:
             tags = builder.client.list(
                 "athena",
-                "list_tags_for_resource",
-                None,
+                "list-tags-for-resource",
+                "Tags",
                 ResourceARN=data_catalog.arn,
             )
             if tags:
-                data_catalog.tags = bend(S("Tags", default=[]) >> ToDict(), tags[0])
+                data_catalog.tags = bend(ToDict(), tags)
 
         for js in json:
             if (name := js.get("Name")) is not None and isinstance(name, str):
@@ -209,9 +209,9 @@ class AwsAthenaDataCatalog(AwsResource):
             )
             if result is None:
                 return None
-            catalog = cls.from_api(result)
+            catalog = AwsAthenaDataCatalog.from_api(result)
             catalog.set_arn(builder=builder, resource=f"datacatalog/{catalog.name}")
-            return cast(AwsAthenaDataCatalog, catalog)
+            return catalog
 
         def add_tags(data_catalog: AwsAthenaDataCatalog) -> None:
             tags = builder.client.list(

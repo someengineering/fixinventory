@@ -30,8 +30,8 @@ def test_collect(account_collector: AwsAccountCollector) -> None:
     # make sure all threads have been joined
     assert len(threading.enumerate()) == 1
     # ensure the correct number of nodes and edges
-    assert count_kind(AwsResource) == 162
-    assert len(account_collector.graph.edges) == 404
+    assert count_kind(AwsResource) == 152
+    assert len(account_collector.graph.edges) == 388
 
 
 def test_dependencies() -> None:
@@ -81,7 +81,7 @@ def test_all_called_apis() -> None:
     print("\n\n", collect_statement, "\n\n")
     assert json.loads(collect_statement)
     assert len(collect_allow) >= 74
-    assert "s3:ListBucket" in collect_allow
+    assert "s3:ListAllMyBuckets" in collect_allow
 
     mutate_allow, mutate_statement = iam_statement("ResotoMutatePermission", called_mutator_apis())
     print("\n\n", mutate_statement, "\n\n")

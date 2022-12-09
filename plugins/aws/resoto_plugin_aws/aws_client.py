@@ -8,7 +8,7 @@ from typing import Optional, Any, List, TypeVar, Callable
 from botocore.model import ServiceModel
 from retrying import retry
 
-from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError, EndpointConnectionError
 from botocore.config import Config
 
 from resoto_plugin_aws.configuration import AwsConfig
@@ -81,6 +81,9 @@ class AwsClient:
         except ClientError as e:
             self.__handle_client_error(e, aws_service, "service_resource")  # might reraise the exception
             return None
+        except EndpointConnectionError as e:
+            log.debug(f"The Aws endpoint does not exist in this region. Skipping. {e}")
+            return None
 
     def call_single(
         self, aws_service: str, action: str, result_name: Optional[str] = None, max_attempts: int = 1, **kwargs: Any
@@ -115,7 +118,7 @@ class AwsClient:
             result = getattr(client, py_action)(**kwargs)
             single: Json = self.__to_json(result)  # type: ignore
             log.debug(f"[Aws] called service={aws_service} action={action}{arg_info}: single result")
-            return single.get(result_name) if result_name else [single]
+            return single.get(result_name) if result_name else single
 
     @retry(  # type: ignore
         stop_max_attempt_number=10,
@@ -138,6 +141,9 @@ class AwsClient:
         except ClientError as e:
             self.__handle_client_error(e, aws_service, action, expected_errors)  # might reraise the exception
             return None
+        except EndpointConnectionError as e:
+            log.debug(f"The Aws endpoint does not exist in this region. Skipping. {e}")
+            return None
 
     def list(
         self,
@@ -147,7 +153,13 @@ class AwsClient:
         expected_errors: Optional[List[str]] = None,
         **kwargs: Any,
     ) -> List[Any]:
-        return self.call(aws_service, action, result_name, expected_errors, **kwargs) or []
+        res = self.call(aws_service, action, result_name, expected_errors, **kwargs)
+        if res is None:
+            return []
+        elif isinstance(res, list):
+            return res
+        else:
+            return [res]
 
     def get(
         self,

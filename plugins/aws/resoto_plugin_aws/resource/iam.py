@@ -18,7 +18,7 @@ from resotolib.baseresources import (
     ModelReference,
 )
 from resotolib.json import from_json
-from resotolib.json_bender import Bender, S, Bend, AsDate, Sort, bend, ForallBend
+from resotolib.json_bender import Bender, S, Bend, AsDate, Sort, bend, ForallBend, F
 from resotolib.types import Json
 from resotolib.graph import Graph
 from resoto_plugin_aws.aws_client import AwsClient
@@ -234,6 +234,30 @@ class AwsIamServerCertificate(AwsResource, BaseCertificate):
 
 
 @define(eq=False, slots=False)
+class AwsIamPolicyVersion:
+    kind: ClassVar[str] = "aws_iam_policy_version"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "document": S("Document"),
+        "version_id": S("VersionId"),
+        "is_default_version": S("IsDefaultVersion"),
+        "create_date": S("CreateDate"),
+    }
+    document: Optional[Json] = field(default=None)
+    version_id: Optional[str] = field(default=None)
+    is_default_version: Optional[bool] = field(default=None)
+    create_date: Optional[datetime] = field(default=None)
+
+
+def default_policy_document(policy: Json) -> Optional[AwsIamPolicyVersion]:
+    default_version = policy.get("DefaultVersionId")
+    # select the default policy from the version list
+    for p in policy.get("PolicyVersionList", []):
+        if p.get("VersionId") == default_version:
+            return bend(AwsIamPolicyVersion.mapping, p)  # type: ignore
+    return None
+
+
+@define(eq=False, slots=False)
 class AwsIamPolicy(AwsResource, BasePolicy):
     # Note: this resource is collected via AwsIamUser.collect.
     kind: ClassVar[str] = "aws_iam_policy"
@@ -250,6 +274,7 @@ class AwsIamPolicy(AwsResource, BasePolicy):
         "policy_permissions_boundary_usage_count": S("PermissionsBoundaryUsageCount"),
         "policy_is_attachable": S("IsAttachable"),
         "policy_description": S("Description"),
+        "policy_document": F(default_policy_document),
     }
     path: Optional[str] = field(default=None)
     policy_default_version_id: Optional[str] = field(default=None)
@@ -257,6 +282,7 @@ class AwsIamPolicy(AwsResource, BasePolicy):
     policy_permissions_boundary_usage_count: Optional[int] = field(default=None)
     policy_is_attachable: Optional[bool] = field(default=None)
     policy_description: Optional[str] = field(default=None)
+    policy_document: Optional[AwsIamPolicyVersion] = field(default=None)
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         return iam_update_tag(

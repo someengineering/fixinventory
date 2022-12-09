@@ -86,7 +86,14 @@ def called_collect_apis() -> List[AwsApiSpec]:
     Return a list of all the APIs that are called by the collector during the collect cycle.
     """
     # list all calls here, that are not defined in any resource.
-    additional_calls = [AwsApiSpec("pricing", "get-products")]
+    additional_calls = [
+        AwsApiSpec("pricing", "get-products"),
+        AwsApiSpec("ec2", "describe-regions"),
+        AwsApiSpec("iam", "get-account-summary"),
+        AwsApiSpec("iam", "get-account-password-policy"),
+        AwsApiSpec("iam", "list-account-aliases"),
+        AwsApiSpec("organizations", "list-accounts"),
+    ]
     specs = [spec for r in all_resources for spec in r.called_collect_apis()] + additional_calls
     return sorted(specs, key=lambda s: s.service + "::" + s.api_action)
 

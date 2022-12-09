@@ -233,6 +233,7 @@ class AwsCloudwatchQuery:
     ) -> "AwsCloudwatchQuery":
         dims = "_".join(f"{k}+{v}" for k, v in dimensions.items())
         rid = metric_id or re.sub("\\W", "_", f"{metric_name}-{namespace}-{dims}".lower())
+        # noinspection PyTypeChecker
         return AwsCloudwatchQuery(
             metric_name=metric_name,
             namespace=namespace,
@@ -275,7 +276,7 @@ class AwsCloudwatchMetricData:
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
-        return [AwsApiSpec("cloudwatch", "get_metric_data")]
+        return [AwsApiSpec("cloudwatch", "get-metric-data")]
 
     @staticmethod
     def query_for(

@@ -54,16 +54,17 @@ from rich.text import Text
 from resotocore import version
 from resotocore.async_extensions import run_async
 from resotocore.cli import (
-    key_values_parser,
-    strip_quotes,
-    is_node,
     JsGen,
     NoExitArgumentParser,
-    is_edge,
-    args_parts_unquoted_parser,
     args_parts_parser,
+    args_parts_unquoted_parser,
+    is_edge,
+    is_node,
     js_value_at,
     js_value_get,
+    key_values_parser,
+    parse_time_or_delta,
+    strip_quotes,
 )
 from resotocore.cli.model import (
     CLICommand,
@@ -112,17 +113,7 @@ from resotocore.query.query_parser import parse_query
 from resotocore.query.template_expander import tpl_props_p
 from resotocore.task.task_description import Job, TimeTrigger, EventTrigger, ExecuteCommand, Workflow, RunningTask
 from resotocore.types import Json, JsonElement, EdgeType
-from resotocore.util import (
-    uuid_str,
-    utc,
-    if_set,
-    duration,
-    identity,
-    rnd_str,
-    set_value_in_path,
-    restart_service,
-    parse_utc,
-)
+from resotocore.util import uuid_str, utc, if_set, duration, identity, rnd_str, set_value_in_path, restart_service
 from resotocore.web.content_renderer import (
     respond_ndjson,
     respond_json,
@@ -371,7 +362,7 @@ class SearchPart(SearchCLIPart):
 class HistoryPart(SearchCLIPart):
     """
     ```shell
-    history [--before <timestamp>] [--after <timestamp>] [--change <change>] [search-statement]
+    history [--before <time|delta>] [--after <time|delta>] [--change <change>] [search-statement]
     ```
 
     Return all changes of the graph based on the given criteria.
@@ -383,8 +374,8 @@ class HistoryPart(SearchCLIPart):
     - node_deleted: a node is no longer reported and gets deleted from the graph.
 
     ## Options
-    - `--before` <timestamp>: only show changes before this timestamp
-    - `--after` <timestamp>: only show changes after this timestamp
+    - `--before` <time|delta>: only show changes before this timestamp or timedelta.
+    - `--after` <time|delta>: only show changes after this timestamp or timedelta.
     - `--change` <change>: one of `node_created`, `node_deleted`, `node_updated`
 
     ## Parameters
@@ -392,8 +383,8 @@ class HistoryPart(SearchCLIPart):
 
     ## Examples
     ```shell
-    # Show all nodes changed on 1.1.2022 between 03:00 and 06:00 (UTC)
-    > history --after 2022-01-01T03:00:00Z --before 2022-01-02T06:00:00Z
+    # Show all nodes changed in the last hour
+    > history --after 1h
     change=node_updated, changed_at=2022-01-01T03:00:59Z, kind=kubernetes_config_map, id=73616434 name=leader, cloud=k8s
     change=node_deleted, changed_at=2022-01-01T04:40:59Z, kind=aws_vpc, id=vpc-1, name=resoto-eks, cloud=aws
 
@@ -417,8 +408,8 @@ class HistoryPart(SearchCLIPart):
 
     def args_info(self) -> ArgsInfo:
         return [
-            ArgInfo("--after", help_text="changes after this timestamp", expects_value=True, value_hint="timestamp"),
-            ArgInfo("--before", help_text="changes before this timestamp", expects_value=True, value_hint="timestamp"),
+            ArgInfo("--after", help_text="timestamp | timedelta", expects_value=True, value_hint="timestamp"),
+            ArgInfo("--before", help_text="timestamp | timedelta", expects_value=True, value_hint="timestamp"),
             ArgInfo(
                 "--change",
                 help_text="type of change",
@@ -1275,8 +1266,8 @@ class ExecuteSearchCommand(CLICommand, InternalPart):
             count = ctx.env.get("count", "true").lower() != "false"
             timeout = if_set(ctx.env.get("search_timeout"), duration)
             if history:
-                before = if_set(parsed.get("before"), lambda x: parse_utc(strip_quotes(x)))  # type: ignore
-                after = if_set(parsed.get("after"), lambda x: parse_utc(strip_quotes(x)))  # type: ignore
+                before = if_set(parsed.get("before"), lambda x: parse_time_or_delta(strip_quotes(x)))  # type: ignore
+                after = if_set(parsed.get("after"), lambda x: parse_time_or_delta(strip_quotes(x)))  # type: ignore
                 change = if_set(parsed.get("change"), lambda x: HistoryChange[strip_quotes(x)])  # type: ignore
                 context = await db.search_history(query_model, change, before, after, timeout=timeout)
             elif query.aggregate:
@@ -2932,7 +2923,7 @@ class WorkerCustomCommand:
         )
 
 
-class ExecuteTaskCommand(SendWorkerTaskCommand):
+class ExecuteTaskCommand(SendWorkerTaskCommand, InternalPart):
     """
     ```
     execute-task --command <command> --arg <arg> [--no-node-result] [--allowed-on <kind>]

@@ -1,12 +1,12 @@
 import json
 import re
-from typing import ClassVar, Dict, Optional, List, Type, cast
+from typing import ClassVar, Dict, Optional, List, Type
 
 from attrs import define, field
-from resoto_plugin_aws.aws_client import AwsClient
 
-from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
+from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.apigateway import AwsApiGatewayRestApi, AwsApiGatewayResource
+from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
 from resoto_plugin_aws.resource.ec2 import AwsEc2Subnet, AwsEc2SecurityGroup, AwsEc2Vpc
 from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resotolib.baseresources import (
@@ -229,14 +229,14 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
-        return [cls.api_spec, AwsApiSpec("lambda", "list-tags")]
+        return [cls.api_spec, AwsApiSpec("lambda", "get-policy"), AwsApiSpec("lambda", "list-tags")]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_tags(function: AwsLambdaFunction) -> None:
-            tags = builder.client.list("lambda", "list-tags", "Tags", Resource=function.arn)
+            tags = builder.client.get("lambda", "list-tags", "Tags", Resource=function.arn)
             if tags:
-                function.tags = cast(Dict[str, Optional[str]], tags)
+                function.tags = tags
 
         for js in json:
             instance = cls.from_api(js)

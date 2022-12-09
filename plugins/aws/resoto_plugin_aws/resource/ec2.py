@@ -472,7 +472,6 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
-        builder.add_edge(self, EdgeType.default, reverse=True, name=self.volume_type)
         for attachment in self.volume_attachments:
             builder.dependant_node(self, reverse=True, clazz=AwsEc2Instance, id=attachment.instance_id)
         if self.volume_kms_key_id:
@@ -1936,7 +1935,7 @@ class AwsEc2SecurityGroup(EC2Taggable, AwsResource, BaseSecurityGroup):
         remove_ingress = []
         remove_egress = []
 
-        security_groups = client.call(
+        security_groups = client.list(
             aws_service=self.api_spec.service,
             action="describe-security-groups",
             result_name="SecurityGroups",
