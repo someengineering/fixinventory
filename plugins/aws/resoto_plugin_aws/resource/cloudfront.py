@@ -1,7 +1,7 @@
 import logging
 from boto3.exceptions import Boto3Error
 from datetime import datetime
-from typing import ClassVar, Dict, List, Optional, Type, cast
+from typing import ClassVar, Dict, List, Optional, Type
 
 from attr import define, field
 
@@ -11,7 +11,6 @@ from resoto_plugin_aws.resource.iam import AwsIamServerCertificate
 from resoto_plugin_aws.resource.lambda_ import AwsLambdaFunction
 from resoto_plugin_aws.utils import ToDict
 from resotolib.baseresources import ModelReference
-from resotolib.json import from_json
 from resotolib.json_bender import K, S, Bend, Bender, ForallBend, bend
 from resotolib.types import Json
 
@@ -724,7 +723,11 @@ class AwsCloudFrontFunction(CloudFrontTaggable, CloudFrontResource):
 
     # def delete_resource(self, client: AwsClient) -> bool:
     #     #TODO retrieve ETag value of function (describe-function)
-    #     client.call(aws_service=self.api_spec.service, action="delete-function", result_name=None, Name=self.name, IfMatch="ETag value")
+    #     client.call(
+    #       aws_service=self.api_spec.service,
+    #       action="delete-function",
+    #       result_name=None, Name=self.name,
+    #       IfMatch="ETag value")
     #     return True
 
 
