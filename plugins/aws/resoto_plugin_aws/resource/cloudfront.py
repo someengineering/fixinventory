@@ -1,4 +1,5 @@
 import logging
+
 from boto3.exceptions import Boto3Error
 from datetime import datetime
 from typing import ClassVar, Dict, List, Optional, Type
@@ -17,22 +18,23 @@ from resotolib.types import Json
 log = logging.getLogger("resoto.plugins.aws")
 
 
-class CloudFrontResource(AwsResource):
+class CloudFrontResource:
     @classmethod
-    def collect_resources(cls: Type[AwsResource], builder: GraphBuilder) -> None:
+    def collect_resources(cls: Type[AwsResource], builder: GraphBuilder) -> None:  # type: ignore
         # overriding the default behaviour because the response structure differs systematically
         log.debug(f"Collecting {cls.__name__} in region {builder.region.name}")
         if spec := cls.api_spec:
             try:
                 kwargs = spec.parameter or {}
-                items = builder.client.list(
+                result = builder.client.get(
                     aws_service=spec.service,
                     action=spec.api_action,
                     result_name=spec.result_property,
                     expected_errors=spec.expected_errors,
                     **kwargs,
                 )
-                cls.collect(items[0]["Items"], builder)
+                if result:
+                    cls.collect(result.get("Items", []), builder)
             except Boto3Error as e:
                 msg = f"Error while collecting {cls.__name__} in region {builder.region.name}: {e}"
                 builder.core_feedback.error(msg, log)
@@ -43,10 +45,10 @@ class CloudFrontResource(AwsResource):
                 raise
 
 
-class CloudFrontTaggable(CloudFrontResource):
+class CloudFrontTaggable:
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
-        def add_tags(res: CloudFrontResource) -> None:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:  # type: ignore
+        def add_tags(res: AwsResource) -> None:
             tags = builder.client.get("cloudfront", "list-tags-for-resource", "Tags", Resource=res.arn)
             if tags:
                 res.tags = bend(ToDict(), tags["Items"])
@@ -557,7 +559,7 @@ class AwsCloudFrontAliasICPRecordal:
 
 
 @define(eq=False, slots=False)
-class AwsCloudFrontDistribution(CloudFrontTaggable, CloudFrontResource):
+class AwsCloudFrontDistribution(CloudFrontTaggable, CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_distribution"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudfront", "list-distributions", "DistributionList")
     reference_kinds: ClassVar[ModelReference] = {
@@ -687,7 +689,7 @@ class AwsCloudFrontFunctionConfig:
 
 
 @define(eq=False, slots=False)
-class AwsCloudFrontFunction(CloudFrontTaggable, CloudFrontResource):
+class AwsCloudFrontFunction(CloudFrontTaggable, CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_function"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudfront", "list-functions", "FunctionList")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -730,7 +732,7 @@ class AwsCloudFrontFunction(CloudFrontTaggable, CloudFrontResource):
 
 
 @define(eq=False, slots=False)
-class AwsCloudFrontInvalidation(CloudFrontResource):
+class AwsCloudFrontInvalidation(CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_invalidation"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudfront", "list-invalidations", "InvalidationList")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -743,7 +745,7 @@ class AwsCloudFrontInvalidation(CloudFrontResource):
 
 
 @define(eq=False, slots=False)
-class AwsCloudFrontPublicKey(CloudFrontResource):
+class AwsCloudFrontPublicKey(CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_public_key"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudfront", "list-public-keys", "PublicKeyList")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -782,7 +784,7 @@ class AwsCloudFrontEndPoint:
 
 
 @define(eq=False, slots=False)
-class AwsCloudFrontRealtimeLogConfig(CloudFrontTaggable, CloudFrontResource):
+class AwsCloudFrontRealtimeLogConfig(CloudFrontTaggable, CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_realtime_log_config"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudfront", "list-realtime-log-configs", "RealtimeLogConfigs")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1000,7 +1002,7 @@ class AwsCloudFrontResponseHeadersPolicyConfig:
 
 
 @define(eq=False, slots=False)
-class AwsCloudFrontResponseHeadersPolicy(CloudFrontResource):
+class AwsCloudFrontResponseHeadersPolicy(CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_response_headers_policy"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         "cloudfront", "list-response-headers-policies", "ResponseHeadersPolicyList"
@@ -1064,7 +1066,7 @@ class AwsCloudFrontS3Origin:
 
 
 @define(eq=False, slots=False)
-class AwsCloudFrontStreamingDistribution(CloudFrontTaggable, CloudFrontResource):
+class AwsCloudFrontStreamingDistribution(CloudFrontTaggable, CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_streaming_distribution"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         "cloudfront", "list-streaming-distributions", "StreamingDistributionList"
@@ -1089,12 +1091,12 @@ class AwsCloudFrontStreamingDistribution(CloudFrontTaggable, CloudFrontResource)
     streaming_distribution_price_class: Optional[str] = field(default=None)
     streaming_distribution_enabled: Optional[bool] = field(default=None)
 
-    # deleting streaming distributions is a multi step process:
+    # deleting streaming distributions is a multistep process:
     # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/cloudfront.html#CloudFront.Client.delete_streaming_distribution
 
 
 @define(eq=False, slots=False)
-class AwsCloudFrontOriginAccessControl(CloudFrontResource):
+class AwsCloudFrontOriginAccessControl(CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_origin_access_control"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudfront", "list-origin-access-controls", "OriginAccessControlList")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1199,7 +1201,7 @@ class AwsCloudFrontCachePolicyConfig:
 
 
 @define(eq=False, slots=False)
-class AwsCloudFrontCachePolicy(CloudFrontResource):
+class AwsCloudFrontCachePolicy(CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_cache_policy"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudfront", "list-cache-policies", "CachePolicyList")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1291,7 +1293,7 @@ class AwsCloudFrontContentTypeProfileConfig:
 
 
 @define(eq=False, slots=False)
-class AwsCloudFrontFieldLevelEncryptionConfig(CloudFrontResource):
+class AwsCloudFrontFieldLevelEncryptionConfig(CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_field_level_encryption_config"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         "cloudfront", "list-field-level-encryption-configs", "FieldLevelEncryptionList"
@@ -1372,7 +1374,7 @@ class AwsCloudFrontEncryptionEntities:
 
 
 @define(eq=False, slots=False)
-class AwsCloudFrontFieldLevelEncryptionProfile(CloudFrontResource):
+class AwsCloudFrontFieldLevelEncryptionProfile(CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_field_level_encryption_profile"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         "cloudfront", "list-field-level-encryption-profiles", "FieldLevelEncryptionProfileList"
