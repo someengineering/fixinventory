@@ -768,10 +768,20 @@ class AwsCloudFrontPublicKey(CloudFrontResource, AwsResource):
     public_key_encoded_key: Optional[str] = field(default=None)
     public_key_comment: Optional[str] = field(default=None)
 
-    # TODO implement this after more research
-    # def delete_resource(self, client: AwsClient) -> bool:
-    #     client.call(aws_service=self.api_spec.service, action="delete-public-key", result_name=None, Id=self.id)
-    #     return True
+    def delete_resource(self, client: AwsClient) -> bool:
+        description = client.get("cloudfront", "get-public-key", None, None, Id=self.id)
+        if description:
+            etag = description.get("ETag", None)
+            if etag:
+                client.call(
+                    aws_service=self.api_spec.service,
+                    action="delete-public-key",
+                    result_name=None,
+                    Id=self.id,
+                    IfMatch=etag,
+                )
+                return True
+        return False
 
 
 @define(eq=False, slots=False)
