@@ -62,6 +62,17 @@ def test_functions() -> None:
     assert len(first.tags) == 1
 
 
+# def test_function_deletion() -> None:
+#     func, _ = round_trip_for(AwsCloudFrontFunction)
+
+#     def validate_delete_args(**kwargs: Any) -> Any:
+#         assert kwargs["action"] == "delete-function"
+#         assert kwargs["Name"] == func.name
+
+#     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
+#     func.delete_resource(client)
+
+
 def test_invalidations() -> None:
     first, builder = round_trip_for(AwsCloudFrontInvalidation)
     assert len(builder.resources_of(AwsCloudFrontInvalidation)) == 1

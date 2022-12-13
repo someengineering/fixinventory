@@ -673,6 +673,7 @@ class AwsCloudFrontDistribution(CloudFrontTaggable, CloudFrontResource):
         # TODO edge to Web Acl when applicable (via self.distribution_web_acl_id)
 
     # TODO implement this after more research
+    # disable before delete (pre deletion method)
     # def delete_resource(self, client: AwsClient) -> bool:
     #     client.call(aws_service=self.api_spec.service, action="delete-distribution", result_name=None, Id=self.id)
     #     return True
@@ -701,6 +702,7 @@ class AwsCloudFrontFunction(CloudFrontTaggable, CloudFrontResource):
         "function_config": S("FunctionConfig") >> Bend(AwsCloudFrontFunctionConfig.mapping),
     }
     function_status: Optional[str] = field(default=None)
+    function_stage: Optional[str] = field(default=None)
     function_config: Optional[AwsCloudFrontFunctionConfig] = field(default=None)
 
     @classmethod
@@ -719,14 +721,22 @@ class AwsCloudFrontFunction(CloudFrontTaggable, CloudFrontResource):
             builder.submit_work(add_tags, instance)
             builder.add_node(instance, js)
 
-    # TODO implement this after more research
-    # def delete_resource(self, client: AwsClient) -> bool:
-    #     client.call(
-    #       aws_service=self.api_spec.service,
-    #       action="delete-function",
-    #       result_name=None, Name=self.name,
-    #       IfMatch="ETag value")
-    #     return True
+    def delete_resource(self, client: AwsClient) -> bool:
+        description = client.get(
+            self.api_spec.service, "describe-function", None, None, Name=self.name, Stage=self.function_stage
+        )
+        if description:
+            etag = description.get("ETag", None)
+            if etag:
+                client.call(
+                    aws_service=self.api_spec.service,
+                    action="delete-function",
+                    result_name=None,
+                    Name=self.name,
+                    IfMatch=etag,
+                )
+                return True
+        return False
 
 
 @define(eq=False, slots=False)

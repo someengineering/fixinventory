@@ -1,0 +1,17 @@
+{
+    "FunctionSummary": {
+        "Name": "string",
+        "Status": "string",
+        "FunctionConfig": {
+            "Comment": "string",
+            "Runtime": "cloudfront-js-1.0"
+        },
+        "FunctionMetadata": {
+            "FunctionARN": "string",
+            "Stage": "DEVELOPMENT",
+            "CreatedTime": "2022-08-08T09:36:55Z",
+            "LastModifiedTime": "2022-08-08T09:36:55Z"
+        }
+    },
+    "ETag": "876543u5te"
+}

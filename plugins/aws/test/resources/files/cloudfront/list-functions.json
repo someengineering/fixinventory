@@ -5,7 +5,7 @@
         "Quantity": 123,
         "Items": [
             {
-                "Name": "string",
+                "Name": "funcy",
                 "Status": "string",
                 "FunctionConfig": {
                     "Comment": "string",
