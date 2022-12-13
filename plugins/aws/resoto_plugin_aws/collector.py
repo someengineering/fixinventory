@@ -92,6 +92,7 @@ def called_collect_apis() -> List[AwsApiSpec]:
         AwsApiSpec("iam", "list-account-aliases"),
         AwsApiSpec("organizations", "list-accounts"),
     ]
+    additional_calls += cloudwatch.AwsCloudwatchMetricData.called_collect_apis()
     specs = [spec for r in all_resources for spec in r.called_collect_apis()] + additional_calls
     return sorted(specs, key=lambda s: s.service + "::" + s.api_action)
 
