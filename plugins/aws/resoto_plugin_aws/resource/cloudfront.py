@@ -1047,12 +1047,20 @@ class AwsCloudFrontResponseHeadersPolicy(CloudFrontResource, AwsResource):
                 instance.name = instance.response_headers_policy_config.name
             builder.add_node(instance, policy)
 
-    # TODO implement this after more research
-    # def delete_resource(self, client: AwsClient) -> bool:
-    #     client.call(
-    #         aws_service=self.api_spec.service, action="delete-response-headers-policy", result_name=None, Id=self.id
-    #     )
-    #     return True
+    def delete_resource(self, client: AwsClient) -> bool:
+        description = client.get("cloudfront", "get-response-headers-policy", None, None, Id=self.id)
+        if description:
+            etag = description.get("ETag", None)
+            if etag:
+                client.call(
+                    aws_service=self.api_spec.service,
+                    action="delete-response-headers-policy",
+                    result_name=None,
+                    Id=self.id,
+                    IfMatch=etag,
+                )
+                return True
+        return False
 
 
 @define(eq=False, slots=False)
