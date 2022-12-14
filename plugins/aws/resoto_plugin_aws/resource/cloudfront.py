@@ -727,7 +727,7 @@ class AwsCloudFrontFunction(CloudFrontTaggable, CloudFrontResource, AwsResource)
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return super().called_mutator_apis() + [
             AwsApiSpec("clouddfront", "describe-function"),
-            AwsApiSpec("clouddfront", "delete-function")
+            AwsApiSpec("clouddfront", "delete-function"),
         ]
 
     @classmethod
@@ -794,7 +794,7 @@ class AwsCloudFrontPublicKey(CloudFrontResource, AwsResource):
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return super().called_mutator_apis() + [
             AwsApiSpec("clouddfront", "describe-public-key"),
-            AwsApiSpec("clouddfront", "delete-public-key")
+            AwsApiSpec("clouddfront", "delete-public-key"),
         ]
 
     def delete_resource(self, client: AwsClient) -> bool:
@@ -838,9 +838,7 @@ class AwsCloudFrontRealtimeLogConfig(CloudFrontTaggable, CloudFrontResource, Aws
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return super().called_mutator_apis() + [
-            AwsApiSpec("clouddfront", "delete-realtime-log-config")
-        ]
+        return super().called_mutator_apis() + [AwsApiSpec("clouddfront", "delete-realtime-log-config")]
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
@@ -1064,7 +1062,7 @@ class AwsCloudFrontResponseHeadersPolicy(CloudFrontResource, AwsResource):
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return super().called_mutator_apis() + [
             AwsApiSpec("clouddfront", "describe-response-headers-policy"),
-            AwsApiSpec("clouddfront", "delete-response-headers-policy")
+            AwsApiSpec("clouddfront", "delete-response-headers-policy"),
         ]
 
     @classmethod
@@ -1162,7 +1160,7 @@ class AwsCloudFrontOriginAccessControl(CloudFrontResource, AwsResource):
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return super().called_mutator_apis() + [
             AwsApiSpec("clouddfront", "describe-origin-access-control"),
-            AwsApiSpec("clouddfront", "delete-origin-access-control")
+            AwsApiSpec("clouddfront", "delete-origin-access-control"),
         ]
 
     def delete_resource(self, client: AwsClient) -> bool:
@@ -1266,7 +1264,7 @@ class AwsCloudFrontCachePolicy(CloudFrontResource, AwsResource):
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return super().called_mutator_apis() + [
             AwsApiSpec("clouddfront", "describe-cache-policy"),
-            AwsApiSpec("clouddfront", "delete-cache-policy")
+            AwsApiSpec("clouddfront", "delete-cache-policy"),
         ]
 
     @classmethod
@@ -1376,7 +1374,7 @@ class AwsCloudFrontFieldLevelEncryptionConfig(CloudFrontResource, AwsResource):
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return super().called_mutator_apis() + [
             AwsApiSpec("clouddfront", "describe-field-level-encryption-config"),
-            AwsApiSpec("clouddfront", "delete-field-level-encryption-config")
+            AwsApiSpec("clouddfront", "delete-field-level-encryption-config"),
         ]
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
@@ -1451,7 +1449,7 @@ class AwsCloudFrontFieldLevelEncryptionProfile(CloudFrontResource, AwsResource):
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return super().called_mutator_apis() + [
             AwsApiSpec("clouddfront", "describe-field-level-encryption-profile"),
-            AwsApiSpec("clouddfront", "delete-field-level-encryption-profile")
+            AwsApiSpec("clouddfront", "delete-field-level-encryption-profile"),
         ]
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
