@@ -770,18 +770,6 @@ class AwsCloudFrontFunction(CloudFrontTaggable, CloudFrontResource, AwsResource)
 
 
 @define(eq=False, slots=False)
-class AwsCloudFrontInvalidation(CloudFrontResource, AwsResource):
-    kind: ClassVar[str] = "aws_cloudfront_invalidation"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudfront", "list-invalidations", "InvalidationList")
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("Id"),
-        "ctime": S("CreateTime"),
-        "invalidation_status": S("Status"),
-    }
-    invalidation_status: Optional[str] = field(default=None)
-
-
-@define(eq=False, slots=False)
 class AwsCloudFrontPublicKey(CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_public_key"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudfront", "list-public-keys", "PublicKeyList")
@@ -1473,7 +1461,6 @@ class AwsCloudFrontFieldLevelEncryptionProfile(CloudFrontResource, AwsResource):
 resources: List[Type[AwsResource]] = [
     AwsCloudFrontDistribution,
     AwsCloudFrontFunction,
-    AwsCloudFrontInvalidation,
     AwsCloudFrontPublicKey,
     AwsCloudFrontRealtimeLogConfig,
     AwsCloudFrontResponseHeadersPolicy,

@@ -6,7 +6,6 @@ from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.cloudfront import (
     AwsCloudFrontDistribution,
     AwsCloudFrontFunction,
-    AwsCloudFrontInvalidation,
     AwsCloudFrontPublicKey,
     AwsCloudFrontRealtimeLogConfig,
     AwsCloudFrontResponseHeadersPolicy,
@@ -75,11 +74,6 @@ def test_function_deletion() -> None:
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args, get=mock_get))
     func.delete_resource(client)
-
-
-def test_invalidations() -> None:
-    first, builder = round_trip_for(AwsCloudFrontInvalidation)
-    assert len(builder.resources_of(AwsCloudFrontInvalidation)) == 1
 
 
 def test_public_keys() -> None:
