@@ -62,15 +62,19 @@ def test_functions() -> None:
     assert len(first.tags) == 1
 
 
-# def test_function_deletion() -> None:
-#     func, _ = round_trip_for(AwsCloudFrontFunction)
+def test_function_deletion() -> None:
+    func, _ = round_trip_for(AwsCloudFrontFunction)
 
-#     def validate_delete_args(**kwargs: Any) -> Any:
-#         assert kwargs["action"] == "delete-function"
-#         assert kwargs["Name"] == func.name
+    def validate_delete_args(**kwargs: Any) -> Any:
+        assert kwargs["action"] == "delete-function"
+        assert kwargs["Name"] == func.name
+        assert kwargs["IfMatch"] == "123"
 
-#     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
-#     func.delete_resource(client)
+    def mock_get(a: Any, b: Any, c: Any, d: Any, **kwargs: Any) -> Any:
+        return {"ETag": "123"}
+
+    client = cast(AwsClient, SimpleNamespace(call=validate_delete_args, get=mock_get))
+    func.delete_resource(client)
 
 
 def test_invalidations() -> None:
@@ -83,15 +87,19 @@ def test_public_keys() -> None:
     assert len(builder.resources_of(AwsCloudFrontPublicKey)) == 1
 
 
-# def test_public_key_deletion() -> None:
-#     key, _ = round_trip_for(AwsCloudFrontPublicKey)
+def test_public_key_deletion() -> None:
+    key, _ = round_trip_for(AwsCloudFrontPublicKey)
 
-#     def validate_delete_args(**kwargs: Any) -> Any:
-#         assert kwargs["action"] == "delete-public-key"
-#         assert kwargs["Id"] == key.id
+    def validate_delete_args(**kwargs: Any) -> Any:
+        assert kwargs["action"] == "delete-public-key"
+        assert kwargs["Id"] == key.id
+        assert kwargs["IfMatch"] == "123"
 
-#     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
-#     key.delete_resource(client)
+    def mock_get(a: Any, b: Any, c: Any, d: Any, **kwargs: Any) -> Any:
+        return {"ETag": "123"}
+
+    client = cast(AwsClient, SimpleNamespace(call=validate_delete_args, get=mock_get))
+    key.delete_resource(client)
 
 
 def test_realtime_log_configs() -> None:
