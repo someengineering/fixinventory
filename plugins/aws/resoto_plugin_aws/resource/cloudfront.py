@@ -724,6 +724,13 @@ class AwsCloudFrontFunction(CloudFrontTaggable, CloudFrontResource, AwsResource)
     function_config: Optional[AwsCloudFrontFunctionConfig] = field(default=None)
 
     @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [
+            AwsApiSpec("clouddfront", "describe-function"),
+            AwsApiSpec("clouddfront", "delete-function")
+        ]
+
+    @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_tags(func: AwsCloudFrontFunction) -> None:
             tags = builder.client.get("cloudfront", "list-tags-for-resource", "Tags", Resource=func.arn)
@@ -763,7 +770,6 @@ class AwsCloudFrontInvalidation(CloudFrontResource, AwsResource):
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudfront", "list-invalidations", "InvalidationList")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Id"),
-        # "name": S("Tags", default=[]) >> TagsValue("Name"),
         "ctime": S("CreateTime"),
         "invalidation_status": S("Status"),
     }
@@ -783,6 +789,13 @@ class AwsCloudFrontPublicKey(CloudFrontResource, AwsResource):
     }
     public_key_encoded_key: Optional[str] = field(default=None)
     public_key_comment: Optional[str] = field(default=None)
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [
+            AwsApiSpec("clouddfront", "describe-public-key"),
+            AwsApiSpec("clouddfront", "delete-public-key")
+        ]
 
     def delete_resource(self, client: AwsClient) -> bool:
         return self.delete_cloudfront_resource(client, "public-key", self.id)
@@ -822,6 +835,12 @@ class AwsCloudFrontRealtimeLogConfig(CloudFrontTaggable, CloudFrontResource, Aws
     realtime_log_sampling_rate: Optional[int] = field(default=None)
     realtime_log_end_points: List[AwsCloudFrontEndPoint] = field(factory=list)
     realtime_log_fields: List[str] = field(factory=list)
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [
+            AwsApiSpec("clouddfront", "delete-realtime-log-config")
+        ]
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
@@ -1042,6 +1061,13 @@ class AwsCloudFrontResponseHeadersPolicy(CloudFrontResource, AwsResource):
     response_headers_policy_config: Optional[AwsCloudFrontResponseHeadersPolicyConfig] = field(default=None)
 
     @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [
+            AwsApiSpec("clouddfront", "describe-response-headers-policy"),
+            AwsApiSpec("clouddfront", "delete-response-headers-policy")
+        ]
+
+    @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for js in json:
             policy = js["ResponseHeadersPolicy"]
@@ -1131,6 +1157,13 @@ class AwsCloudFrontOriginAccessControl(CloudFrontResource, AwsResource):
     origin_access_control_signing_protocol: Optional[str] = field(default=None)
     origin_access_control_signing_behavior: Optional[str] = field(default=None)
     origin_access_control_origin_access_control_origin_type: Optional[str] = field(default=None)
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [
+            AwsApiSpec("clouddfront", "describe-origin-access-control"),
+            AwsApiSpec("clouddfront", "delete-origin-access-control")
+        ]
 
     def delete_resource(self, client: AwsClient) -> bool:
         return self.delete_cloudfront_resource(client, "origin-access-control", self.id)
@@ -1228,6 +1261,13 @@ class AwsCloudFrontCachePolicy(CloudFrontResource, AwsResource):
     }
     cache_policy_last_modified_time: Optional[datetime] = field(default=None)
     cache_policy_config: Optional[AwsCloudFrontCachePolicyConfig] = field(default=None)
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [
+            AwsApiSpec("clouddfront", "describe-cache-policy"),
+            AwsApiSpec("clouddfront", "delete-cache-policy")
+        ]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
@@ -1332,6 +1372,13 @@ class AwsCloudFrontFieldLevelEncryptionConfig(CloudFrontResource, AwsResource):
         default=None
     )
 
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [
+            AwsApiSpec("clouddfront", "describe-field-level-encryption-config"),
+            AwsApiSpec("clouddfront", "delete-field-level-encryption-config")
+        ]
+
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if (
             self.field_level_encryption_config_content_type_profile_config
@@ -1399,6 +1446,13 @@ class AwsCloudFrontFieldLevelEncryptionProfile(CloudFrontResource, AwsResource):
     }
     field_level_encryption_profile_encryption_entities: Optional[AwsCloudFrontEncryptionEntities] = field(default=None)
     field_level_encryption_profile_comment: Optional[str] = field(default=None)
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [
+            AwsApiSpec("clouddfront", "describe-field-level-encryption-profile"),
+            AwsApiSpec("clouddfront", "delete-field-level-encryption-profile")
+        ]
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.field_level_encryption_profile_encryption_entities:
