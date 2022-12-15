@@ -11,7 +11,7 @@ def read(fname):
 
 setup(
     name="resoto-plugin-scarf",
-    version="3.0.1",
+    version="3.0.2",
     description="Resoto Scarf Collector Plugin",
     license="Apache 2.0",
     packages=find_packages(),

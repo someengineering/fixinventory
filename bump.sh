@@ -16,6 +16,5 @@ git ls-files | grep \
 | xargs grep "$bump_from" \
 | cut -d : -f 1 \
 | xargs sed -i -e "s/$bump_from/$bump_to/g"
-(cd resoto-bundle && poetry version $bump_to)
 git status
 git diff
