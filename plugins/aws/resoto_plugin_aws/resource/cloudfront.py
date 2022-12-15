@@ -12,6 +12,7 @@ from resoto_plugin_aws.resource.iam import AwsIamServerCertificate
 from resoto_plugin_aws.resource.lambda_ import AwsLambdaFunction
 from resoto_plugin_aws.utils import ToDict
 from resotolib.baseresources import ModelReference
+from resotolib.graph import Graph
 from resotolib.json_bender import K, S, Bend, Bender, ForallBend, bend
 from resotolib.types import Json
 
@@ -640,6 +641,8 @@ class AwsCloudFrontDistribution(CloudFrontTaggable, CloudFrontResource, AwsResou
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return super().called_mutator_apis() + [
+            AwsApiSpec("cloudfront", "get-distribution-config"),
+            AwsApiSpec("cloudfront", "update-distribution"),
             AwsApiSpec("cloudfront", "get-distribution"),
             AwsApiSpec("cloudfront", "delete-distribution"),
         ]
@@ -697,7 +700,26 @@ class AwsCloudFrontDistribution(CloudFrontTaggable, CloudFrontResource, AwsResou
         # TODO edge to ACM certificate when applicable (via self.distribution_viewer_certificate.acm_certificate_arn)
         # TODO edge to Web Acl when applicable (via self.distribution_web_acl_id)
 
-    # can throw CloudFront.Client.exceptions.DistributionNotDisabled if the distribution is still enabled
+    # TODO double check if the IfMatch actually goes in the dict or not
+    def pre_delete_resource(self, client: AwsClient, graph: Graph) -> bool:
+        dist_config = client.get("cloudfront", "get-distribution-config", None, None, Id=self.id)
+        if dist_config:
+            dist_config["DistributionConfig"]["Enabled"] = False
+            dist_config["IfMatch"] = dist_config["ETag"]
+            dist_config.pop("ETag")
+            update = client.call(
+                "cloudfront",
+                "update-distribution",
+                None,
+                None,
+                DistributionConfig=dist_config,
+                Id=self.id,
+                IfMatch=dist_config["IfMatch"],
+            )
+            if update:
+                return True
+        return False
+
     def delete_resource(self, client: AwsClient) -> bool:
         return self.delete_cloudfront_resource(client, "distribution", self.id)
 
