@@ -16,7 +16,9 @@ from pytest import fixture
 @fixture
 def config_map_in_graph() -> Tuple[KubernetesConfigMap, Graph, StaticFileClient]:
     # register a config
-    cfg = K8sConfig(configs=[K8sAccess(name="test", certificate_authority_data="test", server="test", token="test")])
+    cfg = K8sConfig(
+        configs=[K8sAccess(name="test", certificate_authority_data="test", server="test", token="test").to_json()]
+    )
     Config.add_config(K8sConfig)
     Config.running_config.data["k8s"] = cfg
 
@@ -41,7 +43,9 @@ def config_map_in_graph() -> Tuple[KubernetesConfigMap, Graph, StaticFileClient]
 
 def test_collect() -> None:
     # create a config with a single cluster: the values do not matter
-    cfg = K8sConfig(configs=[K8sAccess(name="test", certificate_authority_data="test", server="test", token="test")])
+    cfg = K8sConfig(
+        configs=[K8sAccess(name="test", certificate_authority_data="test", server="test", token="test").to_json()]
+    )
     Config.add_config(K8sConfig)
     Config.running_config.data["k8s"] = cfg
 

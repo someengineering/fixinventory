@@ -47,7 +47,7 @@ class KubernetesCollector:
         # collect all resources
         for resource in self.client.apis:
             known = all_k8s_resources_by_k8s_name.get(resource.kind)
-            if known and self.k8s_config.is_allowed(resource.kind):
+            if known and self.k8s_config.is_allowed(known.kind):
                 for res, source in self.client.list_resources(resource, known):
                     self.builder.add_node(res, source=source)
             else:
