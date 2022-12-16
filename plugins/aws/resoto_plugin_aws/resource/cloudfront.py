@@ -10,6 +10,7 @@ from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
 from resoto_plugin_aws.resource.iam import AwsIamServerCertificate
 from resoto_plugin_aws.resource.lambda_ import AwsLambdaFunction
+from resoto_plugin_aws.resource.s3 import AwsS3Bucket
 from resoto_plugin_aws.utils import ToDict
 from resotolib.baseresources import ModelReference
 from resotolib.graph import Graph
@@ -35,6 +36,7 @@ class CloudFrontResource:
                     **kwargs,
                 )
                 if result:
+                    log.info("MIAUMIAUMIAU")
                     cls.collect(result.get("Items", []), builder)
             except Boto3Error as e:
                 msg = f"Error while collecting {cls.__name__} in region {builder.region.name}: {e}"
@@ -590,6 +592,7 @@ class AwsCloudFrontDistribution(CloudFrontTaggable, CloudFrontResource, AwsResou
                 "aws_cloudfront_response_headers_policy",
                 "aws_cloudfront_cache_policy",
                 "aws_cloudfront_origin_access_control",
+                "aws_s3_bucket",
             ]
         }
     }
@@ -691,6 +694,7 @@ class AwsCloudFrontDistribution(CloudFrontTaggable, CloudFrontResource, AwsResou
         if self.distribution_origins:
             for entry in self.distribution_origins.items:
                 builder.add_edge(self, clazz=AwsCloudFrontOriginAccessControl, id=entry.origin_access_control_id)
+                builder.add_edge(self, clazz=AwsS3Bucket, name=entry.id)
 
         if self.distribution_viewer_certificate and self.distribution_viewer_certificate.iam_certificate_id:
             builder.add_edge(
@@ -700,7 +704,6 @@ class AwsCloudFrontDistribution(CloudFrontTaggable, CloudFrontResource, AwsResou
         # TODO edge to ACM certificate when applicable (via self.distribution_viewer_certificate.acm_certificate_arn)
         # TODO edge to Web Acl when applicable (via self.distribution_web_acl_id)
 
-    # TODO double check if the IfMatch actually goes in the dict or not
     def pre_delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         dist_config = client.get("cloudfront", "get-distribution-config", None, None, Id=self.id)
         if dist_config:
@@ -712,7 +715,7 @@ class AwsCloudFrontDistribution(CloudFrontTaggable, CloudFrontResource, AwsResou
                 "update-distribution",
                 None,
                 None,
-                DistributionConfig=dist_config,
+                DistributionConfig=dist_config["DistributionConfig"],
                 Id=self.id,
                 IfMatch=dist_config["IfMatch"],
             )

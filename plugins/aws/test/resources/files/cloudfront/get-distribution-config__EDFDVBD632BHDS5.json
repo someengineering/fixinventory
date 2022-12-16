@@ -12,8 +12,8 @@
             "Quantity": 123,
             "Items": [
                 {
-                    "Id": "string",
-                    "DomainName": "string",
+                    "Id": "stuff.s3.region.amazonaws.com",
+                    "DomainName": "stuff.s3.region.amazonaws.com",
                     "OriginPath": "string",
                     "CustomHeaders": {
                         "Quantity": 123,
