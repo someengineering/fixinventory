@@ -21,7 +21,6 @@ from test import aws_client, aws_config  # noqa: F401
 def test_distributions() -> None:
     first, builder = round_trip_for(AwsCloudFrontDistribution)
     assert len(builder.resources_of(AwsCloudFrontDistribution)) == 1
-    # assert len(first.tags) == 1
 
 
 def test_tagging() -> None:
@@ -42,17 +41,6 @@ def test_tagging() -> None:
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
     dist.delete_resource_tag(client, "foo")
-
-
-# def test_distribution_deletion() -> None:
-#     dist, _ = round_trip_for(AwsCloudFrontDistribution)
-
-#     def validate_delete_args(**kwargs: Any) -> Any:
-#         assert kwargs["action"] == "delete-distribution"
-#         assert kwargs["Id"] == dist.id
-
-#     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
-#     dist.delete_resource(client)
 
 
 def test_functions() -> None:
