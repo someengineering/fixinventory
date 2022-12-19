@@ -117,17 +117,6 @@ def test_response_headers_policies() -> None:
     assert len(builder.resources_of(AwsCloudFrontResponseHeadersPolicy)) == 1
 
 
-# def test_response_headers_policy_deletion() -> None:
-#     policy, _ = round_trip_for(AwsCloudFrontResponseHeadersPolicy)
-
-#     def validate_delete_args(**kwargs: Any) -> Any:
-#         assert kwargs["action"] == "delete-response-headers-policy"
-#         assert kwargs["Id"] == policy.id
-
-#     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
-#     policy.delete_resource(client)
-
-
 def test_streaming_distributions() -> None:
     first, builder = round_trip_for(AwsCloudFrontStreamingDistribution)
     assert len(builder.resources_of(AwsCloudFrontStreamingDistribution)) == 1
@@ -138,31 +127,9 @@ def test_origin_access_controls() -> None:
     assert len(builder.resources_of(AwsCloudFrontOriginAccessControl)) == 1
 
 
-# def test_oac_deletion() -> None:
-#     oac, _ = round_trip_for(AwsCloudFrontOriginAccessControl)
-
-#     def validate_delete_args(**kwargs: Any) -> Any:
-#         assert kwargs["action"] == "delete-origin-access-control"
-#         assert kwargs["Id"] == oac.id
-
-#     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
-#     oac.delete_resource(client)
-
-
 def test_cache_policies() -> None:
     first, builder = round_trip_for(AwsCloudFrontCachePolicy)
     assert len(builder.resources_of(AwsCloudFrontCachePolicy)) == 1
-
-
-# def test_cache_policy_deletion() -> None:
-#     policy, _ = round_trip_for(AwsCloudFrontCachePolicy)
-
-#     def validate_delete_args(**kwargs: Any) -> Any:
-#         assert kwargs["action"] == "delete-cache-policy"
-#         assert kwargs["Id"] == policy.id
-
-#     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
-#     policy.delete_resource(client)
 
 
 def test_field_level_encryption_configs() -> None:
@@ -170,28 +137,6 @@ def test_field_level_encryption_configs() -> None:
     assert len(builder.resources_of(AwsCloudFrontFieldLevelEncryptionConfig)) == 1
 
 
-# def test_fl_config_deletion() -> None:
-#     conf, _ = round_trip_for(AwsCloudFrontFieldLevelEncryptionConfig)
-
-#     def validate_delete_args(**kwargs: Any) -> Any:
-#         assert kwargs["action"] == "delete-field-level-encryption-config"
-#         assert kwargs["Id"] == conf.id
-
-#     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
-#     conf.delete_resource(client)
-
-
 def test_field_level_encryption_profiles() -> None:
     first, builder = round_trip_for(AwsCloudFrontFieldLevelEncryptionProfile)
     assert len(builder.resources_of(AwsCloudFrontFieldLevelEncryptionProfile)) == 1
-
-
-# def test_fl_profile_deletion() -> None:
-#     profile, _ = round_trip_for(AwsCloudFrontFieldLevelEncryptionProfile)
-
-#     def validate_delete_args(**kwargs: Any) -> Any:
-#         assert kwargs["action"] == "delete-field-level-encryption-profile"
-#         assert kwargs["Id"] == profile.id
-
-#     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
-#     profile.delete_resource(client)
