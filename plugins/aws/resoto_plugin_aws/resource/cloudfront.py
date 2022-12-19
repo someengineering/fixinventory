@@ -28,7 +28,7 @@ class CloudFrontResource:
         if spec := cls.api_spec:
             try:
                 kwargs = spec.parameter or {}
-                result = builder.client.get(
+                result = builder.client.list(
                     aws_service=spec.service,
                     action=spec.api_action,
                     result_name=spec.result_property,
@@ -36,8 +36,9 @@ class CloudFrontResource:
                     **kwargs,
                 )
                 if result:
-                    log.info("MIAUMIAUMIAU")
-                    cls.collect(result.get("Items", []), builder)
+                    result = result[0]
+                    if isinstance(result, Dict):
+                        cls.collect(result.get("Items", []), builder)
             except Boto3Error as e:
                 msg = f"Error while collecting {cls.__name__} in region {builder.region.name}: {e}"
                 builder.core_feedback.error(msg, log)
