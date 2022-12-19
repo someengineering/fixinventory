@@ -595,7 +595,8 @@ class AwsCloudFrontDistribution(CloudFrontTaggable, CloudFrontResource, AwsResou
                 "aws_cloudfront_origin_access_control",
                 "aws_s3_bucket",
             ]
-        }
+        },
+        "predecessors": {"delete:": ["aws_lambda_function"]}
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Id"),
