@@ -656,7 +656,7 @@ class AwsCloudFrontDistribution(CloudFrontTaggable, CloudFrontResource, AwsResou
         if dcb := self.distribution_default_cache_behavior:
             if dcb.lambda_function_associations:
                 for a in dcb.lambda_function_associations.items:
-                    builder.add_edge(self, clazz=AwsLambdaFunction, arn=a.lambda_function_arn)
+                    builder.dependant_node(self, clazz=AwsLambdaFunction, arn=a.lambda_function_arn)
             if dcb.function_associations:
                 for b in dcb.function_associations.items:
                     builder.add_edge(self, clazz=AwsCloudFrontFunction, arn=b.function_arn)
