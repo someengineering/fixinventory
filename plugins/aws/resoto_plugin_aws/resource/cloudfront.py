@@ -22,6 +22,18 @@ log = logging.getLogger("resoto.plugins.aws")
 
 class CloudFrontResource:
     @classmethod
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:  # type: ignore
+        def add_tags(res: AwsResource) -> None:
+            tags = builder.client.get("cloudfront", "list-tags-for-resource", "Tags", Resource=res.arn)
+            if tags:
+                res.tags = bend(ToDict(), tags["Items"])
+
+        for js in json:
+            instance = cls.from_api(js)
+            builder.add_node(instance, js)
+            builder.submit_work(add_tags, instance)
+
+    @classmethod
     def collect_resources(cls: Type[AwsResource], builder: GraphBuilder) -> None:  # type: ignore
         # overriding the default behaviour because the response structure differs systematically
         log.debug(f"Collecting {cls.__name__} in region {builder.region.name}")
@@ -66,18 +78,6 @@ class CloudFrontResource:
 
 
 class CloudFrontTaggable:
-    @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:  # type: ignore
-        def add_tags(res: AwsResource) -> None:
-            tags = builder.client.get("cloudfront", "list-tags-for-resource", "Tags", Resource=res.arn)
-            if tags:
-                res.tags = bend(ToDict(), tags["Items"])
-
-        for js in json:
-            instance = cls.from_api(js)
-            builder.add_node(instance, js)
-            builder.submit_work(add_tags, instance)
-
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         if isinstance(self, AwsResource):
             client.call(
