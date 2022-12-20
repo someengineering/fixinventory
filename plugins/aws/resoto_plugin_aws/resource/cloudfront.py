@@ -127,39 +127,20 @@ class AwsCloudFrontOriginCustomHeader:
 
 
 @define(eq=False, slots=False)
-class AwsCloudFrontCustomHeaders:
-    kind: ClassVar[str] = "aws_cloudfront_custom_headers"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "quantity": S("Quantity"),
-        "items": S("Items", default=[]) >> ForallBend(AwsCloudFrontOriginCustomHeader.mapping),
-    }
-    quantity: Optional[int] = field(default=None)
-    items: List[AwsCloudFrontOriginCustomHeader] = field(factory=list)
-
-
-@define(eq=False, slots=False)
-class AwsCloudFrontOriginSslProtocols:
-    kind: ClassVar[str] = "aws_cloudfront_origin_ssl_protocols"
-    mapping: ClassVar[Dict[str, Bender]] = {"quantity": S("Quantity"), "items": S("Items", default=[])}
-    quantity: Optional[int] = field(default=None)
-    items: List[str] = field(factory=list)
-
-
-@define(eq=False, slots=False)
 class AwsCloudFrontCustomOriginConfig:
     kind: ClassVar[str] = "aws_cloudfront_custom_origin_config"
     mapping: ClassVar[Dict[str, Bender]] = {
         "http_port": S("HTTPPort"),
         "https_port": S("HTTPSPort"),
         "origin_protocol_policy": S("OriginProtocolPolicy"),
-        "origin_ssl_protocols": S("OriginSslProtocols") >> Bend(AwsCloudFrontOriginSslProtocols.mapping),
+        "origin_ssl_protocol": S("OriginSslProtocols"),
         "origin_read_timeout": S("OriginReadTimeout"),
         "origin_keepalive_timeout": S("OriginKeepaliveTimeout"),
     }
     http_port: Optional[int] = field(default=None)
     https_port: Optional[int] = field(default=None)
     origin_protocol_policy: Optional[str] = field(default=None)
-    origin_ssl_protocols: Optional[AwsCloudFrontOriginSslProtocols] = field(default=None)
+    origin_ssl_protocol: List[str] = field(factory=list)
     origin_read_timeout: Optional[int] = field(default=None)
     origin_keepalive_timeout: Optional[int] = field(default=None)
 
@@ -179,7 +160,7 @@ class AwsCloudFrontOrigin:
         "id": S("Id"),
         "domain_name": S("DomainName"),
         "origin_path": S("OriginPath"),
-        "custom_headers": S("CustomHeaders") >> Bend(AwsCloudFrontCustomHeaders.mapping),
+        "custom_header": S("CustomHeaders") >> ForallBend(AwsCloudFrontOriginCustomHeader.mapping),
         "s3_origin_config": S("S3OriginConfig", "OriginAccessIdentity"),
         "custom_origin_config": S("CustomOriginConfig") >> Bend(AwsCloudFrontCustomOriginConfig.mapping),
         "connection_attempts": S("ConnectionAttempts"),
@@ -190,7 +171,7 @@ class AwsCloudFrontOrigin:
     id: Optional[str] = field(default=None)
     domain_name: Optional[str] = field(default=None)
     origin_path: Optional[str] = field(default=None)
-    custom_headers: Optional[AwsCloudFrontCustomHeaders] = field(default=None)
+    custom_header: List[AwsCloudFrontOriginCustomHeader] = field(factory=list)
     s3_origin_config: Optional[str] = field(default=None)
     custom_origin_config: Optional[AwsCloudFrontCustomOriginConfig] = field(default=None)
     connection_attempts: Optional[int] = field(default=None)
@@ -200,29 +181,19 @@ class AwsCloudFrontOrigin:
 
 
 @define(eq=False, slots=False)
-class AwsCloudFrontStatusCodes:
-    kind: ClassVar[str] = "aws_cloudfront_status_codes"
-    mapping: ClassVar[Dict[str, Bender]] = {"quantity": S("Quantity"), "items": S("Items", default=[])}
-    quantity: Optional[int] = field(default=None)
-    items: List[int] = field(factory=list)
-
-
-@define(eq=False, slots=False)
 class AwsCloudFrontOriginGroupFailoverCriteria:
     kind: ClassVar[str] = "aws_cloudfront_origin_group_failover_criteria"
-    mapping: ClassVar[Dict[str, Bender]] = {"status_codes": S("StatusCodes") >> Bend(AwsCloudFrontStatusCodes.mapping)}
-    status_codes: Optional[AwsCloudFrontStatusCodes] = field(default=None)
+    mapping: ClassVar[Dict[str, Bender]] = {"status_codes": S("StatusCodes")}
+    status_codes: List[str] = field(factory=list)
 
 
 @define(eq=False, slots=False)
 class AwsCloudFrontOriginGroupMembers:
     kind: ClassVar[str] = "aws_cloudfront_origin_group_members"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "quantity": S("Quantity"),
-        "items": S("Items", default=[]) >> ForallBend(S("OriginId")),
+        "origin_id": S("OriginId"),
     }
-    quantity: Optional[int] = field(default=None)
-    items: List[str] = field(factory=list)
+    members: Optional[str] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -231,11 +202,11 @@ class AwsCloudFrontOriginGroup:
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Id"),
         "failover_criteria": S("FailoverCriteria") >> Bend(AwsCloudFrontOriginGroupFailoverCriteria.mapping),
-        "members": S("Members") >> Bend(AwsCloudFrontOriginGroupMembers.mapping),
+        "members": S("Members") >> ForallBend(AwsCloudFrontOriginGroupMembers.mapping),
     }
     id: Optional[str] = field(default=None)
     failover_criteria: Optional[AwsCloudFrontOriginGroupFailoverCriteria] = field(default=None)
-    members: Optional[AwsCloudFrontOriginGroupMembers] = field(default=None)
+    members: List[AwsCloudFrontOriginGroupMembers] = field(factory=list)
 
 
 @define(eq=False, slots=False)
@@ -299,17 +270,6 @@ class AwsCloudFrontLambdaFunctionAssociation:
 
 
 @define(eq=False, slots=False)
-class AwsCloudFrontLambdaFunctionAssociations:
-    kind: ClassVar[str] = "aws_cloudfront_lambda_function_associations"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "quantity": S("Quantity"),
-        "items": S("Items", default=[]) >> ForallBend(AwsCloudFrontLambdaFunctionAssociation.mapping),
-    }
-    quantity: Optional[int] = field(default=None)
-    items: List[AwsCloudFrontLambdaFunctionAssociation] = field(factory=list)
-
-
-@define(eq=False, slots=False)
 class AwsCloudFrontFunctionAssociation:
     kind: ClassVar[str] = "aws_cloudfront_function_association"
     mapping: ClassVar[Dict[str, Bender]] = {"function_arn": S("FunctionARN"), "event_type": S("EventType")}
@@ -318,49 +278,14 @@ class AwsCloudFrontFunctionAssociation:
 
 
 @define(eq=False, slots=False)
-class AwsCloudFrontFunctionAssociations:
-    kind: ClassVar[str] = "aws_cloudfront_function_associations"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "quantity": S("Quantity"),
-        "items": S("Items", default=[]) >> ForallBend(AwsCloudFrontFunctionAssociation.mapping),
-    }
-    quantity: Optional[int] = field(default=None)
-    items: List[AwsCloudFrontFunctionAssociation] = field(factory=list)
-
-
-@define(eq=False, slots=False)
-class AwsCloudFrontCookieNames:
-    kind: ClassVar[str] = "aws_cloudfront_cookie_names"
-    mapping: ClassVar[Dict[str, Bender]] = {"quantity": S("Quantity"), "items": S("Items", default=[])}
-    quantity: Optional[int] = field(default=None)
-    items: List[str] = field(factory=list)
-
-
-@define(eq=False, slots=False)
 class AwsCloudFrontCookiePreference:
     kind: ClassVar[str] = "aws_cloudfront_cookie_preference"
     mapping: ClassVar[Dict[str, Bender]] = {
         "forward": S("Forward"),
-        "whitelisted_names": S("WhitelistedNames") >> Bend(AwsCloudFrontCookieNames.mapping),
+        "whitelisted_names": S("WhitelistedNames"),
     }
     forward: Optional[str] = field(default=None)
-    whitelisted_names: Optional[AwsCloudFrontCookieNames] = field(default=None)
-
-
-@define(eq=False, slots=False)
-class AwsCloudFrontHeaders:
-    kind: ClassVar[str] = "aws_cloudfront_headers"
-    mapping: ClassVar[Dict[str, Bender]] = {"quantity": S("Quantity"), "items": S("Items", default=[])}
-    quantity: Optional[int] = field(default=None)
-    items: List[str] = field(factory=list)
-
-
-@define(eq=False, slots=False)
-class AwsCloudFrontQueryStringCacheKeys:
-    kind: ClassVar[str] = "aws_cloudfront_query_string_cache_keys"
-    mapping: ClassVar[Dict[str, Bender]] = {"quantity": S("Quantity"), "items": S("Items", default=[])}
-    quantity: Optional[int] = field(default=None)
-    items: List[str] = field(factory=list)
+    whitelisted_names: List[str] = field(factory=list)
 
 
 @define(eq=False, slots=False)
@@ -369,13 +294,13 @@ class AwsCloudFrontForwardedValues:
     mapping: ClassVar[Dict[str, Bender]] = {
         "query_string": S("QueryString"),
         "cookies": S("Cookies") >> Bend(AwsCloudFrontCookiePreference.mapping),
-        "headers": S("Headers") >> Bend(AwsCloudFrontHeaders.mapping),
-        "query_string_cache_keys": S("QueryStringCacheKeys") >> Bend(AwsCloudFrontQueryStringCacheKeys.mapping),
+        "headers": S("Headers"),
+        "query_string_cache_keys": S("QueryStringCacheKeys"),
     }
     query_string: Optional[bool] = field(default=None)
     cookies: Optional[AwsCloudFrontCookiePreference] = field(default=None)
-    headers: Optional[AwsCloudFrontHeaders] = field(default=None)
-    query_string_cache_keys: Optional[AwsCloudFrontQueryStringCacheKeys] = field(default=None)
+    headers: List[str] = field(factory=list)
+    query_string_cache_keys: List[str] = field(factory=list)
 
 
 @define(eq=False, slots=False)
@@ -390,8 +315,8 @@ class AwsCloudFrontDefaultCacheBehavior:
         "smooth_streaming": S("SmoothStreaming"),
         "compress": S("Compress"),
         "lambda_function_associations": S("LambdaFunctionAssociations")
-        >> Bend(AwsCloudFrontLambdaFunctionAssociations.mapping),
-        "function_associations": S("FunctionAssociations") >> Bend(AwsCloudFrontFunctionAssociations.mapping),
+        >> ForallBend(AwsCloudFrontLambdaFunctionAssociation.mapping),
+        "function_association": S("FunctionAssociations") >> ForallBend(AwsCloudFrontFunctionAssociation.mapping),
         "field_level_encryption_id": S("FieldLevelEncryptionId"),
         "realtime_log_config_arn": S("RealtimeLogConfigArn"),
         "cache_policy_id": S("CachePolicyId"),
@@ -409,8 +334,8 @@ class AwsCloudFrontDefaultCacheBehavior:
     allowed_methods: Optional[AwsCloudFrontAllowedMethods] = field(default=None)
     smooth_streaming: Optional[bool] = field(default=None)
     compress: Optional[bool] = field(default=None)
-    lambda_function_associations: Optional[AwsCloudFrontLambdaFunctionAssociations] = field(default=None)
-    function_associations: Optional[AwsCloudFrontFunctionAssociations] = field(default=None)
+    lambda_function_association: List[AwsCloudFrontLambdaFunctionAssociation] = field(factory=list)
+    function_association: List[AwsCloudFrontFunctionAssociation] = field(factory=list)
     field_level_encryption_id: Optional[str] = field(default=None)
     realtime_log_config_arn: Optional[str] = field(default=None)
     cache_policy_id: Optional[str] = field(default=None)
@@ -434,9 +359,9 @@ class AwsCloudFrontCacheBehavior:
         "allowed_methods": S("AllowedMethods") >> Bend(AwsCloudFrontAllowedMethods.mapping),
         "smooth_streaming": S("SmoothStreaming"),
         "compress": S("Compress"),
-        "lambda_function_associations": S("LambdaFunctionAssociations")
-        >> Bend(AwsCloudFrontLambdaFunctionAssociations.mapping),
-        "function_associations": S("FunctionAssociations") >> Bend(AwsCloudFrontFunctionAssociations.mapping),
+        "lambda_function_association": S("LambdaFunctionAssociations")
+        >> ForallBend(AwsCloudFrontLambdaFunctionAssociation.mapping),
+        "function_association": S("FunctionAssociations") >> ForallBend(AwsCloudFrontFunctionAssociation.mapping),
         "field_level_encryption_id": S("FieldLevelEncryptionId"),
         "realtime_log_config_arn": S("RealtimeLogConfigArn"),
         "cache_policy_id": S("CachePolicyId"),
@@ -455,8 +380,8 @@ class AwsCloudFrontCacheBehavior:
     allowed_methods: Optional[AwsCloudFrontAllowedMethods] = field(default=None)
     smooth_streaming: Optional[bool] = field(default=None)
     compress: Optional[bool] = field(default=None)
-    lambda_function_associations: Optional[AwsCloudFrontLambdaFunctionAssociations] = field(default=None)
-    function_associations: Optional[AwsCloudFrontFunctionAssociations] = field(default=None)
+    lambda_function_association: List[AwsCloudFrontLambdaFunctionAssociation] = field(factory=list)
+    function_association: List[AwsCloudFrontFunctionAssociation] = field(factory=list)
     field_level_encryption_id: Optional[str] = field(default=None)
     realtime_log_config_arn: Optional[str] = field(default=None)
     cache_policy_id: Optional[str] = field(default=None)
@@ -550,9 +475,9 @@ class AwsCloudFrontDistribution(CloudFrontTaggable, CloudFrontResource, AwsResou
                 "aws_cloudfront_response_headers_policy",
                 "aws_cloudfront_cache_policy",
                 "aws_cloudfront_origin_access_control",
-                "aws_s3_bucket"
+                "aws_s3_bucket",
             ]
-        }
+        },
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Id"),
@@ -617,9 +542,43 @@ class AwsCloudFrontDistribution(CloudFrontTaggable, CloudFrontResource, AwsResou
 
         for js in json:
             js["Origins"] = js["Origins"]["Items"]
+            for origin in js["Origins"]:
+                origin["CustomHeaders"] = origin["CustomHeaders"]["Items"]
+                origin["CustomOriginConfig"]["OriginSslProtocols"] = origin["CustomOriginConfig"]["OriginSslProtocols"][
+                    "Items"
+                ]
             js["OriginGroups"] = js["OriginGroups"]["Items"]
+            for group in js["OriginGroups"]:
+                group["FailoverCriteria"]["StatusCodes"] = group["FailoverCriteria"]["StatusCodes"]["Items"]
+                group["Members"] = group["Members"]["Items"]
+            js["DefaultCacheBehavior"]["LambdaFunctionAssociations"] = js["DefaultCacheBehavior"][
+                "LambdaFunctionAssociations"
+            ]["Items"]
+            js["DefaultCacheBehavior"]["FunctionAssociations"] = js["DefaultCacheBehavior"]["FunctionAssociations"][
+                "Items"
+            ]
+            js["DefaultCacheBehavior"]["ForwardedValues"]["Cookies"]["WhitelistedNames"] = js["DefaultCacheBehavior"][
+                "ForwardedValues"
+            ]["Cookies"]["WhitelistedNames"]["Items"]
+            js["DefaultCacheBehavior"]["ForwardedValues"]["Headers"] = js["DefaultCacheBehavior"]["ForwardedValues"][
+                "Headers"
+            ]["Items"]
+            js["DefaultCacheBehavior"]["ForwardedValues"]["QueryStringCacheKeys"] = js["DefaultCacheBehavior"][
+                "ForwardedValues"
+            ]["QueryStringCacheKeys"]["Items"]
             js["CacheBehaviors"] = js["CacheBehaviors"]["Items"]
+            for cache_beh in js["CacheBehaviors"]:
+                cache_beh["LambdaFunctionAssociations"] = cache_beh["LambdaFunctionAssociations"]["Items"]
+                cache_beh["FunctionAssociations"] = cache_beh["FunctionAssociations"]["Items"]
+                cache_beh["ForwardedValues"]["Cookies"]["WhitelistedNames"] = cache_beh["ForwardedValues"]["Cookies"][
+                    "WhitelistedNames"
+                ]["Items"]
+                cache_beh["ForwardedValues"]["Headers"] = cache_beh["ForwardedValues"]["Headers"]["Items"]
+                cache_beh["ForwardedValues"]["QueryStringCacheKeys"] = cache_beh["ForwardedValues"][
+                    "QueryStringCacheKeys"
+                ]["Items"]
             js["CustomErrorResponses"] = js["CustomErrorResponses"]["Items"]
+
             instance = cls.from_api(js)
             builder.add_node(instance, js)
             builder.submit_work(add_tags, instance)
@@ -627,12 +586,10 @@ class AwsCloudFrontDistribution(CloudFrontTaggable, CloudFrontResource, AwsResou
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         # edges from default cache behaviour
         if dcb := self.distribution_default_cache_behavior:
-            if dcb.lambda_function_associations:
-                for a in dcb.lambda_function_associations.items:
-                    builder.dependant_node(self, clazz=AwsLambdaFunction, arn=a.lambda_function_arn)
-            if dcb.function_associations:
-                for b in dcb.function_associations.items:
-                    builder.add_edge(self, clazz=AwsCloudFrontFunction, arn=b.function_arn)
+            for a in dcb.lambda_function_association:
+                builder.dependant_node(self, clazz=AwsLambdaFunction, arn=a.lambda_function_arn)
+            for b in dcb.function_association:
+                builder.add_edge(self, clazz=AwsCloudFrontFunction, arn=b.function_arn)
             if dcb.realtime_log_config_arn:
                 builder.add_edge(self, clazz=AwsCloudFrontRealtimeLogConfig, arn=dcb.realtime_log_config_arn)
             if dcb.field_level_encryption_id:
@@ -644,12 +601,10 @@ class AwsCloudFrontDistribution(CloudFrontTaggable, CloudFrontResource, AwsResou
 
         # edges from other cache behaviours
         for cb_item in self.distribution_cache_behavior:
-            if cb_item.lambda_function_associations:
-                for c in cb_item.lambda_function_associations.items:
-                    builder.add_edge(self, clazz=AwsLambdaFunction, arn=c.lambda_function_arn)
-            if cb_item.function_associations:
-                for d in cb_item.function_associations.items:
-                    builder.add_edge(self, clazz=AwsCloudFrontFunction, arn=d.function_arn)
+            for c in cb_item.lambda_function_association:
+                builder.add_edge(self, clazz=AwsLambdaFunction, arn=c.lambda_function_arn)
+            for d in cb_item.function_association:
+                builder.add_edge(self, clazz=AwsCloudFrontFunction, arn=d.function_arn)
             if cb_item.field_level_encryption_id:
                 builder.add_edge(
                     self, clazz=AwsCloudFrontFieldLevelEncryptionConfig, id=cb_item.field_level_encryption_id
@@ -1161,10 +1116,10 @@ class AwsCloudFrontCachePolicyHeadersConfig:
     kind: ClassVar[str] = "aws_cloudfront_cache_policy_headers_config"
     mapping: ClassVar[Dict[str, Bender]] = {
         "header_behavior": S("HeaderBehavior"),
-        "headers": S("Headers") >> Bend(AwsCloudFrontHeaders.mapping),
+        "headers": S("Headers"),
     }
     header_behavior: Optional[str] = field(default=None)
-    headers: Optional[AwsCloudFrontHeaders] = field(default=None)
+    headers: List[str] = field(factory=list)
 
 
 @define(eq=False, slots=False)
@@ -1172,10 +1127,10 @@ class AwsCloudFrontCachePolicyCookiesConfig:
     kind: ClassVar[str] = "aws_cloudfront_cache_policy_cookies_config"
     mapping: ClassVar[Dict[str, Bender]] = {
         "cookie_behavior": S("CookieBehavior"),
-        "cookies": S("Cookies") >> Bend(AwsCloudFrontCookieNames.mapping),
+        "cookies": S("Cookies"),
     }
     cookie_behavior: Optional[str] = field(default=None)
-    cookies: Optional[AwsCloudFrontCookieNames] = field(default=None)
+    cookies: List[str] = field(factory=list)
 
 
 @define(eq=False, slots=False)
