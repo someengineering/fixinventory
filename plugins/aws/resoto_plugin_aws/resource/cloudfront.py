@@ -200,17 +200,6 @@ class AwsCloudFrontOrigin:
 
 
 @define(eq=False, slots=False)
-class AwsCloudFrontOrigins:
-    kind: ClassVar[str] = "aws_cloudfront_origins"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "quantity": S("Quantity"),
-        "items": S("Items", default=[]) >> ForallBend(AwsCloudFrontOrigin.mapping),
-    }
-    quantity: Optional[int] = field(default=None)
-    items: List[AwsCloudFrontOrigin] = field(factory=list)
-
-
-@define(eq=False, slots=False)
 class AwsCloudFrontStatusCodes:
     kind: ClassVar[str] = "aws_cloudfront_status_codes"
     mapping: ClassVar[Dict[str, Bender]] = {"quantity": S("Quantity"), "items": S("Items", default=[])}
@@ -247,17 +236,6 @@ class AwsCloudFrontOriginGroup:
     id: Optional[str] = field(default=None)
     failover_criteria: Optional[AwsCloudFrontOriginGroupFailoverCriteria] = field(default=None)
     members: Optional[AwsCloudFrontOriginGroupMembers] = field(default=None)
-
-
-@define(eq=False, slots=False)
-class AwsCloudFrontOriginGroups:
-    kind: ClassVar[str] = "aws_cloudfront_origin_groups"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "quantity": S("Quantity"),
-        "items": S("Items", default=[]) >> ForallBend(AwsCloudFrontOriginGroup.mapping),
-    }
-    quantity: Optional[int] = field(default=None)
-    items: List[AwsCloudFrontOriginGroup] = field(factory=list)
 
 
 @define(eq=False, slots=False)
@@ -491,17 +469,6 @@ class AwsCloudFrontCacheBehavior:
 
 
 @define(eq=False, slots=False)
-class AwsCloudFrontCacheBehaviors:
-    kind: ClassVar[str] = "aws_cloudfront_cache_behaviors"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "quantity": S("Quantity"),
-        "items": S("Items", default=[]) >> ForallBend(AwsCloudFrontCacheBehavior.mapping),
-    }
-    quantity: Optional[int] = field(default=None)
-    items: List[AwsCloudFrontCacheBehavior] = field(factory=list)
-
-
-@define(eq=False, slots=False)
 class AwsCloudFrontCustomErrorResponse:
     kind: ClassVar[str] = "aws_cloudfront_custom_error_response"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -514,17 +481,6 @@ class AwsCloudFrontCustomErrorResponse:
     response_page_path: Optional[str] = field(default=None)
     response_code: Optional[str] = field(default=None)
     error_caching_min_ttl: Optional[int] = field(default=None)
-
-
-@define(eq=False, slots=False)
-class AwsCloudFrontCustomErrorResponses:
-    kind: ClassVar[str] = "aws_cloudfront_custom_error_responses"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "quantity": S("Quantity"),
-        "items": S("Items", default=[]) >> ForallBend(AwsCloudFrontCustomErrorResponse.mapping),
-    }
-    quantity: Optional[int] = field(default=None)
-    items: List[AwsCloudFrontCustomErrorResponse] = field(factory=list)
 
 
 @define(eq=False, slots=False)
@@ -583,6 +539,7 @@ class AwsCloudFrontDistribution(CloudFrontTaggable, CloudFrontResource, AwsResou
     kind: ClassVar[str] = "aws_cloudfront_distribution"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudfront", "list-distributions", "DistributionList")
     reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"delete:": ["aws_lambda_function"]},
         "successors": {
             "default": [
                 "aws_lambda_function",
@@ -593,10 +550,9 @@ class AwsCloudFrontDistribution(CloudFrontTaggable, CloudFrontResource, AwsResou
                 "aws_cloudfront_response_headers_policy",
                 "aws_cloudfront_cache_policy",
                 "aws_cloudfront_origin_access_control",
-                "aws_s3_bucket",
+                "aws_s3_bucket"
             ]
-        },
-        "predecessors": {"delete:": ["aws_lambda_function"]}
+        }
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Id"),
@@ -607,13 +563,13 @@ class AwsCloudFrontDistribution(CloudFrontTaggable, CloudFrontResource, AwsResou
         "distribution_status": S("Status"),
         "distribution_domain_name": S("DomainName"),
         "distribution_aliases": S("Aliases") >> Bend(AwsCloudFrontAliases.mapping),
-        "distribution_origins": S("Origins") >> Bend(AwsCloudFrontOrigins.mapping),
-        "distribution_origin_groups": S("OriginGroups") >> Bend(AwsCloudFrontOriginGroups.mapping),
+        "distribution_origin": S("Origins") >> ForallBend(AwsCloudFrontOrigin.mapping),
+        "distribution_origin_group": S("OriginGroups") >> ForallBend(AwsCloudFrontOriginGroup.mapping),
         "distribution_default_cache_behavior": S("DefaultCacheBehavior")
         >> Bend(AwsCloudFrontDefaultCacheBehavior.mapping),
-        "distribution_cache_behaviors": S("CacheBehaviors") >> Bend(AwsCloudFrontCacheBehaviors.mapping),
-        "distribution_custom_error_responses": S("CustomErrorResponses")
-        >> Bend(AwsCloudFrontCustomErrorResponses.mapping),
+        "distribution_cache_behavior": S("CacheBehaviors") >> ForallBend(AwsCloudFrontCacheBehavior.mapping),
+        "distribution_custom_error_response": S("CustomErrorResponses")
+        >> ForallBend(AwsCloudFrontCustomErrorResponse.mapping),
         "distribution_comment": S("Comment"),
         "distribution_price_class": S("PriceClass"),
         "distribution_enabled": S("Enabled"),
@@ -628,11 +584,11 @@ class AwsCloudFrontDistribution(CloudFrontTaggable, CloudFrontResource, AwsResou
     distribution_status: Optional[str] = field(default=None)
     distribution_domain_name: Optional[str] = field(default=None)
     distribution_aliases: Optional[AwsCloudFrontAliases] = field(default=None)
-    distribution_origins: Optional[AwsCloudFrontOrigins] = field(default=None)
-    distribution_origin_groups: Optional[AwsCloudFrontOriginGroups] = field(default=None)
+    distribution_origin: List[AwsCloudFrontOrigin] = field(factory=list)
+    distribution_origin_group: List[AwsCloudFrontOriginGroup] = field(factory=list)
     distribution_default_cache_behavior: Optional[AwsCloudFrontDefaultCacheBehavior] = field(default=None)
-    distribution_cache_behaviors: Optional[AwsCloudFrontCacheBehaviors] = field(default=None)
-    distribution_custom_error_responses: Optional[AwsCloudFrontCustomErrorResponses] = field(default=None)
+    distribution_cache_behavior: List[AwsCloudFrontCacheBehavior] = field(factory=list)
+    distribution_custom_error_response: List[AwsCloudFrontCustomErrorResponse] = field(factory=list)
     distribution_comment: Optional[str] = field(default=None)
     distribution_price_class: Optional[str] = field(default=None)
     distribution_enabled: Optional[bool] = field(default=None)
@@ -651,6 +607,22 @@ class AwsCloudFrontDistribution(CloudFrontTaggable, CloudFrontResource, AwsResou
             AwsApiSpec("cloudfront", "get-distribution"),
             AwsApiSpec("cloudfront", "delete-distribution"),
         ]
+
+    @classmethod
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def add_tags(res: AwsResource) -> None:
+            tags = builder.client.get("cloudfront", "list-tags-for-resource", "Tags", Resource=res.arn)
+            if tags:
+                res.tags = bend(ToDict(), tags["Items"])
+
+        for js in json:
+            js["Origins"] = js["Origins"]["Items"]
+            js["OriginGroups"] = js["OriginGroups"]["Items"]
+            js["CacheBehaviors"] = js["CacheBehaviors"]["Items"]
+            js["CustomErrorResponses"] = js["CustomErrorResponses"]["Items"]
+            instance = cls.from_api(js)
+            builder.add_node(instance, js)
+            builder.submit_work(add_tags, instance)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         # edges from default cache behaviour
@@ -671,30 +643,27 @@ class AwsCloudFrontDistribution(CloudFrontTaggable, CloudFrontResource, AwsResou
                 builder.add_edge(self, clazz=AwsCloudFrontCachePolicy, id=dcb.cache_policy_id)
 
         # edges from other cache behaviours
-        if self.distribution_cache_behaviors:
-            for cb_item in self.distribution_cache_behaviors.items:
-                if cb_item.lambda_function_associations:
-                    for c in cb_item.lambda_function_associations.items:
-                        builder.add_edge(self, clazz=AwsLambdaFunction, arn=c.lambda_function_arn)
-                if cb_item.function_associations:
-                    for d in cb_item.function_associations.items:
-                        builder.add_edge(self, clazz=AwsCloudFrontFunction, arn=d.function_arn)
-                if cb_item.field_level_encryption_id:
-                    builder.add_edge(
-                        self, clazz=AwsCloudFrontFieldLevelEncryptionConfig, id=cb_item.field_level_encryption_id
-                    )
-                if cb_item.realtime_log_config_arn:
-                    builder.add_edge(self, clazz=AwsCloudFrontRealtimeLogConfig, arn=cb_item.realtime_log_config_arn)
-                if cb_item.cache_policy_id:
-                    builder.add_edge(self, clazz=AwsCloudFrontCachePolicy, id=cb_item.cache_policy_id)
-                if cb_item.response_headers_policy_id:
-                    builder.add_edge(
-                        self, clazz=AwsCloudFrontResponseHeadersPolicy, id=cb_item.response_headers_policy_id
-                    )
+        for cb_item in self.distribution_cache_behavior:
+            if cb_item.lambda_function_associations:
+                for c in cb_item.lambda_function_associations.items:
+                    builder.add_edge(self, clazz=AwsLambdaFunction, arn=c.lambda_function_arn)
+            if cb_item.function_associations:
+                for d in cb_item.function_associations.items:
+                    builder.add_edge(self, clazz=AwsCloudFrontFunction, arn=d.function_arn)
+            if cb_item.field_level_encryption_id:
+                builder.add_edge(
+                    self, clazz=AwsCloudFrontFieldLevelEncryptionConfig, id=cb_item.field_level_encryption_id
+                )
+            if cb_item.realtime_log_config_arn:
+                builder.add_edge(self, clazz=AwsCloudFrontRealtimeLogConfig, arn=cb_item.realtime_log_config_arn)
+            if cb_item.cache_policy_id:
+                builder.add_edge(self, clazz=AwsCloudFrontCachePolicy, id=cb_item.cache_policy_id)
+            if cb_item.response_headers_policy_id:
+                builder.add_edge(self, clazz=AwsCloudFrontResponseHeadersPolicy, id=cb_item.response_headers_policy_id)
 
         # other edges
-        if self.distribution_origins:
-            for entry in self.distribution_origins.items:
+        if self.distribution_origin:
+            for entry in self.distribution_origin:
                 builder.add_edge(self, clazz=AwsCloudFrontOriginAccessControl, id=entry.origin_access_control_id)
                 builder.add_edge(self, clazz=AwsS3Bucket, name=entry.id)
 
