@@ -806,9 +806,10 @@ class AwsCloudFrontResponseHeadersPolicy(CloudFrontResource, AwsResource):
         "cloudfront", "list-response-headers-policies", "ResponseHeadersPolicyList"
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("Id"),
-        "mtime": S("LastModifiedTime"),
-        "response_headers_policy_config": S("ResponseHeadersPolicyConfig")
+        "id": S("ResponseHeadersPolicy", "Id"),
+        "mtime": S("ResponseHeadersPolicy", "LastModifiedTime"),
+        "response_headers_policy_type": S("Type"),
+        "response_headers_policy_config": S("ResponseHeadersPolicy", "ResponseHeadersPolicyConfig")
         >> Bend(AwsCloudFrontResponseHeadersPolicyConfig.mapping),
     }
 
@@ -821,16 +822,6 @@ class AwsCloudFrontResponseHeadersPolicy(CloudFrontResource, AwsResource):
             AwsApiSpec("cloudfront", "get-response-headers-policy"),
             AwsApiSpec("cloudfront", "delete-response-headers-policy"),
         ]
-
-    @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
-        for js in json:
-            policy = js["ResponseHeadersPolicy"]
-            instance = AwsCloudFrontResponseHeadersPolicy.from_api(policy)
-            instance.response_headers_policy_type = js["Type"]
-            if instance.response_headers_policy_config:
-                instance.name = instance.response_headers_policy_config.name
-            builder.add_node(instance, policy)
 
     def delete_resource(self, client: AwsClient) -> bool:
         return self.delete_cloudfront_resource(client, "response-headers-policy", self.id)
