@@ -1,0 +1,44 @@
+{
+    "RealtimeLogConfigs": {
+        "MaxItems": 123,
+        "Items": [
+            {
+                "ARN": "realtime-log-config-arn",
+                "Name": "string",
+                "SamplingRate": 123,
+                "EndPoints": [
+                    {
+                        "StreamType": "string",
+                        "KinesisStreamConfig": {
+                            "RoleARN": "string",
+                            "StreamARN": "string"
+                        }
+                    }
+                ],
+                "Fields": [
+                    "string"
+                ]
+            },
+            {
+                "ARN": "string2",
+                "Name": "string2",
+                "SamplingRate": 1234,
+                "EndPoints": [
+                    {
+                        "StreamType": "string2",
+                        "KinesisStreamConfig": {
+                            "RoleARN": "string2",
+                            "StreamARN": "string2"
+                        }
+                    }
+                ],
+                "Fields": [
+                    "string2"
+                ]
+            }
+        ],
+        "IsTruncated": false,
+        "Marker": "string",
+        "NextMarker": "string"
+    }
+}

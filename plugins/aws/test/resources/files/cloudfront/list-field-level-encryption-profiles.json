@@ -1,0 +1,30 @@
+{
+    "FieldLevelEncryptionProfileList": {
+        "NextMarker": "string",
+        "MaxItems": 123,
+        "Quantity": 123,
+        "Items": [
+            {
+                "Id": "3465ytrg",
+                "LastModifiedTime": "2015-01-01T00:00:00Z",
+                "Name": "string",
+                "EncryptionEntities": {
+                    "Quantity": 123,
+                    "Items": [
+                        {
+                            "PublicKeyId": "ngrig7843j",
+                            "ProviderId": "string",
+                            "FieldPatterns": {
+                                "Quantity": 123,
+                                "Items": [
+                                    "string"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                "Comment": "string"
+            }
+        ]
+    }
+}

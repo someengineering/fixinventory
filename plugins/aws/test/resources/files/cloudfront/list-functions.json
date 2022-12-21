@@ -1,0 +1,23 @@
+{
+    "FunctionList": {
+        "NextMarker": "string",
+        "MaxItems": 123,
+        "Quantity": 123,
+        "Items": [
+            {
+                "Name": "funcy",
+                "Status": "string",
+                "FunctionConfig": {
+                    "Comment": "string",
+                    "Runtime": "cloudfront-js-1.0"
+                },
+                "FunctionMetadata": {
+                    "FunctionARN": "arn",
+                    "Stage": "DEVELOPMENT",
+                    "CreatedTime": "2022-08-08T09:36:55Z",
+                    "LastModifiedTime": "2022-08-08T09:36:55Z"
+                }
+            }
+        ]
+    }
+}

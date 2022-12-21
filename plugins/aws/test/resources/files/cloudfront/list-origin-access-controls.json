@@ -1,0 +1,19 @@
+{
+    "OriginAccessControlList": {
+     "Marker": "string",
+     "NextMarker": "string",
+     "MaxItems": 123,
+     "IsTruncated": true,
+     "Quantity": 123,
+     "Items": [
+      {
+       "Id": "oac-id-123",
+       "Description": "string",
+       "Name": "string",
+       "SigningProtocol": "sigv4",
+       "SigningBehavior": "never",
+       "OriginAccessControlOriginType": "s3"
+      }
+     ]
+    }
+}

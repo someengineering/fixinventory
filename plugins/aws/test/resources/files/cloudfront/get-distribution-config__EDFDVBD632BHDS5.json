@@ -1,0 +1,294 @@
+{
+    "DistributionConfig": {
+        "CallerReference": "string",
+        "Aliases": {
+            "Quantity": 123,
+            "Items": [
+                "string"
+            ]
+        },
+        "DefaultRootObject": "string",
+        "Origins": {
+            "Quantity": 123,
+            "Items": [
+                {
+                    "Id": "stuff.s3.region.amazonaws.com",
+                    "DomainName": "stuff.s3.region.amazonaws.com",
+                    "OriginPath": "string",
+                    "CustomHeaders": {
+                        "Quantity": 123,
+                        "Items": [
+                            {
+                                "HeaderName": "string",
+                                "HeaderValue": "string"
+                            }
+                        ]
+                    },
+                    "S3OriginConfig": {
+                        "OriginAccessIdentity": "string"
+                    },
+                    "CustomOriginConfig": {
+                        "HTTPPort": 123,
+                        "HTTPSPort": 123,
+                        "OriginProtocolPolicy": "http-only or match-viewer or https-only",
+                        "OriginSslProtocols": {
+                            "Quantity": 123,
+                            "Items": [
+                                "SSLv3 or TLSv1 or TLSv1.1 or TLSv1.2"
+                            ]
+                        },
+                        "OriginReadTimeout": 123,
+                        "OriginKeepaliveTimeout": 123
+                    },
+                    "ConnectionAttempts": 123,
+                    "ConnectionTimeout": 123,
+                    "OriginShield": {
+                        "Enabled": true,
+                        "OriginShieldRegion": "string"
+                    },
+                    "OriginAccessControlId": "string"
+                }
+            ]
+        },
+        "OriginGroups": {
+            "Quantity": 123,
+            "Items": [
+                {
+                    "Id": "string",
+                    "FailoverCriteria": {
+                        "StatusCodes": {
+                            "Quantity": 123,
+                            "Items": [
+                                123
+                            ]
+                        }
+                    },
+                    "Members": {
+                        "Quantity": 123,
+                        "Items": [
+                            {
+                                "OriginId": "string"
+                            }
+                        ]
+                    }
+                }
+            ]
+        },
+        "DefaultCacheBehavior": {
+            "TargetOriginId": "string",
+            "TrustedSigners": {
+                "Enabled": true,
+                "Quantity": 123,
+                "Items": [
+                    "string"
+                ]
+            },
+            "TrustedKeyGroups": {
+                "Enabled": true,
+                "Quantity": 123,
+                "Items": [
+                    "string"
+                ]
+            },
+            "ViewerProtocolPolicy": "allow-all or https-only or redirect-to-https",
+            "AllowedMethods": {
+                "Quantity": 123,
+                "Items": [
+                    "GET or HEAD or POST or PUT or PATCH or OPTIONS or DELETE"
+                ],
+                "CachedMethods": {
+                    "Quantity": 123,
+                    "Items": [
+                        "GET or HEAD or POST or PUT or PATCH or OPTIONS or DELETE"
+                    ]
+                }
+            },
+            "SmoothStreaming": true,
+            "Compress": true,
+            "LambdaFunctionAssociations": {
+                "Quantity": 123,
+                "Items": [
+                    {
+                        "LambdaFunctionARN": "string",
+                        "EventType": "viewer-request or viewer-response or origin-request or origin-response",
+                        "IncludeBody": true
+                    }
+                ]
+            },
+            "FunctionAssociations": {
+                "Quantity": 123,
+                "Items": [
+                    {
+                        "FunctionARN": "string",
+                        "EventType": "viewer-request or viewer-response or origin-request or origin-response"
+                    }
+                ]
+            },
+            "FieldLevelEncryptionId": "string",
+            "RealtimeLogConfigArn": "string",
+            "CachePolicyId": "string",
+            "OriginRequestPolicyId": "string",
+            "ResponseHeadersPolicyId": "string",
+            "ForwardedValues": {
+                "QueryString": true,
+                "Cookies": {
+                    "Forward": "none or whitelist or all",
+                    "WhitelistedNames": {
+                        "Quantity": 123,
+                        "Items": [
+                            "string"
+                        ]
+                    }
+                },
+                "Headers": {
+                    "Quantity": 123,
+                    "Items": [
+                        "string"
+                    ]
+                },
+                "QueryStringCacheKeys": {
+                    "Quantity": 123,
+                    "Items": [
+                        "string"
+                    ]
+                }
+            },
+            "MinTTL": 123,
+            "DefaultTTL": 123,
+            "MaxTTL": 123
+        },
+        "CacheBehaviors": {
+            "Quantity": 123,
+            "Items": [
+                {
+                    "PathPattern": "string",
+                    "TargetOriginId": "string",
+                    "TrustedSigners": {
+                        "Enabled": true,
+                        "Quantity": 123,
+                        "Items": [
+                            "string"
+                        ]
+                    },
+                    "TrustedKeyGroups": {
+                        "Enabled": true,
+                        "Quantity": 123,
+                        "Items": [
+                            "string"
+                        ]
+                    },
+                    "ViewerProtocolPolicy": "allow-all or https-only or redirect-to-https",
+                    "AllowedMethods": {
+                        "Quantity": 123,
+                        "Items": [
+                            "GET or HEAD or POST or PUT or PATCH or OPTIONS or DELETE"
+                        ],
+                        "CachedMethods": {
+                            "Quantity": 123,
+                            "Items": [
+                                "GET or HEAD or POST or PUT or PATCH or OPTIONS or DELETE"
+                            ]
+                        }
+                    },
+                    "SmoothStreaming": true,
+                    "Compress": true,
+                    "LambdaFunctionAssociations": {
+                        "Quantity": 123,
+                        "Items": [
+                            {
+                                "LambdaFunctionARN": "string",
+                                "EventType": "viewer-request or viewer-response or origin-request or origin-response",
+                                "IncludeBody": true
+                            }
+                        ]
+                    },
+                    "FunctionAssociations": {
+                        "Quantity": 123,
+                        "Items": [
+                            {
+                                "FunctionARN": "string",
+                                "EventType": "viewer-request or viewer-response or origin-request or origin-response"
+                            }
+                        ]
+                    },
+                    "FieldLevelEncryptionId": "string",
+                    "RealtimeLogConfigArn": "string",
+                    "CachePolicyId": "string",
+                    "OriginRequestPolicyId": "string",
+                    "ResponseHeadersPolicyId": "string",
+                    "ForwardedValues": {
+                        "QueryString": true,
+                        "Cookies": {
+                            "Forward": "none or whitelist or all",
+                            "WhitelistedNames": {
+                                "Quantity": 123,
+                                "Items": [
+                                    "string"
+                                ]
+                            }
+                        },
+                        "Headers": {
+                            "Quantity": 123,
+                            "Items": [
+                                "string"
+                            ]
+                        },
+                        "QueryStringCacheKeys": {
+                            "Quantity": 123,
+                            "Items": [
+                                "string"
+                            ]
+                        }
+                    },
+                    "MinTTL": 123,
+                    "DefaultTTL": 123,
+                    "MaxTTL": 123
+                }
+            ]
+        },
+        "CustomErrorResponses": {
+            "Quantity": 123,
+            "Items": [
+                {
+                    "ErrorCode": 123,
+                    "ResponsePagePath": "string",
+                    "ResponseCode": "string",
+                    "ErrorCachingMinTTL": 123
+                }
+            ]
+        },
+        "Comment": "string",
+        "Logging": {
+            "Enabled": true,
+            "IncludeCookies": true,
+            "Bucket": "string",
+            "Prefix": "string"
+        },
+        "PriceClass": "PriceClass_100 or PriceClass_200 or PriceClass_All",
+        "Enabled": true,
+        "ViewerCertificate": {
+            "CloudFrontDefaultCertificate": true,
+            "IAMCertificateId": "string",
+            "ACMCertificateArn": "string",
+            "SSLSupportMethod": "sni-only or vip or static-ip",
+            "MinimumProtocolVersion": "SSLv3 or TLSv1 or TLSv1_2016 or TLSv1.1_2016 or TLSv1.2_2018 or TLSv1.2_2019 or TLSv1.2_2021",
+            "Certificate": "string",
+            "CertificateSource": "cloudfront or iam or acm"
+        },
+        "Restrictions": {
+            "GeoRestriction": {
+                "RestrictionType": "blacklist or whitelist or none",
+                "Quantity": 123,
+                "Items": [
+                    "string"
+                ]
+            }
+        },
+        "WebACLId": "string",
+        "HttpVersion": "http1.1 or http2 or http3 or http2and3",
+        "IsIPV6Enabled": true,
+        "ContinuousDeploymentPolicyId": "string",
+        "Staging": true
+    },
+    "ETag": "string"
+}

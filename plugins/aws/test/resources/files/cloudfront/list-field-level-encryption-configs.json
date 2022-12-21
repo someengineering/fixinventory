@@ -1,0 +1,39 @@
+{
+    "FieldLevelEncryptionList": {
+        "NextMarker": "string",
+        "MaxItems": 123,
+        "Quantity": 123,
+        "Items": [
+            {
+                "Id": "string",
+                "LastModifiedTime": "2015-01-01T00:00:00Z",
+                "Comment": "string",
+                "QueryArgProfileConfig": {
+                    "ForwardWhenQueryArgProfileIsUnknown": true,
+                    "QueryArgProfiles": {
+                        "Quantity": 123,
+                        "Items": [
+                            {
+                                "QueryArg": "string",
+                                "ProfileId": "string"
+                            }
+                        ]
+                    }
+                },
+                "ContentTypeProfileConfig": {
+                    "ForwardWhenContentTypeIsUnknown": true,
+                    "ContentTypeProfiles": {
+                        "Quantity": 123,
+                        "Items": [
+                            {
+                                "Format": "URLEncoded",
+                                "ProfileId": "3465ytrg",
+                                "ContentType": "string"
+                            }
+                        ]
+                    }
+                }
+            }
+        ]
+    }
+}

@@ -1,0 +1,54 @@
+{
+    "CachePolicyList": {
+        "NextMarker": "string",
+        "MaxItems": 123,
+        "Quantity": 123,
+        "Items": [
+            {
+                "Type": "managed  custom",
+                "CachePolicy": {
+                    "Id": "string",
+                    "LastModifiedTime": "2022-08-08T09:36:55Z",
+                    "CachePolicyConfig": {
+                        "Comment": "string",
+                        "Name": "Nice Cache Policy",
+                        "DefaultTTL": 123,
+                        "MaxTTL": 123,
+                        "MinTTL": 123,
+                        "ParametersInCacheKeyAndForwardedToOrigin": {
+                            "EnableAcceptEncodingGzip": true,
+                            "EnableAcceptEncodingBrotli": true,
+                            "HeadersConfig": {
+                                "HeaderBehavior": "none  whitelist",
+                                "Headers": {
+                                    "Quantity": 123,
+                                    "Items": [
+                                        "string"
+                                    ]
+                                }
+                            },
+                            "CookiesConfig": {
+                                "CookieBehavior": "none  whitelist  allExcept  all",
+                                "Cookies": {
+                                    "Quantity": 123,
+                                    "Items": [
+                                        "string"
+                                    ]
+                                }
+                            },
+                            "QueryStringsConfig": {
+                                "QueryStringBehavior": "none whitelist  allExcept  all",
+                                "QueryStrings": {
+                                    "Quantity": 123,
+                                    "Items": [
+                                        "string"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        ]
+    }
+}

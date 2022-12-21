@@ -1,0 +1,38 @@
+{
+    "StreamingDistributionList": {
+        "Marker": "string",
+        "NextMarker": "string",
+        "MaxItems": 123,
+        "IsTruncated": false,
+        "Quantity": 123,
+        "Items": [
+            {
+                "Id": "string",
+                "ARN": "string",
+                "Status": "string",
+                "LastModifiedTime": "2022-08-08T09:36:55Z",
+                "DomainName": "string",
+                "S3Origin": {
+                    "DomainName": "string",
+                    "OriginAccessIdentity": "string"
+                },
+                "Aliases": {
+                    "Quantity": 123,
+                    "Items": [
+                        "string"
+                    ]
+                },
+                "TrustedSigners": {
+                    "Enabled": true,
+                    "Quantity": 123,
+                    "Items": [
+                        "string"
+                    ]
+                },
+                "Comment": "string",
+                "PriceClass": "PriceClass_100",
+                "Enabled": false
+            }
+        ]
+    }
+}

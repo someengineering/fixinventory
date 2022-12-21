@@ -1,0 +1,303 @@
+{
+    "DistributionList": {
+        "Marker": "string",
+        "NextMarker": "string",
+        "MaxItems": 123,
+        "IsTruncated": false,
+        "Quantity": 123,
+        "Items": [
+            {
+                "Id": "EDFDVBD632BHDS5",
+                "ARN": "arn:aws:cloudfront::123456789012:distribution/EDFDVBD632BHDS5",
+                "Status": "string",
+                "LastModifiedTime": "2022-08-08T09:36:55Z",
+                "DomainName": "d111111abcdef8.cloudfront.net",
+                "Aliases": {
+                    "Quantity": 123,
+                    "Items": [
+                        "string"
+                    ]
+                },
+                "Origins": {
+                    "Quantity": 123,
+                    "Items": [
+                        {
+                            "Id": "string",
+                            "DomainName": "string",
+                            "OriginPath": "string",
+                            "CustomHeaders": {
+                                "Quantity": 123,
+                                "Items": [
+                                    {
+                                        "HeaderName": "string",
+                                        "HeaderValue": "string"
+                                    }
+                                ]
+                            },
+                            "S3OriginConfig": {
+                                "OriginAccessIdentity": "string"
+                            },
+                            "CustomOriginConfig": {
+                                "HTTPPort": 123,
+                                "HTTPSPort": 123,
+                                "OriginProtocolPolicy": "http-only",
+                                "OriginSslProtocols": {
+                                    "Quantity": 123,
+                                    "Items": [
+                                        "SSLv3"
+                                    ]
+                                },
+                                "OriginReadTimeout": 123,
+                                "OriginKeepaliveTimeout": 123
+                            },
+                            "ConnectionAttempts": 123,
+                            "ConnectionTimeout": 123,
+                            "OriginShield": {
+                                "Enabled": false,
+                                "OriginShieldRegion": "string"
+                            },
+                            "OriginAccessControlId": "oac-id-123"
+                        }
+                    ]
+                },
+                "OriginGroups": {
+                    "Quantity": 123,
+                    "Items": [
+                        {
+                            "Id": "string",
+                            "FailoverCriteria": {
+                                "StatusCodes": {
+                                    "Quantity": 123,
+                                    "Items": [
+                                        123
+                                    ]
+                                }
+                            },
+                            "Members": {
+                                "Quantity": 123,
+                                "Items": [
+                                    {
+                                        "OriginId": "string"
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                },
+                "DefaultCacheBehavior": {
+                    "TargetOriginId": "string",
+                    "TrustedSigners": {
+                        "Enabled": false,
+                        "Quantity": 123,
+                        "Items": [
+                            "string"
+                        ]
+                    },
+                    "TrustedKeyGroups": {
+                        "Enabled": false,
+                        "Quantity": 123,
+                        "Items": [
+                            "string"
+                        ]
+                    },
+                    "ViewerProtocolPolicy": "allow-all",
+                    "AllowedMethods": {
+                        "Quantity": 123,
+                        "Items": [
+                            "GET"
+                        ],
+                        "CachedMethods": {
+                            "Quantity": 123,
+                            "Items": [
+                                "GET"
+                            ]
+                        }
+                    },
+                    "SmoothStreaming": false,
+                    "Compress": false,
+                    "LambdaFunctionAssociations": {
+                        "Quantity": 123,
+                        "Items": [
+                            {
+                                "LambdaFunctionARN": "some-other-lambda-arn",
+                                "EventType": "viewer-request",
+                                "IncludeBody": false
+                            }
+                        ]
+                    },
+                    "FunctionAssociations": {
+                        "Quantity": 123,
+                        "Items": [
+                            {
+                                "FunctionARN": "string",
+                                "EventType": "viewer-request"
+                            }
+                        ]
+                    },
+                    "FieldLevelEncryptionId": "string",
+                    "RealtimeLogConfigArn": "realtime-log-config-arn",
+                    "CachePolicyId": "string",
+                    "OriginRequestPolicyId": "string",
+                    "ResponseHeadersPolicyId": "string",
+                    "ForwardedValues": {
+                        "QueryString": false,
+                        "Cookies": {
+                            "Forward": "none",
+                            "WhitelistedNames": {
+                                "Quantity": 123,
+                                "Items": [
+                                    "string"
+                                ]
+                            }
+                        },
+                        "Headers": {
+                            "Quantity": 123,
+                            "Items": [
+                                "string"
+                            ]
+                        },
+                        "QueryStringCacheKeys": {
+                            "Quantity": 123,
+                            "Items": [
+                                "string"
+                            ]
+                        }
+                    },
+                    "MinTTL": 123,
+                    "DefaultTTL": 123,
+                    "MaxTTL": 123
+                },
+                "CacheBehaviors": {
+                    "Quantity": 123,
+                    "Items": [
+                        {
+                            "PathPattern": "string",
+                            "TargetOriginId": "string",
+                            "TrustedSigners": {
+                                "Enabled": false,
+                                "Quantity": 123,
+                                "Items": [
+                                    "string"
+                                ]
+                            },
+                            "TrustedKeyGroups": {
+                                "Enabled": false,
+                                "Quantity": 123,
+                                "Items": [
+                                    "string"
+                                ]
+                            },
+                            "ViewerProtocolPolicy": "allow-all",
+                            "AllowedMethods": {
+                                "Quantity": 123,
+                                "Items": [
+                                    "GET"
+                                ],
+                                "CachedMethods": {
+                                    "Quantity": 123,
+                                    "Items": [
+                                        "GET"
+                                    ]
+                                }
+                            },
+                            "SmoothStreaming": false,
+                            "Compress": false,
+                            "LambdaFunctionAssociations": {
+                                "Quantity": 123,
+                                "Items": [
+                                    {
+                                        "LambdaFunctionARN": "some-lambda-arn",
+                                        "EventType": "viewer-request",
+                                        "IncludeBody": true
+                                    }
+                                ]
+                            },
+                            "FunctionAssociations": {
+                                "Quantity": 123,
+                                "Items": [
+                                    {
+                                        "FunctionARN": "string",
+                                        "EventType": "viewer-request"
+                                    }
+                                ]
+                            },
+                            "FieldLevelEncryptionId": "string",
+                            "RealtimeLogConfigArn": "string",
+                            "CachePolicyId": "string",
+                            "OriginRequestPolicyId": "string",
+                            "ResponseHeadersPolicyId": "string",
+                            "ForwardedValues": {
+                                "QueryString": true,
+                                "Cookies": {
+                                    "Forward": "none",
+                                    "WhitelistedNames": {
+                                        "Quantity": 123,
+                                        "Items": [
+                                            "string"
+                                        ]
+                                    }
+                                },
+                                "Headers": {
+                                    "Quantity": 123,
+                                    "Items": [
+                                        "string"
+                                    ]
+                                },
+                                "QueryStringCacheKeys": {
+                                    "Quantity": 123,
+                                    "Items": [
+                                        "string"
+                                    ]
+                                }
+                            },
+                            "MinTTL": 123,
+                            "DefaultTTL": 123,
+                            "MaxTTL": 123
+                        }
+                    ]
+                },
+                "CustomErrorResponses": {
+                    "Quantity": 123,
+                    "Items": [
+                        {
+                            "ErrorCode": 123,
+                            "ResponsePagePath": "string",
+                            "ResponseCode": "string",
+                            "ErrorCachingMinTTL": 123
+                        }
+                    ]
+                },
+                "Comment": "string",
+                "PriceClass": "PriceClass_100",
+                "Enabled": false,
+                "ViewerCertificate": {
+                    "CloudFrontDefaultCertificate": false,
+                    "IAMCertificateId": "1234",
+                    "ACMCertificateArn": "string",
+                    "SSLSupportMethod": "sni-only",
+                    "MinimumProtocolVersion": "SSLv3",
+                    "Certificate": "string",
+                    "CertificateSource": "cloudfront"
+                },
+                "Restrictions": {
+                    "GeoRestriction": {
+                        "RestrictionType": "blacklist",
+                        "Quantity": 123,
+                        "Items": [
+                            "string"
+                        ]
+                    }
+                },
+                "WebACLId": "string",
+                "HttpVersion": "http1.1",
+                "IsIPV6Enabled": true,
+                "AliasICPRecordals": [
+                    {
+                        "CNAME": "string",
+                        "ICPRecordalStatus": "APPROVED"
+                    }
+                ]
+            }
+        ]
+    }
+}

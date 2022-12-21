@@ -1,0 +1,92 @@
+{
+    "ResponseHeadersPolicyList": {
+        "NextMarker": "string",
+        "MaxItems": 123,
+        "Quantity": 123,
+        "Items": [
+            {
+                "Type": "managed",
+                "ResponseHeadersPolicy": {
+                    "Id": "string",
+                    "LastModifiedTime": "2022-08-08T09:36:55Z",
+                    "ResponseHeadersPolicyConfig": {
+                        "Comment": "string",
+                        "Name": "Some Name",
+                        "CorsConfig": {
+                            "AccessControlAllowOrigins": {
+                                "Quantity": 123,
+                                "Items": [
+                                    "string"
+                                ]
+                            },
+                            "AccessControlAllowHeaders": {
+                                "Quantity": 123,
+                                "Items": [
+                                    "string"
+                                ]
+                            },
+                            "AccessControlAllowMethods": {
+                                "Quantity": 123,
+                                "Items": [
+                                    "GET"
+                                ]
+                            },
+                            "AccessControlAllowCredentials": false,
+                            "AccessControlExposeHeaders": {
+                                "Quantity": 123,
+                                "Items": [
+                                    "string"
+                                ]
+                            },
+                            "AccessControlMaxAgeSec": 123,
+                            "OriginOverride": false
+                        },
+                        "SecurityHeadersConfig": {
+                            "XSSProtection": {
+                                "Override": false,
+                                "Protection": false,
+                                "ModeBlock": false,
+                                "ReportUri": "string"
+                            },
+                            "FrameOptions": {
+                                "Override": false,
+                                "FrameOption": "DENY"
+                            },
+                            "ReferrerPolicy": {
+                                "Override": false,
+                                "ReferrerPolicy": "no-referrer"
+                            },
+                            "ContentSecurityPolicy": {
+                                "Override": false,
+                                "ContentSecurityPolicy": "string"
+                            },
+                            "ContentTypeOptions": {
+                                "Override": false
+                            },
+                            "StrictTransportSecurity": {
+                                "Override": false,
+                                "IncludeSubdomains": false,
+                                "Preload": false,
+                                "AccessControlMaxAgeSec": 123
+                            }
+                        },
+                        "ServerTimingHeadersConfig": {
+                            "Enabled": false,
+                            "SamplingRate": 123.0
+                        },
+                        "CustomHeadersConfig": {
+                            "Quantity": 123,
+                            "Items": [
+                                {
+                                    "Header": "string",
+                                    "Value": "string",
+                                    "Override": false
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        ]
+    }
+}

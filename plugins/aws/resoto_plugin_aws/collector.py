@@ -11,6 +11,7 @@ from resoto_plugin_aws.resource import (
     athena,
     autoscaling,
     cloudformation,
+    cloudfront,
     cloudwatch,
     cognito,
     dynamodb,
@@ -44,7 +45,8 @@ log = logging.getLogger("resoto.plugins.aws")
 
 
 global_resources: List[Type[AwsResource]] = (
-    dynamodb.global_resources
+    cloudfront.resources
+    + dynamodb.global_resources
     + ec2.global_resources
     + iam.resources
     + route53.resources
