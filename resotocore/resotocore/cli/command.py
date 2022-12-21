@@ -1220,8 +1220,17 @@ class ExecuteSearchCommand(CLICommand, InternalPart):
         parser.add_argument("--after", dest="after", default=None)
         parser.add_argument("--before", dest="before", default=None)
         parser.add_argument("--change", dest="change", default=None)
-        parsed, rest = parser.parse_known_args(list(args_parts_parser.parse(arg)))
-        return {k: v for k, v in vars(parsed).items() if v is not None}, " ".join(rest)
+        try:
+            # try to parse as many arguments as possible
+            args, remaining = args_parts_parser.parse_partial(arg)
+            # try to parse the parsed arguments
+            parsed, rest = parser.parse_known_args(list(args))
+            parsed_args = {k: v for k, v in vars(parsed).items() if v is not None}
+            # join the unparsed arguments and the remaining arg string
+            return parsed_args, " ".join(rest) + remaining
+        except Exception:
+            # coming here is totally fine - no args could be parsed
+            return {}, arg
 
     @staticmethod
     def argument_string(args: Dict[str, Any]) -> str:

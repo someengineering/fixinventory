@@ -678,6 +678,12 @@ async def test_jq_command(cli: CLI) -> None:
 
 
 @pytest.mark.asyncio
+async def test_execute_search_command(cli: CLI) -> None:
+    # regression test: this used to fail because the arg could not be parsed
+    await cli.execute_cli_command('execute_search (b= "0")', stream.list)
+
+
+@pytest.mark.asyncio
 async def test_aggregation_to_count_command(cli: CLI) -> None:
     r = await cli.execute_cli_command("search all | count kind", stream.list)
     assert set(r[0]) == {"graph_root: 1", "cloud: 1", "foo: 11", "bla: 100", "total matched: 113", "total unmatched: 0"}
