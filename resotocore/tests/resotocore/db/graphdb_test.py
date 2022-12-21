@@ -217,7 +217,20 @@ def foo_kinds() -> List[Kind]:
     region = ComplexKind("region", ["foo"], [])
     parent = ComplexKind("parent", ["foo"], [])
     child = ComplexKind("child", ["foo"], [])
-    return [base, foo, bla, cloud, account, region, parent, child, inner]
+    some_complex = ComplexKind(
+        "some_complex",
+        ["base"],
+        [
+            Property("cloud", "cloud"),
+            Property("account", "account"),
+            Property("parents", "parent[]"),
+            Property("children", "child[]"),
+            Property("nested", "inner[]"),
+        ],
+        successor_kinds={EdgeTypes.default: ["bla"]},
+    )
+
+    return [base, foo, bla, cloud, account, region, parent, child, inner, some_complex]
 
 
 @pytest.fixture

@@ -1,13 +1,14 @@
+from functools import partial
 from typing import Callable, Optional, Any
 
 import pytest
 from attrs import evolve
-
 from deepdiff import DeepDiff
 from hypothesis import given, settings, HealthCheck
+from parsy import Parser, ParseError
 
 from resotocore import error
-from tests.resotocore.query import query
+from resotocore.model.graph_access import EdgeTypes, Direction
 from resotocore.query.model import (
     Navigation,
     Part,
@@ -32,8 +33,6 @@ from resotocore.query.model import (
     Limit,
     NotTerm,
 )
-from resotocore.model.graph_access import EdgeTypes, Direction
-from parsy import Parser, ParseError
 from resotocore.query.query_parser import (
     predicate_term,
     is_term,
@@ -54,7 +53,9 @@ from resotocore.query.query_parser import (
     not_term,
     term_parser,
     parse_query,
+    context_term,
 )
+from tests.resotocore.query import query
 
 
 def test_parse_is_term() -> None:
@@ -93,6 +94,14 @@ def test_parse_predicate_array() -> None:
     assert_round_trip(predicate_term, P.array("num").for_any().is_in([1, 2, 5]))
     assert_round_trip(predicate_term, P.array("num").for_all().is_in([1, 2, 5]))
     assert_round_trip(predicate_term, P.array("num").for_none().is_in([1, 2, 5]))
+
+
+def test_parse_context() -> None:
+    assert context_term.parse("a.b[*].{ c<1 and d>2 }") == P.context("a.b[*]", P.single("c") < 1, P.single("d") > 2)
+    assert_element = partial(assert_round_trip, context_term)
+    assert_element(P.context("foo", P.single("mem") < 23))
+    assert_element(P.context("foo", P.array("mem").for_all() < 23, P.single("cpu") > 2))
+    assert_element(P.context("foo", P.single("core") > 2, P.context("inner", P.array("c").for_any() < 23)))
 
 
 def test_kind() -> None:
@@ -177,7 +186,11 @@ def test_part() -> None:
 
 def test_query() -> None:
     query = (
-        Query.by("ec2", P("cpu") > 4, (P("mem") < 23) | (P("mem") < 59))
+        Query.by(
+            "ec2",
+            P("cpu") > 4,
+            (P("mem") < 23) | (P("mem") < 59) | P.context("foo[*]", P.single("mem") < 23, P.single("core") > 2),
+        )
         .merge_with("cloud", Navigation(1, Navigation.Max, direction=Direction.inbound), Query.mk_term("cloud"))
         .traverse_out()
         .filter(P("some.int.value") < 1, P("some.other") == 23)
@@ -189,8 +202,9 @@ def test_query() -> None:
         .with_limit(10)
     )
     assert str(query) == (
-        'aggregate(foo: sum(cpu)):((is("ec2") and cpu > 4) and (mem < 23 or mem < 59)) '
-        '{cloud: all <-default[1:]- is("cloud")} -default-> '
+        'aggregate(foo: sum(cpu)):((is("ec2") and cpu > 4) and '
+        "((mem < 23 or mem < 59) or foo[*].{(mem < 23 and core > 2)}))"
+        ' {cloud: all <-default[1:]- is("cloud")} -default-> '
         "(some.int.value < 1 and some.other == 23) -default-> "
         '(active == 12 and in_subnet(ip, "1.2.3.4/96")) '
         "with(empty, -default->) sort test asc limit 10"

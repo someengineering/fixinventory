@@ -37,6 +37,7 @@ from resotocore.query.model import (
     SortOrder,
     FulltextTerm,
     Limit,
+    ContextTerm,
 )
 from resotocore.util import first, set_value_in_path, exist
 
@@ -74,6 +75,7 @@ ancestor_merges = {
     f"ancestors.{p.to_path[1]}" for r in GraphResolver.to_resolve for p in r.resolve if p.to_path[0] == "ancestors"
 }
 
+array_marker = re.compile(r"\[]|\[[*]]")
 array_marker_in_path_regexp = re.compile(r"\[]|\[[*]](?=[.])")
 
 
@@ -115,21 +117,27 @@ def query_string(
     def next_bind_var_name() -> str:
         return f'b{next_counter("bind_vars")}'
 
-    def prop_name_kind(path: str) -> Tuple[str, ResolvedProperty, Optional[str]]:  # prop_name, prop, merge_name
-        merge_name = first(lambda name: path.startswith(name + "."), merge_names)
-        # remove merge_name and section part (if existent) from the path
-        lookup = Section.without_section(path[len(merge_name) + 1 :] if merge_name else path)  # noqa: E203
+    def prop_name_kind(
+        path: str, context_path: Optional[str] = None
+    ) -> Tuple[str, ResolvedProperty, Optional[str]]:  # prop_name, prop, merge_name
+        local_path = f"{context_path}.{path}" if context_path else path
+        merge_name = first(lambda name: local_path.startswith(name + "."), merge_names)
+        # remove merge_name and section part (if existent) from the local_path
+        lookup = Section.without_section(local_path[len(merge_name) + 1 :] if merge_name else local_path)  # noqa: E203
         resolved = model.property_by_path(lookup)
 
         def synthetic_path(synth: SyntheticProperty) -> str:
-            before, after = path.rsplit(resolved.prop.name, 1)
+            before, after = local_path.rsplit(resolved.prop.name, 1)
             return f'{before}{".".join(synth.path)}{after}'
 
         def escape_part(path_part: str) -> str:
             return f"`{path_part}`" if path_part.lower() in escape_aql_parts else path_part
 
-        prop_name = synthetic_path(resolved.prop.synthetic) if resolved.prop.synthetic else path
+        prop_name = synthetic_path(resolved.prop.synthetic) if resolved.prop.synthetic else local_path
 
+        # remove the context from the path
+        if context_path and prop_name.startswith(context_path):
+            prop_name = prop_name[len(context_path) + 1 :]
         # make sure the path does not contain any aql keywords
         prop_name = ".".join(escape_part(pn) for pn in prop_name.split("."))
 
@@ -161,7 +169,7 @@ def query_string(
         return_result = f"{{{group_result} {agg_funcs}}}"
         return "aggregated", f"LET aggregated = (for {cursor} in {in_cursor} {aggregate_term} RETURN {return_result})"
 
-    def predicate(cursor: str, p: Predicate) -> Tuple[Optional[str], str]:
+    def predicate(cursor: str, p: Predicate, context_path: Optional[str] = None) -> Tuple[Optional[str], str]:
         pre = ""
         extra = ""
         path = p.name
@@ -178,7 +186,7 @@ def query_string(
             extra = " any "
             path = p.name.replace("[]", "[*]")
 
-        prop_name, prop, _ = prop_name_kind(path)
+        prop_name, prop, _ = prop_name_kind(path, context_path)
 
         # nested prop access needs to be unfolded via separate for loops: a.b[*].c[*].d
         ars = [a.lstrip(".") for a in array_marker_in_path_regexp.split(prop_name)]
@@ -198,6 +206,33 @@ def query_string(
         p_term = f"{var_name}{extra} {op} @{bvn}"
         # null check is required, since x<anything evaluates to true if x is null!
         return pre, f"({var_name}!=null and {p_term})" if op in arangodb_matches_null_ops else p_term
+
+    def context_term(cursor: str, aep: ContextTerm, context_path: Optional[str] = None) -> Tuple[Optional[str], str]:
+        predicate_statement = ""
+        filter_statement = ""
+        path_cursor = cursor
+        context_path = f"{context_path}.{aep.name}" if context_path else aep.name
+        # unfold only, if random access is required
+        if "[]" in aep.name or "[*]" in aep.name:
+            spath = array_marker.split(aep.name)
+            # in case the array is defined on the last property, it can be ignored
+            if spath[-1] == "":
+                spath = spath[:-1]
+            for ar in [a.lstrip(".") for a in spath]:
+                nxt_crs = next_crs("pre")
+                predicate_statement += f" FOR {nxt_crs} IN TO_ARRAY({path_cursor}.{ar})"
+                path_cursor = nxt_crs
+            ps, fs = term(path_cursor, aep.term, context_path)
+        else:
+            # no unfolding required, just use the current cursor
+            # move the context path into the variable name, do not use any local path for rendering
+            # (a.b.{c=1 and d=2}) ==> (a.b.c=1 and a.b.d=2)
+            ps, fs = term(path_cursor, aep.term.change_variable(lambda x: f"{context_path}.{x}"))
+        if ps:
+            predicate_statement += ps
+        if fs:
+            filter_statement += fs
+        return predicate_statement, filter_statement
 
     def with_id(cursor: str, t: IdTerm) -> str:
         bvn = next_bind_var_name()
@@ -224,15 +259,17 @@ def query_string(
         bind_vars[bvn] = dl.pattern.join(f"{re.escape(w)}" for w in dl.split(t.text))
         return f"REGEX_TEST({cursor}.flat, @{bvn}, true)"
 
-    def not_term(cursor: str, t: NotTerm) -> Tuple[Optional[str], str]:
-        pre, term_string = term(cursor, t.term)
+    def not_term(cursor: str, t: NotTerm, context_path: Optional[str] = None) -> Tuple[Optional[str], str]:
+        pre, term_string = term(cursor, t.term, context_path)
         return pre, f"NOT ({term_string})"
 
-    def term(cursor: str, ab_term: Term) -> Tuple[Optional[str], str]:
+    def term(cursor: str, ab_term: Term, context_path: Optional[str] = None) -> Tuple[Optional[str], str]:
         if isinstance(ab_term, AllTerm):
             return None, "true"
         if isinstance(ab_term, Predicate):
-            return predicate(cursor, ab_term)
+            return predicate(cursor, ab_term, context_path)
+        if isinstance(ab_term, ContextTerm):
+            return context_term(cursor, ab_term, context_path)
         elif isinstance(ab_term, FunctionTerm):
             return None, as_arangodb_function(cursor, bind_vars, ab_term, query_model)
         elif isinstance(ab_term, IdTerm):
@@ -240,12 +277,12 @@ def query_string(
         elif isinstance(ab_term, IsTerm):
             return None, is_term(cursor, ab_term)
         elif isinstance(ab_term, NotTerm):
-            return not_term(cursor, ab_term)
+            return not_term(cursor, ab_term, context_path)
         elif isinstance(ab_term, FulltextTerm):
             return None, fulltext_term(cursor, ab_term)
         elif isinstance(ab_term, CombinedTerm):
-            pre_left, left = term(cursor, ab_term.left)
-            pre_right, right = term(cursor, ab_term.right)
+            pre_left, left = term(cursor, ab_term.left, context_path)
+            pre_right, right = term(cursor, ab_term.right, context_path)
             pre = pre_left + " " + pre_right if pre_left and pre_right else pre_left if pre_left else pre_right
             return pre, f"({left}) {ab_term.op} ({right})"
         else:

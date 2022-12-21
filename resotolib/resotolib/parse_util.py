@@ -62,10 +62,10 @@ variable_dp_backtick_allowed = regex(r"[^`]+")
 variable_dp_backtick = backtick_dp + variable_dp_backtick_allowed + backtick_dp
 variable_dp_part_string = regex("[A-Za-z_][A-Za-z0-9_\\-]*")
 variable_dp_part_plain = regex("[.]*")
-variable_dp_part_extra = regex("[0-9.*\\[\\]]*")
 variable_dp_part = variable_dp_part_string | variable_dp_backtick
+variable_dp_array_part = variable_dp_part + regex("(\\[[0-9\\*]*\\])*")
 optional_slash = slash.at_most(1).concat()
-variable_dp = optional_slash + (variable_dp_part + variable_dp_part_extra).at_least(1).map("".join)
+variable_dp = optional_slash + variable_dp_array_part + (dot_dp + variable_dp_array_part).many().map("".join)
 variable_no_array_dp = optional_slash + (variable_dp_part + variable_dp_part_plain).at_least(1).map("".join)
 
 
@@ -164,6 +164,7 @@ colon_p = lexeme(colon_dp)
 semicolon_p = lexeme(semicolon_dp)
 comma_p = lexeme(comma_dp)
 pipe_p = lexeme(pipe_dp)
+dot_p = lexeme(dot_dp)
 dot_dot_p = lexeme(dot_dot_dp)
 equals_p = lexeme(equals_dp)
 true_p = lexeme(true_dp)
