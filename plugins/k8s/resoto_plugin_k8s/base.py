@@ -1,5 +1,7 @@
 import logging
 from abc import ABC, abstractmethod
+
+import yaml
 from attrs import define, field
 from functools import cached_property
 from tempfile import TemporaryDirectory
@@ -130,6 +132,7 @@ class KubernetesResource(BaseResource):
 
 
 KubernetesResourceType = TypeVar("KubernetesResourceType", bound=KubernetesResource)
+AlwaysAllowed = {"kubernetes_namespace"}
 
 
 @define
@@ -142,31 +145,17 @@ class K8sAccess:
         default=None, metadata={"description": "Optional CA certificate string."}
     )
 
-    def to_yaml(self) -> str:
-        ca = f"certificate-authority-data: {self.certificate_authority_data}" if self.certificate_authority_data else ""
-        return dedent(
-            f"""
-             apiVersion: v1
-             clusters:
-             - cluster:
-                 server: {self.server}
-                 {ca}
-               name: {self.name}
-             contexts:
-             - context:
-                 cluster: {self.name}
-                 user: access-{self.name}
-                 namespace: resoto
-               name: {self.name}
-             current-context: {self.name}
-             kind: Config
-             preferences: {{}}
-             users:
-             - name: access-{self.name}
-               user:
-                 token: {self.token}
-        """
-        )
+    def to_json(self) -> Json:
+        ca = {"certificate-authority-data": self.certificate_authority_data} if self.certificate_authority_data else {}
+        return {
+            "apiVersion": "v1",
+            "kind": "Config",
+            "clusters": [{"cluster": {"server": self.server, **ca}, "name": self.name}],
+            "contexts": [{"context": {"cluster": self.name, "user": "access" + self.name}, "name": self.name}],
+            "current-context": self.name,
+            "preferences": {},
+            "users": [{"name": "access" + self.name, "user": {"token": self.token}}],
+        }
 
 
 @define
@@ -189,19 +178,11 @@ class K8sConfigFile:
 @define(slots=False)
 class K8sConfig:
     kind: ClassVar[str] = "k8s"
-    configs: List[K8sAccess] = field(
+    configs: List[Json] = field(
         factory=list,
         metadata={
-            "description": dedent(
-                """
-                Configure access to k8s clusters.
-                Structure:
-                - name: 'k8s-cluster-name'
-                  certificate_authority_data: 'CERT'
-                  server: 'https://k8s-cluster-server.example.com'
-                  token: 'TOKEN'
-                """
-            ).strip()
+            "description": "List of kubernetes configurations. "
+            "Copy and paste your k8s configuration file here as one entry."
         },
     )
     config_files: List[K8sConfigFile] = field(
@@ -252,7 +233,7 @@ class K8sConfig:
         self.__dict__.update(d)
 
     def is_allowed(self, kind: str) -> bool:
-        return (not self.collect or kind in self.collect) and kind not in self.no_collect
+        return kind in AlwaysAllowed or ((not self.collect or kind in self.collect) and kind not in self.no_collect)
 
     def cluster_access_configs(
         self, tmp_dir: str, core_feedback: Optional[CoreFeedback] = None
@@ -263,28 +244,34 @@ class K8sConfig:
 
             # write all access configs as kubeconfig file and let the loader handle it
             for ca in self.configs:
-                filename = tmp_dir + "/" + ca.name + rnd_str() + ".yaml"
+                filename = tmp_dir + "/kube_config_" + rnd_str() + ".yaml"
                 with open(filename, "w") as f:
-                    f.write(ca.to_yaml())
+                    f.write(yaml.dump(ca))
                 cfg_files.append(K8sConfigFile(path=filename))
 
-            # load all kubeconfig files
-            for cf in cfg_files:
+            def load_context(path: Optional[str], cf_contexts: List[str], cf_all_contexts: bool) -> None:
                 try:
-                    all_contexts, active_context = list_kube_config_contexts(cf.path)
+                    all_contexts, active_context = list_kube_config_contexts(path)
                     contexts = (
-                        all_contexts if cf.all_contexts else [a for a in all_contexts if a["name"] in cf.contexts]
+                        all_contexts if cf_all_contexts else [a for a in all_contexts if a["name"] in cf_contexts]
                     )
                     for ctx in contexts:
                         name = ctx["name"]
                         config = Configuration()
-                        load_kube_config(cf.path, name, client_configuration=config)
+                        load_kube_config(path, name, client_configuration=config)
                         result[name] = config
                 except Exception as e:
-                    msg = f"Failed to load kubeconfig from file {cf.path}: {e}"
+                    msg = f"Failed to load kubeconfig from file {path}: {e}"
                     if core_feedback:
                         core_feedback.error(msg)
                     log.error(msg)
+
+            # load all kubeconfig files if given - otherwise use the default kubeconfig loader
+            if cfg_files:
+                for cf in cfg_files:
+                    load_context(cf.path, cf.contexts, cf.all_contexts)
+            else:
+                load_context(None, [], True)
 
             return result
 
@@ -315,6 +302,9 @@ class K8sConfig:
     def from_json(json: Json) -> "K8sConfig":
         v1 = ["token", "context", "cluster", "apiserver", "config"]
 
+        def migrate_access(js: Json) -> Json:
+            return from_js(js, K8sAccess).to_json()
+
         def at(ls: List[str], idx: int) -> str:
             return ls[idx] if len(ls) > idx else ""
 
@@ -327,7 +317,8 @@ class K8sConfig:
             cacert = json.get("cacert", []) or []
             context = json.get("context", []) or []
             access = [
-                K8sAccess(at(cluster, i), at(apiserver, i), at(token, i), at(cacert, i)) for i in range(len(cluster))
+                K8sAccess(at(cluster, i), at(apiserver, i), at(token, i), at(cacert, i)).to_json()
+                for i in range(len(cluster))
             ]
             files = [
                 K8sConfigFile(at(config, i), [at(context, i)], json.get("all_contexts", False))
@@ -342,6 +333,8 @@ class K8sConfig:
                 fork_process=json.get("fork_process", False),
             )
         else:
+            # migrate k8s access to kubeconfig format if necessary
+            json["configs"] = [i if i.get("name") is None else migrate_access(i) for i in json.get("configs", [])]
             return from_js(json, K8sConfig)
 
 

@@ -5,6 +5,7 @@ from tempfile import TemporaryDirectory
 import jsons
 import yaml
 
+from resotolib.json import to_json
 from resotolib.types import Json
 from resotolib.proc import num_default_threads
 from resotolib.config import Config
@@ -12,16 +13,10 @@ from resoto_plugin_k8s import KubernetesCollectorPlugin
 from resoto_plugin_k8s.base import K8sConfig, K8sAccess, K8sConfigFile
 
 
-def test_k8s_access() -> None:
-    config = K8sAccess(name="test", certificate_authority_data="test", server="test", token="test")
-    yaml_string = config.to_yaml()
-    yaml.safe_load(yaml_string)
-
-
 def test_k8s_config_pickle() -> None:
     access = K8sAccess(name="test", certificate_authority_data="test", server="test", token="test")
     file = K8sConfigFile("test", ["bla"], True)
-    base = K8sConfig([access], [file])
+    base = K8sConfig([access.to_json()], [file])
 
     for config in [base, evolve(base, clients={}, temp_dir=TemporaryDirectory())]:
         pickled = pickle.dumps(config)
@@ -32,13 +27,13 @@ def test_k8s_config_pickle() -> None:
 
 def test_setup_config() -> None:
     as_files = [K8sAccess(name=n, certificate_authority_data=n, server=n, token=n) for n in ["a", "b", "c"]]
-    configs = [K8sAccess(name=n, certificate_authority_data=n, server=n, token=n) for n in ["d", "e", "f"]]
+    configs = [K8sAccess(name=n, certificate_authority_data=n, server=n, token=n).to_json() for n in ["d", "e", "f"]]
     with TemporaryDirectory() as tmpdir:
         files = []
         for af in as_files:
             fn = tmpdir + "/" + af.name + ".yaml"
             with open(fn, "w") as f:
-                f.write(af.to_yaml())
+                f.write(yaml.dump(af.to_json()))
             files.append(K8sConfigFile(fn))
         cfg = K8sConfig(configs, files)
         result = cfg.cluster_access_configs(tmpdir)
@@ -47,13 +42,27 @@ def test_setup_config() -> None:
 
 def test_config_roundtrip() -> None:
     cfg = K8sConfig(
-        [K8sAccess(name=n, certificate_authority_data=n, server=n, token=n) for n in ["d", "e", "f"]],
+        [K8sAccess(name=n, certificate_authority_data=n, server=n, token=n).to_json() for n in ["d", "e", "f"]],
         [K8sConfigFile(n, ["foo"]) for n in ["d", "e", "f"]],
     )
     js = jsons.dump(cfg, strip_attr="kind", strip_properties=True, strip_privates=True)
     # noinspection PyTypeChecker
     again = K8sConfig.from_json(js)
     assert cfg.configs == again.configs and cfg.config_files == again.config_files
+
+
+def test_config_migrate_from_access() -> None:
+    cfg = K8sConfig(
+        [to_json(K8sAccess(name=n, certificate_authority_data=n, server=n, token=n)) for n in ["d", "e", "f"]],
+        [K8sConfigFile(n, ["foo"]) for n in ["d", "e", "f"]],
+    )
+    js = jsons.dump(cfg, strip_attr="kind", strip_properties=True, strip_privates=True)
+    # noinspection PyTypeChecker
+    migrated = K8sConfig.from_json(js)
+    # config has been migrated and is no longer k8s access
+    assert cfg.configs != migrated.configs and len(cfg.configs) == len(migrated.configs)
+    again = K8sConfig.from_json(to_json(migrated))
+    assert migrated.configs == again.configs
 
 
 def test_config_migrate_from_v1() -> None:
@@ -73,7 +82,7 @@ def test_config_migrate_from_v1() -> None:
     config = K8sConfig.from_json(js)
     assert len(config.configs) == 3
     assert len(config.config_files) == 3
-    config.configs[0] = K8sAccess("cls_a", "api_a", "tkn_a", "ca_a")
+    config.configs[0] = K8sAccess("cls_a", "api_a", "tkn_a", "ca_a").to_json()
     config.config_files[0] = K8sConfigFile("cfg_a", ["c_a", "n_a"], True)
 
     # can parse partial data
