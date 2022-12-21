@@ -551,12 +551,12 @@ class AwsCloudFrontFunction(CloudFrontTaggable, CloudFrontResource, AwsResource)
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudfront", "list-functions", "FunctionList")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Name"),
-        "arn": S("arn"),
+        "arn": S("FunctionMetadata", "FunctionARN", default=None),
         "name": S("Name"),
-        "ctime": S("ctime"),
-        "mtime": S("mtime"),
+        "ctime": S("FunctionMetadata", "CreatedTime", default=None),
+        "mtime": S("FunctionMetadata", "LastModifiedTime", default=None),
         "function_status": S("Status"),
-        "function_stage": S("stage"),
+        "function_stage": S("FunctionMetadata", "Stage", default=None),
         "function_config": S("FunctionConfig") >> Bend(AwsCloudFrontFunctionConfig.mapping),
     }
     function_status: Optional[str] = field(default=None)
@@ -569,22 +569,6 @@ class AwsCloudFrontFunction(CloudFrontTaggable, CloudFrontResource, AwsResource)
             AwsApiSpec("cloudfront", "describe-function"),
             AwsApiSpec("cloudfront", "delete-function"),
         ]
-
-    @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
-        def add_tags(func: AwsCloudFrontFunction) -> None:
-            tags = builder.client.get("cloudfront", "list-tags-for-resource", "Tags", Resource=func.arn)
-            if tags:
-                func.tags = bend(ToDict(), tags["Items"])
-
-        for js in json:
-            js["arn"] = js["FunctionMetadata"]["FunctionARN"]
-            js["stage"] = js["FunctionMetadata"]["Stage"]
-            js["ctime"] = js["FunctionMetadata"]["CreatedTime"]
-            js["mtime"] = js["FunctionMetadata"]["LastModifiedTime"]
-            instance = cls.from_api(js)
-            builder.submit_work(add_tags, instance)
-            builder.add_node(instance, js)
 
     def delete_resource(self, client: AwsClient) -> bool:
         description = client.get(

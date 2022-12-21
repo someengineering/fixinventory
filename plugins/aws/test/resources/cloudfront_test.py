@@ -47,6 +47,7 @@ def test_functions() -> None:
     first, builder = round_trip_for(AwsCloudFrontFunction)
     assert len(builder.resources_of(AwsCloudFrontFunction)) == 1
     assert len(first.tags) == 1
+    assert first.arn == "arn"
 
 
 def test_function_deletion() -> None:
