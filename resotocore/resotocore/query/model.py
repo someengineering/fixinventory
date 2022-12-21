@@ -660,7 +660,7 @@ class Part:
             return self
 
     @property
-    def predicates(self) -> List[Predicate]:
+    def visible_predicates(self) -> List[Predicate]:
         result: List[Predicate] = self.term.find_terms(lambda x: isinstance(x, Predicate))  # type: ignore
         for ctx in self.term.find_terms(lambda x: isinstance(x, ContextTerm)):
             result.extend(ctx.visible_predicates())  # type: ignore
@@ -980,11 +980,11 @@ class Query:
         return Query(parts, preamble, aggregate)
 
     @property
-    def predicates(self) -> List[Predicate]:
+    def visible_predicates(self) -> List[Predicate]:
         """
         Returns a list of all predicates in this query.
         """
-        return [pred for part in self.parts for pred in part.predicates]
+        return [pred for part in self.parts for pred in part.visible_predicates]
 
     def find_terms(self, fn: Callable[[Term], bool]) -> List[Term]:
         return [t for p in self.parts for t in p.term.find_terms(fn)]

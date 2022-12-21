@@ -2346,7 +2346,7 @@ class ListCommand(CLICommand, OutputTransformer):
             # add all predicates the user has queried
             if ctx.query:
                 # add all predicates the user has queried
-                predicate_names = (p.name for p in ctx.query.predicates)
+                predicate_names = (p.name for p in ctx.query.visible_predicates)
                 # add sort keys of the last part the user has defined
                 sort_names = (s.name for s in ctx.query.current_part.sort)
                 for name in chain(predicate_names, sort_names):
