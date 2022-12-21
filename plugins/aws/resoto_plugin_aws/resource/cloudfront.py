@@ -467,18 +467,6 @@ class AwsCloudFrontDistribution(CloudFrontTaggable, CloudFrontResource, AwsResou
             AwsApiSpec("cloudfront", "delete-distribution"),
         ]
 
-    @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
-        def add_tags(res: AwsResource) -> None:
-            tags = builder.client.get("cloudfront", "list-tags-for-resource", "Tags", Resource=res.arn)
-            if tags:
-                res.tags = bend(ToDict(), tags["Items"])
-
-        for js in json:
-            instance = cls.from_api(js)
-            builder.add_node(instance, js)
-            builder.submit_work(add_tags, instance)
-
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         # edges from default cache behaviour
         if dcb := self.distribution_default_cache_behavior:
