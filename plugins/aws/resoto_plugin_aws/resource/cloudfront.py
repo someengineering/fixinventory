@@ -973,10 +973,11 @@ class AwsCloudFrontCachePolicy(CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_cache_policy"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudfront", "list-cache-policies", "CachePolicyList")
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("Id"),
-        "mtime": S("LastModifiedTime"),
-        "cache_policy_last_modified_time": S("LastModifiedTime"),
-        "cache_policy_config": S("CachePolicyConfig") >> Bend(AwsCloudFrontCachePolicyConfig.mapping),
+        "id": S("CachePolicy", "Id"),
+        "name": S("CachePolicy", "CachePolicyConfig", "Name"),
+        "mtime": S("CachePolicy", "LastModifiedTime"),
+        "cache_policy_last_modified_time": S("CachePolicy", "LastModifiedTime"),
+        "cache_policy_config": S("CachePolicy", "CachePolicyConfig") >> Bend(AwsCloudFrontCachePolicyConfig.mapping),
     }
     cache_policy_last_modified_time: Optional[datetime] = field(default=None)
     cache_policy_config: Optional[AwsCloudFrontCachePolicyConfig] = field(default=None)
@@ -987,14 +988,6 @@ class AwsCloudFrontCachePolicy(CloudFrontResource, AwsResource):
             AwsApiSpec("cloudfront", "get-cache-policy"),
             AwsApiSpec("cloudfront", "delete-cache-policy"),
         ]
-
-    @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
-        for js in json:
-            instance = AwsCloudFrontCachePolicy.from_api(js["CachePolicy"])
-            if instance.cache_policy_config:
-                instance.name = instance.cache_policy_config.name
-            builder.add_node(instance, js)
 
     def delete_resource(self, client: AwsClient) -> bool:
         return self.delete_cloudfront_resource(client, "cache-policy", self.id)
