@@ -90,6 +90,10 @@ class P:
         return AllTerm()
 
     @staticmethod
+    def context(name: str, *terms: Term) -> Term:
+        return ContextTerm(name, reduce(lambda a, b: a & b, terms, AllTerm()))  # type: ignore
+
+    @staticmethod
     def function(fn: str) -> PFunction:
         return PFunction(fn)
 
@@ -175,6 +179,7 @@ class Term(abc.ABC):
     Term <|--- AllTerm
     Term <|--- FulltextTerm
     Term <|--- Predicate
+    Term <|--- ContextTerm
     Term <|--- IdTerm
     Term <|--- IsTerm
     Term <|--- FunctionTerm
@@ -183,6 +188,7 @@ class Term(abc.ABC):
     CombinedTerm --> Term: right
     MergeTerm --> Term: pre_filter
     MergeTerm --> Term: post_filter
+    ContextTerm *--> Term: term
     @enduml
     """
 
@@ -223,6 +229,8 @@ class Term(abc.ABC):
         def walk(term: Term) -> Term:
             if isinstance(term, CombinedTerm):
                 return CombinedTerm(walk(term.left), term.op, walk(term.right))
+            if isinstance(term, ContextTerm):
+                return ContextTerm(fn(term.name), term.term)
             elif isinstance(term, Predicate):
                 return Predicate(fn(term.name), term.op, term.value, term.args)
             elif isinstance(term, FunctionTerm):
@@ -243,6 +251,8 @@ class Term(abc.ABC):
         if isinstance(self, CombinedTerm):
             return self.left.find_term(fn) or self.right.find_term(fn)
         elif isinstance(self, NotTerm):
+            return self.term.find_term(fn)
+        elif isinstance(self, ContextTerm):
             return self.term.find_term(fn)
         elif isinstance(self, MergeTerm):
 
@@ -266,22 +276,16 @@ class Term(abc.ABC):
             return [self]
         if isinstance(self, CombinedTerm):
             return self.left.find_terms(fn) + self.right.find_terms(fn)
+        if isinstance(self, ContextTerm):
+            return self.term.find_terms(fn)
         elif isinstance(self, NotTerm):
             return self.term.find_terms(fn)
         elif isinstance(self, MergeTerm):
-
-            def walk_merge_queries(mt: MergeTerm) -> List[Term]:
-                result = []
-                for mq in mt.merge:
-                    for p in mq.query.parts:
-                        result.extend(p.term.find_terms(fn))
-                return result
-
-            return (
-                self.pre_filter.find_terms(fn)
-                or (self.post_filter.find_terms(fn) if self.post_filter else None)
-                or walk_merge_queries(self)
-            )
+            result = self.pre_filter.find_terms(fn)
+            if self.post_filter:
+                result.extend(self.post_filter.find_terms(fn))
+            result.extend(r for mq in self.merge for p in mq.query.parts for r in p.term.find_terms(fn))
+            return result
         else:
             return []
 
@@ -298,6 +302,8 @@ class Term(abc.ABC):
         elif isinstance(js.get("name"), str) and isinstance(js.get("op"), str):
             args = js["args"] if isinstance(js.get("args"), dict) else {}
             return Predicate(js["name"], js["op"], js["value"], args)
+        elif isinstance(js.get("name"), str) and isinstance(js.get("predicates"), list):
+            return ContextTerm(js["name"], js["predicates"])
         elif isinstance(js.get("fn"), str) and isinstance(js.get("property_path"), str):
             argv: list = js["args"] if isinstance(js.get("args"), list) else []  # type: ignore
             return FunctionTerm(js["fn"], js["property_path"], argv)
@@ -357,6 +363,32 @@ class Predicate(Term):
         :return: the string representation.
         """
         return to_js_str(value)
+
+
+@define(order=True, hash=True, frozen=True)
+class ContextTerm(Term):
+    name: str
+    term: Term
+
+    def __str__(self) -> str:
+        return f"{self.name}.{{{str(self.term)}}}"
+
+    def visible_predicates(self) -> List[Predicate]:
+        """
+        This method is not used to render a query, but to get a list of predicates that are visible in the query.
+        All predicates have the complete path without any contextual information.
+        Idea: a.b[*].{ c=1 and d=2 and e[*].{f=1}} should return [a.b[*].c = 1, a.b[*].d = 2, a.b[*].e[*].f = 1]
+        """
+
+        def with_context(path: str, ctx: ContextTerm) -> List[Predicate]:
+            result: List[Predicate] = []
+            for p in ctx.term.find_terms(lambda x: isinstance(x, Predicate)):
+                result.append(evolve(p, name=f"{path}.{p.name}" if path else p.name))  # type: ignore
+            for c in ctx.term.find_terms(lambda x: isinstance(x, ContextTerm)):
+                result.extend(with_context(f"{path}.{c.name}" if path else c.name, c))  # type: ignore
+            return result
+
+        return with_context(self.name, self)
 
 
 @define(order=True, hash=True, frozen=True)
@@ -582,33 +614,10 @@ class Part:
         after_merge: Term = AllTerm()
 
         def has_ancestor_descendant(t: Term) -> bool:
-            if isinstance(t, Predicate) and is_ancestor_descendant(t.name):
-                return True
-            elif isinstance(t, CombinedTerm):
-                return has_ancestor_descendant(t.left) or has_ancestor_descendant(t.right)
-            elif isinstance(t, MergeTerm):
-                return has_ancestor_descendant(t.pre_filter) or (
-                    t.post_filter is not None and has_ancestor_descendant(t.post_filter)
-                )
-            elif isinstance(t, NotTerm):
-                return has_ancestor_descendant(t.term)
-            else:
-                return False
+            return t.find_term(lambda trm: isinstance(trm, Predicate) and is_ancestor_descendant(trm.name)) is not None
 
         def ancestor_descendant_predicates(t: Term) -> List[Predicate]:
-            if isinstance(t, Predicate) and is_ancestor_descendant(t.name):
-                return [t]
-            elif isinstance(t, CombinedTerm):
-                return [*ancestor_descendant_predicates(t.left), *ancestor_descendant_predicates(t.right)]
-            elif isinstance(t, MergeTerm):
-                result = ancestor_descendant_predicates(t.pre_filter)
-                if t.post_filter:
-                    result.extend(ancestor_descendant_predicates(t.post_filter))
-                return result
-            elif isinstance(t, NotTerm):
-                return ancestor_descendant_predicates(t.term)
-            else:
-                return []
+            return t.find_terms(lambda t: isinstance(t, Predicate) and is_ancestor_descendant(t.name))  # type: ignore
 
         def walk_term(term: Term) -> None:
             # precondition: this method is only called with a term that has ancestor/descendant
@@ -652,7 +661,10 @@ class Part:
 
     @property
     def predicates(self) -> List[Predicate]:
-        return self.term.find_terms(lambda x: isinstance(x, Predicate))  # type: ignore
+        result: List[Predicate] = self.term.find_terms(lambda x: isinstance(x, Predicate))  # type: ignore
+        for ctx in self.term.find_terms(lambda x: isinstance(x, ContextTerm)):
+            result.extend(ctx.visible_predicates())  # type: ignore
+        return result
 
 
 @define(order=True, hash=True, frozen=True)

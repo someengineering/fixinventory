@@ -409,7 +409,7 @@ class StringKind(SimpleKind):
         if isinstance(value, str):
             return None
         else:
-            return str(value)
+            return json.dumps(value)
 
     def as_json(self) -> Json:
         js = super().as_json()
@@ -816,9 +816,6 @@ class ComplexKind(Kind):
                 kind.resolve(model)
                 self.__resolved_kinds[prop.name] = (prop, kind)
 
-            # property path -> kind
-            self.__property_by_path = ComplexKind.resolve_properties(self)
-
             # make sure all successor kinds can be resolved
             for names in self.successor_kinds.values():
                 for name in names or []:
@@ -835,7 +832,10 @@ class ComplexKind(Kind):
                         self.__all_props = base.__all_props + self.__all_props
                         self.__prop_by_name = {prop.name: prop for prop in self.__all_props}
                         self.__resolved_hierarchy.update(base.__resolved_hierarchy)
-                        self.__property_by_path.extend(base.__property_by_path)
+
+            # property path -> kind
+            self.__property_by_path = ComplexKind.resolve_properties(self, model)
+
             self.__synthetic_props = [p for p in self.__property_by_path if p.prop.synthetic]
 
     def __eq__(self, other: Any) -> bool:
@@ -992,6 +992,7 @@ class ComplexKind(Kind):
     @staticmethod
     def resolve_properties(
         complex_kind: ComplexKind,
+        model: Dict[str, Kind],
         from_path: PropertyPath = EmptyPath,
         maybe_visited: Optional[Dict[str, PropertyPath]] = None,
     ) -> List[ResolvedProperty]:
@@ -1009,6 +1010,8 @@ class ComplexKind(Kind):
                 return
             visited[key] = path
             relative = path.child(prop_name) if add_prop_to_path else path
+            # make sure the kind is resolved
+            kind.resolve(model)
             if isinstance(kind, SimpleKind):
                 result.append(ResolvedProperty(relative, prop, kind))
             elif isinstance(kind, ArrayKind):
@@ -1026,9 +1029,9 @@ class ComplexKind(Kind):
             elif isinstance(kind, ComplexKind):
                 if name := relative.last_part:
                     result.append(ResolvedProperty(relative, Property(name, kind.fqn), kind))
-                result.extend(ComplexKind.resolve_properties(kind, relative, visited))
+                result.extend(ComplexKind.resolve_properties(kind, model, relative, visited))
 
-        for x in complex_kind.properties:
+        for x in complex_kind.all_props():
             path_for(x, complex_kind.__resolved_kinds[x.name][1], from_path)
 
         return result

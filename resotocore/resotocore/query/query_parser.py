@@ -41,6 +41,7 @@ from resotolib.parse_util import (
     null_dp,
     double_quoted_string_dp,
     float_dp,
+    dot_p,
 )
 
 from resotocore.error import ParseError
@@ -69,6 +70,7 @@ from resotocore.query.model import (
     MergeQuery,
     FulltextTerm,
     Limit,
+    ContextTerm,
 )
 
 operation_p = (
@@ -114,6 +116,16 @@ def predicate_term() -> Parser:
 
 
 @make_parser
+def context_term() -> Parser:
+    name = yield variable_p
+    yield dot_p
+    yield l_curly_p
+    term = yield filter_term_parser
+    yield r_curly_p
+    return ContextTerm(name, term)
+
+
+@make_parser
 def function_term() -> Parser:
     fn = yield function_p
     yield lparen_p
@@ -138,7 +150,10 @@ literal_list_optional_brackets = literal_list_in_square_brackets | literal_list_
 is_term = lexeme(string("is") >> lparen_p >> literal_list_optional_brackets << rparen_p).map(IsTerm)
 id_term = lexeme(string("id") >> lparen_p >> (quoted_string_p | literal_p) << rparen_p).map(IdTerm)
 match_all_term = lexeme(string("all")).map(lambda _: AllTerm())
-leaf_term_p = is_term | id_term | match_all_term | function_term | predicate_term | not_term | fulltext_term
+leaf_term_p = (
+    is_term | id_term | match_all_term | function_term | predicate_term | context_term | not_term | fulltext_term
+)
+
 bool_op_p = lexeme(string("and") | string("or"))
 not_p = lexeme(string("not"))
 
@@ -430,6 +445,7 @@ def parse_query(query: str, **env: str) -> Query:
         def set_in_with_clause(wc: WithClause) -> WithClause:
             nav = wc.navigation
             if wc.navigation and not wc.navigation.maybe_edge_types:
+                # noinspection PyTypeChecker
                 nav = evolve(nav, maybe_edge_types=edge_types)
             inner = set_in_with_clause(wc.with_clause) if wc.with_clause else wc.with_clause
             return evolve(wc, navigation=nav, with_clause=inner)
