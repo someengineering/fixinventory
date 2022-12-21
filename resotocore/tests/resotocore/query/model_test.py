@@ -18,7 +18,6 @@ from resotocore.query.model import (
     NotTerm,
     FunctionTerm,
     Limit,
-    ContextTerm,
 )
 from resotocore.query.query_parser import parse_query
 
@@ -262,6 +261,6 @@ def test_term_contains() -> None:
 
 
 def test_context_predicates() -> None:
-    term: ContextTerm = parse_query("a.b[*].{ a=2 and b[1].bla=3 and c.d[*].{ e=4 and f=5 } }").parts[0].term  # type: ignore
-    expected = ["a.b[*].a", "a.b[*].b[1].bla", "a.b[*].e", "a.b[*].f", "a.b[*].c.d[*].e", "a.b[*].c.d[*].f"]
-    assert [str(a.name) for a in term.visible_predicates()] == expected
+    query: Query = parse_query("a.b[*].{ a=2 and b[1].bla=3 and c.d[*].{ e=4 and f=5 } }")
+    expected = ["a.b[*].a", "a.b[*].b[1].bla", "a.b[*].c.d[*].e", "a.b[*].c.d[*].f"]
+    assert [str(a.name) for a in query.visible_predicates] == expected

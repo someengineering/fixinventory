@@ -271,20 +271,20 @@ class Term(abc.ABC):
         else:
             return None
 
-    def find_terms(self, fn: Callable[[Term], bool]) -> List[Term]:
+    def find_terms(self, fn: Callable[[Term], bool], **kwargs: bool) -> List[Term]:
         if fn(self):
             return [self]
-        if isinstance(self, CombinedTerm):
-            return self.left.find_terms(fn) + self.right.find_terms(fn)
-        if isinstance(self, ContextTerm):
-            return self.term.find_terms(fn)
+        elif isinstance(self, CombinedTerm):
+            return self.left.find_terms(fn, **kwargs) + self.right.find_terms(fn, **kwargs)
+        elif isinstance(self, ContextTerm) and kwargs.get("in_context_term", True):
+            return self.term.find_terms(fn, **kwargs)
         elif isinstance(self, NotTerm):
-            return self.term.find_terms(fn)
+            return self.term.find_terms(fn, **kwargs)
         elif isinstance(self, MergeTerm):
-            result = self.pre_filter.find_terms(fn)
+            result = self.pre_filter.find_terms(fn, **kwargs)
             if self.post_filter:
-                result.extend(self.post_filter.find_terms(fn))
-            result.extend(r for mq in self.merge for p in mq.query.parts for r in p.term.find_terms(fn))
+                result.extend(self.post_filter.find_terms(fn, **kwargs))
+            result.extend(r for mq in self.merge for p in mq.query.parts for r in p.term.find_terms(fn, **kwargs))
             return result
         else:
             return []
@@ -382,7 +382,7 @@ class ContextTerm(Term):
 
         def with_context(path: str, ctx: ContextTerm) -> List[Predicate]:
             result: List[Predicate] = []
-            for p in ctx.term.find_terms(lambda x: isinstance(x, Predicate)):
+            for p in ctx.term.find_terms(lambda x: isinstance(x, Predicate), in_context_term=False):
                 result.append(evolve(p, name=f"{path}.{p.name}" if path else p.name))  # type: ignore
             for c in ctx.term.find_terms(lambda x: isinstance(x, ContextTerm)):
                 result.extend(with_context(f"{path}.{c.name}" if path else c.name, c))  # type: ignore
@@ -617,7 +617,7 @@ class Part:
             return t.find_term(lambda trm: isinstance(trm, Predicate) and is_ancestor_descendant(trm.name)) is not None
 
         def ancestor_descendant_predicates(t: Term) -> List[Predicate]:
-            return t.find_terms(lambda t: isinstance(t, Predicate) and is_ancestor_descendant(t.name))  # type: ignore
+            return t.find_terms(lambda t: isinstance(t, Predicate) and is_ancestor_descendant(t.name), in_context_term=False)  # type: ignore # noqa: E501
 
         def walk_term(term: Term) -> None:
             # precondition: this method is only called with a term that has ancestor/descendant
@@ -661,7 +661,7 @@ class Part:
 
     @property
     def visible_predicates(self) -> List[Predicate]:
-        result: List[Predicate] = self.term.find_terms(lambda x: isinstance(x, Predicate))  # type: ignore
+        result: List[Predicate] = self.term.find_terms(lambda x: isinstance(x, Predicate), in_context_term=False)  # type: ignore # noqa: E501
         for ctx in self.term.find_terms(lambda x: isinstance(x, ContextTerm)):
             result.extend(ctx.visible_predicates())  # type: ignore
         return result
@@ -986,8 +986,8 @@ class Query:
         """
         return [pred for part in self.parts for pred in part.visible_predicates]
 
-    def find_terms(self, fn: Callable[[Term], bool]) -> List[Term]:
-        return [t for p in self.parts for t in p.term.find_terms(fn)]
+    def find_terms(self, fn: Callable[[Term], bool], **kwargs: bool) -> List[Term]:
+        return [t for p in self.parts for t in p.term.find_terms(fn, **kwargs)]
 
     def analytics(self) -> Tuple[Dict[str, int], Dict[str, List[str]]]:
         counters: Dict[str, int] = defaultdict(lambda: 0)
