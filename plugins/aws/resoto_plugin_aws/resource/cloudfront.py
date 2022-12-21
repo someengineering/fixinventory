@@ -853,17 +853,6 @@ class AwsCloudFrontResponseHeadersPolicy(CloudFrontResource, AwsResource):
 
 
 @define(eq=False, slots=False)
-class AwsCloudFrontSigner:
-    kind: ClassVar[str] = "aws_cloudfront_signer"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "aws_account_number": S("AwsAccountNumber"),
-        "key_pair_ids": S("KeyPairIds", "Items", default=[]),
-    }
-    aws_account_number: Optional[str] = field(default=None)
-    key_pair_ids: List[str] = field(factory=list)
-
-
-@define(eq=False, slots=False)
 class AwsCloudFrontS3Origin:
     kind: ClassVar[str] = "aws_cloudfront_s3_origin"
     mapping: ClassVar[Dict[str, Bender]] = {
