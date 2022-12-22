@@ -11,7 +11,7 @@ def read(fname):
 
 setup(
     name="resoto-plugin-posthog",
-    version="3.0.2",
+    version="3.0.3",
     description="Resoto Posthog Collector Plugin",
     license="Apache 2.0",
     packages=find_packages(),
