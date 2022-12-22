@@ -1,6 +1,4 @@
 import logging
-
-from datetime import datetime
 from typing import ClassVar, Dict, List, Optional, Type
 
 from attr import define, field
@@ -13,7 +11,7 @@ from resoto_plugin_aws.resource.s3 import AwsS3Bucket
 from resoto_plugin_aws.utils import ToDict
 from resotolib.baseresources import ModelReference
 from resotolib.graph import Graph
-from resotolib.json_bender import K, S, Bend, Bender, ForallBend, bend
+from resotolib.json_bender import S, Bend, Bender, ForallBend, bend
 from resotolib.types import Json
 
 log = logging.getLogger("resoto.plugins.aws")
@@ -386,9 +384,7 @@ class AwsCloudFrontDistribution(CloudFrontTaggable, CloudFrontResource, AwsResou
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Id"),
-        "ctime": S("LastModifiedTime"),
-        "mtime": K(None),
-        "atime": K(None),
+        "mtime": S("LastModifiedTime"),
         "arn": S("ARN"),
         "distribution_status": S("Status"),
         "distribution_domain_name": S("DomainName"),
@@ -951,10 +947,8 @@ class AwsCloudFrontCachePolicy(CloudFrontResource, AwsResource):
         "id": S("CachePolicy", "Id"),
         "name": S("CachePolicy", "CachePolicyConfig", "Name"),
         "mtime": S("CachePolicy", "LastModifiedTime"),
-        "cache_policy_last_modified_time": S("CachePolicy", "LastModifiedTime"),
         "cache_policy_config": S("CachePolicy", "CachePolicyConfig") >> Bend(AwsCloudFrontCachePolicyConfig.mapping),
     }
-    cache_policy_last_modified_time: Optional[datetime] = field(default=None)
     cache_policy_config: Optional[AwsCloudFrontCachePolicyConfig] = field(default=None)
 
     @classmethod
