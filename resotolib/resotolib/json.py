@@ -1,6 +1,6 @@
 import json
 from datetime import timedelta
-from typing import TypeVar, Any, Type, Optional, Dict
+from typing import TypeVar, Any, Type, Optional, Dict, Union, List
 
 import attrs
 import cattrs
@@ -35,11 +35,13 @@ def to_json(node: Any, **kwargs: Any) -> Json:
         if isinstance(strip_attr, str):
             if unstructured.get(strip_attr):
                 del unstructured[strip_attr]
-        else:
+        elif isinstance(strip_attr, list):
             for field in strip_attr:
                 if unstructured.get(field):
                     del unstructured[field]
-    result = jsons.dump(  # type: ignore
+        else:
+            raise ValueError(f"Don't know how to handle type of strip_attr: {strip_attr}")
+    result: Json = jsons.dump(  # type: ignore
         unstructured,
         strip_microseconds=True,
         strip_nulls=True,
@@ -70,6 +72,26 @@ def from_json(json: JsonElement, clazz: Type[AnyT], **kwargs: Any) -> AnyT:
     except Exception as e:
         log.debug(f"Can not deserialize json into class {clazz.__name__}: {json}. Error: {e}")
         raise
+
+
+def value_in_path(element: JsonElement, path_or_name: Union[List[str], str]) -> Optional[Any]:
+    """
+    Access a value in a json object by a defined path.
+    {"a": {"b": {"c": 1}}} -> value_in_path({"a": {"b": {"c": 1}}}, ["a", "b", "c"]) -> 1
+    The path can be defined as a list of strings or as a string with dots as separator.
+    """
+    path = path_or_name if isinstance(path_or_name, list) else path_or_name.split(".")
+    at = len(path)
+
+    def at_idx(current: JsonElement, idx: int) -> Optional[Any]:
+        if at == idx:
+            return current
+        elif current is None or not isinstance(current, dict) or path[idx] not in current:
+            return None
+        else:
+            return at_idx(current[path[idx]], idx + 1)
+
+    return at_idx(element, 0)
 
 
 # allow timedelta either as number of seconds or as duration string

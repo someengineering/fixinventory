@@ -13,6 +13,7 @@ from botocore.config import Config
 
 from resoto_plugin_aws.configuration import AwsConfig
 from resotolib.core.actions import CoreFeedback
+from resotolib.json import value_in_path
 from resotolib.types import Json, JsonElement
 from resotolib.utils import utc_str, log_runtime
 
@@ -107,7 +108,7 @@ class AwsClient:
                     # the whole object is appended
                     result.append(next_page)
                 else:
-                    child = next_page.get(result_name)
+                    child = value_in_path(next_page, result_name)
                     if isinstance(child, list):
                         result.extend(child)
                     elif child is not None:
@@ -118,7 +119,7 @@ class AwsClient:
             result = getattr(client, py_action)(**kwargs)
             single: Json = self.__to_json(result)  # type: ignore
             log.debug(f"[Aws] called service={aws_service} action={action}{arg_info}: single result")
-            return single.get(result_name) if result_name else single
+            return value_in_path(single, result_name) if result_name else single
 
     @retry(  # type: ignore
         stop_max_attempt_number=10,
