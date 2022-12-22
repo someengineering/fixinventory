@@ -31,7 +31,8 @@ class CloudFrontResource:
         for js in json:
             instance = cls.from_api(js)
             builder.add_node(instance, js)
-            builder.submit_work(add_tags, instance)
+            if instance.arn:
+                builder.submit_work(add_tags, instance)
 
     @classmethod
     def collect_resources(cls: Type[AwsResource], builder: GraphBuilder) -> None:  # type: ignore
@@ -786,7 +787,7 @@ class AwsCloudFrontResponseHeadersPolicyConfig:
         >> Bend(AwsCloudFrontResponseHeadersPolicySecurityHeadersConfig.mapping),
         "server_timing_headers_config": S("ServerTimingHeadersConfig")
         >> Bend(AwsCloudFrontResponseHeadersPolicyServerTimingHeadersConfig.mapping),
-        "custom_headers_config": S("CustomHeadersConfig", "Items")
+        "custom_headers_config": S("CustomHeadersConfig", "Items", default=[])
         >> ForallBend(AwsCloudFrontResponseHeadersPolicyCustomHeader.mapping),
     }
     comment: Optional[str] = field(default=None)
@@ -912,7 +913,7 @@ class AwsCloudFrontCachePolicyCookiesConfig:
     kind: ClassVar[str] = "aws_cloudfront_cache_policy_cookies_config"
     mapping: ClassVar[Dict[str, Bender]] = {
         "cookie_behavior": S("CookieBehavior"),
-        "cookies": S("Cookies"),
+        "cookies": S("Cookies", default=[]),
     }
     cookie_behavior: Optional[str] = field(default=None)
     cookies: List[str] = field(factory=list)
