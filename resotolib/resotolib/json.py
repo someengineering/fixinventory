@@ -35,7 +35,7 @@ def to_json(node: Any, **kwargs: Any) -> Json:
         if isinstance(strip_attr, str):
             if unstructured.get(strip_attr):
                 del unstructured[strip_attr]
-        elif isinstance(strip_attr, list):
+        elif isinstance(strip_attr, (list, tuple)):
             for field in strip_attr:
                 if unstructured.get(field):
                     del unstructured[field]
