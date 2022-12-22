@@ -786,7 +786,7 @@ class AwsCloudFrontResponseHeadersPolicyConfig:
         >> Bend(AwsCloudFrontResponseHeadersPolicySecurityHeadersConfig.mapping),
         "server_timing_headers_config": S("ServerTimingHeadersConfig")
         >> Bend(AwsCloudFrontResponseHeadersPolicyServerTimingHeadersConfig.mapping),
-        "custom_headers_config": S("CustomHeadersConfig", "Items")
+        "custom_headers_config": S("CustomHeadersConfig", "Items", default=[])
         >> ForallBend(AwsCloudFrontResponseHeadersPolicyCustomHeader.mapping),
     }
     comment: Optional[str] = field(default=None)
