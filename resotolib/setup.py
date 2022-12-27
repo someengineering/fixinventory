@@ -1,12 +1,12 @@
+import os
 import resotolib
+import pkg_resources
 from setuptools import setup, find_packages
 
 
-with open("requirements.txt") as f:
-    requirements = f.read().splitlines()
-
-with open("README.md") as f:
-    readme = f.read()
+def read(file_name: str) -> str:
+    with open(os.path.join(os.path.dirname(__file__), file_name)) as of:
+        return of.read()
 
 
 setup(
@@ -16,11 +16,11 @@ setup(
     license=resotolib.__license__,
     packages=find_packages(),
     package_data={"resotolib": ["py.typed"]},
-    long_description=readme,
+    long_description=read("README.md"),
     long_description_content_type="text/markdown",
     include_package_data=True,
     zip_safe=False,
-    install_requires=requirements,
+    install_requires=[str(requirement) for requirement in pkg_resources.parse_requirements(read("requirements.txt"))],
     setup_requires=["pytest-runner"],
     tests_require=["pytest"],
     classifiers=[
