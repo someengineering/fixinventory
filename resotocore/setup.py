@@ -5,22 +5,20 @@
 from setuptools import setup, find_packages
 from setuptools.command.develop import develop
 from subprocess import check_call
+import os
+import pkg_resources
 
-with open("requirements.txt") as f:
-    required = f.read().splitlines()
 
-with open("requirements-dev.txt") as f:
-    dev_required = f.read().splitlines()
+def read(file_name: str) -> str:
+    with open(os.path.join(os.path.dirname(__file__), file_name)) as of:
+        return of.read()
 
-with open("requirements-test.txt") as f:
-    test_required = f.read().splitlines()
 
-with open("README.md") as f:
-    readme = f.read()
+def read_requirements(fname):
+    return [str(requirement) for requirement in pkg_resources.parse_requirements(read(fname))]
 
-setup_requirements = [
-    "pytest-runner",
-]
+
+setup_requirements = ["pytest-runner"]
 
 
 class PostDevelopCommand(develop):
@@ -46,15 +44,15 @@ setup(
     python_requires=">=3.5",
     classifiers=["Programming Language :: Python :: 3"],
     entry_points={"console_scripts": ["resotocore=resotocore.__main__:main"]},
-    install_requires=required,
+    install_requires=read_requirements("requirements.txt"),
     license="Apache Software License 2.0",
-    long_description=readme,
+    long_description=read("README.md"),
     long_description_content_type="text/markdown",
     include_package_data=True,
     packages=find_packages(include=["resotocore", "resotocore.*"]),
     setup_requires=setup_requirements,
     test_suite="tests",
-    tests_require=dev_required + test_required,
+    tests_require=read_requirements("requirements-dev.txt") + read_requirements("requirements-test.txt"),
     url="https://github.com/someengineering/resoto/resotocore",
     cmdclass={
         "develop": PostDevelopCommand,

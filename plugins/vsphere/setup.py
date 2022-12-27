@@ -1,12 +1,11 @@
 import os
+import pkg_resources
 from setuptools import setup, find_packages
 
-with open("requirements.txt") as f:
-    requirements = f.read().splitlines()
 
-
-def read(fname):
-    return open(os.path.join(os.path.dirname(__file__), fname)).read()
+def read(file_name: str) -> str:
+    with open(os.path.join(os.path.dirname(__file__), file_name)) as of:
+        return of.read()
 
 
 setup(
@@ -20,7 +19,7 @@ setup(
     entry_points={"resoto.plugins": ["vsphere = resoto_plugin_vsphere:VSphereCollectorPlugin"]},
     include_package_data=True,
     zip_safe=False,
-    install_requires=requirements,
+    install_requires=[str(requirement) for requirement in pkg_resources.parse_requirements(read("requirements.txt"))],
     setup_requires=["pytest-runner"],
     tests_require=["pytest"],
     classifiers=[

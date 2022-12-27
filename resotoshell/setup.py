@@ -1,13 +1,12 @@
+import os
+import pkg_resources
 import resotoshell
 from setuptools import setup, find_packages
 
 
-with open("requirements.txt") as f:
-    requirements = f.read().splitlines()
-
-with open("README.md") as f:
-    readme = f.read()
-
+def read(file_name: str) -> str:
+    with open(os.path.join(os.path.dirname(__file__), file_name)) as of:
+        return of.read()
 
 setup(
     name=resotoshell.__title__,
@@ -15,7 +14,7 @@ setup(
     description=resotoshell.__description__,
     license=resotoshell.__license__,
     packages=find_packages(),
-    long_description=readme,
+    long_description=read("README.md"),
     long_description_content_type="text/markdown",
     entry_points={
         "console_scripts": [
@@ -24,7 +23,7 @@ setup(
     },
     include_package_data=True,
     zip_safe=False,
-    install_requires=requirements,
+    install_requires=[str(requirement) for requirement in pkg_resources.parse_requirements(read("requirements.txt"))],
     setup_requires=["pytest-runner"],
     tests_require=["pytest"],
     classifiers=[
