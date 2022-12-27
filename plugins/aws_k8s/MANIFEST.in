@@ -1,4 +1,2 @@
-include README.md
 include requirements.txt
 include requirements-test.txt
-include resotolib/web/static/*
