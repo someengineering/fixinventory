@@ -29,7 +29,7 @@ from resotocore.console_renderer import ConsoleRenderer, ConsoleColorSystem
 from resotocore.db.graphdb import ArangoGraphDB
 from resotocore.db.jobdb import JobDb
 from resotocore.error import CLIParseError
-from resotocore.model.model import Model, ComplexKind
+from resotocore.model.model import Model
 from resotocore.model.typed_model import to_js
 from resotocore.query.model import Template, Query
 from resotocore.task.task_description import TimeTrigger, Workflow, EventTrigger
@@ -544,9 +544,8 @@ async def test_tag_command(
 @pytest.mark.asyncio
 async def test_kinds_command(cli: CLI, foo_model: Model) -> None:
     result = await cli.execute_cli_command("kind", stream.list)
-    for kind in foo_model.kinds.values():
-        if isinstance(kind, ComplexKind):
-            assert kind.fqn in result[0]
+    for kind in ["account", "bla", "child", "cloud", "inner", "parent", "region", "some_complex"]:
+        assert kind in result[0]
     result = await cli.execute_cli_command("kind foo", stream.list)
     assert result[0][0] == {
         "name": "foo",

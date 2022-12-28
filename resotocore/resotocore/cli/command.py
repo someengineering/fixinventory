@@ -1603,13 +1603,14 @@ class JqCommand(CLICommand, OutputTransformer):
 class KindsCommand(CLICommand, PreserveOutputFormat):
     """
     ```shell
-    kinds [-p property_path] [name]
+    kinds [-a ] [-p property_path] [name]
     ```
 
     kinds gives information about the available graph data kinds.
 
     ## Options
 
+    - `-a` | `--all` [Optional]:  Show all kinds. By default only the top level service kinds are shown.
     - `-p` [Optional] property_path: lookup the kind for the defined property path.
        This will do a reverse lookup and search all kinds for the specified property path.
 
@@ -1668,6 +1669,11 @@ class KindsCommand(CLICommand, PreserveOutputFormat):
     def args_info(self) -> ArgsInfo:
         return [
             ArgInfo(
+                "-a",
+                expects_value=False,
+                help_text="Show all available kinds.",
+            ),
+            ArgInfo(
                 "-p",
                 expects_value=True,
                 value_hint="property",
@@ -1679,6 +1685,7 @@ class KindsCommand(CLICommand, PreserveOutputFormat):
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLISource:
         parser = NoExitArgumentParser()
+        parser.add_argument("-a", "--all", dest="show_all", action="store_true", default=False)
         parser.add_argument("-p", "--property-path", dest="property_path", type=str)
         parser.add_argument("name", type=str, nargs="?")
         args = parser.parse_args(strip_quotes(arg or "").split())
@@ -1730,6 +1737,13 @@ class KindsCommand(CLICommand, PreserveOutputFormat):
 
         async def source() -> Tuple[int, Stream]:
             model = await self.dependencies.model_handler.load_model()
+
+            def show(k: ComplexKind) -> bool:
+                return args.show_all or (
+                    k.aggregate_root
+                    and not any(isinstance(m, ComplexKind) and k.fqn in m.bases for m in model.kinds.values())
+                )
+
             if args.name:
                 kind = args.name
                 result = kind_to_js(model, model[kind]) if kind in model else f"No kind with this name: {kind}"
@@ -1741,7 +1755,7 @@ class KindsCommand(CLICommand, PreserveOutputFormat):
                     result["appears_in"] = appears_in
                 return 1, stream.just(result)
             else:
-                result = sorted([model.fqn for model in model.kinds.values() if isinstance(model, ComplexKind)])
+                result = sorted([k.fqn for k in model.kinds.values() if isinstance(k, ComplexKind) and show(k)])
                 return len(model.kinds), stream.iterate(result)
 
         return CLISource(source)
