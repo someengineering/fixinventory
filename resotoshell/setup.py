@@ -8,6 +8,7 @@ def read(file_name: str) -> str:
     with open(os.path.join(os.path.dirname(__file__), file_name)) as of:
         return of.read()
 
+
 setup(
     name=resotoshell.__title__,
     version=resotoshell.__version__,
@@ -46,4 +47,5 @@ setup(
         "Topic :: Utilities",
     ],
     keywords="cloud security",
+    url="https://github.com/someengineering/resoto/tree/main/resotoshell",
 )
