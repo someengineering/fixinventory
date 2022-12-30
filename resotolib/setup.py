@@ -43,4 +43,5 @@ setup(
         "Topic :: Utilities",
     ],
     keywords="cloud security",
+    url="https://github.com/someengineering/resoto/tree/main/resotolib",
 )

@@ -34,5 +34,5 @@ setup(
     setup_requires=setup_requirements,
     test_suite="tests",
     tests_require=read_requirements("requirements-dev.txt") + read_requirements("requirements-test.txt"),
-    url="https://github.com/someengineering/resoto/resotoeventlog",
+    url="https://github.com/someengineering/resoto/tree/main/resotoeventlog",
 )
