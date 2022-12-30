@@ -42,5 +42,5 @@ setup(
         "Topic :: Utilities",
     ],
     keywords="cloud security",
-    url="https://github.com/someengineering/resoto/tree/main/plugins/aws",
+    url="https://github.com/someengineering/resoto/tree/main/plugins/aws_k8s",
 )
