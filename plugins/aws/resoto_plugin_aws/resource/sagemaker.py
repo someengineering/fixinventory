@@ -75,4 +75,22 @@ class AwsSagemakerModel(AwsResource):
     }
 
 
-resources: List[Type[AwsResource]] = [AwsSagemakerNotebook, AwsSagemakerApp, AwsSagemakerModel]
+@define(eq=False, slots=False)
+class AwsSagemakerDomain(AwsResource):
+    kind: ClassVar[str] = "aws_sagemaker_domain"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-domains", "Domains")
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("DomainId"),
+        # "tags": S("Tags", default=[]) >> ToDict(),
+        "name": S("DomainName"),
+        "ctime": S("CreationTime"),
+        "mtime": S("LastModifiedTime"),
+        "arn": S("DomainArn"),
+        "domain_status": S("Status"),
+        "domain_url": S("Url"),
+    }
+    domain_status: Optional[str] = field(default=None)
+    domain_url: Optional[str] = field(default=None)
+
+
+resources: List[Type[AwsResource]] = [AwsSagemakerNotebook, AwsSagemakerApp, AwsSagemakerModel, AwsSagemakerDomain]

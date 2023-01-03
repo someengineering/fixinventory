@@ -1,5 +1,10 @@
 from test.resources import round_trip_for
-from resoto_plugin_aws.resource.sagemaker import AwsSagemakerNotebook, AwsSagemakerApp, AwsSagemakerModel
+from resoto_plugin_aws.resource.sagemaker import (
+    AwsSagemakerNotebook,
+    AwsSagemakerApp,
+    AwsSagemakerModel,
+    AwsSagemakerDomain,
+)
 
 
 def test_notebooks() -> None:
@@ -17,3 +22,8 @@ def test_apps() -> None:
 def test_models() -> None:
     first, builder = round_trip_for(AwsSagemakerModel)
     assert len(builder.resources_of(AwsSagemakerModel)) == 1
+
+
+def test_domains() -> None:
+    first, builder = round_trip_for(AwsSagemakerDomain)
+    assert len(builder.resources_of(AwsSagemakerDomain)) == 1
