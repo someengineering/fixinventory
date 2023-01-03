@@ -1,8 +1,14 @@
 from test.resources import round_trip_for
-from resoto_plugin_aws.resource.sagemaker import AwsSagemakerNotebook
+from resoto_plugin_aws.resource.sagemaker import AwsSagemakerNotebook, AwsSagemakerApp
 
 
 def test_notebooks() -> None:
     first, builder = round_trip_for(AwsSagemakerNotebook)
     assert len(builder.resources_of(AwsSagemakerNotebook)) == 1
     # assert len(first.tags) == 1
+
+
+def test_apps() -> None:
+    first, builder = round_trip_for(AwsSagemakerApp)
+    assert len(builder.resources_of(AwsSagemakerApp)) == 1
+    assert first.arn

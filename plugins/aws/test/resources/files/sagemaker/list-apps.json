@@ -1,0 +1,14 @@
+{
+    "Apps": [
+        {
+            "DomainId": "string",
+            "UserProfileName": "string",
+            "AppType": "JupyterServer or KernelGateway or TensorBoard or RStudioServerPro or RSessionGateway",
+            "AppName": "string",
+            "Status": "Deleted or Deleting or Failed or InService or Pending",
+            "CreationTime": "2015-01-01T00:00:00Z",
+            "SpaceName": "string"
+        }
+    ],
+    "NextToken": "string"
+}

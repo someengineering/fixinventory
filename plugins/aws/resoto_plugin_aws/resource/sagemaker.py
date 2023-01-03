@@ -1,7 +1,8 @@
 from attrs import define, field
 from typing import ClassVar, Dict, List, Optional, Type
-from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource
+from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
 from resotolib.json_bender import S, Bender
+from resotolib.types import Json
 
 
 @define(eq=False, slots=False)
@@ -32,4 +33,33 @@ class AwsSagemakerNotebook(AwsResource):
     # edge to code repo
 
 
-resources: List[Type[AwsResource]] = [AwsSagemakerNotebook]
+@define(eq=False, slots=False)
+class AwsSagemakerApp(AwsResource):
+    kind: ClassVar[str] = "aws_sagemaker_app"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-apps", "Apps")
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("AppName"),
+        # "tags": S("Tags", default=[]) >> ToDict(),
+        "name": S("AppName"),
+        "ctime": S("CreationTime"),
+        "app_domain_id": S("DomainId"),
+        "app_user_profile_name": S("UserProfileName"),
+        "app_type": S("AppType"),
+        "app_status": S("Status"),
+    }
+    app_domain_id: Optional[str] = field(default=None)
+    app_user_profile_name: Optional[str] = field(default=None)
+    app_type: Optional[str] = field(default=None)
+    app_status: Optional[str] = field(default=None)
+
+    @classmethod
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        for js in json:
+            instance = cls.from_api(js)
+            instance.set_arn(builder, resource=f"app/{instance.name}")
+            builder.add_node(instance, js)
+
+    # edge to domain
+
+
+resources: List[Type[AwsResource]] = [AwsSagemakerNotebook, AwsSagemakerApp]
