@@ -783,7 +783,8 @@ models: Dict[str, List[AwsResotoModel]] = {
         #     prefix="Sagemaker",
         #     prop_prefix="notebook_",
         # ),
-        AwsResotoModel("list-apps", "Apps", "AppDetails", prefix="Sagemaker", prop_prefix="app_")
+        # AwsResotoModel("list-apps", "Apps", "AppDetails", prefix="Sagemaker", prop_prefix="app_"),
+        AwsResotoModel("list-models", "Models", "ModelSummary", prefix="Sagemaker", prop_prefix="model_")
     ],
     "service-quotas": [
         # AwsResotoModel("list-service-quotas", "Quotas", "ServiceQuota", prefix="Quota", prop_prefix="quota_")

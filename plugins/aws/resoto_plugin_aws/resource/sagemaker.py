@@ -62,4 +62,17 @@ class AwsSagemakerApp(AwsResource):
     # edge to domain
 
 
-resources: List[Type[AwsResource]] = [AwsSagemakerNotebook, AwsSagemakerApp]
+@define(eq=False, slots=False)
+class AwsSagemakerModel(AwsResource):
+    kind: ClassVar[str] = "aws_sagemaker_model"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-models", "Models")
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("ModelName"),
+        # "tags": S("Tags", default=[]) >> ToDict(),
+        "name": S("ModelName"),
+        "arn": S("ModelArn"),
+        "ctime": S("CreationTime"),
+    }
+
+
+resources: List[Type[AwsResource]] = [AwsSagemakerNotebook, AwsSagemakerApp, AwsSagemakerModel]
