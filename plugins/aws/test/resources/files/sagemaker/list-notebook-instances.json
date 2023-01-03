@@ -2,8 +2,8 @@
     "NextToken": "string",
     "NotebookInstances": [
         {
-            "NotebookInstanceName": "NotebookName",
-            "NotebookInstanceArn": "arn:aws:sagemaker:eu-central-1:123456789:notebook-instance/notebookname",
+            "NotebookInstanceName": "notebookname",
+            "NotebookInstanceArn": "string",
             "NotebookInstanceStatus": "Pending",
             "Url": "string",
             "InstanceType": "ml.t2.medium",

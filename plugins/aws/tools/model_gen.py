@@ -776,16 +776,16 @@ models: Dict[str, List[AwsResotoModel]] = {
         # )
     ],
     "sagemaker": [
-        # AwsResotoModel(
-        #     "list-notebook-instances",
-        #     "Notebook Instances",
-        #     "NotebookInstanceSummary",
-        #     prefix="Sagemaker",
-        #     prop_prefix="notebook_",
-        # ),
+        AwsResotoModel(
+            "describe-notebook-instance",
+            None,
+            "DescribeNotebookInstanceOutput",
+            prefix="Sagemaker",
+            prop_prefix="notebook_",
+        ),
         # AwsResotoModel("list-apps", "Apps", "AppDetails", prefix="Sagemaker", prop_prefix="app_"),
         # AwsResotoModel("list-models", "Models", "ModelSummary", prefix="Sagemaker", prop_prefix="model_"),
-        AwsResotoModel("list-domains", "Domains", "DomainDetails", prefix="Sagemaker", prop_prefix="domain_")
+        # AwsResotoModel("list-domains", "Domains", "DomainDetails", prefix="Sagemaker", prop_prefix="domain_")
     ],
     "service-quotas": [
         # AwsResotoModel("list-service-quotas", "Quotas", "ServiceQuota", prefix="Quota", prop_prefix="quota_")

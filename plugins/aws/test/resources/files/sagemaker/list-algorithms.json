@@ -1,0 +1,12 @@
+{
+    "AlgorithmSummaryList": [
+        {
+            "AlgorithmName": "string",
+            "AlgorithmArn": "string",
+            "AlgorithmDescription": "string",
+            "CreationTime": "2015-01-01T00:00:00Z",
+            "AlgorithmStatus": "Pending"
+        }
+    ],
+    "NextToken": "string"
+}
