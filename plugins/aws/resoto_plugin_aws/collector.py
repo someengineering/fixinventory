@@ -30,6 +30,7 @@ from resoto_plugin_aws.resource import (
     rds,
     route53,
     s3,
+    sagemaker,
     service_quotas,
     sns,
     sqs,
@@ -73,6 +74,7 @@ regional_resources: List[Type[AwsResource]] = (
     + kms.resources
     + lambda_.resources
     + rds.resources
+    + sagemaker.resources
     + service_quotas.resources
     + sns.resources
     + sqs.resources

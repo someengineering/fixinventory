@@ -1,0 +1,19 @@
+{
+    "NextToken": "string",
+    "NotebookInstances": [
+        {
+            "NotebookInstanceName": "NotebookName",
+            "NotebookInstanceArn": "arn:aws:sagemaker:eu-central-1:123456789:notebook-instance/notebookname",
+            "NotebookInstanceStatus": "Pending",
+            "Url": "string",
+            "InstanceType": "ml.t2.medium",
+            "CreationTime": "2015-01-01T00:00:00Z",
+            "LastModifiedTime": "2015-01-01T00:00:00Z",
+            "NotebookInstanceLifecycleConfigName": "string",
+            "DefaultCodeRepository": "string",
+            "AdditionalCodeRepositories": [
+                "string"
+            ]
+        }
+    ]
+}
