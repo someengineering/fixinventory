@@ -545,4 +545,84 @@ class AwsSagemakerAlgorithm(AwsResource):
                 builder.add_node(algorithm_instance, algorithm_description)
 
 
-resources: List[Type[AwsResource]] = [AwsSagemakerNotebook, AwsSagemakerAlgorithm]
+@define(eq=False, slots=False)
+class AwsSagemakerImageConfig:
+    kind: ClassVar[str] = "aws_sagemaker_image_config"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "repository_access_mode": S("RepositoryAccessMode"),
+        "repository_auth_config": S("RepositoryAuthConfig", "RepositoryCredentialsProviderArn"),
+    }
+    repository_access_mode: Optional[str] = field(default=None)
+    repository_auth_config: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerContainerDefinition:
+    kind: ClassVar[str] = "aws_sagemaker_container_definition"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "container_hostname": S("ContainerHostname"),
+        "image": S("Image"),
+        "image_config": S("ImageConfig") >> Bend(AwsSagemakerImageConfig.mapping),
+        "mode": S("Mode"),
+        "model_data_url": S("ModelDataUrl"),
+        "environment": S("Environment"),
+        "model_package_name": S("ModelPackageName"),
+        "inference_specification_name": S("InferenceSpecificationName"),
+        "multi_model_config": S("MultiModelConfig", "ModelCacheSetting"),
+    }
+    container_hostname: Optional[str] = field(default=None)
+    image: Optional[str] = field(default=None)
+    image_config: Optional[AwsSagemakerImageConfig] = field(default=None)
+    mode: Optional[str] = field(default=None)
+    model_data_url: Optional[str] = field(default=None)
+    environment: Optional[Dict[str, str]] = field(default=None)
+    model_package_name: Optional[str] = field(default=None)
+    inference_specification_name: Optional[str] = field(default=None)
+    multi_model_config: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerVpcConfig:
+    kind: ClassVar[str] = "aws_sagemaker_vpc_config"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "security_group_ids": S("SecurityGroupIds", default=[]),
+        "subnets": S("Subnets", default=[]),
+    }
+    security_group_ids: List[str] = field(factory=list)
+    subnets: List[str] = field(factory=list)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerModel(AwsResource):
+    kind: ClassVar[str] = "aws_sagemaker_model"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-models", "Models")
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("ModelName"),
+        # "tags": S("Tags", default=[]) >> ToDict(),
+        "name": S("ModelName"),
+        "ctime": S("CreationTime"),
+        "arn": S("ModelArn"),
+        "model_primary_container": S("PrimaryContainer") >> Bend(AwsSagemakerContainerDefinition.mapping),
+        "model_containers": S("Containers", default=[]) >> ForallBend(AwsSagemakerContainerDefinition.mapping),
+        "model_inference_execution_config": S("InferenceExecutionConfig", "Mode"),
+        "model_execution_role_arn": S("ExecutionRoleArn"),
+        "model_vpc_config": S("VpcConfig") >> Bend(AwsSagemakerVpcConfig.mapping),
+        "model_enable_network_isolation": S("EnableNetworkIsolation"),
+    }
+    model_primary_container: Optional[AwsSagemakerContainerDefinition] = field(default=None)
+    model_containers: List[AwsSagemakerContainerDefinition] = field(factory=list)
+    model_inference_execution_config: Optional[str] = field(default=None)
+    model_execution_role_arn: Optional[str] = field(default=None)
+    model_vpc_config: Optional[AwsSagemakerVpcConfig] = field(default=None)
+    model_enable_network_isolation: Optional[bool] = field(default=None)
+
+    @classmethod
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        for model in json:
+            model_description = builder.client.get("sagemaker", "describe-model", None, ModelName=model["ModelName"])
+            if model_description:
+                model_instance = AwsSagemakerModel.from_api(model_description)
+                builder.add_node(model_instance, model_description)
+
+
+resources: List[Type[AwsResource]] = [AwsSagemakerNotebook, AwsSagemakerAlgorithm, AwsSagemakerModel]

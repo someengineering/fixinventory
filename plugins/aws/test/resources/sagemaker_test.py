@@ -3,7 +3,7 @@ from resoto_plugin_aws.resource.sagemaker import (
     AwsSagemakerNotebook,
     AwsSagemakerAlgorithm,
     # AwsSagemakerApp,
-    # AwsSagemakerModel,
+    AwsSagemakerModel,
     # AwsSagemakerDomain,
 )
 
@@ -25,9 +25,9 @@ def test_algorithms() -> None:
 #     assert first.arn
 
 
-# def test_models() -> None:
-#     first, builder = round_trip_for(AwsSagemakerModel)
-#     assert len(builder.resources_of(AwsSagemakerModel)) == 1
+def test_models() -> None:
+    first, builder = round_trip_for(AwsSagemakerModel)
+    assert len(builder.resources_of(AwsSagemakerModel)) == 1
 
 
 # def test_domains() -> None:
