@@ -1,3 +1,4 @@
+from datetime import datetime
 from attrs import define, field
 from typing import ClassVar, Dict, List, Optional, Type
 from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
@@ -625,4 +626,64 @@ class AwsSagemakerModel(AwsResource):
                 builder.add_node(model_instance, model_description)
 
 
-resources: List[Type[AwsResource]] = [AwsSagemakerNotebook, AwsSagemakerAlgorithm, AwsSagemakerModel]
+@define(eq=False, slots=False)
+class AwsSagemakerResourceSpec:
+    kind: ClassVar[str] = "aws_sagemaker_resource_spec"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "sage_maker_image_arn": S("SageMakerImageArn"),
+        "sage_maker_image_version_arn": S("SageMakerImageVersionArn"),
+        "instance_type": S("InstanceType"),
+        "lifecycle_config_arn": S("LifecycleConfigArn"),
+    }
+    sage_maker_image_arn: Optional[str] = field(default=None)
+    sage_maker_image_version_arn: Optional[str] = field(default=None)
+    instance_type: Optional[str] = field(default=None)
+    lifecycle_config_arn: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerApp(AwsResource):
+    kind: ClassVar[str] = "aws_sagemaker_app"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-apps", "Apps")
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("AppName"),
+        # "tags": S("Tags", default=[]) >> ToDict(),
+        "name": S("AppName"),
+        "ctime": S("CreationTime"),
+        "atime": S("LastUserActivityTimestamp"),
+        "arn": S("AppArn"),
+        "app_type": S("AppType"),
+        "app_domain_id": S("DomainId"),
+        "app_user_profile_name": S("UserProfileName"),
+        "app_status": S("Status"),
+        "app_last_health_check_timestamp": S("LastHealthCheckTimestamp"),
+        "app_failure_reason": S("FailureReason"),
+        "app_resource_spec": S("ResourceSpec") >> Bend(AwsSagemakerResourceSpec.mapping),
+        "app_space_name": S("SpaceName"),
+    }
+    app_type: Optional[str] = field(default=None)
+    app_domain_id: Optional[str] = field(default=None)
+    app_user_profile_name: Optional[str] = field(default=None)
+    app_status: Optional[str] = field(default=None)
+    app_last_health_check_timestamp: Optional[datetime] = field(default=None)
+    app_failure_reason: Optional[str] = field(default=None)
+    app_resource_spec: Optional[AwsSagemakerResourceSpec] = field(default=None)
+    app_space_name: Optional[str] = field(default=None)
+
+    @classmethod
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        for app in json:
+            app_description = builder.client.get(
+                "sagemaker",
+                "describe-app",
+                None,
+                DomainId=app["DomainId"],
+                AppType=app["AppType"],
+                AppName=app["AppName"],
+            )
+            if app_description:
+                app_instance = AwsSagemakerApp.from_api(app_description)
+                builder.add_node(app_instance, app_description)
+
+
+resources: List[Type[AwsResource]] = [AwsSagemakerNotebook, AwsSagemakerAlgorithm, AwsSagemakerModel, AwsSagemakerApp]
