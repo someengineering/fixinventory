@@ -784,9 +784,9 @@ models: Dict[str, List[AwsResotoModel]] = {
         #     prop_prefix="notebook_",
         # ),
         # AwsResotoModel("describe-algorithm", None, "DescribeAlgorithmOutput", "Sagemaker", "algorithm_"),
-        AwsResotoModel("describe-app", None, "DescribeAppResponse", prefix="Sagemaker", prop_prefix="app_"),
+        # AwsResotoModel("describe-app", None, "DescribeAppResponse", prefix="Sagemaker", prop_prefix="app_"),
         # AwsResotoModel("describe-model", None, "DescribeModelOutput", "Sagemaker", "model_")
-        # AwsResotoModel("list-domains", "Domains", "DomainDetails", prefix="Sagemaker", prop_prefix="domain_")
+        AwsResotoModel("describe-domain", None, "DescribeDomainResponse", prefix="Sagemaker", prop_prefix="domain_")
     ],
     "service-quotas": [
         # AwsResotoModel("list-service-quotas", "Quotas", "ServiceQuota", prefix="Quota", prop_prefix="quota_")

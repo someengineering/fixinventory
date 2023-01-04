@@ -1,0 +1,157 @@
+{
+    "DomainArn": "arn:aws:sagemaker:us-west-2:account-id:domain/oblivion",
+    "DomainId": "123",
+    "DomainName": "oblivion",
+    "HomeEfsFileSystemId": "string",
+    "SingleSignOnManagedApplicationInstanceId": "string",
+    "Status": "Deleting",
+    "CreationTime": "2015-01-01T00:00:00Z",
+    "LastModifiedTime": "2015-01-01T00:00:00Z",
+    "FailureReason": "string",
+    "AuthMode": "IAM",
+    "DefaultUserSettings": {
+        "ExecutionRole": "string",
+        "SecurityGroups": [
+            "string"
+        ],
+        "SharingSettings": {
+            "NotebookOutputOption": "Allowed",
+            "S3OutputPath": "string",
+            "S3KmsKeyId": "string"
+        },
+        "JupyterServerAppSettings": {
+            "DefaultResourceSpec": {
+                "SageMakerImageArn": "string",
+                "SageMakerImageVersionArn": "string",
+                "InstanceType": "system",
+                "LifecycleConfigArn": "string"
+            },
+            "LifecycleConfigArns": [
+                "string"
+            ],
+            "CodeRepositories": [
+                {
+                    "RepositoryUrl": "string"
+                }
+            ]
+        },
+        "KernelGatewayAppSettings": {
+            "DefaultResourceSpec": {
+                "SageMakerImageArn": "string",
+                "SageMakerImageVersionArn": "string",
+                "InstanceType": "system",
+                "LifecycleConfigArn": "string"
+            },
+            "CustomImages": [
+                {
+                    "ImageName": "string",
+                    "ImageVersionNumber": 123,
+                    "AppImageConfigName": "string"
+                }
+            ],
+            "LifecycleConfigArns": [
+                "string"
+            ]
+        },
+        "TensorBoardAppSettings": {
+            "DefaultResourceSpec": {
+                "SageMakerImageArn": "string",
+                "SageMakerImageVersionArn": "string",
+                "InstanceType": "system",
+                "LifecycleConfigArn": "string"
+            }
+        },
+        "RStudioServerProAppSettings": {
+            "AccessStatus": "ENABLED",
+            "UserGroup": "R_STUDIO_ADMIN"
+        },
+        "RSessionAppSettings": {
+            "DefaultResourceSpec": {
+                "SageMakerImageArn": "string",
+                "SageMakerImageVersionArn": "string",
+                "InstanceType": "system",
+                "LifecycleConfigArn": "string"
+            },
+            "CustomImages": [
+                {
+                    "ImageName": "string",
+                    "ImageVersionNumber": 123,
+                    "AppImageConfigName": "string"
+                }
+            ]
+        },
+        "CanvasAppSettings": {
+            "TimeSeriesForecastingSettings": {
+                "Status": "ENABLED",
+                "AmazonForecastRoleArn": "string"
+            }
+        }
+    },
+    "AppNetworkAccessType": "PublicInternetOnly",
+    "HomeEfsFileSystemKmsKeyId": "string",
+    "SubnetIds": [
+        "string"
+    ],
+    "Url": "string",
+    "VpcId": "string",
+    "KmsKeyId": "string",
+    "DomainSettings": {
+        "SecurityGroupIds": [
+            "string"
+        ],
+        "RStudioServerProDomainSettings": {
+            "DomainExecutionRoleArn": "string",
+            "RStudioConnectUrl": "string",
+            "RStudioPackageManagerUrl": "string",
+            "DefaultResourceSpec": {
+                "SageMakerImageArn": "string",
+                "SageMakerImageVersionArn": "string",
+                "InstanceType": "system",
+                "LifecycleConfigArn": "string"
+            }
+        },
+        "ExecutionRoleIdentityConfig": "USER_PROFILE_NAME"
+    },
+    "AppSecurityGroupManagement": "Service",
+    "SecurityGroupIdForDomainBoundary": "string",
+    "DefaultSpaceSettings": {
+        "ExecutionRole": "string",
+        "SecurityGroups": [
+            "string"
+        ],
+        "JupyterServerAppSettings": {
+            "DefaultResourceSpec": {
+                "SageMakerImageArn": "string",
+                "SageMakerImageVersionArn": "string",
+                "InstanceType": "system",
+                "LifecycleConfigArn": "string"
+            },
+            "LifecycleConfigArns": [
+                "string"
+            ],
+            "CodeRepositories": [
+                {
+                    "RepositoryUrl": "string"
+                }
+            ]
+        },
+        "KernelGatewayAppSettings": {
+            "DefaultResourceSpec": {
+                "SageMakerImageArn": "string",
+                "SageMakerImageVersionArn": "string",
+                "InstanceType": "system",
+                "LifecycleConfigArn": "string"
+            },
+            "CustomImages": [
+                {
+                    "ImageName": "string",
+                    "ImageVersionNumber": 123,
+                    "AppImageConfigName": "string"
+                }
+            ],
+            "LifecycleConfigArns": [
+                "string"
+            ]
+        }
+    }
+}

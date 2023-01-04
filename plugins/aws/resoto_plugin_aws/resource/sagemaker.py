@@ -686,4 +686,242 @@ class AwsSagemakerApp(AwsResource):
                 builder.add_node(app_instance, app_description)
 
 
-resources: List[Type[AwsResource]] = [AwsSagemakerNotebook, AwsSagemakerAlgorithm, AwsSagemakerModel, AwsSagemakerApp]
+@define(eq=False, slots=False)
+class AwsSagemakerSharingSettings:
+    kind: ClassVar[str] = "aws_sagemaker_sharing_settings"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "notebook_output_option": S("NotebookOutputOption"),
+        "s3_output_path": S("S3OutputPath"),
+        "s3_kms_key_id": S("S3KmsKeyId"),
+    }
+    notebook_output_option: Optional[str] = field(default=None)
+    s3_output_path: Optional[str] = field(default=None)
+    s3_kms_key_id: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerJupyterServerAppSettings:
+    kind: ClassVar[str] = "aws_sagemaker_jupyter_server_app_settings"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "default_resource_spec": S("DefaultResourceSpec") >> Bend(AwsSagemakerResourceSpec.mapping),
+        "lifecycle_config_arns": S("LifecycleConfigArns", default=[]),
+    }
+    default_resource_spec: Optional[AwsSagemakerResourceSpec] = field(default=None)
+    lifecycle_config_arns: List[str] = field(factory=list)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerCustomImage:
+    kind: ClassVar[str] = "aws_sagemaker_custom_image"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "image_name": S("ImageName"),
+        "image_version_number": S("ImageVersionNumber"),
+        "app_image_config_name": S("AppImageConfigName"),
+    }
+    image_name: Optional[str] = field(default=None)
+    image_version_number: Optional[int] = field(default=None)
+    app_image_config_name: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerKernelGatewayAppSettings:
+    kind: ClassVar[str] = "aws_sagemaker_kernel_gateway_app_settings"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "default_resource_spec": S("DefaultResourceSpec") >> Bend(AwsSagemakerResourceSpec.mapping),
+        "custom_images": S("CustomImages", default=[]) >> ForallBend(AwsSagemakerCustomImage.mapping),
+        "lifecycle_config_arns": S("LifecycleConfigArns", default=[]),
+    }
+    default_resource_spec: Optional[AwsSagemakerResourceSpec] = field(default=None)
+    custom_images: List[AwsSagemakerCustomImage] = field(factory=list)
+    lifecycle_config_arns: List[str] = field(factory=list)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerTensorBoardAppSettings:
+    kind: ClassVar[str] = "aws_sagemaker_tensor_board_app_settings"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "default_resource_spec": S("DefaultResourceSpec") >> Bend(AwsSagemakerResourceSpec.mapping)
+    }
+    default_resource_spec: Optional[AwsSagemakerResourceSpec] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerRStudioServerProAppSettings:
+    kind: ClassVar[str] = "aws_sagemaker_r_studio_server_pro_app_settings"
+    mapping: ClassVar[Dict[str, Bender]] = {"access_status": S("AccessStatus"), "user_group": S("UserGroup")}
+    access_status: Optional[str] = field(default=None)
+    user_group: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerRSessionAppSettings:
+    kind: ClassVar[str] = "aws_sagemaker_r_session_app_settings"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "default_resource_spec": S("DefaultResourceSpec") >> Bend(AwsSagemakerResourceSpec.mapping),
+        "custom_images": S("CustomImages", default=[]) >> ForallBend(AwsSagemakerCustomImage.mapping),
+    }
+    default_resource_spec: Optional[AwsSagemakerResourceSpec] = field(default=None)
+    custom_images: List[AwsSagemakerCustomImage] = field(factory=list)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerTimeSeriesForecastingSettings:
+    kind: ClassVar[str] = "aws_sagemaker_time_series_forecasting_settings"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "status": S("Status"),
+        "amazon_forecast_role_arn": S("AmazonForecastRoleArn"),
+    }
+    status: Optional[str] = field(default=None)
+    amazon_forecast_role_arn: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerCanvasAppSettings:
+    kind: ClassVar[str] = "aws_sagemaker_canvas_app_settings"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "time_series_forecasting_settings": S("TimeSeriesForecastingSettings")
+        >> Bend(AwsSagemakerTimeSeriesForecastingSettings.mapping)
+    }
+    time_series_forecasting_settings: Optional[AwsSagemakerTimeSeriesForecastingSettings] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerUserSettings:
+    kind: ClassVar[str] = "aws_sagemaker_user_settings"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "execution_role": S("ExecutionRole"),
+        "security_groups": S("SecurityGroups", default=[]),
+        "sharing_settings": S("SharingSettings") >> Bend(AwsSagemakerSharingSettings.mapping),
+        "jupyter_server_app_settings": S("JupyterServerAppSettings")
+        >> Bend(AwsSagemakerJupyterServerAppSettings.mapping),
+        "kernel_gateway_app_settings": S("KernelGatewayAppSettings")
+        >> Bend(AwsSagemakerKernelGatewayAppSettings.mapping),
+        "tensor_board_app_settings": S("TensorBoardAppSettings") >> Bend(AwsSagemakerTensorBoardAppSettings.mapping),
+        "r_studio_server_pro_app_settings": S("RStudioServerProAppSettings")
+        >> Bend(AwsSagemakerRStudioServerProAppSettings.mapping),
+        "r_session_app_settings": S("RSessionAppSettings") >> Bend(AwsSagemakerRSessionAppSettings.mapping),
+        "canvas_app_settings": S("CanvasAppSettings") >> Bend(AwsSagemakerCanvasAppSettings.mapping),
+    }
+    execution_role: Optional[str] = field(default=None)
+    security_groups: List[str] = field(factory=list)
+    sharing_settings: Optional[AwsSagemakerSharingSettings] = field(default=None)
+    jupyter_server_app_settings: Optional[AwsSagemakerJupyterServerAppSettings] = field(default=None)
+    kernel_gateway_app_settings: Optional[AwsSagemakerKernelGatewayAppSettings] = field(default=None)
+    tensor_board_app_settings: Optional[AwsSagemakerTensorBoardAppSettings] = field(default=None)
+    r_studio_server_pro_app_settings: Optional[AwsSagemakerRStudioServerProAppSettings] = field(default=None)
+    r_session_app_settings: Optional[AwsSagemakerRSessionAppSettings] = field(default=None)
+    canvas_app_settings: Optional[AwsSagemakerCanvasAppSettings] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerRStudioServerProDomainSettings:
+    kind: ClassVar[str] = "aws_sagemaker_r_studio_server_pro_domain_settings"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "domain_execution_role_arn": S("DomainExecutionRoleArn"),
+        "r_studio_connect_url": S("RStudioConnectUrl"),
+        "r_studio_package_manager_url": S("RStudioPackageManagerUrl"),
+        "default_resource_spec": S("DefaultResourceSpec") >> Bend(AwsSagemakerResourceSpec.mapping),
+    }
+    domain_execution_role_arn: Optional[str] = field(default=None)
+    r_studio_connect_url: Optional[str] = field(default=None)
+    r_studio_package_manager_url: Optional[str] = field(default=None)
+    default_resource_spec: Optional[AwsSagemakerResourceSpec] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerDomainSettings:
+    kind: ClassVar[str] = "aws_sagemaker_domain_settings"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "security_group_ids": S("SecurityGroupIds", default=[]),
+        "r_studio_server_pro_domain_settings": S("RStudioServerProDomainSettings")
+        >> Bend(AwsSagemakerRStudioServerProDomainSettings.mapping),
+        "execution_role_identity_config": S("ExecutionRoleIdentityConfig"),
+    }
+    security_group_ids: List[str] = field(factory=list)
+    r_studio_server_pro_domain_settings: Optional[AwsSagemakerRStudioServerProDomainSettings] = field(default=None)
+    execution_role_identity_config: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerDefaultSpaceSettings:
+    kind: ClassVar[str] = "aws_sagemaker_default_space_settings"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "execution_role": S("ExecutionRole"),
+        "security_groups": S("SecurityGroups", default=[]),
+        "jupyter_server_app_settings": S("JupyterServerAppSettings")
+        >> Bend(AwsSagemakerJupyterServerAppSettings.mapping),
+        "kernel_gateway_app_settings": S("KernelGatewayAppSettings")
+        >> Bend(AwsSagemakerKernelGatewayAppSettings.mapping),
+    }
+    execution_role: Optional[str] = field(default=None)
+    security_groups: List[str] = field(factory=list)
+    jupyter_server_app_settings: Optional[AwsSagemakerJupyterServerAppSettings] = field(default=None)
+    kernel_gateway_app_settings: Optional[AwsSagemakerKernelGatewayAppSettings] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerDomain(AwsResource):
+    kind: ClassVar[str] = "aws_sagemaker_domain"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-domains", "Domains")
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("DomainId"),
+        # "tags": S("Tags", default=[]) >> ToDict(),
+        "name": S("DomainName"),
+        "ctime": S("CreationTime"),
+        "mtime": S("LastModifiedTime"),
+        "arn": S("DomainArn"),
+        "domain_home_efs_file_system_id": S("HomeEfsFileSystemId"),
+        "domain_single_sign_on_managed_application_instance_id": S("SingleSignOnManagedApplicationInstanceId"),
+        "domain_status": S("Status"),
+        "domain_failure_reason": S("FailureReason"),
+        "domain_auth_mode": S("AuthMode"),
+        "domain_default_user_settings": S("DefaultUserSettings") >> Bend(AwsSagemakerUserSettings.mapping),
+        "domain_app_network_access_type": S("AppNetworkAccessType"),
+        "domain_home_efs_file_system_kms_key_id": S("HomeEfsFileSystemKmsKeyId"),
+        "domain_subnet_ids": S("SubnetIds", default=[]),
+        "domain_url": S("Url"),
+        "domain_vpc_id": S("VpcId"),
+        "domain_kms_key_id": S("KmsKeyId"),
+        "domain_settings": S("DomainSettings") >> Bend(AwsSagemakerDomainSettings.mapping),
+        "domain_app_security_group_management": S("AppSecurityGroupManagement"),
+        "domain_security_group_id_for_domain_boundary": S("SecurityGroupIdForDomainBoundary"),
+        "domain_default_space_settings": S("DefaultSpaceSettings") >> Bend(AwsSagemakerDefaultSpaceSettings.mapping),
+    }
+    domain_home_efs_file_system_id: Optional[str] = field(default=None)
+    domain_single_sign_on_managed_application_instance_id: Optional[str] = field(default=None)
+    domain_status: Optional[str] = field(default=None)
+    domain_failure_reason: Optional[str] = field(default=None)
+    domain_auth_mode: Optional[str] = field(default=None)
+    domain_default_user_settings: Optional[AwsSagemakerUserSettings] = field(default=None)
+    domain_app_network_access_type: Optional[str] = field(default=None)
+    domain_home_efs_file_system_kms_key_id: Optional[str] = field(default=None)
+    domain_subnet_ids: List[str] = field(factory=list)
+    domain_url: Optional[str] = field(default=None)
+    domain_vpc_id: Optional[str] = field(default=None)
+    domain_kms_key_id: Optional[str] = field(default=None)
+    domain_settings: Optional[AwsSagemakerDomainSettings] = field(default=None)
+    domain_app_security_group_management: Optional[str] = field(default=None)
+    domain_security_group_id_for_domain_boundary: Optional[str] = field(default=None)
+    domain_default_space_settings: Optional[AwsSagemakerDefaultSpaceSettings] = field(default=None)
+
+    @classmethod
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        for domain in json:
+            domain_description = builder.client.get(
+                "sagemaker",
+                "describe-domain",
+                None,
+                DomainId=domain["DomainId"],
+            )
+            if domain_description:
+                domain_instance = AwsSagemakerDomain.from_api(domain_description)
+                builder.add_node(domain_instance, domain_description)
+
+
+resources: List[Type[AwsResource]] = [
+    AwsSagemakerNotebook,
+    AwsSagemakerAlgorithm,
+    AwsSagemakerModel,
+    AwsSagemakerApp,
+    AwsSagemakerDomain,
+]
