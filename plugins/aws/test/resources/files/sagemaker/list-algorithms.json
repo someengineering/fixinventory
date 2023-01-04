@@ -1,7 +1,7 @@
 {
     "AlgorithmSummaryList": [
         {
-            "AlgorithmName": "string",
+            "AlgorithmName": "algorithmname",
             "AlgorithmArn": "string",
             "AlgorithmDescription": "string",
             "CreationTime": "2015-01-01T00:00:00Z",
