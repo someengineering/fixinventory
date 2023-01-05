@@ -1541,6 +1541,290 @@ class AwsSagemakerPipeline(AwsResource):
                 builder.add_node(pipeline_instance, pipeline_description)
 
 
+## Jobs
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerAutoMLS3DataSource:
+    kind: ClassVar[str] = "aws_sagemaker_auto_mls3_data_source"
+    mapping: ClassVar[Dict[str, Bender]] = {"s3_data_type": S("S3DataType"), "s3_uri": S("S3Uri")}
+    s3_data_type: Optional[str] = field(default=None)
+    s3_uri: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerAutoMLDataSource:
+    kind: ClassVar[str] = "aws_sagemaker_auto_ml_data_source"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "s3_data_source": S("S3DataSource") >> Bend(AwsSagemakerAutoMLS3DataSource.mapping)
+    }
+    s3_data_source: Optional[AwsSagemakerAutoMLS3DataSource] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerAutoMLChannel:
+    kind: ClassVar[str] = "aws_sagemaker_auto_ml_channel"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "data_source": S("DataSource") >> Bend(AwsSagemakerAutoMLDataSource.mapping),
+        "compression_type": S("CompressionType"),
+        "target_attribute_name": S("TargetAttributeName"),
+        "content_type": S("ContentType"),
+        "channel_type": S("ChannelType"),
+    }
+    data_source: Optional[AwsSagemakerAutoMLDataSource] = field(default=None)
+    compression_type: Optional[str] = field(default=None)
+    target_attribute_name: Optional[str] = field(default=None)
+    content_type: Optional[str] = field(default=None)
+    channel_type: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerAutoMLOutputDataConfig:
+    kind: ClassVar[str] = "aws_sagemaker_auto_ml_output_data_config"
+    mapping: ClassVar[Dict[str, Bender]] = {"kms_key_id": S("KmsKeyId"), "s3_output_path": S("S3OutputPath")}
+    kms_key_id: Optional[str] = field(default=None)
+    s3_output_path: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerAutoMLJobCompletionCriteria:
+    kind: ClassVar[str] = "aws_sagemaker_auto_ml_job_completion_criteria"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "max_candidates": S("MaxCandidates"),
+        "max_runtime_per_training_job_in_seconds": S("MaxRuntimePerTrainingJobInSeconds"),
+        "max_auto_ml_job_runtime_in_seconds": S("MaxAutoMLJobRuntimeInSeconds"),
+    }
+    max_candidates: Optional[int] = field(default=None)
+    max_runtime_per_training_job_in_seconds: Optional[int] = field(default=None)
+    max_auto_ml_job_runtime_in_seconds: Optional[int] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerAutoMLSecurityConfig:
+    kind: ClassVar[str] = "aws_sagemaker_auto_ml_security_config"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "volume_kms_key_id": S("VolumeKmsKeyId"),
+        "enable_inter_container_traffic_encryption": S("EnableInterContainerTrafficEncryption"),
+        "vpc_config": S("VpcConfig") >> Bend(AwsSagemakerVpcConfig.mapping),
+    }
+    volume_kms_key_id: Optional[str] = field(default=None)
+    enable_inter_container_traffic_encryption: Optional[bool] = field(default=None)
+    vpc_config: Optional[AwsSagemakerVpcConfig] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerAutoMLJobConfig:
+    kind: ClassVar[str] = "aws_sagemaker_auto_ml_job_config"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "completion_criteria": S("CompletionCriteria") >> Bend(AwsSagemakerAutoMLJobCompletionCriteria.mapping),
+        "security_config": S("SecurityConfig") >> Bend(AwsSagemakerAutoMLSecurityConfig.mapping),
+        "data_split_config": S("DataSplitConfig", "ValidationFraction"),
+        "candidate_generation_config": S("CandidateGenerationConfig", "FeatureSpecificationS3Uri"),
+        "mode": S("Mode"),
+    }
+    completion_criteria: Optional[AwsSagemakerAutoMLJobCompletionCriteria] = field(default=None)
+    security_config: Optional[AwsSagemakerAutoMLSecurityConfig] = field(default=None)
+    data_split_config: Optional[float] = field(default=None)
+    candidate_generation_config: Optional[str] = field(default=None)
+    mode: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerFinalAutoMLJobObjectiveMetric:
+    kind: ClassVar[str] = "aws_sagemaker_final_auto_ml_job_objective_metric"
+    mapping: ClassVar[Dict[str, Bender]] = {"type": S("Type"), "metric_name": S("MetricName"), "value": S("Value")}
+    type: Optional[str] = field(default=None)
+    metric_name: Optional[str] = field(default=None)
+    value: Optional[float] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerAutoMLCandidateStep:
+    kind: ClassVar[str] = "aws_sagemaker_auto_ml_candidate_step"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "candidate_step_type": S("CandidateStepType"),
+        "candidate_step_arn": S("CandidateStepArn"),
+        "candidate_step_name": S("CandidateStepName"),
+    }
+    candidate_step_type: Optional[str] = field(default=None)
+    candidate_step_arn: Optional[str] = field(default=None)
+    candidate_step_name: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerAutoMLContainerDefinition:
+    kind: ClassVar[str] = "aws_sagemaker_auto_ml_container_definition"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "image": S("Image"),
+        "model_data_url": S("ModelDataUrl"),
+        "environment": S("Environment"),
+    }
+    image: Optional[str] = field(default=None)
+    model_data_url: Optional[str] = field(default=None)
+    environment: Optional[Dict[str, str]] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerCandidateArtifactLocations:
+    kind: ClassVar[str] = "aws_sagemaker_candidate_artifact_locations"
+    mapping: ClassVar[Dict[str, Bender]] = {"explainability": S("Explainability"), "model_insights": S("ModelInsights")}
+    explainability: Optional[str] = field(default=None)
+    model_insights: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerMetricDatum:
+    kind: ClassVar[str] = "aws_sagemaker_metric_datum"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "metric_name": S("MetricName"),
+        "value": S("Value"),
+        "set": S("Set"),
+        "standard_metric_name": S("StandardMetricName"),
+    }
+    metric_name: Optional[str] = field(default=None)
+    value: Optional[float] = field(default=None)
+    set: Optional[str] = field(default=None)
+    standard_metric_name: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerCandidateProperties:
+    kind: ClassVar[str] = "aws_sagemaker_candidate_properties"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "candidate_artifact_locations": S("CandidateArtifactLocations")
+        >> Bend(AwsSagemakerCandidateArtifactLocations.mapping),
+        "candidate_metrics": S("CandidateMetrics", default=[]) >> ForallBend(AwsSagemakerMetricDatum.mapping),
+    }
+    candidate_artifact_locations: Optional[AwsSagemakerCandidateArtifactLocations] = field(default=None)
+    candidate_metrics: List[AwsSagemakerMetricDatum] = field(factory=list)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerAutoMLCandidate:
+    kind: ClassVar[str] = "aws_sagemaker_auto_ml_candidate"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "candidate_name": S("CandidateName"),
+        "final_auto_ml_job_objective_metric": S("FinalAutoMLJobObjectiveMetric")
+        >> Bend(AwsSagemakerFinalAutoMLJobObjectiveMetric.mapping),
+        "objective_status": S("ObjectiveStatus"),
+        "candidate_steps": S("CandidateSteps", default=[]) >> ForallBend(AwsSagemakerAutoMLCandidateStep.mapping),
+        "candidate_status": S("CandidateStatus"),
+        "inference_containers": S("InferenceContainers", default=[])
+        >> ForallBend(AwsSagemakerAutoMLContainerDefinition.mapping),
+        "creation_time": S("CreationTime"),
+        "end_time": S("EndTime"),
+        "last_modified_time": S("LastModifiedTime"),
+        "failure_reason": S("FailureReason"),
+        "candidate_properties": S("CandidateProperties") >> Bend(AwsSagemakerCandidateProperties.mapping),
+    }
+    candidate_name: Optional[str] = field(default=None)
+    final_auto_ml_job_objective_metric: Optional[AwsSagemakerFinalAutoMLJobObjectiveMetric] = field(default=None)
+    objective_status: Optional[str] = field(default=None)
+    candidate_steps: List[AwsSagemakerAutoMLCandidateStep] = field(factory=list)
+    candidate_status: Optional[str] = field(default=None)
+    inference_containers: List[AwsSagemakerAutoMLContainerDefinition] = field(factory=list)
+    creation_time: Optional[datetime] = field(default=None)
+    end_time: Optional[datetime] = field(default=None)
+    last_modified_time: Optional[datetime] = field(default=None)
+    failure_reason: Optional[str] = field(default=None)
+    candidate_properties: Optional[AwsSagemakerCandidateProperties] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerAutoMLJobArtifacts:
+    kind: ClassVar[str] = "aws_sagemaker_auto_ml_job_artifacts"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "candidate_definition_notebook_location": S("CandidateDefinitionNotebookLocation"),
+        "data_exploration_notebook_location": S("DataExplorationNotebookLocation"),
+    }
+    candidate_definition_notebook_location: Optional[str] = field(default=None)
+    data_exploration_notebook_location: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerResolvedAttributes:
+    kind: ClassVar[str] = "aws_sagemaker_resolved_attributes"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "auto_ml_job_objective": S("AutoMLJobObjective", "MetricName"),
+        "problem_type": S("ProblemType"),
+        "completion_criteria": S("CompletionCriteria") >> Bend(AwsSagemakerAutoMLJobCompletionCriteria.mapping),
+    }
+    auto_ml_job_objective: Optional[str] = field(default=None)
+    problem_type: Optional[str] = field(default=None)
+    completion_criteria: Optional[AwsSagemakerAutoMLJobCompletionCriteria] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerModelDeployConfig:
+    kind: ClassVar[str] = "aws_sagemaker_model_deploy_config"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "auto_generate_endpoint_name": S("AutoGenerateEndpointName"),
+        "endpoint_name": S("EndpointName"),
+    }
+    auto_generate_endpoint_name: Optional[bool] = field(default=None)
+    endpoint_name: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerAutoMLJob(AwsResource):
+    kind: ClassVar[str] = "aws_sagemaker_auto_ml_job"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-auto-ml-jobs", "AutoMLJobSummaries")
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("AutoMLJobName"),
+        # "tags": S("Tags", default=[]) >> ToDict(),
+        "name": S("AutoMLJobName"),
+        "ctime": S("CreationTime"),
+        "mtime": S("LastModifiedTime"),
+        "arn": S("AutoMLJobArn"),
+        "auto_ml_job_input_data_config": S("InputDataConfig", default=[])
+        >> ForallBend(AwsSagemakerAutoMLChannel.mapping),
+        "auto_ml_job_output_data_config": S("OutputDataConfig") >> Bend(AwsSagemakerAutoMLOutputDataConfig.mapping),
+        "auto_ml_job_role_arn": S("RoleArn"),
+        "auto_ml_job_objective": S("AutoMLJobObjective", "MetricName"),
+        "auto_ml_job_problem_type": S("ProblemType"),
+        "auto_ml_job_config": S("AutoMLJobConfig") >> Bend(AwsSagemakerAutoMLJobConfig.mapping),
+        "auto_ml_job_end_time": S("EndTime"),
+        "auto_ml_job_failure_reason": S("FailureReason"),
+        "auto_ml_job_partial_failure_reasons": S("PartialFailureReasons", default=[])
+        >> ForallBend(S("PartialFailureMessage")),
+        "auto_ml_job_best_candidate": S("BestCandidate") >> Bend(AwsSagemakerAutoMLCandidate.mapping),
+        "auto_ml_job_status": S("AutoMLJobStatus"),
+        "auto_ml_job_secondary_status": S("AutoMLJobSecondaryStatus"),
+        "auto_ml_job_generate_candidate_definitions_only": S("GenerateCandidateDefinitionsOnly"),
+        "auto_ml_job_artifacts": S("AutoMLJobArtifacts") >> Bend(AwsSagemakerAutoMLJobArtifacts.mapping),
+        "auto_ml_job_resolved_attributes": S("ResolvedAttributes") >> Bend(AwsSagemakerResolvedAttributes.mapping),
+        "auto_ml_job_model_deploy_config": S("ModelDeployConfig") >> Bend(AwsSagemakerModelDeployConfig.mapping),
+        "auto_ml_job_model_deploy_result": S("ModelDeployResult", "EndpointName"),
+    }
+    auto_ml_job_input_data_config: List[AwsSagemakerAutoMLChannel] = field(factory=list)
+    auto_ml_job_output_data_config: Optional[AwsSagemakerAutoMLOutputDataConfig] = field(default=None)
+    auto_ml_job_role_arn: Optional[str] = field(default=None)
+    auto_ml_job_objective: Optional[str] = field(default=None)
+    auto_ml_job_problem_type: Optional[str] = field(default=None)
+    auto_ml_job_config: Optional[AwsSagemakerAutoMLJobConfig] = field(default=None)
+    auto_ml_job_end_time: Optional[datetime] = field(default=None)
+    auto_ml_job_failure_reason: Optional[str] = field(default=None)
+    auto_ml_job_partial_failure_reasons: List[str] = field(factory=list)
+    auto_ml_job_best_candidate: Optional[AwsSagemakerAutoMLCandidate] = field(default=None)
+    auto_ml_job_status: Optional[str] = field(default=None)
+    auto_ml_job_secondary_status: Optional[str] = field(default=None)
+    auto_ml_job_generate_candidate_definitions_only: Optional[bool] = field(default=None)
+    auto_ml_job_artifacts: Optional[AwsSagemakerAutoMLJobArtifacts] = field(default=None)
+    auto_ml_job_resolved_attributes: Optional[AwsSagemakerResolvedAttributes] = field(default=None)
+    auto_ml_job_model_deploy_config: Optional[AwsSagemakerModelDeployConfig] = field(default=None)
+    auto_ml_job_model_deploy_result: Optional[str] = field(default=None)
+
+    @classmethod
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        for job in json:
+            job_description = builder.client.get(
+                "sagemaker", "describe-auto-ml-job", None, AutoMLJobName=job["AutoMLJobName"]
+            )
+            if job_description:
+                job_instance = AwsSagemakerAutoMLJob.from_api(job_description)
+                builder.add_node(job_instance, job_description)
+
+
 resources: List[Type[AwsResource]] = [
     AwsSagemakerNotebook,
     AwsSagemakerAlgorithm,
@@ -1555,4 +1839,19 @@ resources: List[Type[AwsResource]] = [
     AwsSagemakerArtifact,
     AwsSagemakerUserProfile,
     AwsSagemakerPipeline,
+    AwsSagemakerAutoMLJob,
 ]
+
+# hyper_parameter_tuning_job()
+# inference_recommendations_job()
+# labeling_job()
+# model_bias_job_definition()
+# model_card_export_job()
+# model_explainability_job_definition()
+# model_quality_job_definition()
+# processing_job()
+# training_job()
+# transform_job()
+# edge_packaging_job()
+# data_quality_job_definition()
+# compilation_job()

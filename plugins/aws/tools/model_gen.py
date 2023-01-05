@@ -806,7 +806,10 @@ models: Dict[str, List[AwsResotoModel]] = {
         #     "artifact_"
         # ),
         # AwsResotoModel("list-user-profiles", "UserProfiles", "UserProfileDetails", "Sagemaker", "user_profile_"),
-        AwsResotoModel("list-pipelines", "PipelineSummaries", "DescribePipelineResponse", "Sagemaker", "pipeline_")
+        # AwsResotoModel("list-pipelines", "PipelineSummaries", "DescribePipelineResponse", "Sagemaker", "pipeline_"),
+        AwsResotoModel(
+            "list-auto-ml-jobs", "AutoMLJobSummaries", "DescribeAutoMLJobResponse", "Sagemaker", "auto_ml_job_"
+        )
     ],
     "service-quotas": [
         # AwsResotoModel("list-service-quotas", "Quotas", "ServiceQuota", prefix="Quota", prop_prefix="quota_")

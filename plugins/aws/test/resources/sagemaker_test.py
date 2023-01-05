@@ -13,6 +13,7 @@ from resoto_plugin_aws.resource.sagemaker import (
     AwsSagemakerArtifact,
     AwsSagemakerUserProfile,
     AwsSagemakerPipeline,
+    AwsSagemakerAutoMLJob,
 )
 
 
@@ -81,3 +82,8 @@ def test_user_profile() -> None:
 def test_pipeline() -> None:
     first, builder = round_trip_for(AwsSagemakerPipeline)
     assert len(builder.resources_of(AwsSagemakerPipeline)) == 1
+
+
+def test_auto_ml_job() -> None:
+    first, builder = round_trip_for(AwsSagemakerAutoMLJob)
+    assert len(builder.resources_of(AwsSagemakerAutoMLJob)) == 1
