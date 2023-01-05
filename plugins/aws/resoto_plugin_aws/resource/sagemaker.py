@@ -1394,6 +1394,38 @@ class AwsSagemakerEndpoint(AwsResource):
                 builder.add_node(endpoint_instance, endpoint_description)
 
 
+@define(eq=False, slots=False)
+class AwsSagemakerImage(AwsResource):
+    kind: ClassVar[str] = "aws_sagemaker_image"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-images", "Images")
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("ImageName"),
+        # "tags": S("Tags", default=[]) >> ToDict(),
+        "name": S("ImageName"),
+        "ctime": S("CreationTime"),
+        "mtime": S("LastModifiedTime"),
+        "arn": S("ImageArn"),
+        "image_description": S("Description"),
+        "image_display_name": S("DisplayName"),
+        "image_failure_reason": S("FailureReason"),
+        "image_image_status": S("ImageStatus"),
+        "image_role_arn": S("RoleArn"),
+    }
+    image_description: Optional[str] = field(default=None)
+    image_display_name: Optional[str] = field(default=None)
+    image_failure_reason: Optional[str] = field(default=None)
+    image_image_status: Optional[str] = field(default=None)
+    image_role_arn: Optional[str] = field(default=None)
+
+    @classmethod
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        for image in json:
+            image_description = builder.client.get("sagemaker", "describe-image", None, ImageName=image["ImageName"])
+            if image_description:
+                image_instance = AwsSagemakerImage.from_api(image_description)
+                builder.add_node(image_instance, image_description)
+
+
 resources: List[Type[AwsResource]] = [
     AwsSagemakerNotebook,
     AwsSagemakerAlgorithm,
@@ -1404,4 +1436,5 @@ resources: List[Type[AwsResource]] = [
     AwsSagemakerTrial,
     AwsSagemakerCodeRepository,
     AwsSagemakerEndpoint,
+    AwsSagemakerImage,
 ]
