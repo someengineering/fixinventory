@@ -1483,6 +1483,23 @@ class AwsSagemakerArtifact(AwsResource):
                 builder.add_node(artifact_instance, artifact_description)
 
 
+@define(eq=False, slots=False)
+class AwsSagemakerUserProfile(AwsResource):
+    kind: ClassVar[str] = "aws_sagemaker_user_profile"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-user-profiles", "UserProfiles")
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("UserProfileName"),
+        # "tags": S("Tags", default=[]) >> ToDict(),
+        "name": S("UserProfileName"),
+        "ctime": S("CreationTime"),
+        "mtime": S("LastModifiedTime"),
+        "user_profile_domain_id": S("DomainId"),
+        "user_profile_status": S("Status"),
+    }
+    user_profile_domain_id: Optional[str] = field(default=None)
+    user_profile_status: Optional[str] = field(default=None)
+
+
 resources: List[Type[AwsResource]] = [
     AwsSagemakerNotebook,
     AwsSagemakerAlgorithm,
@@ -1495,4 +1512,5 @@ resources: List[Type[AwsResource]] = [
     AwsSagemakerEndpoint,
     AwsSagemakerImage,
     AwsSagemakerArtifact,
+    AwsSagemakerUserProfile,
 ]

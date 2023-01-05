@@ -11,6 +11,7 @@ from resoto_plugin_aws.resource.sagemaker import (
     AwsSagemakerEndpoint,
     AwsSagemakerImage,
     AwsSagemakerArtifact,
+    AwsSagemakerUserProfile,
 )
 
 
@@ -69,3 +70,8 @@ def test_image() -> None:
 def test_artifact() -> None:
     first, builder = round_trip_for(AwsSagemakerArtifact)
     assert len(builder.resources_of(AwsSagemakerArtifact)) == 1
+
+
+def test_user_profile() -> None:
+    first, builder = round_trip_for(AwsSagemakerUserProfile)
+    assert len(builder.resources_of(AwsSagemakerUserProfile)) == 1
