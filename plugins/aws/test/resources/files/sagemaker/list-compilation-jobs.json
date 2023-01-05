@@ -1,0 +1,18 @@
+{
+    "CompilationJobSummaries": [
+        {
+            "CompilationJobName": "compjob",
+            "CompilationJobArn": "string",
+            "CreationTime": "2015-01-01T00:00:00Z",
+            "CompilationStartTime": "2015-01-01T00:00:00Z",
+            "CompilationEndTime": "2015-01-01T00:00:00Z",
+            "CompilationTargetDevice": "lambda",
+            "CompilationTargetPlatformOs": "ANDROID",
+            "CompilationTargetPlatformArch": "X86_64",
+            "CompilationTargetPlatformAccelerator": "INTEL_GRAPHICS",
+            "LastModifiedTime": "2015-01-01T00:00:00Z",
+            "CompilationJobStatus": "INPROGRESS"
+        }
+    ],
+    "NextToken": "string"
+}

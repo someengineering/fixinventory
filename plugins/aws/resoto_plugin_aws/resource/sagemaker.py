@@ -1825,6 +1825,108 @@ class AwsSagemakerAutoMLJob(AwsResource):
                 builder.add_node(job_instance, job_description)
 
 
+@define(eq=False, slots=False)
+class AwsSagemakerInputConfig:
+    kind: ClassVar[str] = "aws_sagemaker_input_config"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "s3_uri": S("S3Uri"),
+        "data_input_config": S("DataInputConfig"),
+        "framework": S("Framework"),
+        "framework_version": S("FrameworkVersion"),
+    }
+    s3_uri: Optional[str] = field(default=None)
+    data_input_config: Optional[str] = field(default=None)
+    framework: Optional[str] = field(default=None)
+    framework_version: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerTargetPlatform:
+    kind: ClassVar[str] = "aws_sagemaker_target_platform"
+    mapping: ClassVar[Dict[str, Bender]] = {"os": S("Os"), "arch": S("Arch"), "accelerator": S("Accelerator")}
+    os: Optional[str] = field(default=None)
+    arch: Optional[str] = field(default=None)
+    accelerator: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerOutputConfig:
+    kind: ClassVar[str] = "aws_sagemaker_output_config"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "s3_output_location": S("S3OutputLocation"),
+        "target_device": S("TargetDevice"),
+        "target_platform": S("TargetPlatform") >> Bend(AwsSagemakerTargetPlatform.mapping),
+        "compiler_options": S("CompilerOptions"),
+        "kms_key_id": S("KmsKeyId"),
+    }
+    s3_output_location: Optional[str] = field(default=None)
+    target_device: Optional[str] = field(default=None)
+    target_platform: Optional[AwsSagemakerTargetPlatform] = field(default=None)
+    compiler_options: Optional[str] = field(default=None)
+    kms_key_id: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerNeoVpcConfig:
+    kind: ClassVar[str] = "aws_sagemaker_neo_vpc_config"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "security_group_ids": S("SecurityGroupIds", default=[]),
+        "subnets": S("Subnets", default=[]),
+    }
+    security_group_ids: List[str] = field(factory=list)
+    subnets: List[str] = field(factory=list)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerCompilationJob(AwsResource):
+    kind: ClassVar[str] = "aws_sagemaker_compilation_job"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-compilation-jobs", "CompilationJobSummaries")
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("CompilationJobName"),
+        # "tags": S("Tags", default=[]) >> ToDict(),
+        "name": S("CompilationJobName"),
+        "ctime": S("CreationTime"),
+        "mtime": S("LastModifiedTime"),
+        "arn": S("CompilationJobArn"),
+        "compilation_job_status": S("CompilationJobStatus"),
+        "compilation_job_start_time": S("CompilationStartTime"),
+        "compilation_job_end_time": S("CompilationEndTime"),
+        "compilation_job_stopping_condition": S("StoppingCondition") >> Bend(AwsSagemakerStoppingCondition.mapping),
+        "compilation_job_inference_image": S("InferenceImage"),
+        "compilation_job_model_package_version_arn": S("ModelPackageVersionArn"),
+        "compilation_job_failure_reason": S("FailureReason"),
+        "compilation_job_model_artifacts": S("ModelArtifacts", "S3ModelArtifacts"),
+        "compilation_job_model_digests": S("ModelDigests", "ArtifactDigest"),
+        "compilation_job_role_arn": S("RoleArn"),
+        "compilation_job_input_config": S("InputConfig") >> Bend(AwsSagemakerInputConfig.mapping),
+        "compilation_job_output_config": S("OutputConfig") >> Bend(AwsSagemakerOutputConfig.mapping),
+        "compilation_job_vpc_config": S("VpcConfig") >> Bend(AwsSagemakerNeoVpcConfig.mapping),
+    }
+    compilation_job_status: Optional[str] = field(default=None)
+    compilation_job_start_time: Optional[datetime] = field(default=None)
+    compilation_job_end_time: Optional[datetime] = field(default=None)
+    compilation_job_stopping_condition: Optional[AwsSagemakerStoppingCondition] = field(default=None)
+    compilation_job_inference_image: Optional[str] = field(default=None)
+    compilation_job_model_package_version_arn: Optional[str] = field(default=None)
+    compilation_job_failure_reason: Optional[str] = field(default=None)
+    compilation_job_model_artifacts: Optional[str] = field(default=None)
+    compilation_job_model_digests: Optional[str] = field(default=None)
+    compilation_job_role_arn: Optional[str] = field(default=None)
+    compilation_job_input_config: Optional[AwsSagemakerInputConfig] = field(default=None)
+    compilation_job_output_config: Optional[AwsSagemakerOutputConfig] = field(default=None)
+    compilation_job_vpc_config: Optional[AwsSagemakerNeoVpcConfig] = field(default=None)
+
+    @classmethod
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        for job in json:
+            job_description = builder.client.get(
+                "sagemaker", "describe-compilation-job", None, CompilationJobName=job["CompilationJobName"]
+            )
+            if job_description:
+                job_instance = AwsSagemakerCompilationJob.from_api(job_description)
+                builder.add_node(job_instance, job_description)
+
+
 resources: List[Type[AwsResource]] = [
     AwsSagemakerNotebook,
     AwsSagemakerAlgorithm,
@@ -1840,6 +1942,7 @@ resources: List[Type[AwsResource]] = [
     AwsSagemakerUserProfile,
     AwsSagemakerPipeline,
     AwsSagemakerAutoMLJob,
+    AwsSagemakerCompilationJob,
 ]
 
 # hyper_parameter_tuning_job()
@@ -1854,4 +1957,3 @@ resources: List[Type[AwsResource]] = [
 # transform_job()
 # edge_packaging_job()
 # data_quality_job_definition()
-# compilation_job()
