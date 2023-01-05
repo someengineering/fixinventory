@@ -1,7 +1,7 @@
 <p align="center"><img src="https://raw.githubusercontent.com/someengineering/resoto/main/misc/resoto_200.png" alt="Resoto"/>
 <h1 align="center">Automate tedious infrastructure tasks, remarkably fast!</h1>
 
-<p align="center"><img src="https://raw.githubusercontent.com/someengineering/resoto/main/misc/resoto_banner.png" alt="Banner"/></p>
+<p align="center"><img src="https://raw.githubusercontent.com/someengineering/resoto/main/misc/resoto_banner.png"/></p>
 
 [![Version](https://img.shields.io/github/v/tag/someengineering/resoto?label=latest)](https://github.com/someengineering/resoto/tags/)
 [![Build](https://img.shields.io/github/actions/workflow/status/someengineering/resoto/docker-build.yml)](https://github.com/someengineering/resoto/commits/main)
