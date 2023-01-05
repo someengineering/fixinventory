@@ -1019,6 +1019,35 @@ class AwsSagemakerTrial(AwsResource):
                 builder.add_node(trial_instance, trial_description)
 
 
+@define(eq=False, slots=False)
+class AwsSagemakerGitConfig:
+    kind: ClassVar[str] = "aws_sagemaker_git_config"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "repository_url": S("RepositoryUrl"),
+        "branch": S("Branch"),
+        "secret_arn": S("SecretArn"),
+    }
+    repository_url: Optional[str] = field(default=None)
+    branch: Optional[str] = field(default=None)
+    secret_arn: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerCodeRepository(AwsResource):
+    kind: ClassVar[str] = "aws_sagemaker_code_repository"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-code-repositories", "CodeRepositorySummaryList")
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("CodeRepositoryName"),
+        # "tags": S("Tags", default=[]) >> ToDict(),
+        "name": S("CodeRepositoryName"),
+        "ctime": S("CreationTime"),
+        "mtime": S("LastModifiedTime"),
+        "arn": S("CodeRepositoryArn"),
+        "code_repository_git_config": S("GitConfig") >> Bend(AwsSagemakerGitConfig.mapping),
+    }
+    code_repository_git_config: Optional[AwsSagemakerGitConfig] = field(default=None)
+
+
 resources: List[Type[AwsResource]] = [
     AwsSagemakerNotebook,
     AwsSagemakerAlgorithm,
@@ -1027,4 +1056,5 @@ resources: List[Type[AwsResource]] = [
     AwsSagemakerDomain,
     AwsSagemakerExperiment,
     AwsSagemakerTrial,
+    AwsSagemakerCodeRepository,
 ]

@@ -1,0 +1,16 @@
+{
+    "CodeRepositorySummaryList": [
+        {
+            "CodeRepositoryName": "string",
+            "CodeRepositoryArn": "string",
+            "CreationTime": "2015-01-01T00:00:00Z",
+            "LastModifiedTime": "2015-01-01T00:00:00Z",
+            "GitConfig": {
+                "RepositoryUrl": "string",
+                "Branch": "string",
+                "SecretArn": "string"
+            }
+        }
+    ],
+    "NextToken": "string"
+}
