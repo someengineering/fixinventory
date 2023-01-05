@@ -1,0 +1,25 @@
+{
+    "PipelineArn": "string",
+    "PipelineName": "string",
+    "PipelineDisplayName": "string",
+    "PipelineDefinition": "string",
+    "PipelineDescription": "string",
+    "RoleArn": "string",
+    "PipelineStatus": "Active",
+    "CreationTime": "2015-01-01T00:00:00Z",
+    "LastModifiedTime": "2015-01-01T00:00:00Z",
+    "LastRunTime": "2015-01-01T00:00:00Z",
+    "CreatedBy": {
+        "UserProfileArn": "string",
+        "UserProfileName": "string",
+        "DomainId": "string"
+    },
+    "LastModifiedBy": {
+        "UserProfileArn": "string",
+        "UserProfileName": "string",
+        "DomainId": "string"
+    },
+    "ParallelismConfiguration": {
+        "MaxParallelExecutionSteps": 123
+    }
+}

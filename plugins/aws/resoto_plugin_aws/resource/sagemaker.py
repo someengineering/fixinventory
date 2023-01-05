@@ -1500,6 +1500,47 @@ class AwsSagemakerUserProfile(AwsResource):
     user_profile_status: Optional[str] = field(default=None)
 
 
+@define(eq=False, slots=False)
+class AwsSagemakerPipeline(AwsResource):
+    kind: ClassVar[str] = "aws_sagemaker_pipeline"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-pipelines", "PipelineSummaries")
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("PipelineName"),
+        # "tags": S("Tags", default=[]) >> ToDict(),
+        "name": S("PipelineName"),
+        "ctime": S("CreationTime"),
+        "mtime": S("LastModifiedTime"),
+        "atime": S("LastRunTime"),
+        "arn": S("PipelineArn"),
+        "pipeline_display_name": S("PipelineDisplayName"),
+        "pipeline_definition": S("PipelineDefinition"),
+        "pipeline_description": S("PipelineDescription"),
+        "pipeline_role_arn": S("RoleArn"),
+        "pipeline_status": S("PipelineStatus"),
+        "pipeline_created_by": S("CreatedBy") >> Bend(AwsSagemakerUserContext.mapping),
+        "pipeline_last_modified_by": S("LastModifiedBy") >> Bend(AwsSagemakerUserContext.mapping),
+        "pipeline_parallelism_configuration": S("ParallelismConfiguration", "MaxParallelExecutionSteps"),
+    }
+    pipeline_display_name: Optional[str] = field(default=None)
+    pipeline_definition: Optional[str] = field(default=None)
+    pipeline_description: Optional[str] = field(default=None)
+    pipeline_role_arn: Optional[str] = field(default=None)
+    pipeline_status: Optional[str] = field(default=None)
+    pipeline_created_by: Optional[AwsSagemakerUserContext] = field(default=None)
+    pipeline_last_modified_by: Optional[AwsSagemakerUserContext] = field(default=None)
+    pipeline_parallelism_configuration: Optional[int] = field(default=None)
+
+    @classmethod
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        for pipeline in json:
+            pipeline_description = builder.client.get(
+                "sagemaker", "describe-pipeline", None, PipelineName=pipeline["PipelineName"]
+            )
+            if pipeline_description:
+                pipeline_instance = AwsSagemakerPipeline.from_api(pipeline_description)
+                builder.add_node(pipeline_instance, pipeline_description)
+
+
 resources: List[Type[AwsResource]] = [
     AwsSagemakerNotebook,
     AwsSagemakerAlgorithm,
@@ -1513,4 +1554,5 @@ resources: List[Type[AwsResource]] = [
     AwsSagemakerImage,
     AwsSagemakerArtifact,
     AwsSagemakerUserProfile,
+    AwsSagemakerPipeline,
 ]
