@@ -938,10 +938,85 @@ class AwsSagemakerExperiment(AwsResource):
         "mtime": S("LastModifiedTime"),
         "arn": S("ExperimentArn"),
         "experiment_display_name": S("DisplayName"),
-        "experiment_source": S("ExperimentSource") >> Bend(AwsSagemakerExperimentSource.mapping),
+        "experiment_source": S("ExperimentSource") >> Bend(AwsSagemakerExperimentSource.mapping),  # a job?
     }
     experiment_display_name: Optional[str] = field(default=None)
     experiment_source: Optional[AwsSagemakerExperimentSource] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerTrialSource:
+    kind: ClassVar[str] = "aws_sagemaker_trial_source"
+    mapping: ClassVar[Dict[str, Bender]] = {"source_arn": S("SourceArn"), "source_type": S("SourceType")}
+    source_arn: Optional[str] = field(default=None)
+    source_type: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerUserContext:
+    kind: ClassVar[str] = "aws_sagemaker_user_context"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "user_profile_arn": S("UserProfileArn"),
+        "user_profile_name": S("UserProfileName"),
+        "domain_id": S("DomainId"),
+    }
+    user_profile_arn: Optional[str] = field(default=None)
+    user_profile_name: Optional[str] = field(default=None)
+    domain_id: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerMetadataProperties:
+    kind: ClassVar[str] = "aws_sagemaker_metadata_properties"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "commit_id": S("CommitId"),
+        "repository": S("Repository"),
+        "generated_by": S("GeneratedBy"),
+        "project_id": S("ProjectId"),
+    }
+    commit_id: Optional[str] = field(default=None)
+    repository: Optional[str] = field(default=None)
+    generated_by: Optional[str] = field(default=None)
+    project_id: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerTrial(AwsResource):
+    kind: ClassVar[str] = "aws_sagemaker_trial"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-trials", "TrialSummaries")
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("TrialName"),
+        # "tags": S("Tags", default=[]) >> ToDict(),
+        "name": S("TrialName"),
+        "ctime": S("CreationTime"),
+        "mtime": S("LastModifiedTime"),
+        "arn": S("TrialArn"),
+        "trial_display_name": S("DisplayName"),
+        "trial_experiment_name": S("ExperimentName"),
+        "trial_source": S("Source") >> Bend(AwsSagemakerTrialSource.mapping),
+        "trial_created_by": S("CreatedBy") >> Bend(AwsSagemakerUserContext.mapping),
+        "trial_last_modified_by": S("LastModifiedBy") >> Bend(AwsSagemakerUserContext.mapping),
+        "trial_metadata_properties": S("MetadataProperties") >> Bend(AwsSagemakerMetadataProperties.mapping),
+    }
+    trial_display_name: Optional[str] = field(default=None)
+    trial_experiment_name: Optional[str] = field(default=None)
+    trial_source: Optional[AwsSagemakerTrialSource] = field(default=None)
+    trial_created_by: Optional[AwsSagemakerUserContext] = field(default=None)
+    trial_last_modified_by: Optional[AwsSagemakerUserContext] = field(default=None)
+    trial_metadata_properties: Optional[AwsSagemakerMetadataProperties] = field(default=None)
+
+    @classmethod
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        for trial in json:
+            trial_description = builder.client.get(
+                "sagemaker",
+                "describe-trial",
+                None,
+                TrialName=trial["TrialName"],
+            )
+            if trial_description:
+                trial_instance = AwsSagemakerTrial.from_api(trial_description)
+                builder.add_node(trial_instance, trial_description)
 
 
 resources: List[Type[AwsResource]] = [
@@ -951,4 +1026,5 @@ resources: List[Type[AwsResource]] = [
     AwsSagemakerApp,
     AwsSagemakerDomain,
     AwsSagemakerExperiment,
+    AwsSagemakerTrial,
 ]
