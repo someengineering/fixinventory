@@ -1,0 +1,21 @@
+{
+    "ArtifactSummaries": [
+        {
+            "ArtifactArn": "arn",
+            "ArtifactName": "string",
+            "Source": {
+                "SourceUri": "string",
+                "SourceTypes": [
+                    {
+                        "SourceIdType": "MD5Hash",
+                        "Value": "string"
+                    }
+                ]
+            },
+            "ArtifactType": "string",
+            "CreationTime": "2015-01-01T00:00:00Z",
+            "LastModifiedTime": "2015-01-01T00:00:00Z"
+        }
+    ],
+    "NextToken": "string"
+}

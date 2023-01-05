@@ -1426,6 +1426,63 @@ class AwsSagemakerImage(AwsResource):
                 builder.add_node(image_instance, image_description)
 
 
+@define(eq=False, slots=False)
+class AwsSagemakerArtifactSourceType:
+    kind: ClassVar[str] = "aws_sagemaker_artifact_source_type"
+    mapping: ClassVar[Dict[str, Bender]] = {"source_id_type": S("SourceIdType"), "value": S("Value")}
+    source_id_type: Optional[str] = field(default=None)
+    value: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerArtifactSource:
+    kind: ClassVar[str] = "aws_sagemaker_artifact_source"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "source_uri": S("SourceUri"),
+        "source_types": S("SourceTypes", default=[]) >> ForallBend(AwsSagemakerArtifactSourceType.mapping),
+    }
+    source_uri: Optional[str] = field(default=None)
+    source_types: List[AwsSagemakerArtifactSourceType] = field(factory=list)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerArtifact(AwsResource):
+    kind: ClassVar[str] = "aws_sagemaker_artifact"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-artifacts", "ArtifactSummaries")
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("ArtifactName"),
+        # "tags": S("Tags", default=[]) >> ToDict(),
+        "name": S("ArtifactName"),
+        "ctime": S("CreationTime"),
+        "mtime": S("LastModifiedTime"),
+        "arn": S("ArtifactArn"),
+        "artifact_source": S("Source") >> Bend(AwsSagemakerArtifactSource.mapping),
+        "artifact_artifact_type": S("ArtifactType"),
+        "artifact_properties": S("Properties"),
+        "artifact_created_by": S("CreatedBy") >> Bend(AwsSagemakerUserContext.mapping),
+        "artifact_last_modified_by": S("LastModifiedBy") >> Bend(AwsSagemakerUserContext.mapping),
+        "artifact_metadata_properties": S("MetadataProperties") >> Bend(AwsSagemakerMetadataProperties.mapping),
+        "artifact_lineage_group_arn": S("LineageGroupArn"),
+    }
+    artifact_source: Optional[AwsSagemakerArtifactSource] = field(default=None)
+    artifact_artifact_type: Optional[str] = field(default=None)
+    artifact_properties: Optional[Dict[str, str]] = field(default=None)
+    artifact_created_by: Optional[AwsSagemakerUserContext] = field(default=None)
+    artifact_last_modified_by: Optional[AwsSagemakerUserContext] = field(default=None)
+    artifact_metadata_properties: Optional[AwsSagemakerMetadataProperties] = field(default=None)
+    artifact_lineage_group_arn: Optional[str] = field(default=None)
+
+    @classmethod
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        for artifact in json:
+            artifact_description = builder.client.get(
+                "sagemaker", "describe-artifact", None, ArtifactArn=artifact["ArtifactArn"]
+            )
+            if artifact_description:
+                artifact_instance = AwsSagemakerArtifact.from_api(artifact_description)
+                builder.add_node(artifact_instance, artifact_description)
+
+
 resources: List[Type[AwsResource]] = [
     AwsSagemakerNotebook,
     AwsSagemakerAlgorithm,
@@ -1437,4 +1494,5 @@ resources: List[Type[AwsResource]] = [
     AwsSagemakerCodeRepository,
     AwsSagemakerEndpoint,
     AwsSagemakerImage,
+    AwsSagemakerArtifact,
 ]
