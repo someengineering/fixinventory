@@ -1048,6 +1048,352 @@ class AwsSagemakerCodeRepository(AwsResource):
     code_repository_git_config: Optional[AwsSagemakerGitConfig] = field(default=None)
 
 
+@define(eq=False, slots=False)
+class AwsSagemakerDeployedImage:
+    kind: ClassVar[str] = "aws_sagemaker_deployed_image"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "specified_image": S("SpecifiedImage"),
+        "resolved_image": S("ResolvedImage"),
+        "resolution_time": S("ResolutionTime"),
+    }
+    specified_image: Optional[str] = field(default=None)
+    resolved_image: Optional[str] = field(default=None)
+    resolution_time: Optional[datetime] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerProductionVariantStatus:
+    kind: ClassVar[str] = "aws_sagemaker_production_variant_status"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "status": S("Status"),
+        "status_message": S("StatusMessage"),
+        "start_time": S("StartTime"),
+    }
+    status: Optional[str] = field(default=None)
+    status_message: Optional[str] = field(default=None)
+    start_time: Optional[datetime] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerProductionVariantServerlessConfig:
+    kind: ClassVar[str] = "aws_sagemaker_production_variant_serverless_config"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "memory_size_in_mb": S("MemorySizeInMB"),
+        "max_concurrency": S("MaxConcurrency"),
+    }
+    memory_size_in_mb: Optional[int] = field(default=None)
+    max_concurrency: Optional[int] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerProductionVariantSummary:
+    kind: ClassVar[str] = "aws_sagemaker_production_variant_summary"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "variant_name": S("VariantName"),
+        "deployed_images": S("DeployedImages", default=[]) >> ForallBend(AwsSagemakerDeployedImage.mapping),
+        "current_weight": S("CurrentWeight"),
+        "desired_weight": S("DesiredWeight"),
+        "current_instance_count": S("CurrentInstanceCount"),
+        "desired_instance_count": S("DesiredInstanceCount"),
+        "variant_status": S("VariantStatus", default=[]) >> ForallBend(AwsSagemakerProductionVariantStatus.mapping),
+        "current_serverless_config": S("CurrentServerlessConfig")
+        >> Bend(AwsSagemakerProductionVariantServerlessConfig.mapping),
+        "desired_serverless_config": S("DesiredServerlessConfig")
+        >> Bend(AwsSagemakerProductionVariantServerlessConfig.mapping),
+    }
+    variant_name: Optional[str] = field(default=None)
+    deployed_images: List[AwsSagemakerDeployedImage] = field(factory=list)
+    current_weight: Optional[float] = field(default=None)
+    desired_weight: Optional[float] = field(default=None)
+    current_instance_count: Optional[int] = field(default=None)
+    desired_instance_count: Optional[int] = field(default=None)
+    variant_status: List[AwsSagemakerProductionVariantStatus] = field(factory=list)
+    current_serverless_config: Optional[AwsSagemakerProductionVariantServerlessConfig] = field(default=None)
+    desired_serverless_config: Optional[AwsSagemakerProductionVariantServerlessConfig] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerDataCaptureConfigSummary:
+    kind: ClassVar[str] = "aws_sagemaker_data_capture_config_summary"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "enable_capture": S("EnableCapture"),
+        "capture_status": S("CaptureStatus"),
+        "current_sampling_percentage": S("CurrentSamplingPercentage"),
+        "destination_s3_uri": S("DestinationS3Uri"),
+        "kms_key_id": S("KmsKeyId"),
+    }
+    enable_capture: Optional[bool] = field(default=None)
+    capture_status: Optional[str] = field(default=None)
+    current_sampling_percentage: Optional[int] = field(default=None)
+    destination_s3_uri: Optional[str] = field(default=None)
+    kms_key_id: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerCapacitySize:
+    kind: ClassVar[str] = "aws_sagemaker_capacity_size"
+    mapping: ClassVar[Dict[str, Bender]] = {"type": S("Type"), "value": S("Value")}
+    type: Optional[str] = field(default=None)
+    value: Optional[int] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerTrafficRoutingConfig:
+    kind: ClassVar[str] = "aws_sagemaker_traffic_routing_config"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "type": S("Type"),
+        "wait_interval_in_seconds": S("WaitIntervalInSeconds"),
+        "canary_size": S("CanarySize") >> Bend(AwsSagemakerCapacitySize.mapping),
+        "linear_step_size": S("LinearStepSize") >> Bend(AwsSagemakerCapacitySize.mapping),
+    }
+    type: Optional[str] = field(default=None)
+    wait_interval_in_seconds: Optional[int] = field(default=None)
+    canary_size: Optional[AwsSagemakerCapacitySize] = field(default=None)
+    linear_step_size: Optional[AwsSagemakerCapacitySize] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerBlueGreenUpdatePolicy:
+    kind: ClassVar[str] = "aws_sagemaker_blue_green_update_policy"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "traffic_routing_configuration": S("TrafficRoutingConfiguration")
+        >> Bend(AwsSagemakerTrafficRoutingConfig.mapping),
+        "termination_wait_in_seconds": S("TerminationWaitInSeconds"),
+        "maximum_execution_timeout_in_seconds": S("MaximumExecutionTimeoutInSeconds"),
+    }
+    traffic_routing_configuration: Optional[AwsSagemakerTrafficRoutingConfig] = field(default=None)
+    termination_wait_in_seconds: Optional[int] = field(default=None)
+    maximum_execution_timeout_in_seconds: Optional[int] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerAutoRollbackConfig:
+    kind: ClassVar[str] = "aws_sagemaker_auto_rollback_config"
+    mapping: ClassVar[Dict[str, Bender]] = {"alarms": S("Alarms", default=[]) >> ForallBend(S("AlarmName"))}
+    alarms: List[str] = field(factory=list)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerDeploymentConfig:
+    kind: ClassVar[str] = "aws_sagemaker_deployment_config"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "blue_green_update_policy": S("BlueGreenUpdatePolicy") >> Bend(AwsSagemakerBlueGreenUpdatePolicy.mapping),
+        "auto_rollback_configuration": S("AutoRollbackConfiguration") >> Bend(AwsSagemakerAutoRollbackConfig.mapping),
+    }
+    blue_green_update_policy: Optional[AwsSagemakerBlueGreenUpdatePolicy] = field(default=None)
+    auto_rollback_configuration: Optional[AwsSagemakerAutoRollbackConfig] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerAsyncInferenceNotificationConfig:
+    kind: ClassVar[str] = "aws_sagemaker_async_inference_notification_config"
+    mapping: ClassVar[Dict[str, Bender]] = {"success_topic": S("SuccessTopic"), "error_topic": S("ErrorTopic")}
+    success_topic: Optional[str] = field(default=None)
+    error_topic: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerAsyncInferenceOutputConfig:
+    kind: ClassVar[str] = "aws_sagemaker_async_inference_output_config"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "kms_key_id": S("KmsKeyId"),
+        "s3_output_path": S("S3OutputPath"),
+        "notification_config": S("NotificationConfig") >> Bend(AwsSagemakerAsyncInferenceNotificationConfig.mapping),
+    }
+    kms_key_id: Optional[str] = field(default=None)
+    s3_output_path: Optional[str] = field(default=None)
+    notification_config: Optional[AwsSagemakerAsyncInferenceNotificationConfig] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerAsyncInferenceConfig:
+    kind: ClassVar[str] = "aws_sagemaker_async_inference_config"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "client_config": S("ClientConfig", "MaxConcurrentInvocationsPerInstance"),
+        "output_config": S("OutputConfig") >> Bend(AwsSagemakerAsyncInferenceOutputConfig.mapping),
+    }
+    client_config: Optional[int] = field(default=None)
+    output_config: Optional[AwsSagemakerAsyncInferenceOutputConfig] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerPendingProductionVariantSummary:
+    kind: ClassVar[str] = "aws_sagemaker_pending_production_variant_summary"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "variant_name": S("VariantName"),
+        "deployed_images": S("DeployedImages", default=[]) >> ForallBend(AwsSagemakerDeployedImage.mapping),
+        "current_weight": S("CurrentWeight"),
+        "desired_weight": S("DesiredWeight"),
+        "current_instance_count": S("CurrentInstanceCount"),
+        "desired_instance_count": S("DesiredInstanceCount"),
+        "instance_type": S("InstanceType"),
+        "accelerator_type": S("AcceleratorType"),
+        "variant_status": S("VariantStatus", default=[]) >> ForallBend(AwsSagemakerProductionVariantStatus.mapping),
+        "current_serverless_config": S("CurrentServerlessConfig")
+        >> Bend(AwsSagemakerProductionVariantServerlessConfig.mapping),
+        "desired_serverless_config": S("DesiredServerlessConfig")
+        >> Bend(AwsSagemakerProductionVariantServerlessConfig.mapping),
+    }
+    variant_name: Optional[str] = field(default=None)
+    deployed_images: List[AwsSagemakerDeployedImage] = field(factory=list)
+    current_weight: Optional[float] = field(default=None)
+    desired_weight: Optional[float] = field(default=None)
+    current_instance_count: Optional[int] = field(default=None)
+    desired_instance_count: Optional[int] = field(default=None)
+    instance_type: Optional[str] = field(default=None)
+    accelerator_type: Optional[str] = field(default=None)
+    variant_status: List[AwsSagemakerProductionVariantStatus] = field(factory=list)
+    current_serverless_config: Optional[AwsSagemakerProductionVariantServerlessConfig] = field(default=None)
+    desired_serverless_config: Optional[AwsSagemakerProductionVariantServerlessConfig] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerPendingDeploymentSummary:
+    kind: ClassVar[str] = "aws_sagemaker_pending_deployment_summary"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "endpoint_config_name": S("EndpointConfigName"),
+        "production_variants": S("ProductionVariants", default=[])
+        >> ForallBend(AwsSagemakerPendingProductionVariantSummary.mapping),
+        "start_time": S("StartTime"),
+    }
+    endpoint_config_name: Optional[str] = field(default=None)
+    production_variants: List[AwsSagemakerPendingProductionVariantSummary] = field(factory=list)
+    start_time: Optional[datetime] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerClarifyInferenceConfig:
+    kind: ClassVar[str] = "aws_sagemaker_clarify_inference_config"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "features_attribute": S("FeaturesAttribute"),
+        "content_template": S("ContentTemplate"),
+        "max_record_count": S("MaxRecordCount"),
+        "max_payload_in_mb": S("MaxPayloadInMB"),
+        "probability_index": S("ProbabilityIndex"),
+        "label_index": S("LabelIndex"),
+        "probability_attribute": S("ProbabilityAttribute"),
+        "label_attribute": S("LabelAttribute"),
+        "label_headers": S("LabelHeaders", default=[]),
+        "feature_headers": S("FeatureHeaders", default=[]),
+        "feature_types": S("FeatureTypes", default=[]),
+    }
+    features_attribute: Optional[str] = field(default=None)
+    content_template: Optional[str] = field(default=None)
+    max_record_count: Optional[int] = field(default=None)
+    max_payload_in_mb: Optional[int] = field(default=None)
+    probability_index: Optional[int] = field(default=None)
+    label_index: Optional[int] = field(default=None)
+    probability_attribute: Optional[str] = field(default=None)
+    label_attribute: Optional[str] = field(default=None)
+    label_headers: List[str] = field(factory=list)
+    feature_headers: List[str] = field(factory=list)
+    feature_types: List[str] = field(factory=list)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerClarifyShapBaselineConfig:
+    kind: ClassVar[str] = "aws_sagemaker_clarify_shap_baseline_config"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "mime_type": S("MimeType"),
+        "shap_baseline": S("ShapBaseline"),
+        "shap_baseline_uri": S("ShapBaselineUri"),
+    }
+    mime_type: Optional[str] = field(default=None)
+    shap_baseline: Optional[str] = field(default=None)
+    shap_baseline_uri: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerClarifyTextConfig:
+    kind: ClassVar[str] = "aws_sagemaker_clarify_text_config"
+    mapping: ClassVar[Dict[str, Bender]] = {"language": S("Language"), "granularity": S("Granularity")}
+    language: Optional[str] = field(default=None)
+    granularity: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerClarifyShapConfig:
+    kind: ClassVar[str] = "aws_sagemaker_clarify_shap_config"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "shap_baseline_config": S("ShapBaselineConfig") >> Bend(AwsSagemakerClarifyShapBaselineConfig.mapping),
+        "number_of_samples": S("NumberOfSamples"),
+        "use_logit": S("UseLogit"),
+        "seed": S("Seed"),
+        "text_config": S("TextConfig") >> Bend(AwsSagemakerClarifyTextConfig.mapping),
+    }
+    shap_baseline_config: Optional[AwsSagemakerClarifyShapBaselineConfig] = field(default=None)
+    number_of_samples: Optional[int] = field(default=None)
+    use_logit: Optional[bool] = field(default=None)
+    seed: Optional[int] = field(default=None)
+    text_config: Optional[AwsSagemakerClarifyTextConfig] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerClarifyExplainerConfig:
+    kind: ClassVar[str] = "aws_sagemaker_clarify_explainer_config"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "enable_explanations": S("EnableExplanations"),
+        "inference_config": S("InferenceConfig") >> Bend(AwsSagemakerClarifyInferenceConfig.mapping),
+        "shap_config": S("ShapConfig") >> Bend(AwsSagemakerClarifyShapConfig.mapping),
+    }
+    enable_explanations: Optional[str] = field(default=None)
+    inference_config: Optional[AwsSagemakerClarifyInferenceConfig] = field(default=None)
+    shap_config: Optional[AwsSagemakerClarifyShapConfig] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerExplainerConfig:
+    kind: ClassVar[str] = "aws_sagemaker_explainer_config"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "clarify_explainer_config": S("ClarifyExplainerConfig") >> Bend(AwsSagemakerClarifyExplainerConfig.mapping)
+    }
+    clarify_explainer_config: Optional[AwsSagemakerClarifyExplainerConfig] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerEndpoint(AwsResource):
+    kind: ClassVar[str] = "aws_sagemaker_endpoint"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-endpoints", "Endpoints")
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("EndpointName"),
+        # "tags": S("Tags", default=[]) >> ToDict(),
+        "name": S("EndpointName"),
+        "ctime": S("CreationTime"),
+        "mtime": S("LastModifiedTime"),
+        "arn": S("EndpointArn"),
+        "endpoint_config_name": S("EndpointConfigName"),
+        "endpoint_production_variants": S("ProductionVariants", default=[])
+        >> ForallBend(AwsSagemakerProductionVariantSummary.mapping),
+        "endpoint_data_capture_config": S("DataCaptureConfig") >> Bend(AwsSagemakerDataCaptureConfigSummary.mapping),
+        "endpoint_status": S("EndpointStatus"),
+        "endpoint_failure_reason": S("FailureReason"),
+        "endpoint_last_deployment_config": S("LastDeploymentConfig") >> Bend(AwsSagemakerDeploymentConfig.mapping),
+        "endpoint_async_inference_config": S("AsyncInferenceConfig") >> Bend(AwsSagemakerAsyncInferenceConfig.mapping),
+        "endpoint_pending_deployment_summary": S("PendingDeploymentSummary")
+        >> Bend(AwsSagemakerPendingDeploymentSummary.mapping),
+        "endpoint_explainer_config": S("ExplainerConfig") >> Bend(AwsSagemakerExplainerConfig.mapping),
+    }
+    endpoint_config_name: Optional[str] = field(default=None)
+    endpoint_production_variants: List[AwsSagemakerProductionVariantSummary] = field(factory=list)
+    endpoint_data_capture_config: Optional[AwsSagemakerDataCaptureConfigSummary] = field(default=None)
+    endpoint_status: Optional[str] = field(default=None)
+    endpoint_failure_reason: Optional[str] = field(default=None)
+    endpoint_last_deployment_config: Optional[AwsSagemakerDeploymentConfig] = field(default=None)
+    endpoint_async_inference_config: Optional[AwsSagemakerAsyncInferenceConfig] = field(default=None)
+    endpoint_pending_deployment_summary: Optional[AwsSagemakerPendingDeploymentSummary] = field(default=None)
+    endpoint_explainer_config: Optional[AwsSagemakerExplainerConfig] = field(default=None)
+
+    @classmethod
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        for endpoint in json:
+            endpoint_description = builder.client.get(
+                "sagemaker", "describe-endpoint", None, EndpointName=endpoint["EndpointName"]
+            )
+            if endpoint_description:
+                endpoint_instance = AwsSagemakerEndpoint.from_api(endpoint_description)
+                builder.add_node(endpoint_instance, endpoint_description)
+
+
 resources: List[Type[AwsResource]] = [
     AwsSagemakerNotebook,
     AwsSagemakerAlgorithm,
@@ -1057,4 +1403,5 @@ resources: List[Type[AwsResource]] = [
     AwsSagemakerExperiment,
     AwsSagemakerTrial,
     AwsSagemakerCodeRepository,
+    AwsSagemakerEndpoint,
 ]

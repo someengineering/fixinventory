@@ -789,13 +789,14 @@ models: Dict[str, List[AwsResotoModel]] = {
         # AwsResotoModel("describe-domain", None, "DescribeDomainResponse", prefix="Sagemaker", prop_prefix="domain_"),
         # AwsResotoModel("list-experiments", None, "ExperimentSummary", "Sagemaker", "experiment_"),
         # AwsResotoModel("describe-trial", "TrialSummaries", "DescribeTrialResponse", "Sagemaker", "trial_"),
-        AwsResotoModel(
-            "list-code-repositories",
-            "CodeRepositorySummaryList",
-            "CodeRepositorySummary",
-            "Sagemaker",
-            "code_repository_",
-        )
+        # AwsResotoModel(
+        #     "list-code-repositories",
+        #     "CodeRepositorySummaryList",
+        #     "CodeRepositorySummary",
+        #     "Sagemaker",
+        #     "code_repository_",
+        # ),
+        AwsResotoModel("describe-endpoint", "Endpoints", "DescribeEndpointOutput", "Sagemaker", "endpoint_")
     ],
     "service-quotas": [
         # AwsResotoModel("list-service-quotas", "Quotas", "ServiceQuota", prefix="Quota", prop_prefix="quota_")
