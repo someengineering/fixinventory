@@ -918,10 +918,37 @@ class AwsSagemakerDomain(AwsResource):
                 builder.add_node(domain_instance, domain_description)
 
 
+@define(eq=False, slots=False)
+class AwsSagemakerExperimentSource:
+    kind: ClassVar[str] = "aws_sagemaker_experiment_source"
+    mapping: ClassVar[Dict[str, Bender]] = {"source_arn": S("SourceArn"), "source_type": S("SourceType")}
+    source_arn: Optional[str] = field(default=None)
+    source_type: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerExperiment(AwsResource):
+    kind: ClassVar[str] = "aws_sagemaker_experiment"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-experiments", "ExperimentSummaries")
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("ExperimentName"),
+        # "tags": S("Tags", default=[]) >> ToDict(),
+        "name": S("ExperimentName"),
+        "ctime": S("CreationTime"),
+        "mtime": S("LastModifiedTime"),
+        "arn": S("ExperimentArn"),
+        "experiment_display_name": S("DisplayName"),
+        "experiment_source": S("ExperimentSource") >> Bend(AwsSagemakerExperimentSource.mapping),
+    }
+    experiment_display_name: Optional[str] = field(default=None)
+    experiment_source: Optional[AwsSagemakerExperimentSource] = field(default=None)
+
+
 resources: List[Type[AwsResource]] = [
     AwsSagemakerNotebook,
     AwsSagemakerAlgorithm,
     AwsSagemakerModel,
     AwsSagemakerApp,
     AwsSagemakerDomain,
+    AwsSagemakerExperiment,
 ]
