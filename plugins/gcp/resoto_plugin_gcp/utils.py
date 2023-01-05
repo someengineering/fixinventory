@@ -6,7 +6,7 @@ from resotolib.config import Config
 from resotolib.graph import Graph
 from resotolib.lock import RWLock
 import resotolib.logger
-from typing import Iterable, List, Union, Callable, Any, Dict
+from typing import Iterable, List, Union, Callable, Any, Dict, Optional
 from googleapiclient import discovery
 from googleapiclient.errors import HttpError as GoogleApiClientHttpError
 from googleapiclient.discovery_cache.base import Cache as GoogleApiClientCache
@@ -228,7 +228,7 @@ def delete_resource(resource: BaseResource) -> bool:
     return True
 
 
-def update_label(resource: BaseResource, key: str, value: str) -> bool:
+def update_label(resource: BaseResource, key: str, value: Optional[str]) -> bool:
     get_kwargs = {str(resource._get_identifier): resource.name}
     set_labels_kwargs = {str(resource._set_label_identifier): resource.name}
 

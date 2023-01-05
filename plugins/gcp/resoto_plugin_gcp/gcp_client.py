@@ -1,0 +1,86 @@
+from typing import Optional, List, Dict, Any, Set
+
+from attr import define
+from google.auth.credentials import Credentials
+from googleapiclient import discovery
+
+from resoto_plugin_gcp.utils import MemoryCache
+from resotolib.core.actions import CoreFeedback
+from resotolib.json import value_in_path
+from resotolib.types import Json
+
+InternalZoneProp = "_zone"
+RegionProp = "region"
+
+
+@define(eq=False, slots=False)
+class GcpApiSpec:
+    service: str
+    version: str
+    accessors: List[str]
+    action: str
+    request_parameter: Dict[str, str]
+    request_parameter_in: Set[str]
+    response_path: str
+    response_regional_sub_path: Optional[str] = None
+
+    @property
+    def next_action(self) -> str:
+        return self.action + "_next"
+
+    @property
+    def is_zone_specific(self) -> bool:
+        return self.response_regional_sub_path is not None
+
+    @property
+    def is_project_level(self) -> bool:
+        # api spec is on project level, if no other param than project is required
+        return not (self.request_parameter_in - {"project"})
+
+
+class GcpClient:
+    def __init__(
+        self,
+        credentials: Credentials,
+        *,
+        project_id: Optional[str] = None,
+        region: Optional[str] = None,
+        core_feedback: Optional[CoreFeedback] = None,
+    ) -> None:
+        self.credentials = credentials
+        self.project_id = project_id
+        self.region = region
+        self.core_feedback = core_feedback
+
+    def list(self, api_spec: GcpApiSpec, **kwargs) -> List[Json]:
+        # todo add caching
+        client = discovery.build(api_spec.service, api_spec.version, credentials=self.credentials, cache=MemoryCache())
+        executor = client
+        for accessor in api_spec.accessors:
+            executor = getattr(executor, accessor)()
+        params_map = {"project": self.project_id, "region": self.region}
+        params = {k: v.format_map(params_map) for k, v in api_spec.request_parameter.items()}
+        result: List[Json] = []
+
+        def next_responses(request: Any) -> None:
+            response = request.execute()
+            page = value_in_path(response, api_spec.response_path)
+            if api_spec.is_zone_specific and isinstance(page, dict):
+                for zone_marker, zone_response in page.items():
+                    zone = zone_marker.split("/")[-1]
+                    for item in value_in_path(zone_response, api_spec.response_regional_sub_path) or []:
+                        # store the zone as part of the item
+                        item[InternalZoneProp] = zone
+                        result.append(item)
+            elif isinstance(page, list):
+                result.extend(page)
+            elif page is None:
+                pass
+            else:
+                raise ValueError(f"Unexpected response type: {type(page)}")
+
+            if nxt_req := getattr(executor, api_spec.next_action)(previous_request=request, previous_response=response):
+                return next_responses(nxt_req)
+
+        next_responses(getattr(executor, api_spec.action)(**params))
+        return result
