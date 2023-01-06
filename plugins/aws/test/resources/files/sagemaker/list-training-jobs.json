@@ -1,0 +1,18 @@
+{
+    "TrainingJobSummaries": [
+        {
+            "TrainingJobName": "tjob",
+            "TrainingJobArn": "string",
+            "CreationTime": "2015-01-01T00:00:00Z",
+            "TrainingEndTime": "2015-01-01T00:00:00Z",
+            "LastModifiedTime": "2015-01-01T00:00:00Z",
+            "TrainingJobStatus": "InProgress",
+            "WarmPoolStatus": {
+                "Status": "Available",
+                "ResourceRetainedBillableTimeInSeconds": 123,
+                "ReusedByJob": "string"
+            }
+        }
+    ],
+    "NextToken": "string"
+}

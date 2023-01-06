@@ -20,6 +20,7 @@ from resoto_plugin_aws.resource.sagemaker import (
     AwsSagemakerInferenceRecommendationsJob,
     AwsSagemakerLabelingJob,
     AwsSagemakerProcessingJob,
+    AwsSagemakerTrainingJob,
 )
 
 
@@ -123,3 +124,8 @@ def test_labeling_job() -> None:
 def test_processing_job() -> None:
     first, builder = round_trip_for(AwsSagemakerProcessingJob)
     assert len(builder.resources_of(AwsSagemakerProcessingJob)) == 1
+
+
+def test_training_job() -> None:
+    first, builder = round_trip_for(AwsSagemakerTrainingJob)
+    assert len(builder.resources_of(AwsSagemakerTrainingJob)) == 1

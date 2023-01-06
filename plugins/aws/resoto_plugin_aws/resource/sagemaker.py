@@ -3139,6 +3139,301 @@ class AwsSagemakerProcessingJob(AwsResource):
                 builder.add_node(job_instance, job_description)
 
 
+@define(eq=False, slots=False)
+class AwsSagemakerAlgorithmSpecification:
+    kind: ClassVar[str] = "aws_sagemaker_algorithm_specification"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "training_image": S("TrainingImage"),
+        "algorithm_name": S("AlgorithmName"),
+        "training_input_mode": S("TrainingInputMode"),
+        "metric_definitions": S("MetricDefinitions", default=[]) >> ForallBend(AwsSagemakerMetricDefinition.mapping),
+        "enable_sage_maker_metrics_time_series": S("EnableSageMakerMetricsTimeSeries"),
+        "container_entrypoint": S("ContainerEntrypoint", default=[]),
+        "container_arguments": S("ContainerArguments", default=[]),
+    }
+    training_image: Optional[str] = field(default=None)
+    algorithm_name: Optional[str] = field(default=None)
+    training_input_mode: Optional[str] = field(default=None)
+    metric_definitions: List[AwsSagemakerMetricDefinition] = field(factory=list)
+    enable_sage_maker_metrics_time_series: Optional[bool] = field(default=None)
+    container_entrypoint: List[str] = field(factory=list)
+    container_arguments: List[str] = field(factory=list)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerSecondaryStatusTransition:
+    kind: ClassVar[str] = "aws_sagemaker_secondary_status_transition"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "status": S("Status"),
+        "start_time": S("StartTime"),
+        "end_time": S("EndTime"),
+        "status_message": S("StatusMessage"),
+    }
+    status: Optional[str] = field(default=None)
+    start_time: Optional[datetime] = field(default=None)
+    end_time: Optional[datetime] = field(default=None)
+    status_message: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerMetricData:
+    kind: ClassVar[str] = "aws_sagemaker_metric_data"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "metric_name": S("MetricName"),
+        "value": S("Value"),
+        "timestamp": S("Timestamp"),
+    }
+    metric_name: Optional[str] = field(default=None)
+    value: Optional[float] = field(default=None)
+    timestamp: Optional[datetime] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerCollectionConfiguration:
+    kind: ClassVar[str] = "aws_sagemaker_collection_configuration"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "collection_name": S("CollectionName"),
+        "collection_parameters": S("CollectionParameters"),
+    }
+    collection_name: Optional[str] = field(default=None)
+    collection_parameters: Optional[Dict[str, str]] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerDebugHookConfig:
+    kind: ClassVar[str] = "aws_sagemaker_debug_hook_config"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "local_path": S("LocalPath"),
+        "s3_output_path": S("S3OutputPath"),
+        "hook_parameters": S("HookParameters"),
+        "collection_configurations": S("CollectionConfigurations", default=[])
+        >> ForallBend(AwsSagemakerCollectionConfiguration.mapping),
+    }
+    local_path: Optional[str] = field(default=None)
+    s3_output_path: Optional[str] = field(default=None)
+    hook_parameters: Optional[Dict[str, str]] = field(default=None)
+    collection_configurations: List[AwsSagemakerCollectionConfiguration] = field(factory=list)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerDebugRuleConfiguration:
+    kind: ClassVar[str] = "aws_sagemaker_debug_rule_configuration"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "rule_configuration_name": S("RuleConfigurationName"),
+        "local_path": S("LocalPath"),
+        "s3_output_path": S("S3OutputPath"),
+        "rule_evaluator_image": S("RuleEvaluatorImage"),
+        "instance_type": S("InstanceType"),
+        "volume_size_in_gb": S("VolumeSizeInGB"),
+        "rule_parameters": S("RuleParameters"),
+    }
+    rule_configuration_name: Optional[str] = field(default=None)
+    local_path: Optional[str] = field(default=None)
+    s3_output_path: Optional[str] = field(default=None)
+    rule_evaluator_image: Optional[str] = field(default=None)
+    instance_type: Optional[str] = field(default=None)
+    volume_size_in_gb: Optional[int] = field(default=None)
+    rule_parameters: Optional[Dict[str, str]] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerTensorBoardOutputConfig:
+    kind: ClassVar[str] = "aws_sagemaker_tensor_board_output_config"
+    mapping: ClassVar[Dict[str, Bender]] = {"local_path": S("LocalPath"), "s3_output_path": S("S3OutputPath")}
+    local_path: Optional[str] = field(default=None)
+    s3_output_path: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerDebugRuleEvaluationStatus:
+    kind: ClassVar[str] = "aws_sagemaker_debug_rule_evaluation_status"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "rule_configuration_name": S("RuleConfigurationName"),
+        "rule_evaluation_job_arn": S("RuleEvaluationJobArn"),
+        "rule_evaluation_status": S("RuleEvaluationStatus"),
+        "status_details": S("StatusDetails"),
+        "last_modified_time": S("LastModifiedTime"),
+    }
+    rule_configuration_name: Optional[str] = field(default=None)
+    rule_evaluation_job_arn: Optional[str] = field(default=None)
+    rule_evaluation_status: Optional[str] = field(default=None)
+    status_details: Optional[str] = field(default=None)
+    last_modified_time: Optional[datetime] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerProfilerConfig:
+    kind: ClassVar[str] = "aws_sagemaker_profiler_config"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "s3_output_path": S("S3OutputPath"),
+        "profiling_interval_in_milliseconds": S("ProfilingIntervalInMilliseconds"),
+        "profiling_parameters": S("ProfilingParameters"),
+    }
+    s3_output_path: Optional[str] = field(default=None)
+    profiling_interval_in_milliseconds: Optional[int] = field(default=None)
+    profiling_parameters: Optional[Dict[str, str]] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerProfilerRuleConfiguration:
+    kind: ClassVar[str] = "aws_sagemaker_profiler_rule_configuration"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "rule_configuration_name": S("RuleConfigurationName"),
+        "local_path": S("LocalPath"),
+        "s3_output_path": S("S3OutputPath"),
+        "rule_evaluator_image": S("RuleEvaluatorImage"),
+        "instance_type": S("InstanceType"),
+        "volume_size_in_gb": S("VolumeSizeInGB"),
+        "rule_parameters": S("RuleParameters"),
+    }
+    rule_configuration_name: Optional[str] = field(default=None)
+    local_path: Optional[str] = field(default=None)
+    s3_output_path: Optional[str] = field(default=None)
+    rule_evaluator_image: Optional[str] = field(default=None)
+    instance_type: Optional[str] = field(default=None)
+    volume_size_in_gb: Optional[int] = field(default=None)
+    rule_parameters: Optional[Dict[str, str]] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerProfilerRuleEvaluationStatus:
+    kind: ClassVar[str] = "aws_sagemaker_profiler_rule_evaluation_status"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "rule_configuration_name": S("RuleConfigurationName"),
+        "rule_evaluation_job_arn": S("RuleEvaluationJobArn"),
+        "rule_evaluation_status": S("RuleEvaluationStatus"),
+        "status_details": S("StatusDetails"),
+        "last_modified_time": S("LastModifiedTime"),
+    }
+    rule_configuration_name: Optional[str] = field(default=None)
+    rule_evaluation_job_arn: Optional[str] = field(default=None)
+    rule_evaluation_status: Optional[str] = field(default=None)
+    status_details: Optional[str] = field(default=None)
+    last_modified_time: Optional[datetime] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerWarmPoolStatus:
+    kind: ClassVar[str] = "aws_sagemaker_warm_pool_status"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "status": S("Status"),
+        "resource_retained_billable_time_in_seconds": S("ResourceRetainedBillableTimeInSeconds"),
+        "reused_by_job": S("ReusedByJob"),
+    }
+    status: Optional[str] = field(default=None)
+    resource_retained_billable_time_in_seconds: Optional[int] = field(default=None)
+    reused_by_job: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerTrainingJob(AwsResource):
+    kind: ClassVar[str] = "aws_sagemaker_training_job"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-training-jobs", "TrainingJobSummaries")
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("TrainingJobName"),
+        # "tags": S("Tags", default=[]) >> ToDict(),
+        "name": S("TrainingJobName"),
+        "ctime": S("CreationTime"),
+        "mtime": S("LastModifiedTime"),
+        "arn": S("TrainingJobArn"),
+        "training_job_tuning_job_arn": S("TuningJobArn"),
+        "training_job_labeling_job_arn": S("LabelingJobArn"),
+        "training_job_auto_ml_job_arn": S("AutoMLJobArn"),
+        "training_job_model_artifacts": S("ModelArtifacts", "S3ModelArtifacts"),
+        "training_job_training_job_status": S("TrainingJobStatus"),
+        "training_job_secondary_status": S("SecondaryStatus"),
+        "training_job_failure_reason": S("FailureReason"),
+        "training_job_hyper_parameters": S("HyperParameters"),
+        "training_job_algorithm_specification": S("AlgorithmSpecification")
+        >> Bend(AwsSagemakerAlgorithmSpecification.mapping),
+        "training_job_role_arn": S("RoleArn"),
+        "training_job_input_data_config": S("InputDataConfig", default=[]) >> ForallBend(AwsSagemakerChannel.mapping),
+        "training_job_output_data_config": S("OutputDataConfig") >> Bend(AwsSagemakerOutputDataConfig.mapping),
+        "training_job_resource_config": S("ResourceConfig") >> Bend(AwsSagemakerResourceConfig.mapping),
+        "training_job_vpc_config": S("VpcConfig") >> Bend(AwsSagemakerVpcConfig.mapping),
+        "training_job_stopping_condition": S("StoppingCondition") >> Bend(AwsSagemakerStoppingCondition.mapping),
+        "training_job_training_start_time": S("TrainingStartTime"),
+        "training_job_training_end_time": S("TrainingEndTime"),
+        "training_job_secondary_status_transitions": S("SecondaryStatusTransitions", default=[])
+        >> ForallBend(AwsSagemakerSecondaryStatusTransition.mapping),
+        "training_job_final_metric_data_list": S("FinalMetricDataList", default=[])
+        >> ForallBend(AwsSagemakerMetricData.mapping),
+        "training_job_enable_network_isolation": S("EnableNetworkIsolation"),
+        "training_job_enable_inter_container_traffic_encryption": S("EnableInterContainerTrafficEncryption"),
+        "training_job_enable_managed_spot_training": S("EnableManagedSpotTraining"),
+        "training_job_checkpoint_config": S("CheckpointConfig") >> Bend(AwsSagemakerCheckpointConfig.mapping),
+        "training_job_training_time_in_seconds": S("TrainingTimeInSeconds"),
+        "training_job_billable_time_in_seconds": S("BillableTimeInSeconds"),
+        "training_job_debug_hook_config": S("DebugHookConfig") >> Bend(AwsSagemakerDebugHookConfig.mapping),
+        "training_job_experiment_config": S("ExperimentConfig") >> Bend(AwsSagemakerExperimentConfig.mapping),
+        "training_job_debug_rule_configurations": S("DebugRuleConfigurations", default=[])
+        >> ForallBend(AwsSagemakerDebugRuleConfiguration.mapping),
+        "training_job_tensor_board_output_config": S("TensorBoardOutputConfig")
+        >> Bend(AwsSagemakerTensorBoardOutputConfig.mapping),
+        "training_job_debug_rule_evaluation_statuses": S("DebugRuleEvaluationStatuses", default=[])
+        >> ForallBend(AwsSagemakerDebugRuleEvaluationStatus.mapping),
+        "training_job_profiler_config": S("ProfilerConfig") >> Bend(AwsSagemakerProfilerConfig.mapping),
+        "training_job_profiler_rule_configurations": S("ProfilerRuleConfigurations", default=[])
+        >> ForallBend(AwsSagemakerProfilerRuleConfiguration.mapping),
+        "training_job_profiler_rule_evaluation_statuses": S("ProfilerRuleEvaluationStatuses", default=[])
+        >> ForallBend(AwsSagemakerProfilerRuleEvaluationStatus.mapping),
+        "training_job_profiling_status": S("ProfilingStatus"),
+        "training_job_retry_strategy": S("RetryStrategy", "MaximumRetryAttempts"),
+        "training_job_environment": S("Environment"),
+        "training_job_warm_pool_status": S("WarmPoolStatus") >> Bend(AwsSagemakerWarmPoolStatus.mapping),
+    }
+    training_job_tuning_job_arn: Optional[str] = field(default=None)
+    training_job_labeling_job_arn: Optional[str] = field(default=None)
+    training_job_auto_ml_job_arn: Optional[str] = field(default=None)
+    training_job_model_artifacts: Optional[str] = field(default=None)
+    training_job_training_job_status: Optional[str] = field(default=None)
+    training_job_secondary_status: Optional[str] = field(default=None)
+    training_job_failure_reason: Optional[str] = field(default=None)
+    training_job_hyper_parameters: Optional[Dict[str, str]] = field(default=None)
+    training_job_algorithm_specification: Optional[AwsSagemakerAlgorithmSpecification] = field(default=None)
+    training_job_role_arn: Optional[str] = field(default=None)
+    training_job_input_data_config: List[AwsSagemakerChannel] = field(factory=list)
+    training_job_output_data_config: Optional[AwsSagemakerOutputDataConfig] = field(default=None)
+    training_job_resource_config: Optional[AwsSagemakerResourceConfig] = field(default=None)
+    training_job_vpc_config: Optional[AwsSagemakerVpcConfig] = field(default=None)
+    training_job_stopping_condition: Optional[AwsSagemakerStoppingCondition] = field(default=None)
+    training_job_training_start_time: Optional[datetime] = field(default=None)
+    training_job_training_end_time: Optional[datetime] = field(default=None)
+    training_job_secondary_status_transitions: List[AwsSagemakerSecondaryStatusTransition] = field(factory=list)
+    training_job_final_metric_data_list: List[AwsSagemakerMetricData] = field(factory=list)
+    training_job_enable_network_isolation: Optional[bool] = field(default=None)
+    training_job_enable_inter_container_traffic_encryption: Optional[bool] = field(default=None)
+    training_job_enable_managed_spot_training: Optional[bool] = field(default=None)
+    training_job_checkpoint_config: Optional[AwsSagemakerCheckpointConfig] = field(default=None)
+    training_job_training_time_in_seconds: Optional[int] = field(default=None)
+    training_job_billable_time_in_seconds: Optional[int] = field(default=None)
+    training_job_debug_hook_config: Optional[AwsSagemakerDebugHookConfig] = field(default=None)
+    training_job_experiment_config: Optional[AwsSagemakerExperimentConfig] = field(default=None)
+    training_job_debug_rule_configurations: List[AwsSagemakerDebugRuleConfiguration] = field(factory=list)
+    training_job_tensor_board_output_config: Optional[AwsSagemakerTensorBoardOutputConfig] = field(default=None)
+    training_job_debug_rule_evaluation_statuses: List[AwsSagemakerDebugRuleEvaluationStatus] = field(factory=list)
+    training_job_profiler_config: Optional[AwsSagemakerProfilerConfig] = field(default=None)
+    training_job_profiler_rule_configurations: List[AwsSagemakerProfilerRuleConfiguration] = field(factory=list)
+    training_job_profiler_rule_evaluation_statuses: List[AwsSagemakerProfilerRuleEvaluationStatus] = field(factory=list)
+    training_job_profiling_status: Optional[str] = field(default=None)
+    training_job_retry_strategy: Optional[int] = field(default=None)
+    training_job_environment: Optional[Dict[str, str]] = field(default=None)
+    training_job_warm_pool_status: Optional[AwsSagemakerWarmPoolStatus] = field(default=None)
+
+    @classmethod
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        for job in json:
+            job_description = builder.client.get(
+                "sagemaker",
+                "describe-training-job",
+                None,
+                TrainingJobName=job["TrainingJobName"],
+            )
+            if job_description:
+                job_instance = AwsSagemakerTrainingJob.from_api(job_description)
+                builder.add_node(job_instance, job_description)
+
+
 resources: List[Type[AwsResource]] = [
     AwsSagemakerNotebook,
     AwsSagemakerAlgorithm,
@@ -3160,11 +3455,11 @@ resources: List[Type[AwsResource]] = [
     AwsSagemakerInferenceRecommendationsJob,
     AwsSagemakerLabelingJob,
     AwsSagemakerProcessingJob,
+    AwsSagemakerTrainingJob,
 ]
 
 # model_bias_job_definition()
 # model_explainability_job_definition()
 # model_quality_job_definition()
-# training_job()
 # transform_job()
 # data_quality_job_definition()
