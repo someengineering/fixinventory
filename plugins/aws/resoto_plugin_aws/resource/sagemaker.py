@@ -2363,6 +2363,292 @@ class AwsSagemakerHyperParameterTuningJob(AwsResource):
                 builder.add_node(job_instance, job_description)
 
 
+@define(eq=False, slots=False)
+class AwsSagemakerPhase:
+    kind: ClassVar[str] = "aws_sagemaker_phase"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "initial_number_of_users": S("InitialNumberOfUsers"),
+        "spawn_rate": S("SpawnRate"),
+        "duration_in_seconds": S("DurationInSeconds"),
+    }
+    initial_number_of_users: Optional[int] = field(default=None)
+    spawn_rate: Optional[int] = field(default=None)
+    duration_in_seconds: Optional[int] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerTrafficPattern:
+    kind: ClassVar[str] = "aws_sagemaker_traffic_pattern"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "traffic_type": S("TrafficType"),
+        "phases": S("Phases", default=[]) >> ForallBend(AwsSagemakerPhase.mapping),
+    }
+    traffic_type: Optional[str] = field(default=None)
+    phases: List[AwsSagemakerPhase] = field(factory=list)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerRecommendationJobResourceLimit:
+    kind: ClassVar[str] = "aws_sagemaker_recommendation_job_resource_limit"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "max_number_of_tests": S("MaxNumberOfTests"),
+        "max_parallel_of_tests": S("MaxParallelOfTests"),
+    }
+    max_number_of_tests: Optional[int] = field(default=None)
+    max_parallel_of_tests: Optional[int] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerCategoricalParameter:
+    kind: ClassVar[str] = "aws_sagemaker_categorical_parameter"
+    mapping: ClassVar[Dict[str, Bender]] = {"name": S("Name"), "value": S("Value", default=[])}
+    name: Optional[str] = field(default=None)
+    value: List[str] = field(factory=list)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerEnvironmentParameterRanges:
+    kind: ClassVar[str] = "aws_sagemaker_environment_parameter_ranges"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "categorical_parameter_ranges": S("CategoricalParameterRanges", default=[])
+        >> ForallBend(AwsSagemakerCategoricalParameter.mapping)
+    }
+    categorical_parameter_ranges: List[AwsSagemakerCategoricalParameter] = field(factory=list)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerEndpointInputConfiguration:
+    kind: ClassVar[str] = "aws_sagemaker_endpoint_input_configuration"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "instance_type": S("InstanceType"),
+        "inference_specification_name": S("InferenceSpecificationName"),
+        "environment_parameter_ranges": S("EnvironmentParameterRanges")
+        >> Bend(AwsSagemakerEnvironmentParameterRanges.mapping),
+    }
+    instance_type: Optional[str] = field(default=None)
+    inference_specification_name: Optional[str] = field(default=None)
+    environment_parameter_ranges: Optional[AwsSagemakerEnvironmentParameterRanges] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerRecommendationJobPayloadConfig:
+    kind: ClassVar[str] = "aws_sagemaker_recommendation_job_payload_config"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "sample_payload_url": S("SamplePayloadUrl"),
+        "supported_content_types": S("SupportedContentTypes", default=[]),
+    }
+    sample_payload_url: Optional[str] = field(default=None)
+    supported_content_types: List[str] = field(factory=list)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerRecommendationJobContainerConfig:
+    kind: ClassVar[str] = "aws_sagemaker_recommendation_job_container_config"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "domain": S("Domain"),
+        "task": S("Task"),
+        "framework": S("Framework"),
+        "framework_version": S("FrameworkVersion"),
+        "payload_config": S("PayloadConfig") >> Bend(AwsSagemakerRecommendationJobPayloadConfig.mapping),
+        "nearest_model_name": S("NearestModelName"),
+        "supported_instance_types": S("SupportedInstanceTypes", default=[]),
+    }
+    domain: Optional[str] = field(default=None)
+    task: Optional[str] = field(default=None)
+    framework: Optional[str] = field(default=None)
+    framework_version: Optional[str] = field(default=None)
+    payload_config: Optional[AwsSagemakerRecommendationJobPayloadConfig] = field(default=None)
+    nearest_model_name: Optional[str] = field(default=None)
+    supported_instance_types: List[str] = field(factory=list)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerRecommendationJobInputConfig:
+    kind: ClassVar[str] = "aws_sagemaker_recommendation_job_input_config"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "model_package_version_arn": S("ModelPackageVersionArn"),
+        "job_duration_in_seconds": S("JobDurationInSeconds"),
+        "traffic_pattern": S("TrafficPattern") >> Bend(AwsSagemakerTrafficPattern.mapping),
+        "resource_limit": S("ResourceLimit") >> Bend(AwsSagemakerRecommendationJobResourceLimit.mapping),
+        "endpoint_configurations": S("EndpointConfigurations", default=[])
+        >> ForallBend(AwsSagemakerEndpointInputConfiguration.mapping),
+        "volume_kms_key_id": S("VolumeKmsKeyId"),
+        "container_config": S("ContainerConfig") >> Bend(AwsSagemakerRecommendationJobContainerConfig.mapping),
+        "endpoints": S("Endpoints", default=[]) >> ForallBend(S("EndpointName")),
+    }
+    model_package_version_arn: Optional[str] = field(default=None)
+    job_duration_in_seconds: Optional[int] = field(default=None)
+    traffic_pattern: Optional[AwsSagemakerTrafficPattern] = field(default=None)
+    resource_limit: Optional[AwsSagemakerRecommendationJobResourceLimit] = field(default=None)
+    endpoint_configurations: List[AwsSagemakerEndpointInputConfiguration] = field(factory=list)
+    volume_kms_key_id: Optional[str] = field(default=None)
+    container_config: Optional[AwsSagemakerRecommendationJobContainerConfig] = field(default=None)
+    endpoints: List[str] = field(factory=list)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerModelLatencyThreshold:
+    kind: ClassVar[str] = "aws_sagemaker_model_latency_threshold"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "percentile": S("Percentile"),
+        "value_in_milliseconds": S("ValueInMilliseconds"),
+    }
+    percentile: Optional[str] = field(default=None)
+    value_in_milliseconds: Optional[int] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerRecommendationJobStoppingConditions:
+    kind: ClassVar[str] = "aws_sagemaker_recommendation_job_stopping_conditions"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "max_invocations": S("MaxInvocations"),
+        "model_latency_thresholds": S("ModelLatencyThresholds", default=[])
+        >> ForallBend(AwsSagemakerModelLatencyThreshold.mapping),
+    }
+    max_invocations: Optional[int] = field(default=None)
+    model_latency_thresholds: List[AwsSagemakerModelLatencyThreshold] = field(factory=list)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerRecommendationMetrics:
+    kind: ClassVar[str] = "aws_sagemaker_recommendation_metrics"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "cost_per_hour": S("CostPerHour"),
+        "cost_per_inference": S("CostPerInference"),
+        "max_invocations": S("MaxInvocations"),
+        "model_latency": S("ModelLatency"),
+    }
+    cost_per_hour: Optional[float] = field(default=None)
+    cost_per_inference: Optional[float] = field(default=None)
+    max_invocations: Optional[int] = field(default=None)
+    model_latency: Optional[int] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerEndpointOutputConfiguration:
+    kind: ClassVar[str] = "aws_sagemaker_endpoint_output_configuration"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "endpoint_name": S("EndpointName"),
+        "variant_name": S("VariantName"),
+        "instance_type": S("InstanceType"),
+        "initial_instance_count": S("InitialInstanceCount"),
+    }
+    endpoint_name: Optional[str] = field(default=None)
+    variant_name: Optional[str] = field(default=None)
+    instance_type: Optional[str] = field(default=None)
+    initial_instance_count: Optional[int] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerEnvironmentParameter:
+    kind: ClassVar[str] = "aws_sagemaker_environment_parameter"
+    mapping: ClassVar[Dict[str, Bender]] = {"key": S("Key"), "value_type": S("ValueType"), "value": S("Value")}
+    key: Optional[str] = field(default=None)
+    value_type: Optional[str] = field(default=None)
+    value: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerModelConfiguration:
+    kind: ClassVar[str] = "aws_sagemaker_model_configuration"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "inference_specification_name": S("InferenceSpecificationName"),
+        "environment_parameters": S("EnvironmentParameters", default=[])
+        >> ForallBend(AwsSagemakerEnvironmentParameter.mapping),
+    }
+    inference_specification_name: Optional[str] = field(default=None)
+    environment_parameters: List[AwsSagemakerEnvironmentParameter] = field(factory=list)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerInferenceRecommendation:
+    kind: ClassVar[str] = "aws_sagemaker_inference_recommendation"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "metrics": S("Metrics") >> Bend(AwsSagemakerRecommendationMetrics.mapping),
+        "endpoint_configuration": S("EndpointConfiguration") >> Bend(AwsSagemakerEndpointOutputConfiguration.mapping),
+        "model_configuration": S("ModelConfiguration") >> Bend(AwsSagemakerModelConfiguration.mapping),
+    }
+    metrics: Optional[AwsSagemakerRecommendationMetrics] = field(default=None)
+    endpoint_configuration: Optional[AwsSagemakerEndpointOutputConfiguration] = field(default=None)
+    model_configuration: Optional[AwsSagemakerModelConfiguration] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerInferenceMetrics:
+    kind: ClassVar[str] = "aws_sagemaker_inference_metrics"
+    mapping: ClassVar[Dict[str, Bender]] = {"max_invocations": S("MaxInvocations"), "model_latency": S("ModelLatency")}
+    max_invocations: Optional[int] = field(default=None)
+    model_latency: Optional[int] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerEndpointPerformance:
+    kind: ClassVar[str] = "aws_sagemaker_endpoint_performance"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "metrics": S("Metrics") >> Bend(AwsSagemakerInferenceMetrics.mapping),
+        "endpoint_info": S("EndpointInfo", "EndpointName"),
+    }
+    metrics: Optional[AwsSagemakerInferenceMetrics] = field(default=None)
+    endpoint_info: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerInferenceRecommendationsJob(AwsResource):
+    kind: ClassVar[str] = "aws_sagemaker_inference_recommendations_job"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
+        "sagemaker", "list-inference-recommendations-job", "InferenceRecommendationsJobs"
+    )
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("JobName"),
+        # "tags": S("Tags", default=[]) >> ToDict(),
+        "name": S("JobName"),
+        "ctime": S("CreationTime"),
+        "mtime": S("LastModifiedTime"),
+        "arn": S("JobArn"),
+        "inference_recommendations_job_description": S("JobDescription"),
+        "inference_recommendations_job_type": S("JobType"),
+        "inference_recommendations_job_role_arn": S("RoleArn"),
+        "inference_recommendations_job_status": S("Status"),
+        "inference_recommendations_job_completion_time": S("CompletionTime"),
+        "inference_recommendations_job_failure_reason": S("FailureReason"),
+        "inference_recommendations_job_input_config": S("InputConfig")
+        >> Bend(AwsSagemakerRecommendationJobInputConfig.mapping),
+        "inference_recommendations_job_stopping_conditions": S("StoppingConditions")
+        >> Bend(AwsSagemakerRecommendationJobStoppingConditions.mapping),
+        "inference_recommendations_job_inference_recommendations": S("InferenceRecommendations", default=[])
+        >> ForallBend(AwsSagemakerInferenceRecommendation.mapping),
+        "inference_recommendations_job_endpoint_performances": S("EndpointPerformances", default=[])
+        >> ForallBend(AwsSagemakerEndpointPerformance.mapping),
+    }
+    inference_recommendations_job_description: Optional[str] = field(default=None)
+    inference_recommendations_job_type: Optional[str] = field(default=None)
+    inference_recommendations_job_role_arn: Optional[str] = field(default=None)
+    inference_recommendations_job_status: Optional[str] = field(default=None)
+    inference_recommendations_job_completion_time: Optional[datetime] = field(default=None)
+    inference_recommendations_job_failure_reason: Optional[str] = field(default=None)
+    inference_recommendations_job_input_config: Optional[AwsSagemakerRecommendationJobInputConfig] = field(default=None)
+    inference_recommendations_job_stopping_conditions: Optional[
+        AwsSagemakerRecommendationJobStoppingConditions
+    ] = field(default=None)
+    inference_recommendations_job_inference_recommendations: List[AwsSagemakerInferenceRecommendation] = field(
+        factory=list
+    )
+    inference_recommendations_job_endpoint_performances: List[AwsSagemakerEndpointPerformance] = field(factory=list)
+
+    @classmethod
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        for job in json:
+            job_description = builder.client.get(
+                "sagemaker",
+                "describe-inference-recommendations-job",
+                None,
+                JobName=job["JobName"],
+            )
+            if job_description:
+                job_instance = AwsSagemakerInferenceRecommendationsJob.from_api(job_description)
+                builder.add_node(job_instance, job_description)
+
+
 resources: List[Type[AwsResource]] = [
     AwsSagemakerNotebook,
     AwsSagemakerAlgorithm,
@@ -2381,9 +2667,9 @@ resources: List[Type[AwsResource]] = [
     AwsSagemakerCompilationJob,
     AwsSagemakerEdgePackagingJob,
     AwsSagemakerHyperParameterTuningJob,
+    AwsSagemakerInferenceRecommendationsJob,
 ]
 
-# inference_recommendations_job()
 # labeling_job()
 # model_bias_job_definition()
 # model_card_export_job()
