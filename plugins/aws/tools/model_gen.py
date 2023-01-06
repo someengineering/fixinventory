@@ -817,12 +817,19 @@ models: Dict[str, List[AwsResotoModel]] = {
         #     "Sagemaker",
         #     "compilation_job_",
         # ),
+        # AwsResotoModel(
+        #     "list-edge-packaging-jobs",
+        #     "EdgePackagingJobSummaries",
+        #     "DescribeEdgePackagingJobResponse",
+        #     "Sagemaker",
+        #     "edge_packaging_job_",
+        # ),
         AwsResotoModel(
-            "list-edge-packaging-jobs",
-            "EdgePackagingJobSummaries",
-            "DescribeEdgePackagingJobResponse",
+            "list-hyper-parameter-tuning-jobs",
+            "HyperParameterTuningJobSummaries",
+            "DescribeHyperParameterTuningJobResponse",
             "Sagemaker",
-            "edge_packaging_job_",
+            "hyper_parameter_tuning_job_",
         )
     ],
     "service-quotas": [

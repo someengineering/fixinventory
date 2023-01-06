@@ -1,0 +1,30 @@
+{
+    "HyperParameterTuningJobSummaries": [
+        {
+            "HyperParameterTuningJobName": "hptjob",
+            "HyperParameterTuningJobArn": "string",
+            "HyperParameterTuningJobStatus": "Completed",
+            "Strategy": "Bayesian",
+            "CreationTime": "2015-01-01T00:00:00Z",
+            "HyperParameterTuningEndTime": "2015-01-01T00:00:00Z",
+            "LastModifiedTime": "2015-01-01T00:00:00Z",
+            "TrainingJobStatusCounters": {
+                "Completed": 123,
+                "InProgress": 123,
+                "RetryableError": 123,
+                "NonRetryableError": 123,
+                "Stopped": 123
+            },
+            "ObjectiveStatusCounters": {
+                "Succeeded": 123,
+                "Pending": 123,
+                "Failed": 123
+            },
+            "ResourceLimits": {
+                "MaxNumberOfTrainingJobs": 123,
+                "MaxParallelTrainingJobs": 123
+            }
+        }
+    ],
+    "NextToken": "string"
+}

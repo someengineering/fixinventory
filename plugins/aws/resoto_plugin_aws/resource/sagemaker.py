@@ -2004,6 +2004,365 @@ class AwsSagemakerEdgePackagingJob(AwsResource):
                 builder.add_node(job_instance, job_description)
 
 
+@define(eq=False, slots=False)
+class AwsSagemakerHyperbandStrategyConfig:
+    kind: ClassVar[str] = "aws_sagemaker_hyperband_strategy_config"
+    mapping: ClassVar[Dict[str, Bender]] = {"min_resource": S("MinResource"), "max_resource": S("MaxResource")}
+    min_resource: Optional[int] = field(default=None)
+    max_resource: Optional[int] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerHyperParameterTuningJobStrategyConfig:
+    kind: ClassVar[str] = "aws_sagemaker_hyper_parameter_tuning_job_strategy_config"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "hyperband_strategy_config": S("HyperbandStrategyConfig") >> Bend(AwsSagemakerHyperbandStrategyConfig.mapping)
+    }
+    hyperband_strategy_config: Optional[AwsSagemakerHyperbandStrategyConfig] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerResourceLimits:
+    kind: ClassVar[str] = "aws_sagemaker_resource_limits"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "max_number_of_training_jobs": S("MaxNumberOfTrainingJobs"),
+        "max_parallel_training_jobs": S("MaxParallelTrainingJobs"),
+    }
+    max_number_of_training_jobs: Optional[int] = field(default=None)
+    max_parallel_training_jobs: Optional[int] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerIntegerParameterRange:
+    kind: ClassVar[str] = "aws_sagemaker_integer_parameter_range"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "name": S("Name"),
+        "min_value": S("MinValue"),
+        "max_value": S("MaxValue"),
+        "scaling_type": S("ScalingType"),
+    }
+    name: Optional[str] = field(default=None)
+    min_value: Optional[str] = field(default=None)
+    max_value: Optional[str] = field(default=None)
+    scaling_type: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerContinuousParameterRange:
+    kind: ClassVar[str] = "aws_sagemaker_continuous_parameter_range"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "name": S("Name"),
+        "min_value": S("MinValue"),
+        "max_value": S("MaxValue"),
+        "scaling_type": S("ScalingType"),
+    }
+    name: Optional[str] = field(default=None)
+    min_value: Optional[str] = field(default=None)
+    max_value: Optional[str] = field(default=None)
+    scaling_type: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerCategoricalParameterRange:
+    kind: ClassVar[str] = "aws_sagemaker_categorical_parameter_range"
+    mapping: ClassVar[Dict[str, Bender]] = {"name": S("Name"), "values": S("Values", default=[])}
+    name: Optional[str] = field(default=None)
+    values: List[str] = field(factory=list)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerParameterRanges:
+    kind: ClassVar[str] = "aws_sagemaker_parameter_ranges"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "integer_parameter_ranges": S("IntegerParameterRanges", default=[])
+        >> ForallBend(AwsSagemakerIntegerParameterRange.mapping),
+        "continuous_parameter_ranges": S("ContinuousParameterRanges", default=[])
+        >> ForallBend(AwsSagemakerContinuousParameterRange.mapping),
+        "categorical_parameter_ranges": S("CategoricalParameterRanges", default=[])
+        >> ForallBend(AwsSagemakerCategoricalParameterRange.mapping),
+    }
+    integer_parameter_ranges: List[AwsSagemakerIntegerParameterRange] = field(factory=list)
+    continuous_parameter_ranges: List[AwsSagemakerContinuousParameterRange] = field(factory=list)
+    categorical_parameter_ranges: List[AwsSagemakerCategoricalParameterRange] = field(factory=list)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerHyperParameterTuningJobConfig:
+    kind: ClassVar[str] = "aws_sagemaker_hyper_parameter_tuning_job_config"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "strategy": S("Strategy"),
+        "strategy_config": S("StrategyConfig") >> Bend(AwsSagemakerHyperParameterTuningJobStrategyConfig.mapping),
+        "hyper_parameter_tuning_job_objective": S("HyperParameterTuningJobObjective")
+        >> Bend(AwsSagemakerHyperParameterTuningJobObjective.mapping),
+        "resource_limits": S("ResourceLimits") >> Bend(AwsSagemakerResourceLimits.mapping),
+        "parameter_ranges": S("ParameterRanges") >> Bend(AwsSagemakerParameterRanges.mapping),
+        "training_job_early_stopping_type": S("TrainingJobEarlyStoppingType"),
+        "tuning_job_completion_criteria": S("TuningJobCompletionCriteria", "TargetObjectiveMetricValue"),
+    }
+    strategy: Optional[str] = field(default=None)
+    strategy_config: Optional[AwsSagemakerHyperParameterTuningJobStrategyConfig] = field(default=None)
+    hyper_parameter_tuning_job_objective: Optional[AwsSagemakerHyperParameterTuningJobObjective] = field(default=None)
+    resource_limits: Optional[AwsSagemakerResourceLimits] = field(default=None)
+    parameter_ranges: Optional[AwsSagemakerParameterRanges] = field(default=None)
+    training_job_early_stopping_type: Optional[str] = field(default=None)
+    tuning_job_completion_criteria: Optional[float] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerHyperParameterAlgorithmSpecification:
+    kind: ClassVar[str] = "aws_sagemaker_hyper_parameter_algorithm_specification"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "training_image": S("TrainingImage"),
+        "training_input_mode": S("TrainingInputMode"),
+        "algorithm_name": S("AlgorithmName"),
+        "metric_definitions": S("MetricDefinitions", default=[]) >> ForallBend(AwsSagemakerMetricDefinition.mapping),
+    }
+    training_image: Optional[str] = field(default=None)
+    training_input_mode: Optional[str] = field(default=None)
+    algorithm_name: Optional[str] = field(default=None)
+    metric_definitions: List[AwsSagemakerMetricDefinition] = field(factory=list)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerCheckpointConfig:
+    kind: ClassVar[str] = "aws_sagemaker_checkpoint_config"
+    mapping: ClassVar[Dict[str, Bender]] = {"s3_uri": S("S3Uri"), "local_path": S("LocalPath")}
+    s3_uri: Optional[str] = field(default=None)
+    local_path: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerHyperParameterTuningInstanceConfig:
+    kind: ClassVar[str] = "aws_sagemaker_hyper_parameter_tuning_instance_config"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "instance_type": S("InstanceType"),
+        "instance_count": S("InstanceCount"),
+        "volume_size_in_gb": S("VolumeSizeInGB"),
+    }
+    instance_type: Optional[str] = field(default=None)
+    instance_count: Optional[int] = field(default=None)
+    volume_size_in_gb: Optional[int] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerHyperParameterTuningResourceConfig:
+    kind: ClassVar[str] = "aws_sagemaker_hyper_parameter_tuning_resource_config"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "instance_type": S("InstanceType"),
+        "instance_count": S("InstanceCount"),
+        "volume_size_in_gb": S("VolumeSizeInGB"),
+        "volume_kms_key_id": S("VolumeKmsKeyId"),
+        "allocation_strategy": S("AllocationStrategy"),
+        "instance_configs": S("InstanceConfigs", default=[])
+        >> ForallBend(AwsSagemakerHyperParameterTuningInstanceConfig.mapping),
+    }
+    instance_type: Optional[str] = field(default=None)
+    instance_count: Optional[int] = field(default=None)
+    volume_size_in_gb: Optional[int] = field(default=None)
+    volume_kms_key_id: Optional[str] = field(default=None)
+    allocation_strategy: Optional[str] = field(default=None)
+    instance_configs: List[AwsSagemakerHyperParameterTuningInstanceConfig] = field(factory=list)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerHyperParameterTrainingJobDefinition:
+    kind: ClassVar[str] = "aws_sagemaker_hyper_parameter_training_job_definition"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "definition_name": S("DefinitionName"),
+        "tuning_objective": S("TuningObjective") >> Bend(AwsSagemakerHyperParameterTuningJobObjective.mapping),
+        "hyper_parameter_ranges": S("HyperParameterRanges") >> Bend(AwsSagemakerParameterRanges.mapping),
+        "static_hyper_parameters": S("StaticHyperParameters"),
+        "algorithm_specification": S("AlgorithmSpecification")
+        >> Bend(AwsSagemakerHyperParameterAlgorithmSpecification.mapping),
+        "role_arn": S("RoleArn"),
+        "input_data_config": S("InputDataConfig", default=[]) >> ForallBend(AwsSagemakerChannel.mapping),
+        "vpc_config": S("VpcConfig") >> Bend(AwsSagemakerVpcConfig.mapping),
+        "output_data_config": S("OutputDataConfig") >> Bend(AwsSagemakerOutputDataConfig.mapping),
+        "resource_config": S("ResourceConfig") >> Bend(AwsSagemakerResourceConfig.mapping),
+        "stopping_condition": S("StoppingCondition") >> Bend(AwsSagemakerStoppingCondition.mapping),
+        "enable_network_isolation": S("EnableNetworkIsolation"),
+        "enable_inter_container_traffic_encryption": S("EnableInterContainerTrafficEncryption"),
+        "enable_managed_spot_training": S("EnableManagedSpotTraining"),
+        "checkpoint_config": S("CheckpointConfig") >> Bend(AwsSagemakerCheckpointConfig.mapping),
+        "retry_strategy": S("RetryStrategy", "MaximumRetryAttempts"),
+        "hyper_parameter_tuning_resource_config": S("HyperParameterTuningResourceConfig")
+        >> Bend(AwsSagemakerHyperParameterTuningResourceConfig.mapping),
+    }
+    definition_name: Optional[str] = field(default=None)
+    tuning_objective: Optional[AwsSagemakerHyperParameterTuningJobObjective] = field(default=None)
+    hyper_parameter_ranges: Optional[AwsSagemakerParameterRanges] = field(default=None)
+    static_hyper_parameters: Optional[Dict[str, str]] = field(default=None)
+    algorithm_specification: Optional[AwsSagemakerHyperParameterAlgorithmSpecification] = field(default=None)
+    role_arn: Optional[str] = field(default=None)
+    input_data_config: List[AwsSagemakerChannel] = field(factory=list)
+    vpc_config: Optional[AwsSagemakerVpcConfig] = field(default=None)
+    output_data_config: Optional[AwsSagemakerOutputDataConfig] = field(default=None)
+    resource_config: Optional[AwsSagemakerResourceConfig] = field(default=None)
+    stopping_condition: Optional[AwsSagemakerStoppingCondition] = field(default=None)
+    enable_network_isolation: Optional[bool] = field(default=None)
+    enable_inter_container_traffic_encryption: Optional[bool] = field(default=None)
+    enable_managed_spot_training: Optional[bool] = field(default=None)
+    checkpoint_config: Optional[AwsSagemakerCheckpointConfig] = field(default=None)
+    retry_strategy: Optional[int] = field(default=None)
+    hyper_parameter_tuning_resource_config: Optional[AwsSagemakerHyperParameterTuningResourceConfig] = field(
+        default=None
+    )
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerTrainingJobStatusCounters:
+    kind: ClassVar[str] = "aws_sagemaker_training_job_status_counters"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "completed": S("Completed"),
+        "in_progress": S("InProgress"),
+        "retryable_error": S("RetryableError"),
+        "non_retryable_error": S("NonRetryableError"),
+        "stopped": S("Stopped"),
+    }
+    completed: Optional[int] = field(default=None)
+    in_progress: Optional[int] = field(default=None)
+    retryable_error: Optional[int] = field(default=None)
+    non_retryable_error: Optional[int] = field(default=None)
+    stopped: Optional[int] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerObjectiveStatusCounters:
+    kind: ClassVar[str] = "aws_sagemaker_objective_status_counters"
+    mapping: ClassVar[Dict[str, Bender]] = {"succeeded": S("Succeeded"), "pending": S("Pending"), "failed": S("Failed")}
+    succeeded: Optional[int] = field(default=None)
+    pending: Optional[int] = field(default=None)
+    failed: Optional[int] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerFinalHyperParameterTuningJobObjectiveMetric:
+    kind: ClassVar[str] = "aws_sagemaker_final_hyper_parameter_tuning_job_objective_metric"
+    mapping: ClassVar[Dict[str, Bender]] = {"type": S("Type"), "metric_name": S("MetricName"), "value": S("Value")}
+    type: Optional[str] = field(default=None)
+    metric_name: Optional[str] = field(default=None)
+    value: Optional[float] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerHyperParameterTrainingJobSummary:
+    kind: ClassVar[str] = "aws_sagemaker_hyper_parameter_training_job_summary"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "training_job_definition_name": S("TrainingJobDefinitionName"),
+        "training_job_name": S("TrainingJobName"),
+        "training_job_arn": S("TrainingJobArn"),
+        "tuning_job_name": S("TuningJobName"),
+        "creation_time": S("CreationTime"),
+        "training_start_time": S("TrainingStartTime"),
+        "training_end_time": S("TrainingEndTime"),
+        "training_job_status": S("TrainingJobStatus"),
+        "tuned_hyper_parameters": S("TunedHyperParameters"),
+        "failure_reason": S("FailureReason"),
+        "final_hyper_parameter_tuning_job_objective_metric": S("FinalHyperParameterTuningJobObjectiveMetric")
+        >> Bend(AwsSagemakerFinalHyperParameterTuningJobObjectiveMetric.mapping),
+        "objective_status": S("ObjectiveStatus"),
+    }
+    training_job_definition_name: Optional[str] = field(default=None)
+    training_job_name: Optional[str] = field(default=None)
+    training_job_arn: Optional[str] = field(default=None)
+    tuning_job_name: Optional[str] = field(default=None)
+    creation_time: Optional[datetime] = field(default=None)
+    training_start_time: Optional[datetime] = field(default=None)
+    training_end_time: Optional[datetime] = field(default=None)
+    training_job_status: Optional[str] = field(default=None)
+    tuned_hyper_parameters: Optional[Dict[str, str]] = field(default=None)
+    failure_reason: Optional[str] = field(default=None)
+    final_hyper_parameter_tuning_job_objective_metric: Optional[
+        AwsSagemakerFinalHyperParameterTuningJobObjectiveMetric
+    ] = field(default=None)
+    objective_status: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerHyperParameterTuningJobWarmStartConfig:
+    kind: ClassVar[str] = "aws_sagemaker_hyper_parameter_tuning_job_warm_start_config"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "parent_hyper_parameter_tuning_jobs": S("ParentHyperParameterTuningJobs", default=[])
+        >> ForallBend(S("HyperParameterTuningJobName")),
+        "warm_start_type": S("WarmStartType"),
+    }
+    parent_hyper_parameter_tuning_jobs: List[str] = field(factory=list)
+    warm_start_type: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerHyperParameterTuningJob(AwsResource):
+    kind: ClassVar[str] = "aws_sagemaker_hyper_parameter_tuning_job"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
+        "sagemaker", "list-hyper-parameter-tuning-jobs", "HyperParameterTuningJobSummaries"
+    )
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("HyperParameterTuningJobName"),
+        # "tags": S("Tags", default=[]) >> ToDict(),
+        "name": S("HyperParameterTuningJobName"),
+        "ctime": S("CreationTime"),
+        "mtime": S("LastModifiedTime"),
+        "arn": S("HyperParameterTuningJobArn"),
+        "hyper_parameter_tuning_job_config": S("HyperParameterTuningJobConfig")
+        >> Bend(AwsSagemakerHyperParameterTuningJobConfig.mapping),
+        "hyper_parameter_tuning_job_training_job_definition": S("TrainingJobDefinition")
+        >> Bend(AwsSagemakerHyperParameterTrainingJobDefinition.mapping),
+        "hyper_parameter_tuning_job_training_job_definitions": S("TrainingJobDefinitions", default=[])
+        >> ForallBend(AwsSagemakerHyperParameterTrainingJobDefinition.mapping),
+        "hyper_parameter_tuning_job_status": S("HyperParameterTuningJobStatus"),
+        "hyper_parameter_tuning_job_hyper_parameter_tuning_end_time": S("HyperParameterTuningEndTime"),
+        "hyper_parameter_tuning_job_training_job_status_counters": S("TrainingJobStatusCounters")
+        >> Bend(AwsSagemakerTrainingJobStatusCounters.mapping),
+        "hyper_parameter_tuning_job_objective_status_counters": S("ObjectiveStatusCounters")
+        >> Bend(AwsSagemakerObjectiveStatusCounters.mapping),
+        "hyper_parameter_tuning_job_best_training_job": S("BestTrainingJob")
+        >> Bend(AwsSagemakerHyperParameterTrainingJobSummary.mapping),
+        "hyper_parameter_tuning_job_overall_best_training_job": S("OverallBestTrainingJob")
+        >> Bend(AwsSagemakerHyperParameterTrainingJobSummary.mapping),
+        "hyper_parameter_tuning_job_warm_start_config": S("WarmStartConfig")
+        >> Bend(AwsSagemakerHyperParameterTuningJobWarmStartConfig.mapping),
+        "hyper_parameter_tuning_job_failure_reason": S("FailureReason"),
+    }
+    hyper_parameter_tuning_job_config: Optional[AwsSagemakerHyperParameterTuningJobConfig] = field(default=None)
+    hyper_parameter_tuning_job_training_job_definition: Optional[
+        AwsSagemakerHyperParameterTrainingJobDefinition
+    ] = field(default=None)
+    hyper_parameter_tuning_job_training_job_definitions: List[AwsSagemakerHyperParameterTrainingJobDefinition] = field(
+        factory=list
+    )
+    hyper_parameter_tuning_job_status: Optional[str] = field(default=None)
+    hyper_parameter_tuning_job_hyper_parameter_tuning_end_time: Optional[datetime] = field(default=None)
+    hyper_parameter_tuning_job_training_job_status_counters: Optional[AwsSagemakerTrainingJobStatusCounters] = field(
+        default=None
+    )
+    hyper_parameter_tuning_job_objective_status_counters: Optional[AwsSagemakerObjectiveStatusCounters] = field(
+        default=None
+    )
+    hyper_parameter_tuning_job_best_training_job: Optional[AwsSagemakerHyperParameterTrainingJobSummary] = field(
+        default=None
+    )
+    hyper_parameter_tuning_job_overall_best_training_job: Optional[
+        AwsSagemakerHyperParameterTrainingJobSummary
+    ] = field(default=None)
+    hyper_parameter_tuning_job_warm_start_config: Optional[AwsSagemakerHyperParameterTuningJobWarmStartConfig] = field(
+        default=None
+    )
+    hyper_parameter_tuning_job_failure_reason: Optional[str] = field(default=None)
+
+    @classmethod
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        for job in json:
+            job_description = builder.client.get(
+                "sagemaker",
+                "describe-hyper-parameter-tuning-job",
+                None,
+                HyperParameterTuningJobName=job["HyperParameterTuningJobName"],
+            )
+            if job_description:
+                job_instance = AwsSagemakerHyperParameterTuningJob.from_api(job_description)
+                builder.add_node(job_instance, job_description)
+
+
 resources: List[Type[AwsResource]] = [
     AwsSagemakerNotebook,
     AwsSagemakerAlgorithm,
@@ -2021,9 +2380,9 @@ resources: List[Type[AwsResource]] = [
     AwsSagemakerAutoMLJob,
     AwsSagemakerCompilationJob,
     AwsSagemakerEdgePackagingJob,
+    AwsSagemakerHyperParameterTuningJob,
 ]
 
-# hyper_parameter_tuning_job()
 # inference_recommendations_job()
 # labeling_job()
 # model_bias_job_definition()
