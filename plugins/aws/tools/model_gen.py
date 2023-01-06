@@ -810,12 +810,19 @@ models: Dict[str, List[AwsResotoModel]] = {
         # AwsResotoModel(
         #     "list-auto-ml-jobs", "AutoMLJobSummaries", "DescribeAutoMLJobResponse", "Sagemaker", "auto_ml_job_"
         # ),
+        # AwsResotoModel(
+        #     "list-compilation-jobs",
+        #     "CompilationJobSummaries",
+        #     "DescribeCompilationJobResponse",
+        #     "Sagemaker",
+        #     "compilation_job_",
+        # ),
         AwsResotoModel(
-            "list-compilation-jobs",
-            "CompilationJobSummaries",
-            "DescribeCompilationJobResponse",
+            "list-edge-packaging-jobs",
+            "EdgePackagingJobSummaries",
+            "DescribeEdgePackagingJobResponse",
             "Sagemaker",
-            "compilation_job_",
+            "edge_packaging_job_",
         )
     ],
     "service-quotas": [

@@ -15,6 +15,7 @@ from resoto_plugin_aws.resource.sagemaker import (
     AwsSagemakerPipeline,
     AwsSagemakerAutoMLJob,
     AwsSagemakerCompilationJob,
+    AwsSagemakerEdgePackagingJob,
 )
 
 
@@ -93,3 +94,8 @@ def test_auto_ml_job() -> None:
 def test_compilation_job() -> None:
     first, builder = round_trip_for(AwsSagemakerCompilationJob)
     assert len(builder.resources_of(AwsSagemakerCompilationJob)) == 1
+
+
+def test_edge_packaging_job() -> None:
+    first, builder = round_trip_for(AwsSagemakerEdgePackagingJob)
+    assert len(builder.resources_of(AwsSagemakerEdgePackagingJob)) == 1

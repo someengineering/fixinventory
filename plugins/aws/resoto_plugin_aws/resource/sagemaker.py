@@ -1927,6 +1927,83 @@ class AwsSagemakerCompilationJob(AwsResource):
                 builder.add_node(job_instance, job_description)
 
 
+@define(eq=False, slots=False)
+class AwsSagemakerEdgeOutputConfig:
+    kind: ClassVar[str] = "aws_sagemaker_edge_output_config"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "s3_output_location": S("S3OutputLocation"),
+        "kms_key_id": S("KmsKeyId"),
+        "preset_deployment_type": S("PresetDeploymentType"),
+        "preset_deployment_config": S("PresetDeploymentConfig"),
+    }
+    s3_output_location: Optional[str] = field(default=None)
+    kms_key_id: Optional[str] = field(default=None)
+    preset_deployment_type: Optional[str] = field(default=None)
+    preset_deployment_config: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerEdgePresetDeploymentOutput:
+    kind: ClassVar[str] = "aws_sagemaker_edge_preset_deployment_output"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "type": S("Type"),
+        "artifact": S("Artifact"),
+        "status": S("Status"),
+        "status_message": S("StatusMessage"),
+    }
+    type: Optional[str] = field(default=None)
+    artifact: Optional[str] = field(default=None)
+    status: Optional[str] = field(default=None)
+    status_message: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerEdgePackagingJob(AwsResource):
+    kind: ClassVar[str] = "aws_sagemaker_edge_packaging_job"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-edge-packaging-jobs", "EdgePackagingJobSummaries")
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("EdgePackagingJobName"),
+        # "tags": S("Tags", default=[]) >> ToDict(),
+        "name": S("EdgePackagingJobName"),
+        "ctime": S("CreationTime"),
+        "mtime": S("LastModifiedTime"),
+        "arn": S("EdgePackagingJobArn"),
+        "edge_packaging_job_compilation_job_name": S("CompilationJobName"),
+        "edge_packaging_job_model_name": S("ModelName"),
+        "edge_packaging_job_model_version": S("ModelVersion"),
+        "edge_packaging_job_role_arn": S("RoleArn"),
+        "edge_packaging_job_output_config": S("OutputConfig") >> Bend(AwsSagemakerEdgeOutputConfig.mapping),
+        "edge_packaging_job_resource_key": S("ResourceKey"),
+        "edge_packaging_job_status": S("EdgePackagingJobStatus"),
+        "edge_packaging_job_status_message": S("EdgePackagingJobStatusMessage"),
+        "edge_packaging_job_model_artifact": S("ModelArtifact"),
+        "edge_packaging_job_model_signature": S("ModelSignature"),
+        "edge_packaging_job_preset_deployment_output": S("PresetDeploymentOutput")
+        >> Bend(AwsSagemakerEdgePresetDeploymentOutput.mapping),
+    }
+    edge_packaging_job_compilation_job_name: Optional[str] = field(default=None)
+    edge_packaging_job_model_name: Optional[str] = field(default=None)
+    edge_packaging_job_model_version: Optional[str] = field(default=None)
+    edge_packaging_job_role_arn: Optional[str] = field(default=None)
+    edge_packaging_job_output_config: Optional[AwsSagemakerEdgeOutputConfig] = field(default=None)
+    edge_packaging_job_resource_key: Optional[str] = field(default=None)
+    edge_packaging_job_status: Optional[str] = field(default=None)
+    edge_packaging_job_status_message: Optional[str] = field(default=None)
+    edge_packaging_job_model_artifact: Optional[str] = field(default=None)
+    edge_packaging_job_model_signature: Optional[str] = field(default=None)
+    edge_packaging_job_preset_deployment_output: Optional[AwsSagemakerEdgePresetDeploymentOutput] = field(default=None)
+
+    @classmethod
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        for job in json:
+            job_description = builder.client.get(
+                "sagemaker", "describe-edge-packaging-job", None, EdgePackagingJobName=job["EdgePackagingJobName"]
+            )
+            if job_description:
+                job_instance = AwsSagemakerEdgePackagingJob.from_api(job_description)
+                builder.add_node(job_instance, job_description)
+
+
 resources: List[Type[AwsResource]] = [
     AwsSagemakerNotebook,
     AwsSagemakerAlgorithm,
@@ -1943,6 +2020,7 @@ resources: List[Type[AwsResource]] = [
     AwsSagemakerPipeline,
     AwsSagemakerAutoMLJob,
     AwsSagemakerCompilationJob,
+    AwsSagemakerEdgePackagingJob,
 ]
 
 # hyper_parameter_tuning_job()
@@ -1955,5 +2033,4 @@ resources: List[Type[AwsResource]] = [
 # processing_job()
 # training_job()
 # transform_job()
-# edge_packaging_job()
 # data_quality_job_definition()
