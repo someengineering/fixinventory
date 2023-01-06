@@ -1,0 +1,14 @@
+{
+    "TransformJobSummaries": [
+        {
+            "TransformJobName": "trafo",
+            "TransformJobArn": "string",
+            "CreationTime": "2015-01-01T00:00:00Z",
+            "TransformEndTime": "2015-01-01T00:00:00Z",
+            "LastModifiedTime": "2015-01-01T00:00:00Z",
+            "TransformJobStatus": "Stopped",
+            "FailureReason": "string"
+        }
+    ],
+    "NextToken": "string"
+}

@@ -3434,6 +3434,105 @@ class AwsSagemakerTrainingJob(AwsResource):
                 builder.add_node(job_instance, job_description)
 
 
+@define(eq=False, slots=False)
+class AwsSagemakerModelClientConfig:
+    kind: ClassVar[str] = "aws_sagemaker_model_client_config"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "invocations_timeout_in_seconds": S("InvocationsTimeoutInSeconds"),
+        "invocations_max_retries": S("InvocationsMaxRetries"),
+    }
+    invocations_timeout_in_seconds: Optional[int] = field(default=None)
+    invocations_max_retries: Optional[int] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerBatchDataCaptureConfig:
+    kind: ClassVar[str] = "aws_sagemaker_batch_data_capture_config"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "destination_s3_uri": S("DestinationS3Uri"),
+        "kms_key_id": S("KmsKeyId"),
+        "generate_inference_id": S("GenerateInferenceId"),
+    }
+    destination_s3_uri: Optional[str] = field(default=None)
+    kms_key_id: Optional[str] = field(default=None)
+    generate_inference_id: Optional[bool] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerDataProcessing:
+    kind: ClassVar[str] = "aws_sagemaker_data_processing"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "input_filter": S("InputFilter"),
+        "output_filter": S("OutputFilter"),
+        "join_source": S("JoinSource"),
+    }
+    input_filter: Optional[str] = field(default=None)
+    output_filter: Optional[str] = field(default=None)
+    join_source: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerTransformJob(AwsResource):
+    kind: ClassVar[str] = "aws_sagemaker_transform_job"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-transform-jobs", "TransformJobSummaries")
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("TransformJobName"),
+        # "tags": S("Tags", default=[]) >> ToDict(),
+        "name": S("TransformJobName"),
+        "ctime": S("CreationTime"),
+        "arn": S("TransformJobArn"),
+        "transform_job_status": S("TransformJobStatus"),
+        "transform_job_failure_reason": S("FailureReason"),
+        "transform_job_model_name": S("ModelName"),
+        "transform_job_max_concurrent_transforms": S("MaxConcurrentTransforms"),
+        "transform_job_model_client_config": S("ModelClientConfig") >> Bend(AwsSagemakerModelClientConfig.mapping),
+        "transform_job_max_payload_in_mb": S("MaxPayloadInMB"),
+        "transform_job_batch_strategy": S("BatchStrategy"),
+        "transform_job_environment": S("Environment"),
+        "transform_job_transform_input": S("TransformInput") >> Bend(AwsSagemakerTransformInput.mapping),
+        "transform_job_transform_output": S("TransformOutput") >> Bend(AwsSagemakerTransformOutput.mapping),
+        "transform_job_data_capture_config": S("DataCaptureConfig") >> Bend(AwsSagemakerBatchDataCaptureConfig.mapping),
+        "transform_job_transform_resources": S("TransformResources") >> Bend(AwsSagemakerTransformResources.mapping),
+        "transform_job_transform_start_time": S("TransformStartTime"),
+        "transform_job_transform_end_time": S("TransformEndTime"),
+        "transform_job_labeling_job_arn": S("LabelingJobArn"),
+        "transform_job_auto_ml_job_arn": S("AutoMLJobArn"),
+        "transform_job_data_processing": S("DataProcessing") >> Bend(AwsSagemakerDataProcessing.mapping),
+        "transform_job_experiment_config": S("ExperimentConfig") >> Bend(AwsSagemakerExperimentConfig.mapping),
+    }
+    transform_job_status: Optional[str] = field(default=None)
+    transform_job_failure_reason: Optional[str] = field(default=None)
+    transform_job_model_name: Optional[str] = field(default=None)
+    transform_job_max_concurrent_transforms: Optional[int] = field(default=None)
+    transform_job_model_client_config: Optional[AwsSagemakerModelClientConfig] = field(default=None)
+    transform_job_max_payload_in_mb: Optional[int] = field(default=None)
+    transform_job_batch_strategy: Optional[str] = field(default=None)
+    transform_job_environment: Optional[Dict[str, str]] = field(default=None)
+    transform_job_transform_input: Optional[AwsSagemakerTransformInput] = field(default=None)
+    transform_job_transform_output: Optional[AwsSagemakerTransformOutput] = field(default=None)
+    transform_job_data_capture_config: Optional[AwsSagemakerBatchDataCaptureConfig] = field(default=None)
+    transform_job_transform_resources: Optional[AwsSagemakerTransformResources] = field(default=None)
+    transform_job_transform_start_time: Optional[datetime] = field(default=None)
+    transform_job_transform_end_time: Optional[datetime] = field(default=None)
+    transform_job_labeling_job_arn: Optional[str] = field(default=None)
+    transform_job_auto_ml_job_arn: Optional[str] = field(default=None)
+    transform_job_data_processing: Optional[AwsSagemakerDataProcessing] = field(default=None)
+    transform_job_experiment_config: Optional[AwsSagemakerExperimentConfig] = field(default=None)
+
+    @classmethod
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        for job in json:
+            job_description = builder.client.get(
+                "sagemaker",
+                "describe-transform-job",
+                None,
+                TransformJobName=job["TransformJobName"],
+            )
+            if job_description:
+                job_instance = AwsSagemakerTransformJob.from_api(job_description)
+                builder.add_node(job_instance, job_description)
+
+
 resources: List[Type[AwsResource]] = [
     AwsSagemakerNotebook,
     AwsSagemakerAlgorithm,
@@ -3456,10 +3555,10 @@ resources: List[Type[AwsResource]] = [
     AwsSagemakerLabelingJob,
     AwsSagemakerProcessingJob,
     AwsSagemakerTrainingJob,
+    AwsSagemakerTransformJob,
 ]
 
 # model_bias_job_definition()
 # model_explainability_job_definition()
 # model_quality_job_definition()
-# transform_job()
 # data_quality_job_definition()
