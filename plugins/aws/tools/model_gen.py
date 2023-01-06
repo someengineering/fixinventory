@@ -831,12 +831,15 @@ models: Dict[str, List[AwsResotoModel]] = {
         #     "Sagemaker",
         #     "hyper_parameter_tuning_job_",
         # ),
+        # AwsResotoModel(
+        #     "list-inference-recommendations-job",
+        #     "InferenceRecommendationsJobs",
+        #     "DescribeInferenceRecommendationsJobResponse",
+        #     "Sagemaker",
+        #     "inference_recommendations_job_",
+        # ),
         AwsResotoModel(
-            "list-inference-recommendations-job",
-            "InferenceRecommendationsJobs",
-            "DescribeInferenceRecommendationsJobResponse",
-            "Sagemaker",
-            "inference_recommendations_job_",
+            "list-labeling-jobs", "LabelingJobSummaryList", "DescribeLabelingJobResponse", "Sagemaker", "labeling_job_"
         )
     ],
     "service-quotas": [

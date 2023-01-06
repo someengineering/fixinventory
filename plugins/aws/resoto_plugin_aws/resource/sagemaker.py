@@ -2649,6 +2649,230 @@ class AwsSagemakerInferenceRecommendationsJob(AwsResource):
                 builder.add_node(job_instance, job_description)
 
 
+@define(eq=False, slots=False)
+class AwsSagemakerLabelCounters:
+    kind: ClassVar[str] = "aws_sagemaker_label_counters"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "total_labeled": S("TotalLabeled"),
+        "human_labeled": S("HumanLabeled"),
+        "machine_labeled": S("MachineLabeled"),
+        "failed_non_retryable_error": S("FailedNonRetryableError"),
+        "unlabeled": S("Unlabeled"),
+    }
+    total_labeled: Optional[int] = field(default=None)
+    human_labeled: Optional[int] = field(default=None)
+    machine_labeled: Optional[int] = field(default=None)
+    failed_non_retryable_error: Optional[int] = field(default=None)
+    unlabeled: Optional[int] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerLabelingJobDataSource:
+    kind: ClassVar[str] = "aws_sagemaker_labeling_job_data_source"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "s3_data_source": S("S3DataSource", "ManifestS3Uri"),
+        "sns_data_source": S("SnsDataSource", "SnsTopicArn"),
+    }
+    s3_data_source: Optional[str] = field(default=None)
+    sns_data_source: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerLabelingJobDataAttributes:
+    kind: ClassVar[str] = "aws_sagemaker_labeling_job_data_attributes"
+    mapping: ClassVar[Dict[str, Bender]] = {"content_classifiers": S("ContentClassifiers", default=[])}
+    content_classifiers: List[str] = field(factory=list)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerLabelingJobInputConfig:
+    kind: ClassVar[str] = "aws_sagemaker_labeling_job_input_config"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "data_source": S("DataSource") >> Bend(AwsSagemakerLabelingJobDataSource.mapping),
+        "data_attributes": S("DataAttributes") >> Bend(AwsSagemakerLabelingJobDataAttributes.mapping),
+    }
+    data_source: Optional[AwsSagemakerLabelingJobDataSource] = field(default=None)
+    data_attributes: Optional[AwsSagemakerLabelingJobDataAttributes] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerLabelingJobOutputConfig:
+    kind: ClassVar[str] = "aws_sagemaker_labeling_job_output_config"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "s3_output_path": S("S3OutputPath"),
+        "kms_key_id": S("KmsKeyId"),
+        "sns_topic_arn": S("SnsTopicArn"),
+    }
+    s3_output_path: Optional[str] = field(default=None)
+    kms_key_id: Optional[str] = field(default=None)
+    sns_topic_arn: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerLabelingJobStoppingConditions:
+    kind: ClassVar[str] = "aws_sagemaker_labeling_job_stopping_conditions"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "max_human_labeled_object_count": S("MaxHumanLabeledObjectCount"),
+        "max_percentage_of_input_dataset_labeled": S("MaxPercentageOfInputDatasetLabeled"),
+    }
+    max_human_labeled_object_count: Optional[int] = field(default=None)
+    max_percentage_of_input_dataset_labeled: Optional[int] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerLabelingJobResourceConfig:
+    kind: ClassVar[str] = "aws_sagemaker_labeling_job_resource_config"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "volume_kms_key_id": S("VolumeKmsKeyId"),
+        "vpc_config": S("VpcConfig") >> Bend(AwsSagemakerVpcConfig.mapping),
+    }
+    volume_kms_key_id: Optional[str] = field(default=None)
+    vpc_config: Optional[AwsSagemakerVpcConfig] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerLabelingJobAlgorithmsConfig:
+    kind: ClassVar[str] = "aws_sagemaker_labeling_job_algorithms_config"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "labeling_job_algorithm_specification_arn": S("LabelingJobAlgorithmSpecificationArn"),
+        "initial_active_learning_model_arn": S("InitialActiveLearningModelArn"),
+        "labeling_job_resource_config": S("LabelingJobResourceConfig")
+        >> Bend(AwsSagemakerLabelingJobResourceConfig.mapping),
+    }
+    labeling_job_algorithm_specification_arn: Optional[str] = field(default=None)
+    initial_active_learning_model_arn: Optional[str] = field(default=None)
+    labeling_job_resource_config: Optional[AwsSagemakerLabelingJobResourceConfig] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerUiConfig:
+    kind: ClassVar[str] = "aws_sagemaker_ui_config"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "ui_template_s3_uri": S("UiTemplateS3Uri"),
+        "human_task_ui_arn": S("HumanTaskUiArn"),
+    }
+    ui_template_s3_uri: Optional[str] = field(default=None)
+    human_task_ui_arn: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerUSD:
+    kind: ClassVar[str] = "aws_sagemaker_usd"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "dollars": S("Dollars"),
+        "cents": S("Cents"),
+        "tenth_fractions_of_a_cent": S("TenthFractionsOfACent"),
+    }
+    dollars: Optional[int] = field(default=None)
+    cents: Optional[int] = field(default=None)
+    tenth_fractions_of_a_cent: Optional[int] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerPublicWorkforceTaskPrice:
+    kind: ClassVar[str] = "aws_sagemaker_public_workforce_task_price"
+    mapping: ClassVar[Dict[str, Bender]] = {"amount_in_usd": S("AmountInUsd") >> Bend(AwsSagemakerUSD.mapping)}
+    amount_in_usd: Optional[AwsSagemakerUSD] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerHumanTaskConfig:
+    kind: ClassVar[str] = "aws_sagemaker_human_task_config"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "workteam_arn": S("WorkteamArn"),
+        "ui_config": S("UiConfig") >> Bend(AwsSagemakerUiConfig.mapping),
+        "pre_human_task_lambda_arn": S("PreHumanTaskLambdaArn"),
+        "task_keywords": S("TaskKeywords", default=[]),
+        "task_title": S("TaskTitle"),
+        "task_description": S("TaskDescription"),
+        "number_of_human_workers_per_data_object": S("NumberOfHumanWorkersPerDataObject"),
+        "task_time_limit_in_seconds": S("TaskTimeLimitInSeconds"),
+        "task_availability_lifetime_in_seconds": S("TaskAvailabilityLifetimeInSeconds"),
+        "max_concurrent_task_count": S("MaxConcurrentTaskCount"),
+        "annotation_consolidation_config": S("AnnotationConsolidationConfig", "AnnotationConsolidationLambdaArn"),
+        "public_workforce_task_price": S("PublicWorkforceTaskPrice")
+        >> Bend(AwsSagemakerPublicWorkforceTaskPrice.mapping),
+    }
+    workteam_arn: Optional[str] = field(default=None)
+    ui_config: Optional[AwsSagemakerUiConfig] = field(default=None)
+    pre_human_task_lambda_arn: Optional[str] = field(default=None)
+    task_keywords: List[str] = field(factory=list)
+    task_title: Optional[str] = field(default=None)
+    task_description: Optional[str] = field(default=None)
+    number_of_human_workers_per_data_object: Optional[int] = field(default=None)
+    task_time_limit_in_seconds: Optional[int] = field(default=None)
+    task_availability_lifetime_in_seconds: Optional[int] = field(default=None)
+    max_concurrent_task_count: Optional[int] = field(default=None)
+    annotation_consolidation_config: Optional[str] = field(default=None)
+    public_workforce_task_price: Optional[AwsSagemakerPublicWorkforceTaskPrice] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerLabelingJobOutput:
+    kind: ClassVar[str] = "aws_sagemaker_labeling_job_output"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "output_dataset_s3_uri": S("OutputDatasetS3Uri"),
+        "final_active_learning_model_arn": S("FinalActiveLearningModelArn"),
+    }
+    output_dataset_s3_uri: Optional[str] = field(default=None)
+    final_active_learning_model_arn: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerLabelingJob(AwsResource):
+    kind: ClassVar[str] = "aws_sagemaker_labeling_job"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-labeling-jobs", "LabelingJobSummaryList")
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("LabelingJobName"),
+        # "tags": S("Tags", default=[]) >> ToDict(),
+        "name": S("LabelingJobName"),
+        "ctime": S("CreationTime"),
+        "mtime": S("LastModifiedTime"),
+        "arn": S("LabelingJobArn"),
+        "labeling_job_status": S("LabelingJobStatus"),
+        "labeling_job_label_counters": S("LabelCounters") >> Bend(AwsSagemakerLabelCounters.mapping),
+        "labeling_job_failure_reason": S("FailureReason"),
+        "labeling_job_job_reference_code": S("JobReferenceCode"),
+        "labeling_job_label_attribute_name": S("LabelAttributeName"),
+        "labeling_job_input_config": S("InputConfig") >> Bend(AwsSagemakerLabelingJobInputConfig.mapping),
+        "labeling_job_output_config": S("OutputConfig") >> Bend(AwsSagemakerLabelingJobOutputConfig.mapping),
+        "labeling_job_role_arn": S("RoleArn"),
+        "labeling_job_label_category_config_s3_uri": S("LabelCategoryConfigS3Uri"),
+        "labeling_job_stopping_conditions": S("StoppingConditions")
+        >> Bend(AwsSagemakerLabelingJobStoppingConditions.mapping),
+        "labeling_job_algorithms_config": S("LabelingJobAlgorithmsConfig")
+        >> Bend(AwsSagemakerLabelingJobAlgorithmsConfig.mapping),
+        "labeling_job_human_task_config": S("HumanTaskConfig") >> Bend(AwsSagemakerHumanTaskConfig.mapping),
+        "labeling_job_output": S("LabelingJobOutput") >> Bend(AwsSagemakerLabelingJobOutput.mapping),
+    }
+    labeling_job_status: Optional[str] = field(default=None)
+    labeling_job_label_counters: Optional[AwsSagemakerLabelCounters] = field(default=None)
+    labeling_job_failure_reason: Optional[str] = field(default=None)
+    labeling_job_job_reference_code: Optional[str] = field(default=None)
+    labeling_job_label_attribute_name: Optional[str] = field(default=None)
+    labeling_job_input_config: Optional[AwsSagemakerLabelingJobInputConfig] = field(default=None)
+    labeling_job_output_config: Optional[AwsSagemakerLabelingJobOutputConfig] = field(default=None)
+    labeling_job_role_arn: Optional[str] = field(default=None)
+    labeling_job_label_category_config_s3_uri: Optional[str] = field(default=None)
+    labeling_job_stopping_conditions: Optional[AwsSagemakerLabelingJobStoppingConditions] = field(default=None)
+    labeling_job_algorithms_config: Optional[AwsSagemakerLabelingJobAlgorithmsConfig] = field(default=None)
+    labeling_job_human_task_config: Optional[AwsSagemakerHumanTaskConfig] = field(default=None)
+    labeling_job_output: Optional[AwsSagemakerLabelingJobOutput] = field(default=None)
+
+    @classmethod
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        for job in json:
+            job_description = builder.client.get(
+                "sagemaker",
+                "describe-labeling-job",
+                None,
+                LabelingJobName=job["LabelingJobName"],
+            )
+            if job_description:
+                job_instance = AwsSagemakerLabelingJob.from_api(job_description)
+                builder.add_node(job_instance, job_description)
+
+
 resources: List[Type[AwsResource]] = [
     AwsSagemakerNotebook,
     AwsSagemakerAlgorithm,
@@ -2668,9 +2892,9 @@ resources: List[Type[AwsResource]] = [
     AwsSagemakerEdgePackagingJob,
     AwsSagemakerHyperParameterTuningJob,
     AwsSagemakerInferenceRecommendationsJob,
+    AwsSagemakerLabelingJob,
 ]
 
-# labeling_job()
 # model_bias_job_definition()
 # model_card_export_job()
 # model_explainability_job_definition()
