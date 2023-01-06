@@ -2873,6 +2873,272 @@ class AwsSagemakerLabelingJob(AwsResource):
                 builder.add_node(job_instance, job_description)
 
 
+@define(eq=False, slots=False)
+class AwsSagemakerProcessingS3Input:
+    kind: ClassVar[str] = "aws_sagemaker_processing_s3_input"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "s3_uri": S("S3Uri"),
+        "local_path": S("LocalPath"),
+        "s3_data_type": S("S3DataType"),
+        "s3_input_mode": S("S3InputMode"),
+        "s3_data_distribution_type": S("S3DataDistributionType"),
+        "s3_compression_type": S("S3CompressionType"),
+    }
+    s3_uri: Optional[str] = field(default=None)
+    local_path: Optional[str] = field(default=None)
+    s3_data_type: Optional[str] = field(default=None)
+    s3_input_mode: Optional[str] = field(default=None)
+    s3_data_distribution_type: Optional[str] = field(default=None)
+    s3_compression_type: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerAthenaDatasetDefinition:
+    kind: ClassVar[str] = "aws_sagemaker_athena_dataset_definition"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "catalog": S("Catalog"),
+        "database": S("Database"),
+        "query_string": S("QueryString"),
+        "work_group": S("WorkGroup"),
+        "output_s3_uri": S("OutputS3Uri"),
+        "kms_key_id": S("KmsKeyId"),
+        "output_format": S("OutputFormat"),
+        "output_compression": S("OutputCompression"),
+    }
+    catalog: Optional[str] = field(default=None)
+    database: Optional[str] = field(default=None)
+    query_string: Optional[str] = field(default=None)
+    work_group: Optional[str] = field(default=None)
+    output_s3_uri: Optional[str] = field(default=None)
+    kms_key_id: Optional[str] = field(default=None)
+    output_format: Optional[str] = field(default=None)
+    output_compression: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerRedshiftDatasetDefinition:
+    kind: ClassVar[str] = "aws_sagemaker_redshift_dataset_definition"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "cluster_id": S("ClusterId"),
+        "database": S("Database"),
+        "db_user": S("DbUser"),
+        "query_string": S("QueryString"),
+        "cluster_role_arn": S("ClusterRoleArn"),
+        "output_s3_uri": S("OutputS3Uri"),
+        "kms_key_id": S("KmsKeyId"),
+        "output_format": S("OutputFormat"),
+        "output_compression": S("OutputCompression"),
+    }
+    cluster_id: Optional[str] = field(default=None)
+    database: Optional[str] = field(default=None)
+    db_user: Optional[str] = field(default=None)
+    query_string: Optional[str] = field(default=None)
+    cluster_role_arn: Optional[str] = field(default=None)
+    output_s3_uri: Optional[str] = field(default=None)
+    kms_key_id: Optional[str] = field(default=None)
+    output_format: Optional[str] = field(default=None)
+    output_compression: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerDatasetDefinition:
+    kind: ClassVar[str] = "aws_sagemaker_dataset_definition"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "athena_dataset_definition": S("AthenaDatasetDefinition") >> Bend(AwsSagemakerAthenaDatasetDefinition.mapping),
+        "redshift_dataset_definition": S("RedshiftDatasetDefinition")
+        >> Bend(AwsSagemakerRedshiftDatasetDefinition.mapping),
+        "local_path": S("LocalPath"),
+        "data_distribution_type": S("DataDistributionType"),
+        "input_mode": S("InputMode"),
+    }
+    athena_dataset_definition: Optional[AwsSagemakerAthenaDatasetDefinition] = field(default=None)
+    redshift_dataset_definition: Optional[AwsSagemakerRedshiftDatasetDefinition] = field(default=None)
+    local_path: Optional[str] = field(default=None)
+    data_distribution_type: Optional[str] = field(default=None)
+    input_mode: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerProcessingInput:
+    kind: ClassVar[str] = "aws_sagemaker_processing_input"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "input_name": S("InputName"),
+        "app_managed": S("AppManaged"),
+        "s3_input": S("S3Input") >> Bend(AwsSagemakerProcessingS3Input.mapping),
+        "dataset_definition": S("DatasetDefinition") >> Bend(AwsSagemakerDatasetDefinition.mapping),
+    }
+    input_name: Optional[str] = field(default=None)
+    app_managed: Optional[bool] = field(default=None)
+    s3_input: Optional[AwsSagemakerProcessingS3Input] = field(default=None)
+    dataset_definition: Optional[AwsSagemakerDatasetDefinition] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerProcessingS3Output:
+    kind: ClassVar[str] = "aws_sagemaker_processing_s3_output"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "s3_uri": S("S3Uri"),
+        "local_path": S("LocalPath"),
+        "s3_upload_mode": S("S3UploadMode"),
+    }
+    s3_uri: Optional[str] = field(default=None)
+    local_path: Optional[str] = field(default=None)
+    s3_upload_mode: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerProcessingOutput:
+    kind: ClassVar[str] = "aws_sagemaker_processing_output"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "output_name": S("OutputName"),
+        "s3_output": S("S3Output") >> Bend(AwsSagemakerProcessingS3Output.mapping),
+        "feature_store_output": S("FeatureStoreOutput", "FeatureGroupName"),
+        "app_managed": S("AppManaged"),
+    }
+    output_name: Optional[str] = field(default=None)
+    s3_output: Optional[AwsSagemakerProcessingS3Output] = field(default=None)
+    feature_store_output: Optional[str] = field(default=None)
+    app_managed: Optional[bool] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerProcessingOutputConfig:
+    kind: ClassVar[str] = "aws_sagemaker_processing_output_config"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "outputs": S("Outputs", default=[]) >> ForallBend(AwsSagemakerProcessingOutput.mapping),
+        "kms_key_id": S("KmsKeyId"),
+    }
+    outputs: List[AwsSagemakerProcessingOutput] = field(factory=list)
+    kms_key_id: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerProcessingClusterConfig:
+    kind: ClassVar[str] = "aws_sagemaker_processing_cluster_config"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "instance_count": S("InstanceCount"),
+        "instance_type": S("InstanceType"),
+        "volume_size_in_gb": S("VolumeSizeInGB"),
+        "volume_kms_key_id": S("VolumeKmsKeyId"),
+    }
+    instance_count: Optional[int] = field(default=None)
+    instance_type: Optional[str] = field(default=None)
+    volume_size_in_gb: Optional[int] = field(default=None)
+    volume_kms_key_id: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerProcessingResources:
+    kind: ClassVar[str] = "aws_sagemaker_processing_resources"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "cluster_config": S("ClusterConfig") >> Bend(AwsSagemakerProcessingClusterConfig.mapping)
+    }
+    cluster_config: Optional[AwsSagemakerProcessingClusterConfig] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerAppSpecification:
+    kind: ClassVar[str] = "aws_sagemaker_app_specification"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "image_uri": S("ImageUri"),
+        "container_entrypoint": S("ContainerEntrypoint", default=[]),
+        "container_arguments": S("ContainerArguments", default=[]),
+    }
+    image_uri: Optional[str] = field(default=None)
+    container_entrypoint: List[str] = field(factory=list)
+    container_arguments: List[str] = field(factory=list)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerNetworkConfig:
+    kind: ClassVar[str] = "aws_sagemaker_network_config"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "enable_inter_container_traffic_encryption": S("EnableInterContainerTrafficEncryption"),
+        "enable_network_isolation": S("EnableNetworkIsolation"),
+        "vpc_config": S("VpcConfig") >> Bend(AwsSagemakerVpcConfig.mapping),
+    }
+    enable_inter_container_traffic_encryption: Optional[bool] = field(default=None)
+    enable_network_isolation: Optional[bool] = field(default=None)
+    vpc_config: Optional[AwsSagemakerVpcConfig] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerExperimentConfig:
+    kind: ClassVar[str] = "aws_sagemaker_experiment_config"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "experiment_name": S("ExperimentName"),
+        "trial_name": S("TrialName"),
+        "trial_component_display_name": S("TrialComponentDisplayName"),
+    }
+    experiment_name: Optional[str] = field(default=None)
+    trial_name: Optional[str] = field(default=None)
+    trial_component_display_name: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerProcessingJob(AwsResource):
+    kind: ClassVar[str] = "aws_sagemaker_processing_job"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-processing-jobs", "ProcessingJobSummaries")
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("ProcessingJobName"),
+        # "tags": S("Tags", default=[]) >> ToDict(),
+        "name": S("ProcessingJobName"),
+        "ctime": S("CreationTime"),
+        "mtime": S("LastModifiedTime"),
+        "arn": S("ProcessingJobArn"),
+        "processing_job_processing_inputs": S("ProcessingInputs", default=[])
+        >> ForallBend(AwsSagemakerProcessingInput.mapping),
+        "processing_job_processing_output_config": S("ProcessingOutputConfig")
+        >> Bend(AwsSagemakerProcessingOutputConfig.mapping),
+        "processing_job_processing_resources": S("ProcessingResources")
+        >> Bend(AwsSagemakerProcessingResources.mapping),
+        "processing_job_stopping_condition": S("StoppingCondition", "MaxRuntimeInSeconds"),
+        "processing_job_app_specification": S("AppSpecification") >> Bend(AwsSagemakerAppSpecification.mapping),
+        "processing_job_environment": S("Environment"),
+        "processing_job_network_config": S("NetworkConfig") >> Bend(AwsSagemakerNetworkConfig.mapping),
+        "processing_job_role_arn": S("RoleArn"),
+        "processing_job_experiment_config": S("ExperimentConfig") >> Bend(AwsSagemakerExperimentConfig.mapping),
+        "processing_job_status": S("ProcessingJobStatus"),
+        "processing_job_exit_message": S("ExitMessage"),
+        "processing_job_failure_reason": S("FailureReason"),
+        "processing_job_processing_end_time": S("ProcessingEndTime"),
+        "processing_job_processing_start_time": S("ProcessingStartTime"),
+        "processing_job_monitoring_schedule_arn": S("MonitoringScheduleArn"),
+        "processing_job_auto_ml_job_arn": S("AutoMLJobArn"),
+        "processing_job_training_job_arn": S("TrainingJobArn"),
+    }
+    processing_job_processing_inputs: List[AwsSagemakerProcessingInput] = field(factory=list)
+    processing_job_processing_output_config: Optional[AwsSagemakerProcessingOutputConfig] = field(default=None)
+    processing_job_processing_resources: Optional[AwsSagemakerProcessingResources] = field(default=None)
+    processing_job_stopping_condition: Optional[int] = field(default=None)
+    processing_job_app_specification: Optional[AwsSagemakerAppSpecification] = field(default=None)
+    processing_job_environment: Optional[Dict[str, str]] = field(default=None)
+    processing_job_network_config: Optional[AwsSagemakerNetworkConfig] = field(default=None)
+    processing_job_role_arn: Optional[str] = field(default=None)
+    processing_job_experiment_config: Optional[AwsSagemakerExperimentConfig] = field(default=None)
+    processing_job_status: Optional[str] = field(default=None)
+    processing_job_exit_message: Optional[str] = field(default=None)
+    processing_job_failure_reason: Optional[str] = field(default=None)
+    processing_job_processing_end_time: Optional[datetime] = field(default=None)
+    processing_job_processing_start_time: Optional[datetime] = field(default=None)
+    processing_job_monitoring_schedule_arn: Optional[str] = field(default=None)
+    processing_job_auto_ml_job_arn: Optional[str] = field(default=None)
+    processing_job_training_job_arn: Optional[str] = field(default=None)
+
+    @classmethod
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        for job in json:
+            job_description = builder.client.get(
+                "sagemaker",
+                "describe-processing-job",
+                None,
+                ProcessingJobName=job["ProcessingJobName"],
+            )
+            if job_description:
+                job_instance = AwsSagemakerProcessingJob.from_api(job_description)
+                builder.add_node(job_instance, job_description)
+
+
 resources: List[Type[AwsResource]] = [
     AwsSagemakerNotebook,
     AwsSagemakerAlgorithm,
@@ -2893,13 +3159,12 @@ resources: List[Type[AwsResource]] = [
     AwsSagemakerHyperParameterTuningJob,
     AwsSagemakerInferenceRecommendationsJob,
     AwsSagemakerLabelingJob,
+    AwsSagemakerProcessingJob,
 ]
 
 # model_bias_job_definition()
-# model_card_export_job()
 # model_explainability_job_definition()
 # model_quality_job_definition()
-# processing_job()
 # training_job()
 # transform_job()
 # data_quality_job_definition()

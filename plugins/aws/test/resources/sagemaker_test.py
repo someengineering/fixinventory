@@ -19,6 +19,7 @@ from resoto_plugin_aws.resource.sagemaker import (
     AwsSagemakerHyperParameterTuningJob,
     AwsSagemakerInferenceRecommendationsJob,
     AwsSagemakerLabelingJob,
+    AwsSagemakerProcessingJob,
 )
 
 
@@ -117,3 +118,8 @@ def test_inference_recommendations_job() -> None:
 def test_labeling_job() -> None:
     first, builder = round_trip_for(AwsSagemakerLabelingJob)
     assert len(builder.resources_of(AwsSagemakerLabelingJob)) == 1
+
+
+def test_processing_job() -> None:
+    first, builder = round_trip_for(AwsSagemakerProcessingJob)
+    assert len(builder.resources_of(AwsSagemakerProcessingJob)) == 1
