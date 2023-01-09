@@ -121,6 +121,15 @@ class AwsSagemakerNotebook(SagemakerTaggable, AwsResource):
                 builder.add_node(notebook_instance, notebook_description)
                 builder.submit_work(SagemakerTaggable.add_tags, notebook_instance, builder)
 
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(
+            aws_service=self.api_spec.service,
+            action="delete-notebook-instance",
+            result_name=None,
+            NotebookInstanceName=self.name,
+        )
+        return True
+
 
 @define(eq=False, slots=False)
 class AwsSagemakerIntegerParameterRangeSpecification:
@@ -602,6 +611,12 @@ class AwsSagemakerAlgorithm(AwsResource):
                 algorithm_instance = AwsSagemakerAlgorithm.from_api(algorithm_description)
                 builder.add_node(algorithm_instance, algorithm_description)
 
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(
+            aws_service=self.api_spec.service, action="delete-algorithm", result_name=None, AlgorithmName=self.name
+        )
+        return True
+
 
 @define(eq=False, slots=False)
 class AwsSagemakerImageConfig:
@@ -686,6 +701,10 @@ class AwsSagemakerModel(SagemakerTaggable, AwsResource):
                 builder.add_node(model_instance, model_description)
                 builder.submit_work(SagemakerTaggable.add_tags, model_instance, builder)
 
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(aws_service=self.api_spec.service, action="delete-model", result_name=None, ModelName=self.name)
+        return True
+
 
 @define(eq=False, slots=False)
 class AwsSagemakerResourceSpec:
@@ -748,6 +767,18 @@ class AwsSagemakerApp(AwsResource):
             if app_description:
                 app_instance = AwsSagemakerApp.from_api(app_description)
                 builder.add_node(app_instance, app_description)
+
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(
+            aws_service=self.api_spec.service,
+            action="delete-app",
+            result_name=None,
+            DomainId=self.app_domain_id,
+            AppType=self.app_type,
+            AppName=self.name,
+            SpaceName=self.app_space_name,
+        )
+        return True
 
 
 @define(eq=False, slots=False)
@@ -984,6 +1015,10 @@ class AwsSagemakerDomain(AwsResource):
                 domain_instance = AwsSagemakerDomain.from_api(domain_description)
                 builder.add_node(domain_instance, domain_description)
 
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(aws_service=self.api_spec.service, action="delete-domain", result_name=None, DomainId=self.id)
+        return True
+
 
 @define(eq=False, slots=False)
 class AwsSagemakerExperimentSource:
@@ -1008,6 +1043,12 @@ class AwsSagemakerExperiment(AwsResource):
     }
     experiment_display_name: Optional[str] = field(default=None)
     experiment_source: Optional[AwsSagemakerExperimentSource] = field(default=None)
+
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(
+            aws_service=self.api_spec.service, action="delete-experiment", result_name=None, ExperimentName=self.name
+        )
+        return True
 
 
 @define(eq=False, slots=False)
@@ -1087,6 +1128,10 @@ class AwsSagemakerTrial(AwsResource):
                 trial_instance = AwsSagemakerTrial.from_api(trial_description)
                 builder.add_node(trial_instance, trial_description)
 
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(aws_service=self.api_spec.service, action="delete-trial", result_name=None, TrialName=self.name)
+        return True
+
 
 @define(eq=False, slots=False)
 class AwsSagemakerGitConfig:
@@ -1114,6 +1159,15 @@ class AwsSagemakerCodeRepository(AwsResource):
         "code_repository_git_config": S("GitConfig") >> Bend(AwsSagemakerGitConfig.mapping),
     }
     code_repository_git_config: Optional[AwsSagemakerGitConfig] = field(default=None)
+
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(
+            aws_service=self.api_spec.service,
+            action="delete-code-repository",
+            result_name=None,
+            CodeRepositoryName=self.name,
+        )
+        return True
 
 
 @define(eq=False, slots=False)
@@ -1465,6 +1519,12 @@ class AwsSagemakerEndpoint(SagemakerTaggable, AwsResource):
                 builder.add_node(endpoint_instance, endpoint_description)
                 builder.submit_work(SagemakerTaggable.add_tags, endpoint_instance, builder)
 
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(
+            aws_service=self.api_spec.service, action="delete-endpoint", result_name=None, EndpointName=self.name
+        )
+        return True
+
 
 @define(eq=False, slots=False)
 class AwsSagemakerImage(AwsResource):
@@ -1499,6 +1559,10 @@ class AwsSagemakerImage(AwsResource):
             if image_description:
                 image_instance = AwsSagemakerImage.from_api(image_description)
                 builder.add_node(image_instance, image_description)
+
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(aws_service=self.api_spec.service, action="delete-image", result_name=None, ImageName=self.name)
+        return True
 
 
 @define(eq=False, slots=False)
@@ -1560,6 +1624,10 @@ class AwsSagemakerArtifact(AwsResource):
                 artifact_instance = AwsSagemakerArtifact.from_api(artifact_description)
                 builder.add_node(artifact_instance, artifact_description)
 
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(aws_service=self.api_spec.service, action="delete-artifact", result_name=None, ArtifactArn=self.arn)
+        return True
+
 
 @define(eq=False, slots=False)
 class AwsSagemakerUserProfile(AwsResource):
@@ -1575,6 +1643,16 @@ class AwsSagemakerUserProfile(AwsResource):
     }
     user_profile_domain_id: Optional[str] = field(default=None)
     user_profile_status: Optional[str] = field(default=None)
+
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(
+            aws_service=self.api_spec.service,
+            action="delete-user-profile",
+            result_name=None,
+            UserProfileName=self.name,
+            DomainId=self.user_profile_domain_id,
+        )
+        return True
 
 
 @define(eq=False, slots=False)
@@ -1619,6 +1697,12 @@ class AwsSagemakerPipeline(AwsResource):
             if pipeline_description:
                 pipeline_instance = AwsSagemakerPipeline.from_api(pipeline_description)
                 builder.add_node(pipeline_instance, pipeline_description)
+
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(
+            aws_service=self.api_spec.service, action="delete-pipeline", result_name=None, PipelineName=self.name
+        )
+        return True
 
 
 @define(eq=False, slots=False)
@@ -1687,6 +1771,12 @@ class AwsSagemakerWorkteam(SagemakerTaggable, AwsResource):
             workteam_instance = AwsSagemakerWorkteam.from_api(workteam)
             builder.add_node(workteam_instance, workteam)
             builder.submit_work(SagemakerTaggable.add_tags, workteam_instance, builder)
+
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(
+            aws_service=self.api_spec.service, action="delete-workteam", result_name=None, WorkteamName=self.name
+        )
+        return True
 
 
 ## Jobs
