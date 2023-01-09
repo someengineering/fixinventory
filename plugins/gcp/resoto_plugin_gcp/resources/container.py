@@ -8,55 +8,6 @@ from resotolib.json_bender import Bender, S, Bend, ForallBend, MapDict
 
 
 @define(eq=False, slots=False)
-class GcpContainerUsableSubnetworkSecondaryRange:
-    kind: ClassVar[str] = "gcp_container_usable_subnetwork_secondary_range"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "ip_cidr_range": S("ipCidrRange"),
-        "range_name": S("rangeName"),
-        "status": S("status"),
-    }
-    ip_cidr_range: Optional[str] = field(default=None)
-    range_name: Optional[str] = field(default=None)
-    status: Optional[str] = field(default=None)
-
-
-@define(eq=False, slots=False)
-class GcpContainerUsableSubnetwork(GcpResource):
-    kind: ClassVar[str] = "gcp_container_usable_subnetwork"
-    api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="container",
-        version="v1",
-        accessors=["projects", "aggregated", "usableSubnetworks"],
-        action="list",
-        request_parameter={"parent": "projects/{project}/locations/-"},
-        request_parameter_in={"project"},
-        response_path="subnetworks",
-        response_regional_sub_path=None,
-    )
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id").or_else(S("name")).or_else(S("selfLink")),
-        "tags": S("labels", default={}),
-        "name": S("name"),
-        "ctime": S("creationTimestamp"),
-        "description": S("description"),
-        "link": S("selfLink"),
-        "label_fingerprint": S("labelFingerprint"),
-        "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "subnetwork_ip_cidr_range": S("ipCidrRange"),
-        "subnetwork_network": S("network"),
-        "subnetwork_secondary_ip_ranges": S("secondaryIpRanges", default=[])
-        >> ForallBend(GcpContainerUsableSubnetworkSecondaryRange.mapping),
-        "subnetwork_status_message": S("statusMessage"),
-        "subnetwork_subnetwork": S("subnetwork"),
-    }
-    subnetwork_ip_cidr_range: Optional[str] = field(default=None)
-    subnetwork_network: Optional[str] = field(default=None)
-    subnetwork_secondary_ip_ranges: List[GcpContainerUsableSubnetworkSecondaryRange] = field(factory=list)
-    subnetwork_status_message: Optional[str] = field(default=None)
-    subnetwork_subnetwork: Optional[str] = field(default=None)
-
-
-@define(eq=False, slots=False)
 class GcpContainerCloudRunConfig:
     kind: ClassVar[str] = "gcp_container_cloud_run_config"
     mapping: ClassVar[Dict[str, Bender]] = {"disabled": S("disabled"), "load_balancer_type": S("loadBalancerType")}
@@ -196,7 +147,7 @@ class GcpContainerAutoprovisioningNodePoolDefaults:
     image_type: Optional[str] = field(default=None)
     management: Optional[GcpContainerNodeManagement] = field(default=None)
     min_cpu_platform: Optional[str] = field(default=None)
-    oauth_scopes: List[str] = field(factory=list)
+    oauth_scopes: Optional[List[str]] = field(default=None)
     service_account: Optional[str] = field(default=None)
     shielded_instance_config: Optional[GcpContainerShieldedInstanceConfig] = field(default=None)
     upgrade_settings: Optional[GcpContainerUpgradeSettings] = field(default=None)
@@ -226,11 +177,11 @@ class GcpContainerClusterAutoscaling:
         "enable_node_autoprovisioning": S("enableNodeAutoprovisioning"),
         "resource_limits": S("resourceLimits", default=[]) >> ForallBend(GcpContainerResourceLimit.mapping),
     }
-    autoprovisioning_locations: List[str] = field(factory=list)
+    autoprovisioning_locations: Optional[List[str]] = field(default=None)
     autoprovisioning_node_pool_defaults: Optional[GcpContainerAutoprovisioningNodePoolDefaults] = field(default=None)
     autoscaling_profile: Optional[str] = field(default=None)
     enable_node_autoprovisioning: Optional[bool] = field(default=None)
-    resource_limits: List[GcpContainerResourceLimit] = field(factory=list)
+    resource_limits: Optional[List[GcpContainerResourceLimit]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -303,7 +254,7 @@ class GcpContainerIPAllocationPolicy:
 class GcpContainerLoggingComponentConfig:
     kind: ClassVar[str] = "gcp_container_logging_component_config"
     mapping: ClassVar[Dict[str, Bender]] = {"enable_components": S("enableComponents", default=[])}
-    enable_components: List[str] = field(factory=list)
+    enable_components: Optional[List[str]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -407,7 +358,7 @@ class GcpContainerMasterAuthorizedNetworksConfig:
         "cidr_blocks": S("cidrBlocks", default=[]) >> ForallBend(GcpContainerCidrBlock.mapping),
         "enabled": S("enabled"),
     }
-    cidr_blocks: List[GcpContainerCidrBlock] = field(factory=list)
+    cidr_blocks: Optional[List[GcpContainerCidrBlock]] = field(default=None)
     enabled: Optional[bool] = field(default=None)
 
 
@@ -415,7 +366,7 @@ class GcpContainerMasterAuthorizedNetworksConfig:
 class GcpContainerMonitoringComponentConfig:
     kind: ClassVar[str] = "gcp_container_monitoring_component_config"
     mapping: ClassVar[Dict[str, Bender]] = {"enable_components": S("enableComponents", default=[])}
-    enable_components: List[str] = field(factory=list)
+    enable_components: Optional[List[str]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -540,7 +491,7 @@ class GcpContainerReservationAffinity:
     }
     consume_reservation_type: Optional[str] = field(default=None)
     key: Optional[str] = field(default=None)
-    values: List[str] = field(factory=list)
+    values: Optional[List[str]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -586,7 +537,7 @@ class GcpContainerNodeConfig:
         "taints": S("taints", default=[]) >> ForallBend(GcpContainerNodeTaint.mapping),
         "workload_metadata_config": S("workloadMetadataConfig", "mode"),
     }
-    accelerators: List[GcpContainerAcceleratorConfig] = field(factory=list)
+    accelerators: Optional[List[GcpContainerAcceleratorConfig]] = field(default=None)
     advanced_machine_features: Optional[str] = field(default=None)
     boot_disk_kms_key: Optional[str] = field(default=None)
     confidential_nodes: Optional[bool] = field(default=None)
@@ -604,15 +555,15 @@ class GcpContainerNodeConfig:
     metadata: Optional[Dict[str, str]] = field(default=None)
     min_cpu_platform: Optional[str] = field(default=None)
     node_group: Optional[str] = field(default=None)
-    oauth_scopes: List[str] = field(factory=list)
+    oauth_scopes: Optional[List[str]] = field(default=None)
     preemptible: Optional[bool] = field(default=None)
     reservation_affinity: Optional[GcpContainerReservationAffinity] = field(default=None)
     sandbox_config: Optional[str] = field(default=None)
     service_account: Optional[str] = field(default=None)
     shielded_instance_config: Optional[GcpContainerShieldedInstanceConfig] = field(default=None)
     spot: Optional[bool] = field(default=None)
-    tags: List[str] = field(factory=list)
-    taints: List[GcpContainerNodeTaint] = field(factory=list)
+    tags: Optional[List[str]] = field(default=None)
+    taints: Optional[List[GcpContainerNodeTaint]] = field(default=None)
     workload_metadata_config: Optional[str] = field(default=None)
 
 
@@ -620,7 +571,7 @@ class GcpContainerNodeConfig:
 class GcpContainerNetworkTags:
     kind: ClassVar[str] = "gcp_container_network_tags"
     mapping: ClassVar[Dict[str, Bender]] = {"tags": S("tags", default=[])}
-    tags: List[str] = field(factory=list)
+    tags: Optional[List[str]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -698,9 +649,9 @@ class GcpContainerBlueGreenInfo:
         "green_pool_version": S("greenPoolVersion"),
         "phase": S("phase"),
     }
-    blue_instance_group_urls: List[str] = field(factory=list)
+    blue_instance_group_urls: Optional[List[str]] = field(default=None)
     blue_pool_deletion_start_time: Optional[str] = field(default=None)
-    green_instance_group_urls: List[str] = field(factory=list)
+    green_instance_group_urls: Optional[List[str]] = field(default=None)
     green_pool_version: Optional[str] = field(default=None)
     phase: Optional[str] = field(default=None)
 
@@ -737,11 +688,11 @@ class GcpContainerNodePool:
         "version": S("version"),
     }
     autoscaling: Optional[GcpContainerNodePoolAutoscaling] = field(default=None)
-    conditions: List[GcpContainerStatusCondition] = field(factory=list)
+    conditions: Optional[List[GcpContainerStatusCondition]] = field(default=None)
     config: Optional[GcpContainerNodeConfig] = field(default=None)
     initial_node_count: Optional[int] = field(default=None)
-    instance_group_urls: List[str] = field(factory=list)
-    locations: List[str] = field(factory=list)
+    instance_group_urls: Optional[List[str]] = field(default=None)
+    locations: Optional[List[str]] = field(default=None)
     management: Optional[GcpContainerNodeManagement] = field(default=None)
     max_pods_constraint: Optional[str] = field(default=None)
     name: Optional[str] = field(default=None)
@@ -759,7 +710,7 @@ class GcpContainerNodePool:
 class GcpContainerFilter:
     kind: ClassVar[str] = "gcp_container_filter"
     mapping: ClassVar[Dict[str, Bender]] = {"event_type": S("eventType", default=[])}
-    event_type: List[str] = field(factory=list)
+    event_type: Optional[List[str]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -910,7 +861,7 @@ class GcpContainerCluster(GcpResource):
     cluster_autoscaling: Optional[GcpContainerClusterAutoscaling] = field(default=None)
     cluster_binary_authorization: Optional[GcpContainerBinaryAuthorization] = field(default=None)
     cluster_cluster_ipv4_cidr: Optional[str] = field(default=None)
-    cluster_conditions: List[GcpContainerStatusCondition] = field(factory=list)
+    cluster_conditions: Optional[List[GcpContainerStatusCondition]] = field(default=None)
     cluster_confidential_nodes: Optional[bool] = field(default=None)
     cluster_cost_management_config: Optional[bool] = field(default=None)
     cluster_create_time: Optional[str] = field(default=None)
@@ -926,11 +877,11 @@ class GcpContainerCluster(GcpResource):
     cluster_identity_service_config: Optional[bool] = field(default=None)
     cluster_initial_cluster_version: Optional[str] = field(default=None)
     cluster_initial_node_count: Optional[int] = field(default=None)
-    cluster_instance_group_urls: List[str] = field(factory=list)
+    cluster_instance_group_urls: Optional[List[str]] = field(default=None)
     cluster_ip_allocation_policy: Optional[GcpContainerIPAllocationPolicy] = field(default=None)
     cluster_legacy_abac: Optional[bool] = field(default=None)
     cluster_location: Optional[str] = field(default=None)
-    cluster_locations: List[str] = field(factory=list)
+    cluster_locations: Optional[List[str]] = field(default=None)
     cluster_logging_config: Optional[GcpContainerLoggingConfig] = field(default=None)
     cluster_logging_service: Optional[str] = field(default=None)
     cluster_maintenance_policy: Optional[GcpContainerMaintenancePolicy] = field(default=None)
@@ -948,7 +899,7 @@ class GcpContainerCluster(GcpResource):
     cluster_node_ipv4_cidr_size: Optional[int] = field(default=None)
     cluster_node_pool_auto_config: Optional[GcpContainerNodePoolAutoConfig] = field(default=None)
     cluster_node_pool_defaults: Optional[GcpContainerNodePoolDefaults] = field(default=None)
-    cluster_node_pools: List[GcpContainerNodePool] = field(factory=list)
+    cluster_node_pools: Optional[List[GcpContainerNodePool]] = field(default=None)
     cluster_notification_config: Optional[GcpContainerNotificationConfig] = field(default=None)
     cluster_private_cluster_config: Optional[GcpContainerPrivateClusterConfig] = field(default=None)
     cluster_release_channel: Optional[str] = field(default=None)
@@ -979,7 +930,7 @@ class GcpContainerStatus:
         "message": S("message"),
     }
     code: Optional[int] = field(default=None)
-    details: List[GcpContainerDetails] = field(factory=list)
+    details: Optional[List[GcpContainerDetails]] = field(default=None)
     message: Optional[str] = field(default=None)
 
 
@@ -1006,7 +957,7 @@ class GcpContainerOperationProgress:
         "name": S("name"),
         "status": S("status"),
     }
-    metrics: List[GcpContainerMetric] = field(factory=list)
+    metrics: Optional[List[GcpContainerMetric]] = field(default=None)
     name: Optional[str] = field(default=None)
     status: Optional[str] = field(default=None)
 
@@ -1048,12 +999,12 @@ class GcpContainerOperation(GcpResource):
         "operation_status_message": S("statusMessage"),
         "operation_target_link": S("targetLink"),
     }
-    operation_cluster_conditions: List[GcpContainerStatusCondition] = field(factory=list)
+    operation_cluster_conditions: Optional[List[GcpContainerStatusCondition]] = field(default=None)
     operation_detail: Optional[str] = field(default=None)
     operation_end_time: Optional[str] = field(default=None)
     operation_error: Optional[GcpContainerStatus] = field(default=None)
     operation_location: Optional[str] = field(default=None)
-    operation_nodepool_conditions: List[GcpContainerStatusCondition] = field(factory=list)
+    operation_nodepool_conditions: Optional[List[GcpContainerStatusCondition]] = field(default=None)
     operation_operation_type: Optional[str] = field(default=None)
     operation_progress: Optional[GcpContainerOperationProgress] = field(default=None)
     operation_start_time: Optional[str] = field(default=None)
@@ -1062,4 +1013,4 @@ class GcpContainerOperation(GcpResource):
     operation_target_link: Optional[str] = field(default=None)
 
 
-resources = [GcpContainerUsableSubnetwork, GcpContainerCluster, GcpContainerOperation]
+resources = [GcpContainerCluster, GcpContainerOperation]

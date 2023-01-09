@@ -24,7 +24,7 @@ class GcpSqlBackupRun(GcpResource):
         accessors=["backupRuns"],
         action="list",
         request_parameter={"instance": "{instance}", "project": "{project}"},
-        request_parameter_in={"project", "instance"},
+        request_parameter_in={"instance", "project"},
         response_path="items",
         response_regional_sub_path=None,
     )
@@ -86,7 +86,7 @@ class GcpSqlDatabase(GcpResource):
         accessors=["databases"],
         action="list",
         request_parameter={"instance": "{instance}", "project": "{project}"},
-        request_parameter_in={"project", "instance"},
+        request_parameter_in={"instance", "project"},
         response_path="items",
         response_regional_sub_path=None,
     )
@@ -146,9 +146,9 @@ class GcpSqlFlag(GcpResource):
         "flag_requires_restart": S("requiresRestart"),
         "flag_type": S("type"),
     }
-    flag_allowed_int_values: List[str] = field(factory=list)
-    flag_allowed_string_values: List[str] = field(factory=list)
-    flag_applies_to: List[str] = field(factory=list)
+    flag_allowed_int_values: Optional[List[str]] = field(default=None)
+    flag_allowed_string_values: Optional[List[str]] = field(default=None)
+    flag_applies_to: Optional[List[str]] = field(default=None)
     flag_in_beta: Optional[bool] = field(default=None)
     flag_max_value: Optional[str] = field(default=None)
     flag_min_value: Optional[str] = field(default=None)
@@ -390,7 +390,7 @@ class GcpSqlIpConfiguration:
         "require_ssl": S("requireSsl"),
     }
     allocated_ip_range: Optional[str] = field(default=None)
-    authorized_networks: List[GcpSqlAclEntry] = field(factory=list)
+    authorized_networks: Optional[List[GcpSqlAclEntry]] = field(default=None)
     ipv4_enabled: Optional[bool] = field(default=None)
     private_network: Optional[str] = field(default=None)
     require_ssl: Optional[bool] = field(default=None)
@@ -487,7 +487,7 @@ class GcpSqlSettings:
     }
     activation_policy: Optional[str] = field(default=None)
     active_directory_config: Optional[str] = field(default=None)
-    authorized_gae_applications: List[str] = field(factory=list)
+    authorized_gae_applications: Optional[List[str]] = field(default=None)
     availability_type: Optional[str] = field(default=None)
     backup_configuration: Optional[GcpSqlBackupConfiguration] = field(default=None)
     collation: Optional[str] = field(default=None)
@@ -495,10 +495,10 @@ class GcpSqlSettings:
     crash_safe_replication_enabled: Optional[bool] = field(default=None)
     data_disk_size_gb: Optional[str] = field(default=None)
     data_disk_type: Optional[str] = field(default=None)
-    database_flags: List[GcpSqlDatabaseFlags] = field(factory=list)
+    database_flags: Optional[List[GcpSqlDatabaseFlags]] = field(default=None)
     database_replication_enabled: Optional[bool] = field(default=None)
     deletion_protection_enabled: Optional[bool] = field(default=None)
-    deny_maintenance_periods: List[GcpSqlDenyMaintenancePeriod] = field(factory=list)
+    deny_maintenance_periods: Optional[List[GcpSqlDenyMaintenancePeriod]] = field(default=None)
     insights_config: Optional[GcpSqlInsightsConfig] = field(default=None)
     ip_configuration: Optional[GcpSqlIpConfiguration] = field(default=None)
     location_preference: Optional[GcpSqlLocationPreference] = field(default=None)
@@ -573,7 +573,7 @@ class GcpSqlDatabaseInstance(GcpResource):
         "instance_state": S("state"),
         "instance_suspension_reason": S("suspensionReason", default=[]),
     }
-    instance_available_maintenance_versions: List[str] = field(factory=list)
+    instance_available_maintenance_versions: Optional[List[str]] = field(default=None)
     instance_backend_type: Optional[str] = field(default=None)
     instance_connection_name: Optional[str] = field(default=None)
     instance_create_time: Optional[str] = field(default=None)
@@ -586,7 +586,7 @@ class GcpSqlDatabaseInstance(GcpResource):
     instance_failover_replica: Optional[GcpSqlFailoverreplica] = field(default=None)
     instance_gce_zone: Optional[str] = field(default=None)
     instance_instance_type: Optional[str] = field(default=None)
-    instance_ip_addresses: List[GcpSqlIpMapping] = field(factory=list)
+    instance_ip_addresses: Optional[List[GcpSqlIpMapping]] = field(default=None)
     instance_ipv6_address: Optional[str] = field(default=None)
     instance_maintenance_version: Optional[str] = field(default=None)
     instance_master_instance_name: Optional[str] = field(default=None)
@@ -595,7 +595,7 @@ class GcpSqlDatabaseInstance(GcpResource):
     instance_out_of_disk_report: Optional[GcpSqlSqlOutOfDiskReport] = field(default=None)
     instance_project: Optional[str] = field(default=None)
     instance_replica_configuration: Optional[GcpSqlReplicaConfiguration] = field(default=None)
-    instance_replica_names: List[str] = field(factory=list)
+    instance_replica_names: Optional[List[str]] = field(default=None)
     instance_root_password: Optional[str] = field(default=None)
     instance_satisfies_pzs: Optional[bool] = field(default=None)
     instance_scheduled_maintenance: Optional[GcpSqlSqlScheduledMaintenance] = field(default=None)
@@ -604,7 +604,7 @@ class GcpSqlDatabaseInstance(GcpResource):
     instance_service_account_email_address: Optional[str] = field(default=None)
     instance_settings: Optional[GcpSqlSettings] = field(default=None)
     instance_state: Optional[str] = field(default=None)
-    instance_suspension_reason: List[str] = field(factory=list)
+    instance_suspension_reason: Optional[List[str]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -613,7 +613,7 @@ class GcpSqlOperationErrors:
     mapping: ClassVar[Dict[str, Bender]] = {
         "errors": S("errors", default=[]) >> ForallBend(GcpSqlOperationError.mapping)
     }
-    errors: List[GcpSqlOperationError] = field(factory=list)
+    errors: Optional[List[GcpSqlOperationError]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -650,7 +650,7 @@ class GcpSqlSqlexportoptions:
     }
     mysql_export_options: Optional[GcpSqlMysqlexportoptions] = field(default=None)
     schema_only: Optional[bool] = field(default=None)
-    tables: List[str] = field(factory=list)
+    tables: Optional[List[str]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -665,7 +665,7 @@ class GcpSqlExportContext:
         "uri": S("uri"),
     }
     csv_export_options: Optional[GcpSqlCsvexportoptions] = field(default=None)
-    databases: List[str] = field(factory=list)
+    databases: Optional[List[str]] = field(default=None)
     file_type: Optional[str] = field(default=None)
     offload: Optional[bool] = field(default=None)
     sql_export_options: Optional[GcpSqlSqlexportoptions] = field(default=None)
@@ -705,7 +705,7 @@ class GcpSqlCsvimportoptions:
         "quote_character": S("quoteCharacter"),
         "table": S("table"),
     }
-    columns: List[str] = field(factory=list)
+    columns: Optional[List[str]] = field(default=None)
     escape_character: Optional[str] = field(default=None)
     fields_terminated_by: Optional[str] = field(default=None)
     lines_terminated_by: Optional[str] = field(default=None)
@@ -784,37 +784,6 @@ class GcpSqlOperation(GcpResource):
 
 
 @define(eq=False, slots=False)
-class GcpSqlTier(GcpResource):
-    kind: ClassVar[str] = "gcp_sql_tier"
-    api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="sqladmin",
-        version="v1",
-        accessors=["tiers"],
-        action="list",
-        request_parameter={"project": "{project}"},
-        request_parameter_in={"project"},
-        response_path="items",
-        response_regional_sub_path=None,
-    )
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id").or_else(S("name")).or_else(S("selfLink")),
-        "tags": S("labels", default={}),
-        "name": S("name"),
-        "ctime": S("creationTimestamp"),
-        "description": S("description"),
-        "link": S("selfLink"),
-        "label_fingerprint": S("labelFingerprint"),
-        "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "tier_disk_quota": S("DiskQuota"),
-        "tier_ram": S("RAM"),
-        "tier_tier": S("tier"),
-    }
-    tier_disk_quota: Optional[str] = field(default=None)
-    tier_ram: Optional[str] = field(default=None)
-    tier_tier: Optional[str] = field(default=None)
-
-
-@define(eq=False, slots=False)
 class GcpSqlPasswordStatus:
     kind: ClassVar[str] = "gcp_sql_password_status"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -847,7 +816,7 @@ class GcpSqlSqlServerUserDetails:
     kind: ClassVar[str] = "gcp_sql_sql_server_user_details"
     mapping: ClassVar[Dict[str, Bender]] = {"disabled": S("disabled"), "server_roles": S("serverRoles", default=[])}
     disabled: Optional[bool] = field(default=None)
-    server_roles: List[str] = field(factory=list)
+    server_roles: Optional[List[str]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -859,7 +828,7 @@ class GcpSqlUser(GcpResource):
         accessors=["users"],
         action="list",
         request_parameter={"instance": "{instance}", "project": "{project}"},
-        request_parameter_in={"project", "instance"},
+        request_parameter_in={"instance", "project"},
         response_path="items",
         response_regional_sub_path=None,
     )
@@ -897,4 +866,4 @@ class GcpSqlUser(GcpResource):
 # TODO: GcpSqlBackupRun for every instance
 # TODO: GcpSqlDatabase for every instance
 # TODO: GcpSqlUser for every instance
-resources = [GcpSqlFlag, GcpSqlDatabaseInstance, GcpSqlOperation, GcpSqlTier]
+resources = [GcpSqlFlag, GcpSqlDatabaseInstance, GcpSqlOperation]

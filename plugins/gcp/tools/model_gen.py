@@ -3,7 +3,7 @@ import re
 from typing import Union, List, Optional, Tuple, Dict, Any, Set
 
 from attr import define
-from google.oauth2.service_account import Credentials
+from google.auth.credentials import AnonymousCredentials
 from googleapiclient import discovery
 from googleapiclient.discovery import Resource
 
@@ -30,12 +30,12 @@ class GcpProperty:
     extractor: Optional[str] = None
 
     def assignment(self) -> str:
-        default = self.field_default or ("factory=list" if self.is_array else "default=None")
+        default = self.field_default or "default=None"
         return f"field({default})"
 
     def type_string(self) -> str:
         if self.is_array:
-            return f"List[{self.type}]"
+            return f"Optional[List[{self.type}]]"
         elif self.is_complex_dict:
             return f"Optional[Dict[str, {self.type}]]"
         else:
@@ -86,6 +86,12 @@ class GcpModel:
     aggregate_root: bool
     base_class: Optional[str] = None
     api_info: Optional[GcpApiInfo] = None
+
+    def roundtrip_test(self) -> str:
+        return (
+            f"def test_{to_snake(self.name)}(random_builder: GraphBuilder) -> None:\n"
+            f"  roundtrip({self.name}, random_builder)"
+        )
 
     def to_class(self) -> str:
         bc = ", " + self.base_class if self.base_class else ""
@@ -344,7 +350,11 @@ def adjust_prefix(name: str) -> str:
 
 
 # noinspection PyProtectedMember
-def generate_models(service: str, version: str, client: Resource, prefix: Optional[str] = None) -> List[GcpResotoModel]:
+def generate_models(
+    service: str, version: str, client: Resource, prefix: Optional[str], ignore: List[str]
+) -> List[GcpResotoModel]:
+    schemas: Dict[str, Shape] = client._rootDesc["schemas"]
+
     def result_prop(shape: Shape) -> Tuple[str, str]:
         for name, prop in shape["properties"].items():
             if prop.get("type") == "array" and (ref := prop.get("items", {}).get("$ref")) is not None:
@@ -387,7 +397,8 @@ def generate_models(service: str, version: str, client: Resource, prefix: Option
         for resource, desc in schemas.items():
             if "methods" in desc:
                 if res := resource_models(path + [resource], desc):
-                    result.append(res)
+                    if res.result_shape not in ignore:
+                        result.append(res)
             if "resources" in desc:
                 result.extend(models(path + [resource], desc["resources"]))
         return result
@@ -426,36 +437,20 @@ def generate_models(service: str, version: str, client: Resource, prefix: Option
     return reduce_global_models(models([], client._resourceDesc["resources"]))
 
 
-# Following parameters are known by the collector:
-#  - project_id
-#  - region (only if the resource is regional)
-# Parameters can be created by creating templates from the given parameters.
-# Note: the generator will fail for all unknown parameters.
-known_api_parameters = {
-    "compute": {"project": "{project}", "region": "{region}"},
-    "container": {"parent": "projects/{project}/locations/-"},
-    "sqladmin": {"project": "{project}", "instance": "{instance}"},
-    "cloudbilling": {"project": "{project}", "region": "{region}", "name": "{name}", "parent": "{parent}"},
-}
-
-# See https://googleapis.github.io/google-api-python-client/docs/dyn/ for the list of available resources
-apis = [
-    # ("compute", "v1", ""),
-    # ("container", "v1", "Container"),
-    # ("sqladmin", "v1", "Sql"),
-    ("cloudbilling", "v1", ""),
-]
-
-
-if __name__ == "__main__":
-    credentials = Credentials.from_service_account_file("/Users/matthias/.gcp/test.json")
+def generate_class_models() -> Dict[str, List[GcpModel]]:
     # mark those classes as visited, since they are predefined in base.py
     visited = {"GcpRegion", "GcpZone", "GcpProject", "GcpQuota", "GcpDeprecationStatus"}
-    for service, version, prefix in apis:
-        client = discovery.build(service, version, credentials=credentials, cache=MemoryCache())
+    result: Dict[str, List[GcpModel]] = {}
+    for service, version, prefix, ignore in apis:
+        client = discovery.build(service, version, credentials=AnonymousCredentials(), cache=MemoryCache())
         schemas: Dict[str, Shape] = client._rootDesc["schemas"]
-        models = generate_models(service, version, client, prefix)
-        clazz_models = [clazz for model in models for clazz in model.class_model(schemas, visited)]
+        models = generate_models(service, version, client, prefix, ignore)
+        result[service] = [clazz for model in models for clazz in model.class_model(schemas, visited)]
+    return result
+
+
+def generate_classes() -> None:
+    for service, clazz_models in generate_class_models().items():
         print(
             """from datetime import datetime
 from typing import ClassVar, Dict, Optional, List, Type
@@ -470,3 +465,43 @@ from resotolib.json_bender import Bender, S, Bend, ForallBend, MapDict
         for clazz in clazz_models:
             print(clazz.to_class())
         print("resources = [", ", ".join(cm.name for cm in clazz_models if cm.aggregate_root), "]")
+
+
+def generate_test_classes() -> None:
+    for service, clazz_models in generate_class_models().items():
+        print(
+            f"""from .random_client import roundtrip
+from resoto_plugin_gcp.resources.base import GraphBuilder
+from resoto_plugin_gcp.resources.{service} import *
+"""
+        )
+        for clazz in clazz_models:
+            if clazz.aggregate_root:
+                print(clazz.roundtrip_test())
+
+
+# Following parameters are known by the collector:
+#  - project_id
+#  - region (only if the resource is regional)
+# Parameters can be created by creating templates from the given parameters.
+# Note: the generator will fail for all unknown parameters.
+known_api_parameters = {
+    "compute": {"project": "{project}", "region": "{region}"},
+    "container": {"parent": "projects/{project}/locations/-"},
+    "sqladmin": {"project": "{project}", "instance": "{instance}"},
+    "cloudbilling": {"project": "{project}", "region": "{region}", "name": "{name}", "parent": "{parent}"},
+}
+
+# See https://googleapis.github.io/google-api-python-client/docs/dyn/ for the list of available resources
+apis = [
+    # (service, version, prefix, list_of_ignore_resources)
+    # ("compute", "v1", "", []),
+    # ("container", "v1", "Container", ["UsableSubnetwork"]),
+    ("sqladmin", "v1", "Sql", ["Tier"]),
+    # ("cloudbilling", "v1", "", []),
+]
+
+
+if __name__ == "__main__":
+    generate_classes()
+    # generate_test_classes()

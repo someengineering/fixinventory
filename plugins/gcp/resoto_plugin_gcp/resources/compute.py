@@ -79,7 +79,7 @@ class GcpAddress(GcpResource):
     address_purpose: Optional[str] = field(default=None)
     address_status: Optional[str] = field(default=None)
     address_subnetwork: Optional[str] = field(default=None)
-    address_users: List[str] = field(factory=list)
+    address_users: Optional[List[str]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -167,7 +167,7 @@ class GcpAutoscalingPolicy:
     }
     cool_down_period_sec: Optional[int] = field(default=None)
     cpu_utilization: Optional[GcpAutoscalingPolicyCpuUtilization] = field(default=None)
-    custom_metric_utilizations: List[GcpAutoscalingPolicyCustomMetricUtilization] = field(factory=list)
+    custom_metric_utilizations: Optional[List[GcpAutoscalingPolicyCustomMetricUtilization]] = field(default=None)
     load_balancing_utilization: Optional[float] = field(default=None)
     max_num_replicas: Optional[int] = field(default=None)
     min_num_replicas: Optional[int] = field(default=None)
@@ -231,7 +231,7 @@ class GcpAutoscaler(GcpResource):
     autoscaler_recommended_size: Optional[int] = field(default=None)
     autoscaler_scaling_schedule_status: Optional[Dict[str, GcpScalingScheduleStatus]] = field(default=None)
     autoscaler_status: Optional[str] = field(default=None)
-    autoscaler_status_details: List[GcpAutoscalerStatusDetails] = field(factory=list)
+    autoscaler_status_details: Optional[List[GcpAutoscalerStatusDetails]] = field(default=None)
     autoscaler_target: Optional[str] = field(default=None)
 
 
@@ -242,8 +242,8 @@ class GcpBackendBucketCdnPolicyCacheKeyPolicy:
         "include_http_headers": S("includeHttpHeaders", default=[]),
         "query_string_whitelist": S("queryStringWhitelist", default=[]),
     }
-    include_http_headers: List[str] = field(factory=list)
-    query_string_whitelist: List[str] = field(factory=list)
+    include_http_headers: Optional[List[str]] = field(default=None)
+    query_string_whitelist: Optional[List[str]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -272,18 +272,18 @@ class GcpBackendBucketCdnPolicy:
         "signed_url_cache_max_age_sec": S("signedUrlCacheMaxAgeSec"),
         "signed_url_key_names": S("signedUrlKeyNames", default=[]),
     }
-    bypass_cache_on_request_headers: List[str] = field(factory=list)
+    bypass_cache_on_request_headers: Optional[List[str]] = field(default=None)
     cache_key_policy: Optional[GcpBackendBucketCdnPolicyCacheKeyPolicy] = field(default=None)
     cache_mode: Optional[str] = field(default=None)
     client_ttl: Optional[int] = field(default=None)
     default_ttl: Optional[int] = field(default=None)
     max_ttl: Optional[int] = field(default=None)
     negative_caching: Optional[bool] = field(default=None)
-    negative_caching_policy: List[GcpBackendBucketCdnPolicyNegativeCachingPolicy] = field(factory=list)
+    negative_caching_policy: Optional[List[GcpBackendBucketCdnPolicyNegativeCachingPolicy]] = field(default=None)
     request_coalescing: Optional[bool] = field(default=None)
     serve_while_stale: Optional[int] = field(default=None)
     signed_url_cache_max_age_sec: Optional[str] = field(default=None)
-    signed_url_key_names: List[str] = field(factory=list)
+    signed_url_key_names: Optional[List[str]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -318,7 +318,7 @@ class GcpBackendBucket(GcpResource):
     bucket_bucket_name: Optional[str] = field(default=None)
     bucket_cdn_policy: Optional[GcpBackendBucketCdnPolicy] = field(default=None)
     bucket_compression_mode: Optional[str] = field(default=None)
-    bucket_custom_response_headers: List[str] = field(factory=list)
+    bucket_custom_response_headers: Optional[List[str]] = field(default=None)
     bucket_edge_security_policy: Optional[str] = field(default=None)
     bucket_enable_cdn: Optional[bool] = field(default=None)
 
@@ -367,12 +367,12 @@ class GcpCacheKeyPolicy:
         "query_string_whitelist": S("queryStringWhitelist", default=[]),
     }
     include_host: Optional[bool] = field(default=None)
-    include_http_headers: List[str] = field(factory=list)
-    include_named_cookies: List[str] = field(factory=list)
+    include_http_headers: Optional[List[str]] = field(default=None)
+    include_named_cookies: Optional[List[str]] = field(default=None)
     include_protocol: Optional[bool] = field(default=None)
     include_query_string: Optional[bool] = field(default=None)
-    query_string_blacklist: List[str] = field(factory=list)
-    query_string_whitelist: List[str] = field(factory=list)
+    query_string_blacklist: Optional[List[str]] = field(default=None)
+    query_string_whitelist: Optional[List[str]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -401,18 +401,18 @@ class GcpBackendServiceCdnPolicy:
         "signed_url_cache_max_age_sec": S("signedUrlCacheMaxAgeSec"),
         "signed_url_key_names": S("signedUrlKeyNames", default=[]),
     }
-    bypass_cache_on_request_headers: List[str] = field(factory=list)
+    bypass_cache_on_request_headers: Optional[List[str]] = field(default=None)
     cache_key_policy: Optional[GcpCacheKeyPolicy] = field(default=None)
     cache_mode: Optional[str] = field(default=None)
     client_ttl: Optional[int] = field(default=None)
     default_ttl: Optional[int] = field(default=None)
     max_ttl: Optional[int] = field(default=None)
     negative_caching: Optional[bool] = field(default=None)
-    negative_caching_policy: List[GcpBackendServiceCdnPolicyNegativeCachingPolicy] = field(factory=list)
+    negative_caching_policy: Optional[List[GcpBackendServiceCdnPolicyNegativeCachingPolicy]] = field(default=None)
     request_coalescing: Optional[bool] = field(default=None)
     serve_while_stale: Optional[int] = field(default=None)
     signed_url_cache_max_age_sec: Optional[str] = field(default=None)
-    signed_url_key_names: List[str] = field(factory=list)
+    signed_url_key_names: Optional[List[str]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -574,7 +574,7 @@ class GcpSecuritySettings:
         "subject_alt_names": S("subjectAltNames", default=[]),
     }
     client_tls_policy: Optional[str] = field(default=None)
-    subject_alt_names: List[str] = field(factory=list)
+    subject_alt_names: Optional[List[str]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -636,23 +636,25 @@ class GcpBackendService(GcpResource):
         "service_timeout_sec": S("timeoutSec"),
     }
     service_affinity_cookie_ttl_sec: Optional[int] = field(default=None)
-    service_backends: List[GcpBackend] = field(factory=list)
+    service_backends: Optional[List[GcpBackend]] = field(default=None)
     service_cdn_policy: Optional[GcpBackendServiceCdnPolicy] = field(default=None)
     service_circuit_breakers: Optional[GcpCircuitBreakers] = field(default=None)
     service_compression_mode: Optional[str] = field(default=None)
     service_connection_draining: Optional[int] = field(default=None)
     service_connection_tracking_policy: Optional[GcpBackendServiceConnectionTrackingPolicy] = field(default=None)
     service_consistent_hash: Optional[GcpConsistentHashLoadBalancerSettings] = field(default=None)
-    service_custom_request_headers: List[str] = field(factory=list)
-    service_custom_response_headers: List[str] = field(factory=list)
+    service_custom_request_headers: Optional[List[str]] = field(default=None)
+    service_custom_response_headers: Optional[List[str]] = field(default=None)
     service_edge_security_policy: Optional[str] = field(default=None)
     service_enable_cdn: Optional[bool] = field(default=None)
     service_failover_policy: Optional[GcpBackendServiceFailoverPolicy] = field(default=None)
     service_fingerprint: Optional[str] = field(default=None)
-    service_health_checks: List[str] = field(factory=list)
+    service_health_checks: Optional[List[str]] = field(default=None)
     service_iap: Optional[GcpBackendServiceIAP] = field(default=None)
     service_load_balancing_scheme: Optional[str] = field(default=None)
-    service_locality_lb_policies: List[GcpBackendServiceLocalityLoadBalancingPolicyConfig] = field(factory=list)
+    service_locality_lb_policies: Optional[List[GcpBackendServiceLocalityLoadBalancingPolicyConfig]] = field(
+        default=None
+    )
     service_locality_lb_policy: Optional[str] = field(default=None)
     service_log_config: Optional[GcpBackendServiceLogConfig] = field(default=None)
     service_max_stream_duration: Optional[GcpDuration] = field(default=None)
@@ -663,7 +665,7 @@ class GcpBackendService(GcpResource):
     service_protocol: Optional[str] = field(default=None)
     service_security_policy: Optional[str] = field(default=None)
     service_security_settings: Optional[GcpSecuritySettings] = field(default=None)
-    service_service_bindings: List[str] = field(factory=list)
+    service_service_bindings: Optional[List[str]] = field(default=None)
     service_session_affinity: Optional[str] = field(default=None)
     service_subsetting: Optional[str] = field(default=None)
     service_timeout_sec: Optional[int] = field(default=None)
@@ -777,18 +779,18 @@ class GcpDisk(GcpResource):
     }
     disk_architecture: Optional[str] = field(default=None)
     disk_disk_encryption_key: Optional[GcpCustomerEncryptionKey] = field(default=None)
-    disk_guest_os_features: List[str] = field(factory=list)
+    disk_guest_os_features: Optional[List[str]] = field(default=None)
     disk_last_attach_timestamp: Optional[datetime] = field(default=None)
     disk_last_detach_timestamp: Optional[datetime] = field(default=None)
-    disk_license_codes: List[str] = field(factory=list)
-    disk_licenses: List[str] = field(factory=list)
+    disk_license_codes: Optional[List[str]] = field(default=None)
+    disk_licenses: Optional[List[str]] = field(default=None)
     disk_location_hint: Optional[str] = field(default=None)
     disk_options: Optional[str] = field(default=None)
     disk_params: Optional[GcpDiskParams] = field(default=None)
     disk_physical_block_size_bytes: Optional[str] = field(default=None)
     disk_provisioned_iops: Optional[str] = field(default=None)
-    disk_replica_zones: List[str] = field(factory=list)
-    disk_resource_policies: List[str] = field(factory=list)
+    disk_replica_zones: Optional[List[str]] = field(default=None)
+    disk_resource_policies: Optional[List[str]] = field(default=None)
     disk_satisfies_pzs: Optional[bool] = field(default=None)
     disk_size_gb: Optional[str] = field(default=None)
     disk_source_disk: Optional[str] = field(default=None)
@@ -802,7 +804,7 @@ class GcpDisk(GcpResource):
     disk_source_storage_object: Optional[str] = field(default=None)
     disk_status: Optional[str] = field(default=None)
     disk_type: Optional[str] = field(default=None)
-    disk_users: List[str] = field(factory=list)
+    disk_users: Optional[List[str]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -838,7 +840,7 @@ class GcpExternalVpnGateway(GcpResource):
         "gateway_interfaces": S("interfaces", default=[]) >> ForallBend(GcpExternalVpnGatewayInterface.mapping),
         "gateway_redundancy_type": S("redundancyType"),
     }
-    gateway_interfaces: List[GcpExternalVpnGatewayInterface] = field(factory=list)
+    gateway_interfaces: Optional[List[GcpExternalVpnGatewayInterface]] = field(default=None)
     gateway_redundancy_type: Optional[str] = field(default=None)
 
 
@@ -864,7 +866,7 @@ class GcpFirewallPolicyRuleMatcherLayer4Config:
     kind: ClassVar[str] = "gcp_firewall_policy_rule_matcher_layer4_config"
     mapping: ClassVar[Dict[str, Bender]] = {"ip_protocol": S("ipProtocol"), "ports": S("ports", default=[])}
     ip_protocol: Optional[str] = field(default=None)
-    ports: List[str] = field(factory=list)
+    ports: Optional[List[str]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -885,10 +887,10 @@ class GcpFirewallPolicyRuleMatcher:
         "src_ip_ranges": S("srcIpRanges", default=[]),
         "src_secure_tags": S("srcSecureTags", default=[]) >> ForallBend(GcpFirewallPolicyRuleSecureTag.mapping),
     }
-    dest_ip_ranges: List[str] = field(factory=list)
-    layer4_configs: List[GcpFirewallPolicyRuleMatcherLayer4Config] = field(factory=list)
-    src_ip_ranges: List[str] = field(factory=list)
-    src_secure_tags: List[GcpFirewallPolicyRuleSecureTag] = field(factory=list)
+    dest_ip_ranges: Optional[List[str]] = field(default=None)
+    layer4_configs: Optional[List[GcpFirewallPolicyRuleMatcherLayer4Config]] = field(default=None)
+    src_ip_ranges: Optional[List[str]] = field(default=None)
+    src_secure_tags: Optional[List[GcpFirewallPolicyRuleSecureTag]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -917,9 +919,9 @@ class GcpFirewallPolicyRule:
     priority: Optional[int] = field(default=None)
     rule_name: Optional[str] = field(default=None)
     rule_tuple_count: Optional[int] = field(default=None)
-    target_resources: List[str] = field(factory=list)
-    target_secure_tags: List[GcpFirewallPolicyRuleSecureTag] = field(factory=list)
-    target_service_accounts: List[str] = field(factory=list)
+    target_resources: Optional[List[str]] = field(default=None)
+    target_secure_tags: Optional[List[GcpFirewallPolicyRuleSecureTag]] = field(default=None)
+    target_service_accounts: Optional[List[str]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -953,12 +955,12 @@ class GcpFirewallPolicy(GcpResource):
         "policy_self_link_with_id": S("selfLinkWithId"),
         "policy_short_name": S("shortName"),
     }
-    policy_associations: List[GcpFirewallPolicyAssociation] = field(factory=list)
+    policy_associations: Optional[List[GcpFirewallPolicyAssociation]] = field(default=None)
     policy_display_name: Optional[str] = field(default=None)
     policy_fingerprint: Optional[str] = field(default=None)
     policy_parent: Optional[str] = field(default=None)
     policy_rule_tuple_count: Optional[int] = field(default=None)
-    policy_rules: List[GcpFirewallPolicyRule] = field(factory=list)
+    policy_rules: Optional[List[GcpFirewallPolicyRule]] = field(default=None)
     policy_self_link_with_id: Optional[str] = field(default=None)
     policy_short_name: Optional[str] = field(default=None)
 
@@ -968,7 +970,7 @@ class GcpAllowed:
     kind: ClassVar[str] = "gcp_allowed"
     mapping: ClassVar[Dict[str, Bender]] = {"ip_protocol": S("IPProtocol"), "ports": S("ports", default=[])}
     ip_protocol: Optional[str] = field(default=None)
-    ports: List[str] = field(factory=list)
+    ports: Optional[List[str]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -976,7 +978,7 @@ class GcpDenied:
     kind: ClassVar[str] = "gcp_denied"
     mapping: ClassVar[Dict[str, Bender]] = {"ip_protocol": S("IPProtocol"), "ports": S("ports", default=[])}
     ip_protocol: Optional[str] = field(default=None)
-    ports: List[str] = field(factory=list)
+    ports: Optional[List[str]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -1023,19 +1025,19 @@ class GcpFirewall(GcpResource):
         "firewall_target_service_accounts": S("targetServiceAccounts", default=[]),
         "firewall_target_tags": S("targetTags", default=[]),
     }
-    firewall_allowed: List[GcpAllowed] = field(factory=list)
-    firewall_denied: List[GcpDenied] = field(factory=list)
-    firewall_destination_ranges: List[str] = field(factory=list)
+    firewall_allowed: Optional[List[GcpAllowed]] = field(default=None)
+    firewall_denied: Optional[List[GcpDenied]] = field(default=None)
+    firewall_destination_ranges: Optional[List[str]] = field(default=None)
     firewall_direction: Optional[str] = field(default=None)
     firewall_disabled: Optional[bool] = field(default=None)
     firewall_log_config: Optional[GcpFirewallLogConfig] = field(default=None)
     firewall_network: Optional[str] = field(default=None)
     firewall_priority: Optional[int] = field(default=None)
-    firewall_source_ranges: List[str] = field(factory=list)
-    firewall_source_service_accounts: List[str] = field(factory=list)
-    firewall_source_tags: List[str] = field(factory=list)
-    firewall_target_service_accounts: List[str] = field(factory=list)
-    firewall_target_tags: List[str] = field(factory=list)
+    firewall_source_ranges: Optional[List[str]] = field(default=None)
+    firewall_source_service_accounts: Optional[List[str]] = field(default=None)
+    firewall_source_tags: Optional[List[str]] = field(default=None)
+    firewall_target_service_accounts: Optional[List[str]] = field(default=None)
+    firewall_target_tags: Optional[List[str]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -1053,7 +1055,7 @@ class GcpMetadataFilter:
         "filter_labels": S("filterLabels", default=[]) >> ForallBend(GcpMetadataFilterLabelMatch.mapping),
         "filter_match_criteria": S("filterMatchCriteria"),
     }
-    filter_labels: List[GcpMetadataFilterLabelMatch] = field(factory=list)
+    filter_labels: Optional[List[GcpMetadataFilterLabelMatch]] = field(default=None)
     filter_match_criteria: Optional[str] = field(default=None)
 
 
@@ -1125,15 +1127,17 @@ class GcpForwardingRule(GcpResource):
     rule_ip_version: Optional[str] = field(default=None)
     rule_is_mirroring_collector: Optional[bool] = field(default=None)
     rule_load_balancing_scheme: Optional[str] = field(default=None)
-    rule_metadata_filters: List[GcpMetadataFilter] = field(factory=list)
+    rule_metadata_filters: Optional[List[GcpMetadataFilter]] = field(default=None)
     rule_network: Optional[str] = field(default=None)
     rule_network_tier: Optional[str] = field(default=None)
     rule_no_automate_dns_zone: Optional[bool] = field(default=None)
     rule_port_range: Optional[str] = field(default=None)
-    rule_ports: List[str] = field(factory=list)
+    rule_ports: Optional[List[str]] = field(default=None)
     rule_psc_connection_id: Optional[str] = field(default=None)
     rule_psc_connection_status: Optional[str] = field(default=None)
-    rule_service_directory_registrations: List[GcpForwardingRuleServiceDirectoryRegistration] = field(factory=list)
+    rule_service_directory_registrations: Optional[List[GcpForwardingRuleServiceDirectoryRegistration]] = field(
+        default=None
+    )
     rule_service_label: Optional[str] = field(default=None)
     rule_service_name: Optional[str] = field(default=None)
     rule_subnetwork: Optional[str] = field(default=None)
@@ -1247,7 +1251,7 @@ class GcpHelpLink:
 class GcpHelp:
     kind: ClassVar[str] = "gcp_help"
     mapping: ClassVar[Dict[str, Bender]] = {"links": S("links", default=[]) >> ForallBend(GcpHelpLink.mapping)}
-    links: List[GcpHelpLink] = field(factory=list)
+    links: Optional[List[GcpHelpLink]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -1281,7 +1285,7 @@ class GcpErrors:
         "message": S("message"),
     }
     code: Optional[str] = field(default=None)
-    error_details: List[GcpErrordetails] = field(factory=list)
+    error_details: Optional[List[GcpErrordetails]] = field(default=None)
     location: Optional[str] = field(default=None)
     message: Optional[str] = field(default=None)
 
@@ -1290,7 +1294,7 @@ class GcpErrors:
 class GcpError:
     kind: ClassVar[str] = "gcp_error"
     mapping: ClassVar[Dict[str, Bender]] = {"errors": S("errors", default=[]) >> ForallBend(GcpErrors.mapping)}
-    errors: List[GcpErrors] = field(factory=list)
+    errors: Optional[List[GcpErrors]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -1310,7 +1314,7 @@ class GcpWarnings:
         "message": S("message"),
     }
     code: Optional[str] = field(default=None)
-    data: List[GcpData] = field(factory=list)
+    data: Optional[List[GcpData]] = field(default=None)
     message: Optional[str] = field(default=None)
 
 
@@ -1368,7 +1372,7 @@ class GcpOperation(GcpResource):
     operation_target_id: Optional[str] = field(default=None)
     operation_target_link: Optional[str] = field(default=None)
     operation_user: Optional[str] = field(default=None)
-    operation_warnings: List[GcpWarnings] = field(factory=list)
+    operation_warnings: Optional[List[GcpWarnings]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -1426,7 +1430,9 @@ class GcpPublicDelegatedPrefix(GcpResource):
     prefix_ip_cidr_range: Optional[str] = field(default=None)
     prefix_is_live_migration: Optional[bool] = field(default=None)
     prefix_parent_prefix: Optional[str] = field(default=None)
-    prefix_public_delegated_sub_prefixs: List[GcpPublicDelegatedPrefixPublicDelegatedSubPrefix] = field(factory=list)
+    prefix_public_delegated_sub_prefixs: Optional[List[GcpPublicDelegatedPrefixPublicDelegatedSubPrefix]] = field(
+        default=None
+    )
     prefix_status: Optional[str] = field(default=None)
 
 
@@ -1703,9 +1709,9 @@ class GcpInitialStateConfig:
         "keks": S("keks", default=[]) >> ForallBend(GcpFileContentBuffer.mapping),
         "pk": S("pk", default={}) >> Bend(GcpFileContentBuffer.mapping),
     }
-    dbs: List[GcpFileContentBuffer] = field(factory=list)
-    dbxs: List[GcpFileContentBuffer] = field(factory=list)
-    keks: List[GcpFileContentBuffer] = field(factory=list)
+    dbs: Optional[List[GcpFileContentBuffer]] = field(default=None)
+    dbxs: Optional[List[GcpFileContentBuffer]] = field(default=None)
+    keks: Optional[List[GcpFileContentBuffer]] = field(default=None)
     pk: Optional[GcpFileContentBuffer] = field(default=None)
 
 
@@ -1763,10 +1769,10 @@ class GcpImage(GcpResource):
     image_archive_size_bytes: Optional[str] = field(default=None)
     image_disk_size_gb: Optional[str] = field(default=None)
     image_family: Optional[str] = field(default=None)
-    image_guest_os_features: List[str] = field(factory=list)
+    image_guest_os_features: Optional[List[str]] = field(default=None)
     image_image_encryption_key: Optional[GcpCustomerEncryptionKey] = field(default=None)
-    image_license_codes: List[str] = field(factory=list)
-    image_licenses: List[str] = field(factory=list)
+    image_license_codes: Optional[List[str]] = field(default=None)
+    image_licenses: Optional[List[str]] = field(default=None)
     image_raw_disk: Optional[GcpRawdisk] = field(default=None)
     image_satisfies_pzs: Optional[bool] = field(default=None)
     image_shielded_instance_initial_state: Optional[GcpInitialStateConfig] = field(default=None)
@@ -1781,7 +1787,7 @@ class GcpImage(GcpResource):
     image_source_snapshot_id: Optional[str] = field(default=None)
     image_source_type: Optional[str] = field(default=None)
     image_status: Optional[str] = field(default=None)
-    image_storage_locations: List[str] = field(factory=list)
+    image_storage_locations: Optional[List[str]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -1833,7 +1839,7 @@ class GcpDistributionPolicy:
         "zones": S("zones", default=[]) >> ForallBend(S("zone")),
     }
     target_shape: Optional[str] = field(default=None)
-    zones: List[str] = field(factory=list)
+    zones: Optional[List[str]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -1968,20 +1974,20 @@ class GcpInstanceGroupManager(GcpResource):
         "manager_update_policy": S("updatePolicy", default={}) >> Bend(GcpInstanceGroupManagerUpdatePolicy.mapping),
         "manager_versions": S("versions", default=[]) >> ForallBend(GcpInstanceGroupManagerVersion.mapping),
     }
-    manager_auto_healing_policies: List[GcpInstanceGroupManagerAutoHealingPolicy] = field(factory=list)
+    manager_auto_healing_policies: Optional[List[GcpInstanceGroupManagerAutoHealingPolicy]] = field(default=None)
     manager_base_instance_name: Optional[str] = field(default=None)
     manager_current_actions: Optional[GcpInstanceGroupManagerActionsSummary] = field(default=None)
     manager_distribution_policy: Optional[GcpDistributionPolicy] = field(default=None)
     manager_fingerprint: Optional[str] = field(default=None)
     manager_instance_group: Optional[str] = field(default=None)
     manager_instance_template: Optional[str] = field(default=None)
-    manager_named_ports: List[GcpNamedPort] = field(factory=list)
+    manager_named_ports: Optional[List[GcpNamedPort]] = field(default=None)
     manager_stateful_policy: Optional[GcpStatefulPolicy] = field(default=None)
     manager_status: Optional[GcpInstanceGroupManagerStatus] = field(default=None)
-    manager_target_pools: List[str] = field(factory=list)
+    manager_target_pools: Optional[List[str]] = field(default=None)
     manager_target_size: Optional[int] = field(default=None)
     manager_update_policy: Optional[GcpInstanceGroupManagerUpdatePolicy] = field(default=None)
-    manager_versions: List[GcpInstanceGroupManagerVersion] = field(factory=list)
+    manager_versions: Optional[List[GcpInstanceGroupManagerVersion]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -2013,7 +2019,7 @@ class GcpInstanceGroup(GcpResource):
         "group_subnetwork": S("subnetwork"),
     }
     group_fingerprint: Optional[str] = field(default=None)
-    group_named_ports: List[GcpNamedPort] = field(factory=list)
+    group_named_ports: Optional[List[GcpNamedPort]] = field(default=None)
     group_network: Optional[str] = field(default=None)
     group_size: Optional[int] = field(default=None)
     group_subnetwork: Optional[str] = field(default=None)
@@ -2062,11 +2068,11 @@ class GcpAttachedDiskInitializeParams:
     disk_size_gb: Optional[str] = field(default=None)
     disk_type: Optional[str] = field(default=None)
     labels: Optional[Dict[str, str]] = field(default=None)
-    licenses: List[str] = field(factory=list)
+    licenses: Optional[List[str]] = field(default=None)
     on_update_action: Optional[str] = field(default=None)
     provisioned_iops: Optional[str] = field(default=None)
     resource_manager_tags: Optional[Dict[str, str]] = field(default=None)
-    resource_policies: List[str] = field(factory=list)
+    resource_policies: Optional[List[str]] = field(default=None)
     source_image: Optional[str] = field(default=None)
     source_image_encryption_key: Optional[GcpCustomerEncryptionKey] = field(default=None)
     source_snapshot: Optional[str] = field(default=None)
@@ -2102,11 +2108,11 @@ class GcpAttachedDisk:
     disk_encryption_key: Optional[GcpCustomerEncryptionKey] = field(default=None)
     disk_size_gb: Optional[str] = field(default=None)
     force_attach: Optional[bool] = field(default=None)
-    guest_os_features: List[str] = field(factory=list)
+    guest_os_features: Optional[List[str]] = field(default=None)
     index: Optional[int] = field(default=None)
     initialize_params: Optional[GcpAttachedDiskInitializeParams] = field(default=None)
     interface: Optional[str] = field(default=None)
-    licenses: List[str] = field(factory=list)
+    licenses: Optional[List[str]] = field(default=None)
     mode: Optional[str] = field(default=None)
     shielded_instance_initial_state: Optional[GcpInitialStateConfig] = field(default=None)
     source: Optional[str] = field(default=None)
@@ -2140,7 +2146,7 @@ class GcpMetadata:
         "items": S("items", default=[]) >> ForallBend(GcpItems.mapping),
     }
     fingerprint: Optional[str] = field(default=None)
-    items: List[GcpItems] = field(factory=list)
+    items: Optional[List[GcpItems]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -2196,11 +2202,11 @@ class GcpNetworkInterface:
         "stack_type": S("stackType"),
         "subnetwork": S("subnetwork"),
     }
-    access_configs: List[GcpAccessConfig] = field(factory=list)
-    alias_ip_ranges: List[GcpAliasIpRange] = field(factory=list)
+    access_configs: Optional[List[GcpAccessConfig]] = field(default=None)
+    alias_ip_ranges: Optional[List[GcpAliasIpRange]] = field(default=None)
     fingerprint: Optional[str] = field(default=None)
     internal_ipv6_prefix_length: Optional[int] = field(default=None)
-    ipv6_access_configs: List[GcpAccessConfig] = field(factory=list)
+    ipv6_access_configs: Optional[List[GcpAccessConfig]] = field(default=None)
     ipv6_access_type: Optional[str] = field(default=None)
     ipv6_address: Optional[str] = field(default=None)
     name: Optional[str] = field(default=None)
@@ -2222,7 +2228,7 @@ class GcpReservationAffinity:
     }
     consume_reservation_type: Optional[str] = field(default=None)
     key: Optional[str] = field(default=None)
-    values: List[str] = field(factory=list)
+    values: Optional[List[str]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -2235,7 +2241,7 @@ class GcpSchedulingNodeAffinity:
     }
     key: Optional[str] = field(default=None)
     operator: Optional[str] = field(default=None)
-    values: List[str] = field(factory=list)
+    values: Optional[List[str]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -2255,7 +2261,7 @@ class GcpScheduling:
     instance_termination_action: Optional[str] = field(default=None)
     location_hint: Optional[str] = field(default=None)
     min_node_cpus: Optional[int] = field(default=None)
-    node_affinities: List[GcpSchedulingNodeAffinity] = field(factory=list)
+    node_affinities: Optional[List[GcpSchedulingNodeAffinity]] = field(default=None)
     on_host_maintenance: Optional[str] = field(default=None)
     preemptible: Optional[bool] = field(default=None)
     provisioning_model: Optional[str] = field(default=None)
@@ -2266,7 +2272,7 @@ class GcpServiceAccount:
     kind: ClassVar[str] = "gcp_service_account"
     mapping: ClassVar[Dict[str, Bender]] = {"email": S("email"), "scopes": S("scopes", default=[])}
     email: Optional[str] = field(default=None)
-    scopes: List[str] = field(factory=list)
+    scopes: Optional[List[str]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -2287,7 +2293,7 @@ class GcpTags:
     kind: ClassVar[str] = "gcp_tags"
     mapping: ClassVar[Dict[str, Bender]] = {"fingerprint": S("fingerprint"), "items": S("items", default=[])}
     fingerprint: Optional[str] = field(default=None)
-    items: List[str] = field(factory=list)
+    items: Optional[List[str]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -2321,21 +2327,21 @@ class GcpInstanceProperties:
     can_ip_forward: Optional[bool] = field(default=None)
     confidential_instance_config: Optional[bool] = field(default=None)
     description: Optional[str] = field(default=None)
-    disks: List[GcpAttachedDisk] = field(factory=list)
-    guest_accelerators: List[GcpAcceleratorConfig] = field(factory=list)
+    disks: Optional[List[GcpAttachedDisk]] = field(default=None)
+    guest_accelerators: Optional[List[GcpAcceleratorConfig]] = field(default=None)
     key_revocation_action_type: Optional[str] = field(default=None)
     labels: Optional[Dict[str, str]] = field(default=None)
     machine_type: Optional[str] = field(default=None)
     metadata: Optional[GcpMetadata] = field(default=None)
     min_cpu_platform: Optional[str] = field(default=None)
-    network_interfaces: List[GcpNetworkInterface] = field(factory=list)
+    network_interfaces: Optional[List[GcpNetworkInterface]] = field(default=None)
     network_performance_config: Optional[str] = field(default=None)
     private_ipv6_google_access: Optional[str] = field(default=None)
     reservation_affinity: Optional[GcpReservationAffinity] = field(default=None)
     resource_manager_tags: Optional[Dict[str, str]] = field(default=None)
-    resource_policies: List[str] = field(factory=list)
+    resource_policies: Optional[List[str]] = field(default=None)
     scheduling: Optional[GcpScheduling] = field(default=None)
-    service_accounts: List[GcpServiceAccount] = field(factory=list)
+    service_accounts: Optional[List[GcpServiceAccount]] = field(default=None)
     shielded_instance_config: Optional[GcpShieldedInstanceConfig] = field(default=None)
     tags: Optional[GcpTags] = field(default=None)
 
@@ -2361,7 +2367,7 @@ class GcpSourceInstanceParams:
     mapping: ClassVar[Dict[str, Bender]] = {
         "disk_configs": S("diskConfigs", default=[]) >> ForallBend(GcpDiskInstantiationConfig.mapping)
     }
-    disk_configs: List[GcpDiskInstantiationConfig] = field(factory=list)
+    disk_configs: Optional[List[GcpDiskInstantiationConfig]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -2469,10 +2475,10 @@ class GcpInstance(GcpResource):
     instance_confidential_instance_config: Optional[bool] = field(default=None)
     instance_cpu_platform: Optional[str] = field(default=None)
     instance_deletion_protection: Optional[bool] = field(default=None)
-    instance_disks: List[GcpAttachedDisk] = field(factory=list)
+    instance_disks: Optional[List[GcpAttachedDisk]] = field(default=None)
     instance_display_device: Optional[bool] = field(default=None)
     instance_fingerprint: Optional[str] = field(default=None)
-    instance_guest_accelerators: List[GcpAcceleratorConfig] = field(factory=list)
+    instance_guest_accelerators: Optional[List[GcpAcceleratorConfig]] = field(default=None)
     instance_hostname: Optional[str] = field(default=None)
     instance_key_revocation_action_type: Optional[str] = field(default=None)
     instance_last_start_timestamp: Optional[datetime] = field(default=None)
@@ -2481,16 +2487,16 @@ class GcpInstance(GcpResource):
     instance_machine_type: Optional[str] = field(default=None)
     instance_metadata: Optional[GcpMetadata] = field(default=None)
     instance_min_cpu_platform: Optional[str] = field(default=None)
-    instance_network_interfaces: List[GcpNetworkInterface] = field(factory=list)
+    instance_network_interfaces: Optional[List[GcpNetworkInterface]] = field(default=None)
     instance_network_performance_config: Optional[str] = field(default=None)
     instance_params: Optional[GcpInstanceParams] = field(default=None)
     instance_private_ipv6_google_access: Optional[str] = field(default=None)
     instance_reservation_affinity: Optional[GcpReservationAffinity] = field(default=None)
-    instance_resource_policies: List[str] = field(factory=list)
+    instance_resource_policies: Optional[List[str]] = field(default=None)
     instance_resource_status: Optional[str] = field(default=None)
     instance_satisfies_pzs: Optional[bool] = field(default=None)
     instance_scheduling: Optional[GcpScheduling] = field(default=None)
-    instance_service_accounts: List[GcpServiceAccount] = field(factory=list)
+    instance_service_accounts: Optional[List[GcpServiceAccount]] = field(default=None)
     instance_shielded_instance_config: Optional[GcpShieldedInstanceConfig] = field(default=None)
     instance_shielded_instance_integrity_policy: Optional[bool] = field(default=None)
     instance_source_machine_image: Optional[str] = field(default=None)
@@ -2568,8 +2574,8 @@ class GcpInterconnectAttachment(GcpResource):
     }
     attachment_admin_enabled: Optional[bool] = field(default=None)
     attachment_bandwidth: Optional[str] = field(default=None)
-    attachment_candidate_ipv6_subnets: List[str] = field(factory=list)
-    attachment_candidate_subnets: List[str] = field(factory=list)
+    attachment_candidate_ipv6_subnets: Optional[List[str]] = field(default=None)
+    attachment_candidate_subnets: Optional[List[str]] = field(default=None)
     attachment_cloud_router_ip_address: Optional[str] = field(default=None)
     attachment_cloud_router_ipv6_address: Optional[str] = field(default=None)
     attachment_cloud_router_ipv6_interface_id: Optional[str] = field(default=None)
@@ -2581,7 +2587,7 @@ class GcpInterconnectAttachment(GcpResource):
     attachment_encryption: Optional[str] = field(default=None)
     attachment_google_reference_id: Optional[str] = field(default=None)
     attachment_interconnect: Optional[str] = field(default=None)
-    attachment_ipsec_internal_addresses: List[str] = field(factory=list)
+    attachment_ipsec_internal_addresses: Optional[List[str]] = field(default=None)
     attachment_mtu: Optional[int] = field(default=None)
     attachment_operational_status: Optional[str] = field(default=None)
     attachment_pairing_key: Optional[str] = field(default=None)
@@ -2649,7 +2655,7 @@ class GcpInterconnectLocation(GcpResource):
     location_facility_provider: Optional[str] = field(default=None)
     location_facility_provider_facility_id: Optional[str] = field(default=None)
     location_peeringdb_facility_id: Optional[str] = field(default=None)
-    location_region_infos: List[GcpInterconnectLocationRegionInfo] = field(factory=list)
+    location_region_infos: Optional[List[GcpInterconnectLocationRegionInfo]] = field(default=None)
     location_status: Optional[str] = field(default=None)
     location_supports_pzs: Optional[bool] = field(default=None)
 
@@ -2680,7 +2686,7 @@ class GcpInterconnectOutageNotification:
         "start_time": S("startTime"),
         "state": S("state"),
     }
-    affected_circuits: List[str] = field(factory=list)
+    affected_circuits: Optional[List[str]] = field(default=None)
     description: Optional[str] = field(default=None)
     end_time: Optional[str] = field(default=None)
     issue_type: Optional[str] = field(default=None)
@@ -2732,12 +2738,12 @@ class GcpInterconnect(GcpResource):
         "interconnect_state": S("state"),
     }
     interconnect_admin_enabled: Optional[bool] = field(default=None)
-    interconnect_circuit_infos: List[GcpInterconnectCircuitInfo] = field(factory=list)
+    interconnect_circuit_infos: Optional[List[GcpInterconnectCircuitInfo]] = field(default=None)
     interconnect_customer_name: Optional[str] = field(default=None)
-    interconnect_expected_outages: List[GcpInterconnectOutageNotification] = field(factory=list)
+    interconnect_expected_outages: Optional[List[GcpInterconnectOutageNotification]] = field(default=None)
     interconnect_google_ip_address: Optional[str] = field(default=None)
     interconnect_google_reference_id: Optional[str] = field(default=None)
-    interconnect_interconnect_attachments: List[str] = field(factory=list)
+    interconnect_interconnect_attachments: Optional[List[str]] = field(default=None)
     interconnect_interconnect_type: Optional[str] = field(default=None)
     interconnect_link_type: Optional[str] = field(default=None)
     interconnect_location: Optional[str] = field(default=None)
@@ -2847,10 +2853,10 @@ class GcpSavedAttachedDisk:
     disk_encryption_key: Optional[GcpCustomerEncryptionKey] = field(default=None)
     disk_size_gb: Optional[str] = field(default=None)
     disk_type: Optional[str] = field(default=None)
-    guest_os_features: List[str] = field(factory=list)
+    guest_os_features: Optional[List[str]] = field(default=None)
     index: Optional[int] = field(default=None)
     interface: Optional[str] = field(default=None)
-    licenses: List[str] = field(factory=list)
+    licenses: Optional[List[str]] = field(default=None)
     mode: Optional[str] = field(default=None)
     source: Optional[str] = field(default=None)
     storage_bytes: Optional[str] = field(default=None)
@@ -2880,16 +2886,16 @@ class GcpSourceInstanceProperties:
     can_ip_forward: Optional[bool] = field(default=None)
     deletion_protection: Optional[bool] = field(default=None)
     description: Optional[str] = field(default=None)
-    disks: List[GcpSavedAttachedDisk] = field(factory=list)
-    guest_accelerators: List[GcpAcceleratorConfig] = field(factory=list)
+    disks: Optional[List[GcpSavedAttachedDisk]] = field(default=None)
+    guest_accelerators: Optional[List[GcpAcceleratorConfig]] = field(default=None)
     key_revocation_action_type: Optional[str] = field(default=None)
     labels: Optional[Dict[str, str]] = field(default=None)
     machine_type: Optional[str] = field(default=None)
     metadata: Optional[GcpMetadata] = field(default=None)
     min_cpu_platform: Optional[str] = field(default=None)
-    network_interfaces: List[GcpNetworkInterface] = field(factory=list)
+    network_interfaces: Optional[List[GcpNetworkInterface]] = field(default=None)
     scheduling: Optional[GcpScheduling] = field(default=None)
-    service_accounts: List[GcpServiceAccount] = field(factory=list)
+    service_accounts: Optional[List[GcpServiceAccount]] = field(default=None)
     tags: Optional[GcpTags] = field(default=None)
 
 
@@ -2934,12 +2940,12 @@ class GcpMachineImage(GcpResource):
     image_instance_properties: Optional[GcpInstanceProperties] = field(default=None)
     image_machine_image_encryption_key: Optional[GcpCustomerEncryptionKey] = field(default=None)
     image_satisfies_pzs: Optional[bool] = field(default=None)
-    image_saved_disks: List[GcpSavedDisk] = field(factory=list)
-    image_source_disk_encryption_keys: List[GcpSourceDiskEncryptionKey] = field(factory=list)
+    image_saved_disks: Optional[List[GcpSavedDisk]] = field(default=None)
+    image_source_disk_encryption_keys: Optional[List[GcpSourceDiskEncryptionKey]] = field(default=None)
     image_source_instance: Optional[str] = field(default=None)
     image_source_instance_properties: Optional[GcpSourceInstanceProperties] = field(default=None)
     image_status: Optional[str] = field(default=None)
-    image_storage_locations: List[str] = field(factory=list)
+    image_storage_locations: Optional[List[str]] = field(default=None)
     image_total_storage_bytes: Optional[str] = field(default=None)
 
 
@@ -2985,14 +2991,14 @@ class GcpMachineType(GcpResource):
         "type_memory_mb": S("memoryMb"),
         "type_scratch_disks": S("scratchDisks", default=[]) >> ForallBend(S("diskGb")),
     }
-    type_accelerators: List[GcpAccelerators] = field(factory=list)
+    type_accelerators: Optional[List[GcpAccelerators]] = field(default=None)
     type_guest_cpus: Optional[int] = field(default=None)
     type_image_space_gb: Optional[int] = field(default=None)
     type_is_shared_cpu: Optional[bool] = field(default=None)
     type_maximum_persistent_disks: Optional[int] = field(default=None)
     type_maximum_persistent_disks_size_gb: Optional[str] = field(default=None)
     type_memory_mb: Optional[int] = field(default=None)
-    type_scratch_disks: List[int] = field(factory=list)
+    type_scratch_disks: Optional[List[int]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -3100,10 +3106,10 @@ class GcpNetwork(GcpResource):
     network_internal_ipv6_range: Optional[str] = field(default=None)
     network_mtu: Optional[int] = field(default=None)
     network_network_firewall_policy_enforcement_order: Optional[str] = field(default=None)
-    network_peerings: List[GcpNetworkPeering] = field(factory=list)
+    network_peerings: Optional[List[GcpNetworkPeering]] = field(default=None)
     network_routing_config: Optional[str] = field(default=None)
     network_self_link_with_id: Optional[str] = field(default=None)
-    network_subnetworks: List[str] = field(factory=list)
+    network_subnetworks: Optional[List[str]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -3242,9 +3248,9 @@ class GcpNodeTemplate(GcpResource):
         "template_status": S("status"),
         "template_status_message": S("statusMessage"),
     }
-    template_accelerators: List[GcpAcceleratorConfig] = field(factory=list)
+    template_accelerators: Optional[List[GcpAcceleratorConfig]] = field(default=None)
     template_cpu_overcommit_type: Optional[str] = field(default=None)
-    template_disks: List[GcpLocalDisk] = field(factory=list)
+    template_disks: Optional[List[GcpLocalDisk]] = field(default=None)
     template_node_affinity_labels: Optional[Dict[str, str]] = field(default=None)
     template_node_type: Optional[str] = field(default=None)
     template_node_type_flexibility: Optional[GcpNodeTemplateNodeTypeFlexibility] = field(default=None)
@@ -3302,8 +3308,8 @@ class GcpPacketMirroringFilter:
         "cidr_ranges": S("cidrRanges", default=[]),
         "direction": S("direction"),
     }
-    ip_protocols: List[str] = field(factory=list)
-    cidr_ranges: List[str] = field(factory=list)
+    ip_protocols: Optional[List[str]] = field(default=None)
+    cidr_ranges: Optional[List[str]] = field(default=None)
     direction: Optional[str] = field(default=None)
 
 
@@ -3333,9 +3339,9 @@ class GcpPacketMirroringMirroredResourceInfo:
         >> ForallBend(GcpPacketMirroringMirroredResourceInfoSubnetInfo.mapping),
         "tags": S("tags", default=[]),
     }
-    instances: List[GcpPacketMirroringMirroredResourceInfoInstanceInfo] = field(factory=list)
-    subnetworks: List[GcpPacketMirroringMirroredResourceInfoSubnetInfo] = field(factory=list)
-    tags: List[str] = field(factory=list)
+    instances: Optional[List[GcpPacketMirroringMirroredResourceInfoInstanceInfo]] = field(default=None)
+    subnetworks: Optional[List[GcpPacketMirroringMirroredResourceInfoSubnetInfo]] = field(default=None)
+    tags: Optional[List[str]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -3434,7 +3440,9 @@ class GcpPublicAdvertisedPrefix(GcpResource):
     prefix_dns_verification_ip: Optional[str] = field(default=None)
     prefix_fingerprint: Optional[str] = field(default=None)
     prefix_ip_cidr_range: Optional[str] = field(default=None)
-    prefix_public_delegated_prefixs: List[GcpPublicAdvertisedPrefixPublicDelegatedPrefix] = field(factory=list)
+    prefix_public_delegated_prefixs: Optional[List[GcpPublicAdvertisedPrefixPublicDelegatedPrefix]] = field(
+        default=None
+    )
     prefix_shared_secret: Optional[str] = field(default=None)
     prefix_status: Optional[str] = field(default=None)
 
@@ -3471,8 +3479,10 @@ class GcpAllocationSpecificSKUAllocationReservedInstanceProperties:
         "machine_type": S("machineType"),
         "min_cpu_platform": S("minCpuPlatform"),
     }
-    guest_accelerators: List[GcpAcceleratorConfig] = field(factory=list)
-    local_ssds: List[GcpAllocationSpecificSKUAllocationAllocatedInstancePropertiesReservedDisk] = field(factory=list)
+    guest_accelerators: Optional[List[GcpAcceleratorConfig]] = field(default=None)
+    local_ssds: Optional[List[GcpAllocationSpecificSKUAllocationAllocatedInstancePropertiesReservedDisk]] = field(
+        default=None
+    )
     location_hint: Optional[str] = field(default=None)
     machine_type: Optional[str] = field(default=None)
     min_cpu_platform: Optional[str] = field(default=None)
@@ -3579,10 +3589,10 @@ class GcpCommitment(GcpResource):
     commitment_category: Optional[str] = field(default=None)
     commitment_end_timestamp: Optional[datetime] = field(default=None)
     commitment_license_resource: Optional[GcpLicenseResourceCommitment] = field(default=None)
-    commitment_merge_source_commitments: List[str] = field(factory=list)
+    commitment_merge_source_commitments: Optional[List[str]] = field(default=None)
     commitment_plan: Optional[str] = field(default=None)
-    commitment_reservations: List[GcpReservation] = field(factory=list)
-    commitment_resources: List[GcpResourceCommitment] = field(factory=list)
+    commitment_reservations: Optional[List[GcpReservation]] = field(default=None)
+    commitment_resources: Optional[List[GcpResourceCommitment]] = field(default=None)
     commitment_split_source_commitment: Optional[str] = field(default=None)
     commitment_start_timestamp: Optional[datetime] = field(default=None)
     commitment_status: Optional[str] = field(default=None)
@@ -3619,10 +3629,10 @@ class GcpHealthCheckService(GcpResource):
         "service_notification_endpoints": S("notificationEndpoints", default=[]),
     }
     service_fingerprint: Optional[str] = field(default=None)
-    service_health_checks: List[str] = field(factory=list)
+    service_health_checks: Optional[List[str]] = field(default=None)
     service_health_status_aggregation_policy: Optional[str] = field(default=None)
-    service_network_endpoint_groups: List[str] = field(factory=list)
-    service_notification_endpoints: List[str] = field(factory=list)
+    service_network_endpoint_groups: Optional[List[str]] = field(default=None)
+    service_notification_endpoints: Optional[List[str]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -3693,7 +3703,7 @@ class GcpSecurityPolicyAdaptiveProtectionConfig:
 class GcpSecurityPolicyAdvancedOptionsConfigJsonCustomConfig:
     kind: ClassVar[str] = "gcp_security_policy_advanced_options_config_json_custom_config"
     mapping: ClassVar[Dict[str, Bender]] = {"content_types": S("contentTypes", default=[])}
-    content_types: List[str] = field(factory=list)
+    content_types: Optional[List[str]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -3725,14 +3735,14 @@ class GcpSecurityPolicyRuleHttpHeaderAction:
         "request_headers_to_adds": S("requestHeadersToAdds", default=[])
         >> ForallBend(GcpSecurityPolicyRuleHttpHeaderActionHttpHeaderOption.mapping)
     }
-    request_headers_to_adds: List[GcpSecurityPolicyRuleHttpHeaderActionHttpHeaderOption] = field(factory=list)
+    request_headers_to_adds: Optional[List[GcpSecurityPolicyRuleHttpHeaderActionHttpHeaderOption]] = field(default=None)
 
 
 @define(eq=False, slots=False)
 class GcpSecurityPolicyRuleMatcherConfig:
     kind: ClassVar[str] = "gcp_security_policy_rule_matcher_config"
     mapping: ClassVar[Dict[str, Bender]] = {"src_ip_ranges": S("srcIpRanges", default=[])}
-    src_ip_ranges: List[str] = field(factory=list)
+    src_ip_ranges: Optional[List[str]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -3864,7 +3874,7 @@ class GcpSecurityPolicy(GcpResource):
     policy_ddos_protection_config: Optional[str] = field(default=None)
     policy_fingerprint: Optional[str] = field(default=None)
     policy_recaptcha_options_config: Optional[str] = field(default=None)
-    policy_rules: List[GcpSecurityPolicyRule] = field(factory=list)
+    policy_rules: Optional[List[GcpSecurityPolicyRule]] = field(default=None)
     policy_type: Optional[str] = field(default=None)
 
 
@@ -3877,7 +3887,7 @@ class GcpSslCertificateManagedSslCertificate:
         "status": S("status"),
     }
     domain_status: Optional[Dict[str, str]] = field(default=None)
-    domains: List[str] = field(factory=list)
+    domains: Optional[List[str]] = field(default=None)
     status: Optional[str] = field(default=None)
 
 
@@ -3925,7 +3935,7 @@ class GcpSslCertificate(GcpResource):
     certificate_managed: Optional[GcpSslCertificateManagedSslCertificate] = field(default=None)
     certificate_private_key: Optional[str] = field(default=None)
     certificate_self_managed: Optional[GcpSslCertificateSelfManagedSslCertificate] = field(default=None)
-    certificate_subject_alternative_names: List[str] = field(factory=list)
+    certificate_subject_alternative_names: Optional[List[str]] = field(default=None)
     certificate_type: Optional[str] = field(default=None)
 
 
@@ -3958,12 +3968,12 @@ class GcpSslPolicy(GcpResource):
         "policy_profile": S("profile"),
         "policy_warnings": S("warnings", default=[]) >> ForallBend(GcpWarnings.mapping),
     }
-    policy_custom_features: List[str] = field(factory=list)
-    policy_enabled_features: List[str] = field(factory=list)
+    policy_custom_features: Optional[List[str]] = field(default=None)
+    policy_enabled_features: Optional[List[str]] = field(default=None)
     policy_fingerprint: Optional[str] = field(default=None)
     policy_min_tls_version: Optional[str] = field(default=None)
     policy_profile: Optional[str] = field(default=None)
-    policy_warnings: List[GcpWarnings] = field(factory=list)
+    policy_warnings: Optional[List[GcpWarnings]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -4035,7 +4045,7 @@ class GcpTargetHttpsProxy(GcpResource):
     proxy_proxy_bind: Optional[bool] = field(default=None)
     proxy_quic_override: Optional[str] = field(default=None)
     proxy_server_tls_policy: Optional[str] = field(default=None)
-    proxy_ssl_certificates: List[str] = field(factory=list)
+    proxy_ssl_certificates: Optional[List[str]] = field(default=None)
     proxy_ssl_policy: Optional[str] = field(default=None)
     proxy_url_map: Optional[str] = field(default=None)
 
@@ -4085,12 +4095,12 @@ class GcpCorsPolicy:
         "max_age": S("maxAge"),
     }
     allow_credentials: Optional[bool] = field(default=None)
-    allow_headers: List[str] = field(factory=list)
-    allow_methods: List[str] = field(factory=list)
-    allow_origin_regexes: List[str] = field(factory=list)
-    allow_origins: List[str] = field(factory=list)
+    allow_headers: Optional[List[str]] = field(default=None)
+    allow_methods: Optional[List[str]] = field(default=None)
+    allow_origin_regexes: Optional[List[str]] = field(default=None)
+    allow_origins: Optional[List[str]] = field(default=None)
     disabled: Optional[bool] = field(default=None)
-    expose_headers: List[str] = field(factory=list)
+    expose_headers: Optional[List[str]] = field(default=None)
     max_age: Optional[int] = field(default=None)
 
 
@@ -4134,7 +4144,7 @@ class GcpHttpRetryPolicy:
     }
     num_retries: Optional[int] = field(default=None)
     per_try_timeout: Optional[GcpDuration] = field(default=None)
-    retry_conditions: List[str] = field(factory=list)
+    retry_conditions: Optional[List[str]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -4170,10 +4180,10 @@ class GcpHttpHeaderAction:
         "response_headers_to_add": S("responseHeadersToAdd", default=[]) >> ForallBend(GcpHttpHeaderOption.mapping),
         "response_headers_to_remove": S("responseHeadersToRemove", default=[]),
     }
-    request_headers_to_add: List[GcpHttpHeaderOption] = field(factory=list)
-    request_headers_to_remove: List[str] = field(factory=list)
-    response_headers_to_add: List[GcpHttpHeaderOption] = field(factory=list)
-    response_headers_to_remove: List[str] = field(factory=list)
+    request_headers_to_add: Optional[List[GcpHttpHeaderOption]] = field(default=None)
+    request_headers_to_remove: Optional[List[str]] = field(default=None)
+    response_headers_to_add: Optional[List[GcpHttpHeaderOption]] = field(default=None)
+    response_headers_to_remove: Optional[List[str]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -4210,7 +4220,7 @@ class GcpHttpRouteAction:
     retry_policy: Optional[GcpHttpRetryPolicy] = field(default=None)
     timeout: Optional[GcpDuration] = field(default=None)
     url_rewrite: Optional[GcpUrlRewrite] = field(default=None)
-    weighted_backend_services: List[GcpWeightedBackendService] = field(factory=list)
+    weighted_backend_services: Optional[List[GcpWeightedBackendService]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -4241,7 +4251,7 @@ class GcpHostRule:
         "path_matcher": S("pathMatcher"),
     }
     description: Optional[str] = field(default=None)
-    hosts: List[str] = field(factory=list)
+    hosts: Optional[List[str]] = field(default=None)
     path_matcher: Optional[str] = field(default=None)
 
 
@@ -4254,7 +4264,7 @@ class GcpPathRule:
         "service": S("service"),
         "url_redirect": S("urlRedirect", default={}) >> Bend(GcpHttpRedirectAction.mapping),
     }
-    paths: List[str] = field(factory=list)
+    paths: Optional[List[str]] = field(default=None)
     route_action: Optional[GcpHttpRouteAction] = field(default=None)
     service: Optional[str] = field(default=None)
     url_redirect: Optional[GcpHttpRedirectAction] = field(default=None)
@@ -4320,11 +4330,11 @@ class GcpHttpRouteRuleMatch:
         "regex_match": S("regexMatch"),
     }
     full_path_match: Optional[str] = field(default=None)
-    header_matches: List[GcpHttpHeaderMatch] = field(factory=list)
+    header_matches: Optional[List[GcpHttpHeaderMatch]] = field(default=None)
     ignore_case: Optional[bool] = field(default=None)
-    metadata_filters: List[GcpMetadataFilter] = field(factory=list)
+    metadata_filters: Optional[List[GcpMetadataFilter]] = field(default=None)
     prefix_match: Optional[str] = field(default=None)
-    query_parameter_matches: List[GcpHttpQueryParameterMatch] = field(factory=list)
+    query_parameter_matches: Optional[List[GcpHttpQueryParameterMatch]] = field(default=None)
     regex_match: Optional[str] = field(default=None)
 
 
@@ -4342,7 +4352,7 @@ class GcpHttpRouteRule:
     }
     description: Optional[str] = field(default=None)
     header_action: Optional[GcpHttpHeaderAction] = field(default=None)
-    match_rules: List[GcpHttpRouteRuleMatch] = field(factory=list)
+    match_rules: Optional[List[GcpHttpRouteRuleMatch]] = field(default=None)
     priority: Optional[int] = field(default=None)
     route_action: Optional[GcpHttpRouteAction] = field(default=None)
     service: Optional[str] = field(default=None)
@@ -4368,8 +4378,8 @@ class GcpPathMatcher:
     description: Optional[str] = field(default=None)
     header_action: Optional[GcpHttpHeaderAction] = field(default=None)
     name: Optional[str] = field(default=None)
-    path_rules: List[GcpPathRule] = field(factory=list)
-    route_rules: List[GcpHttpRouteRule] = field(factory=list)
+    path_rules: Optional[List[GcpPathRule]] = field(default=None)
+    route_rules: Optional[List[GcpHttpRouteRule]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -4395,7 +4405,7 @@ class GcpUrlMapTest:
     description: Optional[str] = field(default=None)
     expected_output_url: Optional[str] = field(default=None)
     expected_redirect_response_code: Optional[int] = field(default=None)
-    headers: List[GcpUrlMapTestHeader] = field(factory=list)
+    headers: Optional[List[GcpUrlMapTestHeader]] = field(default=None)
     host: Optional[str] = field(default=None)
     path: Optional[str] = field(default=None)
     service: Optional[str] = field(default=None)
@@ -4437,9 +4447,9 @@ class GcpUrlMap(GcpResource):
     map_default_url_redirect: Optional[GcpHttpRedirectAction] = field(default=None)
     map_fingerprint: Optional[str] = field(default=None)
     map_header_action: Optional[GcpHttpHeaderAction] = field(default=None)
-    map_host_rules: List[GcpHostRule] = field(factory=list)
-    map_path_matchers: List[GcpPathMatcher] = field(factory=list)
-    map_tests: List[GcpUrlMapTest] = field(factory=list)
+    map_host_rules: Optional[List[GcpHostRule]] = field(default=None)
+    map_path_matchers: Optional[List[GcpPathMatcher]] = field(default=None)
+    map_tests: Optional[List[GcpUrlMapTest]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -4547,7 +4557,7 @@ class GcpResourcePolicyWeeklyCycle:
     mapping: ClassVar[Dict[str, Bender]] = {
         "day_of_weeks": S("dayOfWeeks", default=[]) >> ForallBend(GcpResourcePolicyWeeklyCycleDayOfWeek.mapping)
     }
-    day_of_weeks: List[GcpResourcePolicyWeeklyCycleDayOfWeek] = field(factory=list)
+    day_of_weeks: Optional[List[GcpResourcePolicyWeeklyCycleDayOfWeek]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -4575,7 +4585,7 @@ class GcpResourcePolicySnapshotSchedulePolicySnapshotProperties:
     chain_name: Optional[str] = field(default=None)
     guest_flush: Optional[bool] = field(default=None)
     labels: Optional[Dict[str, str]] = field(default=None)
-    storage_locations: List[str] = field(factory=list)
+    storage_locations: Optional[List[str]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -4650,8 +4660,8 @@ class GcpRouterBgp:
         "keepalive_interval": S("keepaliveInterval"),
     }
     advertise_mode: Optional[str] = field(default=None)
-    advertised_groups: List[str] = field(factory=list)
-    advertised_ip_ranges: List[GcpRouterAdvertisedIpRange] = field(factory=list)
+    advertised_groups: Optional[List[str]] = field(default=None)
+    advertised_ip_ranges: Optional[List[GcpRouterAdvertisedIpRange]] = field(default=None)
     asn: Optional[int] = field(default=None)
     keepalive_interval: Optional[int] = field(default=None)
 
@@ -4694,8 +4704,8 @@ class GcpRouterBgpPeer:
         "router_appliance_instance": S("routerApplianceInstance"),
     }
     advertise_mode: Optional[str] = field(default=None)
-    advertised_groups: List[str] = field(factory=list)
-    advertised_ip_ranges: List[GcpRouterAdvertisedIpRange] = field(factory=list)
+    advertised_groups: Optional[List[str]] = field(default=None)
+    advertised_ip_ranges: Optional[List[GcpRouterAdvertisedIpRange]] = field(default=None)
     advertised_route_priority: Optional[int] = field(default=None)
     bfd: Optional[GcpRouterBgpPeerBfd] = field(default=None)
     enable: Optional[str] = field(default=None)
@@ -4758,8 +4768,8 @@ class GcpRouterNatRuleAction:
         "source_nat_active_ips": S("sourceNatActiveIps", default=[]),
         "source_nat_drain_ips": S("sourceNatDrainIps", default=[]),
     }
-    source_nat_active_ips: List[str] = field(factory=list)
-    source_nat_drain_ips: List[str] = field(factory=list)
+    source_nat_active_ips: Optional[List[str]] = field(default=None)
+    source_nat_drain_ips: Optional[List[str]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -4786,8 +4796,8 @@ class GcpRouterNatSubnetworkToNat:
         "source_ip_ranges_to_nat": S("sourceIpRangesToNat", default=[]),
     }
     name: Optional[str] = field(default=None)
-    secondary_ip_range_names: List[str] = field(factory=list)
-    source_ip_ranges_to_nat: List[str] = field(factory=list)
+    secondary_ip_range_names: Optional[List[str]] = field(default=None)
+    source_ip_ranges_to_nat: Optional[List[str]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -4813,20 +4823,20 @@ class GcpRouterNat:
         "tcp_transitory_idle_timeout_sec": S("tcpTransitoryIdleTimeoutSec"),
         "udp_idle_timeout_sec": S("udpIdleTimeoutSec"),
     }
-    drain_nat_ips: List[str] = field(factory=list)
+    drain_nat_ips: Optional[List[str]] = field(default=None)
     enable_dynamic_port_allocation: Optional[bool] = field(default=None)
     enable_endpoint_independent_mapping: Optional[bool] = field(default=None)
-    endpoint_types: List[str] = field(factory=list)
+    endpoint_types: Optional[List[str]] = field(default=None)
     icmp_idle_timeout_sec: Optional[int] = field(default=None)
     log_config: Optional[GcpRouterNatLogConfig] = field(default=None)
     max_ports_per_vm: Optional[int] = field(default=None)
     min_ports_per_vm: Optional[int] = field(default=None)
     name: Optional[str] = field(default=None)
     nat_ip_allocate_option: Optional[str] = field(default=None)
-    nat_ips: List[str] = field(factory=list)
-    rules: List[GcpRouterNatRule] = field(factory=list)
+    nat_ips: Optional[List[str]] = field(default=None)
+    rules: Optional[List[GcpRouterNatRule]] = field(default=None)
     source_subnetwork_ip_ranges_to_nat: Optional[str] = field(default=None)
-    subnetworks: List[GcpRouterNatSubnetworkToNat] = field(factory=list)
+    subnetworks: Optional[List[GcpRouterNatSubnetworkToNat]] = field(default=None)
     tcp_established_idle_timeout_sec: Optional[int] = field(default=None)
     tcp_time_wait_timeout_sec: Optional[int] = field(default=None)
     tcp_transitory_idle_timeout_sec: Optional[int] = field(default=None)
@@ -4865,11 +4875,11 @@ class GcpRouter(GcpResource):
         "router_network": S("network"),
     }
     router_bgp: Optional[GcpRouterBgp] = field(default=None)
-    router_bgp_peers: List[GcpRouterBgpPeer] = field(factory=list)
+    router_bgp_peers: Optional[List[GcpRouterBgpPeer]] = field(default=None)
     router_encrypted_interconnect_router: Optional[bool] = field(default=None)
-    router_interfaces: List[GcpRouterInterface] = field(factory=list)
-    router_md5_authentication_keys: List[GcpRouterMd5AuthenticationKey] = field(factory=list)
-    router_nats: List[GcpRouterNat] = field(factory=list)
+    router_interfaces: Optional[List[GcpRouterInterface]] = field(default=None)
+    router_md5_authentication_keys: Optional[List[GcpRouterMd5AuthenticationKey]] = field(default=None)
+    router_nats: Optional[List[GcpRouterNat]] = field(default=None)
     router_network: Optional[str] = field(default=None)
 
 
@@ -4880,7 +4890,7 @@ class GcpRouteAsPath:
         "as_lists": S("asLists", default=[]),
         "path_segment_type": S("pathSegmentType"),
     }
-    as_lists: List[int] = field(factory=list)
+    as_lists: Optional[List[int]] = field(default=None)
     path_segment_type: Optional[str] = field(default=None)
 
 
@@ -4922,7 +4932,7 @@ class GcpRoute(GcpResource):
         "route_tags": S("tags", default=[]),
         "route_warnings": S("warnings", default=[]) >> ForallBend(GcpWarnings.mapping),
     }
-    route_as_paths: List[GcpRouteAsPath] = field(factory=list)
+    route_as_paths: Optional[List[GcpRouteAsPath]] = field(default=None)
     route_dest_range: Optional[str] = field(default=None)
     route_network: Optional[str] = field(default=None)
     route_next_hop_gateway: Optional[str] = field(default=None)
@@ -4935,8 +4945,8 @@ class GcpRoute(GcpResource):
     route_priority: Optional[int] = field(default=None)
     route_route_status: Optional[str] = field(default=None)
     route_route_type: Optional[str] = field(default=None)
-    route_tags: List[str] = field(factory=list)
-    route_warnings: List[GcpWarnings] = field(factory=list)
+    route_tags: Optional[List[str]] = field(default=None)
+    route_warnings: Optional[List[GcpWarnings]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -5007,14 +5017,14 @@ class GcpServiceAttachment(GcpResource):
         "attachment_psc_service_attachment_id": S("pscServiceAttachmentId", default={}) >> Bend(GcpUint128.mapping),
         "attachment_target_service": S("targetService"),
     }
-    attachment_connected_endpoints: List[GcpServiceAttachmentConnectedEndpoint] = field(factory=list)
+    attachment_connected_endpoints: Optional[List[GcpServiceAttachmentConnectedEndpoint]] = field(default=None)
     attachment_connection_preference: Optional[str] = field(default=None)
-    attachment_consumer_accept_lists: List[GcpServiceAttachmentConsumerProjectLimit] = field(factory=list)
-    attachment_consumer_reject_lists: List[str] = field(factory=list)
-    attachment_domain_names: List[str] = field(factory=list)
+    attachment_consumer_accept_lists: Optional[List[GcpServiceAttachmentConsumerProjectLimit]] = field(default=None)
+    attachment_consumer_reject_lists: Optional[List[str]] = field(default=None)
+    attachment_domain_names: Optional[List[str]] = field(default=None)
     attachment_enable_proxy_protocol: Optional[bool] = field(default=None)
     attachment_fingerprint: Optional[str] = field(default=None)
-    attachment_nat_subnets: List[str] = field(factory=list)
+    attachment_nat_subnets: Optional[List[str]] = field(default=None)
     attachment_producer_forwarding_rule: Optional[str] = field(default=None)
     attachment_psc_service_attachment_id: Optional[GcpUint128] = field(default=None)
     attachment_target_service: Optional[str] = field(default=None)
@@ -5072,8 +5082,8 @@ class GcpSnapshot(GcpResource):
     snapshot_creation_size_bytes: Optional[str] = field(default=None)
     snapshot_disk_size_gb: Optional[str] = field(default=None)
     snapshot_download_bytes: Optional[str] = field(default=None)
-    snapshot_license_codes: List[str] = field(factory=list)
-    snapshot_licenses: List[str] = field(factory=list)
+    snapshot_license_codes: Optional[List[str]] = field(default=None)
+    snapshot_licenses: Optional[List[str]] = field(default=None)
     snapshot_location_hint: Optional[str] = field(default=None)
     snapshot_satisfies_pzs: Optional[bool] = field(default=None)
     snapshot_snapshot_encryption_key: Optional[GcpCustomerEncryptionKey] = field(default=None)
@@ -5086,7 +5096,7 @@ class GcpSnapshot(GcpResource):
     snapshot_status: Optional[str] = field(default=None)
     snapshot_storage_bytes: Optional[str] = field(default=None)
     snapshot_storage_bytes_status: Optional[str] = field(default=None)
-    snapshot_storage_locations: List[str] = field(factory=list)
+    snapshot_storage_locations: Optional[List[str]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -5105,7 +5115,7 @@ class GcpSubnetworkLogConfig:
     filter_expr: Optional[str] = field(default=None)
     flow_sampling: Optional[float] = field(default=None)
     metadata: Optional[str] = field(default=None)
-    metadata_fields: List[str] = field(factory=list)
+    metadata_fields: Optional[List[str]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -5171,7 +5181,7 @@ class GcpSubnetwork(GcpResource):
     subnetwork_private_ipv6_google_access: Optional[str] = field(default=None)
     subnetwork_purpose: Optional[str] = field(default=None)
     subnetwork_role: Optional[str] = field(default=None)
-    subnetwork_secondary_ip_ranges: List[GcpSubnetworkSecondaryRange] = field(factory=list)
+    subnetwork_secondary_ip_ranges: Optional[List[GcpSubnetworkSecondaryRange]] = field(default=None)
     subnetwork_stack_type: Optional[str] = field(default=None)
     subnetwork_state: Optional[str] = field(default=None)
 
@@ -5270,8 +5280,8 @@ class GcpTargetPool(GcpResource):
     }
     pool_backup_pool: Optional[str] = field(default=None)
     pool_failover_ratio: Optional[float] = field(default=None)
-    pool_health_checks: List[str] = field(factory=list)
-    pool_instances: List[str] = field(factory=list)
+    pool_health_checks: Optional[List[str]] = field(default=None)
+    pool_instances: Optional[List[str]] = field(default=None)
     pool_session_affinity: Optional[str] = field(default=None)
 
 
@@ -5306,7 +5316,7 @@ class GcpTargetSslProxy(GcpResource):
     proxy_certificate_map: Optional[str] = field(default=None)
     proxy_proxy_header: Optional[str] = field(default=None)
     proxy_service: Optional[str] = field(default=None)
-    proxy_ssl_certificates: List[str] = field(factory=list)
+    proxy_ssl_certificates: Optional[List[str]] = field(default=None)
     proxy_ssl_policy: Optional[str] = field(default=None)
 
 
@@ -5337,10 +5347,10 @@ class GcpTargetVpnGateway(GcpResource):
         "gateway_status": S("status"),
         "gateway_tunnels": S("tunnels", default=[]),
     }
-    gateway_forwarding_rules: List[str] = field(factory=list)
+    gateway_forwarding_rules: Optional[List[str]] = field(default=None)
     gateway_network: Optional[str] = field(default=None)
     gateway_status: Optional[str] = field(default=None)
-    gateway_tunnels: List[str] = field(factory=list)
+    gateway_tunnels: Optional[List[str]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -5385,7 +5395,7 @@ class GcpVpnGateway(GcpResource):
     }
     gateway_network: Optional[str] = field(default=None)
     gateway_stack_type: Optional[str] = field(default=None)
-    gateway_vpn_interfaces: List[GcpVpnGatewayVpnGatewayInterface] = field(factory=list)
+    gateway_vpn_interfaces: Optional[List[GcpVpnGatewayVpnGatewayInterface]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -5428,12 +5438,12 @@ class GcpVpnTunnel(GcpResource):
     }
     tunnel_detailed_status: Optional[str] = field(default=None)
     tunnel_ike_version: Optional[int] = field(default=None)
-    tunnel_local_traffic_selector: List[str] = field(factory=list)
+    tunnel_local_traffic_selector: Optional[List[str]] = field(default=None)
     tunnel_peer_external_gateway: Optional[str] = field(default=None)
     tunnel_peer_external_gateway_interface: Optional[int] = field(default=None)
     tunnel_peer_gcp_gateway: Optional[str] = field(default=None)
     tunnel_peer_ip: Optional[str] = field(default=None)
-    tunnel_remote_traffic_selector: List[str] = field(factory=list)
+    tunnel_remote_traffic_selector: Optional[List[str]] = field(default=None)
     tunnel_router: Optional[str] = field(default=None)
     tunnel_shared_secret: Optional[str] = field(default=None)
     tunnel_shared_secret_hash: Optional[str] = field(default=None)

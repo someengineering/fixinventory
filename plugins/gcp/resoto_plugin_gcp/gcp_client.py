@@ -12,6 +12,10 @@ from resotolib.types import Json
 InternalZoneProp = "_zone"
 RegionProp = "region"
 
+# Store the discovery function as separate variable.
+# This is used in tests to change the builder function.
+_discovery_function = discovery.build
+
 
 @define(eq=False, slots=False)
 class GcpApiSpec:
@@ -54,7 +58,9 @@ class GcpClient:
 
     def list(self, api_spec: GcpApiSpec, **kwargs) -> List[Json]:
         # todo add caching
-        client = discovery.build(api_spec.service, api_spec.version, credentials=self.credentials, cache=MemoryCache())
+        client = _discovery_function(
+            api_spec.service, api_spec.version, credentials=self.credentials, cache=MemoryCache()
+        )
         executor = client
         for accessor in api_spec.accessors:
             executor = getattr(executor, accessor)()

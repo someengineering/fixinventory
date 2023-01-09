@@ -83,7 +83,7 @@ class GraphBuilder:
         else:
             # TODO: check this list!
             # log.error(f"Neither zone nor region is set for node {source}, add to project.")
-            pass
+            self.add_edge(node, node=self.project)
         self.graph.add_node(node, source=source or {})
         return node
 
@@ -310,6 +310,6 @@ class GcpZone(GcpResource, BaseZone):
     }
     description: Optional[str] = field(default=None)
     status: Optional[str] = field(default=None)
-    zone_available_cpu_platforms: List[str] = field(factory=list)
+    zone_available_cpu_platforms: Optional[List[str]] = field(default=None)
     zone_deprecated: Optional[GcpDeprecationStatus] = field(default=None)
     zone_supports_pzs: Optional[bool] = field(default=None)
