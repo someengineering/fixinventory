@@ -1,3 +1,6 @@
+from types import SimpleNamespace
+from typing import Any, cast
+from resoto_plugin_aws.aws_client import AwsClient
 from test.resources import round_trip_for
 from resoto_plugin_aws.resource.sagemaker import (
     AwsSagemakerNotebook,
@@ -24,6 +27,26 @@ from resoto_plugin_aws.resource.sagemaker import (
     AwsSagemakerTrainingJob,
     AwsSagemakerTransformJob,
 )
+
+
+def test_tagging() -> None:
+    notebook, builder = round_trip_for(AwsSagemakerNotebook)
+
+    def validate_update_args(**kwargs: Any) -> None:
+        assert kwargs["action"] == "add-tags"
+        assert kwargs["ResourceArn"] == notebook.arn
+        assert kwargs["Tags"] == [{"Key": "foo", "Value": "bar"}]
+
+    def validate_delete_args(**kwargs: Any) -> None:
+        assert kwargs["action"] == "delete-tags"
+        assert kwargs["ResourceArn"] == notebook.arn
+        assert kwargs["TagKeys"] == ["foo"]
+
+    client = cast(AwsClient, SimpleNamespace(call=validate_update_args))
+    notebook.update_resource_tag(client, "foo", "bar")
+
+    client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
+    notebook.delete_resource_tag(client, "foo")
 
 
 def test_notebooks() -> None:

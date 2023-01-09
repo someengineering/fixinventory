@@ -1,6 +1,7 @@
 from datetime import datetime
 from attrs import define, field
 from typing import ClassVar, Dict, List, Optional, Type
+from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
 from resoto_plugin_aws.utils import ToDict
 from resotolib.json_bender import S, Bend, Bender, ForallBend, bend
@@ -8,6 +9,30 @@ from resotolib.types import Json
 
 
 class SagemakerTaggable:
+    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
+        if isinstance(self, AwsResource):
+            client.call(
+                "sagemaker",
+                action="add-tags",
+                result_name=None,
+                ResourceArn=self.arn,
+                Tags=[{"Key": key, "Value": value}],
+            )
+            return True
+        return False
+
+    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
+        if isinstance(self, AwsResource):
+            client.call(
+                "sagemaker",
+                action="delete-tags",
+                result_name=None,
+                ResourceArn=self.arn,
+                TagKeys=[key],
+            )
+            return True
+        return False
+
     @staticmethod
     def add_tags(resource: AwsResource, builder: GraphBuilder) -> None:
         tags = builder.client.list(
