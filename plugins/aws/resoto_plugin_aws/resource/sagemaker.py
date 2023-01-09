@@ -12,7 +12,7 @@ class SagemakerTaggable:
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         if isinstance(self, AwsResource):
             client.call(
-                "sagemaker",
+                aws_service="sagemaker",
                 action="add-tags",
                 result_name=None,
                 ResourceArn=self.arn,
@@ -24,7 +24,7 @@ class SagemakerTaggable:
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
         if isinstance(self, AwsResource):
             client.call(
-                "sagemaker",
+                aws_service="sagemaker",
                 action="delete-tags",
                 result_name=None,
                 ResourceArn=self.arn,
@@ -53,7 +53,7 @@ class SagemakerTaggable:
 
 
 @define(eq=False, slots=False)
-class AwsSagemakerNotebook(SagemakerTaggable, AwsResource):  # TODO tags
+class AwsSagemakerNotebook(SagemakerTaggable, AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_notebook"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-notebook-instances", "NotebookInstances")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -101,6 +101,14 @@ class AwsSagemakerNotebook(SagemakerTaggable, AwsResource):  # TODO tags
     notebook_root_access: Optional[str] = field(default=None)
     notebook_platform_identifier: Optional[str] = field(default=None)
     notebook_instance_metadata_service_configuration: Optional[str] = field(default=None)
+
+    @classmethod
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
+        return [
+            cls.api_spec,
+            AwsApiSpec("sagemaker", "describe-notebook-instance"),
+            AwsApiSpec("sagemaker", "list-tags"),
+        ]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
@@ -581,6 +589,10 @@ class AwsSagemakerAlgorithm(AwsResource):
     algorithm_certify_for_marketplace: Optional[bool] = field(default=None)
 
     @classmethod
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
+        return [cls.api_spec, AwsApiSpec("sagemaker", "describe-algorithm")]
+
+    @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for algorithm in json:
             algorithm_description = builder.client.get(
@@ -662,6 +674,10 @@ class AwsSagemakerModel(SagemakerTaggable, AwsResource):
     model_enable_network_isolation: Optional[bool] = field(default=None)
 
     @classmethod
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
+        return [cls.api_spec, AwsApiSpec("sagemaker", "describe-model"), AwsApiSpec("sagemaker", "list-tags")]
+
+    @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for model in json:
             model_description = builder.client.get("sagemaker", "describe-model", None, ModelName=model["ModelName"])
@@ -713,6 +729,10 @@ class AwsSagemakerApp(AwsResource):
     app_failure_reason: Optional[str] = field(default=None)
     app_resource_spec: Optional[AwsSagemakerResourceSpec] = field(default=None)
     app_space_name: Optional[str] = field(default=None)
+
+    @classmethod
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
+        return [cls.api_spec, AwsApiSpec("sagemaker", "describe-app")]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
@@ -948,6 +968,10 @@ class AwsSagemakerDomain(AwsResource):
     domain_default_space_settings: Optional[AwsSagemakerDefaultSpaceSettings] = field(default=None)
 
     @classmethod
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
+        return [cls.api_spec, AwsApiSpec("sagemaker", "describe-domain")]
+
+    @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for domain in json:
             domain_description = builder.client.get(
@@ -1045,6 +1069,10 @@ class AwsSagemakerTrial(AwsResource):
     trial_created_by: Optional[AwsSagemakerUserContext] = field(default=None)
     trial_last_modified_by: Optional[AwsSagemakerUserContext] = field(default=None)
     trial_metadata_properties: Optional[AwsSagemakerMetadataProperties] = field(default=None)
+
+    @classmethod
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
+        return [cls.api_spec, AwsApiSpec("sagemaker", "describe-trial")]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
@@ -1423,6 +1451,10 @@ class AwsSagemakerEndpoint(SagemakerTaggable, AwsResource):
     endpoint_explainer_config: Optional[AwsSagemakerExplainerConfig] = field(default=None)
 
     @classmethod
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
+        return [cls.api_spec, AwsApiSpec("sagemaker", "describe-endpoints"), AwsApiSpec("sagemaker", "list-tags")]
+
+    @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for endpoint in json:
             endpoint_description = builder.client.get(
@@ -1455,6 +1487,10 @@ class AwsSagemakerImage(AwsResource):
     image_failure_reason: Optional[str] = field(default=None)
     image_image_status: Optional[str] = field(default=None)
     image_role_arn: Optional[str] = field(default=None)
+
+    @classmethod
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
+        return [cls.api_spec, AwsApiSpec("sagemaker", "describe-image")]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
@@ -1511,6 +1547,10 @@ class AwsSagemakerArtifact(AwsResource):
     artifact_lineage_group_arn: Optional[str] = field(default=None)
 
     @classmethod
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
+        return [cls.api_spec, AwsApiSpec("sagemaker", "describe-artifact")]
+
+    @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for artifact in json:
             artifact_description = builder.client.get(
@@ -1565,6 +1605,10 @@ class AwsSagemakerPipeline(AwsResource):
     pipeline_created_by: Optional[AwsSagemakerUserContext] = field(default=None)
     pipeline_last_modified_by: Optional[AwsSagemakerUserContext] = field(default=None)
     pipeline_parallelism_configuration: Optional[int] = field(default=None)
+
+    @classmethod
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
+        return [cls.api_spec, AwsApiSpec("sagemaker", "describe-pipeline")]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
@@ -1632,6 +1676,10 @@ class AwsSagemakerWorkteam(SagemakerTaggable, AwsResource):
     workteam_description: Optional[str] = field(default=None)
     workteam_sub_domain: Optional[str] = field(default=None)
     workteam_notification_configuration: Optional[str] = field(default=None)
+
+    @classmethod
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
+        return [cls.api_spec, AwsApiSpec("sagemaker", "list-tags")]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
@@ -1914,6 +1962,10 @@ class AwsSagemakerAutoMLJob(AwsResource):
     auto_ml_job_model_deploy_result: Optional[str] = field(default=None)
 
     @classmethod
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
+        return [cls.api_spec, AwsApiSpec("sagemaker", "describe-describe-auto-ml-job")]
+
+    @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for job in json:
             job_description = builder.client.get(
@@ -2015,6 +2067,10 @@ class AwsSagemakerCompilationJob(AwsResource):
     compilation_job_vpc_config: Optional[AwsSagemakerNeoVpcConfig] = field(default=None)
 
     @classmethod
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
+        return [cls.api_spec, AwsApiSpec("sagemaker", "describe-compilation-job")]
+
+    @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for job in json:
             job_description = builder.client.get(
@@ -2089,6 +2145,10 @@ class AwsSagemakerEdgePackagingJob(AwsResource):
     edge_packaging_job_model_artifact: Optional[str] = field(default=None)
     edge_packaging_job_model_signature: Optional[str] = field(default=None)
     edge_packaging_job_preset_deployment_output: Optional[AwsSagemakerEdgePresetDeploymentOutput] = field(default=None)
+
+    @classmethod
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
+        return [cls.api_spec, AwsApiSpec("sagemaker", "describe-edge-packaging-job")]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
@@ -2446,6 +2506,14 @@ class AwsSagemakerHyperParameterTuningJob(SagemakerTaggable, AwsResource):
     hyper_parameter_tuning_job_failure_reason: Optional[str] = field(default=None)
 
     @classmethod
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
+        return [
+            cls.api_spec,
+            AwsApiSpec("sagemaker", "describe-hyper-parameter-tuning-job"),
+            AwsApiSpec("sagemaker", "list-tags"),
+        ]
+
+    @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for job in json:
             job_description = builder.client.get(
@@ -2732,6 +2800,10 @@ class AwsSagemakerInferenceRecommendationsJob(AwsResource):
     inference_recommendations_job_endpoint_performances: List[AwsSagemakerEndpointPerformance] = field(factory=list)
 
     @classmethod
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
+        return [cls.api_spec, AwsApiSpec("sagemaker", "describe-inference-recommendations-job")]
+
+    @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for job in json:
             job_description = builder.client.get(
@@ -2953,6 +3025,10 @@ class AwsSagemakerLabelingJob(SagemakerTaggable, AwsResource):
     labeling_job_algorithms_config: Optional[AwsSagemakerLabelingJobAlgorithmsConfig] = field(default=None)
     labeling_job_human_task_config: Optional[AwsSagemakerHumanTaskConfig] = field(default=None)
     labeling_job_output: Optional[AwsSagemakerLabelingJobOutput] = field(default=None)
+
+    @classmethod
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
+        return [cls.api_spec, AwsApiSpec("sagemaker", "describe-labeling-job"), AwsApiSpec("sagemaker", "list-tags")]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
@@ -3219,6 +3295,10 @@ class AwsSagemakerProcessingJob(AwsResource):
     processing_job_monitoring_schedule_arn: Optional[str] = field(default=None)
     processing_job_auto_ml_job_arn: Optional[str] = field(default=None)
     processing_job_training_job_arn: Optional[str] = field(default=None)
+
+    @classmethod
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
+        return [cls.api_spec, AwsApiSpec("sagemaker", "describe-processing-job")]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
@@ -3515,6 +3595,10 @@ class AwsSagemakerTrainingJob(SagemakerTaggable, AwsResource):
     training_job_warm_pool_status: Optional[AwsSagemakerWarmPoolStatus] = field(default=None)
 
     @classmethod
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
+        return [cls.api_spec, AwsApiSpec("sagemaker", "describe-training-job"), AwsApiSpec("sagemaker", "list-tags")]
+
+    @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for job in json:
             job_description = builder.client.get(
@@ -3614,6 +3698,10 @@ class AwsSagemakerTransformJob(SagemakerTaggable, AwsResource):
     transform_job_experiment_config: Optional[AwsSagemakerExperimentConfig] = field(default=None)
 
     @classmethod
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
+        return [cls.api_spec, AwsApiSpec("sagemaker", "describe-transform-job"), AwsApiSpec("sagemaker", "list-tags")]
+
+    @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for job in json:
             job_description = builder.client.get(
@@ -3653,8 +3741,3 @@ resources: List[Type[AwsResource]] = [
     AwsSagemakerTrainingJob,
     AwsSagemakerTransformJob,
 ]
-
-# model_bias_job_definition()
-# model_explainability_job_definition()
-# model_quality_job_definition()
-# data_quality_job_definition()
