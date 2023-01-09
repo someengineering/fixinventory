@@ -73,6 +73,8 @@ def random_json(response_type_name: str, schemas: Dict[str, Schema], response_sc
                 return f"{type_name}-{IDCounter[type_name]}"
             elif name == "creationTimestamp":
                 return random_datetime()
+            elif name == "kind":
+                return type_name
             elif name == RegionProp:
                 return random_choice(random_regions).id
             else:
@@ -98,7 +100,7 @@ def random_json(response_type_name: str, schemas: Dict[str, Schema], response_sc
                 return f"https://example.{random_string()}.{random_choice(['com', 'org', 'net'])}"
             elif schema["type"] == "string" and "IPv4" in schema.get("description", ""):
                 return random_ipv4()
-            elif schema["type"] == "string" and schema.get("format") == "uint64":
+            elif schema["type"] == "string" and "int" in schema.get("format", ""):
                 return str(random_int())
             elif schema["type"] == "string":
                 return random_string()
@@ -168,10 +170,9 @@ def build_random_data_client(service: str, version: str, *args, **kwargs) -> Ran
     return RandomDataClient(service, version, root)
 
 
-def roundtrip(resource_clazz: Type[GcpResourceType], builder: GraphBuilder) -> None:
-    resource_clazz.collect_resources(builder)
+def json_roundtrip(resource_clazz: Type[GcpResourceType], builder: GraphBuilder) -> None:
     assert len(builder.resources_of(resource_clazz)) > 0
-    for resource in builder.graph.nodes():
+    for resource in builder.resources_of(resource_clazz):
         # create json representation
         js_repr = resource.to_json()
         # make sure that the resource can be json serialized and read back
@@ -179,3 +180,8 @@ def roundtrip(resource_clazz: Type[GcpResourceType], builder: GraphBuilder) -> N
         # since we can not compare objects, we use the json representation to see that no information is lost
         again_js = again.to_json()
         assert js_repr == again_js, f"Left: {js_repr}\nRight: {again_js}"
+
+
+def roundtrip(resource_clazz: Type[GcpResourceType], builder: GraphBuilder) -> None:
+    resource_clazz.collect_resources(builder)
+    json_roundtrip(resource_clazz, builder)

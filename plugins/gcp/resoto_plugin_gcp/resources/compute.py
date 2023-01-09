@@ -4,8 +4,10 @@ from typing import ClassVar, Dict, Optional, List
 from attr import define, field
 
 from resoto_plugin_gcp.gcp_client import GcpApiSpec
-from resoto_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus
-from resotolib.json_bender import Bender, S, Bend, ForallBend, MapDict
+from resoto_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus, GraphBuilder
+from resotolib.baseresources import ModelReference, BaseVolume, VolumeStatus, BaseInstance, InstanceStatus
+from resotolib.json_bender import Bender, S, Bend, ForallBend, MapDict, MapValue, F
+from resotolib.types import Json
 
 
 @define(eq=False, slots=False)
@@ -725,7 +727,7 @@ class GcpDiskParams:
 
 
 @define(eq=False, slots=False)
-class GcpDisk(GcpResource):
+class GcpDisk(GcpResource, BaseVolume):
     kind: ClassVar[str] = "gcp_disk"
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
@@ -757,11 +759,9 @@ class GcpDisk(GcpResource):
         "disk_options": S("options"),
         "disk_params": S("params", default={}) >> Bend(GcpDiskParams.mapping),
         "disk_physical_block_size_bytes": S("physicalBlockSizeBytes"),
-        "disk_provisioned_iops": S("provisionedIops"),
         "disk_replica_zones": S("replicaZones", default=[]),
         "disk_resource_policies": S("resourcePolicies", default=[]),
         "disk_satisfies_pzs": S("satisfiesPzs"),
-        "disk_size_gb": S("sizeGb"),
         "disk_source_disk": S("sourceDisk"),
         "disk_source_disk_id": S("sourceDiskId"),
         "disk_source_image": S("sourceImage"),
@@ -773,10 +773,24 @@ class GcpDisk(GcpResource):
         >> Bend(GcpCustomerEncryptionKey.mapping),
         "disk_source_snapshot_id": S("sourceSnapshotId"),
         "disk_source_storage_object": S("sourceStorageObject"),
-        "disk_status": S("status"),
-        "disk_type": S("type"),
-        "disk_users": S("users", default=[]),
+        "volume_status": S("status")
+        >> MapValue(
+            {
+                "CREATING": VolumeStatus.BUSY.name,
+                "RESTORING": VolumeStatus.BUSY.name,
+                "FAILED": VolumeStatus.ERROR.name,
+                "READY": VolumeStatus.IN_USE.name,
+                "AVAILABLE": VolumeStatus.AVAILABLE.name,
+                "DELETING": VolumeStatus.BUSY.name,
+            },
+            default=VolumeStatus.UNKNOWN.name,
+        ),
+        "volume_size": S("sizeGb") >> F(float),
+        "volume_type": S("type"),
+        "volume_iops": S("provisionedIops"),
+        "volume_encrypted": S("diskEncryptionKey") >> F(lambda x: x is not None),
     }
+
     disk_architecture: Optional[str] = field(default=None)
     disk_disk_encryption_key: Optional[GcpCustomerEncryptionKey] = field(default=None)
     disk_guest_os_features: Optional[List[str]] = field(default=None)
@@ -788,11 +802,9 @@ class GcpDisk(GcpResource):
     disk_options: Optional[str] = field(default=None)
     disk_params: Optional[GcpDiskParams] = field(default=None)
     disk_physical_block_size_bytes: Optional[str] = field(default=None)
-    disk_provisioned_iops: Optional[str] = field(default=None)
     disk_replica_zones: Optional[List[str]] = field(default=None)
     disk_resource_policies: Optional[List[str]] = field(default=None)
     disk_satisfies_pzs: Optional[bool] = field(default=None)
-    disk_size_gb: Optional[str] = field(default=None)
     disk_source_disk: Optional[str] = field(default=None)
     disk_source_disk_id: Optional[str] = field(default=None)
     disk_source_image: Optional[str] = field(default=None)
@@ -802,9 +814,11 @@ class GcpDisk(GcpResource):
     disk_source_snapshot_encryption_key: Optional[GcpCustomerEncryptionKey] = field(default=None)
     disk_source_snapshot_id: Optional[str] = field(default=None)
     disk_source_storage_object: Optional[str] = field(default=None)
-    disk_status: Optional[str] = field(default=None)
-    disk_type: Optional[str] = field(default=None)
-    disk_users: Optional[List[str]] = field(default=None)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        for user in source.get("users", []):
+            builder.dependant_node(self, link=user)
+        builder.add_edge(self, reverse=True, clazz=GcpDiskType, link=self.volume_type)
 
 
 @define(eq=False, slots=False)
@@ -2401,6 +2415,9 @@ class GcpInstanceTemplate(GcpResource):
     template_source_instance: Optional[str] = field(default=None)
     template_source_instance_params: Optional[GcpSourceInstanceParams] = field(default=None)
 
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        super().connect_in_graph(builder, source)
+
 
 @define(eq=False, slots=False)
 class GcpInstanceParams:
@@ -2410,7 +2427,7 @@ class GcpInstanceParams:
 
 
 @define(eq=False, slots=False)
-class GcpInstance(GcpResource):
+class GcpInstance(GcpResource, BaseInstance):
     kind: ClassVar[str] = "gcp_instance"
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
@@ -2446,7 +2463,7 @@ class GcpInstance(GcpResource):
         "instance_last_start_timestamp": S("lastStartTimestamp"),
         "instance_last_stop_timestamp": S("lastStopTimestamp"),
         "instance_last_suspended_timestamp": S("lastSuspendedTimestamp"),
-        "instance_machine_type": S("machineType"),
+        # "instance_machine_type": S("machineType"),
         "instance_metadata": S("metadata", default={}) >> Bend(GcpMetadata.mapping),
         "instance_min_cpu_platform": S("minCpuPlatform"),
         "instance_network_interfaces": S("networkInterfaces", default=[]) >> ForallBend(GcpNetworkInterface.mapping),
@@ -2466,9 +2483,25 @@ class GcpInstance(GcpResource):
         "instance_source_machine_image_encryption_key": S("sourceMachineImageEncryptionKey", default={})
         >> Bend(GcpCustomerEncryptionKey.mapping),
         "instance_start_restricted": S("startRestricted"),
-        "instance_status": S("status"),
+        "instance_status": S("status")
+        >> MapValue(
+            {
+                "PROVISIONING": InstanceStatus.BUSY.name,
+                "STAGING": InstanceStatus.BUSY.name,
+                "RUNNING": InstanceStatus.RUNNING.name,
+                "STOPPING": InstanceStatus.BUSY.name,
+                "SUSPENDING": InstanceStatus.BUSY.name,
+                "SUSPENDED": InstanceStatus.STOPPED.name,
+                "REPAIRING": InstanceStatus.BUSY.name,
+                "TERMINATED": InstanceStatus.TERMINATED.name,
+            }
+        ),
         "instance_status_message": S("statusMessage"),
         "instance_tags": S("tags", default={}) >> Bend(GcpTags.mapping),
+    }
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["gcp_machine_type"]},
+        # "successors": {"delete": ["gcp_target_pool", "gcp_instance_group", "gcp_target_instance"]},
     }
     instance_advanced_machine_features: Optional[GcpAdvancedMachineFeatures] = field(default=None)
     instance_can_ip_forward: Optional[bool] = field(default=None)
@@ -2484,7 +2517,6 @@ class GcpInstance(GcpResource):
     instance_last_start_timestamp: Optional[datetime] = field(default=None)
     instance_last_stop_timestamp: Optional[datetime] = field(default=None)
     instance_last_suspended_timestamp: Optional[datetime] = field(default=None)
-    instance_machine_type: Optional[str] = field(default=None)
     instance_metadata: Optional[GcpMetadata] = field(default=None)
     instance_min_cpu_platform: Optional[str] = field(default=None)
     instance_network_interfaces: Optional[List[GcpNetworkInterface]] = field(default=None)
@@ -2502,9 +2534,19 @@ class GcpInstance(GcpResource):
     instance_source_machine_image: Optional[str] = field(default=None)
     instance_source_machine_image_encryption_key: Optional[GcpCustomerEncryptionKey] = field(default=None)
     instance_start_restricted: Optional[bool] = field(default=None)
-    instance_status: Optional[str] = field(default=None)
     instance_status_message: Optional[str] = field(default=None)
     instance_tags: Optional[GcpTags] = field(default=None)
+
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        # TODO: load custom machine types
+        pass
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        super().connect_in_graph(builder, source)
+        builder.add_edge(from_node=self, reverse=True, clazz=GcpMachineType, link=source["machineType"])
+        for nic in self.instance_network_interfaces or []:
+            builder.add_edge(from_node=self, reverse=True, clazz=GcpNetwork, link=nic.network)
+            builder.add_edge(from_node=self, reverse=True, clazz=GcpSubnetwork, link=nic.subnetwork)
 
 
 @define(eq=False, slots=False)

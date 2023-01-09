@@ -3,8 +3,10 @@ from typing import ClassVar, Dict, Optional, List
 from attr import define, field
 
 from resoto_plugin_gcp.gcp_client import GcpApiSpec
-from resoto_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus
+from resoto_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus, GraphBuilder
+from resotolib.baseresources import ModelReference
 from resotolib.json_bender import Bender, S, Bend, ForallBend
+from resotolib.types import Json
 
 
 @define(eq=False, slots=False)
@@ -33,9 +35,17 @@ class GcpBillingAccount(GcpResource):
         "account_master_billing_account": S("masterBillingAccount"),
         "account_open": S("open"),
     }
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {"default": ["gcp_project_billing_info"]},
+    }
+
     account_display_name: Optional[str] = field(default=None)
     account_master_billing_account: Optional[str] = field(default=None)
     account_open: Optional[bool] = field(default=None)
+
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        for info in GcpProjectBillingInfo.collect_resources(graph_builder, name=self.name):
+            graph_builder.add_edge(self, node=info)
 
 
 @define(eq=False, slots=False)
@@ -95,9 +105,16 @@ class GcpService(GcpResource):
         "service_display_name": S("displayName"),
         "service_service_id": S("serviceId"),
     }
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {"default": ["gcp_sku"]},
+    }
     service_business_entity_name: Optional[str] = field(default=None)
     service_display_name: Optional[str] = field(default=None)
     service_service_id: Optional[str] = field(default=None)
+
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        for sku in GcpSku.collect_resources(graph_builder, parent=f"services/{self.id}"):
+            graph_builder.add_edge(self, node=sku)
 
 
 @define(eq=False, slots=False)
@@ -212,7 +229,7 @@ class GcpSku(GcpResource):
         response_regional_sub_path=None,
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id").or_else(S("name")).or_else(S("selfLink")),
+        "id": S("skuId"),
         "tags": S("labels", default={}),
         "name": S("name"),
         "ctime": S("creationTimestamp"),
@@ -225,16 +242,12 @@ class GcpSku(GcpResource):
         "sku_pricing_info": S("pricingInfo", default=[]) >> ForallBend(GcpPricingInfo.mapping),
         "sku_service_provider_name": S("serviceProviderName"),
         "sku_service_regions": S("serviceRegions", default=[]),
-        "sku_sku_id": S("skuId"),
     }
     sku_category: Optional[GcpCategory] = field(default=None)
     sku_geo_taxonomy: Optional[GcpGeoTaxonomy] = field(default=None)
     sku_pricing_info: List[GcpPricingInfo] = field(factory=list)
     sku_service_provider_name: Optional[str] = field(default=None)
     sku_service_regions: List[str] = field(factory=list)
-    sku_sku_id: Optional[str] = field(default=None)
 
 
-# TODO: GcpProjectBillingInfo: for every billing account
-# TODO: GcpSku: for every service
 resources = [GcpBillingAccount, GcpService]

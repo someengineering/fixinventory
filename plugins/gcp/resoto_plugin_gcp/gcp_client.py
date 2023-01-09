@@ -64,7 +64,7 @@ class GcpClient:
         executor = client
         for accessor in api_spec.accessors:
             executor = getattr(executor, accessor)()
-        params_map = {"project": self.project_id, "region": self.region}
+        params_map = {**{"project": self.project_id, "region": self.region}, **kwargs}
         params = {k: v.format_map(params_map) for k, v in api_spec.request_parameter.items()}
         result: List[Json] = []
 

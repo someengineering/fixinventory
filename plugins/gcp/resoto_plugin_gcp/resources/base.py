@@ -10,7 +10,7 @@ from resoto_plugin_gcp.gcp_client import GcpClient, GcpApiSpec, InternalZoneProp
 from resoto_plugin_gcp.utils import delete_resource, update_label
 from resotolib.baseresources import BaseResource, BaseAccount, Cloud, EdgeType, BaseRegion, BaseZone, BaseQuota
 from resotolib.core.actions import CoreFeedback
-from resotolib.graph import Graph
+from resotolib.graph import Graph, EdgeKey
 from resotolib.json import from_json as from_js, to_json as to_js
 from resotolib.json_bender import bend, Bender, S, Bend
 from resotolib.types import Json
@@ -112,6 +112,15 @@ class GraphBuilder:
     def resources_of(self, resource_type: Type[GcpResourceType]) -> List[GcpResourceType]:
         return [n for n in self.graph.nodes if isinstance(n, resource_type)]
 
+    def edges_of(
+        self, from_type: Type[GcpResource], to_type: Type[GcpResource], edge_type: EdgeType = EdgeType.default
+    ) -> List[EdgeKey]:
+        return [
+            key
+            for (from_node, to_node, key) in self.graph.edges
+            if isinstance(from_node, from_type) and isinstance(to_node, to_type) and key.edge_type == edge_type
+        ]
+
     def for_region(self, region: GcpRegion) -> GraphBuilder:
         return GraphBuilder(self.graph, self.cloud, self.project, self.client.credentials, self.core_feedback, region)
 
@@ -154,42 +163,43 @@ class GcpResource(BaseResource):
         Hook method which is called when all resources have been collected.
         Connect the resource to other resources in the graph.
         """
-        # Added by the GcpClient to every zoned resource
-        if "_zone" in source:
-            builder.add_edge(self, clazz=GcpZone, name=source["_zone"])
+        pass
 
     def to_json(self) -> Json:
         return to_js(self)
 
     @classmethod
-    def collect_resources(cls: Type[GcpResource], builder: GraphBuilder) -> None:
+    def collect_resources(cls: Type[GcpResource], builder: GraphBuilder, **kwargs: Any) -> List[GcpResource]:
         # Default behavior: in case the class has an ApiSpec, call the api and call collect.
         log.debug(f"Collecting {cls.__name__}")
         if spec := cls.api_spec:
             try:
-                items = builder.client.list(spec)
-                cls.collect(items, builder)
+                items = builder.client.list(spec, **kwargs)
+                return cls.collect(items, builder)
             except Exception as e:
                 msg = f"Error while collecting {cls.__name__}: {e}"
                 builder.core_feedback.info(msg, log)
                 raise
 
     @classmethod
-    def collect(cls: Type[GcpResource], raw: List[Json], builder: GraphBuilder) -> None:
+    def collect(cls: Type[GcpResource], raw: List[Json], builder: GraphBuilder) -> List[GcpResource]:
         # Default behavior: iterate over json snippets and for each:
         # - bend the json
         # - transform the result into a resource
         # - add the resource to the graph
         # In case additional work needs to be done, override this method.
+        result: List[GcpResource] = []
         for js in raw:
             # map from api
             instance = cls.from_api(js)
             # allow the instance to adjust itself
             adjusted = instance.adjust_from_api(builder, js)
             # add to graph
-            builder.add_node(adjusted, js)
-            # call post process hook
-            adjusted.post_process(builder, js)
+            if (added := builder.add_node(adjusted, js)) is not None:
+                # post process
+                added.post_process(builder, js)
+                result.append(added)
+        return result
 
     @classmethod
     def from_json(cls: Type[GcpResourceType], json: Json) -> GcpResourceType:
