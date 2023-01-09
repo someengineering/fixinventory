@@ -221,7 +221,7 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
         output_shape = op.output_shape.type_name
         func_args = coerce_args(remaining, op)
 
-        result: List[Json] = client.call_single(p.service, p.operation, None, **func_args)  # type: ignore
+        result: List[Json] = client.list(p.service, p.operation, None, **func_args)  # type: ignore
         # Remove the "ResponseMetadata" from the result
         for elem in result:
             if isinstance(elem, dict):
