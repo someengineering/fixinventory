@@ -44,6 +44,13 @@ class SagemakerTaggable:
         if tags:
             resource.tags = bend(ToDict(), tags)
 
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec("sagemaker", "add-tags"),
+            AwsApiSpec("sagemaker", "delete-tags"),
+        ]
+
 
 @define(eq=False, slots=False)
 class AwsSagemakerNotebook(SagemakerTaggable, AwsResource):  # TODO tags
