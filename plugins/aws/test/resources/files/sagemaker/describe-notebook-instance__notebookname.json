@@ -1,5 +1,5 @@
 {
-    "NotebookInstanceArn": "string",
+    "NotebookInstanceArn": "notebookarn",
     "NotebookInstanceName": "notebookname",
     "NotebookInstanceStatus": "Pending",
     "FailureReason": "string",

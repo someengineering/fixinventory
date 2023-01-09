@@ -2,17 +2,30 @@ from datetime import datetime
 from attrs import define, field
 from typing import ClassVar, Dict, List, Optional, Type
 from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
-from resotolib.json_bender import S, Bend, Bender, ForallBend
+from resoto_plugin_aws.utils import ToDict
+from resotolib.json_bender import S, Bend, Bender, ForallBend, bend
 from resotolib.types import Json
 
 
+class SagemakerTaggable:
+    @staticmethod
+    def add_tags(resource: AwsResource, builder: GraphBuilder) -> None:
+        tags = builder.client.list(
+            "sagemaker",
+            "list-tags",
+            "Tags",
+            ResourceARN=resource.arn,
+        )
+        if tags:
+            resource.tags = bend(ToDict(), tags)
+
+
 @define(eq=False, slots=False)
-class AwsSagemakerNotebook(AwsResource):
+class AwsSagemakerNotebook(SagemakerTaggable, AwsResource):  # TODO tags
     kind: ClassVar[str] = "aws_sagemaker_notebook"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-notebook-instances", "NotebookInstances")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("NotebookInstanceName"),
-        # "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("NotebookInstanceName"),
         "ctime": S("CreationTime"),
         "mtime": S("LastModifiedTime"),
@@ -66,6 +79,7 @@ class AwsSagemakerNotebook(AwsResource):
             if notebook_description:
                 notebook_instance = AwsSagemakerNotebook.from_api(notebook_description)
                 builder.add_node(notebook_instance, notebook_description)
+                builder.submit_work(SagemakerTaggable.add_tags, notebook_instance, builder)
 
 
 @define(eq=False, slots=False)
@@ -510,7 +524,6 @@ class AwsSagemakerAlgorithm(AwsResource):
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-algorithms", "AlgorithmSummaryList")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("AlgorithmName"),
-        # "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("AlgorithmName"),
         "ctime": S("CreationTime"),
         "arn": S("AlgorithmArn"),
@@ -594,12 +607,11 @@ class AwsSagemakerVpcConfig:
 
 
 @define(eq=False, slots=False)
-class AwsSagemakerModel(AwsResource):
+class AwsSagemakerModel(SagemakerTaggable, AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_model"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-models", "Models")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("ModelName"),
-        # "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("ModelName"),
         "ctime": S("CreationTime"),
         "arn": S("ModelArn"),
@@ -624,6 +636,7 @@ class AwsSagemakerModel(AwsResource):
             if model_description:
                 model_instance = AwsSagemakerModel.from_api(model_description)
                 builder.add_node(model_instance, model_description)
+                builder.submit_work(SagemakerTaggable.add_tags, model_instance, builder)
 
 
 @define(eq=False, slots=False)
@@ -647,7 +660,6 @@ class AwsSagemakerApp(AwsResource):
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-apps", "Apps")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("AppName"),
-        # "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("AppName"),
         "ctime": S("CreationTime"),
         "atime": S("LastUserActivityTimestamp"),
@@ -865,7 +877,6 @@ class AwsSagemakerDomain(AwsResource):
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-domains", "Domains")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("DomainId"),
-        # "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("DomainName"),
         "ctime": S("CreationTime"),
         "mtime": S("LastModifiedTime"),
@@ -932,7 +943,6 @@ class AwsSagemakerExperiment(AwsResource):
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-experiments", "ExperimentSummaries")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("ExperimentName"),
-        # "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("ExperimentName"),
         "ctime": S("CreationTime"),
         "mtime": S("LastModifiedTime"),
@@ -986,7 +996,6 @@ class AwsSagemakerTrial(AwsResource):
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-trials", "TrialSummaries")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("TrialName"),
-        # "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("TrialName"),
         "ctime": S("CreationTime"),
         "mtime": S("LastModifiedTime"),
@@ -1038,7 +1047,6 @@ class AwsSagemakerCodeRepository(AwsResource):
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-code-repositories", "CodeRepositorySummaryList")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("CodeRepositoryName"),
-        # "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("CodeRepositoryName"),
         "ctime": S("CreationTime"),
         "mtime": S("LastModifiedTime"),
@@ -1351,12 +1359,11 @@ class AwsSagemakerExplainerConfig:
 
 
 @define(eq=False, slots=False)
-class AwsSagemakerEndpoint(AwsResource):
+class AwsSagemakerEndpoint(SagemakerTaggable, AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_endpoint"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-endpoints", "Endpoints")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("EndpointName"),
-        # "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("EndpointName"),
         "ctime": S("CreationTime"),
         "mtime": S("LastModifiedTime"),
@@ -1392,6 +1399,7 @@ class AwsSagemakerEndpoint(AwsResource):
             if endpoint_description:
                 endpoint_instance = AwsSagemakerEndpoint.from_api(endpoint_description)
                 builder.add_node(endpoint_instance, endpoint_description)
+                builder.submit_work(SagemakerTaggable.add_tags, endpoint_instance, builder)
 
 
 @define(eq=False, slots=False)
@@ -1400,7 +1408,6 @@ class AwsSagemakerImage(AwsResource):
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-images", "Images")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("ImageName"),
-        # "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("ImageName"),
         "ctime": S("CreationTime"),
         "mtime": S("LastModifiedTime"),
@@ -1451,7 +1458,6 @@ class AwsSagemakerArtifact(AwsResource):
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-artifacts", "ArtifactSummaries")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("ArtifactName"),
-        # "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("ArtifactName"),
         "ctime": S("CreationTime"),
         "mtime": S("LastModifiedTime"),
@@ -1489,7 +1495,6 @@ class AwsSagemakerUserProfile(AwsResource):
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-user-profiles", "UserProfiles")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("UserProfileName"),
-        # "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("UserProfileName"),
         "ctime": S("CreationTime"),
         "mtime": S("LastModifiedTime"),
@@ -1506,7 +1511,6 @@ class AwsSagemakerPipeline(AwsResource):
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-pipelines", "PipelineSummaries")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("PipelineName"),
-        # "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("PipelineName"),
         "ctime": S("CreationTime"),
         "mtime": S("LastModifiedTime"),
@@ -1573,12 +1577,11 @@ class AwsSagemakerMemberDefinition:
 
 
 @define(eq=False, slots=False)
-class AwsSagemakerWorkteam(AwsResource):
+class AwsSagemakerWorkteam(SagemakerTaggable, AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_workteam"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-workteams", "Workteams")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("WorkteamName"),
-        # "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("WorkteamName"),
         "ctime": S("CreateDate"),
         "mtime": S("LastUpdatedDate"),
@@ -1597,6 +1600,13 @@ class AwsSagemakerWorkteam(AwsResource):
     workteam_description: Optional[str] = field(default=None)
     workteam_sub_domain: Optional[str] = field(default=None)
     workteam_notification_configuration: Optional[str] = field(default=None)
+
+    @classmethod
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        for workteam in json:
+            workteam_instance = AwsSagemakerWorkteam.from_api(workteam)
+            builder.add_node(workteam_instance, workteam)
+            builder.submit_work(SagemakerTaggable.add_tags, workteam_instance, builder)
 
 
 ## Jobs
@@ -1829,7 +1839,6 @@ class AwsSagemakerAutoMLJob(AwsResource):
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-auto-ml-jobs", "AutoMLJobSummaries")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("AutoMLJobName"),
-        # "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("AutoMLJobName"),
         "ctime": S("CreationTime"),
         "mtime": S("LastModifiedTime"),
@@ -1941,7 +1950,6 @@ class AwsSagemakerCompilationJob(AwsResource):
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-compilation-jobs", "CompilationJobSummaries")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("CompilationJobName"),
-        # "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("CompilationJobName"),
         "ctime": S("CreationTime"),
         "mtime": S("LastModifiedTime"),
@@ -2021,7 +2029,6 @@ class AwsSagemakerEdgePackagingJob(AwsResource):
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-edge-packaging-jobs", "EdgePackagingJobSummaries")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("EdgePackagingJobName"),
-        # "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("EdgePackagingJobName"),
         "ctime": S("CreationTime"),
         "mtime": S("LastModifiedTime"),
@@ -2349,14 +2356,13 @@ class AwsSagemakerHyperParameterTuningJobWarmStartConfig:
 
 
 @define(eq=False, slots=False)
-class AwsSagemakerHyperParameterTuningJob(AwsResource):
+class AwsSagemakerHyperParameterTuningJob(SagemakerTaggable, AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_hyper_parameter_tuning_job"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         "sagemaker", "list-hyper-parameter-tuning-jobs", "HyperParameterTuningJobSummaries"
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("HyperParameterTuningJobName"),
-        # "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("HyperParameterTuningJobName"),
         "ctime": S("CreationTime"),
         "mtime": S("LastModifiedTime"),
@@ -2419,6 +2425,7 @@ class AwsSagemakerHyperParameterTuningJob(AwsResource):
             if job_description:
                 job_instance = AwsSagemakerHyperParameterTuningJob.from_api(job_description)
                 builder.add_node(job_instance, job_description)
+                builder.submit_work(SagemakerTaggable.add_tags, job_instance, builder)
 
 
 @define(eq=False, slots=False)
@@ -2658,7 +2665,6 @@ class AwsSagemakerInferenceRecommendationsJob(AwsResource):
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("JobName"),
-        # "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("JobName"),
         "ctime": S("CreationTime"),
         "mtime": S("LastModifiedTime"),
@@ -2877,12 +2883,11 @@ class AwsSagemakerLabelingJobOutput:
 
 
 @define(eq=False, slots=False)
-class AwsSagemakerLabelingJob(AwsResource):
+class AwsSagemakerLabelingJob(SagemakerTaggable, AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_labeling_job"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-labeling-jobs", "LabelingJobSummaryList")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("LabelingJobName"),
-        # "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("LabelingJobName"),
         "ctime": S("CreationTime"),
         "mtime": S("LastModifiedTime"),
@@ -2929,6 +2934,7 @@ class AwsSagemakerLabelingJob(AwsResource):
             if job_description:
                 job_instance = AwsSagemakerLabelingJob.from_api(job_description)
                 builder.add_node(job_instance, job_description)
+                builder.submit_work(SagemakerTaggable.add_tags, job_instance, builder)
 
 
 @define(eq=False, slots=False)
@@ -3139,7 +3145,6 @@ class AwsSagemakerProcessingJob(AwsResource):
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-processing-jobs", "ProcessingJobSummaries")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("ProcessingJobName"),
-        # "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("ProcessingJobName"),
         "ctime": S("CreationTime"),
         "mtime": S("LastModifiedTime"),
@@ -3384,12 +3389,11 @@ class AwsSagemakerWarmPoolStatus:
 
 
 @define(eq=False, slots=False)
-class AwsSagemakerTrainingJob(AwsResource):
+class AwsSagemakerTrainingJob(SagemakerTaggable, AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_training_job"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-training-jobs", "TrainingJobSummaries")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("TrainingJobName"),
-        # "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("TrainingJobName"),
         "ctime": S("CreationTime"),
         "mtime": S("LastModifiedTime"),
@@ -3490,6 +3494,7 @@ class AwsSagemakerTrainingJob(AwsResource):
             if job_description:
                 job_instance = AwsSagemakerTrainingJob.from_api(job_description)
                 builder.add_node(job_instance, job_description)
+                builder.submit_work(SagemakerTaggable.add_tags, job_instance, builder)
 
 
 @define(eq=False, slots=False)
@@ -3530,12 +3535,11 @@ class AwsSagemakerDataProcessing:
 
 
 @define(eq=False, slots=False)
-class AwsSagemakerTransformJob(AwsResource):
+class AwsSagemakerTransformJob(SagemakerTaggable, AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_transform_job"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-transform-jobs", "TransformJobSummaries")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("TransformJobName"),
-        # "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("TransformJobName"),
         "ctime": S("CreationTime"),
         "arn": S("TransformJobArn"),
@@ -3589,6 +3593,7 @@ class AwsSagemakerTransformJob(AwsResource):
             if job_description:
                 job_instance = AwsSagemakerTransformJob.from_api(job_description)
                 builder.add_node(job_instance, job_description)
+                builder.submit_work(SagemakerTaggable.add_tags, job_instance, builder)
 
 
 resources: List[Type[AwsResource]] = [

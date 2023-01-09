@@ -29,7 +29,7 @@ from resoto_plugin_aws.resource.sagemaker import (
 def test_notebooks() -> None:
     first, builder = round_trip_for(AwsSagemakerNotebook)
     assert len(builder.resources_of(AwsSagemakerNotebook)) == 1
-    # assert len(first.tags) == 1
+    assert len(first.tags) == 1
 
 
 def test_algorithms() -> None:
