@@ -1541,6 +1541,64 @@ class AwsSagemakerPipeline(AwsResource):
                 builder.add_node(pipeline_instance, pipeline_description)
 
 
+@define(eq=False, slots=False)
+class AwsSagemakerCognitoMemberDefinition:
+    kind: ClassVar[str] = "aws_sagemaker_cognito_member_definition"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "user_pool": S("UserPool"),
+        "user_group": S("UserGroup"),
+        "client_id": S("ClientId"),
+    }
+    user_pool: Optional[str] = field(default=None)
+    user_group: Optional[str] = field(default=None)
+    client_id: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerOidcMemberDefinition:
+    kind: ClassVar[str] = "aws_sagemaker_oidc_member_definition"
+    mapping: ClassVar[Dict[str, Bender]] = {"groups": S("Groups", default=[])}
+    groups: List[str] = field(factory=list)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerMemberDefinition:
+    kind: ClassVar[str] = "aws_sagemaker_member_definition"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "cognito_member_definition": S("CognitoMemberDefinition") >> Bend(AwsSagemakerCognitoMemberDefinition.mapping),
+        "oidc_member_definition": S("OidcMemberDefinition") >> Bend(AwsSagemakerOidcMemberDefinition.mapping),
+    }
+    cognito_member_definition: Optional[AwsSagemakerCognitoMemberDefinition] = field(default=None)
+    oidc_member_definition: Optional[AwsSagemakerOidcMemberDefinition] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerWorkteam(AwsResource):
+    kind: ClassVar[str] = "aws_sagemaker_workteam"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-workteams", "Workteams")
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("WorkteamName"),
+        # "tags": S("Tags", default=[]) >> ToDict(),
+        "name": S("WorkteamName"),
+        "ctime": S("CreateDate"),
+        "mtime": S("LastUpdatedDate"),
+        "arn": S("WorkteamArn"),
+        "workteam_member_definitions": S("MemberDefinitions", default=[])
+        >> ForallBend(AwsSagemakerMemberDefinition.mapping),
+        "workteam_workforce_arn": S("WorkforceArn"),
+        "workteam_product_listing_ids": S("ProductListingIds", default=[]),
+        "workteam_description": S("Description"),
+        "workteam_sub_domain": S("SubDomain"),
+        "workteam_notification_configuration": S("NotificationConfiguration", "NotificationTopicArn"),
+    }
+    workteam_member_definitions: List[AwsSagemakerMemberDefinition] = field(factory=list)
+    workteam_workforce_arn: Optional[str] = field(default=None)
+    workteam_product_listing_ids: List[str] = field(factory=list)
+    workteam_description: Optional[str] = field(default=None)
+    workteam_sub_domain: Optional[str] = field(default=None)
+    workteam_notification_configuration: Optional[str] = field(default=None)
+
+
 ## Jobs
 
 
@@ -3547,6 +3605,7 @@ resources: List[Type[AwsResource]] = [
     AwsSagemakerArtifact,
     AwsSagemakerUserProfile,
     AwsSagemakerPipeline,
+    AwsSagemakerWorkteam,
     AwsSagemakerAutoMLJob,
     AwsSagemakerCompilationJob,
     AwsSagemakerEdgePackagingJob,
