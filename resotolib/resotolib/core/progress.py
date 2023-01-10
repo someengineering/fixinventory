@@ -4,7 +4,7 @@ from abc import abstractmethod, ABC
 from typing import List, Optional, Any, Dict, Callable
 
 from attr import define, field, evolve
-from treelib import Tree, Node
+from resotolib.tree import Tree, Node
 
 from resotolib.types import Json, JsonElement
 
