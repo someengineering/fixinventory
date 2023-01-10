@@ -792,6 +792,12 @@ class AwsSagemakerResourceSpec:
 @define(eq=False, slots=False)
 class AwsSagemakerApp(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_app"
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {
+            "default": ["aws_sagemaker_domain"],
+        },
+        "successors": {"default": ["aws_sagemaker_image"]},
+    }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-apps", "Apps")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("AppName"),
@@ -835,6 +841,12 @@ class AwsSagemakerApp(AwsResource):
             if app_description:
                 app_instance = AwsSagemakerApp.from_api(app_description)
                 builder.add_node(app_instance, app_description)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if self.app_domain_id:
+            builder.add_edge(self, reverse=True, clazz=AwsSagemakerDomain, id=self.app_domain_id)
+        if self.app_resource_spec and self.app_resource_spec.sage_maker_image_arn:
+            builder.add_edge(self, clazz=AwsSagemakerImage, arn=self.app_resource_spec.sage_maker_image_arn)
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(

@@ -2,7 +2,7 @@
     "AppArn": "string",
     "AppType": "JupyterServer",
     "AppName": "SomeApp",
-    "DomainId": "string",
+    "DomainId": "123",
     "UserProfileName": "string",
     "Status": "Pending",
     "LastHealthCheckTimestamp": "2015-01-01T00:00:00Z",
@@ -10,7 +10,7 @@
     "CreationTime": "2015-01-01T00:00:00Z",
     "FailureReason": "string",
     "ResourceSpec": {
-        "SageMakerImageArn": "string",
+        "SageMakerImageArn": "SomeImageArn",
         "SageMakerImageVersionArn": "string",
         "InstanceType": "system",
         "LifecycleConfigArn": "string"

@@ -5,7 +5,7 @@
             "Description": "string",
             "DisplayName": "string",
             "FailureReason": "string",
-            "ImageArn": "string",
+            "ImageArn": "SomeImageArn",
             "ImageName": "SomeImage",
             "ImageStatus": "CREATING",
             "LastModifiedTime": "2015-01-01T00:00:00Z"
