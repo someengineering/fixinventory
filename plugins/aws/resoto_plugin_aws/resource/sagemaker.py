@@ -6,6 +6,7 @@ from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilde
 from resoto_plugin_aws.resource.ec2 import AwsEc2NetworkInterface, AwsEc2SecurityGroup, AwsEc2Subnet
 from resoto_plugin_aws.resource.iam import AwsIamRole
 from resoto_plugin_aws.resource.kms import AwsKmsKey
+from resoto_plugin_aws.resource.s3 import AwsS3Bucket
 from resoto_plugin_aws.utils import ToDict
 from resotolib.baseresources import ModelReference
 from resotolib.json_bender import S, Bend, Bender, ForallBend, bend
@@ -138,8 +139,8 @@ class AwsSagemakerNotebook(SagemakerTaggable, AwsResource):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.notebook_subnet_id:
             builder.dependant_node(self, reverse=True, clazz=AwsEc2Subnet, id=self.notebook_subnet_id)
-        for sec_group in self.notebook_security_groups:
-            builder.dependant_node(self, reverse=True, clazz=AwsEc2SecurityGroup, id=sec_group)
+        for security_group in self.notebook_security_groups:
+            builder.dependant_node(self, reverse=True, clazz=AwsEc2SecurityGroup, id=security_group)
         if self.notebook_role_arn:
             builder.dependant_node(
                 self, reverse=True, delete_same_as_default=True, clazz=AwsIamRole, arn=self.notebook_role_arn
@@ -712,6 +713,13 @@ class AwsSagemakerVpcConfig:
 @define(eq=False, slots=False)
 class AwsSagemakerModel(SagemakerTaggable, AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_model"
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {
+            "default": ["aws_iam_role", "aws_ec2_subnet", "aws_ec2_security_group"],
+            "delete": ["aws_iam_role"],
+        },
+        "successors": {"default": ["aws_s3_bucket"], "delete": ["aws_ec2_subnet", "aws_ec2_security_group"]},
+    }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-models", "Models")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("ModelName"),
@@ -744,6 +752,22 @@ class AwsSagemakerModel(SagemakerTaggable, AwsResource):
                 model_instance = AwsSagemakerModel.from_api(model_description)
                 builder.add_node(model_instance, model_description)
                 builder.submit_work(SagemakerTaggable.add_tags, model_instance, builder)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        model_data_buckets = [container.model_data_url for container in self.model_containers]
+        if self.model_primary_container:
+            model_data_buckets.append(self.model_primary_container.model_data_url)
+        for bucket in model_data_buckets:
+            builder.add_edge(self, clazz=AwsS3Bucket, name=bucket)  # TODO url != bucketname
+        if self.model_execution_role_arn:
+            builder.dependant_node(
+                self, delete_same_as_default=True, clazz=AwsIamRole, arn=self.model_execution_role_arn
+            )
+        if self.model_vpc_config:
+            for security_group in self.model_vpc_config.security_group_ids:
+                builder.dependant_node(self, reverse=True, clazz=AwsEc2SecurityGroup, id=security_group)
+            for subnet in self.model_vpc_config.subnets:
+                builder.dependant_node(self, reverse=True, clazz=AwsEc2Subnet, id=subnet)
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(aws_service=self.api_spec.service, action="delete-model", result_name=None, ModelName=self.name)
