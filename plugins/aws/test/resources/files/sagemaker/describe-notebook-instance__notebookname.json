@@ -20,7 +20,7 @@
     "AcceleratorTypes": [
         "ml.eia1.medium"
     ],
-    "DefaultCodeRepository": "string",
+    "DefaultCodeRepository": "SomeRepo",
     "AdditionalCodeRepositories": [
         "string"
     ],

@@ -3,7 +3,11 @@ from attrs import define, field
 from typing import ClassVar, Dict, List, Optional, Type
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
+from resoto_plugin_aws.resource.ec2 import AwsEc2NetworkInterface, AwsEc2SecurityGroup, AwsEc2Subnet
+from resoto_plugin_aws.resource.iam import AwsIamRole
+from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resoto_plugin_aws.utils import ToDict
+from resotolib.baseresources import ModelReference
 from resotolib.json_bender import S, Bend, Bender, ForallBend, bend
 from resotolib.types import Json
 
@@ -55,6 +59,16 @@ class SagemakerTaggable:
 @define(eq=False, slots=False)
 class AwsSagemakerNotebook(SagemakerTaggable, AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_notebook"
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {
+            "default": ["aws_ec2_subnet", "aws_ec2_security_group", "aws_iam_role", "aws_sagemaker_code_repository"],
+            "delete": ["aws_iam_role", "aws_kms_key", "aws_ec2_network_interface"],
+        },
+        "successors": {
+            "default": ["aws_kms_key", "aws_ec2_network_interface"],
+            "delete": ["aws_ec2_subnet", "aws_ec2_security_group"],
+        },
+    }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-notebook-instances", "NotebookInstances")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("NotebookInstanceName"),
@@ -120,6 +134,23 @@ class AwsSagemakerNotebook(SagemakerTaggable, AwsResource):
                 notebook_instance = AwsSagemakerNotebook.from_api(notebook_description)
                 builder.add_node(notebook_instance, notebook_description)
                 builder.submit_work(SagemakerTaggable.add_tags, notebook_instance, builder)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if self.notebook_subnet_id:
+            builder.dependant_node(self, reverse=True, clazz=AwsEc2Subnet, id=self.notebook_subnet_id)
+        for sec_group in self.notebook_security_groups:
+            builder.dependant_node(self, reverse=True, clazz=AwsEc2SecurityGroup, id=sec_group)
+        if self.notebook_role_arn:
+            builder.dependant_node(
+                self, reverse=True, delete_same_as_default=True, clazz=AwsIamRole, arn=self.notebook_role_arn
+            )
+        if self.notebook_kms_key_id:
+            builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(self.notebook_kms_key_id))
+        if self.notebook_network_interface_id:
+            builder.dependant_node(self, clazz=AwsEc2NetworkInterface, id=self.notebook_network_interface_id)
+        code_repos = [self.notebook_default_code_repository] + self.notebook_additional_code_repositories
+        for repo in code_repos:
+            builder.add_edge(self, reverse=True, clazz=AwsSagemakerCodeRepository, name=repo)
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(

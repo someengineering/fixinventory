@@ -1,7 +1,7 @@
 {
     "CodeRepositorySummaryList": [
         {
-            "CodeRepositoryName": "string",
+            "CodeRepositoryName": "SomeRepo",
             "CodeRepositoryArn": "string",
             "CreationTime": "2015-01-01T00:00:00Z",
             "LastModifiedTime": "2015-01-01T00:00:00Z",
