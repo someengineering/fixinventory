@@ -601,6 +601,9 @@ class AwsSagemakerAlgorithmStatusDetails:
 @define(eq=False, slots=False)
 class AwsSagemakerAlgorithm(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_algorithm"
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["aws_iam_role"], "delete": ["aws_iam_role"]}
+    }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-algorithms", "AlgorithmSummaryList")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("AlgorithmName"),
@@ -641,6 +644,16 @@ class AwsSagemakerAlgorithm(AwsResource):
             if algorithm_description:
                 algorithm_instance = AwsSagemakerAlgorithm.from_api(algorithm_description)
                 builder.add_node(algorithm_instance, algorithm_description)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if self.algorithm_validation_specification and self.algorithm_validation_specification.validation_role:
+            builder.dependant_node(
+                self,
+                reverse=True,
+                delete_same_as_default=True,
+                clazz=AwsIamRole,
+                arn=self.algorithm_validation_specification.validation_role,
+            )
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
