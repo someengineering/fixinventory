@@ -6,7 +6,7 @@
             "CreationTime": "2015-01-01T00:00:00Z",
             "LastModifiedTime": "2015-01-01T00:00:00Z",
             "GitConfig": {
-                "RepositoryUrl": "string",
+                "RepositoryUrl": "some.url",
                 "Branch": "string",
                 "SecretArn": "string"
             }

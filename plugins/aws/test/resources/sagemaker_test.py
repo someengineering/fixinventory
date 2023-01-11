@@ -89,6 +89,7 @@ def test_trials() -> None:
 def test_repos() -> None:
     first, builder = round_trip_for(AwsSagemakerCodeRepository)
     assert len(builder.resources_of(AwsSagemakerCodeRepository)) == 1
+    assert first.code_repository_url == "some.url"
 
 
 def test_endpoint() -> None:
