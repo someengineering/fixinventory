@@ -1,6 +1,6 @@
 from datetime import datetime
 from attrs import define, field
-from typing import ClassVar, Dict, List, Optional, Type
+from typing import Any, ClassVar, Dict, List, Optional, Type
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
 from resoto_plugin_aws.resource.ec2 import AwsEc2NetworkInterface, AwsEc2SecurityGroup, AwsEc2Subnet
@@ -11,6 +11,14 @@ from resoto_plugin_aws.utils import ToDict
 from resotolib.baseresources import ModelReference
 from resotolib.json_bender import S, Bend, Bender, ForallBend, bend
 from resotolib.types import Json
+
+
+def attribute_exists(obj: Any, attributes: List[str]) -> bool:
+    if not hasattr(obj, attributes[0]):
+        return False
+    if len(attributes) == 1:
+        return True
+    return attribute_exists(obj=getattr(obj, attributes[0]), attributes=attributes[1:])
 
 
 class SagemakerTaggable:
@@ -151,7 +159,9 @@ class AwsSagemakerNotebook(SagemakerTaggable, AwsResource):
             builder.dependant_node(self, clazz=AwsEc2NetworkInterface, id=self.notebook_network_interface_id)
         code_repos = [self.notebook_default_code_repository] + self.notebook_additional_code_repositories
         for repo in code_repos:
-            builder.add_edge(self, reverse=True, clazz=AwsSagemakerCodeRepository, name=repo)
+            builder.add_edge(
+                self, reverse=True, clazz=AwsSagemakerCodeRepository, name=repo
+            )  # TODO check if name or url
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
@@ -880,9 +890,11 @@ class AwsSagemakerJupyterServerAppSettings:
     mapping: ClassVar[Dict[str, Bender]] = {
         "default_resource_spec": S("DefaultResourceSpec") >> Bend(AwsSagemakerResourceSpec.mapping),
         "lifecycle_config_arns": S("LifecycleConfigArns", default=[]),
+        "code_repositories": S("CodeRepositories", default=[]),
     }
     default_resource_spec: Optional[AwsSagemakerResourceSpec] = field(default=None)
     lifecycle_config_arns: List[str] = field(factory=list)
+    code_repositories: List[Dict[str, str]] = field(factory=list)
 
 
 @define(eq=False, slots=False)
@@ -1095,6 +1107,59 @@ class AwsSagemakerDomain(AwsResource):
                 domain_instance = AwsSagemakerDomain.from_api(domain_description)
                 builder.add_node(domain_instance, domain_description)
 
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        # maybe write a mypy-friendly wrapper function for this sh**?
+        # if self.domain_default_user_settings.sharing_settings and self.domain_default_user_settings.sharing_settings.s3_output_path:
+        if attribute_exists(self, ["domain_default_user_settings", "sharing_settings", "s3_output_path"]):
+            builder.add_edge(
+                self, clazz=AwsS3Bucket, name=self.domain_default_user_settings.sharing_settings.s3_output_path
+            )  # TODO path != name
+
+    #     associated_roles = []
+    #     associated_keys = []
+    #     associated_images = []
+    #     associated_repositories = []
+    #     associated_security_groups = []
+
+    #     if self.domain_default_user_settings:
+    #         associated_roles.append(self.domain_default_user_settings.execution_role)
+    #         associated_roles.append(self.domain_default_user_settings.canvas_app_settings.time_series_forecasting_settings.amazon_forecast_role_arn)
+    #         associated_keys.append(self.domain_default_user_settings.sharing_settings.s3_kms_key_id)
+    #         associated_images.append(self.domain_default_user_settings.jupyter_server_app_settings.default_resource_spec.sage_maker_image_arn)
+    #         associated_images.append(self.domain_default_user_settings.kernel_gateway_app_settings.default_resource_spec.sage_maker_image_arn)
+    #         associated_images.append(self.domain_default_user_settings.tensor_board_app_settings.default_resource_spec.sage_maker_image_arn)
+    #         associated_images.append(self.domain_default_user_settings.r_session_app_settings.default_resource_spec.sage_maker_image_arn)
+    #         associated_repositories += self.domain_default_user_settings.jupyter_server_app_settings.code_repositories
+    #         associated_security_groups += self.domain_default_user_settings.security_groups
+
+    #     if self.domain_settings:
+    #         associated_roles.append(self.domain_settings.r_studio_server_pro_domain_settings.domain_execution_role_arn)
+    #         associated_images.append(self.domain_settings.r_studio_server_pro_domain_settings.default_resource_spec.sage_maker_image_arn)
+
+    #     if self.domain_default_space_settings:
+    #         associated_roles.append(self.domain_default_space_settings.execution_role)
+    #         associated_images.append(self.domain_default_space_settings.jupyter_server_app_settings.default_resource_spec.sage_maker_image_arn)
+    #         associated_images.append(self.domain_default_space_settings.kernel_gateway_app_settings.default_resource_spec.sage_maker_image_arn)
+    #         associated_repositories += self.domain_default_space_settings.jupyter_server_app_settings.code_repositories
+    #         associated_security_groups += self.domain_default_space_settings.security_groups
+
+    #     for role in associated_roles:
+    #         builder.dependant_node(self, reverse=True, clazz=AwsIamRole, arn=role)
+
+    #     for image in associated_images:
+    #         builder.add_edge(self, clazz=AwsSagemakerImage, arn=image)
+
+    #     associated_keys.append(self.domain_home_efs_file_system_kms_key_id)
+    #     associated_keys.append(self.domain_kms_key_id)
+    #     for key in associated_keys:
+    #         builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(key))
+
+    #     for url in [repo["RepositoryUrl"] for repo in associated_repositories]:
+    #         builder.add_edge(self, reverse=True, clazz=AwsSagemakerCodeRepository, code_repository_url=url)
+
+    #     for security_group in associated_security_groups:
+    #         builder.dependant_node(self, reverse=True, clazz=AwsEc2SecurityGroup, id=security_group)
+
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(aws_service=self.api_spec.service, action="delete-domain", result_name=None, DomainId=self.id)
         return True
@@ -1217,7 +1282,6 @@ class AwsSagemakerTrial(AwsResource):
 class AwsSagemakerGitConfig:
     kind: ClassVar[str] = "aws_sagemaker_git_config"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "repository_url": S("RepositoryUrl"),
         "branch": S("Branch"),
         "secret_arn": S("SecretArn"),
     }
@@ -1236,6 +1300,7 @@ class AwsSagemakerCodeRepository(AwsResource):
         "ctime": S("CreationTime"),
         "mtime": S("LastModifiedTime"),
         "arn": S("CodeRepositoryArn"),
+        "code_repository_url": S("GitConfig", "RepositoryUrl"),
         "code_repository_git_config": S("GitConfig") >> Bend(AwsSagemakerGitConfig.mapping),
     }
     code_repository_git_config: Optional[AwsSagemakerGitConfig] = field(default=None)
