@@ -1385,6 +1385,10 @@ class AwsSagemakerProject(AwsResource):
     arn: Optional[str] = field(default=None)
     project_status: Optional[str] = field(default=None)
 
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(aws_service=self.api_spec.service, action="delete-project", result_name=None, ProjectName=self.name)
+        return True
+
 
 @define(eq=False, slots=False)
 class AwsSagemakerGitConfig:
