@@ -1956,6 +1956,7 @@ class AwsSagemakerArtifact(AwsResource):
 @define(eq=False, slots=False)
 class AwsSagemakerUserProfile(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_user_profile"
+    reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["aws_sagemaker_domain"]}}
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-user-profiles", "UserProfiles")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("UserProfileName"),
@@ -1967,6 +1968,10 @@ class AwsSagemakerUserProfile(AwsResource):
     }
     user_profile_domain_id: Optional[str] = field(default=None)
     user_profile_status: Optional[str] = field(default=None)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if self.user_profile_domain_id:
+            builder.add_edge(self, reverse=True, clazz=AwsSagemakerDomain, id=self.user_profile_domain_id)
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
