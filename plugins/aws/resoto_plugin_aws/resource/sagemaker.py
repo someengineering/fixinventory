@@ -1043,6 +1043,22 @@ class AwsSagemakerDefaultSpaceSettings:
 @define(eq=False, slots=False)
 class AwsSagemakerDomain(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_domain"
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {
+            "default": [
+                "aws_iam_role",
+                "aws_ec2_subnet",
+                "aws_ec2_security_group",
+                "aws_sagemaker_code_repository",
+                "aws_ec2_vpc",
+            ],
+            "delete": ["aws_iam_role", "aws_ec2_vpc", "aws_kms_key"],
+        },
+        "successors": {
+            "default": ["aws_s3_bucket", "aws_sagemaker_image", "aws_kms_key"],
+            "delete": ["aws_ec2_subnet", "aws_ec2_security_group"],
+        },
+    }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-domains", "Domains")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("DomainId"),
@@ -1105,13 +1121,17 @@ class AwsSagemakerDomain(AwsResource):
         if dus := self.domain_default_user_settings:
             if dus.execution_role:
                 builder.dependant_node(
-                    self, reverse=True, clazz=AwsIamRole, arn=self.domain_default_user_settings.execution_role
+                    self,
+                    reverse=True,
+                    delete_same_as_default=True,
+                    clazz=AwsIamRole,
+                    arn=self.domain_default_user_settings.execution_role,
                 )
             for security_group in dus.security_groups:
                 builder.dependant_node(self, reverse=True, clazz=AwsEc2SecurityGroup, id=security_group)
             if shs := dus.sharing_settings:
                 if shs.s3_output_path:
-                    builder.add_edge(self, clazz=AwsS3Bucket, name=shs.s3_output_path)
+                    builder.add_edge(self, clazz=AwsS3Bucket, name=shs.s3_output_path)  # TODO path != name
             if jup := dus.jupyter_server_app_settings:
                 if drs := jup.default_resource_spec:
                     if drs.sage_maker_image_arn:
@@ -1133,7 +1153,13 @@ class AwsSagemakerDomain(AwsResource):
             if cas := dus.canvas_app_settings:
                 if tsf := cas.time_series_forecasting_settings:
                     if tsf.amazon_forecast_role_arn:
-                        builder.dependant_node(self, reverse=True, clazz=AwsIamRole, arn=tsf.amazon_forecast_role_arn)
+                        builder.dependant_node(
+                            self,
+                            reverse=True,
+                            delete_same_as_default=True,
+                            clazz=AwsIamRole,
+                            arn=tsf.amazon_forecast_role_arn,
+                        )
 
         if self.domain_home_efs_file_system_kms_key_id:
             builder.dependant_node(
@@ -1153,14 +1179,22 @@ class AwsSagemakerDomain(AwsResource):
                 builder.dependant_node(self, reverse=True, clazz=AwsEc2SecurityGroup, id=security_group)
             if rss := ds.r_studio_server_pro_domain_settings:
                 if rss.domain_execution_role_arn:
-                    builder.dependant_node(self, reverse=True, clazz=AwsIamRole, arn=rss.domain_execution_role_arn)
+                    builder.dependant_node(
+                        self,
+                        reverse=True,
+                        delete_same_as_default=True,
+                        clazz=AwsIamRole,
+                        arn=rss.domain_execution_role_arn,
+                    )
                 if drs := rss.default_resource_spec:
                     if drs.sage_maker_image_arn:
                         builder.add_edge(self, clazz=AwsSagemakerImage, arn=drs.sage_maker_image_arn)
 
         if dss := self.domain_default_space_settings:
             if dss.execution_role:
-                builder.dependant_node(self, reverse=True, clazz=AwsIamRole, arn=dss.execution_role)
+                builder.dependant_node(
+                    self, reverse=True, delete_same_as_default=True, clazz=AwsIamRole, arn=dss.execution_role
+                )
             for security_group in dss.security_groups:
                 builder.dependant_node(self, reverse=True, clazz=AwsEc2SecurityGroup, id=security_group)
             if jup := dss.jupyter_server_app_settings:
