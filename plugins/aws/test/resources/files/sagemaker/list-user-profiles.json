@@ -2,7 +2,7 @@
     "UserProfiles": [
         {
             "DomainId": "string",
-            "UserProfileName": "string",
+            "UserProfileName": "SomeUser",
             "Status": "InService",
             "CreationTime": "2015-01-01T00:00:00Z",
             "LastModifiedTime": "2015-01-01T00:00:00Z"

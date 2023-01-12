@@ -91,6 +91,7 @@ def test_projects() -> None:
     first, builder = round_trip_for(AwsSagemakerProject)
     assert len(builder.resources_of(AwsSagemakerProject)) == 1
 
+
 def test_repos() -> None:
     first, builder = round_trip_for(AwsSagemakerCodeRepository)
     assert len(builder.resources_of(AwsSagemakerCodeRepository)) == 1

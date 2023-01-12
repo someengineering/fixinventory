@@ -23,6 +23,6 @@
         "CommitId": "string",
         "Repository": "string",
         "GeneratedBy": "string",
-        "ProjectId": "string"
+        "ProjectId": "12345"
     }
 }

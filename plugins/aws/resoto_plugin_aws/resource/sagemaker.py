@@ -1254,6 +1254,17 @@ class AwsSagemakerMetadataProperties:
 @define(eq=False, slots=False)
 class AwsSagemakerTrial(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_trial"
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {
+            "default": [
+                "aws_sagemaker_experiment",
+                "aws_sagemaker_user_profile",
+                "aws_sagemaker_domain",
+                "aws_sagemaker_code_repository",
+                "aws_sagemaker_project",
+            ],
+        }
+    }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-trials", "TrialSummaries")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("TrialName"),
@@ -1292,6 +1303,30 @@ class AwsSagemakerTrial(AwsResource):
                 trial_instance = AwsSagemakerTrial.from_api(trial_description)
                 builder.add_node(trial_instance, trial_description)
 
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if self.trial_experiment_name:
+            builder.add_edge(self, reverse=True, clazz=AwsSagemakerExperiment, name=self.trial_experiment_name)
+        # if s:=self.trial_source:
+        #     if s.source_arn:
+        #         builder.add_edge() TODO same as in experiment
+        if c := self.trial_created_by:
+            if c.user_profile_arn:
+                builder.add_edge(self, reverse=True, clazz=AwsSagemakerUserProfile, arn=c.user_profile_arn)
+            if c.domain_id:
+                builder.add_edge(self, reverse=True, clazz=AwsSagemakerDomain, id=c.domain_id)
+        if m := self.trial_last_modified_by:
+            if m.user_profile_arn:
+                builder.add_edge(self, reverse=True, clazz=AwsSagemakerUserProfile, arn=m.user_profile_arn)
+            if m.domain_id:
+                builder.add_edge(self, reverse=True, clazz=AwsSagemakerDomain, id=m.domain_id)
+        if meta := self.trial_metadata_properties:
+            if meta.repository:
+                builder.add_edge(
+                    self, reverse=True, clazz=AwsSagemakerCodeRepository, name=meta.repository
+                )  # TODO find out if this is name or url
+            if meta.project_id:
+                builder.add_edge(self, reverse=True, clazz=AwsSagemakerProject, id=meta.project_id)
+
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(aws_service=self.api_spec.service, action="delete-trial", result_name=None, TrialName=self.name)
         return True
@@ -1307,7 +1342,7 @@ class AwsSagemakerProject(AwsResource):
         "ctime": S("CreationTime"),
         "project_description": S("ProjectDescription"),
         "arn": S("ProjectArn"),
-        "project_status": S("ProjectStatus")
+        "project_status": S("ProjectStatus"),
     }
     project_description: Optional[str] = field(default=None)
     arn: Optional[str] = field(default=None)
