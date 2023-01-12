@@ -1882,6 +1882,16 @@ class AwsSagemakerArtifactSource:
 @define(eq=False, slots=False)
 class AwsSagemakerArtifact(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_artifact"
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {
+            "default": [
+                "aws_sagemaker_user_profile",
+                "aws_sagemaker_domain",
+                "aws_sagemaker_code_repository",
+                "aws_sagemaker_project",
+            ],
+        }
+    }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-artifacts", "ArtifactSummaries")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("ArtifactName"),
@@ -1918,6 +1928,25 @@ class AwsSagemakerArtifact(AwsResource):
             if artifact_description:
                 artifact_instance = AwsSagemakerArtifact.from_api(artifact_description)
                 builder.add_node(artifact_instance, artifact_description)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if c := self.artifact_created_by:
+            if c.user_profile_arn:
+                builder.add_edge(self, reverse=True, clazz=AwsSagemakerUserProfile, arn=c.user_profile_arn)
+            if c.domain_id:
+                builder.add_edge(self, reverse=True, clazz=AwsSagemakerDomain, id=c.domain_id)
+        if m := self.artifact_last_modified_by:
+            if m.user_profile_arn:
+                builder.add_edge(self, reverse=True, clazz=AwsSagemakerUserProfile, arn=m.user_profile_arn)
+            if m.domain_id:
+                builder.add_edge(self, reverse=True, clazz=AwsSagemakerDomain, id=m.domain_id)
+        if meta := self.artifact_metadata_properties:
+            if meta.repository:
+                builder.add_edge(
+                    self, reverse=True, clazz=AwsSagemakerCodeRepository, name=meta.repository
+                )  # TODO check if name or url
+            if meta.project_id:
+                builder.add_edge(self, reverse=True, clazz=AwsSagemakerProject, id=meta.project_id)
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(aws_service=self.api_spec.service, action="delete-artifact", result_name=None, ArtifactArn=self.arn)
