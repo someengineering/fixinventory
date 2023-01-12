@@ -1812,6 +1812,12 @@ class AwsSagemakerEndpoint(SagemakerTaggable, AwsResource):
 @define(eq=False, slots=False)
 class AwsSagemakerImage(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_image"
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {
+            "default": ["aws_iam_role"],
+            "delete": ["aws_iam_role"],
+        }
+    }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-images", "Images")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("ImageName"),
@@ -1842,6 +1848,12 @@ class AwsSagemakerImage(AwsResource):
             if image_description:
                 image_instance = AwsSagemakerImage.from_api(image_description)
                 builder.add_node(image_instance, image_description)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if self.image_role_arn:
+            builder.dependant_node(
+                self, reverse=True, delete_same_as_default=True, clazz=AwsIamRole, arn=self.image_role_arn
+            )
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(aws_service=self.api_spec.service, action="delete-image", result_name=None, ImageName=self.name)
