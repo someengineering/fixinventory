@@ -846,6 +846,7 @@ models: Dict[str, List[AwsResotoModel]] = {
         #     "Sagemaker",
         #     "labeling_job_"
         # ),
+        # AwsResotoModel("list-projects", "ProjectSummaryList", "ProjectSummary", "Sagemaker", "project_")
         # AwsResotoModel(
         #     "list-processing-jobs",
         #     "ProcessingJobSummaries",

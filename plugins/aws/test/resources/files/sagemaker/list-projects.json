@@ -1,0 +1,13 @@
+{
+    "ProjectSummaryList": [
+        {
+            "ProjectName": "SomeProject",
+            "ProjectDescription": "string",
+            "ProjectArn": "SomeProjectArn",
+            "ProjectId": "12345",
+            "CreationTime": "2015-01-01T00:00:00Z",
+            "ProjectStatus": "Pending"
+        }
+    ],
+    "NextToken": "string"
+}

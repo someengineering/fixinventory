@@ -10,6 +10,7 @@ from resoto_plugin_aws.resource.sagemaker import (
     AwsSagemakerDomain,
     AwsSagemakerExperiment,
     AwsSagemakerTrial,
+    AwsSagemakerProject,
     AwsSagemakerCodeRepository,
     AwsSagemakerEndpoint,
     AwsSagemakerImage,
@@ -85,6 +86,10 @@ def test_trials() -> None:
     first, builder = round_trip_for(AwsSagemakerTrial)
     assert len(builder.resources_of(AwsSagemakerTrial)) == 1
 
+
+def test_projects() -> None:
+    first, builder = round_trip_for(AwsSagemakerProject)
+    assert len(builder.resources_of(AwsSagemakerProject)) == 1
 
 def test_repos() -> None:
     first, builder = round_trip_for(AwsSagemakerCodeRepository)

@@ -1203,6 +1203,11 @@ class AwsSagemakerExperiment(AwsResource):
     experiment_display_name: Optional[str] = field(default=None)
     experiment_source: Optional[AwsSagemakerExperimentSource] = field(default=None)
 
+    # def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+    #     if s:=self.experiment_source:
+    #         if s.source_arn:
+    #             builder.add_edge() TODO find out which kind of resource this is. A kind of job?
+
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
             aws_service=self.api_spec.service, action="delete-experiment", result_name=None, ExperimentName=self.name
@@ -1290,6 +1295,23 @@ class AwsSagemakerTrial(AwsResource):
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(aws_service=self.api_spec.service, action="delete-trial", result_name=None, TrialName=self.name)
         return True
+
+
+@define(eq=False, slots=False)
+class AwsSagemakerProject(AwsResource):
+    kind: ClassVar[str] = "aws_sagemaker_project"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-projects", "ProjectSummaryList")
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("ProjectId"),
+        "name": S("ProjectName"),
+        "ctime": S("CreationTime"),
+        "project_description": S("ProjectDescription"),
+        "arn": S("ProjectArn"),
+        "project_status": S("ProjectStatus")
+    }
+    project_description: Optional[str] = field(default=None)
+    arn: Optional[str] = field(default=None)
+    project_status: Optional[str] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -3974,6 +3996,7 @@ resources: List[Type[AwsResource]] = [
     AwsSagemakerDomain,
     AwsSagemakerExperiment,
     AwsSagemakerTrial,
+    AwsSagemakerProject,
     AwsSagemakerCodeRepository,
     AwsSagemakerEndpoint,
     AwsSagemakerImage,
