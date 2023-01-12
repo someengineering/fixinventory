@@ -4,6 +4,7 @@ from typing import ClassVar, Dict, List, Optional, Type
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
 from resoto_plugin_aws.resource.cloudwatch import AwsCloudwatchAlarm
+from resoto_plugin_aws.resource.cognito import AwsCognitoGroup, AwsCognitoUserPool
 from resoto_plugin_aws.resource.ec2 import AwsEc2NetworkInterface, AwsEc2SecurityGroup, AwsEc2Subnet, AwsEc2Vpc
 from resoto_plugin_aws.resource.iam import AwsIamRole
 from resoto_plugin_aws.resource.kms import AwsKmsKey
@@ -2090,6 +2091,11 @@ class AwsSagemakerMemberDefinition:
 @define(eq=False, slots=False)
 class AwsSagemakerWorkteam(SagemakerTaggable, AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_workteam"
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["aws_cognito_user_pool", "aws_cognito_group", "aws_sns_topic"],
+        }
+    }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-workteams", "Workteams")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("WorkteamName"),
@@ -2122,6 +2128,16 @@ class AwsSagemakerWorkteam(SagemakerTaggable, AwsResource):
             workteam_instance = AwsSagemakerWorkteam.from_api(workteam)
             builder.add_node(workteam_instance, workteam)
             builder.submit_work(SagemakerTaggable.add_tags, workteam_instance, builder)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        for member in self.workteam_member_definitions:
+            if m := member.cognito_member_definition:
+                if m.user_pool:
+                    builder.add_edge(self, clazz=AwsCognitoUserPool, id=m.user_pool)  # TODO check if id or arn or name
+                if m.user_group:
+                    builder.add_edge(self, clazz=AwsCognitoGroup, id=m.user_group)  # TODO check if id or arn or name
+        if self.workteam_notification_configuration:
+            builder.add_edge(self, clazz=AwsSnsTopic, arn=self.workteam_notification_configuration)
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
