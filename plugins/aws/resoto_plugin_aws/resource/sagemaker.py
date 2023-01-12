@@ -1987,6 +1987,12 @@ class AwsSagemakerUserProfile(AwsResource):
 @define(eq=False, slots=False)
 class AwsSagemakerPipeline(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_pipeline"
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {
+            "default": ["aws_iam_role", "aws_sagemaker_user_profile", "aws_sagemaker_domain"],
+            "delete": ["aws_iam_role"],
+        }
+    }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-pipelines", "PipelineSummaries")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("PipelineName"),
@@ -2026,6 +2032,22 @@ class AwsSagemakerPipeline(AwsResource):
             if pipeline_description:
                 pipeline_instance = AwsSagemakerPipeline.from_api(pipeline_description)
                 builder.add_node(pipeline_instance, pipeline_description)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if self.pipeline_role_arn:
+            builder.dependant_node(
+                self, reverse=True, delete_same_as_default=True, clazz=AwsIamRole, arn=self.pipeline_role_arn
+            )
+        if c := self.pipeline_created_by:
+            if c.user_profile_arn:
+                builder.add_edge(self, reverse=True, clazz=AwsSagemakerUserProfile, arn=c.user_profile_arn)
+            if c.domain_id:
+                builder.add_edge(self, reverse=True, clazz=AwsSagemakerDomain, id=c.domain_id)
+        if m := self.pipeline_last_modified_by:
+            if m.user_profile_arn:
+                builder.add_edge(self, reverse=True, clazz=AwsSagemakerUserProfile, arn=m.user_profile_arn)
+            if m.domain_id:
+                builder.add_edge(self, reverse=True, clazz=AwsSagemakerDomain, id=m.domain_id)
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
