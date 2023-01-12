@@ -3,7 +3,7 @@ from attrs import define, field
 from typing import Any, ClassVar, Dict, List, Optional, Type
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
-from resoto_plugin_aws.resource.ec2 import AwsEc2NetworkInterface, AwsEc2SecurityGroup, AwsEc2Subnet
+from resoto_plugin_aws.resource.ec2 import AwsEc2NetworkInterface, AwsEc2SecurityGroup, AwsEc2Subnet, AwsEc2Vpc
 from resoto_plugin_aws.resource.iam import AwsIamRole
 from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resoto_plugin_aws.resource.s3 import AwsS3Bucket
@@ -11,14 +11,21 @@ from resoto_plugin_aws.utils import ToDict
 from resotolib.baseresources import ModelReference
 from resotolib.json_bender import S, Bend, Bender, ForallBend, bend
 from resotolib.types import Json
+from resotolib.json import value_in_path
 
 
-def attribute_exists(obj: Any, attributes: List[str]) -> bool:
-    if not hasattr(obj, attributes[0]):
-        return False
-    if len(attributes) == 1:
-        return True
-    return attribute_exists(obj=getattr(obj, attributes[0]), attributes=attributes[1:])
+def property_in_path(element: Any, path: List[str]) -> Optional[Any]:
+    at = len(path)
+
+    def at_idx(current: Any, idx: int) -> Optional[Any]:
+        if at == idx:
+            return current
+        elif current is None or not hasattr(current, path[idx]):
+            return None
+        else:
+            return at_idx(getattr(current, path[idx]), idx + 1)
+
+    return at_idx(element, 0)
 
 
 class SagemakerTaggable:
@@ -657,13 +664,13 @@ class AwsSagemakerAlgorithm(AwsResource):
                 builder.add_node(algorithm_instance, algorithm_description)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if self.algorithm_validation_specification and self.algorithm_validation_specification.validation_role:
+        if (prop := property_in_path(self, ["algorithm_validation_specification", "validation_role"])) is not None:
             builder.dependant_node(
                 self,
                 reverse=True,
                 delete_same_as_default=True,
                 clazz=AwsIamRole,
-                arn=self.algorithm_validation_specification.validation_role,
+                arn=prop,
             )
 
     def delete_resource(self, client: AwsClient) -> bool:
@@ -855,8 +862,8 @@ class AwsSagemakerApp(AwsResource):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.app_domain_id:
             builder.add_edge(self, reverse=True, clazz=AwsSagemakerDomain, id=self.app_domain_id)
-        if self.app_resource_spec and self.app_resource_spec.sage_maker_image_arn:
-            builder.add_edge(self, clazz=AwsSagemakerImage, arn=self.app_resource_spec.sage_maker_image_arn)
+        if (prop := property_in_path(self, ["app_resource_spec", "sage_maker_image_arn"])) is not None:
+            builder.add_edge(self, clazz=AwsSagemakerImage, arn=prop)
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
@@ -1108,57 +1115,122 @@ class AwsSagemakerDomain(AwsResource):
                 builder.add_node(domain_instance, domain_description)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        # maybe write a mypy-friendly wrapper function for this sh**?
-        # if self.domain_default_user_settings.sharing_settings and self.domain_default_user_settings.sharing_settings.s3_output_path:
-        if attribute_exists(self, ["domain_default_user_settings", "sharing_settings", "s3_output_path"]):
-            builder.add_edge(
-                self, clazz=AwsS3Bucket, name=self.domain_default_user_settings.sharing_settings.s3_output_path
-            )  # TODO path != name
+        if self.domain_default_user_settings:
+            if self.domain_default_user_settings.execution_role:
+                builder.dependant_node(
+                    self, reverse=True, clazz=AwsIamRole, arn=self.domain_default_user_settings.execution_role
+                )
+            for security_group in self.domain_default_user_settings.security_groups:
+                builder.dependant_node(self, reverse=True, clazz=AwsEc2SecurityGroup, id=security_group)
+            if (
+                prop := property_in_path(self.domain_default_user_settings, ["sharing_settings", "s3_output_path"])
+            ) is not None:
+                builder.add_edge(self, clazz=AwsS3Bucket, name=prop)  # TODO path != name
+            if (
+                prop := property_in_path(self.domain_default_user_settings, ["sharing_settings", "s3_kms_key_id"])
+            ) is not None:
+                builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(prop))
+            if (
+                prop := property_in_path(
+                    self.domain_default_user_settings,
+                    ["jupyter_server_app_settings", "default_resource_spec", "sage_maker_image_arn"],
+                )
+            ) is not None:
+                builder.add_edge(self, clazz=AwsSagemakerImage, arn=prop)
+            if (
+                list_of_props := property_in_path(
+                    self.domain_default_user_settings, ["jupyter_server_app_settings", "code_repositories"]
+                )
+            ) is not []:
+                for url in [repo["RepositoryUrl"] for repo in list_of_props]:
+                    builder.add_edge(self, reverse=True, clazz=AwsSagemakerCodeRepository, code_repository_url=url)
+            if (
+                prop := property_in_path(
+                    self.domain_default_user_settings,
+                    ["kernel_gateway_app_settings", "default_resource_spec", "sage_maker_image_arn"],
+                )
+            ) is not None:
+                builder.add_edge(self, clazz=AwsSagemakerImage, arn=prop)
+            if (
+                prop := property_in_path(
+                    self.domain_default_user_settings,
+                    ["tensor_board_app_settings", "default_resource_spec", "sage_maker_image_arn"],
+                )
+            ) is not None:
+                builder.add_edge(self, clazz=AwsSagemakerImage, arn=prop)
+            if (
+                prop := property_in_path(
+                    self.domain_default_user_settings,
+                    ["r_session_app_settings", "default_resource_spec", "sage_maker_image_arn"],
+                )
+            ) is not None:
+                builder.add_edge(self, clazz=AwsSagemakerImage, arn=prop)
+            if (
+                prop := property_in_path(
+                    self.domain_default_user_settings,
+                    ["canvas_app_settings", "time_series_forecasting_settings", "amazon_forecast_role_arn"],
+                )
+            ) is not None:
+                builder.dependant_node(self, reverse=True, clazz=AwsIamRole, arn=prop)
 
-    #     associated_roles = []
-    #     associated_keys = []
-    #     associated_images = []
-    #     associated_repositories = []
-    #     associated_security_groups = []
+        if self.domain_home_efs_file_system_kms_key_id:
+            builder.dependant_node(
+                self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(self.domain_home_efs_file_system_kms_key_id)
+            )
+        for subnet in self.domain_subnet_ids:
+            builder.dependant_node(self, reverse=True, clazz=AwsEc2Subnet, id=subnet)
+        if self.domain_vpc_id:
+            builder.dependant_node(
+                self, reverse=True, delete_same_as_default=True, clazz=AwsEc2Vpc, id=self.domain_vpc_id
+            )
+        if self.domain_kms_key_id:
+            builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(self.domain_kms_key_id))
 
-    #     if self.domain_default_user_settings:
-    #         associated_roles.append(self.domain_default_user_settings.execution_role)
-    #         associated_roles.append(self.domain_default_user_settings.canvas_app_settings.time_series_forecasting_settings.amazon_forecast_role_arn)
-    #         associated_keys.append(self.domain_default_user_settings.sharing_settings.s3_kms_key_id)
-    #         associated_images.append(self.domain_default_user_settings.jupyter_server_app_settings.default_resource_spec.sage_maker_image_arn)
-    #         associated_images.append(self.domain_default_user_settings.kernel_gateway_app_settings.default_resource_spec.sage_maker_image_arn)
-    #         associated_images.append(self.domain_default_user_settings.tensor_board_app_settings.default_resource_spec.sage_maker_image_arn)
-    #         associated_images.append(self.domain_default_user_settings.r_session_app_settings.default_resource_spec.sage_maker_image_arn)
-    #         associated_repositories += self.domain_default_user_settings.jupyter_server_app_settings.code_repositories
-    #         associated_security_groups += self.domain_default_user_settings.security_groups
+        if self.domain_settings:
+            for security_group in self.domain_settings.security_group_ids:
+                builder.dependant_node(self, reverse=True, clazz=AwsEc2SecurityGroup, id=security_group)
+            if (
+                prop := property_in_path(
+                    self.domain_settings, ["r_studio_server_pro_domain_settings", "domain_execution_role_arn"]
+                )
+            ) is not None:
+                builder.dependant_node(self, reverse=True, clazz=AwsIamRole, arn=prop)
+            if (
+                prop := property_in_path(
+                    self.domain_settings,
+                    ["r_studio_server_pro_domain_settings", "default_resource_spec", "sage_maker_image_arn"],
+                )
+            ) is not None:
+                builder.add_edge(self, clazz=AwsSagemakerImage, arn=prop)
 
-    #     if self.domain_settings:
-    #         associated_roles.append(self.domain_settings.r_studio_server_pro_domain_settings.domain_execution_role_arn)
-    #         associated_images.append(self.domain_settings.r_studio_server_pro_domain_settings.default_resource_spec.sage_maker_image_arn)
-
-    #     if self.domain_default_space_settings:
-    #         associated_roles.append(self.domain_default_space_settings.execution_role)
-    #         associated_images.append(self.domain_default_space_settings.jupyter_server_app_settings.default_resource_spec.sage_maker_image_arn)
-    #         associated_images.append(self.domain_default_space_settings.kernel_gateway_app_settings.default_resource_spec.sage_maker_image_arn)
-    #         associated_repositories += self.domain_default_space_settings.jupyter_server_app_settings.code_repositories
-    #         associated_security_groups += self.domain_default_space_settings.security_groups
-
-    #     for role in associated_roles:
-    #         builder.dependant_node(self, reverse=True, clazz=AwsIamRole, arn=role)
-
-    #     for image in associated_images:
-    #         builder.add_edge(self, clazz=AwsSagemakerImage, arn=image)
-
-    #     associated_keys.append(self.domain_home_efs_file_system_kms_key_id)
-    #     associated_keys.append(self.domain_kms_key_id)
-    #     for key in associated_keys:
-    #         builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(key))
-
-    #     for url in [repo["RepositoryUrl"] for repo in associated_repositories]:
-    #         builder.add_edge(self, reverse=True, clazz=AwsSagemakerCodeRepository, code_repository_url=url)
-
-    #     for security_group in associated_security_groups:
-    #         builder.dependant_node(self, reverse=True, clazz=AwsEc2SecurityGroup, id=security_group)
+        if self.domain_default_space_settings:
+            if self.domain_default_space_settings.execution_role:
+                builder.dependant_node(
+                    self, reverse=True, clazz=AwsIamRole, arn=self.domain_default_space_settings.execution_role
+                )
+            for security_group in self.domain_default_space_settings.security_groups:
+                builder.dependant_node(self, reverse=True, clazz=AwsEc2SecurityGroup, id=security_group)
+            if (
+                prop := property_in_path(
+                    self.domain_default_space_settings,
+                    ["jupyter_server_app_settings", "default_resource_spec", "sage_maker_image_arn"],
+                )
+            ) is not None:
+                builder.add_edge(self, clazz=AwsSagemakerImage, arn=prop)
+            if (
+                list_of_props := property_in_path(
+                    self.domain_default_space_settings, ["jupyter_server_app_settings", "code_repositories"]
+                )
+            ) is not []:
+                for url in [repo["RepositoryUrl"] for repo in list_of_props]:
+                    builder.add_edge(self, reverse=True, clazz=AwsSagemakerCodeRepository, code_repository_url=url)
+            if (
+                prop := property_in_path(
+                    self.domain_default_space_settings,
+                    ["kernel_gateway_app_settings", "default_resource_spec", "sage_maker_image_arn"],
+                )
+            ) is not None:
+                builder.add_edge(self, clazz=AwsSagemakerImage, arn=prop)
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(aws_service=self.api_spec.service, action="delete-domain", result_name=None, DomainId=self.id)
