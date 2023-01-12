@@ -3,10 +3,12 @@ from attrs import define, field
 from typing import ClassVar, Dict, List, Optional, Type
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
+from resoto_plugin_aws.resource.cloudwatch import AwsCloudwatchAlarm
 from resoto_plugin_aws.resource.ec2 import AwsEc2NetworkInterface, AwsEc2SecurityGroup, AwsEc2Subnet, AwsEc2Vpc
 from resoto_plugin_aws.resource.iam import AwsIamRole
 from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resoto_plugin_aws.resource.s3 import AwsS3Bucket
+from resoto_plugin_aws.resource.sns import AwsSnsTopic
 from resoto_plugin_aws.utils import ToDict
 from resotolib.baseresources import ModelReference
 from resotolib.json_bender import S, Bend, Bender, ForallBend, bend
@@ -1726,6 +1728,14 @@ class AwsSagemakerExplainerConfig:
 @define(eq=False, slots=False)
 class AwsSagemakerEndpoint(SagemakerTaggable, AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_endpoint"
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {
+            "delete": ["aws_kms_key"],
+        },
+        "successors": {
+            "default": ["aws_kms_key", "aws_s3_bucket", "aws_cloudwatch_alarm", "aws_sns_topic"],
+        },
+    }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-endpoints", "Endpoints")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("EndpointName"),
@@ -1769,6 +1779,28 @@ class AwsSagemakerEndpoint(SagemakerTaggable, AwsResource):
                 endpoint_instance = AwsSagemakerEndpoint.from_api(endpoint_description)
                 builder.add_node(endpoint_instance, endpoint_description)
                 builder.submit_work(SagemakerTaggable.add_tags, endpoint_instance, builder)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if dcc := self.endpoint_data_capture_config:
+            if dcc.destination_s3_uri:
+                builder.add_edge(self, clazz=AwsS3Bucket, name=dcc.destination_s3_uri)  # TODO name != uri
+            if dcc.kms_key_id:
+                builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(dcc.kms_key_id))
+        if ldc := self.endpoint_last_deployment_config:
+            if arc := ldc.auto_rollback_configuration:
+                for alarm in arc.alarms:
+                    builder.add_edge(self, clazz=AwsCloudwatchAlarm, name=alarm)
+        if aic := self.endpoint_async_inference_config:
+            if oc := aic.output_config:
+                if oc.kms_key_id:
+                    builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(oc.kms_key_id))
+                if oc.s3_output_path:
+                    builder.add_edge(self, clazz=AwsS3Bucket, name=oc.s3_output_path)  # TODO name != path
+                if nc := oc.notification_config:
+                    if nc.success_topic:
+                        builder.add_edge(self, clazz=AwsSnsTopic, arn=nc.success_topic)
+                    if nc.error_topic:
+                        builder.add_edge(self, clazz=AwsSnsTopic, arn=nc.error_topic)
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
