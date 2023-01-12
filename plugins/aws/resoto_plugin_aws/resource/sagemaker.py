@@ -2377,6 +2377,22 @@ class AwsSagemakerModelDeployConfig:
 @define(eq=False, slots=False)
 class AwsSagemakerAutoMLJob(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_auto_ml_job"
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {
+            "default": ["aws_iam_role", "aws_ec2_security_group", "aws_ec2_subnet"],
+            "delete": ["aws_kms_key", "aws_iam_role"],
+        },
+        "successors": {
+            "default": [
+                "aws_s3_bucket",
+                "aws_kms_key",
+                "aws_sagemaker_training_job",
+                "aws_sagemaker_transform_job",
+                "aws_sagemaker_processing_job",
+            ],
+            "delete": ["aws_ec2_security_group", "aws_ec2_subnet"],
+        },
+    }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-auto-ml-jobs", "AutoMLJobSummaries")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("AutoMLJobName"),
@@ -2435,6 +2451,42 @@ class AwsSagemakerAutoMLJob(AwsResource):
             if job_description:
                 job_instance = AwsSagemakerAutoMLJob.from_api(job_description)
                 builder.add_node(job_instance, job_description)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        for config in self.auto_ml_job_input_data_config:
+            if cds := config.data_source:
+                if s3 := cds.s3_data_source:
+                    if s3.s3_uri:
+                        builder.add_edge(self, clazz=AwsS3Bucket, name=s3.s3_uri)  # TODO name != uri
+        if odc := self.auto_ml_job_output_data_config:
+            if odc.kms_key_id:
+                builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(odc.kms_key_id))
+            if odc.s3_output_path:
+                builder.add_edge(self, clazz=AwsS3Bucket, name=odc.s3_output_path)  # TODO name != path
+        if self.auto_ml_job_role_arn:
+            builder.dependant_node(
+                self, reverse=True, delete_same_as_default=True, clazz=AwsIamRole, arn=self.auto_ml_job_role_arn
+            )
+        if jc := self.auto_ml_job_config:
+            if sc := jc.security_config:
+                if sc.volume_kms_key_id:
+                    builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(sc.volume_kms_key_id))
+                if vpc := sc.vpc_config:
+                    for security_group in vpc.security_group_ids:
+                        builder.dependant_node(self, reverse=True, clazz=AwsEc2SecurityGroup, id=security_group)
+                    for subnet in vpc.subnets:
+                        builder.dependant_node(self, reverse=True, clazz=AwsEc2Subnet, id=subnet)
+            if jc.candidate_generation_config:
+                builder.add_edge(self, clazz=AwsS3Bucket, name=jc.candidate_generation_config)  # TODO name != uri
+        if bc := self.auto_ml_job_best_candidate:
+            for step in bc.candidate_steps:
+                if step.candidate_step_type and step.candidate_step_arn:
+                    if "TrainingJob" in step.candidate_step_type:
+                        builder.add_edge(self, clazz=AwsSagemakerTrainingJob, arn=step.candidate_step_arn)
+                    if "TransformJob" in step.candidate_step_type:
+                        builder.add_edge(self, clazz=AwsSagemakerTransformJob, arn=step.candidate_step_arn)
+                    if "ProcessingJob" in step.candidate_step_type:
+                        builder.add_edge(self, clazz=AwsSagemakerProcessingJob, arn=step.candidate_step_arn)
 
 
 @define(eq=False, slots=False)

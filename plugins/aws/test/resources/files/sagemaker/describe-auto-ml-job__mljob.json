@@ -70,8 +70,8 @@
         "CandidateSteps": [
             {
                 "CandidateStepType": "AWS::SageMaker::TrainingJob",
-                "CandidateStepArn": "string",
-                "CandidateStepName": "string"
+                "CandidateStepArn": "tjob_arn",
+                "CandidateStepName": "tjob"
             }
         ],
         "CandidateStatus": "Completed",

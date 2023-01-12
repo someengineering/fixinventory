@@ -1,6 +1,6 @@
 {
     "TrainingJobName": "tjob",
-    "TrainingJobArn": "string",
+    "TrainingJobArn": "tjob_arn",
     "TuningJobArn": "string",
     "LabelingJobArn": "string",
     "AutoMLJobArn": "string",
