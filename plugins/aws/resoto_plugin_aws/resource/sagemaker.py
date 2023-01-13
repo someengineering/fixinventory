@@ -3674,6 +3674,7 @@ class AwsSagemakerLabelingJob(SagemakerTaggable, AwsResource):
                 "aws_sagemaker_workteam",
             ],
             "delete": ["aws_kms_key", "aws_iam_role"],
+            # TODO lambda should have a dependency here, but it breaks the graph - investigate where circularity is being introduced
         },
         "successors": {
             "default": ["aws_s3_bucket", "aws_kms_key", "aws_sns_topic", "aws_lambda_function"],
@@ -3777,6 +3778,7 @@ class AwsSagemakerLabelingJob(SagemakerTaggable, AwsResource):
                     builder.add_edge(self, clazz=AwsS3Bucket, name=ui.ui_template_s3_uri)  # TODO uri != name
             if htc.pre_human_task_lambda_arn:
                 builder.add_edge(self, clazz=AwsLambdaFunction, arn=htc.pre_human_task_lambda_arn)
+                # TODO should be dependant_node, see reference_kinds
         if out := self.labeling_job_output:
             if out.output_dataset_s3_uri:
                 builder.add_edge(self, clazz=AwsS3Bucket, name=out.output_dataset_s3_uri)  # TODO uri != name
@@ -3987,6 +3989,22 @@ class AwsSagemakerExperimentConfig:
 @define(eq=False, slots=False)
 class AwsSagemakerProcessingJob(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_processing_job"
+    # reference_kinds: ClassVar[ModelReference] = {
+    #     "predecessors": {
+    #         "default": [
+    #             "aws_iam_role",
+    #             "aws_ec2_security_group",
+    #             "aws_ec2_subnet",
+    #             "aws_sagemaker_model",
+    #             "aws_sagemaker_workteam",
+    #         ],
+    #         "delete": ["aws_kms_key", "aws_iam_role"],
+    #     },
+    #     "successors": {
+    #         "default": ["aws_s3_bucket", "aws_kms_key", "aws_sns_topic", "aws_lambda_function"],
+    #         "delete": ["aws_ec2_security_group", "aws_ec2_subnet"],
+    #     },
+    # }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-processing-jobs", "ProcessingJobSummaries")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("ProcessingJobName"),
