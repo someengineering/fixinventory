@@ -102,7 +102,7 @@
                 "DataSource": {
                     "S3DataSource": {
                         "S3DataType": "AugmentedManifestFile",
-                        "S3Uri": "string",
+                        "S3Uri": "s3://bucketname/exampleprefix",
                         "S3DataDistributionType": "ShardedByS3Key",
                         "AttributeNames": [
                             "string"
@@ -137,7 +137,7 @@
         },
         "OutputDataConfig": {
             "KmsKeyId": "string",
-            "S3OutputPath": "string"
+            "S3OutputPath": "s3://bucket-name/key-name-prefix"
         },
         "ResourceConfig": {
             "InstanceType": "ml.m4.xlarge",

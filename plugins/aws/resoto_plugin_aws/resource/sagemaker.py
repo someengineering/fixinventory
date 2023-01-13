@@ -3028,6 +3028,16 @@ class AwsSagemakerHyperParameterTuningJobWarmStartConfig:
 @define(eq=False, slots=False)
 class AwsSagemakerHyperParameterTuningJob(SagemakerTaggable, AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_hyper_parameter_tuning_job"
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {
+            "default": ["aws_iam_role", "aws_ec2_security_group", "aws_ec2_subnet"],
+            "delete": ["aws_kms_key", "aws_iam_role"],
+        },
+        "successors": {
+            "default": ["aws_s3_bucket", "aws_kms_key", "aws_sagemaker_training_job"],
+            "delete": ["aws_ec2_security_group", "aws_ec2_subnet"],
+        },
+    }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         "sagemaker", "list-hyper-parameter-tuning-jobs", "HyperParameterTuningJobSummaries"
     )
@@ -3104,6 +3114,51 @@ class AwsSagemakerHyperParameterTuningJob(SagemakerTaggable, AwsResource):
                 job_instance = AwsSagemakerHyperParameterTuningJob.from_api(job_description)
                 builder.add_node(job_instance, job_description)
                 builder.submit_work(SagemakerTaggable.add_tags, job_instance, builder)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        job_definitions = []
+        if self.hyper_parameter_tuning_job_training_job_definition is not None:
+            job_definitions.append(self.hyper_parameter_tuning_job_training_job_definition)
+        for jobdef in self.hyper_parameter_tuning_job_training_job_definitions:
+            job_definitions.append(jobdef)
+        for jobdef in job_definitions:
+            if jobdef.role_arn:
+                builder.dependant_node(
+                    self, reverse=True, delete_same_as_default=True, clazz=AwsIamRole, arn=jobdef.role_arn
+                )
+            for config in jobdef.input_data_config:
+                if ids := config.data_source:
+                    if ids.s3_data_source:
+                        if ids.s3_data_source.s3_uri:
+                            builder.add_edge(
+                                self, clazz=AwsS3Bucket, name=ids.s3_data_source.s3_uri
+                            )  # TODO uri != name
+            if vpc := jobdef.vpc_config:
+                for security_group in vpc.security_group_ids:
+                    builder.dependant_node(self, reverse=True, clazz=AwsEc2SecurityGroup, id=security_group)
+                for subnet in vpc.subnets:
+                    builder.dependant_node(self, reverse=True, clazz=AwsEc2Subnet, id=subnet)
+            if odc := jobdef.output_data_config:
+                if odc.kms_key_id:
+                    builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(odc.kms_key_id))
+                if odc.s3_output_path:
+                    builder.add_edge(self, clazz=AwsS3Bucket, name=odc.s3_output_path)  # TODO uri != name
+            if rc := jobdef.resource_config:
+                if rc.volume_kms_key_id:
+                    builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(rc.volume_kms_key_id))
+            if cc := jobdef.checkpoint_config:
+                if cc.s3_uri:
+                    builder.add_edge(self, clazz=AwsS3Bucket, name=cc.s3_uri)  # TODO uri != name
+            if hptrc := jobdef.hyper_parameter_tuning_resource_config:
+                if hptrc.volume_kms_key_id:
+                    builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(hptrc.volume_kms_key_id))
+
+        if btj := self.hyper_parameter_tuning_job_best_training_job:
+            if btj.training_job_arn:
+                builder.add_edge(self, clazz=AwsSagemakerTrainingJob, arn=btj.training_job_arn)
+        if obtj := self.hyper_parameter_tuning_job_overall_best_training_job:
+            if obtj.training_job_arn:
+                builder.add_edge(self, clazz=AwsSagemakerTrainingJob, arn=obtj.training_job_arn)
 
 
 @define(eq=False, slots=False)
