@@ -3273,6 +3273,7 @@ class AwsSagemakerRecommendationJobInputConfig:
         "volume_kms_key_id": S("VolumeKmsKeyId"),
         "container_config": S("ContainerConfig") >> Bend(AwsSagemakerRecommendationJobContainerConfig.mapping),
         "endpoints": S("Endpoints", default=[]) >> ForallBend(S("EndpointName")),
+        "vpc_config": S("VpcConfig") >> Bend(AwsSagemakerVpcConfig.mapping),
     }
     model_package_version_arn: Optional[str] = field(default=None)
     job_duration_in_seconds: Optional[int] = field(default=None)
@@ -3282,6 +3283,7 @@ class AwsSagemakerRecommendationJobInputConfig:
     volume_kms_key_id: Optional[str] = field(default=None)
     container_config: Optional[AwsSagemakerRecommendationJobContainerConfig] = field(default=None)
     endpoints: List[str] = field(factory=list)
+    vpc_config: Optional[AwsSagemakerVpcConfig] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -3393,6 +3395,16 @@ class AwsSagemakerEndpointPerformance:
 @define(eq=False, slots=False)
 class AwsSagemakerInferenceRecommendationsJob(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_inference_recommendations_job"
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {
+            "default": ["aws_iam_role", "aws_ec2_security_group", "aws_ec2_subnet"],
+            "delete": ["aws_kms_key", "aws_iam_role"],
+        },
+        "successors": {
+            "default": ["aws_s3_bucket", "aws_kms_key", "aws_sagemaker_endpoint"],
+            "delete": ["aws_ec2_security_group", "aws_ec2_subnet"],
+        },
+    }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         "sagemaker", "list-inference-recommendations-job", "InferenceRecommendationsJobs"
     )
@@ -3448,6 +3460,35 @@ class AwsSagemakerInferenceRecommendationsJob(AwsResource):
             if job_description:
                 job_instance = AwsSagemakerInferenceRecommendationsJob.from_api(job_description)
                 builder.add_node(job_instance, job_description)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if self.inference_recommendations_job_role_arn:
+            builder.dependant_node(
+                self,
+                reverse=True,
+                delete_same_as_default=True,
+                clazz=AwsIamRole,
+                arn=self.inference_recommendations_job_role_arn,
+            )
+        if ic := self.inference_recommendations_job_input_config:
+            if ic.volume_kms_key_id:
+                builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(ic.volume_kms_key_id))
+            if cc := ic.container_config:
+                if pc := cc.payload_config:
+                    if pc.sample_payload_url:
+                        builder.add_edge(self, clazz=AwsS3Bucket, name=pc.sample_payload_url)  # TODO path != url
+            if vpc := ic.vpc_config:
+                for security_group in vpc.security_group_ids:
+                    builder.dependant_node(self, reverse=True, clazz=AwsEc2SecurityGroup, id=security_group)
+                for subnet in vpc.subnets:
+                    builder.dependant_node(self, reverse=True, clazz=AwsEc2Subnet, id=subnet)
+        for rec in self.inference_recommendations_job_inference_recommendations:
+            if ec := rec.endpoint_configuration:
+                if ec.endpoint_name:
+                    builder.add_edge(self, clazz=AwsSagemakerEndpoint, name=ec.endpoint_name)
+        for perf in self.inference_recommendations_job_endpoint_performances:
+            if perf.endpoint_info:
+                builder.add_edge(self, clazz=AwsSagemakerEndpoint, name=perf.endpoint_info)
 
 
 @define(eq=False, slots=False)

@@ -1,6 +1,6 @@
 {
-    "EndpointName": "string",
-    "EndpointArn": "string",
+    "EndpointName": "SomeEndpoint",
+    "EndpointArn": "SomeEndpointArn",
     "EndpointConfigName": "string",
     "ProductionVariants": [
         {
