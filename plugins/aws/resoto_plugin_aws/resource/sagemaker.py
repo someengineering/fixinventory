@@ -8,6 +8,7 @@ from resoto_plugin_aws.resource.cognito import AwsCognitoGroup, AwsCognitoUserPo
 from resoto_plugin_aws.resource.ec2 import AwsEc2NetworkInterface, AwsEc2SecurityGroup, AwsEc2Subnet, AwsEc2Vpc
 from resoto_plugin_aws.resource.iam import AwsIamRole
 from resoto_plugin_aws.resource.kms import AwsKmsKey
+from resoto_plugin_aws.resource.lambda_ import AwsLambdaFunction
 from resoto_plugin_aws.resource.s3 import AwsS3Bucket
 from resoto_plugin_aws.resource.sns import AwsSnsTopic
 from resoto_plugin_aws.utils import ToDict
@@ -3663,10 +3664,27 @@ class AwsSagemakerLabelingJobOutput:
 @define(eq=False, slots=False)
 class AwsSagemakerLabelingJob(SagemakerTaggable, AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_labeling_job"
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {
+            "default": [
+                "aws_iam_role",
+                "aws_ec2_security_group",
+                "aws_ec2_subnet",
+                "aws_sagemaker_model",
+                "aws_sagemaker_workteam",
+            ],
+            "delete": ["aws_kms_key", "aws_iam_role"],
+        },
+        "successors": {
+            "default": ["aws_s3_bucket", "aws_kms_key", "aws_sns_topic", "aws_lambda_function"],
+            "delete": ["aws_ec2_security_group", "aws_ec2_subnet"],
+        },
+    }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-labeling-jobs", "LabelingJobSummaryList")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("LabelingJobName"),
         "name": S("LabelingJobName"),
+        # this thing has tags! TODO
         "ctime": S("CreationTime"),
         "mtime": S("LastModifiedTime"),
         "arn": S("LabelingJobArn"),
@@ -3717,6 +3735,51 @@ class AwsSagemakerLabelingJob(SagemakerTaggable, AwsResource):
                 job_instance = AwsSagemakerLabelingJob.from_api(job_description)
                 builder.add_node(job_instance, job_description)
                 builder.submit_work(SagemakerTaggable.add_tags, job_instance, builder)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if ic := self.labeling_job_input_config:
+            if ds := ic.data_source:
+                if ds.s3_data_source:
+                    builder.add_edge(self, clazz=AwsS3Bucket, name=ds.s3_data_source)  # TODO manifest-uri != name
+                if ds.sns_data_source:
+                    builder.add_edge(self, clazz=AwsSnsTopic, arn=ds.sns_data_source)
+        if oc := self.labeling_job_output_config:
+            if oc.s3_output_path:
+                builder.add_edge(self, clazz=AwsS3Bucket, name=oc.s3_output_path)  # TODO path != name
+            if oc.kms_key_id:
+                builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(oc.kms_key_id))
+            if oc.sns_topic_arn:
+                builder.add_edge(self, clazz=AwsSnsTopic, arn=oc.sns_topic_arn)
+        if self.labeling_job_role_arn:
+            builder.dependant_node(
+                self, reverse=True, delete_same_as_default=True, clazz=AwsIamRole, arn=self.labeling_job_role_arn
+            )
+        if self.labeling_job_label_category_config_s3_uri:
+            builder.add_edge(
+                self, clazz=AwsS3Bucket, name=self.labeling_job_label_category_config_s3_uri
+            )  # TODO uri != name
+        if jac := self.labeling_job_algorithms_config:
+            if jac.initial_active_learning_model_arn:
+                builder.add_edge(self, reverse=True, clazz=AwsSagemakerModel, arn=jac.initial_active_learning_model_arn)
+            if jrc := jac.labeling_job_resource_config:
+                if jrc.volume_kms_key_id:
+                    builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(jrc.volume_kms_key_id))
+                if vpc := jrc.vpc_config:
+                    for security_group in vpc.security_group_ids:
+                        builder.dependant_node(self, reverse=True, clazz=AwsEc2SecurityGroup, id=security_group)
+                    for subnet in vpc.subnets:
+                        builder.dependant_node(self, reverse=True, clazz=AwsEc2Subnet, id=subnet)
+        if htc := self.labeling_job_human_task_config:
+            if htc.workteam_arn:
+                builder.add_edge(self, reverse=True, clazz=AwsSagemakerWorkteam, arn=htc.workteam_arn)
+            if ui := htc.ui_config:
+                if ui.ui_template_s3_uri:
+                    builder.add_edge(self, clazz=AwsS3Bucket, name=ui.ui_template_s3_uri)  # TODO uri != name
+            if htc.pre_human_task_lambda_arn:
+                builder.add_edge(self, clazz=AwsLambdaFunction, arn=htc.pre_human_task_lambda_arn)
+        if out := self.labeling_job_output:
+            if out.output_dataset_s3_uri:
+                builder.add_edge(self, clazz=AwsS3Bucket, name=out.output_dataset_s3_uri)  # TODO uri != name
 
 
 @define(eq=False, slots=False)

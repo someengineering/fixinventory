@@ -56,7 +56,7 @@
         }
     },
     "HumanTaskConfig": {
-        "WorkteamArn": "string",
+        "WorkteamArn": "SomeWorkteamArn",
         "UiConfig": {
             "UiTemplateS3Uri": "string",
             "HumanTaskUiArn": "string"

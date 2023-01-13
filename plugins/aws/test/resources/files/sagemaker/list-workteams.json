@@ -1,7 +1,7 @@
 {
     "Workteams": [
         {
-            "WorkteamName": "string",
+            "WorkteamName": "SomeWorkteam",
             "MemberDefinitions": [
                 {
                     "CognitoMemberDefinition": {
@@ -16,7 +16,7 @@
                     }
                 }
             ],
-            "WorkteamArn": "string",
+            "WorkteamArn": "SomeWorkteamArn",
             "WorkforceArn": "string",
             "ProductListingIds": [
                 "string"
