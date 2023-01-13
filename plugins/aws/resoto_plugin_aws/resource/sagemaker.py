@@ -2661,6 +2661,18 @@ class AwsSagemakerEdgePresetDeploymentOutput:
 @define(eq=False, slots=False)
 class AwsSagemakerEdgePackagingJob(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_edge_packaging_job"
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {
+            "default": ["aws_iam_role", "aws_sagemaker_model"],
+            "delete": ["aws_kms_key", "aws_iam_role"],
+        },
+        "successors": {
+            "default": [
+                "aws_s3_bucket",
+                "aws_kms_key",
+            ],
+        },
+    }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-edge-packaging-jobs", "EdgePackagingJobSummaries")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("EdgePackagingJobName"),
@@ -2706,6 +2718,25 @@ class AwsSagemakerEdgePackagingJob(AwsResource):
             if job_description:
                 job_instance = AwsSagemakerEdgePackagingJob.from_api(job_description)
                 builder.add_node(job_instance, job_description)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if self.edge_packaging_job_model_name:
+            builder.add_edge(self, reverse=True, clazz=AwsSagemakerModel, name=self.edge_packaging_job_model_name)
+        if self.edge_packaging_job_role_arn:
+            builder.dependant_node(
+                self, reverse=True, delete_same_as_default=True, clazz=AwsIamRole, arn=self.edge_packaging_job_role_arn
+            )
+        if oc := self.edge_packaging_job_output_config:
+            if oc.s3_output_location:
+                builder.add_edge(self, clazz=AwsS3Bucket, name=oc.s3_output_location)  # TODO path != name
+            if oc.kms_key_id:
+                builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(oc.kms_key_id))
+        if self.edge_packaging_job_resource_key:
+            builder.dependant_node(
+                self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(self.edge_packaging_job_resource_key)
+            )
+        if self.edge_packaging_job_model_artifact:
+            builder.add_edge(self, clazz=AwsS3Bucket, name=self.edge_packaging_job_model_artifact)  # TODO uri != name
 
 
 @define(eq=False, slots=False)
