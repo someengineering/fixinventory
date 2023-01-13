@@ -2544,6 +2544,19 @@ class AwsSagemakerNeoVpcConfig:
 @define(eq=False, slots=False)
 class AwsSagemakerCompilationJob(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_compilation_job"
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {
+            "default": ["aws_iam_role", "aws_ec2_security_group", "aws_ec2_subnet"],
+            "delete": ["aws_kms_key", "aws_iam_role"],
+        },
+        "successors": {
+            "default": [
+                "aws_s3_bucket",
+                "aws_kms_key",
+            ],
+            "delete": ["aws_ec2_security_group", "aws_ec2_subnet"],
+        },
+    }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-compilation-jobs", "CompilationJobSummaries")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("CompilationJobName"),
@@ -2592,6 +2605,27 @@ class AwsSagemakerCompilationJob(AwsResource):
             if job_description:
                 job_instance = AwsSagemakerCompilationJob.from_api(job_description)
                 builder.add_node(job_instance, job_description)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if self.compilation_job_model_artifacts:
+            builder.add_edge(self, clazz=AwsS3Bucket, name=self.compilation_job_model_artifacts)  # TODO path != name
+        if self.compilation_job_role_arn:
+            builder.dependant_node(
+                self, reverse=True, delete_same_as_default=True, clazz=AwsIamRole, arn=self.compilation_job_role_arn
+            )
+        if ic := self.compilation_job_input_config:
+            if ic.s3_uri:
+                builder.add_edge(self, clazz=AwsS3Bucket, name=ic.s3_uri)  # TODO path != name
+        if oc := self.compilation_job_output_config:
+            if oc.s3_output_location:
+                builder.add_edge(self, clazz=AwsS3Bucket, name=oc.s3_output_location)  # TODO path != name
+            if oc.kms_key_id:
+                builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(oc.kms_key_id))
+        if vpc := self.compilation_job_vpc_config:
+            for security_group in vpc.security_group_ids:
+                builder.dependant_node(self, reverse=True, clazz=AwsEc2SecurityGroup, id=security_group)
+            for subnet in vpc.subnets:
+                builder.dependant_node(self, reverse=True, clazz=AwsEc2Subnet, id=subnet)
 
 
 @define(eq=False, slots=False)
