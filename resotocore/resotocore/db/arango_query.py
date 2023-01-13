@@ -190,10 +190,18 @@ def query_string(
 
         # nested prop access needs to be unfolded via separate for loops: a.b[*].c[*].d
         ars = [a.lstrip(".") for a in array_marker_in_path_regexp.split(prop_name)]
+        ars_stmts = []
         prop_name = ars.pop()
         for ar in ars:
             nxt_crs = next_crs("pre")
-            pre += f" FOR {nxt_crs} IN TO_ARRAY({cursor}.{ar})"
+            ars_stmts.append(f"{nxt_crs}._internal!=true")
+            # append an internal element to make sure this for loop always yields at least one result
+            # this value will be filtered out explicitly later on.
+            # example: group_ip_permissions[*].{ip_ranges[*].cidr_ip="0.0.0.0/0" or ipv6_ranges[*].cidr_ipv6="::/0"}
+            # if there are no cidr_ip or cidr_ipv6 ranges, the nested for loops will not yield any results
+            # the or condition will not be evaluated and the result will be empty
+            # to avoid this, we add an internal element to the result set and filter it out later on
+            pre += f" FOR {nxt_crs} IN APPEND(TO_ARRAY({cursor}.{ar}), {{_internal: true}})"
             cursor = nxt_crs
 
         bvn = next_bind_var_name()
@@ -204,6 +212,8 @@ def query_string(
             bind_vars[bvn] = prop.kind.coerce(p.value)
         var_name = f"{cursor}.{prop_name}"
         p_term = f"{var_name}{extra} {op} @{bvn}"
+        if ars_stmts:
+            p_term = f"({p_term} AND {' AND '.join(ars_stmts)})"
         # null check is required, since x<anything evaluates to true if x is null!
         return pre, f"({var_name}!=null and {p_term})" if op in arangodb_matches_null_ops else p_term
 
