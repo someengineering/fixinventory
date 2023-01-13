@@ -2,6 +2,7 @@ from datetime import datetime
 from attrs import define, field
 from typing import ClassVar, Dict, List, Optional, Type
 from resoto_plugin_aws.aws_client import AwsClient
+from resoto_plugin_aws.resource.athena import AwsAthenaDataCatalog, AwsAthenaWorkGroup
 from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
 from resoto_plugin_aws.resource.cloudwatch import AwsCloudwatchAlarm
 from resoto_plugin_aws.resource.cognito import AwsCognitoGroup, AwsCognitoUserPool
@@ -9,6 +10,7 @@ from resoto_plugin_aws.resource.ec2 import AwsEc2NetworkInterface, AwsEc2Securit
 from resoto_plugin_aws.resource.iam import AwsIamRole
 from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resoto_plugin_aws.resource.lambda_ import AwsLambdaFunction
+from resoto_plugin_aws.resource.redshift import AwsRedshiftCluster
 from resoto_plugin_aws.resource.s3 import AwsS3Bucket
 from resoto_plugin_aws.resource.sns import AwsSnsTopic
 from resoto_plugin_aws.utils import ToDict
@@ -1241,11 +1243,6 @@ class AwsSagemakerExperiment(AwsResource):
     experiment_display_name: Optional[str] = field(default=None)
     experiment_source: Optional[AwsSagemakerExperimentSource] = field(default=None)
 
-    # def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-    #     if s:=self.experiment_source:
-    #         if s.source_arn:
-    #             builder.add_edge() TODO find out which kind of resource this is. A kind of job?
-
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
             aws_service=self.api_spec.service, action="delete-experiment", result_name=None, ExperimentName=self.name
@@ -1344,9 +1341,6 @@ class AwsSagemakerTrial(AwsResource):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.trial_experiment_name:
             builder.add_edge(self, reverse=True, clazz=AwsSagemakerExperiment, name=self.trial_experiment_name)
-        # if s:=self.trial_source:
-        #     if s.source_arn:
-        #         builder.add_edge() TODO same as in experiment
         if c := self.trial_created_by:
             if c.user_profile_arn:
                 builder.add_edge(self, reverse=True, clazz=AwsSagemakerUserProfile, arn=c.user_profile_arn)
@@ -3674,7 +3668,8 @@ class AwsSagemakerLabelingJob(SagemakerTaggable, AwsResource):
                 "aws_sagemaker_workteam",
             ],
             "delete": ["aws_kms_key", "aws_iam_role"],
-            # TODO lambda should have a dependency here, but it breaks the graph - investigate where circularity is being introduced
+            # TODO lambda should have a dependency here, but it breaks the graph
+            # investigate where circularity is being introduced
         },
         "successors": {
             "default": ["aws_s3_bucket", "aws_kms_key", "aws_sns_topic", "aws_lambda_function"],
@@ -3989,22 +3984,25 @@ class AwsSagemakerExperimentConfig:
 @define(eq=False, slots=False)
 class AwsSagemakerProcessingJob(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_processing_job"
-    # reference_kinds: ClassVar[ModelReference] = {
-    #     "predecessors": {
-    #         "default": [
-    #             "aws_iam_role",
-    #             "aws_ec2_security_group",
-    #             "aws_ec2_subnet",
-    #             "aws_sagemaker_model",
-    #             "aws_sagemaker_workteam",
-    #         ],
-    #         "delete": ["aws_kms_key", "aws_iam_role"],
-    #     },
-    #     "successors": {
-    #         "default": ["aws_s3_bucket", "aws_kms_key", "aws_sns_topic", "aws_lambda_function"],
-    #         "delete": ["aws_ec2_security_group", "aws_ec2_subnet"],
-    #     },
-    # }
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {
+            "default": [
+                "aws_iam_role",
+                "aws_ec2_security_group",
+                "aws_ec2_subnet",
+                "aws_athena_data_catalog",
+                "aws_athena_work_group",
+                "aws_redshift_cluster",
+                "aws_sagemaker_experiment",
+                "aws_sagemaker_trial",
+            ],
+            "delete": ["aws_kms_key", "aws_iam_role"],
+        },
+        "successors": {
+            "default": ["aws_s3_bucket", "aws_kms_key", "aws_sagemaker_training_job"],
+            "delete": ["aws_ec2_security_group", "aws_ec2_subnet"],
+        },
+    }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-processing-jobs", "ProcessingJobSummaries")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("ProcessingJobName"),
@@ -4067,6 +4065,61 @@ class AwsSagemakerProcessingJob(AwsResource):
             if job_description:
                 job_instance = AwsSagemakerProcessingJob.from_api(job_description)
                 builder.add_node(job_instance, job_description)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        for input in self.processing_job_processing_inputs:
+            if input.s3_input:
+                if input.s3_input.s3_uri:
+                    builder.add_edge(self, clazz=AwsS3Bucket, name=input.s3_input.s3_uri)  # TODO uri != name
+            if dd := input.dataset_definition:
+                if ath := dd.athena_dataset_definition:
+                    if ath.catalog:
+                        builder.add_edge(self, reverse=True, clazz=AwsAthenaDataCatalog, name=ath.catalog)
+                    if ath.work_group:
+                        builder.add_edge(self, reverse=True, clazz=AwsAthenaWorkGroup, name=ath.work_group)
+                    if ath.output_s3_uri:
+                        builder.add_edge(self, clazz=AwsS3Bucket, name=ath.output_s3_uri)  # TODO uri != name
+                    if ath.kms_key_id:
+                        builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(ath.kms_key_id))
+                if red := dd.redshift_dataset_definition:
+                    if red.cluster_id:
+                        builder.add_edge(self, reverse=True, clazz=AwsRedshiftCluster, id=red.cluster_id)
+                    if red.cluster_role_arn:
+                        builder.dependant_node(
+                            self, reverse=True, delete_same_as_default=True, clazz=AwsIamRole, arn=red.cluster_role_arn
+                        )
+                    if red.output_s3_uri:
+                        builder.add_edge(self, clazz=AwsS3Bucket, name=red.output_s3_uri)  # TODO uri != name
+                    if red.kms_key_id:
+                        builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(red.kms_key_id))
+        if poc := self.processing_job_processing_output_config:
+            for output in poc.outputs:
+                if s3 := output.s3_output:
+                    if s3.s3_uri:
+                        builder.add_edge(self, clazz=AwsS3Bucket, name=s3.s3_uri)  # TODO uri != name
+            if poc.kms_key_id:
+                builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(poc.kms_key_id))
+        if pr := self.processing_job_processing_resources:
+            if cc := pr.cluster_config:
+                if cc.volume_kms_key_id:
+                    builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(cc.volume_kms_key_id))
+        if nc := self.processing_job_network_config:
+            if vpc := nc.vpc_config:
+                for security_group in vpc.security_group_ids:
+                    builder.dependant_node(self, reverse=True, clazz=AwsEc2SecurityGroup, id=security_group)
+                for subnet in vpc.subnets:
+                    builder.dependant_node(self, reverse=True, clazz=AwsEc2Subnet, id=subnet)
+        if self.processing_job_role_arn:
+            builder.dependant_node(
+                self, reverse=True, delete_same_as_default=True, clazz=AwsIamRole, arn=self.processing_job_role_arn
+            )
+        if ex := self.processing_job_experiment_config:
+            if ex.experiment_name:
+                builder.add_edge(self, reverse=True, clazz=AwsSagemakerExperiment, name=ex.experiment_name)
+            if ex.trial_name:
+                builder.add_edge(self, reverse=True, clazz=AwsSagemakerTrial, name=ex.trial_name)
+        if self.processing_job_training_job_arn:
+            builder.add_edge(self, clazz=AwsSagemakerTrainingJob, arn=self.processing_job_training_job_arn)
 
 
 @define(eq=False, slots=False)
