@@ -14,7 +14,7 @@
     "LastModifiedTime": "2015-01-01T00:00:00Z",
     "FailureReason": "string",
     "ModelArtifacts": {
-        "S3ModelArtifacts": "s3://bucket-name/keynameprefix/model.tar.gz"
+        "S3ModelArtifacts": "s3://some-sagemaker-bucket/keynameprefix/model.tar.gz"
     },
     "ModelDigests": {
         "ArtifactDigest": "string"

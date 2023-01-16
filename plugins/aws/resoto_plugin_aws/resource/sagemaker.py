@@ -767,7 +767,8 @@ class AwsSagemakerModel(SagemakerTaggable, AwsResource):
         if self.model_primary_container:
             model_data_buckets.append(self.model_primary_container.model_data_url)
         for bucket in model_data_buckets:
-            builder.add_edge(self, clazz=AwsS3Bucket, name=bucket)  # TODO url != bucketname
+            if bucket:
+                builder.add_edge(self, clazz=AwsS3Bucket, name=AwsS3Bucket.name_from_path(bucket))
         if self.model_execution_role_arn:
             builder.dependant_node(
                 self, delete_same_as_default=True, clazz=AwsIamRole, arn=self.model_execution_role_arn
@@ -1137,7 +1138,7 @@ class AwsSagemakerDomain(AwsResource):
                 builder.dependant_node(self, reverse=True, clazz=AwsEc2SecurityGroup, id=security_group)
             if shs := dus.sharing_settings:
                 if shs.s3_output_path:
-                    builder.add_edge(self, clazz=AwsS3Bucket, name=shs.s3_output_path)  # TODO path != name
+                    builder.add_edge(self, clazz=AwsS3Bucket, name=AwsS3Bucket.name_from_path(shs.s3_output_path))
             if jup := dus.jupyter_server_app_settings:
                 if drs := jup.default_resource_spec:
                     if drs.sage_maker_image_arn:
@@ -1783,7 +1784,7 @@ class AwsSagemakerEndpoint(SagemakerTaggable, AwsResource):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if dcc := self.endpoint_data_capture_config:
             if dcc.destination_s3_uri:
-                builder.add_edge(self, clazz=AwsS3Bucket, name=dcc.destination_s3_uri)  # TODO name != uri
+                builder.add_edge(self, clazz=AwsS3Bucket, name=AwsS3Bucket.name_from_path(dcc.destination_s3_uri))
             if dcc.kms_key_id:
                 builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(dcc.kms_key_id))
         if ldc := self.endpoint_last_deployment_config:
@@ -1795,7 +1796,7 @@ class AwsSagemakerEndpoint(SagemakerTaggable, AwsResource):
                 if oc.kms_key_id:
                     builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(oc.kms_key_id))
                 if oc.s3_output_path:
-                    builder.add_edge(self, clazz=AwsS3Bucket, name=oc.s3_output_path)  # TODO name != path
+                    builder.add_edge(self, clazz=AwsS3Bucket, name=AwsS3Bucket.name_from_path(oc.s3_output_path))
                 if nc := oc.notification_config:
                     if nc.success_topic:
                         builder.add_edge(self, clazz=AwsSnsTopic, arn=nc.success_topic)
@@ -2452,12 +2453,12 @@ class AwsSagemakerAutoMLJob(AwsResource):
             if cds := config.data_source:
                 if s3 := cds.s3_data_source:
                     if s3.s3_uri:
-                        builder.add_edge(self, clazz=AwsS3Bucket, name=s3.s3_uri)  # TODO name != uri
+                        builder.add_edge(self, clazz=AwsS3Bucket, name=AwsS3Bucket.name_from_path(s3.s3_uri))
         if odc := self.auto_ml_job_output_data_config:
             if odc.kms_key_id:
                 builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(odc.kms_key_id))
             if odc.s3_output_path:
-                builder.add_edge(self, clazz=AwsS3Bucket, name=odc.s3_output_path)  # TODO name != path
+                builder.add_edge(self, clazz=AwsS3Bucket, name=AwsS3Bucket.name_from_path(odc.s3_output_path))
         if self.auto_ml_job_role_arn:
             builder.dependant_node(
                 self, reverse=True, delete_same_as_default=True, clazz=AwsIamRole, arn=self.auto_ml_job_role_arn
@@ -2472,7 +2473,9 @@ class AwsSagemakerAutoMLJob(AwsResource):
                     for subnet in vpc.subnets:
                         builder.dependant_node(self, reverse=True, clazz=AwsEc2Subnet, id=subnet)
             if jc.candidate_generation_config:
-                builder.add_edge(self, clazz=AwsS3Bucket, name=jc.candidate_generation_config)  # TODO name != uri
+                builder.add_edge(
+                    self, clazz=AwsS3Bucket, name=AwsS3Bucket.name_from_path(jc.candidate_generation_config)
+                )
         if bc := self.auto_ml_job_best_candidate:
             for step in bc.candidate_steps:
                 if step.candidate_step_type and step.candidate_step_arn:
@@ -2603,17 +2606,19 @@ class AwsSagemakerCompilationJob(AwsResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.compilation_job_model_artifacts:
-            builder.add_edge(self, clazz=AwsS3Bucket, name=self.compilation_job_model_artifacts)  # TODO path != name
+            builder.add_edge(
+                self, clazz=AwsS3Bucket, name=AwsS3Bucket.name_from_path(self.compilation_job_model_artifacts)
+            )
         if self.compilation_job_role_arn:
             builder.dependant_node(
                 self, reverse=True, delete_same_as_default=True, clazz=AwsIamRole, arn=self.compilation_job_role_arn
             )
         if ic := self.compilation_job_input_config:
             if ic.s3_uri:
-                builder.add_edge(self, clazz=AwsS3Bucket, name=ic.s3_uri)  # TODO path != name
+                builder.add_edge(self, clazz=AwsS3Bucket, name=AwsS3Bucket.name_from_path(ic.s3_uri))
         if oc := self.compilation_job_output_config:
             if oc.s3_output_location:
-                builder.add_edge(self, clazz=AwsS3Bucket, name=oc.s3_output_location)  # TODO path != name
+                builder.add_edge(self, clazz=AwsS3Bucket, name=AwsS3Bucket.name_from_path(oc.s3_output_location))
             if oc.kms_key_id:
                 builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(oc.kms_key_id))
         if vpc := self.compilation_job_vpc_config:
@@ -2723,7 +2728,7 @@ class AwsSagemakerEdgePackagingJob(AwsResource):
             )
         if oc := self.edge_packaging_job_output_config:
             if oc.s3_output_location:
-                builder.add_edge(self, clazz=AwsS3Bucket, name=oc.s3_output_location)  # TODO path != name
+                builder.add_edge(self, clazz=AwsS3Bucket, name=AwsS3Bucket.name_from_path(oc.s3_output_location))
             if oc.kms_key_id:
                 builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(oc.kms_key_id))
         if self.edge_packaging_job_resource_key:
@@ -2731,7 +2736,9 @@ class AwsSagemakerEdgePackagingJob(AwsResource):
                 self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(self.edge_packaging_job_resource_key)
             )
         if self.edge_packaging_job_model_artifact:
-            builder.add_edge(self, clazz=AwsS3Bucket, name=self.edge_packaging_job_model_artifact)  # TODO uri != name
+            builder.add_edge(
+                self, clazz=AwsS3Bucket, name=AwsS3Bucket.name_from_path(self.edge_packaging_job_model_artifact)
+            )
 
 
 @define(eq=False, slots=False)
@@ -3126,8 +3133,8 @@ class AwsSagemakerHyperParameterTuningJob(SagemakerTaggable, AwsResource):
                     if ids.s3_data_source:
                         if ids.s3_data_source.s3_uri:
                             builder.add_edge(
-                                self, clazz=AwsS3Bucket, name=ids.s3_data_source.s3_uri
-                            )  # TODO uri != name
+                                self, clazz=AwsS3Bucket, name=AwsS3Bucket.name_from_path(ids.s3_data_source.s3_uri)
+                            )
             if vpc := jobdef.vpc_config:
                 for security_group in vpc.security_group_ids:
                     builder.dependant_node(self, reverse=True, clazz=AwsEc2SecurityGroup, id=security_group)
@@ -3137,13 +3144,13 @@ class AwsSagemakerHyperParameterTuningJob(SagemakerTaggable, AwsResource):
                 if odc.kms_key_id:
                     builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(odc.kms_key_id))
                 if odc.s3_output_path:
-                    builder.add_edge(self, clazz=AwsS3Bucket, name=odc.s3_output_path)  # TODO uri != name
+                    builder.add_edge(self, clazz=AwsS3Bucket, name=AwsS3Bucket.name_from_path(odc.s3_output_path))
             if rc := jobdef.resource_config:
                 if rc.volume_kms_key_id:
                     builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(rc.volume_kms_key_id))
             if cc := jobdef.checkpoint_config:
                 if cc.s3_uri:
-                    builder.add_edge(self, clazz=AwsS3Bucket, name=cc.s3_uri)  # TODO uri != name
+                    builder.add_edge(self, clazz=AwsS3Bucket, name=AwsS3Bucket.name_from_path(cc.s3_uri))
             if hptrc := jobdef.hyper_parameter_tuning_resource_config:
                 if hptrc.volume_kms_key_id:
                     builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(hptrc.volume_kms_key_id))
@@ -3471,7 +3478,9 @@ class AwsSagemakerInferenceRecommendationsJob(AwsResource):
             if cc := ic.container_config:
                 if pc := cc.payload_config:
                     if pc.sample_payload_url:
-                        builder.add_edge(self, clazz=AwsS3Bucket, name=pc.sample_payload_url)  # TODO path != url
+                        builder.add_edge(
+                            self, clazz=AwsS3Bucket, name=AwsS3Bucket.name_from_path(pc.sample_payload_url)
+                        )
             if vpc := ic.vpc_config:
                 for security_group in vpc.security_group_ids:
                     builder.dependant_node(self, reverse=True, clazz=AwsEc2SecurityGroup, id=security_group)
@@ -3736,12 +3745,12 @@ class AwsSagemakerLabelingJob(SagemakerTaggable, AwsResource):
         if ic := self.labeling_job_input_config:
             if ds := ic.data_source:
                 if ds.s3_data_source:
-                    builder.add_edge(self, clazz=AwsS3Bucket, name=ds.s3_data_source)  # TODO manifest-uri != name
+                    builder.add_edge(self, clazz=AwsS3Bucket, name=AwsS3Bucket.name_from_path(ds.s3_data_source))
                 if ds.sns_data_source:
                     builder.add_edge(self, clazz=AwsSnsTopic, arn=ds.sns_data_source)
         if oc := self.labeling_job_output_config:
             if oc.s3_output_path:
-                builder.add_edge(self, clazz=AwsS3Bucket, name=oc.s3_output_path)  # TODO path != name
+                builder.add_edge(self, clazz=AwsS3Bucket, name=AwsS3Bucket.name_from_path(oc.s3_output_path))
             if oc.kms_key_id:
                 builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(oc.kms_key_id))
             if oc.sns_topic_arn:
@@ -3752,8 +3761,8 @@ class AwsSagemakerLabelingJob(SagemakerTaggable, AwsResource):
             )
         if self.labeling_job_label_category_config_s3_uri:
             builder.add_edge(
-                self, clazz=AwsS3Bucket, name=self.labeling_job_label_category_config_s3_uri
-            )  # TODO uri != name
+                self, clazz=AwsS3Bucket, name=AwsS3Bucket.name_from_path(self.labeling_job_label_category_config_s3_uri)
+            )
         if jac := self.labeling_job_algorithms_config:
             if jac.initial_active_learning_model_arn:
                 builder.add_edge(self, reverse=True, clazz=AwsSagemakerModel, arn=jac.initial_active_learning_model_arn)
@@ -3770,13 +3779,13 @@ class AwsSagemakerLabelingJob(SagemakerTaggable, AwsResource):
                 builder.add_edge(self, reverse=True, clazz=AwsSagemakerWorkteam, arn=htc.workteam_arn)
             if ui := htc.ui_config:
                 if ui.ui_template_s3_uri:
-                    builder.add_edge(self, clazz=AwsS3Bucket, name=ui.ui_template_s3_uri)  # TODO uri != name
+                    builder.add_edge(self, clazz=AwsS3Bucket, name=AwsS3Bucket.name_from_path(ui.ui_template_s3_uri))
             if htc.pre_human_task_lambda_arn:
                 builder.add_edge(self, clazz=AwsLambdaFunction, arn=htc.pre_human_task_lambda_arn)
                 # TODO should be dependant_node, see reference_kinds
         if out := self.labeling_job_output:
             if out.output_dataset_s3_uri:
-                builder.add_edge(self, clazz=AwsS3Bucket, name=out.output_dataset_s3_uri)  # TODO uri != name
+                builder.add_edge(self, clazz=AwsS3Bucket, name=AwsS3Bucket.name_from_path(out.output_dataset_s3_uri))
 
 
 @define(eq=False, slots=False)
@@ -4070,7 +4079,7 @@ class AwsSagemakerProcessingJob(AwsResource):
         for input in self.processing_job_processing_inputs:
             if input.s3_input:
                 if input.s3_input.s3_uri:
-                    builder.add_edge(self, clazz=AwsS3Bucket, name=input.s3_input.s3_uri)  # TODO uri != name
+                    builder.add_edge(self, clazz=AwsS3Bucket, name=AwsS3Bucket.name_from_path(input.s3_input.s3_uri))
             if dd := input.dataset_definition:
                 if ath := dd.athena_dataset_definition:
                     if ath.catalog:
@@ -4078,7 +4087,7 @@ class AwsSagemakerProcessingJob(AwsResource):
                     if ath.work_group:
                         builder.add_edge(self, reverse=True, clazz=AwsAthenaWorkGroup, name=ath.work_group)
                     if ath.output_s3_uri:
-                        builder.add_edge(self, clazz=AwsS3Bucket, name=ath.output_s3_uri)  # TODO uri != name
+                        builder.add_edge(self, clazz=AwsS3Bucket, name=AwsS3Bucket.name_from_path(ath.output_s3_uri))
                     if ath.kms_key_id:
                         builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(ath.kms_key_id))
                 if red := dd.redshift_dataset_definition:
@@ -4089,14 +4098,14 @@ class AwsSagemakerProcessingJob(AwsResource):
                             self, reverse=True, delete_same_as_default=True, clazz=AwsIamRole, arn=red.cluster_role_arn
                         )
                     if red.output_s3_uri:
-                        builder.add_edge(self, clazz=AwsS3Bucket, name=red.output_s3_uri)  # TODO uri != name
+                        builder.add_edge(self, clazz=AwsS3Bucket, name=AwsS3Bucket.name_from_path(red.output_s3_uri))
                     if red.kms_key_id:
                         builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(red.kms_key_id))
         if poc := self.processing_job_processing_output_config:
             for output in poc.outputs:
                 if s3 := output.s3_output:
                     if s3.s3_uri:
-                        builder.add_edge(self, clazz=AwsS3Bucket, name=s3.s3_uri)  # TODO uri != name
+                        builder.add_edge(self, clazz=AwsS3Bucket, name=AwsS3Bucket.name_from_path(s3.s3_uri))
             if poc.kms_key_id:
                 builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(poc.kms_key_id))
         if pr := self.processing_job_processing_resources:
@@ -4442,8 +4451,11 @@ class AwsSagemakerTrainingJob(SagemakerTaggable, AwsResource):
             builder.add_edge(self, reverse=True, clazz=AwsSagemakerLabelingJob, arn=self.training_job_labeling_job_arn)
         if self.training_job_model_artifacts:
             builder.add_edge(
-                self, reverse=True, clazz=AwsS3Bucket, name=self.training_job_model_artifacts
-            )  # TODO path != name
+                self,
+                reverse=True,
+                clazz=AwsS3Bucket,
+                name=AwsS3Bucket.name_from_path(self.training_job_model_artifacts),
+            )
         if tjas := self.training_job_algorithm_specification:
             if tjas.algorithm_name:
                 builder.add_edge(self, clazz=AwsSagemakerAlgorithm, name=tjas.algorithm_name)
@@ -4455,12 +4467,14 @@ class AwsSagemakerTrainingJob(SagemakerTaggable, AwsResource):
             if ids := config.data_source:
                 if ids.s3_data_source:
                     if ids.s3_data_source.s3_uri:
-                        builder.add_edge(self, clazz=AwsS3Bucket, name=ids.s3_data_source.s3_uri)  # TODO uri != name
+                        builder.add_edge(
+                            self, clazz=AwsS3Bucket, name=AwsS3Bucket.name_from_path(ids.s3_data_source.s3_uri)
+                        )
         if odc := self.training_job_output_data_config:
             if odc.kms_key_id:
                 builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(odc.kms_key_id))
             if odc.s3_output_path:
-                builder.add_edge(self, clazz=AwsS3Bucket, name=odc.s3_output_path)  # TODO path != name
+                builder.add_edge(self, clazz=AwsS3Bucket, name=AwsS3Bucket.name_from_path(odc.s3_output_path))
         if rc := self.training_job_resource_config:
             if rc.volume_kms_key_id:
                 builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(rc.volume_kms_key_id))
@@ -4471,10 +4485,10 @@ class AwsSagemakerTrainingJob(SagemakerTaggable, AwsResource):
                 builder.dependant_node(self, reverse=True, clazz=AwsEc2Subnet, id=subnet)
         if cc := self.training_job_checkpoint_config:
             if cc.s3_uri:
-                builder.add_edge(self, clazz=AwsS3Bucket, name=cc.s3_uri)  # TODO uri != name
+                builder.add_edge(self, clazz=AwsS3Bucket, name=AwsS3Bucket.name_from_path(cc.s3_uri))
         if dhc := self.training_job_debug_hook_config:
             if dhc.s3_output_path:
-                builder.add_edge(self, clazz=AwsS3Bucket, name=dhc.s3_output_path)  # TODO path != name
+                builder.add_edge(self, clazz=AwsS3Bucket, name=AwsS3Bucket.name_from_path(dhc.s3_output_path))
         if ex := self.training_job_experiment_config:
             if ex.experiment_name:
                 builder.add_edge(self, reverse=True, clazz=AwsSagemakerExperiment, name=ex.experiment_name)
@@ -4482,16 +4496,16 @@ class AwsSagemakerTrainingJob(SagemakerTaggable, AwsResource):
                 builder.add_edge(self, reverse=True, clazz=AwsSagemakerTrial, name=ex.trial_name)
         for rule in self.training_job_debug_rule_configurations:
             if rule.s3_output_path:
-                builder.add_edge(self, clazz=AwsS3Bucket, name=rule.s3_output_path)  # TODO path != name
+                builder.add_edge(self, clazz=AwsS3Bucket, name=AwsS3Bucket.name_from_path(rule.s3_output_path))
         if tboc := self.training_job_tensor_board_output_config:
             if tboc.s3_output_path:
-                builder.add_edge(self, clazz=AwsS3Bucket, name=tboc.s3_output_path)  # TODO path != name
+                builder.add_edge(self, clazz=AwsS3Bucket, name=AwsS3Bucket.name_from_path(tboc.s3_output_path))
         if tjpc := self.training_job_profiler_config:
             if tjpc.s3_output_path:
-                builder.add_edge(self, clazz=AwsS3Bucket, name=tjpc.s3_output_path)  # TODO path != name
+                builder.add_edge(self, clazz=AwsS3Bucket, name=AwsS3Bucket.name_from_path(tjpc.s3_output_path))
         for tjrc in self.training_job_profiler_rule_configurations:
             if tjrc.s3_output_path:
-                builder.add_edge(self, clazz=AwsS3Bucket, name=tjrc.s3_output_path)  # TODO path != name
+                builder.add_edge(self, clazz=AwsS3Bucket, name=AwsS3Bucket.name_from_path(tjrc.s3_output_path))
 
 
 @define(eq=False, slots=False)
@@ -4617,15 +4631,15 @@ class AwsSagemakerTransformJob(SagemakerTaggable, AwsResource):
             if ds := tin.data_source:
                 if s3 := ds.s3_data_source:
                     if s3.s3_uri:
-                        builder.add_edge(self, clazz=AwsS3Bucket, name=s3.s3_uri)  # TODO uri != name
+                        builder.add_edge(self, clazz=AwsS3Bucket, name=AwsS3Bucket.name_from_path(s3.s3_uri))
         if tout := self.transform_job_transform_output:
             if tout.s3_output_path:
-                builder.add_edge(self, clazz=AwsS3Bucket, name=tout.s3_output_path)  # TODO path != name
+                builder.add_edge(self, clazz=AwsS3Bucket, name=AwsS3Bucket.name_from_path(tout.s3_output_path))
             if tout.kms_key_id:
                 builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(tout.kms_key_id))
         if dcc := self.transform_job_data_capture_config:
             if dcc.destination_s3_uri:
-                builder.add_edge(self, clazz=AwsS3Bucket, name=dcc.destination_s3_uri)  # TODO uri != name
+                builder.add_edge(self, clazz=AwsS3Bucket, name=AwsS3Bucket.name_from_path(dcc.destination_s3_uri))
             if dcc.kms_key_id:
                 builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(dcc.kms_key_id))
         if tr := self.transform_job_transform_resources:
