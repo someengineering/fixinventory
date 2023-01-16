@@ -12,7 +12,7 @@
     "LastModifiedTime": "2015-01-01T00:00:00Z",
     "JobReferenceCode": "string",
     "LabelingJobName": "ljob",
-    "LabelingJobArn": "string",
+    "LabelingJobArn": "ljob_arn",
     "LabelAttributeName": "string",
     "InputConfig": {
         "DataSource": {

@@ -4311,6 +4311,23 @@ class AwsSagemakerWarmPoolStatus:
 @define(eq=False, slots=False)
 class AwsSagemakerTrainingJob(SagemakerTaggable, AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_training_job"
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {
+            "default": [
+                "aws_sagemaker_labeling_job",
+                "aws_iam_role",
+                "aws_ec2_security_group",
+                "aws_ec2_subnet",
+                "aws_sagemaker_experiment",
+                "aws_sagemaker_trial",
+            ],
+            "delete": ["aws_kms_key", "aws_iam_role"],
+        },
+        "successors": {
+            "default": ["aws_s3_bucket", "aws_kms_key", "aws_sagemaker_algorithm"],
+            "delete": ["aws_ec2_security_group", "aws_ec2_subnet"],
+        },
+    }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-training-jobs", "TrainingJobSummaries")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("TrainingJobName"),
@@ -4419,6 +4436,62 @@ class AwsSagemakerTrainingJob(SagemakerTaggable, AwsResource):
                 job_instance = AwsSagemakerTrainingJob.from_api(job_description)
                 builder.add_node(job_instance, job_description)
                 builder.submit_work(SagemakerTaggable.add_tags, job_instance, builder)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if self.training_job_labeling_job_arn:
+            builder.add_edge(self, reverse=True, clazz=AwsSagemakerLabelingJob, arn=self.training_job_labeling_job_arn)
+        if self.training_job_model_artifacts:
+            builder.add_edge(
+                self, reverse=True, clazz=AwsS3Bucket, name=self.training_job_model_artifacts
+            )  # TODO path != name
+        if tjas := self.training_job_algorithm_specification:
+            if tjas.algorithm_name:
+                builder.add_edge(self, clazz=AwsSagemakerAlgorithm, name=tjas.algorithm_name)
+        if self.training_job_role_arn:
+            builder.dependant_node(
+                self, reverse=True, delete_same_as_default=True, clazz=AwsIamRole, arn=self.training_job_role_arn
+            )
+        for config in self.training_job_input_data_config:
+            if ids := config.data_source:
+                if ids.s3_data_source:
+                    if ids.s3_data_source.s3_uri:
+                        builder.add_edge(self, clazz=AwsS3Bucket, name=ids.s3_data_source.s3_uri)  # TODO uri != name
+        if odc := self.training_job_output_data_config:
+            if odc.kms_key_id:
+                builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(odc.kms_key_id))
+            if odc.s3_output_path:
+                builder.add_edge(self, clazz=AwsS3Bucket, name=odc.s3_output_path)  # TODO path != name
+        if rc := self.training_job_resource_config:
+            if rc.volume_kms_key_id:
+                builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(rc.volume_kms_key_id))
+        if vpc := self.training_job_vpc_config:
+            for security_group in vpc.security_group_ids:
+                builder.dependant_node(self, reverse=True, clazz=AwsEc2SecurityGroup, id=security_group)
+            for subnet in vpc.subnets:
+                builder.dependant_node(self, reverse=True, clazz=AwsEc2Subnet, id=subnet)
+        if cc := self.training_job_checkpoint_config:
+            if cc.s3_uri:
+                builder.add_edge(self, clazz=AwsS3Bucket, name=cc.s3_uri)  # TODO uri != name
+        if dhc := self.training_job_debug_hook_config:
+            if dhc.s3_output_path:
+                builder.add_edge(self, clazz=AwsS3Bucket, name=dhc.s3_output_path)  # TODO path != name
+        if ex := self.training_job_experiment_config:
+            if ex.experiment_name:
+                builder.add_edge(self, reverse=True, clazz=AwsSagemakerExperiment, name=ex.experiment_name)
+            if ex.trial_name:
+                builder.add_edge(self, reverse=True, clazz=AwsSagemakerTrial, name=ex.trial_name)
+        for rule in self.training_job_debug_rule_configurations:
+            if rule.s3_output_path:
+                builder.add_edge(self, clazz=AwsS3Bucket, name=rule.s3_output_path)  # TODO path != name
+        if tboc := self.training_job_tensor_board_output_config:
+            if tboc.s3_output_path:
+                builder.add_edge(self, clazz=AwsS3Bucket, name=tboc.s3_output_path)  # TODO path != name
+        if tjpc := self.training_job_profiler_config:
+            if tjpc.s3_output_path:
+                builder.add_edge(self, clazz=AwsS3Bucket, name=tjpc.s3_output_path)  # TODO path != name
+        for tjrc in self.training_job_profiler_rule_configurations:
+            if tjrc.s3_output_path:
+                builder.add_edge(self, clazz=AwsS3Bucket, name=tjrc.s3_output_path)  # TODO path != name
 
 
 @define(eq=False, slots=False)

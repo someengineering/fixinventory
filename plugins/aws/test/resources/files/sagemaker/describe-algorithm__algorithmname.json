@@ -1,6 +1,6 @@
 {
-    "AlgorithmName": "string",
-    "AlgorithmArn": "string",
+    "AlgorithmName": "algorithmname",
+    "AlgorithmArn": "algorithmarn",
     "AlgorithmDescription": "string",
     "CreationTime": "2015-01-01T00:00:00Z",
     "TrainingSpecification": {

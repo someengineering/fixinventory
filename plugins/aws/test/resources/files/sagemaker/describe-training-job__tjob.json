@@ -5,7 +5,7 @@
     "LabelingJobArn": "string",
     "AutoMLJobArn": "string",
     "ModelArtifacts": {
-        "S3ModelArtifacts": "string"
+        "S3ModelArtifacts": "s3://bucket-name/keynameprefix/model.tar.gz"
     },
     "TrainingJobStatus": "Stopped",
     "SecondaryStatus": "Restarting",
