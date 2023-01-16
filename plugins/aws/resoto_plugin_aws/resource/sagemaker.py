@@ -4534,6 +4534,20 @@ class AwsSagemakerDataProcessing:
 @define(eq=False, slots=False)
 class AwsSagemakerTransformJob(SagemakerTaggable, AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_transform_job"
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {
+            "default": [
+                "aws_sagemaker_labeling_job",
+                "aws_sagemaker_experiment",
+                "aws_sagemaker_trial",
+                "aws_sagemaker_model",
+            ],
+            "delete": ["aws_kms_key"],
+        },
+        "successors": {
+            "default": ["aws_s3_bucket", "aws_kms_key"],
+        },
+    }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-transform-jobs", "TransformJobSummaries")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("TransformJobName"),
@@ -4595,6 +4609,35 @@ class AwsSagemakerTransformJob(SagemakerTaggable, AwsResource):
                 job_instance = AwsSagemakerTransformJob.from_api(job_description)
                 builder.add_node(job_instance, job_description)
                 builder.submit_work(SagemakerTaggable.add_tags, job_instance, builder)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if self.transform_job_model_name:
+            builder.add_edge(self, reverse=True, clazz=AwsSagemakerModel, name=self.transform_job_model_name)
+        if tin := self.transform_job_transform_input:
+            if ds := tin.data_source:
+                if s3 := ds.s3_data_source:
+                    if s3.s3_uri:
+                        builder.add_edge(self, clazz=AwsS3Bucket, name=s3.s3_uri)  # TODO uri != name
+        if tout := self.transform_job_transform_output:
+            if tout.s3_output_path:
+                builder.add_edge(self, clazz=AwsS3Bucket, name=tout.s3_output_path)  # TODO path != name
+            if tout.kms_key_id:
+                builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(tout.kms_key_id))
+        if dcc := self.transform_job_data_capture_config:
+            if dcc.destination_s3_uri:
+                builder.add_edge(self, clazz=AwsS3Bucket, name=dcc.destination_s3_uri)  # TODO uri != name
+            if dcc.kms_key_id:
+                builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(dcc.kms_key_id))
+        if tr := self.transform_job_transform_resources:
+            if tr.volume_kms_key_id:
+                builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(tr.volume_kms_key_id))
+        if self.transform_job_labeling_job_arn:
+            builder.add_edge(self, reverse=True, clazz=AwsSagemakerLabelingJob, arn=self.transform_job_labeling_job_arn)
+        if ex := self.transform_job_experiment_config:
+            if ex.experiment_name:
+                builder.add_edge(self, reverse=True, clazz=AwsSagemakerExperiment, name=ex.experiment_name)
+            if ex.trial_name:
+                builder.add_edge(self, reverse=True, clazz=AwsSagemakerTrial, name=ex.trial_name)
 
 
 resources: List[Type[AwsResource]] = [

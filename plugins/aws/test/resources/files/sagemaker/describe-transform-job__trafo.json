@@ -18,7 +18,7 @@
         "DataSource": {
             "S3DataSource": {
                 "S3DataType": "AugmentedManifestFile",
-                "S3Uri": "string"
+                "S3Uri": "s3://bucketname/example.manifest"
             }
         },
         "ContentType": "string",
@@ -26,7 +26,7 @@
         "SplitType": "TFRecord"
     },
     "TransformOutput": {
-        "S3OutputPath": "string",
+        "S3OutputPath": "s3://bucket-name/key-name-prefix",
         "Accept": "string",
         "AssembleWith": "Line",
         "KmsKeyId": "string"
