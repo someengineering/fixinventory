@@ -62,6 +62,7 @@ from resotocore.db.graphdb import GraphDB, HistoryChange
 from resotocore.db.model import QueryModel
 from resotocore.error import NotFoundError
 from resotocore.ids import TaskId, ConfigId, NodeId, SubscriberId, WorkerId
+from resotocore.inspect import Inspector, InspectionCheck
 from resotocore.message_bus import MessageBus, Message, ActionDone, Action, ActionError, ActionInfo, ActionProgress
 from resotocore.model.db_updater import merge_graph_process
 from resotocore.model.graph_access import Section
@@ -124,6 +125,7 @@ class Api:
         worker_task_queue: WorkerTaskQueue,
         cert_handler: CertificateHandler,
         config_handler: ConfigHandler,
+        inspector: Inspector,
         cli: CLI,
         query_parser: QueryParser,
         config: CoreConfig,
@@ -137,6 +139,7 @@ class Api:
         self.worker_task_queue = worker_task_queue
         self.cert_handler = cert_handler
         self.config_handler = config_handler
+        self.inspector = inspector
         self.cli = cli
         self.query_parser = query_parser
         self.config = config
@@ -216,6 +219,12 @@ class Api:
                 web.post(prefix + "/subscriber/{subscriber_id}/{event_type}", self.add_subscription),
                 web.delete(prefix + "/subscriber/{subscriber_id}/{event_type}", self.delete_subscription),
                 web.get(prefix + "/subscriber/{subscriber_id}/handle", self.handle_subscribed),
+                # inspection checks
+                web.get(prefix + "/inspection/check/{check_id}", self.inspection_check),
+                web.put(prefix + "/inspection/check/{check_id}", self.update_inspection_check),
+                web.delete(prefix + "/inspection/check/{check_id}", self.delete_inspection_check),
+                web.get(prefix + "/inspection/checks", self.inspection_checks),
+                web.post(prefix + "/inspection/check", self.update_inspection_check),
                 # CLI
                 web.post(prefix + "/cli/evaluate", self.evaluate),
                 web.post(prefix + "/cli/execute", self.execute),
@@ -437,6 +446,34 @@ class Api:
             return await self.listen_to_events(request, subscriber_id, list(subscriber.subscriptions.keys()), pending)
         else:
             return web.HTTPNotFound(text=f"No subscriber with this id: {subscriber_id} or no subscriptions")
+
+    async def inspection_check(self, request: Request) -> StreamResponse:
+        uid = request.match_info["check_id"]
+        inspection = await self.inspector.get(uid)
+        if inspection:
+            return await single_result(request, to_js(inspection))
+        else:
+            raise web.HTTPNotFound(text=f"No inspection check with this id: {uid}")
+
+    async def update_inspection_check(self, request: Request) -> StreamResponse:
+        uid = request.match_info.get("check_id")
+        inspection = from_js(await request.json(), InspectionCheck)
+        if uid is not None and uid != inspection.id:
+            raise web.HTTPBadRequest(text=f"Id in path {uid} does not match id in body {inspection.id}")
+        result = await self.inspector.update(inspection)
+        return await single_result(request, to_js(result))
+
+    async def delete_inspection_check(self, request: Request) -> StreamResponse:
+        uid = request.match_info["check_id"]
+        await self.inspector.delete(uid)
+        return web.HTTPNoContent()
+
+    async def inspection_checks(self, request: Request) -> StreamResponse:
+        provider = request.query.get("provider")
+        service = request.query.get("service")
+        category = request.query.get("category")
+        inspections = await self.inspector.list(provider, service, category)
+        return await single_result(request, to_js(inspections))
 
     async def redirect_to_api_doc(self, request: Request) -> StreamResponse:
         raise web.HTTPFound("api-doc")

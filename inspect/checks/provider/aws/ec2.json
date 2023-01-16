@@ -417,21 +417,6 @@
             "internal_notes": ""
         },
         {
-            "name": "wide_open_ipv4_security_group",
-            "title": "Security group is configured wide open.",
-            "categories": [ "security", "compliance" ],
-            "risk": "If Security groups are not properly configured the attack surface is increased.",
-            "severity": "high",
-            "detect": {
-                "resoto_cmd": "is(aws_ec2_security_group) and group_ip_permissions[*].ip_ranges[*].{cidr_ip!=\"0.0.0.0/0\" and cidr_ip!~\"^192\" and cidr_ip!~\"^10\" and cidr_ip~\"\\/(([1-9])|(1[0-9])|(2[0-3]))$\"}"
-            },
-            "remediation": {
-                "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
-                "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
-            },
-            "internal_notes": ""
-        },
-        {
             "name": "default_restrict_traffic",
             "title": "Ensure the default security group of every VPC restricts all traffic.",
             "categories": [ "security", "compliance" ],
@@ -446,7 +431,5 @@
             },
             "internal_notes": ""
         }
-
-
     ]
 }

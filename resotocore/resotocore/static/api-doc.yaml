@@ -26,6 +26,8 @@ tags:
     description: Endpoints to attach to the work queue.
   - name: certificate
     description: Endpoints to access the certificate authority as well as signing functionality.
+  - name: inspect
+    description: Endpoints to perform and maintain security, compliance and cost checks.
   - name: system
     description: Endpoints to get information about the system.
   - name: debug
@@ -2279,6 +2281,146 @@ paths:
                   -----END CERTIFICATE-----
   # endregion
 
+  # region inspection
+
+  /inspection/checks:
+    get:
+      summary: "List all checks."
+      description: "List all checks."
+      tags:
+        - inspect
+      parameters:
+        - name: provider
+          in: query
+          description: "Filter by provider."
+          schema:
+            type: string
+        - name: service
+          in: query
+          description: "Filter by service."
+          schema:
+            type: string
+        - name: category
+          in: query
+          description: "Filter by category."
+          schema:
+            type: string
+      responses:
+        "200":
+          description: "List of checks."
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/InspectCheck"
+
+  /inspection/check:
+    post:
+      summary: "Create an inspection check."
+      description: "Create an inspection check."
+      tags:
+        - inspect
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InspectCheck"
+      responses:
+        "200":
+          description: "The created check."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InspectCheck"
+
+  /inspection/check/{check_id}:
+    get:
+      summary: "Get an existing check."
+      description: "Get an existing check."
+      tags:
+        - inspect
+      parameters:
+        - name: check_id
+          in: path
+          description: "The ID of the check to manipulate."
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: "The inspection check."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InspectCheck"
+        "404":
+          description: "No check with this id."
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "No inspection check with this id: xxx"
+    put:
+      summary: "Modify an existing check."
+      description: "Modify an existing check."
+      tags:
+        - inspect
+      parameters:
+        - name: check_id
+          in: path
+          description: "The ID of the check to manipulate."
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InspectCheck"
+      responses:
+        "200":
+          description: "The updated check."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InspectCheck"
+        "400":
+          description: "The check is invalid."
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "Id in path check_to_update does not match id in body some_other_id."
+
+    delete:
+      summary: "Delete an existing check."
+      description: "Delete an existing check."
+      tags:
+        - inspect
+      parameters:
+        - name: check_id
+          in: path
+          description: "The ID of the check to manipulate."
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: "The deleted check."
+          content:
+            none: {}
+        "400":
+          description: "The check is predefined and can not be deleted."
+          content:
+            text/plain:
+              schema:
+                type: string
+
+
+
+  # endregion
+
   # region system
   /system/ready:
     get:
@@ -3062,4 +3204,61 @@ components:
           description: Help text of the CLI command argument.
 
 
+    Remediation:
+      type: object
+      properties:
+        text:
+          type: string
+          description: "The text of the remediation"
+        url:
+          type: string
+          description: "The url of the remediation"
+        action:
+          additionalProperties:
+            type: string
+          description: "Action to remediate the inspected issue"
 
+
+    InspectCheck:
+      type: object
+      properties:
+        id:
+          type: string
+          description: "The id of this check"
+        provider:
+          type: string
+          description: "The provider of this check"
+        service:
+          type: string
+          description: "The service of this check"
+        title:
+          type: string
+          description: "The title of this check"
+        categories:
+          type: array
+          items:
+            type: string
+          description: "The categories of this check"
+        severity:
+          type: string
+          description: "The severity of this check"
+          enum:
+            - critical
+            - high
+            - medium
+            - low
+            - info
+        detect:
+          additionalProperties:
+            type: string
+          description: "The detect expression of this check"
+        remediation:
+          $ref: '#/components/schemas/Remediation'
+        url:
+          type: string
+          description: "The url of this check"
+        related:
+          type: array
+          items:
+            type: string
+          description: "The related checks of this check"
