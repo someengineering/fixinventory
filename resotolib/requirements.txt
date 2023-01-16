@@ -14,5 +14,4 @@ parsy==2.0
 tzlocal==4.2
 tzdata==2022.6
 cattrs==22.2.0
-treelib==1.6.1
 setuptools==65.6.3

@@ -27,7 +27,7 @@ from resotolib.core.actions import CoreFeedback
 from resotolib.core.custom_command import execute_command_on_resource
 from resotolib.graph import Graph
 from resotolib.logger import log, setup_logger
-from resotolib.types import JsonElement, Json
+from resotolib.types import JsonElement
 from resotolib.utils import log_runtime, NoExitArgumentParser
 from .collector import AwsAccountCollector
 from .configuration import AwsConfig
@@ -221,7 +221,15 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
         output_shape = op.output_shape.type_name
         func_args = coerce_args(remaining, op)
 
-        result: List[Json] = client.call_single(p.service, p.operation, None, **func_args)  # type: ignore
+        # call single and treat result as list
+        response = client.call_single(p.service, p.operation, None, **func_args)
+        if response is None:
+            result = []
+        elif isinstance(response, list):
+            result = response
+        else:
+            result = [response]
+
         # Remove the "ResponseMetadata" from the result
         for elem in result:
             if isinstance(elem, dict):

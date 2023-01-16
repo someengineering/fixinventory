@@ -361,7 +361,6 @@ jobs:
           fi
 
       - name: Check out repository
-        if: steps.release.outputs.prerelease == 'false'
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
@@ -386,6 +385,11 @@ jobs:
         working-directory: ./resoto.com
         run: |
           yarn run docusaurus docs:version "${{steps.release.outputs.docsVersion}}"
+
+      - name: Generate versioned Docker Compose YAML
+        shell: bash
+        run: |
+          sed -i 's/edge/${{steps.release.outputs.tag}}/g' docker-compose.yaml
 
       - name: Generate release notes
         if: steps.release.outputs.prerelease == 'false'
@@ -476,6 +480,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           prerelease: ${{steps.release.outputs.prerelease}}
           bodyFile: release_body.txt
+          artifacts: docker-compose.yaml
 
       - name: Check out someengineering/helm-charts
         uses: actions/checkout@v3
