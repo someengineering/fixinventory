@@ -178,13 +178,6 @@ class AwsSagemakerParameterRangeSpecification:
 
 
 @define(eq=False, slots=False)
-class AwsSagemakerCategoricalParameterRangeSpecification:
-    kind: ClassVar[str] = "aws_sagemaker_categorical_parameter_range_specification"
-    mapping: ClassVar[Dict[str, Bender]] = {"values": S("Values", default=[])}
-    values: List[str] = field(factory=list)
-
-
-@define(eq=False, slots=False)
 class AwsSagemakerParameterRange:
     kind: ClassVar[str] = "aws_sagemaker_parameter_range"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -192,14 +185,11 @@ class AwsSagemakerParameterRange:
         >> Bend(AwsSagemakerParameterRangeSpecification.mapping),
         "continuous_parameter_range_specification": S("ContinuousParameterRangeSpecification")
         >> Bend(AwsSagemakerParameterRangeSpecification.mapping),
-        "categorical_parameter_range_specification": S("CategoricalParameterRangeSpecification")
-        >> Bend(AwsSagemakerCategoricalParameterRangeSpecification.mapping),
+        "categorical_parameter_range_specification": S("CategoricalParameterRangeSpecification", "Values", default=[]),
     }
     integer_parameter_range_specification: Optional[AwsSagemakerParameterRangeSpecification] = field(default=None)
     continuous_parameter_range_specification: Optional[AwsSagemakerParameterRangeSpecification] = field(default=None)
-    categorical_parameter_range_specification: Optional[AwsSagemakerCategoricalParameterRangeSpecification] = field(
-        default=None
-    )
+    categorical_parameter_range_specification: List[str] = field(factory=list)
 
 
 @define(eq=False, slots=False)
