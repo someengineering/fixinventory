@@ -3160,21 +3160,12 @@ class AwsSagemakerRecommendationJobResourceLimit:
 
 
 @define(eq=False, slots=False)
-class AwsSagemakerCategoricalParameter:
-    kind: ClassVar[str] = "aws_sagemaker_categorical_parameter"
-    mapping: ClassVar[Dict[str, Bender]] = {"name": S("Name"), "value": S("Value", default=[])}
-    name: Optional[str] = field(default=None)
-    value: List[str] = field(factory=list)
-
-
-@define(eq=False, slots=False)
 class AwsSagemakerEnvironmentParameterRanges:
     kind: ClassVar[str] = "aws_sagemaker_environment_parameter_ranges"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "categorical_parameter_ranges": S("CategoricalParameterRanges", default=[])
-        >> ForallBend(AwsSagemakerCategoricalParameter.mapping)
+        "categorical_parameter_ranges": S("CategoricalParameterRanges", "Value", default=[])
     }
-    categorical_parameter_ranges: List[AwsSagemakerCategoricalParameter] = field(factory=list)
+    categorical_parameter_ranges: List[str] = field(factory=list)
 
 
 @define(eq=False, slots=False)
