@@ -157,9 +157,7 @@ class AwsSagemakerNotebook(SagemakerTaggable, AwsResource):
             builder.dependant_node(self, clazz=AwsEc2NetworkInterface, id=self.notebook_network_interface_id)
         code_repos = [self.notebook_default_code_repository] + self.notebook_additional_code_repositories
         for repo in code_repos:
-            builder.add_edge(
-                self, reverse=True, clazz=AwsSagemakerCodeRepository, name=repo
-            )  # TODO check if name or url
+            builder.add_edge(self, reverse=True, clazz=AwsSagemakerCodeRepository, name=repo)
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
@@ -3689,7 +3687,7 @@ class AwsSagemakerLabelingJob(SagemakerTaggable, AwsResource):
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("LabelingJobName"),
         "name": S("LabelingJobName"),
-        # this thing has tags! TODO
+        "tags": S("Tags", default=[]) >> ToDict(),
         "ctime": S("CreationTime"),
         "mtime": S("LastModifiedTime"),
         "arn": S("LabelingJobArn"),
@@ -3739,7 +3737,6 @@ class AwsSagemakerLabelingJob(SagemakerTaggable, AwsResource):
             if job_description:
                 job_instance = AwsSagemakerLabelingJob.from_api(job_description)
                 builder.add_node(job_instance, job_description)
-                builder.submit_work(SagemakerTaggable.add_tags, job_instance, builder)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if ic := self.labeling_job_input_config:
