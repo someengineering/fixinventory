@@ -3476,21 +3476,14 @@ class AwsSagemakerLabelingJobDataSource:
 
 
 @define(eq=False, slots=False)
-class AwsSagemakerLabelingJobDataAttributes:
-    kind: ClassVar[str] = "aws_sagemaker_labeling_job_data_attributes"
-    mapping: ClassVar[Dict[str, Bender]] = {"content_classifiers": S("ContentClassifiers", default=[])}
-    content_classifiers: List[str] = field(factory=list)
-
-
-@define(eq=False, slots=False)
 class AwsSagemakerLabelingJobInputConfig:
     kind: ClassVar[str] = "aws_sagemaker_labeling_job_input_config"
     mapping: ClassVar[Dict[str, Bender]] = {
         "data_source": S("DataSource") >> Bend(AwsSagemakerLabelingJobDataSource.mapping),
-        "data_attributes": S("DataAttributes") >> Bend(AwsSagemakerLabelingJobDataAttributes.mapping),
+        "data_attributes": S("DataAttributes", "ContentClassifiers", default=[]),
     }
     data_source: Optional[AwsSagemakerLabelingJobDataSource] = field(default=None)
-    data_attributes: Optional[AwsSagemakerLabelingJobDataAttributes] = field(default=None)
+    data_attributes: List[str] = field(factory=list)
 
 
 @define(eq=False, slots=False)
