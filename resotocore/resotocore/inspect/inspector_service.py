@@ -13,7 +13,11 @@ class InspectorService(Inspector):
         return (await self.inspection_db.get(uid)) or self.predefined_inspections.get(uid)
 
     async def list(
-        self, provider: Optional[str] = None, service: Optional[str] = None, category: Optional[str] = None
+        self,
+        provider: Optional[str] = None,
+        service: Optional[str] = None,
+        category: Optional[str] = None,
+        kind: Optional[str] = None,
     ) -> List[InspectionCheck]:
         result = {}
 
@@ -23,6 +27,7 @@ class InspectorService(Inspector):
                     (provider is None or provider == inspection.provider)
                     and (service is None or service == inspection.service)
                     and (category is None or category in inspection.categories)
+                    and (kind is None or kind == inspection.kind)
                 ):
                     result[inspection.id] = inspection
 

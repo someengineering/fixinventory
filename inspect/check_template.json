@@ -1,6 +1,7 @@
 {
     "name": "",
     "title": "",
+    "kind": "result kind returned by the query",
     "categories": [
         "insights",
         "security",

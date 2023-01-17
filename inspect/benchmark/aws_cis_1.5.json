@@ -96,7 +96,7 @@
                 {
                     "title": "1.18 Ensure IAM instance roles are used for AWS resource access from instances",
                     "description": "AWS access from within AWS instances can be done by either encoding AWS keys into AWS API calls or by assigning the instance to a role which has an appropriate permissions policy for the required access. \"AWS Access\" means accessing the APIs of AWS in order to access AWS resources or manage AWS account resources.",
-                    "checks": []
+                    "checks": ["aws_ec2_instance_profile_attached"]
                 },
                 {
                     "title": "1.19 Ensure that all the expired SSL/TLS certificates stored in AWS IAM are removed",
@@ -351,17 +351,32 @@
                 {
                     "title": "5.1 Ensure no Network ACLs allow ingress from 0.0.0.0/0 to remote server administration ports",
                     "description": "The Network Access Control List (NACL) function provide stateless filtering of ingress and egress network traffic to AWS resources. It is recommended that no NACL allows unrestricted ingress access to remote server administration ports, such as SSH to port 22 and RDP to port 3389.",
-                    "checks": []
+                    "checks": [
+                        "aws_ec2_allow_ingress_any_port_ipv4",
+                        "aws_ec2_allow_ingress_any_port_ipv6",
+                        "aws_ec2_allow_ingress_ssh_port_22_ipv4",
+                        "aws_ec2_allow_ingress_ssh_port_22_ipv6",
+                        "aws_ec2_allow_ingress_rdp_port_3389_ipv4",
+                        "aws_ec2_allow_ingress_rdp_port_3389_ipv6"
+                    ]
                 },
                 {
                     "title": "5.2 Ensure no security groups allow ingress from 0.0.0.0/0 to remote server administration ports",
                     "description": "Security groups provide stateful filtering of ingress and egress network traffic to AWS resources. It is recommended that no security group allows unrestricted ingress access to remote server administration ports, such as SSH to port 22 and RDP to port 3389.",
-                    "checks": []
+                    "checks": [
+                        "aws_ec2_allow_ingress_from_internet_to_any_port_ipv4",
+                        "aws_ec2_allow_ingress_from_internet_to_ssh_port_22_ipv4",
+                        "aws_ec2_allow_ingress_from_internet_to_rdp_port_3389_ipv4"
+                    ]
                 },
                 {
                     "title": "5.3 Ensure no security groups allow ingress from ::/0 to remote server administration ports",
                     "description": "Security groups provide stateful filtering of ingress and egress network traffic to AWS resources. It is recommended that no security group allows unrestricted ingress access to remote server administration ports, such as SSH to port 22 and RDP to port 3389.",
-                    "checks": []
+                    "checks": [
+                        "aws_ec2_allow_ingress_from_internet_to_any_port_ipv6",
+                        "aws_ec2_allow_ingress_from_internet_to_ssh_port_22_ipv6",
+                        "aws_ec2_allow_ingress_from_internet_to_rdp_port_3389_ipv6"
+                    ]
                 },
                 {
                     "title": "5.4 Ensure the default security group of every VPC restricts all traffic",

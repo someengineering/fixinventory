@@ -472,7 +472,8 @@ class Api:
         provider = request.query.get("provider")
         service = request.query.get("service")
         category = request.query.get("category")
-        inspections = await self.inspector.list(provider, service, category)
+        kind = request.query.get("kind")
+        inspections = await self.inspector.list(provider, service, category, kind)
         return await single_result(request, to_js(inspections))
 
     async def redirect_to_api_doc(self, request: Request) -> StreamResponse:

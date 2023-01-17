@@ -32,6 +32,7 @@ class InspectionCheck:
     provider: str
     service: str
     title: str
+    kind: str
     categories: List[str]
     severity: InspectionSeverity
     detect: Dict[str, str]
@@ -46,6 +47,7 @@ class InspectionCheck:
                 id=f'{provider}_{service}_{check["name"]}',
                 provider=provider,
                 service=service,
+                kind=check["kind"],
                 title=check["title"],
                 categories=check["categories"],
                 severity=InspectionSeverity(check["severity"]),
@@ -83,7 +85,11 @@ class Inspector(ABC):
 
     @abstractmethod
     async def list(
-        self, provider: Optional[str] = None, service: Optional[str] = None, category: Optional[str] = None
+        self,
+        provider: Optional[str] = None,
+        service: Optional[str] = None,
+        category: Optional[str] = None,
+        kind: Optional[str] = None,
     ) -> List[InspectionCheck]:
         pass
 

@@ -5,6 +5,7 @@
         {
             "name": "authorizers_enabled",
             "title": "Check if API Gateway has configured authorizers.",
+            "kind": "aws_api_gateway_rest_api",
             "categories": ["security", "compliance"],
             "risk": "If no authorizer is enabled anyone can use the service.",
             "severity": "medium",
@@ -22,6 +23,7 @@
         {
             "name": "client_certificate_enabled",
             "title": "Check if API Gateway has client certificate enabled to access your backend endpoint.",
+            "kind": "aws_api_gateway_stage",
             "categories": ["security", "compliance"],
             "risk": "Possible man in the middle attacks and other similar risks.",
             "severity": "medium",
@@ -37,6 +39,7 @@
         {
             "name": "logging_enabled",
             "title": "Check if API Gateway has logging enabled.",
+            "kind": "aws_api_gateway_stage",
             "categories": ["compliance"],
             "risk": "If not enabled, monitoring of service use is not possible. Real-time monitoring of API calls can be achieved by directing CloudTrail Logs to CloudWatch Logs and establishing corresponding metric filters and alarms.",
             "severity": "medium",
@@ -51,6 +54,7 @@
         {
             "name": "waf_acl_attached",
             "title": "Check if API Gateway has a WAF ACL attached.",
+            "kind": "aws_api_gateway_stage",
             "categories": ["security"],
             "risk": "Potential attacks and / or abuse of service for internet reachable services.",
             "severity": "medium",

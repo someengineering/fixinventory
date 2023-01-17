@@ -2295,16 +2295,25 @@ paths:
           description: "Filter by provider."
           schema:
             type: string
+          example: "aws"
         - name: service
           in: query
           description: "Filter by service."
           schema:
             type: string
+          example: "ec2"
         - name: category
           in: query
           description: "Filter by category."
           schema:
             type: string
+          example: "security"
+        - name: kind
+          in: query
+          description: "Filter by kind."
+          schema:
+            type: string
+          example: "aws_ec2_instance"
       responses:
         "200":
           description: "List of checks."
