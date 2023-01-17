@@ -2746,23 +2746,8 @@ class AwsSagemakerResourceLimits:
 
 
 @define(eq=False, slots=False)
-class AwsSagemakerIntegerParameterRange:
-    kind: ClassVar[str] = "aws_sagemaker_integer_parameter_range"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "name": S("Name"),
-        "min_value": S("MinValue"),
-        "max_value": S("MaxValue"),
-        "scaling_type": S("ScalingType"),
-    }
-    name: Optional[str] = field(default=None)
-    min_value: Optional[str] = field(default=None)
-    max_value: Optional[str] = field(default=None)
-    scaling_type: Optional[str] = field(default=None)
-
-
-@define(eq=False, slots=False)
-class AwsSagemakerContinuousParameterRange:
-    kind: ClassVar[str] = "aws_sagemaker_continuous_parameter_range"
+class AwsSagemakerScalingParameterRange:
+    kind: ClassVar[str] = "aws_sagemaker_scaling_parameter_range"
     mapping: ClassVar[Dict[str, Bender]] = {
         "name": S("Name"),
         "min_value": S("MinValue"),
@@ -2788,14 +2773,14 @@ class AwsSagemakerParameterRanges:
     kind: ClassVar[str] = "aws_sagemaker_parameter_ranges"
     mapping: ClassVar[Dict[str, Bender]] = {
         "integer_parameter_ranges": S("IntegerParameterRanges", default=[])
-        >> ForallBend(AwsSagemakerIntegerParameterRange.mapping),
+        >> ForallBend(AwsSagemakerScalingParameterRange.mapping),
         "continuous_parameter_ranges": S("ContinuousParameterRanges", default=[])
-        >> ForallBend(AwsSagemakerContinuousParameterRange.mapping),
+        >> ForallBend(AwsSagemakerScalingParameterRange.mapping),
         "categorical_parameter_ranges": S("CategoricalParameterRanges", default=[])
         >> ForallBend(AwsSagemakerCategoricalParameterRange.mapping),
     }
-    integer_parameter_ranges: List[AwsSagemakerIntegerParameterRange] = field(factory=list)
-    continuous_parameter_ranges: List[AwsSagemakerContinuousParameterRange] = field(factory=list)
+    integer_parameter_ranges: List[AwsSagemakerScalingParameterRange] = field(factory=list)
+    continuous_parameter_ranges: List[AwsSagemakerScalingParameterRange] = field(factory=list)
     categorical_parameter_ranges: List[AwsSagemakerCategoricalParameterRange] = field(factory=list)
 
 
