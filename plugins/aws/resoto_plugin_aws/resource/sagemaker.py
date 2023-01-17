@@ -170,16 +170,8 @@ class AwsSagemakerNotebook(SagemakerTaggable, AwsResource):
 
 
 @define(eq=False, slots=False)
-class AwsSagemakerIntegerParameterRangeSpecification:
+class AwsSagemakerParameterRangeSpecification:
     kind: ClassVar[str] = "aws_sagemaker_integer_parameter_range_specification"
-    mapping: ClassVar[Dict[str, Bender]] = {"min_value": S("MinValue"), "max_value": S("MaxValue")}
-    min_value: Optional[str] = field(default=None)
-    max_value: Optional[str] = field(default=None)
-
-
-@define(eq=False, slots=False)
-class AwsSagemakerContinuousParameterRangeSpecification:
-    kind: ClassVar[str] = "aws_sagemaker_continuous_parameter_range_specification"
     mapping: ClassVar[Dict[str, Bender]] = {"min_value": S("MinValue"), "max_value": S("MaxValue")}
     min_value: Optional[str] = field(default=None)
     max_value: Optional[str] = field(default=None)
@@ -197,18 +189,14 @@ class AwsSagemakerParameterRange:
     kind: ClassVar[str] = "aws_sagemaker_parameter_range"
     mapping: ClassVar[Dict[str, Bender]] = {
         "integer_parameter_range_specification": S("IntegerParameterRangeSpecification")
-        >> Bend(AwsSagemakerIntegerParameterRangeSpecification.mapping),
+        >> Bend(AwsSagemakerParameterRangeSpecification.mapping),
         "continuous_parameter_range_specification": S("ContinuousParameterRangeSpecification")
-        >> Bend(AwsSagemakerContinuousParameterRangeSpecification.mapping),
+        >> Bend(AwsSagemakerParameterRangeSpecification.mapping),
         "categorical_parameter_range_specification": S("CategoricalParameterRangeSpecification")
         >> Bend(AwsSagemakerCategoricalParameterRangeSpecification.mapping),
     }
-    integer_parameter_range_specification: Optional[AwsSagemakerIntegerParameterRangeSpecification] = field(
-        default=None
-    )
-    continuous_parameter_range_specification: Optional[AwsSagemakerContinuousParameterRangeSpecification] = field(
-        default=None
-    )
+    integer_parameter_range_specification: Optional[AwsSagemakerParameterRangeSpecification] = field(default=None)
+    continuous_parameter_range_specification: Optional[AwsSagemakerParameterRangeSpecification] = field(default=None)
     categorical_parameter_range_specification: Optional[AwsSagemakerCategoricalParameterRangeSpecification] = field(
         default=None
     )
