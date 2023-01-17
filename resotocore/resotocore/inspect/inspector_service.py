@@ -1,13 +1,14 @@
 from typing import Optional, List, Iterable
 
 from resotocore.db.inspectiondb import InspectionCheckEntityDb
-from resotocore.inspect import Inspector, InspectionCheck
+from resotocore.inspect import Inspector, InspectionCheck, Benchmark
 
 
 class InspectorService(Inspector):
     def __init__(self, inspection_db: InspectionCheckEntityDb) -> None:
         self.inspection_db = inspection_db
         self.predefined_inspections = {i.id: i for i in InspectionCheck.from_files()}
+        self.benchmarks = {b.title for b in Benchmark.from_files(self.predefined_inspections)}
 
     async def get(self, uid: str) -> Optional[InspectionCheck]:
         return (await self.inspection_db.get(uid)) or self.predefined_inspections.get(uid)
