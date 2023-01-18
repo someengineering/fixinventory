@@ -93,7 +93,9 @@ async def cli_deps(
         config_handler=config_handler,
         cert_handler=cert_handler,
     )
+    await db_access.start()
     yield deps
+    await db_access.stop()
     await deps.stop()
 
 
