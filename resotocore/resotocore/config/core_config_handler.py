@@ -12,14 +12,15 @@ from resotocore.config import ConfigHandler, ConfigEntity, ConfigValidation
 from resotocore.core_config import (
     CoreConfig,
     ResotoCoreConfigId,
-    config_model,
     EditableConfig,
     ResotoCoreRoot,
     ResotoCoreCommandsConfigId,
     ResotoCoreCommandsRoot,
     CustomCommandsConfig,
     migrate_config,
+    config_model as core_config_model,
 )
+from resotocore.report import config_model as report_config_model
 from resotocore.ids import SubscriberId, WorkerId
 from resotocore.dependencies import empty_config
 from resotocore.message_bus import MessageBus, CoreMessage
@@ -146,7 +147,8 @@ class CoreConfigHandler:
 
     async def __update_model(self) -> None:
         try:
-            kinds = from_js(config_model(), List[Kind])
+            models = core_config_model() + report_config_model()
+            kinds = from_js(models, List[Kind])
             await self.config_handler.update_configs_model(kinds)
             await self.config_handler.put_config_validation(
                 ConfigValidation(ResotoCoreConfigId, external_validation=True)

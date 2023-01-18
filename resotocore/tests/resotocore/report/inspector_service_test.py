@@ -5,8 +5,8 @@ from pytest import fixture
 
 from resotocore.cli.cli import CLI
 from resotocore.config import ConfigEntity
-from resotocore.inspect import InspectionCheck, InspectionSeverity, Remediation, Benchmark
-from resotocore.inspect.inspector_service import InspectorService, config_id, CheckConfigRoot
+from resotocore.report import ReportCheck, ReportSeverity, Remediation, Benchmark, config_model, CheckConfigRoot
+from resotocore.report.inspector_service import InspectorService, config_id
 from resotocore.model.typed_model import to_js
 
 # noinspection PyUnresolvedReferences
@@ -48,35 +48,37 @@ def inspector_service(cli: CLI) -> InspectorService:
 
 
 @fixture
-def inspection_checks() -> List[InspectionCheck]:
+def inspection_checks() -> List[ReportCheck]:
     return [
-        InspectionCheck(
+        ReportCheck(
             id="test_search",
             provider="test",
             service="test",
             title="test",
-            kind="foo",
+            result_kind="foo",
             categories=["test"],
-            severity=InspectionSeverity.critical,
-            detect={"resoto": "is(foo)"},
-            remediation=Remediation({}, "", ""),
+            severity=ReportSeverity.critical,
+            # we use a query with a template here
+            detect={"resoto": "is({{foo_kind}})"},
+            default_values={"foo_kind": "foo"},
+            remediation=Remediation("", "", {}),
         ),
-        InspectionCheck(
+        ReportCheck(
             id="test_cmd",
             provider="test",
             service="test",
             title="test",
-            kind="foo",
+            result_kind="foo",
             categories=["test"],
-            severity=InspectionSeverity.critical,
+            severity=ReportSeverity.critical,
             detect={"resoto_cmd": "search is(foo) | jq --no-rewrite ."},
-            remediation=Remediation({}, "", ""),
+            remediation=Remediation("", "", {}),
         ),
     ]
 
 
 @fixture
-def benchmark(inspection_checks: List[InspectionCheck]) -> Benchmark:
+def benchmark(inspection_checks: List[ReportCheck]) -> Benchmark:
     return Benchmark(
         title="test_benchmark",
         description="test_benchmark",
@@ -85,6 +87,11 @@ def benchmark(inspection_checks: List[InspectionCheck]) -> Benchmark:
         version="1.0",
         checks=[c.id for c in inspection_checks],
     )
+
+
+async def test_config_model() -> None:
+    models = config_model()
+    assert len(models) == 5
 
 
 async def test_list_inspect_checks(inspector_service: InspectorService) -> None:
@@ -123,7 +130,7 @@ async def test_list_inspect_checks(inspector_service: InspectorService) -> None:
 
 
 async def test_perform_benchmark(
-    inspector_service: InspectorService, inspection_checks: List[InspectionCheck], benchmark: Benchmark
+    inspector_service: InspectorService, inspection_checks: List[ReportCheck], benchmark: Benchmark
 ) -> None:
     inspector_service.predefined_inspections = {i.id: i for i in inspection_checks}
     inspector_service.benchmarks = {benchmark.id: benchmark}

@@ -5,7 +5,7 @@
         {
             "name": "snapshot_encrypted",
             "title": "Ensure EBS Snapshots are encrypted and not public.",
-            "kind": "aws_ec2_snapshot",
+            "result_kind": "aws_ec2_snapshot",
             "categories": ["security", "compliance"],
             "risk": "When you share a snapshot, you are giving others access to all of the data on the snapshot. Share snapshots only with people with whom you want to share all of your snapshot data.",
             "severity": "medium",
@@ -20,7 +20,7 @@
         {
             "name": "unused_elastic_ip",
             "title": "Check if there is any unassigned Elastic IP.",
-            "kind": "aws_ec2_elastic_ip",
+            "result_kind": "aws_ec2_elastic_ip",
             "categories": ["cost"],
             "risk": "Unassigned Elastic IPs may result in extra cost.",
             "severity": "medium",
@@ -35,7 +35,7 @@
         {
             "name": "internet_facing_with_instance_profile",
             "title": "Check for internet facing EC2 instances with Instance Profiles attached.",
-            "kind": "aws_ec2_instance",
+            "result_kind": "aws_ec2_instance",
             "categories": ["security", "compliance"],
             "risk": "Exposing an EC2 directly to internet increases the attack surface and therefore the risk of compromise.",
             "severity": "medium",
@@ -50,12 +50,15 @@
         {
             "name": "old_instances",
             "title": "Check EC2 Instances older than specific days.",
-            "kind": "aws_ec2_instance",
+            "result_kind": "aws_ec2_instance",
             "categories": ["security", "compliance"],
             "risk": "Having old instances within your AWS account could increase the risk of having vulnerable software.",
             "severity": "low",
             "detect": {
-                "resoto": "is(aws_ec2_instance) and instance_status=running and age>180d"
+                "resoto": "is(aws_ec2_instance) and instance_status=running and age>{{old_instance_age}}"
+            },
+            "default_values": {
+                "old_instance_age": "180d"
             },
             "remediation": {
                 "text": "Check if software running in the instance is up to date and patched accordingly.",
@@ -65,7 +68,7 @@
         {
             "name": "instance_profile_attached",
             "title": "Ensure IAM instance roles are used for AWS resource access from instances",
-            "kind": "aws_ec2_instance",
+            "result_kind": "aws_ec2_instance",
             "categories": ["security", "compliance"],
             "risk": "AWS access from within AWS instances can be done by either encoding AWS keys into AWS API calls or by assigning the instance to a role which has an appropriate permissions policy for the required access. AWS IAM roles reduce the risks associated with sharing and rotating credentials that can be used outside of AWS itself. If credentials are compromised, they can be used from outside of the AWS account.",
             "severity": "medium",
@@ -80,7 +83,7 @@
         {
             "name": "public_ip_address",
             "title": "Check for EC2 Instances with Public IP.",
-            "kind": "aws_ec2_instance",
+            "result_kind": "aws_ec2_instance",
             "categories": ["security", "compliance"],
             "risk": "Exposing an EC2 directly to internet increases the attack surface and therefore the risk of compromise.",
             "severity": "medium",
@@ -95,7 +98,7 @@
         {
             "name": "allow_ingress_any_port_ipv4",
             "title": "Ensure no Network ACLs allow ingress from 0.0.0.0/0 to any port.",
-            "kind": "aws_ec2_network_acl",
+            "result_kind": "aws_ec2_network_acl",
             "categories": [ "security", "compliance" ],
             "risk": "Even having a perimeter firewall, having network acls open allows any user or malware with vpc access to scan for well known and sensitive ports and gain access to instance.",
             "severity": "high",
@@ -111,7 +114,7 @@
         {
             "name": "allow_ingress_any_port_ipv6",
             "title": "Ensure no Network ACLs allow ingress from ::/0 to any port.",
-            "kind": "aws_ec2_network_acl",
+            "result_kind": "aws_ec2_network_acl",
             "categories": [ "security", "compliance" ],
             "risk": "Even having a perimeter firewall, having network acls open allows any user or malware with vpc access to scan for well known and sensitive ports and gain access to instance.",
             "severity": "high",
@@ -127,7 +130,7 @@
         {
             "name": "allow_ingress_ssh_port_22_ipv4",
             "title": "Ensure no Network ACLs allow ingress from 0.0.0.0/0 to SSH port 22",
-            "kind": "aws_ec2_network_acl",
+            "result_kind": "aws_ec2_network_acl",
             "categories": [ "security", "compliance" ],
             "risk": "Even having a perimeter firewall, having network acls open allows any user or malware with vpc access to scan for well known and sensitive ports and gain access to instance.",
             "severity": "high",
@@ -143,7 +146,7 @@
         {
             "name": "allow_ingress_ssh_port_22_ipv6",
             "title": "Ensure no Network ACLs allow ingress from ::/0 to SSH port 22",
-            "kind": "aws_ec2_network_acl",
+            "result_kind": "aws_ec2_network_acl",
             "categories": [ "security", "compliance" ],
             "risk": "Even having a perimeter firewall, having network acls open allows any user or malware with vpc access to scan for well known and sensitive ports and gain access to instance.",
             "severity": "high",
@@ -159,7 +162,7 @@
         {
             "name": "allow_ingress_rdp_port_3389_ipv4",
             "title": "Ensure no Network ACLs allow ingress from 0.0.0.0/0 to Microsoft RDP port 3389",
-            "kind": "aws_ec2_network_acl",
+            "result_kind": "aws_ec2_network_acl",
             "categories": [ "security", "compliance" ],
             "risk": "Even having a perimeter firewall, having network acls open allows any user or malware with vpc access to scan for well known and sensitive ports and gain access to instance.",
             "severity": "high",
@@ -175,7 +178,7 @@
         {
             "name": "allow_ingress_rdp_port_3389_ipv6",
             "title": "Ensure no Network ACLs allow ingress from ::/0 to Microsoft RDP port 3389",
-            "kind": "aws_ec2_network_acl",
+            "result_kind": "aws_ec2_network_acl",
             "categories": [ "security", "compliance" ],
             "risk": "Even having a perimeter firewall, having network acls open allows any user or malware with vpc access to scan for well known and sensitive ports and gain access to instance.",
             "severity": "high",
@@ -191,7 +194,7 @@
         {
             "name": "allow_ingress_from_internet_to_any_port",
             "title": "Ensure no security groups allow ingress from 0.0.0.0/0 or ::/0 to any port.",
-            "kind": "aws_ec2_security_group",
+            "result_kind": "aws_ec2_security_group",
             "categories": [ "security", "compliance" ],
             "risk": "If Security groups are not properly configured the attack surface is increased.",
             "severity": "high",
@@ -207,7 +210,7 @@
         {
             "name": "allow_ingress_from_internet_to_any_port_ipv4",
             "title": "Ensure no security groups allow ingress from 0.0.0.0/0 to any port.",
-            "kind": "aws_ec2_security_group",
+            "result_kind": "aws_ec2_security_group",
             "categories": [ "security", "compliance" ],
             "risk": "If Security groups are not properly configured the attack surface is increased.",
             "severity": "high",
@@ -223,7 +226,7 @@
         {
             "name": "allow_ingress_from_internet_to_any_port_ipv6",
             "title": "Ensure no security groups allow ingress from ::/0 to any port.",
-            "kind": "aws_ec2_security_group",
+            "result_kind": "aws_ec2_security_group",
             "categories": [ "security", "compliance" ],
             "risk": "If Security groups are not properly configured the attack surface is increased.",
             "severity": "high",
@@ -239,7 +242,7 @@
         {
             "name": "allow_ingress_from_internet_to_port_mongodb_27017_27018",
             "title": "Ensure no security groups allow ingress from 0.0.0.0/0 or ::/0 to MongoDB ports 27017 and 27018.",
-            "kind": "aws_ec2_security_group",
+            "result_kind": "aws_ec2_security_group",
             "categories": [ "security", "compliance" ],
             "risk": "If Security groups are not properly configured the attack surface is increased.",
             "severity": "high",
@@ -255,7 +258,7 @@
         {
             "name": "allow_ingress_from_internet_to_ssh_port_22",
             "title": "Ensure no security groups allow ingress from 0.0.0.0/0 or ::/0 to SSH port 22.",
-            "kind": "aws_ec2_security_group",
+            "result_kind": "aws_ec2_security_group",
             "categories": [ "security", "compliance" ],
             "risk": "If Security groups are not properly configured the attack surface is increased.",
             "severity": "high",
@@ -271,7 +274,7 @@
         {
             "name": "allow_ingress_from_internet_to_ssh_port_22_ipv4",
             "title": "Ensure no security groups allow ingress from 0.0.0.0/0 to SSH port 22.",
-            "kind": "aws_ec2_security_group",
+            "result_kind": "aws_ec2_security_group",
             "categories": [ "security", "compliance" ],
             "risk": "If Security groups are not properly configured the attack surface is increased.",
             "severity": "high",
@@ -287,7 +290,7 @@
         {
             "name": "allow_ingress_from_internet_to_ssh_port_22_ipv6",
             "title": "Ensure no security groups allow ingress from ::/0 to SSH port 22.",
-            "kind": "aws_ec2_security_group",
+            "result_kind": "aws_ec2_security_group",
             "categories": [ "security", "compliance" ],
             "risk": "If Security groups are not properly configured the attack surface is increased.",
             "severity": "high",
@@ -303,7 +306,7 @@
         {
             "name": "allow_ingress_from_internet_to_ftp_port_20_21",
             "title": "Ensure no security groups allow ingress from 0.0.0.0/0 or ::/0 to FTP ports 20 or 21.",
-            "kind": "aws_ec2_security_group",
+            "result_kind": "aws_ec2_security_group",
             "categories": [ "security", "compliance" ],
             "risk": "If Security groups are not properly configured the attack surface is increased.",
             "severity": "high",
@@ -319,7 +322,7 @@
         {
             "name": "allow_ingress_from_internet_to_rdp_port_3389",
             "title": "Ensure no security groups allow ingress from 0.0.0.0/0 or ::/0 to port 3389.",
-            "kind": "aws_ec2_security_group",
+            "result_kind": "aws_ec2_security_group",
             "categories": [ "security", "compliance" ],
             "risk": "If Security groups are not properly configured the attack surface is increased.",
             "severity": "high",
@@ -335,7 +338,7 @@
         {
             "name": "allow_ingress_from_internet_to_rdp_port_3389_ipv4",
             "title": "Ensure no security groups allow ingress from 0.0.0.0/0 to port 3389.",
-            "kind": "aws_ec2_security_group",
+            "result_kind": "aws_ec2_security_group",
             "categories": [ "security", "compliance" ],
             "risk": "If Security groups are not properly configured the attack surface is increased.",
             "severity": "high",
@@ -351,7 +354,7 @@
         {
             "name": "allow_ingress_from_internet_to_rdp_port_3389_ipv6",
             "title": "Ensure no security groups allow ingress from ::/0 to port 3389.",
-            "kind": "aws_ec2_security_group",
+            "result_kind": "aws_ec2_security_group",
             "categories": [ "security", "compliance" ],
             "risk": "If Security groups are not properly configured the attack surface is increased.",
             "severity": "high",
@@ -367,7 +370,7 @@
         {
             "name": "allow_ingress_from_internet_to_cassandra_ports",
             "title": "Ensure no security groups allow ingress from 0.0.0.0/0 or ::/0 to Cassandra ports 7199 or 9160 or 8888.",
-            "kind": "aws_ec2_security_group",
+            "result_kind": "aws_ec2_security_group",
             "categories": [ "security", "compliance" ],
             "risk": "If Security groups are not properly configured the attack surface is increased.",
             "severity": "high",
@@ -383,7 +386,7 @@
         {
             "name": "allow_ingress_from_internet_to_kibana_ports",
             "title": "Ensure no security groups allow ingress from 0.0.0.0/0 or ::/0 to Elasticsearch/Kibana ports.",
-            "kind": "aws_ec2_security_group",
+            "result_kind": "aws_ec2_security_group",
             "categories": [ "security", "compliance" ],
             "risk": "If Security groups are not properly configured the attack surface is increased.",
             "severity": "high",
@@ -399,7 +402,7 @@
         {
             "name": "allow_ingress_from_internet_to_kafka_ports",
             "title": "Ensure no security groups allow ingress from 0.0.0.0/0 or ::/0 to Kafka ports.",
-            "kind": "aws_ec2_security_group",
+            "result_kind": "aws_ec2_security_group",
             "categories": [ "security", "compliance" ],
             "risk": "If Security groups are not properly configured the attack surface is increased.",
             "severity": "high",
@@ -415,7 +418,7 @@
         {
             "name": "allow_ingress_from_internet_to_memcached_ports",
             "title": "Ensure no security groups allow ingress from 0.0.0.0/0 or ::/0 to Memcached ports.",
-            "kind": "aws_ec2_security_group",
+            "result_kind": "aws_ec2_security_group",
             "categories": [ "security", "compliance" ],
             "risk": "If Security groups are not properly configured the attack surface is increased.",
             "severity": "high",
@@ -431,7 +434,7 @@
         {
             "name": "allow_ingress_from_internet_to_mysql_ports",
             "title": "Ensure no security groups allow ingress from 0.0.0.0/0 or ::/0 to MySQL ports.",
-            "kind": "aws_ec2_security_group",
+            "result_kind": "aws_ec2_security_group",
             "categories": [ "security", "compliance" ],
             "risk": "If Security groups are not properly configured the attack surface is increased.",
             "severity": "high",
@@ -447,7 +450,7 @@
         {
             "name": "allow_ingress_from_internet_to_oracledb",
             "title": "Ensure no security groups allow ingress from 0.0.0.0/0 or ::/0 to OracleDB ports.",
-            "kind": "aws_ec2_security_group",
+            "result_kind": "aws_ec2_security_group",
             "categories": [ "security", "compliance" ],
             "risk": "If Security groups are not properly configured the attack surface is increased.",
             "severity": "high",
@@ -463,7 +466,7 @@
         {
             "name": "allow_ingress_from_internet_to_postgresql_ports",
             "title": "Ensure no security groups allow ingress from 0.0.0.0/0 or ::/0 to PostgresQL ports.",
-            "kind": "aws_ec2_security_group",
+            "result_kind": "aws_ec2_security_group",
             "categories": [ "security", "compliance" ],
             "risk": "If Security groups are not properly configured the attack surface is increased.",
             "severity": "high",
@@ -479,7 +482,7 @@
         {
             "name": "allow_ingress_from_internet_to_redis_ports",
             "title": "Ensure no security groups allow ingress from 0.0.0.0/0 or ::/0 to Redis ports.",
-            "kind": "aws_ec2_security_group",
+            "result_kind": "aws_ec2_security_group",
             "categories": [ "security", "compliance" ],
             "risk": "If Security groups are not properly configured the attack surface is increased.",
             "severity": "high",
@@ -495,7 +498,7 @@
         {
             "name": "allow_ingress_from_internet_to_sql_server_ports",
             "title": "Ensure no security groups allow ingress from 0.0.0.0/0 or ::/0 to SQLServer ports.",
-            "kind": "aws_ec2_security_group",
+            "result_kind": "aws_ec2_security_group",
             "categories": [ "security", "compliance" ],
             "risk": "If Security groups are not properly configured the attack surface is increased.",
             "severity": "high",
@@ -511,7 +514,7 @@
         {
             "name": "allow_ingress_from_internet_to_telnet_ports",
             "title": "Ensure no security groups allow ingress from 0.0.0.0/0 or ::/0 to Telnet ports.",
-            "kind": "aws_ec2_security_group",
+            "result_kind": "aws_ec2_security_group",
             "categories": [ "security", "compliance" ],
             "risk": "If Security groups are not properly configured the attack surface is increased.",
             "severity": "high",
@@ -527,7 +530,7 @@
         {
             "name": "wide_open_ipv4_security_group",
             "title": "Security group is configured wide open.",
-            "kind": "aws_ec2_security_group",
+            "result_kind": "aws_ec2_security_group",
             "categories": [ "security", "compliance" ],
             "risk": "If Security groups are not properly configured the attack surface is increased.",
             "severity": "high",
@@ -543,7 +546,7 @@
         {
             "name": "default_restrict_traffic",
             "title": "Ensure the default security group of every VPC restricts all traffic.",
-            "kind": "aws_ec2_security_group",
+            "result_kind": "aws_ec2_security_group",
             "categories": [ "security", "compliance" ],
             "risk": "Even having a perimeter firewall, having security groups open allows any user or malware with vpc access to scan for well known and sensitive ports and gain access to instance.",
             "severity": "high",

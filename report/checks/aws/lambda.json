@@ -5,7 +5,7 @@
         {
             "name": "not_publicly_accessible",
             "title": "Check if Lambda functions have resource-based policy set as Public.",
-            "kind": "aws_lambda_function",
+            "result_kind": "aws_lambda_function",
             "categories": [
                 "security",
                 "compliance"
@@ -24,7 +24,7 @@
         {
             "name": "cors_policy",
             "title": "Check Lambda Function URL CORS configuration.",
-            "kind": "aws_lambda_function",
+            "result_kind": "aws_lambda_function",
             "categories": [
                 "security",
                 "compliance"
@@ -46,7 +46,7 @@
         {
             "name": "is_public",
             "title": "Check Public Lambda Function URL.",
-            "kind": "aws_lambda_function",
+            "result_kind": "aws_lambda_function",
             "categories": [
                 "security",
                 "compliance"
@@ -68,7 +68,7 @@
         {
             "name": "supported_runtime",
             "title": "Check that Lambda does not use an obsolete runtime.",
-            "kind": "aws_lambda_function",
+            "result_kind": "aws_lambda_function",
             "categories": [
                 "security",
                 "compliance"

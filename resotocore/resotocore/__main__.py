@@ -39,7 +39,7 @@ from resotocore.db import SystemData
 from resotocore.db.db_access import DbAccess
 from resotocore.dependencies import db_access, setup_process, parse_args, system_info, reconfigure_logging, event_stream
 from resotocore.error import RestartService
-from resotocore.inspect.inspector_service import InspectorService
+from resotocore.report.inspector_service import InspectorService
 from resotocore.message_bus import MessageBus
 from resotocore.model.model_handler import ModelHandlerDB
 from resotocore.model.typed_model import to_json, class_fqn

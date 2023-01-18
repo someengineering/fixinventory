@@ -62,7 +62,7 @@ from resotocore.db.graphdb import GraphDB, HistoryChange
 from resotocore.db.model import QueryModel
 from resotocore.error import NotFoundError
 from resotocore.ids import TaskId, ConfigId, NodeId, SubscriberId, WorkerId
-from resotocore.inspect import Inspector
+from resotocore.report import Inspector
 from resotocore.message_bus import MessageBus, Message, ActionDone, Action, ActionError, ActionInfo, ActionProgress
 from resotocore.model.db_updater import merge_graph_process
 from resotocore.model.graph_access import Section
@@ -220,9 +220,6 @@ class Api:
                 web.delete(prefix + "/subscriber/{subscriber_id}/{event_type}", self.delete_subscription),
                 web.get(prefix + "/subscriber/{subscriber_id}/handle", self.handle_subscribed),
                 # report checks
-                # TODO: checks and reports as config
-                # configuration parameters in query (like age)
-                #
                 web.get(prefix + "/report/checks", self.inspection_checks),
                 web.get(prefix + "/report/checks/graph/{graph_id}", self.perform_benchmark_on_checks),
                 web.get(prefix + "/report/benchmark/{benchmark}/graph/{graph_id}", self.perform_benchmark),
