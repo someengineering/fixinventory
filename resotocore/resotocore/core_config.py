@@ -128,6 +128,9 @@ class ApiConfig(ConfigObject):
         default=None,
         metadata={"description": "The directory where the UI is installed. This directory will be served under "},
     )
+    max_request_size: Optional[int] = field(
+        default=1024**2 * 5, metadata={"description": "The maximum size of a request in bytes (default: 5MB)"}
+    )
     host_certificate: CertificateConfig = field(
         factory=CertificateConfig, metadata={"description": "The certificate configuration for this server."}
     )
@@ -139,6 +142,7 @@ schema_registry.add(
     dict(
         tsdb_proxy_url={"type": "string", "nullable": True, "is_url": True},
         ui_path={"type": "string", "nullable": True, "path_exists": True},
+        max_request_size={"type": "integer", "nullable": True, "min": 1024**2},
     ),
 )
 
