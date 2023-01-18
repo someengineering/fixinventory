@@ -50,7 +50,7 @@ class SagemakerTaggable:
             "sagemaker",
             "list-tags",
             "Tags",
-            ResourceARN=resource.arn,
+            ResourceArn=resource.arn,
         )
         if tags:
             resource.tags = bend(ToDict(), tags)
@@ -816,14 +816,27 @@ class AwsSagemakerApp(AwsResource):
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for app in json:
-            app_description = builder.client.get(
-                "sagemaker",
-                "describe-app",
-                None,
-                DomainId=app["DomainId"],
-                AppType=app["AppType"],
-                AppName=app["AppName"],
-            )
+            if app["UserProfileName"]:
+                app_description = builder.client.get(
+                    "sagemaker",
+                    "describe-app",
+                    None,
+                    UserProfileName=app["UserProfileName"],
+                    DomainId=app["DomainId"],
+                    AppType=app["AppType"],
+                    AppName=app["AppName"],
+                )
+            else:
+                if app["SpaceName"]:
+                    app_description = builder.client.get(
+                        "sagemaker",
+                        "describe-app",
+                        None,
+                        SpaceName=app["SpaceName"],
+                        DomainId=app["DomainId"],
+                        AppType=app["AppType"],
+                        AppName=app["AppName"],
+                    )
             if app_description:
                 app_instance = AwsSagemakerApp.from_api(app_description)
                 builder.add_node(app_instance, app_description)
@@ -1319,13 +1332,13 @@ class AwsSagemakerTrial(AwsResource):
         if self.trial_experiment_name:
             builder.add_edge(self, reverse=True, clazz=AwsSagemakerExperiment, name=self.trial_experiment_name)
         if c := self.trial_created_by:
-            if c.user_profile_arn:
-                builder.add_edge(self, reverse=True, clazz=AwsSagemakerUserProfile, arn=c.user_profile_arn)
+            if c.user_profile_name:
+                builder.add_edge(self, reverse=True, clazz=AwsSagemakerUserProfile, name=c.user_profile_name)
             if c.domain_id:
                 builder.add_edge(self, reverse=True, clazz=AwsSagemakerDomain, id=c.domain_id)
         if m := self.trial_last_modified_by:
-            if m.user_profile_arn:
-                builder.add_edge(self, reverse=True, clazz=AwsSagemakerUserProfile, arn=m.user_profile_arn)
+            if m.user_profile_name:
+                builder.add_edge(self, reverse=True, clazz=AwsSagemakerUserProfile, name=m.user_profile_name)
             if m.domain_id:
                 builder.add_edge(self, reverse=True, clazz=AwsSagemakerDomain, id=m.domain_id)
         if meta := self.trial_metadata_properties:
@@ -1908,13 +1921,13 @@ class AwsSagemakerArtifact(AwsResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if c := self.artifact_created_by:
-            if c.user_profile_arn:
-                builder.add_edge(self, reverse=True, clazz=AwsSagemakerUserProfile, arn=c.user_profile_arn)
+            if c.user_profile_name:
+                builder.add_edge(self, reverse=True, clazz=AwsSagemakerUserProfile, name=c.user_profile_name)
             if c.domain_id:
                 builder.add_edge(self, reverse=True, clazz=AwsSagemakerDomain, id=c.domain_id)
         if m := self.artifact_last_modified_by:
-            if m.user_profile_arn:
-                builder.add_edge(self, reverse=True, clazz=AwsSagemakerUserProfile, arn=m.user_profile_arn)
+            if m.user_profile_name:
+                builder.add_edge(self, reverse=True, clazz=AwsSagemakerUserProfile, name=m.user_profile_name)
             if m.domain_id:
                 builder.add_edge(self, reverse=True, clazz=AwsSagemakerDomain, id=m.domain_id)
         if meta := self.artifact_metadata_properties:
@@ -2016,13 +2029,13 @@ class AwsSagemakerPipeline(AwsResource):
                 self, reverse=True, delete_same_as_default=True, clazz=AwsIamRole, arn=self.pipeline_role_arn
             )
         if c := self.pipeline_created_by:
-            if c.user_profile_arn:
-                builder.add_edge(self, reverse=True, clazz=AwsSagemakerUserProfile, arn=c.user_profile_arn)
+            if c.user_profile_name:
+                builder.add_edge(self, reverse=True, clazz=AwsSagemakerUserProfile, name=c.user_profile_name)
             if c.domain_id:
                 builder.add_edge(self, reverse=True, clazz=AwsSagemakerDomain, id=c.domain_id)
         if m := self.pipeline_last_modified_by:
-            if m.user_profile_arn:
-                builder.add_edge(self, reverse=True, clazz=AwsSagemakerUserProfile, arn=m.user_profile_arn)
+            if m.user_profile_name:
+                builder.add_edge(self, reverse=True, clazz=AwsSagemakerUserProfile, name=m.user_profile_name)
             if m.domain_id:
                 builder.add_edge(self, reverse=True, clazz=AwsSagemakerDomain, id=m.domain_id)
 
@@ -2072,7 +2085,9 @@ class AwsSagemakerWorkteam(SagemakerTaggable, AwsResource):
             "default": ["aws_cognito_user_pool", "aws_cognito_group", "aws_sns_topic"],
         }
     }
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-workteams", "Workteams")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
+        "sagemaker", "list-workteams", "Workteams", expected_errors=["UnknownOperationException"]
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("WorkteamName"),
         "name": S("WorkteamName"),
@@ -2365,7 +2380,9 @@ class AwsSagemakerAutoMLJob(AwsResource):
             "delete": ["aws_ec2_security_group", "aws_ec2_subnet"],
         },
     }
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-auto-ml-jobs", "AutoMLJobSummaries")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
+        "sagemaker", "list-auto-ml-jobs", "AutoMLJobSummaries", expected_errors=["UnknownOperationException"]
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("AutoMLJobName"),
         "name": S("AutoMLJobName"),
@@ -2649,7 +2666,12 @@ class AwsSagemakerEdgePackagingJob(AwsResource):
             ],
         },
     }
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-edge-packaging-jobs", "EdgePackagingJobSummaries")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
+        "sagemaker",
+        "list-edge-packaging-jobs",
+        "EdgePackagingJobSummaries",
+        expected_errors=["UnknownOperationException"],
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("EdgePackagingJobName"),
         "name": S("EdgePackagingJobName"),
@@ -3360,7 +3382,10 @@ class AwsSagemakerInferenceRecommendationsJob(AwsResource):
         },
     }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
-        "sagemaker", "list-inference-recommendations-job", "InferenceRecommendationsJobs"
+        "sagemaker",
+        "list-inference-recommendations-jobs",
+        "InferenceRecommendationsJobs",
+        expected_errors=["UnknownOperationException"],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("JobName"),
@@ -3630,7 +3655,9 @@ class AwsSagemakerLabelingJob(SagemakerTaggable, AwsResource):
             "delete": ["aws_ec2_security_group", "aws_ec2_subnet"],
         },
     }
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-labeling-jobs", "LabelingJobSummaryList")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
+        "sagemaker", "list-labeling-jobs", "LabelingJobSummaryList", expected_errors=["UnknownOperationException"]
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("LabelingJobName"),
         "name": S("LabelingJobName"),
