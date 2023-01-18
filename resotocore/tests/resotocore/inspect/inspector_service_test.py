@@ -4,9 +4,10 @@ from attr import evolve
 from pytest import fixture
 
 from resotocore.cli.cli import CLI
+from resotocore.config import ConfigEntity
 from resotocore.inspect import InspectionCheck, InspectionSeverity, Remediation, Benchmark
-from resotocore.inspect.inspector_service import InspectorService
-
+from resotocore.inspect.inspector_service import InspectorService, config_id, CheckConfigRoot
+from resotocore.model.typed_model import to_js
 
 # noinspection PyUnresolvedReferences
 from tests.resotocore.db.graphdb_test import (
@@ -86,19 +87,15 @@ def benchmark(inspection_checks: List[InspectionCheck]) -> Benchmark:
     )
 
 
-async def test_get_inspect_check(inspector_service: InspectorService) -> None:
-    aws_ec2_snapshot_encrypted = await inspector_service.get_check("aws_ec2_snapshot_encrypted")
-    assert aws_ec2_snapshot_encrypted is not None
-    not_existent = await inspector_service.get_check("does not exist")
-    assert not_existent is None
-
-
 async def test_list_inspect_checks(inspector_service: InspectorService) -> None:
     # list all available checks
     all_checks = {i.id: i for i in await inspector_service.list_checks()}
     assert len(all_checks) >= 30
     # modify an existing check
-    await inspector_service.update_check(evolve(all_checks["aws_ec2_snapshot_encrypted"], title="test"))
+
+    aws_ec2_encrypted_js = to_js(evolve(all_checks["aws_ec2_snapshot_encrypted"], title="test"))
+    entity = ConfigEntity(config_id("aws_ec2_snapshot_encrypted"), {CheckConfigRoot: aws_ec2_encrypted_js})
+    await inspector_service.config_handler.put_config(entity)
     all_checks_again = {i.id: i for i in await inspector_service.list_checks()}
     # the list of available checks did not change
     assert all_checks_again.keys() == all_checks.keys()

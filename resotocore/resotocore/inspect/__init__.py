@@ -158,18 +158,10 @@ class BenchmarkResult(CheckCollectionResult):
 
 class Inspector(ABC):
     """
-    An inspector is able to maintain a set of checks.
-    Checks can be assembled into a benchmark that is also maintained in the inspector.
+    The inspector is able to perform benchmarks or a set of checks.
+    Benchmarks and checks are maintained via the configuration registry.
     A complete graph can be checked against either a pre-defined benchmark or from a selected set of checks.
     """
-
-    @abstractmethod
-    async def get_check(self, uid: str) -> Optional[InspectionCheck]:
-        """
-        Get a single inspection check by its unique identifier.
-        :param uid: the identifier of the inspection check
-        :return: the inspection check or None if not found
-        """
 
     @abstractmethod
     async def list_checks(
@@ -193,28 +185,11 @@ class Inspector(ABC):
         """
 
     @abstractmethod
-    async def update_check(self, inspection: InspectionCheck) -> InspectionCheck:
-        """
-        Create or update an inspection check.
-
-        :param inspection: the check to create or update.
-        :return: the persisted check
-        """
-
-    @abstractmethod
-    async def delete_check(self, uid: str) -> None:
-        """
-        Delete an inspection check by its unique identifier.
-
-        :param uid: the unique identifier of the check to delete
-        """
-
-    @abstractmethod
-    async def perform_benchmark(self, benchmark: str, graph: str) -> BenchmarkResult:
+    async def perform_benchmark(self, benchmark_name: str, graph: str) -> BenchmarkResult:
         """
         Perform a benchmark by given name on the content of a graph with given name.
 
-        :param benchmark: the name of the benchmark to perform (e.g. aws_cis_1_5_0)
+        :param benchmark_name: the name of the benchmark to perform (e.g. aws_cis_1_5_0)
         :param graph: the name of the graph to perform the benchmark on (e.g. resoto)
         :return: the result of the benchmark
         """

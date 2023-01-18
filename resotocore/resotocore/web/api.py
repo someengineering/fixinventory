@@ -62,7 +62,7 @@ from resotocore.db.graphdb import GraphDB, HistoryChange
 from resotocore.db.model import QueryModel
 from resotocore.error import NotFoundError
 from resotocore.ids import TaskId, ConfigId, NodeId, SubscriberId, WorkerId
-from resotocore.inspect import Inspector, InspectionCheck
+from resotocore.inspect import Inspector
 from resotocore.message_bus import MessageBus, Message, ActionDone, Action, ActionError, ActionInfo, ActionProgress
 from resotocore.model.db_updater import merge_graph_process
 from resotocore.model.graph_access import Section
@@ -223,10 +223,6 @@ class Api:
                 # TODO: checks and reports as config
                 # configuration parameters in query (like age)
                 #
-                web.get(prefix + "/report/check/{check_id}", self.inspection_check),
-                web.put(prefix + "/report/check/{check_id}", self.update_inspection_check),
-                web.delete(prefix + "/report/check/{check_id}", self.delete_inspection_check),
-                web.post(prefix + "/report/check", self.update_inspection_check),
                 web.get(prefix + "/report/checks", self.inspection_checks),
                 web.get(prefix + "/report/checks/graph/{graph_id}", self.perform_benchmark_on_checks),
                 web.get(prefix + "/report/benchmark/{benchmark}/graph/{graph_id}", self.perform_benchmark),
@@ -466,27 +462,6 @@ class Api:
         graph = request.match_info["graph_id"]
         result = await self.inspector.perform_benchmark(benchmark, graph)
         return await single_result(request, to_js(result))
-
-    async def inspection_check(self, request: Request) -> StreamResponse:
-        uid = request.match_info["check_id"]
-        inspection = await self.inspector.get_check(uid)
-        if inspection:
-            return await single_result(request, to_js(inspection))
-        else:
-            raise web.HTTPNotFound(text=f"No inspection check with this id: {uid}")
-
-    async def update_inspection_check(self, request: Request) -> StreamResponse:
-        uid = request.match_info.get("check_id")
-        inspection = from_js(await request.json(), InspectionCheck)
-        if uid is not None and uid != inspection.id:
-            raise web.HTTPBadRequest(text=f"Id in path {uid} does not match id in body {inspection.id}")
-        result = await self.inspector.update_check(inspection)
-        return await single_result(request, to_js(result))
-
-    async def delete_inspection_check(self, request: Request) -> StreamResponse:
-        uid = request.match_info["check_id"]
-        await self.inspector.delete_check(uid)
-        return web.HTTPNoContent()
 
     async def inspection_checks(self, request: Request) -> StreamResponse:
         provider = request.query.get("provider")
