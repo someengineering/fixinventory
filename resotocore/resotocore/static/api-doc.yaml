@@ -26,8 +26,8 @@ tags:
     description: Endpoints to attach to the work queue.
   - name: certificate
     description: Endpoints to access the certificate authority as well as signing functionality.
-  - name: inspect
-    description: Endpoints to perform and maintain security, compliance and cost checks.
+  - name: report
+    description: Endpoints to perform and maintain security, compliance and cost reports.
   - name: system
     description: Endpoints to get information about the system.
   - name: debug
@@ -2281,14 +2281,14 @@ paths:
                   -----END CERTIFICATE-----
   # endregion
 
-  # region inspection
+  # region report
 
-  /inspection/checks:
+  /report/checks:
     get:
       summary: "List all checks."
       description: "List all checks."
       tags:
-        - inspect
+        - report
       parameters:
         - name: provider
           in: query
@@ -2324,12 +2324,12 @@ paths:
                 items:
                   $ref: "#/components/schemas/InspectCheck"
 
-  /inspection/check:
+  /report/check:
     post:
       summary: "Create an inspection check."
       description: "Create an inspection check."
       tags:
-        - inspect
+        - report
       requestBody:
         content:
           application/json:
@@ -2343,12 +2343,12 @@ paths:
               schema:
                 $ref: "#/components/schemas/InspectCheck"
 
-  /inspection/check/{check_id}:
+  /report/check/{check_id}:
     get:
       summary: "Get an existing check."
       description: "Get an existing check."
       tags:
-        - inspect
+        - report
       parameters:
         - name: check_id
           in: path
@@ -2374,7 +2374,7 @@ paths:
       summary: "Modify an existing check."
       description: "Modify an existing check."
       tags:
-        - inspect
+        - report
       parameters:
         - name: check_id
           in: path
@@ -2406,7 +2406,7 @@ paths:
       summary: "Delete an existing check."
       description: "Delete an existing check."
       tags:
-        - inspect
+        - report
       parameters:
         - name: check_id
           in: path

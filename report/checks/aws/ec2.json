@@ -372,7 +372,7 @@
             "risk": "If Security groups are not properly configured the attack surface is increased.",
             "severity": "high",
             "detect": {
-                "resoto_cmd": "is(aws_ec2_security_group) and group_ip_permissions[*].{(ip_protocol=-1 or (from_port>=9160 and to_port<=9160 and ip_protocol=tcp) or (from_port>=8888 and to_port<=8888 and ip_protocol=tcp) or (from_port>=7199 and to_port<=7199 and ip_protocol=tcp)) and (ip_ranges[*].cidr_ip=\"0.0.0.0/0\" or ipv6_ranges[*].cidr_ipv6=\"::/0\")}"
+                "resoto": "is(aws_ec2_security_group) and group_ip_permissions[*].{(ip_protocol=-1 or (from_port>=9160 and to_port<=9160 and ip_protocol=tcp) or (from_port>=8888 and to_port<=8888 and ip_protocol=tcp) or (from_port>=7199 and to_port<=7199 and ip_protocol=tcp)) and (ip_ranges[*].cidr_ip=\"0.0.0.0/0\" or ipv6_ranges[*].cidr_ipv6=\"::/0\")}"
             },
             "remediation": {
                 "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
@@ -388,7 +388,7 @@
             "risk": "If Security groups are not properly configured the attack surface is increased.",
             "severity": "high",
             "detect": {
-                "resoto_cmd": "is(aws_ec2_security_group) and group_ip_permissions[*].{(ip_protocol=-1 or (from_port>=9200 and to_port<=9200 and ip_protocol=tcp) or (from_port>=9300 and to_port<=9300 and ip_protocol=tcp) or (from_port>=5601 and to_port<=5601 and ip_protocol=tcp)) and (ip_ranges[*].cidr_ip=\"0.0.0.0/0\" or ipv6_ranges[*].cidr_ipv6=\"::/0\")}"
+                "resoto": "is(aws_ec2_security_group) and group_ip_permissions[*].{(ip_protocol=-1 or (from_port>=9200 and to_port<=9200 and ip_protocol=tcp) or (from_port>=9300 and to_port<=9300 and ip_protocol=tcp) or (from_port>=5601 and to_port<=5601 and ip_protocol=tcp)) and (ip_ranges[*].cidr_ip=\"0.0.0.0/0\" or ipv6_ranges[*].cidr_ipv6=\"::/0\")}"
             },
             "remediation": {
                 "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
@@ -404,7 +404,7 @@
             "risk": "If Security groups are not properly configured the attack surface is increased.",
             "severity": "high",
             "detect": {
-                "resoto_cmd": "is(aws_ec2_security_group) and group_ip_permissions[*].{(ip_protocol=-1 or (from_port>=9092 and to_port<=9092 and ip_protocol=tcp)) and (ip_ranges[*].cidr_ip=\"0.0.0.0/0\" or ipv6_ranges[*].cidr_ipv6=\"::/0\")}"
+                "resoto": "is(aws_ec2_security_group) and group_ip_permissions[*].{(ip_protocol=-1 or (from_port>=9092 and to_port<=9092 and ip_protocol=tcp)) and (ip_ranges[*].cidr_ip=\"0.0.0.0/0\" or ipv6_ranges[*].cidr_ipv6=\"::/0\")}"
             },
             "remediation": {
                 "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
@@ -420,7 +420,7 @@
             "risk": "If Security groups are not properly configured the attack surface is increased.",
             "severity": "high",
             "detect": {
-                "resoto_cmd": "is(aws_ec2_security_group) and group_ip_permissions[*].{(ip_protocol=-1 or (from_port>=11211 and to_port<=11211 and ip_protocol=tcp)) and (ip_ranges[*].cidr_ip=\"0.0.0.0/0\" or ipv6_ranges[*].cidr_ipv6=\"::/0\")}"
+                "resoto": "is(aws_ec2_security_group) and group_ip_permissions[*].{(ip_protocol=-1 or (from_port>=11211 and to_port<=11211 and ip_protocol=tcp)) and (ip_ranges[*].cidr_ip=\"0.0.0.0/0\" or ipv6_ranges[*].cidr_ipv6=\"::/0\")}"
             },
             "remediation": {
                 "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
@@ -436,7 +436,7 @@
             "risk": "If Security groups are not properly configured the attack surface is increased.",
             "severity": "high",
             "detect": {
-                "resoto_cmd": "is(aws_ec2_security_group) and group_ip_permissions[*].{(ip_protocol=-1 or (from_port>=3306 and to_port<=3306 and ip_protocol=tcp)) and (ip_ranges[*].cidr_ip=\"0.0.0.0/0\" or ipv6_ranges[*].cidr_ipv6=\"::/0\")}"
+                "resoto": "is(aws_ec2_security_group) and group_ip_permissions[*].{(ip_protocol=-1 or (from_port>=3306 and to_port<=3306 and ip_protocol=tcp)) and (ip_ranges[*].cidr_ip=\"0.0.0.0/0\" or ipv6_ranges[*].cidr_ipv6=\"::/0\")}"
             },
             "remediation": {
                 "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
@@ -452,7 +452,7 @@
             "risk": "If Security groups are not properly configured the attack surface is increased.",
             "severity": "high",
             "detect": {
-                "resoto_cmd": "is(aws_ec2_security_group) and group_ip_permissions[*].{(ip_protocol=-1 or (from_port>=1521 and to_port<=1521 and ip_protocol=tcp) or (from_port>=2483 and to_port<=2483 and ip_protocol=tcp)) and (ip_ranges[*].cidr_ip=\"0.0.0.0/0\" or ipv6_ranges[*].cidr_ipv6=\"::/0\")}"
+                "resoto": "is(aws_ec2_security_group) and group_ip_permissions[*].{(ip_protocol=-1 or (from_port>=1521 and to_port<=1521 and ip_protocol=tcp) or (from_port>=2483 and to_port<=2483 and ip_protocol=tcp)) and (ip_ranges[*].cidr_ip=\"0.0.0.0/0\" or ipv6_ranges[*].cidr_ipv6=\"::/0\")}"
             },
             "remediation": {
                 "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
@@ -468,7 +468,7 @@
             "risk": "If Security groups are not properly configured the attack surface is increased.",
             "severity": "high",
             "detect": {
-                "resoto_cmd": "is(aws_ec2_security_group) and group_ip_permissions[*].{(ip_protocol=-1 or (from_port>=5432 and to_port<=5432 and ip_protocol=tcp)) and (ip_ranges[*].cidr_ip=\"0.0.0.0/0\" or ipv6_ranges[*].cidr_ipv6=\"::/0\")}"
+                "resoto": "is(aws_ec2_security_group) and group_ip_permissions[*].{(ip_protocol=-1 or (from_port>=5432 and to_port<=5432 and ip_protocol=tcp)) and (ip_ranges[*].cidr_ip=\"0.0.0.0/0\" or ipv6_ranges[*].cidr_ipv6=\"::/0\")}"
             },
             "remediation": {
                 "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
@@ -484,7 +484,7 @@
             "risk": "If Security groups are not properly configured the attack surface is increased.",
             "severity": "high",
             "detect": {
-                "resoto_cmd": "is(aws_ec2_security_group) and group_ip_permissions[*].{(ip_protocol=-1 or (from_port>=6379 and to_port<=6379 and ip_protocol=tcp)) and (ip_ranges[*].cidr_ip=\"0.0.0.0/0\" or ipv6_ranges[*].cidr_ipv6=\"::/0\")}"
+                "resoto": "is(aws_ec2_security_group) and group_ip_permissions[*].{(ip_protocol=-1 or (from_port>=6379 and to_port<=6379 and ip_protocol=tcp)) and (ip_ranges[*].cidr_ip=\"0.0.0.0/0\" or ipv6_ranges[*].cidr_ipv6=\"::/0\")}"
             },
             "remediation": {
                 "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
@@ -500,7 +500,7 @@
             "risk": "If Security groups are not properly configured the attack surface is increased.",
             "severity": "high",
             "detect": {
-                "resoto_cmd": "is(aws_ec2_security_group) and group_ip_permissions[*].{(ip_protocol=-1 or (from_port>=1433 and to_port<=1433 and ip_protocol=tcp) or (from_port>=1434 and to_port<=1434 and ip_protocol=tcp)) and (ip_ranges[*].cidr_ip=\"0.0.0.0/0\" or ipv6_ranges[*].cidr_ipv6=\"::/0\")}"
+                "resoto": "is(aws_ec2_security_group) and group_ip_permissions[*].{(ip_protocol=-1 or (from_port>=1433 and to_port<=1433 and ip_protocol=tcp) or (from_port>=1434 and to_port<=1434 and ip_protocol=tcp)) and (ip_ranges[*].cidr_ip=\"0.0.0.0/0\" or ipv6_ranges[*].cidr_ipv6=\"::/0\")}"
             },
             "remediation": {
                 "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
@@ -516,7 +516,7 @@
             "risk": "If Security groups are not properly configured the attack surface is increased.",
             "severity": "high",
             "detect": {
-                "resoto_cmd": "is(aws_ec2_security_group) and group_ip_permissions[*].{(ip_protocol=-1 or (from_port>=23 and to_port<=23 and ip_protocol=tcp)) and (ip_ranges[*].cidr_ip=\"0.0.0.0/0\" or ipv6_ranges[*].cidr_ipv6=\"::/0\")}"
+                "resoto": "is(aws_ec2_security_group) and group_ip_permissions[*].{(ip_protocol=-1 or (from_port>=23 and to_port<=23 and ip_protocol=tcp)) and (ip_ranges[*].cidr_ip=\"0.0.0.0/0\" or ipv6_ranges[*].cidr_ipv6=\"::/0\")}"
             },
             "remediation": {
                 "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
@@ -532,7 +532,7 @@
             "risk": "If Security groups are not properly configured the attack surface is increased.",
             "severity": "high",
             "detect": {
-                "resoto_cmd": "is(aws_ec2_security_group) and group_ip_permissions[*].ip_ranges[*].{cidr_ip!=\"0.0.0.0/0\" and cidr_ip!~\"^192\" and cidr_ip!~\"^10\" and cidr_ip~\"\\/(([1-9])|(1[0-9])|(2[0-3]))$\"}"
+                "resoto": "is(aws_ec2_security_group) and group_ip_permissions[*].ip_ranges[*].{cidr_ip!=\"0.0.0.0/0\" and cidr_ip!~\"^192\" and cidr_ip!~\"^10\" and cidr_ip~\"\\/(([1-9])|(1[0-9])|(2[0-3]))$\"}"
             },
             "remediation": {
                 "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
@@ -548,7 +548,7 @@
             "risk": "Even having a perimeter firewall, having security groups open allows any user or malware with vpc access to scan for well known and sensitive ports and gain access to instance.",
             "severity": "high",
             "detect": {
-                "resoto_cmd": "is(aws_ec2_security_group) and name=\"default\" and group_ip_permissions[*].{ip_protocol=\"-1\" and (ip_ranges[*].cidr_ip=\"0.0.0.0/0\" or ipv6_ranges[*].cidr_ipv6=\"::/0\")}"
+                "resoto": "is(aws_ec2_security_group) and name=\"default\" and group_ip_permissions[*].{ip_protocol=\"-1\" and (ip_ranges[*].cidr_ip=\"0.0.0.0/0\" or ipv6_ranges[*].cidr_ipv6=\"::/0\")}"
             },
             "remediation": {
                 "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",

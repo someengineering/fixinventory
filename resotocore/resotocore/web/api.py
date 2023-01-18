@@ -219,12 +219,17 @@ class Api:
                 web.post(prefix + "/subscriber/{subscriber_id}/{event_type}", self.add_subscription),
                 web.delete(prefix + "/subscriber/{subscriber_id}/{event_type}", self.delete_subscription),
                 web.get(prefix + "/subscriber/{subscriber_id}/handle", self.handle_subscribed),
-                # inspection checks
-                web.get(prefix + "/inspection/check/{check_id}", self.inspection_check),
-                web.put(prefix + "/inspection/check/{check_id}", self.update_inspection_check),
-                web.delete(prefix + "/inspection/check/{check_id}", self.delete_inspection_check),
-                web.get(prefix + "/inspection/checks", self.inspection_checks),
-                web.post(prefix + "/inspection/check", self.update_inspection_check),
+                # report checks
+                # TODO: checks and reports as config
+                # configuration parameters in query (like age)
+                #
+                web.get(prefix + "/report/check/{check_id}", self.inspection_check),
+                web.put(prefix + "/report/check/{check_id}", self.update_inspection_check),
+                web.delete(prefix + "/report/check/{check_id}", self.delete_inspection_check),
+                web.post(prefix + "/report/check", self.update_inspection_check),
+                web.get(prefix + "/report/checks", self.inspection_checks),
+                web.get(prefix + "/report/checks/graph/{graph_id}", self.perform_benchmark_on_checks),
+                web.get(prefix + "/report/benchmark/{benchmark}/graph/{graph_id}", self.perform_benchmark),
                 # CLI
                 web.post(prefix + "/cli/evaluate", self.evaluate),
                 web.post(prefix + "/cli/execute", self.execute),
@@ -446,6 +451,21 @@ class Api:
             return await self.listen_to_events(request, subscriber_id, list(subscriber.subscriptions.keys()), pending)
         else:
             return web.HTTPNotFound(text=f"No subscriber with this id: {subscriber_id} or no subscriptions")
+
+    async def perform_benchmark_on_checks(self, request: Request) -> StreamResponse:
+        graph = request.match_info["graph_id"]
+        provider = request.query.get("provider")
+        service = request.query.get("service")
+        category = request.query.get("category")
+        kind = request.query.get("kind")
+        result = await self.inspector.perform_checks(graph, provider, service, category, kind)
+        return await single_result(request, to_js(result))
+
+    async def perform_benchmark(self, request: Request) -> StreamResponse:
+        benchmark = request.match_info["benchmark"]
+        graph = request.match_info["graph_id"]
+        result = await self.inspector.perform_benchmark(benchmark, graph)
+        return await single_result(request, to_js(result))
 
     async def inspection_check(self, request: Request) -> StreamResponse:
         uid = request.match_info["check_id"]

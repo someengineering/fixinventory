@@ -38,7 +38,7 @@ def graph_to_json(graph: MultiDiGraph) -> List[rc.JsObject]:
     return ga
 
 
-@fixture()
+@fixture
 def db_access(test_db: StandardDatabase) -> DbAccess:
     access = DbAccess(test_db, NoEventSender(), NoAdjust(), empty_config())
     return access

@@ -131,7 +131,6 @@ def with_config(
     worker_task_queue = WorkerTaskQueue()
     model = ModelHandlerDB(db.get_model_db(), config.runtime.plantuml_server)
     template_expander = DBTemplateExpander(db.template_entity_db)
-    inspector = InspectorService(db.inspection_check_entity_db)
     config_handler = ConfigHandlerService(
         db.config_entity_db,
         db.config_validation_entity_db,
@@ -151,17 +150,17 @@ def with_config(
         template_expander=template_expander,
         config_handler=config_handler,
         cert_handler=cert_handler,
-        inspector=inspector,
     )
     default_env = {"graph": config.cli.default_graph, "section": config.cli.default_section}
     cli = CLI(cli_deps, all_commands(cli_deps), default_env, alias_names())
+    inspector = InspectorService(cli)
     subscriptions = SubscriptionHandler(db.subscribers_db, message_bus)
     task_handler = TaskHandlerService(
         db.running_task_db, db.job_db, message_bus, event_sender, subscriptions, scheduler, cli, config
     )
     core_config_handler = CoreConfigHandler(config, message_bus, worker_task_queue, config_handler, event_sender)
     merge_outer_edges_handler = MergeOuterEdgesHandler(message_bus, subscriptions, task_handler, db, model)
-    cli_deps.extend(task_handler=task_handler)
+    cli_deps.extend(task_handler=task_handler, inspector=inspector)
     api = Api(
         db,
         model,

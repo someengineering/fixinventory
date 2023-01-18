@@ -1,14 +1,89 @@
-from attr import evolve
+from typing import List
 
-from resotocore.inspect import InspectionCheck
-from resotocore.inspect.inspector_service import InspectorService
-from tests.resotocore.db.entitydb import InMemoryDb
+from attr import evolve
 from pytest import fixture
+
+from resotocore.cli.cli import CLI
+from resotocore.inspect import InspectionCheck, InspectionSeverity, Remediation, Benchmark
+from resotocore.inspect.inspector_service import InspectorService
+
+
+# noinspection PyUnresolvedReferences
+from tests.resotocore.db.graphdb_test import (
+    filled_graph_db,
+    graph_db,
+    test_db,
+    foo_kinds,
+    foo_model,
+    local_client,
+    system_db,
+)
+
+# noinspection PyUnresolvedReferences
+from tests.resotocore.web.certificate_handler_test import cert_handler
+
+# noinspection PyUnresolvedReferences
+from tests.resotocore.config.config_handler_service_test import config_handler
+
+# noinspection PyUnresolvedReferences
+from tests.resotocore.worker_task_queue_test import worker, task_queue, performed_by, incoming_tasks
+
+# noinspection PyUnresolvedReferences
+from tests.resotocore.analytics import event_sender
+
+# noinspection PyUnresolvedReferences
+from tests.resotocore.query.template_expander_test import expander
+
+# noinspection PyUnresolvedReferences
+from tests.resotocore.message_bus_test import message_bus
+
+# noinspection PyUnresolvedReferences
+from tests.resotocore.cli.cli_test import cli, cli_deps
 
 
 @fixture
-def inspector_service() -> InspectorService:
-    return InspectorService(InMemoryDb(InspectionCheck, lambda k: k.id))
+def inspector_service(cli: CLI) -> InspectorService:
+    return InspectorService(cli)
+
+
+@fixture
+def inspection_checks() -> List[InspectionCheck]:
+    return [
+        InspectionCheck(
+            id="test_search",
+            provider="test",
+            service="test",
+            title="test",
+            kind="foo",
+            categories=["test"],
+            severity=InspectionSeverity.critical,
+            detect={"resoto": "is(foo)"},
+            remediation=Remediation({}, "", ""),
+        ),
+        InspectionCheck(
+            id="test_cmd",
+            provider="test",
+            service="test",
+            title="test",
+            kind="foo",
+            categories=["test"],
+            severity=InspectionSeverity.critical,
+            detect={"resoto_cmd": "search is(foo) | jq --no-rewrite ."},
+            remediation=Remediation({}, "", ""),
+        ),
+    ]
+
+
+@fixture
+def benchmark(inspection_checks: List[InspectionCheck]) -> Benchmark:
+    return Benchmark(
+        title="test_benchmark",
+        description="test_benchmark",
+        id="test_benchmark",
+        framework="test",
+        version="1.0",
+        checks=[c.id for c in inspection_checks],
+    )
 
 
 async def test_get_inspect_check(inspector_service: InspectorService) -> None:
@@ -46,3 +121,17 @@ async def test_list_inspect_checks(inspector_service: InspectorService) -> None:
         assert a.provider == "aws"
         assert a.service == "ec2"
         assert "cost" in a.categories
+
+
+async def test_perform_benchmark(
+    inspector_service: InspectorService, inspection_checks: List[InspectionCheck], benchmark: Benchmark
+) -> None:
+    inspector_service.predefined_inspections = {i.id: i for i in inspection_checks}
+    inspector_service.benchmarks = {benchmark.id: benchmark}
+    result = await inspector_service.perform_benchmark(benchmark.id, inspector_service.cli.cli_env["graph"])
+    assert result.passed is False
+    assert result.number_of_resources_failing == 22
+    assert result.checks[0].number_of_resources_failing == 11
+    assert result.checks[0].passed is False
+    assert result.checks[1].number_of_resources_failing == 11
+    assert result.checks[1].passed is False
