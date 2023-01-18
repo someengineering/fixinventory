@@ -96,13 +96,13 @@ class CheckCollection:
             and all(c.is_valid(inspections) for c in self.children or [])  # pylint: disable=not-an-iterable
         )
 
-    def nested_checks(self, lookup: Dict[str, InspectionCheck]) -> List[InspectionCheck]:
-        result: List[InspectionCheck] = []
+    def nested_checks(self) -> List[str]:
+        result: List[str] = []
         if self.checks:
-            result.extend(lookup[c] for c in self.checks)  # pylint: disable=not-an-iterable
+            result.extend(c for c in self.checks)  # pylint: disable=not-an-iterable
         if self.children:
             for child in self.children:  # pylint: disable=not-an-iterable
-                result.extend(child.nested_checks(lookup))
+                result.extend(child.nested_checks())
         return result
 
 
@@ -164,7 +164,7 @@ class Inspector(ABC):
     """
 
     @abstractmethod
-    async def get(self, uid: str) -> Optional[InspectionCheck]:
+    async def get_check(self, uid: str) -> Optional[InspectionCheck]:
         """
         Get a single inspection check by its unique identifier.
         :param uid: the identifier of the inspection check
@@ -172,12 +172,13 @@ class Inspector(ABC):
         """
 
     @abstractmethod
-    async def list(
+    async def list_checks(
         self,
         provider: Optional[str] = None,
         service: Optional[str] = None,
         category: Optional[str] = None,
         kind: Optional[str] = None,
+        check_ids: Optional[List[str]] = None,
     ) -> List[InspectionCheck]:
         """
         List all inspection checks matching the given criteria.
@@ -187,11 +188,12 @@ class Inspector(ABC):
         :param service: the service inside the provider (e.g. ec2, lambda, ...)
         :param category: the category of the check (e.g. security, compliance, cost ...)
         :param kind: the resulting kind of the check (e.g. aws_ec2_instance, kubernetes_pod, ...)
+        :param check_ids: the list of check ids to return
         :return: the list of matching checks
         """
 
     @abstractmethod
-    async def update(self, inspection: InspectionCheck) -> InspectionCheck:
+    async def update_check(self, inspection: InspectionCheck) -> InspectionCheck:
         """
         Create or update an inspection check.
 
@@ -200,7 +202,7 @@ class Inspector(ABC):
         """
 
     @abstractmethod
-    async def delete(self, uid: str) -> None:
+    async def delete_check(self, uid: str) -> None:
         """
         Delete an inspection check by its unique identifier.
 

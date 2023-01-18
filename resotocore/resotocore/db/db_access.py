@@ -19,7 +19,6 @@ from resotocore.db.async_arangodb import AsyncArangoDB
 from resotocore.db.configdb import config_entity_db, config_validation_entity_db
 from resotocore.db.entitydb import EventEntityDb
 from resotocore.db.graphdb import ArangoGraphDB, GraphDB, EventGraphDB
-from resotocore.db.inspectiondb import inspection_check_entity_db
 from resotocore.db.jobdb import job_db
 from resotocore.db.modeldb import ModelDb, model_db
 from resotocore.db.deferred_edge_db import pending_deferred_edge_db
@@ -50,7 +49,6 @@ class DbAccess(ABC):
         config_validation_entity: str = "config_validation",
         configs_model: str = "configs_model",
         template_entity: str = "templates",
-        inspection_check_entity: str = "inspection_checks",
     ):
         self.event_sender = event_sender
         self.database = arango_database
@@ -65,9 +63,6 @@ class DbAccess(ABC):
         self.config_validation_entity_db = config_validation_entity_db(self.db, config_validation_entity)
         self.configs_model_db = model_db(self.db, configs_model)
         self.template_entity_db = template_entity_db(self.db, template_entity)
-        self.inspection_check_entity_db = EventEntityDb(
-            inspection_check_entity_db(self.db, inspection_check_entity), event_sender, inspection_check_entity
-        )
         self.graph_dbs: Dict[str, GraphDB] = {}
         self.config = config
         self.cleaner = Periodic("outdated_updates_cleaner", self.check_outdated_updates, timedelta(seconds=60))
@@ -82,7 +77,6 @@ class DbAccess(ABC):
         await self.configs_model_db.create_update_schema()
         await self.template_entity_db.create_update_schema()
         await self.pending_deferred_edge_db.create_update_schema()
-        await self.inspection_check_entity_db.create_update_schema()
         for graph in self.database.graphs():
             log.info(f'Found graph: {graph["name"]}')
             db = self.get_graph_db(graph["name"])

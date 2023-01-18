@@ -1,3 +1,4 @@
+import asyncio
 from functools import reduce
 from typing import Optional, List, Iterable, Dict, Tuple
 
@@ -5,7 +6,9 @@ from aiostream import stream
 from attr import evolve
 
 from resotocore.cli.cli import CLI
+from resotocore.config import ConfigEntity
 from resotocore.db.model import QueryModel
+from resotocore.ids import ConfigId
 from resotocore.inspect import (
     Inspector,
     InspectionCheck,
@@ -16,28 +19,42 @@ from resotocore.inspect import (
     CheckResult,
 )
 from resotocore.model.model import Model
+from resotocore.model.typed_model import from_js, to_js
 from resotocore.query.model import Aggregate, AggregateFunction
+
+ConfigCheckPrefix = "resoto.report.check."
+ConfigCheckRoot = "inspection_check"
+
+
+def config_id(name: str) -> ConfigId:
+    return ConfigId(ConfigCheckPrefix + name)
+
+
+def inspection_check(cfg: ConfigEntity) -> InspectionCheck:
+    return from_js(cfg.config[ConfigCheckRoot], InspectionCheck)
 
 
 class InspectorService(Inspector):
     def __init__(self, cli: CLI) -> None:
+        self.config_handler = cli.dependencies.config_handler
         self.db_access = cli.dependencies.db_access
         self.cli = cli
         self.query_parser = cli.dependencies.template_expander
         self.model_handler = cli.dependencies.model_handler
-        self.inspection_db = cli.dependencies.db_access.inspection_check_entity_db
         self.predefined_inspections = {i.id: i for i in InspectionCheck.from_files()}
         self.benchmarks = {b.id: b for b in Benchmark.from_files(self.predefined_inspections)}
 
-    async def get(self, uid: str) -> Optional[InspectionCheck]:
-        return (await self.inspection_db.get(uid)) or self.predefined_inspections.get(uid)
+    async def get_check(self, uid: str) -> Optional[InspectionCheck]:
+        entry = await self.config_handler.get_config(config_id(uid))
+        return inspection_check(entry) if entry else self.predefined_inspections.get(uid)
 
-    async def list(
+    async def list_checks(
         self,
         provider: Optional[str] = None,
         service: Optional[str] = None,
         category: Optional[str] = None,
         kind: Optional[str] = None,
+        check_ids: Optional[List[str]] = None,
     ) -> List[InspectionCheck]:
         result = {}
 
@@ -48,20 +65,28 @@ class InspectorService(Inspector):
                     and (service is None or service == inspection.service)
                     and (category is None or category in inspection.categories)
                     and (kind is None or kind == inspection.kind)
+                    and (check_ids is None or inspection.id in check_ids)
                 ):
                     result[inspection.id] = inspection
 
+        cfg_ids = [
+            i
+            async for i in self.config_handler.list_config_ids()
+            if i.startswith(ConfigCheckPrefix) and (check_ids is None or i in check_ids)
+        ]
+        loaded = await asyncio.gather(*[self.config_handler.get_config(cfg_id) for cfg_id in cfg_ids])
+        checks = [inspection_check(entry) for entry in loaded if isinstance(entry, ConfigEntity)]
         add_inspections(self.predefined_inspections.values())
-        add_inspections([i async for i in self.inspection_db.all()])
+        add_inspections(checks)
         return list(result.values())
 
-    async def update(self, inspection: InspectionCheck) -> InspectionCheck:
-        return await self.inspection_db.update(inspection)
+    async def update_check(self, inspection: InspectionCheck) -> InspectionCheck:
+        entity = ConfigEntity(config_id(inspection.id), {ConfigCheckRoot: to_js(inspection)})
+        updated = await self.config_handler.put_config(entity)
+        return inspection_check(updated)
 
-    async def delete(self, uid: str) -> None:
-        result = await self.inspection_db.delete(uid)
-        if not result and uid in self.predefined_inspections:
-            raise ValueError(f"You can adjust predefined inspections, but not delete them: {uid}")
+    async def delete_check(self, uid: str) -> None:
+        await self.config_handler.delete_config(config_id(uid))
 
     async def perform_benchmark(self, benchmark: str, graph: str) -> BenchmarkResult:
         if benchmark not in self.benchmarks:
@@ -76,7 +101,7 @@ class InspectorService(Inspector):
         category: Optional[str] = None,
         kind: Optional[str] = None,
     ) -> BenchmarkResult:
-        checks = await self.list(provider, service, category, kind)
+        checks = await self.list_checks(provider, service, category, kind)
         provider_name = f"{provider}_" if provider else ""
         service_name = f"{service}_" if service else ""
         category_name = f"{category}_" if category else ""
@@ -93,13 +118,13 @@ class InspectorService(Inspector):
         return await self.__perform_benchmark(benchmark, graph)
 
     async def __perform_benchmark(self, benchmark: Benchmark, graph: str) -> BenchmarkResult:
-        checks = {c.id: c for c in await self.list()}
-        perform_checks = benchmark.nested_checks(checks)
+        perform_checks = await self.list_checks(check_ids=benchmark.nested_checks())
+        check_by_id = {c.id: c for c in perform_checks}
         result = await self.__perform_checks(graph, perform_checks)
 
-        def check_result(name: str) -> CheckResult:
-            check = checks[name]
-            num_failing = result.get(name)
+        def check_result(cid: str) -> CheckResult:
+            check = check_by_id[cid]
+            num_failing = result.get(cid)
             num_failing = -1 if num_failing is None else num_failing
             return CheckResult(check, num_failing == 0, max(0, num_failing))
 

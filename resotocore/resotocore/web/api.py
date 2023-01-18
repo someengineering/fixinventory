@@ -469,7 +469,7 @@ class Api:
 
     async def inspection_check(self, request: Request) -> StreamResponse:
         uid = request.match_info["check_id"]
-        inspection = await self.inspector.get(uid)
+        inspection = await self.inspector.get_check(uid)
         if inspection:
             return await single_result(request, to_js(inspection))
         else:
@@ -480,12 +480,12 @@ class Api:
         inspection = from_js(await request.json(), InspectionCheck)
         if uid is not None and uid != inspection.id:
             raise web.HTTPBadRequest(text=f"Id in path {uid} does not match id in body {inspection.id}")
-        result = await self.inspector.update(inspection)
+        result = await self.inspector.update_check(inspection)
         return await single_result(request, to_js(result))
 
     async def delete_inspection_check(self, request: Request) -> StreamResponse:
         uid = request.match_info["check_id"]
-        await self.inspector.delete(uid)
+        await self.inspector.delete_check(uid)
         return web.HTTPNoContent()
 
     async def inspection_checks(self, request: Request) -> StreamResponse:
@@ -493,7 +493,7 @@ class Api:
         service = request.query.get("service")
         category = request.query.get("category")
         kind = request.query.get("kind")
-        inspections = await self.inspector.list(provider, service, category, kind)
+        inspections = await self.inspector.list_checks(provider, service, category, kind)
         return await single_result(request, to_js(inspections))
 
     async def redirect_to_api_doc(self, request: Request) -> StreamResponse:
