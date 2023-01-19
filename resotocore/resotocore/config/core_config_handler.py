@@ -20,7 +20,7 @@ from resotocore.core_config import (
     migrate_config,
     config_model as core_config_model,
 )
-from resotocore.report import config_model as report_config_model
+from resotocore.report.report_config import config_model as report_config_model
 from resotocore.ids import SubscriberId, WorkerId
 from resotocore.dependencies import empty_config
 from resotocore.message_bus import MessageBus, CoreMessage

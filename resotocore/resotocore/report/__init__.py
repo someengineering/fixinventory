@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import json
 import logging
-import os
 from abc import ABC, abstractmethod
 from enum import Enum
 from typing import List, Optional, Dict, ClassVar
@@ -10,10 +8,7 @@ from typing import List, Optional, Dict, ClassVar
 from attr import define, field
 
 from resotocore.ids import ConfigId
-from resotocore.model.typed_model import from_js
 from resotocore.types import Json
-from resotolib.core.model_export import dataclasses_to_resotocore_model
-from resotolib.json import from_json
 
 log = logging.getLogger(__name__)
 
@@ -49,74 +44,31 @@ class Remediation:
 
 @define
 class ReportCheck:
-    kind: ClassVar[str] = "report_check"
-    id: str = field(
-        metadata={
-            "description": "Unique ID of the check. Suggested format: <provider>_<service>_<name>\n",
-            "Example": "aws_ec2_unused_elastic_ip",
-        }
-    )
-    provider: str = field(metadata={"description": "Cloud provider of the service to check. Example: aws"})
-    service: str = field(metadata={"description": "Service name by the provider. Example: ec2"})
-    title: str = field(metadata={"description": "Title of the check."})
-    result_kind: str = field(metadata={"description": "Resulting kind this check will emit. Example: aws_ec2_instance"})
-    categories: List[str] = field(metadata={"description": "Categories of the check. Example: ['security', 'cost']"})
-    severity: ReportSeverity = field(metadata={"description": "Severity of the check."})
-    detect: Dict[str, str] = field(
-        metadata={
-            "description": "Defines possible detection methods.\n"
-            "`resoto` defines a Resoto search, `resoto_cmd` a Resoto CLI command.\n "
-            "At least one of `resoto` or `resoto_cmd` must be defined.\n"
-            "Additional keys can be defined on top."
-        }
-    )
-    remediation: Remediation = field(metadata={"description": "Remediation action for the check."})
-    default_values: Optional[Json] = field(
-        default=None,
-        metadata={"description": "Default values for the check. Will be merged with the values from the config."},
-    )
-    url: Optional[str] = field(default=None, metadata={"description": "URL that documents the check."})
-    related: List[str] = field(factory=list, metadata={"description": "List of related checks."})
+    id: str
+    provider: str
+    service: str
+    title: str
+    result_kind: str
+    categories: List[str]
+    severity: ReportSeverity
+    risk: str
+    detect: Dict[str, str]
+    remediation: Remediation
+    default_values: Optional[Json] = None
+    url: Optional[str] = None
+    related: List[str] = field(factory=list)
 
     def environment(self, values: Json) -> Json:
         return {**self.default_values, **values} if self.default_values else values
 
-    @staticmethod
-    def from_files() -> List[ReportCheck]:
-        def report_check(pdr: str, svc: str, check: Json) -> ReportCheck:
-            check["provider"] = pdr
-            check["service"] = svc
-            check["id"] = f"{pdr}_{svc}_{check['name']}"
-            return from_js(check, ReportCheck)
-
-        def from_file(path: str) -> List[ReportCheck]:
-            with open(path, "rt", encoding="utf-8") as f:
-                js = json.load(f)
-                pdr = js["provider"]
-                svc = js["service"]
-                return [report_check(pdr, svc, check) for check in js["checks"]]
-
-        # TODO: define final path and add to Manifest
-        static_path = os.path.abspath(os.path.dirname(__file__) + "/../../../report/checks")
-        result = []
-        for provider in (d.path for d in os.scandir(static_path) if d.is_dir()):
-            for service in (d.path for d in os.scandir(provider) if d.is_file() and d.name.endswith(".json")):
-                result.extend(from_file(service))
-        return result
-
 
 @define
 class CheckCollection:
-    kind: ClassVar[str] = "resoto_core_report_check_collection"
-    title: str = field(metadata={"description": "Title of the benchmark or report check collection."})
-    description: str = field(metadata={"description": "Description of the benchmark."})
-    documentation: Optional[str] = field(default=None, kw_only=True, metadata={"description": "Documentation URL."})
-    checks: Optional[List[str]] = field(
-        default=None, kw_only=True, metadata={"description": "List of checks to perform."}
-    )
-    children: Optional[List[CheckCollection]] = field(
-        default=None, kw_only=True, metadata={"description": "Nested collections."}
-    )
+    title: str
+    description: str
+    documentation: Optional[str]
+    checks: Optional[List[str]]
+    children: Optional[List[CheckCollection]]
 
     def is_valid(self, checks: Dict[str, ReportCheck]) -> bool:
         return (
@@ -137,30 +89,9 @@ class CheckCollection:
 
 @define
 class Benchmark(CheckCollection):
-    kind: ClassVar[str] = "report_benchmark"
-
-    id: str = field(metadata={"description": "Unique ID of the benchmark."})
-    framework: str = field(metadata={"description": "Framework the benchmark is based on."})
-    version: str = field(metadata={"description": "Version of the benchmark."})
-
-    @staticmethod
-    def from_files(checks: Dict[str, ReportCheck]) -> List[Benchmark]:
-        def from_file(path: str) -> Benchmark:
-            with open(path, "rt", encoding="utf-8") as f:
-                js = json.load(f)
-                return from_json(js, Benchmark)
-
-        # TODO: define final path and add to Manifest
-        static_path = os.path.abspath(os.path.dirname(__file__) + "/../../../report/benchmark")
-        result = []
-        for provider in (d.path for d in os.scandir(static_path) if d.is_dir()):
-            for path in (d.path for d in os.scandir(provider) if d.is_file() and d.name.endswith(".json")):
-                benchmark = from_file(path)
-                if benchmark.is_valid(checks):
-                    result.append(benchmark)
-                else:
-                    raise ValueError(f"Invalid benchmark {benchmark.title} in {path}")
-        return result
+    id: str
+    framework: str
+    version: str
 
 
 @define
@@ -244,8 +175,3 @@ class Inspector(ABC):
         :param kind: the resulting kind of the check (e.g. aws_ec2_instance, kubernetes_pod, ...)
         :return: the result of this benchmark
         """
-
-
-def config_model() -> List[Json]:
-    config_classes = {ReportCheck, Benchmark}
-    return dataclasses_to_resotocore_model(config_classes, allow_unknown_props=False)

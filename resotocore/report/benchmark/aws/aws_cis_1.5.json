@@ -1,5 +1,5 @@
 {
-    "id": "aws_cis_1_5_0",
+    "id": "aws_cis_1.5",
     "title": "AWS CIS 1.5.0",
     "framework": "CIS",
     "version": "1.5",

@@ -1,15 +1,18 @@
 import asyncio
+import logging
 from functools import reduce
-from typing import Optional, List, Iterable, Dict, Tuple
+from typing import Optional, List, Dict, Tuple
 
 from aiostream import stream
 from attr import evolve
 
 from resotocore.cli.cli import CLI
 from resotocore.cli.model import CLIContext
-from resotocore.config import ConfigEntity
+from resotocore.config import ConfigEntity, ConfigHandler
 from resotocore.db.model import QueryModel
 from resotocore.ids import ConfigId
+from resotocore.model.model import Model
+from resotocore.query.model import Aggregate, AggregateFunction
 from resotocore.report import (
     Inspector,
     ReportCheck,
@@ -21,40 +24,46 @@ from resotocore.report import (
     CheckConfigPrefix,
     BenchmarkConfigPrefix,
     CheckConfigRoot,
-    BenchmarkConfigRoot,
     ValuesConfigId,
+    BenchmarkConfigRoot,
 )
-from resotocore.model.model import Model
-from resotocore.model.typed_model import from_js
-from resotocore.query.model import Aggregate, AggregateFunction
+from resotocore.report.report_config import ReportCheckCollectionConfig, BenchmarkConfig
 from resotocore.types import Json
+from resotocore.web.service import Service
 
-
-def config_id(name: str) -> ConfigId:
-    return ConfigId(CheckConfigPrefix + name)
+log = logging.getLogger(__name__)
 
 
 def benchmark_id(name: str) -> ConfigId:
     return ConfigId(BenchmarkConfigPrefix + name)
 
 
-def inspection_check(cfg: ConfigEntity) -> ReportCheck:
-    return from_js(cfg.config[CheckConfigRoot], ReportCheck)
+def check_id(name: str) -> ConfigId:
+    return ConfigId(CheckConfigPrefix + name)
 
 
-def inspection_benchmark(cfg: ConfigEntity) -> Benchmark:
-    return from_js(cfg.config[BenchmarkConfigRoot], Benchmark)
-
-
-class InspectorService(Inspector):
+class InspectorService(Inspector, Service):
     def __init__(self, cli: CLI) -> None:
-        self.config_handler = cli.dependencies.config_handler
+        self.config_handler: ConfigHandler = cli.dependencies.config_handler
         self.db_access = cli.dependencies.db_access
         self.cli = cli
         self.template_expander = cli.dependencies.template_expander
         self.model_handler = cli.dependencies.model_handler
-        self.predefined_inspections = {i.id: i for i in ReportCheck.from_files()}
-        self.benchmarks = {b.id: b for b in Benchmark.from_files(self.predefined_inspections)}
+
+    async def start(self) -> None:
+        # TODO: we need a migration path for checks added in existing configs
+        config_ids = {i async for i in self.config_handler.list_config_ids()}
+        overwrite = False  # only here to simplify development
+        for name, js in BenchmarkConfig.from_files().items():
+            if overwrite or benchmark_id(name) not in config_ids:
+                cid = benchmark_id(name)
+                log.info(f"Creating benchmark config {cid}")
+                await self.config_handler.put_config(ConfigEntity(cid, {BenchmarkConfigRoot: js}))
+        for name, js in ReportCheckCollectionConfig.from_files().items():
+            if overwrite or check_id(name) not in config_ids:
+                cid = check_id(name)
+                log.info(f"Creating check collection config {cid}")
+                await self.config_handler.put_config(ConfigEntity(cid, {CheckConfigRoot: js}))
 
     async def list_checks(
         self,
@@ -64,35 +73,30 @@ class InspectorService(Inspector):
         kind: Optional[str] = None,
         check_ids: Optional[List[str]] = None,
     ) -> List[ReportCheck]:
-        result = {}
+        def inspection_matches(inspection: ReportCheck) -> bool:
+            return (
+                (provider is None or provider == inspection.provider)
+                and (service is None or service == inspection.service)
+                and (category is None or category in inspection.categories)
+                and (kind is None or kind == inspection.result_kind)
+                and (check_ids is None or inspection.id in check_ids)
+            )
 
-        def add_inspections(inspections: Iterable[ReportCheck]) -> None:
-            for inspection in inspections:
-                if (
-                    (provider is None or provider == inspection.provider)
-                    and (service is None or service == inspection.service)
-                    and (category is None or category in inspection.categories)
-                    and (kind is None or kind == inspection.kind)
-                    and (check_ids is None or inspection.id in check_ids)
-                ):
-                    result[inspection.id] = inspection
-
-        cfg_ids = [
-            i
-            async for i in self.config_handler.list_config_ids()
-            if i.startswith(CheckConfigPrefix) and (check_ids is None or i in check_ids)
-        ]
+        cfg_ids = [i async for i in self.config_handler.list_config_ids() if i.startswith(CheckConfigPrefix)]
         loaded = await asyncio.gather(*[self.config_handler.get_config(cfg_id) for cfg_id in cfg_ids])
-        checks = [inspection_check(entry) for entry in loaded if isinstance(entry, ConfigEntity)]
-        add_inspections(self.predefined_inspections.values())
-        add_inspections(checks)
-        return list(result.values())
+        # fmt: off
+        return [
+            check
+            for entry in loaded if isinstance(entry, ConfigEntity) and CheckConfigRoot in entry.config
+            for check in ReportCheckCollectionConfig.from_config(entry) if inspection_matches(check)
+        ]
+        # fmt: on
 
     async def perform_benchmark(self, benchmark_name: str, graph: str) -> BenchmarkResult:
         cfg = await self.config_handler.get_config(benchmark_id(benchmark_name))
-        benchmark = inspection_benchmark(cfg) if cfg else self.benchmarks.get(benchmark_name)
-        if benchmark is None:
+        if cfg is None or BenchmarkConfigRoot not in cfg.config:
             raise ValueError(f"Unknown benchmark: {benchmark_name}")
+        benchmark = BenchmarkConfig.from_config(cfg)
         return await self.__perform_benchmark(benchmark, graph)
 
     async def perform_checks(
@@ -113,9 +117,11 @@ class InspectorService(Inspector):
             id=title,
             title=title,
             description="On demand benchmark",
+            documentation="On demand benchmark",
             framework="resoto",
             version="1.0",
             checks=[c.id for c in checks],
+            children=[],
         )
         return await self.__perform_benchmark(benchmark, graph)
 
