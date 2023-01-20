@@ -75,6 +75,7 @@ from resotocore.task.task_description import (
     TaskSurpassBehaviour,
     Job,
     Workflow,
+    TimeTrigger,
 )
 from resotocore.task.task_handler import TaskHandlerService
 from resotocore.types import Json
@@ -506,12 +507,10 @@ def test_workflow() -> Workflow:
         "Speakable name of workflow",
         [
             Step("start", PerformAction("start_collect"), timedelta(seconds=10)),
-            Step("wait", WaitForEvent("godot", {"a": 1}), timedelta(seconds=10)),
-            Step("emit_event", EmitEvent(Event("hello", {"a": 1})), timedelta(seconds=10)),
-            Step("collect", PerformAction("collect"), timedelta(seconds=10)),
+            Step("act", PerformAction("collect"), timedelta(seconds=10)),
             Step("done", PerformAction("collect_done"), timedelta(seconds=10), StepErrorBehaviour.Stop),
         ],
-        [EventTrigger("start me up")],
+        [EventTrigger("start me up"), TimeTrigger("1 1 1 1 1")],
     )
 
 
@@ -529,8 +528,24 @@ def additional_workflows() -> List[Workflow]:
 
 
 @fixture
+def test_wait_workflow() -> Workflow:
+    return Workflow(
+        TaskDescriptorId("test_workflow"),
+        "Speakable name of workflow",
+        [
+            Step("start", PerformAction("start_collect"), timedelta(seconds=10)),
+            Step("wait", WaitForEvent("godot", {"a": 1}), timedelta(seconds=10)),
+            Step("emit_event", EmitEvent(Event("hello", {"a": 1})), timedelta(seconds=10)),
+            Step("collect", PerformAction("collect"), timedelta(seconds=10)),
+            Step("done", PerformAction("collect_done"), timedelta(seconds=10), StepErrorBehaviour.Stop),
+        ],
+        [EventTrigger("start me up")],
+    )
+
+
+@fixture
 def workflow_instance(
-    test_workflow: Workflow,
+    test_wait_workflow: Workflow,
 ) -> Tuple[RunningTask, Subscriber, Subscriber, Dict[str, List[Subscriber]]]:
     td = timedelta(seconds=100)
     sub1 = Subscription("start_collect", True, td)
@@ -539,7 +554,7 @@ def workflow_instance(
     s1 = Subscriber.from_list(SubscriberId("s1"), [sub1, sub2, sub3])
     s2 = Subscriber.from_list(SubscriberId("s2"), [sub2, sub3])
     subscriptions = {"start_collect": [s1], "collect": [s1, s2], "collect_done": [s1, s2]}
-    w, _ = RunningTask.empty(test_workflow, lambda: subscriptions)
+    w, _ = RunningTask.empty(test_wait_workflow, lambda: subscriptions)
     w.received_messages = [
         Action("start_collect", w.id, "start"),
         ActionDone("start_collect", w.id, "start", s1.id),

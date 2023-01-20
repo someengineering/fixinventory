@@ -29,20 +29,6 @@ from resotocore.task.task_handler import TaskHandlerService
 from tests.resotocore.message_bus_test import wait_for_message
 
 
-@fixture
-def test_workflow() -> Workflow:
-    return Workflow(
-        TaskDescriptorId("test_workflow"),
-        "Speakable name of workflow",
-        [
-            Step("start", PerformAction("start_collect"), timedelta(seconds=10)),
-            Step("act", PerformAction("collect"), timedelta(seconds=10)),
-            Step("done", PerformAction("collect_done"), timedelta(seconds=10), StepErrorBehaviour.Stop),
-        ],
-        [EventTrigger("start me up"), TimeTrigger("1 1 1 1 1")],
-    )
-
-
 @pytest.mark.asyncio
 async def test_run_job(task_handler: TaskHandlerService, all_events: List[Message]) -> None:
     await task_handler.handle_event(Event("start me up"))
