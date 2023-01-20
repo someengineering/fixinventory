@@ -15,6 +15,7 @@ from resoto_plugin_aws.resource.s3 import AwsS3Bucket
 from resoto_plugin_aws.resource.sns import AwsSnsTopic
 from resoto_plugin_aws.utils import ToDict
 from resotolib.baseresources import ModelReference
+from resotolib.json import value_in_path
 from resotolib.json_bender import S, Bend, Bender, ForallBend, bend
 from resotolib.types import Json
 
@@ -87,11 +88,6 @@ class AwsSagemakerNotebook(SagemakerTaggable, AwsResource):
         "notebook_failure_reason": S("FailureReason"),
         "notebook_url": S("Url"),
         "notebook_instance_type": S("InstanceType"),
-        "notebook_subnet_id": S("SubnetId"),
-        "notebook_security_groups": S("SecurityGroups", default=[]),
-        "notebook_role_arn": S("RoleArn"),
-        "notebook_kms_key_id": S("KmsKeyId"),
-        "notebook_network_interface_id": S("NetworkInterfaceId"),
         "notebook_instance_lifecycle_config_name": S("NotebookInstanceLifecycleConfigName"),
         "notebook_direct_internet_access": S("DirectInternetAccess"),
         "notebook_volume_size_in_gb": S("VolumeSizeInGB"),
@@ -108,11 +104,6 @@ class AwsSagemakerNotebook(SagemakerTaggable, AwsResource):
     notebook_failure_reason: Optional[str] = field(default=None)
     notebook_url: Optional[str] = field(default=None)
     notebook_instance_type: Optional[str] = field(default=None)
-    notebook_subnet_id: Optional[str] = field(default=None)
-    notebook_security_groups: List[str] = field(factory=list)
-    notebook_role_arn: Optional[str] = field(default=None)
-    notebook_kms_key_id: Optional[str] = field(default=None)
-    notebook_network_interface_id: Optional[str] = field(default=None)
     notebook_instance_lifecycle_config_name: Optional[str] = field(default=None)
     notebook_direct_internet_access: Optional[str] = field(default=None)
     notebook_volume_size_in_gb: Optional[int] = field(default=None)
@@ -143,18 +134,17 @@ class AwsSagemakerNotebook(SagemakerTaggable, AwsResource):
                 builder.submit_work(SagemakerTaggable.add_tags, notebook_instance, builder)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if self.notebook_subnet_id:
-            builder.dependant_node(self, reverse=True, clazz=AwsEc2Subnet, id=self.notebook_subnet_id)
-        for security_group in self.notebook_security_groups:
-            builder.dependant_node(self, reverse=True, clazz=AwsEc2SecurityGroup, id=security_group)
-        if self.notebook_role_arn:
-            builder.dependant_node(
-                self, reverse=True, delete_same_as_default=True, clazz=AwsIamRole, arn=self.notebook_role_arn
-            )
-        if self.notebook_kms_key_id:
-            builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(self.notebook_kms_key_id))
-        if self.notebook_network_interface_id:
-            builder.dependant_node(self, clazz=AwsEc2NetworkInterface, id=self.notebook_network_interface_id)
+        if subnet := value_in_path(source, "SubnetId"):
+            builder.dependant_node(self, reverse=True, clazz=AwsEc2Subnet, id=subnet)
+        if security_groups := value_in_path(source, "SecurityGroups"):
+            for security_group in security_groups:
+                builder.dependant_node(self, reverse=True, clazz=AwsEc2SecurityGroup, id=security_group)
+        if role_arn := value_in_path(source, "RoleArn"):
+            builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsIamRole, arn=role_arn)
+        if key := value_in_path(source, "KmsKeyId"):
+            builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(key))
+        if nw_interface := value_in_path(source, "NetworkInterfaceId"):
+            builder.dependant_node(self, clazz=AwsEc2NetworkInterface, id=nw_interface)
         code_repos = [self.notebook_default_code_repository] + self.notebook_additional_code_repositories
         for repo in code_repos:
             builder.add_edge(self, reverse=True, clazz=AwsSagemakerCodeRepository, name=repo)
