@@ -5,6 +5,7 @@ from resotocore.config import ConfigEntity
 from resotocore.report.inspector_service import InspectorService, check_id, benchmark_id
 from resotocore.report.report_config import config_model
 from resotocore.types import Json
+from resotocore.util import partition_by
 
 
 @fixture
@@ -97,8 +98,20 @@ async def test_perform_benchmark(inspector_service_with_test_benchmark: Inspecto
     inspector = inspector_service_with_test_benchmark
     result = await inspector.perform_benchmark("test", inspector.cli.cli_env["graph"])
     assert result.passed is False
-    assert result.number_of_resources_failing == 22
+    assert result.resources_failing == 22
     assert result.checks[0].number_of_resources_failing == 11
     assert result.checks[0].passed is False
     assert result.checks[1].number_of_resources_failing == 11
     assert result.checks[1].passed is False
+
+
+async def test_benchmark_node_result(inspector_service_with_test_benchmark: InspectorService) -> None:
+    inspector = inspector_service_with_test_benchmark
+    result = await inspector.perform_benchmark("test", inspector.cli.cli_env["graph"])
+    node_edge_list = result.to_graph()
+    nodes, edges = partition_by(lambda x: x["type"] == "node", node_edge_list)  # type: ignore
+    assert len(node_edge_list) == 5  # 3 nodes + 2 edges
+    assert len(nodes) == 3
+    assert len(edges) == 2
+    for edge in edges:
+        assert edge["from"] == result.node_id

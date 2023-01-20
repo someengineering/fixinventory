@@ -38,6 +38,7 @@ from aiohttp.web_exceptions import HTTPNotFound, HTTPNoContent, HTTPOk, HTTPNotA
 from aiohttp.web_fileresponse import FileResponse
 from aiohttp.web_routedef import AbstractRouteDef
 from aiohttp_swagger3 import SwaggerFile, SwaggerUiSettings
+from aiostream import stream
 from aiostream.core import Stream
 from attrs import evolve
 from networkx.readwrite import cytoscape_data
@@ -458,6 +459,9 @@ class Api:
         benchmark = request.match_info["benchmark"]
         graph = request.match_info["graph_id"]
         result = await self.inspector.perform_benchmark(benchmark, graph)
+        count = result.checks_passing + result.checks_failing
+        async with stream.iterate(result.to_graph()).stream() as streamer:
+            await self.stream_response_from_gen(request, streamer, count)
         return await single_result(request, to_js(result))
 
     async def inspection_checks(self, request: Request) -> StreamResponse:

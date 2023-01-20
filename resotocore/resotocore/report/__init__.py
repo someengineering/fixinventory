@@ -8,7 +8,9 @@ from typing import List, Optional, Dict, ClassVar
 from attr import define, field
 
 from resotocore.ids import ConfigId
+from resotocore.model.typed_model import to_js
 from resotocore.types import Json
+from resotocore.util import uuid_str
 
 log = logging.getLogger(__name__)
 
@@ -104,6 +106,14 @@ class CheckResult:
     check: ReportCheck
     passed: bool
     number_of_resources_failing: int
+    node_id: str = field(init=False, default=uuid_str())
+
+    def to_node(self) -> Json:
+        node = to_js(self.check)
+        node["id"] = self.node_id
+        node["kind"] = "report_check_result"
+        node["type"] = "node"
+        return node
 
 
 @define
@@ -114,13 +124,54 @@ class CheckCollectionResult:
     checks: List[CheckResult] = field(factory=list, kw_only=True)
     children: List[CheckCollectionResult] = field(factory=list, kw_only=True)
     passed: bool = field(default=False, kw_only=True)
-    number_of_resources_failing: int = field(default=0, kw_only=True)
+    resources_failing: int = field(default=0, kw_only=True)
+    checks_passing: int = field(default=0, kw_only=True)
+    checks_failing: int = field(default=0, kw_only=True)
+    node_id: str = field(init=False, default=uuid_str())
+
+    def to_node(self) -> Json:
+        return dict(
+            id=self.node_id,
+            type="node",
+            reported=dict(
+                kind="report_check_collection",
+                title=self.title,
+                description=self.description,
+                documentation=self.documentation,
+                passed=self.passed,
+                number_of_resources_failing=self.resources_failing,
+                checks_passing=self.checks_passing,
+                checks_failing=self.checks_failing,
+            ),
+        )
 
 
 @define
 class BenchmarkResult(CheckCollectionResult):
     framework: str
     version: str
+
+    def to_node(self) -> Json:
+        node = super().to_node()
+        node["reported"]["framework"] = self.framework
+        node["reported"]["version"] = self.version
+        node["reported"]["kind"] = "report_benchmark"
+        return node
+
+    def to_graph(self) -> List[Json]:
+        result = []
+
+        def visit_check_collection(collection: CheckCollectionResult) -> None:
+            result.append(collection.to_node())
+            for check in collection.checks:
+                result.append(check.to_node())
+                result.append({"from": collection.node_id, "to": check.node_id, "type": "edge"})
+            for child in collection.children:
+                visit_check_collection(child)
+                result.append({"from": collection.node_id, "to": child.node_id, "type": "edge"})
+
+        visit_check_collection(self)
+        return result
 
 
 class Inspector(ABC):

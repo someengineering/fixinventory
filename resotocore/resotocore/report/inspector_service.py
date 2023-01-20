@@ -1,6 +1,5 @@
 import asyncio
 import logging
-from functools import reduce
 from typing import Optional, List, Dict, Tuple, Callable
 
 from aiostream import stream
@@ -144,17 +143,29 @@ class InspectorService(Inspector, Service):
         def to_result(cc: CheckCollection) -> CheckCollectionResult:
             check_results = [check_result(c) for c in cc.checks or []]
             children = [to_result(c) for c in cc.children or []]
-            failing = reduce(lambda a, b: a + b.number_of_resources_failing, check_results, 0) + reduce(
-                lambda a, b: a + b.number_of_resources_failing, children, 0
-            )
+            resources_failing = 0
+            checks_failing = 0
+            checks_passing = 0
+            for cr in check_results:
+                resources_failing += cr.number_of_resources_failing
+                if cr.passed:
+                    checks_passing += 1
+                else:
+                    checks_failing += 1
+            for cd in children:
+                resources_failing += cd.resources_failing
+                checks_failing += cd.checks_failing
+                checks_passing += cd.checks_passing
             return CheckCollectionResult(
                 cc.title,
                 cc.description,
                 documentation=cc.documentation,
                 checks=check_results,
                 children=children,
-                passed=failing == 0,
-                number_of_resources_failing=failing,
+                passed=checks_failing == 0,
+                resources_failing=resources_failing,
+                checks_failing=checks_failing,
+                checks_passing=checks_passing,
             )
 
         top = to_result(benchmark)
@@ -167,7 +178,9 @@ class InspectorService(Inspector, Service):
             checks=top.checks,
             children=top.children,
             passed=top.passed,
-            number_of_resources_failing=top.number_of_resources_failing,
+            resources_failing=top.resources_failing,
+            checks_failing=top.checks_failing,
+            checks_passing=top.checks_passing,
         )
 
     async def __perform_checks(
