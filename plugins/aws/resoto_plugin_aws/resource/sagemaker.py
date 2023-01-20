@@ -2138,6 +2138,9 @@ class AwsSagemakerWorkteam(SagemakerTaggable, AwsResource):
 
 
 ## Jobs
+@define(eq=False, slots=False)
+class AwsSagemakerJob(AwsResource):
+    kind: ClassVar[str] = "aws_sagemaker_job"
 
 
 @define(eq=False, slots=False)
@@ -2362,7 +2365,7 @@ class AwsSagemakerModelDeployConfig:
 
 
 @define(eq=False, slots=False)
-class AwsSagemakerAutoMLJob(AwsResource):
+class AwsSagemakerAutoMLJob(AwsSagemakerJob):
     kind: ClassVar[str] = "aws_sagemaker_auto_ml_job"
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
@@ -2533,7 +2536,7 @@ class AwsSagemakerNeoVpcConfig:
 
 
 @define(eq=False, slots=False)
-class AwsSagemakerCompilationJob(AwsResource):
+class AwsSagemakerCompilationJob(AwsSagemakerJob):
     kind: ClassVar[str] = "aws_sagemaker_compilation_job"
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
@@ -2652,7 +2655,7 @@ class AwsSagemakerEdgePresetDeploymentOutput:
 
 
 @define(eq=False, slots=False)
-class AwsSagemakerEdgePackagingJob(AwsResource):
+class AwsSagemakerEdgePackagingJob(AwsSagemakerJob):
     kind: ClassVar[str] = "aws_sagemaker_edge_packaging_job"
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
@@ -3011,7 +3014,7 @@ class AwsSagemakerHyperParameterTuningJobWarmStartConfig:
 
 
 @define(eq=False, slots=False)
-class AwsSagemakerHyperParameterTuningJob(SagemakerTaggable, AwsResource):
+class AwsSagemakerHyperParameterTuningJob(SagemakerTaggable, AwsSagemakerJob):
     kind: ClassVar[str] = "aws_sagemaker_hyper_parameter_tuning_job"
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
@@ -3369,7 +3372,7 @@ class AwsSagemakerEndpointPerformance:
 
 
 @define(eq=False, slots=False)
-class AwsSagemakerInferenceRecommendationsJob(AwsResource):
+class AwsSagemakerInferenceRecommendationsJob(AwsSagemakerJob):
     kind: ClassVar[str] = "aws_sagemaker_inference_recommendations_job"
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
@@ -3635,7 +3638,7 @@ class AwsSagemakerLabelingJobOutput:
 
 
 @define(eq=False, slots=False)
-class AwsSagemakerLabelingJob(SagemakerTaggable, AwsResource):
+class AwsSagemakerLabelingJob(SagemakerTaggable, AwsSagemakerJob):
     kind: ClassVar[str] = "aws_sagemaker_labeling_job"
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
@@ -3962,7 +3965,7 @@ class AwsSagemakerExperimentConfig:
 
 
 @define(eq=False, slots=False)
-class AwsSagemakerProcessingJob(AwsResource):
+class AwsSagemakerProcessingJob(AwsSagemakerJob):
     kind: ClassVar[str] = "aws_sagemaker_processing_job"
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
@@ -4289,7 +4292,7 @@ class AwsSagemakerWarmPoolStatus:
 
 
 @define(eq=False, slots=False)
-class AwsSagemakerTrainingJob(SagemakerTaggable, AwsResource):
+class AwsSagemakerTrainingJob(SagemakerTaggable, AwsSagemakerJob):
     kind: ClassVar[str] = "aws_sagemaker_training_job"
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
@@ -4517,7 +4520,7 @@ class AwsSagemakerDataProcessing:
 
 
 @define(eq=False, slots=False)
-class AwsSagemakerTransformJob(SagemakerTaggable, AwsResource):
+class AwsSagemakerTransformJob(SagemakerTaggable, AwsSagemakerJob):
     kind: ClassVar[str] = "aws_sagemaker_transform_job"
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
