@@ -686,14 +686,12 @@ class AwsSagemakerModel(SagemakerTaggable, AwsResource):
         "model_primary_container": S("PrimaryContainer") >> Bend(AwsSagemakerContainerDefinition.mapping),
         "model_containers": S("Containers", default=[]) >> ForallBend(AwsSagemakerContainerDefinition.mapping),
         "model_inference_execution_config": S("InferenceExecutionConfig", "Mode"),
-        "model_execution_role_arn": S("ExecutionRoleArn"),
         "model_vpc_config": S("VpcConfig") >> Bend(AwsSagemakerVpcConfig.mapping),
         "model_enable_network_isolation": S("EnableNetworkIsolation"),
     }
     model_primary_container: Optional[AwsSagemakerContainerDefinition] = field(default=None)
     model_containers: List[AwsSagemakerContainerDefinition] = field(factory=list)
     model_inference_execution_config: Optional[str] = field(default=None)
-    model_execution_role_arn: Optional[str] = field(default=None)
     model_vpc_config: Optional[AwsSagemakerVpcConfig] = field(default=None)
     model_enable_network_isolation: Optional[bool] = field(default=None)
 
@@ -717,10 +715,8 @@ class AwsSagemakerModel(SagemakerTaggable, AwsResource):
         for bucket in model_data_buckets:
             if bucket:
                 builder.add_edge(self, clazz=AwsS3Bucket, name=AwsS3Bucket.name_from_path(bucket))
-        if self.model_execution_role_arn:
-            builder.dependant_node(
-                self, delete_same_as_default=True, clazz=AwsIamRole, arn=self.model_execution_role_arn
-            )
+        if role_arn := value_in_path(source, "ExecutionRoleArn"):
+            builder.dependant_node(self, delete_same_as_default=True, clazz=AwsIamRole, arn=role_arn)
         if self.model_vpc_config:
             for security_group in self.model_vpc_config.security_group_ids:
                 builder.dependant_node(self, reverse=True, clazz=AwsEc2SecurityGroup, id=security_group)
@@ -814,11 +810,10 @@ class AwsSagemakerApp(AwsResource):
                 builder.add_node(app_instance, app_description)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if self.app_domain_id:
-            builder.add_edge(self, reverse=True, clazz=AwsSagemakerDomain, id=self.app_domain_id)
-        if ars := self.app_resource_spec:
-            if ars.sage_maker_image_arn:
-                builder.add_edge(self, clazz=AwsSagemakerImage, arn=ars.sage_maker_image_arn)
+        if domain := self.app_domain_id:
+            builder.add_edge(self, reverse=True, clazz=AwsSagemakerDomain, id=domain)
+        if image := value_in_path(source, ["ResourceSpec", "SageMakerImageArn"]):
+            builder.add_edge(self, clazz=AwsSagemakerImage, arn=image)
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
@@ -939,7 +934,6 @@ class AwsSagemakerUserSettings:
     kind: ClassVar[str] = "aws_sagemaker_user_settings"
     mapping: ClassVar[Dict[str, Bender]] = {
         "execution_role": S("ExecutionRole"),
-        "security_groups": S("SecurityGroups", default=[]),
         "sharing_settings": S("SharingSettings") >> Bend(AwsSagemakerSharingSettings.mapping),
         "jupyter_server_app_settings": S("JupyterServerAppSettings")
         >> Bend(AwsSagemakerJupyterServerAppSettings.mapping),
@@ -952,7 +946,6 @@ class AwsSagemakerUserSettings:
         "canvas_app_settings": S("CanvasAppSettings") >> Bend(AwsSagemakerCanvasAppSettings.mapping),
     }
     execution_role: Optional[str] = field(default=None)
-    security_groups: List[str] = field(factory=list)
     sharing_settings: Optional[AwsSagemakerSharingSettings] = field(default=None)
     jupyter_server_app_settings: Optional[AwsSagemakerJupyterServerAppSettings] = field(default=None)
     kernel_gateway_app_settings: Optional[AwsSagemakerKernelGatewayAppSettings] = field(default=None)
@@ -1095,8 +1088,9 @@ class AwsSagemakerDomain(AwsResource):
                     clazz=AwsIamRole,
                     arn=self.domain_default_user_settings.execution_role,
                 )
-            for security_group in dus.security_groups:
-                builder.dependant_node(self, reverse=True, clazz=AwsEc2SecurityGroup, id=security_group)
+            if security_groups := value_in_path(source, ["DefaultUserSettings", "SecurityGroups"]):
+                for security_group in security_groups:
+                    builder.dependant_node(self, reverse=True, clazz=AwsEc2SecurityGroup, id=security_group)
             if shs := dus.sharing_settings:
                 if shs.s3_output_path:
                     builder.add_edge(self, clazz=AwsS3Bucket, name=AwsS3Bucket.name_from_path(shs.s3_output_path))
@@ -1238,14 +1232,10 @@ class AwsSagemakerMetadataProperties:
     kind: ClassVar[str] = "aws_sagemaker_metadata_properties"
     mapping: ClassVar[Dict[str, Bender]] = {
         "commit_id": S("CommitId"),
-        "repository": S("Repository"),
         "generated_by": S("GeneratedBy"),
-        "project_id": S("ProjectId"),
     }
     commit_id: Optional[str] = field(default=None)
-    repository: Optional[str] = field(default=None)
     generated_by: Optional[str] = field(default=None)
-    project_id: Optional[str] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -1313,13 +1303,12 @@ class AwsSagemakerTrial(AwsResource):
                 builder.add_edge(self, reverse=True, clazz=AwsSagemakerUserProfile, name=m.user_profile_name)
             if m.domain_id:
                 builder.add_edge(self, reverse=True, clazz=AwsSagemakerDomain, id=m.domain_id)
-        if meta := self.trial_metadata_properties:
-            if meta.repository:
-                builder.add_edge(
-                    self, reverse=True, clazz=AwsSagemakerCodeRepository, name=meta.repository
-                )  # TODO find out if this is name or url
-            if meta.project_id:
-                builder.add_edge(self, reverse=True, clazz=AwsSagemakerProject, id=meta.project_id)
+        if repository := value_in_path(source, ["MetadataProperties", "Repository"]):
+            builder.add_edge(
+                self, reverse=True, clazz=AwsSagemakerCodeRepository, name=repository
+            )  # TODO find out if this is name or url
+            if project_id := value_in_path(source, ["MetadataProperties", "ProjectId"]):
+                builder.add_edge(self, reverse=True, clazz=AwsSagemakerProject, id=project_id)
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(aws_service=self.api_spec.service, action="delete-trial", result_name=None, TrialName=self.name)
@@ -1791,13 +1780,11 @@ class AwsSagemakerImage(AwsResource):
         "image_display_name": S("DisplayName"),
         "image_failure_reason": S("FailureReason"),
         "image_image_status": S("ImageStatus"),
-        "image_role_arn": S("RoleArn"),
     }
     image_description: Optional[str] = field(default=None)
     image_display_name: Optional[str] = field(default=None)
     image_failure_reason: Optional[str] = field(default=None)
     image_image_status: Optional[str] = field(default=None)
-    image_role_arn: Optional[str] = field(default=None)
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
@@ -1812,10 +1799,8 @@ class AwsSagemakerImage(AwsResource):
                 builder.add_node(image_instance, image_description)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if self.image_role_arn:
-            builder.dependant_node(
-                self, reverse=True, delete_same_as_default=True, clazz=AwsIamRole, arn=self.image_role_arn
-            )
+        if role := value_in_path(source, "RoleArn"):
+            builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsIamRole, arn=role)
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(aws_service=self.api_spec.service, action="delete-image", result_name=None, ImageName=self.name)
@@ -1902,13 +1887,12 @@ class AwsSagemakerArtifact(AwsResource):
                 builder.add_edge(self, reverse=True, clazz=AwsSagemakerUserProfile, name=m.user_profile_name)
             if m.domain_id:
                 builder.add_edge(self, reverse=True, clazz=AwsSagemakerDomain, id=m.domain_id)
-        if meta := self.artifact_metadata_properties:
-            if meta.repository:
-                builder.add_edge(
-                    self, reverse=True, clazz=AwsSagemakerCodeRepository, name=meta.repository
-                )  # TODO check if name or url
-            if meta.project_id:
-                builder.add_edge(self, reverse=True, clazz=AwsSagemakerProject, id=meta.project_id)
+        if repository := value_in_path(source, ["MetadataProperties", "Repository"]):
+            builder.add_edge(
+                self, reverse=True, clazz=AwsSagemakerCodeRepository, name=repository
+            )  # TODO check if name or url
+        if project_id := value_in_path(source, ["MetadataProperties", "ProjectId"]):
+            builder.add_edge(self, reverse=True, clazz=AwsSagemakerProject, id=project_id)
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(aws_service=self.api_spec.service, action="delete-artifact", result_name=None, ArtifactArn=self.arn)
@@ -1932,8 +1916,8 @@ class AwsSagemakerUserProfile(AwsResource):
     user_profile_status: Optional[str] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if self.user_profile_domain_id:
-            builder.add_edge(self, reverse=True, clazz=AwsSagemakerDomain, id=self.user_profile_domain_id)
+        if domain_id := value_in_path(source, "DomainId"):
+            builder.add_edge(self, reverse=True, clazz=AwsSagemakerDomain, id=domain_id)
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
@@ -1966,7 +1950,6 @@ class AwsSagemakerPipeline(AwsResource):
         "pipeline_display_name": S("PipelineDisplayName"),
         "pipeline_definition": S("PipelineDefinition"),
         "pipeline_description": S("PipelineDescription"),
-        "pipeline_role_arn": S("RoleArn"),
         "pipeline_status": S("PipelineStatus"),
         "pipeline_created_by": S("CreatedBy") >> Bend(AwsSagemakerUserContext.mapping),
         "pipeline_last_modified_by": S("LastModifiedBy") >> Bend(AwsSagemakerUserContext.mapping),
@@ -1975,7 +1958,6 @@ class AwsSagemakerPipeline(AwsResource):
     pipeline_display_name: Optional[str] = field(default=None)
     pipeline_definition: Optional[str] = field(default=None)
     pipeline_description: Optional[str] = field(default=None)
-    pipeline_role_arn: Optional[str] = field(default=None)
     pipeline_status: Optional[str] = field(default=None)
     pipeline_created_by: Optional[AwsSagemakerUserContext] = field(default=None)
     pipeline_last_modified_by: Optional[AwsSagemakerUserContext] = field(default=None)
@@ -1996,10 +1978,8 @@ class AwsSagemakerPipeline(AwsResource):
                 builder.add_node(pipeline_instance, pipeline_description)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if self.pipeline_role_arn:
-            builder.dependant_node(
-                self, reverse=True, delete_same_as_default=True, clazz=AwsIamRole, arn=self.pipeline_role_arn
-            )
+        if role_arn := value_in_path(source, "RoleArn"):
+            builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsIamRole, arn=role_arn)
         if c := self.pipeline_created_by:
             if c.user_profile_name:
                 builder.add_edge(self, reverse=True, clazz=AwsSagemakerUserProfile, name=c.user_profile_name)
@@ -2367,7 +2347,6 @@ class AwsSagemakerAutoMLJob(AwsSagemakerJob):
         "auto_ml_job_input_data_config": S("InputDataConfig", default=[])
         >> ForallBend(AwsSagemakerAutoMLChannel.mapping),
         "auto_ml_job_output_data_config": S("OutputDataConfig") >> Bend(AwsSagemakerAutoMLOutputDataConfig.mapping),
-        "auto_ml_job_role_arn": S("RoleArn"),
         "auto_ml_job_objective": S("AutoMLJobObjective", "MetricName"),
         "auto_ml_job_problem_type": S("ProblemType"),
         "auto_ml_job_config": S("AutoMLJobConfig") >> Bend(AwsSagemakerAutoMLJobConfig.mapping),
@@ -2386,7 +2365,6 @@ class AwsSagemakerAutoMLJob(AwsSagemakerJob):
     }
     auto_ml_job_input_data_config: List[AwsSagemakerAutoMLChannel] = field(factory=list)
     auto_ml_job_output_data_config: Optional[AwsSagemakerAutoMLOutputDataConfig] = field(default=None)
-    auto_ml_job_role_arn: Optional[str] = field(default=None)
     auto_ml_job_objective: Optional[str] = field(default=None)
     auto_ml_job_problem_type: Optional[str] = field(default=None)
     auto_ml_job_config: Optional[AwsSagemakerAutoMLJobConfig] = field(default=None)
@@ -2427,10 +2405,8 @@ class AwsSagemakerAutoMLJob(AwsSagemakerJob):
                 builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(odc.kms_key_id))
             if odc.s3_output_path:
                 builder.add_edge(self, clazz=AwsS3Bucket, name=AwsS3Bucket.name_from_path(odc.s3_output_path))
-        if self.auto_ml_job_role_arn:
-            builder.dependant_node(
-                self, reverse=True, delete_same_as_default=True, clazz=AwsIamRole, arn=self.auto_ml_job_role_arn
-            )
+        if role_arn := value_in_path(source, "RoleArn"):
+            builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsIamRole, arn=role_arn)
         if jc := self.auto_ml_job_config:
             if sc := jc.security_config:
                 if sc.volume_kms_key_id:
@@ -2539,7 +2515,6 @@ class AwsSagemakerCompilationJob(AwsSagemakerJob):
         "compilation_job_failure_reason": S("FailureReason"),
         "compilation_job_model_artifacts": S("ModelArtifacts", "S3ModelArtifacts"),
         "compilation_job_model_digests": S("ModelDigests", "ArtifactDigest"),
-        "compilation_job_role_arn": S("RoleArn"),
         "compilation_job_input_config": S("InputConfig") >> Bend(AwsSagemakerInputConfig.mapping),
         "compilation_job_output_config": S("OutputConfig") >> Bend(AwsSagemakerOutputConfig.mapping),
         "compilation_job_vpc_config": S("VpcConfig") >> Bend(AwsSagemakerNeoVpcConfig.mapping),
@@ -2553,7 +2528,6 @@ class AwsSagemakerCompilationJob(AwsSagemakerJob):
     compilation_job_failure_reason: Optional[str] = field(default=None)
     compilation_job_model_artifacts: Optional[str] = field(default=None)
     compilation_job_model_digests: Optional[str] = field(default=None)
-    compilation_job_role_arn: Optional[str] = field(default=None)
     compilation_job_input_config: Optional[AwsSagemakerInputConfig] = field(default=None)
     compilation_job_output_config: Optional[AwsSagemakerOutputConfig] = field(default=None)
     compilation_job_vpc_config: Optional[AwsSagemakerNeoVpcConfig] = field(default=None)
@@ -2577,10 +2551,8 @@ class AwsSagemakerCompilationJob(AwsSagemakerJob):
             builder.add_edge(
                 self, clazz=AwsS3Bucket, name=AwsS3Bucket.name_from_path(self.compilation_job_model_artifacts)
             )
-        if self.compilation_job_role_arn:
-            builder.dependant_node(
-                self, reverse=True, delete_same_as_default=True, clazz=AwsIamRole, arn=self.compilation_job_role_arn
-            )
+        if role_arn := value_in_path(source, "RoleArn"):
+            builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsIamRole, arn=role_arn)
         if ic := self.compilation_job_input_config:
             if ic.s3_uri:
                 builder.add_edge(self, clazz=AwsS3Bucket, name=AwsS3Bucket.name_from_path(ic.s3_uri))
@@ -2654,9 +2626,7 @@ class AwsSagemakerEdgePackagingJob(AwsSagemakerJob):
         "mtime": S("LastModifiedTime"),
         "arn": S("EdgePackagingJobArn"),
         "edge_packaging_job_compilation_job_name": S("CompilationJobName"),
-        "edge_packaging_job_model_name": S("ModelName"),
         "edge_packaging_job_model_version": S("ModelVersion"),
-        "edge_packaging_job_role_arn": S("RoleArn"),
         "edge_packaging_job_output_config": S("OutputConfig") >> Bend(AwsSagemakerEdgeOutputConfig.mapping),
         "edge_packaging_job_resource_key": S("ResourceKey"),
         "edge_packaging_job_status": S("EdgePackagingJobStatus"),
@@ -2667,9 +2637,7 @@ class AwsSagemakerEdgePackagingJob(AwsSagemakerJob):
         >> Bend(AwsSagemakerEdgePresetDeploymentOutput.mapping),
     }
     edge_packaging_job_compilation_job_name: Optional[str] = field(default=None)
-    edge_packaging_job_model_name: Optional[str] = field(default=None)
     edge_packaging_job_model_version: Optional[str] = field(default=None)
-    edge_packaging_job_role_arn: Optional[str] = field(default=None)
     edge_packaging_job_output_config: Optional[AwsSagemakerEdgeOutputConfig] = field(default=None)
     edge_packaging_job_resource_key: Optional[str] = field(default=None)
     edge_packaging_job_status: Optional[str] = field(default=None)
@@ -2693,12 +2661,10 @@ class AwsSagemakerEdgePackagingJob(AwsSagemakerJob):
                 builder.add_node(job_instance, job_description)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if self.edge_packaging_job_model_name:
-            builder.add_edge(self, reverse=True, clazz=AwsSagemakerModel, name=self.edge_packaging_job_model_name)
-        if self.edge_packaging_job_role_arn:
-            builder.dependant_node(
-                self, reverse=True, delete_same_as_default=True, clazz=AwsIamRole, arn=self.edge_packaging_job_role_arn
-            )
+        if model_name := value_in_path(source, "ModelName"):
+            builder.add_edge(self, reverse=True, clazz=AwsSagemakerModel, name=model_name)
+        if role_arn := value_in_path(source, "RoleArn"):
+            builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsIamRole, arn=role_arn)
         if oc := self.edge_packaging_job_output_config:
             if oc.s3_output_location:
                 builder.add_edge(self, clazz=AwsS3Bucket, name=AwsS3Bucket.name_from_path(oc.s3_output_location))
@@ -3221,7 +3187,6 @@ class AwsSagemakerRecommendationJobInputConfig:
         "resource_limit": S("ResourceLimit") >> Bend(AwsSagemakerRecommendationJobResourceLimit.mapping),
         "endpoint_configurations": S("EndpointConfigurations", default=[])
         >> ForallBend(AwsSagemakerEndpointInputConfiguration.mapping),
-        "volume_kms_key_id": S("VolumeKmsKeyId"),
         "container_config": S("ContainerConfig") >> Bend(AwsSagemakerRecommendationJobContainerConfig.mapping),
         "endpoints": S("Endpoints", default=[]) >> ForallBend(S("EndpointName")),
         "vpc_config": S("VpcConfig") >> Bend(AwsSagemakerVpcConfig.mapping),
@@ -3231,7 +3196,6 @@ class AwsSagemakerRecommendationJobInputConfig:
     traffic_pattern: Optional[AwsSagemakerTrafficPattern] = field(default=None)
     resource_limit: Optional[AwsSagemakerRecommendationJobResourceLimit] = field(default=None)
     endpoint_configurations: List[AwsSagemakerEndpointInputConfiguration] = field(factory=list)
-    volume_kms_key_id: Optional[str] = field(default=None)
     container_config: Optional[AwsSagemakerRecommendationJobContainerConfig] = field(default=None)
     endpoints: List[str] = field(factory=list)
     vpc_config: Optional[AwsSagemakerVpcConfig] = field(default=None)
@@ -3370,7 +3334,6 @@ class AwsSagemakerInferenceRecommendationsJob(AwsSagemakerJob):
         "arn": S("JobArn"),
         "inference_recommendations_job_description": S("JobDescription"),
         "inference_recommendations_job_type": S("JobType"),
-        "inference_recommendations_job_role_arn": S("RoleArn"),
         "inference_recommendations_job_status": S("Status"),
         "inference_recommendations_job_completion_time": S("CompletionTime"),
         "inference_recommendations_job_failure_reason": S("FailureReason"),
@@ -3385,7 +3348,6 @@ class AwsSagemakerInferenceRecommendationsJob(AwsSagemakerJob):
     }
     inference_recommendations_job_description: Optional[str] = field(default=None)
     inference_recommendations_job_type: Optional[str] = field(default=None)
-    inference_recommendations_job_role_arn: Optional[str] = field(default=None)
     inference_recommendations_job_status: Optional[str] = field(default=None)
     inference_recommendations_job_completion_time: Optional[datetime] = field(default=None)
     inference_recommendations_job_failure_reason: Optional[str] = field(default=None)
@@ -3416,17 +3378,17 @@ class AwsSagemakerInferenceRecommendationsJob(AwsSagemakerJob):
                 builder.add_node(job_instance, job_description)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if self.inference_recommendations_job_role_arn:
+        if role_arn := value_in_path(source, "RoleArn"):
             builder.dependant_node(
                 self,
                 reverse=True,
                 delete_same_as_default=True,
                 clazz=AwsIamRole,
-                arn=self.inference_recommendations_job_role_arn,
+                arn=role_arn,
             )
+        if key := value_in_path(source, ["InputConfig", "VolumeKmsKeyId"]):
+            builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(key))
         if ic := self.inference_recommendations_job_input_config:
-            if ic.volume_kms_key_id:
-                builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(ic.volume_kms_key_id))
             if cc := ic.container_config:
                 if pc := cc.payload_config:
                     if pc.sample_payload_url:
@@ -3924,19 +3886,6 @@ class AwsSagemakerNetworkConfig:
 
 
 @define(eq=False, slots=False)
-class AwsSagemakerExperimentConfig:
-    kind: ClassVar[str] = "aws_sagemaker_experiment_config"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "experiment_name": S("ExperimentName"),
-        "trial_name": S("TrialName"),
-        "trial_component_display_name": S("TrialComponentDisplayName"),
-    }
-    experiment_name: Optional[str] = field(default=None)
-    trial_name: Optional[str] = field(default=None)
-    trial_component_display_name: Optional[str] = field(default=None)
-
-
-@define(eq=False, slots=False)
 class AwsSagemakerProcessingJob(AwsSagemakerJob):
     kind: ClassVar[str] = "aws_sagemaker_processing_job"
     reference_kinds: ClassVar[ModelReference] = {
@@ -3976,7 +3925,7 @@ class AwsSagemakerProcessingJob(AwsSagemakerJob):
         "processing_job_environment": S("Environment"),
         "processing_job_network_config": S("NetworkConfig") >> Bend(AwsSagemakerNetworkConfig.mapping),
         "processing_job_role_arn": S("RoleArn"),
-        "processing_job_experiment_config": S("ExperimentConfig") >> Bend(AwsSagemakerExperimentConfig.mapping),
+        "processing_job_trial_component_display_name": S("ExperimentConfig", "TrialComponentDisplayName"),
         "processing_job_status": S("ProcessingJobStatus"),
         "processing_job_exit_message": S("ExitMessage"),
         "processing_job_failure_reason": S("FailureReason"),
@@ -3984,7 +3933,6 @@ class AwsSagemakerProcessingJob(AwsSagemakerJob):
         "processing_job_processing_start_time": S("ProcessingStartTime"),
         "processing_job_monitoring_schedule_arn": S("MonitoringScheduleArn"),
         "processing_job_auto_ml_job_arn": S("AutoMLJobArn"),
-        "processing_job_training_job_arn": S("TrainingJobArn"),
     }
     processing_job_processing_inputs: List[AwsSagemakerProcessingInput] = field(factory=list)
     processing_job_processing_output_config: Optional[AwsSagemakerProcessingOutputConfig] = field(default=None)
@@ -3994,7 +3942,7 @@ class AwsSagemakerProcessingJob(AwsSagemakerJob):
     processing_job_environment: Optional[Dict[str, str]] = field(default=None)
     processing_job_network_config: Optional[AwsSagemakerNetworkConfig] = field(default=None)
     processing_job_role_arn: Optional[str] = field(default=None)
-    processing_job_experiment_config: Optional[AwsSagemakerExperimentConfig] = field(default=None)
+    processing_job_trial_component_display_name: Optional[str] = field(default=None)
     processing_job_status: Optional[str] = field(default=None)
     processing_job_exit_message: Optional[str] = field(default=None)
     processing_job_failure_reason: Optional[str] = field(default=None)
@@ -4002,7 +3950,6 @@ class AwsSagemakerProcessingJob(AwsSagemakerJob):
     processing_job_processing_start_time: Optional[datetime] = field(default=None)
     processing_job_monitoring_schedule_arn: Optional[str] = field(default=None)
     processing_job_auto_ml_job_arn: Optional[str] = field(default=None)
-    processing_job_training_job_arn: Optional[str] = field(default=None)
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
@@ -4068,13 +4015,12 @@ class AwsSagemakerProcessingJob(AwsSagemakerJob):
             builder.dependant_node(
                 self, reverse=True, delete_same_as_default=True, clazz=AwsIamRole, arn=self.processing_job_role_arn
             )
-        if ex := self.processing_job_experiment_config:
-            if ex.experiment_name:
-                builder.add_edge(self, reverse=True, clazz=AwsSagemakerExperiment, name=ex.experiment_name)
-            if ex.trial_name:
-                builder.add_edge(self, reverse=True, clazz=AwsSagemakerTrial, name=ex.trial_name)
-        if self.processing_job_training_job_arn:
-            builder.add_edge(self, clazz=AwsSagemakerTrainingJob, arn=self.processing_job_training_job_arn)
+        if experiment := value_in_path(source, ["ExperimentConfig", "ExperimentName"]):
+            builder.add_edge(self, reverse=True, clazz=AwsSagemakerExperiment, name=experiment)
+        if trial := value_in_path(source, ["ExperimentConfig", "TrialName"]):
+            builder.add_edge(self, reverse=True, clazz=AwsSagemakerTrial, name=trial)
+        if training_job := value_in_path(source, "TrainingJobArn"):
+            builder.add_edge(self, clazz=AwsSagemakerTrainingJob, arn=training_job)
 
 
 @define(eq=False, slots=False)
@@ -4300,7 +4246,6 @@ class AwsSagemakerTrainingJob(SagemakerTaggable, AwsSagemakerJob):
         "training_job_hyper_parameters": S("HyperParameters"),
         "training_job_algorithm_specification": S("AlgorithmSpecification")
         >> Bend(AwsSagemakerAlgorithmSpecification.mapping),
-        "training_job_role_arn": S("RoleArn"),
         "training_job_input_data_config": S("InputDataConfig", default=[]) >> ForallBend(AwsSagemakerChannel.mapping),
         "training_job_output_data_config": S("OutputDataConfig") >> Bend(AwsSagemakerOutputDataConfig.mapping),
         "training_job_resource_config": S("ResourceConfig") >> Bend(AwsSagemakerResourceConfig.mapping),
@@ -4319,7 +4264,7 @@ class AwsSagemakerTrainingJob(SagemakerTaggable, AwsSagemakerJob):
         "training_job_training_time_in_seconds": S("TrainingTimeInSeconds"),
         "training_job_billable_time_in_seconds": S("BillableTimeInSeconds"),
         "training_job_debug_hook_config": S("DebugHookConfig") >> Bend(AwsSagemakerDebugHookConfig.mapping),
-        "training_job_experiment_config": S("ExperimentConfig") >> Bend(AwsSagemakerExperimentConfig.mapping),
+        "training_job_trial_component_display_name": S("ExperimentConfig", "TrialComponentDisplayName"),
         "training_job_debug_rule_configurations": S("DebugRuleConfigurations", default=[])
         >> ForallBend(AwsSagemakerDebugRuleConfiguration.mapping),
         "training_job_tensor_board_output_config": S("TensorBoardOutputConfig")
@@ -4345,7 +4290,6 @@ class AwsSagemakerTrainingJob(SagemakerTaggable, AwsSagemakerJob):
     training_job_failure_reason: Optional[str] = field(default=None)
     training_job_hyper_parameters: Optional[Dict[str, str]] = field(default=None)
     training_job_algorithm_specification: Optional[AwsSagemakerAlgorithmSpecification] = field(default=None)
-    training_job_role_arn: Optional[str] = field(default=None)
     training_job_input_data_config: List[AwsSagemakerChannel] = field(factory=list)
     training_job_output_data_config: Optional[AwsSagemakerOutputDataConfig] = field(default=None)
     training_job_resource_config: Optional[AwsSagemakerResourceConfig] = field(default=None)
@@ -4362,7 +4306,7 @@ class AwsSagemakerTrainingJob(SagemakerTaggable, AwsSagemakerJob):
     training_job_training_time_in_seconds: Optional[int] = field(default=None)
     training_job_billable_time_in_seconds: Optional[int] = field(default=None)
     training_job_debug_hook_config: Optional[AwsSagemakerDebugHookConfig] = field(default=None)
-    training_job_experiment_config: Optional[AwsSagemakerExperimentConfig] = field(default=None)
+    training_job_trial_component_display_name: Optional[str] = field(default=None)
     training_job_debug_rule_configurations: List[AwsSagemakerDebugRuleConfiguration] = field(factory=list)
     training_job_tensor_board_output_config: Optional[AwsSagemakerTensorBoardOutputConfig] = field(default=None)
     training_job_debug_rule_evaluation_statuses: List[AwsSagemakerDebugRuleEvaluationStatus] = field(factory=list)
@@ -4405,10 +4349,8 @@ class AwsSagemakerTrainingJob(SagemakerTaggable, AwsSagemakerJob):
         if tjas := self.training_job_algorithm_specification:
             if tjas.algorithm_name:
                 builder.add_edge(self, clazz=AwsSagemakerAlgorithm, name=tjas.algorithm_name)
-        if self.training_job_role_arn:
-            builder.dependant_node(
-                self, reverse=True, delete_same_as_default=True, clazz=AwsIamRole, arn=self.training_job_role_arn
-            )
+        if role_arn := value_in_path(source, "RoleArn"):
+            builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsIamRole, arn=role_arn)
         for config in self.training_job_input_data_config:
             if ids := config.data_source:
                 if ids.s3_data_source:
@@ -4435,11 +4377,10 @@ class AwsSagemakerTrainingJob(SagemakerTaggable, AwsSagemakerJob):
         if dhc := self.training_job_debug_hook_config:
             if dhc.s3_output_path:
                 builder.add_edge(self, clazz=AwsS3Bucket, name=AwsS3Bucket.name_from_path(dhc.s3_output_path))
-        if ex := self.training_job_experiment_config:
-            if ex.experiment_name:
-                builder.add_edge(self, reverse=True, clazz=AwsSagemakerExperiment, name=ex.experiment_name)
-            if ex.trial_name:
-                builder.add_edge(self, reverse=True, clazz=AwsSagemakerTrial, name=ex.trial_name)
+        if experiment := value_in_path(source, ["ExperimentConfig", "ExperimentName"]):
+            builder.add_edge(self, reverse=True, clazz=AwsSagemakerExperiment, name=experiment)
+        if trial := value_in_path(source, ["ExperimentConfig", "TrialName"]):
+            builder.add_edge(self, reverse=True, clazz=AwsSagemakerTrial, name=trial)
         for rule in self.training_job_debug_rule_configurations:
             if rule.s3_output_path:
                 builder.add_edge(self, clazz=AwsS3Bucket, name=AwsS3Bucket.name_from_path(rule.s3_output_path))
@@ -4531,7 +4472,7 @@ class AwsSagemakerTransformJob(SagemakerTaggable, AwsSagemakerJob):
         "transform_job_labeling_job_arn": S("LabelingJobArn"),
         "transform_job_auto_ml_job_arn": S("AutoMLJobArn"),
         "transform_job_data_processing": S("DataProcessing") >> Bend(AwsSagemakerDataProcessing.mapping),
-        "transform_job_experiment_config": S("ExperimentConfig") >> Bend(AwsSagemakerExperimentConfig.mapping),
+        "transform_job_trial_component_display_name": S("ExperimentConfig", "TrialComponentDisplayName"),
     }
     transform_job_status: Optional[str] = field(default=None)
     transform_job_failure_reason: Optional[str] = field(default=None)
@@ -4550,7 +4491,7 @@ class AwsSagemakerTransformJob(SagemakerTaggable, AwsSagemakerJob):
     transform_job_labeling_job_arn: Optional[str] = field(default=None)
     transform_job_auto_ml_job_arn: Optional[str] = field(default=None)
     transform_job_data_processing: Optional[AwsSagemakerDataProcessing] = field(default=None)
-    transform_job_experiment_config: Optional[AwsSagemakerExperimentConfig] = field(default=None)
+    transform_job_trial_component_display_name: Optional[str] = field(default=None)
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
@@ -4593,11 +4534,10 @@ class AwsSagemakerTransformJob(SagemakerTaggable, AwsSagemakerJob):
                 builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(tr.volume_kms_key_id))
         if self.transform_job_labeling_job_arn:
             builder.add_edge(self, reverse=True, clazz=AwsSagemakerLabelingJob, arn=self.transform_job_labeling_job_arn)
-        if ex := self.transform_job_experiment_config:
-            if ex.experiment_name:
-                builder.add_edge(self, reverse=True, clazz=AwsSagemakerExperiment, name=ex.experiment_name)
-            if ex.trial_name:
-                builder.add_edge(self, reverse=True, clazz=AwsSagemakerTrial, name=ex.trial_name)
+        if experiment := value_in_path(source, ["ExperimentConfig", "ExperimentName"]):
+            builder.add_edge(self, reverse=True, clazz=AwsSagemakerExperiment, name=experiment)
+        if trial := value_in_path(source, ["ExperimentConfig", "TrialName"]):
+            builder.add_edge(self, reverse=True, clazz=AwsSagemakerTrial, name=trial)
 
 
 resources: List[Type[AwsResource]] = [
