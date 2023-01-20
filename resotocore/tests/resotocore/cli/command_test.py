@@ -1,20 +1,16 @@
 import json
 import logging
 import os
-import shutil
-import tempfile
 from datetime import timedelta
 from functools import partial
 from pathlib import Path
-from typing import List, Dict, Optional, Any, AsyncIterator, Tuple, Generator
+from typing import List, Dict, Optional, Any, Tuple
 
 import pytest
 import yaml
 from _pytest.logging import LogCaptureFixture
 from aiohttp import ClientTimeout
-from aiohttp.hdrs import METH_ANY
-from aiohttp.test_utils import TestServer
-from aiohttp.web import Request, Response, Application, route
+from aiohttp.web import Request
 from aiostream import stream
 from aiostream.core import Stream
 from pytest import fixture
@@ -37,85 +33,13 @@ from resotocore.task.task_handler import TaskHandlerService
 from resotocore.types import JsonElement, Json
 from resotocore.util import AccessJson, utc_str, utc
 from resotocore.worker_task_queue import WorkerTask
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.analytics import event_sender
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.cli.cli_test import cli, cli_deps
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.db.graphdb_test import (
-    filled_graph_db,
-    graph_db,
-    test_db,
-    local_client,
-    system_db,
-    foo_model,
-    foo_kinds,
-)
 from tests.resotocore.util_test import not_in_path
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.db.runningtaskdb_test import running_task_db
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.message_bus_test import message_bus
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.query.template_expander_test import expander
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.task.task_handler_test import (
-    task_handler,
-    job_db,
-    subscription_handler,
-    test_workflow,
-    additional_workflows,
-)
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.worker_task_queue_test import worker, task_queue, performed_by, incoming_tasks
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.config.config_handler_service_test import config_handler
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.web.certificate_handler_test import cert_handler
 
 
 @fixture
 def json_source() -> str:
     nums = ",".join([f'{{ "num": {a}, "inner": {{"num": {a%10}}}}}' for a in range(0, 100)])
     return "json [" + nums + "," + nums + "]"
-
-
-@fixture
-def tmp_directory() -> Generator[str, None, None]:
-    tmp_dir: Optional[str] = None
-    try:
-        tmp_dir = tempfile.mkdtemp()
-        yield tmp_dir
-    finally:
-        if tmp_dir:
-            shutil.rmtree(tmp_dir)
-
-
-@fixture
-async def echo_http_server() -> AsyncIterator[Tuple[int, List[Tuple[Request, Json]]]]:
-    requests = []
-
-    async def add_request(request: Request) -> Response:
-        requests.append((request, await request.json()))
-        status = 500 if request.path.startswith("/fail") else 200
-        return Response(status=status)
-
-    app = Application()
-    app.add_routes([route(METH_ANY, "/{tail:.+}", add_request)])
-    server = TestServer(app)
-    await server.start_server()
-    yield server.port, requests  # type: ignore
-    await server.close()
 
 
 @pytest.mark.asyncio
@@ -511,7 +435,6 @@ async def test_tag_command(
     assert not data.node.metadata.is_none  # the node metadata section is defined
     assert not data.node.ancestors.cloud.reported.is_none  # the ancestors cloud section is defineda
     assert data["update"].foo == "bla_0"  # using the renderer bla_{reported.some_int}
-
     res2 = await cli.execute_cli_command('search is("foo") | tag update foo bla', stream.list)
     assert nr_of_performed() == 11
     assert len(res2[0]) == 11

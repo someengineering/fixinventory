@@ -6,13 +6,7 @@ import pytest
 from resotocore.message_bus import MessageBus, CoreMessage
 from resotocore.task.start_workflow_on_first_subscriber import wait_and_start
 from resotocore.task.task_description import Workflow
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.message_bus_test import message_bus
 from tests.resotocore.task.job_handler_test import InMemJobHandler
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.task.task_handler_test import test_workflow
 
 
 @pytest.mark.asyncio

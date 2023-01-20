@@ -6,29 +6,17 @@ from typing import AsyncIterator, List
 import pytest
 from _pytest.fixtures import fixture
 from aiohttp import ClientSession, MultipartReader
-from arango.database import StandardDatabase
+from networkx import MultiDiGraph
+from resotoclient import models as rc
+from resotoclient.async_client import ResotoClient as ApiClient
 
+from tests.resotocore import create_graph
 from resotocore.__main__ import run
-from resotocore.analytics import NoEventSender, AnalyticsEvent
+from resotocore.analytics import AnalyticsEvent
 from resotocore.db.db_access import DbAccess
-from resotocore.dependencies import empty_config
-from resotocore.model.adjust_node import NoAdjust
 from resotocore.model.model import predefined_kinds, Kind
 from resotocore.model.typed_model import to_js
 from resotocore.util import rnd_str, AccessJson, utc
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.db.graphdb_test import foo_kinds, test_db, create_graph, system_db, local_client
-from resotoclient.async_client import ResotoClient as ApiClient
-from resotoclient import models as rc
-from networkx import MultiDiGraph
-
-
-@fixture
-async def client_session() -> AsyncIterator[ClientSession]:
-    session = ClientSession()
-    yield session
-    await session.close()
 
 
 def graph_to_json(graph: MultiDiGraph) -> List[rc.JsObject]:
@@ -36,12 +24,6 @@ def graph_to_json(graph: MultiDiGraph) -> List[rc.JsObject]:
     for from_node, to_node, data in graph.edges(data=True):
         ga.append({"type": "edge", "from": from_node, "to": to_node, "edge_type": data["edge_type"]})
     return ga
-
-
-@fixture
-def db_access(test_db: StandardDatabase) -> DbAccess:
-    access = DbAccess(test_db, NoEventSender(), NoAdjust(), empty_config())
-    return access
 
 
 @fixture

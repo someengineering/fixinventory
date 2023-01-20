@@ -6,11 +6,7 @@ from resotocore.db.graphdb import GraphDB
 from resotocore.db.model import QueryModel
 from resotocore.model.model import Model
 from resotocore.query.model import Query, Sort
-
 from resotocore.query.query_parser import parse_query
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.db.graphdb_test import foo_kinds, foo_model, test_db, graph_db, system_db, local_client
 
 
 def test_sort_order_for_synthetic_prop(foo_model: Model, graph_db: GraphDB) -> None:

@@ -12,7 +12,12 @@ from resotocore.types import Json
 
 log = logging.getLogger(__name__)
 
-ValuesConfigId = ConfigId("resoto.report.values")
+# config ids
+ResotoReportValues = ConfigId("resoto.report.values")
+ResotoReportBenchmark = ConfigId("resoto.report.benchmark")
+ResotoReportCheck = ConfigId("resoto.report.check")
+
+# config keys and prefixes
 CheckConfigPrefix = "resoto.report.check."
 CheckConfigRoot = "report_check"
 BenchmarkConfigPrefix = "resoto.report.benchmark."
@@ -175,3 +180,11 @@ class Inspector(ABC):
         :param kind: the resulting kind of the check (e.g. aws_ec2_instance, kubernetes_pod, ...)
         :return: the result of this benchmark
         """
+
+    @abstractmethod
+    async def validate_benchmark_config(self, json: Json) -> Optional[Json]:
+        pass
+
+    @abstractmethod
+    async def validate_check_collection_config(self, json: Json) -> Optional[Json]:
+        pass

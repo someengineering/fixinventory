@@ -6,44 +6,6 @@ from resotocore.report.inspector_service import InspectorService, check_id, benc
 from resotocore.report.report_config import config_model
 from resotocore.types import Json
 
-# noinspection PyUnresolvedReferences
-from tests.resotocore.analytics import event_sender
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.cli.cli_test import cli, cli_deps
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.config.config_handler_service_test import config_handler
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.db.graphdb_test import (
-    filled_graph_db,
-    graph_db,
-    test_db,
-    foo_kinds,
-    foo_model,
-    local_client,
-    system_db,
-)
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.message_bus_test import message_bus
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.query.template_expander_test import expander
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.web.certificate_handler_test import cert_handler
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.worker_task_queue_test import worker, task_queue, performed_by, incoming_tasks
-
-
-@fixture
-async def inspector_service_initialized(cli: CLI) -> InspectorService:
-    async with InspectorService(cli) as service:
-        return service
-
 
 @fixture
 async def inspector_service_with_test_benchmark(
@@ -108,9 +70,9 @@ async def test_config_model() -> None:
     assert len(models) == 6
 
 
-async def test_list_inspect_checks(inspector_service_initialized: InspectorService) -> None:
+async def test_list_inspect_checks(inspector_service: InspectorService) -> None:
     # list all available checks
-    all_checks = {i.id: i for i in await inspector_service_initialized.list_checks()}
+    all_checks = {i.id: i for i in await inspector_service.list_checks()}
     assert len(all_checks) >= 30
 
     # use different filter options. The more filter are used, fewer results are returned
@@ -124,7 +86,7 @@ async def test_list_inspect_checks(inspector_service_initialized: InspectorServi
     last_len = len(all_checks)
     for options in range(1, len(filter_options)):
         args = dict(list(filter_options.items())[0:options])
-        matching_checks = [i for i in await inspector_service_initialized.list_checks(**args)]  # type: ignore
+        matching_checks = [i for i in await inspector_service.list_checks(**args)]  # type: ignore
         assert len(matching_checks) > 0
         assert len(matching_checks) <= last_len
         last_len = len(matching_checks)

@@ -1,36 +1,28 @@
 import asyncio
 import string
 from abc import ABC, abstractmethod
-from attrs import define
 from datetime import date, datetime, timedelta
 from random import SystemRandom
 from typing import List, Optional, Any
 
-from pytest import fixture, mark, raises
-from arango import ArangoClient
 from arango.database import StandardDatabase
 from arango.typings import Json
+from attrs import define
 from networkx import MultiDiGraph
+from pytest import mark, raises
 
-from resotocore.analytics import AnalyticsEventSender, CoreEvent, InMemoryEventSender
-from resotocore.core_config import GraphUpdateConfig
-from resotocore.db.async_arangodb import AsyncArangoDB
+from resotocore.analytics import CoreEvent, InMemoryEventSender
 from resotocore.db.graphdb import ArangoGraphDB, GraphDB, EventGraphDB, HistoryChange
-
 from resotocore.db.model import QueryModel, GraphUpdate
 from resotocore.error import ConflictingChangeInProgress, NoSuchChangeError, InvalidBatchUpdate
-from resotocore.model.adjust_node import NoAdjust
+from resotocore.ids import NodeId
 from resotocore.model.graph_access import GraphAccess, EdgeTypes, Section
-from resotocore.model.model import Model, ComplexKind, Property, Kind, SyntheticProperty
+from resotocore.model.model import Model
 from resotocore.model.typed_model import from_js, to_js
 from resotocore.query.model import Query, P, Navigation
 from resotocore.query.query_parser import parse_query
 from resotocore.types import JsonElement, EdgeType
 from resotocore.util import AccessJson, utc, value_in_path, AccessNone
-from resotocore.ids import NodeId
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.analytics import event_sender
 
 
 class BaseResource(ABC):
@@ -173,115 +165,6 @@ def create_multi_collector_graph(width: int = 3) -> MultiDiGraph:
                         add_edge(child, parent, EdgeTypes.delete)
 
     return graph
-
-
-@fixture
-def foo_kinds() -> List[Kind]:
-    base = ComplexKind(
-        "base",
-        [],
-        [
-            Property("identifier", "string", required=True),
-            Property("kind", "string", required=True),
-            Property("ctime", "datetime"),
-        ],
-    )
-    foo = ComplexKind(
-        "foo",
-        ["base"],
-        [
-            Property("name", "string"),
-            Property("some_int", "int32"),
-            Property("some_string", "string"),
-            Property("now_is", "datetime"),
-            Property("ctime", "datetime"),
-            Property("age", "trafo.duration_to_datetime", False, SyntheticProperty(["ctime"])),
-        ],
-        successor_kinds={EdgeTypes.default: ["bla"]},
-    )
-    inner = ComplexKind("inner", [], [Property("name", "string"), Property("inner", "inner[]")])
-    bla = ComplexKind(
-        "bla",
-        ["base"],
-        [
-            Property("name", "string"),
-            Property("now", "date"),
-            Property("f", "int32"),
-            Property("g", "int32[]"),
-            Property("h", "inner"),
-        ],
-        successor_kinds={EdgeTypes.default: ["bla"]},
-    )
-    cloud = ComplexKind("cloud", ["foo"], [])
-    account = ComplexKind("account", ["foo"], [])
-    region = ComplexKind("region", ["foo"], [])
-    parent = ComplexKind("parent", ["foo"], [])
-    child = ComplexKind("child", ["foo"], [])
-    some_complex = ComplexKind(
-        "some_complex",
-        ["base"],
-        [
-            Property("cloud", "cloud"),
-            Property("account", "account"),
-            Property("parents", "parent[]"),
-            Property("children", "child[]"),
-            Property("nested", "inner[]"),
-        ],
-        successor_kinds={EdgeTypes.default: ["bla"]},
-    )
-
-    return [base, foo, bla, cloud, account, region, parent, child, inner, some_complex]
-
-
-@fixture
-def foo_model(foo_kinds: List[Kind]) -> Model:
-    return Model.from_kinds(foo_kinds)
-
-
-@fixture
-def local_client() -> ArangoClient:
-    return ArangoClient(hosts="http://localhost:8529")
-
-
-@fixture
-def system_db(local_client: ArangoClient) -> StandardDatabase:
-    return local_client.db()
-
-
-@fixture
-def test_db(local_client: ArangoClient, system_db: StandardDatabase) -> StandardDatabase:
-    if not system_db.has_user("test"):
-        system_db.create_user("test", "test", True)
-
-    if not system_db.has_database("test"):
-        system_db.create_database("test", [{"username": "test", "password": "test", "active": True}])
-
-    # Connect to "test" database as "test" user.
-    return local_client.db("test", username="test", password="test")
-
-
-@fixture
-async def graph_db(test_db: StandardDatabase) -> ArangoGraphDB:
-    async_db = AsyncArangoDB(test_db)
-    graph_db = ArangoGraphDB(async_db, "ns", NoAdjust(), GraphUpdateConfig())
-    await graph_db.create_update_schema()
-    await async_db.truncate(graph_db.in_progress)
-    return graph_db
-
-
-@fixture
-async def filled_graph_db(graph_db: ArangoGraphDB, foo_model: Model) -> ArangoGraphDB:
-    graph_db.db.collection(graph_db.node_history).truncate()
-    if await graph_db.db.has_collection("model"):
-        graph_db.db.collection("model").truncate()
-    await graph_db.wipe()
-    await graph_db.merge_graph(create_graph("yes or no"), foo_model)
-    return graph_db
-
-
-@fixture
-async def event_graph_db(filled_graph_db: ArangoGraphDB, event_sender: AnalyticsEventSender) -> EventGraphDB:
-    return EventGraphDB(filled_graph_db, event_sender)
 
 
 async def load_graph(db: GraphDB, model: Model, base_id: str = "sub_root") -> MultiDiGraph:

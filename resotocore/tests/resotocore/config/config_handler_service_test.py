@@ -1,34 +1,17 @@
 from textwrap import dedent
-from typing import List, Any
+from typing import List
 
 import pytest
 from pytest import fixture
-from resotocore.analytics import InMemoryEventSender
 
+from resotocore.analytics import InMemoryEventSender
 from resotocore.config import ConfigHandler, ConfigEntity, ConfigValidation
 from resotocore.config.config_handler_service import ConfigHandlerService
 from resotocore.ids import ConfigId
-from resotocore.message_bus import MessageBus, CoreMessage, Event, Message
+from resotocore.message_bus import CoreMessage, Event, Message
+from tests.resotocore.message_bus_test import wait_for_message
 from resotocore.model.model import Kind, ComplexKind, Property
 from resotocore.model.typed_model import to_js, from_js
-from resotocore.worker_task_queue import WorkerTaskQueue
-from tests.resotocore.db.entitydb import InMemoryDb
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.worker_task_queue_test import worker, task_queue, performed_by, incoming_tasks
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.message_bus_test import message_bus, wait_for_message, all_events
-
-
-@fixture
-def config_handler(task_queue: WorkerTaskQueue, worker: Any, message_bus: MessageBus) -> ConfigHandlerService:
-    # Note: the worker fixture is required, since it starts worker tasks
-    cfg_db = InMemoryDb(ConfigEntity, lambda c: c.id)
-    validation_db = InMemoryDb(ConfigValidation, lambda c: c.id)
-    model_db = InMemoryDb(Kind, lambda c: c.fqn)  # type: ignore
-    event_sender = InMemoryEventSender()
-    return ConfigHandlerService(cfg_db, validation_db, model_db, task_queue, message_bus, event_sender)
 
 
 @fixture
@@ -84,24 +67,25 @@ async def test_config(config_handler: ConfigHandler) -> None:
 
 @pytest.mark.asyncio
 async def test_config_change_event(config_handler: ConfigHandlerService) -> None:
+    sender: InMemoryEventSender = config_handler.event_sender  # type: ignore # in-memory sender
     # list of events is empty on start
-    assert config_handler.event_sender.events == []
+    assert sender.events == []
 
     config_id = ConfigId("test")
     # add one entry
     entity = ConfigEntity(config_id, {"test": True})
     assert await config_handler.put_config(entity) == entity
-    assert len(config_handler.event_sender.events) == 1
+    assert len(sender.events) == 1
 
     # patch the config
     assert await config_handler.patch_config(ConfigEntity(config_id, {"rest": False})) == ConfigEntity(
         config_id, {"test": True, "rest": False}
     )
-    assert len(config_handler.event_sender.events) == 2
+    assert len(sender.events) == 2
 
     # delete the config
     await config_handler.delete_config(config_id)
-    assert len(config_handler.event_sender.events) == 3
+    assert len(sender.events) == 3
 
 
 @pytest.mark.asyncio

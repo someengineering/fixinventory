@@ -1,6 +1,6 @@
 import logging
 from datetime import timedelta
-from typing import AsyncGenerator, List
+from typing import List
 
 import pytest
 from pytest import fixture, LogCaptureFixture
@@ -10,9 +10,8 @@ from resotocore.cli.cli import CLI
 from resotocore.db.jobdb import JobDb
 from resotocore.db.runningtaskdb import RunningTaskDb
 from resotocore.dependencies import empty_config
-from resotocore.message_bus import MessageBus, Event, Message, ActionDone, Action
-from resotocore.task.model import Subscriber
 from resotocore.ids import SubscriberId, TaskDescriptorId
+from resotocore.message_bus import MessageBus, Event, Message, ActionDone, Action
 from resotocore.task.scheduler import Scheduler
 from resotocore.task.subscribers import SubscriptionHandler
 from resotocore.task.task_description import (
@@ -27,75 +26,7 @@ from resotocore.task.task_description import (
     ExecuteCommand,
 )
 from resotocore.task.task_handler import TaskHandlerService
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.analytics import event_sender
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.cli.cli_test import cli, cli_deps
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.config.config_handler_service_test import config_handler
-from tests.resotocore.db.entitydb import InMemoryDb
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.db.graphdb_test import (
-    filled_graph_db,
-    graph_db,
-    test_db,
-    foo_model,
-    foo_kinds,
-    system_db,
-    local_client,
-)
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.db.runningtaskdb_test import running_task_db
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.message_bus_test import message_bus, all_events, wait_for_message
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.query.template_expander_test import expander
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.worker_task_queue_test import worker, task_queue, performed_by, incoming_tasks
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.web.certificate_handler_test import cert_handler
-
-
-@fixture
-async def subscription_handler(message_bus: MessageBus) -> SubscriptionHandler:
-    in_mem = InMemoryDb(Subscriber, lambda x: x.id)
-    result = SubscriptionHandler(in_mem, message_bus)
-    return result
-
-
-@fixture
-def job_db() -> JobDb:
-    return InMemoryDb[str, Job](Job, lambda x: x.id)
-
-
-@fixture
-async def task_handler(
-    running_task_db: RunningTaskDb,
-    job_db: JobDb,
-    message_bus: MessageBus,
-    event_sender: AnalyticsEventSender,
-    subscription_handler: SubscriptionHandler,
-    cli: CLI,
-    test_workflow: Workflow,
-    additional_workflows: List[Workflow],
-) -> AsyncGenerator[TaskHandlerService, None]:
-    config = empty_config()
-    task_handler = TaskHandlerService(
-        running_task_db, job_db, message_bus, event_sender, subscription_handler, Scheduler(), cli, config
-    )
-    task_handler.task_descriptions = additional_workflows + [test_workflow]
-    cli.dependencies.lookup["task_handler"] = task_handler
-    async with task_handler:
-        yield task_handler
+from tests.resotocore.message_bus_test import wait_for_message
 
 
 @fixture
@@ -110,19 +41,6 @@ def test_workflow() -> Workflow:
         ],
         [EventTrigger("start me up"), TimeTrigger("1 1 1 1 1")],
     )
-
-
-@fixture
-def additional_workflows() -> List[Workflow]:
-    return [
-        Workflow(
-            TaskDescriptorId("sleep_workflow"),
-            "Speakable name of workflow",
-            [Step("sleep", ExecuteCommand("sleep 0.1"), timedelta(seconds=10))],
-            triggers=[],
-            on_surpass=TaskSurpassBehaviour.Wait,
-        )
-    ]
 
 
 @pytest.mark.asyncio

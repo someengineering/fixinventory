@@ -1,26 +1,21 @@
 import asyncio
-import pytest
-from arango.database import StandardDatabase
 from datetime import timedelta
 from typing import List
+
+import pytest
+from arango.database import StandardDatabase
 
 from resotocore.analytics import InMemoryEventSender
 from resotocore.db import jobdb
 from resotocore.db.async_arangodb import AsyncArangoDB
 from resotocore.db.entitydb import EventEntityDb
 from resotocore.db.jobdb import JobDb, EventJobDb
-from resotocore.task.task_description import Job, ExecuteCommand, EventTrigger
 from resotocore.ids import TaskDescriptorId
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.analytics import event_sender
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.db.graphdb_test import test_db, local_client, system_db
+from resotocore.task.task_description import Job, ExecuteCommand, EventTrigger
 
 
 @pytest.fixture
-async def job_db(test_db: StandardDatabase) -> JobDb:
+async def job_sdb(test_db: StandardDatabase) -> JobDb:
     async_db = AsyncArangoDB(test_db)
     job_db = jobdb.job_db(async_db, "jobs")
     await job_db.create_update_schema()
@@ -29,8 +24,8 @@ async def job_db(test_db: StandardDatabase) -> JobDb:
 
 
 @pytest.fixture
-def event_db(job_db: JobDb, event_sender: InMemoryEventSender) -> EventJobDb:
-    return EventEntityDb(job_db, event_sender, "job")
+def event_db(job_sdb: JobDb, event_sender: InMemoryEventSender) -> EventJobDb:
+    return EventEntityDb(job_sdb, event_sender, "job")
 
 
 @pytest.fixture
@@ -47,32 +42,32 @@ def job_id(job: Job) -> str:
 
 
 @pytest.mark.asyncio
-async def test_load(job_db: JobDb, jobs: List[Job]) -> None:
-    await job_db.update_many(jobs)
-    loaded = [sub async for sub in job_db.all()]
+async def test_load(job_sdb: JobDb, jobs: List[Job]) -> None:
+    await job_sdb.update_many(jobs)
+    loaded = [sub async for sub in job_sdb.all()]
     assert jobs.sort(key=job_id) == loaded.sort(key=job_id)
 
 
 @pytest.mark.asyncio
-async def test_update(job_db: JobDb, jobs: List[Job]) -> None:
+async def test_update(job_sdb: JobDb, jobs: List[Job]) -> None:
     # multiple updates should work as expected
-    await job_db.update_many(jobs)
-    await job_db.update_many(jobs)
-    await job_db.update_many(jobs)
-    loaded = [sub async for sub in job_db.all()]
+    await job_sdb.update_many(jobs)
+    await job_sdb.update_many(jobs)
+    await job_sdb.update_many(jobs)
+    loaded = [sub async for sub in job_sdb.all()]
     assert jobs.sort(key=job_id) == loaded.sort(key=job_id)
 
 
 @pytest.mark.asyncio
-async def test_delete(job_db: JobDb, jobs: List[Job]) -> None:
-    await job_db.update_many(jobs)
+async def test_delete(job_sdb: JobDb, jobs: List[Job]) -> None:
+    await job_sdb.update_many(jobs)
     remaining = list(jobs)
     for _ in jobs:
         sub = remaining.pop()
-        await job_db.delete_value(sub)
-        loaded = [sub async for sub in job_db.all()]
+        await job_sdb.delete_value(sub)
+        loaded = [sub async for sub in job_sdb.all()]
         assert remaining.sort(key=job_id) == loaded.sort(key=job_id)
-    assert len([sub async for sub in job_db.all()]) == 0
+    assert len([sub async for sub in job_sdb.all()]) == 0
 
 
 @pytest.mark.asyncio

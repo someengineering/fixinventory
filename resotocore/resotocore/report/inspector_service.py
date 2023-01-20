@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from functools import reduce
-from typing import Optional, List, Dict, Tuple
+from typing import Optional, List, Dict, Tuple, Callable
 
 from aiostream import stream
 from attr import evolve
@@ -24,8 +24,10 @@ from resotocore.report import (
     CheckConfigPrefix,
     BenchmarkConfigPrefix,
     CheckConfigRoot,
-    ValuesConfigId,
+    ResotoReportValues,
     BenchmarkConfigRoot,
+    ResotoReportBenchmark,
+    ResotoReportCheck,
 )
 from resotocore.report.report_config import ReportCheckCollectionConfig, BenchmarkConfig
 from resotocore.types import Json
@@ -58,12 +60,12 @@ class InspectorService(Inspector, Service):
             if overwrite or benchmark_id(name) not in config_ids:
                 cid = benchmark_id(name)
                 log.info(f"Creating benchmark config {cid}")
-                await self.config_handler.put_config(ConfigEntity(cid, {BenchmarkConfigRoot: js}))
+                await self.config_handler.put_config(ConfigEntity(cid, {BenchmarkConfigRoot: js}), validate=False)
         for name, js in ReportCheckCollectionConfig.from_files().items():
             if overwrite or check_id(name) not in config_ids:
                 cid = check_id(name)
                 log.info(f"Creating check collection config {cid}")
-                await self.config_handler.put_config(ConfigEntity(cid, {CheckConfigRoot: js}))
+                await self.config_handler.put_config(ConfigEntity(cid, {CheckConfigRoot: js}), validate=False)
 
     async def list_checks(
         self,
@@ -82,15 +84,7 @@ class InspectorService(Inspector, Service):
                 and (check_ids is None or inspection.id in check_ids)
             )
 
-        cfg_ids = [i async for i in self.config_handler.list_config_ids() if i.startswith(CheckConfigPrefix)]
-        loaded = await asyncio.gather(*[self.config_handler.get_config(cfg_id) for cfg_id in cfg_ids])
-        # fmt: off
-        return [
-            check
-            for entry in loaded if isinstance(entry, ConfigEntity) and CheckConfigRoot in entry.config
-            for check in ReportCheckCollectionConfig.from_config(entry) if inspection_matches(check)
-        ]
-        # fmt: on
+        return await self.filter_checks(inspection_matches)
 
     async def perform_benchmark(self, benchmark_name: str, graph: str) -> BenchmarkResult:
         cfg = await self.config_handler.get_config(benchmark_id(benchmark_name))
@@ -124,6 +118,17 @@ class InspectorService(Inspector, Service):
             children=[],
         )
         return await self.__perform_benchmark(benchmark, graph)
+
+    async def filter_checks(self, report_filter: Optional[Callable[[ReportCheck], bool]] = None) -> List[ReportCheck]:
+        cfg_ids = [i async for i in self.config_handler.list_config_ids() if i.startswith(CheckConfigPrefix)]
+        loaded = await asyncio.gather(*[self.config_handler.get_config(cfg_id) for cfg_id in cfg_ids])
+        # fmt: off
+        return [
+            check
+            for entry in loaded if isinstance(entry, ConfigEntity) and CheckConfigRoot in entry.config
+            for check in ReportCheckCollectionConfig.from_config(entry) if report_filter is None or report_filter(check)
+        ]
+        # fmt: on
 
     async def __perform_benchmark(self, benchmark: Benchmark, graph: str) -> BenchmarkResult:
         perform_checks = await self.list_checks(check_ids=benchmark.nested_checks())
@@ -171,7 +176,7 @@ class InspectorService(Inspector, Service):
         # load model
         model = await self.model_handler.load_model()
         # load configuration
-        cfg_entity = await self.config_handler.get_config(ValuesConfigId)
+        cfg_entity = await self.config_handler.get_config(ResotoReportValues)
         cfg = cfg_entity.config if cfg_entity else {}
 
         async def perform_single(check: ReportCheck) -> Tuple[str, int]:
@@ -209,3 +214,38 @@ class InspectorService(Inspector, Service):
             return await perform_cmd(resoto_cmd)
         else:
             raise ValueError(f"Invalid inspection {inspection.id}: no resoto or resoto_cmd defined")
+
+    async def validate_benchmark_config(self, json: Json) -> Optional[Json]:
+        try:
+            benchmark = BenchmarkConfig.from_config(ConfigEntity(ResotoReportBenchmark, json))
+            all_checks = {c.id for c in await self.filter_checks()}
+            missing = []
+            for check in benchmark.nested_checks():
+                if check not in all_checks:
+                    missing.append(check)
+            if missing:
+                return {"error": f"Following checks are defined in the benchmark but do not exist: {missing}"}
+            else:
+                return None
+        except Exception as e:
+            return {"error": f"Can not digest benchmark: {e}"}
+
+    async def validate_check_collection_config(self, json: Json) -> Optional[Json]:
+        try:
+            errors = []
+            for check in ReportCheckCollectionConfig.from_config(ConfigEntity(ResotoReportCheck, json)):
+                env = check.default_values or {}
+                if search := check.detect.get("resoto"):
+                    rendered_query = self.template_expander.render(search, env)
+                    await self.template_expander.parse_query(rendered_query, on_section="reported")
+                elif cmd := check.detect.get("resoto_cmd"):
+                    await self.cli.evaluate_cli_command(cmd, CLIContext(env=env))
+                else:
+                    errors.append(f"Check {check.id} neither has a resoto nor resoto_cmd defined")
+            if errors:
+                return {"error": f"Can not validate check collection: {errors}"}
+            else:
+                return None
+
+        except Exception as e:
+            return {"error": f"Can not digest check collection: {e}"}

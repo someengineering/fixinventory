@@ -10,7 +10,14 @@ from attr import define, field
 
 from resotocore.config import ConfigEntity
 from resotocore.model.typed_model import from_js
-from resotocore.report import ReportSeverity, CheckConfigRoot, ReportCheck, Benchmark, Remediation, BenchmarkConfigRoot
+from resotocore.report import (
+    ReportSeverity,
+    CheckConfigRoot,
+    ReportCheck,
+    Benchmark,
+    Remediation,
+    BenchmarkConfigRoot,
+)
 from resotocore.types import Json
 from resotolib.core.model_export import dataclasses_to_resotocore_model
 
@@ -74,10 +81,11 @@ class ReportCheckCollectionConfig:
     @staticmethod
     def from_json(js: Json) -> List[ReportCheck]:
         def report_check(pdr: str, svc: str, check: Json) -> ReportCheck:
-            check["provider"] = pdr
-            check["service"] = svc
-            check["id"] = f"{pdr}_{svc}_{check['name']}"
-            return from_js(check, ReportCheck)
+            cr = check.copy()
+            cr["provider"] = pdr
+            cr["service"] = svc
+            cr["id"] = f"{pdr}_{svc}_{check['name']}"
+            return from_js(cr, ReportCheck)
 
         pdr = js["provider"]
         svc = js["service"]
@@ -103,15 +111,6 @@ class CheckCollectionConfig:
             and all(c in checks for c in self.checks or [])  # pylint: disable=not-an-iterable
             and all(c.is_valid(checks) for c in self.children or [])  # pylint: disable=not-an-iterable
         )
-
-    def nested_checks(self) -> List[str]:
-        result: List[str] = []
-        if self.checks:
-            result.extend(c for c in self.checks)  # pylint: disable=not-an-iterable
-        if self.children:
-            for child in self.children:  # pylint: disable=not-an-iterable
-                result.extend(child.nested_checks())
-        return result
 
 
 @define

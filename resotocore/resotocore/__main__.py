@@ -158,7 +158,9 @@ def with_config(
     task_handler = TaskHandlerService(
         db.running_task_db, db.job_db, message_bus, event_sender, subscriptions, scheduler, cli, config
     )
-    core_config_handler = CoreConfigHandler(config, message_bus, worker_task_queue, config_handler, event_sender)
+    core_config_handler = CoreConfigHandler(
+        config, message_bus, worker_task_queue, config_handler, event_sender, inspector
+    )
     merge_outer_edges_handler = MergeOuterEdgesHandler(message_bus, subscriptions, task_handler, db, model)
     cli_deps.extend(task_handler=task_handler, inspector=inspector)
     api = Api(

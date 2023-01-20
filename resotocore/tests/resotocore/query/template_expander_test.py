@@ -2,7 +2,6 @@ from datetime import timedelta
 from typing import Dict, Optional, List
 
 import pytest
-from pytest import fixture
 
 from resotocore.error import NoSuchTemplateError
 from resotocore.query.model import Template
@@ -30,11 +29,6 @@ class InMemoryTemplateExpander(TemplateExpanderBase):
 
     def default_props(self) -> Optional[Json]:
         return self.props
-
-
-@fixture
-def expander() -> InMemoryTemplateExpander:
-    return InMemoryTemplateExpander()
 
 
 @pytest.mark.asyncio

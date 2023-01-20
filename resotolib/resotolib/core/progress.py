@@ -18,7 +18,7 @@ class ProgressInfo:
 
     @property
     def percentage(self) -> int:
-        return int(self.current * 100 / self.total)
+        return int(self.current * 100 / self.total) if self.total > 0 else 0
 
     @property
     def done(self) -> bool:
