@@ -536,18 +536,6 @@ class AwsSagemakerAlgorithmValidationProfile:
 
 
 @define(eq=False, slots=False)
-class AwsSagemakerAlgorithmValidationSpecification:
-    kind: ClassVar[str] = "aws_sagemaker_algorithm_validation_specification"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "validation_role": S("ValidationRole"),
-        "validation_profiles": S("ValidationProfiles", default=[])
-        >> ForallBend(AwsSagemakerAlgorithmValidationProfile.mapping),
-    }
-    validation_role: Optional[str] = field(default=None)
-    validation_profiles: List[AwsSagemakerAlgorithmValidationProfile] = field(factory=list)
-
-
-@define(eq=False, slots=False)
 class AwsSagemakerAlgorithmStatusItem:
     kind: ClassVar[str] = "aws_sagemaker_algorithm_status_item"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -590,8 +578,7 @@ class AwsSagemakerAlgorithm(AwsResource):
         >> Bend(AwsSagemakerTrainingSpecification.mapping),
         "algorithm_inference_specification": S("InferenceSpecification")
         >> Bend(AwsSagemakerInferenceSpecification.mapping),
-        "algorithm_validation_specification": S("ValidationSpecification")
-        >> Bend(AwsSagemakerAlgorithmValidationSpecification.mapping),
+        "algorithm_validation_profiles": S("ValidationSpecification", "ValidationProfiles", default=[]),
         "algorithm_status": S("AlgorithmStatus"),
         "algorithm_status_details": S("AlgorithmStatusDetails") >> Bend(AwsSagemakerAlgorithmStatusDetails.mapping),
         "algorithm_product_id": S("ProductId"),
@@ -600,7 +587,7 @@ class AwsSagemakerAlgorithm(AwsResource):
     algorithm_description: Optional[str] = field(default=None)
     algorithm_training_specification: Optional[AwsSagemakerTrainingSpecification] = field(default=None)
     algorithm_inference_specification: Optional[AwsSagemakerInferenceSpecification] = field(default=None)
-    algorithm_validation_specification: Optional[AwsSagemakerAlgorithmValidationSpecification] = field(default=None)
+    algorithm_validation_profiles: List[AwsSagemakerAlgorithmValidationProfile] = field(factory=list)
     algorithm_status: Optional[str] = field(default=None)
     algorithm_status_details: Optional[AwsSagemakerAlgorithmStatusDetails] = field(default=None)
     algorithm_product_id: Optional[str] = field(default=None)
@@ -621,15 +608,10 @@ class AwsSagemakerAlgorithm(AwsResource):
                 builder.add_node(algorithm_instance, algorithm_description)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if avs := self.algorithm_validation_specification:
-            if avs.validation_role:
-                builder.dependant_node(
-                    self,
-                    reverse=True,
-                    delete_same_as_default=True,
-                    clazz=AwsIamRole,
-                    arn=avs.validation_role,
-                )
+        if validation_role := value_in_path(source, ["ValidationSpecification", "ValidationRole"]):
+            builder.dependant_node(
+                self, reverse=True, delete_same_as_default=True, clazz=AwsIamRole, arn=validation_role
+            )
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
