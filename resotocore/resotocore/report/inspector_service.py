@@ -54,7 +54,7 @@ class InspectorService(Inspector, Service):
     async def start(self) -> None:
         # TODO: we need a migration path for checks added in existing configs
         config_ids = {i async for i in self.config_handler.list_config_ids()}
-        overwrite = False  # only here to simplify development
+        overwrite = True  # only here to simplify development. True until we reach a stable version.
         for name, js in BenchmarkConfig.from_files().items():
             if overwrite or benchmark_id(name) not in config_ids:
                 cid = benchmark_id(name)
