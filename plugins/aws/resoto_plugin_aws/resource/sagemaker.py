@@ -1306,7 +1306,7 @@ class AwsSagemakerTrial(AwsResource):
         if repository := value_in_path(source, ["MetadataProperties", "Repository"]):
             builder.add_edge(
                 self, reverse=True, clazz=AwsSagemakerCodeRepository, name=repository
-            )  # TODO find out if this is name or url
+            )
             if project_id := value_in_path(source, ["MetadataProperties", "ProjectId"]):
                 builder.add_edge(self, reverse=True, clazz=AwsSagemakerProject, id=project_id)
 
@@ -1890,7 +1890,7 @@ class AwsSagemakerArtifact(AwsResource):
         if repository := value_in_path(source, ["MetadataProperties", "Repository"]):
             builder.add_edge(
                 self, reverse=True, clazz=AwsSagemakerCodeRepository, name=repository
-            )  # TODO check if name or url
+            )
         if project_id := value_in_path(source, ["MetadataProperties", "ProjectId"]):
             builder.add_edge(self, reverse=True, clazz=AwsSagemakerProject, id=project_id)
 
