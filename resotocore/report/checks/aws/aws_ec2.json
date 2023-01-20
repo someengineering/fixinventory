@@ -546,18 +546,34 @@
         {
             "name": "default_restrict_traffic",
             "title": "Ensure the default security group of every VPC restricts all traffic.",
-            "result_kind": "aws_ec2_security_group",
+            "result_kind": "aws_vpc",
             "categories": [ "security", "compliance" ],
             "risk": "Even having a perimeter firewall, having security groups open allows any user or malware with vpc access to scan for well known and sensitive ports and gain access to instance.",
             "severity": "high",
             "detect": {
-                "resoto": "is(aws_ec2_security_group) and name=\"default\" and group_ip_permissions[*].{ip_protocol=\"-1\" and (ip_ranges[*].cidr_ip=\"0.0.0.0/0\" or ipv6_ranges[*].cidr_ipv6=\"::/0\")}"
+                "resoto": "is(aws_ec2_security_group) and name=\"default\" and group_ip_permissions[*].{ip_protocol=\"-1\" and (ip_ranges[*].cidr_ip=\"0.0.0.0/0\" or ipv6_ranges[*].cidr_ipv6=\"::/0\")} <-- is(aws_vpc)"
             },
             "remediation": {
                 "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
                 "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
             },
             "internal_notes": ""
+        },
+        {
+            "name": "routing_tables_with_least_privilege",
+            "title": "Ensure routing tables for VPC peering are least access.",
+            "result_kind": "aws_vpc",
+            "categories": [ "security", "compliance" ],
+            "risk": "Being highly selective in peering routing tables is a very effective way of minimizing the impact of breach as resources outside of these routes are inaccessible to the peered VPC.",
+            "severity": "medium",
+            "detect": {
+                "resoto_cmd": "search is(aws_vpc_peering_connection) {/vpc: <-- is(aws_vpc), /route_tables[]: <-- is(aws_vpc) --> is(aws_ec2_route_table)} limit 1 | jq --no-rewrite 'if [.route_tables[].reported.route_table_routes[] | select(.origin!=\"CreateRouteTable\") | (.destination_cidr_block==\"0.0.0.0/0\") or (.destination_cidr_block==.reported.connection_accepter_vpc_info.cidr_block) or (.destination_cidr_block==.reported.connection_requester_vpc_info.cidr_block)] | any then [.vpc] else [] end' | flatten"
+            },
+            "remediation": {
+                "text": "Review routing tables of peered VPCs for whether they route all subnets of each VPC and whether that is necessary to accomplish the intended purposes for peering the VPCs.",
+                "url": "https://docs.aws.amazon.com/vpc/latest/peering/peering-configurations-partial-access.html"
+            },
+            "internal_notes": "Load peering connections and merge vpc and route tables. Then check if any route table cidr is 0.0.0.0/0 or the same as requester cidr or accepter cidr."
         }
     ]
 }

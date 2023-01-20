@@ -97,7 +97,9 @@
                 {
                     "title": "1.18 Ensure IAM instance roles are used for AWS resource access from instances",
                     "description": "AWS access from within AWS instances can be done by either encoding AWS keys into AWS API calls or by assigning the instance to a role which has an appropriate permissions policy for the required access. \"AWS Access\" means accessing the APIs of AWS in order to access AWS resources or manage AWS account resources.",
-                    "checks": ["aws_ec2_instance_profile_attached"]
+                    "checks": [
+                        "aws_ec2_instance_profile_attached"
+                    ]
                 },
                 {
                     "title": "1.19 Ensure that all the expired SSL/TLS certificates stored in AWS IAM are removed",
@@ -380,12 +382,16 @@
                 {
                     "title": "5.4 Ensure the default security group of every VPC restricts all traffic",
                     "description": "A VPC comes with a default security group whose initial settings deny all inbound traffic, allow all outbound traffic, and allow all traffic between instances assigned to the security group. If you don't specify a security group when you launch an instance, the instance is automatically assigned to this default security group. Security groups provide stateful filtering of ingress/egress network traffic to AWS resources. It is recommended that the default security group restrict all traffic.",
-                    "checks": []
+                    "checks": [
+                        "aws_ec2_default_restrict_traffic"
+                    ]
                 },
                 {
                     "title": "5.5 Ensure routing tables for VPC peering are \"least access\"",
                     "description": "Once a VPC peering connection is established, routing tables must be updated to establish any connections between the peered VPCs. These routes can be as specific as desired - even peering a VPC to only a single host on the other side of the connection.",
-                    "checks": []
+                    "checks": [
+                        "aws_ec2_routing_tables_with_least_privilege"
+                    ]
                 }
             ]
         }

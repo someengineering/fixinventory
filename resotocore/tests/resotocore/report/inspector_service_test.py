@@ -2,8 +2,13 @@ from pytest import fixture
 
 from resotocore.cli.cli import CLI
 from resotocore.config import ConfigEntity
+from resotocore.report import BenchmarkConfigRoot, CheckConfigRoot
 from resotocore.report.inspector_service import InspectorService, check_id, benchmark_id
-from resotocore.report.report_config import config_model
+from resotocore.report.report_config import (
+    config_model,
+    ReportCheckCollectionConfig,
+    BenchmarkConfig,
+)
 from resotocore.types import Json
 from resotocore.util import partition_by
 
@@ -115,3 +120,13 @@ async def test_benchmark_node_result(inspector_service_with_test_benchmark: Insp
     assert len(edges) == 2
     for edge in edges:
         assert edge["from"] == result.node_id
+
+
+async def test_predefined_checks(inspector_service: InspectorService) -> None:
+    for name, check in ReportCheckCollectionConfig.from_files().items():
+        assert (await inspector_service.validate_check_collection_config({CheckConfigRoot: check})) is None
+
+
+async def test_predefined_benchmarks(inspector_service: InspectorService) -> None:
+    for name, check in BenchmarkConfig.from_files().items():
+        assert (await inspector_service.validate_benchmark_config({BenchmarkConfigRoot: check})) is None
