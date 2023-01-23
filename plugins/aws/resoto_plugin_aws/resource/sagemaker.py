@@ -818,29 +818,16 @@ class AwsSagemakerApp(AwsResource):
             builder.add_edge(self, reverse=True, clazz=AwsSagemakerUserProfile, name=user)
 
     def delete_resource(self, client: AwsClient) -> bool:
-        if self.app_user_profile_name:
-            client.call(
-                aws_service=self.api_spec.service,
-                action="delete-app",
-                result_name=None,
-                DomainId=self.app_domain_id,
-                AppType=self.app_type,
-                AppName=self.name,
-                UserProfileName=self.app_user_profile_name,
-            )
-            return True
-        else:
-            if self.app_space_name:
-                client.call(
-                    aws_service=self.api_spec.service,
-                    action="delete-app",
-                    result_name=None,
-                    DomainId=self.app_domain_id,
-                    AppType=self.app_type,
-                    AppName=self.name,
-                    SpaceName=self.app_space_name,
-                )
-            return True
+        client.call(
+            aws_service=self.api_spec.service,
+            action="delete-app",
+            result_name=None,
+            DomainId=self.app_domain_id,
+            AppType=self.app_type,
+            AppName=self.name,
+            UserProfileName=self.app_user_profile_name,
+        )
+        return True
 
 
 @define(eq=False, slots=False)
