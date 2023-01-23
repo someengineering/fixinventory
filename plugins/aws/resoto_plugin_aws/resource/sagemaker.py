@@ -777,6 +777,20 @@ class AwsSagemakerApp(AwsResource):
     app_resource_spec: Optional[AwsSagemakerResourceSpec] = field(default=None)
     app_space_name: Optional[str] = field(default=None)
 
+    def _keys(self) -> tuple[str, str, str, str, str, str, Optional[str], Optional[str]]:
+        if self._graph is None:
+            raise RuntimeError(f"_keys() called on {self.rtdname} before resource was added to graph")
+        return (
+            self.kind,
+            self.cloud().id,
+            self.account().id,
+            self.region().id,
+            self.zone().id,
+            self.id,
+            self.name,
+            self.app_user_profile_name,
+        )
+
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
         return [cls.api_spec, AwsApiSpec("sagemaker", "describe-app")]
