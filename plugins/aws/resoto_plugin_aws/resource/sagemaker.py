@@ -748,7 +748,7 @@ class AwsSagemakerApp(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_app"
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
-            "default": ["aws_sagemaker_domain"],
+            "default": ["aws_sagemaker_domain", "aws_sagemaker_user_profile"],
         },
         "successors": {"default": ["aws_sagemaker_image"]},
     }
@@ -814,18 +814,33 @@ class AwsSagemakerApp(AwsResource):
             builder.add_edge(self, reverse=True, clazz=AwsSagemakerDomain, id=domain)
         if image := value_in_path(source, ["ResourceSpec", "SageMakerImageArn"]):
             builder.add_edge(self, clazz=AwsSagemakerImage, arn=image)
+        if user := self.app_user_profile_name:
+            builder.add_edge(self, reverse=True, clazz=AwsSagemakerUserProfile, name=user)
 
     def delete_resource(self, client: AwsClient) -> bool:
-        client.call(
-            aws_service=self.api_spec.service,
-            action="delete-app",
-            result_name=None,
-            DomainId=self.app_domain_id,
-            AppType=self.app_type,
-            AppName=self.name,
-            SpaceName=self.app_space_name,
-        )
-        return True
+        if self.app_user_profile_name:
+            client.call(
+                aws_service=self.api_spec.service,
+                action="delete-app",
+                result_name=None,
+                DomainId=self.app_domain_id,
+                AppType=self.app_type,
+                AppName=self.name,
+                UserProfileName=self.app_user_profile_name,
+            )
+            return True
+        else:
+            if self.app_space_name:
+                client.call(
+                    aws_service=self.api_spec.service,
+                    action="delete-app",
+                    result_name=None,
+                    DomainId=self.app_domain_id,
+                    AppType=self.app_type,
+                    AppName=self.name,
+                    SpaceName=self.app_space_name,
+                )
+            return True
 
 
 @define(eq=False, slots=False)
@@ -1304,9 +1319,7 @@ class AwsSagemakerTrial(AwsResource):
             if m.domain_id:
                 builder.add_edge(self, reverse=True, clazz=AwsSagemakerDomain, id=m.domain_id)
         if repository := value_in_path(source, ["MetadataProperties", "Repository"]):
-            builder.add_edge(
-                self, reverse=True, clazz=AwsSagemakerCodeRepository, name=repository
-            )
+            builder.add_edge(self, reverse=True, clazz=AwsSagemakerCodeRepository, name=repository)
             if project_id := value_in_path(source, ["MetadataProperties", "ProjectId"]):
                 builder.add_edge(self, reverse=True, clazz=AwsSagemakerProject, id=project_id)
 
@@ -1888,9 +1901,7 @@ class AwsSagemakerArtifact(AwsResource):
             if m.domain_id:
                 builder.add_edge(self, reverse=True, clazz=AwsSagemakerDomain, id=m.domain_id)
         if repository := value_in_path(source, ["MetadataProperties", "Repository"]):
-            builder.add_edge(
-                self, reverse=True, clazz=AwsSagemakerCodeRepository, name=repository
-            )
+            builder.add_edge(self, reverse=True, clazz=AwsSagemakerCodeRepository, name=repository)
         if project_id := value_in_path(source, ["MetadataProperties", "ProjectId"]):
             builder.add_edge(self, reverse=True, clazz=AwsSagemakerProject, id=project_id)
 
