@@ -757,7 +757,7 @@ class AwsSagemakerApp(AwsResource):
         "predecessors": {
             "default": ["aws_sagemaker_domain", "aws_sagemaker_user_profile"],
         },
-        "successors": {"default": ["aws_sagemaker_image"]},
+        "successors": {"default": ["aws_sagemaker_image"], "delete": ["aws_sagemaker_user_profile"]},
     }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-apps", "Apps")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -836,7 +836,7 @@ class AwsSagemakerApp(AwsResource):
         if image := value_in_path(source, ["ResourceSpec", "SageMakerImageArn"]):
             builder.add_edge(self, clazz=AwsSagemakerImage, arn=image)
         if user := self.app_user_profile_name:
-            builder.add_edge(self, reverse=True, clazz=AwsSagemakerUserProfile, name=user)
+            builder.dependant_node(self, reverse=True, clazz=AwsSagemakerUserProfile, name=user)
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
