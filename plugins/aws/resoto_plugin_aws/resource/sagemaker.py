@@ -4587,4 +4587,5 @@ resources: List[Type[AwsResource]] = [
     AwsSagemakerProcessingJob,
     AwsSagemakerTrainingJob,
     AwsSagemakerTransformJob,
+    # TODO SagemakerSpaces, deletion dependency for Sagemaker Domain!
 ]
