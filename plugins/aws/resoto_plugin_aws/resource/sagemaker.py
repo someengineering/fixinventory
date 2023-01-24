@@ -15,6 +15,7 @@ from resoto_plugin_aws.resource.s3 import AwsS3Bucket
 from resoto_plugin_aws.resource.sns import AwsSnsTopic
 from resoto_plugin_aws.utils import ToDict
 from resotolib.baseresources import ModelReference
+from resotolib.graph import Graph
 from resotolib.json import value_in_path
 from resotolib.json_bender import S, Bend, Bender, ForallBend, bend
 from resotolib.types import Json
@@ -148,6 +149,9 @@ class AwsSagemakerNotebook(SagemakerTaggable, AwsResource):
         code_repos = [self.notebook_default_code_repository] + self.notebook_additional_code_repositories
         for repo in code_repos:
             builder.add_edge(self, reverse=True, clazz=AwsSagemakerCodeRepository, name=repo)
+
+    def pre_delete_resource(self, client: AwsClient, graph: Graph) -> bool:
+        client.call("sagemaker", "stop-notebook-instance", NotebookInstanceName=self.name)
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
