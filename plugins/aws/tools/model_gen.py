@@ -1,4 +1,3 @@
-import json
 import re
 from typing import List, Set, Optional, Tuple, Union, Dict
 
@@ -844,6 +843,6 @@ models: Dict[str, List[AwsResotoModel]] = {
 
 
 if __name__ == "__main__":
-    print(json.dumps(create_test_response("lambda", "get-function-url-config"), indent=2))
-    # for model in all_models():
-    #     print(model.to_class())
+    # print(json.dumps(create_test_response("lambda", "get-function-url-config"), indent=2))
+    for model in all_models():
+        print(model.to_class())

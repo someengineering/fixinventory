@@ -19,15 +19,6 @@ from resotolib.types import Json
 
 
 @define(eq=False, slots=False)
-class AwsLambdaCondition:
-    kind: ClassVar[str] = "aws_lambda_condition"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "arn_like": S("ArnLike"),
-    }
-    arn_like: Optional[Dict[str, str]] = field(default=None)
-
-
-@define(eq=False, slots=False)
 class AwsLambdaPolicyStatement:
     kind: ClassVar[str] = "aws_lambda_policy_statement"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -36,19 +27,19 @@ class AwsLambdaPolicyStatement:
         "principal": S("Principal"),
         "action": S("Action"),
         "resource": S("Resource"),
-        "condition": S("Condition") >> Bend(AwsLambdaCondition.mapping),
+        "condition": S("Condition"),
     }
     sid: Optional[str] = field(default=None)
     effect: Optional[str] = field(default=None)
     principal: Optional[Dict[str, str]] = field(default=None)
     action: Optional[str] = field(default=None)
     resource: Optional[str] = field(default=None)
-    condition: Optional[AwsLambdaCondition] = field(default=None)
+    condition: Optional[Json] = field(default=None)
 
 
 @define(eq=False, slots=False)
-class AwsLambdaPolicyDetails:
-    kind: ClassVar[str] = "aws_lambda_policy_details"
+class AwsLambdaPolicy:
+    kind: ClassVar[str] = "aws_lambda_policy"
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Id"),
         "version": S("Version"),
@@ -253,7 +244,7 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
     function_signing_job_arn: Optional[str] = field(default=None)
     function_architectures: List[str] = field(factory=list)
     function_ephemeral_storage: Optional[int] = field(default=None)
-    function_policy: Optional[AwsLambdaPolicyDetails] = field(default=None)
+    function_policy: Optional[AwsLambdaPolicy] = field(default=None)
     function_url_config: Optional[AwsLambdaFunctionUrlConfig] = field(default=None)
 
     @classmethod
@@ -281,12 +272,17 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
                 result_name="Policy",
             ):
                 # policy is defined as string, but it is actually a json object
-                mapped = bend(AwsLambdaPolicyDetails.mapping, json_p.loads(policy))  # type: ignore
-                policy_instance = from_json(mapped, AwsLambdaPolicyDetails)
+                mapped = bend(AwsLambdaPolicy.mapping, json_p.loads(policy))  # type: ignore
+                policy_instance = from_json(mapped, AwsLambdaPolicy)
                 function.function_policy = policy_instance
-                for statement in policy_instance.statement:
-                    if statement.principal["Service"] == "apigateway.amazonaws.com" and statement.condition.arn_like:
-                        source = statement.condition.arn_like["AWS:SourceArn"]
+                for statement in policy_instance.statement or []:
+                    if (
+                        statement.principal
+                        and statement.condition
+                        and statement.principal["Service"] == "apigateway.amazonaws.com"
+                        and (arn_like := statement.condition.get("ArnLike")) is not None
+                        and (source := arn_like.get("AWS:SourceArn")) is not None
+                    ):
                         source_arn = source.rsplit(":")[-1]
                         rest_api_id = source_arn.split("/")[0]
                         builder.dependant_node(
