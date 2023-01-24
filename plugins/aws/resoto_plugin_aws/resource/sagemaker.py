@@ -151,16 +151,19 @@ class AwsSagemakerNotebook(SagemakerTaggable, AwsResource):
             builder.add_edge(self, reverse=True, clazz=AwsSagemakerCodeRepository, name=repo)
 
     def pre_delete_resource(self, client: AwsClient, graph: Graph) -> bool:
-        client.call("sagemaker", "stop-notebook-instance", NotebookInstanceName=self.name)
+        client.call("sagemaker", "stop-notebook-instance", result_name=None, NotebookInstanceName=self.name)
+        return True
 
     def delete_resource(self, client: AwsClient) -> bool:
-        client.call(
-            aws_service=self.api_spec.service,
-            action="delete-notebook-instance",
-            result_name=None,
-            NotebookInstanceName=self.name,
-        )
-        return True
+        if self.notebook_instance_status == "Stopped":
+            client.call(
+                aws_service=self.api_spec.service,
+                action="delete-notebook-instance",
+                result_name=None,
+                NotebookInstanceName=self.name,
+            )
+            return True
+        return False
 
 
 @define(eq=False, slots=False)
@@ -1918,7 +1921,10 @@ class AwsSagemakerArtifact(AwsResource):
 @define(eq=False, slots=False)
 class AwsSagemakerUserProfile(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_user_profile"
-    reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["aws_sagemaker_domain"]}}
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["aws_sagemaker_domain"]},
+        "successors": {"delete": ["aws_sagemaker_domain"]},
+    }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-user-profiles", "UserProfiles")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("UserProfileName"),
@@ -1933,7 +1939,7 @@ class AwsSagemakerUserProfile(AwsResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if domain_id := value_in_path(source, "DomainId"):
-            builder.add_edge(self, reverse=True, clazz=AwsSagemakerDomain, id=domain_id)
+            builder.dependant_node(self, reverse=True, clazz=AwsSagemakerDomain, id=domain_id)
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
