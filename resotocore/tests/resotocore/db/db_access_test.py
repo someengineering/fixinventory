@@ -8,9 +8,6 @@ from resotocore.db.db_access import DbAccess
 from resotocore.dependencies import parse_args, empty_config
 from resotocore.model.adjust_node import NoAdjust
 
-# noinspection PyUnresolvedReferences
-from tests.resotocore.db.graphdb_test import test_db, system_db, local_client
-
 
 def test_already_existing(test_db: StandardDatabase) -> None:
     access = DbAccess(test_db, NoEventSender(), NoAdjust(), empty_config())

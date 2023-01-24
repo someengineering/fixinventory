@@ -1,7 +1,8 @@
 import asyncio
+from typing import List
+
 import pytest
 from arango.database import StandardDatabase
-from typing import List
 
 from resotocore.analytics import AnalyticsEventSender, InMemoryEventSender
 from resotocore.db import templatedb
@@ -9,12 +10,6 @@ from resotocore.db.async_arangodb import AsyncArangoDB
 from resotocore.db.entitydb import EventEntityDb
 from resotocore.db.templatedb import TemplateEntityDb, EventTemplateEntityDb
 from resotocore.query.model import Template
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.db.graphdb_test import test_db, local_client, system_db
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.analytics import event_sender
 
 
 @pytest.fixture

@@ -1,0 +1,15 @@
+{
+    "FunctionUrl": "https://example.com",
+    "FunctionArn": "foo",
+    "AuthType": "AWS_IAM",
+    "Cors": {
+        "AllowCredentials": true,
+        "AllowHeaders": [ "foo", "foo", "foo" ],
+        "AllowMethods": [ "foo", "foo", "foo" ],
+        "AllowOrigins": [ "foo", "foo", "foo" ],
+        "ExposeHeaders": [ "foo", "foo", "foo" ],
+        "MaxAge": 123
+    },
+    "CreationTime": "2023-01-12T10:10:44Z",
+    "LastModifiedTime": "2023-01-12T10:10:44Z"
+}

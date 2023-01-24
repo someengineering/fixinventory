@@ -1,25 +1,21 @@
 import collections
 import re
 from datetime import date
+from typing import Optional
 
 import jsons
 import pytest
 from deepdiff import DeepDiff
 from networkx import MultiDiGraph
 from pytest import fixture
-from typing import Optional
 
+from resotocore.ids import NodeId
 from resotocore.model.graph_access import GraphAccess, GraphBuilder, EdgeTypes, EdgeKey
 from resotocore.model.model import Model, AnyKind
 from resotocore.model.typed_model import to_json
 from resotocore.types import Json, EdgeType
-from resotocore.ids import NodeId
 from resotocore.util import AccessJson, AccessNone
 from tests.resotocore.db.graphdb_test import Foo
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.model.model_test import person_model
-
 
 FooTuple = collections.namedtuple(
     "FooTuple",

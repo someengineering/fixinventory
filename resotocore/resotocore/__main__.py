@@ -7,7 +7,6 @@ import warnings
 from argparse import Namespace
 from asyncio import Queue
 from contextlib import suppress
-from attrs import evolve
 from datetime import timedelta
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -15,7 +14,7 @@ from typing import AsyncIterator, List, Union
 
 from aiohttp.web_app import Application
 from arango.database import StandardDatabase
-from resotolib.asynchronous.web import runner
+from attrs import evolve
 from urllib3.exceptions import HTTPWarning
 
 from resotocore import version
@@ -40,6 +39,7 @@ from resotocore.db import SystemData
 from resotocore.db.db_access import DbAccess
 from resotocore.dependencies import db_access, setup_process, parse_args, system_info, reconfigure_logging, event_stream
 from resotocore.error import RestartService
+from resotocore.report.inspector_service import InspectorService
 from resotocore.message_bus import MessageBus
 from resotocore.model.model_handler import ModelHandlerDB
 from resotocore.model.typed_model import to_json, class_fqn
@@ -51,6 +51,7 @@ from resotocore.util import shutdown_process, utc
 from resotocore.web.api import Api
 from resotocore.web.certificate_handler import CertificateHandler
 from resotocore.worker_task_queue import WorkerTaskQueue
+from resotolib.asynchronous.web import runner
 
 log = logging.getLogger("resotocore")
 
@@ -152,13 +153,16 @@ def with_config(
     )
     default_env = {"graph": config.cli.default_graph, "section": config.cli.default_section}
     cli = CLI(cli_deps, all_commands(cli_deps), default_env, alias_names())
+    inspector = InspectorService(cli)
     subscriptions = SubscriptionHandler(db.subscribers_db, message_bus)
     task_handler = TaskHandlerService(
         db.running_task_db, db.job_db, message_bus, event_sender, subscriptions, scheduler, cli, config
     )
-    core_config_handler = CoreConfigHandler(config, message_bus, worker_task_queue, config_handler, event_sender)
+    core_config_handler = CoreConfigHandler(
+        config, message_bus, worker_task_queue, config_handler, event_sender, inspector
+    )
     merge_outer_edges_handler = MergeOuterEdgesHandler(message_bus, subscriptions, task_handler, db, model)
-    cli_deps.extend(task_handler=task_handler)
+    cli_deps.extend(task_handler=task_handler, inspector=inspector)
     api = Api(
         db,
         model,
@@ -169,6 +173,7 @@ def with_config(
         worker_task_queue,
         cert_handler,
         config_handler,
+        inspector,
         cli,
         template_expander,
         config,
@@ -187,6 +192,7 @@ def with_config(
         await worker_task_queue.start()
         await event_emitter.start()
         await cli.start()
+        await inspector.start()
         await task_handler.start()
         await core_config_handler.start()
         await merge_outer_edges_handler.start()
@@ -228,6 +234,7 @@ def with_config(
         await core_config_handler.stop()
         await merge_outer_edges_handler.stop()
         await task_handler.stop()
+        await inspector.stop()
         await cli.stop()
         await event_sender.core_event(CoreEvent.SystemStopped, total_seconds=int(duration.total_seconds()))
         await event_emitter.stop()

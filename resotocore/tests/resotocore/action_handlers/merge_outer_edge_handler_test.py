@@ -1,100 +1,23 @@
-from datetime import timedelta
-import pytest
 import asyncio
-from pytest import fixture
+from datetime import timedelta
+
+import pytest
 
 from resotocore.action_handlers.merge_outer_edge_handler import MergeOuterEdgesHandler
-from resotocore.db.deferred_edge_db import PendingDeferredEdges
-from resotocore.db.model import QueryModel
-from resotocore.message_bus import Action, MessageBus
-from resotocore.task.task_handler import TaskHandlerService
-from resotocore.task.subscribers import SubscriptionHandler
 from resotocore.db.db_access import DbAccess
-from resotocore.analytics import NoEventSender
-from resotocore.model.adjust_node import NoAdjust
-from resotocore.model.graph_access import ByNodeId, BySearchCriteria, DeferredEdge, EdgeTypes
-from resotocore.dependencies import empty_config
-from resotocore.model.model import Model
-from resotocore.query.query_parser import parse_query
+from resotocore.db.deferred_edge_db import PendingDeferredEdges
 from resotocore.db.graphdb import ArangoGraphDB
-from resotocore.model.typed_model import to_js
-from resotocore.types import Json
-
-from typing import AsyncGenerator
+from resotocore.db.model import QueryModel
 from resotocore.ids import TaskId, NodeId
-
+from resotocore.message_bus import Action, MessageBus
+from resotocore.model.graph_access import ByNodeId, BySearchCriteria, DeferredEdge, EdgeTypes
+from resotocore.model.model import Model
+from resotocore.model.typed_model import to_js
+from resotocore.query.query_parser import parse_query
+from resotocore.task.subscribers import SubscriptionHandler
+from resotocore.types import Json
 from resotocore.util import utc
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.db.graphdb_test import (
-    filled_graph_db,
-    graph_db,
-    test_db,
-    foo_model,
-    foo_kinds,
-    system_db,
-    local_client,
-    BaseResource,
-    Foo,
-    Bla,
-)
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.db.runningtaskdb_test import running_task_db
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.message_bus_test import message_bus, all_events, wait_for_message
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.cli.cli_test import cli, cli_deps
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.analytics import event_sender
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.worker_task_queue_test import worker, task_queue, performed_by, incoming_tasks
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.query.template_expander_test import expander
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.config.config_handler_service_test import config_handler
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.web.certificate_handler_test import cert_handler
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.task.task_handler_test import (
-    task_handler,
-    test_workflow,
-    subscription_handler,
-    job_db,
-    additional_workflows,
-)
-
-from tests.resotocore.model import ModelHandlerStatic
-
-
-@fixture()
-def db_access(graph_db: ArangoGraphDB) -> DbAccess:
-    access = DbAccess(graph_db.db.db, NoEventSender(), NoAdjust(), empty_config())
-    return access
-
-
-@fixture()
-async def merge_handler(
-    message_bus: MessageBus,
-    subscription_handler: SubscriptionHandler,
-    task_handler: TaskHandlerService,
-    db_access: DbAccess,
-    foo_model: Model,
-) -> AsyncGenerator[MergeOuterEdgesHandler, None]:
-    model_handler = ModelHandlerStatic(foo_model)
-    handler = MergeOuterEdgesHandler(message_bus, subscription_handler, task_handler, db_access, model_handler)
-    await handler.start()
-    yield handler
-    await handler.stop()
-
+from tests.resotocore.db.graphdb_test import Foo, Bla, BaseResource
 
 merge_outer_edges = "merge_outer_edges"
 

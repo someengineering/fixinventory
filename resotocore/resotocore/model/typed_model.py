@@ -1,8 +1,9 @@
 import functools
 from pydoc import locate
-from typing import Type, Any
+from typing import Type, Any, ClassVar
 
 import jsons
+from jsons import set_deserializer
 
 from resotocore.types import JsonElement, Json
 from resotocore.util import AnyT
@@ -51,3 +52,12 @@ def to_json(node: Any, **kwargs: Any) -> JsonElement:
 
 def to_js_str(node: Any) -> str:
     return jsons.dumps(node, strip_privates=True)  # type: ignore
+
+
+# Work around jsons: it tries to deserialize class vars - it should ignore them.
+def __no_json(js: Json, tp: type = object, **kwargs: object) -> None:
+    return None
+
+
+# noinspection PyTypeChecker
+set_deserializer(__no_json, ClassVar)

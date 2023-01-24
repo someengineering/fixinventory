@@ -1,0 +1,32 @@
+{
+    "name": "",
+    "title": "",
+    "kind": "result kind returned by the query",
+    "categories": [
+        "insights",
+        "security",
+        "compliance",
+        "cost"
+    ],
+    "risk": "",
+    "severity": "high|medium|low",
+    "url": "",
+    "detect": {
+        "resoto": "is(resource)",
+        "resoto_cmd": "search is(resource) | do_something",
+        "sql": "select * from table where column = 'value'"
+    },
+    "remediation": {
+        "action": {
+        "awscli": null,
+        "resoto": null,
+        "xxx": null
+    },
+        "text": "",
+        "url": ""
+    },
+    "related": [],
+    "internal_notes": ""
+}
+
+

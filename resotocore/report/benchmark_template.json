@@ -1,0 +1,16 @@
+{
+    "title": "",
+    "framework": "",
+    "version": "",
+    "description": "",
+    "documentation": "can contain markdown",
+    "children": [
+        {
+            "title": "",
+            "description": "",
+            "documentation": "can contain markdown",
+            "checks": [],
+            "children": []
+        }
+    ]
+}

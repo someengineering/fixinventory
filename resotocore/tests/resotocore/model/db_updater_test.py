@@ -6,6 +6,7 @@ from typing import List, AsyncGenerator
 import pytest
 
 from resotocore.analytics import AnalyticsEventSender
+from resotocore.db.deferred_edge_db import pending_deferred_edge_db
 from resotocore.db.graphdb import ArangoGraphDB
 from resotocore.db.model import GraphUpdate
 from resotocore.dependencies import empty_config
@@ -13,14 +14,7 @@ from resotocore.ids import TaskId
 from resotocore.model.db_updater import merge_graph_process
 from resotocore.model.model import Kind
 from resotocore.model.typed_model import to_js
-from resotocore.db.deferred_edge_db import pending_deferred_edge_db
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.analytics import event_sender
 from tests.resotocore.db.graphdb_test import create_graph
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.db.graphdb_test import graph_db, foo_kinds, test_db, local_client, system_db
 
 
 @pytest.mark.asyncio

@@ -389,56 +389,6 @@ def expect_error(kind: Union[Kind, Model], obj: Any) -> str:
 
 
 @pytest.fixture
-def person_model() -> Model:
-    zip = StringKind("zip")
-    base = ComplexKind(
-        "Base",
-        [],
-        [
-            Property("id", "string", required=True, description="Some identifier"),
-            Property("kind", "string", required=True, description="Kind if this node."),
-            Property("list", "string[]", description="A list of strings."),
-            Property("tags", "dictionary[string, string]", description="Key/value pairs."),
-            Property("mtime", "datetime", description="Modification time of this node."),
-        ],
-    )
-    address = ComplexKind(
-        "Address",
-        ["Base"],
-        [
-            Property("zip", "zip", description="The zip code."),
-            Property("city", "string", required=True, description="The name of the city.\nAnd another line."),
-        ],
-    )
-    person = ComplexKind(
-        "Person",
-        ["Base"],
-        [
-            Property("name", "string", description="The name of the person."),
-            Property("address", "Address", description="The address of the person."),
-            Property("other_addresses", "dictionary[string, Address]", description="Other addresses."),
-            Property("addresses", "Address[]", description="The list of addresses."),
-            Property("any", "any", description="Some arbitrary value."),
-        ],
-    )
-    any_foo = ComplexKind(
-        "any_foo",
-        ["Base"],
-        [
-            Property("foo", "any", description="Some foo value."),
-            Property("test", "string", description="Some test value."),
-        ],
-    )
-    cloud = ComplexKind("cloud", ["Base"], [])
-    account = ComplexKind("account", ["Base"], [])
-    region = ComplexKind("region", ["Base"], [])
-    parent = ComplexKind("parent", ["Base"], [])
-    child = ComplexKind("child", ["Base"], [])
-
-    return Model.from_kinds([zip, person, address, base, any_foo, cloud, account, region, parent, child])
-
-
-@pytest.fixture
 def model_json() -> str:
     return """
     [

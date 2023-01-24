@@ -6,14 +6,6 @@ from arango.database import StandardDatabase
 
 from resotocore.db.async_arangodb import AsyncArangoDB
 
-# noinspection PyUnresolvedReferences
-from tests.resotocore.db.graphdb_test import test_db, system_db, local_client
-
-
-@pytest.fixture
-async def async_db(test_db: StandardDatabase) -> AsyncArangoDB:
-    return AsyncArangoDB(test_db)
-
 
 @pytest.fixture
 async def test_collection(test_db: StandardDatabase) -> StandardCollection:

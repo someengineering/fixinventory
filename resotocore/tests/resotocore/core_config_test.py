@@ -9,13 +9,9 @@ from resotocore.core_config import (
     parse_config,
     CoreConfig,
     ApiConfig,
-    DatabaseConfig,
-    RuntimeConfig,
     config_model,
     EditableConfig,
-    CustomCommandsConfig,
     WorkflowConfig,
-    RunConfig,
     migrate_config,
 )
 from resotocore.dependencies import parse_args
@@ -180,20 +176,3 @@ def config_json() -> Json:
             },
         }
     }
-
-
-@fixture
-def default_config() -> CoreConfig:
-    ed = EditableConfig()
-    return CoreConfig(
-        api=ed.api,
-        cli=ed.cli,
-        db=DatabaseConfig(),
-        graph_update=ed.graph_update,
-        # We use this flag explicitly - otherwise it is picked up by env vars
-        runtime=RuntimeConfig(usage_metrics=False),
-        workflows=ed.workflows,
-        custom_commands=CustomCommandsConfig(),
-        args=parse_args(["--analytics-opt-out"]),
-        run=RunConfig(),
-    )

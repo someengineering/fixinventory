@@ -38,7 +38,7 @@ class Periodic:
         if self._task is None:
             # Start task to call func periodically:
             self._task = asyncio.ensure_future(self._run(), loop=self._loop)
-            log.info(f"Periodic task {self.name} has been started.")
+            log.debug(f"Periodic task {self.name} has been started.")
 
     async def stop(self) -> None:
         # Stop task and await it stopped:

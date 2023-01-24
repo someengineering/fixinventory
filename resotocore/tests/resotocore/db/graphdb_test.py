@@ -1,36 +1,28 @@
 import asyncio
 import string
 from abc import ABC, abstractmethod
-from attrs import define
 from datetime import date, datetime, timedelta
 from random import SystemRandom
 from typing import List, Optional, Any
 
-import pytest
-from arango import ArangoClient
 from arango.database import StandardDatabase
 from arango.typings import Json
+from attrs import define
 from networkx import MultiDiGraph
+from pytest import mark, raises
 
-from resotocore.analytics import AnalyticsEventSender, CoreEvent, InMemoryEventSender
-from resotocore.core_config import GraphUpdateConfig
-from resotocore.db.async_arangodb import AsyncArangoDB
+from resotocore.analytics import CoreEvent, InMemoryEventSender
 from resotocore.db.graphdb import ArangoGraphDB, GraphDB, EventGraphDB, HistoryChange
-
 from resotocore.db.model import QueryModel, GraphUpdate
 from resotocore.error import ConflictingChangeInProgress, NoSuchChangeError, InvalidBatchUpdate
-from resotocore.model.adjust_node import NoAdjust
+from resotocore.ids import NodeId
 from resotocore.model.graph_access import GraphAccess, EdgeTypes, Section
-from resotocore.model.model import Model, ComplexKind, Property, Kind, SyntheticProperty
+from resotocore.model.model import Model
 from resotocore.model.typed_model import from_js, to_js
 from resotocore.query.model import Query, P, Navigation
 from resotocore.query.query_parser import parse_query
 from resotocore.types import JsonElement, EdgeType
 from resotocore.util import AccessJson, utc, value_in_path, AccessNone
-from resotocore.ids import NodeId
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.analytics import event_sender
 
 
 class BaseResource(ABC):
@@ -175,121 +167,12 @@ def create_multi_collector_graph(width: int = 3) -> MultiDiGraph:
     return graph
 
 
-@pytest.fixture
-def foo_kinds() -> List[Kind]:
-    base = ComplexKind(
-        "base",
-        [],
-        [
-            Property("identifier", "string", required=True),
-            Property("kind", "string", required=True),
-            Property("ctime", "datetime"),
-        ],
-    )
-    foo = ComplexKind(
-        "foo",
-        ["base"],
-        [
-            Property("name", "string"),
-            Property("some_int", "int32"),
-            Property("some_string", "string"),
-            Property("now_is", "datetime"),
-            Property("ctime", "datetime"),
-            Property("age", "trafo.duration_to_datetime", False, SyntheticProperty(["ctime"])),
-        ],
-        successor_kinds={EdgeTypes.default: ["bla"]},
-    )
-    inner = ComplexKind("inner", [], [Property("name", "string"), Property("inner", "inner[]")])
-    bla = ComplexKind(
-        "bla",
-        ["base"],
-        [
-            Property("name", "string"),
-            Property("now", "date"),
-            Property("f", "int32"),
-            Property("g", "int32[]"),
-            Property("h", "inner"),
-        ],
-        successor_kinds={EdgeTypes.default: ["bla"]},
-    )
-    cloud = ComplexKind("cloud", ["foo"], [])
-    account = ComplexKind("account", ["foo"], [])
-    region = ComplexKind("region", ["foo"], [])
-    parent = ComplexKind("parent", ["foo"], [])
-    child = ComplexKind("child", ["foo"], [])
-    some_complex = ComplexKind(
-        "some_complex",
-        ["base"],
-        [
-            Property("cloud", "cloud"),
-            Property("account", "account"),
-            Property("parents", "parent[]"),
-            Property("children", "child[]"),
-            Property("nested", "inner[]"),
-        ],
-        successor_kinds={EdgeTypes.default: ["bla"]},
-    )
-
-    return [base, foo, bla, cloud, account, region, parent, child, inner, some_complex]
-
-
-@pytest.fixture
-def foo_model(foo_kinds: List[Kind]) -> Model:
-    return Model.from_kinds(foo_kinds)
-
-
-@pytest.fixture
-def local_client() -> ArangoClient:
-    return ArangoClient(hosts="http://localhost:8529")
-
-
-@pytest.fixture
-def system_db(local_client: ArangoClient) -> StandardDatabase:
-    return local_client.db()
-
-
-@pytest.fixture
-def test_db(local_client: ArangoClient, system_db: StandardDatabase) -> StandardDatabase:
-    if not system_db.has_user("test"):
-        system_db.create_user("test", "test", True)
-
-    if not system_db.has_database("test"):
-        system_db.create_database("test", [{"username": "test", "password": "test", "active": True}])
-
-    # Connect to "test" database as "test" user.
-    return local_client.db("test", username="test", password="test")
-
-
-@pytest.fixture
-async def graph_db(test_db: StandardDatabase) -> ArangoGraphDB:
-    async_db = AsyncArangoDB(test_db)
-    graph_db = ArangoGraphDB(async_db, "ns", NoAdjust(), GraphUpdateConfig())
-    await graph_db.create_update_schema()
-    await async_db.truncate(graph_db.in_progress)
-    return graph_db
-
-
-@pytest.fixture
-async def filled_graph_db(graph_db: ArangoGraphDB, foo_model: Model) -> ArangoGraphDB:
-    graph_db.db.collection(graph_db.node_history).truncate()
-    if await graph_db.db.has_collection("model"):
-        graph_db.db.collection("model").truncate()
-    await graph_db.wipe()
-    await graph_db.merge_graph(create_graph("yes or no"), foo_model)
-    return graph_db
-
-
-@pytest.fixture
-async def event_graph_db(filled_graph_db: ArangoGraphDB, event_sender: AnalyticsEventSender) -> EventGraphDB:
-    return EventGraphDB(filled_graph_db, event_sender)
-
-
 async def load_graph(db: GraphDB, model: Model, base_id: str = "sub_root") -> MultiDiGraph:
     blas = Query.by("foo", P("identifier") == base_id).traverse_out(0, Navigation.Max)
     return await db.search_graph(QueryModel(blas.on_section("reported"), model))
 
 
-@pytest.mark.asyncio
+@mark.asyncio
 async def test_update_merge_batched(graph_db: ArangoGraphDB, foo_model: Model, test_db: StandardDatabase) -> None:
     md = foo_model
     await graph_db.wipe()
@@ -303,7 +186,7 @@ async def test_update_merge_batched(graph_db: ArangoGraphDB, foo_model: Model, t
     )
     assert len((await load_graph(graph_db, md)).nodes) == 0
     # not allowed to commit an unknown batch
-    with pytest.raises(NoSuchChangeError):
+    with raises(NoSuchChangeError):
         await graph_db.commit_batch_update("does_not_exist")
     # commit the batch and see the changes reflected in the database
     await graph_db.commit_batch_update(batch_id)
@@ -317,7 +200,7 @@ async def test_update_merge_batched(graph_db: ArangoGraphDB, foo_model: Model, t
     assert len(list(filter(lambda c: c["name"].startswith("temp_"), test_db.collections()))) == 0
 
 
-@pytest.mark.asyncio
+@mark.asyncio
 async def test_merge_graph(graph_db: ArangoGraphDB, foo_model: Model) -> None:
     await graph_db.wipe()
 
@@ -339,7 +222,7 @@ async def test_merge_graph(graph_db: ArangoGraphDB, foo_model: Model) -> None:
     assert await graph_db.merge_graph(create("maybe"), foo_model) == (p, GraphUpdate(0, 0, 0, 0, 0, 0))
 
 
-@pytest.mark.asyncio
+@mark.asyncio
 async def test_merge_multi_graph(graph_db: ArangoGraphDB, foo_model: Model) -> None:
     await graph_db.wipe()
     # nodes:
@@ -356,7 +239,7 @@ async def test_merge_multi_graph(graph_db: ArangoGraphDB, foo_model: Model) -> N
     assert len(nodes) == 8
 
 
-@pytest.mark.asyncio
+@mark.asyncio
 async def test_mark_update(filled_graph_db: ArangoGraphDB) -> None:
     db = filled_graph_db
     # make sure all changes are empty
@@ -366,19 +249,19 @@ async def test_mark_update(filled_graph_db: ArangoGraphDB) -> None:
     # change on 01 is allowed
     await db.mark_update(["01"], ["0", "sub_root", "root"], "update 01", True)
     # same change id which tries to update the same subgraph root
-    with pytest.raises(InvalidBatchUpdate):
+    with raises(InvalidBatchUpdate):
         await db.mark_update(["01"], ["0", "sub_root", "root"], "update 01", True)
     # change on 0 is rejected, since there are changes "below" this node
-    with pytest.raises(ConflictingChangeInProgress):
+    with raises(ConflictingChangeInProgress):
         await db.mark_update(["0"], ["sub_root"], "update 0 under node sub_root", False)
     # change on sub_root is rejected, since there are changes "below" this node
-    with pytest.raises(ConflictingChangeInProgress):
+    with raises(ConflictingChangeInProgress):
         await db.mark_update(["sub_root"], ["root"], "update under node sub_root", False)
     # clean up for later tests
     await db.db.truncate(db.in_progress)
 
 
-@pytest.mark.asyncio
+@mark.asyncio
 async def test_query_list(filled_graph_db: ArangoGraphDB, foo_model: Model) -> None:
     blas = Query.by("foo", P("identifier") == "9").traverse_out().filter("bla", P("f") == 23)
     async with await filled_graph_db.search_list(QueryModel(blas.on_section("reported"), foo_model)) as gen:
@@ -391,7 +274,7 @@ async def test_query_list(filled_graph_db: ArangoGraphDB, foo_model: Model) -> N
         assert len(result) == 111  # 113 minus 1 graph_root, minus one cloud
 
 
-@pytest.mark.asyncio
+@mark.asyncio
 async def test_query_not(filled_graph_db: ArangoGraphDB, foo_model: Model) -> None:
     # select everything that is not foo --> should be blas
     blas = Query.by(Query.mk_term("foo").not_term())
@@ -400,7 +283,7 @@ async def test_query_not(filled_graph_db: ArangoGraphDB, foo_model: Model) -> No
         assert len(result) == 102
 
 
-@pytest.mark.asyncio
+@mark.asyncio
 async def test_query_history(filled_graph_db: ArangoGraphDB, foo_model: Model) -> None:
     async def nodes(query: Query, **args: Any) -> List[Json]:
         async with await filled_graph_db.search_history(QueryModel(query, foo_model), **args) as crsr:
@@ -415,7 +298,7 @@ async def test_query_history(filled_graph_db: ArangoGraphDB, foo_model: Model) -
     assert len(await nodes(Query.by("foo"), after=five_min_ago, change=HistoryChange.node_deleted)) == 0
 
 
-@pytest.mark.asyncio
+@mark.asyncio
 async def test_query_graph(filled_graph_db: ArangoGraphDB, foo_model: Model) -> None:
     graph = await load_graph(filled_graph_db, foo_model)
     assert len(graph.edges) == 110
@@ -456,7 +339,7 @@ async def test_query_graph(filled_graph_db: ArangoGraphDB, foo_model: Model) -> 
     await assert_result("is(foo) and reported.identifier==9 -delete[0:]->", 1, 0)
 
 
-@pytest.mark.asyncio
+@mark.asyncio
 async def test_query_nested(filled_graph_db: ArangoGraphDB, foo_model: Model) -> None:
     async def assert_count(query: str, count: int) -> None:
         q = parse_query(query).on_section("reported")
@@ -475,7 +358,7 @@ async def test_query_nested(filled_graph_db: ArangoGraphDB, foo_model: Model) ->
     await assert_count("is(bla) and g[*] none = 2", 0)
 
 
-@pytest.mark.asyncio
+@mark.asyncio
 async def test_query_aggregate(filled_graph_db: ArangoGraphDB, foo_model: Model) -> None:
     agg_query = parse_query("aggregate(kind: count(identifier) as instances): is(foo)").on_section("reported")
     async with await filled_graph_db.search_aggregation(QueryModel(agg_query, foo_model)) as gen:
@@ -493,7 +376,7 @@ async def test_query_aggregate(filled_graph_db: ArangoGraphDB, foo_model: Model)
         assert [x async for x in g] == [{"a": 2300, "b": 23}]
 
 
-@pytest.mark.asyncio
+@mark.asyncio
 async def test_query_with_fulltext(filled_graph_db: ArangoGraphDB, foo_model: Model) -> None:
     async def search(query: str) -> List[JsonElement]:
         async with await filled_graph_db.search_list(QueryModel(parse_query(query), foo_model)) as cursor:
@@ -506,7 +389,7 @@ async def test_query_with_fulltext(filled_graph_db: ArangoGraphDB, foo_model: Mo
     await search('is(foo) {a: --> "some prop" } "some other prop" --> "bim bam bom bum"')
 
 
-@pytest.mark.asyncio
+@mark.asyncio
 async def test_query_merge(filled_graph_db: ArangoGraphDB, foo_model: Model) -> None:
     q = parse_query(
         "is(foo) --> is(bla) { "
@@ -529,7 +412,7 @@ async def test_query_merge(filled_graph_db: ArangoGraphDB, foo_model: Model) -> 
             assert b.bla.agg == [{"count": 5}]
 
 
-@pytest.mark.asyncio
+@mark.asyncio
 async def test_query_with_clause(filled_graph_db: ArangoGraphDB, foo_model: Model) -> None:
     async def query(q: str) -> List[Json]:
         agg_query = parse_query(q)
@@ -546,7 +429,7 @@ async def test_query_with_clause(filled_graph_db: ArangoGraphDB, foo_model: Mode
     assert len(await query("is(bla) with(any, <-- with(any, <-- is(foo)))")) == 100
 
 
-@pytest.mark.asyncio
+@mark.asyncio
 async def test_no_null_if_undefined(graph_db: ArangoGraphDB, foo_model: Model) -> None:
     await graph_db.wipe()
     # imported graph should not have any desired or metadata sections
@@ -562,7 +445,7 @@ async def test_no_null_if_undefined(graph_db: ArangoGraphDB, foo_model: Model) -
             assert "metadata" not in elem
 
 
-@pytest.mark.asyncio
+@mark.asyncio
 async def test_get_node(filled_graph_db: ArangoGraphDB, foo_model: Model) -> None:
     # load sub_root as foo
     sub_root = to_foo(await filled_graph_db.get_node(foo_model, NodeId("sub_root")))
@@ -581,7 +464,7 @@ async def test_get_node(filled_graph_db: ArangoGraphDB, foo_model: Model) -> Non
     assert isinstance(node_1_2, Bla)
 
 
-@pytest.mark.asyncio
+@mark.asyncio
 async def test_insert_node(graph_db: ArangoGraphDB, foo_model: Model) -> None:
     await graph_db.wipe()
     json = await graph_db.create_node(
@@ -591,7 +474,7 @@ async def test_insert_node(graph_db: ArangoGraphDB, foo_model: Model) -> None:
     assert to_foo(await graph_db.get_node(foo_model, NodeId("some_new_id"))).identifier == "some_new_id"
 
 
-@pytest.mark.asyncio
+@mark.asyncio
 async def test_update_node(graph_db: ArangoGraphDB, foo_model: Model) -> None:
     await graph_db.wipe()
     await graph_db.create_node(foo_model, NodeId("some_other"), to_json(Foo("some_other", "foo")), NodeId("root"))
@@ -607,7 +490,7 @@ async def test_update_node(graph_db: ArangoGraphDB, foo_model: Model) -> None:
     assert json_replace == {"kind": "bla", "identifier": "123"}
 
 
-@pytest.mark.asyncio
+@mark.asyncio
 async def test_update_nodes(graph_db: ArangoGraphDB, foo_model: Model) -> None:
     def expect(jsons: List[Json], path: List[str], value: JsonElement) -> None:
         for js in jsons:
@@ -651,7 +534,7 @@ async def test_update_nodes(graph_db: ArangoGraphDB, foo_model: Model) -> None:
     assert "metadata" not in result4
 
 
-@pytest.mark.asyncio
+@mark.asyncio
 async def test_delete_node(graph_db: ArangoGraphDB, foo_model: Model) -> None:
     await graph_db.wipe()
     await graph_db.create_node(foo_model, NodeId("sub_root"), to_json(Foo("sub_root", "foo")), NodeId("root"))
@@ -661,12 +544,12 @@ async def test_delete_node(graph_db: ArangoGraphDB, foo_model: Model) -> None:
     await graph_db.create_node(foo_model, NodeId("born_to_die"), to_json(Foo("born_to_die", "foo")), NodeId("sub_root"))
     await graph_db.delete_node(NodeId("born_to_die"))
     assert await graph_db.get_node(foo_model, NodeId("born_to_die")) is None
-    with pytest.raises(AttributeError) as not_allowed:
+    with raises(AttributeError) as not_allowed:
         await graph_db.delete_node(NodeId("sub_root"))
     assert str(not_allowed.value) == "Can not delete node, since it has 1 child(ren)!"
 
 
-@pytest.mark.asyncio
+@mark.asyncio
 async def test_events(event_graph_db: EventGraphDB, foo_model: Model, event_sender: InMemoryEventSender) -> None:
     await event_graph_db.create_node(foo_model, NodeId("some_other"), to_json(Foo("some_other", "foo")), NodeId("root"))
     await event_graph_db.update_node(foo_model, NodeId("some_other"), {"name": "bla"}, False, "reported")
