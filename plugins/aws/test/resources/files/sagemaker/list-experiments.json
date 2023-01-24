@@ -1,0 +1,16 @@
+{
+    "ExperimentSummaries": [
+        {
+            "ExperimentArn": "string",
+            "ExperimentName": "frankenstein",
+            "DisplayName": "string",
+            "ExperimentSource": {
+                "SourceArn": "string",
+                "SourceType": "string"
+            },
+            "CreationTime": "2015-01-01T00:00:00Z",
+            "LastModifiedTime": "2015-01-01T00:00:00Z"
+        }
+    ],
+    "NextToken": "string"
+}

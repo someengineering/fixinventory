@@ -1,0 +1,385 @@
+{
+    "HyperParameterTuningJobName": "hptjob",
+    "HyperParameterTuningJobArn": "string",
+    "HyperParameterTuningJobConfig": {
+        "Strategy": "Bayesian",
+        "StrategyConfig": {
+            "HyperbandStrategyConfig": {
+                "MinResource": 123,
+                "MaxResource": 123
+            }
+        },
+        "HyperParameterTuningJobObjective": {
+            "Type": "Maximize",
+            "MetricName": "string"
+        },
+        "ResourceLimits": {
+            "MaxNumberOfTrainingJobs": 123,
+            "MaxParallelTrainingJobs": 123
+        },
+        "ParameterRanges": {
+            "IntegerParameterRanges": [
+                {
+                    "Name": "string",
+                    "MinValue": "string",
+                    "MaxValue": "string",
+                    "ScalingType": "ReverseLogarithmic"
+                }
+            ],
+            "ContinuousParameterRanges": [
+                {
+                    "Name": "string",
+                    "MinValue": "string",
+                    "MaxValue": "string",
+                    "ScalingType": "ReverseLogarithmic"
+                }
+            ],
+            "CategoricalParameterRanges": [
+                {
+                    "Name": "string",
+                    "Values": [
+                        "string"
+                    ]
+                }
+            ]
+        },
+        "TrainingJobEarlyStoppingType": "Off",
+        "TuningJobCompletionCriteria": {
+            "TargetObjectiveMetricValue": 1.1
+        },
+        "RandomSeed": 123
+    },
+    "TrainingJobDefinition": {
+        "DefinitionName": "string",
+        "TuningObjective": {
+            "Type": "Maximize",
+            "MetricName": "string"
+        },
+        "HyperParameterRanges": {
+            "IntegerParameterRanges": [
+                {
+                    "Name": "string",
+                    "MinValue": "string",
+                    "MaxValue": "string",
+                    "ScalingType": "ReverseLogarithmic"
+                }
+            ],
+            "ContinuousParameterRanges": [
+                {
+                    "Name": "string",
+                    "MinValue": "string",
+                    "MaxValue": "string",
+                    "ScalingType": "ReverseLogarithmic"
+                }
+            ],
+            "CategoricalParameterRanges": [
+                {
+                    "Name": "string",
+                    "Values": [
+                        "string"
+                    ]
+                }
+            ]
+        },
+        "StaticHyperParameters": {
+            "string": "string"
+        },
+        "AlgorithmSpecification": {
+            "TrainingImage": "string",
+            "TrainingInputMode": "FastFile",
+            "AlgorithmName": "string",
+            "MetricDefinitions": [
+                {
+                    "Name": "string",
+                    "Regex": "string"
+                }
+            ]
+        },
+        "RoleArn": "string",
+        "InputDataConfig": [
+            {
+                "ChannelName": "string",
+                "DataSource": {
+                    "S3DataSource": {
+                        "S3DataType": "AugmentedManifestFile",
+                        "S3Uri": "s3://bucketname/exampleprefix",
+                        "S3DataDistributionType": "ShardedByS3Key",
+                        "AttributeNames": [
+                            "string"
+                        ],
+                        "InstanceGroupNames": [
+                            "string"
+                        ]
+                    },
+                    "FileSystemDataSource": {
+                        "FileSystemId": "string",
+                        "FileSystemAccessMode": "ro",
+                        "FileSystemType": "FSxLustre",
+                        "DirectoryPath": "string"
+                    }
+                },
+                "ContentType": "string",
+                "CompressionType": "Gzip",
+                "RecordWrapperType": "RecordIO",
+                "InputMode": "FastFile",
+                "ShuffleConfig": {
+                    "Seed": 123
+                }
+            }
+        ],
+        "VpcConfig": {
+            "SecurityGroupIds": [
+                "string"
+            ],
+            "Subnets": [
+                "string"
+            ]
+        },
+        "OutputDataConfig": {
+            "KmsKeyId": "string",
+            "S3OutputPath": "s3://bucket-name/key-name-prefix"
+        },
+        "ResourceConfig": {
+            "InstanceType": "ml.m4.xlarge",
+            "InstanceCount": 123,
+            "VolumeSizeInGB": 123,
+            "VolumeKmsKeyId": "string",
+            "InstanceGroups": [
+                {
+                    "InstanceType": "ml.m4.xlarge",
+                    "InstanceCount": 123,
+                    "InstanceGroupName": "string"
+                }
+            ],
+            "KeepAlivePeriodInSeconds": 123
+        },
+        "StoppingCondition": {
+            "MaxRuntimeInSeconds": 123,
+            "MaxWaitTimeInSeconds": 123
+        },
+        "EnableNetworkIsolation": true,
+        "EnableInterContainerTrafficEncryption": true,
+        "EnableManagedSpotTraining": true,
+        "CheckpointConfig": {
+            "S3Uri": "string",
+            "LocalPath": "string"
+        },
+        "RetryStrategy": {
+            "MaximumRetryAttempts": 123
+        },
+        "HyperParameterTuningResourceConfig": {
+            "InstanceType": "ml.m4.xlarge",
+            "InstanceCount": 123,
+            "VolumeSizeInGB": 123,
+            "VolumeKmsKeyId": "string",
+            "AllocationStrategy": "Prioritized",
+            "InstanceConfigs": [
+                {
+                    "InstanceType": "ml.m4.xlarge",
+                    "InstanceCount": 123,
+                    "VolumeSizeInGB": 123
+                }
+            ]
+        }
+    },
+    "TrainingJobDefinitions": [
+        {
+            "DefinitionName": "string",
+            "TuningObjective": {
+                "Type": "Maximize",
+                "MetricName": "string"
+            },
+            "HyperParameterRanges": {
+                "IntegerParameterRanges": [
+                    {
+                        "Name": "string",
+                        "MinValue": "string",
+                        "MaxValue": "string",
+                        "ScalingType": "Auto"
+                    }
+                ],
+                "ContinuousParameterRanges": [
+                    {
+                        "Name": "string",
+                        "MinValue": "string",
+                        "MaxValue": "string",
+                        "ScalingType": "Auto"
+                    }
+                ],
+                "CategoricalParameterRanges": [
+                    {
+                        "Name": "string",
+                        "Values": [
+                            "string"
+                        ]
+                    }
+                ]
+            },
+            "StaticHyperParameters": {
+                "string": "string"
+            },
+            "AlgorithmSpecification": {
+                "TrainingImage": "string",
+                "TrainingInputMode": "Pipe",
+                "AlgorithmName": "string",
+                "MetricDefinitions": [
+                    {
+                        "Name": "string",
+                        "Regex": "string"
+                    }
+                ]
+            },
+            "RoleArn": "string",
+            "InputDataConfig": [
+                {
+                    "ChannelName": "string",
+                    "DataSource": {
+                        "S3DataSource": {
+                            "S3DataType": "AugmentedManifestFile",
+                            "S3Uri": "string",
+                            "S3DataDistributionType": "FullyReplicated",
+                            "AttributeNames": [
+                                "string"
+                            ],
+                            "InstanceGroupNames": [
+                                "string"
+                            ]
+                        },
+                        "FileSystemDataSource": {
+                            "FileSystemId": "string",
+                            "FileSystemAccessMode": "rw",
+                            "FileSystemType": "EFS",
+                            "DirectoryPath": "string"
+                        }
+                    },
+                    "ContentType": "string",
+                    "CompressionType": "Gzip",
+                    "RecordWrapperType": "RecordIO",
+                    "InputMode": "Pipe",
+                    "ShuffleConfig": {
+                        "Seed": 123
+                    }
+                }
+            ],
+            "VpcConfig": {
+                "SecurityGroupIds": [
+                    "string"
+                ],
+                "Subnets": [
+                    "string"
+                ]
+            },
+            "OutputDataConfig": {
+                "KmsKeyId": "string",
+                "S3OutputPath": "string"
+            },
+            "ResourceConfig": {
+                "InstanceType": "ml.m4.xlarge",
+                "InstanceCount": 123,
+                "VolumeSizeInGB": 123,
+                "VolumeKmsKeyId": "string",
+                "InstanceGroups": [
+                    {
+                        "InstanceType": "ml.m4.xlarge",
+                        "InstanceCount": 123,
+                        "InstanceGroupName": "string"
+                    }
+                ],
+                "KeepAlivePeriodInSeconds": 123
+            },
+            "StoppingCondition": {
+                "MaxRuntimeInSeconds": 123,
+                "MaxWaitTimeInSeconds": 123
+            },
+            "EnableNetworkIsolation": true,
+            "EnableInterContainerTrafficEncryption": true,
+            "EnableManagedSpotTraining": true,
+            "CheckpointConfig": {
+                "S3Uri": "string",
+                "LocalPath": "string"
+            },
+            "RetryStrategy": {
+                "MaximumRetryAttempts": 123
+            },
+            "HyperParameterTuningResourceConfig": {
+                "InstanceType": "ml.m4.xlarge",
+                "InstanceCount": 123,
+                "VolumeSizeInGB": 123,
+                "VolumeKmsKeyId": "string",
+                "AllocationStrategy": "Prioritized",
+                "InstanceConfigs": [
+                    {
+                        "InstanceType": "ml.m4.xlarge",
+                        "InstanceCount": 123,
+                        "VolumeSizeInGB": 123
+                    }
+                ]
+            }
+        }
+    ],
+    "HyperParameterTuningJobStatus": "Completed",
+    "CreationTime": "2015-01-01T00:00:00Z",
+    "HyperParameterTuningEndTime": "2015-01-01T00:00:00Z",
+    "LastModifiedTime": "2015-01-01T00:00:00Z",
+    "TrainingJobStatusCounters": {
+        "Completed": 123,
+        "InProgress": 123,
+        "RetryableError": 123,
+        "NonRetryableError": 123,
+        "Stopped": 123
+    },
+    "ObjectiveStatusCounters": {
+        "Succeeded": 123,
+        "Pending": 123,
+        "Failed": 123
+    },
+    "BestTrainingJob": {
+        "TrainingJobDefinitionName": "string",
+        "TrainingJobName": "string",
+        "TrainingJobArn": "string",
+        "TuningJobName": "string",
+        "CreationTime": "2015-01-01T00:00:00Z",
+        "TrainingStartTime": "2015-01-01T00:00:00Z",
+        "TrainingEndTime": "2015-01-01T00:00:00Z",
+        "TrainingJobStatus": "InProgress",
+        "TunedHyperParameters": {
+            "string": "string"
+        },
+        "FailureReason": "string",
+        "FinalHyperParameterTuningJobObjectiveMetric": {
+            "Type": "Maximize",
+            "MetricName": "string",
+            "Value": 1.1
+        },
+        "ObjectiveStatus": "Succeeded"
+    },
+    "OverallBestTrainingJob": {
+        "TrainingJobDefinitionName": "string",
+        "TrainingJobName": "string",
+        "TrainingJobArn": "string",
+        "TuningJobName": "string",
+        "CreationTime": "2015-01-01T00:00:00Z",
+        "TrainingStartTime": "2015-01-01T00:00:00Z",
+        "TrainingEndTime": "2015-01-01T00:00:00Z",
+        "TrainingJobStatus": "InProgress",
+        "TunedHyperParameters": {
+            "string": "string"
+        },
+        "FailureReason": "string",
+        "FinalHyperParameterTuningJobObjectiveMetric": {
+            "Type": "Maximize",
+            "MetricName": "string",
+            "Value": 1.1
+        },
+        "ObjectiveStatus": "Succeeded"
+    },
+    "WarmStartConfig": {
+        "ParentHyperParameterTuningJobs": [
+            {
+                "HyperParameterTuningJobName": "string"
+            }
+        ],
+        "WarmStartType": "IdenticalDataAndAlgorithm"
+    },
+    "FailureReason": "string"
+}

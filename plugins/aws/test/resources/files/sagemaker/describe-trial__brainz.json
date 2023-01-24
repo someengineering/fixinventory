@@ -1,0 +1,28 @@
+{
+    "TrialName": "brainz",
+    "TrialArn": "string",
+    "DisplayName": "string",
+    "ExperimentName": "frankenstein",
+    "Source": {
+        "SourceArn": "string",
+        "SourceType": "string"
+    },
+    "CreationTime": "2015-01-01T00:00:00Z",
+    "CreatedBy": {
+        "UserProfileArn": "string",
+        "UserProfileName": "string",
+        "DomainId": "string"
+    },
+    "LastModifiedTime": "2015-01-01T00:00:00Z",
+    "LastModifiedBy": {
+        "UserProfileArn": "string",
+        "UserProfileName": "string",
+        "DomainId": "string"
+    },
+    "MetadataProperties": {
+        "CommitId": "string",
+        "Repository": "string",
+        "GeneratedBy": "string",
+        "ProjectId": "12345"
+    }
+}

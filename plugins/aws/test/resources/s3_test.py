@@ -7,9 +7,15 @@ from resoto_plugin_aws.resource.s3 import AwsS3Bucket
 
 def test_buckets() -> None:
     first, builder = round_trip_for(AwsS3Bucket)
-    assert len(builder.resources_of(AwsS3Bucket)) == 3
+    assert len(builder.resources_of(AwsS3Bucket)) == 4
     assert first.arn == "arn:aws:s3:::bucket-1"
     assert len(first.tags) == 1
+
+
+def test_name_from_path() -> None:
+    assert AwsS3Bucket.name_from_path("S3://mybucket/puppy.jpg") == "mybucket"
+    assert AwsS3Bucket.name_from_path("https://s3.region-code.amazonaws.com/bucket-name/key-name") == "bucket-name"
+    assert AwsS3Bucket.name_from_path("https://some-bucket.s3.region-code.amazonaws.com/key-name") == "some-bucket"
 
 
 def test_tagging() -> None:

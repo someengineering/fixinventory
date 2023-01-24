@@ -1,0 +1,36 @@
+{
+    "ArtifactName": "string",
+    "ArtifactArn": "arn",
+    "Source": {
+        "SourceUri": "string",
+        "SourceTypes": [
+            {
+                "SourceIdType": "MD5Hash",
+                "Value": "string"
+            }
+        ]
+    },
+    "ArtifactType": "string",
+    "Properties": {
+        "string": "string"
+    },
+    "CreationTime": "2015-01-01T00:00:00Z",
+    "CreatedBy": {
+        "UserProfileArn": "string",
+        "UserProfileName": "string",
+        "DomainId": "string"
+    },
+    "LastModifiedTime": "2015-01-01T00:00:00Z",
+    "LastModifiedBy": {
+        "UserProfileArn": "string",
+        "UserProfileName": "string",
+        "DomainId": "string"
+    },
+    "MetadataProperties": {
+        "CommitId": "string",
+        "Repository": "string",
+        "GeneratedBy": "string",
+        "ProjectId": "string"
+    },
+    "LineageGroupArn": "string"
+}

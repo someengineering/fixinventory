@@ -1,0 +1,17 @@
+{
+    "InferenceRecommendationsJobs": [
+        {
+            "JobName": "irjob",
+            "JobDescription": "string",
+            "JobType": "Default",
+            "JobArn": "string",
+            "Status": "PENDING",
+            "CreationTime": "2015-01-01T00:00:00Z",
+            "CompletionTime": "2015-01-01T00:00:00Z",
+            "RoleArn": "string",
+            "LastModifiedTime": "2015-01-01T00:00:00Z",
+            "FailureReason": "string"
+        }
+    ],
+    "NextToken": "string"
+}

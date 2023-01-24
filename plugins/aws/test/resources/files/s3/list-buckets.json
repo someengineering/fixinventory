@@ -11,6 +11,10 @@
       {
         "Name": "bucket-3",
         "CreationDate": "2020-09-25T17:07:57+00:00"
+      },
+      {
+        "Name": "some-sagemaker-bucket",
+        "CreationDate": "2023-01-16T18:02:57+00:00"
       }
     ],
     "Owner": {

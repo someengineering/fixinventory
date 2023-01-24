@@ -1,0 +1,20 @@
+{
+    "AutoMLJobSummaries": [
+        {
+            "AutoMLJobName": "mljob",
+            "AutoMLJobArn": "string",
+            "AutoMLJobStatus": "Completed",
+            "AutoMLJobSecondaryStatus": "Starting",
+            "CreationTime": "2015-01-01T00:00:00Z",
+            "EndTime": "2015-01-01T00:00:00Z",
+            "LastModifiedTime": "2015-01-01T00:00:00Z",
+            "FailureReason": "string",
+            "PartialFailureReasons": [
+                {
+                    "PartialFailureMessage": "string"
+                }
+            ]
+        }
+    ],
+    "NextToken": "string"
+}

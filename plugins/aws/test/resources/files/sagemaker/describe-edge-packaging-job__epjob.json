@@ -1,0 +1,27 @@
+{
+    "EdgePackagingJobArn": "string",
+    "EdgePackagingJobName": "epjob",
+    "CompilationJobName": "string",
+    "ModelName": "string",
+    "ModelVersion": "string",
+    "RoleArn": "string",
+    "OutputConfig": {
+        "S3OutputLocation": "string",
+        "KmsKeyId": "string",
+        "PresetDeploymentType": "GreengrassV2Component",
+        "PresetDeploymentConfig": "string"
+    },
+    "ResourceKey": "string",
+    "EdgePackagingJobStatus": "STARTING",
+    "EdgePackagingJobStatusMessage": "string",
+    "CreationTime": "2015-01-01T00:00:00Z",
+    "LastModifiedTime": "2015-01-01T00:00:00Z",
+    "ModelArtifact": "string",
+    "ModelSignature": "string",
+    "PresetDeploymentOutput": {
+        "Type": "GreengrassV2Component",
+        "Artifact": "string",
+        "Status": "COMPLETED",
+        "StatusMessage": "string"
+    }
+}

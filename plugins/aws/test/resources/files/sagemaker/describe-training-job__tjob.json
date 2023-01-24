@@ -1,0 +1,213 @@
+{
+    "TrainingJobName": "tjob",
+    "TrainingJobArn": "tjob_arn",
+    "TuningJobArn": "string",
+    "LabelingJobArn": "string",
+    "AutoMLJobArn": "string",
+    "ModelArtifacts": {
+        "S3ModelArtifacts": "s3://bucket-name/keynameprefix/model.tar.gz"
+    },
+    "TrainingJobStatus": "Stopped",
+    "SecondaryStatus": "Restarting",
+    "FailureReason": "string",
+    "HyperParameters": {
+        "string": "string"
+    },
+    "AlgorithmSpecification": {
+        "TrainingImage": "string",
+        "AlgorithmName": "string",
+        "TrainingInputMode": "FastFile",
+        "MetricDefinitions": [
+            {
+                "Name": "string",
+                "Regex": "string"
+            }
+        ],
+        "EnableSageMakerMetricsTimeSeries": true,
+        "ContainerEntrypoint": [
+            "string"
+        ],
+        "ContainerArguments": [
+            "string"
+        ]
+    },
+    "RoleArn": "string",
+    "InputDataConfig": [
+        {
+            "ChannelName": "string",
+            "DataSource": {
+                "S3DataSource": {
+                    "S3DataType": "AugmentedManifestFile",
+                    "S3Uri": "string",
+                    "S3DataDistributionType": "ShardedByS3Key",
+                    "AttributeNames": [
+                        "string"
+                    ],
+                    "InstanceGroupNames": [
+                        "string"
+                    ]
+                },
+                "FileSystemDataSource": {
+                    "FileSystemId": "string",
+                    "FileSystemAccessMode": "ro",
+                    "FileSystemType": "FSxLustre",
+                    "DirectoryPath": "string"
+                }
+            },
+            "ContentType": "string",
+            "CompressionType": "Gzip",
+            "RecordWrapperType": "RecordIO",
+            "InputMode": "FastFile",
+            "ShuffleConfig": {
+                "Seed": 123
+            }
+        }
+    ],
+    "OutputDataConfig": {
+        "KmsKeyId": "string",
+        "S3OutputPath": "string"
+    },
+    "ResourceConfig": {
+        "InstanceType": "ml.trn1.32xlarge",
+        "InstanceCount": 123,
+        "VolumeSizeInGB": 123,
+        "VolumeKmsKeyId": "string",
+        "InstanceGroups": [
+            {
+                "InstanceType": "ml.trn1.32xlarge",
+                "InstanceCount": 123,
+                "InstanceGroupName": "string"
+            }
+        ],
+        "KeepAlivePeriodInSeconds": 123
+    },
+    "VpcConfig": {
+        "SecurityGroupIds": [
+            "string"
+        ],
+        "Subnets": [
+            "string"
+        ]
+    },
+    "StoppingCondition": {
+        "MaxRuntimeInSeconds": 123,
+        "MaxWaitTimeInSeconds": 123
+    },
+    "CreationTime": "2015-01-01T00:00:00Z",
+    "TrainingStartTime": "2015-01-01T00:00:00Z",
+    "TrainingEndTime": "2015-01-01T00:00:00Z",
+    "LastModifiedTime": "2015-01-01T00:00:00Z",
+    "SecondaryStatusTransitions": [
+        {
+            "Status": "Restarting",
+            "StartTime": "2015-01-01T00:00:00Z",
+            "EndTime": "2015-01-01T00:00:00Z",
+            "StatusMessage": "string"
+        }
+    ],
+    "FinalMetricDataList": [
+        {
+            "MetricName": "string",
+            "Value": 1.1,
+            "Timestamp": "2015-01-01T00:00:00Z"
+        }
+    ],
+    "EnableNetworkIsolation": true,
+    "EnableInterContainerTrafficEncryption": true,
+    "EnableManagedSpotTraining": true,
+    "CheckpointConfig": {
+        "S3Uri": "string",
+        "LocalPath": "string"
+    },
+    "TrainingTimeInSeconds": 123,
+    "BillableTimeInSeconds": 123,
+    "DebugHookConfig": {
+        "LocalPath": "string",
+        "S3OutputPath": "string",
+        "HookParameters": {
+            "string": "string"
+        },
+        "CollectionConfigurations": [
+            {
+                "CollectionName": "string",
+                "CollectionParameters": {
+                    "string": "string"
+                }
+            }
+        ]
+    },
+    "ExperimentConfig": {
+        "ExperimentName": "string",
+        "TrialName": "string",
+        "TrialComponentDisplayName": "string",
+        "RunName": "string"
+    },
+    "DebugRuleConfigurations": [
+        {
+            "RuleConfigurationName": "string",
+            "LocalPath": "string",
+            "S3OutputPath": "string",
+            "RuleEvaluatorImage": "string",
+            "InstanceType": "ml.g4dn.16xlarge",
+            "VolumeSizeInGB": 123,
+            "RuleParameters": {
+                "string": "string"
+            }
+        }
+    ],
+    "TensorBoardOutputConfig": {
+        "LocalPath": "string",
+        "S3OutputPath": "string"
+    },
+    "DebugRuleEvaluationStatuses": [
+        {
+            "RuleConfigurationName": "string",
+            "RuleEvaluationJobArn": "string",
+            "RuleEvaluationStatus": "Stopped",
+            "StatusDetails": "string",
+            "LastModifiedTime": "2015-01-01T00:00:00Z"
+        }
+    ],
+    "ProfilerConfig": {
+        "S3OutputPath": "string",
+        "ProfilingIntervalInMilliseconds": 123,
+        "ProfilingParameters": {
+            "string": "string"
+        },
+        "DisableProfiler": true
+    },
+    "ProfilerRuleConfigurations": [
+        {
+            "RuleConfigurationName": "string",
+            "LocalPath": "string",
+            "S3OutputPath": "string",
+            "RuleEvaluatorImage": "string",
+            "InstanceType": "ml.g4dn.16xlarge",
+            "VolumeSizeInGB": 123,
+            "RuleParameters": {
+                "string": "string"
+            }
+        }
+    ],
+    "ProfilerRuleEvaluationStatuses": [
+        {
+            "RuleConfigurationName": "string",
+            "RuleEvaluationJobArn": "string",
+            "RuleEvaluationStatus": "Stopped",
+            "StatusDetails": "string",
+            "LastModifiedTime": "2015-01-01T00:00:00Z"
+        }
+    ],
+    "ProfilingStatus": "Disabled",
+    "RetryStrategy": {
+        "MaximumRetryAttempts": 123
+    },
+    "Environment": {
+        "string": "string"
+    },
+    "WarmPoolStatus": {
+        "Status": "Available",
+        "ResourceRetainedBillableTimeInSeconds": 123,
+        "ReusedByJob": "string"
+    }
+}

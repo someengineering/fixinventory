@@ -1,0 +1,19 @@
+{
+    "NextToken": "string",
+    "NotebookInstances": [
+        {
+            "NotebookInstanceName": "notebookname",
+            "NotebookInstanceArn": "string",
+            "NotebookInstanceStatus": "Pending",
+            "Url": "string",
+            "InstanceType": "ml.t2.medium",
+            "CreationTime": "2015-01-01T00:00:00Z",
+            "LastModifiedTime": "2015-01-01T00:00:00Z",
+            "NotebookInstanceLifecycleConfigName": "string",
+            "DefaultCodeRepository": "string",
+            "AdditionalCodeRepositories": [
+                "string"
+            ]
+        }
+    ]
+}

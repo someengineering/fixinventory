@@ -1,0 +1,15 @@
+{
+    "PipelineSummaries": [
+        {
+            "PipelineArn": "string",
+            "PipelineName": "SomePipeline",
+            "PipelineDisplayName": "string",
+            "PipelineDescription": "string",
+            "RoleArn": "string",
+            "CreationTime": "2015-01-01T00:00:00Z",
+            "LastModifiedTime": "2015-01-01T00:00:00Z",
+            "LastExecutionTime": "2015-01-01T00:00:00Z"
+        }
+    ],
+    "NextToken": "string"
+}

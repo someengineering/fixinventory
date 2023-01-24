@@ -1,0 +1,224 @@
+{
+    "EndpointName": "SomeEndpoint",
+    "EndpointArn": "SomeEndpointArn",
+    "EndpointConfigName": "string",
+    "ProductionVariants": [
+        {
+            "VariantName": "string",
+            "DeployedImages": [
+                {
+                    "SpecifiedImage": "string",
+                    "ResolvedImage": "string",
+                    "ResolutionTime": "2015-01-01T00:00:00Z"
+                }
+            ],
+            "CurrentWeight": null,
+            "DesiredWeight": null,
+            "CurrentInstanceCount": 123,
+            "DesiredInstanceCount": 123,
+            "VariantStatus": [
+                {
+                    "Status": "Creating",
+                    "StatusMessage": "string",
+                    "StartTime": "2015-01-01T00:00:00Z"
+                }
+            ],
+            "CurrentServerlessConfig": {
+                "MemorySizeInMB": 123,
+                "MaxConcurrency": 123
+            },
+            "DesiredServerlessConfig": {
+                "MemorySizeInMB": 123,
+                "MaxConcurrency": 123
+            }
+        }
+    ],
+    "DataCaptureConfig": {
+        "EnableCapture": true,
+        "CaptureStatus": "Started",
+        "CurrentSamplingPercentage": 123,
+        "DestinationS3Uri": "string",
+        "KmsKeyId": "string"
+    },
+    "EndpointStatus": "Failed",
+    "FailureReason": "string",
+    "CreationTime": "2015-01-01T00:00:00Z",
+    "LastModifiedTime": "2015-01-01T00:00:00Z",
+    "LastDeploymentConfig": {
+        "BlueGreenUpdatePolicy": {
+            "TrafficRoutingConfiguration": {
+                "Type": "ALL_AT_ONCE",
+                "WaitIntervalInSeconds": 123,
+                "CanarySize": {
+                    "Type": "INSTANCE_COUNT",
+                    "Value": 123
+                },
+                "LinearStepSize": {
+                    "Type": "INSTANCE_COUNT",
+                    "Value": 123
+                }
+            },
+            "TerminationWaitInSeconds": 123,
+            "MaximumExecutionTimeoutInSeconds": 123
+        },
+        "AutoRollbackConfiguration": {
+            "Alarms": [
+                {
+                    "AlarmName": "string"
+                }
+            ]
+        }
+    },
+    "AsyncInferenceConfig": {
+        "ClientConfig": {
+            "MaxConcurrentInvocationsPerInstance": 123
+        },
+        "OutputConfig": {
+            "KmsKeyId": "string",
+            "S3OutputPath": "string",
+            "NotificationConfig": {
+                "SuccessTopic": "string",
+                "ErrorTopic": "string"
+            }
+        }
+    },
+    "PendingDeploymentSummary": {
+        "EndpointConfigName": "string",
+        "ProductionVariants": [
+            {
+                "VariantName": "string",
+                "DeployedImages": [
+                    {
+                        "SpecifiedImage": "string",
+                        "ResolvedImage": "string",
+                        "ResolutionTime": "2015-01-01T00:00:00Z"
+                    }
+                ],
+                "CurrentWeight": 1.1,
+                "DesiredWeight": 1.1,
+                "CurrentInstanceCount": 123,
+                "DesiredInstanceCount": 123,
+                "InstanceType": "ml.t2.medium",
+                "AcceleratorType": "ml.eia1.medium",
+                "VariantStatus": [
+                    {
+                        "Status": "Creating",
+                        "StatusMessage": "string",
+                        "StartTime": "2015-01-01T00:00:00Z"
+                    }
+                ],
+                "CurrentServerlessConfig": {
+                    "MemorySizeInMB": 123,
+                    "MaxConcurrency": 123
+                },
+                "DesiredServerlessConfig": {
+                    "MemorySizeInMB": 123,
+                    "MaxConcurrency": 123
+                }
+            }
+        ],
+        "StartTime": "2015-01-01T00:00:00Z",
+        "ShadowProductionVariants": [
+            {
+                "VariantName": "string",
+                "DeployedImages": [
+                    {
+                        "SpecifiedImage": "string",
+                        "ResolvedImage": "string",
+                        "ResolutionTime": "2015-01-01T00:00:00Z"
+                    }
+                ],
+                "CurrentWeight": 1.1,
+                "DesiredWeight": 1.1,
+                "CurrentInstanceCount": 123,
+                "DesiredInstanceCount": 123,
+                "InstanceType": "ml.t2.medium",
+                "AcceleratorType": "ml.eia1.medium",
+                "VariantStatus": [
+                    {
+                        "Status": "Baking",
+                        "StatusMessage": "string",
+                        "StartTime": "2015-01-01T00:00:00Z"
+                    }
+                ],
+                "CurrentServerlessConfig": {
+                    "MemorySizeInMB": 123,
+                    "MaxConcurrency": 123
+                },
+                "DesiredServerlessConfig": {
+                    "MemorySizeInMB": 123,
+                    "MaxConcurrency": 123
+                }
+            }
+        ]
+    },
+    "ExplainerConfig": {
+        "ClarifyExplainerConfig": {
+            "EnableExplanations": "string",
+            "InferenceConfig": {
+                "FeaturesAttribute": "string",
+                "ContentTemplate": "string",
+                "MaxRecordCount": 123,
+                "MaxPayloadInMB": 123,
+                "ProbabilityIndex": 123,
+                "LabelIndex": 123,
+                "ProbabilityAttribute": "string",
+                "LabelAttribute": "string",
+                "LabelHeaders": [
+                    "string"
+                ],
+                "FeatureHeaders": [
+                    "string"
+                ],
+                "FeatureTypes": [
+                    "numerical"
+                ]
+            },
+            "ShapConfig": {
+                "ShapBaselineConfig": {
+                    "MimeType": "string",
+                    "ShapBaseline": "string",
+                    "ShapBaselineUri": "string"
+                },
+                "NumberOfSamples": 123,
+                "UseLogit": true,
+                "Seed": 123,
+                "TextConfig": {
+                    "Language": "af",
+                    "Granularity": "token"
+                }
+            }
+        }
+    },
+    "ShadowProductionVariants": [
+        {
+            "VariantName": "string",
+            "DeployedImages": [
+                {
+                    "SpecifiedImage": "string",
+                    "ResolvedImage": "string",
+                    "ResolutionTime": "2015-01-01T00:00:00Z"
+                }
+            ],
+            "CurrentWeight": 1.1,
+            "DesiredWeight": 1.2,
+            "CurrentInstanceCount": 123,
+            "DesiredInstanceCount": 123,
+            "VariantStatus": [
+                {
+                    "Status": "Creating",
+                    "StatusMessage": "string",
+                    "StartTime": "2015-01-01T00:00:00Z"
+                }
+            ],
+            "CurrentServerlessConfig": {
+                "MemorySizeInMB": 123,
+                "MaxConcurrency": 123
+            },
+            "DesiredServerlessConfig": {
+                "MemorySizeInMB": 123,
+                "MaxConcurrency": 123
+            }
+        }
+    ]
+}

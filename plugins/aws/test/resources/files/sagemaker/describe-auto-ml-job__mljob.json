@@ -1,0 +1,131 @@
+{
+    "AutoMLJobName": "mljob",
+    "AutoMLJobArn": "string",
+    "InputDataConfig": [
+        {
+            "DataSource": {
+                "S3DataSource": {
+                    "S3DataType": "S3Prefix",
+                    "S3Uri": "string"
+                }
+            },
+            "CompressionType": "Gzip",
+            "TargetAttributeName": "string",
+            "ContentType": "string",
+            "ChannelType": "training"
+        }
+    ],
+    "OutputDataConfig": {
+        "KmsKeyId": "string",
+        "S3OutputPath": "string"
+    },
+    "RoleArn": "string",
+    "AutoMLJobObjective": {
+        "MetricName": "Accuracy"
+    },
+    "ProblemType": "BinaryClassification",
+    "AutoMLJobConfig": {
+        "CompletionCriteria": {
+            "MaxCandidates": 123,
+            "MaxRuntimePerTrainingJobInSeconds": 123,
+            "MaxAutoMLJobRuntimeInSeconds": 123
+        },
+        "SecurityConfig": {
+            "VolumeKmsKeyId": "string",
+            "EnableInterContainerTrafficEncryption": true,
+            "VpcConfig": {
+                "SecurityGroupIds": [
+                    "string"
+                ],
+                "Subnets": [
+                    "string"
+                ]
+            }
+        },
+        "DataSplitConfig": {
+            "ValidationFraction": 1.1
+        },
+        "CandidateGenerationConfig": {
+            "FeatureSpecificationS3Uri": "string"
+        },
+        "Mode": "AUTO"
+    },
+    "CreationTime": "2015-01-01T00:00:00Z",
+    "EndTime": "2015-01-01T00:00:00Z",
+    "LastModifiedTime": "2015-01-01T00:00:00Z",
+    "FailureReason": "string",
+    "PartialFailureReasons": [
+        {
+            "PartialFailureMessage": "string"
+        }
+    ],
+    "BestCandidate": {
+        "CandidateName": "string",
+        "FinalAutoMLJobObjectiveMetric": {
+            "Type": "Maximize",
+            "MetricName": "Accuracy",
+            "Value": 1.1
+        },
+        "ObjectiveStatus": "Succeeded",
+        "CandidateSteps": [
+            {
+                "CandidateStepType": "AWS::SageMaker::TrainingJob",
+                "CandidateStepArn": "tjob_arn",
+                "CandidateStepName": "tjob"
+            }
+        ],
+        "CandidateStatus": "Completed",
+        "InferenceContainers": [
+            {
+                "Image": "string",
+                "ModelDataUrl": "string",
+                "Environment": {
+                    "string": "string"
+                }
+            }
+        ],
+        "CreationTime": "2015-01-01T00:00:00Z",
+        "EndTime": "2015-01-01T00:00:00Z",
+        "LastModifiedTime": "2015-01-01T00:00:00Z",
+        "FailureReason": "string",
+        "CandidateProperties": {
+            "CandidateArtifactLocations": {
+                "Explainability": "string",
+                "ModelInsights": "string"
+            },
+            "CandidateMetrics": [
+                {
+                    "MetricName": "Accuracy",
+                    "Value": 1.1,
+                    "Set": "Train",
+                    "StandardMetricName": "Accuracy"
+                }
+            ]
+        }
+    },
+    "AutoMLJobStatus": "Completed",
+    "AutoMLJobSecondaryStatus": "Starting",
+    "GenerateCandidateDefinitionsOnly": true,
+    "AutoMLJobArtifacts": {
+        "CandidateDefinitionNotebookLocation": "string",
+        "DataExplorationNotebookLocation": "string"
+    },
+    "ResolvedAttributes": {
+        "AutoMLJobObjective": {
+            "MetricName": "Accuracy"
+        },
+        "ProblemType": "BinaryClassification",
+        "CompletionCriteria": {
+            "MaxCandidates": 123,
+            "MaxRuntimePerTrainingJobInSeconds": 123,
+            "MaxAutoMLJobRuntimeInSeconds": 123
+        }
+    },
+    "ModelDeployConfig": {
+        "AutoGenerateEndpointName": true,
+        "EndpointName": "string"
+    },
+    "ModelDeployResult": {
+        "EndpointName": "string"
+    }
+}

@@ -1,0 +1,113 @@
+{
+    "ProcessingInputs": [
+        {
+            "InputName": "string",
+            "AppManaged": true,
+            "S3Input": {
+                "S3Uri": "string",
+                "LocalPath": "string",
+                "S3DataType": "S3Prefix",
+                "S3InputMode": "File",
+                "S3DataDistributionType": "ShardedByS3Key",
+                "S3CompressionType": "Gzip"
+            },
+            "DatasetDefinition": {
+                "AthenaDatasetDefinition": {
+                    "Catalog": "string",
+                    "Database": "string",
+                    "QueryString": "string",
+                    "WorkGroup": "string",
+                    "OutputS3Uri": "string",
+                    "KmsKeyId": "string",
+                    "OutputFormat": "TEXTFILE",
+                    "OutputCompression": "ZLIB"
+                },
+                "RedshiftDatasetDefinition": {
+                    "ClusterId": "string",
+                    "Database": "string",
+                    "DbUser": "string",
+                    "QueryString": "string",
+                    "ClusterRoleArn": "string",
+                    "OutputS3Uri": "string",
+                    "KmsKeyId": "string",
+                    "OutputFormat": "PARQUET",
+                    "OutputCompression": "SNAPPY"
+                },
+                "LocalPath": "string",
+                "DataDistributionType": "ShardedByS3Key",
+                "InputMode": "Pipe"
+            }
+        }
+    ],
+    "ProcessingOutputConfig": {
+        "Outputs": [
+            {
+                "OutputName": "string",
+                "S3Output": {
+                    "S3Uri": "string",
+                    "LocalPath": "string",
+                    "S3UploadMode": "Continuous"
+                },
+                "FeatureStoreOutput": {
+                    "FeatureGroupName": "string"
+                },
+                "AppManaged": true
+            }
+        ],
+        "KmsKeyId": "string"
+    },
+    "ProcessingJobName": "pjob",
+    "ProcessingResources": {
+        "ClusterConfig": {
+            "InstanceCount": 123,
+            "InstanceType": "ml.t3.medium",
+            "VolumeSizeInGB": 123,
+            "VolumeKmsKeyId": "string"
+        }
+    },
+    "StoppingCondition": {
+        "MaxRuntimeInSeconds": 123
+    },
+    "AppSpecification": {
+        "ImageUri": "string",
+        "ContainerEntrypoint": [
+            "string"
+        ],
+        "ContainerArguments": [
+            "string"
+        ]
+    },
+    "Environment": {
+        "string": "string"
+    },
+    "NetworkConfig": {
+        "EnableInterContainerTrafficEncryption": true,
+        "EnableNetworkIsolation": true,
+        "VpcConfig": {
+            "SecurityGroupIds": [
+                "string"
+            ],
+            "Subnets": [
+                "string"
+            ]
+        }
+    },
+    "RoleArn": "string",
+    "ExperimentConfig": {
+        "ExperimentName": "string",
+        "TrialName": "string",
+        "TrialComponentDisplayName": "string",
+        "RunName": "string"
+    },
+    "ProcessingJobArn": "string",
+    "ProcessingJobStatus": "InProgress",
+    "ExitMessage": "string",
+    "FailureReason": "string",
+    "ProcessingEndTime": "2015-01-01T00:00:00Z",
+    "ProcessingStartTime": "2015-01-01T00:00:00Z",
+    "LastModifiedTime": "2015-01-01T00:00:00Z",
+    "CreationTime": "2015-01-01T00:00:00Z",
+    "MonitoringScheduleArn": "string",
+    "AutoMLJobArn": "string",
+    "TrainingJobArn": "string"
+}

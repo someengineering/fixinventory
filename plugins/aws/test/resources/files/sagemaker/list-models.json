@@ -1,0 +1,10 @@
+{
+    "Models": [
+        {
+            "ModelName": "topmodel",
+            "ModelArn": "arn:aws:sagemaker:eu-central-1:123456789:model/topmodel",
+            "CreationTime": "2015-01-01T00:00:00Z"
+        }
+    ],
+    "NextToken": "string"
+}

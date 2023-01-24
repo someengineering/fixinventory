@@ -815,6 +815,96 @@ models: Dict[str, List[AwsResotoModel]] = {
         # AwsResotoModel(#     "list-buckets", "Buckets", "Bucket", prefix="S3", prop_prefix="s3_"
         # )
     ],
+    "sagemaker": [
+        # AwsResotoModel(
+        #     "describe-notebook-instance",
+        #     None,
+        #     "DescribeNotebookInstanceOutput",
+        #     prefix="Sagemaker",
+        #     prop_prefix="notebook_",
+        # ),
+        # AwsResotoModel("describe-algorithm", None, "DescribeAlgorithmOutput", "Sagemaker", "algorithm_"),
+        # AwsResotoModel("describe-app", None, "DescribeAppResponse", prefix="Sagemaker", prop_prefix="app_"),
+        # AwsResotoModel("describe-model", None, "DescribeModelOutput", "Sagemaker", "model_")
+        # AwsResotoModel("describe-domain", None, "DescribeDomainResponse", prefix="Sagemaker", prop_prefix="domain_"),
+        # AwsResotoModel("list-experiments", None, "ExperimentSummary", "Sagemaker", "experiment_"),
+        # AwsResotoModel("describe-trial", "TrialSummaries", "DescribeTrialResponse", "Sagemaker", "trial_"),
+        # AwsResotoModel(
+        #     "list-code-repositories",
+        #     "CodeRepositorySummaryList",
+        #     "CodeRepositorySummary",
+        #     "Sagemaker",
+        #     "code_repository_",
+        # ),
+        # AwsResotoModel("describe-endpoint", "Endpoints", "DescribeEndpointOutput", "Sagemaker", "endpoint_"),
+        # AwsResotoModel("describe-image", "Images", "DescribeImageResponse", "Sagemaker", "image_"),
+        # AwsResotoModel(
+        #     "describe-artifact",
+        #     "ArtifactSummaries",
+        #     "DescribeArtifactResponse",
+        #     "Sagemaker",
+        #     "artifact_"
+        # ),
+        # AwsResotoModel("list-user-profiles", "UserProfiles", "UserProfileDetails", "Sagemaker", "user_profile_"),
+        # AwsResotoModel("list-pipelines", "PipelineSummaries", "DescribePipelineResponse", "Sagemaker", "pipeline_"),
+        # AwsResotoModel(
+        #     "list-auto-ml-jobs", "AutoMLJobSummaries", "DescribeAutoMLJobResponse", "Sagemaker", "auto_ml_job_"
+        # ),
+        # AwsResotoModel("list-workteams", "Workteams", "Workteam", "Sagemaker", "workteam_"),
+        # AwsResotoModel(
+        #     "list-compilation-jobs",
+        #     "CompilationJobSummaries",
+        #     "DescribeCompilationJobResponse",
+        #     "Sagemaker",
+        #     "compilation_job_",
+        # ),
+        # AwsResotoModel(
+        #     "list-edge-packaging-jobs",
+        #     "EdgePackagingJobSummaries",
+        #     "DescribeEdgePackagingJobResponse",
+        #     "Sagemaker",
+        #     "edge_packaging_job_",
+        # ),
+        # AwsResotoModel(
+        #     "list-hyper-parameter-tuning-jobs",
+        #     "HyperParameterTuningJobSummaries",
+        #     "DescribeHyperParameterTuningJobResponse",
+        #     "Sagemaker",
+        #     "hyper_parameter_tuning_job_",
+        # ),
+        # AwsResotoModel(
+        #     "list-inference-recommendations-job",
+        #     "InferenceRecommendationsJobs",
+        #     "DescribeInferenceRecommendationsJobResponse",
+        #     "Sagemaker",
+        #     "inference_recommendations_job_",
+        # ),
+        # AwsResotoModel(
+        #     "list-labeling-jobs",
+        #     "LabelingJobSummaryList",
+        #     "DescribeLabelingJobResponse",
+        #     "Sagemaker",
+        #     "labeling_job_"
+        # ),
+        # AwsResotoModel("list-projects", "ProjectSummaryList", "ProjectSummary", "Sagemaker", "project_")
+        # AwsResotoModel(
+        #     "list-processing-jobs",
+        #     "ProcessingJobSummaries",
+        #     "DescribeProcessingJobResponse",
+        #     "Sagemaker",
+        #     "processing_job_",
+        # ),
+        # AwsResotoModel(
+        #     "list-training-jobs", "TrainingJobSummaries", "DescribeTrainingJobResponse", "Sagemaker", "training_job_"
+        # ),
+        # AwsResotoModel(
+        #     "list-transform-jobs",
+        #     "TransformJobSummaries",
+        #     "DescribeTransformJobResponse",
+        #     "Sagemaker",
+        #     "transform_job_",
+        # )
+    ],
     "service-quotas": [
         # AwsResotoModel("list-service-quotas", "Quotas", "ServiceQuota", prefix="Quota", prop_prefix="quota_")
     ],

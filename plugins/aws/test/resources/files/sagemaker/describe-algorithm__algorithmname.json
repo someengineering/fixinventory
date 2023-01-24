@@ -1,0 +1,215 @@
+{
+    "AlgorithmName": "algorithmname",
+    "AlgorithmArn": "algorithmarn",
+    "AlgorithmDescription": "string",
+    "CreationTime": "2015-01-01T00:00:00Z",
+    "TrainingSpecification": {
+        "TrainingImage": "string",
+        "TrainingImageDigest": "string",
+        "SupportedHyperParameters": [
+            {
+                "Name": "string",
+                "Description": "string",
+                "Type": "Integer",
+                "Range": {
+                    "IntegerParameterRangeSpecification": {
+                        "MinValue": "string",
+                        "MaxValue": "string"
+                    },
+                    "ContinuousParameterRangeSpecification": {
+                        "MinValue": "string",
+                        "MaxValue": "string"
+                    },
+                    "CategoricalParameterRangeSpecification": {
+                        "Values": [
+                            "string"
+                        ]
+                    }
+                },
+                "IsTunable": true,
+                "IsRequired": true,
+                "DefaultValue": "string"
+            }
+        ],
+        "SupportedTrainingInstanceTypes": [
+            "ml.m4.xlarge"
+        ],
+        "SupportsDistributedTraining": true,
+        "MetricDefinitions": [
+            {
+                "Name": "string",
+                "Regex": "string"
+            }
+        ],
+        "TrainingChannels": [
+            {
+                "Name": "string",
+                "Description": "string",
+                "IsRequired": true,
+                "SupportedContentTypes": [
+                    "string"
+                ],
+                "SupportedCompressionTypes": [
+                    "Gzip"
+                ],
+                "SupportedInputModes": [
+                    "Pipe"
+                ]
+            }
+        ],
+        "SupportedTuningJobObjectiveMetrics": [
+            {
+                "Type": "Maximize",
+                "MetricName": "string"
+            }
+        ]
+    },
+    "InferenceSpecification": {
+        "Containers": [
+            {
+                "ContainerHostname": "string",
+                "Image": "string",
+                "ImageDigest": "string",
+                "ModelDataUrl": "string",
+                "ProductId": "string",
+                "Environment": {
+                    "string": "string"
+                },
+                "ModelInput": {
+                    "DataInputConfig": "string"
+                },
+                "Framework": "string",
+                "FrameworkVersion": "string",
+                "NearestModelName": "string"
+            }
+        ],
+        "SupportedTransformInstanceTypes": [
+            "ml.m4.xlarge"
+        ],
+        "SupportedRealtimeInferenceInstanceTypes": [
+            "ml.t2.medium"
+        ],
+        "SupportedContentTypes": [
+            "string"
+        ],
+        "SupportedResponseMIMETypes": [
+            "string"
+        ]
+    },
+    "ValidationSpecification": {
+        "ValidationRole": "string",
+        "ValidationProfiles": [
+            {
+                "ProfileName": "string",
+                "TrainingJobDefinition": {
+                    "TrainingInputMode": "Pipe",
+                    "HyperParameters": {
+                        "string": "string"
+                    },
+                    "InputDataConfig": [
+                        {
+                            "ChannelName": "string",
+                            "DataSource": {
+                                "S3DataSource": {
+                                    "S3DataType": "ManifestFile",
+                                    "S3Uri": "string",
+                                    "S3DataDistributionType": "FullyReplicated",
+                                    "AttributeNames": [
+                                        "string"
+                                    ],
+                                    "InstanceGroupNames": [
+                                        "string"
+                                    ]
+                                },
+                                "FileSystemDataSource": {
+                                    "FileSystemId": "string",
+                                    "FileSystemAccessMode": "rw",
+                                    "FileSystemType": "EFS",
+                                    "DirectoryPath": "string"
+                                }
+                            },
+                            "ContentType": "string",
+                            "CompressionType": "Gzip",
+                            "RecordWrapperType": "RecordIO",
+                            "InputMode": "Pipe",
+                            "ShuffleConfig": {
+                                "Seed": 123
+                            }
+                        }
+                    ],
+                    "OutputDataConfig": {
+                        "KmsKeyId": "string",
+                        "S3OutputPath": "string"
+                    },
+                    "ResourceConfig": {
+                        "InstanceType": "ml.m4.xlarge",
+                        "InstanceCount": 123,
+                        "VolumeSizeInGB": 123,
+                        "VolumeKmsKeyId": "string",
+                        "InstanceGroups": [
+                            {
+                                "InstanceType": "ml.m4.xlarge",
+                                "InstanceCount": 123,
+                                "InstanceGroupName": "string"
+                            }
+                        ],
+                        "KeepAlivePeriodInSeconds": 123
+                    },
+                    "StoppingCondition": {
+                        "MaxRuntimeInSeconds": 123,
+                        "MaxWaitTimeInSeconds": 123
+                    }
+                },
+                "TransformJobDefinition": {
+                    "MaxConcurrentTransforms": 123,
+                    "MaxPayloadInMB": 123,
+                    "BatchStrategy": "MultiRecord",
+                    "Environment": {
+                        "string": "string"
+                    },
+                    "TransformInput": {
+                        "DataSource": {
+                            "S3DataSource": {
+                                "S3DataType": "ManifestFile",
+                                "S3Uri": "string"
+                            }
+                        },
+                        "ContentType": "string",
+                        "CompressionType": "Gzip",
+                        "SplitType": "Line"
+                    },
+                    "TransformOutput": {
+                        "S3OutputPath": "string",
+                        "Accept": "string",
+                        "AssembleWith": "Line",
+                        "KmsKeyId": "string"
+                    },
+                    "TransformResources": {
+                        "InstanceType": "ml.m4.xlarge",
+                        "InstanceCount": 123,
+                        "VolumeKmsKeyId": "string"
+                    }
+                }
+            }
+        ]
+    },
+    "AlgorithmStatus": "Pending",
+    "AlgorithmStatusDetails": {
+        "ValidationStatuses": [
+            {
+                "Name": "string",
+                "Status": "NotStarted",
+                "FailureReason": "string"
+            }
+        ],
+        "ImageScanStatuses": [
+            {
+                "Name": "string",
+                "Status": "NotStarted",
+                "FailureReason": "string"
+            }
+        ]
+    },
+    "ProductId": "string",
+    "CertifyForMarketplace": true
+}

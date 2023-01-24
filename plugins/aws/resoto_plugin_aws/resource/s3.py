@@ -87,5 +87,21 @@ class AwsS3Bucket(AwsResource, BaseBucket):
             AwsApiSpec("s3", "delete-bucket"),
         ]
 
+    @staticmethod
+    def name_from_path(path_or_uri: str) -> str:
+        # https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-bucket-intro.html
+        # Accessing a bucket using S3://
+        if path_or_uri.startswith("s3://") or path_or_uri.startswith("S3://"):
+            return path_or_uri.split("/")[2]
+        # Path-style access
+        if path_or_uri.startswith("https://s3"):
+            bucket_and_key = path_or_uri.split("amazonaws.com/")[-1]
+            return bucket_and_key.split("/")[0]
+        # Virtual-hosted–style access
+        if path_or_uri.startswith("https://"):
+            bucket_and_key = path_or_uri.split("//")[-1]
+            return bucket_and_key.split(".")[0]
+        return path_or_uri
+
 
 resources: List[Type[AwsResource]] = [AwsS3Bucket]
