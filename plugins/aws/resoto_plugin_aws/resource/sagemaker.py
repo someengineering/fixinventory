@@ -804,6 +804,7 @@ class AwsSagemakerApp(AwsResource):
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        # TODO don't collect Apps with status "deleted"
         for app in json:
             if app["UserProfileName"]:
                 app_description = builder.client.get(
