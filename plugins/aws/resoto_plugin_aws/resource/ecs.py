@@ -25,7 +25,7 @@ class EcsTaggable:
         if isinstance(self, AwsResource):
             if spec := self.api_spec:
                 client.call(
-                    service=spec.service,
+                    aws_service=spec.service,
                     action="tag-resource",
                     result_name=None,
                     resourceArn=self.arn,
@@ -39,7 +39,7 @@ class EcsTaggable:
         if isinstance(self, AwsResource):
             if spec := self.api_spec:
                 client.call(
-                    service=spec.service,
+                    aws_service=spec.service,
                     action="untag-resource",
                     result_name=None,
                     resourceArn=self.arn,
@@ -1664,7 +1664,7 @@ class AwsEcsCluster(EcsTaggable, AwsResource):
                 )
 
     def delete_resource(self, client: AwsClient) -> bool:
-        client.call(service=self.api_spec.service, action="delete-cluster", result_name=None, cluster=self.arn)
+        client.call(aws_service=self.api_spec.service, action="delete-cluster", result_name=None, cluster=self.arn)
         return True
 
     def disassociate_capacity_provider(self, client: AwsClient, capacity_provider_name: str) -> bool:
