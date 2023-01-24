@@ -477,6 +477,7 @@ def get_accounts(core_feedback: CoreFeedback) -> List[AwsAccount]:
             elif e.response["Error"]["Code"] == "AccessDenied":
                 core_feedback.error(f"Access denied for profile {profile}", log)
             else:
+                core_feedback.error(f"AWS client error for profile {profile}: {e}", log)
                 raise
         except botocore.exceptions.BotoCoreError as e:
             core_feedback.error(f"Unable to get accounts for profile {profile}: {e}", log)
@@ -535,7 +536,7 @@ def collect_account(
         Config.running_config.apply(running_config)
 
     if not authenticated(account, feedback):
-        log.error(f"Skipping {account.rtdname} due to authentication failure")
+        log.error(f"Skipping account {account.rtdname}. Reason: authentication failure.")
         return None
 
     log.debug(f"Starting new collect process for account {account.dname}")
@@ -545,12 +546,12 @@ def collect_account(
         aac.collect()
     except botocore.exceptions.ClientError as e:
         feedback.error(
-            f"An AWS {e.response['Error']['Code']} error occurred while collecting account {account.dname}", log
+            f"Ignore account {account.dname}. Reason: An AWS {e.response['Error']['Code']} error occurred.", log
         )
         metrics_unhandled_account_exceptions.labels(account=account.dname).inc()
         return None
     except Exception as ex:
-        feedback.error(f"An unhandled error occurred while collecting AWS account {account.dname}. {ex}", log)
+        feedback.error(f"Ignore account {account.dname}. Reason: unhandled error occurred: {ex}", log)
         metrics_unhandled_account_exceptions.labels(account=account.dname).inc()
         return None
 
