@@ -155,10 +155,7 @@ class AwsClient:
         expected_errors: Optional[List[str]] = None,
         **kwargs: Any,
     ) -> JsonElement:
-        try:
-            return self.call_single(aws_service, action, result_name, max_attempts=1, **kwargs)
-        except ClientError:
-            return None
+        return self.call_single(aws_service, action, result_name, max_attempts=1, **kwargs)
 
     def list(
         self,
