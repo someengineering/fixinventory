@@ -38,12 +38,12 @@ class AwsLambdaPolicyStatement:
         "resource": S("Resource"),
         "condition": S("Condition") >> Bend(AwsLambdaCondition.mapping),
     }
-    sid: str = field(default=None)
-    effect: str = field(default=None)
-    principal: Dict[str, str] = field(default=None)
-    action: str = field(default=None)
-    resource: str = field(default=None)
-    condition: AwsLambdaCondition = field(default=None)
+    sid: Optional[str] = field(default=None)
+    effect: Optional[str] = field(default=None)
+    principal: Optional[Dict[str, str]] = field(default=None)
+    action: Optional[str] = field(default=None)
+    resource: Optional[str] = field(default=None)
+    condition: Optional[AwsLambdaCondition] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -54,9 +54,9 @@ class AwsLambdaPolicyDetails:
         "version": S("Version"),
         "statement": S("Statement") >> ForallBend(AwsLambdaPolicyStatement.mapping),
     }
-    id: str = field(default=None)
+    id: Optional[str] = field(default=None)
     version: Optional[str] = field(default=None)
-    statement: List[AwsLambdaPolicyStatement] = field(factory=list)
+    statement: Optional[List[AwsLambdaPolicyStatement]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -109,8 +109,8 @@ class AwsLambdaImageConfig:
         "command": S("Command", default=[]),
         "working_directory": S("WorkingDirectory"),
     }
-    entry_point: List[str] = field(factory=list)
-    command: List[str] = field(factory=list)
+    entry_point: Optional[List[str]] = field(default=None)
+    command: Optional[List[str]] = field(default=None)
     working_directory: Optional[str] = field(default=None)
 
 

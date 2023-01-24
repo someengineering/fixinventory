@@ -391,7 +391,7 @@ class GraphBuilder:
         self.client = client
         self.executor = executor
         self.name = f"AWS:{account.name}:{region.name}"
-        self.global_instance_types: Dict[str, Any] = global_instance_types or {}
+        self.global_instance_types: Dict[str, Any] = global_instance_types if global_instance_types is not None else {}
         self.core_feedback = core_feedback
 
     def submit_work(self, fn: Callable[..., None], *args: Any, **kwargs: Any) -> Future[Any]:
@@ -448,11 +448,16 @@ class GraphBuilder:
         return [n for n in self.graph.nodes if isinstance(n, resource_type)]
 
     @lru_cache(maxsize=None)
-    def instance_type(self, instance_type: str) -> Optional[Any]:
-        if (global_type := self.global_instance_types.get(instance_type)) is None:
+    def instance_type(self, region: AwsRegion, instance_type: str) -> Optional[Any]:
+        if (it := self.global_instance_types.get(instance_type)) is None:
             return None  # instance type not found
-        price = AwsPricingPrice.instance_type_price(self.client, instance_type, self.region.safe_name)
-        return evolve(global_type, region=self.region, ondemand_cost=price.on_demand_price_usd if price else None)
+
+        price = AwsPricingPrice.instance_type_price(self.client.for_region(region.id), instance_type, region.safe_name)
+        result = evolve(it, region=self.region, ondemand_cost=price.on_demand_price_usd if price else None)
+        # add this instance type to the graph
+        self.add_node(result)
+        self.add_edge(region, node=result)
+        return result
 
     @lru_cache(maxsize=None)
     def volume_type(self, volume_type: str) -> Optional[Any]:

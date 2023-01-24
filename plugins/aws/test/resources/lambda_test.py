@@ -1,8 +1,30 @@
-from resoto_plugin_aws.resource.lambda_ import AwsLambdaFunction
+from resoto_plugin_aws.resource.lambda_ import AwsLambdaFunction, AwsLambdaGetPolicyResponse
+from resotolib.json import from_json
 from test.resources import round_trip_for
 from typing import Any, cast
 from types import SimpleNamespace
 from resoto_plugin_aws.aws_client import AwsClient
+
+
+def test_regression_lamda_get_policy() -> None:
+    value_to_read = {
+        "policy": {
+            "id": "default",
+            "policy_version": "2012-10-17",
+            "policy_statement": [
+                {
+                    "sid": "StackSet-AWSControlTower-ALCD-LZ-resource-owner-tag",
+                    "effect": "Allow",
+                    "principal": {"Service": "events.amazonaws.com"},
+                    "action": "lambda:InvokeFunction",
+                    "resource": "arn:aws:lambda:eu-central-1:test:function:aws-controltower-owner-tagging-func",
+                    "condition": None,
+                }
+            ],
+        },
+        "policy_revision_id": "b3f179eb-569b-4ea2-8ec4-4324609b0694",
+    }
+    from_json(value_to_read, AwsLambdaGetPolicyResponse)
 
 
 def test_lambda() -> None:

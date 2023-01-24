@@ -145,6 +145,7 @@ class Api:
         self.query_parser = query_parser
         self.config = config
         self.app = web.Application(
+            client_max_size=config.api.max_request_size or 1024**2,
             # note on order: the middleware is passed in the order provided.
             middlewares=[
                 metrics_handler,
@@ -152,7 +153,7 @@ class Api:
                 cors_handler,
                 error_handler(config, event_sender),
                 default_middleware(self),
-            ]
+            ],
         )
         self.app.on_response_prepare.append(on_response_prepare)
         self._session: Optional[ClientSession] = None
