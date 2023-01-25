@@ -4,4 +4,3 @@ include requirements-test.txt
 include requirements.txt
 recursive-include resotocore/static *
 recursive-include resotocore/jupyterlite *
-recursive-include report *
