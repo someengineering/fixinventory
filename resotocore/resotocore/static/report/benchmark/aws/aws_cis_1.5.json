@@ -129,27 +129,27 @@
                         {
                             "title": "2.1.1 Ensure all S3 buckets employ encryption-at-rest",
                             "description": "Amazon S3 provides a variety of no, or low, cost encryption options to protect data at rest.",
-                            "checks": []
+                            "checks": ["aws_ec2_s3_bucket_default_encryption"]
                         },
                         {
                             "title": "2.1.2 Ensure S3 Bucket Policy is set to deny HTTP requests",
                             "description": "At the Amazon S3 bucket level, you can configure permissions through a bucket policy making the objects accessible only through HTTPS.",
-                            "checks": []
+                            "checks": ["aws_ec2_s3_bucket_secure_transport_policy"]
                         },
                         {
                             "title": "2.1.3 Ensure MFA Delete is enabled on S3 buckets",
                             "description": "Once MFA Delete is enabled on your sensitive and classified S3 bucket it requires the user to have two forms of authentication.",
-                            "checks": []
+                            "checks": ["aws_ec2_s3_bucket_no_mfa_delete"]
                         },
                         {
                             "title": "2.1.4 Ensure all data in Amazon S3 has been discovered, classified and secured when required",
                             "description": "Amazon S3 buckets can contain sensitive data, that for security purposes should be discovered, monitored, classified and protected. Macie along with other 3rd party tools can automatically provide an inventory of Amazon S3 buckets.",
-                            "checks": []
+                            "checks": ["aws_ec2_macie_is_enabled"]
                         },
                         {
                             "title": "2.1.5 Ensure that S3 Buckets are configured with 'Block public access (bucket settings)'",
                             "description": "Amazon S3 provides Block public access (bucket settings) and Block public access (account settings) to help you manage public access to Amazon S3 resources. By default, S3 buckets and objects are created with public access disabled. However, an IAM principle with sufficient S3 permissions can enable public access at the bucket and/or object level. While enabled, Block public access (bucket settings) prevents an individual bucket, and its contained objects, from becoming publicly accessible. Similarly, Block public access (account settings) prevents all buckets, and contained objects, from becoming publicly accessible across the entire account.",
-                            "checks": []
+                            "checks": ["aws_ec2_s3_account_level_public_access_blocks"]
                         }
                     ]
                 },

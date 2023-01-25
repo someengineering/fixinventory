@@ -226,6 +226,7 @@ class AwsAccountCollector:
             regional_builder.core_feedback.error(msg, log)
             return None
 
+    # TODO: move into separate AwsAccountSettings
     def update_account(self) -> None:
         log.info(f"Collecting AWS IAM Account Summary in account {self.account.dname}")
         sm = self.client.get("iam", "get-account-summary", "SummaryMap") or {}

@@ -1,0 +1,66 @@
+{
+    "provider": "aws",
+    "service": "iam",
+    "checks": [
+        {
+            "name": "account_maintain_current_contact_details",
+            "title": "Maintain current contact details.",
+            "result_kind": "aws_account",
+            "categories": [ "security", "compliance" ],
+            "risk": "Ensure contact email and telephone details for AWS accounts are current and map to more than one individual in your organization. An AWS account supports a number of contact details; and AWS will use these to contact the account owner if activity judged to be in breach of Acceptable Use Policy. If an AWS account is observed to be behaving in a prohibited or suspicious manner; AWS will attempt to contact the account owner by email and phone using the contact details listed. If this is unsuccessful and the account behavior needs urgent mitigation; proactive measures may be taken; including throttling of traffic between the account exhibiting suspicious behavior and the AWS API endpoints and the Internet. This will result in impaired service to and from the account in question.",
+            "severity": "medium",
+            "detect": {
+                "manual": "Login to the AWS Console. Choose your account name on the top right of the window -> My Account -> Contact Information."
+            },
+            "remediation": {
+                "text": "Using the Billing and Cost Management console complete contact details.",
+                "url": "https://docs.aws.amazon.com/accounts/latest/reference/manage-acct-update-contact.html"
+            }
+        },
+        {
+            "name": "account_security_contact_information_is_registered",
+            "title": "Ensure security contact information is registered",
+            "result_kind": "aws_account",
+            "categories": [ "security", "compliance" ],
+            "risk": "AWS provides customers with the option of specifying the contact information for accounts security team. It is recommended that this information be provided. Specifying security-specific contact information will help ensure that security advisories sent by AWS reach the team in your organization that is best equipped to respond to them.",
+            "severity": "medium",
+            "detect": {
+                "manual": "Login to the AWS Console. Choose your account name on the top right of the window -> My Account -> Alternate Contacts -> Security Section."
+            },
+            "remediation": {
+                "text": "Go to the My Account section and complete alternate contacts.",
+                "url": "https://docs.aws.amazon.com/accounts/latest/reference/manage-acct-update-contact.html"
+            }
+        },
+        {
+            "name": "account_security_questions_are_registered_in_the_aws_account",
+            "title": "Ensure security questions are registered in the AWS account.",
+            "result_kind": "aws_account",
+            "categories": [ "security", "compliance" ],
+            "risk": "The AWS support portal allows account owners to establish security questions that can be used to authenticate individuals calling AWS customer service for support. It is recommended that security questions be established. When creating a new AWS account a default super user is automatically created. This account is referred to as the root account. It is recommended that the use of this account be limited and highly controlled. During events in which the root password is no longer accessible or the MFA token associated with root is lost",
+            "severity": "medium",
+            "detect": {
+                "manual": "Login to the AWS Console as root. Choose your account name on the top right of the window -> My Account -> Configure Security Challenge Questions."
+            },
+            "remediation": {
+                "text": "Login as root account and from My Account configure Security questions.",
+                "url": "https://docs.aws.amazon.com/accounts/latest/reference/manage-acct-security-challenge.html"
+            }
+        },
+        {
+            "name": "no_root_access_key",
+            "title": "Ensure no root account access key exists",
+            "result_kind": "aws_iam_user",
+            "categories": [ "security", "compliance" ],
+            "risk": "The root account is the most privileged user in an AWS account. AWS Access Keys provide programmatic access to a given AWS account. It is recommended that all access keys associated with the root account be removed. Removing access keys associated with the root account limits vectors by which the account can be compromised. Removing the root access keys encourages the creation and use of role based accounts that are least privileged.",
+            "severity": "medium",
+            "detect": {
+                "manual": "Login to the AWS Console as root. Choose your account name on the top right of the window -> My Account -> Configure Security Challenge Questions."
+            },
+            "remediation": {
+                "text": "Login as root account and from My Account configure Security questions.",
+                "url": "https://docs.aws.amazon.com/accounts/latest/reference/manage-acct-security-challenge.html"
+            }
+        }
+    ]
+}

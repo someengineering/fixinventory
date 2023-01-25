@@ -1,12 +1,14 @@
+import csv
+import time
 from datetime import datetime
-from typing import ClassVar, Dict, Optional, Type, List, Any
+from typing import ClassVar, Dict, Optional, Type, List, Any, Callable
 
 from attrs import define, field
 
+from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
 from resoto_plugin_aws.resource.ec2 import AwsEc2IamInstanceProfile
 from resoto_plugin_aws.utils import ToDict
-
 from resotolib.baseresources import (
     BaseCertificate,
     BasePolicy,
@@ -17,11 +19,11 @@ from resotolib.baseresources import (
     EdgeType,
     ModelReference,
 )
+from resotolib.graph import Graph
 from resotolib.json import from_json
 from resotolib.json_bender import Bender, S, Bend, AsDate, Sort, bend, ForallBend, F
 from resotolib.types import Json
-from resotolib.graph import Graph
-from resoto_plugin_aws.aws_client import AwsClient
+from resotolib.utils import parse_utc
 
 
 def iam_update_tag(resource: AwsResource, client: AwsClient, action: str, key: str, value: str, **kwargs: Any) -> bool:
@@ -422,6 +424,91 @@ class AwsIamAccessKey(AwsResource, BaseAccessKey):
 
 
 @define(eq=False, slots=False)
+class AwsRootUser(AwsResource, BaseUser):
+    kind: ClassVar[str] = "aws_root_user"
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["aws_account"]},
+    }
+    password_enabled: Optional[bool] = field(default=None)
+    password_last_used: Optional[datetime] = field(default=None)
+    password_last_changed: Optional[datetime] = field(default=None)
+    password_next_rotation: Optional[datetime] = field(default=None)
+    mfa_active: Optional[bool] = field(default=None)
+
+
+class CredentialReportLine:
+    undefined = {"not_supported", "N/A"}
+
+    def __init__(self, line: Dict[str, str]) -> None:
+        self.line = line
+
+    def add_root_user(self, builder: GraphBuilder) -> None:
+        user = AwsRootUser(
+            id="root",
+            name="root",
+            arn=self.value_of("arn"),
+            ctime=self.value_of("user_creation_time", parse_utc),
+        )
+        builder.add_node(user)
+        for key in self.access_keys():
+            if key.access_key_status == "Active" or key.access_key_last_used is not None:
+                builder.add_node(key)
+                builder.add_edge(user, node=key)
+
+    def access_keys(self) -> List[AwsIamAccessKey]:
+        def by_index(i: int) -> AwsIamAccessKey:
+            last_used_date = self.value_of(f"access_key_{i}_last_used_date", parse_utc)
+            service_name = self.value_of(f"access_key_{i}_last_used_service")
+            region = self.value_of(f"access_key_{i}_last_used_region")
+            last_used = (
+                None
+                if last_used_date is None and service_name is None and region is None
+                else AwsIamAccessKeyLastUsed(last_used_date=last_used_date, service_name=service_name, region=region)
+            )
+            return AwsIamAccessKey(
+                id=f"root_key_{i}",
+                name=f"root_key_{i}",
+                access_key_status="Active" if self.value_of(f"access_key_{i}_active") == "true" else "Inactive",
+                access_key_last_used=last_used,
+            )
+
+        # the report holds 2 entries
+        return [by_index(idx) for idx in range(1, 3)]
+
+    def value_of(self, k: str, fn: Optional[Callable[[str], Any]] = None) -> Any:
+        v = self.line.get(k)
+        return None if v is None or v in self.undefined else (fn(v) if fn else v)
+
+    def password_enabled(self) -> bool:
+        return self.value_of("password_enabled") == "true"  # type: ignore
+
+    def password_last_used(self) -> Optional[datetime]:
+        return self.value_of("password_last_used", parse_utc)  # type: ignore
+
+    def password_last_changed(self) -> Optional[datetime]:
+        return self.value_of("password_last_changed", parse_utc)  # type: ignore
+
+    def password_next_rotation(self) -> Optional[datetime]:
+        return self.value_of("password_next_rotation", parse_utc)  # type: ignore
+
+    def mfa_active(self) -> bool:
+        return self.value_of("mfa_active") == "true"  # type: ignore
+
+    @staticmethod
+    def user_lines(builder: GraphBuilder) -> Dict[str, "CredentialReportLine"]:
+        # wait for the report to be done
+        while (res := builder.client.get("iam", "generate-credential-report")) and res.get("State") != "COMPLETE":
+            time.sleep(1)
+        # fetch the report
+        report = builder.client.get("iam", "get-credential-report")
+        return CredentialReportLine.from_str(report["Content"]) if report else {}
+
+    @staticmethod
+    def from_str(lines: str) -> Dict[str, "CredentialReportLine"]:
+        return {i["user"]: CredentialReportLine(i) for i in csv.DictReader(lines.splitlines(), delimiter=",")}
+
+
+@define(eq=False, slots=False)
 class AwsIamUser(AwsResource, BaseUser):
     kind: ClassVar[str] = "aws_iam_user"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("iam", "get-account-authorization-details")
@@ -434,7 +521,6 @@ class AwsIamUser(AwsResource, BaseUser):
         "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("UserName"),
         "ctime": S("CreateDate"),
-        "atime": S("PasswordLastUsed"),
         "path": S("Path"),
         "arn": S("Arn"),
         "user_policies": S("UserPolicyList", default=[]) >> ForallBend(AwsIamPolicyDetail.mapping),
@@ -443,6 +529,11 @@ class AwsIamUser(AwsResource, BaseUser):
     path: Optional[str] = field(default=None)
     user_policies: List[AwsIamPolicyDetail] = field(factory=list)
     user_permissions_boundary: Optional[AwsIamAttachedPermissionsBoundary] = field(default=None)
+    password_enabled: Optional[bool] = field(default=None)
+    password_last_used: Optional[datetime] = field(default=None)
+    password_last_changed: Optional[datetime] = field(default=None)
+    password_next_rotation: Optional[datetime] = field(default=None)
+    mfa_active: Optional[bool] = field(default=None)
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
@@ -450,15 +541,26 @@ class AwsIamUser(AwsResource, BaseUser):
             cls.api_spec,
             AwsApiSpec("iam", "list-access-keys"),
             AwsApiSpec("iam", "get-access-key-last-used"),
-            AwsApiSpec("iam", "list-users"),
+            AwsApiSpec("iam", "generate-credential-report"),
+            AwsApiSpec("iam", "get-credential-report"),
         ]
 
     @classmethod
+    def collect_resources(cls: Type[AwsResource], builder: GraphBuilder) -> None:
+        # start generation of the credentials resport and pick it up later
+        builder.client.get("iam", "generate-credential-report")
+        # let super handle the rest (this will take some time for the report to be done)
+        super().collect_resources(builder)  # type: ignore # mypy bug: https://github.com/python/mypy/issues/12885
+
+    @classmethod
     def collect(cls: Type[AwsResource], json_list: List[Json], builder: GraphBuilder) -> None:
-        name_password_last_used_map: Dict[str, str] = {}
-        for user in builder.client.list("iam", "list-users", "Users"):
-            if "PasswordLastUsed" in user and "UserId" in user:
-                name_password_last_used_map[user["UserId"]] = user["PasswordLastUsed"]
+        # retrieve the created report
+        report = CredentialReportLine.user_lines(builder)
+
+        # the root user is not listed in IAM users, so we need to add it manually
+        if root_user := report.get("<root_account>"):
+            root_user.add_root_user(builder)
+
         for json in json_list:
             for js in json.get("GroupDetailList", []):
                 builder.add_node(AwsIamGroup.from_api(js), js)
@@ -470,18 +572,25 @@ class AwsIamUser(AwsResource, BaseUser):
                 builder.add_node(AwsIamPolicy.from_api(js), js)
 
             for js in json.get("UserDetailList", []):
-                js["PasswordLastUsed"] = name_password_last_used_map.get(js["UserId"])
                 user = AwsIamUser.from_api(js)
                 builder.add_node(user, js)
+                line = report.get(user.name or user.id)
+                line_keys: List[AwsIamAccessKey] = []
+                if line:
+                    user.password_enabled = line.password_enabled()
+                    user.password_last_used = line.password_last_used()
+                    user.atime = user.password_last_used
+                    user.password_last_changed = line.password_last_changed()
+                    user.password_next_rotation = line.password_next_rotation()
+                    user.mfa_active = line.mfa_active()
+                    line_keys = line.access_keys()
                 # add all iam access keys for this user
-                for ak in builder.client.list("iam", "list-access-keys", "AccessKeyMetadata", UserName=user.name):
+                for idx, ak in enumerate(
+                    builder.client.list("iam", "list-access-keys", "AccessKeyMetadata", UserName=user.name)
+                ):
                     key = AwsIamAccessKey.from_api(ak)
-                    # get last used date for this key
-                    if lu := builder.client.get(
-                        "iam", "get-access-key-last-used", "AccessKeyLastUsed", AccessKeyId=key.id
-                    ):
-                        key.access_key_last_used = AwsIamAccessKeyLastUsed.from_api(lu)
-                        key.atime = key.access_key_last_used.last_used_date if key.access_key_last_used else None
+                    if line and idx < len(line_keys):
+                        key.access_key_last_used = line_keys[idx].access_key_last_used
                     builder.add_node(key, ak)
                     builder.dependant_node(user, node=key)
 
