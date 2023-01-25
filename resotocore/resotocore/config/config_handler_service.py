@@ -11,7 +11,7 @@ from resotocore.db.modeldb import ModelDb
 from resotocore.message_bus import MessageBus, CoreMessage
 from resotocore.model.model import Model, Kind, ComplexKind
 from resotocore.types import Json
-from resotocore.util import uuid_str, deep_merge
+from resotocore.util import uuid_str, deep_merge, first
 from resotocore.worker_task_queue import WorkerTaskQueue, WorkerTask, WorkerTaskName
 from resotocore.ids import TaskId, ConfigId
 
@@ -53,9 +53,15 @@ class ConfigHandlerService(ConfigHandler):
 
         # If an external entity needs to approve this change.
         # Method throws if config is not valid according to external approval.
-        validation = await self.validation_db.get(cfg_id)
-        if validation and validation.external_validation and validate:
-            await self.acknowledge_config_change(cfg_id, final_config)
+        keys = {key async for key in self.validation_db.keys()}
+        parts = cfg_id.split(".")
+        # A config with key foo.bla.bar can be validated by foo.bla.bar, foo.bla and foo
+        # The longest key is the most specific validator and is used.
+        validator = first(lambda x: x in keys, (".".join(parts[0:i]) for i in range(len(parts), 0, -1)))
+        if validator:
+            validation = await self.validation_db.get(validator)
+            if validation and validation.external_validation and validate:
+                await self.acknowledge_config_change(validator, final_config)
 
         # If we come here, everything is fine
         return final_config

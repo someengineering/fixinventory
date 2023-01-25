@@ -1,11 +1,8 @@
-from asyncio import Queue
-from typing import Tuple, List, AsyncIterator
+from typing import List
 
 import pytest
 from aiostream import stream
-from pytest import fixture
 
-from resotocore.analytics import InMemoryEventSender
 from resotocore.cli import strip_quotes, js_value_at
 from resotocore.cli.cli import CLI, multi_command_parser
 from resotocore.cli.command import (
@@ -14,93 +11,13 @@ from resotocore.cli.command import (
     FlattenCommand,
     UniqCommand,
     EchoCommand,
-    alias_names,
     AggregateToCountCommand,
-    all_commands,
     PredecessorsPart,
 )
-from resotocore.cli.model import CLIDependencies
 from resotocore.cli.model import ParsedCommands, ParsedCommand, CLIContext
-from resotocore.config import ConfigHandler
-from resotocore.db.db_access import DbAccess
-from resotocore.db.graphdb import ArangoGraphDB
-from resotocore.dependencies import empty_config
 from resotocore.error import CLIParseError
-from resotocore.message_bus import MessageBus
-from resotocore.model.adjust_node import NoAdjust
 from resotocore.model.graph_access import EdgeTypes
-from resotocore.model.model import Model
-from resotocore.query.template_expander import TemplateExpander
 from resotocore.util import utc
-from resotocore.web.certificate_handler import CertificateHandler
-from resotocore.worker_task_queue import WorkerTaskQueue, WorkerTaskDescription
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.analytics import event_sender
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.config.config_handler_service_test import config_handler
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.db.graphdb_test import (
-    filled_graph_db,
-    graph_db,
-    test_db,
-    foo_kinds,
-    foo_model,
-    local_client,
-    system_db,
-)
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.message_bus_test import message_bus
-from tests.resotocore.model import ModelHandlerStatic
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.query.template_expander_test import expander
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.worker_task_queue_test import worker, task_queue, performed_by, incoming_tasks
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.web.certificate_handler_test import cert_handler
-
-
-@fixture
-async def cli_deps(
-    filled_graph_db: ArangoGraphDB,
-    message_bus: MessageBus,
-    event_sender: InMemoryEventSender,
-    foo_model: Model,
-    task_queue: WorkerTaskQueue,
-    worker: Tuple[WorkerTaskDescription, WorkerTaskDescription, WorkerTaskDescription],
-    expander: TemplateExpander,
-    config_handler: ConfigHandler,
-    cert_handler: CertificateHandler,
-) -> AsyncIterator[CLIDependencies]:
-    db_access = DbAccess(filled_graph_db.db.db, event_sender, NoAdjust(), empty_config())
-    model_handler = ModelHandlerStatic(foo_model)
-    config = empty_config(["--graphdb-database", "test", "--graphdb-username", "test", "--graphdb-password", "test"])
-    deps = CLIDependencies(
-        message_bus=message_bus,
-        event_sender=event_sender,
-        db_access=db_access,
-        model_handler=model_handler,
-        worker_task_queue=task_queue,
-        config=config,
-        template_expander=expander,
-        forked_tasks=Queue(),
-        config_handler=config_handler,
-        cert_handler=cert_handler,
-    )
-    yield deps
-    await deps.stop()
-
-
-@fixture
-def cli(cli_deps: CLIDependencies) -> CLI:
-    env = {"graph": "ns", "section": "reported"}
-    return CLI(cli_deps, all_commands(cli_deps), env, alias_names())
 
 
 def test_strip() -> None:

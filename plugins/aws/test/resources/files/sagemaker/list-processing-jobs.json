@@ -1,0 +1,15 @@
+{
+    "ProcessingJobSummaries": [
+        {
+            "ProcessingJobName": "pjob",
+            "ProcessingJobArn": "string",
+            "CreationTime": "2015-01-01T00:00:00Z",
+            "ProcessingEndTime": "2015-01-01T00:00:00Z",
+            "LastModifiedTime": "2015-01-01T00:00:00Z",
+            "ProcessingJobStatus": "InProgress",
+            "FailureReason": "string",
+            "ExitMessage": "string"
+        }
+    ],
+    "NextToken": "string"
+}

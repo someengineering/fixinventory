@@ -12,19 +12,21 @@ from resotocore.config import ConfigHandler, ConfigEntity, ConfigValidation
 from resotocore.core_config import (
     CoreConfig,
     ResotoCoreConfigId,
-    config_model,
     EditableConfig,
     ResotoCoreRoot,
     ResotoCoreCommandsConfigId,
     ResotoCoreCommandsRoot,
     CustomCommandsConfig,
     migrate_config,
+    config_model as core_config_model,
 )
-from resotocore.ids import SubscriberId, WorkerId
 from resotocore.dependencies import empty_config
+from resotocore.ids import SubscriberId, WorkerId
 from resotocore.message_bus import MessageBus, CoreMessage
 from resotocore.model.model import Kind
 from resotocore.model.typed_model import from_js
+from resotocore.report import ResotoReportBenchmark, ResotoReportCheck, Inspector, BenchmarkConfigRoot, CheckConfigRoot
+from resotocore.report.report_config import config_model as report_config_model
 from resotocore.types import Json
 from resotocore.util import deep_merge, restart_service, value_in_path, value_in_path_get
 from resotocore.worker_task_queue import WorkerTaskQueue, WorkerTaskDescription, WorkerTaskName, WorkerTask
@@ -40,6 +42,7 @@ class CoreConfigHandler:
         worker_task_queue: WorkerTaskQueue,
         config_handler: ConfigHandler,
         event_sender: AnalyticsEventSender,
+        inspector: Inspector,
         exit_fn: Callable[[], None] = partial(restart_service, "resotocore config changed."),
     ):
         self.message_bus = message_bus
@@ -49,10 +52,10 @@ class CoreConfigHandler:
         self.config = config
         self.config_handler = config_handler
         self.event_sender = event_sender
+        self.inspector = inspector
         self.exit_fn = exit_fn
 
-    @staticmethod
-    def validate_config_entry(task_data: Json) -> Optional[Json]:
+    async def validate_config_entry(self, task_data: Json) -> Optional[Json]:
         def validate_core_config() -> Optional[Json]:
             config = value_in_path(task_data, ["config", ResotoCoreRoot])
             if isinstance(config, dict):
@@ -78,19 +81,24 @@ class CoreConfigHandler:
             return validate_core_config()
         elif ResotoCoreCommandsRoot in holder:
             return validate_commands_config()
+        elif CheckConfigRoot in holder:
+            return await self.inspector.validate_check_collection_config(task_data["config"])
+        elif BenchmarkConfigRoot in holder:
+            return await self.inspector.validate_benchmark_config(task_data["config"])
         else:
             return {"error": "No known configuration found"}
 
     async def __validate_config(self) -> None:
         worker_id = WorkerId("resotocore.config.validate")
         description = WorkerTaskDescription(
-            WorkerTaskName.validate_config, {"config_id": [ResotoCoreConfigId, ResotoCoreCommandsConfigId]}
+            WorkerTaskName.validate_config,
+            {"config_id": [ResotoCoreConfigId, ResotoCoreCommandsConfigId, ResotoReportBenchmark, ResotoReportCheck]},
         )
         async with self.worker_task_queue.attach(worker_id, [description]) as tasks:
             while True:
                 task: WorkerTask = await tasks.get()
                 try:
-                    errors = self.validate_config_entry(task.data)
+                    errors = await self.validate_config_entry(task.data)
                     if errors:
                         message = "Validation Errors:\n" + yaml.safe_dump(errors)
                         await self.worker_task_queue.error_task(worker_id, task.id, message)
@@ -146,7 +154,8 @@ class CoreConfigHandler:
 
     async def __update_model(self) -> None:
         try:
-            kinds = from_js(config_model(), List[Kind])
+            models = core_config_model() + report_config_model()
+            kinds = from_js(models, List[Kind])
             await self.config_handler.update_configs_model(kinds)
             await self.config_handler.put_config_validation(
                 ConfigValidation(ResotoCoreConfigId, external_validation=True)
@@ -154,6 +163,16 @@ class CoreConfigHandler:
             await self.config_handler.put_config_validation(
                 ConfigValidation(ResotoCoreCommandsConfigId, external_validation=True)
             )
+            await self.config_handler.put_config_validation(
+                ConfigValidation(ResotoCoreCommandsConfigId, external_validation=True)
+            )
+            await self.config_handler.put_config_validation(
+                ConfigValidation(ResotoReportBenchmark, external_validation=True)
+            )
+            await self.config_handler.put_config_validation(
+                ConfigValidation(ResotoReportCheck, external_validation=True)
+            )
+
             log.debug("Resoto core config model updated.")
         except Exception as ex:
             log.error(f"Could not update resoto core config model: {ex}", exc_info=ex)

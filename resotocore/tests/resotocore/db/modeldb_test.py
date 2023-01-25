@@ -1,21 +1,15 @@
 import asyncio
+from typing import List
 
 import pytest
 from arango.database import StandardDatabase
-from typing import List
 
 from resotocore.analytics import AnalyticsEventSender, InMemoryEventSender
 from resotocore.db import modeldb
 from resotocore.db.async_arangodb import AsyncArangoDB
-from resotocore.db.modeldb import ModelDb, EventModelDb
 from resotocore.db.entitydb import EventEntityDb
+from resotocore.db.modeldb import ModelDb, EventModelDb
 from resotocore.model.model import ComplexKind, Property, StringKind, NumberKind, BooleanKind, Kind
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.analytics import event_sender
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.db.graphdb_test import test_db, local_client, system_db
 
 
 @pytest.fixture

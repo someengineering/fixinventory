@@ -1,0 +1,60 @@
+{
+    "TransformJobName": "trafo",
+    "TransformJobArn": "string",
+    "TransformJobStatus": "Stopped",
+    "FailureReason": "string",
+    "ModelName": "string",
+    "MaxConcurrentTransforms": 123,
+    "ModelClientConfig": {
+        "InvocationsTimeoutInSeconds": 123,
+        "InvocationsMaxRetries": 123
+    },
+    "MaxPayloadInMB": 123,
+    "BatchStrategy": "SingleRecord",
+    "Environment": {
+        "string": "string"
+    },
+    "TransformInput": {
+        "DataSource": {
+            "S3DataSource": {
+                "S3DataType": "AugmentedManifestFile",
+                "S3Uri": "s3://bucketname/example.manifest"
+            }
+        },
+        "ContentType": "string",
+        "CompressionType": "Gzip",
+        "SplitType": "TFRecord"
+    },
+    "TransformOutput": {
+        "S3OutputPath": "s3://bucket-name/key-name-prefix",
+        "Accept": "string",
+        "AssembleWith": "Line",
+        "KmsKeyId": "string"
+    },
+    "DataCaptureConfig": {
+        "DestinationS3Uri": "string",
+        "KmsKeyId": "string",
+        "GenerateInferenceId": true
+    },
+    "TransformResources": {
+        "InstanceType": "ml.g4dn.16xlarge",
+        "InstanceCount": 123,
+        "VolumeKmsKeyId": "string"
+    },
+    "CreationTime": "2015-01-01T00:00:00Z",
+    "TransformStartTime": "2015-01-01T00:00:00Z",
+    "TransformEndTime": "2015-01-01T00:00:00Z",
+    "LabelingJobArn": "string",
+    "AutoMLJobArn": "string",
+    "DataProcessing": {
+        "InputFilter": "string",
+        "OutputFilter": "string",
+        "JoinSource": "Input"
+    },
+    "ExperimentConfig": {
+        "ExperimentName": "string",
+        "TrialName": "string",
+        "TrialComponentDisplayName": "string",
+        "RunName": "string"
+    }
+}

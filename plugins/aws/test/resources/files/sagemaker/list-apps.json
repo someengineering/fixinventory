@@ -1,0 +1,14 @@
+{
+    "Apps": [
+        {
+            "DomainId": "123",
+            "UserProfileName": "string",
+            "AppType": "JupyterServer",
+            "AppName": "SomeApp",
+            "Status": "Pending",
+            "CreationTime": "2015-01-01T00:00:00Z",
+            "SpaceName": "string"
+        }
+    ],
+    "NextToken": "string"
+}

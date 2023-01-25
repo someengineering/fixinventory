@@ -1,0 +1,48 @@
+{
+    "CompilationJobName": "compjob",
+    "CompilationJobArn": "string",
+    "CompilationJobStatus": "INPROGRESS",
+    "CompilationStartTime": "2015-01-01T00:00:00Z",
+    "CompilationEndTime": "2015-01-01T00:00:00Z",
+    "StoppingCondition": {
+        "MaxRuntimeInSeconds": 123,
+        "MaxWaitTimeInSeconds": 123
+    },
+    "InferenceImage": "string",
+    "ModelPackageVersionArn": "string",
+    "CreationTime": "2015-01-01T00:00:00Z",
+    "LastModifiedTime": "2015-01-01T00:00:00Z",
+    "FailureReason": "string",
+    "ModelArtifacts": {
+        "S3ModelArtifacts": "s3://some-sagemaker-bucket/keynameprefix/model.tar.gz"
+    },
+    "ModelDigests": {
+        "ArtifactDigest": "string"
+    },
+    "RoleArn": "string",
+    "InputConfig": {
+        "S3Uri": "string",
+        "DataInputConfig": "string",
+        "Framework": "TENSORFLOW",
+        "FrameworkVersion": "string"
+    },
+    "OutputConfig": {
+        "S3OutputLocation": "s3://bucket-name/key-name-prefix",
+        "TargetDevice": "lambda",
+        "TargetPlatform": {
+            "Os": "ANDROID",
+            "Arch": "X86_64",
+            "Accelerator": "INTEL_GRAPHICS"
+        },
+        "CompilerOptions": "string",
+        "KmsKeyId": "string"
+    },
+    "VpcConfig": {
+        "SecurityGroupIds": [
+            "string"
+        ],
+        "Subnets": [
+            "string"
+        ]
+    }
+}

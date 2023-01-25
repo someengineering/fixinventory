@@ -1,96 +1,12 @@
 import asyncio
-from collections import defaultdict
 from datetime import timedelta
-from typing import AsyncGenerator, Dict, List, Tuple
+from typing import Dict, List, Tuple
 
-from pytest import fixture, mark
-from resotocore.ids import WorkerId
+from pytest import mark
 
-from resotocore.model.graph_access import Section
-from resotocore.model.resolve_in_graph import GraphResolver, NodePath
-from resotocore.util import group_by, value_in_path
-from resotocore.worker_task_queue import WorkerTaskDescription, WorkerTaskQueue, WorkerTask, WorkerTaskName
 from resotocore.ids import TaskId
-
-
-@fixture
-def task_queue() -> WorkerTaskQueue:
-    return WorkerTaskQueue()
-
-
-@fixture
-def performed_by() -> Dict[str, List[str]]:
-    return defaultdict(list)
-
-
-@fixture
-def incoming_tasks() -> List[WorkerTask]:
-    return []
-
-
-@fixture
-async def worker(
-    task_queue: WorkerTaskQueue, performed_by: Dict[str, List[WorkerId]], incoming_tasks: List[WorkerTask]
-) -> AsyncGenerator[Tuple[WorkerTaskDescription, WorkerTaskDescription, WorkerTaskDescription], None]:
-    success = WorkerTaskDescription("success_task")
-    fail = WorkerTaskDescription("fail_task")
-    wait = WorkerTaskDescription("wait_task")
-    tag = WorkerTaskDescription(WorkerTaskName.tag)
-    validate_config = WorkerTaskDescription(WorkerTaskName.validate_config)
-
-    async def do_work(worker_id: WorkerId, task_descriptions: List[WorkerTaskDescription]) -> None:
-        async with task_queue.attach(worker_id, task_descriptions) as tasks:
-            while True:
-                task: WorkerTask = await tasks.get()
-                incoming_tasks.append(task)
-                performed_by[task.id].append(worker_id)
-                if task.name == success.name:
-                    await task_queue.acknowledge_task(worker_id, task.id, {"result": "done!"})
-                elif task.name == fail.name:
-                    await task_queue.error_task(worker_id, task.id, ";)")
-                elif task.name == wait.name:
-                    # if we come here, neither success nor failure was given, ignore the task
-                    pass
-                elif task.name == WorkerTaskName.validate_config:
-                    cfg_id = task.attrs["config_id"]
-                    if cfg_id == "invalid_config":
-                        await task_queue.error_task(worker_id, task.id, "Invalid Config ;)")
-                    else:
-                        await task_queue.acknowledge_task(worker_id, task.id, None)
-                elif task.name == WorkerTaskName.tag:
-                    node = task.data["node"]
-                    for key in GraphResolver.resolved_ancestors.keys():
-                        for section in Section.content:
-                            if section in node:
-                                node[section].pop(key, None)
-
-                    # update or delete tags
-                    if "tags" not in node:
-                        node["tags"] = {}
-
-                    if task.data.get("delete"):
-                        for a in task.data.get("delete"):  # type: ignore
-                            node["tags"].pop(a, None)
-                    elif task.data.get("update"):
-                        for k, v in task.data.get("update").items():  # type: ignore
-                            node["tags"][k] = v
-
-                    # for testing purposes: change revision number
-                    kind: str = value_in_path(node, NodePath.reported_kind)  # type: ignore
-                    if kind == "bla":
-                        node["revision"] = "changed"
-
-                    await task_queue.acknowledge_task(worker_id, task.id, node)
-
-    workers = [
-        asyncio.create_task(do_work(WorkerId(f"w{a}"), [success, fail, wait, tag, validate_config]))
-        for a in range(0, 4)
-    ]
-    await asyncio.sleep(0)
-
-    yield success, fail, wait
-    for worker in workers:
-        worker.cancel()
+from resotocore.util import group_by
+from resotocore.worker_task_queue import WorkerTaskDescription, WorkerTaskQueue, WorkerTask
 
 
 @mark.asyncio

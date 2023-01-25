@@ -227,7 +227,7 @@ class TaskHandlerService(TaskHandler):
         return await self.stop()
 
     async def start(self) -> TaskHandlerService:
-        log.info("TaskHandlerService is starting up!")
+        log.debug("TaskHandlerService is starting up!")
 
         # load job descriptions from database
         db_jobs = [job async for job in self.job_db.all()]

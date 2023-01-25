@@ -26,6 +26,8 @@ tags:
     description: Endpoints to attach to the work queue.
   - name: certificate
     description: Endpoints to access the certificate authority as well as signing functionality.
+  - name: report
+    description: Endpoints to perform and maintain security, compliance and cost reports.
   - name: system
     description: Endpoints to get information about the system.
   - name: debug
@@ -1246,15 +1248,15 @@ paths:
           description: "Optional parameter to get all history events after the given timestamp"
           required: false
           schema:
-              type: string
-              format: date-time
+            type: string
+            format: date-time
         - name: change
           in: query
           description: "Optional parameter to get all history events with the given change type"
           required: false
           schema:
-              type: string
-              enum:
+            type: string
+            enum:
               - node_created
               - node_updated
               - node_deleted
@@ -1422,8 +1424,8 @@ paths:
     post:
       summary: "Send analytics events to the server"
       description: |
-          Send analytics events to the server.
-          The server will either drop or forward the event based on the user defined settings.
+        Send analytics events to the server.
+        The server will either drop or forward the event based on the user defined settings.
       tags:
         - system
       requestBody:
@@ -1431,9 +1433,9 @@ paths:
         content:
           application/json:
             schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/AnalyticsEvent"
+              type: array
+              items:
+                $ref: "#/components/schemas/AnalyticsEvent"
       responses:
         "204":
           description: "The events were accepted"
@@ -2279,6 +2281,132 @@ paths:
                   -----END CERTIFICATE-----
   # endregion
 
+  # region report
+
+  /report/checks:
+    get:
+      summary: "List all checks."
+      description: "List all checks."
+      tags:
+        - report
+      parameters:
+        - name: provider
+          in: query
+          description: "Filter by provider."
+          schema:
+            type: string
+          example: "aws"
+        - name: service
+          in: query
+          description: "Filter by service."
+          schema:
+            type: string
+          example: "ec2"
+        - name: category
+          in: query
+          description: "Filter by category."
+          schema:
+            type: string
+          example: "security"
+        - name: kind
+          in: query
+          description: "Filter by kind."
+          schema:
+            type: string
+          example: "aws_ec2_instance"
+      responses:
+        "200":
+          description: "List of checks."
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/InspectCheck"
+
+  /report/benchmark/{benchmark}/graph/{graph_id}:
+    get:
+      summary: "Perform a benchmark on a graph."
+      description: "Perform a benchmark with the given identifier on a graph with a given identifier."
+      tags:
+        - report
+      parameters:
+        - name: benchmark
+          in: path
+          description: "The name of the benchmark to perform"
+          schema:
+            type: string
+          example: "aws_cis_1.5"
+          required: true
+        - name: graph_id
+          in: path
+          description: "The id of the graph to perform this operation."
+          schema:
+            type: string
+          example: "resoto"
+          required: true
+      responses:
+        "200":
+          description: "The checks result."
+          content:
+            application/ndjson:
+              schema:
+                $ref: "#/components/schemas/Graph"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Graph"
+
+  /report/checks/graph/{graph_id}:
+    get:
+      summary: "Perform a dynamically assembled benchmark on a graph."
+      description: "Perform a benchmark by defining the check criteria on a graph with a given identifier."
+      tags:
+        - report
+      parameters:
+        - name: graph_id
+          in: path
+          description: "The ID of the graph to check."
+          schema:
+            type: string
+          example: "resoto"
+          required: true
+        - name: provider
+          in: query
+          description: "Filter by provider."
+          schema:
+            type: string
+          example: "aws"
+        - name: service
+          in: query
+          description: "Filter by service."
+          schema:
+            type: string
+          example: "ec2"
+        - name: category
+          in: query
+          description: "Filter by category."
+          schema:
+            type: string
+          example: "security"
+        - name: kind
+          in: query
+          description: "Filter by kind."
+          schema:
+            type: string
+          example: "aws_ec2_instance"
+      responses:
+        "200":
+          description: "The checks result."
+          content:
+            application/ndjson:
+              schema:
+                $ref: "#/components/schemas/Graph"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Graph"
+
+  # endregion
+
   # region system
   /system/ready:
     get:
@@ -2340,15 +2468,15 @@ paths:
                 type: string
                 example: "502. tsdb server is not reachable"
         default:
-            headers:
-              ViaResoto:
-                description: |
-                  This header indicates, that the response is created by the tsdb server and Resoto is only a proxy.
-                  Depending on this header: you have to interpret the response differently.
-                schema:
-                  type: string
-                  example: "1.1 node1"
-            description: "The response from the tsdb."
+          headers:
+            ViaResoto:
+              description: |
+                This header indicates, that the response is created by the tsdb server and Resoto is only a proxy.
+                Depending on this header: you have to interpret the response differently.
+              schema:
+                type: string
+                example: "1.1 node1"
+          description: "The response from the tsdb."
     put:
       summary: Proxy request to a configured tsdb server.
       parameters:
@@ -3061,5 +3189,61 @@ components:
           type: string
           description: Help text of the CLI command argument.
 
+    Remediation:
+      type: object
+      properties:
+        text:
+          type: string
+          description: "The text of the remediation"
+        url:
+          type: string
+          description: "The url of the remediation"
+        action:
+          additionalProperties:
+            type: string
+          description: "Action to remediate the inspected issue"
 
 
+    InspectCheck:
+      type: object
+      properties:
+        id:
+          type: string
+          description: "The id of this check"
+        provider:
+          type: string
+          description: "The provider of this check"
+        service:
+          type: string
+          description: "The service of this check"
+        title:
+          type: string
+          description: "The title of this check"
+        categories:
+          type: array
+          items:
+            type: string
+          description: "The categories of this check"
+        severity:
+          type: string
+          description: "The severity of this check"
+          enum:
+            - critical
+            - high
+            - medium
+            - low
+            - info
+        detect:
+          additionalProperties:
+            type: string
+          description: "The detect expression of this check"
+        remediation:
+          $ref: '#/components/schemas/Remediation'
+        url:
+          type: string
+          description: "The url of this check"
+        related:
+          type: array
+          items:
+            type: string
+          description: "The related checks of this check"

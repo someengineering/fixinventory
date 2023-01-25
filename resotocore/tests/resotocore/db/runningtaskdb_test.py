@@ -1,11 +1,8 @@
 from datetime import timedelta
 from typing import List, Dict, Tuple, Any
 
-import pytest
-from arango.database import StandardDatabase
+from pytest import fixture, mark
 
-from resotocore.db import runningtaskdb
-from resotocore.db.async_arangodb import AsyncArangoDB
 from resotocore.db.runningtaskdb import RunningTaskData, RunningTaskDb, RunningTaskStepInfo
 from resotocore.ids import TaskId, SubscriberId, TaskDescriptorId
 from resotocore.message_bus import ActionDone
@@ -13,28 +10,10 @@ from resotocore.task.model import Subscriber
 from resotocore.task.task_description import RunningTask, Workflow
 from resotocore.util import utc, utc_str
 
-# noinspection PyUnresolvedReferences
-from tests.resotocore.db.graphdb_test import test_db, local_client, system_db
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.message_bus_test import message_bus, all_events
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.task.task_description_test import workflow_instance, test_workflow
-
 now = utc()
 
 
-@pytest.fixture
-async def running_task_db(test_db: StandardDatabase) -> RunningTaskDb:
-    async_db = AsyncArangoDB(test_db)
-    task_db = runningtaskdb.running_task_db(async_db, "running_tasks")
-    await task_db.create_update_schema()
-    await task_db.wipe()
-    return task_db
-
-
-@pytest.fixture
+@fixture
 def instances() -> List[RunningTaskData]:
     messages = [ActionDone(str(a), TaskId("test"), "bla", SubscriberId("sf")) for a in range(0, 10)]
     state_data = {"test": 1}
@@ -58,21 +37,21 @@ def instances() -> List[RunningTaskData]:
     ]
 
 
-@pytest.mark.asyncio
+@mark.asyncio
 async def test_load_running(running_task_db: RunningTaskDb, instances: List[RunningTaskData]) -> None:
     await running_task_db.update_many(instances)
     not_done = list(filter(lambda x: not x.done, instances))
     assert not_done.sort() == [sub async for sub in running_task_db.all_running()].sort()
 
 
-@pytest.mark.asyncio
+@mark.asyncio
 async def test_load(running_task_db: RunningTaskDb, instances: List[RunningTaskData]) -> None:
     await running_task_db.update_many(instances)
     loaded = [sub async for sub in running_task_db.all()]
     assert instances.sort() == loaded.sort()
 
 
-@pytest.mark.asyncio
+@mark.asyncio
 async def test_filtered(running_task_db: RunningTaskDb, instances: List[RunningTaskData]) -> None:
     await running_task_db.update_many(instances)
 
@@ -94,7 +73,7 @@ async def test_filtered(running_task_db: RunningTaskDb, instances: List[RunningT
     assert len(await filtered_list(with_error=False)) == 8
 
 
-@pytest.mark.asyncio
+@mark.asyncio
 async def test_aggregated(running_task_db: RunningTaskDb, instances: List[RunningTaskData]) -> None:
     await running_task_db.update_many(instances)
     res = await running_task_db.aggregated_history()
@@ -103,7 +82,7 @@ async def test_aggregated(running_task_db: RunningTaskDb, instances: List[Runnin
     }
 
 
-@pytest.mark.asyncio
+@mark.asyncio
 async def test_update(running_task_db: RunningTaskDb, instances: List[RunningTaskData]) -> None:
     # multiple updates should work as expected
     await running_task_db.update_many(instances)
@@ -113,7 +92,7 @@ async def test_update(running_task_db: RunningTaskDb, instances: List[RunningTas
     assert instances.sort() == loaded.sort()
 
 
-@pytest.mark.asyncio
+@mark.asyncio
 async def test_delete(running_task_db: RunningTaskDb, instances: List[RunningTaskData]) -> None:
     await running_task_db.update_many(instances)
     remaining = list(instances)
@@ -125,7 +104,7 @@ async def test_delete(running_task_db: RunningTaskDb, instances: List[RunningTas
     assert len([sub async for sub in running_task_db.all()]) == 0
 
 
-@pytest.mark.asyncio
+@mark.asyncio
 async def test_update_state(
     running_task_db: RunningTaskDb,
     workflow_instance: Tuple[RunningTask, Subscriber, Subscriber, Dict[str, List[Subscriber]]],

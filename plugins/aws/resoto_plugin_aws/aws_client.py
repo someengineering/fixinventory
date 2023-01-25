@@ -128,7 +128,7 @@ class AwsClient:
         retry_on_exception=is_retryable_exception,
     )
     @log_runtime
-    def call(
+    def get_with_retry(
         self,
         aws_service: str,
         action: str,
@@ -146,6 +146,17 @@ class AwsClient:
             log.debug(f"The Aws endpoint does not exist in this region. Skipping. {e}")
             return None
 
+    @log_runtime
+    def call(
+        self,
+        aws_service: str,
+        action: str,
+        result_name: Optional[str],
+        expected_errors: Optional[List[str]] = None,
+        **kwargs: Any,
+    ) -> JsonElement:
+        return self.call_single(aws_service, action, result_name, max_attempts=1, **kwargs)
+
     def list(
         self,
         aws_service: str,
@@ -154,7 +165,7 @@ class AwsClient:
         expected_errors: Optional[List[str]] = None,
         **kwargs: Any,
     ) -> List[Any]:
-        res = self.call(aws_service, action, result_name, expected_errors, **kwargs)
+        res = self.get_with_retry(aws_service, action, result_name, expected_errors, **kwargs)
         if res is None:
             return []
         elif isinstance(res, list):
@@ -170,7 +181,7 @@ class AwsClient:
         expected_errors: Optional[List[str]] = None,
         **kwargs: Any,
     ) -> Optional[Json]:
-        return self.call(aws_service, action, result_name, expected_errors, **kwargs)  # type: ignore
+        return self.get_with_retry(aws_service, action, result_name, expected_errors, **kwargs)  # type: ignore
 
     def for_region(self, region: str) -> AwsClient:
         return AwsClient(

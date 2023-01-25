@@ -1,0 +1,95 @@
+{
+    "LabelingJobStatus": "Initializing",
+    "LabelCounters": {
+        "TotalLabeled": 123,
+        "HumanLabeled": 123,
+        "MachineLabeled": 123,
+        "FailedNonRetryableError": 123,
+        "Unlabeled": 123
+    },
+    "FailureReason": "string",
+    "CreationTime": "2015-01-01T00:00:00Z",
+    "LastModifiedTime": "2015-01-01T00:00:00Z",
+    "JobReferenceCode": "string",
+    "LabelingJobName": "ljob",
+    "LabelingJobArn": "ljob_arn",
+    "LabelAttributeName": "string",
+    "InputConfig": {
+        "DataSource": {
+            "S3DataSource": {
+                "ManifestS3Uri": "string"
+            },
+            "SnsDataSource": {
+                "SnsTopicArn": "string"
+            }
+        },
+        "DataAttributes": {
+            "ContentClassifiers": [
+                "FreeOfPersonallyIdentifiableInformation"
+            ]
+        }
+    },
+    "OutputConfig": {
+        "S3OutputPath": "string",
+        "KmsKeyId": "string",
+        "SnsTopicArn": "string"
+    },
+    "RoleArn": "string",
+    "LabelCategoryConfigS3Uri": "string",
+    "StoppingConditions": {
+        "MaxHumanLabeledObjectCount": 123,
+        "MaxPercentageOfInputDatasetLabeled": 123
+    },
+    "LabelingJobAlgorithmsConfig": {
+        "LabelingJobAlgorithmSpecificationArn": "string",
+        "InitialActiveLearningModelArn": "string",
+        "LabelingJobResourceConfig": {
+            "VolumeKmsKeyId": "string",
+            "VpcConfig": {
+                "SecurityGroupIds": [
+                    "string"
+                ],
+                "Subnets": [
+                    "string"
+                ]
+            }
+        }
+    },
+    "HumanTaskConfig": {
+        "WorkteamArn": "SomeWorkteamArn",
+        "UiConfig": {
+            "UiTemplateS3Uri": "string",
+            "HumanTaskUiArn": "string"
+        },
+        "PreHumanTaskLambdaArn": "string",
+        "TaskKeywords": [
+            "string"
+        ],
+        "TaskTitle": "string",
+        "TaskDescription": "string",
+        "NumberOfHumanWorkersPerDataObject": 123,
+        "TaskTimeLimitInSeconds": 123,
+        "TaskAvailabilityLifetimeInSeconds": 123,
+        "MaxConcurrentTaskCount": 123,
+        "AnnotationConsolidationConfig": {
+            "AnnotationConsolidationLambdaArn": "string"
+        },
+        "PublicWorkforceTaskPrice": {
+            "AmountInUsd": {
+                "Dollars": 123,
+                "Cents": 123,
+                "TenthFractionsOfACent": 123
+            }
+        }
+    },
+    "Tags": [
+        {
+            "Key": "string",
+            "Value": "string"
+        }
+    ],
+    "LabelingJobOutput": {
+        "OutputDatasetS3Uri": "string",
+        "FinalActiveLearningModelArn": "string"
+    }
+}

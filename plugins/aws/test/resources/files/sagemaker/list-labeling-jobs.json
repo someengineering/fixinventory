@@ -1,0 +1,42 @@
+{
+    "LabelingJobSummaryList": [
+        {
+            "LabelingJobName": "ljob",
+            "LabelingJobArn": "ljob_arn",
+            "CreationTime": "2015-01-01T00:00:00Z",
+            "LastModifiedTime": "2015-01-01T00:00:00Z",
+            "LabelingJobStatus": "Initializing",
+            "LabelCounters": {
+                "TotalLabeled": 123,
+                "HumanLabeled": 123,
+                "MachineLabeled": 123,
+                "FailedNonRetryableError": 123,
+                "Unlabeled": 123
+            },
+            "WorkteamArn": "string",
+            "PreHumanTaskLambdaArn": "string",
+            "AnnotationConsolidationLambdaArn": "string",
+            "FailureReason": "string",
+            "LabelingJobOutput": {
+                "OutputDatasetS3Uri": "string",
+                "FinalActiveLearningModelArn": "string"
+            },
+            "InputConfig": {
+                "DataSource": {
+                    "S3DataSource": {
+                        "ManifestS3Uri": "string"
+                    },
+                    "SnsDataSource": {
+                        "SnsTopicArn": "string"
+                    }
+                },
+                "DataAttributes": {
+                    "ContentClassifiers": [
+                        "FreeOfPersonallyIdentifiableInformation"
+                    ]
+                }
+            }
+        }
+    ],
+    "NextToken": "string"
+}

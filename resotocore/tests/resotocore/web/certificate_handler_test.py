@@ -1,25 +1,11 @@
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Iterator
 
 from arango.database import StandardDatabase
-from pytest import fixture
-from resotolib.x509 import bootstrap_ca, load_cert_from_bytes, cert_fingerprint, csr_to_bytes, gen_csr, gen_rsa_key
 
 from resotocore.dependencies import empty_config
 from resotocore.web.certificate_handler import CertificateHandler
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.db.graphdb_test import test_db, system_db, local_client
-
-
-@fixture
-def cert_handler() -> Iterator[CertificateHandler]:
-    config = empty_config()
-    key, certificate = bootstrap_ca()
-    temp = TemporaryDirectory()
-    yield CertificateHandler(config, key, certificate, Path(temp.name))
-    temp.cleanup()
+from resotolib.x509 import load_cert_from_bytes, cert_fingerprint, csr_to_bytes, gen_csr, gen_rsa_key
 
 
 def test_ca_certificate(cert_handler: CertificateHandler) -> None:

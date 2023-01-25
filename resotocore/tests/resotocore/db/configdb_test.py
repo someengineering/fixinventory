@@ -1,21 +1,13 @@
+from typing import List
+
 import pytest
 from arango.database import StandardDatabase
-from typing import List
 
 from resotocore.config import ConfigEntity, ConfigValidation
 from resotocore.db import configdb
 from resotocore.db.async_arangodb import AsyncArangoDB
 from resotocore.db.configdb import ConfigEntityDb, ConfigValidationEntityDb
 from resotocore.ids import ConfigId
-
-# noinspection PyUnresolvedReferences
-from resotocore.model.model import ComplexKind, Property
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.db.graphdb_test import test_db, local_client, system_db
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.message_bus_test import message_bus, all_events
 
 
 @pytest.fixture

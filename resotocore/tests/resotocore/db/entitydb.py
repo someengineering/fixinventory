@@ -40,8 +40,8 @@ class InMemoryDb(EntityDb[K, T]):
         self.items[self.key_fn(t)] = to_js(t)
         return t
 
-    async def delete(self, key: K) -> None:
-        self.items.pop(key, None)
+    async def delete(self, key: K) -> bool:
+        return self.items.pop(key, None) is not None
 
     async def delete_value(self, value: T) -> None:
         key = self.key_fn(value)

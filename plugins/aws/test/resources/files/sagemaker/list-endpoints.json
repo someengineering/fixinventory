@@ -1,0 +1,12 @@
+{
+    "Endpoints": [
+        {
+            "EndpointName": "SomeEndpoint",
+            "EndpointArn": "SomeEndpointArn",
+            "CreationTime": "2015-01-01T00:00:00Z",
+            "LastModifiedTime": "2015-01-01T00:00:00Z",
+            "EndpointStatus": "InService"
+        }
+    ],
+    "NextToken": "string"
+}

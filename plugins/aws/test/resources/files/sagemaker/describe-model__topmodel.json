@@ -1,0 +1,60 @@
+{
+    "ModelName": "topmodel",
+    "PrimaryContainer": {
+        "ContainerHostname": "string",
+        "Image": "string",
+        "ImageConfig": {
+            "RepositoryAccessMode": "Platform",
+            "RepositoryAuthConfig": {
+                "RepositoryCredentialsProviderArn": "string"
+            }
+        },
+        "Mode": "SingleModel",
+        "ModelDataUrl": "string",
+        "Environment": {
+            "string": "string"
+        },
+        "ModelPackageName": "string",
+        "InferenceSpecificationName": "string",
+        "MultiModelConfig": {
+            "ModelCacheSetting": "Enabled"
+        }
+    },
+    "Containers": [
+        {
+            "ContainerHostname": "string",
+            "Image": "string",
+            "ImageConfig": {
+                "RepositoryAccessMode": "Platform",
+                "RepositoryAuthConfig": {
+                    "RepositoryCredentialsProviderArn": "string"
+                }
+            },
+            "Mode": "SingleModel",
+            "ModelDataUrl": "string",
+            "Environment": {
+                "string": "string"
+            },
+            "ModelPackageName": "string",
+            "InferenceSpecificationName": "string",
+            "MultiModelConfig": {
+                "ModelCacheSetting": "Enabled"
+            }
+        }
+    ],
+    "InferenceExecutionConfig": {
+        "Mode": "Serial"
+    },
+    "ExecutionRoleArn": "string",
+    "VpcConfig": {
+        "SecurityGroupIds": [
+            "string"
+        ],
+        "Subnets": [
+            "string"
+        ]
+    },
+    "CreationTime": "2015-01-01T00:00:00Z",
+    "ModelArn": "arn:aws:sagemaker:eu-central-1:123456789:model/topmodel",
+    "EnableNetworkIsolation": true
+}

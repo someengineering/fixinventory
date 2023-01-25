@@ -27,7 +27,7 @@ from tests.resotocore.hypothesis_extension import (
 
 
 @given(json_array_gen)
-@settings(max_examples=20, suppress_health_check=HealthCheck.all())
+@settings(max_examples=20, suppress_health_check=HealthCheck.all(), deadline=1000)
 @pytest.mark.asyncio
 async def test_json(elements: List[JsonElement]) -> None:
     async with stream.iterate(elements).stream() as streamer:
@@ -38,7 +38,7 @@ async def test_json(elements: List[JsonElement]) -> None:
 
 
 @given(json_array_gen)
-@settings(max_examples=20, suppress_health_check=HealthCheck.all())
+@settings(max_examples=20, suppress_health_check=HealthCheck.all(), deadline=1000)
 @pytest.mark.asyncio
 async def test_ndjson(elements: List[JsonElement]) -> None:
     async with stream.iterate(elements).stream() as streamer:
@@ -49,7 +49,7 @@ async def test_ndjson(elements: List[JsonElement]) -> None:
 
 
 @given(json_array_gen)
-@settings(max_examples=20, suppress_health_check=HealthCheck.all())
+@settings(max_examples=20, suppress_health_check=HealthCheck.all(), deadline=1000)
 @pytest.mark.asyncio
 async def test_yaml(elements: List[JsonElement]) -> None:
     async with stream.iterate(elements).stream() as streamer:
@@ -60,7 +60,7 @@ async def test_yaml(elements: List[JsonElement]) -> None:
 
 
 @given(lists(json_simple_element_gen, min_size=1, max_size=10))
-@settings(max_examples=20, suppress_health_check=HealthCheck.all())
+@settings(max_examples=20, suppress_health_check=HealthCheck.all(), deadline=1000)
 @pytest.mark.asyncio
 async def test_text_simple_elements(elements: List[JsonElement]) -> None:
     async with stream.iterate(elements).stream() as streamer:
@@ -72,7 +72,7 @@ async def test_text_simple_elements(elements: List[JsonElement]) -> None:
 
 
 @given(lists(node_gen(), min_size=1, max_size=10))
-@settings(max_examples=20, suppress_health_check=HealthCheck.all())
+@settings(max_examples=20, suppress_health_check=HealthCheck.all(), deadline=1000)
 @pytest.mark.asyncio
 async def test_text_complex_elements(elements: List[JsonElement]) -> None:
     async with stream.iterate(elements).stream() as streamer:
@@ -84,7 +84,7 @@ async def test_text_complex_elements(elements: List[JsonElement]) -> None:
 
 
 @given(lists(node_gen(), min_size=1, max_size=10))
-@settings(max_examples=20, suppress_health_check=HealthCheck.all())
+@settings(max_examples=20, suppress_health_check=HealthCheck.all(), deadline=1000)
 @pytest.mark.asyncio
 async def test_cytoscape(elements: List[Json]) -> None:
     async with graph_stream(elements).stream() as streamer:
@@ -96,7 +96,7 @@ async def test_cytoscape(elements: List[Json]) -> None:
 
 
 @given(lists(node_gen(), min_size=1, max_size=10))
-@settings(max_examples=20, suppress_health_check=HealthCheck.all())
+@settings(max_examples=20, suppress_health_check=HealthCheck.all(), deadline=1000)
 @pytest.mark.asyncio
 async def test_graphml(elements: List[Json]) -> None:
     async with graph_stream(elements).stream() as streamer:

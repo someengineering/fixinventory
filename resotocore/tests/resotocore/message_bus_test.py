@@ -1,10 +1,12 @@
 import asyncio
-from typing import AsyncGenerator, Any, Type, List
-
 from datetime import timedelta, datetime, timezone
-from deepdiff import DeepDiff
-from pytest import fixture, mark
+from typing import Any, Type, List
 
+from deepdiff import DeepDiff
+from pytest import mark
+
+from resotocore.ids import SubscriberId
+from resotocore.ids import TaskId
 from resotocore.message_bus import (
     MessageBus,
     Message,
@@ -16,31 +18,8 @@ from resotocore.message_bus import (
     ActionProgress,
 )
 from resotocore.model.typed_model import to_js, from_js
-from resotocore.ids import SubscriberId
 from resotocore.util import AnyT, utc, first
-from resotocore.ids import TaskId
 from resotolib.core.progress import ProgressDone, Progress
-
-
-@fixture
-def message_bus() -> MessageBus:
-    return MessageBus()
-
-
-@fixture
-async def all_events(message_bus: MessageBus) -> AsyncGenerator[List[Message], None]:
-    events: List[Message] = []
-
-    async def gather_events() -> None:
-        async with message_bus.subscribe(SubscriberId("test")) as event_queue:
-            while True:
-                events.append(await event_queue.get())
-
-    run_gather = asyncio.create_task(gather_events())
-    try:
-        yield events
-    finally:
-        run_gather.cancel()
 
 
 async def wait_for_message(

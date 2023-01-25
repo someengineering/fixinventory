@@ -4,7 +4,7 @@ from abc import abstractmethod, ABC
 from typing import List, Optional, Any, Dict, Callable
 
 from attr import define, field, evolve
-from treelib import Tree, Node
+from resotolib.tree import Tree, Node
 
 from resotolib.types import Json, JsonElement
 
@@ -18,7 +18,7 @@ class ProgressInfo:
 
     @property
     def percentage(self) -> int:
-        return int(self.current * 100 / self.total)
+        return int(self.current * 100 / self.total) if self.total > 0 else 0
 
     @property
     def done(self) -> bool:

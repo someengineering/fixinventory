@@ -41,7 +41,7 @@ class EntityDb(ABC, Generic[K, T]):
         pass
 
     @abstractmethod
-    async def delete(self, key: K) -> None:
+    async def delete(self, key: K) -> bool:
         pass
 
     @abstractmethod
@@ -102,8 +102,8 @@ class ArangoEntityDb(EntityDb[K, T], ABC):
                 setattr(t, "revision", result["_rev"])
         return t
 
-    async def delete(self, key: K) -> None:
-        await self.db.delete(self.collection_name, key, ignore_missing=True)
+    async def delete(self, key: K) -> bool:
+        return await self.db.delete(self.collection_name, key, ignore_missing=True)
 
     async def delete_value(self, value: T) -> None:
         key = self.key_of(value)
@@ -148,9 +148,10 @@ class EventEntityDb(EntityDb[K, T]):
         await self.event_sender.core_event(f"{self.entity_name}-updated")
         return result
 
-    async def delete(self, key: K) -> None:
-        await self.db.delete(key)
+    async def delete(self, key: K) -> bool:
+        result = await self.db.delete(key)
         await self.event_sender.core_event(f"{self.entity_name}-deleted")
+        return result
 
     async def delete_value(self, value: T) -> None:
         await self.db.delete_value(value)

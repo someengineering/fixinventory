@@ -4,6 +4,10 @@ from typing import List, Set, Optional, Tuple, Union, Dict
 import boto3
 from attrs import define
 from botocore.model import ServiceModel, StringShape, ListShape, Shape, StructureShape, MapShape
+from jsons import pascalcase
+
+from resotolib.types import JsonElement
+from resotolib.utils import utc_str
 
 
 @define
@@ -121,7 +125,6 @@ def service_model(name: str) -> ServiceModel:
 
 
 def clazz_model(
-    model: ServiceModel,
     shape: Shape,
     visited: Set[str],
     prefix: Optional[str] = None,
@@ -186,7 +189,7 @@ def clazz_model(
                     )
 
                 else:
-                    result.extend(clazz_model(model, inner, visited, prefix))
+                    result.extend(clazz_model(inner, visited, prefix))
                     props.append(
                         AwsProperty(
                             prop_prefix + prop,
@@ -201,7 +204,7 @@ def clazz_model(
                 key_type = simple_shape(prop_shape.key)
                 assert key_type, f"Key type must be a simple type: {prop_shape.key.name}"
                 value_type = type_name(prop_shape.value)
-                result.extend(clazz_model(model, prop_shape.value, visited, prefix))
+                result.extend(clazz_model(prop_shape.value, visited, prefix))
                 props.append(
                     AwsProperty(prop_prefix + prop, name, f"Dict[{key_type}, {value_type}]", prop_shape.documentation)
                 )
@@ -213,7 +216,7 @@ def clazz_model(
                         AwsProperty(prop_prefix + prop, [name, s_prop_name], s_prop_type, prop_shape.documentation)
                     )
                 else:
-                    result.extend(clazz_model(model, prop_shape, visited, prefix))
+                    result.extend(clazz_model(prop_shape, visited, prefix))
                     props.append(
                         AwsProperty(
                             prop_prefix + prop, name, type_name(prop_shape), prop_shape.documentation, is_complex=True
@@ -236,7 +239,6 @@ def all_models() -> List[AwsModel]:
             shape = sm.shape_for(ep.result_shape)
             result.extend(
                 clazz_model(
-                    sm,
                     shape,
                     visited,
                     aggregate_root=True,
@@ -249,6 +251,37 @@ def all_models() -> List[AwsModel]:
             )
 
     return result
+
+
+def create_test_response(service: str, function: str) -> JsonElement:
+    sm = service_model(service)
+    op = sm.operation_model(pascalcase(function))
+
+    def sample(shape: Shape) -> JsonElement:
+        if isinstance(shape, StringShape) and shape.enum:
+            return shape.enum[1]
+        elif isinstance(shape, StringShape) and "8601" in shape.documentation:
+            return utc_str()
+        elif isinstance(shape, StringShape) and "URL" in shape.documentation:
+            return "https://example.com"
+        elif isinstance(shape, StringShape):
+            return "foo"
+        elif isinstance(shape, ListShape):
+            inner = shape.member
+            return [sample(inner) for _ in range(3)]
+        elif isinstance(shape, MapShape):
+            value_type = shape.value
+            return {f"{num}": sample(value_type) for num in range(3)}
+        elif isinstance(shape, StructureShape):
+            return {name: sample(shape) for name, shape in shape.members.items()}
+        elif shape.type_name == "integer":
+            return 123
+        elif shape.type_name == "boolean":
+            return True
+        else:
+            raise NotImplementedError(f"Unsupported shape: {type(shape)}")
+
+    return sample(op.output_shape)
 
 
 models: Dict[str, List[AwsResotoModel]] = {
@@ -673,6 +706,13 @@ models: Dict[str, List[AwsResotoModel]] = {
         #     prop_prefix="function_",
         # )
         # AwsResotoModel("get-policy", "Policy", "GetPolicyResponse", prefix="Lambda", prop_prefix="policy_")
+        # AwsResotoModel(
+        #     "get-function-url-config",
+        #     "",
+        #     "GetFunctionUrlConfigResponse",
+        #     name="AwsLambdaFunctionUrlConfig",
+        #     prefix="Lambda",
+        # )
     ],
     "iam": [
         # AwsResotoModel(
@@ -775,6 +815,96 @@ models: Dict[str, List[AwsResotoModel]] = {
         # AwsResotoModel(#     "list-buckets", "Buckets", "Bucket", prefix="S3", prop_prefix="s3_"
         # )
     ],
+    "sagemaker": [
+        # AwsResotoModel(
+        #     "describe-notebook-instance",
+        #     None,
+        #     "DescribeNotebookInstanceOutput",
+        #     prefix="Sagemaker",
+        #     prop_prefix="notebook_",
+        # ),
+        # AwsResotoModel("describe-algorithm", None, "DescribeAlgorithmOutput", "Sagemaker", "algorithm_"),
+        # AwsResotoModel("describe-app", None, "DescribeAppResponse", prefix="Sagemaker", prop_prefix="app_"),
+        # AwsResotoModel("describe-model", None, "DescribeModelOutput", "Sagemaker", "model_")
+        # AwsResotoModel("describe-domain", None, "DescribeDomainResponse", prefix="Sagemaker", prop_prefix="domain_"),
+        # AwsResotoModel("list-experiments", None, "ExperimentSummary", "Sagemaker", "experiment_"),
+        # AwsResotoModel("describe-trial", "TrialSummaries", "DescribeTrialResponse", "Sagemaker", "trial_"),
+        # AwsResotoModel(
+        #     "list-code-repositories",
+        #     "CodeRepositorySummaryList",
+        #     "CodeRepositorySummary",
+        #     "Sagemaker",
+        #     "code_repository_",
+        # ),
+        # AwsResotoModel("describe-endpoint", "Endpoints", "DescribeEndpointOutput", "Sagemaker", "endpoint_"),
+        # AwsResotoModel("describe-image", "Images", "DescribeImageResponse", "Sagemaker", "image_"),
+        # AwsResotoModel(
+        #     "describe-artifact",
+        #     "ArtifactSummaries",
+        #     "DescribeArtifactResponse",
+        #     "Sagemaker",
+        #     "artifact_"
+        # ),
+        # AwsResotoModel("list-user-profiles", "UserProfiles", "UserProfileDetails", "Sagemaker", "user_profile_"),
+        # AwsResotoModel("list-pipelines", "PipelineSummaries", "DescribePipelineResponse", "Sagemaker", "pipeline_"),
+        # AwsResotoModel(
+        #     "list-auto-ml-jobs", "AutoMLJobSummaries", "DescribeAutoMLJobResponse", "Sagemaker", "auto_ml_job_"
+        # ),
+        # AwsResotoModel("list-workteams", "Workteams", "Workteam", "Sagemaker", "workteam_"),
+        # AwsResotoModel(
+        #     "list-compilation-jobs",
+        #     "CompilationJobSummaries",
+        #     "DescribeCompilationJobResponse",
+        #     "Sagemaker",
+        #     "compilation_job_",
+        # ),
+        # AwsResotoModel(
+        #     "list-edge-packaging-jobs",
+        #     "EdgePackagingJobSummaries",
+        #     "DescribeEdgePackagingJobResponse",
+        #     "Sagemaker",
+        #     "edge_packaging_job_",
+        # ),
+        # AwsResotoModel(
+        #     "list-hyper-parameter-tuning-jobs",
+        #     "HyperParameterTuningJobSummaries",
+        #     "DescribeHyperParameterTuningJobResponse",
+        #     "Sagemaker",
+        #     "hyper_parameter_tuning_job_",
+        # ),
+        # AwsResotoModel(
+        #     "list-inference-recommendations-job",
+        #     "InferenceRecommendationsJobs",
+        #     "DescribeInferenceRecommendationsJobResponse",
+        #     "Sagemaker",
+        #     "inference_recommendations_job_",
+        # ),
+        # AwsResotoModel(
+        #     "list-labeling-jobs",
+        #     "LabelingJobSummaryList",
+        #     "DescribeLabelingJobResponse",
+        #     "Sagemaker",
+        #     "labeling_job_"
+        # ),
+        # AwsResotoModel("list-projects", "ProjectSummaryList", "ProjectSummary", "Sagemaker", "project_")
+        # AwsResotoModel(
+        #     "list-processing-jobs",
+        #     "ProcessingJobSummaries",
+        #     "DescribeProcessingJobResponse",
+        #     "Sagemaker",
+        #     "processing_job_",
+        # ),
+        # AwsResotoModel(
+        #     "list-training-jobs", "TrainingJobSummaries", "DescribeTrainingJobResponse", "Sagemaker", "training_job_"
+        # ),
+        # AwsResotoModel(
+        #     "list-transform-jobs",
+        #     "TransformJobSummaries",
+        #     "DescribeTransformJobResponse",
+        #     "Sagemaker",
+        #     "transform_job_",
+        # )
+    ],
     "service-quotas": [
         # AwsResotoModel("list-service-quotas", "Quotas", "ServiceQuota", prefix="Quota", prop_prefix="quota_")
     ],
@@ -803,5 +933,6 @@ models: Dict[str, List[AwsResotoModel]] = {
 
 
 if __name__ == "__main__":
+    # print(json.dumps(create_test_response("lambda", "get-function-url-config"), indent=2))
     for model in all_models():
         print(model.to_class())

@@ -30,6 +30,7 @@ from resoto_plugin_aws.resource import (
     rds,
     route53,
     s3,
+    sagemaker,
     service_quotas,
     sns,
     sqs,
@@ -47,7 +48,6 @@ log = logging.getLogger("resoto.plugins.aws")
 global_resources: List[Type[AwsResource]] = (
     cloudfront.resources
     + dynamodb.global_resources
-    + ec2.global_resources
     + iam.resources
     + route53.resources
     + s3.resources
@@ -73,6 +73,7 @@ regional_resources: List[Type[AwsResource]] = (
     + kms.resources
     + lambda_.resources
     + rds.resources
+    + sagemaker.resources
     + service_quotas.resources
     + sns.resources
     + sqs.resources

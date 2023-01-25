@@ -3,13 +3,11 @@ from typing import Any, List, Dict, Tuple, Callable
 
 from deepdiff import DeepDiff
 from frozendict import frozendict
-from pytest import fixture
 
-from resotocore.message_bus import MessageBus, Action, ActionDone, ActionError, Event, ActionProgress, ActionInfo
+from resotocore.ids import SubscriberId, TaskDescriptorId
+from resotocore.message_bus import Action, ActionDone, ActionError, Event, ActionProgress, ActionInfo
 from resotocore.model.typed_model import from_js, to_js
 from resotocore.task.model import Subscriber, Subscription
-from resotocore.ids import SubscriberId, TaskDescriptorId
-from resotocore.task.subscribers import SubscriptionHandler
 from resotocore.task.task_description import (
     Workflow,
     Step,
@@ -27,58 +25,6 @@ from resotocore.task.task_description import (
 )
 from resotolib.core.progress import ProgressDone
 from resotolib.utils import utc
-from tests.resotocore.db.entitydb import InMemoryDb
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.message_bus_test import message_bus
-
-
-@fixture
-async def subscription_handler(message_bus: MessageBus) -> SubscriptionHandler:
-    in_mem = InMemoryDb[SubscriberId, Subscriber](Subscriber, lambda x: x.id)
-    result = SubscriptionHandler(in_mem, message_bus)
-    await result.add_subscription(SubscriberId("sub_1"), "test", True, timedelta(seconds=3))
-    return result
-
-
-@fixture
-def test_workflow() -> Workflow:
-    return Workflow(
-        TaskDescriptorId("test_workflow"),
-        "Speakable name of workflow",
-        [
-            Step("start", PerformAction("start_collect"), timedelta(seconds=10)),
-            Step("wait", WaitForEvent("godot", {"a": 1}), timedelta(seconds=10)),
-            Step("emit_event", EmitEvent(Event("hello", {"a": 1})), timedelta(seconds=10)),
-            Step("collect", PerformAction("collect"), timedelta(seconds=10)),
-            Step("done", PerformAction("collect_done"), timedelta(seconds=10), StepErrorBehaviour.Stop),
-        ],
-        [EventTrigger("start me up")],
-    )
-
-
-@fixture
-def workflow_instance(
-    test_workflow: Workflow,
-) -> Tuple[RunningTask, Subscriber, Subscriber, Dict[str, List[Subscriber]]]:
-    td = timedelta(seconds=100)
-    sub1 = Subscription("start_collect", True, td)
-    sub2 = Subscription("collect", True, td)
-    sub3 = Subscription("collect_done", True, td)
-    s1 = Subscriber.from_list(SubscriberId("s1"), [sub1, sub2, sub3])
-    s2 = Subscriber.from_list(SubscriberId("s2"), [sub2, sub3])
-    subscriptions = {"start_collect": [s1], "collect": [s1, s2], "collect_done": [s1, s2]}
-    w, _ = RunningTask.empty(test_workflow, lambda: subscriptions)
-    w.received_messages = [
-        Action("start_collect", w.id, "start"),
-        ActionDone("start_collect", w.id, "start", s1.id),
-        ActionDone("start_collect", w.id, "start", s2.id),
-        Event("godot", {"a": 1, "b": 2}),
-        Action("collect", w.id, "collect"),
-        ActionDone("collect", w.id, "collect", s1.id),
-    ]
-    w.move_to_next_state()
-    return w, s1, s2, subscriptions
 
 
 def test_eq() -> None:

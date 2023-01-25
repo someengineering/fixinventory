@@ -1,0 +1,122 @@
+{
+    "JobName": "string",
+    "JobDescription": "string",
+    "JobType": "Default",
+    "JobArn": "string",
+    "RoleArn": "string",
+    "Status": "PENDING",
+    "CreationTime": "2015-01-01T00:00:00Z",
+    "CompletionTime": "2015-01-01T00:00:00Z",
+    "LastModifiedTime": "2015-01-01T00:00:00Z",
+    "FailureReason": "string",
+    "InputConfig": {
+        "ModelPackageVersionArn": "string",
+        "JobDurationInSeconds": 123,
+        "TrafficPattern": {
+            "TrafficType": "PHASES",
+            "Phases": [
+                {
+                    "InitialNumberOfUsers": 123,
+                    "SpawnRate": 123,
+                    "DurationInSeconds": 123
+                }
+            ]
+        },
+        "ResourceLimit": {
+            "MaxNumberOfTests": 123,
+            "MaxParallelOfTests": 123
+        },
+        "EndpointConfigurations": [
+            {
+                "InstanceType": "ml.t2.medium",
+                "InferenceSpecificationName": "string",
+                "EnvironmentParameterRanges": {
+                    "CategoricalParameterRanges": [
+                        {
+                            "Name": "string",
+                            "Value": [
+                                "string"
+                            ]
+                        }
+                    ]
+                }
+            }
+        ],
+        "VolumeKmsKeyId": "string",
+        "ContainerConfig": {
+            "Domain": "string",
+            "Task": "string",
+            "Framework": "string",
+            "FrameworkVersion": "string",
+            "PayloadConfig": {
+                "SamplePayloadUrl": "string",
+                "SupportedContentTypes": [
+                    "string"
+                ]
+            },
+            "NearestModelName": "string",
+            "SupportedInstanceTypes": [
+                "string"
+            ]
+        },
+        "Endpoints": [
+            {
+                "EndpointName": "string"
+            }
+        ],
+        "VpcConfig": {
+            "SecurityGroupIds": [
+                "string"
+            ],
+            "Subnets": [
+                "string"
+            ]
+        }
+    },
+    "StoppingConditions": {
+        "MaxInvocations": 123,
+        "ModelLatencyThresholds": [
+            {
+                "Percentile": "string",
+                "ValueInMilliseconds": 123
+            }
+        ]
+    },
+    "InferenceRecommendations": [
+        {
+            "Metrics": {
+                "CostPerHour": 1.1,
+                "CostPerInference": 1.1,
+                "MaxInvocations": 123,
+                "ModelLatency": 123
+            },
+            "EndpointConfiguration": {
+                "EndpointName": "string",
+                "VariantName": "string",
+                "InstanceType": "ml.t2.medium",
+                "InitialInstanceCount": 123
+            },
+            "ModelConfiguration": {
+                "InferenceSpecificationName": "string",
+                "EnvironmentParameters": [
+                    {
+                        "Key": "string",
+                        "ValueType": "string",
+                        "Value": "string"
+                    }
+                ]
+            }
+        }
+    ],
+    "EndpointPerformances": [
+        {
+            "Metrics": {
+                "MaxInvocations": 123,
+                "ModelLatency": 123
+            },
+            "EndpointInfo": {
+                "EndpointName": "string"
+            }
+        }
+    ]
+}

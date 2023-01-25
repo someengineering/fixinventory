@@ -1,0 +1,14 @@
+{
+    "Domains": [
+        {
+            "DomainArn": "arn:aws:sagemaker:us-west-2:account-id:domain/oblivion",
+            "DomainId": "123",
+            "DomainName": "oblivion",
+            "Status": "Deleting",
+            "CreationTime": "2015-01-01T00:00:00Z",
+            "LastModifiedTime": "2015-01-01T00:00:00Z",
+            "Url": "string"
+        }
+    ],
+    "NextToken": "string"
+}

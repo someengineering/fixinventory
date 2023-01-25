@@ -1,0 +1,32 @@
+{
+    "NotebookInstanceArn": "notebookarn",
+    "NotebookInstanceName": "notebookname",
+    "NotebookInstanceStatus": "Pending",
+    "FailureReason": "string",
+    "Url": "string",
+    "InstanceType": "ml.t2.medium",
+    "SubnetId": "string",
+    "SecurityGroups": [
+        "string"
+    ],
+    "RoleArn": "string",
+    "KmsKeyId": "string",
+    "NetworkInterfaceId": "string",
+    "LastModifiedTime": "2015-01-01T00:00:00Z",
+    "CreationTime": "2015-01-01T00:00:00Z",
+    "NotebookInstanceLifecycleConfigName": "string",
+    "DirectInternetAccess": "Enabled",
+    "VolumeSizeInGB": 123,
+    "AcceleratorTypes": [
+        "ml.eia1.medium"
+    ],
+    "DefaultCodeRepository": "SomeRepo",
+    "AdditionalCodeRepositories": [
+        "string"
+    ],
+    "RootAccess": "Enabled",
+    "PlatformIdentifier": "string",
+    "InstanceMetadataServiceConfiguration": {
+        "MinimumInstanceMetadataServiceVersion": "string"
+    }
+}

@@ -38,6 +38,7 @@ from aiohttp.web_exceptions import HTTPNotFound, HTTPNoContent, HTTPOk, HTTPNotA
 from aiohttp.web_fileresponse import FileResponse
 from aiohttp.web_routedef import AbstractRouteDef
 from aiohttp_swagger3 import SwaggerFile, SwaggerUiSettings
+from aiostream import stream
 from aiostream.core import Stream
 from attrs import evolve
 from networkx.readwrite import cytoscape_data
@@ -62,6 +63,7 @@ from resotocore.db.graphdb import GraphDB, HistoryChange
 from resotocore.db.model import QueryModel
 from resotocore.error import NotFoundError
 from resotocore.ids import TaskId, ConfigId, NodeId, SubscriberId, WorkerId
+from resotocore.report import Inspector
 from resotocore.message_bus import MessageBus, Message, ActionDone, Action, ActionError, ActionInfo, ActionProgress
 from resotocore.model.db_updater import merge_graph_process
 from resotocore.model.graph_access import Section
@@ -124,6 +126,7 @@ class Api:
         worker_task_queue: WorkerTaskQueue,
         cert_handler: CertificateHandler,
         config_handler: ConfigHandler,
+        inspector: Inspector,
         cli: CLI,
         query_parser: QueryParser,
         config: CoreConfig,
@@ -137,10 +140,12 @@ class Api:
         self.worker_task_queue = worker_task_queue
         self.cert_handler = cert_handler
         self.config_handler = config_handler
+        self.inspector = inspector
         self.cli = cli
         self.query_parser = query_parser
         self.config = config
         self.app = web.Application(
+            client_max_size=config.api.max_request_size or 1024**2,
             # note on order: the middleware is passed in the order provided.
             middlewares=[
                 metrics_handler,
@@ -148,7 +153,7 @@ class Api:
                 cors_handler,
                 error_handler(config, event_sender),
                 default_middleware(self),
-            ]
+            ],
         )
         self.app.on_response_prepare.append(on_response_prepare)
         self._session: Optional[ClientSession] = None
@@ -216,6 +221,10 @@ class Api:
                 web.post(prefix + "/subscriber/{subscriber_id}/{event_type}", self.add_subscription),
                 web.delete(prefix + "/subscriber/{subscriber_id}/{event_type}", self.delete_subscription),
                 web.get(prefix + "/subscriber/{subscriber_id}/handle", self.handle_subscribed),
+                # report checks
+                web.get(prefix + "/report/checks", self.inspection_checks),
+                web.get(prefix + "/report/checks/graph/{graph_id}", self.perform_benchmark_on_checks),
+                web.get(prefix + "/report/benchmark/{benchmark}/graph/{graph_id}", self.perform_benchmark),
                 # CLI
                 web.post(prefix + "/cli/evaluate", self.evaluate),
                 web.post(prefix + "/cli/execute", self.execute),
@@ -437,6 +446,32 @@ class Api:
             return await self.listen_to_events(request, subscriber_id, list(subscriber.subscriptions.keys()), pending)
         else:
             return web.HTTPNotFound(text=f"No subscriber with this id: {subscriber_id} or no subscriptions")
+
+    async def perform_benchmark_on_checks(self, request: Request) -> StreamResponse:
+        graph = request.match_info["graph_id"]
+        provider = request.query.get("provider")
+        service = request.query.get("service")
+        category = request.query.get("category")
+        kind = request.query.get("kind")
+        result = await self.inspector.perform_checks(graph, provider, service, category, kind)
+        return await single_result(request, to_js(result))
+
+    async def perform_benchmark(self, request: Request) -> StreamResponse:
+        benchmark = request.match_info["benchmark"]
+        graph = request.match_info["graph_id"]
+        result = await self.inspector.perform_benchmark(benchmark, graph)
+        count = result.checks_passing + result.checks_failing
+        async with stream.iterate(result.to_graph()).stream() as streamer:
+            await self.stream_response_from_gen(request, streamer, count)
+        return await single_result(request, to_js(result))
+
+    async def inspection_checks(self, request: Request) -> StreamResponse:
+        provider = request.query.get("provider")
+        service = request.query.get("service")
+        category = request.query.get("category")
+        kind = request.query.get("kind")
+        inspections = await self.inspector.list_checks(provider, service, category, kind)
+        return await single_result(request, to_js(inspections))
 
     async def redirect_to_api_doc(self, request: Request) -> StreamResponse:
         raise web.HTTPFound("api-doc")

@@ -83,6 +83,7 @@ def transitive_classes(classes: Set[type], walk_subclasses: bool = True) -> Set[
         elif is_collection(clazz):
             check(type_arg(to_check))
         elif attrs.has(clazz):
+            resolve_types(clazz)
             all_classes.add(clazz)
             for mro_clazz in clazz.mro()[1:]:
                 check(mro_clazz)
@@ -200,6 +201,9 @@ def dataclasses_to_resotocore_model(
         # required = not is_optional(field.type)
         return [json(name, kind, required, desc)] + synthetics
 
+    for cls in classes:
+        if attrs.has(cls):
+            resolve_types(cls)  # make sure all string based types are resolved correctly
     model: List[Json] = []
     all_classes = transitive_classes(classes, walk_subclasses)
 

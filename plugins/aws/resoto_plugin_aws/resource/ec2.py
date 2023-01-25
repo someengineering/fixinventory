@@ -351,6 +351,9 @@ class AwsEc2InstanceType(AwsResource, BaseInstanceType):
             it = AwsEc2InstanceType.from_api(js)
             # only store this information in the builder, not directly in the graph
             # reason: pricing is region-specific - this is enriched in the builder on demand
+            # Only "used" instance type will be stored in the graph
+            # note: not all instance types are returned in any region.
+            # we collect instance types in all regions and make the data unique in the builder
             builder.global_instance_types[it.safe_name] = it
 
 
@@ -1029,16 +1032,17 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
             for instance_in in reservation["Instances"]:
                 mapped = bend(cls.mapping, instance_in)
                 instance = AwsEc2Instance.from_json(mapped)
-                # copy data from the instance type
-                if instance_type := builder.instance_type(instance.instance_type):
-                    builder.add_node(instance_type, {})
-                    instance.instance_cores = instance_type.instance_cores
-                    instance.instance_memory = instance_type.instance_memory
-                    builder.add_edge(instance_type, EdgeType.default, node=instance)
                 builder.add_node(instance, instance_in)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
+        # connect instance type and copy values
+        # noinspection PyTypeChecker
+        if instance_type := builder.instance_type(self.region(), self.instance_type):
+            self.instance_cores = instance_type.instance_cores
+            self.instance_memory = instance_type.instance_memory
+            builder.add_edge(instance_type, EdgeType.default, node=self)
+
         if self.instance_key_name:
             builder.dependant_node(self, clazz=AwsEc2KeyPair, name=self.instance_key_name)
         if vpc_id := source.get("VpcId"):
@@ -2386,10 +2390,8 @@ class AwsEc2Host(EC2Taggable, AwsResource):
 
 # endregion
 
-global_resources: List[Type[AwsResource]] = [
-    AwsEc2InstanceType,
-]
 resources: List[Type[AwsResource]] = [
+    AwsEc2InstanceType,
     AwsEc2ElasticIp,
     AwsEc2Host,
     AwsEc2Instance,

@@ -27,7 +27,7 @@ from resotolib.core.actions import CoreFeedback
 from resotolib.core.custom_command import execute_command_on_resource
 from resotolib.graph import Graph
 from resotolib.logger import log, setup_logger
-from resotolib.types import JsonElement, Json
+from resotolib.types import JsonElement
 from resotolib.utils import log_runtime, NoExitArgumentParser
 from .collector import AwsAccountCollector
 from .configuration import AwsConfig
@@ -221,7 +221,15 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
         output_shape = op.output_shape.type_name
         func_args = coerce_args(remaining, op)
 
-        result: List[Json] = client.call_single(p.service, p.operation, None, **func_args)  # type: ignore
+        # call single and treat result as list
+        response = client.call_single(p.service, p.operation, None, **func_args)
+        if response is None:
+            result = []
+        elif isinstance(response, list):
+            result = response
+        else:
+            result = [response]
+
         # Remove the "ResponseMetadata" from the result
         for elem in result:
             if isinstance(elem, dict):
@@ -469,6 +477,7 @@ def get_accounts(core_feedback: CoreFeedback) -> List[AwsAccount]:
             elif e.response["Error"]["Code"] == "AccessDenied":
                 core_feedback.error(f"Access denied for profile {profile}", log)
             else:
+                core_feedback.error(f"AWS client error for profile {profile}: {e}", log)
                 raise
         except botocore.exceptions.BotoCoreError as e:
             core_feedback.error(f"Unable to get accounts for profile {profile}: {e}", log)
@@ -527,7 +536,7 @@ def collect_account(
         Config.running_config.apply(running_config)
 
     if not authenticated(account, feedback):
-        log.error(f"Skipping {account.rtdname} due to authentication failure")
+        log.error(f"Skipping account {account.rtdname}. Reason: authentication failure.")
         return None
 
     log.debug(f"Starting new collect process for account {account.dname}")
@@ -537,12 +546,12 @@ def collect_account(
         aac.collect()
     except botocore.exceptions.ClientError as e:
         feedback.error(
-            f"An AWS {e.response['Error']['Code']} error occurred while collecting account {account.dname}", log
+            f"Ignore account {account.dname}. Reason: An AWS {e.response['Error']['Code']} error occurred.", log
         )
         metrics_unhandled_account_exceptions.labels(account=account.dname).inc()
         return None
     except Exception as ex:
-        feedback.error(f"An unhandled error occurred while collecting AWS account {account.dname}. {ex}", log)
+        feedback.error(f"Ignore account {account.dname}. Reason: unhandled error occurred: {ex}", log)
         metrics_unhandled_account_exceptions.labels(account=account.dname).inc()
         return None
 
