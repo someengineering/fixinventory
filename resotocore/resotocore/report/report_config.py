@@ -66,12 +66,13 @@ class ReportCheckCollectionConfig:
     @staticmethod
     def from_files() -> Dict[str, Json]:
         # load the checks from the report directory
-        static_path = os.path.abspath(os.path.dirname(__file__) + "/../../report/checks")
+        static_path = os.path.abspath(os.path.dirname(__file__) + "/../static/report/checks")
         result = {}
-        for provider in (d.path for d in os.scandir(static_path) if d.is_dir()):
-            for service in (d.path for d in os.scandir(provider) if d.is_file() and d.name.endswith(".json")):
-                with open(service, "rt", encoding="utf-8") as f:
-                    result[basename(service).rsplit(".", maxsplit=1)[0]] = json.load(f)
+        if os.path.exists(static_path):
+            for provider in (d.path for d in os.scandir(static_path) if d.is_dir()):
+                for service in (d.path for d in os.scandir(provider) if d.is_file() and d.name.endswith(".json")):
+                    with open(service, "rt", encoding="utf-8") as f:
+                        result[basename(service).rsplit(".", maxsplit=1)[0]] = json.load(f)
         return result
 
     @staticmethod
@@ -124,12 +125,13 @@ class BenchmarkConfig(CheckCollectionConfig):
     @staticmethod
     def from_files() -> Dict[str, Json]:
         # load the benchmarks from the report directory
-        static_path = os.path.abspath(os.path.dirname(__file__) + "/../../report/benchmark")
+        static_path = os.path.abspath(os.path.dirname(__file__) + "/../static/report/benchmark")
         result = {}
-        for provider in (d.path for d in os.scandir(static_path) if d.is_dir()):
-            for path in (d.path for d in os.scandir(provider) if d.is_file() and d.name.endswith(".json")):
-                with open(path, "rt", encoding="utf-8") as f:
-                    result[basename(path).rsplit(".", maxsplit=1)[0]] = json.load(f)
+        if os.path.exists(static_path):
+            for provider in (d.path for d in os.scandir(static_path) if d.is_dir()):
+                for path in (d.path for d in os.scandir(provider) if d.is_file() and d.name.endswith(".json")):
+                    with open(path, "rt", encoding="utf-8") as f:
+                        result[basename(path).rsplit(".", maxsplit=1)[0]] = json.load(f)
         return result
 
     @staticmethod
