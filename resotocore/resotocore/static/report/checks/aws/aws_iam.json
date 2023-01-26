@@ -100,7 +100,7 @@
             "risk": "The root account has unrestricted access to all resources in the AWS account. It is highly recommended that the use of this account be avoided.",
             "severity": "critical",
             "detect": {
-                "resoto": "is(aws_root_user) {access_keys[]: --> is(access_key)} password_last_used>{{last_access_younger_than.ago}} or access_keys[*].reported.access_key_last_used.last_used_date>{{last_access_younger_than.ago}}"
+                "resoto": "is(aws_root_user) {access_keys[]: --> is(access_key)} password_last_used>{{last_access_younger_than.ago}} or access_keys[*].reported.access_key_last_used.last_used>{{last_access_younger_than.ago}}"
             },
             "default_values": {
                 "last_access_younger_than": "1d"
@@ -108,6 +108,132 @@
             "remediation": {
                 "text": "Follow the remediation instructions of the Ensure IAM policies are attached only to groups or roles recommendation.",
                 "url": "http://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html"
+            }
+        },
+        {
+            "name": "password_policy_minimum_length_14",
+            "title": "Ensure IAM password policy requires minimum length of 14 or greater",
+            "result_kind": "aws_account",
+            "categories": [ "security", "compliance" ],
+            "risk": "Password policies are used to enforce password complexity requirements. IAM password policies can be used to ensure password are comprised of different character sets. It is recommended that the password policy require minimum length of 14 or greater.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_account) and minimum_password_length<14"
+            },
+            "remediation": {
+                "text": "Ensure \"Minimum password length\" is checked under \"Password Policy\".",
+                "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_passwords_account-policy.html"
+            }
+        },
+        {
+            "name": "password_policy_reuse_24",
+            "title": "Ensure IAM password policy prevents password reuse: 24 or greater",
+            "result_kind": "aws_account",
+            "categories": [ "security", "compliance" ],
+            "risk": "Password policies are used to enforce password complexity requirements. IAM password policies can be used to ensure password are comprised of different character sets. It is recommended that the password policy prevents at least password reuse of 24 or greater.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_account) and password_reuse_prevention<24"
+            },
+            "remediation": {
+                "text": "Ensure \"Number of passwords to remember\" is set to 24.",
+                "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_passwords_account-policy.html"
+            }
+        },
+        {
+            "name": "user_mfa_enabled_console_access",
+            "title": "Ensure multi-factor authentication (MFA) is enabled for all IAM users that have a console password.",
+            "result_kind": "aws_iam_user",
+            "categories": [ "security", "compliance" ],
+            "risk": "Password policies are used to enforce password complexity requirements. IAM password policies can be used to ensure password are comprised of different character sets. It is recommended that the password policy prevents at least password reuse of 24 or greater.",
+            "severity": "high",
+            "detect": {
+                "resoto": "is(aws_iam_user) and password_enabled==true and mfa_active==false"
+            },
+            "remediation": {
+                "text": "Enable MFA for users account. MFA is a simple best practice that adds an extra layer of protection on top of your user name and password. Recommended to use hardware keys over virtual MFA.",
+                "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_mfa_enable_virtual.html"
+            }
+        },
+        {
+            "name": "user_uses_access_keys_console_access",
+            "title": "Do not setup access keys during initial user setup for all IAM users that have a console password",
+            "result_kind": "aws_iam_access_key",
+            "categories": [ "security", "compliance" ],
+            "risk": "AWS console defaults the checkbox for creating access keys to enabled. This results in many access keys being generated unnecessarily. In addition to unnecessary credentials; it also generates unnecessary management work in auditing and rotating these keys. Requiring that additional steps be taken by the user after their profile has been created will give a stronger indication of intent that access keys are (a) necessary for their work and (b) once the access key is established on an account that the keys may be in use somewhere in the organization.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_iam_access_key) and access_key_status==\"Active\" and access_key_last_used.last_used==null and /ancestors.aws_iam_user.reported.password_enabled==true"
+            },
+            "remediation": {
+                "text": "From the IAM console: generate credential report and disable not required keys.",
+                "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_getting-report.html"
+            }
+        },
+        {
+            "name": "disable_old_credentials",
+            "title": "Ensure credentials unused for 45 days or greater are disabled",
+            "result_kind": "aws_iam_access_key",
+            "categories": [ "security", "compliance" ],
+            "risk": "To increase the security of your AWS account; remove IAM user credentials (that is; passwords and access keys) that are not needed. For example; when users leave your organization or no longer need AWS access.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_iam_user) and password_last_used<{{password_used_since.ago}}"
+            },
+            "default_values": {
+                "password_used_since": "45d"
+            },
+            "remediation": {
+                "text": "From the IAM console: generate credential report and disable not required keys.",
+                "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_getting-report.html"
+            }
+        },
+        {
+            "name": "user_has_two_active_access_keys",
+            "title": "Check if IAM users have two active access keys",
+            "result_kind": "aws_iam_user",
+            "categories": [ "security", "compliance" ],
+            "risk": "Access Keys could be lost or stolen. It creates a critical risk.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_iam_user) {access_keys[]: --> is(access_key)} access_keys[0].reported.access_key_status==\"Active\" and access_keys[1].reported.access_key_status==\"Active\""
+            },
+            "remediation": {
+                "text": "Avoid using long lived access keys.",
+                "url": "https://docs.aws.amazon.com/IAM/latest/APIReference/API_ListAccessKeys.html"
+            }
+        },
+        {
+            "name": "rotate_access_keys_after_90_days",
+            "title": "Ensure access keys are rotated every 90 days or less",
+            "result_kind": "aws_iam_access_key",
+            "categories": [ "security", "compliance" ],
+            "risk": "Access keys consist of an access key ID and secret access key which are used to sign programmatic requests that you make to AWS. AWS users need their own access keys to make programmatic calls to AWS from the AWS Command Line Interface (AWS CLI)- Tools for Windows PowerShell- the AWS SDKs- or direct HTTP calls using the APIs for individual AWS services. It is recommended that all access keys be regularly rotated.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_iam_access_key) and access_key_last_used.last_rotated<{{last_rotated_max.ago}}"
+            },
+            "default_values": {
+                "last_rotated_max": "90d"
+            },
+            "remediation": {
+                "text": "Use the credential report to  ensure  access_key_X_last_rotated  is less than 90 days ago.",
+                "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_getting-report.html"
+            }
+        },
+        {
+            "name": "policy_attached_only_to_group_or_roles",
+            "title": "Ensure IAM policies are attached only to groups or roles",
+            "result_kind": "aws_iam_access_key",
+            "categories": [ "security", "compliance" ],
+            "risk": "By default IAM users; groups; and roles have no access to AWS resources. IAM policies are the means by which privileges are granted to users; groups; or roles. It is recommended that IAM policies be applied directly to groups and roles but not users. Assigning privileges at the group or role level reduces the complexity of access management as the number of users grow. Reducing access management complexity may in-turn reduce opportunity for a principal to inadvertently receive or retain excessive privileges.",
+            "severity": "low",
+            "detect": {
+                "resoto": "is(aws_iam_user) {attached_policy: --> is(aws_iam_policy)} user_policies!=[] or attached_policy!=null"
+            },
+            "remediation": {
+                "text": "Remove any policy attached directly to the user. Use groups or roles instead.",
+                "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html"
             }
         }
     ]

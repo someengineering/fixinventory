@@ -61,32 +61,39 @@
                 {
                     "title": "1.8 Ensure IAM password policy requires minimum length of 14 or greater",
                     "description": "Password policies are, in part, used to enforce password complexity requirements. IAM password policies can be used to ensure password are at least a given length. It is recommended that the password policy require a minimum password length 14.",
-                    "checks": []
+                    "checks": [
+                        "aws_iam_password_policy_minimum_length_14"
+                    ]
                 },
                 {
                     "title": "1.9 Ensure IAM password policy prevents password reuse",
                     "description": "IAM password policies can prevent the reuse of a given password by the same user. It is recommended that the password policy prevent the reuse of passwords.",
-                    "checks": []
+                    "checks": [
+                        "aws_iam_password_policy_reuse_24"
+                    ]
                 },
                 {
                     "title": "1.10 Ensure multi-factor authentication (MFA) is enabled for all IAM users that have a console password",
                     "description": "Multi-Factor Authentication (MFA) adds an extra layer of authentication assurance beyond traditional credentials. With MFA enabled, when a user signs in to the AWS Console, they will be prompted for their user name and password as well as for an authentication code from their physical or virtual MFA token. It is recommended that MFA be enabled for all accounts that have a console password.",
-                    "checks": []
+                    "checks": [
+                        "aws_iam_user_mfa_enabled_console_access"
+                    ]
                 },
                 {
                     "title": "1.11 Do not setup access keys during initial user setup for all IAM users that have a console password",
                     "description": "AWS console defaults to no check boxes selected when creating a new IAM user. When creating the IAM User credentials you have to determine what type of access they require.",
-                    "checks": []
+                    "checks": ["aws_iam_user_uses_access_keys_console_access"
+                    ]
                 },
                 {
                     "title": "1.12 Ensure credentials unused for 45 days or greater are disabled",
                     "description": "AWS IAM users can access AWS resources using different types of credentials, such as passwords or access keys. It is recommended that all credentials that have been unused in 45 or greater days be deactivated or removed.",
-                    "checks": []
+                    "checks": ["aws_iam_disable_old_credentials"]
                 },
                 {
                     "title": "1.13 Ensure there is only one active access key available for any single IAM user",
                     "description": "Access keys are long-term credentials for an IAM user or the AWS account root user. You can use access keys to sign programmatic requests to the AWS CLI or AWS API (directly or using the AWS SDK).",
-                    "checks": []
+                    "checks": ["aws_iam_user_has_two_active_access_keys"]
                 },
                 {
                     "title": "1.14 Ensure access keys are rotated every 90 days or less",

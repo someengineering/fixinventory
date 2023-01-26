@@ -74,8 +74,8 @@ class AwsIamAttachedPermissionsBoundary:
 @define(eq=False, slots=False)
 class AwsIamRoleLastUsed:
     kind: ClassVar[str] = "aws_iam_role_last_used"
-    mapping: ClassVar[Dict[str, Bender]] = {"last_used_date": S("LastUsedDate"), "region": S("Region")}
-    last_used_date: Optional[datetime] = field(default=None)
+    mapping: ClassVar[Dict[str, Bender]] = {"last_used": S("LastUsedDate"), "region": S("Region")}
+    last_used: Optional[datetime] = field(default=None)
     region: Optional[str] = field(default=None)
 
 
@@ -395,11 +395,13 @@ class AwsIamGroup(AwsResource, BaseGroup):
 class AwsIamAccessKeyLastUsed:
     kind: ClassVar[str] = "aws_iam_access_key_last_used"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "last_used_date": S("LastUsedDate"),
+        "last_used": S("LastUsedDate"),
+        "last_rotated": S("LastRotated"),
         "service_name": S("ServiceName"),
         "region": S("Region"),
     }
-    last_used_date: Optional[datetime] = field(default=None)
+    last_used: Optional[datetime] = field(default=None)
+    last_rotated: Optional[datetime] = field(default=None)
     service_name: Optional[str] = field(default=None)
     region: Optional[str] = field(default=None)
 
@@ -449,13 +451,16 @@ class CredentialReportLine:
 
     def access_keys(self) -> List[AwsIamAccessKey]:
         def by_index(i: int) -> AwsIamAccessKey:
-            last_used_date = self.value_of(f"access_key_{i}_last_used_date", parse_utc)
+            last_used = self.value_of(f"access_key_{i}_last_used_date", parse_utc)
             service_name = self.value_of(f"access_key_{i}_last_used_service")
             region = self.value_of(f"access_key_{i}_last_used_region")
+            last_rotated = self.value_of(f"access_key_{i}_last_rotated", parse_utc)
             last_used = (
                 None
-                if last_used_date is None and service_name is None and region is None
-                else AwsIamAccessKeyLastUsed(last_used_date=last_used_date, service_name=service_name, region=region)
+                if last_used is None and service_name is None and region is None and last_rotated is None
+                else AwsIamAccessKeyLastUsed(
+                    last_used=last_used, last_rotated=last_rotated, service_name=service_name, region=region
+                )
             )
             return AwsIamAccessKey(
                 id=f"root_key_{i}",
