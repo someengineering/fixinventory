@@ -1,10 +1,15 @@
 from __future__ import annotations
+
+import json
 import logging
 from abc import ABC
 from datetime import datetime
 from enum import Enum
 from typing import Dict, Any, Type, Union, Optional, Callable
 
+from jsons import snakecase
+
+from resotocore.types import JsonElement
 from resotolib.types import Json
 from resotolib.units import parse
 
@@ -327,6 +332,51 @@ class Sort(Bender):
             return sorted(source, key=lambda x: bend(self._extractor, x))
         else:
             return source
+
+
+class AsInt(Bender):
+    def execute(self, source: Any) -> Any:
+        if isinstance(source, int):
+            return source
+        else:
+            try:
+                return int(source)
+            except Exception:
+                return None
+
+
+class AsBool(Bender):
+    def execute(self, source: Any) -> Any:
+        if isinstance(source, bool):
+            return source
+        elif isinstance(source, str):
+            return source.lower() in ("true", "yes", "1")
+        else:
+            return bool(source)
+
+
+class ParseJson(Bender):
+    def __init__(self, keys_to_snake: bool = False, **kwargs: Any):
+        super().__init__(**kwargs)
+        self._keys_to_snake = keys_to_snake
+
+    def execute(self, source: Any) -> Any:
+        def reformat_keys_to_snake(js: JsonElement) -> JsonElement:
+            if isinstance(js, dict):
+                return {snakecase(k): reformat_keys_to_snake(v) for k, v in js.items()}
+            elif isinstance(js, list):
+                return [reformat_keys_to_snake(v) for v in js]
+            else:
+                return js
+
+        if isinstance(source, str):
+            try:
+                result = json.loads(source)
+                return result if not self._keys_to_snake else reformat_keys_to_snake(result)
+            except Exception:
+                return None
+        else:
+            return None
 
 
 class AsDate(Bender):
