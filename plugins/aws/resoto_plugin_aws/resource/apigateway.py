@@ -166,7 +166,7 @@ class AwsApiGatewayResource(AwsResource):
     resource_path_part: Optional[str] = field(default=None)
     resource_path: Optional[str] = field(default=None)
     resource_methods: Optional[Dict[str, AwsApiGatewayMethod]] = field(default=None)
-    api_link: str = field(default=None)
+    api_link: Optional[str] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.resource_methods:
@@ -213,15 +213,15 @@ class AwsApiGatewayAuthorizer(AwsResource):
         "authorizer_identity_validation_expression": S("identityValidationExpression"),
         "authorizer_result_ttl_in_seconds": S("authorizerResultTtlInSeconds"),
     }
-    authorizer_type: str = field(default=None)
+    authorizer_type: Optional[str] = field(default=None)
     authorizer_provider_arns: List[Optional[str]] = field(default=None)
     authorizer_auth_type: Optional[str] = field(default=None)
     authorizer_uri: Optional[str] = field(default=None)
     authorizer_credentials: Optional[str] = field(default=None)
     authorizer_identity_source: Optional[str] = field(default=None)
     authorizer_identity_validation_expression: Optional[str] = field(default=None)
-    authorizer_result_ttl_in_seconds: int = field(default=None)
-    api_link: str = field(default=None)
+    authorizer_result_ttl_in_seconds: Optional[int] = field(default=None)
+    api_link: Optional[str] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.authorizer_uri:
@@ -262,10 +262,10 @@ class AwsApiGatewayCanarySetting:
         "stage_variable_overrides": S("stageVariableOverrides"),
         "use_stage_cache": S("useStageCache"),
     }
-    percent_traffic: int = field(default=None)
-    deployment_id: str = field(default=None)
+    percent_traffic: Optional[int] = field(default=None)
+    deployment_id: Optional[str] = field(default=None)
     stage_variable_overrides: Optional[Dict[str, str]] = field(default=None)
-    use_stage_cache: bool = field(default=None)
+    use_stage_cache: Optional[bool] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -293,7 +293,7 @@ class AwsApiGatewayStage(ApiGatewayTaggable, AwsResource):
     }
     description: Optional[str] = field(default=None)
     stage_client_certificate_id: Optional[str] = field(default=None)
-    stage_cache_cluster_enabled: bool = field(default=None)
+    stage_cache_cluster_enabled: Optional[bool] = field(default=None)
     stage_cache_cluster_size: Optional[str] = field(default=None)
     stage_cache_status: Optional[str] = field(default=None)
     stage_method_settings: Optional[Dict[str, Dict[str, Union[bool, str, int]]]] = field(default=None)
@@ -301,9 +301,9 @@ class AwsApiGatewayStage(ApiGatewayTaggable, AwsResource):
     stage_documentation_version: Optional[str] = field(default=None)
     stage_access_log_settings: Optional[Dict[str, str]] = field(default=None)
     stage_canary_settings: Optional[AwsApiGatewayCanarySetting] = field(default=None)
-    stage_tracing_enabled: bool = field(default=None)
+    stage_tracing_enabled: Optional[bool] = field(default=None)
     stage_web_acl_arn: Optional[str] = field(default=None)
-    api_link: str = field(default=None)
+    api_link: Optional[str] = field(default=None)
 
     # TODO add edge to Web Acl when applicable (via stage_web_acl_arn)
 
@@ -339,7 +339,7 @@ class AwsApiGatewayDeployment(AwsResource):
     }
     description: Optional[str] = field(default=None)
     deployment_api_summary: Optional[Dict[str, Dict[str, Dict[str, Union[str, bool]]]]] = field(default=None)
-    api_link: str = field(default=None)
+    api_link: Optional[str] = field(default=None)
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
@@ -544,7 +544,7 @@ class AwsApiGatewayDomainName(ApiGatewayTaggable, AwsResource):
     domain_regional_certificate_arn: Optional[str] = field(default=None)
     domain_distribution_domain_name: Optional[str] = field(default=None)
     domain_distribution_hosted_zone_id: Optional[str] = field(default=None)
-    domain_endpoint_configuration: AwsApiGatewayEndpointConfiguration = field(default=None)
+    domain_endpoint_configuration: Optional[AwsApiGatewayEndpointConfiguration] = field(default=None)
     domain_domain_name_status: Optional[str] = field(default=None)
     domain_domain_name_status_message: Optional[str] = field(default=None)
     domain_security_policy: Optional[str] = field(default=None)
@@ -552,20 +552,16 @@ class AwsApiGatewayDomainName(ApiGatewayTaggable, AwsResource):
     domain_ownership_verification_certificate_arn: Optional[str] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if self.domain_regional_hosted_zone_id:
-            builder.dependant_node(
-                self,
-                clazz=AwsRoute53Zone,
-                delete_same_as_default=True,
-                id=self.domain_regional_hosted_zone_id,
-            )
-        for endpoint in self.domain_endpoint_configuration.vpc_endpoint_ids:
-            builder.dependant_node(
-                self,
-                clazz=AwsEc2VpcEndpoint,
-                delete_same_as_default=True,
-                id=endpoint,
-            )
+        if zid := self.domain_regional_hosted_zone_id:
+            builder.dependant_node(self, clazz=AwsRoute53Zone, delete_same_as_default=True, id=zid)
+        if configuration := self.domain_endpoint_configuration:
+            for endpoint in configuration.vpc_endpoint_ids:
+                builder.dependant_node(
+                    self,
+                    clazz=AwsEc2VpcEndpoint,
+                    delete_same_as_default=True,
+                    id=endpoint,
+                )
         # TODO add edge to ACM Certificates when applicable
 
 

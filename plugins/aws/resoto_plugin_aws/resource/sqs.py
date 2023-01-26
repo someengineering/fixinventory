@@ -46,7 +46,7 @@ class AwsSqsQueue(AwsResource):
         "sqs_receive_message_wait_time_seconds": S("ReceiveMessageWaitTimeSeconds"),
         "sqs_managed_sse_enabled": S("SqsManagedSseEnabled"),
     }
-    sqs_queue_url: str = field(default=None)
+    sqs_queue_url: Optional[str] = field(default=None)
     sqs_approximate_number_of_messages: Optional[int] = field(default=None)
     sqs_approximate_number_of_messages_not_visible: Optional[int] = field(default=None)
     sqs_approximate_number_of_messages_delayed: Optional[int] = field(default=None)
