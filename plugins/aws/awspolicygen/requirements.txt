@@ -1,0 +1,5 @@
+boto3
+requests
+python-magic
+pyyaml
+resoto-plugin-aws
