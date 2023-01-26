@@ -9,8 +9,7 @@ from typing import Dict, Any, Type, Union, Optional, Callable
 
 from jsons import snakecase
 
-from resotocore.types import JsonElement
-from resotolib.types import Json
+from resotolib.types import Json, JsonElement
 from resotolib.units import parse
 
 log = logging.getLogger("resoto." + __name__)
