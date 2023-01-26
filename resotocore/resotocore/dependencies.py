@@ -11,6 +11,14 @@ from typing import Optional, List, Callable, Tuple
 import psutil
 from arango.database import StandardDatabase
 from parsy import Parser
+
+from resotocore import async_extensions, version
+from resotocore.analytics import AnalyticsEventSender
+from resotocore.core_config import CoreConfig, parse_config, git_hash_from_file, inside_docker
+from resotocore.db.db_access import DbAccess
+from resotocore.model.adjust_node import DirectAdjuster
+from resotocore.types import JsonElement
+from resotocore.util import utc
 from resotolib.args import ArgumentParser
 from resotolib.jwt import add_args as jwt_add_args
 from resotolib.log.logstream import (
@@ -21,16 +29,8 @@ from resotolib.log.logstream import (
     NoEventStreamAsync,
 )
 from resotolib.logger import setup_logger
-from resotolib.utils import iec_size_format, get_local_tzinfo
 from resotolib.parse_util import make_parser, variable_p, equals_p, comma_p, json_value_dp
-
-from resotocore import async_extensions, version
-from resotocore.analytics import AnalyticsEventSender
-from resotocore.core_config import CoreConfig, parse_config, git_hash_from_file, inside_docker
-from resotocore.db.db_access import DbAccess
-from resotocore.model.adjust_node import DirectAdjuster
-from resotocore.types import JsonElement
-from resotocore.util import utc
+from resotolib.utils import iec_size_format, get_local_tzinfo
 
 log = logging.getLogger(__name__)
 
@@ -72,15 +72,6 @@ def parse_args(args: Optional[List[str]] = None) -> Namespace:
                 raise AttributeError(f"{message}: path {path} is not a directory!")
 
         return check_file
-
-    def is_dir(message: str) -> Callable[[str], str]:
-        def check_dir(path: str) -> str:
-            if os.path.isdir(path):
-                return path
-            else:
-                raise AttributeError(f"{message}: path {path} is not a directory!")
-
-        return check_dir
 
     def key_value(kv: str) -> Tuple[str, JsonElement]:
         try:
@@ -199,11 +190,7 @@ def parse_args(args: Optional[List[str]] = None) -> Namespace:
     parser.add_argument(  # No default here on purpose: it can be reconfigured!
         "--debug", default=None, action="store_true", help="Enable debug mode. If not defined use configuration."
     )
-    parser.add_argument(  # No default here on purpose: it can be reconfigured!
-        "--ui-path",
-        type=is_dir("can not parse --ui-dir"),
-        help="Path to the UI files. If not defined use configuration..",
-    )
+    parser.add_argument("--ui-path", help=argparse.SUPPRESS)  # no effect any longer, only here to not break anything
     parser.add_argument("--analytics-opt-out", default=None, action="store_true", help=argparse.SUPPRESS)
     parser.add_argument(
         "--resotoeventlog-uri", dest="resotoeventlog_uri", default=None, help="URI to the resotoeventlog server."

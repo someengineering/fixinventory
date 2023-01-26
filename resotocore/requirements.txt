@@ -23,3 +23,4 @@ cryptography>=38.0.4
 rich==12.6.0
 Cerberus~=1.3.4
 setuptools>=65.5.3 # not directly required, pinned by Snyk to avoid a vulnerability
+resotoui==3.0.3

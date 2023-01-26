@@ -124,10 +124,6 @@ class ApiConfig(ConfigObject):
         default=None,
         metadata={"description": "The url to the time series database. This path will be served under /tsdb/."},
     )
-    ui_path: Optional[str] = field(
-        default=None,
-        metadata={"description": "The directory where the UI is installed. This directory will be served under "},
-    )
     max_request_size: Optional[int] = field(
         default=1024**2 * 5, metadata={"description": "The maximum size of a request in bytes (default: 5MB)"}
     )
@@ -141,7 +137,6 @@ schema_registry.add(
     schema_name(ApiConfig),
     dict(
         tsdb_proxy_url={"type": "string", "nullable": True, "is_url": True},
-        ui_path={"type": "string", "nullable": True, "path_exists": True},
         max_request_size={"type": "integer", "nullable": True, "min": 1024**2},
     ),
 )

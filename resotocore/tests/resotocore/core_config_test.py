@@ -68,17 +68,17 @@ def test_override_via_cmd_line(default_config: CoreConfig) -> None:
 # noinspection PyTypeChecker
 def test_validate() -> None:
     assert EditableConfig().validate() is None
-    assert EditableConfig(api=ApiConfig(ui_path=True)).validate() == {  # type: ignore
-        "api": [{"ui_path": ["must be of string type"]}]
+    assert EditableConfig(api=ApiConfig(tsdb_proxy_url="wrong")).validate() == {
+        "api": [{"tsdb_proxy_url": ["url is missing host", "url is missing scheme"]}]
     }
-    assert EditableConfig(api=ApiConfig(ui_path="does not exist")).validate() == {
-        "api": [{"ui_path": ["Path does not exist: does not exist"]}]
+    assert EditableConfig(api=ApiConfig(max_request_size=1)).validate() == {
+        "api": [{"max_request_size": ["min value is 1048576"]}]
     }
-    assert EditableConfig(api=ApiConfig(ui_path="does not exist", tsdb_proxy_url="wrong")).validate() == {
+    assert EditableConfig(api=ApiConfig(tsdb_proxy_url="wrong", max_request_size=1)).validate() == {
         "api": [
             {
-                "tsdb_proxy_url": ["url is missing scheme", "url is missing host"],
-                "ui_path": ["Path does not exist: does not exist"],
+                "tsdb_proxy_url": ["url is missing host", "url is missing scheme"],
+                "max_request_size": ["min value is 1048576"],
             }
         ]
     }
