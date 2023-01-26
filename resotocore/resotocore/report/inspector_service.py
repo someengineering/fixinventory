@@ -206,8 +206,7 @@ class InspectorService(Inspector, Service):
 
         async def perform_search(search: str) -> int:
             # parse query
-            rendered_query = self.template_expander.render(search, env)
-            query = await self.template_expander.parse_query(rendered_query, on_section="reported")
+            query = await self.template_expander.parse_query(search, on_section="reported", **env)
             # add aggregation to only query for count
             query = evolve(query, aggregate=Aggregate([], [AggregateFunction("sum", 1, [], "count")]))
             async with await self.db_access.get_graph_db(graph).search_aggregation(QueryModel(query, model)) as ctx:
@@ -249,12 +248,13 @@ class InspectorService(Inspector, Service):
             for check in ReportCheckCollectionConfig.from_config(ConfigEntity(ResotoReportCheck, json)):
                 env = check.default_values or {}
                 if search := check.detect.get("resoto"):
-                    rendered_query = self.template_expander.render(search, env)
-                    await self.template_expander.parse_query(rendered_query, on_section="reported")
+                    await self.template_expander.parse_query(search, on_section="reported", **env)
                 elif cmd := check.detect.get("resoto_cmd"):
                     await self.cli.evaluate_cli_command(cmd, CLIContext(env=env))
+                elif check.detect.get("manual"):
+                    pass
                 else:
-                    errors.append(f"Check {check.id} neither has a resoto nor resoto_cmd defined")
+                    errors.append(f"Check {check.id} neither has a resoto, resoto_cmd or manual defined")
             if errors:
                 return {"error": f"Can not validate check collection: {errors}"}
             else:

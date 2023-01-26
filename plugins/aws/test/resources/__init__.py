@@ -141,7 +141,8 @@ def build_graph(cls: Type[AwsResourceType], region_name: Optional[str] = None) -
     queue = ExecutorQueue(DummyExecutor(), "test")
     region = AwsRegion(id="eu-central-1", name=(region_name or "eu-central-1"))
     feedback = CoreFeedback("test", "test", "collect", Queue())
-    builder = GraphBuilder(Graph(), Cloud(id="test"), AwsAccount(id="test"), region, client, queue, feedback)
+    account = AwsAccount(id="test", mfa_devices=12, mfa_devices_in_use=12)
+    builder = GraphBuilder(Graph(), Cloud(id="test"), account, region, client, queue, feedback)
     cls.collect_resources(builder)
     builder.executor.wait_for_submitted_work()
     return builder

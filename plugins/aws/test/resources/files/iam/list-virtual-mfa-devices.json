@@ -1,0 +1,27 @@
+{
+    "VirtualMFADevices": [
+        {
+            "SerialNumber": "arn:aws:iam::test:mfa/root-account-mfa-device",
+            "User": {
+                "UserName": "test",
+                "UserId": "test",
+                "Arn": "arn:aws:iam::test:root",
+                "CreateDate": "2021-09-02T15:15:38+00:00",
+                "PasswordLastUsed": "2022-11-30T15:31:34+00:00"
+            },
+            "EnableDate": "2021-09-02T15:25:06+00:00"
+        },
+        {
+            "SerialNumber": "arn:aws:iam::test:mfa/matthias",
+            "User": {
+                "Path": "/",
+                "UserName": "test_user",
+                "UserId": "user-123",
+                "Arn": "arn:aws:iam::test:user/test_user",
+                "CreateDate": "2022-05-06T08:23:17+00:00",
+                "PasswordLastUsed": "2022-12-08T09:34:46+00:00"
+            },
+            "EnableDate": "2022-05-06T08:35:09+00:00"
+        }
+    ]
+}

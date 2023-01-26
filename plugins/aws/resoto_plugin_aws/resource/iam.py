@@ -20,7 +20,7 @@ from resotolib.baseresources import (
     ModelReference,
 )
 from resotolib.graph import Graph
-from resotolib.json import from_json
+from resotolib.json import from_json, value_in_path
 from resotolib.json_bender import Bender, S, Bend, AsDate, Sort, bend, ForallBend, F
 from resotolib.types import Json
 from resotolib.utils import parse_utc
@@ -423,19 +423,6 @@ class AwsIamAccessKey(AwsResource, BaseAccessKey):
     access_key_last_used: Optional[AwsIamAccessKeyLastUsed] = field(default=None)
 
 
-@define(eq=False, slots=False)
-class AwsRootUser(AwsResource, BaseUser):
-    kind: ClassVar[str] = "aws_root_user"
-    reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {"default": ["aws_account"]},
-    }
-    password_enabled: Optional[bool] = field(default=None)
-    password_last_used: Optional[datetime] = field(default=None)
-    password_last_changed: Optional[datetime] = field(default=None)
-    password_next_rotation: Optional[datetime] = field(default=None)
-    mfa_active: Optional[bool] = field(default=None)
-
-
 class CredentialReportLine:
     undefined = {"not_supported", "N/A"}
 
@@ -448,6 +435,11 @@ class CredentialReportLine:
             name="root",
             arn=self.value_of("arn"),
             ctime=self.value_of("user_creation_time", parse_utc),
+            password_enabled=self.password_enabled(),
+            password_last_used=self.password_last_used(),
+            password_last_changed=self.password_last_changed(),
+            password_next_rotation=self.password_next_rotation(),
+            mfa_active=self.mfa_active(),
         )
         builder.add_node(user)
         for key in self.access_keys():
@@ -509,6 +501,31 @@ class CredentialReportLine:
 
 
 @define(eq=False, slots=False)
+class AwsIamVirtualMfaDevice:
+    kind: ClassVar[str] = "aws_iam_virtual_mfa_device"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "serialNumber": S("SerialNumber"),
+        "enableDate": S("EnableDate"),
+    }
+    serialNumber: Optional[str] = field(default=None)
+    enableDate: Optional[datetime] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsRootUser(AwsResource, BaseUser):
+    kind: ClassVar[str] = "aws_root_user"
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["aws_account"]},
+    }
+    password_enabled: Optional[bool] = field(default=None)
+    password_last_used: Optional[datetime] = field(default=None)
+    password_last_changed: Optional[datetime] = field(default=None)
+    password_next_rotation: Optional[datetime] = field(default=None)
+    mfa_active: Optional[bool] = field(default=None)
+    user_virtual_mfa_devices: Optional[List[AwsIamVirtualMfaDevice]] = field(default=None)
+
+
+@define(eq=False, slots=False)
 class AwsIamUser(AwsResource, BaseUser):
     kind: ClassVar[str] = "aws_iam_user"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("iam", "get-account-authorization-details")
@@ -534,6 +551,7 @@ class AwsIamUser(AwsResource, BaseUser):
     password_last_changed: Optional[datetime] = field(default=None)
     password_next_rotation: Optional[datetime] = field(default=None)
     mfa_active: Optional[bool] = field(default=None)
+    user_virtual_mfa_devices: Optional[List[AwsIamVirtualMfaDevice]] = field(default=None)
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
@@ -593,6 +611,19 @@ class AwsIamUser(AwsResource, BaseUser):
                         key.access_key_last_used = line_keys[idx].access_key_last_used
                     builder.add_node(key, ak)
                     builder.dependant_node(user, node=key)
+
+        def add_virtual_mfa_devices() -> None:
+            for vjs in builder.client.list("iam", "list-virtual-mfa-devices", "VirtualMFADevices"):
+                if arn := value_in_path(vjs, "User.Arn"):
+                    if isinstance(usr := builder.node(arn=arn), (AwsIamUser, AwsRootUser)):
+                        mapped = bend(AwsIamVirtualMfaDevice.mapping, vjs)
+                        node = from_json(mapped, AwsIamVirtualMfaDevice)
+                        if usr.user_virtual_mfa_devices is None:
+                            usr.user_virtual_mfa_devices = []
+                        usr.user_virtual_mfa_devices.append(node)
+
+        if builder.account.mfa_devices > 0:
+            builder.submit_work(add_virtual_mfa_devices)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for p in bend(S("AttachedManagedPolicies", default=[]), source):
