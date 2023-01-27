@@ -36,12 +36,12 @@ from aiohttp.hdrs import METH_ANY
 from aiohttp.web import Request, StreamResponse, WebSocketResponse
 from aiohttp.web_exceptions import HTTPNotFound, HTTPNoContent, HTTPOk, HTTPNotAcceptable
 from aiohttp.web_fileresponse import FileResponse
-from aiohttp.web_routedef import AbstractRouteDef
 from aiohttp_swagger3 import SwaggerFile, SwaggerUiSettings
 from aiostream import stream
 from aiostream.core import Stream
 from attrs import evolve
 from networkx.readwrite import cytoscape_data
+from resotoui import ui_path
 
 from resotocore.analytics import AnalyticsEventSender, AnalyticsEvent
 from resotocore.cli.cli import CLI
@@ -63,7 +63,6 @@ from resotocore.db.graphdb import GraphDB, HistoryChange
 from resotocore.db.model import QueryModel
 from resotocore.error import NotFoundError
 from resotocore.ids import TaskId, ConfigId, NodeId, SubscriberId, WorkerId
-from resotocore.report import Inspector
 from resotocore.message_bus import MessageBus, Message, ActionDone, Action, ActionError, ActionInfo, ActionProgress
 from resotocore.model.db_updater import merge_graph_process
 from resotocore.model.graph_access import Section
@@ -71,6 +70,7 @@ from resotocore.model.model import Kind
 from resotocore.model.model_handler import ModelHandler
 from resotocore.model.typed_model import to_json, from_js, to_js_str, to_js
 from resotocore.query import QueryParser
+from resotocore.report import Inspector
 from resotocore.task.model import Subscription
 from resotocore.task.subscribers import SubscriptionHandler
 from resotocore.task.task_handler import TaskHandlerService
@@ -174,11 +174,6 @@ class Api:
         jupyterlite_path = Path(os.path.abspath(os.path.dirname(__file__) + "/../jupyterlite"))
         if not jupyterlite_path.exists():
             jupyterlite_path.mkdir(parents=True, exist_ok=True)
-        ui_route: List[AbstractRouteDef] = (
-            [web.static(f"{prefix}/ui/", self.config.api.ui_path)]
-            if self.config.api.ui_path and Path(self.config.api.ui_path).exists()
-            else [web.get(f"{prefix}/ui/index.html", self.no_ui)]
-        )
         self.app.add_routes(
             [
                 # Model operations
@@ -267,7 +262,7 @@ class Api:
                 web.get(prefix + "/debug/ui/{commit}/{path:.+}", self.serve_debug_ui),
                 # tsdb operations
                 web.route(METH_ANY, prefix + "/tsdb/{tail:.+}", tsdb(self)),
-                *ui_route,
+                web.static(f"{prefix}/ui/", ui_path),
             ]
         )
         SwaggerFile(
@@ -812,14 +807,6 @@ class Api:
             after=parse_utc(after) if after else None,
         ) as gen:
             return await self.stream_response_from_gen(request, gen)
-
-    @staticmethod
-    async def no_ui(_: Request) -> StreamResponse:
-        return HTTPNotFound(
-            text="The UI has not been configured and is not available. "
-            "Please revisit your configuration (e.g. using the CLI command `config edit resoto.core`) "
-            "and check the key: `api.ui_path`"
-        )
 
     async def serve_debug_ui(self, request: Request) -> FileResponse:
         """

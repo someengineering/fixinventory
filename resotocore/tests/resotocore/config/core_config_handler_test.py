@@ -55,7 +55,7 @@ async def test_validation(core_config_handler: CoreConfigHandler) -> None:
     # expected json object but got 23
     assert await validate({"config": {ResotoCoreRoot: 23}}) is not None
     # validation fails, since ui-path does not exist
-    assert await validate({"config": {ResotoCoreRoot: {"api": {"ui_path": "n/a"}}}}) is not None
+    assert await validate({"config": {ResotoCoreRoot: {"api": {"tsdb_proxy_url": "wrong"}}}}) is not None
     # default configuration is valid
     assert await validate({"config": {ResotoCoreRoot: empty_config().json()}}) is None
 
