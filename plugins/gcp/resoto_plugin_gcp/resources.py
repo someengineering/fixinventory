@@ -199,14 +199,7 @@ class GCPRegion(GCPResource, BaseRegion):
     }
     api_identifier: ClassVar[str] = "region"
     region_status: Optional[str] = None
-    quotas: Optional[List[str]] = None 
-
-    def __attrs_post_init__(self) -> None:
-        super().__attrs_post_init__()
-        if self.quotas is not None:
-            self._quotas = self.quotas
-        else:
-            self._quotas = []
+    _quotas: Optional[List[str]] = field(default=[], alias="_quotas")
 
 
 @define(eq=False, slots=False)
