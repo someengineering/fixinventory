@@ -4,7 +4,7 @@ from typing import List, Type
 
 from botocore.exceptions import ClientError
 
-from resoto_plugin_aws.aws_client import AwsClient
+from resoto_plugin_aws.aws_client import AwsClient, ErrorAccumulator
 from resoto_plugin_aws.configuration import AwsConfig
 from resoto_plugin_aws.resource import (
     apigateway,
@@ -121,13 +121,14 @@ class AwsAccountCollector:
         self.global_region = AwsRegion(id="us-east-1", tags={}, name="global", account=account)
         self.regions = [AwsRegion(id=region, tags={}, account=account) for region in regions]
         self.graph = Graph(root=self.account)
+        self.error_accumulator = ErrorAccumulator()
         self.client = AwsClient(
             config,
             account.id,
             role=account.role,
             profile=account.profile,
-            region="us-east-1",
-            core_feedback=core_feedback,
+            region=self.global_region.id,
+            error_accumulator=self.error_accumulator,
         )
 
     def collect(self) -> None:
@@ -153,6 +154,7 @@ class AwsAccountCollector:
                     resource.collect_resources(global_builder)
             shared_queue.wait_for_submitted_work()
             global_builder.core_feedback.progress_done(self.global_region.safe_name, 1, 1)
+            self.error_accumulator.report_region(global_builder.core_feedback, self.global_region.id)
 
             log.info(f"[Aws:{self.account.id}] Collect regional resources.")
 
@@ -184,6 +186,7 @@ class AwsAccountCollector:
             # wait for all futures to finish
             shared_queue.wait_for_submitted_work()
             self.core_feedback.progress_done(self.account.dname, 1, 1, context=[self.cloud.id])
+            self.error_accumulator.report_all(global_builder.core_feedback)
 
             log.info(f"[Aws:{self.account.id}] Collecting resources done.")
 
@@ -217,9 +220,10 @@ class AwsAccountCollector:
                         queue.submit_work(collect_resource, res, regional_builder)
                 queue.wait_for_submitted_work()
                 regional_builder.core_feedback.progress_done(region.safe_name, 1, 1)
+                self.error_accumulator.report_region(regional_builder.core_feedback, region.id)
         except Exception as e:
             msg = f"Error collecting resources in account {self.account.id} region {region.id}: {e} - skipping region"
-            self.core_feedback.error(msg, log)
+            regional_builder.core_feedback.error(msg, log)
             return None
 
     def update_account(self) -> None:

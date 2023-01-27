@@ -13,8 +13,8 @@ from attr import evolve, field
 from attrs import define
 from boto3.exceptions import Boto3Error
 
-from resoto_plugin_aws.configuration import AwsConfig
 from resoto_plugin_aws.aws_client import AwsClient
+from resoto_plugin_aws.configuration import AwsConfig
 from resoto_plugin_aws.resource.pricing import AwsPricingPrice
 from resoto_plugin_aws.utils import arn_partition
 from resotolib.baseresources import (

@@ -79,6 +79,9 @@ class CoreFeedback:
     def with_context(self, *context: str) -> "CoreFeedback":
         return evolve(self, context=list(context))
 
+    def child_context(self, *context: str) -> "CoreFeedback":
+        return self.with_context(*(self.context + list(context)))
+
 
 class CoreActions(threading.Thread):
     def __init__(

@@ -3,13 +3,14 @@ from __future__ import annotations
 import logging
 from datetime import datetime
 from functools import cached_property
-from typing import Optional, Any, List, TypeVar, Callable
+from itertools import islice
+from typing import Optional, Any, List, TypeVar, Callable, Dict, Set
 
+from attr import define, field
+from botocore.config import Config
+from botocore.exceptions import ClientError, EndpointConnectionError
 from botocore.model import ServiceModel
 from retrying import retry
-
-from botocore.exceptions import ClientError, EndpointConnectionError
-from botocore.config import Config
 
 from resoto_plugin_aws.configuration import AwsConfig
 from resotolib.core.actions import CoreFeedback
@@ -31,6 +32,67 @@ def is_retryable_exception(e: Exception) -> bool:
     return False
 
 
+@define
+class ErrorSummary:
+    error: str
+    message: str
+    info: bool
+    region: Optional[str] = None
+    service_actions: Dict[str, Set[str]] = field(factory=dict)
+
+
+class ErrorAccumulator:
+    def __init__(self) -> None:
+        self.regional_errors: Dict[Optional[str], Dict[str, ErrorSummary]] = {}
+
+    def add_error(
+        self,
+        as_info: bool,
+        error_kind: str,
+        service: str,
+        action: str,
+        message: str,
+        region: Optional[str],
+    ) -> None:
+        if region not in self.regional_errors:
+            self.regional_errors[region] = {}
+        regional_errors = self.regional_errors[region]
+
+        key = f"{error_kind}:{message}:{as_info}"
+        if key not in regional_errors:
+            regional_errors[key] = ErrorSummary(error_kind, message, as_info, region, {service: {action}})
+        else:
+            summary = regional_errors[key]
+            if service not in summary.service_actions:
+                summary.service_actions[service] = {action}
+            else:
+                summary.service_actions[service].add(action)
+
+    def report_region(self, core_feedback: CoreFeedback, region: Optional[str]) -> None:
+        if regional_errors := self.regional_errors.get(region):
+            # reset errors for this region
+            self.regional_errors[region] = {}
+            # add region as context
+            feedback = core_feedback.child_context(region) if region else core_feedback
+            # send to core
+            for err in regional_errors.values():
+                srv_acts = []
+                for aws_service, actions in islice(err.service_actions.items(), 10):
+                    suffix = " and more" if len(actions) > 3 else ""
+                    srv_acts.append(aws_service + ": " + ", ".join(islice(actions, 3)) + suffix)
+                message = f"[{err.error}] {err.message} for following services and actions: {', '.join(srv_acts)}"
+                if len(err.service_actions) > 10:
+                    message += " and more..."
+                if err.info:
+                    feedback.info(message)
+                else:
+                    feedback.error(message)
+
+    def report_all(self, core_feedback: CoreFeedback) -> None:
+        for region in self.regional_errors.keys():
+            self.report_region(core_feedback, region)
+
+
 class AwsClient:
     def __init__(
         self,
@@ -40,14 +102,14 @@ class AwsClient:
         role: Optional[str] = None,
         profile: Optional[str] = None,
         region: Optional[str] = None,
-        core_feedback: Optional[CoreFeedback] = None,
+        error_accumulator: Optional[ErrorAccumulator] = None,
     ) -> None:
         self.config = config
         self.account_id = account_id
         self.role = role
         self.profile = profile
         self.region = region
-        self.core_feedback = core_feedback
+        self.error_accumulator = error_accumulator
 
     def __to_json(self, node: Any, **kwargs: Any) -> JsonElement:
         if node is None or isinstance(node, (str, int, float, bool)):
@@ -190,46 +252,43 @@ class AwsClient:
             role=self.role,
             profile=self.profile,
             region=region,
-            core_feedback=self.core_feedback,
+            error_accumulator=self.error_accumulator,
         )
 
     def __handle_client_error(
         self, e: ClientError, aws_service: str, action: str, expected_errors: Optional[List[str]] = None
     ) -> None:
-        def log_error(message: str, as_warning: bool = False) -> None:
-            if as_warning:
-                log.warning(message)
-                if self.core_feedback:
-                    self.core_feedback.info(message)
-            else:
-                log.error(message)
-                if self.core_feedback:
-                    self.core_feedback.error(message)
+        def accumulate(error_kind: str, message: str, as_info: bool = False) -> None:
+            if self.error_accumulator:
+                self.error_accumulator.add_error(as_info, error_kind, aws_service, action, message, self.region)
 
         expected_errors = expected_errors or []
         code = e.response["Error"]["Code"] or "Unknown Code"
         if code in expected_errors:
             log.debug(f"Expected error: {code}")
         elif code.lower().startswith("accessdenied"):
-            log_error(
+            log.warning(
                 f"Access denied to call service {aws_service} with action {action} code {code} "
-                f"in account {self.account_id} region {self.region}.",
-                as_warning=True,
+                f"in account {self.account_id} region {self.region}."
             )
+            accumulate("AccessDenied", "Access denied to call service.", as_info=True)
         elif code == "UnauthorizedOperation":
-            log_error(
+            log.error(
                 f"Call to {aws_service} action {action} in account {self.account_id} region {self.region}"
                 " is not authorized! Giving up."
             )
+            accumulate("UnauthorizedOperation", "Call to AWS API is not authorized!")
             raise e  # not allowed to collect in account/region
         elif code in RetryableErrors:
-            log_error(f"Call to {aws_service} action {action} has been retried too many times. Giving up.")
+            log.error(f"Call to {aws_service} action {action} has been retried too many times. Giving up.")
+            accumulate("TooManyRetries", "Call has been retried too often.")
             raise e  # already have been retried, give up here
         else:
-            log_error(
+            log.error(
                 f"An AWS API error {code} occurred during resource collection of {aws_service} action {action} in "  # noqa: E501
                 f"account {self.account_id} region {self.region} - skipping resources."
             )
+            accumulate(code, f"An AWS API error occurred during resource collection: {code}. Skipping resources.")
 
     @cached_property
     def global_region(self) -> AwsClient:
