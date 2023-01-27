@@ -80,7 +80,7 @@ class ErrorAccumulator:
                 for aws_service, actions in islice(err.service_actions.items(), 10):
                     suffix = " and more" if len(actions) > 3 else ""
                     srv_acts.append(aws_service + ": " + ", ".join(islice(actions, 3)) + suffix)
-                message = f"[{err.error}] {err.message} for following services and actions: {', '.join(srv_acts)}"
+                message = f"[{err.error}] {err.message} Services and actions affected: {', '.join(srv_acts)}"
                 if len(err.service_actions) > 10:
                     message += " and more..."
                 if err.info:
@@ -269,24 +269,24 @@ class AwsClient:
         elif code.lower().startswith("accessdenied"):
             log.warning(
                 f"Access denied to call service {aws_service} with action {action} code {code} "
-                f"in account {self.account_id} region {self.region}."
+                f"in account {self.account_id} region {self.region}: {e}"
             )
             accumulate("AccessDenied", "Access denied to call service.", as_info=True)
         elif code == "UnauthorizedOperation":
             log.error(
                 f"Call to {aws_service} action {action} in account {self.account_id} region {self.region}"
-                " is not authorized! Giving up."
+                f" is not authorized! Giving up: {e}"
             )
             accumulate("UnauthorizedOperation", "Call to AWS API is not authorized!")
             raise e  # not allowed to collect in account/region
         elif code in RetryableErrors:
-            log.error(f"Call to {aws_service} action {action} has been retried too many times. Giving up.")
+            log.error(f"Call to {aws_service} action {action} has been retried too many times. Giving up: {e}")
             accumulate("TooManyRetries", "Call has been retried too often.")
             raise e  # already have been retried, give up here
         else:
             log.error(
                 f"An AWS API error {code} occurred during resource collection of {aws_service} action {action} in "  # noqa: E501
-                f"account {self.account_id} region {self.region} - skipping resources."
+                f"account {self.account_id} region {self.region} - skipping resources: {e}"
             )
             accumulate(code, f"An AWS API error occurred during resource collection: {code}. Skipping resources.")
 
