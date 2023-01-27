@@ -2,6 +2,7 @@ import os
 import pkg_resources
 from setuptools import setup, find_packages
 
+
 def read(file_name: str) -> str:
     with open(os.path.join(os.path.dirname(__file__), file_name)) as of:
         return of.read()

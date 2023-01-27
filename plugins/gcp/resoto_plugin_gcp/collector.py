@@ -511,7 +511,7 @@ class GCPProjectCollector:
                 kwargs["region"] = region
                 if "region" in search_map.keys() and "region" not in search_results:
                     search_results["region"] = region
- 
+
         return kwargs, search_results
 
     @except_log_and_pass(do_raise=socket.timeout)
@@ -756,7 +756,8 @@ class GCPProjectCollector:
             Once added to the graph resoto will find it for successive
             instances of the same machine type.
             """
-            if resource.instance_type == "" and "custom" in resource._machine_type_link:
+            resource.init_machine_type()
+            if resource.instance_type in ("", None) and "custom" in resource._machine_type_link:
                 if resource.instance_status == InstanceStatus.TERMINATED:
                     resource._cleaned = True
                 log.debug(f"Fetching custom instance type for {resource.rtdname}")
@@ -781,6 +782,9 @@ class GCPProjectCollector:
                 graph.add_edge(machine_type, resource, edge_type=EdgeType.default)
                 self.post_process_machine_type(machine_type, graph)
                 resource._machine_type = machine_type
+                resource.init_machine_type()
+            resource._machine_type = None
+            resource._machine_type_link = None
 
         instance_status_map: Dict[str, InstanceStatus] = {
             "PROVISIONING": InstanceStatus.BUSY,
@@ -810,14 +814,14 @@ class GCPProjectCollector:
                     "link",
                     (lambda r: next(iter(r.get("networkInterfaces", [])), {}).get("subnetwork")),
                 ],
-                "machine_type": ["link", "machineType"],
+                "_machine_type": ["link", "machineType"],
             },
             attr_map={
                 "instance_status": lambda i: instance_status_map.get(i["status"], InstanceStatus.UNKNOWN),
-                "machine_type_link": "machineType",
+                "_machine_type_link": "machineType",
             },
             predecessors={
-                EdgeType.default: ["__network", "__subnetwork", "machine_type"],
+                EdgeType.default: ["__network", "__subnetwork", "_machine_type"],
                 EdgeType.delete: ["__network", "__subnetwork"],
             },
         )

@@ -268,24 +268,14 @@ class GCPInstance(GCPResource, BaseInstance):
     api_identifier: ClassVar[str] = "instance"
 
     network_interfaces: Optional[str] = None
+    _machine_type_link: Optional[str] = field(default=None, alias="_machine_type_link")
+    _machine_type: Optional[BaseInstanceType] = field(default=None, alias="_machine_type")
 
-    def __attrs_post_init__(self, machine_type_link: str, machine_type: BaseInstanceType) -> None:
-        super().__attrs_post_init__()
-        self._machine_type_link = machine_type_link
-        self._machine_type = machine_type
-
-    @property
-    def _machine_type(self) -> Optional[BaseInstanceType]:
-        if hasattr(self, "__machine_type"):
-            return self.__machine_type
-
-    @_machine_type.setter
-    def _machine_type(self, value: BaseInstanceType) -> None:
-        if isinstance(value, BaseInstanceType):
-            self.__machine_type = value
-            self.instance_cores = value.instance_cores
-            self.instance_memory = value.instance_memory
-            self.instance_type = value.name
+    def init_machine_type(self) -> None:
+        if isinstance(self._machine_type, BaseInstanceType):
+            self.instance_cores = self._machine_type.instance_cores
+            self.instance_memory = self._machine_type.instance_memory
+            self.instance_type = self._machine_type.name
 
 
 @define(eq=False, slots=False)
