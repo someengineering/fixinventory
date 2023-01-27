@@ -35,7 +35,7 @@ def core_tag_tasks_processor(plugin: Type[BaseCollectorPlugin], config: Config, 
             log.info(f"{log_msg} for {node.kind}:{node.id}")
             node.tags[key] = value
         else:
-            log_msg = f"Error setting tag {key} to {value} in cloud"
+            log_msg = f"Error setting tag {key} to {value} in cloud {plugin.cloud}"
             node.log(log_msg)
             raise AttributeError(f"{log_msg} for {node.kind}:{node.id}")
 

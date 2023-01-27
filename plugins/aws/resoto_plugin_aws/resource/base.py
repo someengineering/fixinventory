@@ -81,10 +81,10 @@ class AwsResource(BaseResource, ABC):
     arn: Optional[str] = None
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
-        raise NotImplementedError
+        return False
 
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
-        raise NotImplementedError
+        return False
 
     def delete_resource(self, client: AwsClient) -> bool:
         return False

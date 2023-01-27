@@ -23,30 +23,26 @@ from resoto_plugin_aws.utils import TagsValue, ToDict
 class EcsTaggable:
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         if isinstance(self, AwsResource):
-            if spec := self.api_spec:
-                client.call(
-                    aws_service=spec.service,
-                    action="tag-resource",
-                    result_name=None,
-                    resourceArn=self.arn,
-                    tags=[{"key": key, "value": value}],
-                )
-                return True
-            return False
+            client.call(
+                aws_service="ecs",
+                action="tag-resource",
+                result_name=None,
+                resourceArn=self.arn,
+                tags=[{"key": key, "value": value}],
+            )
+            return True
         return False
 
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
         if isinstance(self, AwsResource):
-            if spec := self.api_spec:
-                client.call(
-                    aws_service=spec.service,
-                    action="untag-resource",
-                    result_name=None,
-                    resourceArn=self.arn,
-                    tagKeys=[key],
-                )
-                return True
-            return False
+            client.call(
+                aws_service="ecs",
+                action="untag-resource",
+                result_name=None,
+                resourceArn=self.arn,
+                tagKeys=[key],
+            )
+            return True
         return False
 
     @classmethod
@@ -1312,6 +1308,7 @@ class AwsEcsService(EcsTaggable, AwsResource):
             result_name=None,
             cluster=self.cluster_arn,
             service=self.name,
+            force=True,
         )
         return True
 
