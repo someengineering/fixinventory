@@ -7,9 +7,20 @@ from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
 from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resotolib.baseresources import ModelReference
-from resotolib.json_bender import F, Bender, S
+from resotolib.json_bender import F, Bender, S, AsInt, AsBool, Bend, ParseJson
 from resotolib.types import Json
 from resotolib.utils import utc_str
+
+
+@define(eq=False, slots=False)
+class AwsSqsRedrivePolicy:
+    kind: ClassVar[str] = "aws_sqs_redrive_policy"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "dead_letter_target_arn": S("deadLetterTargetArn"),
+        "max_receive_count": S("maxReceiveCount"),
+    }
+    dead_letter_target_arn: Optional[str] = None
+    max_receive_count: Optional[int] = None
 
 
 @define(eq=False, slots=False)
@@ -23,35 +34,35 @@ class AwsSqsQueue(AwsResource):
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("QueueName"),
         "name": S("QueueName"),
-        "ctime": S("CreatedTimestamp") >> F(lambda x: utc_str(datetime.utcfromtimestamp(x))),
-        "mtime": S("LastModifiedTimestamp") >> F(lambda x: utc_str(datetime.utcfromtimestamp(x))),
+        "ctime": S("CreatedTimestamp") >> AsInt() >> F(lambda x: utc_str(datetime.utcfromtimestamp(x))),
+        "mtime": S("LastModifiedTimestamp") >> AsInt() >> F(lambda x: utc_str(datetime.utcfromtimestamp(x))),
         "arn": S("QueueArn"),
         "sqs_queue_url": S("QueueUrl"),
-        "sqs_approximate_number_of_messages": S("ApproximateNumberOfMessages"),
-        "sqs_approximate_number_of_messages_not_visible": S("ApproximateNumberOfMessagesNotVisible"),
-        "sqs_approximate_number_of_messages_delayed": S("ApproximateNumberOfMessagesDelayed"),
-        "sqs_policy": S("Policy"),
-        "sqs_redrive_policy": S("RedrivePolicy"),
+        "sqs_approximate_number_of_messages": S("ApproximateNumberOfMessages") >> AsInt(),
+        "sqs_approximate_number_of_messages_not_visible": S("ApproximateNumberOfMessagesNotVisible") >> AsInt(),
+        "sqs_approximate_number_of_messages_delayed": S("ApproximateNumberOfMessagesDelayed") >> AsInt(),
+        "sqs_policy": S("Policy") >> ParseJson(keys_to_snake=True),
+        "sqs_redrive_policy": S("RedrivePolicy") >> ParseJson() >> Bend(AwsSqsRedrivePolicy.mapping),
         "sqs_fifo_queue": S("FifoQueue"),
-        "sqs_content_based_deduplication": S("ContentBasedDeduplication"),
+        "sqs_content_based_deduplication": S("ContentBasedDeduplication") >> AsBool(),
         "sqs_kms_master_key_id": S("KmsMasterKeyId"),
-        "sqs_kms_data_key_reuse_period_seconds": S("KmsDataKeyReusePeriodSeconds"),
+        "sqs_kms_data_key_reuse_period_seconds": S("KmsDataKeyReusePeriodSeconds") >> AsInt(),
         "sqs_deduplication_scope": S("DeduplicationScope"),
         "sqs_fifo_throughput_limit": S("FifoThroughputLimit"),
-        "sqs_redrive_allow_policy": S("RedriveAllowPolicy"),
-        "sqs_visibility_timeout": S("VisibilityTimeout"),
-        "sqs_maximum_message_size": S("MaximumMessageSize"),
-        "sqs_message_retention_period": S("MessageRetentionPeriod"),
-        "sqs_delay_seconds": S("DelaySeconds"),
-        "sqs_receive_message_wait_time_seconds": S("ReceiveMessageWaitTimeSeconds"),
-        "sqs_managed_sse_enabled": S("SqsManagedSseEnabled"),
+        "sqs_redrive_allow_policy": S("RedriveAllowPolicy") >> ParseJson() >> S("redrivePermission"),
+        "sqs_visibility_timeout": S("VisibilityTimeout") >> AsInt(),
+        "sqs_maximum_message_size": S("MaximumMessageSize") >> AsInt(),
+        "sqs_message_retention_period": S("MessageRetentionPeriod") >> AsInt(),
+        "sqs_delay_seconds": S("DelaySeconds") >> AsInt(),
+        "sqs_receive_message_wait_time_seconds": S("ReceiveMessageWaitTimeSeconds") >> AsInt(),
+        "sqs_managed_sse_enabled": S("SqsManagedSseEnabled") >> AsBool(),
     }
     sqs_queue_url: Optional[str] = field(default=None)
     sqs_approximate_number_of_messages: Optional[int] = field(default=None)
     sqs_approximate_number_of_messages_not_visible: Optional[int] = field(default=None)
     sqs_approximate_number_of_messages_delayed: Optional[int] = field(default=None)
-    sqs_policy: Optional[str] = field(default=None)
-    sqs_redrive_policy: Optional[str] = field(default=None)
+    sqs_policy: Optional[Json] = field(default=None)
+    sqs_redrive_policy: Optional[AwsSqsRedrivePolicy] = field(default=None)
     sqs_fifo_queue: Optional[bool] = field(default=None)
     sqs_content_based_deduplication: Optional[bool] = field(default=None)
     sqs_kms_master_key_id: Optional[str] = field(default=None)
@@ -84,7 +95,7 @@ class AwsSqsQueue(AwsResource):
                 builder.submit_work(add_tags, instance)
 
         def add_tags(queue: AwsSqsQueue) -> None:
-            tags = builder.client.get("sqs", "list-queue-tags", result_name="Tags", QueueUrl=[queue.sqs_queue_url])
+            tags = builder.client.get("sqs", "list-queue-tags", result_name="Tags", QueueUrl=queue.sqs_queue_url)
             if tags:
                 queue.tags = tags
 
