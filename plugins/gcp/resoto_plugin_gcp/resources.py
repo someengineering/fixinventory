@@ -199,7 +199,7 @@ class GCPRegion(GCPResource, BaseRegion):
     }
     api_identifier: ClassVar[str] = "region"
     region_status: Optional[str] = None
-    _quotas: Optional[List[str]] = field(default=[], alias="_quotas")
+    _quotas: Optional[List[str]] = field(factory=list, alias="_quotas")
 
 
 @define(eq=False, slots=False)
