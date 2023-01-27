@@ -535,6 +535,9 @@ def migrate_config(config: Json) -> Json:
     if opt_out is not None and usage is None:
         set_value_in_path(not opt_out, "runtime.usage_metrics", adapted)
     del_value_in_path(adapted, "runtime.analytics_opt_out")
+
+    # 3.0 -> 3.1: delete `api.ui_path`
+    del_value_in_path(adapted, "api.ui_path")
     return {ResotoCoreRoot: adapted}
 
 
