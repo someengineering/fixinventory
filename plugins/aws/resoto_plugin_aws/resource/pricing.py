@@ -39,7 +39,7 @@ class AwsPricingProduct:
         "attributes": S("attributes"),
     }
     product_family: Optional[str] = None
-    attributes: Dict[str, str] = field(factory=dict)
+    attributes: Optional[Dict[str, str]] = field(default=None)
     sku: Optional[str] = None
 
 
