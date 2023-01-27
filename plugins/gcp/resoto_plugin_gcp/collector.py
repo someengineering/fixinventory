@@ -692,7 +692,7 @@ class GCPProjectCollector:
 
         self.collect_something(
             resource_class=GCPRegion,
-            attr_map={"region_status": "status", "quotas": "quotas"},
+            attr_map={"region_status": "status", "_quotas": "quotas"},
             post_process=post_process,
         )
 
