@@ -140,7 +140,6 @@ def config_json() -> Json:
                 "web_port": 1234,
                 "web_path": "/",
                 "tsdb_proxy_url": "test",
-                "ui_path": "fest",
                 "max_request_size": 5242880,
                 "host_certificate": {
                     "common_name": "test",
