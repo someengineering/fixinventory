@@ -456,7 +456,7 @@ class GCPProjectCollector:
             "ctime": iso2datetime(result.get("creationTimestamp")),
             "link": result.get("selfLink"),
             "label_fingerprint": result.get("labelFingerprint"),
-            "_account": self.project,
+            "account": self.project,
         }
 
         if attr_map is not None:
@@ -469,7 +469,7 @@ class GCPProjectCollector:
                 kwargs[map_to] = data
 
         # By default we search for a resources region and/or zone
-        default_search_map = {"_region": ["link", "region"], "_zone": ["link", "zone"]}
+        default_search_map = {"region": ["link", "region"], "zone": ["link", "zone"]}
         search_results = {}
         if search_map is None:
             search_map = dict(default_search_map)
@@ -505,12 +505,24 @@ class GCPProjectCollector:
         # region based on the zone information we found.
         # E.g. if we know a disk is in zone us-central1-a then we can find
         # the region us-central1 from that.
-        if "_zone" in kwargs and "_region" not in kwargs and isinstance(kwargs["_zone"], BaseResource):
-            region = kwargs["_zone"].region(self.graph)
+        if "zone" in kwargs and "region" not in kwargs and isinstance(kwargs["zone"], BaseResource):
+            region = kwargs["zone"].region(self.graph)
             if region:
-                kwargs["_region"] = region
-                if "_region" in search_map.keys() and "_region" not in search_results:
-                    search_results["_region"] = region
+                kwargs["region"] = region
+                if "region" in search_map.keys() and "region" not in search_results:
+                    search_results["region"] = region
+ 
+        # attrs does not understand the _region attributes
+        # all such logic needs to be rewrited, but while we're waitig for this
+        # here is a minimally-invasive workaround
+        # attrs_to_rename = {
+        #     "_region": "region",
+        #     "_zone": "zone"
+        # }
+        # for k, v in dict(kwargs).items(): # create a copy of the dict before iterating
+        #     if k in attrs_to_rename:
+        #         del kwargs[k]
+        #         kwargs[attrs_to_rename[k]] = v
 
         return kwargs, search_results
 
@@ -620,7 +632,7 @@ class GCPProjectCollector:
                 log.debug(f"Parent resource for {r.rtdname} set to {pr.rtdname}")
 
             if not isinstance(pr, BaseResource):
-                pr = kwargs.get("_zone", kwargs.get("_region", self.graph.root))
+                pr = kwargs.get("zone", kwargs.get("region", self.graph.root))
                 log.debug(f"Parent resource for {r.rtdname} automatically set to {pr.rtdname}")
             self.graph.add_resource(pr, r, edge_type=EdgeType.default)
 
@@ -1104,7 +1116,7 @@ class GCPProjectCollector:
             resource_class=GCPMachineType,
             paginate_method_name="aggregatedList",
             search_map={
-                "_zone": ["name", "zone"],
+                "zone": ["name", "zone"],
             },
             attr_map={
                 "instance_cores": lambda r: float(r.get("guestCpus", 0)),
@@ -1451,8 +1463,8 @@ class GCPProjectCollector:
                 "tags": lambda r: r.get("settings", {}).get("userLabels", {}),
             },
             search_map={
-                "_region": ["name", "region"],
-                "_zone": ["name", "gceZone"],
+                "region": ["name", "region"],
+                "zone": ["name", "gceZone"],
             },
         )
 
