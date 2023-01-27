@@ -512,18 +512,6 @@ class GCPProjectCollector:
                 if "region" in search_map.keys() and "region" not in search_results:
                     search_results["region"] = region
  
-        # attrs does not understand the _region attributes
-        # all such logic needs to be rewrited, but while we're waitig for this
-        # here is a minimally-invasive workaround
-        # attrs_to_rename = {
-        #     "_region": "region",
-        #     "_zone": "zone"
-        # }
-        # for k, v in dict(kwargs).items(): # create a copy of the dict before iterating
-        #     if k in attrs_to_rename:
-        #         del kwargs[k]
-        #         kwargs[attrs_to_rename[k]] = v
-
         return kwargs, search_results
 
     @except_log_and_pass(do_raise=socket.timeout)
