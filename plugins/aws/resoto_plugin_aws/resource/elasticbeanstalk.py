@@ -91,7 +91,11 @@ class AwsBeanstalkApplication(AwsResource):
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_tags(app: AwsBeanstalkApplication) -> None:
             tags = builder.client.list(
-                "elasticbeanstalk", "list-tags-for-resource", "ResourceTags", ResourceArn=app.arn
+                "elasticbeanstalk",
+                "list-tags-for-resource",
+                "ResourceTags",
+                ResourceArn=app.arn,
+                expected_errors=["ResourceNotFoundException"],
             )
             if tags:
                 app.tags = bend(ToDict(), tags)
@@ -271,14 +275,22 @@ class AwsBeanstalkEnvironment(AwsResource):
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_tags(env: AwsBeanstalkEnvironment) -> None:
             tags = builder.client.list(
-                "elasticbeanstalk", "list-tags-for-resource", "ResourceTags", ResourceArn=env.arn
+                "elasticbeanstalk",
+                "list-tags-for-resource",
+                "ResourceTags",
+                ResourceArn=env.arn,
+                expected_errors=["ResourceNotFoundException"],
             )
             if tags:
                 env.tags = bend(ToDict(), tags)
 
         def add_resources(env: AwsBeanstalkEnvironment) -> None:
             resources_description = builder.client.get(
-                "elasticbeanstalk", "describe-environment-resources", "EnvironmentResources", EnvironmentId=env.id
+                "elasticbeanstalk",
+                "describe-environment-resources",
+                "EnvironmentResources",
+                EnvironmentId=env.id,
+                expected_errors=["InvalidParameterValue"],
             )
             if resources_description:
                 env.beanstalk_resources = from_json(
@@ -296,6 +308,7 @@ class AwsBeanstalkEnvironment(AwsResource):
         builder.dependant_node(
             self,
             reverse=True,
+            delete_same_as_default=True,
             clazz=AwsBeanstalkApplication,
             name=self.beanstalk_application_name,
         )
@@ -356,6 +369,9 @@ class AwsBeanstalkEnvironment(AwsResource):
         return True
 
     def delete_resource(self, client: AwsClient) -> bool:
+        # If the environment is already terminated, we don't need to do anything
+        if self.beanstalk_status == "Terminated":
+            return True
         client.call(
             aws_service=self.api_spec.service,
             action="terminate-environment",
