@@ -1,13 +1,10 @@
-from queue import Queue
 from typing import Tuple
 
 import pytest
 from botocore.exceptions import ClientError
 
+from resoto_plugin_aws.aws_client import AwsClient, ErrorAccumulator
 from resoto_plugin_aws.configuration import AwsConfig
-from resoto_plugin_aws.aws_client import AwsClient
-from resotolib.core.actions import CoreFeedback
-from resotolib.types import Json
 from test.resources import BotoFileBasedSession, BotoErrorSession
 
 
@@ -30,41 +27,41 @@ def test_call() -> None:
 
 
 def test_error_handling() -> None:
-    def with_error(code: str, message: str) -> Tuple[AwsClient, Queue[Json]]:
+    def with_error(code: str, message: str) -> Tuple[AwsClient, ErrorAccumulator]:
         config = AwsConfig()
         config.sessions().session_class_factory = BotoErrorSession(
             ClientError({"Error": {"Code": code, "Message": message}}, "foo")
         )
-        error_queue: Queue[Json] = Queue()
-        return AwsClient(config, "test", core_feedback=CoreFeedback("test", "test", "test", error_queue)), error_queue
+        error_accumulator = ErrorAccumulator()
+        return AwsClient(config, "test", error_accumulator=error_accumulator), error_accumulator
 
-    unauthorized_client, queue_unauthorized = with_error("UnauthorizedOperation", "Err!")
+    unauthorized_client, accu_unauthorized = with_error("UnauthorizedOperation", "Err!")
     # this error is raised for the operation
     with pytest.raises(ClientError) as ex:
         unauthorized_client.list("ec2", "foo", None)
     assert str(ex.value) == "An error occurred (UnauthorizedOperation) when calling the foo operation: Err!"
-    assert queue_unauthorized.qsize() == 1
+    assert len(accu_unauthorized.regional_errors) == 1
     # we can silent this error by passing the expected error code
     assert unauthorized_client.list("ec2", "foo", None, ["UnauthorizedOperation"]) == []
     assert unauthorized_client.get("ec2", "foo", None, ["UnauthorizedOperation"]) is None
-    assert queue_unauthorized.qsize() == 1
+    assert len(accu_unauthorized.regional_errors) == 1
 
     access_denied_client, queue_access_denied = with_error("AccessDenied", "Err!")
     # this error is only logged
     assert access_denied_client.list("ec2", "foo", None) == []
     assert access_denied_client.get("ec2", "foo", None) is None
-    assert queue_access_denied.qsize() == 2
+    assert len(queue_access_denied.regional_errors) == 1
     # no additional error is logged
     assert access_denied_client.list("ec2", "foo", None, ["AccessDenied"]) == []
     assert access_denied_client.get("ec2", "foo", None, ["AccessDenied"]) is None
-    assert queue_access_denied.qsize() == 2
+    assert len(queue_access_denied.regional_errors) == 1
 
     some_error_client, queue_some_error = with_error("some_error", "Err!")
     # this error is only logged
     assert some_error_client.list("ec2", "foo", None) == []
     assert some_error_client.get("ec2", "foo", None) is None
-    assert queue_some_error.qsize() == 2
+    assert len(queue_some_error.regional_errors) == 1
     # no additional error is logged
     assert some_error_client.list("ec2", "foo", None, ["some_error"]) == []
     assert some_error_client.get("ec2", "foo", None, ["some_error"]) is None
-    assert queue_some_error.qsize() == 2
+    assert len(queue_some_error.regional_errors) == 1
