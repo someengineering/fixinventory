@@ -1,6 +1,5 @@
-from .random_client import roundtrip
-from resoto_plugin_gcp.resources.base import GraphBuilder
 from resoto_plugin_gcp.resources.compute import *
+from .random_client import roundtrip, connect_resource
 
 
 def test_gcp_accelerator_type(random_builder: GraphBuilder) -> None:
@@ -28,7 +27,9 @@ def test_gcp_disk_type(random_builder: GraphBuilder) -> None:
 
 
 def test_gcp_disk(random_builder: GraphBuilder) -> None:
-    roundtrip(GcpDisk, random_builder)
+    disk = roundtrip(GcpDisk, random_builder)
+    connect_resource(random_builder, disk, GcpDiskType, selfLink=disk.volume_type)
+    assert len(random_builder.edges_of(GcpDiskType, GcpDisk)) == 1
 
 
 def test_gcp_external_vpn_gateway(random_builder: GraphBuilder) -> None:
