@@ -663,6 +663,22 @@
                 "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-control-block-public-access.html"
             },
             "internal_notes": ""
+        },
+        {
+            "name": "volume_not_encrypted",
+            "title": "Ensure there are no EBS Volumes unencrypted.",
+            "result_kind": "aws_ec2_volume",
+            "categories": [ "security", "compliance" ],
+            "risk": "Data encryption at rest prevents data visibility in the event of its unauthorized access or theft.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_ec2_volume) and volume_encrypted=false"
+            },
+            "remediation": {
+                "text": "Encrypt all EBS volumes and Enable Encryption by default You can configure your AWS account to enforce the encryption of the new EBS volumes and snapshot copies that you create. For example; Amazon EBS encrypts the EBS volumes created when you launch an instance and the snapshots that you copy from an unencrypted snapshot.",
+                "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSEncryption.html"
+            },
+            "internal_notes": ""
         }
     ]
 }

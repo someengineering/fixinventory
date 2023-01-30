@@ -204,7 +204,7 @@
                         {
                             "title": "2.2.1 Ensure EBS Volume Encryption is Enabled in all Regions",
                             "description": "Elastic Compute Cloud (EC2) supports encryption at rest when using the Elastic Block Store (EBS) service. While disabled by default, forcing encryption at EBS volume creation is supported.",
-                            "checks": []
+                            "checks": ["aws_ec2_volume_not_encrypted"]
                         }
                     ]
                 },
@@ -215,17 +215,17 @@
                         {
                             "title": "2.3.1 Ensure that encryption is enabled for RDS Instances",
                             "description": "Amazon RDS encrypted DB instances use the industry standard AES-256 encryption algorithm to encrypt your data on the server that hosts your Amazon RDS DB instances. After your data is encrypted, Amazon RDS handles authentication of access and decryption of your data transparently with a minimal impact on performance.",
-                            "checks": []
+                            "checks": ["aws_rds_storage_encrypted"]
                         },
                         {
                             "title": "2.3.2 Ensure Auto Minor Version Upgrade feature is Enabled for RDS Instances",
                             "description": "Ensure that RDS database instances have the Auto Minor Version Upgrade flag enabled in order to receive automatically minor engine upgrades during the specified maintenance window. So, RDS instances can get the new features, bug fixes, and security patches for their database engines.",
-                            "checks": []
+                            "checks": ["aws_rds_auto_minor_version_upgrade"]
                         },
                         {
                             "title": "2.3.3 Ensure that public access is not given to RDS Instance",
                             "description": "Ensure and verify that RDS database instances provisioned in your AWS account do restrict unauthorized access in order to minimize security risks. To restrict access to any publicly accessible RDS database instance, you must disable the database Publicly Accessible flag and update the VPC security group associated with the instance.",
-                            "checks": []
+                            "checks": ["aws_rds_no_public_access"]
                         }
                     ]
                 },
