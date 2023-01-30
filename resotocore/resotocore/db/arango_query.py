@@ -211,7 +211,10 @@ def query_string(
         else:
             bind_vars[bvn] = prop.kind.coerce(p.value)
         var_name = f"{cursor}.{prop_name}"
-        p_term = f"{var_name}{extra} {op} @{bvn}"
+        if op == "=~":  # use regex_test to do case-insensitive matching
+            p_term = f"REGEX_TEST({var_name}, @{bvn}, true)"
+        else:
+            p_term = f"{var_name}{extra} {op} @{bvn}"
         if ars_stmts:
             p_term = f"({p_term} AND {' AND '.join(ars_stmts)})"
         # null check is required, since x<anything evaluates to true if x is null!
