@@ -202,6 +202,12 @@ class GcpAutoscalerStatusDetails:
 @define(eq=False, slots=False)
 class GcpAutoscaler(GcpResource):
     kind: ClassVar[str] = "gcp_autoscaler"
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["gcp_instance_group_manager"],
+            "delete": ["gcp_instance_group_manager"],
+        }
+    }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
         version="v1",
@@ -235,6 +241,10 @@ class GcpAutoscaler(GcpResource):
     autoscaler_status: Optional[str] = field(default=None)
     autoscaler_status_details: Optional[List[GcpAutoscalerStatusDetails]] = field(default=None)
     autoscaler_target: Optional[str] = field(default=None)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if self.autoscaler_target:
+            builder.dependant_node(self, delete_same_as_default=True, clazz=GcpInstanceGroupManager, link=self.autoscaler_target)
 
 
 @define(eq=False, slots=False)
