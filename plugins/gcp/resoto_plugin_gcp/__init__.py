@@ -10,7 +10,7 @@ from resotolib.graph import Graph
 from resotolib.args import ArgumentParser
 from argparse import Namespace
 from resotolib.config import Config, RunningConfig
-from .resources import GCPProject
+from .gcp_resources import GCPProject
 from .utils import Credentials
 from .collector import GCPProjectCollector
 from .config import GcpConfig

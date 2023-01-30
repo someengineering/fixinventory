@@ -8,7 +8,7 @@ from resotolib.config import Config
 from resotolib.graph import Graph
 from resotolib.utils import except_log_and_pass
 from prometheus_client import Summary
-from .resources import (
+from .gcp_resources import (
     GCPGKECluster,
     GCPProject,
     GCPQuota,
