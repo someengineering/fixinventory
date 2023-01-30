@@ -5,7 +5,7 @@ from attr import define, field
 
 from resoto_plugin_gcp.gcp_client import GcpApiSpec
 from resoto_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus, GraphBuilder
-from resotolib.baseresources import ModelReference, BaseVolume, VolumeStatus, BaseInstance, InstanceStatus
+from resotolib.baseresources import BaseVolumeType, ModelReference, BaseVolume, VolumeStatus, BaseInstance, InstanceStatus
 from resotolib.json_bender import Bender, S, Bend, ForallBend, MapDict, MapValue, F
 from resotolib.types import Json
 
@@ -91,7 +91,7 @@ class GcpAddress(GcpResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.address_subnetwork:
-            builder.dependant_node(self, reverse=True, clazz=GcpSubnetwork, link=self.address_subnetwork)
+            builder.dependant_node(self, reverse=True, link=self.address_subnetwork)
 
 
 @define(eq=False, slots=False)
@@ -255,7 +255,7 @@ class GcpAutoscaler(GcpResource):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.autoscaler_target:
             builder.dependant_node(
-                self, delete_same_as_default=True, clazz=GcpInstanceGroupManager, link=self.autoscaler_target
+                self, delete_same_as_default=True, link=self.autoscaler_target
             )
 
 
@@ -718,19 +718,16 @@ class GcpBackendService(GcpResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for check in self.service_health_checks:
-            builder.dependant_node(self, clazz=GcpHealthCheck, link=check)
-            builder.dependant_node(self, clazz=GcpHttpHealthCheck, link=check)
-            builder.dependant_node(self, clazz=GcpHttpsHealthCheck, link=check)
+            builder.dependant_node(self, link=check)
         for backend in self.service_backends:
             if backend.group:
-                builder.dependant_node(self, clazz=GcpInstanceGroup, link=backend.group)
-                builder.dependant_node(self, clazz=GcpNetworkEndpointGroup, link=backend.group)
+                builder.dependant_node(self, link=backend.group)
         if self.service_network:
-            builder.add_edge(self, reverse=True, clazz=GcpNetwork, link=self.service_network)
+            builder.add_edge(self, reverse=True, link=self.service_network)
 
 
 @define(eq=False, slots=False)
-class GcpDiskType(GcpResource):
+class GcpDiskType(GcpResource, BaseVolumeType):
     kind: ClassVar[str] = "gcp_disk_type"
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
@@ -785,6 +782,11 @@ class GcpDiskParams:
 @define(eq=False, slots=False)
 class GcpDisk(GcpResource, BaseVolume):
     kind: ClassVar[str] = "gcp_disk"
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {
+            "default": ["gcp_disk_type"],
+        }
+    }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
         version="v1",
@@ -874,7 +876,8 @@ class GcpDisk(GcpResource, BaseVolume):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for user in source.get("users", []):
             builder.dependant_node(self, link=user)
-        builder.add_edge(self, reverse=True, clazz=GcpDiskType, link=self.volume_type)
+            # TODO add ref kind
+        builder.add_edge(self, reverse=True, link=self.volume_type)
 
 
 @define(eq=False, slots=False)
