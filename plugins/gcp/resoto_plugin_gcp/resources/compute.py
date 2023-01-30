@@ -1005,9 +1005,7 @@ class GcpFirewallPolicyRule:
 @define(eq=False, slots=False)
 class GcpFirewallPolicy(GcpResource):
     kind: ClassVar[str] = "gcp_firewall_policy"
-    reference_kinds: ClassVar[ModelReference] = {
-        "successors": {
-            "default": ["gcp_network"]}}
+    reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["gcp_network"]}}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
         version="v1",
@@ -1078,9 +1076,7 @@ class GcpFirewallLogConfig:
 @define(eq=False, slots=False)
 class GcpFirewall(GcpResource):
     kind: ClassVar[str] = "gcp_firewall"
-    reference_kinds: ClassVar[ModelReference] = {
-        "successors": {
-            "default": ["gcp_network"]}}
+    reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["gcp_network"]}}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
         version="v1",
@@ -1133,7 +1129,6 @@ class GcpFirewall(GcpResource):
             builder.add_edge(self, link=self.firewall_network)
 
 
-
 @define(eq=False, slots=False)
 class GcpMetadataFilterLabelMatch:
     kind: ClassVar[str] = "gcp_metadata_filter_label_match"
@@ -1170,9 +1165,7 @@ class GcpForwardingRuleServiceDirectoryRegistration:
 class GcpForwardingRule(GcpResource):
     kind: ClassVar[str] = "gcp_forwarding_rule"
     reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {
-            "default": ["gcp_network"]
-        },
+        "predecessors": {"default": ["gcp_network"]},
         "successors": {
             "default": [
                 "gcp_target_vpn_gateway",
@@ -1184,7 +1177,7 @@ class GcpForwardingRule(GcpResource):
                 "gcp_target_pool",
             ],
             "delete": [],
-        }
+        },
     }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
