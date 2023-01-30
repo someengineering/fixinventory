@@ -5,7 +5,14 @@ from attr import define, field
 
 from resoto_plugin_gcp.gcp_client import GcpApiSpec
 from resoto_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus, GraphBuilder
-from resotolib.baseresources import BaseVolumeType, ModelReference, BaseVolume, VolumeStatus, BaseInstance, InstanceStatus
+from resotolib.baseresources import (
+    BaseVolumeType,
+    ModelReference,
+    BaseVolume,
+    VolumeStatus,
+    BaseInstance,
+    InstanceStatus,
+)
 from resotolib.json_bender import Bender, S, Bend, ForallBend, MapDict, MapValue, F
 from resotolib.types import Json
 
@@ -254,9 +261,7 @@ class GcpAutoscaler(GcpResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.autoscaler_target:
-            builder.dependant_node(
-                self, delete_same_as_default=True, link=self.autoscaler_target
-            )
+            builder.dependant_node(self, delete_same_as_default=True, link=self.autoscaler_target)
 
 
 @define(eq=False, slots=False)
