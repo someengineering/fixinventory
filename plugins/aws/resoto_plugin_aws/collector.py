@@ -17,6 +17,7 @@ from resoto_plugin_aws.resource import (
     dynamodb,
     ec2,
     ecs,
+    efs,
     eks,
     elasticbeanstalk,
     elasticache,
@@ -62,6 +63,7 @@ regional_resources: List[Type[AwsResource]] = (
     + cognito.resources
     + dynamodb.resources
     + ec2.resources
+    + efs.resources
     + ecs.resources
     + eks.resources
     + elasticbeanstalk.resources

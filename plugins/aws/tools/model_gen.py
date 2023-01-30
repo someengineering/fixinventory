@@ -1,3 +1,4 @@
+import json
 import re
 from typing import List, Set, Optional, Tuple, Union, Dict
 
@@ -282,6 +283,8 @@ def create_test_response(service: str, function: str) -> JsonElement:
             return 123
         elif shape.type_name == "boolean":
             return True
+        elif shape.type_name == "long":
+            return 123
         else:
             raise NotImplementedError(f"Unsupported shape: {type(shape)}")
 
@@ -613,6 +616,15 @@ models: Dict[str, List[AwsResotoModel]] = {
         #     prop_prefix="capacity_provider_",
         # )
     ],
+    "efs": [
+        # AwsResotoModel(
+        #     "describe-file-systems", "FileSystems", "FileSystemDescription", prefix="Efs", name="EfsFileSystem"
+        # ),
+        # AwsResotoModel("describe-mount-targets", "MountTargets", "MountTargetDescription", prefix="Efs"),
+        AwsResotoModel(
+            "describe-access-points", "AccessPoints", "AccessPointDescription", prefix="Efs", name="EfsAccessPoint"
+        ),
+    ],
     "elasticbeanstalk": [
         # AwsResotoModel(
         #     "describe-applications",
@@ -941,8 +953,8 @@ models: Dict[str, List[AwsResotoModel]] = {
 
 if __name__ == "__main__":
     """print some test data"""
-    # print(json.dumps(create_test_response("s3control", "get-public-access-block"), indent=2))
+    print(json.dumps(create_test_response("efs", "describe-access-points"), indent=2))
 
     """print the class models"""
-    for model in all_models():
-        print(model.to_class())
+    # for model in all_models():
+    #     print(model.to_class())

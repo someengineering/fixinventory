@@ -509,11 +509,11 @@ class CredentialReportLine:
 class AwsIamVirtualMfaDevice:
     kind: ClassVar[str] = "aws_iam_virtual_mfa_device"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "serialNumber": S("SerialNumber"),
-        "enableDate": S("EnableDate"),
+        "serial_number": S("SerialNumber"),
+        "enable_date": S("EnableDate"),
     }
-    serialNumber: Optional[str] = field(default=None)
-    enableDate: Optional[datetime] = field(default=None)
+    serial_number: Optional[str] = field(default=None)
+    enable_date: Optional[datetime] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -627,7 +627,7 @@ class AwsIamUser(AwsResource, BaseUser):
                             usr.user_virtual_mfa_devices = []
                         usr.user_virtual_mfa_devices.append(node)
 
-        if builder.account.mfa_devices > 0:
+        if builder.account.mfa_devices is not None and builder.account.mfa_devices > 0:
             builder.submit_work(add_virtual_mfa_devices)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
