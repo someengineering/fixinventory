@@ -400,12 +400,14 @@ jobs:
         if: steps.release.outputs.prerelease == 'false'
         id: release_notes
         shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           GITHUB_REF="${{ github.ref }}"
           tag=${GITHUB_REF##*/}
           version_major=$(cut -d '.' -f 1 <<< ${GITHUB_REF##*/})
-          prev_release=$(echo $(curl -sL https://api.github.com/repos/someengineering/resoto/releases) | jq -r "map(select(.tag_name | startswith(\"${version_major}.\")) | select(.prerelease == false))[0].tag_name")
-          [ -n "$prev_release" ] && prev_release=$(echo $(curl -sL https://api.github.com/repos/someengineering/resoto/releases/latest) | jq -r '.tag_name')
+          prev_release=$(echo $(gh api repos/someengineering/resoto/releases) | jq -r "map(select(.tag_name | startswith(\"${version_major}.\")) | select(.prerelease == false))[0].tag_name")
+          [ -n "$prev_release" ] && prev_release=$(echo $(gh api repos/someengineering/resoto/releases/latest) | jq -r '.tag_name')
           year=$(date +'%Y')
           date=$(date +'%m-%d')
           dir="resoto.com/news/${year}/${date}-${{ steps.release.outputs.tag }}"
