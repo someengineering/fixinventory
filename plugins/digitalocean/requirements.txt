@@ -1,4 +1,4 @@
-resotolib==3.1.0
+resotolib==3.1.1
 boto3>=1
 requests>=2.27
 botocore>=1
