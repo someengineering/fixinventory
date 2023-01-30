@@ -138,17 +138,23 @@
                 {
                     "title": "1.19 Ensure that all the expired SSL/TLS certificates stored in AWS IAM are removed",
                     "description": "To enable HTTPS connections to your website or application in AWS, you need an SSL/TLS server certificate. You can use ACM or IAM to store and deploy server certificates. Use IAM as a certificate manager only when you must support HTTPS connections in a region that is not supported by ACM. IAM securely encrypts your private keys and stores the encrypted version in IAM SSL certificate storage. IAM supports deploying server certificates in all regions, but you must obtain your certificate from an external provider for use with AWS. You cannot upload an ACM certificate to IAM. Additionally, you cannot manage your certificates from the IAM Console.",
-                    "checks": ["aws_iam_expired_server_certificates"]
+                    "checks": [
+                        "aws_iam_expired_server_certificates"
+                    ]
                 },
                 {
                     "title": "1.20 Ensure that IAM Access analyzer is enabled for all regions",
                     "description": "Enable IAM Access analyzer for IAM policies about all resources in each region. IAM Access Analyzer is a technology introduced at AWS reinvent 2019. After the Analyzer is enabled in IAM, scan results are displayed on the console showing the accessible resources. Scans show resources that other accounts and federated users can access, such as KMS keys and IAM roles. So the results allow you to determine if an unintended user is allowed, making it easier for administrators to monitor least privileges access. Access Analyzer analyzes only policies that are applied to resources in the same AWS Region.",
-                    "checks": ["aws_iam_access_analyzer_enabled"]
+                    "checks": [
+                        "aws_iam_access_analyzer_enabled"
+                    ]
                 },
                 {
                     "title": "1.21 Ensure IAM users are managed centrally via identity federation or AWS Organizations for multi-account environments",
                     "description": "In multi-account environments, IAM user centralization facilitates greater user control. User access beyond the initial account is then provide via role assumption. Centralization of users can be accomplished through federation with an external identity provider or through the use of AWS Organizations.",
-                    "checks": ["aws_iam_check_saml_providers_sts"]
+                    "checks": [
+                        "aws_iam_check_saml_providers_sts"
+                    ]
                 }
             ]
         },
@@ -204,7 +210,9 @@
                         {
                             "title": "2.2.1 Ensure EBS Volume Encryption is Enabled in all Regions",
                             "description": "Elastic Compute Cloud (EC2) supports encryption at rest when using the Elastic Block Store (EBS) service. While disabled by default, forcing encryption at EBS volume creation is supported.",
-                            "checks": ["aws_ec2_volume_not_encrypted"]
+                            "checks": [
+                                "aws_ec2_volume_not_encrypted"
+                            ]
                         }
                     ]
                 },
@@ -215,17 +223,23 @@
                         {
                             "title": "2.3.1 Ensure that encryption is enabled for RDS Instances",
                             "description": "Amazon RDS encrypted DB instances use the industry standard AES-256 encryption algorithm to encrypt your data on the server that hosts your Amazon RDS DB instances. After your data is encrypted, Amazon RDS handles authentication of access and decryption of your data transparently with a minimal impact on performance.",
-                            "checks": ["aws_rds_storage_encrypted"]
+                            "checks": [
+                                "aws_rds_storage_encrypted"
+                            ]
                         },
                         {
                             "title": "2.3.2 Ensure Auto Minor Version Upgrade feature is Enabled for RDS Instances",
                             "description": "Ensure that RDS database instances have the Auto Minor Version Upgrade flag enabled in order to receive automatically minor engine upgrades during the specified maintenance window. So, RDS instances can get the new features, bug fixes, and security patches for their database engines.",
-                            "checks": ["aws_rds_auto_minor_version_upgrade"]
+                            "checks": [
+                                "aws_rds_auto_minor_version_upgrade"
+                            ]
                         },
                         {
                             "title": "2.3.3 Ensure that public access is not given to RDS Instance",
                             "description": "Ensure and verify that RDS database instances provisioned in your AWS account do restrict unauthorized access in order to minimize security risks. To restrict access to any publicly accessible RDS database instance, you must disable the database Publicly Accessible flag and update the VPC security group associated with the instance.",
-                            "checks": ["aws_rds_no_public_access"]
+                            "checks": [
+                                "aws_rds_no_public_access"
+                            ]
                         }
                     ]
                 },
@@ -236,7 +250,9 @@
                         {
                             "title": "2.4.1 Ensure that encryption is enabled for EFS file systems",
                             "description": "EFS data should be encrypted at rest using AWS KMS (Key Management Service).",
-                            "checks": []
+                            "checks": [
+                                "aws_efs_storage_encrypted"
+                            ]
                         }
                     ]
                 }
