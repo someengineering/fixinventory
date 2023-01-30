@@ -601,6 +601,21 @@ class GcpSecuritySettings:
 @define(eq=False, slots=False)
 class GcpBackendService(GcpResource):
     kind: ClassVar[str] = "gcp_backend_service"
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {
+            "default": ["gcp_network"],
+            "delete": ["gcp_instance_group", "gcp_network_endpoint_group", "gcp_health_check", "gcp_http_health_check", "gcp_https_health_check"], },
+        "successors": {
+            "default": [
+                "gcp_instance_group",
+                "gcp_network_endpoint_group",
+                "gcp_health_check",
+                "gcp_http_health_check",
+                "gcp_https_health_check",
+            ],
+            "delete": ["gcp_target_tcp_proxy", "gcp_target_ssl_proxy"],
+        }
+    }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
         version="v1",
@@ -690,6 +705,18 @@ class GcpBackendService(GcpResource):
     service_session_affinity: Optional[str] = field(default=None)
     service_subsetting: Optional[str] = field(default=None)
     service_timeout_sec: Optional[int] = field(default=None)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        for check in self.service_health_checks:
+            builder.dependant_node(self, clazz=GcpHealthCheck, link=check)
+            builder.dependant_node(self, clazz=GcpHttpHealthCheck, link=check)
+            builder.dependant_node(self, clazz=GcpHttpsHealthCheck, link=check)
+        for backend in self.service_backends:
+            if backend.group:
+                builder.dependant_node(self, clazz=GcpInstanceGroup, link=backend.group)
+                builder.dependant_node(self, clazz=GcpNetworkEndpointGroup, link=backend.group)
+        if self.service_network:
+            builder.add_edge(self, reverse=True, clazz=GcpNetwork, link=self.service_network)
 
 
 @define(eq=False, slots=False)
@@ -4140,6 +4167,7 @@ class GcpTargetTcpProxy(GcpResource):
     proxy_proxy_bind: Optional[bool] = field(default=None)
     proxy_proxy_header: Optional[str] = field(default=None)
     proxy_service: Optional[str] = field(default=None)
+    # TODO edge to backend service
 
 
 @define(eq=False, slots=False)
@@ -5379,6 +5407,7 @@ class GcpTargetSslProxy(GcpResource):
     proxy_service: Optional[str] = field(default=None)
     proxy_ssl_certificates: Optional[List[str]] = field(default=None)
     proxy_ssl_policy: Optional[str] = field(default=None)
+    # TODO edge to backend service
 
 
 @define(eq=False, slots=False)
