@@ -148,16 +148,22 @@ def kill_children(signal: Signals = SIGTERM, ensure_death: bool = False, timeout
 
     log.debug(f"Sending {signal.name} to {num_children} child{log_suffix}.")
     for p in procs:
-        if signal == SIGTERM:
-            p.terminate()
-        else:
-            p.send_signal(signal)
+        try:
+            if signal == SIGTERM:
+                p.terminate()
+            else:
+                p.send_signal(signal)
+        except psutil.NoSuchProcess:
+            pass
 
     if ensure_death:
         _, alive = psutil.wait_procs(procs, timeout=timeout)
         for p in alive:
             log.debug(f"Child with PID {p.pid} is still alive, sending SIGKILL")
-            p.kill()
+            try:
+                p.kill()
+            except psutil.NoSuchProcess:
+                pass
 
 
 def increase_limits() -> None:
