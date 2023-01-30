@@ -82,38 +82,51 @@
                 {
                     "title": "1.11 Do not setup access keys during initial user setup for all IAM users that have a console password",
                     "description": "AWS console defaults to no check boxes selected when creating a new IAM user. When creating the IAM User credentials you have to determine what type of access they require.",
-                    "checks": ["aws_iam_user_uses_access_keys_console_access"
+                    "checks": [
+                        "aws_iam_user_uses_access_keys_console_access"
                     ]
                 },
                 {
                     "title": "1.12 Ensure credentials unused for 45 days or greater are disabled",
                     "description": "AWS IAM users can access AWS resources using different types of credentials, such as passwords or access keys. It is recommended that all credentials that have been unused in 45 or greater days be deactivated or removed.",
-                    "checks": ["aws_iam_disable_old_credentials"]
+                    "checks": [
+                        "aws_iam_disable_old_credentials"
+                    ]
                 },
                 {
                     "title": "1.13 Ensure there is only one active access key available for any single IAM user",
                     "description": "Access keys are long-term credentials for an IAM user or the AWS account root user. You can use access keys to sign programmatic requests to the AWS CLI or AWS API (directly or using the AWS SDK).",
-                    "checks": ["aws_iam_user_has_two_active_access_keys"]
+                    "checks": [
+                        "aws_iam_user_has_two_active_access_keys"
+                    ]
                 },
                 {
                     "title": "1.14 Ensure access keys are rotated every 90 days or less",
                     "description": "Access keys consist of an access key ID and secret access key, which are used to sign programmatic requests that you make to AWS. AWS users need their own access keys to make programmatic calls to AWS from the AWS Command Line Interface (AWS CLI), Tools for Windows PowerShell, the AWS SDKs, or direct HTTP calls using the APIs for individual AWS services. It is recommended that all access keys be regularly rotated.",
-                    "checks": []
+                    "checks": [
+                        "aws_iam_rotate_access_keys_after_90_days"
+                    ]
                 },
                 {
                     "title": "1.15 Ensure IAM Users Receive Permissions Only Through Groups",
                     "description": "IAM users are granted access to services, functions, and data through IAM policies. There are three ways to define policies for a user: 1) Edit the user policy directly, aka an inline, or user, policy; 2) attach a policy directly to a user; 3) add the user to an IAM group that has an attached policy. Only the third implementation is recommended.",
-                    "checks": []
+                    "checks": [
+                        "aws_iam_policy_attached_only_to_group_or_roles"
+                    ]
                 },
                 {
                     "title": "1.16 Ensure IAM policies that allow full \"*:*\" administrative privileges are not attached",
                     "description": "IAM policies are the means by which privileges are granted to users, groups, or roles. It is recommended and considered a standard security advice to grant least privilege -that is, granting only the permissions required to perform a task. Determine what users need to do and then craft policies for them that let the users perform only those tasks, instead of allowing full administrative privileges.",
-                    "checks": []
+                    "checks": [
+                        "aws_iam_policy_with_administrative_privileges_not_in_use"
+                    ]
                 },
                 {
                     "title": "1.17 Ensure a support role has been created to manage incidents with AWS Support",
                     "description": "AWS provides a support center that can be used for incident notification and response, as well as technical support and customer services. Create an IAM Role to allow authorized users to manage incidents with AWS Support.",
-                    "checks": []
+                    "checks": [
+                        "aws_iam_support_role_exists"
+                    ]
                 },
                 {
                     "title": "1.18 Ensure IAM instance roles are used for AWS resource access from instances",
@@ -125,17 +138,17 @@
                 {
                     "title": "1.19 Ensure that all the expired SSL/TLS certificates stored in AWS IAM are removed",
                     "description": "To enable HTTPS connections to your website or application in AWS, you need an SSL/TLS server certificate. You can use ACM or IAM to store and deploy server certificates. Use IAM as a certificate manager only when you must support HTTPS connections in a region that is not supported by ACM. IAM securely encrypts your private keys and stores the encrypted version in IAM SSL certificate storage. IAM supports deploying server certificates in all regions, but you must obtain your certificate from an external provider for use with AWS. You cannot upload an ACM certificate to IAM. Additionally, you cannot manage your certificates from the IAM Console.",
-                    "checks": []
+                    "checks": ["aws_iam_expired_server_certificates"]
                 },
                 {
                     "title": "1.20 Ensure that IAM Access analyzer is enabled for all regions",
                     "description": "Enable IAM Access analyzer for IAM policies about all resources in each region. IAM Access Analyzer is a technology introduced at AWS reinvent 2019. After the Analyzer is enabled in IAM, scan results are displayed on the console showing the accessible resources. Scans show resources that other accounts and federated users can access, such as KMS keys and IAM roles. So the results allow you to determine if an unintended user is allowed, making it easier for administrators to monitor least privileges access. Access Analyzer analyzes only policies that are applied to resources in the same AWS Region.",
-                    "checks": []
+                    "checks": ["aws_iam_access_analyzer_enabled"]
                 },
                 {
                     "title": "1.21 Ensure IAM users are managed centrally via identity federation or AWS Organizations for multi-account environments",
                     "description": "In multi-account environments, IAM user centralization facilitates greater user control. User access beyond the initial account is then provide via role assumption. Centralization of users can be accomplished through federation with an external identity provider or through the use of AWS Organizations.",
-                    "checks": []
+                    "checks": ["aws_iam_check_saml_providers_sts"]
                 }
             ]
         },

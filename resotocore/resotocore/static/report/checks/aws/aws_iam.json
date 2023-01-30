@@ -235,6 +235,89 @@
                 "text": "Remove any policy attached directly to the user. Use groups or roles instead.",
                 "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html"
             }
+        },
+        {
+            "name": "policy_with_administrative_privileges_not_in_use",
+            "title": "Ensure IAM policies that allow full \"*:*\" administrative privileges are not in use.",
+            "result_kind": "aws_iam_policy",
+            "categories": [ "security", "compliance" ],
+            "risk": "IAM policies are the means by which privileges are granted to users; groups; or roles. It is recommended and considered a standard security advice to grant least privilege—that is; granting only the permissions required to perform a task. Determine what users need to do and then craft policies for them that let the users perform only those tasks instead of allowing full administrative privileges. Providing full administrative privileges instead of restricting to the minimum set of permissions that the user is required to do exposes the resources to potentially unwanted actions.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_iam_policy) and policy_document.document.Statement[*].{Effect=Allow and (Action=\"*\" and Resource=\"*\")} and policy_attachment_count>0"
+            },
+            "remediation": {
+                "text": "It is more secure to start with a minimum set of permissions and grant additional permissions as necessary; rather than starting with permissions that are too lenient and then trying to tighten them later. List policies an analyze if permissions are the least possible to conduct business activities.",
+                "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html"
+            }
+        },
+        {
+            "name": "support_role_exists",
+            "title": "Ensure a support role has been created to manage incidents with AWS Support",
+            "result_kind": "aws_account",
+            "categories": [ "security", "compliance" ],
+            "risk": "AWS provides a support center that can be used for incident notification and response; as well as technical support and customer services. Create an IAM Role to allow authorized users to manage incidents with AWS Support.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_account) with(empty, -[0:2]-> is(aws_iam_role) and name=AWSServiceRoleForSupport and role_assume_role_policy_document.Statement[*].{Effect=Allow and Principal.Service=support.amazonaws.com and Action=\"sts:AssumeRole\"})"
+            },
+            "remediation": {
+                "text": "Create an IAM role for managing incidents with AWS.",
+                "url": "https://docs.aws.amazon.com/awssupport/latest/user/using-service-linked-roles-sup.html"
+            }
+        },
+        {
+            "name": "expired_server_certificates",
+            "title": "Ensure that all the expired SSL/TLS certificates stored in AWS IAM are removed.",
+            "result_kind": "aws_iam_server_certificate",
+            "categories": [ "security", "compliance" ],
+            "risk": "Removing expired SSL/TLS certificates eliminates the risk that an invalid certificate will be deployed accidentally to a resource such as AWS Elastic Load Balancer (ELB), which can damage the credibility of the application/website behind the ELB.",
+            "severity": "critical",
+            "detect": {
+                "resoto": "is(aws_iam_server_certificate) and expires<{{certificate_expiration.from_now}}"
+            },
+            "default_values": {
+                "certificate_expiration": "0d"
+            },
+            "remediation": {
+                "action":{
+                    "cli": "search is(aws_iam_server_certificate) and expires<@UTC@ | clean",
+                    "aws_cli": "aws iam delete-server-certificate --server-certificate-name {{name}}"
+                },
+
+                "text": "Deleting the certificate could have implications for your application if you are using an expired server certificate with Elastic Load Balancing, CloudFront, etc. One has to make configurations at respective services to ensure there is no interruption in application functionality.",
+                "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_server-certs.html"
+            }
+        },
+        {
+            "name": "access_analyzer_enabled",
+            "title": "Check if IAM Access Analyzer is enabled.",
+            "result_kind": "aws_account",
+            "categories": [ "security", "compliance" ],
+            "risk": "AWS IAM Access Analyzer helps you identify the resources in your organization and accounts, such as Amazon S3 buckets or IAM roles, that are shared with an external entity. This lets you identify unintended access to your resources and data, which is a security risk. IAM Access Analyzer uses a form of mathematical analysis called automated reasoning, which applies logic and mathematical inference to determine all possible access paths allowed by a resource policy.",
+            "severity": "low",
+            "detect": {
+                "manual": "Check that IAM Access Analyzer is enabled and that no analyzer produced any findings. `aws accessanalyzer list-analyzers` and `aws accessanalyzer list-findings`"
+            },
+            "remediation": {
+                "text": "Enable IAM Access Analyzer for all accounts, create analyzer and take action over it is recommendations (IAM Access Analyzer is available at no additional cost).",
+                "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/what-is-access-analyzer.html"
+            }
+        },
+        {
+            "name": "check_saml_providers_sts",
+            "title": "Check if there are SAML Providers that can be used for STS",
+            "result_kind": "aws_account",
+            "categories": [ "security", "compliance" ],
+            "risk": "Without SAML provider users with AWS CLI or AWS API access can use IAM static credentials. SAML helps users to assume role by default each time they authenticate.",
+            "severity": "low",
+            "detect": {
+                "manual": "Check that saml providers are available: `aws iam list-saml-providers`"
+            },
+            "remediation": {
+                "text": "Enable SAML provider and use temporary credentials. You can use temporary security credentials to make programmatic requests for AWS resources using the AWS CLI or AWS API (using the AWS SDKs ). The temporary credentials provide the same permissions that you have with use long-term security credentials such as IAM user credentials. In case of not having SAML provider capabilities prevent usage of long-lived credentials.",
+                "url": "https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRoleWithSAML.html"
+            }
         }
     ]
 }
