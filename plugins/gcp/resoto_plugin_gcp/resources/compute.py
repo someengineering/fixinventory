@@ -44,7 +44,7 @@ class GcpAddress(GcpResource):
         "predecessors": {"default": ["gcp_subnetwork"]},
         "successors": {
             "delete": ["gcp_subnetwork"],
-        }
+        },
     }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
@@ -92,6 +92,7 @@ class GcpAddress(GcpResource):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.address_subnetwork:
             builder.dependant_node(self, reverse=True, clazz=GcpSubnetwork, link=self.address_subnetwork)
+
 
 @define(eq=False, slots=False)
 class GcpAutoscalingPolicyCpuUtilization:
@@ -253,7 +254,9 @@ class GcpAutoscaler(GcpResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.autoscaler_target:
-            builder.dependant_node(self, delete_same_as_default=True, clazz=GcpInstanceGroupManager, link=self.autoscaler_target)
+            builder.dependant_node(
+                self, delete_same_as_default=True, clazz=GcpInstanceGroupManager, link=self.autoscaler_target
+            )
 
 
 @define(eq=False, slots=False)
@@ -604,7 +607,14 @@ class GcpBackendService(GcpResource):
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["gcp_network"],
-            "delete": ["gcp_instance_group", "gcp_network_endpoint_group", "gcp_health_check", "gcp_http_health_check", "gcp_https_health_check"], },
+            "delete": [
+                "gcp_instance_group",
+                "gcp_network_endpoint_group",
+                "gcp_health_check",
+                "gcp_http_health_check",
+                "gcp_https_health_check",
+            ],
+        },
         "successors": {
             "default": [
                 "gcp_instance_group",
@@ -614,7 +624,7 @@ class GcpBackendService(GcpResource):
                 "gcp_https_health_check",
             ],
             "delete": ["gcp_target_tcp_proxy", "gcp_target_ssl_proxy"],
-        }
+        },
     }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
