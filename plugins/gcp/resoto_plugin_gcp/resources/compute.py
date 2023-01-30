@@ -40,6 +40,12 @@ class GcpAcceleratorType(GcpResource):
 @define(eq=False, slots=False)
 class GcpAddress(GcpResource):
     kind: ClassVar[str] = "gcp_address"
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["gcp_subnetwork"]},
+        "successors": {
+            "delete": ["gcp_subnetwork"],
+        }
+    }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
         version="v1",
@@ -83,6 +89,9 @@ class GcpAddress(GcpResource):
     address_subnetwork: Optional[str] = field(default=None)
     address_users: Optional[List[str]] = field(default=None)
 
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if self.address_subnetwork:
+            builder.dependant_node(self, reverse=True, clazz=GcpSubnetwork, link=self.address_subnetwork)
 
 @define(eq=False, slots=False)
 class GcpAutoscalingPolicyCpuUtilization:
