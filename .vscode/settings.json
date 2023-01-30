@@ -5,6 +5,7 @@
         "plugins/digitalocean/test",
         "plugins/aws/test",
         "plugins/aws_k8s/test",
+        "plugins/gcp/test",
         "resotolib/test/core",
         "resotolib/test",
         "resotoworker/test"
