@@ -1005,6 +1005,9 @@ class GcpFirewallPolicyRule:
 @define(eq=False, slots=False)
 class GcpFirewallPolicy(GcpResource):
     kind: ClassVar[str] = "gcp_firewall_policy"
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["gcp_network"]}}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
         version="v1",
@@ -1042,6 +1045,11 @@ class GcpFirewallPolicy(GcpResource):
     policy_self_link_with_id: Optional[str] = field(default=None)
     policy_short_name: Optional[str] = field(default=None)
 
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        for rule in self.policy_rules:
+            for resource in rule.target_resources:
+                builder.add_edge(self, link=resource)
+
 
 @define(eq=False, slots=False)
 class GcpAllowed:
@@ -1070,6 +1078,9 @@ class GcpFirewallLogConfig:
 @define(eq=False, slots=False)
 class GcpFirewall(GcpResource):
     kind: ClassVar[str] = "gcp_firewall"
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["gcp_network"]}}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
         version="v1",
@@ -1117,6 +1128,11 @@ class GcpFirewall(GcpResource):
     firewall_target_service_accounts: Optional[List[str]] = field(default=None)
     firewall_target_tags: Optional[List[str]] = field(default=None)
 
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if self.firewall_network:
+            builder.add_edge(self, link=self.firewall_network)
+
+
 
 @define(eq=False, slots=False)
 class GcpMetadataFilterLabelMatch:
@@ -1153,6 +1169,23 @@ class GcpForwardingRuleServiceDirectoryRegistration:
 @define(eq=False, slots=False)
 class GcpForwardingRule(GcpResource):
     kind: ClassVar[str] = "gcp_forwarding_rule"
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {
+            "default": ["gcp_network"]
+        },
+        "successors": {
+            "default": [
+                "gcp_target_vpn_gateway",
+                "gcp_target_tcp_proxy",
+                "gcp_target_ssl_proxy",
+                "gcp_target_grpc_proxy",
+                "gcp_target_http_proxy",
+                "gcp_target_https_proxy",
+                "gcp_target_pool",
+            ],
+            "delete": [],
+        }
+    }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
         version="v1",
@@ -1220,6 +1253,10 @@ class GcpForwardingRule(GcpResource):
     rule_service_name: Optional[str] = field(default=None)
     rule_subnetwork: Optional[str] = field(default=None)
     rule_target: Optional[str] = field(default=None)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if self.rule_network:
+            builder.add_edge(self, reverse=True, link=self.rule_network)
 
 
 @define(eq=False, slots=False)
