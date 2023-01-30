@@ -224,6 +224,9 @@ class InspectorService(Inspector, Service):
             return await perform_search(resoto_search)
         elif resoto_cmd := inspection.detect.get("resoto_cmd"):
             return await perform_cmd(resoto_cmd)
+        elif inspection.detect.get("manual"):
+            # let's assume the manual check is successful
+            return 0
         else:
             raise ValueError(f"Invalid inspection {inspection.id}: no resoto or resoto_cmd defined")
 
