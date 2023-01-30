@@ -2,25 +2,27 @@
     "Attributes":
         {
             "QueueArn": "arn:aws:sqs:eu-central-1:882347060974:SomeName",
-            "ApproximateNumberOfMessages": 0,
-            "ApproximateNumberOfMessagesNotVisible": 0,
-            "ApproximateNumberOfMessagesDelayed": 0,
-            "CreatedTimestamp": 1659601278,
-            "LastModifiedTimestamp": 1659601278,
-            "Policy": "SomeSQSPolicy",
-            "RedrivePolicy": "SomeRedrivePolicy",
-            "FifoQueue": true,
-            "ContentBasedDeduplication": false,
+            "ApproximateNumberOfMessages": "0",
+            "ApproximateNumberOfMessagesNotVisible": "0",
+            "ApproximateNumberOfMessagesDelayed": "0",
+            "CreatedTimestamp": "1659601278",
+            "LastModifiedTimestamp": "1659601278",
+            "Policy": "{\"Version\":\"2008-10-17\",\"Id\":\"__default_policy_ID\",\"Statement\":[{\"Sid\":\"__owner_statement\",\"Effect\":\"Allow\",\"Principal\":{\"AWS\":\"arn:aws:iam::882347060974:root\"},\"Action\":\"SQS:*\",\"Resource\":\"arn:aws:sqs:eu-central-1:882347060974:DeleteMeQueue\"}]}",
+            "RedrivePolicy": "{ \"deadLetterTargetArn\": \"arn:aws:sqs:eu-central-1:882347060974:SomeName\", \"maxReceiveCount\": 42 }",
+            "FifoQueue": "true",
+            "ContentBasedDeduplication": "false",
             "KmsMasterKeyId": "SomeKeyId",
-            "KmsDataKeyReusePeriodSeconds": 42,
+            "KmsDataKeyReusePeriodSeconds": "42",
             "DeduplicationScope": "messageGroup",
             "FifoThroughputLimit": "perQueue",
-            "RedriveAllowPolicy": "SomeRedriveAllowPolicy",
-            "VisibilityTimeout": 30,
-            "MaximumMessageSize": 262144,
-            "MessageRetentionPeriod": 345600,
-            "DelaySeconds": 0,
-            "ReceiveMessageWaitTimeSeconds": 0,
-            "SqsManagedSseEnabled": false
+            "RedriveAllowPolicy": "{\"redrivePermission\":\"allowAll\"}",
+            "VisibilityTimeout": "30",
+            "MaximumMessageSize": "262144",
+            "MessageRetentionPeriod": "345600",
+            "DelaySeconds": "0",
+            "ReceiveMessageWaitTimeSeconds": "0",
+            "SqsManagedSseEnabled": "false"
         }
 }
+
+

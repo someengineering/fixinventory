@@ -759,7 +759,7 @@ class AwsCloudFrontResponseHeadersPolicyConfig:
         >> ForallBend(AwsCloudFrontResponseHeadersPolicyCustomHeader.mapping),
     }
     comment: Optional[str] = field(default=None)
-    name: str = field(default=None)
+    name: Optional[str] = field(default=None)
     cors_config: Optional[AwsCloudFrontResponseHeadersPolicyCorsConfig] = field(default=None)
     security_headers_config: Optional[AwsCloudFrontResponseHeadersPolicySecurityHeadersConfig] = field(default=None)
     server_timing_headers_config: Optional[AwsCloudFrontResponseHeadersPolicyServerTimingHeadersConfig] = field(
@@ -930,7 +930,7 @@ class AwsCloudFrontCachePolicyConfig:
         >> Bend(AwsCloudFrontParametersInCacheKeyAndForwardedToOrigin.mapping),
     }
     comment: Optional[str] = field(default=None)
-    name: str = field(default=None)
+    name: Optional[str] = field(default=None)
     default_ttl: Optional[int] = field(default=None)
     max_ttl: Optional[int] = field(default=None)
     min_ttl: Optional[int] = field(default=None)

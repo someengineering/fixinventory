@@ -23,30 +23,26 @@ from resoto_plugin_aws.utils import TagsValue, ToDict
 class EcsTaggable:
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         if isinstance(self, AwsResource):
-            if spec := self.api_spec:
-                client.call(
-                    aws_service=spec.service,
-                    action="tag-resource",
-                    result_name=None,
-                    resourceArn=self.arn,
-                    tags=[{"key": key, "value": value}],
-                )
-                return True
-            return False
+            client.call(
+                aws_service="ecs",
+                action="tag-resource",
+                result_name=None,
+                resourceArn=self.arn,
+                tags=[{"key": key, "value": value}],
+            )
+            return True
         return False
 
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
         if isinstance(self, AwsResource):
-            if spec := self.api_spec:
-                client.call(
-                    aws_service=spec.service,
-                    action="untag-resource",
-                    result_name=None,
-                    resourceArn=self.arn,
-                    tagKeys=[key],
-                )
-                return True
-            return False
+            client.call(
+                aws_service="ecs",
+                action="untag-resource",
+                result_name=None,
+                resourceArn=self.arn,
+                tagKeys=[key],
+            )
+            return True
         return False
 
     @classmethod
@@ -1312,6 +1308,7 @@ class AwsEcsService(EcsTaggable, AwsResource):
             result_name=None,
             cluster=self.cluster_arn,
             service=self.name,
+            force=True,
         )
         return True
 
@@ -1499,7 +1496,7 @@ class AwsEcsClusterConfiguration:
         "execute_command_configuration": S("executeCommandConfiguration")
         >> Bend(AwsEcsExecuteCommandConfiguration.mapping)
     }
-    execute_command_configuration: AwsEcsExecuteCommandConfiguration = field(default=None)
+    execute_command_configuration: Optional[AwsEcsExecuteCommandConfiguration] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -1646,22 +1643,12 @@ class AwsEcsCluster(EcsTaggable, AwsResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         # TODO add edge to CloudWatchLogs LogGroup when applicable
-        if self.cluster_configuration:
-            if self.cluster_configuration.execute_command_configuration.kms_key_id:
-                builder.dependant_node(
-                    self,
-                    clazz=AwsKmsKey,
-                    id=AwsKmsKey.normalise_id(self.cluster_configuration.execute_command_configuration.kms_key_id),
-                )
-            if (
-                self.cluster_configuration.execute_command_configuration.log_configuration
-                and self.cluster_configuration.execute_command_configuration.log_configuration.s3_bucket_name
-            ):
-                builder.dependant_node(
-                    self,
-                    clazz=AwsS3Bucket,
-                    name=self.cluster_configuration.execute_command_configuration.log_configuration.s3_bucket_name,
-                )
+        if ccf := self.cluster_configuration:
+            if exc := ccf.execute_command_configuration:
+                if exc.kms_key_id:
+                    builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(exc.kms_key_id))
+                if exc.log_configuration and exc.log_configuration.s3_bucket_name:
+                    builder.dependant_node(self, clazz=AwsS3Bucket, name=exc.log_configuration.s3_bucket_name)
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(aws_service=self.api_spec.service, action="delete-cluster", result_name=None, cluster=self.arn)

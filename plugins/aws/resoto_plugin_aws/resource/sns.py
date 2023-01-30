@@ -149,7 +149,11 @@ class AwsSnsSubscription(AwsResource):
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for entry in json:
             subscription = builder.client.get(
-                "sns", "get-subscription-attributes", SubscriptionArn=entry["SubscriptionArn"], result_name="Attributes"
+                "sns",
+                "get-subscription-attributes",
+                SubscriptionArn=entry["SubscriptionArn"],
+                result_name="Attributes",
+                expected_errors=["InvalidParameter"],
             )
             if subscription:
                 subscription_instance = cls.from_api(subscription)

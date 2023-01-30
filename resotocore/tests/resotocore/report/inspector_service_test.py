@@ -123,10 +123,14 @@ async def test_benchmark_node_result(inspector_service_with_test_benchmark: Insp
 
 
 async def test_predefined_checks(inspector_service: InspectorService) -> None:
-    for name, check in ReportCheckCollectionConfig.from_files().items():
+    checks = ReportCheckCollectionConfig.from_files()
+    assert len(checks) > 0
+    for name, check in checks.items():
         assert (await inspector_service.validate_check_collection_config({CheckConfigRoot: check})) is None
 
 
 async def test_predefined_benchmarks(inspector_service: InspectorService) -> None:
-    for name, check in BenchmarkConfig.from_files().items():
+    benchmarks = BenchmarkConfig.from_files()
+    assert len(benchmarks) > 0
+    for name, check in benchmarks.items():
         assert (await inspector_service.validate_benchmark_config({BenchmarkConfigRoot: check})) is None

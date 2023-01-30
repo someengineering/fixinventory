@@ -90,16 +90,16 @@ class AwsCognitoUser(AwsResource, BaseUser):
 class AwsCognitoCustomSMSLambdaVersionConfigType:
     kind: ClassVar[str] = "aws_cognito_custom_sms_lambda_version_config_type"
     mapping: ClassVar[Dict[str, Bender]] = {"lambda_version": S("LambdaVersion"), "lambda_arn": S("LambdaArn")}
-    lambda_version: str = field(default=None)
-    lambda_arn: str = field(default=None)
+    lambda_version: Optional[str] = field(default=None)
+    lambda_arn: Optional[str] = field(default=None)
 
 
 @define(eq=False, slots=False)
 class AwsCognitoCustomEmailLambdaVersionConfigType:
     kind: ClassVar[str] = "aws_cognito_custom_email_lambda_version_config_type"
     mapping: ClassVar[Dict[str, Bender]] = {"lambda_version": S("LambdaVersion"), "lambda_arn": S("LambdaArn")}
-    lambda_version: str = field(default=None)
-    lambda_arn: str = field(default=None)
+    lambda_version: Optional[str] = field(default=None)
+    lambda_arn: Optional[str] = field(default=None)
 
 
 @define(eq=False, slots=False)

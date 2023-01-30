@@ -20,10 +20,10 @@ class AwsGlacierInventoryRetrievalParameters:
         "end_date": S("EndDate"),
         "limit": S("Limit"),
     }
-    output_format: str = field(default=None)
-    start_date: str = field(default=None)
-    end_date: str = field(default=None)
-    limit: str = field(default=None)
+    output_format: Optional[str] = field(default=None)
+    start_date: Optional[str] = field(default=None)
+    end_date: Optional[str] = field(default=None)
+    limit: Optional[str] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -35,10 +35,10 @@ class AwsGlacierSelectParameters:
         "expression": S("Expression"),
         "output_serialization": S("OutputSerialization"),
     }
-    input_serialization: Dict[str, Dict[str, str]] = field(default=None)
-    expression_type: str = field(default=None)
-    expression: str = field(default=None)
-    output_serialization: Dict[str, Dict[str, str]] = field(default=None)
+    input_serialization: Optional[Dict[str, Dict[str, str]]] = field(default=None)
+    expression_type: Optional[str] = field(default=None)
+    expression: Optional[str] = field(default=None)
+    output_serialization: Optional[Dict[str, Dict[str, str]]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -49,8 +49,8 @@ class AwsGlacierBucketEncryption:
         "kms_key_id": S("KMSKeyId"),
         "kms_context": S("KMSContext"),
     }
-    encryption_type: str = field(default=None)
-    kms_key_id: str = field(default=None)
+    encryption_type: Optional[str] = field(default=None)
+    kms_key_id: Optional[str] = field(default=None)
     kms_context: Optional[str] = field(default=None)
 
 
@@ -61,8 +61,8 @@ class AwsGlacierAcl:
         "grantee": S("Grantee"),
         "permission": S("Permission"),
     }
-    grantee: Dict[str, str] = field(default=None)
-    permission: str = field(default=None)
+    grantee: Optional[Dict[str, str]] = field(default=None)
+    permission: Optional[str] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -78,13 +78,13 @@ class AwsGlacierJobBucket:
         "user_metadata": S("UserMetadata"),
         "storage_class": S("StorageClass"),
     }
-    bucket_name: str = field(default=None)
-    prefix: str = field(default=None)
-    encryption: AwsGlacierBucketEncryption = field(default=None)
-    access_control_list: List[AwsGlacierAcl] = field(default=None)
+    bucket_name: Optional[str] = field(default=None)
+    prefix: Optional[str] = field(default=None)
+    encryption: Optional[AwsGlacierBucketEncryption] = field(default=None)
+    access_control_list: Optional[List[AwsGlacierAcl]] = field(default=None)
     tagging: Optional[Dict[str, str]] = field(default=None)
-    user_metadata: Dict[str, str] = field(default=None)
-    storage_class: str = field(default=None)
+    user_metadata: Optional[Dict[str, str]] = field(default=None)
+    storage_class: Optional[str] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -93,7 +93,7 @@ class AwsGlacierJobOutputLocation:
     mapping: ClassVar[Dict[str, Bender]] = {
         "s3": S("S3") >> Bend(AwsGlacierJobBucket.mapping),
     }
-    s3: AwsGlacierJobBucket = field(default=None)
+    s3: Optional[AwsGlacierJobBucket] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -132,32 +132,29 @@ class AwsGlacierJob(AwsResource):
         "glacier_job_output_location": S("OutputLocation") >> Bend(AwsGlacierJobOutputLocation.mapping),
     }
     description: Optional[str] = field(default=None)
-    glacier_job_action: str = field(default=None)
+    glacier_job_action: Optional[str] = field(default=None)
     glacier_job_archive_id: Optional[str] = field(default=None)
     glacier_job_vault_arn: Optional[str] = field(default=None)
-    glacier_job_completed: bool = field(default=None)
-    glacier_job_status_code: str = field(default=None)
-    glacier_job_status_message: str = field(default=None)
+    glacier_job_completed: Optional[bool] = field(default=None)
+    glacier_job_status_code: Optional[str] = field(default=None)
+    glacier_job_status_message: Optional[str] = field(default=None)
     glacier_job_archive_size_in_bytes: Optional[int] = field(default=None)
     glacier_job_inventory_size_in_bytes: Optional[int] = field(default=None)
-    glacier_job_sns_topic: str = field(default=None)
+    glacier_job_sns_topic: Optional[str] = field(default=None)
     glacier_job_completion_date: Optional[str] = field(default=None)
     glacier_job_sha256_tree_hash: Optional[str] = field(default=None)
     glacier_job_archive_sha256_tree_hash: Optional[str] = field(default=None)
     glacier_job_retrieval_byte_range: Optional[str] = field(default=None)
-    glacier_job_tier: str = field(default=None)
+    glacier_job_tier: Optional[str] = field(default=None)
     glacier_job_inventory_retrieval_parameters: Optional[AwsGlacierInventoryRetrievalParameters] = field(default=None)
-    glacier_job_output_path: str = field(default=None)
+    glacier_job_output_path: Optional[str] = field(default=None)
     glacier_job_select_parameters: Optional[AwsGlacierSelectParameters] = field(default=None)
     glacier_job_output_location: Optional[AwsGlacierJobOutputLocation] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if self.glacier_job_output_location:
-            builder.dependant_node(
-                self,
-                clazz=AwsKmsKey,
-                id=AwsKmsKey.normalise_id(self.glacier_job_output_location.s3.encryption.kms_key_id),
-            )
+        # noinspection PyUnboundLocalVariable
+        if (o := self.glacier_job_output_location) and (s3 := o.s3) and (e := s3.encryption) and (kid := e.kms_key_id):
+            builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(kid))
         if self.glacier_job_sns_topic:
             builder.add_edge(self, clazz=AwsSnsTopic, arn=self.glacier_job_sns_topic)
 

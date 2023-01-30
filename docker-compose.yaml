@@ -62,7 +62,6 @@ services:
       - resotocore.api.host_certificate.common_name=resotocore
       - resotocore.api.host_certificate.san_dns_names=resotocore
       - resotocore.api.tsdb_proxy_url=http://tsdb:9090
-      - resotocore.api.ui_path=/usr/local/resoto/ui/
       - resotocore.runtime.start_collect_on_subscriber_connect=true
     restart: always
     stop_grace_period: 2m

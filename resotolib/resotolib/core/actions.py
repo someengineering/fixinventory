@@ -79,6 +79,9 @@ class CoreFeedback:
     def with_context(self, *context: str) -> "CoreFeedback":
         return evolve(self, context=list(context))
 
+    def child_context(self, *context: str) -> "CoreFeedback":
+        return self.with_context(*(self.context + list(context)))
+
 
 class CoreActions(threading.Thread):
     def __init__(
@@ -164,11 +167,6 @@ class CoreActions(threading.Thread):
         remove_event_listener(EventType.SHUTDOWN, self.shutdown)
         log.debug("Received shutdown event - shutting down resotocore message bus listener")
         self.shutdown_event.set()
-        for core_action in self.actions.keys():
-            try:
-                self.unregister(core_action)
-            except Exception as e:
-                log.error(e)
         self.executor.shutdown(wait=False, cancel_futures=True)
         if self.ws:
             self.ws.close()

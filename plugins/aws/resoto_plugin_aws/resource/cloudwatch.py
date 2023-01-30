@@ -261,7 +261,7 @@ class AwsCloudwatchMetricData:
         "metric_status_code": S("StatusCode"),
         "metric_messages": S("Messages", default=[]) >> ForallBend(AwsCloudwatchMessageData.mapping),
     }
-    id: str = field(default=None)
+    id: Optional[str] = field(default=None)
     label: Optional[str] = field(default=None)
     metric_timestamps: List[datetime] = field(factory=list)
     metric_values: List[float] = field(factory=list)
@@ -301,7 +301,8 @@ class AwsCloudwatchMetricData:
             )
             for single in part:
                 metric = from_json(bend(AwsCloudwatchMetricData.mapping, single), AwsCloudwatchMetricData)
-                result[lookup[metric.id]] = metric
+                if metric.id:
+                    result[lookup[metric.id]] = metric
 
         return result
 

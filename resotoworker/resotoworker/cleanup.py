@@ -96,7 +96,7 @@ class Cleaner:
             parallel_pass_num += 1
 
     def pre_clean(self, config: Config, plugins: Dict[str, Type[BaseCollectorPlugin]], node: BaseResource) -> None:
-        if not hasattr(node, "pre_delete") or not hasattr(node, "pre_delete_resource"):
+        if not hasattr(node, "pre_delete") and not hasattr(node, "pre_delete_resource"):
             return
 
         log_prefix = f"Resource {node.rtdname} is marked for removal"

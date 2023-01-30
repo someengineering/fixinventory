@@ -13,8 +13,8 @@ from attr import evolve, field
 from attrs import define
 from boto3.exceptions import Boto3Error
 
-from resoto_plugin_aws.configuration import AwsConfig
 from resoto_plugin_aws.aws_client import AwsClient
+from resoto_plugin_aws.configuration import AwsConfig
 from resoto_plugin_aws.resource.pricing import AwsPricingPrice
 from resoto_plugin_aws.utils import arn_partition
 from resotolib.baseresources import (
@@ -81,10 +81,10 @@ class AwsResource(BaseResource, ABC):
     arn: Optional[str] = None
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
-        raise NotImplementedError
+        return False
 
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
-        raise NotImplementedError
+        return False
 
     def delete_resource(self, client: AwsClient) -> bool:
         return False

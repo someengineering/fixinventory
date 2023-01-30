@@ -1944,6 +1944,7 @@ class AwsEc2SecurityGroup(EC2Taggable, AwsResource, BaseSecurityGroup):
             action="describe-security-groups",
             result_name="SecurityGroups",
             GroupIds=[self.id],
+            expected_errors=["InvalidGroup.NotFound"],
         )
 
         security_group: Json = next(iter(security_groups), {})
@@ -1964,6 +1965,7 @@ class AwsEc2SecurityGroup(EC2Taggable, AwsResource, BaseSecurityGroup):
                 action="revoke-security-group-ingress",
                 result_name=None,
                 IpPermissions=remove_ingress,
+                GroupId=self.id,
             )
 
         if len(remove_egress) > 0:
@@ -1972,6 +1974,7 @@ class AwsEc2SecurityGroup(EC2Taggable, AwsResource, BaseSecurityGroup):
                 action="revoke-security-group-egress",
                 result_name=None,
                 IpPermissions=remove_egress,
+                GroupId=self.id,
             )
         return True
 
@@ -1981,6 +1984,7 @@ class AwsEc2SecurityGroup(EC2Taggable, AwsResource, BaseSecurityGroup):
             action="delete-security-group",
             result_name=None,
             GroupId=self.id,
+            expected_errors=["InvalidGroup.NotFound"],
         )
         return True
 
@@ -2122,6 +2126,7 @@ class AwsEc2InternetGateway(EC2Taggable, AwsResource, BaseGateway):
                     result_name=None,
                     InternetGatewayId=self.id,
                     VpcId=predecessor.id,
+                    expected_errors=["Gateway.NotAttached"],
                 )
         return True
 
@@ -2248,12 +2253,17 @@ class AwsEc2RouteTable(EC2Taggable, AwsResource, BaseRoutingTable):
                     action="disassociate-route-table",
                     result_name=None,
                     AssociationId=rta.route_table_association_id,
+                    expected_errors=["InvalidParameterValue", "InvalidAssociationID.NotFound"],
                 )
         return True
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
-            aws_service=self.api_spec.service, action="delete-route-table", result_name=None, RouteTableId=self.id
+            aws_service=self.api_spec.service,
+            action="delete-route-table",
+            result_name=None,
+            RouteTableId=self.id,
+            expected_errors=["InvalidRouteTableID.NotFound"],
         )
         return True
 
