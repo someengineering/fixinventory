@@ -109,11 +109,10 @@ class CheckResult:
     node_id: str = field(init=False, default=uuid_str())
 
     def to_node(self) -> Json:
-        node = to_js(self.check)
-        node["id"] = self.node_id
-        node["kind"] = "report_check_result"
-        node["type"] = "node"
-        return node
+        reported = to_js(self.check)
+        reported["passed"] = self.passed
+        reported["number_of_resources_failing"] = self.number_of_resources_failing
+        return dict(id=self.node_id, kind="report_check_result", type="node", reported=reported)
 
 
 @define
