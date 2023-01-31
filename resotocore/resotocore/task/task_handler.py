@@ -89,7 +89,7 @@ class TaskHandlerService(TaskHandler):
         self.tasks: Dict[str, RunningTask] = {}
         self.message_bus_watcher: Optional[Task[None]] = None
         self.initial_start_workflow_task: Optional[Task[None]] = None
-        self.timeout_watcher = Periodic("task_timeout_watcher", self.check_overdue_tasks, timedelta(seconds=10))
+        self.timeout_watcher = Periodic("task_watcher", self.check_running_tasks, timedelta(seconds=10))
         self.registered_event_trigger: List[Tuple[EventTrigger, TaskDescription]] = []
         self.registered_event_trigger_by_message_type: Dict[str, List[Tuple[EventTrigger, TaskDescription]]] = {}
 
@@ -403,13 +403,8 @@ class TaskHandlerService(TaskHandler):
     ) -> None:
         wi = self.tasks.get(done.task_id)
         if wi:
-            progress = wi.progresses.copy()
             commands = fn(wi)
             await self.execute_task_commands(wi, commands, done)
-            # check if progress has changed in the meantime (by the running task itself)
-            if wi.progresses != progress:
-                msg = {"workflow": wi.descriptor.name, "task": wi.id, "message": wi.progress_json()}
-                await self.message_bus.emit_event(CoreMessage.ProgressMessage, msg)
         else:
             log.warning(
                 f"Received an ack for an unknown task={done.task_id} "
@@ -442,10 +437,6 @@ class TaskHandlerService(TaskHandler):
             if info.step_name == rt.current_step.name:  # make sure this progress belongs to the current step
                 log.debug("Received progress: %s", info)
                 rt.handle_progress(info)
-                await self.message_bus.emit_event(
-                    CoreMessage.ProgressMessage,
-                    {"workflow": rt.descriptor.name, "task": rt.id, "message": rt.progress_json()},
-                )
 
     async def execute_task_commands(
         self, wi: RunningTask, commands: Sequence[TaskCommand], origin_message: Optional[Message] = None
@@ -514,13 +505,23 @@ class TaskHandlerService(TaskHandler):
 
     # region periodic task checker
 
-    async def check_overdue_tasks(self) -> None:
+    async def check_running_tasks(self) -> None:
         """
         Called periodically by the system.
         In case there is an overdue task, an action error is injected into the task.
+        In case there is progress not emitted, it is send to the message bus.
         """
         for task in list(self.tasks.values()):
-            if task.is_active:  # task is still active
+
+            # check if there is any pending progress update to emit
+            if task.not_emitted_progress() is not None:
+                await self.message_bus.emit_event(
+                    CoreMessage.ProgressMessage,
+                    {"workflow": task.descriptor.name, "task": task.id, "message": task.progress_json()},
+                )
+
+            # check if active tasks are overdue
+            if task.is_active:
                 if task.current_state.check_timeout():
                     if task.current_step.on_error == StepErrorBehaviour.Continue:
                         current_step = task.current_step.name

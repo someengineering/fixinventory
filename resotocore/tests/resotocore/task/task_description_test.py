@@ -219,3 +219,20 @@ def test_task_progress() -> None:
     rt.handle_done(ActionDone("encode", rt.id, "encode", sb.id))
     assert [x["name"] for x in rt.progress_json()["parts"]] == ["collect", "encode"]
     assert rt.progress.overall_progress().percentage == 100
+
+
+def test_emitting_task_progress(
+    workflow_instance: Tuple[RunningTask, Subscriber, Subscriber, Dict[str, List[Subscriber]]]
+) -> None:
+    task, sub, _, _ = workflow_instance
+    # after the task is created, there is not emitted progress
+    assert task.not_emitted_progress() is not None
+    # no progress update, nothing to emit
+    assert task.not_emitted_progress() is None
+    assert task.not_emitted_progress() is None
+    # add progress updates
+    task.handle_progress(ActionProgress("collect", task.id, "collect", sub.id, ProgressDone("collect", 0, 100), utc()))
+    assert task.not_emitted_progress() is not None
+    # no progress update, nothing to emit
+    assert task.not_emitted_progress() is None
+    assert task.not_emitted_progress() is None
