@@ -17,6 +17,7 @@ from resoto_plugin_aws.resource import (
     dynamodb,
     ec2,
     ecs,
+    efs,
     eks,
     elasticbeanstalk,
     elasticache,
@@ -63,6 +64,7 @@ regional_resources: List[Type[AwsResource]] = (
     + cognito.resources
     + dynamodb.resources
     + ec2.resources
+    + efs.resources
     + ecs.resources
     + eks.resources
     + elasticbeanstalk.resources
@@ -231,6 +233,7 @@ class AwsAccountCollector:
             regional_builder.core_feedback.error(msg, log)
             return None
 
+    # TODO: move into separate AwsAccountSettings
     def update_account(self) -> None:
         log.info(f"Collecting AWS IAM Account Summary in account {self.account.dname}")
         sm = self.client.get("iam", "get-account-summary", "SummaryMap") or {}

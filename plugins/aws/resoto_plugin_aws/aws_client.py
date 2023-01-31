@@ -120,6 +120,8 @@ class AwsClient:
             return {key: self.__to_json(value, **kwargs) for key, value in node.items()}
         elif isinstance(node, datetime):
             return utc_str(node)
+        elif isinstance(node, bytes):
+            return node.decode("utf-8")
         else:
             raise AttributeError(f"Unsupported type: {type(node)}")
 
@@ -223,7 +225,7 @@ class AwsClient:
         self,
         aws_service: str,
         action: str,
-        result_name: Optional[str],
+        result_name: Optional[str] = None,
         expected_errors: Optional[List[str]] = None,
         **kwargs: Any,
     ) -> List[Any]:
@@ -239,7 +241,7 @@ class AwsClient:
         self,
         aws_service: str,
         action: str,
-        result_name: Optional[str],
+        result_name: Optional[str] = None,
         expected_errors: Optional[List[str]] = None,
         **kwargs: Any,
     ) -> Optional[Json]:

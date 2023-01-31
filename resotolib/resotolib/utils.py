@@ -44,6 +44,17 @@ def utc_str(dt: datetime = utc()) -> str:
     return dt.strftime(UTC_Date_Format)
 
 
+def parse_utc(date_string: str) -> datetime:
+    dt = datetime.fromisoformat(date_string)
+    if (
+        not dt.tzinfo
+        or dt.tzinfo.utcoffset(None) is None
+        or dt.tzinfo.utcoffset(None).total_seconds() != 0  # type: ignore
+    ):
+        dt = dt.astimezone(timezone.utc)
+    return dt
+
+
 def make_valid_timestamp(timestamp: datetime) -> Optional[datetime]:
     if not isinstance(timestamp, datetime) and isinstance(timestamp, date):
         timestamp = datetime.combine(timestamp, datetime.min.time()).replace(tzinfo=timezone.utc)

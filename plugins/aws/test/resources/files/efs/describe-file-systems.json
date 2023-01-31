@@ -1,0 +1,66 @@
+{
+    "FileSystems": [
+        {
+            "OwnerId": "test",
+            "CreationToken": "test123",
+            "FileSystemId": "fs-1",
+            "FileSystemArn": "arn:aws:elasticfilesystem:us-west-2:test:file-system/fs-1",
+            "CreationTime": "2020-04-30T17:25:06+02:00",
+            "LifeCycleState": "available",
+            "Name": "prod-efs",
+            "NumberOfMountTargets": 3,
+            "SizeInBytes": {
+                "Value": 1269075675136,
+                "Timestamp": "2023-01-30T12:52:56+01:00",
+                "ValueInIA": 0,
+                "ValueInStandard": 1269075675136
+            },
+            "PerformanceMode": "generalPurpose",
+            "Encrypted": true,
+            "KmsKeyId": "arn:aws:kms:us-west-2:test:key/key1",
+            "ThroughputMode": "bursting",
+            "ProvisionedThroughputInMibps": 23.123,
+            "AvailabilityZoneName": "us-west-2a",
+            "Tags": [
+                {
+                    "Key": "foo",
+                    "Value": "bla"
+                },
+                {
+                    "Key": "owner",
+                    "Value": "dev"
+                }
+            ]
+        },
+        {
+            "OwnerId": "test",
+            "CreationToken": "test234",
+            "FileSystemId": "fs-2",
+            "FileSystemArn": "arn:aws:elasticfilesystem:us-west-2:test:file-system/fs-2",
+            "CreationTime": "2020-03-31T09:31:47+02:00",
+            "LifeCycleState": "available",
+            "Name": "dev-efs",
+            "NumberOfMountTargets": 3,
+            "SizeInBytes": {
+                "Value": 49152,
+                "Timestamp": "2023-01-30T12:56:06+01:00",
+                "ValueInIA": 0,
+                "ValueInStandard": 49152
+            },
+            "PerformanceMode": "generalPurpose",
+            "Encrypted": true,
+            "KmsKeyId": "arn:aws:kms:us-west-2:test:key/key2",
+            "ThroughputMode": "bursting",
+            "Tags": [
+                {
+                    "Key": "foo",
+                    "Value": "bla"
+                },
+                {
+                    "Key": "owner",
+                    "Value": "dev"
+                }
+            ]
+        }
+    ]
+}

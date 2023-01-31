@@ -1,0 +1,323 @@
+{
+    "provider": "aws",
+    "service": "iam",
+    "checks": [
+        {
+            "name": "account_maintain_current_contact_details",
+            "title": "Maintain current contact details.",
+            "result_kind": "aws_account",
+            "categories": [ "security", "compliance" ],
+            "risk": "Ensure contact email and telephone details for AWS accounts are current and map to more than one individual in your organization. An AWS account supports a number of contact details; and AWS will use these to contact the account owner if activity judged to be in breach of Acceptable Use Policy. If an AWS account is observed to be behaving in a prohibited or suspicious manner; AWS will attempt to contact the account owner by email and phone using the contact details listed. If this is unsuccessful and the account behavior needs urgent mitigation; proactive measures may be taken; including throttling of traffic between the account exhibiting suspicious behavior and the AWS API endpoints and the Internet. This will result in impaired service to and from the account in question.",
+            "severity": "medium",
+            "detect": {
+                "manual": "Login to the AWS Console. Choose your account name on the top right of the window -> My Account -> Contact Information."
+            },
+            "remediation": {
+                "text": "Using the Billing and Cost Management console complete contact details.",
+                "url": "https://docs.aws.amazon.com/accounts/latest/reference/manage-acct-update-contact.html"
+            }
+        },
+        {
+            "name": "account_security_contact_information_is_registered",
+            "title": "Ensure security contact information is registered",
+            "result_kind": "aws_account",
+            "categories": [ "security", "compliance" ],
+            "risk": "AWS provides customers with the option of specifying the contact information for accounts security team. It is recommended that this information be provided. Specifying security-specific contact information will help ensure that security advisories sent by AWS reach the team in your organization that is best equipped to respond to them.",
+            "severity": "medium",
+            "detect": {
+                "manual": "Login to the AWS Console. Choose your account name on the top right of the window -> My Account -> Alternate Contacts -> Security Section."
+            },
+            "remediation": {
+                "text": "Go to the My Account section and complete alternate contacts.",
+                "url": "https://docs.aws.amazon.com/accounts/latest/reference/manage-acct-update-contact.html"
+            }
+        },
+        {
+            "name": "account_security_questions_are_registered_in_the_aws_account",
+            "title": "Ensure security questions are registered in the AWS account.",
+            "result_kind": "aws_account",
+            "categories": [ "security", "compliance" ],
+            "risk": "The AWS support portal allows account owners to establish security questions that can be used to authenticate individuals calling AWS customer service for support. It is recommended that security questions be established. When creating a new AWS account a default super user is automatically created. This account is referred to as the root account. It is recommended that the use of this account be limited and highly controlled. During events in which the root password is no longer accessible or the MFA token associated with root is lost",
+            "severity": "medium",
+            "detect": {
+                "manual": "Login to the AWS Console as root. Choose your account name on the top right of the window -> My Account -> Configure Security Challenge Questions."
+            },
+            "remediation": {
+                "text": "Login as root account and from My Account configure Security questions.",
+                "url": "https://docs.aws.amazon.com/accounts/latest/reference/manage-acct-security-challenge.html"
+            }
+        },
+        {
+            "name": "no_root_access_key",
+            "title": "Ensure no root account access key exists",
+            "result_kind": "aws_root_user",
+            "categories": [ "security", "compliance" ],
+            "risk": "The root account is the most privileged user in an AWS account. AWS Access Keys provide programmatic access to a given AWS account. It is recommended that all access keys associated with the root account be removed. Removing access keys associated with the root account limits vectors by which the account can be compromised. Removing the root access keys encourages the creation and use of role based accounts that are least privileged.",
+            "severity": "critical",
+            "detect": {
+                "resoto": "is(aws_root_user) with(any, --> is(access_key))"
+            },
+            "remediation": {
+                "text": "Use the credential report to  that the user and ensure the access_key_1_active and access_key_2_active fields are set to FALSE.",
+                "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_getting-report.html"
+            }
+        },
+        {
+            "name": "root_mfa_enabled",
+            "title": "Ensure MFA is enabled for the root account",
+            "result_kind": "aws_root_user",
+            "categories": [ "security", "compliance" ],
+            "risk": "The root account is the most privileged user in an AWS account. MFA adds an extra layer of protection on top of a user name and password. With MFA enabled when a user signs in to an AWS website they will be prompted for their user name and password as well as for an authentication code from their AWS MFA device. When virtual MFA is used for root accounts it is recommended that the device used is NOT a personal device but rather a dedicated mobile device (tablet or phone) that is managed to be kept charged and secured independent of any individual personal devices. (non-personal virtual MFA) This lessens the risks of losing access to the MFA due to device loss / trade-in or if the individual owning the device is no longer employed at the company.",
+            "severity": "critical",
+            "detect": {
+                "resoto": "is(aws_root_user) and mfa_active!=true"
+            },
+            "remediation": {
+                "text": "Using IAM console navigate to Dashboard and expand Activate MFA on your root account.",
+                "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_root-user.html#id_root-user_manage_mfa"
+            }
+        },
+        {
+            "name": "root_hardware_mfa_enabled",
+            "title": "Ensure hardware MFA is enabled for the root account",
+            "result_kind": "aws_root_user",
+            "categories": [ "security", "compliance" ],
+            "risk": "The root account is the most privileged user in an AWS account. MFA adds an extra layer of protection on top of a user name and password. With MFA enabled when a user signs in to an AWS website they will be prompted for their user name and password as well as for an authentication code from their AWS MFA device. For Level 2 it is recommended that the root account be protected with a hardware MFA./ trade-in or if the individual owning the device is no longer employed at the company.",
+            "severity": "critical",
+            "detect": {
+                "resoto": "is(aws_root_user) and user_virtual_mfa_devices!=null and user_virtual_mfa_devices!=[]"
+            },
+            "remediation": {
+                "text": "Using IAM console navigate to Dashboard and expand Activate MFA on your root account.",
+                "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_root-user.html#id_root-user_manage_mfa"
+            }
+        },
+        {
+            "name": "avoid_root_usage",
+            "title": "Avoid the use of the root accounts",
+            "result_kind": "aws_root_user",
+            "categories": [ "security", "compliance" ],
+            "risk": "The root account has unrestricted access to all resources in the AWS account. It is highly recommended that the use of this account be avoided.",
+            "severity": "critical",
+            "detect": {
+                "resoto": "is(aws_root_user) {access_keys[]: --> is(access_key)} password_last_used>{{last_access_younger_than.ago}} or access_keys[*].reported.access_key_last_used.last_used>{{last_access_younger_than.ago}}"
+            },
+            "default_values": {
+                "last_access_younger_than": "1d"
+            },
+            "remediation": {
+                "text": "Follow the remediation instructions of the Ensure IAM policies are attached only to groups or roles recommendation.",
+                "url": "http://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html"
+            }
+        },
+        {
+            "name": "password_policy_minimum_length_14",
+            "title": "Ensure IAM password policy requires minimum length of 14 or greater",
+            "result_kind": "aws_account",
+            "categories": [ "security", "compliance" ],
+            "risk": "Password policies are used to enforce password complexity requirements. IAM password policies can be used to ensure password are comprised of different character sets. It is recommended that the password policy require minimum length of 14 or greater.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_account) and minimum_password_length<14"
+            },
+            "remediation": {
+                "text": "Ensure \"Minimum password length\" is checked under \"Password Policy\".",
+                "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_passwords_account-policy.html"
+            }
+        },
+        {
+            "name": "password_policy_reuse_24",
+            "title": "Ensure IAM password policy prevents password reuse: 24 or greater",
+            "result_kind": "aws_account",
+            "categories": [ "security", "compliance" ],
+            "risk": "Password policies are used to enforce password complexity requirements. IAM password policies can be used to ensure password are comprised of different character sets. It is recommended that the password policy prevents at least password reuse of 24 or greater.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_account) and password_reuse_prevention<24"
+            },
+            "remediation": {
+                "text": "Ensure \"Number of passwords to remember\" is set to 24.",
+                "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_passwords_account-policy.html"
+            }
+        },
+        {
+            "name": "user_mfa_enabled_console_access",
+            "title": "Ensure multi-factor authentication (MFA) is enabled for all IAM users that have a console password.",
+            "result_kind": "aws_iam_user",
+            "categories": [ "security", "compliance" ],
+            "risk": "Password policies are used to enforce password complexity requirements. IAM password policies can be used to ensure password are comprised of different character sets. It is recommended that the password policy prevents at least password reuse of 24 or greater.",
+            "severity": "high",
+            "detect": {
+                "resoto": "is(aws_iam_user) and password_enabled==true and mfa_active==false"
+            },
+            "remediation": {
+                "text": "Enable MFA for users account. MFA is a simple best practice that adds an extra layer of protection on top of your user name and password. Recommended to use hardware keys over virtual MFA.",
+                "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_mfa_enable_virtual.html"
+            }
+        },
+        {
+            "name": "user_uses_access_keys_console_access",
+            "title": "Do not setup access keys during initial user setup for all IAM users that have a console password",
+            "result_kind": "aws_iam_access_key",
+            "categories": [ "security", "compliance" ],
+            "risk": "AWS console defaults the checkbox for creating access keys to enabled. This results in many access keys being generated unnecessarily. In addition to unnecessary credentials; it also generates unnecessary management work in auditing and rotating these keys. Requiring that additional steps be taken by the user after their profile has been created will give a stronger indication of intent that access keys are (a) necessary for their work and (b) once the access key is established on an account that the keys may be in use somewhere in the organization.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_iam_access_key) and access_key_status==\"Active\" and access_key_last_used.last_used==null and /ancestors.aws_iam_user.reported.password_enabled==true"
+            },
+            "remediation": {
+                "text": "From the IAM console: generate credential report and disable not required keys.",
+                "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_getting-report.html"
+            }
+        },
+        {
+            "name": "disable_old_credentials",
+            "title": "Ensure credentials unused for 45 days or greater are disabled",
+            "result_kind": "aws_iam_access_key",
+            "categories": [ "security", "compliance" ],
+            "risk": "To increase the security of your AWS account; remove IAM user credentials (that is; passwords and access keys) that are not needed. For example; when users leave your organization or no longer need AWS access.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_iam_user) and password_last_used<{{password_used_since.ago}}"
+            },
+            "default_values": {
+                "password_used_since": "45d"
+            },
+            "remediation": {
+                "text": "From the IAM console: generate credential report and disable not required keys.",
+                "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_getting-report.html"
+            }
+        },
+        {
+            "name": "user_has_two_active_access_keys",
+            "title": "Check if IAM users have two active access keys",
+            "result_kind": "aws_iam_user",
+            "categories": [ "security", "compliance" ],
+            "risk": "Access Keys could be lost or stolen. It creates a critical risk.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_iam_user) {access_keys[]: --> is(access_key)} access_keys[0].reported.access_key_status==\"Active\" and access_keys[1].reported.access_key_status==\"Active\""
+            },
+            "remediation": {
+                "text": "Avoid using long lived access keys.",
+                "url": "https://docs.aws.amazon.com/IAM/latest/APIReference/API_ListAccessKeys.html"
+            }
+        },
+        {
+            "name": "rotate_access_keys_after_90_days",
+            "title": "Ensure access keys are rotated every 90 days or less",
+            "result_kind": "aws_iam_access_key",
+            "categories": [ "security", "compliance" ],
+            "risk": "Access keys consist of an access key ID and secret access key which are used to sign programmatic requests that you make to AWS. AWS users need their own access keys to make programmatic calls to AWS from the AWS Command Line Interface (AWS CLI)- Tools for Windows PowerShell- the AWS SDKs- or direct HTTP calls using the APIs for individual AWS services. It is recommended that all access keys be regularly rotated.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_iam_access_key) and access_key_last_used.last_rotated<{{last_rotated_max.ago}}"
+            },
+            "default_values": {
+                "last_rotated_max": "90d"
+            },
+            "remediation": {
+                "text": "Use the credential report to  ensure  access_key_X_last_rotated  is less than 90 days ago.",
+                "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_getting-report.html"
+            }
+        },
+        {
+            "name": "policy_attached_only_to_group_or_roles",
+            "title": "Ensure IAM policies are attached only to groups or roles",
+            "result_kind": "aws_iam_access_key",
+            "categories": [ "security", "compliance" ],
+            "risk": "By default IAM users; groups; and roles have no access to AWS resources. IAM policies are the means by which privileges are granted to users; groups; or roles. It is recommended that IAM policies be applied directly to groups and roles but not users. Assigning privileges at the group or role level reduces the complexity of access management as the number of users grow. Reducing access management complexity may in-turn reduce opportunity for a principal to inadvertently receive or retain excessive privileges.",
+            "severity": "low",
+            "detect": {
+                "resoto": "is(aws_iam_user) {attached_policy: --> is(aws_iam_policy)} user_policies!=[] or attached_policy!=null"
+            },
+            "remediation": {
+                "text": "Remove any policy attached directly to the user. Use groups or roles instead.",
+                "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html"
+            }
+        },
+        {
+            "name": "policy_with_administrative_privileges_not_in_use",
+            "title": "Ensure IAM policies that allow full \"*:*\" administrative privileges are not in use.",
+            "result_kind": "aws_iam_policy",
+            "categories": [ "security", "compliance" ],
+            "risk": "IAM policies are the means by which privileges are granted to users; groups; or roles. It is recommended and considered a standard security advice to grant least privilege—that is; granting only the permissions required to perform a task. Determine what users need to do and then craft policies for them that let the users perform only those tasks instead of allowing full administrative privileges. Providing full administrative privileges instead of restricting to the minimum set of permissions that the user is required to do exposes the resources to potentially unwanted actions.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_iam_policy) and policy_document.document.Statement[*].{Effect=Allow and (Action=\"*\" and Resource=\"*\")} and policy_attachment_count>0"
+            },
+            "remediation": {
+                "text": "It is more secure to start with a minimum set of permissions and grant additional permissions as necessary; rather than starting with permissions that are too lenient and then trying to tighten them later. List policies an analyze if permissions are the least possible to conduct business activities.",
+                "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html"
+            }
+        },
+        {
+            "name": "support_role_exists",
+            "title": "Ensure a support role has been created to manage incidents with AWS Support",
+            "result_kind": "aws_account",
+            "categories": [ "security", "compliance" ],
+            "risk": "AWS provides a support center that can be used for incident notification and response; as well as technical support and customer services. Create an IAM Role to allow authorized users to manage incidents with AWS Support.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_account) with(empty, -[0:2]-> is(aws_iam_role) and name=AWSServiceRoleForSupport and role_assume_role_policy_document.Statement[*].{Effect=Allow and Principal.Service=support.amazonaws.com and Action=\"sts:AssumeRole\"})"
+            },
+            "remediation": {
+                "text": "Create an IAM role for managing incidents with AWS.",
+                "url": "https://docs.aws.amazon.com/awssupport/latest/user/using-service-linked-roles-sup.html"
+            }
+        },
+        {
+            "name": "expired_server_certificates",
+            "title": "Ensure that all the expired SSL/TLS certificates stored in AWS IAM are removed.",
+            "result_kind": "aws_iam_server_certificate",
+            "categories": [ "security", "compliance" ],
+            "risk": "Removing expired SSL/TLS certificates eliminates the risk that an invalid certificate will be deployed accidentally to a resource such as AWS Elastic Load Balancer (ELB), which can damage the credibility of the application/website behind the ELB.",
+            "severity": "critical",
+            "detect": {
+                "resoto": "is(aws_iam_server_certificate) and expires<{{certificate_expiration.from_now}}"
+            },
+            "default_values": {
+                "certificate_expiration": "0d"
+            },
+            "remediation": {
+                "action":{
+                    "cli": "search is(aws_iam_server_certificate) and expires<@UTC@ | clean",
+                    "aws_cli": "aws iam delete-server-certificate --server-certificate-name {{name}}"
+                },
+
+                "text": "Deleting the certificate could have implications for your application if you are using an expired server certificate with Elastic Load Balancing, CloudFront, etc. One has to make configurations at respective services to ensure there is no interruption in application functionality.",
+                "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_server-certs.html"
+            }
+        },
+        {
+            "name": "access_analyzer_enabled",
+            "title": "Check if IAM Access Analyzer is enabled.",
+            "result_kind": "aws_account",
+            "categories": [ "security", "compliance" ],
+            "risk": "AWS IAM Access Analyzer helps you identify the resources in your organization and accounts, such as Amazon S3 buckets or IAM roles, that are shared with an external entity. This lets you identify unintended access to your resources and data, which is a security risk. IAM Access Analyzer uses a form of mathematical analysis called automated reasoning, which applies logic and mathematical inference to determine all possible access paths allowed by a resource policy.",
+            "severity": "low",
+            "detect": {
+                "manual": "Check that IAM Access Analyzer is enabled and that no analyzer produced any findings. `aws accessanalyzer list-analyzers` and `aws accessanalyzer list-findings`"
+            },
+            "remediation": {
+                "text": "Enable IAM Access Analyzer for all accounts, create analyzer and take action over it is recommendations (IAM Access Analyzer is available at no additional cost).",
+                "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/what-is-access-analyzer.html"
+            }
+        },
+        {
+            "name": "check_saml_providers_sts",
+            "title": "Check if there are SAML Providers that can be used for STS",
+            "result_kind": "aws_account",
+            "categories": [ "security", "compliance" ],
+            "risk": "Without SAML provider users with AWS CLI or AWS API access can use IAM static credentials. SAML helps users to assume role by default each time they authenticate.",
+            "severity": "low",
+            "detect": {
+                "manual": "Check that saml providers are available: `aws iam list-saml-providers`"
+            },
+            "remediation": {
+                "text": "Enable SAML provider and use temporary credentials. You can use temporary security credentials to make programmatic requests for AWS resources using the AWS CLI or AWS API (using the AWS SDKs ). The temporary credentials provide the same permissions that you have with use long-term security credentials such as IAM user credentials. In case of not having SAML provider capabilities prevent usage of long-lived credentials.",
+                "url": "https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRoleWithSAML.html"
+            }
+        }
+    ]
+}

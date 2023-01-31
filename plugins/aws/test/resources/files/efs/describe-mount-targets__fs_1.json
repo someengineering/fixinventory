@@ -1,0 +1,28 @@
+{
+    "MountTargets": [
+        {
+            "OwnerId": "test",
+            "MountTargetId": "fsmt-1",
+            "FileSystemId": "fs-1",
+            "SubnetId": "subnet-1",
+            "LifeCycleState": "available",
+            "IpAddress": "10.0.135.232",
+            "NetworkInterfaceId": "eni-1",
+            "AvailabilityZoneId": "usw2-az2",
+            "AvailabilityZoneName": "us-west-2b",
+            "VpcId": "vpc-1"
+        },
+        {
+            "OwnerId": "test",
+            "MountTargetId": "fsmt-2",
+            "FileSystemId": "fs-1",
+            "SubnetId": "subnet-2",
+            "LifeCycleState": "available",
+            "IpAddress": "10.0.131.41",
+            "NetworkInterfaceId": "eni-2",
+            "AvailabilityZoneId": "usw2-az1",
+            "AvailabilityZoneName": "us-west-2a",
+            "VpcId": "vpc-1"
+        }
+    ]
+}

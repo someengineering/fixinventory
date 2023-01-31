@@ -102,7 +102,8 @@ class TemplateExpanderBase(TemplateExpander):
     async def parse_query(
         self, to_parse: str, on_section: Optional[str], *, omit_section_expansion: bool = False, **env: str
     ) -> Query:
-        expanded, _ = await self.expand(to_parse)
+        rendered = self.render(to_parse, env) if env else to_parse
+        expanded, _ = await self.expand(rendered)
         result = query_parser.parse_query(expanded, **env)
         return result if omit_section_expansion else result.on_section(on_section)
 
@@ -188,6 +189,10 @@ class VirtualFunctions:
     def from_now(result: str) -> str:
         return utc_str(utc() + duration(result))
 
+    @staticmethod
+    def ago(result: str) -> str:
+        return utc_str(utc() - duration(result))
+
 
 # noinspection PyTypeChecker
 getter: PropertyGetter = functools.partial(
@@ -197,6 +202,7 @@ getter: PropertyGetter = functools.partial(
         "with_index": VirtualFunctions.with_index,
         "parens": VirtualFunctions.parens,
         "from_now": VirtualFunctions.from_now,
+        "ago": VirtualFunctions.ago,
     },
 )
 
