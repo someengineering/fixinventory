@@ -1,4 +1,3 @@
-import json
 import re
 from typing import List, Set, Optional, Tuple, Union, Dict
 
@@ -303,7 +302,6 @@ models: Dict[str, List[AwsResotoModel]] = {
         #     "list-certificate-authorities", "CertificateAuthorities", "CertificateAuthority", prefix="ACMPCA"
         # ),
     ],
-    "alexaforbusiness": [],  # TODO: implement
     "amp": [
         # AwsResotoModel("list-workspaces", "workspaces", "WorkspaceSummary", prefix="Amp"),
     ],
@@ -621,9 +619,9 @@ models: Dict[str, List[AwsResotoModel]] = {
         #     "describe-file-systems", "FileSystems", "FileSystemDescription", prefix="Efs", name="EfsFileSystem"
         # ),
         # AwsResotoModel("describe-mount-targets", "MountTargets", "MountTargetDescription", prefix="Efs"),
-        AwsResotoModel(
-            "describe-access-points", "AccessPoints", "AccessPointDescription", prefix="Efs", name="EfsAccessPoint"
-        ),
+        # AwsResotoModel(
+        #     "describe-access-points", "AccessPoints", "AccessPointDescription", prefix="Efs", name="EfsAccessPoint"
+        # ),
     ],
     "elasticbeanstalk": [
         # AwsResotoModel(
@@ -953,8 +951,8 @@ models: Dict[str, List[AwsResotoModel]] = {
 
 if __name__ == "__main__":
     """print some test data"""
-    print(json.dumps(create_test_response("efs", "describe-access-points"), indent=2))
+    # print(json.dumps(create_test_response("efs", "describe-access-points"), indent=2))
 
     """print the class models"""
-    # for model in all_models():
-    #     print(model.to_class())
+    for model in all_models():
+        print(model.to_class())
