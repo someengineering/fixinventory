@@ -25,6 +25,7 @@ from resotolib.baseresources import Cloud
 from resotolib.config import Config, RunningConfig, current_config
 from resotolib.core.actions import CoreFeedback
 from resotolib.core.custom_command import execute_command_on_resource
+from resotolib.core.progress import ProgressTree, ProgressDone
 from resotolib.graph import Graph
 from resotolib.logger import log, setup_logger
 from resotolib.types import JsonElement
@@ -66,13 +67,18 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
         if len(accounts) == 0:
             log.error("No accounts found")
             return
+
+        progress = ProgressTree(self.cloud)
         for account in accounts:
+            # Even if the account is collected later, mark it as expected progress
+            progress.add_progress(ProgressDone(account.dname, 0, 1))
             add_str = ""
             if account.role:
                 add_str += f" role {account.role}"
             if account.profile:
                 add_str += f" profile {account.profile}"
             log.debug(f"Found {account.rtdname}{add_str}")
+        self.core_feedback.progress(progress)
 
         max_workers = len(accounts) if len(accounts) < Config.aws.account_pool_size else Config.aws.account_pool_size
         pool_args = {"max_workers": max_workers}
@@ -536,7 +542,7 @@ def collect_account(
         Config.running_config.apply(running_config)
 
     if not authenticated(account, feedback):
-        log.error(f"Skipping account {account.rtdname}. Reason: authentication failure.")
+        feedback.error(f"Skipping account {account.rtdname}. Reason: authentication failure.", log)
         return None
 
     log.debug(f"Starting new collect process for account {account.dname}")
