@@ -466,6 +466,7 @@ class CredentialReportLine:
                 id=f"root_key_{i}",
                 name=f"root_key_{i}",
                 access_key_status="Active" if self.value_of(f"access_key_{i}_active") == "true" else "Inactive",
+                atime=last_used.last_used if last_used else None,
                 access_key_last_used=last_used,
             )
 
