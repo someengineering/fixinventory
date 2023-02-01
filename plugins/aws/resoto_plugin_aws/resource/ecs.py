@@ -1285,6 +1285,8 @@ class AwsEcsService(EcsTaggable, AwsResource):
         for subnet in sum(all_subnets, []):
             builder.dependant_node(
                 self,
+                reverse=True,
+                delete_same_as_default=True,
                 clazz=AwsEc2Subnet,
                 id=subnet,
             )

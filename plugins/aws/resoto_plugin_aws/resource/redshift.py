@@ -436,7 +436,7 @@ class AwsRedshiftCluster(AwsResource):
                 )
 
         if self.redshift_cluster_subnet_group_name:
-            builder.dependant_node(self, reverse=True, clazz=AwsEc2Subnet, name=self.redshift_cluster_subnet_group_name)
+            builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsEc2Subnet, name=self.redshift_cluster_subnet_group_name)
 
         if self.redshift_kms_key_id:
             builder.dependant_node(self, clazz=AwsKmsKey, id=self.redshift_kms_key_id)
