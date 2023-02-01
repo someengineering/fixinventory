@@ -85,7 +85,7 @@ jobs:
 
       - name: Build and push Docker image
         if: github.event_name != 'workflow_dispatch'
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v3
         with:
           context: .
           file: ./Dockerfile
@@ -97,6 +97,7 @@ jobs:
             TESTS=false
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          provenance: false # Temporary workaround for https://github.com/docker/buildx/issues/1533
 
   split-build:
     name: Build split Docker images
@@ -303,6 +304,7 @@ jobs:
             TESTS=false
           tags: ${{ steps.basemeta.outputs.tags }}
           labels: ${{ steps.basemeta.outputs.labels }}
+          provenance: false # Temporary workaround for https://github.com/docker/buildx/issues/1533
 
       - name: Build and push resotocore Docker image
         if: github.event_name != 'pull_request' && github.event_name != 'workflow_dispatch'
@@ -316,6 +318,7 @@ jobs:
             IMAGE_TAG=${{ steps.sha.outputs.short }}
           tags: ${{ steps.coremeta.outputs.tags }}
           labels: ${{ steps.coremeta.outputs.labels }}
+          provenance: false # Temporary workaround for https://github.com/docker/buildx/issues/1533
 
       - name: Build and push resotoworker Docker image
         if: github.event_name != 'pull_request' && github.event_name != 'workflow_dispatch'
@@ -329,6 +332,7 @@ jobs:
             IMAGE_TAG=${{ steps.sha.outputs.short }}
           tags: ${{ steps.workermeta.outputs.tags }}
           labels: ${{ steps.workermeta.outputs.labels }}
+          provenance: false # Temporary workaround for https://github.com/docker/buildx/issues/1533
 
       - name: Build and push resotometrics Docker image
         if: github.event_name != 'pull_request' && github.event_name != 'workflow_dispatch'
@@ -342,6 +346,7 @@ jobs:
             IMAGE_TAG=${{ steps.sha.outputs.short }}
           tags: ${{ steps.metricsmeta.outputs.tags }}
           labels: ${{ steps.metricsmeta.outputs.labels }}
+          provenance: false # Temporary workaround for https://github.com/docker/buildx/issues/1533
 
       - name: Build and push resotoshell Docker image
         if: github.event_name != 'pull_request' && github.event_name != 'workflow_dispatch'
@@ -355,6 +360,7 @@ jobs:
             IMAGE_TAG=${{ steps.sha.outputs.short }}
           tags: ${{ steps.shellmeta.outputs.tags }}
           labels: ${{ steps.shellmeta.outputs.labels }}
+          provenance: false # Temporary workaround for https://github.com/docker/buildx/issues/1533
 
   edge-docs:
     name: Update edge docs
