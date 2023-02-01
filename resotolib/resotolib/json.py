@@ -94,6 +94,25 @@ def value_in_path(element: JsonElement, path_or_name: Union[List[str], str]) -> 
     return at_idx(element, 0)
 
 
+def set_value_in_path(element: JsonElement, path_or_name: Union[List[str], str], js: Optional[Json] = None) -> Json:
+    path = path_or_name if isinstance(path_or_name, list) else path_or_name.split(".")
+    at = len(path) - 1
+
+    def at_idx(current: Json, idx: int) -> None:
+        if at == idx:
+            current[path[-1]] = element
+        else:
+            value = current.get(path[idx])
+            if not isinstance(value, dict):
+                value = {}
+                current[path[idx]] = value
+            at_idx(value, idx + 1)
+
+    js = js if js is not None else {}
+    at_idx(js, 0)
+    return js
+
+
 # allow timedelta either as number of seconds or as duration string
 def timedelta_from_json(js: Any, _: type = object, **__: Any) -> timedelta:
     if isinstance(js, str):
