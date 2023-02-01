@@ -1548,6 +1548,7 @@ class AwsEc2Vpc(EC2Taggable, AwsResource, BaseNetwork):
 
 # endregion
 
+
 # region VPC Peering Connections
 @define(eq=False, slots=False)
 class AwsEc2VpcPeeringConnectionOptionsDescription:
@@ -1739,6 +1740,7 @@ class AwsEc2VpcEndpoint(EC2Taggable, AwsResource, BaseEndpoint):
 
 # endregion
 
+
 # region Subnets
 @define(eq=False, slots=False)
 class AwsEc2SubnetCidrBlockState:
@@ -1842,6 +1844,7 @@ class AwsEc2Subnet(EC2Taggable, AwsResource, BaseSubnet):
 
 
 # endregion
+
 
 # region Security Groups
 @define(eq=False, slots=False)
@@ -1999,6 +2002,7 @@ class AwsEc2SecurityGroup(EC2Taggable, AwsResource, BaseSecurityGroup):
 
 # endregion
 
+
 # region Nat Gateways
 @define(eq=False, slots=False)
 class AwsEc2NatGatewayAddress:
@@ -2084,6 +2088,7 @@ class AwsEc2NatGateway(EC2Taggable, AwsResource, BaseGateway):
 
 # endregion
 
+
 # region Internet Gateways
 @define(eq=False, slots=False)
 class AwsEc2InternetGatewayAttachment:
@@ -2148,6 +2153,7 @@ class AwsEc2InternetGateway(EC2Taggable, AwsResource, BaseGateway):
 
 
 # endregion
+
 
 # region Route Tables
 @define(eq=False, slots=False)

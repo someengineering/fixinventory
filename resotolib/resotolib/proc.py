@@ -176,7 +176,7 @@ def increase_limits() -> None:
             if soft_limit < hard_limit:
                 log.debug(f"Increasing {limit_name} {soft_limit} -> {hard_limit}")
                 resource.setrlimit(getattr(resource, limit_name), (hard_limit, hard_limit))
-        except (ValueError):
+        except ValueError:
             log.error(f"Failed to increase {limit_name} {soft_limit} -> {hard_limit}")
 
 

@@ -150,7 +150,6 @@ def test_aws_iam_instance_profile_deletion() -> None:
 
 
 def test_tagging() -> None:
-
     res, _ = round_trip_for(AwsIamServerCertificate, "dns_names", "sha1_fingerprint")
 
     def validate_update_args(**kwargs: Any) -> None:

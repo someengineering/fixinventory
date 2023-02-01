@@ -318,7 +318,6 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
     @staticmethod
     def cleanup(config: Config, resource: BaseResource, graph: Graph) -> bool:
         if isinstance(resource, AwsResource):
-
             client = get_client(config, resource)
 
             if resource.phantom:

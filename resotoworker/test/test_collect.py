@@ -37,7 +37,6 @@ class ExampleCollectorPlugin(BaseCollectorPlugin):
 
 
 def test_collect_and_send() -> None:
-
     sent_task_id: Optional[str] = None
 
     def send_to_resotocore(graph: Graph, task_id: str) -> None:

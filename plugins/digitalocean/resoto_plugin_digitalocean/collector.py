@@ -265,6 +265,7 @@ class DigitalOceanTeamCollector:
         search_map: Dict[str, Any],
     ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         """See a similar method in the GCPCollectorPlugin"""
+
         # The following are default attributes that are passed to every
         # BaseResource() if found in `result`
         def extract_tags(result: Dict[str, Any]) -> Dict[str, Optional[str]]:
@@ -347,7 +348,6 @@ class DigitalOceanTeamCollector:
         predecessors: Optional[Dict[EdgeType, List[str]]] = None,
         dump_resource: bool = False,
     ) -> None:
-
         if successors is None:
             successors = {}
         if predecessors is None:
@@ -590,7 +590,6 @@ class DigitalOceanTeamCollector:
 
     @metrics_collect_databases.time()  # type: ignore
     def collect_databases(self) -> None:
-
         # this mapping was taken from the digitalocean web console.
         dbtype_to_size = {
             "db-s-1vcpu-1gb": 10,

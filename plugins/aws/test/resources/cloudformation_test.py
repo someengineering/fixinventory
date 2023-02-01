@@ -32,7 +32,6 @@ def test_cloud_formation_stack_tagging() -> None:
     tag = "alpha.eksctl.io/nodegroup-name"
 
     def validate_args(delete: bool, **kwargs: Any) -> Any:
-
         assert kwargs["action"] in {"describe-stacks", "update-stack"}
         if kwargs["action"] == "describe-stacks":
             assert kwargs["StackName"] == cf.name
@@ -76,7 +75,6 @@ def test_cloud_formation_stack_set_tagging() -> None:
     cf.tags["bar"] = "bar"
 
     def validate_args(delete: bool, **kwargs: Any) -> None:
-
         assert kwargs["action"] == "update-stack-set"
         tags = cf.tags
         if delete:
