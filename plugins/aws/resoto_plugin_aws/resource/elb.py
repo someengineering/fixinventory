@@ -5,7 +5,7 @@ from attrs import define, field
 from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
 from resoto_plugin_aws.resource.ec2 import AwsEc2Subnet, AwsEc2SecurityGroup, AwsEc2Vpc, AwsEc2Instance
 from resoto_plugin_aws.utils import ToDict
-from resotolib.baseresources import BaseLoadBalancer, EdgeType, ModelReference
+from resotolib.baseresources import BaseLoadBalancer, ModelReference
 from resotolib.json_bender import Bender, S, Bend, bend, ForallBend, K
 from resotolib.types import Json
 from resoto_plugin_aws.aws_client import AwsClient
@@ -223,7 +223,7 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
         for subnet_id in source.get("Subnets", []):
             builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsEc2Subnet, id=subnet_id)
         for sg_id in source.get("SecurityGroups", []):
-            builder.dependant_node(self, EdgeType.default, reverse=True, delete_same_as_default=True, clazz=AwsEc2SecurityGroup, id=sg_id)
+            builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsEc2SecurityGroup, id=sg_id)
         for instance in self.backends:
             builder.dependant_node(self, clazz=AwsEc2Instance, id=instance)
 

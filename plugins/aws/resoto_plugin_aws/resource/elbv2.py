@@ -5,7 +5,7 @@ from attrs import define, field
 from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
 from resoto_plugin_aws.resource.ec2 import AwsEc2Vpc, AwsEc2Subnet, AwsEc2Instance, AwsEc2SecurityGroup
 from resoto_plugin_aws.utils import ToDict
-from resotolib.baseresources import BaseLoadBalancer, EdgeType, ModelReference
+from resotolib.baseresources import BaseLoadBalancer, ModelReference
 from resotolib.json import from_json
 from resotolib.json_bender import Bender, S, Bend, bend, ForallBend, K
 from resotolib.types import Json
@@ -325,7 +325,7 @@ class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
         if vpc_id := source.get("VpcId"):
             builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsEc2Vpc, id=vpc_id)
         for sg in self.alb_security_groups:
-            builder.dependant_node(self, EdgeType.default, reverse=True, delete_same_as_default=True, clazz=AwsEc2SecurityGroup, id=sg)
+            builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsEc2SecurityGroup, id=sg)
         for sn in self.alb_availability_zones:
             builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsEc2Subnet, id=sn.subnet_id)
 

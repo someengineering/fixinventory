@@ -289,7 +289,9 @@ class AwsElastiCacheCacheCluster(ElastiCacheTaggable, AwsResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for sg in self.cluster_security_groups:
-            builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsEc2SecurityGroup, id=sg.security_group_id)
+            builder.dependant_node(
+                self, reverse=True, delete_same_as_default=True, clazz=AwsEc2SecurityGroup, id=sg.security_group_id
+            )
 
 
 @define(eq=False, slots=False)
