@@ -881,7 +881,6 @@ class GcpDisk(GcpResource, BaseVolume):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for user in source.get("users", []):
             builder.dependant_node(self, link=user)
-            # TODO add ref kind
         builder.add_edge(self, reverse=True, link=self.volume_type)
 
 
