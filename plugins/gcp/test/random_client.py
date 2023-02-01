@@ -3,15 +3,16 @@ import string
 import sys
 from collections import defaultdict
 from datetime import datetime
-from typing import Any, Dict, Type
+from typing import Any, Dict, Type, Callable
 from typing import Tuple, List
 
 from google.auth.credentials import AnonymousCredentials
 from googleapiclient import discovery
 
-from resoto_plugin_gcp.gcp_client import RegionProp
+from resoto_plugin_gcp.gcp_client import RegionProp, GcpApiSpec, GcpClient
 from resoto_plugin_gcp.resources.base import GcpZone, GcpRegion, GcpResource, GcpResourceType, GraphBuilder
-from resotolib.types import JsonElement
+from resotolib.json import set_value_in_path
+from resotolib.types import JsonElement, Json
 from resotolib.utils import utc_str
 
 RequestResponse = Tuple[List[str], JsonElement]
@@ -64,7 +65,7 @@ PredefinedResults = {
 PredefinedDictKeys = {".items": [a.id for a in random_zones]}
 
 
-def random_json(response_type_name: str, schemas: Dict[str, Schema], response_schema: Schema) -> JsonElement:
+def random_json(schemas: Dict[str, Schema], response_schema: Schema) -> JsonElement:
     def value_for(schema: Schema, level: int, path: str) -> JsonElement:
         def prop_value(type_name: str, name: str, prop_schema: Schema) -> JsonElement:
             # create "referencable" ids
@@ -137,9 +138,7 @@ class RandomDataClient:
         response_kind_name = method["response"]["$ref"]
         response_kind = self.schemas[response_kind_name]
         path_full = ".".join(p for p, _, _ in self.path)
-        return PredefinedResults.get(
-            f"{self.service}.{path_full}", random_json(response_kind_name, self.schemas, response_kind)
-        )
+        return PredefinedResults.get(f"{self.service}.{path_full}", random_json(self.schemas, response_kind))
 
     def __getattr__(self, name: Any) -> Any:
         def add_path(*args, **kwargs) -> Any:
@@ -182,6 +181,39 @@ def json_roundtrip(resource_clazz: Type[GcpResourceType], builder: GraphBuilder)
         assert js_repr == again_js, f"Left: {js_repr}\nRight: {again_js}"
 
 
-def roundtrip(resource_clazz: Type[GcpResourceType], builder: GraphBuilder) -> None:
+def roundtrip(resource_clazz: Type[GcpResourceType], builder: GraphBuilder) -> GcpResourceType:
     resource_clazz.collect_resources(builder)
     json_roundtrip(resource_clazz, builder)
+    return builder.resources_of(resource_clazz)[0]
+
+
+def create_node_for(
+    clazz: Type[GcpResourceType], spec: GcpApiSpec, adapt: Callable[[Json], Json]
+) -> Tuple[Json, GcpResourceType]:
+    client = GcpClient(AnonymousCredentials())
+    result = client.list(api_spec=spec)
+    assert len(result) > 0
+    raw = adapt(result[0])
+    return raw, clazz.from_api(raw)
+
+
+def create_node(clazz: Type[GcpResourceType], **kwargs: Any) -> Tuple[Json, GcpResourceType]:
+    spec = clazz.api_spec
+    assert spec is not None
+
+    def set_value(json: Json) -> Json:
+        for key, value in kwargs.items():
+            json = set_value_in_path(value, key, json)
+        return json
+
+    return create_node_for(clazz, spec, set_value)
+
+
+def connect_resource(
+    builder: GraphBuilder, source: GcpResourceType, target: Type[GcpResourceType], **kwargs: Any
+) -> GcpResourceType:
+    raw, node = create_node(target, **kwargs)
+    builder.add_node(node, raw)
+    node_data = builder.graph.nodes(data=True)[source]
+    source.connect_in_graph(builder, node_data["source"])
+    return node
