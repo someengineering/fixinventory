@@ -61,11 +61,7 @@ class AwsEfsMountTarget(AwsResource):
 
 
 @define(eq=False, slots=False)
-class AwsEfsFileSystem(
-    EfsTaggable,
-    AwsResource,
-    BaseVolume,
-):
+class AwsEfsFileSystem(EfsTaggable, AwsResource, BaseVolume):
     kind: ClassVar[str] = "aws_efs_file_system"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         "efs", "describe-file-systems", "FileSystems", override_iam_permission="elasticfilesystem:DescribeFileSystems"
