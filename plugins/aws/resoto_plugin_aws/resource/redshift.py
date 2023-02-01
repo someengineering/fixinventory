@@ -427,7 +427,7 @@ class AwsRedshiftCluster(AwsResource):
 
         for vsg in self.redshift_vpc_security_groups:
             if vsg.vpc_security_group_id:
-                builder.dependant_node(self, reverse=True, clazz=AwsEc2SecurityGroup, id=vsg.vpc_security_group_id)
+                builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsEc2SecurityGroup, id=vsg.vpc_security_group_id)
 
         for role in self.redshift_iam_roles:
             if role.iam_role_arn:

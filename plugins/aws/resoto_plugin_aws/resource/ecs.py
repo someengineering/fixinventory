@@ -1279,6 +1279,8 @@ class AwsEcsService(EcsTaggable, AwsResource):
         for group in sum(all_sec_groups, []):
             builder.dependant_node(
                 self,
+                reverse=True,
+                delete_same_as_default=True,
                 clazz=AwsEc2SecurityGroup,
                 id=group,
             )

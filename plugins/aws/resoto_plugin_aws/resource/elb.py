@@ -223,7 +223,7 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
         for subnet_id in source.get("Subnets", []):
             builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsEc2Subnet, id=subnet_id)
         for sg_id in source.get("SecurityGroups", []):
-            builder.add_edge(self, EdgeType.default, reverse=True, clazz=AwsEc2SecurityGroup, id=sg_id)
+            builder.dependant_node(self, EdgeType.default, reverse=True, delete_same_as_default=True, clazz=AwsEc2SecurityGroup, id=sg_id)
         for instance in self.backends:
             builder.dependant_node(self, clazz=AwsEc2Instance, id=instance)
 

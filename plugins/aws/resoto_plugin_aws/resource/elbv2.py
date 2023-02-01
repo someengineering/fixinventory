@@ -325,7 +325,7 @@ class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
         if vpc_id := source.get("VpcId"):
             builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsEc2Vpc, id=vpc_id)
         for sg in self.alb_security_groups:
-            builder.add_edge(self, EdgeType.default, reverse=True, clazz=AwsEc2SecurityGroup, id=sg)
+            builder.dependant_node(self, EdgeType.default, reverse=True, delete_same_as_default=True, clazz=AwsEc2SecurityGroup, id=sg)
         for sn in self.alb_availability_zones:
             builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsEc2Subnet, id=sn.subnet_id)
 

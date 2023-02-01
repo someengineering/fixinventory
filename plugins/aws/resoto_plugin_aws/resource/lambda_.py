@@ -327,7 +327,7 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
                     self, reverse=True, delete_same_as_default=True, clazz=AwsEc2Subnet, id=subnet_id
                 )
             for security_group_id in vpc_config.get("SecurityGroupIds", []):
-                builder.add_edge(self, reverse=True, clazz=AwsEc2SecurityGroup, id=security_group_id)
+                builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsEc2SecurityGroup, id=security_group_id)
         if self.function_kms_key_arn:
             builder.dependant_node(
                 self,
