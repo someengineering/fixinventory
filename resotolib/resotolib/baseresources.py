@@ -588,6 +588,18 @@ class PhantomBaseResource(BaseResource):
     kind: ClassVar[str] = "phantom_resource"
     phantom: ClassVar[bool] = True
 
+    def update_tag(self, key, value) -> bool:
+        log.error(f"Resource {self.rtdname} is a phantom resource and does not maintain tags")
+        return False
+
+    def delete_tag(self, key) -> bool:
+        log.error(f"Resource {self.rtdname} is a phantom resource and does not maintain tags")
+        return False
+
+    def delete(self, graph) -> bool:
+        log.error(f"Resource {self.rtdname} is a phantom resource and can't be deleted")
+        return False
+
     def cleanup(self, graph=None) -> bool:
         log.error(f"Resource {self.rtdname} is a phantom resource and can't be cleaned up")
         return False

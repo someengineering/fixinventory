@@ -1,0 +1,21 @@
+{
+    "provider": "aws",
+    "service": "efs",
+    "checks": [
+        {
+            "name": "storage_encrypted",
+            "title": "Check if EFS protects sensitive data with encryption at rest",
+            "result_kind": "aws_efs_file_system",
+            "categories": ["security", "compliance"],
+            "risk": "EFS should be encrypted at rest to prevent exposure of sensitive data to bad actors",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_efs_file_system) and volume_encrypted==false"
+            },
+            "remediation": {
+                "text": "Ensure that encryption at rest is enabled for EFS file systems. Encryption at rest can only be enabled during the file system creation.",
+                "url": "https://docs.aws.amazon.com/efs/latest/ug/encryption-at-rest.html"
+            }
+        }
+    ]
+}

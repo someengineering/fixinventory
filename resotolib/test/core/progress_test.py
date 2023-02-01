@@ -1,5 +1,7 @@
+from textwrap import dedent
 from typing import Callable, Any, List
 
+import yaml
 from pytest import fixture, raises
 
 from resotolib.core.progress import ProgressDone, Progress, ProgressInfo, ProgressTree
@@ -88,3 +90,75 @@ def test_order() -> None:
 
     assert order(lambda x: x.name) == ["a", "b", "c", "d"]
     assert order(lambda x: x.overall_progress().percentage) == ["d", "c", "b", "a"]
+
+
+def test_nested_progress() -> None:
+    accounts = ["a1", "a2", "a3"]
+    regions = ["r1", "r2", "r3"]
+
+    overall_progress = ProgressTree("test")
+
+    regional_progress = ProgressTree("aws")
+    for account in accounts:
+        regional_progress.add_progress(ProgressDone(account, 0, 1))
+    overall_progress.add_progress(regional_progress)
+    assert (
+        yaml.safe_dump(overall_progress.info_json(), indent=2)
+        == dedent(
+            """
+            test:
+              aws:
+                a1: in progress
+                a2: in progress
+                a3: in progress
+            """
+        ).lstrip()
+    )
+
+    results = []
+    for account in accounts:
+        regional_progress = ProgressTree(account, path=["aws"])
+        for region in regions:
+            regional_progress.add_progress(ProgressDone(region, 0, 1))
+        overall_progress.add_progress(regional_progress)
+        results.append(overall_progress.info_json())
+    assert (
+        yaml.safe_dump(results, indent=2)
+        == dedent(
+            """
+            - test:
+                aws:
+                  a1:
+                    r1: in progress
+                    r2: in progress
+                    r3: in progress
+                  a2: in progress
+                  a3: in progress
+            - test:
+                aws:
+                  a1:
+                    r1: in progress
+                    r2: in progress
+                    r3: in progress
+                  a2:
+                    r1: in progress
+                    r2: in progress
+                    r3: in progress
+                  a3: in progress
+            - test:
+                aws:
+                  a1:
+                    r1: in progress
+                    r2: in progress
+                    r3: in progress
+                  a2:
+                    r1: in progress
+                    r2: in progress
+                    r3: in progress
+                  a3:
+                    r1: in progress
+                    r2: in progress
+                    r3: in progress
+            """
+        ).lstrip()
+    )

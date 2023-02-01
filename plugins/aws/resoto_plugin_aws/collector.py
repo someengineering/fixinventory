@@ -17,6 +17,7 @@ from resoto_plugin_aws.resource import (
     dynamodb,
     ec2,
     ecs,
+    efs,
     eks,
     elasticbeanstalk,
     elasticache,
@@ -39,6 +40,7 @@ from resoto_plugin_aws.resource import (
 from resoto_plugin_aws.resource.base import AwsRegion, AwsAccount, AwsResource, GraphBuilder, ExecutorQueue, AwsApiSpec
 from resotolib.baseresources import Cloud, EdgeType
 from resotolib.core.actions import CoreFeedback
+from resotolib.core.progress import ProgressTree, ProgressDone
 from resotolib.graph import Graph
 from resotolib.proc import set_thread_name
 
@@ -62,6 +64,7 @@ regional_resources: List[Type[AwsResource]] = (
     + cognito.resources
     + dynamodb.resources
     + ec2.resources
+    + efs.resources
     + ecs.resources
     + eks.resources
     + elasticbeanstalk.resources
@@ -143,12 +146,17 @@ class AwsAccountCollector:
             global_builder = GraphBuilder(
                 self.graph, self.cloud, self.account, self.global_region, self.client, shared_queue, self.core_feedback
             )
-            global_builder.core_feedback.progress_done(self.global_region.safe_name, 0, 1)
             global_builder.add_node(self.global_region)
 
-            log.info(f"[Aws:{self.account.id}] Collect global resources.")
+            # mark open progress for all regions
+            progress = ProgressTree(self.account.dname, path=[self.cloud.id])
+            progress.add_progress(ProgressDone(self.global_region.safe_name, 0, 1))
+            for region in self.regions:
+                progress.add_progress(ProgressDone(region.safe_name, 0, 1))
+            global_builder.core_feedback.progress(progress)
 
             # all global resources
+            log.info(f"[Aws:{self.account.id}] Collect global resources.")
             for resource in global_resources:
                 if self.config.should_collect(resource.kind):
                     resource.collect_resources(global_builder)
@@ -158,7 +166,7 @@ class AwsAccountCollector:
 
             log.info(f"[Aws:{self.account.id}] Collect regional resources.")
 
-            # all regions are collected in parallel.
+            # regions are collected with the configured parallelism
             # note: when the thread pool context is left, all submitted work is done (or an exception has been thrown)
             with ThreadPoolExecutor(
                 thread_name_prefix=f"aws_{self.account.id}_regions", max_workers=self.config.region_pool_size
@@ -211,7 +219,6 @@ class AwsAccountCollector:
             with ThreadPoolExecutor(
                 thread_name_prefix=regional_thread_name, max_workers=self.config.region_resources_pool_size
             ) as executor:
-                regional_builder.core_feedback.progress_done(region.safe_name, 0, 1)
                 # In case an exception is thrown for any resource, we should give up as quick as possible.
                 queue = ExecutorQueue(executor, region.safe_name, fail_on_first_exception=True)
                 regional_builder.add_node(region)
@@ -226,6 +233,7 @@ class AwsAccountCollector:
             regional_builder.core_feedback.error(msg, log)
             return None
 
+    # TODO: move into separate AwsAccountSettings
     def update_account(self) -> None:
         log.info(f"Collecting AWS IAM Account Summary in account {self.account.dname}")
         sm = self.client.get("iam", "get-account-summary", "SummaryMap") or {}

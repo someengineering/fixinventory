@@ -113,7 +113,7 @@ class GcpService(GcpResource):
     service_service_id: Optional[str] = field(default=None)
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        for sku in GcpSku.collect_resources(graph_builder, parent=f"services/{self.id}"):
+        for sku in GcpSku.collect_resources(graph_builder, parent=self.id):
             graph_builder.add_edge(self, node=sku)
 
 

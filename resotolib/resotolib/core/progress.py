@@ -207,10 +207,18 @@ class ProgressTree(Progress):
             elif self.sub_tree[path].data is not None:  # if the path contains a value: remove it
                 self.sub_tree[path].data = None
             last_path = path
+
         nid = path + "." + progress.name
         if nid in self.sub_tree and nid != self.sub_tree.root:
             self.sub_tree.remove_node(nid)
-        self.sub_tree.create_node(progress.name, nid, parent=last_path, data=progress)
+        if isinstance(progress, ProgressDone):
+            self.sub_tree.create_node(progress.name, nid, parent=last_path, data=progress)
+        elif isinstance(progress, ProgressTree):
+            rp = nid.split(".")[1:]  # the relative path of the progress tree inside current tree (without root)
+            for node in progress.sub_tree.leaves():
+                if data := node.data:
+                    np = node.identifier.split(".")[1:-1]  # relative path of leaf: no root not current node
+                    self.add_progress(evolve(data, path=rp + np + data.path))
 
     def copy(self) -> ProgressTree:
         return evolve(self, sub_tree=Tree(self.sub_tree.subtree(self.sub_tree.root), deep=True))

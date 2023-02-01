@@ -718,7 +718,9 @@ class ArrayKind(Kind):
 
     def coerce_if_required(self, value: JsonElement, **kwargs: bool) -> Optional[List[JsonElement]]:
         has_coerced = False
-        if isinstance(value, dict):
+        if value is None:
+            return None
+        elif isinstance(value, dict):
             return None
         elif not isinstance(value, list):
             # in case of simple type, we can make it an array

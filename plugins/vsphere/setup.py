@@ -10,7 +10,7 @@ def read(file_name: str) -> str:
 
 setup(
     name="resoto-plugin-vsphere",
-    version="3.1.0",
+    version="3.1.1",
     description="Resoto VSphere Collector Plugin",
     license="Apache 2.0",
     packages=find_packages(),

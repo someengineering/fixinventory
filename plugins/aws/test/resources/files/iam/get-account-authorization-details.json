@@ -19,6 +19,10 @@
                     }
                 }
             ],
+            "PermissionsBoundary": {
+                "PermissionsBoundaryType": "PermissionsBoundaryPolicy",
+                "PermissionsBoundaryArn": "string"
+            },
             "GroupList": [],
             "AttachedManagedPolicies": [],
             "Tags": [

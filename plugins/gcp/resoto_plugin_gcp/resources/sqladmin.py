@@ -866,4 +866,5 @@ class GcpSqlUser(GcpResource):
 # TODO: GcpSqlBackupRun for every instance
 # TODO: GcpSqlDatabase for every instance
 # TODO: GcpSqlUser for every instance
-resources = [GcpSqlFlag, GcpSqlDatabaseInstance, GcpSqlOperation]
+# TODO: GcpSqlOperation of every instance
+resources = [GcpSqlFlag, GcpSqlDatabaseInstance]

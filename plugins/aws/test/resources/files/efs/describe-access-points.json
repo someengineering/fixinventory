@@ -1,0 +1,36 @@
+{
+    "AccessPoints": [
+        {
+            "ClientToken": "foo",
+            "Name": "foo",
+            "Tags": [
+                {
+                    "Key": "foo",
+                    "Value": "bla"
+                }
+            ],
+            "AccessPointId": "ap-1",
+            "AccessPointArn": "ap-1",
+            "FileSystemId": "fs-1",
+            "PosixUser": {
+                "Uid": 123,
+                "Gid": 123,
+                "SecondaryGids": [
+                    123,
+                    123,
+                    123
+                ]
+            },
+            "RootDirectory": {
+                "Path": "foo",
+                "CreationInfo": {
+                    "OwnerUid": 123,
+                    "OwnerGid": 123,
+                    "Permissions": "foo"
+                }
+            },
+            "OwnerId": "foo",
+            "LifeCycleState": "available"
+        }
+    ]
+}

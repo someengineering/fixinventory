@@ -85,7 +85,9 @@ class GcpClient:
             else:
                 raise ValueError(f"Unexpected response type: {type(page)}")
 
-            if nxt_req := getattr(executor, api_spec.next_action)(previous_request=request, previous_response=response):
+            if hasattr(executor, api_spec.next_action) and (
+                nxt_req := getattr(executor, api_spec.next_action)(previous_request=request, previous_response=response)
+            ):
                 return next_responses(nxt_req)
 
         next_responses(getattr(executor, api_spec.action)(**params))

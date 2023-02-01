@@ -78,7 +78,7 @@ class BotoFileClient:
                 with open(path) as f:
                     return json.load(f)
             else:
-                # print(f"Not found: {path}")
+                print(f"Not found: {path}")
                 return {}
 
         return call_action
@@ -141,7 +141,8 @@ def build_graph(cls: Type[AwsResourceType], region_name: Optional[str] = None) -
     queue = ExecutorQueue(DummyExecutor(), "test")
     region = AwsRegion(id="eu-central-1", name=(region_name or "eu-central-1"))
     feedback = CoreFeedback("test", "test", "collect", Queue())
-    builder = GraphBuilder(Graph(), Cloud(id="test"), AwsAccount(id="test"), region, client, queue, feedback)
+    account = AwsAccount(id="test", mfa_devices=12, mfa_devices_in_use=12)
+    builder = GraphBuilder(Graph(), Cloud(id="test"), account, region, client, queue, feedback)
     cls.collect_resources(builder)
     builder.executor.wait_for_submitted_work()
     return builder
@@ -162,8 +163,8 @@ def round_trip_for(
     builder = build_graph(cls, region_name=region_name)
     assert len(builder.graph.nodes) > 0
     for node, data in builder.graph.nodes(data=True):
-        node.connect_in_graph(builder, data["source"])
+        node.connect_in_graph(builder, data.get("source", {}))
         check_single_node(node)
-    first = next(iter(builder.graph.nodes))
+    first = next(iter(builder.resources_of(cls)))
     all_props_set(first, set(ignore_props))
     return first, builder

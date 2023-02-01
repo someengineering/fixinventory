@@ -10,7 +10,7 @@ def read(file_name: str) -> str:
 
 setup(
     name="resoto-plugin-k8s",
-    version="3.1.0",
+    version="3.1.1",
     description="Resoto Kubernetes Collector Plugin",
     license="Apache 2.0",
     packages=find_packages(),

@@ -1,3 +1,9 @@
+from datetime import datetime, timezone
+from textwrap import dedent
+from types import SimpleNamespace
+from typing import Any, cast
+
+from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.iam import (
     AwsIamPolicy,
     AwsIamGroup,
@@ -6,11 +12,30 @@ from resoto_plugin_aws.resource.iam import (
     AwsIamUser,
     AwsIamAccessKey,
     AwsIamInstanceProfile,
+    CredentialReportLine,
 )
 from test.resources import round_trip_for
-from typing import Any, cast
-from types import SimpleNamespace
-from resoto_plugin_aws.aws_client import AwsClient
+
+
+def test_credentials_report() -> None:
+    csv = dedent(
+        """
+        user,arn,user_creation_time,password_enabled,password_last_used,password_last_changed,password_next_rotation,mfa_active,access_key_1_active,access_key_1_last_rotated,access_key_1_last_used_date,access_key_1_last_used_region,access_key_1_last_used_service,access_key_2_active,access_key_2_last_rotated,access_key_2_last_used_date,access_key_2_last_used_region,access_key_2_last_used_service,cert_1_active,cert_1_last_rotated,cert_2_active,cert_2_last_rotated
+        a,arn:aws:iam::test:user/a,2021-05-06T08:23:17+00:00,true,2021-12-08T09:34:46+00:00,2021-05-06T08:30:03+00:00,N/A,true,true,2021-05-06T08:23:18+00:00,2023-01-25T10:11:00+00:00,us-east-1,iam,false,N/A,N/A,N/A,N/A,false,N/A,false,N/A
+        b,arn:aws:iam::test:user/b,2022-05-06T08:23:17+00:00,false,2022-12-08T09:34:46+00:00,2022-05-06T08:30:03+00:00,N/A,false,false,2022-05-06T08:23:18+00:00,2023-01-25T10:11:00+00:00,eu-central-1,s3,true,2023-01-25T10:11:00+00:00,2023-01-25T10:11:00+00:00,eu-central-3,iam,false,N/A,false,N/A
+        """
+    ).strip()
+    lines = CredentialReportLine.from_str(csv)
+    assert len(lines) == 2
+    assert lines["a"].password_enabled() is True
+    assert lines["a"].password_last_used() == datetime(2021, 12, 8, 9, 34, 46, tzinfo=timezone.utc)
+    assert [a.access_key_last_used.service_name for a in lines["a"].access_keys() if a.access_key_last_used] == ["iam"]
+    assert lines["b"].password_enabled() is False
+    assert lines["b"].password_last_used() == datetime(2022, 12, 8, 9, 34, 46, tzinfo=timezone.utc)
+    assert [b.access_key_last_used.service_name for b in lines["b"].access_keys() if b.access_key_last_used] == [
+        "s3",
+        "iam",
+    ]
 
 
 def test_server_certificates() -> None:
@@ -33,7 +58,7 @@ def test_user_roles_groups_policies_keys() -> None:
     # keys ------------
     assert len(builder.resources_of(AwsIamAccessKey)) == 2
     assert (ak_test := builder.node(clazz=AwsIamAccessKey, id="ak_test")) is not None
-    assert len(builder.graph.nodes) == 12
+    assert len(builder.graph.nodes) == 13
     # make sure access keys are created and connected as part of the user
     assert builder.graph.has_edge(test_user, ak_test)
 
