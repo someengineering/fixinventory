@@ -24,7 +24,6 @@ class NoAdjust(AdjustNode):
 
 
 class DirectAdjuster(AdjustNode):
-
     # this holds a datetime
     expires_value = [[Section.reported, "tags", "resoto:expires"]]
 

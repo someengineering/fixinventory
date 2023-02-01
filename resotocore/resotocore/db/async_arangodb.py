@@ -507,7 +507,6 @@ class AsyncArangoDBBase:
         smart_field: Optional[str] = None,
         shard_count: Optional[int] = None,
     ) -> Graph:
-
         log.info(f"Create graph {name}.")
         return await run_async(
             self.db.create_graph, name, edge_definitions, orphan_collections, smart, smart_field, shard_count

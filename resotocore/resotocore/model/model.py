@@ -1218,7 +1218,6 @@ class Model:
         return graph
 
     def update_kinds(self, kinds: List[Kind], check_overlap: bool = True) -> Model:
-
         # Create a list of kinds that have changed to the existing model
         to_update = []
         for elem in kinds:

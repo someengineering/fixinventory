@@ -194,7 +194,6 @@ class ArangoGraphDB(GraphDB):
             return trafo(result["new"])
 
     async def update_deferred_edges(self, edges: List[Tuple[NodeId, NodeId, str]], ts: datetime) -> Tuple[int, int]:
-
         default_edges: List[Json] = []
         delete_edges: List[Json] = []
 

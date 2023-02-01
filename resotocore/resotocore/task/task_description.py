@@ -146,6 +146,7 @@ class ExecuteOnCLI(TaskCommand):
 
 # endregion
 
+
 # region Trigger: when a task should be triggered
 class Trigger(ABC):
     def __eq__(self, other: object) -> bool:

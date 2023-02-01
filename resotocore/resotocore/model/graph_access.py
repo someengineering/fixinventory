@@ -354,7 +354,7 @@ class GraphAccess:
                 if kinds and on_kind in kinds:
                     summary = count_successors_by(node_id, EdgeTypes.default, prop.extract_path)
                     set_value_in_path(summary, prop.to_path, node)
-                    total = reduce(lambda l, r: l + r, summary.values(), 0)
+                    total = reduce(lambda left, right: left + right, summary.values(), 0)
                     set_value_in_path(total, NodePath.descendant_count, node)
 
     def __resolve(self, node_id: NodeId, node: Json) -> Json:
