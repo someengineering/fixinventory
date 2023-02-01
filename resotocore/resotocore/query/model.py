@@ -973,7 +973,7 @@ class Query:
                 raise AttributeError("Can not combine 2 tag clauses!")
             tag = left_last.tag if left_last.tag else right_first.tag
             with_clause = left_last.with_clause if left_last.with_clause else right_first.with_clause
-            sort = combine_optional(left_last.sort, right_first.sort, lambda l, r: l + r)
+            sort = combine_optional(left_last.sort, right_first.sort, lambda m, r: m + r)
             limit = combine_optional(left_last.limit, right_first.limit, combine_limit)
             combined = Part(term, tag, with_clause, sort if sort else [], limit, right_first.navigation)
             parts = [*other.parts[0:-1], combined, *self.parts[1:]]
@@ -1079,7 +1079,7 @@ class Query:
         term_in.insert(0, term)
         terms = map(make_term, term_in)
         # noinspection PyTypeChecker
-        return reduce(lambda l, r: CombinedTerm(l, "and", r), terms)
+        return reduce(lambda left, right: CombinedTerm(left, "and", right), terms)
 
 
 # register serializer for this class

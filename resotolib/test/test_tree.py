@@ -257,7 +257,6 @@ class TreeCase(unittest.TestCase):
         self.assertNotIn("mark", self.tree.nodes.keys())
 
     def test_merge(self):
-
         # merge on empty initial tree
         t1 = Tree(identifier="t1")
         t2 = self.get_t2()
@@ -296,7 +295,6 @@ class TreeCase(unittest.TestCase):
         self.assertEqual(set(t1._nodes.keys()), {"r", "a", "a1", "b", "c", "d", "d1"})
 
     def test_paste(self):
-
         # paste under root
         t1 = self.get_t1()
         t2 = self.get_t2()

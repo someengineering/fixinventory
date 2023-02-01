@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from arango import ArangoClient
+from arango.client import ArangoClient
 from arango.database import StandardDatabase
 
 from resotocore.analytics import NoEventSender

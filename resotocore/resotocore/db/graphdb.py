@@ -188,13 +188,12 @@ class ArangoGraphDB(GraphDB):
         assert len(edge_inserts) == 1
         edge_collection = self.edge_collection(EdgeTypes.default)
         async with self.db.begin_transaction(write=[self.vertex_name, edge_collection]) as tx:
-            result: Json = await tx.insert(self.vertex_name, node_inserts[0], return_new=True)
+            result: Json = await tx.insert(self.vertex_name, node_inserts[0], return_new=True)  # type: ignore
             await tx.insert(edge_collection, edge_inserts[0])
             trafo = self.document_to_instance_fn(model)
             return trafo(result["new"])
 
     async def update_deferred_edges(self, edges: List[Tuple[NodeId, NodeId, str]], ts: datetime) -> Tuple[int, int]:
-
         default_edges: List[Json] = []
         delete_edges: List[Json] = []
 
@@ -483,7 +482,7 @@ class ArangoGraphDB(GraphDB):
     @staticmethod
     def document_to_instance_fn(
         model: Model, query: Optional[Query] = None, additional_root_props: Optional[List[str]] = None
-    ) -> Callable[[Json], Optional[Json]]:
+    ) -> Callable[[Json], Json]:
         def props(doc: Json, result: Json, definition: Iterable[str]) -> None:
             for prop in definition:
                 if prop in doc and doc[prop]:
@@ -522,14 +521,14 @@ class ArangoGraphDB(GraphDB):
                 merged = value_in_path(doc, mq.name)
                 if merged:
                     if mq.only_first and isinstance(merged, dict):
-                        rendered = render_merge_results(merged, render_prop(merged, False), mq.query)
-                        set_value_in_path(rendered, mq.name, result)
+                        rd = render_merge_results(merged, render_prop(merged, False), mq.query)
+                        set_value_in_path(rd, mq.name, result)
                     elif isinstance(merged, list):
-                        rendered = [render_merge_results(elem, render_prop(elem, False), mq.query) for elem in merged]
-                        set_value_in_path(rendered, mq.name, result)
+                        rl = [render_merge_results(elem, render_prop(elem, False), mq.query) for elem in merged]
+                        set_value_in_path(rl, mq.name, result)
             return result
 
-        def merge_results(doc: Json) -> Optional[Json]:
+        def merge_results(doc: Json) -> Json:
             rendered = render_prop(doc, True)
             if query:
                 render_merge_results(doc, rendered, query)
@@ -929,7 +928,7 @@ class ArangoGraphDB(GraphDB):
             nodes: VertexCollection, progress: StandardCollection, node_history: StandardCollection
         ) -> None:
             # node indexes ------
-            node_idxes = {idx["name"]: idx for idx in nodes.indexes()}
+            node_idxes = {idx["name"]: idx for idx in cast(List[Json], nodes.indexes())}
             # this index will hold all the necessary data to query for an update (index only query)
             if "update_nodes_ref_id" not in node_idxes:
                 log.info(f"Add index update_nodes_ref_id on {nodes.name}")
@@ -948,7 +947,7 @@ class ArangoGraphDB(GraphDB):
                     name="kinds_id_name_ctime",
                 )
             # progress indexes ------
-            progress_idxes = {idx["name"]: idx for idx in progress.indexes()}
+            progress_idxes = {idx["name"]: idx for idx in cast(List[Json], progress.indexes())}
             if "parent_nodes" not in progress_idxes:
                 log.info(f"Add index parent_nodes on {progress.name}")
                 progress.add_persistent_index(["parent_nodes[*]"], name="parent_nodes")
@@ -956,7 +955,7 @@ class ArangoGraphDB(GraphDB):
                 log.info(f"Add index root_nodes on {progress.name}")
                 progress.add_persistent_index(["root_nodes[*]"], name="root_nodes")
             # history indexes ------
-            node_history_indexes = {idx["name"]: idx for idx in node_history.indexes()}
+            node_history_indexes = {idx["name"]: idx for idx in cast(List[Json], node_history.indexes())}
             if "history_access" not in node_history_indexes:
                 node_history.add_persistent_index(
                     ["change", "changed_at", "kinds[*]", "reported.id", "reported.name", "reported.ctime"],
@@ -967,7 +966,7 @@ class ArangoGraphDB(GraphDB):
                 node_history.add_ttl_index(["changed"], int(timedelta(days=14).total_seconds()), name="ttl_index")
 
         def create_update_edge_indexes(edges: EdgeCollection) -> None:
-            edge_idxes = {idx["name"]: idx for idx in edges.indexes()}
+            edge_idxes = {idx["name"]: idx for idx in cast(List[Json], edges.indexes())}
             # this index will hold all the necessary data to query for an update (index only query)
             if "update_edges_ref_id" not in edge_idxes:
                 log.info(f"Add index update_edges_ref_id on {edges.name}")

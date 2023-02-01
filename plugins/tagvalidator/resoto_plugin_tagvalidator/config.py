@@ -50,7 +50,6 @@ class TagValidatorConfig:
 
     @staticmethod
     def validate(cfg: "TagValidatorConfig") -> bool:
-
         config = cfg.config
         required_sections = ["kinds", "accounts"]
         for section in required_sections:

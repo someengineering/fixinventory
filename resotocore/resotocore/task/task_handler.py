@@ -58,7 +58,6 @@ log = logging.getLogger(__name__)
 
 
 class TaskHandlerService(TaskHandler):
-
     # region init
 
     def __init__(

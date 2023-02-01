@@ -14,7 +14,7 @@ from aiohttp import ClientSession
 from aiohttp.hdrs import METH_ANY
 from aiohttp.test_utils import TestServer
 from aiohttp.web import Request, Response, Application, route
-from arango import ArangoClient
+from arango.client import ArangoClient
 from arango.database import StandardDatabase
 from pytest import fixture
 

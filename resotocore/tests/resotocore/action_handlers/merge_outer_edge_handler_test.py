@@ -52,7 +52,6 @@ async def test_handler_invocation(
 async def test_merge_outer_edges(
     merge_handler: MergeOuterEdgesHandler, graph_db: ArangoGraphDB, foo_model: Model, db_access: DbAccess
 ) -> None:
-
     now = utc()
 
     id1 = NodeId("id1")

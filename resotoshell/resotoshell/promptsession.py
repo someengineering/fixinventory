@@ -722,7 +722,6 @@ class SafeCompleter(Completer):
 
 
 class PromptSession:
-
     style = Style.from_dict(
         {
             "green": "#00ff00",
@@ -762,7 +761,6 @@ class PromptSession:
 async def core_metadata(
     client: ResotoClient,
 ) -> Tuple[List[CommandInfo], List[str], List[str]]:
-
     try:
         log.debug("Fetching core metadata..")
         model = await client.model()

@@ -100,7 +100,6 @@ async def test_system_api(core_client: ApiClient, client_session: ClientSession)
 
 @pytest.mark.asyncio
 async def test_model_api(core_client: ApiClient) -> None:
-
     # GET /model
     assert len((await core_client.model()).kinds) >= len(predefined_kinds)
 

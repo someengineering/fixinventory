@@ -89,7 +89,6 @@ class DigitalOceanCollectorPlugin(BaseCollectorPlugin):
         assert isinstance(resource, DigitalOceanResource)
         tag_resource_name = resource.tag_resource_name()
         if tag_resource_name:
-
             log.debug(f"Updating tag {key} on resource {resource.id}")
             team = resource.account()
             ten_minutes_bucket = int(time.time()) // 600

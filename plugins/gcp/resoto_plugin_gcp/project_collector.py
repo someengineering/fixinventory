@@ -25,7 +25,6 @@ class GcpProjectCollector:
         self.credentials = Credentials.get(self.project.id)
 
     def collect(self) -> None:
-
         self.core_feedback.progress_done(self.project.dname, 0, 1, context=[self.cloud.id])
 
         # fetch available regions and zones

@@ -3,9 +3,10 @@ from abc import ABC
 from argparse import Namespace
 from datetime import datetime, timezone, timedelta
 from time import sleep
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Tuple, Union, cast, Optional
 
-from arango import ArangoServerError, ArangoClient
+from arango import ArangoServerError
+from arango.client import ArangoClient
 from arango.database import StandardDatabase
 from dateutil.parser import parse
 from requests.exceptions import RequestException
@@ -28,6 +29,7 @@ from resotocore.db.templatedb import template_entity_db
 from resotocore.error import NoSuchGraph, RequiredDependencyMissingError
 from resotocore.model.adjust_node import AdjustNode
 from resotocore.model.typed_model import from_js, to_js
+from resotocore.types import Json
 from resotocore.util import Periodic, utc, shutdown_process, uuid_str
 
 log = logging.getLogger(__name__)
@@ -77,7 +79,7 @@ class DbAccess(ABC):
         await self.configs_model_db.create_update_schema()
         await self.template_entity_db.create_update_schema()
         await self.pending_deferred_edge_db.create_update_schema()
-        for graph in self.database.graphs():
+        for graph in cast(List[Json], self.database.graphs()):
             log.info(f'Found graph: {graph["name"]}')
             db = self.get_graph_db(graph["name"])
             await db.create_update_schema()
@@ -98,13 +100,13 @@ class DbAccess(ABC):
             db.delete_collection(f"{name}_in_progress", ignore_missing=True)
             db.delete_view(f"search_{name}", ignore_missing=True)
             # remove all temp collection names
-            for coll in db.collections():
+            for coll in cast(List[Json], db.collections()):
                 if coll["name"].startswith(f"{name}_temp_"):
                     db.delete_collection(coll["name"])
             self.graph_dbs.pop(name, None)
 
     async def list_graphs(self) -> List[str]:
-        return [a["name"] for a in self.database.graphs() if not a["name"].endswith("_hs")]
+        return [a["name"] for a in cast(List[Json], self.database.graphs()) if not a["name"].endswith("_hs")]
 
     def get_graph_db(self, name: str, no_check: bool = False) -> GraphDB:
         if name in self.graph_dbs:
@@ -191,14 +193,14 @@ class DbAccess(ABC):
             if not db.has_collection("system_data"):
                 db.create_collection("system_data")
 
-            sys_js = db.collection("system_data").get("system")
+            sys_js: Optional[Json] = db.collection("system_data").get("system")  # type: ignore
             return (True, insert_system_data()) if not sys_js else (False, from_js(sys_js, SystemData))
 
         while True:
             try:
                 db.echo()
                 try:
-                    db_version = int(db.required_db_version())
+                    db_version = int(cast(str, db.required_db_version()))
                 except Exception as ex:
                     log.warning(f"Not able to retrieve version of arangodb. Reason: {ex}. Continue.")
                 else:

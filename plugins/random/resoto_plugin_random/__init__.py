@@ -240,7 +240,6 @@ def add_volumes(
     region: BaseResource = None,
     kwargs: Optional[Dict] = None,
 ) -> None:
-
     volume_status_map: Dict[str, VolumeStatus] = {
         "creating": VolumeStatus.BUSY,
         "available": VolumeStatus.AVAILABLE,

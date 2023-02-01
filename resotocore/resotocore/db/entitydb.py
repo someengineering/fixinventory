@@ -92,7 +92,7 @@ class ArangoEntityDb(EntityDb[K, T], ABC):
             raise OptimisticLockingFailed(self.key_of(t)) from ex
         except DocumentUpdateError as ex:
             if ex.error_code == 1202:  # document not found
-                result = await self.db.insert(self.collection_name, doc)
+                result = await self.db.insert(self.collection_name, doc)  # type: ignore
             else:
                 raise ex
         if hasattr(t, "revision") and "_rev" in result:
@@ -103,7 +103,7 @@ class ArangoEntityDb(EntityDb[K, T], ABC):
         return t
 
     async def delete(self, key: K) -> bool:
-        return await self.db.delete(self.collection_name, key, ignore_missing=True)
+        return await self.db.delete(self.collection_name, key, ignore_missing=True)  # type: ignore
 
     async def delete_value(self, value: T) -> None:
         key = self.key_of(value)
