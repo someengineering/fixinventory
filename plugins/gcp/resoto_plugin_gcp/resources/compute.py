@@ -788,9 +788,8 @@ class GcpDiskParams:
 class GcpDisk(GcpResource, BaseVolume):
     kind: ClassVar[str] = "gcp_disk"
     reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {
-            "default": ["gcp_disk_type"],
-        }
+        "predecessors": {"default": ["gcp_disk_type"], "delete": ["gcp_instance"]},
+        "successors": {"default": ["gcp_instance"]},
     }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",

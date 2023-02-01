@@ -7,11 +7,15 @@ def test_gcp_accelerator_type(random_builder: GraphBuilder) -> None:
 
 
 def test_gcp_address(random_builder: GraphBuilder) -> None:
-    roundtrip(GcpAddress, random_builder)
+    address = roundtrip(GcpAddress, random_builder)
+    connect_resource(random_builder, address, GcpSubnetwork, selfLink=address.address_subnetwork)
+    assert len(random_builder.edges_of(GcpSubnetwork, GcpAddress)) == 1
 
 
 def test_gcp_autoscaler(random_builder: GraphBuilder) -> None:
-    roundtrip(GcpAutoscaler, random_builder)
+    autoscaler = roundtrip(GcpAutoscaler, random_builder)
+    connect_resource(random_builder, autoscaler, GcpInstanceGroupManager, selfLink=autoscaler.autoscaler_target)
+    assert len(random_builder.edges_of(GcpAutoscaler, GcpInstanceGroupManager)) == 1
 
 
 def test_gcp_backend_bucket(random_builder: GraphBuilder) -> None:
@@ -19,7 +23,13 @@ def test_gcp_backend_bucket(random_builder: GraphBuilder) -> None:
 
 
 def test_gcp_backend_service(random_builder: GraphBuilder) -> None:
-    roundtrip(GcpBackendService, random_builder)
+    service = roundtrip(GcpBackendService, random_builder)
+    connect_resource(random_builder, service, GcpHealthCheck, selfLink=service.service_health_checks[0])
+    assert len(random_builder.edges_of(GcpBackendService, GcpHealthCheck)) == 1
+    connect_resource(random_builder, service, GcpInstanceGroup, selfLink=service.service_backends[0].group)
+    assert len(random_builder.edges_of(GcpBackendService, GcpInstanceGroup)) == 1
+    connect_resource(random_builder, service, GcpNetwork, selfLink=service.service_network)
+    assert len(random_builder.edges_of(GcpNetwork, GcpBackendService)) == 1
 
 
 def test_gcp_disk_type(random_builder: GraphBuilder) -> None:
@@ -37,11 +47,13 @@ def test_gcp_external_vpn_gateway(random_builder: GraphBuilder) -> None:
 
 
 def test_gcp_firewall_policy(random_builder: GraphBuilder) -> None:
-    roundtrip(GcpFirewallPolicy, random_builder)
+    policy = roundtrip(GcpFirewallPolicy, random_builder)
+    connect_resource(random_builder, policy, GcpNetwork, selfLink=policy.policy_rules[0].target_resources[0])
 
 
 def test_gcp_firewall(random_builder: GraphBuilder) -> None:
-    roundtrip(GcpFirewall, random_builder)
+    firewall = roundtrip(GcpFirewall, random_builder)
+    connect_resource(random_builder, firewall, GcpNetwork, selfLink=firewall.firewall_network)
 
 
 def test_gcp_forwarding_rule(random_builder: GraphBuilder) -> None:
