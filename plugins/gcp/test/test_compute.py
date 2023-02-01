@@ -49,11 +49,13 @@ def test_gcp_external_vpn_gateway(random_builder: GraphBuilder) -> None:
 def test_gcp_firewall_policy(random_builder: GraphBuilder) -> None:
     policy = roundtrip(GcpFirewallPolicy, random_builder)
     connect_resource(random_builder, policy, GcpNetwork, selfLink=policy.policy_rules[0].target_resources[0])
+    assert len(random_builder.edges_of(GcpFirewallPolicy, GcpNetwork)) == 1
 
 
 def test_gcp_firewall(random_builder: GraphBuilder) -> None:
     firewall = roundtrip(GcpFirewall, random_builder)
     connect_resource(random_builder, firewall, GcpNetwork, selfLink=firewall.firewall_network)
+    assert len(random_builder.edges_of(GcpFirewall, GcpNetwork)) == 1
 
 
 def test_gcp_forwarding_rule(random_builder: GraphBuilder) -> None:
