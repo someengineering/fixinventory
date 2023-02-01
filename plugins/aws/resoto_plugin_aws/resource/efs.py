@@ -34,7 +34,10 @@ class EfsTaggable:
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return [AwsApiSpec("efs", "tag-resource"), AwsApiSpec("efs", "untag-resource")]
+        return [
+            AwsApiSpec("efs", "tag-resource", override_iam_permission="elasticfilesystem:TagResource"),
+            AwsApiSpec("efs", "untag-resource", override_iam_permission="elasticfilesystem:UntagResource"),
+        ]
 
 
 @define(eq=False, slots=False)
@@ -58,9 +61,11 @@ class AwsEfsMountTarget(AwsResource):
 
 
 @define(eq=False, slots=False)
-class AwsEfsFileSystem(AwsResource, BaseVolume, EfsTaggable):
+class AwsEfsFileSystem(EfsTaggable, AwsResource, BaseVolume):
     kind: ClassVar[str] = "aws_efs_file_system"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("efs", "describe-file-systems", "FileSystems")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
+        "efs", "describe-file-systems", "FileSystems", override_iam_permission="elasticfilesystem:DescribeFileSystems"
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("FileSystemId"),
         "tags": S("Tags", default=[]) >> ToDict(),
@@ -99,7 +104,12 @@ class AwsEfsFileSystem(AwsResource, BaseVolume, EfsTaggable):
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
-        return [cls.api_spec, AwsApiSpec("efs", "describe-mount-targets")]
+        return [
+            cls.api_spec,
+            AwsApiSpec(
+                "efs", "describe-mount-targets", override_iam_permission="elasticfilesystem:DescribeMountTargets"
+            ),
+        ]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
@@ -159,7 +169,12 @@ class AwsEfsRootDirectory:
 @define(eq=False, slots=False)
 class AwsEfsAccessPoint(AwsResource, EfsTaggable):
     kind: ClassVar[str] = "aws_efs_access_point"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("efs", "describe-access-points", "AccessPoints")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
+        "efs",
+        "describe-access-points",
+        "AccessPoints",
+        override_iam_permission="elasticfilesystem:DescribeAccessPoints",
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("AccessPointId"),
         "tags": S("Tags", default=[]) >> ToDict(),
