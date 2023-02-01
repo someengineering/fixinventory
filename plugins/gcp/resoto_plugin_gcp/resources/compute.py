@@ -5,7 +5,14 @@ from attr import define, field
 
 from resoto_plugin_gcp.gcp_client import GcpApiSpec
 from resoto_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus, GraphBuilder
-from resotolib.baseresources import ModelReference, BaseVolume, VolumeStatus, BaseInstance, InstanceStatus
+from resotolib.baseresources import (
+    BaseVolumeType,
+    ModelReference,
+    BaseVolume,
+    VolumeStatus,
+    BaseInstance,
+    InstanceStatus,
+)
 from resotolib.json_bender import Bender, S, Bend, ForallBend, MapDict, MapValue, F
 from resotolib.types import Json
 
@@ -40,6 +47,12 @@ class GcpAcceleratorType(GcpResource):
 @define(eq=False, slots=False)
 class GcpAddress(GcpResource):
     kind: ClassVar[str] = "gcp_address"
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["gcp_subnetwork"]},
+        "successors": {
+            "delete": ["gcp_subnetwork"],
+        },
+    }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
         version="v1",
@@ -82,6 +95,10 @@ class GcpAddress(GcpResource):
     address_status: Optional[str] = field(default=None)
     address_subnetwork: Optional[str] = field(default=None)
     address_users: Optional[List[str]] = field(default=None)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if self.address_subnetwork:
+            builder.dependant_node(self, reverse=True, link=self.address_subnetwork)
 
 
 @define(eq=False, slots=False)
@@ -202,6 +219,12 @@ class GcpAutoscalerStatusDetails:
 @define(eq=False, slots=False)
 class GcpAutoscaler(GcpResource):
     kind: ClassVar[str] = "gcp_autoscaler"
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["gcp_instance_group_manager"],
+            "delete": ["gcp_instance_group_manager"],
+        }
+    }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
         version="v1",
@@ -235,6 +258,10 @@ class GcpAutoscaler(GcpResource):
     autoscaler_status: Optional[str] = field(default=None)
     autoscaler_status_details: Optional[List[GcpAutoscalerStatusDetails]] = field(default=None)
     autoscaler_target: Optional[str] = field(default=None)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if self.autoscaler_target:
+            builder.dependant_node(self, delete_same_as_default=True, link=self.autoscaler_target)
 
 
 @define(eq=False, slots=False)
@@ -582,6 +609,28 @@ class GcpSecuritySettings:
 @define(eq=False, slots=False)
 class GcpBackendService(GcpResource):
     kind: ClassVar[str] = "gcp_backend_service"
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {
+            "default": ["gcp_network"],
+            "delete": [
+                "gcp_instance_group",
+                "gcp_network_endpoint_group",
+                "gcp_health_check",
+                "gcp_http_health_check",
+                "gcp_https_health_check",
+            ],
+        },
+        "successors": {
+            "default": [
+                "gcp_instance_group",
+                "gcp_network_endpoint_group",
+                "gcp_health_check",
+                "gcp_http_health_check",
+                "gcp_https_health_check",
+            ],
+            "delete": ["gcp_target_tcp_proxy", "gcp_target_ssl_proxy"],
+        },
+    }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
         version="v1",
@@ -672,9 +721,18 @@ class GcpBackendService(GcpResource):
     service_subsetting: Optional[str] = field(default=None)
     service_timeout_sec: Optional[int] = field(default=None)
 
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        for check in self.service_health_checks:
+            builder.dependant_node(self, link=check)
+        for backend in self.service_backends:
+            if backend.group:
+                builder.dependant_node(self, link=backend.group)
+        if self.service_network:
+            builder.add_edge(self, reverse=True, link=self.service_network)
+
 
 @define(eq=False, slots=False)
-class GcpDiskType(GcpResource):
+class GcpDiskType(GcpResource, BaseVolumeType):
     kind: ClassVar[str] = "gcp_disk_type"
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
@@ -729,6 +787,10 @@ class GcpDiskParams:
 @define(eq=False, slots=False)
 class GcpDisk(GcpResource, BaseVolume):
     kind: ClassVar[str] = "gcp_disk"
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["gcp_disk_type"], "delete": ["gcp_instance"]},
+        "successors": {"default": ["gcp_instance"]},
+    }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
         version="v1",
@@ -818,7 +880,7 @@ class GcpDisk(GcpResource, BaseVolume):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for user in source.get("users", []):
             builder.dependant_node(self, link=user)
-        builder.add_edge(self, reverse=True, clazz=GcpDiskType, link=self.volume_type)
+        builder.add_edge(self, reverse=True, link=self.volume_type)
 
 
 @define(eq=False, slots=False)
@@ -941,6 +1003,7 @@ class GcpFirewallPolicyRule:
 @define(eq=False, slots=False)
 class GcpFirewallPolicy(GcpResource):
     kind: ClassVar[str] = "gcp_firewall_policy"
+    reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["gcp_network"]}}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
         version="v1",
@@ -978,6 +1041,11 @@ class GcpFirewallPolicy(GcpResource):
     policy_self_link_with_id: Optional[str] = field(default=None)
     policy_short_name: Optional[str] = field(default=None)
 
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        for rule in self.policy_rules:
+            for resource in rule.target_resources:
+                builder.add_edge(self, link=resource)
+
 
 @define(eq=False, slots=False)
 class GcpAllowed:
@@ -1006,6 +1074,7 @@ class GcpFirewallLogConfig:
 @define(eq=False, slots=False)
 class GcpFirewall(GcpResource):
     kind: ClassVar[str] = "gcp_firewall"
+    reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["gcp_network"]}}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
         version="v1",
@@ -1053,6 +1122,10 @@ class GcpFirewall(GcpResource):
     firewall_target_service_accounts: Optional[List[str]] = field(default=None)
     firewall_target_tags: Optional[List[str]] = field(default=None)
 
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if self.firewall_network:
+            builder.add_edge(self, link=self.firewall_network)
+
 
 @define(eq=False, slots=False)
 class GcpMetadataFilterLabelMatch:
@@ -1089,6 +1162,21 @@ class GcpForwardingRuleServiceDirectoryRegistration:
 @define(eq=False, slots=False)
 class GcpForwardingRule(GcpResource):
     kind: ClassVar[str] = "gcp_forwarding_rule"
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["gcp_network"]},
+        "successors": {
+            "default": [
+                "gcp_target_vpn_gateway",
+                "gcp_target_tcp_proxy",
+                "gcp_target_ssl_proxy",
+                "gcp_target_grpc_proxy",
+                "gcp_target_http_proxy",
+                "gcp_target_https_proxy",
+                "gcp_target_pool",
+            ],
+            "delete": [],
+        },
+    }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
         version="v1",
@@ -1156,6 +1244,10 @@ class GcpForwardingRule(GcpResource):
     rule_service_name: Optional[str] = field(default=None)
     rule_subnetwork: Optional[str] = field(default=None)
     rule_target: Optional[str] = field(default=None)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if self.rule_network:
+            builder.add_edge(self, reverse=True, link=self.rule_network)
 
 
 @define(eq=False, slots=False)
@@ -4121,6 +4213,7 @@ class GcpTargetTcpProxy(GcpResource):
     proxy_proxy_bind: Optional[bool] = field(default=None)
     proxy_proxy_header: Optional[str] = field(default=None)
     proxy_service: Optional[str] = field(default=None)
+    # TODO edge to backend service
 
 
 @define(eq=False, slots=False)
@@ -5360,6 +5453,7 @@ class GcpTargetSslProxy(GcpResource):
     proxy_service: Optional[str] = field(default=None)
     proxy_ssl_certificates: Optional[List[str]] = field(default=None)
     proxy_ssl_policy: Optional[str] = field(default=None)
+    # TODO edge to backend service
 
 
 @define(eq=False, slots=False)
