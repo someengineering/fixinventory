@@ -60,10 +60,10 @@ class AwsS3Bucket(AwsResource, BaseBucket):
         return [
             cls.api_spec,
             AwsApiSpec("s3", "get-bucket-tagging"),
-            AwsApiSpec("s3", "get-bucket-encryption"),
+            AwsApiSpec("s3", "get-bucket-encryption", override_iam_permission="s3:GetEncryptionConfiguration"),
             AwsApiSpec("s3", "get-bucket-policy"),
             AwsApiSpec("s3", "get-bucket-versioning"),
-            AwsApiSpec("s3", "get-public-access-block"),
+            AwsApiSpec("s3", "get-public-access-block", override_iam_permission="s3:GetAccountPublicAccessBlock"),
         ]
 
     @classmethod
@@ -208,7 +208,9 @@ class AwsS3AccountSettings(AwsResource, PhantomBaseResource):
         "successors": {"default": ["aws_account"]},
     }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
-        "s3control", "get-public-access-block", "PublicAccessBlockConfiguration"
+        "s3control",
+        "get-public-access-block",
+        override_iam_permission="s3:GetAccountPublicAccessBlock",
     )
 
     bucket_public_access_block_configuration: Optional[AwsS3PublicAccessBlockConfiguration] = field(default=None)

@@ -165,6 +165,10 @@ class AwsSagemakerNotebook(SagemakerTaggable, AwsResource):
             return True
         return False
 
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [AwsApiSpec("sagemaker", "delete-notebook-instance")]
+
 
 @define(eq=False, slots=False)
 class AwsSagemakerParameterRangeSpecification:
@@ -626,6 +630,10 @@ class AwsSagemakerAlgorithm(AwsResource):
         )
         return True
 
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [AwsApiSpec("sagemaker", "delete-algorithm")]
+
 
 @define(eq=False, slots=False)
 class AwsSagemakerImageConfig:
@@ -734,6 +742,10 @@ class AwsSagemakerModel(SagemakerTaggable, AwsResource):
         client.call(aws_service=self.api_spec.service, action="delete-model", result_name=None, ModelName=self.name)
         return True
 
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [AwsApiSpec("sagemaker", "delete-model")]
+
 
 @define(eq=False, slots=False)
 class AwsSagemakerResourceSpec:
@@ -816,17 +828,18 @@ class AwsSagemakerApp(AwsResource):
                     AppType=app["AppType"],
                     AppName=app["AppName"],
                 )
+            elif app["SpaceName"]:
+                app_description = builder.client.get(
+                    "sagemaker",
+                    "describe-app",
+                    None,
+                    SpaceName=app["SpaceName"],
+                    DomainId=app["DomainId"],
+                    AppType=app["AppType"],
+                    AppName=app["AppName"],
+                )
             else:
-                if app["SpaceName"]:
-                    app_description = builder.client.get(
-                        "sagemaker",
-                        "describe-app",
-                        None,
-                        SpaceName=app["SpaceName"],
-                        DomainId=app["DomainId"],
-                        AppType=app["AppType"],
-                        AppName=app["AppName"],
-                    )
+                app_description = None
             if app_description:
                 app_instance = AwsSagemakerApp.from_api(app_description)
                 builder.add_node(app_instance, app_description)
@@ -850,6 +863,10 @@ class AwsSagemakerApp(AwsResource):
             UserProfileName=self.app_user_profile_name,
         )
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [AwsApiSpec("sagemaker", "delete-app")]
 
 
 @define(eq=False, slots=False)
@@ -1198,6 +1215,10 @@ class AwsSagemakerDomain(AwsResource):
         client.call(aws_service=self.api_spec.service, action="delete-domain", result_name=None, DomainId=self.id)
         return True
 
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [AwsApiSpec("sagemaker", "delete-domain")]
+
 
 @define(eq=False, slots=False)
 class AwsSagemakerExperimentSource:
@@ -1228,6 +1249,10 @@ class AwsSagemakerExperiment(AwsResource):
             aws_service=self.api_spec.service, action="delete-experiment", result_name=None, ExperimentName=self.name
         )
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [AwsApiSpec("sagemaker", "delete-experiment")]
 
 
 @define(eq=False, slots=False)
@@ -1336,6 +1361,10 @@ class AwsSagemakerTrial(AwsResource):
         client.call(aws_service=self.api_spec.service, action="delete-trial", result_name=None, TrialName=self.name)
         return True
 
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [AwsApiSpec("sagemaker", "delete-trial")]
+
 
 @define(eq=False, slots=False)
 class AwsSagemakerProject(AwsResource):
@@ -1356,6 +1385,10 @@ class AwsSagemakerProject(AwsResource):
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(aws_service=self.api_spec.service, action="delete-project", result_name=None, ProjectName=self.name)
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [AwsApiSpec("sagemaker", "delete-project")]
 
 
 @define(eq=False, slots=False)
@@ -1394,6 +1427,10 @@ class AwsSagemakerCodeRepository(AwsResource):
             CodeRepositoryName=self.name,
         )
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [AwsApiSpec("sagemaker", "delete-code-repository")]
 
 
 @define(eq=False, slots=False)
@@ -1740,7 +1777,7 @@ class AwsSagemakerEndpoint(SagemakerTaggable, AwsResource):
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
-        return [cls.api_spec, AwsApiSpec("sagemaker", "describe-endpoints"), AwsApiSpec("sagemaker", "list-tags")]
+        return [cls.api_spec, AwsApiSpec("sagemaker", "describe-endpoint"), AwsApiSpec("sagemaker", "list-tags")]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
@@ -1780,6 +1817,10 @@ class AwsSagemakerEndpoint(SagemakerTaggable, AwsResource):
             aws_service=self.api_spec.service, action="delete-endpoint", result_name=None, EndpointName=self.name
         )
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [AwsApiSpec("sagemaker", "delete-endpoint")]
 
 
 @define(eq=False, slots=False)
@@ -1827,6 +1868,10 @@ class AwsSagemakerImage(AwsResource):
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(aws_service=self.api_spec.service, action="delete-image", result_name=None, ImageName=self.name)
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [AwsApiSpec("sagemaker", "delete-image")]
 
 
 @define(eq=False, slots=False)
@@ -1918,6 +1963,10 @@ class AwsSagemakerArtifact(AwsResource):
         client.call(aws_service=self.api_spec.service, action="delete-artifact", result_name=None, ArtifactArn=self.arn)
         return True
 
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [AwsApiSpec("sagemaker", "delete-artifact")]
+
 
 @define(eq=False, slots=False)
 class AwsSagemakerUserProfile(AwsResource):
@@ -1951,6 +2000,10 @@ class AwsSagemakerUserProfile(AwsResource):
             DomainId=self.user_profile_domain_id,
         )
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [AwsApiSpec("sagemaker", "delete-user-profile")]
 
 
 @define(eq=False, slots=False)
@@ -2019,6 +2072,10 @@ class AwsSagemakerPipeline(AwsResource):
             aws_service=self.api_spec.service, action="delete-pipeline", result_name=None, PipelineName=self.name
         )
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [AwsApiSpec("sagemaker", "delete-pipeline")]
 
 
 @define(eq=False, slots=False)
@@ -2110,6 +2167,10 @@ class AwsSagemakerWorkteam(SagemakerTaggable, AwsResource):
             aws_service=self.api_spec.service, action="delete-workteam", result_name=None, WorkteamName=self.name
         )
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [AwsApiSpec("sagemaker", "delete-workteam")]
 
 
 ## Jobs
@@ -2405,7 +2466,7 @@ class AwsSagemakerAutoMLJob(AwsSagemakerJob):
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
-        return [cls.api_spec, AwsApiSpec("sagemaker", "describe-describe-auto-ml-job")]
+        return [cls.api_spec, AwsApiSpec("sagemaker", "describe-auto-ml-job")]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
