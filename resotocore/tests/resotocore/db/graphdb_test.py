@@ -3,7 +3,7 @@ import string
 from abc import ABC, abstractmethod
 from datetime import date, datetime, timedelta
 from random import SystemRandom
-from typing import List, Optional, Any
+from typing import List, Optional, Any, cast
 
 from arango.database import StandardDatabase
 from arango.typings import Json
@@ -192,12 +192,12 @@ async def test_update_merge_batched(graph_db: ArangoGraphDB, foo_model: Model, t
     await graph_db.commit_batch_update(batch_id)
     assert len((await load_graph(graph_db, md)).nodes) == 111
     # ensure that all temp tables are removed
-    assert len(list(filter(lambda c: c["name"].startswith("temp_"), test_db.collections()))) == 0
+    assert len(list(filter(lambda c: c["name"].startswith("temp_"), cast(List[Json], test_db.collections())))) == 0
     # create a new batch that gets aborted: make sure all temp tables are gone
     batch_id = "will_be_aborted"
     await graph_db.merge_graph(g, foo_model, batch_id, True)
     await graph_db.abort_update(batch_id)
-    assert len(list(filter(lambda c: c["name"].startswith("temp_"), test_db.collections()))) == 0
+    assert len(list(filter(lambda c: c["name"].startswith("temp_"), cast(List[Json], test_db.collections())))) == 0
 
 
 @mark.asyncio
@@ -528,10 +528,13 @@ async def test_update_nodes(graph_db: ArangoGraphDB, foo_model: Model) -> None:
     assert node_raw_id1.hash != node_raw_id1_updated.hash
     assert "test" in node_raw_id1_updated.flat
     change4 = {"desired": None, "metadata": None}
-    result4 = [a async for a in graph_db.update_nodes(foo_model, {NodeId("id1"): change4, NodeId("id2"): change4})]
-    assert len(result4) == 2
-    assert "desired" not in result4
-    assert "metadata" not in result4
+    result4 = [
+        a
+        async for a in graph_db.update_nodes(foo_model, {NodeId("id1"): change4.copy(), NodeId("id2"): change4.copy()})
+    ]
+    assert len(result4) == 4
+    assert all("desired" not in a for a in result4)
+    assert len([a for a in result4 if "metadata" not in a]) == 2
 
 
 @mark.asyncio
@@ -576,9 +579,11 @@ def to_json(obj: BaseResource) -> Json:
     return {"kind": obj.kind(), **to_js(obj)}
 
 
-def to_bla(json: Json) -> Bla:
+def to_bla(json: Optional[Json]) -> Bla:
+    assert json is not None
     return from_js(json["reported"], Bla)
 
 
-def to_foo(json: Json) -> Foo:
+def to_foo(json: Optional[Json]) -> Foo:
+    assert json is not None
     return from_js(json["reported"], Foo)

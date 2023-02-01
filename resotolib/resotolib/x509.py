@@ -227,7 +227,7 @@ def key_to_bytes(
 
 
 def csr_to_bytes(csr: CertificateSigningRequest) -> bytes:
-    return cert_to_bytes(csr)
+    return csr.public_bytes(serialization.Encoding.PEM)
 
 
 def cert_to_bytes(cert: Certificate) -> bytes:
@@ -260,11 +260,13 @@ def load_cert_from_bytes(cert: bytes) -> Certificate:
     return x509.load_pem_x509_certificate(cert, default_backend())
 
 
-def load_key_from_bytes(key: bytes, passphrase: Optional[str] = None) -> RSAPrivateKey:
+def load_key_from_bytes(
+    key: bytes, passphrase: Optional[str] = None, skip_rsa_key_validation: bool = False
+) -> RSAPrivateKey:
     backend = default_backend()
     if passphrase is not None:
         passphrase = passphrase.encode()
-    return backend.load_pem_private_key(key, passphrase)
+    return backend.load_pem_private_key(key, passphrase, skip_rsa_key_validation)
 
 
 def make_ip(ip: str) -> Union[IPv4Address, IPv6Address, IPv4Network, IPv6Network]:

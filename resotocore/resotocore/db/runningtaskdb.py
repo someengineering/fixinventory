@@ -4,7 +4,7 @@ import logging
 from abc import abstractmethod
 from datetime import datetime, timedelta
 from functools import partial
-from typing import Sequence, Optional, List, AsyncGenerator, Dict, Union
+from typing import Sequence, Optional, List, AsyncGenerator, Dict, Union, cast
 
 from attrs import define, field
 from jsons import JsonsError
@@ -132,7 +132,7 @@ class ArangoRunningTaskDb(ArangoEntityDb[str, RunningTaskData], RunningTaskDb):
     async def create_update_schema(self) -> None:
         await super().create_update_schema()
         collection = self.db.collection(self.collection_name)
-        indexes = {idx["name"]: idx for idx in collection.indexes()}
+        indexes = {idx["name"]: idx for idx in cast(List[Json], collection.indexes())}
         # descriptor_id, descriptor_name, done, created_at
         id_idx = f"{self.collection_name}_id_done"
         if id_idx not in indexes:

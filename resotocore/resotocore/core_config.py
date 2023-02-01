@@ -7,7 +7,7 @@ from copy import deepcopy
 from attrs import define, field
 from datetime import timedelta
 from pathlib import Path
-from typing import Optional, List, ClassVar, Dict, Union
+from typing import Optional, List, ClassVar, Dict, Union, cast
 
 from arango.database import StandardDatabase
 from cerberus import schema_registry
@@ -542,12 +542,10 @@ def migrate_config(config: Json) -> Json:
 
 
 def config_from_db(args: Namespace, db: StandardDatabase, collection_name: str = "configs") -> CoreConfig:
-    configs = db.collection(collection_name) if db.has_collection(collection_name) else None
-    config_entity = configs.get(ResotoCoreConfigId) if configs else None
-    config = config_entity.get("config") if config_entity else None  # ConfigEntity.config
-    if config:
-        command_config = configs.get(ResotoCoreCommandsConfigId)
-        command_config = command_config.get("config") if command_config else None
-        return parse_config(args, config, command_config)
-    else:
-        return parse_config(args, {})
+    if configs := db.collection(collection_name) if db.has_collection(collection_name) else None:
+        config_entity = cast(Optional[Json], configs.get(ResotoCoreConfigId))
+        if config_entity and (config := config_entity.get("config")):
+            command_config_entity = cast(Optional[Json], configs.get(ResotoCoreCommandsConfigId))
+            command_config = command_config_entity.get("config") if command_config_entity else None
+            return parse_config(args, config, command_config)
+    return parse_config(args, {})

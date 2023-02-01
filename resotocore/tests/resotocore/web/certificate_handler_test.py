@@ -1,9 +1,11 @@
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from typing import Optional, cast
 
 from arango.database import StandardDatabase
 
 from resotocore.dependencies import empty_config
+from resotocore.types import Json
 from resotocore.web.certificate_handler import CertificateHandler
 from resotolib.x509 import load_cert_from_bytes, cert_fingerprint, csr_to_bytes, gen_csr, gen_rsa_key
 
@@ -28,7 +30,7 @@ def test_bootstrap(test_db: StandardDatabase) -> None:
         # Delete any existing entry, so a new certificate needs to be created
         sd.delete("ca", ignore_missing=True)
         handler = CertificateHandler.lookup(config, test_db, tmp)
-        ca = sd.get("ca")
+        ca = cast(Optional[Json], sd.get("ca"))
         assert ca is not None
         # ensure the certificate in the database is the same as exposed by the handler
         ca_bytes, fingerprint = handler.authority_certificate

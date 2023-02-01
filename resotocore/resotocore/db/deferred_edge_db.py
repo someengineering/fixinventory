@@ -4,8 +4,10 @@ from resotocore.db.async_arangodb import AsyncArangoDB
 from resotocore.db.entitydb import ArangoEntityDb
 from resotocore.model.graph_access import DeferredEdge
 from resotocore.ids import TaskId
-from typing import List
+from typing import List, cast
 import logging
+
+from resotocore.types import Json
 
 
 @define
@@ -27,7 +29,7 @@ class PendingDeferredEdgeDb(ArangoEntityDb[TaskId, PendingDeferredEdges]):
         await super().create_update_schema()
         ttl_index_name = "deferred_edges_expiration_index"
         collection = self.db.collection(self.collection_name)
-        if ttl_index_name not in {idx["name"] for idx in collection.indexes()}:
+        if ttl_index_name not in {idx["name"] for idx in cast(List[Json], collection.indexes())}:
             log.info(f"Add index {ttl_index_name} on {collection.name}")
             collection.add_ttl_index(["created_at"], TWO_HOURS, "deferred_edges_expiration_index")
 
