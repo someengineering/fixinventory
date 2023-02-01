@@ -72,7 +72,7 @@ if __name__ == "__main__":
     feedback = CoreFeedback("test", "test", "test", Queue())
     Credentials._credentials[project.id] = OauthCredentials.from_service_account_file(
         "/Users/matthias/.gcp/test.json"
-    )  # anonymous credentials?
+    )
     Credentials._initialized = True
     collector = GcpProjectCollector(GcpConfig(), cloud, project, feedback)
     collector.collect()
