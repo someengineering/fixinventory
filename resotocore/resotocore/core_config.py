@@ -543,9 +543,9 @@ def migrate_config(config: Json) -> Json:
 
 def config_from_db(args: Namespace, db: StandardDatabase, collection_name: str = "configs") -> CoreConfig:
     if configs := db.collection(collection_name) if db.has_collection(collection_name) else None:
-        config_entity = cast(Optional[Json], configs.get(ResotoCoreConfigId))
-        if config_entity and (config := config_entity.get("config")):
-            command_config_entity = cast(Optional[Json], configs.get(ResotoCoreCommandsConfigId))
-            command_config = command_config_entity.get("config") if command_config_entity else None
-            return parse_config(args, config, command_config)
+        if config_entity := cast(Optional[Json], configs.get(ResotoCoreConfigId)):
+            if config := config_entity.get("config"):
+                command_config_entity = cast(Optional[Json], configs.get(ResotoCoreCommandsConfigId))
+                command_config = command_config_entity.get("config") if command_config_entity else None
+                return parse_config(args, config, command_config)
     return parse_config(args, {})
