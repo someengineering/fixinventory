@@ -633,13 +633,14 @@ class RunningTask:
         self.update_task: Optional[Task[None]] = None
         self.descriptor_alive = True
         self.info_messages: List[Union[ActionInfo, ActionError]] = []
-        # ProgressTree: [step_name, path, to progress] -> progress
-        self.progresses: ProgressTree = ProgressTree(self.descriptor.name)
+        self.__progress: ProgressTree = ProgressTree(self.descriptor.name)
+        self.__progress_updated_at: datetime = utc()
+        self.__progress_emitted_at: Optional[datetime] = None
 
         steps = []
         for step in descriptor.steps:
             step_state = StepState.from_step(step, self)
-            step_state.initial_progress(self.progresses)
+            step_state.initial_progress(self.__progress)
             steps.append(step_state)
 
         start = StartState(self)
@@ -674,12 +675,12 @@ class RunningTask:
         return resulting_commands
 
     @property
-    def current_step_progress(self) -> Progress:
-        return self.progresses.sub_progress(self.current_step.name) or ProgressDone(self.current_step.name, 0, 1)
+    def progress(self) -> Progress:
+        return self.__progress
 
     @property
-    def progress(self) -> ProgressTree:
-        return self.progresses
+    def current_step_progress(self) -> Progress:
+        return self.__progress.sub_progress(self.current_step.name) or ProgressDone(self.current_step.name, 0, 1)
 
     def progress_json(self) -> Json:
         max_idx = len(self.step_name_index)
@@ -694,7 +695,16 @@ class RunningTask:
             # order by step, progress (done first and in progress later) and name
             return index, -progress, p.name
 
-        return self.progresses.to_json(key=order_progress)
+        return self.__progress.to_json(key=order_progress)
+
+    def not_emitted_progress(self) -> Optional[ProgressTree]:
+        # only emit progress for workflows that have been updated since the last emit
+        if isinstance(self.descriptor, Workflow) and (
+            self.__progress_emitted_at is None or self.__progress_updated_at > self.__progress_emitted_at
+        ):
+            self.__progress_emitted_at = utc()
+            return self.__progress
+        return None
 
     @property
     def current_state(self) -> StepState:
@@ -745,11 +755,15 @@ class RunningTask:
     def handle_info(self, info: ActionInfo) -> None:
         self.info_messages.append(info)
 
+    def __add_progress(self, progress: Progress) -> None:
+        with suppress(Exception):
+            self.__progress.add_progress(progress)
+            self.__progress_updated_at = utc()
+
     def handle_progress(self, msg: ActionProgress) -> None:
         # make sure the step name is part of the progress
         msg.progress.path = [self.current_step.name, *msg.progress.path]
-        with suppress(Exception):
-            self.progresses.add_progress(msg.progress)
+        self.__add_progress(msg.progress)
 
     def handle_command_results(self, results: Dict[TaskCommand, Any]) -> Sequence[TaskCommand]:
         self.current_state.handle_command_results(results)
@@ -799,8 +813,8 @@ class RunningTask:
         log.debug(f"Task {self.id}: end of step {self.current_step.name}")
         self.current_state.step_finished()
         # mark all progresses as completed
-        if self.progresses.has_path(self.current_step.name):
-            self.progresses.add_progress(ProgressDone(self.current_step.name, 1, 1))
+        if self.__progress.has_path(self.current_step.name):
+            self.__add_progress(ProgressDone(self.current_step.name, 1, 1))
 
 
 set_deserializer(StepAction.from_json, StepAction, high_prio=False)
