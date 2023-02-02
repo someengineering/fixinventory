@@ -1,5 +1,4 @@
 from resotolib.baseresources import BaseResource
-import resotolib.logger
 import socket
 import multiprocessing
 import resotolib.proc
@@ -13,8 +12,7 @@ from .ssh import instance_from_ssh
 from .config import OnpremConfig
 from paramiko import ssh_exception
 from typing import Dict
-
-log = resotolib.logger.getLogger("resoto." + __name__)
+from resotolib.logger import log, setup_logger
 
 
 class OnpremCollectorPlugin(BaseCollectorPlugin):
@@ -104,6 +102,8 @@ class OnpremCollectorPlugin(BaseCollectorPlugin):
 def collect_server(srv: Dict, args: Namespace = None, running_config: RunningConfig = None) -> Dict:
     if args is not None:
         ArgumentParser.args = args
+        setup_logger("resotoworker-onprem", force=True, level=getattr(args, "log_level", None))
+
     if running_config is not None:
         Config.running_config.apply(running_config)
 

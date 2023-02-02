@@ -1,10 +1,8 @@
-import resotolib.logger
 from collections import defaultdict
 from paramiko import SSHClient
 from .resources import OnpremInstance
 from resotolib.baseresources import InstanceStatus
-
-log = resotolib.logger.getLogger("resoto." + __name__)
+from resotolib.logger import log
 
 
 instance_status_map = {
