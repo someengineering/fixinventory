@@ -9,7 +9,8 @@ from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resoto_plugin_aws.resource.s3 import AwsS3Bucket
 from resoto_plugin_aws.resource.sns import AwsSnsTopic
 from resoto_plugin_aws.utils import ToDict
-from resotocore.types import Json
+from resotolib.types import Json
+from resotolib.baseresources import ModelReference
 from resotolib.json import from_json
 from resotolib.json_bender import Bender, S, bend, ForallBend, EmptyToNone
 
@@ -109,6 +110,9 @@ class AwsCloudTrail(AwsResource):
         "trail_has_custom_event_selectors": S("HasCustomEventSelectors"),
         "trail_has_insight_selectors": S("HasInsightSelectors"),
         "trail_is_organization_trail": S("IsOrganizationTrail"),
+    }
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {"default": ["aws_s3_bucket", "aws_sns_topic", "aws_kms_key"]},
     }
     trail_s3_bucket_name: Optional[str] = attrs_field(default=None)
     trail_s3_key_prefix: Optional[str] = attrs_field(default=None)
