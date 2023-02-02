@@ -12,6 +12,7 @@ from resoto_plugin_aws.resource import (
     autoscaling,
     cloudformation,
     cloudfront,
+    cloudtrail,
     cloudwatch,
     cognito,
     dynamodb,
@@ -60,6 +61,7 @@ regional_resources: List[Type[AwsResource]] = (
     + autoscaling.resources
     + athena.resources
     + cloudformation.resources
+    + cloudtrail.resources
     + cloudwatch.resources
     + cognito.resources
     + dynamodb.resources
@@ -164,19 +166,18 @@ class AwsAccountCollector:
             global_builder.core_feedback.progress_done(self.global_region.safe_name, 1, 1)
             self.error_accumulator.report_region(global_builder.core_feedback, self.global_region.id)
 
-            log.info(f"[Aws:{self.account.id}] Collect regional resources.")
-
             # regions are collected with the configured parallelism
             # note: when the thread pool context is left, all submitted work is done (or an exception has been thrown)
+            log.info(f"[Aws:{self.account.id}] Collect regional resources.")
             with ThreadPoolExecutor(
                 thread_name_prefix=f"aws_{self.account.id}_regions", max_workers=self.config.region_pool_size
             ) as per_region_executor:
                 for region in self.regions:
                     per_region_executor.submit(self.collect_region, region, global_builder.for_region(region))
-
-            log.info(f"[Aws:{self.account.id}] Connect resources and create edges.")
+            shared_queue.wait_for_submitted_work()
 
             # connect nodes
+            log.info(f"[Aws:{self.account.id}] Connect resources and create edges.")
             for node, data in list(self.graph.nodes(data=True)):
                 if isinstance(node, AwsResource):
                     if isinstance(node, AwsAccount):

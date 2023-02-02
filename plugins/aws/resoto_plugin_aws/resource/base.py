@@ -28,7 +28,7 @@ from resotolib.baseresources import (
 )
 from resotolib.config import Config, current_config
 from resotolib.core.actions import CoreFeedback
-from resotolib.graph import Graph
+from resotolib.graph import Graph, EdgeKey
 from resotolib.json import to_json as to_js, from_json as from_js
 from resotolib.json_bender import Bender, bend
 from resotolib.types import Json
@@ -446,6 +446,15 @@ class GraphBuilder:
 
     def resources_of(self, resource_type: Type[AwsResourceType]) -> List[AwsResourceType]:
         return [n for n in self.graph.nodes if isinstance(n, resource_type)]
+
+    def edges_of(
+        self, from_type: Type[AwsResource], to_type: Type[AwsResource], edge_type: EdgeType = EdgeType.default
+    ) -> List[EdgeKey]:
+        return [
+            key
+            for (from_node, to_node, key) in self.graph.edges
+            if isinstance(from_node, from_type) and isinstance(to_node, to_type) and key.edge_type == edge_type
+        ]
 
     @lru_cache(maxsize=None)
     def instance_type(self, region: AwsRegion, instance_type: str) -> Optional[Any]:

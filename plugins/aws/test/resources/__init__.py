@@ -78,7 +78,7 @@ class BotoFileClient:
                 with open(path) as f:
                     return json.load(f)
             else:
-                print(f"Not found: {path}")
+                # print(f"Not found: {path}")
                 return {}
 
         return call_action
@@ -139,7 +139,8 @@ def build_graph(cls: Type[AwsResourceType], region_name: Optional[str] = None) -
     config.sessions().session_class_factory = BotoFileBasedSession
     client = AwsClient(config, "123456789012", role="role", region=(region_name or "us-east-1"))
     queue = ExecutorQueue(DummyExecutor(), "test")
-    region = AwsRegion(id="eu-central-1", name=(region_name or "eu-central-1"))
+    region_name = region_name or "eu-central-1"
+    region = AwsRegion(id=region_name, name=region_name)
     feedback = CoreFeedback("test", "test", "collect", Queue())
     account = AwsAccount(id="test", mfa_devices=12, mfa_devices_in_use=12)
     builder = GraphBuilder(Graph(), Cloud(id="test"), account, region, client, queue, feedback)

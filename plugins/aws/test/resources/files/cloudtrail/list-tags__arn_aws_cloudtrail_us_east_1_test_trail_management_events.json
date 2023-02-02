@@ -1,0 +1,13 @@
+{
+    "ResourceTagList": [
+        {
+            "ResourceId": "arn:aws:cloudtrail:us-east-1:test:trail/management-events",
+            "TagsList": [
+                {
+                    "Key": "foo",
+                    "Value": "bla"
+                }
+            ]
+        }
+    ]
+}
