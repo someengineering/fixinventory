@@ -191,8 +191,7 @@ class AwsElastiCacheCacheCluster(ElastiCacheTaggable, AwsResource):
         "predecessors": {
             "default": ["aws_ec2_security_group"],
             "delete": ["aws_ec2_security_group"],
-        },
-        "successors": {"default": ["aws_sns_topic"]},
+        }
     }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("elasticache", "describe-cache-clusters", "CacheClusters")
     mapping: ClassVar[Dict[str, Bender]] = {
