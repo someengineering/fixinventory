@@ -1,0 +1,16 @@
+{
+    "TrailARN": "arn:aws:cloudtrail:us-east-1:test:trail/management-events",
+    "AdvancedEventSelectors": [
+        {
+            "Name": "Management events selector",
+            "FieldSelectors": [
+                {
+                    "Field": "eventCategory",
+                    "Equals": [
+                        "Management"
+                    ]
+                }
+            ]
+        }
+    ]
+}

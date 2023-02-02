@@ -1,0 +1,14 @@
+{
+    "TrailARN": "arn:aws:cloudtrail:us-east-1:test:trail/management-events",
+    "InsightSelectors": [
+        {
+            "InsightType": "ApiErrorRateInsight"
+        },
+        {
+            "InsightType": "ApiErrorRateInsight"
+        },
+        {
+            "InsightType": "ApiErrorRateInsight"
+        }
+    ]
+}

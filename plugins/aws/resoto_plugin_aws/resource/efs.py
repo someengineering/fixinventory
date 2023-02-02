@@ -1,5 +1,6 @@
 from typing import Optional, ClassVar, Dict, List, Type
 
+import math
 from attr import field, define
 
 from resoto_plugin_aws.aws_client import AwsClient
@@ -87,7 +88,7 @@ class AwsEfsFileSystem(EfsTaggable, AwsResource, BaseVolume):
             default="unknown",
         ),
         "number_of_mount_targets": S("NumberOfMountTargets"),
-        "volume_size": S("SizeInBytes", "Value") >> F(lambda x: x / 1024**3),
+        "volume_size": S("SizeInBytes", "Value") >> F(lambda x: math.ceil(x / 1024**3)),
         "performance_mode": S("PerformanceMode"),
         "volume_encrypted": S("Encrypted"),
         "throughput_mode": S("ThroughputMode"),
