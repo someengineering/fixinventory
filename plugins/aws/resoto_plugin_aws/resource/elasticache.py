@@ -4,7 +4,6 @@ from attrs import define, field
 
 from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
 from resoto_plugin_aws.resource.kms import AwsKmsKey
-from resoto_plugin_aws.resource.sns import AwsSnsTopic
 from resotolib.baseresources import ModelReference
 from resotolib.json_bender import Bender, S, Bend, ForallBend, K, bend
 from resoto_plugin_aws.aws_client import AwsClient
