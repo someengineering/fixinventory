@@ -293,11 +293,10 @@ class AwsRedshiftCluster(AwsResource):
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["aws_vpc", "aws_ec2_security_group", "aws_iam_role", "aws_ec2_subnet"],
-            "delete": ["aws_kms_key", "aws_iam_role"],
+            "delete": ["aws_kms_key", "aws_vpc", "aws_ec2_security_group", "aws_iam_role", "aws_ec2_subnet"],
         },
         "successors": {
             "default": ["aws_kms_key"],
-            "delete": ["aws_vpc", "aws_ec2_security_group", "aws_ec2_subnet"],
         },
     }
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -423,7 +422,9 @@ class AwsRedshiftCluster(AwsResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.redshift_vpc_id:
-            builder.dependant_node(self, reverse=True, clazz=AwsEc2Vpc, id=self.redshift_vpc_id)
+            builder.dependant_node(
+                self, reverse=True, delete_same_as_default=True, clazz=AwsEc2Vpc, id=self.redshift_vpc_id
+            )
 
         for vsg in self.redshift_vpc_security_groups:
             if vsg.vpc_security_group_id:

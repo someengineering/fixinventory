@@ -71,11 +71,16 @@ class AwsSagemakerNotebook(SagemakerTaggable, AwsResource):
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["aws_ec2_subnet", "aws_ec2_security_group", "aws_iam_role", "aws_sagemaker_code_repository"],
-            "delete": ["aws_iam_role", "aws_kms_key", "aws_ec2_network_interface"],
+            "delete": [
+                "aws_iam_role",
+                "aws_kms_key",
+                "aws_ec2_network_interface",
+                "aws_ec2_subnet",
+                "aws_ec2_security_group",
+            ],
         },
         "successors": {
             "default": ["aws_kms_key", "aws_ec2_network_interface"],
-            "delete": ["aws_ec2_subnet", "aws_ec2_security_group"],
         },
     }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-notebook-instances", "NotebookInstances")
@@ -690,9 +695,9 @@ class AwsSagemakerModel(SagemakerTaggable, AwsResource):
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["aws_iam_role", "aws_ec2_subnet", "aws_ec2_security_group"],
-            "delete": ["aws_iam_role"],
+            "delete": ["aws_iam_role", "aws_ec2_subnet", "aws_ec2_security_group"],
         },
-        "successors": {"default": ["aws_s3_bucket"], "delete": ["aws_ec2_subnet", "aws_ec2_security_group"]},
+        "successors": {"default": ["aws_s3_bucket"]},
     }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-models", "Models")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1058,12 +1063,9 @@ class AwsSagemakerDomain(AwsResource):
                 "aws_sagemaker_code_repository",
                 "aws_ec2_vpc",
             ],
-            "delete": ["aws_iam_role", "aws_ec2_vpc", "aws_kms_key"],
+            "delete": ["aws_iam_role", "aws_ec2_vpc", "aws_kms_key", "aws_ec2_subnet", "aws_ec2_security_group"],
         },
-        "successors": {
-            "default": ["aws_s3_bucket", "aws_sagemaker_image", "aws_kms_key"],
-            "delete": ["aws_ec2_subnet", "aws_ec2_security_group"],
-        },
+        "successors": {"default": ["aws_s3_bucket", "aws_sagemaker_image", "aws_kms_key"]},
     }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-domains", "Domains")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -2416,7 +2418,7 @@ class AwsSagemakerAutoMLJob(AwsSagemakerJob):
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["aws_iam_role", "aws_ec2_security_group", "aws_ec2_subnet"],
-            "delete": ["aws_kms_key", "aws_iam_role"],
+            "delete": ["aws_kms_key", "aws_iam_role", "aws_ec2_subnet", "aws_ec2_security_group"],
         },
         "successors": {
             "default": [
@@ -2425,8 +2427,7 @@ class AwsSagemakerAutoMLJob(AwsSagemakerJob):
                 "aws_sagemaker_training_job",
                 "aws_sagemaker_transform_job",
                 "aws_sagemaker_processing_job",
-            ],
-            "delete": ["aws_ec2_security_group", "aws_ec2_subnet"],
+            ]
         },
     }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
@@ -2591,14 +2592,13 @@ class AwsSagemakerCompilationJob(AwsSagemakerJob):
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["aws_iam_role", "aws_ec2_security_group", "aws_ec2_subnet"],
-            "delete": ["aws_kms_key", "aws_iam_role"],
+            "delete": ["aws_kms_key", "aws_iam_role", "aws_ec2_subnet", "aws_ec2_security_group"],
         },
         "successors": {
             "default": [
                 "aws_s3_bucket",
                 "aws_kms_key",
-            ],
-            "delete": ["aws_ec2_security_group", "aws_ec2_subnet"],
+            ]
         },
     }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-compilation-jobs", "CompilationJobSummaries")
@@ -3061,12 +3061,9 @@ class AwsSagemakerHyperParameterTuningJob(SagemakerTaggable, AwsSagemakerJob):
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["aws_iam_role", "aws_ec2_security_group", "aws_ec2_subnet"],
-            "delete": ["aws_kms_key", "aws_iam_role"],
+            "delete": ["aws_kms_key", "aws_iam_role", "aws_ec2_subnet", "aws_ec2_security_group"],
         },
-        "successors": {
-            "default": ["aws_s3_bucket", "aws_kms_key", "aws_sagemaker_training_job"],
-            "delete": ["aws_ec2_security_group", "aws_ec2_subnet"],
-        },
+        "successors": {"default": ["aws_s3_bucket", "aws_kms_key", "aws_sagemaker_training_job"]},
     }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         "sagemaker", "list-hyper-parameter-tuning-jobs", "HyperParameterTuningJobSummaries"
@@ -3421,11 +3418,10 @@ class AwsSagemakerInferenceRecommendationsJob(AwsSagemakerJob):
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["aws_iam_role", "aws_ec2_security_group", "aws_ec2_subnet"],
-            "delete": ["aws_kms_key", "aws_iam_role"],
+            "delete": ["aws_kms_key", "aws_iam_role", "aws_ec2_subnet", "aws_ec2_security_group"],
         },
         "successors": {
             "default": ["aws_s3_bucket", "aws_kms_key", "aws_sagemaker_endpoint"],
-            "delete": ["aws_ec2_security_group", "aws_ec2_subnet"],
         },
     }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
@@ -3695,14 +3691,11 @@ class AwsSagemakerLabelingJob(SagemakerTaggable, AwsSagemakerJob):
                 "aws_sagemaker_model",
                 "aws_sagemaker_workteam",
             ],
-            "delete": ["aws_kms_key", "aws_iam_role"],
+            "delete": ["aws_kms_key", "aws_iam_role", "aws_ec2_subnet", "aws_ec2_security_group"],
             # TODO lambda should have a dependency here, but it breaks the graph
             # investigate where circularity is being introduced
         },
-        "successors": {
-            "default": ["aws_s3_bucket", "aws_kms_key", "aws_sns_topic", "aws_lambda_function"],
-            "delete": ["aws_ec2_security_group", "aws_ec2_subnet"],
-        },
+        "successors": {"default": ["aws_s3_bucket", "aws_kms_key", "aws_sns_topic", "aws_lambda_function"]},
     }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         "sagemaker", "list-labeling-jobs", "LabelingJobSummaryList", expected_errors=["UnknownOperationException"]
@@ -4020,12 +4013,9 @@ class AwsSagemakerProcessingJob(AwsSagemakerJob):
                 "aws_sagemaker_experiment",
                 "aws_sagemaker_trial",
             ],
-            "delete": ["aws_kms_key", "aws_iam_role"],
+            "delete": ["aws_kms_key", "aws_iam_role", "aws_ec2_subnet", "aws_ec2_security_group"],
         },
-        "successors": {
-            "default": ["aws_s3_bucket", "aws_kms_key", "aws_sagemaker_training_job"],
-            "delete": ["aws_ec2_security_group", "aws_ec2_subnet"],
-        },
+        "successors": {"default": ["aws_s3_bucket", "aws_kms_key", "aws_sagemaker_training_job"]},
     }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-processing-jobs", "ProcessingJobSummaries")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -4346,12 +4336,9 @@ class AwsSagemakerTrainingJob(SagemakerTaggable, AwsSagemakerJob):
                 "aws_sagemaker_experiment",
                 "aws_sagemaker_trial",
             ],
-            "delete": ["aws_kms_key", "aws_iam_role"],
+            "delete": ["aws_kms_key", "aws_iam_role", "aws_ec2_subnet", "aws_ec2_security_group"],
         },
-        "successors": {
-            "default": ["aws_s3_bucket", "aws_kms_key", "aws_sagemaker_algorithm"],
-            "delete": ["aws_ec2_security_group", "aws_ec2_subnet"],
-        },
+        "successors": {"default": ["aws_s3_bucket", "aws_kms_key", "aws_sagemaker_algorithm"]},
     }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-training-jobs", "TrainingJobSummaries")
     mapping: ClassVar[Dict[str, Bender]] = {

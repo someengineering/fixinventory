@@ -159,7 +159,7 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["aws_vpc", "aws_ec2_subnet", "aws_ec2_security_group"],
-            "delete": ["aws_vpc", "aws_ec2_subnet", "aws_ec2_instance"],
+            "delete": ["aws_vpc", "aws_ec2_subnet", "aws_ec2_security_group", "aws_ec2_instance"],
         },
         "successors": {
             "default": ["aws_ec2_instance"],
