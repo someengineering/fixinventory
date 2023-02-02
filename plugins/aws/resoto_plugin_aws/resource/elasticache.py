@@ -296,14 +296,11 @@ class AwsElastiCacheCacheCluster(ElastiCacheTaggable, AwsResource):
             builder.submit_work(add_tags, instance)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        # TODO add edge to outpost when applicable
         for sg in self.cluster_security_groups:
             builder.dependant_node(
                 self, reverse=True, delete_same_as_default=True, clazz=AwsEc2SecurityGroup, id=sg.security_group_id
             )
-        if cnc := self.cluster_notification_configuration:
-            if cnc.topic_arn:
-                builder.add_edge(self, clazz=AwsSnsTopic, arn=cnc.topic_arn)
+
 
 
 @define(eq=False, slots=False)
