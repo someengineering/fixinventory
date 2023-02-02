@@ -51,7 +51,7 @@ class AwsEfsMountTarget(AwsResource):
         "ip_address": S("IpAddress"),
         "availability_zone_name": S("AvailabilityZoneName"),
     }
-    reference_kinds: ClassVar[ModelReference] = {"predecessors": ["aws_ec2_network_interface"]}
+    reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["aws_ec2_network_interface"]}}
     owner_id: Optional[str] = field(default=None)
     life_cycle_state: Optional[str] = field(default=None)
     ip_address: Optional[str] = field(default=None)
@@ -96,7 +96,7 @@ class AwsEfsFileSystem(EfsTaggable, AwsResource, BaseVolume):
         "provisioned_throughput_in_mibps": S("ProvisionedThroughputInMibps"),
         "availability_zone_name": S("AvailabilityZoneName"),
     }
-    reference_kinds: ClassVar[ModelReference] = {"successors": ["aws_kms_key"]}
+    reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["aws_kms_key"]}}
     owner_id: Optional[str] = field(default=None)
     creation_token: Optional[str] = field(default=None)
     number_of_mount_targets: Optional[int] = field(default=None)
@@ -189,7 +189,7 @@ class AwsEfsAccessPoint(AwsResource, EfsTaggable):
         "owner_id": S("OwnerId"),
         "life_cycle_state": S("LifeCycleState"),
     }
-    reference_kinds: ClassVar[ModelReference] = {"predecessors": ["aws_efs_file_system"]}
+    reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["aws_efs_file_system"]}}
     client_token: Optional[str] = field(default=None)
     posix_user: Optional[AwsEfsPosixUser] = field(default=None)
     root_directory: Optional[AwsEfsRootDirectory] = field(default=None)
