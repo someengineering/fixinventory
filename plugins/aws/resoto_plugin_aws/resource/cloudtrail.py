@@ -212,9 +212,10 @@ class AwsCloudTrail(AwsResource):
         return True
 
     def delete_resource(self, client: AwsClient) -> bool:
-        client.call("cloudtrail", "delete-trail", name=self.arn)
+        client.call("cloudtrail", "delete-trail", Name=self.arn)
         return True
 
+    @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return [
             AwsApiSpec("cloudtrail", "add-tags"),
