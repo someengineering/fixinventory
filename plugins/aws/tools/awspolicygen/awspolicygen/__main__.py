@@ -5,7 +5,6 @@ from . import (
     add_args,
     verify_args,
 )
-from .gen import get_policies
 from .upload import upload_policies
 
 
@@ -21,7 +20,7 @@ def main() -> None:
     if args.verbose:
         log.setLevel(logging.DEBUG)
 
-    upload_policies(get_policies(), args)
+    upload_policies(args)
 
 
 if __name__ == "__main__":

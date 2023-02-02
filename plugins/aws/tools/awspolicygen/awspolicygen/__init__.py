@@ -94,6 +94,30 @@ def add_args(arg_parser: ArgumentParser) -> None:
         dest="github_event_name",
         default=os.getenv("GITHUB_EVENT_NAME", None),
     )
+    arg_parser.add_argument(
+        "--aws-s3-bucket",
+        help="AWS S3 Bucket",
+        dest="aws_s3_bucket",
+        default=os.getenv("AWS_S3_BUCKET", None),
+    )
+    arg_parser.add_argument(
+        "--aws-s3-bucket-path",
+        help="AWS S3 Bucket Path",
+        dest="aws_s3_bucket_path",
+        default=os.getenv("AWS_S3_BUCKET_PATH", None),
+    )
+    arg_parser.add_argument(
+        "--aws-access-key-id",
+        help="AWS Access Key ID",
+        dest="aws_access_key_id",
+        default=os.getenv("AWS_ACCESS_KEY_ID", None),
+    )
+    arg_parser.add_argument(
+        "--aws-secret-access-key",
+        help="AWS Secret Access Key",
+        dest="aws_secret_access_key",
+        default=os.getenv("AWS_SECRET_ACCESS_KEY", None),
+    )
 
 
 def verify_args(args: Namespace) -> None:
@@ -104,9 +128,17 @@ def verify_args(args: Namespace) -> None:
         args.spaces_name,
         args.spaces_path,
         args.spaces_region,
+        args.aws_s3_bucket,
+        args.aws_s3_bucket_path,
+        args.aws_access_key_id,
+        args.aws_secret_access_key,
     ):
         raise ValueError("missing required argument")
     if not str(args.spaces_path).endswith("/"):
         raise ValueError(f"spaces path {args.spaces_path} must end with a slash")
     if str(args.spaces_path).startswith("/"):
         raise ValueError(f"spaces path {args.spaces_path} must not start with a slash")
+    if not str(args.aws_s3_bucket_path).endswith("/"):
+        raise ValueError(f"bucket path {args.aws_s3_bucket_path} must end with a slash")
+    if str(args.aws_s3_bucket_path).startswith("/"):
+        raise ValueError(f"bucket path {args.aws_s3_bucket_path} must not start with a slash")

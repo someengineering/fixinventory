@@ -14,16 +14,18 @@ from functools import lru_cache
 from argparse import Namespace
 from typing import Optional
 from . import log
+from .gen import get_policies, get_cf_template
 
 
 mimetypes.init()
 mime = magic.Magic(mime=True)
 
 
-def upload_policies(policies: list, args: Namespace) -> None:
+def upload_policies(args: Namespace) -> None:
     """Upload the Resoto AWS policies to the CDN."""
     log.info("Uploading Resoto AWS policies to the CDN")
-    client = s3_client(args.spaces_region, args.spaces_key, args.spaces_secret)
+    cdn_client = spaces_client(args.spaces_region, args.spaces_key, args.spaces_secret)
+    s3_client = boto3.client("s3")
 
     # github_ref format:
     # refs/pull/14/merge
@@ -44,12 +46,26 @@ def upload_policies(policies: list, args: Namespace) -> None:
 
     purge_keys = []
     with tempfile.TemporaryDirectory() as tmpdirname:
+        # Create the policies json files
+        policies = get_policies()
         log.debug(f"Created temporary directory: {tmpdirname}")
         for policy in policies:
             filename = f"{tmpdirname}/{policy['PolicyName']}.json"
             with open(filename, "w") as f:
                 json.dump(policy["PolicyDocument"], f, indent=4)
 
+        # Create the CloudFormation template
+        cf_template = get_cf_template()
+        cf_filename = f"{tmpdirname}/resoto-role.template"
+        with open(cf_filename, "w") as f:
+            f.write(cf_template)
+        key_name = f"{args.aws_s3_bucket_path}resoto-role.template"
+
+        # Upload the CloudFormation template to S3
+        log.debug(f"Uploading {cf_filename} to {key_name} in {args.aws_s3_bucket}")
+        s3_client.upload_file(cf_filename, args.aws_s3_bucket, key_name)
+
+        # Upload the policies and CF template to the CDN
         for destination in destinations:
             for filename in glob.iglob(tmpdirname + "**/**", recursive=True):
                 if not os.path.isfile(filename):
@@ -58,7 +74,7 @@ def upload_policies(policies: list, args: Namespace) -> None:
                 key_name = f"{args.spaces_path}{destination}/{basename}"
                 ctype = content_type(filename, ttl_hash=ttl_hash())
                 log.debug(f"Uploading {filename} to {key_name}, type: {ctype}")
-                upload_file(client, filename=filename, key=key_name, spaces_name=args.spaces_name, ctype=ctype)
+                upload_to_cdn(cdn_client, filename=filename, key=key_name, spaces_name=args.spaces_name, ctype=ctype)
                 purge_keys.append(key_name)
 
     try:
@@ -67,7 +83,7 @@ def upload_policies(policies: list, args: Namespace) -> None:
         log.error(e)
 
 
-def s3_client(region: str, key: str, secret: str) -> BaseClient:
+def spaces_client(region: str, key: str, secret: str) -> BaseClient:
     session = boto3.session.Session()
     return session.client(
         "s3",
@@ -78,7 +94,7 @@ def s3_client(region: str, key: str, secret: str) -> BaseClient:
     )
 
 
-def upload_file(
+def upload_to_cdn(
     client: BaseClient,
     filename: str,
     key: str,
@@ -92,6 +108,8 @@ def upload_file(
 
 @lru_cache
 def content_type(filename: str, ttl_hash: Optional[int] = None) -> str:
+    if filename.endswith(".template"):
+        return "binary/octet-stream"
     ctype = mimetypes.guess_type(filename)[0]
     if ctype is None:
         ctype = mime.from_file(filename)

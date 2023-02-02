@@ -53,6 +53,24 @@ aws_plugin = """
           pip install --upgrade --editable plugins/aws/
 """
 
+aws_policygen = """
+      - name: Upload AWS policies
+        if: github.event_name != 'pull_request'
+        working-directory: ./plugins/aws
+        run: |
+          pip install --upgrade --editable .
+          pip install --upgrade --editable ./tools/awspolicygen
+          export GITHUB_REF="${{ github.ref }}"
+          export GITHUB_REF_TYPE="${{ github.ref_type }}"
+          export GITHUB_EVENT_NAME="${{ github.event_name }}"
+          export API_TOKEN="${{ secrets.API_TOKEN }}"
+          export SPACES_KEY="${{ secrets.SPACES_KEY }}"
+          export SPACES_SECRET="${{ secrets.SPACES_SECRET }}"
+          export AWS_ACCESS_KEY_ID="${{ secrets.S3_RESOTOPUBLIC_AWS_ACCESS_KEY_ID }}"
+          export AWS_SECRET_ACCESS_KEY="${{ secrets.S3_RESOTOPUBLIC_AWS_SECRET_ACCESS_KEY }}"
+          awspolicygen --verbose --spaces-name somecdn --spaces-region ams3 --spaces-path resoto/aws/ --aws-s3-bucket resotopublic --aws-s3-bucket-path cf/
+"""
+
 step_run_test = """
       - name: Run tests
         working-directory: @directory@
@@ -99,3 +117,5 @@ for plugin in os.listdir(plugins_path):
                 .replace("@name@", plugin)
                 .replace("@PKGNAME@", f"resoto_plugin_{plugin}".upper())
             )
+            if plugin == "aws":
+                yml.write(aws_policygen)
