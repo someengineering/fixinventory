@@ -1,4 +1,3 @@
-import resotolib.logger
 from attrs import define
 from typing import Optional, ClassVar
 from resotolib.graph import Graph
@@ -8,8 +7,7 @@ from resotolib.baseresources import (
     BaseInstance,
     BaseNetwork,
 )
-
-log = resotolib.logger.getLogger("resoto." + __name__)
+from resotolib.logger import log
 
 
 @define(eq=False, slots=False)
