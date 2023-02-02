@@ -1,5 +1,5 @@
-# Resoto UI uploader
-This script uploads build artifacts of Resoto UI to the CDN.
+# Resoto AWS policy generator
+This script creates and uploads AWS policies to the CDN
 
 ## License
 ```
