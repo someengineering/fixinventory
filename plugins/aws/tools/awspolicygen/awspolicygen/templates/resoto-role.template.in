@@ -122,4 +122,7 @@ Resources:
           Action:
           - 'sts:AssumeRole'
           - 'sts:TagSession'
+      MaxSessionDuration: 10800
+      ManagedPolicyArns:
+      - 'arn:aws:iam::aws:policy/ReadOnlyAccess'
       Policies:
