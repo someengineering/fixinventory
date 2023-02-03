@@ -297,8 +297,7 @@ def default_imports() -> str:
         """
         from typing import ClassVar, Dict, Optional
         from attr import define, field
-        from resoto_plugin_aws import AwsResource
-        from resoto_plugin_aws.resource.base import AwsApiSpec
+        from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource
         from resoto_plugin_aws.utils import ToDict, TagsValue
         from resotolib.json_bender import Bender, S, K
         """
@@ -846,7 +845,7 @@ models: Dict[str, List[AwsResotoModel]] = {
         #     "get-bucket-encryption", "ServerSideEncryptionConfiguration", "GetBucketEncryptionOutput", prefix="S3"
         # ),
         # AwsResotoModel("get-public-access-block", "PublicAccessBlockConfiguration", prefix="S3"),
-        AwsResotoModel("get-bucket-acl", "", prefix="S3"),
+        # AwsResotoModel("get-bucket-acl", "", prefix="S3"),
     ],
     "sagemaker": [
         # AwsResotoModel(
@@ -967,14 +966,23 @@ models: Dict[str, List[AwsResotoModel]] = {
         # AwsResotoModel("get-trail-status", "", prefix="CloudTrail")
         # AwsResotoModel("get-event-selectors", "", prefix="CloudTrail")
     ],
+    "config": [
+        AwsResotoModel(
+            "describe-configuration-recorders-status",
+            "ConfigurationRecorders",
+            "ConfigurationRecorder",
+            prefix="Config",
+            prop_prefix="configuration_recorder_",
+        ),
+    ],
 }
 
 
 if __name__ == "__main__":
     """print some test data"""
-    # print(json.dumps(create_test_response("cloudtrail", "get-insight-selectors"), indent=2))
+    print(json.dumps(create_test_response("config", "describe-configuration-recorders"), indent=2))
 
     """print the class models"""
-    for model in all_models():
-        #     print(default_imports())
-        print(model.to_class())
+    # print(default_imports())
+    # for model in all_models():
+    #   print(model.to_class())

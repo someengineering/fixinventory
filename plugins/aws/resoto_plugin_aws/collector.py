@@ -10,6 +10,7 @@ from resoto_plugin_aws.resource import (
     apigateway,
     athena,
     autoscaling,
+    config,
     cloudformation,
     cloudfront,
     cloudtrail,
@@ -60,6 +61,7 @@ regional_resources: List[Type[AwsResource]] = (
     apigateway.resources
     + autoscaling.resources
     + athena.resources
+    + config.resources
     + cloudformation.resources
     + cloudtrail.resources
     + cloudwatch.resources
