@@ -123,4 +123,15 @@ def timedelta_from_json(js: Any, _: type = object, **__: Any) -> timedelta:
         raise ValueError(f"Cannot convert {js} to timedelta")
 
 
+def is_empty(js: JsonElement) -> bool:
+    if js is None:
+        return True
+    elif isinstance(js, dict):
+        return all(is_empty(v) for v in js.values())
+    elif isinstance(js, list):
+        return all(is_empty(v) for v in js)
+    else:
+        return False
+
+
 set_deserializer(timedelta_from_json, timedelta)

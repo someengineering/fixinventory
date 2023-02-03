@@ -286,6 +286,8 @@ def create_test_response(service: str, function: str) -> JsonElement:
             return True
         elif shape.type_name == "long":
             return 123
+        elif shape.type_name == "timestamp":
+            return utc_str()
         else:
             raise NotImplementedError(f"Unsupported shape: {type(shape)}")
 
@@ -297,8 +299,7 @@ def default_imports() -> str:
         """
         from typing import ClassVar, Dict, Optional
         from attr import define, field
-        from resoto_plugin_aws import AwsResource
-        from resoto_plugin_aws.resource.base import AwsApiSpec
+        from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource
         from resoto_plugin_aws.utils import ToDict, TagsValue
         from resotolib.json_bender import Bender, S, K
         """
@@ -598,6 +599,7 @@ models: Dict[str, List[AwsResotoModel]] = {
         #     prop_prefix="reservation_",
         # ),
         # AwsResotoModel("describe-network-acls", "NetworkAcls", "NetworkAcl", prefix="Ec2"),
+        # AwsResotoModel("describe-flow-logs", "FlowLogs", "FlowLog", prefix="Ec2"),
     ],
     "ecs": [
         # AwsResotoModel(
@@ -846,6 +848,8 @@ models: Dict[str, List[AwsResotoModel]] = {
         #     "get-bucket-encryption", "ServerSideEncryptionConfiguration", "GetBucketEncryptionOutput", prefix="S3"
         # ),
         # AwsResotoModel("get-public-access-block", "PublicAccessBlockConfiguration", prefix="S3"),
+        # AwsResotoModel("get-bucket-acl", "", prefix="S3"),
+        # AwsResotoModel("get-bucket-logging", "", prefix="S3"),
     ],
     "sagemaker": [
         # AwsResotoModel(
@@ -966,14 +970,23 @@ models: Dict[str, List[AwsResotoModel]] = {
         # AwsResotoModel("get-trail-status", "", prefix="CloudTrail")
         # AwsResotoModel("get-event-selectors", "", prefix="CloudTrail")
     ],
+    "config": [
+        # AwsResotoModel(
+        #     "describe-configuration-recorders-status",
+        #     "ConfigurationRecorders",
+        #     "ConfigurationRecorder",
+        #     prefix="Config",
+        #     prop_prefix="configuration_recorder_",
+        # ),
+    ],
 }
 
 
 if __name__ == "__main__":
     """print some test data"""
-    # print(json.dumps(create_test_response("cloudtrail", "get-insight-selectors"), indent=2))
+    # print(json.dumps(create_test_response("ec2", "describe-flow-logs"), indent=2))
 
     """print the class models"""
+    print(default_imports())
     for model in all_models():
-        #     print(default_imports())
         print(model.to_class())

@@ -400,7 +400,7 @@ class ListOp(Bender, ABC):
         raise NotImplementedError()
 
     def execute(self, source: Any) -> Any:
-        return self.op(self._func, source)
+        return None if source is None else self.op(self._func, source)
 
 
 class Forall(ListOp):

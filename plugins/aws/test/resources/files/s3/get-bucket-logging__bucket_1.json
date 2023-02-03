@@ -1,0 +1,6 @@
+{
+    "LoggingEnabled": {
+        "TargetBucket": "bucket-2",
+        "TargetPrefix": "foo"
+    }
+}

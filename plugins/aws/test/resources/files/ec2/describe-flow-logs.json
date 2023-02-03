@@ -1,0 +1,31 @@
+{
+    "FlowLogs": [
+        {
+            "CreationTime": "2023-02-03T11:17:38.492000+00:00",
+            "DeliverLogsStatus": "SUCCESS",
+            "FlowLogId": "fl-00d1e328e5ad39b13",
+            "FlowLogStatus": "ACTIVE",
+            "ResourceId": "vpc-123",
+            "TrafficType": "ALL",
+            "LogDestinationType": "s3",
+            "LogDestination": "arn:aws:s3:::test-logging-foo-12345",
+            "LogFormat": "${version} ${account-id} ${interface-id} ${srcaddr} ${dstaddr} ${srcport} ${dstport} ${protocol} ${packets} ${bytes} ${start} ${end} ${action} ${log-status}",
+            "Tags": [
+                {
+                    "Key": "expiration",
+                    "Value": "4h"
+                }
+            ],
+            "MaxAggregationInterval": 600,
+            "DestinationOptions": {
+                "FileFormat": "plain-text",
+                "HiveCompatiblePartitions": false,
+                "PerHourPartition": false
+            },
+            "DeliverLogsErrorMessage": "foo",
+            "DeliverLogsPermissionArn": "foo",
+            "DeliverCrossAccountRole": "foo",
+            "LogGroupName": "foo"
+        }
+    ]
+}

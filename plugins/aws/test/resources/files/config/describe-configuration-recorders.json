@@ -1,0 +1,15 @@
+{
+    "ConfigurationRecorders": [
+        {
+            "name": "default",
+            "roleARN": "arn:aws:iam::test:role/aws-service-role/config.amazonaws.com/AWSServiceRoleForConfig",
+            "recordingGroup": {
+                "allSupported": true,
+                "includeGlobalResourceTypes": false,
+                "resourceTypes": [
+                    "AWS::EC2::EIP"
+                ]
+            }
+        }
+    ]
+}
