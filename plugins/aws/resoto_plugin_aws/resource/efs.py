@@ -135,6 +135,10 @@ class AwsEfsFileSystem(EfsTaggable, AwsResource, BaseVolume):
         client.call("efs", "delete-file-system", FileSystemId=self.id)
         return True
 
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [AwsApiSpec("efs", "delete-file-system")]
+
 
 @define(eq=False, slots=False)
 class AwsEfsPosixUser:
