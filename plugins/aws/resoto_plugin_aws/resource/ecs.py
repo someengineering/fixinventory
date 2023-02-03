@@ -1649,7 +1649,7 @@ class AwsEcsCluster(EcsTaggable, AwsResource):
                 if exc.kms_key_id:
                     builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(exc.kms_key_id))
                 if exc.log_configuration and exc.log_configuration.s3_bucket_name:
-                    builder.dependant_node(self, clazz=AwsS3Bucket, name=exc.log_configuration.s3_bucket_name)
+                    builder.add_edge(self, clazz=AwsS3Bucket, name=exc.log_configuration.s3_bucket_name)
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(aws_service=self.api_spec.service, action="delete-cluster", result_name=None, cluster=self.arn)
