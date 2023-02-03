@@ -54,12 +54,6 @@ class AwsKinesisShard:
 @define(eq=False, slots=False)
 class AwsKinesisEnhancedMetrics:
     kind: ClassVar[str] = "aws_kinesis_enhanced_metrics"
-    reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {
-            "delete": ["aws_kms_key"],
-        },
-        "successors": {"default": ["aws_kms_key"]},
-    }
     mapping: ClassVar[Dict[str, Bender]] = {"shard_level_metrics": S("ShardLevelMetrics", default=[])}
     shard_level_metrics: List[str] = field(factory=list)
 
@@ -67,6 +61,12 @@ class AwsKinesisEnhancedMetrics:
 @define(eq=False, slots=False)
 class AwsKinesisStream(AwsResource):
     kind: ClassVar[str] = "aws_kinesis_stream"
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {
+            "delete": ["aws_kms_key"],
+        },
+        "successors": {"default": ["aws_kms_key"]},
+    }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("kinesis", "list-streams", "StreamNames")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("StreamName"),
