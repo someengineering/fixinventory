@@ -186,7 +186,13 @@ class AwsCloudTrail(AwsResource):
             trail.mtime = status.latest_delivery_time
 
         def collect_tags(trail: AwsCloudTrail) -> None:
-            for tr in builder.client.list("cloudtrail", "list-tags", "ResourceTagList", ResourceIdList=[trail.arn]):
+            for tr in builder.client.list(
+                "cloudtrail",
+                "list-tags",
+                "ResourceTagList",
+                ResourceIdList=[trail.arn],
+                expected_errors=["CloudTrailARNInvalidException", "AccessDeniedException"],
+            ):
                 trail.tags = bend(S("TagsList", default=[]) >> ToDict(), tr)
 
         for js in json:

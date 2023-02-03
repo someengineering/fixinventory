@@ -131,6 +131,10 @@ class AwsEfsFileSystem(EfsTaggable, AwsResource, BaseVolume):
         if kms_key_id := source.get("KmsKeyId"):
             builder.dependant_node(from_node=self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(kms_key_id))
 
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call("efs", "delete-file-system", FileSystemId=self.id)
+        return True
+
 
 @define(eq=False, slots=False)
 class AwsEfsPosixUser:
