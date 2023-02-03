@@ -193,7 +193,7 @@ class AwsElastiCacheCacheCluster(ElastiCacheTaggable, AwsResource):
             "default": ["aws_ec2_security_group"],
             "delete": ["aws_ec2_security_group"],
         },
-        "successors": {"default": ["aws_sns_topic"]}
+        "successors": {"default": ["aws_sns_topic"]},
     }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("elasticache", "describe-cache-clusters", "CacheClusters")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -301,7 +301,7 @@ class AwsElastiCacheCacheCluster(ElastiCacheTaggable, AwsResource):
             builder.dependant_node(
                 self, reverse=True, delete_same_as_default=True, clazz=AwsEc2SecurityGroup, id=sg.security_group_id
             )
-        if cnc:=self.cluster_notification_configuration:
+        if cnc := self.cluster_notification_configuration:
             if cnc.topic_arn:
                 builder.add_edge(self, clazz=AwsSnsTopic, arn=cnc.topic_arn)
 
