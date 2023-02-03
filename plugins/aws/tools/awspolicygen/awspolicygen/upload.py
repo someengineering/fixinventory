@@ -32,7 +32,7 @@ def upload_policies(args: Namespace) -> None:
     # refs/tags/v0.0.1
     # refs/heads/master
     destinations = ["edge"]
-    if not None in (args.github_ref, args.github_ref_type, args.github_event_name):
+    if None not in (args.github_ref, args.github_ref_type, args.github_event_name):
         log.debug(f"GitHub ref: {args.github_ref}, type: {args.github_ref_type}, event: {args.github_event_name}")
 
         if str(args.github_event_name) == "pull_request":
@@ -148,7 +148,7 @@ def cdn_endpoints(api_token: str, ttl_hash: Optional[int] = None) -> dict:
         if response.status_code != 200:
             raise RuntimeError(f"failed to get CDN endpoint: {response.text}")
         data = response.json()
-        if not "endpoints" in data:
+        if "endpoints" not in data:
             raise ValueError(f"no CDN endpoint in response: {response.text}")
         for endpoint in data["endpoints"]:
             endpoints[endpoint["origin"]] = endpoint["id"]
