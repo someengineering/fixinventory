@@ -3,7 +3,7 @@ mypy==0.991
 wheel==0.38.4
 flake8==6.0.0
 pep8-naming==0.13.3
-tox==4.4.4
+tox==3.28.0
 coverage==7.1.0
 black==23.1.0
 build==0.10.0
