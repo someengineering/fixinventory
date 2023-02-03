@@ -300,7 +300,6 @@ class AwsElastiCacheCacheCluster(ElastiCacheTaggable, AwsResource):
             )
 
 
-
 @define(eq=False, slots=False)
 class AwsElastiCacheGlobalReplicationGroupInfo:
     kind: ClassVar[str] = "aws_elasticache_global_replication_group_info"
