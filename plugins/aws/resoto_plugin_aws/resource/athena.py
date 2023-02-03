@@ -6,6 +6,7 @@ from attrs import define
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
 from resoto_plugin_aws.resource.kms import AwsKmsKey
+from resoto_plugin_aws.resource.s3 import AwsS3Bucket
 from resoto_plugin_aws.utils import ToDict
 from resotolib.baseresources import ModelReference
 from resotolib.json_bender import Bender, S, Bend, bend
@@ -81,7 +82,7 @@ class AwsAthenaWorkGroup(AwsResource):
 
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"delete": ["aws_kms_key"]},
-        "successors": {"default": ["aws_kms_key"]},
+        "successors": {"default": ["aws_kms_key", "aws_s3_bucket"]},
     }
 
     @classmethod
@@ -139,6 +140,8 @@ class AwsAthenaWorkGroup(AwsResource):
         ):
             if ec.kms_key:
                 builder.dependant_node(from_node=self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(ec.kms_key))
+            if rc.output_location:
+                builder.add_edge(self, clazz=AwsS3Bucket, name=AwsS3Bucket.name_from_path(rc.output_location))
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(

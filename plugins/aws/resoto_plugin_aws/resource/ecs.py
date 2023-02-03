@@ -1144,15 +1144,13 @@ class AwsEcsService(EcsTaggable, AwsResource):
     kind: ClassVar[str] = "aws_ecs_service"
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
-            "default": ["aws_iam_role"],
+            "default": ["aws_iam_role", "aws_ec2_subnet", "aws_ec2_security_group"],
             "delete": ["aws_alb_target_group", "aws_elb", "aws_iam_role", "aws_ec2_subnet", "aws_ec2_security_group"],
         },
         "successors": {
             "default": [
                 "aws_alb_target_group",
                 "aws_elb",
-                "aws_ec2_subnet",
-                "aws_ec2_security_group",
                 "aws_ecs_capacity_provider",
             ]
         },
@@ -1278,12 +1276,16 @@ class AwsEcsService(EcsTaggable, AwsResource):
         for group in sum(all_sec_groups, []):
             builder.dependant_node(
                 self,
+                reverse=True,
+                delete_same_as_default=True,
                 clazz=AwsEc2SecurityGroup,
                 id=group,
             )
         for subnet in sum(all_subnets, []):
             builder.dependant_node(
                 self,
+                reverse=True,
+                delete_same_as_default=True,
                 clazz=AwsEc2Subnet,
                 id=subnet,
             )
@@ -1647,7 +1649,7 @@ class AwsEcsCluster(EcsTaggable, AwsResource):
                 if exc.kms_key_id:
                     builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(exc.kms_key_id))
                 if exc.log_configuration and exc.log_configuration.s3_bucket_name:
-                    builder.dependant_node(self, clazz=AwsS3Bucket, name=exc.log_configuration.s3_bucket_name)
+                    builder.add_edge(self, clazz=AwsS3Bucket, name=exc.log_configuration.s3_bucket_name)
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(aws_service=self.api_spec.service, action="delete-cluster", result_name=None, cluster=self.arn)

@@ -4,6 +4,7 @@ from attrs import define, field
 
 from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
 from resoto_plugin_aws.resource.kms import AwsKmsKey
+from resoto_plugin_aws.resource.sns import AwsSnsTopic
 from resotolib.baseresources import ModelReference
 from resotolib.json_bender import Bender, S, Bend, ForallBend, K, bend
 from resoto_plugin_aws.aws_client import AwsClient
@@ -187,6 +188,13 @@ class AwsElastiCacheLogDeliveryConfiguration:
 @define(eq=False, slots=False)
 class AwsElastiCacheCacheCluster(ElastiCacheTaggable, AwsResource):
     kind: ClassVar[str] = "aws_elasticache_cache_cluster"
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {
+            "default": ["aws_ec2_security_group"],
+            "delete": ["aws_ec2_security_group"],
+        },
+        "successors": {"default": ["aws_sns_topic"]},
+    }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("elasticache", "describe-cache-clusters", "CacheClusters")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("CacheClusterId"),
@@ -288,8 +296,14 @@ class AwsElastiCacheCacheCluster(ElastiCacheTaggable, AwsResource):
             builder.submit_work(add_tags, instance)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        # TODO add edge to outpost when applicable
         for sg in self.cluster_security_groups:
-            builder.dependant_node(self, reverse=True, clazz=AwsEc2SecurityGroup, id=sg.security_group_id)
+            builder.dependant_node(
+                self, reverse=True, delete_same_as_default=True, clazz=AwsEc2SecurityGroup, id=sg.security_group_id
+            )
+        if cnc := self.cluster_notification_configuration:
+            if cnc.topic_arn:
+                builder.add_edge(self, clazz=AwsSnsTopic, arn=cnc.topic_arn)
 
 
 @define(eq=False, slots=False)

@@ -175,7 +175,7 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
                 "aws_api_gateway_rest_api",
                 "aws_api_gateway_resource",
             ],
-            "delete": ["aws_vpc", "aws_ec2_subnet", "aws_kms_key"],
+            "delete": ["aws_vpc", "aws_ec2_subnet", "aws_ec2_security_group", "aws_kms_key"],
         },
         "successors": {"default": ["aws_kms_key"], "delete": ["aws_api_gateway_rest_api", "aws_api_gateway_resource"]},
     }
@@ -327,7 +327,9 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
                     self, reverse=True, delete_same_as_default=True, clazz=AwsEc2Subnet, id=subnet_id
                 )
             for security_group_id in vpc_config.get("SecurityGroupIds", []):
-                builder.add_edge(self, reverse=True, clazz=AwsEc2SecurityGroup, id=security_group_id)
+                builder.dependant_node(
+                    self, reverse=True, delete_same_as_default=True, clazz=AwsEc2SecurityGroup, id=security_group_id
+                )
         if self.function_kms_key_arn:
             builder.dependant_node(
                 self,
