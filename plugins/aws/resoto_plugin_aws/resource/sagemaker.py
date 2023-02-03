@@ -71,11 +71,16 @@ class AwsSagemakerNotebook(SagemakerTaggable, AwsResource):
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["aws_ec2_subnet", "aws_ec2_security_group", "aws_iam_role", "aws_sagemaker_code_repository"],
-            "delete": ["aws_iam_role", "aws_kms_key", "aws_ec2_network_interface"],
+            "delete": [
+                "aws_iam_role",
+                "aws_kms_key",
+                "aws_ec2_network_interface",
+                "aws_ec2_subnet",
+                "aws_ec2_security_group",
+            ],
         },
         "successors": {
             "default": ["aws_kms_key", "aws_ec2_network_interface"],
-            "delete": ["aws_ec2_subnet", "aws_ec2_security_group"],
         },
     }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-notebook-instances", "NotebookInstances")
@@ -136,10 +141,12 @@ class AwsSagemakerNotebook(SagemakerTaggable, AwsResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if subnet := value_in_path(source, "SubnetId"):
-            builder.dependant_node(self, reverse=True, clazz=AwsEc2Subnet, id=subnet)
+            builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsEc2Subnet, id=subnet)
         if security_groups := value_in_path(source, "SecurityGroups"):
             for security_group in security_groups:
-                builder.dependant_node(self, reverse=True, clazz=AwsEc2SecurityGroup, id=security_group)
+                builder.dependant_node(
+                    self, reverse=True, delete_same_as_default=True, clazz=AwsEc2SecurityGroup, id=security_group
+                )
         if role_arn := value_in_path(source, "RoleArn"):
             builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsIamRole, arn=role_arn)
         if key := value_in_path(source, "KmsKeyId"):
@@ -688,9 +695,9 @@ class AwsSagemakerModel(SagemakerTaggable, AwsResource):
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["aws_iam_role", "aws_ec2_subnet", "aws_ec2_security_group"],
-            "delete": ["aws_iam_role"],
+            "delete": ["aws_iam_role", "aws_ec2_subnet", "aws_ec2_security_group"],
         },
-        "successors": {"default": ["aws_s3_bucket"], "delete": ["aws_ec2_subnet", "aws_ec2_security_group"]},
+        "successors": {"default": ["aws_s3_bucket"]},
     }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-models", "Models")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -734,9 +741,11 @@ class AwsSagemakerModel(SagemakerTaggable, AwsResource):
             builder.dependant_node(self, delete_same_as_default=True, clazz=AwsIamRole, arn=role_arn)
         if self.model_vpc_config:
             for security_group in self.model_vpc_config.security_group_ids:
-                builder.dependant_node(self, reverse=True, clazz=AwsEc2SecurityGroup, id=security_group)
+                builder.dependant_node(
+                    self, reverse=True, delete_same_as_default=True, clazz=AwsEc2SecurityGroup, id=security_group
+                )
             for subnet in self.model_vpc_config.subnets:
-                builder.dependant_node(self, reverse=True, clazz=AwsEc2Subnet, id=subnet)
+                builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsEc2Subnet, id=subnet)
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(aws_service=self.api_spec.service, action="delete-model", result_name=None, ModelName=self.name)
@@ -1054,12 +1063,9 @@ class AwsSagemakerDomain(AwsResource):
                 "aws_sagemaker_code_repository",
                 "aws_ec2_vpc",
             ],
-            "delete": ["aws_iam_role", "aws_ec2_vpc", "aws_kms_key"],
+            "delete": ["aws_iam_role", "aws_ec2_vpc", "aws_kms_key", "aws_ec2_subnet", "aws_ec2_security_group"],
         },
-        "successors": {
-            "default": ["aws_s3_bucket", "aws_sagemaker_image", "aws_kms_key"],
-            "delete": ["aws_ec2_subnet", "aws_ec2_security_group"],
-        },
+        "successors": {"default": ["aws_s3_bucket", "aws_sagemaker_image", "aws_kms_key"]},
     }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-domains", "Domains")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1131,7 +1137,9 @@ class AwsSagemakerDomain(AwsResource):
                 )
             if security_groups := value_in_path(source, ["DefaultUserSettings", "SecurityGroups"]):
                 for security_group in security_groups:
-                    builder.dependant_node(self, reverse=True, clazz=AwsEc2SecurityGroup, id=security_group)
+                    builder.dependant_node(
+                        self, reverse=True, delete_same_as_default=True, clazz=AwsEc2SecurityGroup, id=security_group
+                    )
             if shs := dus.sharing_settings:
                 if shs.s3_output_path:
                     builder.add_edge(self, clazz=AwsS3Bucket, name=AwsS3Bucket.name_from_path(shs.s3_output_path))
@@ -1169,7 +1177,7 @@ class AwsSagemakerDomain(AwsResource):
                 self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(self.domain_home_efs_file_system_kms_key_id)
             )
         for subnet in self.domain_subnet_ids:
-            builder.dependant_node(self, reverse=True, clazz=AwsEc2Subnet, id=subnet)
+            builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsEc2Subnet, id=subnet)
         if self.domain_vpc_id:
             builder.dependant_node(
                 self, reverse=True, delete_same_as_default=True, clazz=AwsEc2Vpc, id=self.domain_vpc_id
@@ -1179,7 +1187,9 @@ class AwsSagemakerDomain(AwsResource):
 
         if ds := self.domain_settings:
             for security_group in ds.security_group_ids:
-                builder.dependant_node(self, reverse=True, clazz=AwsEc2SecurityGroup, id=security_group)
+                builder.dependant_node(
+                    self, reverse=True, delete_same_as_default=True, clazz=AwsEc2SecurityGroup, id=security_group
+                )
             if rss := ds.r_studio_server_pro_domain_settings:
                 if rss.domain_execution_role_arn:
                     builder.dependant_node(
@@ -1199,7 +1209,9 @@ class AwsSagemakerDomain(AwsResource):
                     self, reverse=True, delete_same_as_default=True, clazz=AwsIamRole, arn=dss.execution_role
                 )
             for security_group in dss.security_groups:
-                builder.dependant_node(self, reverse=True, clazz=AwsEc2SecurityGroup, id=security_group)
+                builder.dependant_node(
+                    self, reverse=True, delete_same_as_default=True, clazz=AwsEc2SecurityGroup, id=security_group
+                )
             if jup := dss.jupyter_server_app_settings:
                 if drs := jup.default_resource_spec:
                     if drs.sage_maker_image_arn:
@@ -2406,7 +2418,7 @@ class AwsSagemakerAutoMLJob(AwsSagemakerJob):
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["aws_iam_role", "aws_ec2_security_group", "aws_ec2_subnet"],
-            "delete": ["aws_kms_key", "aws_iam_role"],
+            "delete": ["aws_kms_key", "aws_iam_role", "aws_ec2_subnet", "aws_ec2_security_group"],
         },
         "successors": {
             "default": [
@@ -2415,8 +2427,7 @@ class AwsSagemakerAutoMLJob(AwsSagemakerJob):
                 "aws_sagemaker_training_job",
                 "aws_sagemaker_transform_job",
                 "aws_sagemaker_processing_job",
-            ],
-            "delete": ["aws_ec2_security_group", "aws_ec2_subnet"],
+            ]
         },
     }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
@@ -2497,9 +2508,17 @@ class AwsSagemakerAutoMLJob(AwsSagemakerJob):
                     builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(sc.volume_kms_key_id))
                 if vpc := sc.vpc_config:
                     for security_group in vpc.security_group_ids:
-                        builder.dependant_node(self, reverse=True, clazz=AwsEc2SecurityGroup, id=security_group)
+                        builder.dependant_node(
+                            self,
+                            reverse=True,
+                            delete_same_as_default=True,
+                            clazz=AwsEc2SecurityGroup,
+                            id=security_group,
+                        )
                     for subnet in vpc.subnets:
-                        builder.dependant_node(self, reverse=True, clazz=AwsEc2Subnet, id=subnet)
+                        builder.dependant_node(
+                            self, reverse=True, delete_same_as_default=True, clazz=AwsEc2Subnet, id=subnet
+                        )
             if jc.candidate_generation_config:
                 builder.add_edge(
                     self, clazz=AwsS3Bucket, name=AwsS3Bucket.name_from_path(jc.candidate_generation_config)
@@ -2573,14 +2592,13 @@ class AwsSagemakerCompilationJob(AwsSagemakerJob):
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["aws_iam_role", "aws_ec2_security_group", "aws_ec2_subnet"],
-            "delete": ["aws_kms_key", "aws_iam_role"],
+            "delete": ["aws_kms_key", "aws_iam_role", "aws_ec2_subnet", "aws_ec2_security_group"],
         },
         "successors": {
             "default": [
                 "aws_s3_bucket",
                 "aws_kms_key",
-            ],
-            "delete": ["aws_ec2_security_group", "aws_ec2_subnet"],
+            ]
         },
     }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-compilation-jobs", "CompilationJobSummaries")
@@ -2647,9 +2665,11 @@ class AwsSagemakerCompilationJob(AwsSagemakerJob):
                 builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(oc.kms_key_id))
         if vpc := self.compilation_job_vpc_config:
             for security_group in vpc.security_group_ids:
-                builder.dependant_node(self, reverse=True, clazz=AwsEc2SecurityGroup, id=security_group)
+                builder.dependant_node(
+                    self, reverse=True, delete_same_as_default=True, clazz=AwsEc2SecurityGroup, id=security_group
+                )
             for subnet in vpc.subnets:
-                builder.dependant_node(self, reverse=True, clazz=AwsEc2Subnet, id=subnet)
+                builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsEc2Subnet, id=subnet)
 
 
 @define(eq=False, slots=False)
@@ -3041,12 +3061,9 @@ class AwsSagemakerHyperParameterTuningJob(SagemakerTaggable, AwsSagemakerJob):
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["aws_iam_role", "aws_ec2_security_group", "aws_ec2_subnet"],
-            "delete": ["aws_kms_key", "aws_iam_role"],
+            "delete": ["aws_kms_key", "aws_iam_role", "aws_ec2_subnet", "aws_ec2_security_group"],
         },
-        "successors": {
-            "default": ["aws_s3_bucket", "aws_kms_key", "aws_sagemaker_training_job"],
-            "delete": ["aws_ec2_security_group", "aws_ec2_subnet"],
-        },
+        "successors": {"default": ["aws_s3_bucket", "aws_kms_key", "aws_sagemaker_training_job"]},
     }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         "sagemaker", "list-hyper-parameter-tuning-jobs", "HyperParameterTuningJobSummaries"
@@ -3145,9 +3162,13 @@ class AwsSagemakerHyperParameterTuningJob(SagemakerTaggable, AwsSagemakerJob):
                             )
             if vpc := jobdef.vpc_config:
                 for security_group in vpc.security_group_ids:
-                    builder.dependant_node(self, reverse=True, clazz=AwsEc2SecurityGroup, id=security_group)
+                    builder.dependant_node(
+                        self, reverse=True, delete_same_as_default=True, clazz=AwsEc2SecurityGroup, id=security_group
+                    )
                 for subnet in vpc.subnets:
-                    builder.dependant_node(self, reverse=True, clazz=AwsEc2Subnet, id=subnet)
+                    builder.dependant_node(
+                        self, reverse=True, delete_same_as_default=True, clazz=AwsEc2Subnet, id=subnet
+                    )
             if odc := jobdef.output_data_config:
                 if odc.kms_key_id:
                     builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(odc.kms_key_id))
@@ -3397,11 +3418,10 @@ class AwsSagemakerInferenceRecommendationsJob(AwsSagemakerJob):
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["aws_iam_role", "aws_ec2_security_group", "aws_ec2_subnet"],
-            "delete": ["aws_kms_key", "aws_iam_role"],
+            "delete": ["aws_kms_key", "aws_iam_role", "aws_ec2_subnet", "aws_ec2_security_group"],
         },
         "successors": {
             "default": ["aws_s3_bucket", "aws_kms_key", "aws_sagemaker_endpoint"],
-            "delete": ["aws_ec2_security_group", "aws_ec2_subnet"],
         },
     }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
@@ -3481,9 +3501,13 @@ class AwsSagemakerInferenceRecommendationsJob(AwsSagemakerJob):
                         )
             if vpc := ic.vpc_config:
                 for security_group in vpc.security_group_ids:
-                    builder.dependant_node(self, reverse=True, clazz=AwsEc2SecurityGroup, id=security_group)
+                    builder.dependant_node(
+                        self, reverse=True, delete_same_as_default=True, clazz=AwsEc2SecurityGroup, id=security_group
+                    )
                 for subnet in vpc.subnets:
-                    builder.dependant_node(self, reverse=True, clazz=AwsEc2Subnet, id=subnet)
+                    builder.dependant_node(
+                        self, reverse=True, delete_same_as_default=True, clazz=AwsEc2Subnet, id=subnet
+                    )
         for rec in self.inference_recommendations_job_inference_recommendations:
             if ec := rec.endpoint_configuration:
                 if ec.endpoint_name:
@@ -3667,14 +3691,11 @@ class AwsSagemakerLabelingJob(SagemakerTaggable, AwsSagemakerJob):
                 "aws_sagemaker_model",
                 "aws_sagemaker_workteam",
             ],
-            "delete": ["aws_kms_key", "aws_iam_role"],
+            "delete": ["aws_kms_key", "aws_iam_role", "aws_ec2_subnet", "aws_ec2_security_group"],
             # TODO lambda should have a dependency here, but it breaks the graph
             # investigate where circularity is being introduced
         },
-        "successors": {
-            "default": ["aws_s3_bucket", "aws_kms_key", "aws_sns_topic", "aws_lambda_function"],
-            "delete": ["aws_ec2_security_group", "aws_ec2_subnet"],
-        },
+        "successors": {"default": ["aws_s3_bucket", "aws_kms_key", "aws_sns_topic", "aws_lambda_function"]},
     }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         "sagemaker", "list-labeling-jobs", "LabelingJobSummaryList", expected_errors=["UnknownOperationException"]
@@ -3763,9 +3784,17 @@ class AwsSagemakerLabelingJob(SagemakerTaggable, AwsSagemakerJob):
                     builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(jrc.volume_kms_key_id))
                 if vpc := jrc.vpc_config:
                     for security_group in vpc.security_group_ids:
-                        builder.dependant_node(self, reverse=True, clazz=AwsEc2SecurityGroup, id=security_group)
+                        builder.dependant_node(
+                            self,
+                            reverse=True,
+                            delete_same_as_default=True,
+                            clazz=AwsEc2SecurityGroup,
+                            id=security_group,
+                        )
                     for subnet in vpc.subnets:
-                        builder.dependant_node(self, reverse=True, clazz=AwsEc2Subnet, id=subnet)
+                        builder.dependant_node(
+                            self, reverse=True, delete_same_as_default=True, clazz=AwsEc2Subnet, id=subnet
+                        )
         if htc := self.labeling_job_human_task_config:
             if htc.workteam_arn:
                 builder.add_edge(self, reverse=True, clazz=AwsSagemakerWorkteam, arn=htc.workteam_arn)
@@ -3984,12 +4013,9 @@ class AwsSagemakerProcessingJob(AwsSagemakerJob):
                 "aws_sagemaker_experiment",
                 "aws_sagemaker_trial",
             ],
-            "delete": ["aws_kms_key", "aws_iam_role"],
+            "delete": ["aws_kms_key", "aws_iam_role", "aws_ec2_subnet", "aws_ec2_security_group"],
         },
-        "successors": {
-            "default": ["aws_s3_bucket", "aws_kms_key", "aws_sagemaker_training_job"],
-            "delete": ["aws_ec2_security_group", "aws_ec2_subnet"],
-        },
+        "successors": {"default": ["aws_s3_bucket", "aws_kms_key", "aws_sagemaker_training_job"]},
     }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-processing-jobs", "ProcessingJobSummaries")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -4092,9 +4118,13 @@ class AwsSagemakerProcessingJob(AwsSagemakerJob):
         if nc := self.processing_job_network_config:
             if vpc := nc.vpc_config:
                 for security_group in vpc.security_group_ids:
-                    builder.dependant_node(self, reverse=True, clazz=AwsEc2SecurityGroup, id=security_group)
+                    builder.dependant_node(
+                        self, reverse=True, delete_same_as_default=True, clazz=AwsEc2SecurityGroup, id=security_group
+                    )
                 for subnet in vpc.subnets:
-                    builder.dependant_node(self, reverse=True, clazz=AwsEc2Subnet, id=subnet)
+                    builder.dependant_node(
+                        self, reverse=True, delete_same_as_default=True, clazz=AwsEc2Subnet, id=subnet
+                    )
         if self.processing_job_role_arn:
             builder.dependant_node(
                 self, reverse=True, delete_same_as_default=True, clazz=AwsIamRole, arn=self.processing_job_role_arn
@@ -4306,12 +4336,9 @@ class AwsSagemakerTrainingJob(SagemakerTaggable, AwsSagemakerJob):
                 "aws_sagemaker_experiment",
                 "aws_sagemaker_trial",
             ],
-            "delete": ["aws_kms_key", "aws_iam_role"],
+            "delete": ["aws_kms_key", "aws_iam_role", "aws_ec2_subnet", "aws_ec2_security_group"],
         },
-        "successors": {
-            "default": ["aws_s3_bucket", "aws_kms_key", "aws_sagemaker_algorithm"],
-            "delete": ["aws_ec2_security_group", "aws_ec2_subnet"],
-        },
+        "successors": {"default": ["aws_s3_bucket", "aws_kms_key", "aws_sagemaker_algorithm"]},
     }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-training-jobs", "TrainingJobSummaries")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -4452,9 +4479,11 @@ class AwsSagemakerTrainingJob(SagemakerTaggable, AwsSagemakerJob):
                 builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(rc.volume_kms_key_id))
         if vpc := self.training_job_vpc_config:
             for security_group in vpc.security_group_ids:
-                builder.dependant_node(self, reverse=True, clazz=AwsEc2SecurityGroup, id=security_group)
+                builder.dependant_node(
+                    self, reverse=True, delete_same_as_default=True, clazz=AwsEc2SecurityGroup, id=security_group
+                )
             for subnet in vpc.subnets:
-                builder.dependant_node(self, reverse=True, clazz=AwsEc2Subnet, id=subnet)
+                builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsEc2Subnet, id=subnet)
         if cc := self.training_job_checkpoint_config:
             if cc.s3_uri:
                 builder.add_edge(self, clazz=AwsS3Bucket, name=AwsS3Bucket.name_from_path(cc.s3_uri))

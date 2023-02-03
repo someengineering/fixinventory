@@ -187,6 +187,12 @@ class AwsElastiCacheLogDeliveryConfiguration:
 @define(eq=False, slots=False)
 class AwsElastiCacheCacheCluster(ElastiCacheTaggable, AwsResource):
     kind: ClassVar[str] = "aws_elasticache_cache_cluster"
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {
+            "default": ["aws_ec2_security_group"],
+            "delete": ["aws_ec2_security_group"],
+        }
+    }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("elasticache", "describe-cache-clusters", "CacheClusters")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("CacheClusterId"),
@@ -289,7 +295,9 @@ class AwsElastiCacheCacheCluster(ElastiCacheTaggable, AwsResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for sg in self.cluster_security_groups:
-            builder.dependant_node(self, reverse=True, clazz=AwsEc2SecurityGroup, id=sg.security_group_id)
+            builder.dependant_node(
+                self, reverse=True, delete_same_as_default=True, clazz=AwsEc2SecurityGroup, id=sg.security_group_id
+            )
 
 
 @define(eq=False, slots=False)

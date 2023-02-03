@@ -1144,15 +1144,13 @@ class AwsEcsService(EcsTaggable, AwsResource):
     kind: ClassVar[str] = "aws_ecs_service"
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
-            "default": ["aws_iam_role"],
+            "default": ["aws_iam_role", "aws_ec2_subnet", "aws_ec2_security_group"],
             "delete": ["aws_alb_target_group", "aws_elb", "aws_iam_role", "aws_ec2_subnet", "aws_ec2_security_group"],
         },
         "successors": {
             "default": [
                 "aws_alb_target_group",
                 "aws_elb",
-                "aws_ec2_subnet",
-                "aws_ec2_security_group",
                 "aws_ecs_capacity_provider",
             ]
         },
@@ -1278,12 +1276,16 @@ class AwsEcsService(EcsTaggable, AwsResource):
         for group in sum(all_sec_groups, []):
             builder.dependant_node(
                 self,
+                reverse=True,
+                delete_same_as_default=True,
                 clazz=AwsEc2SecurityGroup,
                 id=group,
             )
         for subnet in sum(all_subnets, []):
             builder.dependant_node(
                 self,
+                reverse=True,
+                delete_same_as_default=True,
                 clazz=AwsEc2Subnet,
                 id=subnet,
             )
