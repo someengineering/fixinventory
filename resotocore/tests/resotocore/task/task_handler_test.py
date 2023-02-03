@@ -3,7 +3,7 @@ from datetime import timedelta
 from typing import List
 
 import pytest
-from pytest import fixture, LogCaptureFixture
+from pytest import LogCaptureFixture
 
 from resotocore.analytics import AnalyticsEventSender
 from resotocore.cli.cli import CLI
@@ -16,10 +16,7 @@ from resotocore.task.scheduler import Scheduler
 from resotocore.task.subscribers import SubscriptionHandler
 from resotocore.task.task_description import (
     Workflow,
-    Step,
-    PerformAction,
     EventTrigger,
-    StepErrorBehaviour,
     TimeTrigger,
     Job,
     TaskSurpassBehaviour,
@@ -124,7 +121,7 @@ async def test_wait_for_running_job(
     # report success of the only subscriber
     await task_handler.handle_action_done(ActionDone("collect", act.task_id, act.step_name, sub.id, dict(act.data)))
     # check overdue tasks: wipe finished tasks and eventually start waiting tasks
-    await task_handler.check_overdue_tasks()
+    await task_handler.check_running_tasks()
     # check, that the workflow has started
     running_after = await task_handler.running_tasks()
     assert len(running_after) == 1
@@ -145,7 +142,7 @@ async def test_handle_failing_task_command(task_handler: TaskHandlerService, cap
     update_task = (next(iter(task_handler.tasks.values()))).update_task
     assert update_task
     await update_task
-    await task_handler.check_overdue_tasks()
+    await task_handler.check_running_tasks()
     assert len(await task_handler.running_tasks()) == 0
     # One warning has been emitted
     assert len(caplog.records) == 1

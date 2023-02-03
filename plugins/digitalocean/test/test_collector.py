@@ -65,7 +65,7 @@ def prepare_graph(do_client: StreamingWrapper) -> Graph:
 
 
 def check_edges(graph: Graph, from_id: str, to_id: str, delete: bool = False) -> None:
-    for (node_from, node_to, edge) in graph.edges:
+    for node_from, node_to, edge in graph.edges:
         if (
             hasattr(node_from, "urn")
             and hasattr(node_to, "urn")
@@ -78,7 +78,6 @@ def check_edges(graph: Graph, from_id: str, to_id: str, delete: bool = False) ->
 
 
 def test_collect_teams() -> None:
-
     do_client = ClientMock({})
     graph = prepare_graph(do_client)
 
@@ -89,7 +88,6 @@ def test_collect_teams() -> None:
 
 
 def test_collect_regions() -> None:
-
     do_client = ClientMock({"list_regions": regions, "list_droplets": droplets})
 
     graph = prepare_graph(do_client)

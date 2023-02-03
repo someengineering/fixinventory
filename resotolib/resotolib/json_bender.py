@@ -522,6 +522,14 @@ class CPUCoresToNumber(Bender):
         return float(source[:-1]) / 1000 if isinstance(source, str) and source.endswith("m") else float(source)
 
 
+class EmptyToNoneBender(Bender):
+    def execute(self, source: Any) -> Any:
+        return None if source in (None, "", [], {}) else source
+
+
+EmptyToNone = EmptyToNoneBender()
+
+
 def bend(mapping: Mapping, source: Any, context: Optional[Dict[str, Any]] = None) -> Any:
     """
     The main bending function.

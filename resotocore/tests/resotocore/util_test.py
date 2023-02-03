@@ -103,7 +103,6 @@ def test_del_value_in_path() -> None:
 
 @pytest.mark.asyncio
 async def test_async_gen() -> None:
-
     async with stream.empty().stream() as empty:
         async for _ in await force_gen(empty):
             pass

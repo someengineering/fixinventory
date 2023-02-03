@@ -1,0 +1,20 @@
+{
+    "Trail": {
+        "Name": "management-events",
+        "S3BucketName": "bucket-1",
+        "IncludeGlobalServiceEvents": true,
+        "IsMultiRegionTrail": true,
+        "HomeRegion": "eu-central-1",
+        "TrailARN": "arn:aws:cloudtrail:us-east-1:test:trail/management-events",
+        "LogFileValidationEnabled": false,
+        "HasCustomEventSelectors": true,
+        "HasInsightSelectors": true,
+        "IsOrganizationTrail": true,
+        "S3KeyPrefix": "foo",
+        "SnsTopicName": "my-topic",
+        "SnsTopicARN": "arn:aws:sns:us-west-2:123456789012:my-topic",
+        "CloudWatchLogsLogGroupArn": "foo",
+        "CloudWatchLogsRoleArn": "foo",
+        "KmsKeyId": "arn:aws:kms:us-east-1:test:key/32b03fb9"
+    }
+}

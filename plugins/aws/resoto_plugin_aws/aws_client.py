@@ -149,6 +149,9 @@ class AwsClient:
         except EndpointConnectionError as e:
             log.debug(f"The Aws endpoint does not exist in this region. Skipping. {e}")
             return None
+        except Exception as e:
+            log.error(f"[Aws] called service={aws_service} with resource: hit unexpected error: {e}")
+            raise
 
     def call_single(
         self, aws_service: str, action: str, result_name: Optional[str] = None, max_attempts: int = 1, **kwargs: Any
@@ -209,13 +212,16 @@ class AwsClient:
         except EndpointConnectionError as e:
             log.debug(f"The Aws endpoint does not exist in this region. Skipping. {e}")
             return None
+        except Exception as e:
+            log.error(f"[Aws] called service={aws_service} action={action}: hit unexpected error: {e}")
+            raise
 
     @log_runtime
     def call(
         self,
         aws_service: str,
         action: str,
-        result_name: Optional[str],
+        result_name: Optional[str] = None,
         expected_errors: Optional[List[str]] = None,
         **kwargs: Any,
     ) -> JsonElement:

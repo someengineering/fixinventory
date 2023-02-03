@@ -119,7 +119,6 @@ def test_delete_elastic_ips() -> None:
     elastic_ip, _ = round_trip_for(AwsEc2ElasticIp)
 
     def validate_delete_args(**kwargs: Any) -> None:
-
         assert kwargs["action"] in {"release-address", "disassociate-address"}
         if kwargs["action"] == "disassociate-address":
             assert kwargs["AssociationId"] == elastic_ip.ip_association_id

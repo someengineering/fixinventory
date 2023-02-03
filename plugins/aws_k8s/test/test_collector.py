@@ -14,7 +14,6 @@ class KubernetesNode(BaseResource):
 
 
 def test_post_collect() -> None:
-
     plugin = AWSK8sCollectorPlugin()
 
     node = KubernetesNode(id="123")

@@ -10,6 +10,10 @@ from typing import Tuple, Optional, List
 from arango.database import StandardDatabase
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
 from cryptography.x509 import Certificate
+
+from resotocore.core_config import CoreConfig, CertificateConfig
+from resotocore.types import Json
+from resotocore.util import Periodic
 from resotolib.utils import get_local_ip_addresses, get_local_hostnames
 from resotolib.x509 import (
     bootstrap_ca,
@@ -28,9 +32,6 @@ from resotolib.x509 import (
     load_cert_from_file,
     write_ca_bundle,
 )
-
-from resotocore.core_config import CoreConfig, CertificateConfig
-from resotocore.util import Periodic
 
 log = logging.getLogger(__name__)
 
@@ -174,7 +175,7 @@ class CertificateHandler:
 
         # otherwise, load from database or create it
         sd = db.collection("system_data")
-        maybe_ca = sd.get("ca")
+        maybe_ca: Optional[Json] = sd.get("ca")  # type: ignore
         if maybe_ca and isinstance(maybe_ca.get("key"), str) and isinstance(maybe_ca.get("certificate"), str):
             log.debug("Found existing certificate in data store.")
             key = load_key_from_bytes(maybe_ca["key"].encode("utf-8"))

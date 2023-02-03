@@ -142,7 +142,6 @@ class AwsIamRole(AwsResource):
         )
 
     def pre_delete_resource(self, client: AwsClient, graph: Graph) -> bool:
-
         for successor in self.successors(graph, edge_type=EdgeType.delete):
             if isinstance(successor, AwsIamPolicy):
                 log_msg = f"Detaching {successor.rtdname}"
@@ -347,7 +346,6 @@ class AwsIamGroup(AwsResource, BaseGroup):
             builder.dependant_node(self, clazz=AwsIamPolicy, delete_same_as_default=True, arn=policy.get("PolicyArn"))
 
     def pre_delete_resource(self, client: AwsClient, graph: Graph) -> bool:
-
         for successor in self.successors(graph, edge_type=EdgeType.delete):
             if isinstance(successor, AwsIamPolicy):
                 log_msg = f"Detaching {successor.rtdname}"

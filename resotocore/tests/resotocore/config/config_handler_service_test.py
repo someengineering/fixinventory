@@ -104,7 +104,6 @@ async def test_dry_run(config_handler: ConfigHandlerService) -> None:
 
 @pytest.mark.asyncio
 async def test_config_change_analytics(config_handler: ConfigHandler) -> None:
-
     config_id = ConfigId("test")
     worker_config_1 = {
         "resotoworker": {

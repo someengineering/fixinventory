@@ -1,3 +1,4 @@
+from typing import AsyncIterator, cast
 from uuid import uuid1
 
 import pytest
@@ -8,12 +9,11 @@ from resotocore.db.async_arangodb import AsyncArangoDB
 
 
 @pytest.fixture
-async def test_collection(test_db: StandardDatabase) -> StandardCollection:
+async def test_collection(test_db: StandardDatabase) -> AsyncIterator[StandardCollection]:
     tmp_name = "tmp_" + str(uuid1()).replace("-", "")
     print(tmp_name)
     try:
-        collection = test_db.create_collection(tmp_name)
-        yield collection
+        yield cast(StandardCollection, test_db.create_collection(tmp_name))
     finally:
         test_db.delete_collection(tmp_name, ignore_missing=True)
 

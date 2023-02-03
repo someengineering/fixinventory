@@ -207,7 +207,7 @@ class ModelHandlerDB(ModelHandler):
             return puml.encode("utf-8")
         else:
             plant_uml = PlantUML(f"{self.plantuml_server}/{output}/")
-            return await run_async(plant_uml.processes, puml)  # type: ignore
+            return await run_async(plant_uml.processes, puml)
 
     async def update_model(self, kinds: List[Kind]) -> Model:
         # load existing model

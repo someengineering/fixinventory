@@ -126,7 +126,6 @@ class AwsEcsCapacityProvider(EcsTaggable, AwsResource):
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-
         return super().called_mutator_apis() + [
             AwsApiSpec("ecs", "update-service"),
             AwsApiSpec("ecs", "put-cluster-capacity-providers"),

@@ -1,4 +1,6 @@
+import json
 import re
+from textwrap import dedent
 from typing import List, Set, Optional, Tuple, Union, Dict
 
 import boto3
@@ -288,6 +290,19 @@ def create_test_response(service: str, function: str) -> JsonElement:
             raise NotImplementedError(f"Unsupported shape: {type(shape)}")
 
     return sample(op.output_shape)
+
+
+def default_imports() -> str:
+    return dedent(
+        """
+        from typing import ClassVar, Dict, Optional
+        from attr import define, field
+        from resoto_plugin_aws import AwsResource
+        from resoto_plugin_aws.resource.base import AwsApiSpec
+        from resoto_plugin_aws.utils import ToDict, TagsValue
+        from resotolib.json_bender import Bender, S, K
+        """
+    )
 
 
 models: Dict[str, List[AwsResotoModel]] = {
@@ -946,13 +961,19 @@ models: Dict[str, List[AwsResotoModel]] = {
         #     "get-queue-attributes", "Attributes", "GetQueueAttributesResult", prefix="Sqs", prop_prefix="sqs_"
         # )
     ],
+    "cloudtrail": [
+        # AwsResotoModel("list-trails", "Trails", "TrailInfo", prefix="CloudTrail", prop_prefix="trail_")
+        # AwsResotoModel("get-trail-status", "", prefix="CloudTrail")
+        # AwsResotoModel("get-event-selectors", "", prefix="CloudTrail")
+    ],
 }
 
 
 if __name__ == "__main__":
     """print some test data"""
-    # print(json.dumps(create_test_response("efs", "describe-access-points"), indent=2))
+    # print(json.dumps(create_test_response("cloudtrail", "get-insight-selectors"), indent=2))
 
     """print the class models"""
     for model in all_models():
+        #     print(default_imports())
         print(model.to_class())

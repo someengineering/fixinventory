@@ -1,12 +1,13 @@
 from typing import Optional, ClassVar, Dict, List, Type
 
+import math
 from attr import field, define
 
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsApiSpec, GraphBuilder, AwsResource
 from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resoto_plugin_aws.utils import ToDict
-from resotolib.baseresources import BaseVolume
+from resotolib.baseresources import BaseVolume, ModelReference
 from resotolib.json_bender import Bender, S, MapValue, F, Bend
 from resotolib.types import Json
 
@@ -50,6 +51,7 @@ class AwsEfsMountTarget(AwsResource):
         "ip_address": S("IpAddress"),
         "availability_zone_name": S("AvailabilityZoneName"),
     }
+    reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["aws_ec2_network_interface"]}}
     owner_id: Optional[str] = field(default=None)
     life_cycle_state: Optional[str] = field(default=None)
     ip_address: Optional[str] = field(default=None)
@@ -87,13 +89,14 @@ class AwsEfsFileSystem(EfsTaggable, AwsResource, BaseVolume):
             default="unknown",
         ),
         "number_of_mount_targets": S("NumberOfMountTargets"),
-        "volume_size": S("SizeInBytes", "Value") >> F(lambda x: x / 1024**3),
+        "volume_size": S("SizeInBytes", "Value") >> F(lambda x: math.ceil(x / 1024**3)),
         "performance_mode": S("PerformanceMode"),
         "volume_encrypted": S("Encrypted"),
         "throughput_mode": S("ThroughputMode"),
         "provisioned_throughput_in_mibps": S("ProvisionedThroughputInMibps"),
         "availability_zone_name": S("AvailabilityZoneName"),
     }
+    reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["aws_kms_key"]}}
     owner_id: Optional[str] = field(default=None)
     creation_token: Optional[str] = field(default=None)
     number_of_mount_targets: Optional[int] = field(default=None)
@@ -186,6 +189,7 @@ class AwsEfsAccessPoint(AwsResource, EfsTaggable):
         "owner_id": S("OwnerId"),
         "life_cycle_state": S("LifeCycleState"),
     }
+    reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["aws_efs_file_system"]}}
     client_token: Optional[str] = field(default=None)
     posix_user: Optional[AwsEfsPosixUser] = field(default=None)
     root_directory: Optional[AwsEfsRootDirectory] = field(default=None)

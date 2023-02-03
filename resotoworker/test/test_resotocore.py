@@ -37,7 +37,6 @@ class ExampleCollectorPlugin(BaseCollectorPlugin):
 
 
 def test_resotocore() -> None:
-
     recorded_headers: Dict[str, str] = {}
 
     def make_query(request: requests.Request) -> requests.Response:

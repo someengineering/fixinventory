@@ -1113,7 +1113,6 @@ class SleepCommand(CLICommand):
         return [ArgInfo(expects_value=True, help_text="number of seconds to sleep")]
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLISource:
-
         if not arg:
             raise AttributeError("Sleep needs an argument!")
         try:
@@ -2450,7 +2449,6 @@ class ListCommand(CLICommand, OutputTransformer):
                         yield to_csv_string(result)
 
         def markdown_stream(in_stream: Stream) -> JsGen:
-
             chunk_size = 500
 
             columns_padding = [len(name) for _, name in props_to_show]
@@ -4275,7 +4273,7 @@ class ConfigsCommand(CLICommand):
                 error = "\n".join(f"## {line}" for line in str(ex).splitlines())
                 message = f"## Update the config failed. Please correct.\n{error}\n\n"
                 # Remove error message from previous check
-                config = "\n".join(dropwhile(lambda l: l.startswith("##") or len(l.strip()) == 0, content.splitlines()))
+                config = "\n".join(dropwhile(lambda m: m.startswith("##") or len(m.strip()) == 0, content.splitlines()))
                 async for file in send_file(message + config):
                     yield file
 
@@ -4483,7 +4481,6 @@ class CertificateCommand(CLICommand):
         async def create_certificate(
             common_name: str, dns_names: List[str], ip_addresses: List[str], days_valid: int
         ) -> AsyncIterator[str]:
-
             key, cert = self.dependencies.cert_handler.create_key_and_cert(
                 common_name, dns_names, ip_addresses, days_valid
             )

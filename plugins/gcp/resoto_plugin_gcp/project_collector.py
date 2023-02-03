@@ -25,7 +25,6 @@ class GcpProjectCollector:
         self.credentials = Credentials.get(self.project.id)
 
     def collect(self) -> None:
-
         self.core_feedback.progress_done(self.project.dname, 0, 1, context=[self.cloud.id])
 
         # fetch available regions and zones
@@ -70,7 +69,9 @@ if __name__ == "__main__":
     cloud = Cloud(id="Gcp", name="Gcp")
     project = GcpProject(id="inbound-axon-320811", name="inbound-axon-320811")
     feedback = CoreFeedback("test", "test", "test", Queue())
-    Credentials._credentials[project.id] = OauthCredentials.from_service_account_file("/Users/matthias/.gcp/test.json")
+    Credentials._credentials[project.id] = OauthCredentials.from_service_account_file(
+        "/Users/matthias/.gcp/test.json"
+    )
     Credentials._initialized = True
     collector = GcpProjectCollector(GcpConfig(), cloud, project, feedback)
     collector.collect()

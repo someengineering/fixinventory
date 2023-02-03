@@ -1,7 +1,8 @@
 import logging
 from typing import Optional, MutableMapping, Union, Tuple
 
-from arango import HTTPClient, Response
+from arango import HTTPClient
+from arango.response import Response
 from arango.typings import Headers
 from requests import Session
 from requests.adapters import HTTPAdapter, Retry
@@ -10,7 +11,7 @@ from requests_toolbelt import MultipartEncoder
 log = logging.getLogger(__name__)
 
 
-class ArangoHTTPClient(HTTPClient):  # type: ignore
+class ArangoHTTPClient(HTTPClient):
     def __init__(self, timeout: int, verify: Union[str, bool, None]):
         log.info(f"Create ArangoHTTPClient with timeout={timeout} and verify={verify}")
         self.timeout = timeout

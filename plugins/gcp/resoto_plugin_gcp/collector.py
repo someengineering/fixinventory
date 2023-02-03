@@ -501,8 +501,8 @@ class GCPProjectCollector:
                 else:
                     kwargs[map_to] = list(search_result)
 
-        # If the resource was referencing a zone but not a region we look up its
-        # region based on the zone information we found.
+        # If the resource was referencing a zone but not a region we look up
+        # its region based on the zone information we found.
         # E.g. if we know a disk is in zone us-central1-a then we can find
         # the region us-central1 from that.
         if "zone" in kwargs and "region" not in kwargs and isinstance(kwargs["zone"], BaseResource):
