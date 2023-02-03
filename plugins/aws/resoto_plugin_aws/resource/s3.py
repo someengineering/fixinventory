@@ -10,7 +10,7 @@ from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilde
 from resoto_plugin_aws.utils import tags_as_dict
 from resotolib.json import from_json
 from resotolib.baseresources import BaseBucket, PhantomBaseResource, ModelReference
-from resotolib.json_bender import Bender, S, bend
+from resotolib.json_bender import Bender, S, bend, Bend, ForallBend
 from resotolib.types import Json
 
 
@@ -43,6 +43,53 @@ class AwsS3PublicAccessBlockConfiguration:
 
 
 @define(eq=False, slots=False)
+class AwsS3Owner:
+    kind: ClassVar[str] = "aws_s3_owner"
+    mapping: ClassVar[Dict[str, Bender]] = {"display_name": S("DisplayName"), "id": S("ID")}
+    display_name: Optional[str] = field(default=None)
+    id: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsS3Grantee:
+    kind: ClassVar[str] = "aws_s3_grantee"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "display_name": S("DisplayName"),
+        "email_address": S("EmailAddress"),
+        "id": S("ID"),
+        "type": S("Type"),
+        "uri": S("URI"),
+    }
+    display_name: Optional[str] = field(default=None)
+    email_address: Optional[str] = field(default=None)
+    id: Optional[str] = field(default=None)
+    type: Optional[str] = field(default=None)
+    uri: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsS3Grant:
+    kind: ClassVar[str] = "aws_s3_grant"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "grantee": S("Grantee") >> Bend(AwsS3Grantee.mapping),
+        "permission": S("Permission"),
+    }
+    grantee: Optional[AwsS3Grantee] = field(default=None)
+    permission: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsS3BucketAcl:
+    kind: ClassVar[str] = "aws_s3_bucket_acl"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "owner": S("Owner") >> Bend(AwsS3Owner.mapping),
+        "grants": S("Grants", default=[]) >> ForallBend(AwsS3Grant.mapping),
+    }
+    owner: Optional[AwsS3Owner] = field(default=None)
+    grants: List[AwsS3Grant] = field(factory=list)
+
+
+@define(eq=False, slots=False)
 class AwsS3Bucket(AwsResource, BaseBucket):
     kind: ClassVar[str] = "aws_s3_bucket"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
@@ -54,6 +101,7 @@ class AwsS3Bucket(AwsResource, BaseBucket):
     bucket_versioning: Optional[bool] = field(default=None)
     bucket_mfa_delete: Optional[bool] = field(default=None)
     bucket_public_access_block_configuration: Optional[AwsS3PublicAccessBlockConfiguration] = field(default=None)
+    bucket_acl: Optional[AwsS3BucketAcl] = field(default=None)
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
@@ -64,6 +112,7 @@ class AwsS3Bucket(AwsResource, BaseBucket):
             AwsApiSpec("s3", "get-bucket-policy"),
             AwsApiSpec("s3", "get-bucket-versioning"),
             AwsApiSpec("s3", "get-public-access-block", override_iam_permission="s3:GetAccountPublicAccessBlock"),
+            AwsApiSpec("s3", "get-bucket-acl"),
         ]
 
     @classmethod
@@ -74,26 +123,28 @@ class AwsS3Bucket(AwsResource, BaseBucket):
                 bucket.tags = cast(Dict[str, Optional[str]], tags)
 
         def add_bucket_encryption(bck: AwsS3Bucket) -> None:
-            bck.bucket_encryption_rules = []
-            for raw in builder.client.list(
-                "s3",
-                "get-bucket-encryption",
-                "ServerSideEncryptionConfiguration.Rules",
-                Bucket=bck.name,
-                expected_errors=["ServerSideEncryptionConfigurationNotFoundError"],
-            ):
-                mapped = bend(AwsS3ServerSideEncryptionRule.mapping, raw)
-                bck.bucket_encryption_rules.append(from_json(mapped, AwsS3ServerSideEncryptionRule))
+            with suppress(Exception):
+                bck.bucket_encryption_rules = []
+                for raw in builder.client.list(
+                    "s3",
+                    "get-bucket-encryption",
+                    "ServerSideEncryptionConfiguration.Rules",
+                    Bucket=bck.name,
+                    expected_errors=["ServerSideEncryptionConfigurationNotFoundError"],
+                ):
+                    mapped = bend(AwsS3ServerSideEncryptionRule.mapping, raw)
+                    bck.bucket_encryption_rules.append(from_json(mapped, AwsS3ServerSideEncryptionRule))
 
         def add_bucket_policy(bck: AwsS3Bucket) -> None:
-            if raw_policy := builder.client.get(
-                "s3",
-                "get-bucket-policy",
-                "Policy",
-                Bucket=bck.name,
-                expected_errors=["NoSuchBucketPolicy"],
-            ):
-                bck.bucket_policy = json_loads(raw_policy)  # type: ignore # this is a string
+            with suppress(Exception):
+                if raw_policy := builder.client.get(
+                    "s3",
+                    "get-bucket-policy",
+                    "Policy",
+                    Bucket=bck.name,
+                    expected_errors=["NoSuchBucketPolicy"],
+                ):
+                    bck.bucket_policy = json_loads(raw_policy)  # type: ignore # this is a string
 
         def add_bucket_versioning(bck: AwsS3Bucket) -> None:
             with suppress(Exception):
@@ -118,6 +169,12 @@ class AwsS3Bucket(AwsResource, BaseBucket):
                         mapped, AwsS3PublicAccessBlockConfiguration
                     )
 
+        def add_acls(bck: AwsS3Bucket) -> None:
+            with suppress(Exception):
+                if raw := builder.client.get("s3", "get-bucket-acl", Bucket=bck.name, expected_errors=["NoSuchBucket"]):
+                    mapped = bend(AwsS3BucketAcl.mapping, raw)
+                    bck.bucket_acl = from_json(mapped, AwsS3BucketAcl)
+
         for js in json:
             bucket = cls.from_api(js)
             bucket.set_arn(builder=builder, region="", account="", resource=bucket.safe_name)
@@ -127,6 +184,7 @@ class AwsS3Bucket(AwsResource, BaseBucket):
             builder.submit_work(add_bucket_policy, bucket)
             builder.submit_work(add_bucket_versioning, bucket)
             builder.submit_work(add_public_access, bucket)
+            builder.submit_work(add_acls, bucket)
 
     def _set_tags(self, client: AwsClient, tags: Dict[str, str]) -> bool:
         tag_set = [{"Key": k, "Value": v} for k, v in tags.items()]

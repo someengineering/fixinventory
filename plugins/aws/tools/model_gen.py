@@ -846,6 +846,7 @@ models: Dict[str, List[AwsResotoModel]] = {
         #     "get-bucket-encryption", "ServerSideEncryptionConfiguration", "GetBucketEncryptionOutput", prefix="S3"
         # ),
         # AwsResotoModel("get-public-access-block", "PublicAccessBlockConfiguration", prefix="S3"),
+        AwsResotoModel("get-bucket-acl", "", prefix="S3"),
     ],
     "sagemaker": [
         # AwsResotoModel(

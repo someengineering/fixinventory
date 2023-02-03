@@ -1,0 +1,84 @@
+{
+    "provider": "aws",
+    "service": "cloudtrail",
+    "checks": [
+        {
+            "name": "logging_multi_region_enabled",
+            "title": "Ensure CloudTrail is enabled and set up for logging in all regions",
+            "result_kind": "aws_account",
+            "categories": ["security", "compliance"],
+            "risk": "AWS CloudTrail is a web service that records AWS API calls for your account and delivers log files to you. The recorded information includes the identity of the API caller; the time of the API call; the source IP address of the API caller; the request parameters; and the response elements returned by the AWS service.",
+            "severity": "high",
+            "detect": {
+                "resoto": "is(aws_account) with(empty, -[0:2]-> is(aws_cloud_trail) and trail_status.is_logging==true and trail_is_multi_region_trail==true)"
+            },
+            "remediation": {
+                "text": "Ensure there is one multi region trail with logging enabled..",
+                "url": "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrailconcepts.html#cloudtrail-concepts-management-events"
+            }
+        },
+        {
+            "name": "log_file_validation_enabled",
+            "title": "Ensure CloudTrail log file validation is enabled",
+            "result_kind": "aws_cloud_trail",
+            "categories": ["security", "compliance"],
+            "risk": "Enabling log file validation will provide additional integrity checking of CloudTrail logs.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_cloud_trail) and trail_status.is_logging==true and trail_log_file_validation_enabled==false"
+            },
+            "remediation": {
+                "text": "Ensure LogFileValidationEnabled is set to true for each trail.",
+                "url": "http://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-log-filevalidation-enabling.html"
+            }
+        },
+        {
+            "name": "logs_s3_bucket_is_not_publicly_accessible",
+            "title": "Ensure the S3 bucket CloudTrail logs is not publicly accessible",
+            "result_kind": "aws_cloud_trail",
+            "categories": ["security", "compliance"],
+            "risk": "Allowing public access to CloudTrail log content may aid an adversary in identifying weaknesses in the affected accounts use or configuration.",
+            "severity": "critical",
+            "detect": {
+                "resoto": "is(aws_cloud_trail) and trail_status.is_logging==true --> is(aws_s3_bucket) and bucket_public_access_block_configuration.{block_public_acls!=true or ignore_public_acls!=true or block_public_policy!=true or restrict_public_buckets!=true} or bucket_acl.grants[*].{permission in [READ, READ_ACP] and grantee.uri==\"http://acs.amazonaws.com/groups/global/AllUsers\"}"
+            },
+            "remediation": {
+                "text": "Analyze Bucket policy to validate appropriate permissions. Ensure the AllUsers principal is not granted privileges. Ensure the AuthenticatedUsers principal is not granted privileges.",
+                "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_elements_principal.html"
+            }
+        },
+        {
+            "name": "no_logging_enabled",
+            "title": "Ensure CloudTrail has logging enabled",
+            "result_kind": "aws_cloud_trail",
+            "categories": ["security", "compliance"],
+            "risk": "Sending CloudTrail logs to CloudWatch Logs will facilitate real-time and historic activity logging based on user; API; resource; and IP address; and provides opportunity to establish alarms and notifications for anomalous or sensitivity account activity.",
+            "severity": "low",
+            "detect": {
+                "resoto": "is(aws_cloud_trail) and trail_status.is_logging==false"
+            },
+            "remediation": {
+                "text": "Validate that the trails in CloudTrail has an arn set in the CloudWatchLogsLogGroupArn property.",
+                "url": "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/send-cloudtrail-events-to-cloudwatch-logs.html"
+            }
+        },
+        {
+            "name": "no_recent_log_event",
+            "title": "Ensure CloudTrail has log events in the configured duration",
+            "result_kind": "aws_cloud_trail",
+            "categories": ["security", "compliance"],
+            "risk": "Sending CloudTrail logs to CloudWatch Logs will facilitate real-time and historic activity logging based on user; API; resource; and IP address; and provides opportunity to establish alarms and notifications for anomalous or sensitivity account activity.",
+            "severity": "low",
+            "detect": {
+                "resoto": "is(aws_cloud_trail) and trail_status.is_logging==true and trail_status.latest_delivery_attempt_succeeded>{{last_log_event_threshold.ago}}"
+            },
+            "default_values": {
+                "last_log_event_threshold": "1d"
+            },
+            "remediation": {
+                "text": "Validate that the trails in CloudTrail has an arn set in the CloudWatchLogsLogGroupArn property.",
+                "url": "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/send-cloudtrail-events-to-cloudwatch-logs.html"
+            }
+        }
+    ]
+}
