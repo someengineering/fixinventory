@@ -192,8 +192,8 @@ class AwsEksNodegroup(EKSTaggable, AwsResource):
                 self, clazz=AwsEksCluster, reverse=True, delete_same_as_default=True, name=cluster_name
             )
         if self.group_resources:
-            for arn in self.group_resources.auto_scaling_groups:
-                builder.dependant_node(self, clazz=AwsAutoScalingGroup, arn=arn)
+            for rid in self.group_resources.auto_scaling_groups:
+                builder.dependant_node(self, clazz=AwsAutoScalingGroup, id=rid)
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
