@@ -8,6 +8,7 @@ from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
 from resoto_plugin_aws.resource.cloudwatch import AwsCloudwatchQuery, AwsCloudwatchMetricData
 from resoto_plugin_aws.resource.kms import AwsKmsKey
+from resoto_plugin_aws.resource.s3 import AwsS3Bucket
 from resoto_plugin_aws.utils import ToDict, TagsValue
 from resotolib.baseresources import (
     BaseInstance,
@@ -2404,11 +2405,84 @@ class AwsEc2Host(EC2Taggable, AwsResource):
         return super().called_mutator_apis() + [AwsApiSpec("ec2", "release-hosts")]
 
 
+@define(eq=False, slots=False)
+class AwsEc2DestinationOption:
+    kind: ClassVar[str] = "aws_ec2_destination_option"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "file_format": S("FileFormat"),
+        "hive_compatible_partitions": S("HiveCompatiblePartitions"),
+        "per_hour_partition": S("PerHourPartition"),
+    }
+    file_format: Optional[str] = field(default=None)
+    hive_compatible_partitions: Optional[bool] = field(default=None)
+    per_hour_partition: Optional[bool] = field(default=None)
+
+
+# endregion
+
+# region Flow Log
+
+
+@define(eq=False, slots=False)
+class AwsEc2FlowLog(EC2Taggable, AwsResource):
+    kind: ClassVar[str] = "aws_ec2_flow_log"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-flow-logs", "FlowLogs")
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("FlowLogId"),
+        "name": (S("Tags", default=[]) >> TagsValue("Name")).or_else(S("FlowLogId")),
+        "tags": S("Tags", default=[]) >> ToDict(),
+        "ctime": S("CreationTime"),
+        "deliver_logs_error_message": S("DeliverLogsErrorMessage"),
+        "deliver_logs_permission_arn": S("DeliverLogsPermissionArn"),
+        "deliver_cross_account_role": S("DeliverCrossAccountRole"),
+        "deliver_logs_status": S("DeliverLogsStatus"),
+        "flow_log_status": S("FlowLogStatus"),
+        "resource_id": S("ResourceId"),
+        "traffic_type": S("TrafficType"),
+        "log_destination_type": S("LogDestinationType"),
+        "log_destination": S("LogDestination"),
+        "log_format": S("LogFormat"),
+        "log_group_name": S("LogGroupName"),
+        "max_aggregation_interval": S("MaxAggregationInterval"),
+        "destination_options": S("DestinationOptions") >> Bend(AwsEc2DestinationOption.mapping),
+    }
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {"default": ["aws_s3_bucket"]},
+        "predecessors": {"default": ["aws_vpc"]},
+    }
+    deliver_logs_error_message: Optional[str] = field(default=None)
+    deliver_logs_permission_arn: Optional[str] = field(default=None)
+    deliver_cross_account_role: Optional[str] = field(default=None)
+    deliver_logs_status: Optional[str] = field(default=None)
+    flow_log_status: Optional[str] = field(default=None)
+    resource_id: Optional[str] = field(default=None)
+    traffic_type: Optional[str] = field(default=None)
+    log_destination_type: Optional[str] = field(default=None)
+    log_destination: Optional[str] = field(default=None)
+    log_format: Optional[str] = field(default=None)
+    log_group_name: Optional[str] = field(default=None)
+    max_aggregation_interval: Optional[int] = field(default=None)
+    destination_options: Optional[AwsEc2DestinationOption] = field(default=None)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if vpc_id := self.resource_id:
+            builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsEc2Vpc, id=vpc_id)
+        if self.log_destination_type == "s3" and (s3 := self.log_destination):
+            builder.add_edge(self, clazz=AwsS3Bucket, arn=s3)
+        # elif self.log_destination_type == "cloud-watch-logs" and (name := self.log_group_name):
+        # TODO: add link to cloudwatch log group with given name
+
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call("ec2", "delete-flow-logs", FlowLogIds=[self.id])
+        return True
+
+
 # endregion
 
 resources: List[Type[AwsResource]] = [
     AwsEc2InstanceType,
     AwsEc2ElasticIp,
+    AwsEc2FlowLog,
     AwsEc2Host,
     AwsEc2Instance,
     AwsEc2InternetGateway,

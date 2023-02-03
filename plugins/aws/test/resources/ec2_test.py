@@ -20,8 +20,13 @@ from resoto_plugin_aws.resource.ec2 import (
     AwsEc2VpcEndpoint,
     AwsEc2RouteTable,
     AwsEc2Host,
+    AwsEc2FlowLog,
 )
 from test.resources import round_trip_for, build_graph, check_single_node
+
+
+def test_flow_logs() -> None:
+    round_trip_for(AwsEc2FlowLog)
 
 
 def test_instance_types() -> None:

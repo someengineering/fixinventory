@@ -1,15 +1,15 @@
 from contextlib import suppress
+from json import loads as json_loads
 from typing import ClassVar, Dict, List, Type, Optional, cast, Any
 
 from attr import field
 from attrs import define
-from json import loads as json_loads
 
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
 from resoto_plugin_aws.utils import tags_as_dict
-from resotolib.json import from_json
 from resotolib.baseresources import BaseBucket, PhantomBaseResource, ModelReference
+from resotolib.json import from_json, is_empty
 from resotolib.json_bender import Bender, S, bend, Bend, ForallBend
 from resotolib.types import Json
 
@@ -90,6 +90,30 @@ class AwsS3BucketAcl:
 
 
 @define(eq=False, slots=False)
+class AwsS3TargetGrant:
+    kind: ClassVar[str] = "aws_s3_target_grant"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "grantee": S("Grantee") >> Bend(AwsS3Grantee.mapping),
+        "permission": S("Permission"),
+    }
+    grantee: Optional[AwsS3Grantee] = field(default=None)
+    permission: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsS3Logging:
+    kind: ClassVar[str] = "aws_s3_logging"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "target_bucket": S("TargetBucket"),
+        "target_grants": S("TargetGrants") >> ForallBend(AwsS3TargetGrant.mapping),
+        "target_prefix": S("TargetPrefix"),
+    }
+    target_bucket: Optional[str] = field(default=None)
+    target_grants: Optional[List[AwsS3TargetGrant]] = field(default=None)
+    target_prefix: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
 class AwsS3Bucket(AwsResource, BaseBucket):
     kind: ClassVar[str] = "aws_s3_bucket"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
@@ -102,6 +126,7 @@ class AwsS3Bucket(AwsResource, BaseBucket):
     bucket_mfa_delete: Optional[bool] = field(default=None)
     bucket_public_access_block_configuration: Optional[AwsS3PublicAccessBlockConfiguration] = field(default=None)
     bucket_acl: Optional[AwsS3BucketAcl] = field(default=None)
+    bucket_logging: Optional[AwsS3Logging] = field(default=None)
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
@@ -113,6 +138,7 @@ class AwsS3Bucket(AwsResource, BaseBucket):
             AwsApiSpec("s3", "get-bucket-versioning"),
             AwsApiSpec("s3", "get-public-access-block", override_iam_permission="s3:GetAccountPublicAccessBlock"),
             AwsApiSpec("s3", "get-bucket-acl"),
+            AwsApiSpec("s3", "get-bucket-logging"),
         ]
 
     @classmethod
@@ -175,6 +201,16 @@ class AwsS3Bucket(AwsResource, BaseBucket):
                     mapped = bend(AwsS3BucketAcl.mapping, raw)
                     bck.bucket_acl = from_json(mapped, AwsS3BucketAcl)
 
+        def add_bucket_logging(bck: AwsS3Bucket) -> None:
+            with suppress(Exception):
+                if raw := builder.client.get(
+                    "s3", "get-bucket-logging", "LoggingEnabled", Bucket=bck.name, expected_errors=["NoSuchBucket"]
+                ):
+                    mapped = bend(AwsS3Logging.mapping, raw)
+                    # do not set, if no property is set
+                    if not is_empty(mapped):
+                        bck.bucket_logging = from_json(mapped, AwsS3Logging)
+
         for js in json:
             bucket = cls.from_api(js)
             bucket.set_arn(builder=builder, region="", account="", resource=bucket.safe_name)
@@ -185,6 +221,7 @@ class AwsS3Bucket(AwsResource, BaseBucket):
             builder.submit_work(add_bucket_versioning, bucket)
             builder.submit_work(add_public_access, bucket)
             builder.submit_work(add_acls, bucket)
+            builder.submit_work(add_bucket_logging, bucket)
 
     def _set_tags(self, client: AwsClient, tags: Dict[str, str]) -> bool:
         tag_set = [{"Key": k, "Value": v} for k, v in tags.items()]

@@ -1,3 +1,4 @@
+from contextlib import suppress
 from typing import ClassVar, Dict, List, Optional, Type
 from attrs import define, field
 from resoto_plugin_aws.aws_client import AwsClient
@@ -87,6 +88,7 @@ class AwsKmsKey(AwsResource, BaseAccessKey):
     kms_multiregion_configuration: Optional[AwsKmsMultiRegionConfig] = field(default=None)
     kms_pending_deletion_window_in_days: Optional[int] = field(default=None)
     kms_mac_algorithms: List[str] = field(factory=list)
+    kms_key_rotation_enabled: Optional[bool] = field(default=None)
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
@@ -97,9 +99,17 @@ class AwsKmsKey(AwsResource, BaseAccessKey):
         def add_instance(key: Dict[str, str]) -> None:
             key_metadata = builder.client.get("kms", "describe-key", result_name="KeyMetadata", KeyId=key["KeyId"])
             if key_metadata is not None:
-                instance = cls.from_api(key_metadata)
+                instance = AwsKmsKey.from_api(key_metadata)
                 builder.add_node(instance)
                 builder.submit_work(add_tags, instance)
+                if instance.kms_key_manager == "CUSTOMER" and instance.access_key_status == "Enabled":
+                    builder.submit_work(add_rotation_status, instance)
+
+        def add_rotation_status(key: AwsKmsKey) -> None:
+            with suppress(Exception):
+                key.kms_key_rotation_enabled = builder.client.get(  # type: ignore
+                    "kms", "get-key-rotation-status", result_name="KeyRotationEnabled", KeyId=key.id
+                )
 
         def add_tags(key: AwsKmsKey) -> None:
             tags = builder.client.list(

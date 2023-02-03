@@ -13,7 +13,7 @@
                 "resoto": "is(aws_account) with(empty, -[0:2]-> is(aws_cloud_trail) and trail_status.is_logging==true and trail_is_multi_region_trail==true)"
             },
             "remediation": {
-                "text": "Ensure there is one multi region trail with logging enabled..",
+                "text": "Ensure there is one multi region trail with logging enabled.",
                 "url": "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrailconcepts.html#cloudtrail-concepts-management-events"
             }
         },
@@ -78,6 +78,66 @@
             "remediation": {
                 "text": "Validate that the trails in CloudTrail has an arn set in the CloudWatchLogsLogGroupArn property.",
                 "url": "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/send-cloudtrail-events-to-cloudwatch-logs.html"
+            }
+        },
+        {
+            "name": "s3_bucket_logging_enabled",
+            "title": "Ensure S3 bucket access logging is enabled on the CloudTrail S3 bucket",
+            "result_kind": "aws_cloud_trail",
+            "categories": ["security", "compliance"],
+            "risk": "Server access logs can assist you in security and access audits; help you learn about your customer base; and understand your Amazon S3 bill.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_cloud_trail) --> is(aws_s3_bucket) and bucket_logging.target_bucket==null"
+            },
+            "remediation": {
+                "text": "Ensure that S3 buckets have Logging enabled. CloudTrail data events can be used in place of S3 bucket logging. If that is the case; this finding can be considered a false positive.",
+                "url": "https://docs.aws.amazon.com/AmazonS3/latest/dev/security-best-practices.html"
+            }
+        },
+        {
+            "name": "uses_encryption_at_rest",
+            "title": "Ensure CloudTrail logs are encrypted at rest using KMS CMKs",
+            "result_kind": "aws_cloud_trail",
+            "categories": ["security", "compliance"],
+            "risk": "By default; the log files delivered by CloudTrail to your bucket are encrypted by Amazon server-side encryption with Amazon S3-managed encryption keys (SSE-S3). To provide a security layer that is directly manageable; you can instead use server-side encryption with AWS KMS–managed keys (SSE-KMS) for your CloudTrail log files.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_cloud_trail) and trail_kms_key_id==null"
+            },
+            "remediation": {
+                "text": "This approach has the following advantages: You can create and manage the CMK encryption keys yourself. You can use a single CMK to encrypt and decrypt log files for multiple accounts across all regions. You have control over who can use your key for encrypting and decrypting CloudTrail log files. You can assign permissions for the key to the users. You have enhanced security.",
+                "url": "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/encrypting-cloudtrail-log-files-with-aws-kms.html"
+            }
+        },
+        {
+            "name": "s3_data_events_write_enabled",
+            "title": "Check all regions and make sure S3 buckets have Object-level logging for write events is enabled in CloudTrail.",
+            "result_kind": "aws_region",
+            "categories": ["security", "compliance"],
+            "risk": "If logs are not enabled, monitoring of service use and threat analysis is not possible.",
+            "severity": "low",
+            "detect": {
+                "resoto": "is(aws_region) with(empty, --> is(aws_cloud_trail) and trail_has_custom_event_selectors=true and trail_event_selectors[*].field_selectors.eventCategory.equals[*]=Data and trail_event_selectors[*].field_selectors.`resources\n.type`.equals[*]=AWS::S3::Object and trail_event_selectors[*].field_selectors.readOnly.equals[*]!=\"false\")"
+            },
+            "remediation": {
+                "text": "Enable logs. Create an S3 lifecycle policy. Define use cases, metrics and automated responses where applicable.",
+                "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/enable-cloudtrail-logging-for-s3.html"
+            }
+        },
+        {
+            "name": "s3_data_events_read_enabled",
+            "title": "Check all regions and make sure S3 buckets have Object-level logging for read events is enabled in CloudTrail.",
+            "result_kind": "aws_region",
+            "categories": ["security", "compliance"],
+            "risk": "If logs are not enabled, monitoring of service use and threat analysis is not possible.",
+            "severity": "low",
+            "detect": {
+                "resoto": "is(aws_region) with(empty, --> is(aws_cloud_trail) and trail_has_custom_event_selectors=true and trail_event_selectors[*].field_selectors.eventCategory.equals[*]=Data and trail_event_selectors[*].field_selectors.`resources\n.type`.equals[*]=AWS::S3::Object and trail_event_selectors[*].field_selectors.readOnly.equals[*]!=\"true\")"
+            },
+            "remediation": {
+                "text": "Enable logs. Create an S3 lifecycle policy. Define use cases, metrics and automated responses where applicable.",
+                "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/enable-cloudtrail-logging-for-s3.html"
             }
         }
     ]

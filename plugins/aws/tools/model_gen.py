@@ -286,6 +286,8 @@ def create_test_response(service: str, function: str) -> JsonElement:
             return True
         elif shape.type_name == "long":
             return 123
+        elif shape.type_name == "timestamp":
+            return utc_str()
         else:
             raise NotImplementedError(f"Unsupported shape: {type(shape)}")
 
@@ -597,6 +599,7 @@ models: Dict[str, List[AwsResotoModel]] = {
         #     prop_prefix="reservation_",
         # ),
         # AwsResotoModel("describe-network-acls", "NetworkAcls", "NetworkAcl", prefix="Ec2"),
+        # AwsResotoModel("describe-flow-logs", "FlowLogs", "FlowLog", prefix="Ec2"),
     ],
     "ecs": [
         # AwsResotoModel(
@@ -846,6 +849,7 @@ models: Dict[str, List[AwsResotoModel]] = {
         # ),
         # AwsResotoModel("get-public-access-block", "PublicAccessBlockConfiguration", prefix="S3"),
         # AwsResotoModel("get-bucket-acl", "", prefix="S3"),
+        # AwsResotoModel("get-bucket-logging", "", prefix="S3"),
     ],
     "sagemaker": [
         # AwsResotoModel(
@@ -967,22 +971,22 @@ models: Dict[str, List[AwsResotoModel]] = {
         # AwsResotoModel("get-event-selectors", "", prefix="CloudTrail")
     ],
     "config": [
-        AwsResotoModel(
-            "describe-configuration-recorders-status",
-            "ConfigurationRecorders",
-            "ConfigurationRecorder",
-            prefix="Config",
-            prop_prefix="configuration_recorder_",
-        ),
+        # AwsResotoModel(
+        #     "describe-configuration-recorders-status",
+        #     "ConfigurationRecorders",
+        #     "ConfigurationRecorder",
+        #     prefix="Config",
+        #     prop_prefix="configuration_recorder_",
+        # ),
     ],
 }
 
 
 if __name__ == "__main__":
     """print some test data"""
-    print(json.dumps(create_test_response("config", "describe-configuration-recorders"), indent=2))
+    # print(json.dumps(create_test_response("ec2", "describe-flow-logs"), indent=2))
 
     """print the class models"""
-    # print(default_imports())
-    # for model in all_models():
-    #   print(model.to_class())
+    print(default_imports())
+    for model in all_models():
+        print(model.to_class())

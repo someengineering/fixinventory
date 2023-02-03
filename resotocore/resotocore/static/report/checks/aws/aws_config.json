@@ -1,0 +1,21 @@
+{
+    "provider": "aws",
+    "service": "config",
+    "checks": [
+        {
+            "name": "enabled_in_all_regions",
+            "title": "Ensure AWS Config is enabled in all regions.",
+            "result_kind": "aws_region",
+            "categories": ["security", "compliance"],
+            "risk": "The AWS configuration item history captured by AWS Config enables security analysis, resource change tracking and compliance auditing.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_region) with(empty, --> is(aws_config_recorder) and recorder_status.recording=true and recorder_group.all_supported=true and recorder_status.last_status=SUCCESS)"
+            },
+            "remediation": {
+                "text": "It is recommended to enable AWS Config be enabled in all regions.",
+                "url": "https://aws.amazon.com/blogs/mt/aws-config-best-practices/"
+            }
+        }
+    ]
+}

@@ -12,7 +12,7 @@ from resoto_plugin_aws.utils import ToDict
 from resotolib.types import Json
 from resotolib.baseresources import ModelReference
 from resotolib.json import from_json
-from resotolib.json_bender import Bender, S, bend, ForallBend, EmptyToNone
+from resotolib.json_bender import Bender, S, bend, ForallBend, EmptyToNone, F
 
 
 @define(eq=False, slots=False)
@@ -27,7 +27,6 @@ class AwsCloudTrailAdvancedFieldSelector:
         "not_starts_with": S("NotStartsWith"),
         "not_ends_with": S("NotEndsWith"),
     }
-    field: Optional[str] = attrs_field(default=None)
     equals: Optional[List[str]] = attrs_field(default=None)
     starts_with: Optional[List[str]] = attrs_field(default=None)
     ends_with: Optional[List[str]] = attrs_field(default=None)
@@ -41,10 +40,12 @@ class AwsCloudTrailEventSelector:
     kind: ClassVar[str] = "aws_cloud_trail_event_selector"
     mapping: ClassVar[Dict[str, Bender]] = {
         "name": S("Name"),
-        "field_selectors": S("FieldSelectors", default=[]) >> ForallBend(AwsCloudTrailAdvancedFieldSelector.mapping),
+        "field_selectors": S("FieldSelectors", default=[])
+        >> ForallBend(AwsCloudTrailAdvancedFieldSelector.mapping)
+        >> F(lambda x: {a["field"]: a for a in x}),
     }
     name: Optional[str] = attrs_field(default=None)
-    field_selectors: List[AwsCloudTrailAdvancedFieldSelector] = attrs_field(factory=list)
+    field_selectors: Optional[Dict[str, AwsCloudTrailAdvancedFieldSelector]] = attrs_field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -140,8 +141,8 @@ class AwsCloudTrail(AwsResource):
             AwsApiSpec("cloudtrail", "get-trail"),
             AwsApiSpec("cloudtrail", "get-trail-status"),
             AwsApiSpec("cloudtrail", "list-tags"),
-            AwsApiSpec("cloudtrail", "list-get-event-selectors"),
-            AwsApiSpec("cloudtrail", "list-get-insight-selectors"),
+            AwsApiSpec("cloudtrail", "get-event-selectors"),
+            AwsApiSpec("cloudtrail", "get-insight-selectors"),
         ]
 
     @classmethod
@@ -152,7 +153,7 @@ class AwsCloudTrail(AwsResource):
                 builder.add_node(instance, js)
                 collect_status(instance)
                 collect_tags(instance)
-                if instance.trail_has_insight_selectors:
+                if instance.trail_has_custom_event_selectors:
                     collect_event_selectors(instance)
                 if instance.trail_has_insight_selectors:
                     collect_insight_selectors(instance)

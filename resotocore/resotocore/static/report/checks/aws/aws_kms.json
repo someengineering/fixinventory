@@ -1,0 +1,21 @@
+{
+    "provider": "aws",
+    "service": "kms",
+    "checks": [
+        {
+            "name": "key_rotation_enabled",
+            "title": "Ensure rotation for customer created KMS CMKs is enabled.",
+            "result_kind": "aws_kms_key",
+            "categories": ["security", "compliance"],
+            "risk": "Cryptographic best practices discourage extensive reuse of encryption keys. Consequently, Customer Master Keys (CMKs) should be rotated to prevent usage of compromised keys.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_kms_key) and kms_key_manager==CUSTOMER and access_key_status=Enabled and kms_key_rotation_enabled=false"
+            },
+            "remediation": {
+                "text": "For every KMS Customer Master Keys (CMKs), ensure that Rotate this key every year is enabled.",
+                "url": "https://docs.aws.amazon.com/kms/latest/developerguide/rotate-keys.html"
+            }
+        }
+    ]
+}

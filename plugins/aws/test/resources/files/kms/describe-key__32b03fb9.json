@@ -14,7 +14,7 @@
         "CustomKeyStoreId": "string",
         "CloudHsmClusterId": "string",
         "ExpirationModel": "KEY_MATERIAL_EXPIRES",
-        "KeyManager": "AWS",
+        "KeyManager": "CUSTOMER",
         "CustomerMasterKeySpec": "SYMMETRIC_DEFAULT",
         "KeySpec": "SYMMETRIC_DEFAULT",
         "EncryptionAlgorithms": ["SYMMETRIC_DEFAULT"],

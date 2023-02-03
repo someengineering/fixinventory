@@ -294,37 +294,51 @@
                 {
                     "title": "3.5 Ensure AWS Config is enabled in all regions",
                     "description": "AWS Config is a web service that performs configuration management of supported AWS resources within your account and delivers log files to you. The recorded information includes the configuration item (AWS resource), relationships between configuration items (AWS resources), any configuration changes between resources. It is recommended AWS Config be enabled in all regions.",
-                    "checks": []
+                    "checks": [
+                        "aws_config_enabled_in_all_regions"
+                    ]
                 },
                 {
                     "title": "3.6 Ensure S3 bucket access logging is enabled on the CloudTrail S3 bucket",
                     "description": "S3 Bucket Access Logging generates a log that contains access records for each request made to your S3 bucket. An access log record contains details about the request, such as the request type, the resources specified in the request worked, and the time and date the request was processed. It is recommended that bucket access logging be enabled on the CloudTrail S3 bucket.",
-                    "checks": []
+                    "checks": [
+                        "aws_cloudtrail_s3_bucket_logging_enabled"
+                    ]
                 },
                 {
                     "title": "3.7 Ensure CloudTrail logs are encrypted at rest using KMS CMKs",
                     "description": "AWS CloudTrail is a web service that records AWS API calls for an account and makes those logs available to users and resources in accordance with IAM policies. AWS Key Management Service (KMS) is a managed service that helps create and control the encryption keys used to encrypt account data, and uses Hardware Security Modules (HSMs) to protect the security of encryption keys. CloudTrail logs can be configured to leverage server side encryption (SSE) and KMS customer created master keys (CMK) to further protect CloudTrail logs. It is recommended that CloudTrail be configured to use SSE-KMS.",
-                    "checks": []
+                    "checks": [
+                        "aws_cloudtrail_uses_encryption_at_rest"
+                    ]
                 },
                 {
                     "title": "3.8 Ensure rotation for customer created symmetric CMKs is enabled",
                     "description": "AWS Key Management Service (KMS) allows customers to rotate the backing key which is key material stored within the KMS which is tied to the key ID of the Customer Created customer master key (CMK). It is the backing key that is used to perform cryptographic operations such as encryption and decryption. Automated key rotation currently retains all prior backing keys so that decryption of encrypted data can take place transparently. It is recommended that CMK key rotation be enabled for symmetric keys. Key rotation can not be enabled for any asymmetric CMK.",
-                    "checks": []
+                    "checks": [
+                        "aws_kms_key_rotation_enabled"
+                    ]
                 },
                 {
                     "title": "3.9 Ensure VPC flow logging is enabled in all VPCs",
                     "description": "VPC Flow Logs is a feature that enables you to capture information about the IP traffic going to and from network interfaces in your VPC. After you've created a flow log, you can view and retrieve its data in Amazon CloudWatch Logs. It is recommended that VPC Flow Logs be enabled for packet \"Rejects\" for VPCs.",
-                    "checks": []
+                    "checks": [
+                        "aws_ec2_vpc_flow_logs_enabled"
+                    ]
                 },
                 {
                     "title": "3.10 Ensure that Object-level logging for write events is enabled for S3 bucket",
                     "description": "S3 object-level API operations such as GetObject, DeleteObject, and PutObject are called data events. By default, CloudTrail trails don't log data events and so it is recommended to enable Object-level logging for S3 buckets.",
-                    "checks": []
+                    "checks": [
+                        "aws_cloudtrail_s3_data_events_write_enabled"
+                    ]
                 },
                 {
                     "title": "3.11 Ensure that Object-level logging for read events is enabled for S3 bucket",
                     "description": "S3 object-level API operations such as GetObject, DeleteObject, and PutObject are called data events. By default, CloudTrail trails don't log data events and so it is recommended to enable Object-level logging for S3 buckets.",
-                    "checks": []
+                    "checks": [
+                        "aws_cloudtrail_s3_data_events_read_enabled"
+                    ]
                 }
             ]
         },

@@ -679,6 +679,22 @@
                 "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSEncryption.html"
             },
             "internal_notes": ""
+        },
+        {
+            "name": "vpc_flow_logs_enabled",
+            "title": "Ensure VPC Flow Logging is Enabled in all VPCs.",
+            "result_kind": "aws_vpc",
+            "categories": [ "security", "compliance" ],
+            "risk": "VPC Flow Logs provide visibility into network traffic that traverses the VPC and can be used to detect anomalous traffic or insight during security workflows.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_vpc) with(empty, --> is(aws_ec2_flow_log))"
+            },
+            "remediation": {
+                "text": "It is recommended that VPC Flow Logs be enabled for packet Rejects for VPCs.",
+                "url": "http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/flow-logs.html"
+            },
+            "internal_notes": ""
         }
     ]
 }
