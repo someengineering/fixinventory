@@ -3,6 +3,8 @@ from typing import ClassVar, Dict, Optional, List
 from attrs import define, field
 
 from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
+from resoto_plugin_aws.resource.kms import AwsKmsKey
+from resotolib.baseresources import ModelReference
 from resotolib.json_bender import Bender, S, Bend, bend, ForallBend
 from resotolib.types import Json
 from resoto_plugin_aws.aws_client import AwsClient
@@ -52,6 +54,12 @@ class AwsKinesisShard:
 @define(eq=False, slots=False)
 class AwsKinesisEnhancedMetrics:
     kind: ClassVar[str] = "aws_kinesis_enhanced_metrics"
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {
+            "delete": ["aws_kms_key"],
+        },
+        "successors": {"default": ["aws_kms_key"]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {"shard_level_metrics": S("ShardLevelMetrics", default=[])}
     shard_level_metrics: List[str] = field(factory=list)
 
@@ -111,6 +119,10 @@ class AwsKinesisStream(AwsResource):
                 stream = AwsKinesisStream.from_api(stream_descriptions[0])
                 builder.add_node(stream)
                 builder.submit_work(add_tags, stream)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if self.kinesis_key_id:
+            builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(self.kinesis_key_id))
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(
