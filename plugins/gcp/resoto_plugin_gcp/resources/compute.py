@@ -1248,6 +1248,8 @@ class GcpForwardingRule(GcpResource):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.rule_network:
             builder.add_edge(self, reverse=True, link=self.rule_network)
+        if self.rule_target:
+            builder.add_edge(self, link=self.rule_target)
 
 
 @define(eq=False, slots=False)
