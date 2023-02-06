@@ -3,17 +3,17 @@
     "service": "cloudtrail",
     "checks": [
         {
-            "name": "logging_multi_region_enabled",
+            "name": "logging_in_all_regions_enabled",
             "title": "Ensure CloudTrail is enabled and set up for logging in all regions",
-            "result_kind": "aws_account",
+            "result_kind": "aws_region",
             "categories": ["security", "compliance"],
             "risk": "AWS CloudTrail is a web service that records AWS API calls for your account and delivers log files to you. The recorded information includes the identity of the API caller; the time of the API call; the source IP address of the API caller; the request parameters; and the response elements returned by the AWS service.",
             "severity": "high",
             "detect": {
-                "resoto": "is(aws_account) with(empty, -[0:2]-> is(aws_cloud_trail) and trail_status.is_logging==true and trail_is_multi_region_trail==true)"
+                "resoto": "is(aws_region) with(empty, -[0:1]-> is(aws_cloud_trail) and trail_status.is_logging==true)"
             },
             "remediation": {
-                "text": "Ensure there is one multi region trail with logging enabled.",
+                "text": "Ensure there is one trail in every region with logging enabled. Consider using multi account / multi region trails for your organization.",
                 "url": "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrailconcepts.html#cloudtrail-concepts-management-events"
             }
         },

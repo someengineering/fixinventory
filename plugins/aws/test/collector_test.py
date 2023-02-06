@@ -31,7 +31,8 @@ def test_collect(account_collector: AwsAccountCollector) -> None:
     assert len(threading.enumerate()) == 1
     # ensure the correct number of nodes and edges
     assert count_kind(AwsResource) == 198
-    assert len(account_collector.graph.edges) == 465
+    assert len(account_collector.graph.edges) == 464
+    assert len(account_collector.graph.deferred_edges) == 2
 
 
 def test_dependencies() -> None:
@@ -67,7 +68,7 @@ def test_collect_region(
         account_collector.collect_region(AwsRegion(id="us-east-1", name="us-east-1"), builder)
     assert (
         "Not authorized to collect aws_redshift_cluster resources"
-        " in account 123 region us-east-1 - skipping resource"
+        " in account test region us-east-1 - skipping resource"
     ) in caplog.text
 
 

@@ -225,7 +225,15 @@ class AwsClient:
         expected_errors: Optional[List[str]] = None,
         **kwargs: Any,
     ) -> JsonElement:
-        return self.call_single(aws_service, action, result_name, max_attempts=1, **kwargs)
+        try:
+            return self.call_single(aws_service, action, result_name, max_attempts=1, **kwargs)
+        except ClientError as e:
+            expected_errors = expected_errors or []
+            code = e.response["Error"]["Code"] or "Unknown Code"
+            if code in expected_errors:
+                log.debug(f"Expected error: {code}")
+            else:
+                raise
 
     def list(
         self,

@@ -10,7 +10,7 @@ from resoto_plugin_aws.resource.s3 import AwsS3Bucket
 from resoto_plugin_aws.resource.sns import AwsSnsTopic
 from resoto_plugin_aws.utils import ToDict
 from resotolib.types import Json
-from resotolib.baseresources import ModelReference
+from resotolib.baseresources import ModelReference, EdgeType
 from resotolib.json import from_json
 from resotolib.json_bender import Bender, S, bend, ForallBend, EmptyToNone, F
 
@@ -196,10 +196,16 @@ class AwsCloudTrail(AwsResource):
                 trail.tags = bend(S("TagsList", default=[]) >> ToDict(), tr)
 
         for js in json:
-            if js["HomeRegion"] == builder.region.name:
-                # list trails will return trails for all regions
-                # filter here, to get the assignment to the correct region
-                builder.submit_work(collect_trail, js["TrailARN"])
+            arn = js["TrailARN"]
+            # list trails will return multi account trails in all regions
+            if js["HomeRegion"] == builder.region.name and builder.account.id in arn:
+                # only collect trails in the current account and current region
+                builder.submit_work(collect_trail, arn)
+            else:
+                # add a deferred edge to the trails in another account or region
+                builder.add_deferred_edge(
+                    builder.region, EdgeType.default, f'is(aws_cloud_trail) and reported.arn=="{arn}"'
+                )
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if s3 := self.trail_s3_bucket_name:
