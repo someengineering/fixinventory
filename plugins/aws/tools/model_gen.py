@@ -745,7 +745,12 @@ models: Dict[str, List[AwsResotoModel]] = {
         #     prefix="Lambda",
         # )
     ],
-    "logs": [AwsResotoModel("describe-log-groups", "logGroups", "LogGroup", prefix="Cloudwatch", prop_prefix="group_")],
+    "logs": [
+        # AwsResotoModel("describe-log-groups", "logGroups", "LogGroup", prefix="Cloudwatch", prop_prefix="group_"),
+        # AwsResotoModel(
+        #     "describe-metric-filters", "metricFilters", "MetricFilter", prefix="Cloudwatch", prop_prefix="filter_"
+        # ),
+    ],
     "iam": [
         # AwsResotoModel(
         #     "list-server-certificates",

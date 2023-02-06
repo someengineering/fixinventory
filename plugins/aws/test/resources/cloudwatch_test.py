@@ -9,6 +9,7 @@ from resoto_plugin_aws.resource.cloudwatch import (
     AwsCloudwatchMetricData,
     AwsCloudwatchQuery,
     AwsCloudwatchLogGroup,
+    AwsCloudwatchMetricFilter,
 )
 from test import aws_client, aws_config  # noqa: F401
 
@@ -20,7 +21,15 @@ def test_alarms() -> None:
 
 
 def test_log_groups() -> None:
-    first, builder = round_trip_for(AwsCloudwatchLogGroup)
+    round_trip_for(AwsCloudwatchLogGroup)
+
+
+def test_metrics_filter() -> None:
+    first, builder = round_trip_for(AwsCloudwatchMetricFilter)
+    # test connection to log group
+    AwsCloudwatchLogGroup.collect_resources(builder)
+    first.connect_in_graph(builder, builder.graph.nodes(data=True)[first]["source"])
+    assert len(builder.edges_of(AwsCloudwatchLogGroup, AwsCloudwatchMetricFilter)) == 1
 
 
 def test_metric(aws_client: AwsClient) -> None:
