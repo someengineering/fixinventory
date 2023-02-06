@@ -148,7 +148,13 @@ class AwsKmsKey(AwsResource, BaseAccessKey):
         if self.access_key_status == "PendingDeletion":
             return True
 
-        client.call(aws_service="kms", action="disable-key", result_name=None, KeyId=self.id)
+        client.call(
+            aws_service="kms",
+            action="disable-key",
+            result_name=None,
+            KeyId=self.id,
+            expected_errors=["NotFoundException"],
+        )
         return True
 
     @classmethod
