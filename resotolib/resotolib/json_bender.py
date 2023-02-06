@@ -11,6 +11,7 @@ from jsons import snakecase
 
 from resotolib.types import Json, JsonElement
 from resotolib.units import parse
+from resotolib.utils import utc_str
 
 log = logging.getLogger("resoto." + __name__)
 
@@ -525,6 +526,11 @@ class CPUCoresToNumber(Bender):
 class EmptyToNoneBender(Bender):
     def execute(self, source: Any) -> Any:
         return None if source in (None, "", [], {}) else source
+
+
+class SecondsFromEpochToDatetime(Bender):
+    def execute(self, source: int) -> str:
+        return utc_str(datetime.utcfromtimestamp(source))
 
 
 EmptyToNone = EmptyToNoneBender()

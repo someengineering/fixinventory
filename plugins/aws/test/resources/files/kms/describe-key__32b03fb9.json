@@ -2,7 +2,7 @@
     "KeyMetadata": {
         "AWSAccountId": "12345",
         "KeyId": "32b03fb9",
-        "Arn": "arn:aws:kms:eu-central-1:882347060974:key/32b03fb9",
+        "Arn": "arn:aws:kms:eu-central-1:test:key/32b03fb9",
         "CreationDate": "2022-05-06T08:43:41Z",
         "Enabled": true,
         "Description": "Default key",

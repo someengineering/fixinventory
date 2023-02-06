@@ -6,10 +6,11 @@ from attr import define, field
 
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
+from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resoto_plugin_aws.utils import ToDict
 from resotolib.baseresources import ModelReference
 from resotolib.json import from_json
-from resotolib.json_bender import S, Bend, Bender, ForallBend, bend
+from resotolib.json_bender import S, Bend, Bender, ForallBend, bend, F, SecondsFromEpochToDatetime
 from resotolib.types import Json
 from resotolib.utils import chunks
 
@@ -197,6 +198,31 @@ class AwsCloudwatchAlarm(CloudwatchTaggable, AwsResource):
         return super().called_mutator_apis() + [AwsApiSpec("cloudwatch", "delete-alarms")]
 
 
+@define(eq=False, slots=False)
+class AwsCloudwatchLogGroup(AwsResource):
+    kind: ClassVar[str] = "aws_cloudwatch_log_group"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("logs", "describe-log-groups", "logGroups")
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("logGroupName"),
+        "tags": S("Tags", default=[]) >> ToDict(),
+        "name": S("logGroupName"),
+        "ctime": S("creationTime") >> F(lambda x: x // 1000) >> SecondsFromEpochToDatetime(),
+        "arn": S("arn"),
+        "group_retention_in_days": S("retentionInDays"),
+        "group_metric_filter_count": S("metricFilterCount"),
+        "group_stored_bytes": S("storedBytes"),
+        "group_data_protection_status": S("dataProtectionStatus"),
+    }
+    group_retention_in_days: Optional[int] = field(default=None)
+    group_metric_filter_count: Optional[int] = field(default=None)
+    group_stored_bytes: Optional[int] = field(default=None)
+    group_data_protection_status: Optional[str] = field(default=None)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if kms_key_id := source.get("kmsKeyId"):
+            builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(kms_key_id))
+
+
 @define(hash=True, frozen=True)
 class AwsCloudwatchQuery:
     metric_name: str
@@ -307,4 +333,4 @@ class AwsCloudwatchMetricData:
         return result
 
 
-resources: List[Type[AwsResource]] = [AwsCloudwatchAlarm]
+resources: List[Type[AwsResource]] = [AwsCloudwatchAlarm, AwsCloudwatchLogGroup]
