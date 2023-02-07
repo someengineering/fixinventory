@@ -231,6 +231,10 @@ class AwsCloudwatchAlarm(CloudwatchTaggable, AwsResource):
 class AwsCloudwatchLogGroup(LogsTaggable, AwsResource):
     kind: ClassVar[str] = "aws_cloudwatch_log_group"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("logs", "describe-log-groups", "logGroups")
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {"default": ["aws_kms_key"]},
+        "predecessors": {"delete": ["aws_kms_key"]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("logGroupName"),
         "tags": S("Tags", default=[]) >> ToDict(),
@@ -275,6 +279,10 @@ class AwsCloudwatchMetricTransformation:
 class AwsCloudwatchMetricFilter(AwsResource):
     kind: ClassVar[str] = "aws_cloudwatch_metric_filter"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("logs", "describe-metric-filters", "metricFilters")
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["aws_cloudwatch_log_group"]},
+        "successors": {"default": ["aws_cloudwatch_alarm"], "delete": ["aws_cloudwatch_log_group"]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("filterName"),
         "name": S("filterName"),
@@ -289,6 +297,14 @@ class AwsCloudwatchMetricFilter(AwsResource):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if log_group_name := source.get("logGroupName"):
             builder.dependant_node(self, reverse=True, clazz=AwsCloudwatchLogGroup, name=log_group_name)
+        for transformation in self.filter_transformations:
+            # every metric can be used by multiple alarms
+            for alarm in builder.nodes(
+                clazz=AwsCloudwatchAlarm,
+                cloudwatch_namespace=transformation.metric_namespace,
+                cloudwatch_metric_name=transformation.metric_name,
+            ):
+                builder.add_edge(self, node=alarm)
 
 
 @define(hash=True, frozen=True)

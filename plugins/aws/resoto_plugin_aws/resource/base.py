@@ -7,7 +7,7 @@ from concurrent.futures import Executor, Future
 from datetime import datetime, timezone
 from functools import lru_cache
 from threading import Lock
-from typing import ClassVar, Dict, Optional, List, Type, Any, TypeVar, Callable
+from typing import ClassVar, Dict, Optional, List, Type, Any, TypeVar, Callable, Iterator
 
 from attr import evolve, field
 from attrs import define
@@ -413,6 +413,12 @@ class GraphBuilder:
             if is_clazz and all(getattr(n, k, None) == v for k, v in node.items()):
                 return n  # type: ignore
         return None
+
+    def nodes(self, clazz: Optional[Type[AwsResourceType]] = None, **node: Any) -> Iterator[AwsResourceType]:
+        for n in self.graph:
+            is_clazz = isinstance(n, clazz) if clazz else True
+            if is_clazz and all(getattr(n, k, None) == v for k, v in node.items()):
+                yield n  # type: ignore
 
     def add_node(self, node: AwsResourceType, source: Optional[Json] = None) -> AwsResourceType:
         log.debug(f"{self.name}: add node {node}")

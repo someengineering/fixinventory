@@ -332,6 +332,14 @@ def test_special_cases() -> None:
     assert len(q.parts) == 2
 
 
+def test_escape_characters() -> None:
+    # q = parse_query(r'name == "test\""')
+    # q = parse_query(r'filter_pattern~"\$.errorCode"')
+    d = 'foo="test\\""'
+    q = parse_query(d)
+    print(q)
+
+
 @given(query)
 @settings(max_examples=50, suppress_health_check=HealthCheck.all())
 def test_generated_query(q: Query) -> None:

@@ -249,15 +249,18 @@ class InspectorService(Inspector, Service):
         try:
             errors = []
             for check in ReportCheckCollectionConfig.from_config(ConfigEntity(ResotoReportCheck, json)):
-                env = check.default_values or {}
-                if search := check.detect.get("resoto"):
-                    await self.template_expander.parse_query(search, on_section="reported", **env)
-                elif cmd := check.detect.get("resoto_cmd"):
-                    await self.cli.evaluate_cli_command(cmd, CLIContext(env=env))
-                elif check.detect.get("manual"):
-                    pass
-                else:
-                    errors.append(f"Check {check.id} neither has a resoto, resoto_cmd or manual defined")
+                try:
+                    env = check.default_values or {}
+                    if search := check.detect.get("resoto"):
+                        await self.template_expander.parse_query(search, on_section="reported", **env)
+                    elif cmd := check.detect.get("resoto_cmd"):
+                        await self.cli.evaluate_cli_command(cmd, CLIContext(env=env))
+                    elif check.detect.get("manual"):
+                        pass
+                    else:
+                        errors.append(f"Check {check.id} neither has a resoto, resoto_cmd or manual defined")
+                except Exception as e:
+                    errors.append(f"Check {check.id} is invalid: {e}")
             if errors:
                 return {"error": f"Can not validate check collection: {errors}"}
             else:
