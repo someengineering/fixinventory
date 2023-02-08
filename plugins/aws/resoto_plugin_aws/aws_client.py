@@ -232,6 +232,7 @@ class AwsClient:
             code = e.response["Error"]["Code"] or "Unknown Code"
             if code in expected_errors:
                 log.debug(f"Expected error: {code}")
+                return None
             else:
                 raise
 

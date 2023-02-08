@@ -226,8 +226,8 @@ class AwsRdsDomainMembership:
 
 
 @define(eq=False, slots=False)
-class AwsRdsDBInstanceRole:
-    kind: ClassVar[str] = "aws_rds_db_instance_role"
+class AwsRdsDBRole:
+    kind: ClassVar[str] = "aws_rds_db_role"
     mapping: ClassVar[Dict[str, Bender]] = {
         "role_arn": S("RoleArn"),
         "feature_name": S("FeatureName"),
@@ -321,7 +321,7 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
         "rds_enabled_cloudwatch_logs_exports": S("EnabledCloudwatchLogsExports", default=[]),
         "rds_processor_features": S("ProcessorFeatures", default=[]) >> ForallBend(AwsRdsProcessorFeature.mapping),
         "rds_deletion_protection": S("DeletionProtection"),
-        "rds_associated_roles": S("AssociatedRoles", default=[]) >> ForallBend(AwsRdsDBInstanceRole.mapping),
+        "rds_associated_roles": S("AssociatedRoles", default=[]) >> ForallBend(AwsRdsDBRole.mapping),
         "rds_listener_endpoint": S("ListenerEndpoint") >> Bend(AwsRdsEndpoint.mapping),
         "rds_max_allocated_storage": S("MaxAllocatedStorage"),
         "rds_db_instance_automated_backups_replications": S("DBInstanceAutomatedBackupsReplications", default=[])
@@ -384,7 +384,7 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
     rds_enabled_cloudwatch_logs_exports: List[str] = field(factory=list)
     rds_processor_features: List[AwsRdsProcessorFeature] = field(factory=list)
     rds_deletion_protection: Optional[bool] = field(default=None)
-    rds_associated_roles: List[AwsRdsDBInstanceRole] = field(factory=list)
+    rds_associated_roles: List[AwsRdsDBRole] = field(factory=list)
     rds_listener_endpoint: Optional[AwsRdsEndpoint] = field(default=None)
     rds_max_allocated_storage: Optional[int] = field(default=None)
     rds_db_instance_automated_backups_replications: List[str] = field(factory=list)
@@ -492,4 +492,265 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
         return super().called_mutator_apis() + [AwsApiSpec("rds", "delete-db-instance")]
 
 
-resources: List[Type[AwsResource]] = [AwsRdsInstance]
+@define(eq=False, slots=False)
+class AwsRdsDBClusterOptionGroupStatus:
+    kind: ClassVar[str] = "aws_rds_db_cluster_option_group_status"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "db_cluster_option_group_name": S("DBClusterOptionGroupName"),
+        "status": S("Status"),
+    }
+    db_cluster_option_group_name: Optional[str] = field(default=None)
+    status: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsRdsDBClusterMember:
+    kind: ClassVar[str] = "aws_rds_db_cluster_member"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "db_instance_identifier": S("DBInstanceIdentifier"),
+        "is_cluster_writer": S("IsClusterWriter"),
+        "db_cluster_parameter_group_status": S("DBClusterParameterGroupStatus"),
+        "promotion_tier": S("PromotionTier"),
+    }
+    db_instance_identifier: Optional[str] = field(default=None)
+    is_cluster_writer: Optional[bool] = field(default=None)
+    db_cluster_parameter_group_status: Optional[str] = field(default=None)
+    promotion_tier: Optional[int] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsRdsScalingConfigurationInfo:
+    kind: ClassVar[str] = "aws_rds_scaling_configuration_info"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "min_capacity": S("MinCapacity"),
+        "max_capacity": S("MaxCapacity"),
+        "auto_pause": S("AutoPause"),
+        "seconds_until_auto_pause": S("SecondsUntilAutoPause"),
+        "timeout_action": S("TimeoutAction"),
+        "seconds_before_timeout": S("SecondsBeforeTimeout"),
+    }
+    min_capacity: Optional[int] = field(default=None)
+    max_capacity: Optional[int] = field(default=None)
+    auto_pause: Optional[bool] = field(default=None)
+    seconds_until_auto_pause: Optional[int] = field(default=None)
+    timeout_action: Optional[str] = field(default=None)
+    seconds_before_timeout: Optional[int] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsRdsClusterPendingModifiedValues:
+    kind: ClassVar[str] = "aws_rds_cluster_pending_modified_values"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "pending_cloudwatch_logs_exports": S("PendingCloudwatchLogsExports")
+        >> Bend(AwsRdsPendingCloudwatchLogsExports.mapping),
+        "db_cluster_identifier": S("DBClusterIdentifier"),
+        "master_user_password": S("MasterUserPassword"),
+        "iam_database_authentication_enabled": S("IAMDatabaseAuthenticationEnabled"),
+        "engine_version": S("EngineVersion"),
+        "backup_retention_period": S("BackupRetentionPeriod"),
+        "allocated_storage": S("AllocatedStorage"),
+        "iops": S("Iops"),
+    }
+    pending_cloudwatch_logs_exports: Optional[AwsRdsPendingCloudwatchLogsExports] = field(default=None)
+    db_cluster_identifier: Optional[str] = field(default=None)
+    master_user_password: Optional[str] = field(default=None)
+    iam_database_authentication_enabled: Optional[bool] = field(default=None)
+    engine_version: Optional[str] = field(default=None)
+    backup_retention_period: Optional[int] = field(default=None)
+    allocated_storage: Optional[int] = field(default=None)
+    iops: Optional[int] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsRdsServerlessV2ScalingConfigurationInfo:
+    kind: ClassVar[str] = "aws_rds_serverless_v2_scaling_configuration_info"
+    mapping: ClassVar[Dict[str, Bender]] = {"min_capacity": S("MinCapacity"), "max_capacity": S("MaxCapacity")}
+    min_capacity: Optional[float] = field(default=None)
+    max_capacity: Optional[float] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsRdsMasterUserSecret:
+    kind: ClassVar[str] = "aws_rds_master_user_secret"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "secret_arn": S("SecretArn"),
+        "secret_status": S("SecretStatus"),
+        "kms_key_id": S("KmsKeyId"),
+    }
+    secret_arn: Optional[str] = field(default=None)
+    secret_status: Optional[str] = field(default=None)
+    kms_key_id: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsRdsCluster(RdsTaggable, AwsResource, BaseDatabase):
+    kind: ClassVar[str] = "aws_rds_cluster"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("rds", "describe-db-clusters", "DBClusters")
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("DBClusterIdentifier"),
+        "tags": S("TagList", default=[]) >> ToDict(),
+        "name": S("DBClusterIdentifier"),
+        "ctime": S("ClusterCreateTime"),
+        "db_type": S("Engine"),
+        "db_status": S("Status"),
+        "db_endpoint": S("Endpoint") + K(":") + (S("Port") >> F(str)),
+        "db_version": S("EngineVersion"),
+        "db_publicly_accessible": S("PubliclyAccessible"),
+        "volume_iops": S("Iops"),
+        "volume_encrypted": S("StorageEncrypted"),
+        "rds_allocated_storage": S("AllocatedStorage"),
+        "rds_availability_zones": S("AvailabilityZones", default=[]),
+        "rds_backup_retention_period": S("BackupRetentionPeriod"),
+        "rds_character_set_name": S("CharacterSetName"),
+        "rds_database_name": S("DatabaseName"),
+        "rds_db_cluster_parameter_group": S("DBClusterParameterGroup"),
+        "rds_db_subnet_group_name": S("DBSubnetGroup"),
+        "rds_automatic_restart_time": S("AutomaticRestartTime"),
+        "rds_percent_progress": S("PercentProgress"),
+        "rds_earliest_restorable_time": S("EarliestRestorableTime"),
+        "rds_endpoint": S("Endpoint"),
+        "rds_reader_endpoint": S("ReaderEndpoint"),
+        "rds_custom_endpoints": S("CustomEndpoints", default=[]),
+        "rds_multi_az": S("MultiAZ"),
+        "rds_latest_restorable_time": S("LatestRestorableTime"),
+        "rds_port": S("Port"),
+        "rds_master_username": S("MasterUsername"),
+        "rds_db_cluster_option_group_memberships": S("DBClusterOptionGroupMemberships", default=[])
+        >> ForallBend(AwsRdsDBClusterOptionGroupStatus.mapping),
+        "rds_preferred_backup_window": S("PreferredBackupWindow"),
+        "rds_preferred_maintenance_window": S("PreferredMaintenanceWindow"),
+        "rds_replication_source_identifier": S("ReplicationSourceIdentifier"),
+        "rds_read_replica_identifiers": S("ReadReplicaIdentifiers", default=[]),
+        "rds_db_cluster_members": S("DBClusterMembers", default=[]) >> ForallBend(AwsRdsDBClusterMember.mapping),
+        "rds_vpc_security_groups": S("VpcSecurityGroups", default=[])
+        >> ForallBend(AwsRdsVpcSecurityGroupMembership.mapping),
+        "rds_hosted_zone_id": S("HostedZoneId"),
+        "rds_kms_key_id": S("KmsKeyId"),
+        "rds_db_cluster_resource_id": S("DbClusterResourceId"),
+        "arn": S("DBClusterArn"),
+        "rds_associated_roles": S("AssociatedRoles", default=[]) >> ForallBend(AwsRdsDBRole.mapping),
+        "rds_iam_database_authentication_enabled": S("IAMDatabaseAuthenticationEnabled"),
+        "rds_clone_group_id": S("CloneGroupId"),
+        "rds_earliest_backtrack_time": S("EarliestBacktrackTime"),
+        "rds_backtrack_window": S("BacktrackWindow"),
+        "rds_backtrack_consumed_change_records": S("BacktrackConsumedChangeRecords"),
+        "rds_enabled_cloudwatch_logs_exports": S("EnabledCloudwatchLogsExports", default=[]),
+        "rds_capacity": S("Capacity"),
+        "rds_engine_mode": S("EngineMode"),
+        "rds_scaling_configuration_info": S("ScalingConfigurationInfo") >> Bend(AwsRdsScalingConfigurationInfo.mapping),
+        "rds_deletion_protection": S("DeletionProtection"),
+        "rds_http_endpoint_enabled": S("HttpEndpointEnabled"),
+        "rds_activity_stream_mode": S("ActivityStreamMode"),
+        "rds_activity_stream_status": S("ActivityStreamStatus"),
+        "rds_activity_stream_kms_key_id": S("ActivityStreamKmsKeyId"),
+        "rds_activity_stream_kinesis_stream_name": S("ActivityStreamKinesisStreamName"),
+        "rds_copy_tags_to_snapshot": S("CopyTagsToSnapshot"),
+        "rds_cross_account_clone": S("CrossAccountClone"),
+        "rds_domain_memberships": S("DomainMemberships", default=[]) >> ForallBend(AwsRdsDomainMembership.mapping),
+        "rds_global_write_forwarding_status": S("GlobalWriteForwardingStatus"),
+        "rds_global_write_forwarding_requested": S("GlobalWriteForwardingRequested"),
+        "rds_cluster_pending_modified_values": S("PendingModifiedValues")
+        >> Bend(AwsRdsClusterPendingModifiedValues.mapping),
+        "rds_db_cluster_instance_class": S("DBClusterInstanceClass"),
+        "rds_storage_type": S("StorageType"),
+        "rds_auto_minor_version_upgrade": S("AutoMinorVersionUpgrade"),
+        "rds_monitoring_interval": S("MonitoringInterval"),
+        "rds_monitoring_role_arn": S("MonitoringRoleArn"),
+        "rds_performance_insights_enabled": S("PerformanceInsightsEnabled"),
+        "rds_performance_insights_kms_key_id": S("PerformanceInsightsKMSKeyId"),
+        "rds_performance_insights_retention_period": S("PerformanceInsightsRetentionPeriod"),
+        "rds_serverless_v2_scaling_configuration": S("ServerlessV2ScalingConfiguration")
+        >> Bend(AwsRdsServerlessV2ScalingConfigurationInfo.mapping),
+        "rds_network_type": S("NetworkType"),
+        "rds_db_system_id": S("DBSystemId"),
+        "rds_master_user_secret": S("MasterUserSecret") >> Bend(AwsRdsMasterUserSecret.mapping),
+    }
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {"default": ["aws_rds_instance", "aws_kms_key"], "delete": ["aws_rds_instance"]},
+    }
+    rds_allocated_storage: Optional[int] = field(default=None)
+    rds_availability_zones: List[str] = field(factory=list)
+    rds_backup_retention_period: Optional[int] = field(default=None)
+    rds_character_set_name: Optional[str] = field(default=None)
+    rds_database_name: Optional[str] = field(default=None)
+    rds_db_cluster_parameter_group: Optional[str] = field(default=None)
+    rds_db_subnet_group_name: Optional[str] = field(default=None)
+    rds_automatic_restart_time: Optional[datetime] = field(default=None)
+    rds_percent_progress: Optional[str] = field(default=None)
+    rds_earliest_restorable_time: Optional[datetime] = field(default=None)
+    rds_endpoint: Optional[str] = field(default=None)
+    rds_reader_endpoint: Optional[str] = field(default=None)
+    rds_custom_endpoints: List[str] = field(factory=list)
+    rds_multi_az: Optional[bool] = field(default=None)
+    rds_latest_restorable_time: Optional[datetime] = field(default=None)
+    rds_port: Optional[int] = field(default=None)
+    rds_master_username: Optional[str] = field(default=None)
+    rds_db_cluster_option_group_memberships: List[AwsRdsDBClusterOptionGroupStatus] = field(factory=list)
+    rds_preferred_backup_window: Optional[str] = field(default=None)
+    rds_preferred_maintenance_window: Optional[str] = field(default=None)
+    rds_replication_source_identifier: Optional[str] = field(default=None)
+    rds_read_replica_identifiers: List[str] = field(factory=list)
+    rds_db_cluster_members: List[AwsRdsDBClusterMember] = field(factory=list)
+    rds_vpc_security_groups: List[AwsRdsVpcSecurityGroupMembership] = field(factory=list)
+    rds_hosted_zone_id: Optional[str] = field(default=None)
+    rds_kms_key_id: Optional[str] = field(default=None)
+    rds_db_cluster_resource_id: Optional[str] = field(default=None)
+    rds_associated_roles: List[AwsRdsDBRole] = field(factory=list)
+    rds_iam_database_authentication_enabled: Optional[bool] = field(default=None)
+    rds_clone_group_id: Optional[str] = field(default=None)
+    rds_earliest_backtrack_time: Optional[datetime] = field(default=None)
+    rds_backtrack_window: Optional[int] = field(default=None)
+    rds_backtrack_consumed_change_records: Optional[int] = field(default=None)
+    rds_enabled_cloudwatch_logs_exports: List[str] = field(factory=list)
+    rds_capacity: Optional[int] = field(default=None)
+    rds_engine_mode: Optional[str] = field(default=None)
+    rds_scaling_configuration_info: Optional[AwsRdsScalingConfigurationInfo] = field(default=None)
+    rds_deletion_protection: Optional[bool] = field(default=None)
+    rds_http_endpoint_enabled: Optional[bool] = field(default=None)
+    rds_activity_stream_mode: Optional[str] = field(default=None)
+    rds_activity_stream_status: Optional[str] = field(default=None)
+    rds_activity_stream_kms_key_id: Optional[str] = field(default=None)
+    rds_activity_stream_kinesis_stream_name: Optional[str] = field(default=None)
+    rds_copy_tags_to_snapshot: Optional[bool] = field(default=None)
+    rds_cross_account_clone: Optional[bool] = field(default=None)
+    rds_domain_memberships: List[AwsRdsDomainMembership] = field(factory=list)
+    rds_global_write_forwarding_status: Optional[str] = field(default=None)
+    rds_global_write_forwarding_requested: Optional[bool] = field(default=None)
+    rds_cluster_pending_modified_values: Optional[AwsRdsClusterPendingModifiedValues] = field(default=None)
+    rds_db_cluster_instance_class: Optional[str] = field(default=None)
+    rds_storage_type: Optional[str] = field(default=None)
+    rds_auto_minor_version_upgrade: Optional[bool] = field(default=None)
+    rds_monitoring_interval: Optional[int] = field(default=None)
+    rds_monitoring_role_arn: Optional[str] = field(default=None)
+    rds_performance_insights_enabled: Optional[bool] = field(default=None)
+    rds_performance_insights_kms_key_id: Optional[str] = field(default=None)
+    rds_performance_insights_retention_period: Optional[int] = field(default=None)
+    rds_serverless_v2_scaling_configuration: Optional[AwsRdsServerlessV2ScalingConfigurationInfo] = field(default=None)
+    rds_network_type: Optional[str] = field(default=None)
+    rds_db_system_id: Optional[str] = field(default=None)
+    rds_master_user_secret: Optional[AwsRdsMasterUserSecret] = field(default=None)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if kms_id := self.rds_kms_key_id:
+            builder.add_edge(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(kms_id))
+        for member in self.rds_db_cluster_members:
+            builder.dependant_node(
+                self, delete_same_as_default=True, clazz=AwsRdsInstance, id=member.db_instance_identifier
+            )
+
+    def delete_resource(self, client: AwsClient) -> bool:
+        client.call(
+            aws_service=self.api_spec.service,
+            action="delete-db-cluster",
+            result_name=None,
+            DBClusterIdentifier=self.id,
+            SkipFinalSnapshot=True,
+        )
+        return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [AwsApiSpec("rds", "delete-db-cluster")]
+
+
+resources: List[Type[AwsResource]] = [AwsRdsCluster, AwsRdsInstance]
