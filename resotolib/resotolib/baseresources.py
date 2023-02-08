@@ -823,7 +823,7 @@ class BaseDatabase(BaseResource):
     kind: ClassVar[str] = "database"
     db_type: str = ""
     db_status: str = ""
-    db_endpoint: str = ""
+    db_endpoint: Optional[str] = ""
     db_version: Optional[str] = None
     db_publicly_accessible: Optional[bool] = None
     instance_type: str = ""
