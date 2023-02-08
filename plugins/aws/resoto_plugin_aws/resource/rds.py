@@ -4,6 +4,7 @@ from attr import define, field
 from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
 from resoto_plugin_aws.resource.cloudwatch import AwsCloudwatchQuery, AwsCloudwatchMetricData
 from resoto_plugin_aws.resource.ec2 import AwsEc2SecurityGroup, AwsEc2Subnet, AwsEc2Vpc
+from resoto_plugin_aws.resource.kinesis import AwsKinesisStream
 from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resoto_plugin_aws.utils import ToDict
 from resotolib.baseresources import BaseDatabase, ModelReference
@@ -666,7 +667,8 @@ class AwsRdsCluster(RdsTaggable, AwsResource, BaseDatabase):
         "rds_master_user_secret": S("MasterUserSecret") >> Bend(AwsRdsMasterUserSecret.mapping),
     }
     reference_kinds: ClassVar[ModelReference] = {
-        "successors": {"default": ["aws_rds_instance", "aws_kms_key"], "delete": ["aws_rds_instance"]},
+        "successors": {"default": ["aws_rds_instance", "aws_kms_key", "aws_kinesis"], "delete": ["aws_rds_instance"]},
+        "predecessors": {"default": ["aws_ec2_security_group"]},
     }
     rds_allocated_storage: Optional[int] = field(default=None)
     rds_availability_zones: List[str] = field(factory=list)
@@ -737,6 +739,10 @@ class AwsRdsCluster(RdsTaggable, AwsResource, BaseDatabase):
             builder.dependant_node(
                 self, delete_same_as_default=True, clazz=AwsRdsInstance, id=member.db_instance_identifier
             )
+        for sg in self.rds_vpc_security_groups:
+            builder.add_edge(self, reverse=True, clazz=AwsEc2SecurityGroup, id=sg.vpc_security_group_id)
+        if kinesis := self.rds_activity_stream_kinesis_stream_name:
+            builder.add_edge(self, clazz=AwsKinesisStream, name=kinesis)
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
