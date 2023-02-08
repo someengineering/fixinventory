@@ -52,7 +52,7 @@ class CoreTaskHandler:
             result = self.handler(task_data)
             return CoreTaskResult(task_id=task_id, data=result)
         except Exception as e:
-            log.debug(f"Error while executing task {self.name}: {e}")
+            log.debug(f"Error while executing task {self.name}: {e}", e)
             return CoreTaskResult(task_id=task_id, error=str(e))
 
     def matches(self, js: Json) -> bool:
