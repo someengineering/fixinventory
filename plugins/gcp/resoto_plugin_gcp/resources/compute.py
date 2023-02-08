@@ -4208,6 +4208,10 @@ class GcpSslPolicy(GcpResource):
 @define(eq=False, slots=False)
 class GcpTargetHttpProxy(GcpResource):
     kind: ClassVar[str] = "gcp_target_http_proxy"
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"delete": ["gcp_url_map"]},
+        "successors": {"default": ["gcp_url_map"]},
+    }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
         version="v1",
@@ -4235,11 +4239,18 @@ class GcpTargetHttpProxy(GcpResource):
     proxy_proxy_bind: Optional[bool] = field(default=None)
     proxy_url_map: Optional[str] = field(default=None)
 
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if self.proxy_url_map:
+            builder.dependant_node(self, link=self.proxy_url_map)
+
 
 @define(eq=False, slots=False)
 class GcpTargetHttpsProxy(GcpResource):
     kind: ClassVar[str] = "gcp_target_https_proxy"
-    reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_ssl_certificate", "gcp_ssl_policy"]}}
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["gcp_ssl_certificate", "gcp_ssl_policy"], "delete": ["gcp_url_map"]},
+        "successors": {"default": ["gcp_url_map"]},
+    }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
         version="v1",
@@ -4285,6 +4296,8 @@ class GcpTargetHttpsProxy(GcpResource):
                 builder.add_edge(self, reverse=True, link=cert)
         if self.proxy_ssl_policy:
             builder.add_edge(self, reverse=True, link=self.proxy_ssl_policy)
+        if self.proxy_url_map:
+            builder.dependant_node(self, link=self.proxy_url_map)
 
 
 @define(eq=False, slots=False)
@@ -5475,8 +5488,9 @@ class GcpTargetGrpcProxy(GcpResource):
     kind: ClassVar[str] = "gcp_target_grpc_proxy"
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
-            "default": ["gcp_url_map"],
-        }
+            "delete": ["gcp_url_map"],
+        },
+        "successors": {"default": ["gcp_url_map"]},
     }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
@@ -5509,14 +5523,14 @@ class GcpTargetGrpcProxy(GcpResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.proxy_url_map:
-            builder.add_edge(self, reverse=True, link=self.proxy_url_map)
+            builder.dependant_node(self, link=self.proxy_url_map)
 
 
 @define(eq=False, slots=False)
 class GcpTargetInstance(GcpResource):
     kind: ClassVar[str] = "gcp_target_instance"
     reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {"default": ["gcp_network"]},
+        "predecessors": {"default": ["gcp_network"], "delete": ["gcp_instance"]},
         "successors": {"default": ["gcp_instance"]},
     }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
@@ -5550,12 +5564,16 @@ class GcpTargetInstance(GcpResource):
         if self.instance_network:
             builder.add_edge(self, reverse=True, link=self.instance_network)
         if self.instance_instance:
-            builder.add_edge(self, link=self.instance_instance)
+            builder.dependant_node(self, link=self.instance_instance)
 
 
 @define(eq=False, slots=False)
 class GcpTargetPool(GcpResource):
     kind: ClassVar[str] = "gcp_target_pool"
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"delete": ["gcp_http_health_check", "gcp_instance"]},
+        "successors": {"delete": ["gcp_http_health_check", "gcp_instance"]},
+    }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
         version="v1",
@@ -5587,11 +5605,22 @@ class GcpTargetPool(GcpResource):
     pool_instances: Optional[List[str]] = field(default=None)
     pool_session_affinity: Optional[str] = field(default=None)
 
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if self.pool_instances:
+            for instance in self.pool_instances:
+                builder.dependant_node(self, link=instance)
+        if self.pool_health_checks:
+            for check in self.pool_health_checks:
+                builder.dependant_node(self, reverse=True, link=check)
+
 
 @define(eq=False, slots=False)
 class GcpTargetSslProxy(GcpResource):
     kind: ClassVar[str] = "gcp_target_ssl_proxy"
-    reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_ssl_certificate"]}}
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"delete": ["gcp_ssl_certificate", "gcp_backend_service"]},
+        "successors": {"default": ["gcp_ssl_certificate", "gcp_backend_service"]},
+    }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
         version="v1",
@@ -5622,17 +5651,22 @@ class GcpTargetSslProxy(GcpResource):
     proxy_service: Optional[str] = field(default=None)
     proxy_ssl_certificates: Optional[List[str]] = field(default=None)
     proxy_ssl_policy: Optional[str] = field(default=None)
-    # TODO edge to backend service
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.proxy_ssl_certificates:
             for cert in self.proxy_ssl_certificates:
-                builder.add_edge(self, reverse=True, link=cert)
+                builder.dependant_node(self, link=cert)
+        if self.proxy_service:
+            builder.dependant_node(self, link=self.proxy_service)
 
 
 @define(eq=False, slots=False)
 class GcpTargetVpnGateway(GcpResource):
     kind: ClassVar[str] = "gcp_target_vpn_gateway"
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["gcp_network"], "delete": ["gcp_network"]},
+        "successors": {"default": ["gcp_forwarding_rule"]},
+    }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
         version="v1",
@@ -5662,6 +5696,13 @@ class GcpTargetVpnGateway(GcpResource):
     gateway_status: Optional[str] = field(default=None)
     gateway_tunnels: Optional[List[str]] = field(default=None)
 
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if self.gateway_forwarding_rules:
+            for rule in self.gateway_forwarding_rules:
+                builder.add_edge(self, link=rule)
+        if self.gateway_network:
+            builder.dependant_node(self, reverse=True, delete_same_as_default=True, link=self.gateway_network)
+
 
 @define(eq=False, slots=False)
 class GcpVpnGatewayVpnGatewayInterface:
@@ -5679,6 +5720,10 @@ class GcpVpnGatewayVpnGatewayInterface:
 @define(eq=False, slots=False)
 class GcpVpnGateway(GcpResource):
     kind: ClassVar[str] = "gcp_vpn_gateway"
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["gcp_network"], "delete": ["gcp_network"]},
+        "successors": {"default": ["gcp_interconnect_attachment"]},
+    }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
         version="v1",
@@ -5707,10 +5752,24 @@ class GcpVpnGateway(GcpResource):
     gateway_stack_type: Optional[str] = field(default=None)
     gateway_vpn_interfaces: Optional[List[GcpVpnGatewayVpnGatewayInterface]] = field(default=None)
 
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if self.gateway_network:
+            builder.dependant_node(self, reverse=True, delete_same_as_default=True, link=self.gateway_network)
+        if self.gateway_vpn_interfaces:
+            for interface in self.gateway_vpn_interfaces:
+                if interface.interconnect_attachment:
+                    builder.add_edge(self, link=interface.interconnect_attachment)
+
 
 @define(eq=False, slots=False)
 class GcpVpnTunnel(GcpResource):
     kind: ClassVar[str] = "gcp_vpn_tunnel"
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["gcp_target_vpn_gateway", "gcp_vpn_gateway", "gcp_router"],
+            "delete": ["gcp_target_vpn_gateway", "gcp_vpn_gateway"],
+        }
+    }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
         version="v1",
@@ -5761,6 +5820,14 @@ class GcpVpnTunnel(GcpResource):
     tunnel_target_vpn_gateway: Optional[str] = field(default=None)
     tunnel_vpn_gateway: Optional[str] = field(default=None)
     tunnel_vpn_gateway_interface: Optional[int] = field(default=None)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if self.tunnel_target_vpn_gateway:
+            builder.dependant_node(self, delete_same_as_default=True, link=self.tunnel_target_vpn_gateway)
+        if self.tunnel_vpn_gateway:
+            builder.dependant_node(self, delete_same_as_default=True, link=self.tunnel_vpn_gateway)
+        if self.tunnel_router:
+            builder.add_edge(self, link=self.tunnel_router)
 
 
 resources = [
