@@ -747,6 +747,12 @@ models: Dict[str, List[AwsResotoModel]] = {
         #     prefix="Lambda",
         # )
     ],
+    "logs": [
+        # AwsResotoModel("describe-log-groups", "logGroups", "LogGroup", prefix="Cloudwatch", prop_prefix="group_"),
+        # AwsResotoModel(
+        #     "describe-metric-filters", "metricFilters", "MetricFilter", prefix="Cloudwatch", prop_prefix="filter_"
+        # ),
+    ],
     "iam": [
         # AwsResotoModel(
         #     "list-server-certificates",
@@ -987,9 +993,10 @@ models: Dict[str, List[AwsResotoModel]] = {
 
 if __name__ == "__main__":
     """print some test data"""
-    # print(json.dumps(create_test_response("rds", "DescribeDBClusters"), indent=2))
+    # print(json.dumps(create_test_response("logs", "describe-log-groups"), indent=2))
 
     """print the class models"""
-    print(default_imports())
+    # print(default_imports())
     for model in all_models():
+        # pass
         print(model.to_class())

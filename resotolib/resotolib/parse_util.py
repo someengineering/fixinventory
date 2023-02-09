@@ -48,6 +48,7 @@ dot_dp = string(".")
 dot_dot_dp = string("..")
 equals_dp = string("=")
 backtick_dp = string("`")
+backslash_dp = string("\\")
 pipe_dp = string("|")
 integer_dp = regex(r"[+-]?[0-9]+").map(int)
 float_dp = regex(r"[+-]?[0-9]+\.[0-9]+").map(float)
@@ -115,28 +116,17 @@ def unquoted_string_parser(*stop_words: str) -> Parser:
     return unquoted_string_direct_parser
 
 
-string_esc_dp = string("\\") >> (
-    string("\\")
-    | string("/")
-    | string('"')
-    | string("b").result("\b")
-    | string("f").result("\f")
-    | string("n").result("\n")
-    | string("r").result("\r")
-    | string("t").result("\t")
-    | regex(r"u[0-9a-fA-F]{4}").map(lambda s: chr(int(s[1:], 16)))
-)
-
+string_esc_dp = backslash_dp >> (backslash_dp | string("/") | string('"') | string("'"))
 unquoted_string_dp = unquoted_string_parser()
 
 single_quote_dp = string("'")
 single_quoted_string_part_dp = regex(r"[^'\\]+")
-single_quoted_string_part_or_esc_dp = (single_quoted_string_part_dp | string_esc_dp).many().concat()
+single_quoted_string_part_or_esc_dp = (single_quoted_string_part_dp | string_esc_dp | backslash_dp).many().concat()
 single_quoted_string_dp = single_quote_dp >> single_quoted_string_part_or_esc_dp << single_quote_dp
 
 double_quote_dp = string('"')
 double_quoted_string_part_dp = regex(r'[^"\\]+')
-double_quoted_string_part_or_esc_dp = (double_quoted_string_part_dp | string_esc_dp).many().concat()
+double_quoted_string_part_or_esc_dp = (double_quoted_string_part_dp | string_esc_dp | backslash_dp).many().concat()
 double_quoted_string_dp = double_quote_dp >> double_quoted_string_part_or_esc_dp << double_quote_dp
 
 any_string = parsy.any_char.many().concat()

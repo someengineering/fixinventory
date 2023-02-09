@@ -227,3 +227,20 @@ def test_js_value_at() -> None:
     assert js_value_at(js, "b[*].b[*]") == [[1, 2, 3], [1, 2, 3]]
     assert js_value_at(js, "b[*].b[2]") == [3, 3]
     assert js_value_at(js, "b[1].b[2]") == 3
+
+
+def test_escape_character_parsing() -> None:
+    def assert_command(to_parse: str, cmd: str, arg: str) -> None:
+        parsed = multi_command_parser.parse(to_parse)
+        assert len(parsed) == 1
+        assert len(parsed[0].commands) == 1
+        first = parsed[0].commands[0]
+        assert first.cmd == cmd
+        assert first.args == arg
+
+    assert_command("echo 'f\\boo'", "echo", "'f\boo'")  # <bs>b --> \b
+    assert_command("echo 'f\\noo'", "echo", "'f\noo'")  # <bs>n --> \n
+    assert_command("echo 'f\\\\oo'", "echo", "'f\\\\oo'")  # <bs><bs> --> <bs><bs>
+    assert_command("echo 'f\\u00a7oo'", "echo", "'f§oo'")  # <bs>unicode_number --> character
+    assert_command("echo 'f\\\"oo'", "echo", "'f\\\"oo'")  # <bs>" --> <bs>"
+    assert_command("echo 'f\\'oo'", "echo", "'f\\'oo'")  # <bs>' --> <bs>'

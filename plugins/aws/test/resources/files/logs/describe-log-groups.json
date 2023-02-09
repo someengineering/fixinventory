@@ -1,0 +1,28 @@
+{
+    "logGroups": [
+        {
+            "logGroupName": "/aws/lambda/lg1",
+            "creationTime": 1675352658949,
+            "metricFilterCount": 0,
+            "arn": "arn:aws:logs:us-east-1:test:log-group:/aws/lambda/lg1",
+            "storedBytes": 3331,
+            "kmsKeyId": "32b03fb9",
+            "dataProtectionStatus": "DELETED",
+            "retentionInDays": 30
+        },
+        {
+            "logGroupName": "/aws/lambda/lg2",
+            "creationTime": 1675352646741,
+            "metricFilterCount": 0,
+            "arn": "arn:aws:logs:us-east-1:test:log-group:/aws/lambda/lg2",
+            "storedBytes": 1364
+        },
+        {
+            "logGroupName": "/aws/lambda/lg3",
+            "creationTime": 1675352027787,
+            "metricFilterCount": 1,
+            "arn": "arn:aws:logs:us-east-1:test:log-group:/aws/lambda/lg3",
+            "storedBytes": 16116
+        }
+    ]
+}

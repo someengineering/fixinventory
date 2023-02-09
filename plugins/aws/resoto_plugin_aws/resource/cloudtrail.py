@@ -5,6 +5,8 @@ from attr import define, field as attrs_field
 
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsApiSpec, GraphBuilder, AwsResource
+from resoto_plugin_aws.resource.cloudwatch import AwsCloudwatchLogGroup
+from resoto_plugin_aws.resource.iam import AwsIamRole
 from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resoto_plugin_aws.resource.s3 import AwsS3Bucket
 from resoto_plugin_aws.resource.sns import AwsSnsTopic
@@ -214,7 +216,10 @@ class AwsCloudTrail(AwsResource):
             builder.add_edge(self, clazz=AwsSnsTopic, arn=sns)
         if kms := self.trail_kms_key_id:
             builder.add_edge(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(kms))
-        # TODO: add link to cloudwatch log group
+        if log_group := self.trail_cloud_watch_logs_log_group_arn:
+            builder.add_edge(self, clazz=AwsCloudwatchLogGroup, arn=log_group)
+        if log_role := self.trail_cloud_watch_logs_role_arn:
+            builder.add_edge(self, clazz=AwsIamRole, arn=log_role)
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call("cloudtrail", "add-tags", ResourceId=self.arn, TagsList=[{"Key": key, "Value": value}])

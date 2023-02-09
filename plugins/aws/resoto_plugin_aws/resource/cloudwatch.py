@@ -6,10 +6,11 @@ from attr import define, field
 
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
+from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resoto_plugin_aws.utils import ToDict
 from resotolib.baseresources import ModelReference
 from resotolib.json import from_json
-from resotolib.json_bender import S, Bend, Bender, ForallBend, bend
+from resotolib.json_bender import S, Bend, Bender, ForallBend, bend, F, SecondsFromEpochToDatetime
 from resotolib.types import Json
 from resotolib.utils import chunks
 
@@ -17,36 +18,65 @@ from resotolib.utils import chunks
 # noinspection PyUnresolvedReferences
 class CloudwatchTaggable:
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
-        if isinstance(self, AwsResource):
-            if spec := self.api_spec:
-                client.call(
-                    aws_service=spec.service,
-                    action="tag-resource",
-                    result_name=None,
-                    ResourceARN=self.arn,
-                    Tags=[{"Key": key, "Value": value}],
-                )
-                return True
-            return False
-        return False
+        client.call(
+            aws_service="cloudwatch",
+            action="tag-resource",
+            result_name=None,
+            ResourceARN=self.arn,
+            Tags=[{"Key": key, "Value": value}],
+        )
+        return True
 
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
-        if isinstance(self, AwsResource):
-            if spec := self.api_spec:
-                client.call(
-                    aws_service=spec.service,
-                    action="untag-resource",
-                    result_name=None,
-                    ResourceARN=self.arn,
-                    TagKeys=[key],
-                )
-                return True
-            return False
-        return False
+        client.call(
+            aws_service="cloudwatch",
+            action="untag-resource",
+            result_name=None,
+            ResourceARN=self.arn,
+            TagKeys=[key],
+        )
+        return True
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return [AwsApiSpec("cloudwatch", "tag-resource"), AwsApiSpec("cloudwatch", "untag-resource")]
+
+
+# noinspection PyUnresolvedReferences
+class LogsTaggable:
+    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
+        if arn := self.arn:
+            if arn.endswith(":*"):
+                arn = arn[:-2]
+            client.call(
+                aws_service="logs",
+                action="tag-resource",
+                result_name=None,
+                resourceArn=arn,
+                tags={key: value},
+            )
+            return True
+        else:
+            return False
+
+    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
+        if arn := self.arn:
+            if arn.endswith(":*"):
+                arn = arn[:-2]
+            client.call(
+                aws_service="logs",
+                action="untag-resource",
+                result_name=None,
+                resourceArn=arn,
+                tagKeys=[key],
+            )
+            return True
+        else:
+            return False
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [AwsApiSpec("logs", "tag-resource"), AwsApiSpec("logs", "untag-resource")]
 
 
 @define(eq=False, slots=False)
@@ -197,6 +227,86 @@ class AwsCloudwatchAlarm(CloudwatchTaggable, AwsResource):
         return super().called_mutator_apis() + [AwsApiSpec("cloudwatch", "delete-alarms")]
 
 
+@define(eq=False, slots=False)
+class AwsCloudwatchLogGroup(LogsTaggable, AwsResource):
+    kind: ClassVar[str] = "aws_cloudwatch_log_group"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("logs", "describe-log-groups", "logGroups")
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {"default": ["aws_kms_key"]},
+        "predecessors": {"delete": ["aws_kms_key"]},
+    }
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("logGroupName"),
+        "tags": S("Tags", default=[]) >> ToDict(),
+        "name": S("logGroupName"),
+        "ctime": S("creationTime") >> F(lambda x: x // 1000) >> SecondsFromEpochToDatetime(),
+        "arn": S("arn"),
+        "group_retention_in_days": S("retentionInDays"),
+        "group_metric_filter_count": S("metricFilterCount"),
+        "group_stored_bytes": S("storedBytes"),
+        "group_data_protection_status": S("dataProtectionStatus"),
+    }
+    group_retention_in_days: Optional[int] = field(default=None)
+    group_metric_filter_count: Optional[int] = field(default=None)
+    group_stored_bytes: Optional[int] = field(default=None)
+    group_data_protection_status: Optional[str] = field(default=None)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if kms_key_id := source.get("kmsKeyId"):
+            builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(kms_key_id))
+
+
+@define(eq=False, slots=False)
+class AwsCloudwatchMetricTransformation:
+    kind: ClassVar[str] = "aws_cloudwatch_metric_transformation"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "metric_name": S("metricName"),
+        "metric_namespace": S("metricNamespace"),
+        "metric_value": S("metricValue"),
+        "default_value": S("defaultValue"),
+        "dimensions": S("dimensions"),
+        "unit": S("unit"),
+    }
+    metric_name: Optional[str] = field(default=None)
+    metric_namespace: Optional[str] = field(default=None)
+    metric_value: Optional[str] = field(default=None)
+    default_value: Optional[float] = field(default=None)
+    dimensions: Optional[Dict[str, str]] = field(default=None)
+    unit: Optional[str] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class AwsCloudwatchMetricFilter(AwsResource):
+    kind: ClassVar[str] = "aws_cloudwatch_metric_filter"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("logs", "describe-metric-filters", "metricFilters")
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["aws_cloudwatch_log_group"]},
+        "successors": {"default": ["aws_cloudwatch_alarm"], "delete": ["aws_cloudwatch_log_group"]},
+    }
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("filterName"),
+        "name": S("filterName"),
+        "ctime": S("creationTime") >> F(lambda x: x // 1000) >> SecondsFromEpochToDatetime(),
+        "filter_pattern": S("filterPattern"),
+        "filter_transformations": S("metricTransformations", default=[])
+        >> ForallBend(AwsCloudwatchMetricTransformation.mapping),
+    }
+    filter_pattern: Optional[str] = field(default=None)
+    filter_transformations: List[AwsCloudwatchMetricTransformation] = field(factory=list)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if log_group_name := source.get("logGroupName"):
+            builder.dependant_node(self, reverse=True, clazz=AwsCloudwatchLogGroup, name=log_group_name)
+        for transformation in self.filter_transformations:
+            # every metric can be used by multiple alarms
+            for alarm in builder.nodes(
+                clazz=AwsCloudwatchAlarm,
+                cloudwatch_namespace=transformation.metric_namespace,
+                cloudwatch_metric_name=transformation.metric_name,
+            ):
+                builder.add_edge(self, node=alarm)
+
+
 @define(hash=True, frozen=True)
 class AwsCloudwatchQuery:
     metric_name: str
@@ -307,4 +417,4 @@ class AwsCloudwatchMetricData:
         return result
 
 
-resources: List[Type[AwsResource]] = [AwsCloudwatchAlarm]
+resources: List[Type[AwsResource]] = [AwsCloudwatchAlarm, AwsCloudwatchLogGroup, AwsCloudwatchMetricFilter]
