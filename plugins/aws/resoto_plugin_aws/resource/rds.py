@@ -740,7 +740,9 @@ class AwsRdsCluster(RdsTaggable, AwsResource, BaseDatabase):
                 self, delete_same_as_default=True, clazz=AwsRdsInstance, id=member.db_instance_identifier
             )
         for sg in self.rds_vpc_security_groups:
-            builder.add_edge(self, reverse=True, clazz=AwsEc2SecurityGroup, id=sg.vpc_security_group_id)
+            builder.dependant_node(
+                self, reverse=True, delete_same_as_default=True, clazz=AwsEc2SecurityGroup, id=sg.vpc_security_group_id
+            )
         if kinesis := self.rds_activity_stream_kinesis_stream_name:
             builder.add_edge(self, clazz=AwsKinesisStream, name=kinesis)
 
