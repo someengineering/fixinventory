@@ -252,22 +252,22 @@ class BinaryOperator(Bender):
 
 class Add(BinaryOperator):
     def op(self, v1: Any, v2: Any) -> Any:
-        return v1 + v2
+        return v1 + v2 if v1 is not None and v2 is not None else None
 
 
 class Sub(BinaryOperator):
     def op(self, v1: Any, v2: Any) -> Any:
-        return v1 - v2
+        return v1 - v2 if v1 is not None and v2 is not None else None
 
 
 class Mul(BinaryOperator):
     def op(self, v1: Any, v2: Any) -> Any:
-        return v1 * v2
+        return v1 * v2 if v1 is not None and v2 is not None else None
 
 
 class Div(BinaryOperator):
     def op(self, v1: Any, v2: Any) -> Any:
-        return float(v1) / float(v2)
+        return float(v1) / float(v2) if v1 is not None and v2 is not None else None
 
 
 class Eq(BinaryOperator):

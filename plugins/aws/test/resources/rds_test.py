@@ -2,13 +2,17 @@ from test.resources import round_trip_for
 from types import SimpleNamespace
 from typing import cast, Any
 from resoto_plugin_aws.aws_client import AwsClient
-from resoto_plugin_aws.resource.rds import AwsRdsInstance
+from resoto_plugin_aws.resource.rds import AwsRdsInstance, AwsRdsCluster
 
 
 def test_rds_instances() -> None:
     first, builder = round_trip_for(AwsRdsInstance)
     assert len(builder.resources_of(AwsRdsInstance)) == 2
     assert len(first.tags) == 1
+
+
+def test_rds_cluster() -> None:
+    round_trip_for(AwsRdsCluster)
 
 
 def test_tagging() -> None:

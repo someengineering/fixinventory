@@ -1,7 +1,7 @@
 import logging
 import multiprocessing
 from concurrent import futures
-from typing import List, Optional, Union, Any, Dict
+from typing import List, Optional, Union, Any, Dict, Iterable
 
 import botocore.exceptions
 from botocore.model import OperationModel, Shape, StringShape, ListShape, StructureShape
@@ -181,6 +181,19 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
                 # map and structure types are currently not supported
                 raise ValueError(f"Cannot convert {o} to {shape}")
 
+        # it is not always possible to translate the operation or parameter name directly
+        # Example: modify-db-cluster --> ModifyDBCluster
+        #          --db-cluster-identifier --> --DBClusterIdentifier
+        # Use a lookup list for possible candidates
+        def get_name(is_name: str, possible_names: Iterable[str]) -> Optional[str]:
+            if is_name in possible_names:
+                return is_name
+            else:
+                for name in possible_names:
+                    if name.lower() == is_name.lower():
+                        return name
+                return None
+
         def coerce_args(fn_args: List[str], om: OperationModel) -> Dict[str, Any]:
             members: Dict[str, Shape] = om.input_shape.members if isinstance(om.input_shape, StructureShape) else {}
             param_name: Optional[str] = None
@@ -189,12 +202,13 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
             for arg in fn_args:
                 if arg.startswith("--"):
                     name = pascalcase(arg.removeprefix("--"))
-                    param_name = name
-                    param_shape = members.get(name)
+                    param_name = get_name(name, members)
+                    if param_name is not None:
+                        param_shape = members.get(param_name)
                     bool_value = True
                     if param_shape is None and arg.startswith("--no-"):
                         name = name[2:]
-                        param_name = name
+                        param_name = get_name(name, members)
                         param_shape = members.get(name)
                         bool_value = False
                     if param_shape is None:
@@ -223,7 +237,8 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
 
         # try to get the output shape of the operation
         service_model = client.service_model(p.service)
-        op: OperationModel = service_model.operation_model(pascalcase(p.operation))
+        op_name = get_name(pascalcase(p.operation), service_model.operation_names)
+        op: OperationModel = service_model.operation_model(op_name)
         output_shape = op.output_shape.type_name
         func_args = coerce_args(remaining, op)
 

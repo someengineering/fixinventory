@@ -280,6 +280,8 @@ def create_test_response(service: str, function: str) -> JsonElement:
             return {f"{num}": sample(value_type) for num in range(3)}
         elif isinstance(shape, StructureShape):
             return {name: sample(shape) for name, shape in shape.members.items()}
+        elif shape.type_name == "double":
+            return 1.234
         elif shape.type_name == "integer":
             return 123
         elif shape.type_name == "boolean":
@@ -837,6 +839,7 @@ models: Dict[str, List[AwsResotoModel]] = {
     ],
     "rds": [
         # AwsResotoModel("describe-db-instances", "Instances", "DBInstance", prefix="Rds", prop_prefix="rds_")
+        # AwsResotoModel("describe-db-clusters", "Clusters", "DBCluster", prefix="Rds", prop_prefix="rds_")
     ],
     "route53": [
         # AwsResotoModel("list_hosted_zones", "HostedZones", "HostedZone", prefix="Route53", prop_prefix="zone_"),
