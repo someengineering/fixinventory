@@ -650,7 +650,15 @@ def validate_graph_dataclasses_and_nodes(graph: Graph) -> None:
             if node.chksum not in node_chksums:
                 node_chksums[node.chksum] = node
             else:
-                log.error(f"Duplicate checksum {node.chksum} for node {node.rtdname} in graph")
+                log.error(
+                    f"Duplicate checksum {node.chksum} for node {node.rtdname} in graph!\n"
+                    f"Old node: {get_resource_attributes(node_chksums[node.chksum])}\n"
+                    f"Old predecessor nodes: {node_chksums[node.chksum].predecessors()}\n"
+                    f"Old successor nodes: {node_chksums[node.chksum].successors()}\n"
+                    f"New node: {get_resource_attributes(node)}"
+                    f"New predecessor nodes: {node.predecessors()}\n"
+                    f"New successor nodes: {node.successors()}\n"
+                )
 
 
 def update_graph_ref(graph: Graph) -> None:
