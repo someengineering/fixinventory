@@ -520,7 +520,7 @@ class BaseResource(ABC):
                     dst = node
                 graph.add_edge(src, dst, edge_type=edge_type)
 
-    def predecessors(self, graph, edge_type=None) -> Iterator:
+    def predecessors(self, graph=None, edge_type=None) -> Iterator:
         """Returns an iterator of the node's parent nodes"""
         if graph is None:
             graph = self._graph
@@ -528,7 +528,7 @@ class BaseResource(ABC):
             return ()
         return graph.predecessors(self, edge_type=edge_type)
 
-    def successors(self, graph, edge_type=None) -> Iterator:
+    def successors(self, graph=None, edge_type=None) -> Iterator:
         """Returns an iterator of the node's child nodes"""
         if graph is None:
             graph = self._graph
