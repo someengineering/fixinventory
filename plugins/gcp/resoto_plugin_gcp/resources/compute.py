@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import ClassVar, Dict, Optional, List
+from typing import ClassVar, Dict, Optional, List, Tuple
 
 from attr import define, field
 
@@ -15,6 +15,10 @@ from resotolib.baseresources import (
 )
 from resotolib.json_bender import Bender, S, Bend, ForallBend, MapDict, MapValue, F
 from resotolib.types import Json
+
+
+def health_checks() -> Tuple[GcpResource, ...]:
+    return (GcpHealthCheck, GcpHttpsHealthCheck, GcpHttpHealthCheck)
 
 
 @define(eq=False, slots=False)
@@ -724,9 +728,8 @@ class GcpBackendService(GcpResource):
     service_timeout_sec: Optional[int] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        # TODO add clazz tuples and test
         for check in self.service_health_checks:
-            builder.dependant_node(self, link=check)
+            builder.dependant_node(self, clazz=health_checks(), link=check)
         for backend in self.service_backends:
             if backend.group:
                 builder.dependant_node(self, link=backend.group)
@@ -1252,8 +1255,16 @@ class GcpForwardingRule(GcpResource):
         if self.rule_network:
             builder.add_edge(self, reverse=True, clazz=GcpNetwork, link=self.rule_network)
         if self.rule_target:
-            # TODO clazz tuple
-            builder.add_edge(self, link=self.rule_target)
+            target_classes = (
+                GcpTargetVpnGateway,
+                GcpTargetTcpProxy,
+                GcpTargetSslProxy,
+                GcpTargetGrpcProxy,
+                GcpTargetHttpProxy,
+                GcpTargetHttpsProxy,
+                GcpTargetPool,
+            )
+            builder.add_edge(self, clazz=target_classes, link=self.rule_target)
 
 
 @define(eq=False, slots=False)
@@ -2147,9 +2158,8 @@ class GcpInstanceGroupManager(GcpResource):
                 link=self.manager_instance_group,
             )
         if ahp := self.manager_auto_healing_policies:
-            # TODO clazz tuples
             for policy in ahp:
-                builder.dependant_node(self, link=policy.health_check)
+                builder.dependant_node(self, clazz=health_checks(), link=policy.health_check)
 
 
 @define(eq=False, slots=False)
@@ -5638,8 +5648,7 @@ class GcpTargetPool(GcpResource):
                 builder.dependant_node(self, clazz=GcpInstance, link=instance)
         if self.pool_health_checks:
             for check in self.pool_health_checks:
-                # TODO clazz tuple
-                builder.dependant_node(self, reverse=True, link=check)
+                builder.dependant_node(self, clazz=health_checks(), reverse=True, link=check)
 
 
 @define(eq=False, slots=False)
