@@ -28,7 +28,7 @@ from resotolib.baseresources import (
 )
 from resotolib.config import Config, current_config
 from resotolib.core.actions import CoreFeedback
-from resotolib.graph import Graph, EdgeKey, ByNodeId, BySearchCriteria
+from resotolib.graph import Graph, EdgeKey, ByNodeId, BySearchCriteria, NodeSelector
 from resotolib.json import to_json as to_js, from_json as from_js
 from resotolib.json_bender import Bender, bend
 from resotolib.types import Json
@@ -434,8 +434,8 @@ class GraphBuilder:
     def add_deferred_edge(
         self, from_node: BaseResource, edge_type: EdgeType, to_node: str, reverse: bool = False
     ) -> None:
-        node1 = ByNodeId(from_node.chksum)
-        node2 = BySearchCriteria(to_node)
+        node1: NodeSelector = ByNodeId(from_node.chksum)
+        node2: NodeSelector = BySearchCriteria(to_node)
         start, end = (node2, node1) if reverse else (node1, node2)
         self.graph.add_deferred_edge(start, end, edge_type)
 

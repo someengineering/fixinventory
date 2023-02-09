@@ -1,0 +1,364 @@
+{
+    "DBClusters": [
+        {
+            "AllocatedStorage": 1,
+            "AvailabilityZones": [
+                "us-east-1a",
+                "us-east-1c",
+                "us-east-1d"
+            ],
+            "BackupRetentionPeriod": 7,
+            "DBClusterIdentifier": "dbc1",
+            "DBClusterParameterGroup": "default.aurora-postgresql11",
+            "DBSubnetGroup": "default-vpc-09981817e8ae09ee3",
+            "Status": "available",
+            "EarliestRestorableTime": "2023-02-08T07:34:37.623000+00:00",
+            "Endpoint": "dbc1.cluster-test.us-east-1.rds.amazonaws.com",
+            "ReaderEndpoint": "dbc1.cluster-ro-test.us-east-1.rds.amazonaws.com",
+            "MultiAZ": false,
+            "Engine": "aurora-postgresql",
+            "EngineVersion": "11.9",
+            "LatestRestorableTime": "2023-02-08T08:31:03.522000+00:00",
+            "Port": 5432,
+            "MasterUsername": "postgres",
+            "PreferredBackupWindow": "08:52-09:22",
+            "PreferredMaintenanceWindow": "thu:07:57-thu:08:27",
+            "ReadReplicaIdentifiers": [],
+            "CharacterSetName": "foo",
+            "DatabaseName": "foo",
+            "DBClusterMembers": [
+                {
+                    "DBInstanceIdentifier": "dashboard",
+                    "IsClusterWriter": true,
+                    "DBClusterParameterGroupStatus": "in-sync",
+                    "PromotionTier": 1
+                }
+            ],
+            "VpcSecurityGroups": [
+                {
+                    "VpcSecurityGroupId": "sg-123",
+                    "Status": "active"
+                }
+            ],
+            "HostedZoneId": "Z2R2ITUGPM61AM",
+            "StorageEncrypted": true,
+            "KmsKeyId": "arn:aws:kms:us-east-1:test:key/68958049-2091-4482-b0a1-9ce9c2b3a940",
+            "DbClusterResourceId": "cluster-AWFAQQV5CSMAPEB6U5FEN53VSQ",
+            "DBClusterArn": "arn:aws:rds:us-east-1:test:cluster:dbc1",
+            "AssociatedRoles": [],
+            "IAMDatabaseAuthenticationEnabled": false,
+            "ClusterCreateTime": "2023-02-08T07:31:29.460000+00:00",
+            "EngineMode": "provisioned",
+            "DeletionProtection": false,
+            "HttpEndpointEnabled": false,
+            "ActivityStreamStatus": "stopped",
+            "CopyTagsToSnapshot": true,
+            "CrossAccountClone": false,
+            "DomainMemberships": [],
+            "TagList": [],
+            "AutoMinorVersionUpgrade": false,
+            "NetworkType": "IPV4",
+            "AutomaticRestartTime": "2023-02-08T09:05:47Z",
+            "PercentProgress": "foo",
+            "CustomEndpoints": [
+                "foo",
+                "foo",
+                "foo"
+            ],
+            "DBClusterOptionGroupMemberships": [
+                {
+                    "DBClusterOptionGroupName": "foo",
+                    "Status": "foo"
+                },
+                {
+                    "DBClusterOptionGroupName": "foo",
+                    "Status": "foo"
+                },
+                {
+                    "DBClusterOptionGroupName": "foo",
+                    "Status": "foo"
+                }
+            ],
+            "ReplicationSourceIdentifier": "foo",
+            "CloneGroupId": "foo",
+            "EarliestBacktrackTime": "2023-02-08T09:05:47Z",
+            "BacktrackWindow": 123,
+            "BacktrackConsumedChangeRecords": 123,
+            "EnabledCloudwatchLogsExports": [
+                "foo",
+                "foo",
+                "foo"
+            ],
+            "Capacity": 123,
+            "ScalingConfigurationInfo": {
+                "MinCapacity": 123,
+                "MaxCapacity": 123,
+                "AutoPause": true,
+                "SecondsUntilAutoPause": 123,
+                "TimeoutAction": "foo",
+                "SecondsBeforeTimeout": 123
+            },
+            "ActivityStreamMode": "async",
+            "ActivityStreamKmsKeyId": "foo",
+            "ActivityStreamKinesisStreamName": "foo",
+            "GlobalWriteForwardingStatus": "disabled",
+            "GlobalWriteForwardingRequested": true,
+            "PendingModifiedValues": {
+                "PendingCloudwatchLogsExports": {
+                    "LogTypesToEnable": [
+                        "foo",
+                        "foo",
+                        "foo"
+                    ],
+                    "LogTypesToDisable": [
+                        "foo",
+                        "foo",
+                        "foo"
+                    ]
+                },
+                "DBClusterIdentifier": "foo",
+                "MasterUserPassword": "foo",
+                "IAMDatabaseAuthenticationEnabled": true,
+                "EngineVersion": "foo",
+                "BackupRetentionPeriod": 123,
+                "AllocatedStorage": 123,
+                "Iops": 123
+            },
+            "DBClusterInstanceClass": "foo",
+            "StorageType": "foo",
+            "Iops": 123,
+            "PubliclyAccessible": true,
+            "MonitoringInterval": 123,
+            "MonitoringRoleArn": "foo",
+            "PerformanceInsightsEnabled": true,
+            "PerformanceInsightsKMSKeyId": "foo",
+            "PerformanceInsightsRetentionPeriod": 123,
+            "ServerlessV2ScalingConfiguration": {
+                "MinCapacity": 1.234,
+                "MaxCapacity": 1.234
+            },
+            "DBSystemId": "foo",
+            "MasterUserSecret": {
+                "SecretArn": "foo",
+                "SecretStatus": "foo",
+                "KmsKeyId": "foo"
+            }
+        },
+        {
+            "AllocatedStorage": 123,
+            "AvailabilityZones": [
+                "foo",
+                "foo",
+                "foo"
+            ],
+            "BackupRetentionPeriod": 123,
+            "CharacterSetName": "foo",
+            "DatabaseName": "foo",
+            "DBClusterIdentifier": "foo",
+            "DBClusterParameterGroup": "foo",
+            "DBSubnetGroup": "foo",
+            "Status": "foo",
+            "AutomaticRestartTime": "2023-02-08T09:05:47Z",
+            "PercentProgress": "foo",
+            "EarliestRestorableTime": "2023-02-08T09:05:47Z",
+            "Endpoint": "foo",
+            "ReaderEndpoint": "foo",
+            "CustomEndpoints": [
+                "foo",
+                "foo",
+                "foo"
+            ],
+            "MultiAZ": true,
+            "Engine": "foo",
+            "EngineVersion": "foo",
+            "LatestRestorableTime": "2023-02-08T09:05:47Z",
+            "Port": 123,
+            "MasterUsername": "foo",
+            "DBClusterOptionGroupMemberships": [
+                {
+                    "DBClusterOptionGroupName": "foo",
+                    "Status": "foo"
+                },
+                {
+                    "DBClusterOptionGroupName": "foo",
+                    "Status": "foo"
+                },
+                {
+                    "DBClusterOptionGroupName": "foo",
+                    "Status": "foo"
+                }
+            ],
+            "PreferredBackupWindow": "foo",
+            "PreferredMaintenanceWindow": "foo",
+            "ReplicationSourceIdentifier": "foo",
+            "ReadReplicaIdentifiers": [
+                "foo",
+                "foo",
+                "foo"
+            ],
+            "DBClusterMembers": [
+                {
+                    "DBInstanceIdentifier": "foo",
+                    "IsClusterWriter": true,
+                    "DBClusterParameterGroupStatus": "foo",
+                    "PromotionTier": 123
+                },
+                {
+                    "DBInstanceIdentifier": "foo",
+                    "IsClusterWriter": true,
+                    "DBClusterParameterGroupStatus": "foo",
+                    "PromotionTier": 123
+                },
+                {
+                    "DBInstanceIdentifier": "foo",
+                    "IsClusterWriter": true,
+                    "DBClusterParameterGroupStatus": "foo",
+                    "PromotionTier": 123
+                }
+            ],
+            "VpcSecurityGroups": [
+                {
+                    "VpcSecurityGroupId": "foo",
+                    "Status": "foo"
+                },
+                {
+                    "VpcSecurityGroupId": "foo",
+                    "Status": "foo"
+                },
+                {
+                    "VpcSecurityGroupId": "foo",
+                    "Status": "foo"
+                }
+            ],
+            "HostedZoneId": "foo",
+            "StorageEncrypted": true,
+            "KmsKeyId": "foo",
+            "DbClusterResourceId": "foo",
+            "DBClusterArn": "foo",
+            "AssociatedRoles": [
+                {
+                    "RoleArn": "foo",
+                    "Status": "foo",
+                    "FeatureName": "foo"
+                },
+                {
+                    "RoleArn": "foo",
+                    "Status": "foo",
+                    "FeatureName": "foo"
+                },
+                {
+                    "RoleArn": "foo",
+                    "Status": "foo",
+                    "FeatureName": "foo"
+                }
+            ],
+            "IAMDatabaseAuthenticationEnabled": true,
+            "CloneGroupId": "foo",
+            "ClusterCreateTime": "2023-02-08T09:05:47Z",
+            "EarliestBacktrackTime": "2023-02-08T09:05:47Z",
+            "BacktrackWindow": 123,
+            "BacktrackConsumedChangeRecords": 123,
+            "EnabledCloudwatchLogsExports": [
+                "foo",
+                "foo",
+                "foo"
+            ],
+            "Capacity": 123,
+            "EngineMode": "foo",
+            "ScalingConfigurationInfo": {
+                "MinCapacity": 123,
+                "MaxCapacity": 123,
+                "AutoPause": true,
+                "SecondsUntilAutoPause": 123,
+                "TimeoutAction": "foo",
+                "SecondsBeforeTimeout": 123
+            },
+            "DeletionProtection": true,
+            "HttpEndpointEnabled": true,
+            "ActivityStreamMode": "async",
+            "ActivityStreamStatus": "starting",
+            "ActivityStreamKmsKeyId": "foo",
+            "ActivityStreamKinesisStreamName": "foo",
+            "CopyTagsToSnapshot": true,
+            "CrossAccountClone": true,
+            "DomainMemberships": [
+                {
+                    "Domain": "foo",
+                    "Status": "foo",
+                    "FQDN": "foo",
+                    "IAMRoleName": "foo"
+                },
+                {
+                    "Domain": "foo",
+                    "Status": "foo",
+                    "FQDN": "foo",
+                    "IAMRoleName": "foo"
+                },
+                {
+                    "Domain": "foo",
+                    "Status": "foo",
+                    "FQDN": "foo",
+                    "IAMRoleName": "foo"
+                }
+            ],
+            "TagList": [
+                {
+                    "Key": "foo",
+                    "Value": "foo"
+                },
+                {
+                    "Key": "foo",
+                    "Value": "foo"
+                },
+                {
+                    "Key": "foo",
+                    "Value": "foo"
+                }
+            ],
+            "GlobalWriteForwardingStatus": "disabled",
+            "GlobalWriteForwardingRequested": true,
+            "PendingModifiedValues": {
+                "PendingCloudwatchLogsExports": {
+                    "LogTypesToEnable": [
+                        "foo",
+                        "foo",
+                        "foo"
+                    ],
+                    "LogTypesToDisable": [
+                        "foo",
+                        "foo",
+                        "foo"
+                    ]
+                },
+                "DBClusterIdentifier": "foo",
+                "MasterUserPassword": "foo",
+                "IAMDatabaseAuthenticationEnabled": true,
+                "EngineVersion": "foo",
+                "BackupRetentionPeriod": 123,
+                "AllocatedStorage": 123,
+                "Iops": 123
+            },
+            "DBClusterInstanceClass": "foo",
+            "StorageType": "foo",
+            "Iops": 123,
+            "PubliclyAccessible": true,
+            "AutoMinorVersionUpgrade": true,
+            "MonitoringInterval": 123,
+            "MonitoringRoleArn": "foo",
+            "PerformanceInsightsEnabled": true,
+            "PerformanceInsightsKMSKeyId": "foo",
+            "PerformanceInsightsRetentionPeriod": 123,
+            "ServerlessV2ScalingConfiguration": {
+                "MinCapacity": 1.234,
+                "MaxCapacity": 1.234
+            },
+            "NetworkType": "foo",
+            "DBSystemId": "foo",
+            "MasterUserSecret": {
+                "SecretArn": "foo",
+                "SecretStatus": "foo",
+                "KmsKeyId": "foo"
+            }
+        }
+    ]
+}
