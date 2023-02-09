@@ -667,7 +667,10 @@ class AwsRdsCluster(RdsTaggable, AwsResource, BaseDatabase):
         "rds_master_user_secret": S("MasterUserSecret") >> Bend(AwsRdsMasterUserSecret.mapping),
     }
     reference_kinds: ClassVar[ModelReference] = {
-        "successors": {"default": ["aws_rds_instance", "aws_kms_key", "aws_kinesis"], "delete": ["aws_rds_instance"]},
+        "successors": {
+            "default": ["aws_rds_instance", "aws_kms_key", "aws_kinesis_stream"],
+            "delete": ["aws_rds_instance"],
+        },
         "predecessors": {"default": ["aws_ec2_security_group"]},
     }
     rds_allocated_storage: Optional[int] = field(default=None)
