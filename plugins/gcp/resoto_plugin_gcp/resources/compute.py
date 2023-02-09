@@ -98,7 +98,7 @@ class GcpAddress(GcpResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.address_subnetwork:
-            builder.dependant_node(self, reverse=True, link=self.address_subnetwork)
+            builder.dependant_node(self, reverse=True, clazz=GcpSubnetwork, link=self.address_subnetwork)
 
 
 @define(eq=False, slots=False)
@@ -261,7 +261,9 @@ class GcpAutoscaler(GcpResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.autoscaler_target:
-            builder.dependant_node(self, delete_same_as_default=True, link=self.autoscaler_target)
+            builder.dependant_node(
+                self, delete_same_as_default=True, clazz=GcpInstanceGroupManager, link=self.autoscaler_target
+            )
 
 
 @define(eq=False, slots=False)
@@ -722,13 +724,14 @@ class GcpBackendService(GcpResource):
     service_timeout_sec: Optional[int] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        # TODO add clazz tuples and test
         for check in self.service_health_checks:
             builder.dependant_node(self, link=check)
         for backend in self.service_backends:
             if backend.group:
                 builder.dependant_node(self, link=backend.group)
         if self.service_network:
-            builder.add_edge(self, reverse=True, link=self.service_network)
+            builder.add_edge(self, reverse=True, clazz=GcpNetwork, link=self.service_network)
 
 
 @define(eq=False, slots=False)
@@ -879,8 +882,8 @@ class GcpDisk(GcpResource, BaseVolume):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for user in source.get("users", []):
-            builder.dependant_node(self, link=user)
-        builder.add_edge(self, reverse=True, link=self.volume_type)
+            builder.dependant_node(self, clazz=GcpInstance, link=user)
+        builder.add_edge(self, reverse=True, clazz=GcpDiskType, link=self.volume_type)
 
 
 @define(eq=False, slots=False)
@@ -1044,7 +1047,7 @@ class GcpFirewallPolicy(GcpResource):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for rule in self.policy_rules:
             for resource in rule.target_resources:
-                builder.add_edge(self, link=resource)
+                builder.add_edge(self, clazz=GcpNetwork, link=resource)
 
 
 @define(eq=False, slots=False)
@@ -1124,7 +1127,7 @@ class GcpFirewall(GcpResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.firewall_network:
-            builder.add_edge(self, link=self.firewall_network)
+            builder.add_edge(self, clazz=GcpNetwork, link=self.firewall_network)
 
 
 @define(eq=False, slots=False)
@@ -1247,8 +1250,9 @@ class GcpForwardingRule(GcpResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.rule_network:
-            builder.add_edge(self, reverse=True, link=self.rule_network)
+            builder.add_edge(self, reverse=True, clazz=GcpNetwork, link=self.rule_network)
         if self.rule_target:
+            # TODO clazz tuple
             builder.add_edge(self, link=self.rule_target)
 
 
@@ -1342,9 +1346,13 @@ class GcpNetworkEndpointGroup(GcpResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.group_network:
-            builder.dependant_node(self, reverse=True, delete_same_as_default=True, link=self.group_network)
+            builder.dependant_node(
+                self, reverse=True, delete_same_as_default=True, clazz=GcpNetwork, link=self.group_network
+            )
         if self.group_subnetwork:
-            builder.dependant_node(self, reverse=True, delete_same_as_default=True, link=self.group_subnetwork)
+            builder.dependant_node(
+                self, reverse=True, delete_same_as_default=True, clazz=GcpSubnetwork, link=self.group_subnetwork
+            )
 
 
 @define(eq=False, slots=False)
@@ -1499,7 +1507,7 @@ class GcpOperation(GcpResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.operation_target_link:
-            builder.add_edge(self, link=self.operation_target_link)
+            builder.add_edge(self, clazz=GcpDisk, link=self.operation_target_link)
 
 
 @define(eq=False, slots=False)
@@ -1920,7 +1928,7 @@ class GcpImage(GcpResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.image_source_disk:
-            builder.add_edge(self, reverse=True, link=self.image_source_disk)
+            builder.add_edge(self, reverse=True, clazz=GcpDisk, link=self.image_source_disk)
 
 
 @define(eq=False, slots=False)
@@ -2131,8 +2139,15 @@ class GcpInstanceGroupManager(GcpResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.manager_instance_group:
-            builder.dependant_node(self, reverse=True, delete_same_as_default=True, link=self.manager_instance_group)
+            builder.dependant_node(
+                self,
+                reverse=True,
+                delete_same_as_default=True,
+                clazz=GcpInstanceGroup,
+                link=self.manager_instance_group,
+            )
         if ahp := self.manager_auto_healing_policies:
+            # TODO clazz tuples
             for policy in ahp:
                 builder.dependant_node(self, link=policy.health_check)
 
@@ -2176,9 +2191,13 @@ class GcpInstanceGroup(GcpResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.group_network:
-            builder.dependant_node(self, reverse=True, delete_same_as_default=True, link=self.group_network)
+            builder.dependant_node(
+                self, reverse=True, delete_same_as_default=True, clazz=GcpNetwork, link=self.group_network
+            )
         if self.group_subnetwork:
-            builder.dependant_node(self, reverse=True, delete_same_as_default=True, link=self.group_subnetwork)
+            builder.dependant_node(
+                self, reverse=True, delete_same_as_default=True, clazz=GcpSubnetwork, link=self.group_subnetwork
+            )
 
 
 @define(eq=False, slots=False)
@@ -2561,7 +2580,7 @@ class GcpInstanceTemplate(GcpResource):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if p := self.template_properties:
             if p.machine_type:
-                builder.add_edge(self, reverse=True, link=p.machine_type)
+                builder.add_edge(self, reverse=True, clazz=GcpMachineType, link=p.machine_type)
 
 
 @define(eq=False, slots=False)
@@ -2691,10 +2710,12 @@ class GcpInstance(GcpResource, BaseInstance):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
-        builder.add_edge(from_node=self, reverse=True, link=source["machineType"])
+        builder.add_edge(from_node=self, reverse=True, clazz=GcpMachineType, link=source["machineType"])
         for nic in self.instance_network_interfaces or []:
-            builder.dependant_node(self, reverse=True, delete_same_as_default=True, link=nic.network)
-            builder.dependant_node(self, reverse=True, delete_same_as_default=True, link=nic.subnetwork)
+            builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=GcpNetwork, link=nic.network)
+            builder.dependant_node(
+                self, reverse=True, delete_same_as_default=True, clazz=GcpSubnetwork, link=nic.subnetwork
+            )
 
 
 @define(eq=False, slots=False)
@@ -3146,10 +3167,10 @@ class GcpMachineImage(GcpResource):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for disk in self.image_saved_disks:
             if disk.source_disk:
-                builder.add_edge(self, reverse=True, link=disk.source_disk)
+                builder.add_edge(self, reverse=True, clazz=GcpDisk, link=disk.source_disk)
         if p := self.image_instance_properties:
             for disk in p.disks:
-                builder.add_edge(self, reverse=True, link=disk.source)
+                builder.add_edge(self, reverse=True, clazz=GcpDisk, link=disk.source)
 
 
 @define(eq=False, slots=False)
@@ -3398,7 +3419,7 @@ class GcpNodeGroup(GcpResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.group_node_template:
-            builder.add_edge(self, reverse=True, link=self.group_node_template)
+            builder.add_edge(self, reverse=True, clazz=GcpNodeTemplate, link=self.group_node_template)
 
 
 @define(eq=False, slots=False)
@@ -3470,7 +3491,7 @@ class GcpNodeTemplate(GcpResource):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.template_disks:
             for disk in self.template_disks:
-                builder.add_edge(self, reverse=True, link=disk.disk_type)
+                builder.add_edge(self, reverse=True, clazz=GcpDiskType, link=disk.disk_type)
 
 
 @define(eq=False, slots=False)
@@ -3607,9 +3628,9 @@ class GcpPacketMirroring(GcpResource):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if mmr := self.mirroring_mirrored_resources:
             for subnet in mmr.subnetworks:
-                builder.add_edge(self, reverse=True, link=subnet.url)
+                builder.add_edge(self, reverse=True, clazz=GcpSubnetwork, link=subnet.url)
             for instance in mmr.instances:
-                builder.add_edge(self, reverse=True, link=instance.url)
+                builder.add_edge(self, reverse=True, clazz=GcpInstance, link=instance.url)
 
 
 @define(eq=False, slots=False)
@@ -4241,7 +4262,7 @@ class GcpTargetHttpProxy(GcpResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.proxy_url_map:
-            builder.dependant_node(self, link=self.proxy_url_map)
+            builder.dependant_node(self, clazz=GcpUrlMap, link=self.proxy_url_map)
 
 
 @define(eq=False, slots=False)
@@ -4293,11 +4314,11 @@ class GcpTargetHttpsProxy(GcpResource):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.proxy_ssl_certificates:
             for cert in self.proxy_ssl_certificates:
-                builder.add_edge(self, reverse=True, link=cert)
+                builder.add_edge(self, reverse=True, clazz=GcpSslCertificate, link=cert)
         if self.proxy_ssl_policy:
-            builder.add_edge(self, reverse=True, link=self.proxy_ssl_policy)
+            builder.add_edge(self, reverse=True, clazz=GcpSslPolicy, link=self.proxy_ssl_policy)
         if self.proxy_url_map:
-            builder.dependant_node(self, link=self.proxy_url_map)
+            builder.dependant_node(self, clazz=GcpUrlMap, link=self.proxy_url_map)
 
 
 @define(eq=False, slots=False)
@@ -4336,7 +4357,7 @@ class GcpTargetTcpProxy(GcpResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.proxy_service:
-            builder.dependant_node(self, link=self.proxy_service)
+            builder.dependant_node(self, clazz=GcpBackendService, link=self.proxy_service)
 
 
 @define(eq=False, slots=False)
@@ -4712,7 +4733,7 @@ class GcpUrlMap(GcpResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.map_default_service:
-            builder.add_edge(self, link=self.map_default_service)
+            builder.add_edge(self, clazz=GcpBackendService, link=self.map_default_service)
 
 
 @define(eq=False, slots=False)
@@ -5150,7 +5171,9 @@ class GcpRouter(GcpResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.router_network:
-            builder.dependant_node(self, reverse=True, delete_same_as_default=True, link=self.router_network)
+            builder.dependant_node(
+                self, reverse=True, delete_same_as_default=True, clazz=GcpNetwork, link=self.router_network
+            )
 
 
 @define(eq=False, slots=False)
@@ -5223,7 +5246,9 @@ class GcpRoute(GcpResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.route_network:
-            builder.dependant_node(self, reverse=True, delete_same_as_default=True, link=self.route_network)
+            builder.dependant_node(
+                self, reverse=True, delete_same_as_default=True, clazz=GcpNetwork, link=self.route_network
+            )
 
 
 @define(eq=False, slots=False)
@@ -5309,10 +5334,10 @@ class GcpServiceAttachment(GcpResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.attachment_target_service:
-            builder.add_edge(self, link=self.attachment_target_service)
+            builder.add_edge(self, clazz=GcpBackendService, link=self.attachment_target_service)
         if self.attachment_nat_subnets:
             for subnet in self.attachment_nat_subnets:
-                builder.add_edge(self, link=subnet)
+                builder.add_edge(self, clazz=GcpSubnetwork, link=subnet)
 
 
 @define(eq=False, slots=False)
@@ -5386,7 +5411,7 @@ class GcpSnapshot(GcpResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.snapshot_source_disk:
-            builder.add_edge(self, reverse=True, link=self.snapshot_source_disk)
+            builder.add_edge(self, reverse=True, clazz=GcpDisk, link=self.snapshot_source_disk)
 
 
 @define(eq=False, slots=False)
@@ -5480,7 +5505,9 @@ class GcpSubnetwork(GcpResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.subnetwork_network:
-            builder.dependant_node(self, reverse=True, delete_same_as_default=True, link=self.subnetwork_network)
+            builder.dependant_node(
+                self, reverse=True, delete_same_as_default=True, clazz=GcpNetwork, link=self.subnetwork_network
+            )
 
 
 @define(eq=False, slots=False)
@@ -5523,7 +5550,7 @@ class GcpTargetGrpcProxy(GcpResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.proxy_url_map:
-            builder.dependant_node(self, link=self.proxy_url_map)
+            builder.dependant_node(self, clazz=GcpUrlMap, link=self.proxy_url_map)
 
 
 @define(eq=False, slots=False)
@@ -5562,9 +5589,9 @@ class GcpTargetInstance(GcpResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.instance_network:
-            builder.add_edge(self, reverse=True, link=self.instance_network)
+            builder.add_edge(self, reverse=True, clazz=GcpNetwork, link=self.instance_network)
         if self.instance_instance:
-            builder.dependant_node(self, link=self.instance_instance)
+            builder.dependant_node(self, clazz=GcpInstance, link=self.instance_instance)
 
 
 @define(eq=False, slots=False)
@@ -5608,9 +5635,10 @@ class GcpTargetPool(GcpResource):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.pool_instances:
             for instance in self.pool_instances:
-                builder.dependant_node(self, link=instance)
+                builder.dependant_node(self, clazz=GcpInstance, link=instance)
         if self.pool_health_checks:
             for check in self.pool_health_checks:
+                # TODO clazz tuple
                 builder.dependant_node(self, reverse=True, link=check)
 
 
@@ -5657,7 +5685,7 @@ class GcpTargetSslProxy(GcpResource):
             for cert in self.proxy_ssl_certificates:
                 builder.dependant_node(self, link=cert)
         if self.proxy_service:
-            builder.dependant_node(self, link=self.proxy_service)
+            builder.dependant_node(self, clazz=GcpBackendService, link=self.proxy_service)
 
 
 @define(eq=False, slots=False)
@@ -5699,9 +5727,11 @@ class GcpTargetVpnGateway(GcpResource):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.gateway_forwarding_rules:
             for rule in self.gateway_forwarding_rules:
-                builder.add_edge(self, link=rule)
+                builder.add_edge(self, clazz=GcpForwardingRule, link=rule)
         if self.gateway_network:
-            builder.dependant_node(self, reverse=True, delete_same_as_default=True, link=self.gateway_network)
+            builder.dependant_node(
+                self, reverse=True, delete_same_as_default=True, clazz=GcpNetwork, link=self.gateway_network
+            )
 
 
 @define(eq=False, slots=False)
@@ -5754,11 +5784,13 @@ class GcpVpnGateway(GcpResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.gateway_network:
-            builder.dependant_node(self, reverse=True, delete_same_as_default=True, link=self.gateway_network)
+            builder.dependant_node(
+                self, reverse=True, delete_same_as_default=True, clazz=GcpNetwork, link=self.gateway_network
+            )
         if self.gateway_vpn_interfaces:
             for interface in self.gateway_vpn_interfaces:
                 if interface.interconnect_attachment:
-                    builder.add_edge(self, link=interface.interconnect_attachment)
+                    builder.add_edge(self, clazz=GcpInterconnectAttachment, link=interface.interconnect_attachment)
 
 
 @define(eq=False, slots=False)
@@ -5823,9 +5855,11 @@ class GcpVpnTunnel(GcpResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.tunnel_target_vpn_gateway:
-            builder.dependant_node(self, delete_same_as_default=True, link=self.tunnel_target_vpn_gateway)
+            builder.dependant_node(
+                self, delete_same_as_default=True, clazz=GcpTargetVpnGateway, link=self.tunnel_target_vpn_gateway
+            )
         if self.tunnel_vpn_gateway:
-            builder.dependant_node(self, delete_same_as_default=True, link=self.tunnel_vpn_gateway)
+            builder.dependant_node(self, delete_same_as_default=True, clazz=GcpVpnGateway, link=self.tunnel_vpn_gateway)
         if self.tunnel_router:
             builder.add_edge(self, link=self.tunnel_router)
 
