@@ -652,12 +652,12 @@ def validate_graph_dataclasses_and_nodes(graph: Graph) -> None:
             else:
                 log.error(
                     f"Duplicate checksum {node.chksum} for node {node.rtdname} in graph!\n"
-                    f"Old node: {get_resource_attributes(node_chksums[node.chksum])}\n"
-                    f"Old predecessor nodes: {node_chksums[node.chksum].predecessors()}\n"
-                    f"Old successor nodes: {node_chksums[node.chksum].successors()}\n"
-                    f"New node: {get_resource_attributes(node)}"
-                    f"New predecessor nodes: {node.predecessors()}\n"
-                    f"New successor nodes: {node.successors()}\n"
+                    f"Previous node: {get_resource_attributes(node_chksums[node.chksum])}\n"
+                    f"Previous predecessor nodes: {[n.rtdname for n in node_chksums[node.chksum].predecessors()]}\n"
+                    f"Previous successor nodes: {[n.rtdname for n in node_chksums[node.chksum].successors()]}\n"
+                    f"New node: {get_resource_attributes(node)}\n"
+                    f"New predecessor nodes: {[n.rtdname for n in node.predecessors()]}\n"
+                    f"New successor nodes: {[n.rtdname for n in node.successors()]}\n"
                 )
 
 
