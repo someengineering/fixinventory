@@ -1,4 +1,4 @@
-from .random_client import roundtrip
+from .random_client import connect_resource, roundtrip
 from resoto_plugin_gcp.resources.base import GraphBuilder
 from resoto_plugin_gcp.resources.container import *
 
@@ -8,4 +8,6 @@ def test_gcp_container_cluster(random_builder: GraphBuilder) -> None:
 
 
 def test_gcp_container_operation(random_builder: GraphBuilder) -> None:
-    roundtrip(GcpContainerOperation, random_builder)
+    op = roundtrip(GcpContainerOperation, random_builder)
+    connect_resource(random_builder, op, GcpContainerCluster, selfLink=op.operation_target_link)
+    assert len(random_builder.edges_of(GcpContainerCluster, GcpContainerOperation)) == 1

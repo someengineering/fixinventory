@@ -1,10 +1,13 @@
 from typing import ClassVar, Dict, Optional, List
 
 from attr import define, field
+from resoto_plugin_aws.resource.base import GraphBuilder
 
 from resoto_plugin_gcp.gcp_client import GcpApiSpec
 from resoto_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus
+from resotolib.baseresources import ModelReference
 from resotolib.json_bender import Bender, S, Bend, ForallBend, MapDict
+from resotolib.types import Json
 
 
 @define(eq=False, slots=False)
@@ -916,21 +919,15 @@ class GcpContainerCluster(GcpResource):
 
 
 @define(eq=False, slots=False)
-class GcpContainerDetails:
-    kind: ClassVar[str] = "gcp_container_details"
-    mapping: ClassVar[Dict[str, Bender]] = {}
-
-
-@define(eq=False, slots=False)
 class GcpContainerStatus:
     kind: ClassVar[str] = "gcp_container_status"
     mapping: ClassVar[Dict[str, Bender]] = {
         "code": S("code"),
-        "details": S("details", default=[]) >> ForallBend(GcpContainerDetails.mapping),
+        "details": S("details", default=[]),
         "message": S("message"),
     }
     code: Optional[int] = field(default=None)
-    details: Optional[List[GcpContainerDetails]] = field(default=None)
+    details: Optional[List[Json]] = field(default=None)
     message: Optional[str] = field(default=None)
 
 
@@ -965,6 +962,7 @@ class GcpContainerOperationProgress:
 @define(eq=False, slots=False)
 class GcpContainerOperation(GcpResource):
     kind: ClassVar[str] = "gcp_container_operation"
+    reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_container_cluster"]}}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="container",
         version="v1",
@@ -1011,6 +1009,10 @@ class GcpContainerOperation(GcpResource):
     operation_status: Optional[str] = field(default=None)
     operation_status_message: Optional[str] = field(default=None)
     operation_target_link: Optional[str] = field(default=None)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if self.operation_target_link:
+            builder.add_edge(self, reverse=True, clazz=GcpContainerCluster, link=self.operation_target_link)
 
 
 resources = [GcpContainerCluster, GcpContainerOperation]
