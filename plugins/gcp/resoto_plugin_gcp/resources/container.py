@@ -927,7 +927,7 @@ class GcpContainerStatus:
         "message": S("message"),
     }
     code: Optional[int] = field(default=None)
-    details: Optional[List[Dict[str, Any]]] = field(default=None)
+    details: Optional[List[Json]] = field(default=None)
     message: Optional[str] = field(default=None)
 
 
