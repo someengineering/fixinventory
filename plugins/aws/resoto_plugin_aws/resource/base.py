@@ -420,11 +420,20 @@ class GraphBuilder:
             if is_clazz and all(getattr(n, k, None) == v for k, v in node.items()):
                 yield n  # type: ignore
 
-    def add_node(self, node: AwsResourceType, source: Optional[Json] = None) -> AwsResourceType:
+    def add_node(
+        self, node: AwsResourceType, source: Optional[Json] = None, region: Optional[AwsRegion] = None
+    ) -> AwsResourceType:
+        """
+        Add a node to the graph.
+        :param node: the node to add.
+        :param source: the source json data.
+        :param region: only define the region in case it is different from the region of the graph builder.
+        :return: the added node
+        """
         log.debug(f"{self.name}: add node {node}")
         node._cloud = self.cloud
         node._account = self.account
-        node._region = self.region
+        node._region = region or self.region
         self.graph.add_node(node, source=source or {})
         return node
 
@@ -476,9 +485,9 @@ class GraphBuilder:
             return None  # instance type not found
 
         price = AwsPricingPrice.instance_type_price(self.client.for_region(region.id), instance_type, region.safe_name)
-        result = evolve(it, region=self.region, ondemand_cost=price.on_demand_price_usd if price else None)
+        result = evolve(it, region=region, ondemand_cost=price.on_demand_price_usd if price else None)
         # add this instance type to the graph
-        self.add_node(result)
+        self.add_node(result, region=region)
         self.add_edge(region, node=result)
         return result
 
