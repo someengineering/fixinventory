@@ -4,22 +4,21 @@ import re
 from argparse import Namespace
 from contextlib import suppress
 from copy import deepcopy
-from attrs import define, field
 from datetime import timedelta
 from pathlib import Path
 from typing import Optional, List, ClassVar, Dict, Union, cast
 
 from arango.database import StandardDatabase
+from attrs import define, field
 from cerberus import schema_registry
-from resotolib.core.model_export import dataclasses_to_resotocore_model
 
+from resotocore.ids import ConfigId
 from resotocore.model.model import Kind, Model, ComplexKind
 from resotocore.model.typed_model import from_js, to_js
 from resotocore.types import Json, JsonElement
 from resotocore.util import set_value_in_path, value_in_path, del_value_in_path
 from resotocore.validator import Validator, schema_name
-from resotocore.ids import ConfigId
-
+from resotolib.core.model_export import dataclasses_to_resotocore_model
 
 log = logging.getLogger(__name__)
 
@@ -194,18 +193,31 @@ class AliasTemplateConfig(ConfigObject):
 def alias_templates() -> List[AliasTemplateConfig]:
     return [
         AliasTemplateConfig(
-            "discord",
-            "Send the result of a search to Discord",
-            # define the fields to show in the message
-            "jq {name:{{key}}, value:{{value}}} | "
-            # Discord limit: https://discord.com/developers/docs/resources/channel#embed-object-embed-limits
-            "chunk 25 | "
-            # define the Discord webhook JSON
-            'jq {embeds: [{type: "rich", title: "{{title}}", {{#message}}description: "{{message}}",{{/message}} '
-            'fields:., footer:{text: "Message created by Resoto"}}]} | '
-            # call the API
-            "http POST {{webhook}}",
-            [
+            name="discord",
+            info="Send the result of a search to Discord",
+            description=(
+                "Perform a search and send the result to Discord.\n\n"
+                "Discord allows a maximum of 25 items per message. "
+                "If your search result is larger than 25 items, it will be split into multiple messages. "
+                "There are parameters to adjust the information displayed for each resource. "
+                "You can define the title and the message to be displayed.\n\n"
+                "We recommend to define the webhook URL as part of the command configuration. "
+                "This way you do not need to provide it every time you execute the command. "
+                "If you want to use a different webhook URL, you can provide it as a parameter, "
+                "or define different discord commands (e.g. discord-sre, discord-dev). "
+            ),
+            template=(
+                # define the fields to show in the message
+                "jq {name:{{key}}, value:{{value}}} | "
+                # Discord limit: https://discord.com/developers/docs/resources/channel#embed-object-embed-limits
+                "chunk 25 | "
+                # define the Discord webhook JSON
+                'jq {embeds: [{type: "rich", title: "{{title}}", {{#message}}description: "{{message}}",{{/message}} '
+                'fields:., footer:{text: "Message created by Resoto"}}]} | '
+                # call the API
+                "http POST {{webhook}}"
+            ),
+            parameters=[
                 AliasTemplateParameterConfig("key", "Resource field to show as key", ".kind"),
                 AliasTemplateParameterConfig("value", "Resource field to show as value", ".name"),
                 AliasTemplateParameterConfig("message", "Alert message", ""),
@@ -214,22 +226,35 @@ def alias_templates() -> List[AliasTemplateConfig]:
             ],
         ),
         AliasTemplateConfig(
-            "slack",
-            "Send the result of a search to Slack",
-            # define the fields to show in the message
-            'jq {type: "mrkdwn", text: ("*" + {{key}} + "*\n" + {{value}})} | '
-            # Slack limit: https://api.slack.com/reference/block-kit/blocks#actions
-            "chunk 25 | "
-            # define the Slack webhook JSON
-            "jq { blocks: ["
-            '{ type: "header", text: { type: "plain_text", text: "{{title}}" } }, '
-            '{{#message}}{ type: "section", text: { type: "mrkdwn", text: "{{message}}" } }, {{/message}}'
-            '{ type: "section", fields: . }, '
-            '{ type: "context", elements: [ { type: "mrkdwn", text: "Message created by Resoto" } ] } '
-            "] } | "
-            # call the API
-            "http POST {{webhook}}",
-            [
+            name="slack",
+            info="Send the result of a search to Slack",
+            description=(
+                "Perform a search and send the result to Slack.\n\n"
+                "Slack allows a maximum of 25 items per message. "
+                "If your search result is larger than 25 items, it will be split into multiple messages. "
+                "There are parameters to adjust the information displayed for each resource. "
+                "You can define the title and the message to be displayed.\n\n"
+                "We recommend to define the webhook URL as part of the command configuration. "
+                "This way you do not need to provide it every time you execute the command. "
+                "If you want to use a different webhook URL, you can provide it as a parameter, "
+                "or define different slack commands (e.g. slack-sre, slack-dev)."
+            ),
+            template=(
+                # define the fields to show in the message
+                'jq {type: "mrkdwn", text: ("*" + {{key}} + "*: " + {{value}})} | '
+                # Slack limit: https://api.slack.com/reference/block-kit/blocks#actions
+                "chunk 25 | "
+                # define the Slack webhook JSON
+                "jq { blocks: ["
+                '{ type: "header", text: { type: "plain_text", text: "{{title}}" } }, '
+                '{{#message}}{ type: "section", text: { type: "mrkdwn", text: "{{message}}" } }, {{/message}}'
+                '{ type: "section", fields: . }, '
+                '{ type: "context", elements: [ { type: "mrkdwn", text: "Message created by Resoto" } ] } '
+                "] } | "
+                # call the API
+                "http POST {{webhook}}"
+            ),
+            parameters=[
                 AliasTemplateParameterConfig("key", "Resource field to show as key", ".kind"),
                 AliasTemplateParameterConfig("value", "Resource field to show as value", ".name"),
                 AliasTemplateParameterConfig("message", "Alert message", ""),
@@ -238,23 +263,34 @@ def alias_templates() -> List[AliasTemplateConfig]:
             ],
         ),
         AliasTemplateConfig(
-            "jira",
-            "Send the result of a search to Jira",
-            # defines the fields to show in the message
-            'jq ({{key}} + ": " + {{value}}) | head 26 | chunk 26 | '
-            'jq "((.[:25] | join("\n")) + (if .[25] then "\n... (results truncated)" else "" end))" | '
-            # define the Jira webhook json
-            "jq {fields: { "
-            'summary: "{{title}}", '
-            'issuetype: {id: "10001"}, '
-            'description: ("{{message}}" + "\n\n" + . + "\n\n" + "Issue created by Resoto"), '
-            'project: {id: "{{project_id}}"}, '
-            'reporter: {id: "{{reporter_id}}"}, '
-            'labels: ["created-by-resoto"]'
-            "} } | "
-            # call the api
-            'http --auth "{{username}}:{{token}}" POST {{url}}/rest/api/2/issue',
-            [
+            name="jira",
+            info="Send the result of a search to Jira",
+            description=(
+                "Perform a search and send the result to Jira.\n\n"
+                "If your search result is larger than 25 items, only the first 25 items will be added to the ticket, "
+                "and the remaining items will be dropped.\n\n"
+                "Note that invoking this command will always create a new ticket since JIRA does not have any "
+                "deduplication functionality.\n\n"
+                "We recommend to define the URL, username and token as part of the command configuration. "
+                "This way you do not need to provide it every time you execute the command. "
+            ),
+            template=(
+                # defines the fields to show in the message
+                'head 26 | jq ({{key}} + ": " + {{value}}) | chunk 26 | '
+                'jq \'((.[:25] | join("\\n")) + (if .[25] then "\\n... (results truncated)" else "" end))\' | '
+                # define the Jira webhook json
+                "jq {fields: { "
+                'summary: "{{title}}", '
+                'issuetype: {id: "10001"}, '
+                'description: ("{{message}}" + "\\n\\n" + . + "\\n\\n" + "Issue created by Resoto"), '
+                'project: {id: "{{project_id}}"}, '
+                'reporter: {id: "{{reporter_id}}"}, '
+                'labels: ["created-by-resoto"]'
+                "}}"
+                # call the api
+                '| http --auth "{{username}}:{{token}}" POST {{url}}/rest/api/2/issue'
+            ),
+            parameters=[
                 AliasTemplateParameterConfig("key", "Resource field to show as key", ".kind"),
                 AliasTemplateParameterConfig("value", "Resource field to show as value", ".name"),
                 AliasTemplateParameterConfig("message", "Alert message", ""),
@@ -264,6 +300,40 @@ def alias_templates() -> List[AliasTemplateConfig]:
                 AliasTemplateParameterConfig("token", "Jira API token"),
                 AliasTemplateParameterConfig("project_id", "Jira project ID"),
                 AliasTemplateParameterConfig("reporter_id", "Jira reporter user ID"),
+            ],
+        ),
+        AliasTemplateConfig(
+            name="alertmanager",
+            info="Create an alert in alertmanager from a search.",
+            description=(
+                "Perform a search and send the result to alertmanager.\n\n"
+                "No resource specific data will be sent to alertmanager - only the count of matching resources. "
+                "The alert will be created in alertmanager and will be active for the specified duration.\n\n"
+                "The name of the alert is visible in alertmanager and used as deduplication key. "
+                "This way the same alert can be fired multiple times.\n\n"
+                "We recommend to define the URL as part of the command configuration. "
+                "This way you do not need to provide it every time you execute the command. "
+            ),
+            template=(
+                "aggregate sum(1) as count | "
+                # do not send an alert in case of 0 violations
+                'jq --no-rewrite "if (.count // 0)==0 then [] else [.count | tostring] end" | flatten | '
+                # defines the fields to show in the message
+                "jq --no-rewrite [{"
+                'status: "firing", '
+                'labels: {alertname: "{{name}}", issued_by: "Resoto"}, '
+                'annotations: {summary: ("Found "+.+ " violations!"), '
+                '"description": "{{description}}"}{{#duration}}, '
+                'startAt:"@utc@", '
+                'endsAt:"{{duration.from_now}}"{{/duration}}}] | '
+                # call the api
+                "http POST {{alertmanager_url}}/api/v1/alerts"
+            ),
+            parameters=[
+                AliasTemplateParameterConfig("name", "The globally unique name of this alert."),
+                AliasTemplateParameterConfig("description", "User defined message of the post.", "Resoto Alert"),
+                AliasTemplateParameterConfig("duration", "The duration of this alert in alertmanager.", "3h"),
+                AliasTemplateParameterConfig("alertmanager_url", "The complete url to alertmanager."),
             ],
         ),
     ]
@@ -479,7 +549,7 @@ def parse_config(args: Namespace, core_config: Json, command_templates: Optional
         set_from_cmd_line[ResotoCoreRootRE.sub("", key, 1)] = value
 
     # set the relevant value in the json config model
-    migrated = migrate_config(core_config)
+    migrated = migrate_core_config(core_config)
     adjusted = migrated.get(ResotoCoreRoot) or {}
     for path, value in set_from_cmd_line.items():
         if value is not None:
@@ -504,7 +574,9 @@ def parse_config(args: Namespace, core_config: Json, command_templates: Optional
     commands_config = CustomCommandsConfig()
     if command_templates:
         try:
-            commands_config = from_js(command_templates.get(ResotoCoreCommandsRoot), CustomCommandsConfig)
+            migrated_commands = migrate_command_config(command_templates)
+            cmd_cfg_to_parse = migrated_commands or command_templates
+            commands_config = from_js(cmd_cfg_to_parse.get(ResotoCoreCommandsRoot), CustomCommandsConfig)
         except Exception as e:
             log.error(f"Can not parse command templates. Fall back to defaults. Reason: {e}", exc_info=e)
 
@@ -521,7 +593,7 @@ def parse_config(args: Namespace, core_config: Json, command_templates: Optional
     )
 
 
-def migrate_config(config: Json) -> Json:
+def migrate_core_config(config: Json) -> Json:
     """
     :param config: The core configuration
     :return: the migrated json.
@@ -539,6 +611,17 @@ def migrate_config(config: Json) -> Json:
     # 3.0 -> 3.1: delete `api.ui_path`
     del_value_in_path(adapted, "api.ui_path")
     return {ResotoCoreRoot: adapted}
+
+
+def migrate_command_config(cmd_config: Json) -> Optional[Json]:
+    config = from_js(cmd_config.get(ResotoCoreCommandsRoot), CustomCommandsConfig)
+    existing_commands = {tpl.name: tpl for tpl in config.commands}
+    adjusted = False
+    for command in alias_templates():
+        if command.name not in existing_commands:
+            config.commands.append(command)
+            adjusted = True
+    return config.json() if adjusted else None
 
 
 def config_from_db(args: Namespace, db: StandardDatabase, collection_name: str = "configs") -> CoreConfig:
