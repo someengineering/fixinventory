@@ -1,9 +1,8 @@
 from concurrent.futures import ThreadPoolExecutor
 from typing import Sequence, Tuple, List, Optional
 
-from resoto_plugin_aws.resource.base import ExecutorQueue, AwsRegion, AwsAccount, GraphBuilder
+from resoto_plugin_aws.resource.base import ExecutorQueue, AwsRegion, GraphBuilder
 from resoto_plugin_aws.resource.ec2 import AwsEc2InstanceType
-from resotolib.baseresources import Cloud
 
 
 def check_executor_queue(work: Sequence[int], fail_on_first_exception: bool) -> Tuple[List[int], Optional[Exception]]:
@@ -55,9 +54,7 @@ from test import account_collector, builder, aws_client, aws_config, no_feedback
 def test_instance_type_handling(builder: GraphBuilder) -> None:
     region1 = AwsRegion(id="us-east-1")
     region2 = AwsRegion(id="us-east-2")
-    account = AwsAccount(id="123456789012")
-    cloud = Cloud(id="test")
-    it = AwsEc2InstanceType(id="t3.micro", region=region1, account=account, cloud=cloud)
+    it = AwsEc2InstanceType(id="t3.micro")
     builder.global_instance_types[it.safe_name] = it
     it1: AwsEc2InstanceType = builder.instance_type(region1, it.safe_name)  # type: ignore
     assert it1.region() == region1
