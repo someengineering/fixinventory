@@ -851,7 +851,7 @@ async def test_slack_alias(cli: CLI, echo_http_server: Tuple[int, List[Tuple[Req
         "blocks": [
             {"type": "header", "text": {"type": "plain_text", "text": "test"}},
             {"type": "section", "text": {"type": "mrkdwn", "text": "test message"}},
-            {"type": "section", "fields": [{"type": "mrkdwn", "text": "*bla*\nyes or no"} for _ in range(0, 25)]},
+            {"type": "section", "fields": [{"type": "mrkdwn", "text": "*bla*: yes or no"} for _ in range(0, 25)]},
             {"type": "context", "elements": [{"type": "mrkdwn", "text": "Message created by Resoto"}]},
         ],
     }
