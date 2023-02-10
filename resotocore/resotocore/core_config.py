@@ -336,6 +336,80 @@ def alias_templates() -> List[AliasTemplateConfig]:
                 AliasTemplateParameterConfig("alertmanager_url", "The complete url to alertmanager."),
             ],
         ),
+        AliasTemplateConfig(
+            name="pagerduty",
+            info="Create an alert in pagerduty from a search.",
+            description=(
+                "Perform a search and send the result to pagerduty.\n\n"
+                "No resource specific data will be sent to pagerduty. "
+                "The resources are aggregated by account and region with the count of matching resources.\n"
+                "The `summary` should explain why this alert is triggered, so that the user can take action.\n"
+                "The `dedup_key` is used to identify an alert uniquely. "
+                "You can fire the same alert multiple times by using the same dedup_key.\n\n"
+                "We recommend to define the `routing_key` as part of the command configuration. "
+                "This way you do not need to provide it every time you execute the command."
+            ),
+            template=(
+                # aggregate the result by account and region - flat the results, since pagerduty only allows flat data
+                'aggregate "account_{/ancestors.account.reported.id}__region_{/ancestors.region.reported.id}" as name :'
+                "sum(1) as count | chunk 100 | head 1 | "
+                "jq --no-rewrite 'map({(.group.name // \"none\"): .count}) | add | {details: .}'"
+                "| jq --no-rewrite '{payload: "
+                '{summary: "{{summary}}", '
+                'timestamp: "@utc@", '
+                'source:"{{source}}", '
+                'severity: "{{severity}}", '
+                'component: "{{component}}", '
+                "custom_details: .details, "
+                'routing_key: "{{routing_key}}", '
+                'dedup_key: "{{dedup_key}}", '
+                'images:[{src: "https://cdn.some.engineering/assets/resoto-logos/resoto-logo.svg", href: '
+                '"https://resoto.com/", alt: "Resoto Home Page"}], '
+                "links:[], "
+                'event_action: "{{event_action}}", '
+                'client: "Resoto Service", '
+                'client_url: "https://resoto.com"}}\''
+                # send the event to pagerduty
+                ' | http {{webhook_url}} "Content-Type:application/json"'
+            ),
+            parameters=[
+                AliasTemplateParameterConfig("summary", "The summary of this alert."),
+                AliasTemplateParameterConfig(
+                    "severity",
+                    "The perceived severity of the status the event is describing withrespect to the affected system. "
+                    "One of: `critical`, `error`, `warning` or `info`.",
+                    "warning",
+                ),
+                AliasTemplateParameterConfig(
+                    "source", "The unique location of the affected system, preferably a hostname or FQDN.", "Resoto"
+                ),
+                AliasTemplateParameterConfig(
+                    "component", "Component of the source machine that is responsible for the event.", "Resoto"
+                ),
+                AliasTemplateParameterConfig(
+                    "routing_key",
+                    "The GUID of one of your Events API V2 integrations. "
+                    'This is the "Integration Key" listed on the Events API V2 integration\'s detail page.',
+                ),
+                AliasTemplateParameterConfig(
+                    "event_action", "The type of event. Can be `trigger`, `acknowledge` or `resolve`.", "trigger"
+                ),
+                AliasTemplateParameterConfig("dedup_key", "Identifies the alert to trigger."),
+                AliasTemplateParameterConfig(
+                    "client", "The name of the monitoring client that is triggering this event.", "Resoto"
+                ),
+                AliasTemplateParameterConfig(
+                    "client_url",
+                    "The URL of the monitoring client that is triggering this event.",
+                    "https://resoto.com",
+                ),
+                AliasTemplateParameterConfig(
+                    "webhook_url",
+                    "The complete url of the pagerduty events API.",
+                    "https://events.pagerduty.com/v2/enqueue",
+                ),
+            ],
+        ),
     ]
 
 
