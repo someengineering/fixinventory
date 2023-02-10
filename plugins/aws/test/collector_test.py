@@ -31,7 +31,7 @@ def test_collect(account_collector: AwsAccountCollector) -> None:
     assert len(threading.enumerate()) == 1
     # ensure the correct number of nodes and edges
     assert count_kind(AwsResource) == 204
-    assert len(account_collector.graph.edges) == 474
+    assert len(account_collector.graph.edges) == 476
     assert len(account_collector.graph.deferred_edges) == 2
 
 

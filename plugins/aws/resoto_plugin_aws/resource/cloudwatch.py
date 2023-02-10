@@ -22,7 +22,7 @@ class CloudwatchTaggable:
             aws_service="cloudwatch",
             action="tag-resource",
             result_name=None,
-            ResourceARN=self.arn,
+            ResourceARN=self.arn,  # type: ignore
             Tags=[{"Key": key, "Value": value}],
         )
         return True
@@ -32,7 +32,7 @@ class CloudwatchTaggable:
             aws_service="cloudwatch",
             action="untag-resource",
             result_name=None,
-            ResourceARN=self.arn,
+            ResourceARN=self.arn,  # type: ignore
             TagKeys=[key],
         )
         return True
@@ -45,7 +45,7 @@ class CloudwatchTaggable:
 # noinspection PyUnresolvedReferences
 class LogsTaggable:
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
-        if arn := self.arn:
+        if arn := self.arn:  # type: ignore
             if arn.endswith(":*"):
                 arn = arn[:-2]
             client.call(
@@ -60,7 +60,7 @@ class LogsTaggable:
             return False
 
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
-        if arn := self.arn:
+        if arn := self.arn:  # type: ignore
             if arn.endswith(":*"):
                 arn = arn[:-2]
             client.call(
