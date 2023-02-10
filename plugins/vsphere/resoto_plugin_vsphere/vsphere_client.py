@@ -1,4 +1,4 @@
-from resotolib.args import ArgumentParser
+from resotolib.config import Config
 
 from pyVmomi import vim, vmodl
 from pyVim.connect import SmartConnect
@@ -111,9 +111,9 @@ class VSphereClient:
 
 def get_vsphere_client() -> VSphereClient:
     return VSphereClient(
-        host=ArgumentParser.args.vsphere_host,
-        user=ArgumentParser.args.vsphere_user,
-        pwd=ArgumentParser.args.vsphere_password,
-        port=ArgumentParser.args.vsphere_port,
-        insecure=ArgumentParser.args.vsphere_insecure,
+        host=Config.vsphere.host,
+        user=Config.vsphere.user,
+        pwd=Config.vsphere.password,
+        port=Config.vsphere.port,
+        insecure=Config.vsphere.insecure,
     )
