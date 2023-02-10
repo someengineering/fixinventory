@@ -144,7 +144,7 @@ def test_migrate_commands() -> None:
     # an existing configuration is not destroyed
     example = evolve(alias_templates()[0], name="my-test-cmd")
     custom = CustomCommandsConfig(commands=[example])
-    migrated_json = migrate_command_config(custom.json())
+    migrated_json: Json = migrate_command_config(custom.json())  # type: ignore
     assert migrated_json != custom.json()
     migrated = from_js(migrated_json.get(ResotoCoreCommandsRoot), CustomCommandsConfig)
     assert any(cmd == example for cmd in migrated.commands)
