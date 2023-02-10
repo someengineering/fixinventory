@@ -888,10 +888,10 @@ async def test_pagerduty_alias(cli: CLI, echo_http_server: Tuple[int, List[Tuple
     )
     assert result == [["1 requests with status 200 sent."]]
     assert len(requests) == 1
-    result = requests[0][1]
+    response = requests[0][1]
     # override timestamp
-    assert result["payload"]["timestamp"] is not None
-    result["payload"]["timestamp"] = "2023-02-10T15:03:33Z"
+    assert response["payload"]["timestamp"] is not None
+    response["payload"]["timestamp"] = "2023-02-10T15:03:33Z"
     assert requests[0][1] == {
         "payload": {
             "summary": "test",
