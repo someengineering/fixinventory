@@ -1,4 +1,4 @@
-from typing import Any, ClassVar, Dict, Optional, List
+from typing import ClassVar, Dict, Optional, List
 
 from attr import define, field
 from resoto_plugin_aws.resource.base import GraphBuilder
