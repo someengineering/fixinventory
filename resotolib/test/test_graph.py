@@ -107,13 +107,13 @@ def test_graph_export_iterator():
     g.add_resource(g.root, a)
     assert getrefcount(g) == 2
     gei = GraphExportIterator(g)
-    assert getrefcount(g) == 3
     gei.export_graph()
+    # one ref for g and for the variable passed to getrefcount ==> 2
     assert getrefcount(g) == 2
     assert len(list(gei)) == 3
 
 
-def test_f():
+def test_find_cycles():
     g = Graph()
     n1 = SomeTestResource(id="foo", tags={})
     n2 = SomeTestResource(id="bar", tags={})

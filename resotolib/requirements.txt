@@ -1,4 +1,4 @@
-networkx==2.8 # 2.8.1 increase the refcounts which leads to a failing test.
+networkx==3.0
 jsons==1.6.3
 typeguard==2.13.3
 websocket-client==1.5.0
