@@ -4453,7 +4453,6 @@ class AwsSagemakerTrainingJob(SagemakerTaggable, AwsSagemakerJob):
         if self.training_job_model_artifacts:
             builder.add_edge(
                 self,
-                reverse=True,
                 clazz=AwsS3Bucket,
                 name=AwsS3Bucket.name_from_path(self.training_job_model_artifacts),
             )
