@@ -1,7 +1,7 @@
 from platform import python_implementation
 
 import pytest
-from resotolib.graph import Graph, GraphContainer, GraphExportIterator
+from resotolib.graph import Graph, GraphContainer, GraphExportIterator, EdgeKey
 from resotolib.baseresources import BaseResource, EdgeType, GraphRoot
 import resotolib.logger as logger
 from attrs import define
@@ -98,9 +98,9 @@ def test_multidigraph():
     assert len(list(g.descendants(a, edge_type=EdgeType.delete))) == 0
     assert len(list(g.descendants(b))) == 2
     assert len(list(g.descendants(b, edge_type=EdgeType.delete))) == 2
-    assert g.is_dag_per_edge_type()
+    assert g.is_acyclic_per_edge_type()
     g.add_edge(b, a)
-    assert g.is_dag_per_edge_type() is False
+    assert g.is_acyclic_per_edge_type() is False
 
 
 # noinspection PyStatementEffect
@@ -126,3 +126,20 @@ def test_graph_export_iterator():
     gei.export_graph()
     assert getrefcount(g) == 2
     assert len(list(gei)) == 3
+
+
+def test_f():
+    g = Graph()
+    n1 = SomeTestResource(id="foo", tags={})
+    n2 = SomeTestResource(id="bar", tags={})
+    g.add_node(n1)
+    g.add_node(n2)
+    g.add_edge(n1, n2)
+    assert g.is_acyclic_per_edge_type() is True
+    g.add_edge(n2, n1)
+    assert g.is_acyclic_per_edge_type() is False
+    cycle = g.find_cycle()
+    assert cycle == [
+        EdgeKey(edge_type=EdgeType.default, src=n1, dst=n2),
+        EdgeKey(edge_type=EdgeType.default, src=n2, dst=n1),
+    ]
