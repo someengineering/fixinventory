@@ -3,6 +3,7 @@ from typing import Sequence, Tuple, List, Optional
 
 from resoto_plugin_aws.resource.base import ExecutorQueue, AwsRegion, GraphBuilder
 from resoto_plugin_aws.resource.ec2 import AwsEc2InstanceType
+from test import account_collector, builder, aws_client, aws_config, no_feedback  # noqa: F401
 
 
 def check_executor_queue(work: Sequence[int], fail_on_first_exception: bool) -> Tuple[List[int], Optional[Exception]]:
@@ -46,9 +47,6 @@ def test_fail_late() -> None:
     assert work_done == [0, 1, 2, 3, 4, 6, 7, 8, 9]
     assert ex is not None
     assert ex.args[0] == "Abort 5"
-
-
-from test import account_collector, builder, aws_client, aws_config, no_feedback  # noqa: F401
 
 
 def test_instance_type_handling(builder: GraphBuilder) -> None:

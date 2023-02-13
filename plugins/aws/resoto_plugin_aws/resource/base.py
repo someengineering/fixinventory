@@ -418,7 +418,7 @@ class GraphBuilder:
         for n in self.graph:
             is_clazz = isinstance(n, clazz) if clazz else True
             if is_clazz and all(getattr(n, k, None) == v for k, v in node.items()):
-                yield n  # type: ignore
+                yield n
 
     def add_node(
         self, node: AwsResourceType, source: Optional[Json] = None, region: Optional[AwsRegion] = None

@@ -15,3 +15,4 @@ tzlocal==4.2
 tzdata==2022.7
 cattrs==22.2.0
 setuptools==67.2.0
+PyYAML==6.0

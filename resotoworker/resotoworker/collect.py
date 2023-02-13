@@ -13,7 +13,7 @@ from resotolib.graph import Graph, sanitize
 from resotolib.logger import log, setup_logger
 from resotolib.args import ArgumentParser
 from argparse import Namespace
-from typing import List, Optional, Callable, Type, Dict, Any
+from typing import List, Optional, Callable, Type, Dict, Any, Set
 from resotolib.config import Config, RunningConfig
 from resotolib.types import Json
 
@@ -27,7 +27,7 @@ class Collector:
         self._send_to_resotocore = send_to_resotocore
         self._config = config
         self.core_messages = core_messages
-        self.processing = set()
+        self.processing: Set[str] = set()
         self.processing_lock = Lock()
 
     def collect_and_send(
