@@ -1,10 +1,14 @@
 from typing import ClassVar, Dict, Optional, List
 
 from attr import define, field
+from resoto_plugin_aws.resource.base import GraphBuilder
 
 from resoto_plugin_gcp.gcp_client import GcpApiSpec
 from resoto_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus
+from resoto_plugin_gcp.resources.compute import GcpSslCertificate
+from resotolib.baseresources import ModelReference
 from resotolib.json_bender import Bender, S, Bend, ForallBend
+from resotolib.types import Json
 
 
 @define(eq=False, slots=False)
@@ -18,6 +22,7 @@ class GcpSqlOperationError:
 @define(eq=False, slots=False)
 class GcpSqlBackupRun(GcpResource):
     kind: ClassVar[str] = "gcp_sql_backup_run"
+    reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_database_instance"]}}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="sqladmin",
         version="v1",
@@ -64,6 +69,10 @@ class GcpSqlBackupRun(GcpResource):
     run_time_zone: Optional[str] = field(default=None)
     run_type: Optional[str] = field(default=None)
     run_window_start_time: Optional[str] = field(default=None)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if self.run_instance:
+            builder.add_edge(self, reverse=True, clazz=GcpSqlDatabaseInstance, name=self.run_instance)
 
 
 @define(eq=False, slots=False)
@@ -518,6 +527,7 @@ class GcpSqlSettings:
 @define(eq=False, slots=False)
 class GcpSqlDatabaseInstance(GcpResource):
     kind: ClassVar[str] = "gcp_sql_database_instance"
+    reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_ssl_certificate"]}}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="sqladmin",
         version="v1",
@@ -562,7 +572,6 @@ class GcpSqlDatabaseInstance(GcpResource):
         "instance_replica_configuration": S("replicaConfiguration", default={})
         >> Bend(GcpSqlReplicaConfiguration.mapping),
         "instance_replica_names": S("replicaNames", default=[]),
-        "instance_root_password": S("rootPassword"),
         "instance_satisfies_pzs": S("satisfiesPzs"),
         "instance_scheduled_maintenance": S("scheduledMaintenance", default={})
         >> Bend(GcpSqlSqlScheduledMaintenance.mapping),
@@ -605,6 +614,11 @@ class GcpSqlDatabaseInstance(GcpResource):
     instance_settings: Optional[GcpSqlSettings] = field(default=None)
     instance_state: Optional[str] = field(default=None)
     instance_suspension_reason: Optional[List[str]] = field(default=None)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if cert := self.instance_server_ca_cert:
+            if cert.self_link:
+                builder.add_edge(self, reverse=True, clazz=GcpSslCertificate, link=cert.self_link)
 
 
 @define(eq=False, slots=False)
@@ -735,6 +749,7 @@ class GcpSqlImportContext:
 @define(eq=False, slots=False)
 class GcpSqlOperation(GcpResource):
     kind: ClassVar[str] = "gcp_sql_operation"
+    reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_sql_database_instance"]}}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="sqladmin",
         version="v1",
@@ -781,6 +796,10 @@ class GcpSqlOperation(GcpResource):
     operation_target_link: Optional[str] = field(default=None)
     operation_target_project: Optional[str] = field(default=None)
     operation_user: Optional[str] = field(default=None)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if self.operation_target_id:
+            builder.add_edge(self, reverse=True, clazz=GcpSqlDatabaseInstance, name=self.operation_target_id)
 
 
 @define(eq=False, slots=False)
