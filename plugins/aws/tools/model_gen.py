@@ -1,4 +1,4 @@
-import json
+import json  # noqa: F401
 import re
 from textwrap import dedent
 from typing import List, Set, Optional, Tuple, Union, Dict

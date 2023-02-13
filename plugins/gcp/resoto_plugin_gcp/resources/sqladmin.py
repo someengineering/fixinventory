@@ -1,10 +1,9 @@
 from typing import ClassVar, Dict, Optional, List
 
 from attr import define, field
-from resoto_plugin_aws.resource.base import GraphBuilder
 
 from resoto_plugin_gcp.gcp_client import GcpApiSpec
-from resoto_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus
+from resoto_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus, GraphBuilder
 from resoto_plugin_gcp.resources.compute import GcpSslCertificate
 from resotolib.baseresources import ModelReference
 from resotolib.json_bender import Bender, S, Bend, ForallBend

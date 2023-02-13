@@ -1,7 +1,7 @@
 wheel==0.38.4
 flake8==6.0.0
 pep8-naming==0.13.3
-tox==3.28.0
+tox==4.4.5
 coverage==7.1.0
 pylint==2.16.1
 black==23.1.0
