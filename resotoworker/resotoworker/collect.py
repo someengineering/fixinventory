@@ -148,8 +148,9 @@ def run_post_collect_plugin(
         start_time = time()
         post_collector.post_collect(graph)
         elapsed = time() - start_time
-        if not graph.is_dag_per_edge_type():
-            log.error(f"Graph of plugin {post_collector.name} is not acyclic - ignoring plugin results")
+        if (cycle := graph.find_cycle()) is not None:
+            desc = ", ".join, [f"{key.edge_type}: {key.src.kdname}-->{key.dst.kdname}" for key in cycle]
+            log.error(f"Graph of plugin {post_collector.name} is not acyclic - ignoring plugin results. Cycle {desc}")
             return None
         log.info(f"Collector of plugin {post_collector.name} finished in {elapsed:.4f}s")
         return graph
@@ -188,9 +189,9 @@ def collect_plugin_graph(
             if not collector.finished:
                 log.error(f"Plugin {collector.cloud} did not finish collection" " - ignoring plugin results")
                 return None
-            if not collector.graph.is_dag_per_edge_type():
-                log.error(f"Graph of plugin {collector.cloud} is not acyclic" " - ignoring plugin results")
-                return None
+            if (cycle := collector.graph.find_cycle()) is not None:
+                desc = ", ".join, [f"{key.edge_type}: {key.src.kdname}-->{key.dst.kdname}" for key in cycle]
+                log.error(f"Graph of plugin {collector.cloud} is not acyclic - ignoring plugin results. Cycle {desc}")
             log.info(f"Collector of plugin {collector.cloud} finished in {elapsed:.4f}s")
             return collector.graph
         else:

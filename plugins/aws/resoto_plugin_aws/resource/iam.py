@@ -1,6 +1,6 @@
 import csv
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import ClassVar, Dict, Optional, Type, List, Any, Callable
 
 from attrs import define, field
@@ -23,7 +23,7 @@ from resotolib.graph import Graph
 from resotolib.json import from_json, value_in_path
 from resotolib.json_bender import Bender, S, Bend, AsDate, Sort, bend, ForallBend, F
 from resotolib.types import Json
-from resotolib.utils import parse_utc
+from resotolib.utils import parse_utc, utc
 
 
 def iam_update_tag(resource: AwsResource, client: AwsClient, action: str, key: str, value: str, **kwargs: Any) -> bool:
@@ -492,12 +492,23 @@ class CredentialReportLine:
 
     @staticmethod
     def user_lines(builder: GraphBuilder) -> Dict[str, "CredentialReportLine"]:
+        now = utc()
         # wait for the report to be done
-        while (res := builder.client.get("iam", "generate-credential-report")) and res.get("State") != "COMPLETE":
+        while (
+            # in case of access denied, res will be None
+            (res := builder.client.get("iam", "generate-credential-report"))
+            # res is defined, but the report is not ready yet
+            and res.get("State") != "COMPLETE"
+            # give up after 5 minutes
+            and (utc() - now) < timedelta(minutes=5)
+        ):
             time.sleep(1)
         # fetch the report
-        report = builder.client.get("iam", "get-credential-report")
-        return CredentialReportLine.from_str(report["Content"]) if report else {}
+        if res and res.get("State") == "COMPLETE":
+            report = builder.client.get("iam", "get-credential-report", expected_errors=["ReportNotPresent"])
+            return CredentialReportLine.from_str(report["Content"]) if report else {}
+        else:
+            return {}
 
     @staticmethod
     def from_str(lines: str) -> Dict[str, "CredentialReportLine"]:
