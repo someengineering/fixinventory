@@ -497,6 +497,20 @@ def parse_config(args: Namespace, core_config: Json, command_templates: Optional
             merged = merge_configs(all_file_overrides, raw_yaml)
             all_file_overrides = merged
 
+    # replaces all values wrapped in $() with the environmental valiable
+    def replace_env_vars(elem: JsonElement) -> JsonElement:
+        if isinstance(elem, dict):
+            return {k: replace_env_vars(v) for k, v in elem.items()}
+        elif isinstance(elem, list):
+            return [replace_env_vars(v) for v in elem]
+        elif isinstance(elem, str):
+            str_value = elem
+            while match := re.search(r"\$\((\w+)\)", str_value):
+                str_value = str_value.replace(match.group(0), os.environ.get(match.group(1), ""))
+            return str_value
+        else:
+            return elem
+
     # set the relevant value in the json config model
     migrated = migrate_config(core_config)
     adjusted = migrated.get(ResotoCoreRoot) or {}
@@ -506,6 +520,9 @@ def parse_config(args: Namespace, core_config: Json, command_templates: Optional
 
     # merge the file overrides into the adjusted config
     adjusted = merge_configs(adjusted, all_file_overrides)
+
+    # replace all env vars
+    adjusted = replace_env_vars(adjusted)
 
     # coerce the resulting json to the config model
     try:
