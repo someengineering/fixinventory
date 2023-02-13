@@ -492,7 +492,7 @@ class CredentialReportLine:
 
     @staticmethod
     def user_lines(builder: GraphBuilder) -> Dict[str, "CredentialReportLine"]:
-        now = utc()
+        started_at = utc()
         # wait for the report to be done
         while (
             # in case of access denied, res will be None
@@ -500,7 +500,7 @@ class CredentialReportLine:
             # res is defined, but the report is not ready yet
             and res.get("State") != "COMPLETE"
             # give up after 5 minutes
-            and (utc() - now) < timedelta(minutes=5)
+            and (utc() - started_at) < timedelta(minutes=5)
         ):
             time.sleep(1)
         # fetch the report
