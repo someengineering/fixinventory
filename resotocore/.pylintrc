@@ -75,7 +75,8 @@ disable=
     too-many-boolean-expressions,
     no-member,
     unsupported-binary-operation,
-    too-many-branches
+    too-many-branches,
+    use-dict-literal
 
 
 [REPORTS]
@@ -343,4 +344,4 @@ int-import-graph=
 
 # Exceptions that will emit a warning when being caught. Defaults to
 # "Exception"
-overgeneral-exceptions=Exception
+overgeneral-exceptions=builtins.Exception
