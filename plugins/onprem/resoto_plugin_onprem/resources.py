@@ -7,7 +7,6 @@ from resotolib.baseresources import (
     BaseInstance,
     BaseNetwork,
 )
-from resotolib.logger import log
 
 
 @define(eq=False, slots=False)
