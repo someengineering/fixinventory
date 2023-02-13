@@ -192,6 +192,7 @@ def collect_plugin_graph(
             if (cycle := collector.graph.find_cycle()) is not None:
                 desc = ", ".join, [f"{key.edge_type}: {key.src.kdname}-->{key.dst.kdname}" for key in cycle]
                 log.error(f"Graph of plugin {collector.cloud} is not acyclic - ignoring plugin results. Cycle {desc}")
+                return None
             log.info(f"Collector of plugin {collector.cloud} finished in {elapsed:.4f}s")
             return collector.graph
         else:
