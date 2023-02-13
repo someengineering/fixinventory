@@ -1,5 +1,5 @@
 # dev dependencies
-mypy==0.991
+mypy==1.0.0
 wheel==0.38.4
 flake8==6.0.0
 pep8-naming==0.13.3
