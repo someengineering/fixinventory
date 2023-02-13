@@ -31,7 +31,7 @@ from resotolib.core.model_export import (
 )
 from resotolib.logger import log
 from resotolib.types import Json
-from resotolib.utils import get_resource_attributes
+from resotolib.utils import get_resource_attributes, unset_cached_properties
 
 
 @define
@@ -596,5 +596,9 @@ class GraphExportIterator:
             elapsed = elapsed_nodes + elapsed_edges
             log.info(f"Exported {self.total_lines} nodes and edges in {elapsed:.4f}s")
             self.graph_exported = True
+            # The graph uses attributes with @cached_property.
+            # Those attributes reference the graph and increment the refcount.
+            # See: https://github.com/networkx/networkx/issues/6235
+            unset_cached_properties(self.graph)
             del self.graph
             self.tempfile.seek(0)
