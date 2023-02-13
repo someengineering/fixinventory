@@ -1,15 +1,22 @@
 from __future__ import annotations
-import networkx
-from enum import Enum
-from networkx.algorithms.dag import is_directed_acyclic_graph
-from datetime import datetime
-import threading
-import pickle
+
 import json
-import jsons
 import re
 import tempfile
-from resotolib.logger import log
+import threading
+from collections import defaultdict, namedtuple, deque
+from datetime import datetime
+from enum import Enum
+from time import time
+from typing import Dict, Iterator, List, Tuple, Optional, Union, Any
+
+import jsons
+import networkx
+from attrs import define, fields
+from networkx.algorithms.dag import is_directed_acyclic_graph
+from prometheus_client import Summary
+from typeguard import check_type
+
 from resotolib.baseresources import (
     BaseCloud,
     BaseAccount,
@@ -18,26 +25,13 @@ from resotolib.baseresources import (
     BaseResource,
     EdgeType,
 )
-from resotolib.types import Json
-from resotolib.utils import json_default, get_resource_attributes
-from resotolib.args import ArgumentParser
 from resotolib.core.model_export import (
     dataclasses_to_resotocore_model,
     node_to_dict,
 )
-from resotolib.event import (
-    Event,
-    EventType,
-    add_event_listener,
-    remove_event_listener,
-)
-from prometheus_client import Summary
-from typing import Dict, Iterator, List, Tuple, Optional, Union, Any
-from io import BytesIO
-from typeguard import check_type
-from time import time
-from collections import defaultdict, namedtuple, deque
-from attrs import define, fields
+from resotolib.logger import log
+from resotolib.types import Json
+from resotolib.utils import get_resource_attributes
 
 
 @define
@@ -380,261 +374,6 @@ class Graph(networkx.MultiDiGraph):
         return GraphExportIterator(self)
 
 
-class GraphContainer:
-    """A context containing a Graph()
-
-    This can be passed to various code parts like e.g. a WebServer() allowing
-    replacement and updating of the graph without losing its context.
-    """
-
-    GRAPH_ROOT = GraphRoot(id="root", tags={})
-
-    def __init__(self, cache_graph=True) -> None:
-        self._graph = None
-        self._observers = []
-        self.__lock = threading.Lock()
-        self.graph = Graph(root=self.GRAPH_ROOT)
-        if cache_graph:
-            self.cache = GraphCache()
-            self.cache.update_cache(Event(EventType.STARTUP, self.graph))
-            add_event_listener(EventType.COLLECT_FINISH, self.cache.update_cache)
-            add_event_listener(EventType.CLEANUP_FINISH, self.cache.update_cache)
-        else:
-            self.cache = None
-
-    def __del__(self):
-        if self.cache is not None:
-            remove_event_listener(EventType.CLEANUP_FINISH, self.cache.update_cache)
-            remove_event_listener(EventType.COLLECT_FINISH, self.cache.update_cache)
-
-    @property
-    def graph(self):
-        return self._graph
-
-    @graph.setter
-    def graph(self, value):
-        self._graph = value
-
-    def add(self, graph) -> None:
-        """Add another graph to the existing one"""
-        with self.__lock:
-            self.graph = networkx.compose(self.graph, graph)
-
-    @staticmethod
-    def add_args(arg_parser: ArgumentParser) -> None:
-        """Add args to the arg parser
-
-        This adds the GraphContainer()'s own args.
-        """
-        arg_parser.add_argument(
-            "--tag-as-metrics-label",
-            help="Tag to use as metrics label",
-            dest="metrics_tag_as_label",
-            type=str,
-            default=None,
-            nargs="+",
-        )
-
-    @property
-    def pickle(self):
-        if self.cache and self.cache.pickle:
-            return self.cache.pickle
-        else:
-            return graph2pickle(self.graph)
-
-    @property
-    def json(self):
-        if self.cache and self.cache.json:
-            return self.cache.json
-        else:
-            return graph2json(self.graph)
-
-    @property
-    def text(self):
-        if self.cache and self.cache.text:
-            return self.cache.text
-        else:
-            return graph2text(self.graph)
-
-    @property
-    def graphml(self):
-        if self.cache and self.cache.graphml:
-            return self.cache.graphml
-        else:
-            return graph2graphml(self.graph)
-
-    @property
-    def gexf(self):
-        if self.cache and self.cache.gexf:
-            return self.cache.gexf
-        else:
-            return graph2gexf(self.graph)
-
-    @property
-    def pajek(self):
-        if self.cache and self.cache.pajek:
-            return self.cache.pajek
-        else:
-            return graph2pajek(self.graph)
-
-
-# The mlabels() and mtags() functions are being used to dynamically add more labels
-# to each metric. The idea here is that via a cli arg we can specify resource tags
-# that should be exported as labels for each metric. This way we don't have to touch
-# the code itself any time we want to add another metrics dimension. Instead we could
-# just have a tag like 'project' and then use the '--tag-as-metrics-label project'
-# argument to export another label based on the given tag.
-def mlabels(labels: List) -> List:
-    """Takes a list of labels and appends any cli arg specified tag names to it."""
-    if ArgumentParser.args and getattr(ArgumentParser.args, "metrics_tag_as_label", None):
-        for tag in ArgumentParser.args.metrics_tag_as_label:
-            labels.append(make_valid_label(tag))
-    return labels
-
-
-def mtags(labels: Tuple, node: BaseResource) -> Tuple:
-    """Takes a tuple containing labels and adds any tags specified as cli args to it.
-
-    Returns the extended tuple.
-    """
-    if not type(labels) is tuple:
-        if type(labels) is list:
-            labels = tuple(labels)
-        else:
-            labels = tuple([labels])
-    ret = list(labels)
-    if ArgumentParser.args and getattr(ArgumentParser.args, "metrics_tag_as_label", None):
-        for tag in ArgumentParser.args.metrics_tag_as_label:
-            if tag in node.tags:
-                tag_value = node.tags[tag]
-                ret.append(tag_value)
-            else:
-                ret.append("")
-    return tuple(ret)
-
-
-def make_valid_label(label: str) -> str:
-    return re.sub(r"[^a-zA-Z0-9_]", "_", label)
-
-
-class GraphCache:
-    """A Cache of multiple Graph formats
-
-    The Graph can be exported in multiple file formats.
-    Calculating them is expensive. Since the Graph only gets updated
-    every interval we only need to calculate its representations
-    once per interval and then cache the result.
-
-    TODO: instead of just in-memory strings move this to mmaped
-    files or maybe use sqlite3 which has an easy to use interface
-    and built-in mmap support.
-
-    TODO: Version the Graph and the Cache
-    """
-
-    def __init__(self) -> None:
-        self._json_cache = None
-        self._graphml_cache = None
-        self._text_cache = None
-        self._gexf_cache = None
-        self._pickle_cache = None
-        self._pajek_cache = None
-
-    @metrics_graphcache_update_cache.time()
-    def update_cache(self, event: Event) -> None:
-        log.debug("Updating the Graph Cache")
-        graph = event.data
-        log.debug("Generating pickle cache")
-        self._pickle_cache = graph2pickle(graph)
-        # log.debug('Generating JSON cache')
-        # self._json_cache = graph2json(graph)
-        # log.debug('Generating Text cache')
-        # self._text_cache = graph2text(graph)
-        # log.debug('Generating GraphML cache')
-        # self._graphml_cache = graph2graphml(graph)
-        # log.debug('Generating GEXF cache')
-        # self._gexf_cache = graph2gexf(graph)
-
-    @property
-    def pickle(self):
-        return self._pickle_cache
-
-    @property
-    def json(self):
-        return self._json_cache
-
-    @property
-    def text(self):
-        return self._text_cache
-
-    @property
-    def graphml(self):
-        return self._graphml_cache
-
-    @property
-    def gexf(self):
-        return self._gexf_cache
-
-    @property
-    def pajek(self):
-        return self._pajek_cache
-
-    @property
-    def metrics(self):
-        return self._metrics_cache
-
-
-def dump_graph(graph) -> str:
-    """Debug dump the graph and list each nodes predecessor and successor nodes"""
-    for node in graph.nodes:
-        yield f"Node: {node.name} (type: {node.kind})"
-        for predecessor_node in graph.predecessors(node):
-            yield (f"\tParent: {predecessor_node.name}" f" (type: {predecessor_node.kind})")
-        for successor_node in graph.successors(node):
-            yield (f"\tChild {successor_node.name} (type: {successor_node.kind})")
-
-
-@metrics_graph2json.time()
-def graph2json(graph):
-    return json.dumps(networkx.node_link_data(graph), default=json_default, skipkeys=True) + "\n"
-
-
-@metrics_graph2text.time()
-def graph2text(graph):
-    return "\n".join(dump_graph(graph)) + "\n"
-
-
-@metrics_graph2graphml.time()
-def graph2graphml(graph):
-    return "\n".join(networkx.generate_graphml(graph)) + "\n"
-
-
-@metrics_graph2pickle.time()
-def graph2pickle(graph):
-    return pickle.dumps(graph)
-
-
-@metrics_graph2gexf.time()
-def graph2gexf(graph):
-    gexf = BytesIO()
-    networkx.write_gexf(graph, gexf)
-    return gexf.getvalue().decode("utf8")
-
-
-@metrics_graph2pajek.time()
-def graph2pajek(graph):
-    new_graph = graph.copy()
-    for _, node_data in new_graph.nodes(data=True):
-        # Pajek exporter requires attribute with name 'id' to be int
-        # or not existing and all other attributes to be strings.
-        if "id" in node_data:
-            node_data["identifier"] = node_data["id"]
-            del node_data["id"]
-        for attribute in node_data:
-            node_data[attribute] = str(node_data[attribute])
-    return "\n".join(networkx.generate_pajek(new_graph)) + "\n"
-
-
 def validate_dataclass(node: BaseResource):
     for field in fields(type(node)):
         value = getattr(node, field.name)
@@ -839,7 +578,7 @@ class GraphExportIterator:
                 self.tempfile.write(edge_json.encode())
                 self.total_lines += 1
             for from_selector, to_selector, edge_type in self.graph.deferred_edges:
-                deferred_edge_dict = {}
+                deferred_edge_dict: Json = {}
                 if isinstance(from_selector, ByNodeId):
                     deferred_edge_dict["from_selector"] = {"node_id": from_selector.value}
                 else:
