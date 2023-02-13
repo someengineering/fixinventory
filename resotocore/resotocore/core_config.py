@@ -1,6 +1,7 @@
 import logging
 import os
 import re
+import yaml
 from argparse import Namespace
 from contextlib import suppress
 from copy import deepcopy
@@ -478,12 +479,33 @@ def parse_config(args: Namespace, core_config: Json, command_templates: Optional
     for key, value in args.config_override:
         set_from_cmd_line[ResotoCoreRootRE.sub("", key, 1)] = value
 
+    # takes the existing json object and merges an update into it, preferring the values from the update
+    # if the same key is present in both objects. Lists are not merged, but overwritten.
+    # Creates a new object and does not modify the existing json.
+    def merge_configs(existing: Json, update: Json) -> Json:
+        if isinstance(existing, dict) and isinstance(update, dict):
+            return {**existing, **{k: merge_configs(existing.get(k, {}), v) for k, v in update.items()}}
+        else:
+            return update
+
+    # json with all merged overrides
+    all_file_overrides: Json = {}
+    # merge all provided overrides into a single object, preferring the values from the last override
+    for path in args.config_override_path:
+        with path.open() as f:
+            raw_yaml = yaml.safe_load(f)
+            merged = merge_configs(all_file_overrides, raw_yaml)
+            all_file_overrides = merged
+
     # set the relevant value in the json config model
     migrated = migrate_config(core_config)
     adjusted = migrated.get(ResotoCoreRoot) or {}
     for path, value in set_from_cmd_line.items():
         if value is not None:
             adjusted = set_value_in_path(value, path, adjusted)
+
+    # merge the file overrides into the adjusted config
+    adjusted = merge_configs(adjusted, all_file_overrides)
 
     # coerce the resulting json to the config model
     try:

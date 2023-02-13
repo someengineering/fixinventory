@@ -5,6 +5,7 @@ import os.path
 import sys
 from argparse import Namespace
 from collections import namedtuple
+from pathlib import Path
 from ssl import SSLContext
 from typing import Optional, List, Callable, Tuple
 
@@ -183,6 +184,19 @@ def parse_args(args: Optional[List[str]] = None) -> Namespace:
         "A value can be a simple value or a comma separated list of values if a list is required. "
         "Note: this argument allows multiple overrides separated by space. "
         "Example: --override resotocore.api.web_hosts=localhost,some.domain resotocore.api.web_port=12345",
+    )
+    parser.add_argument(
+        "--override-path",
+        nargs="+",
+        type=Path,
+        dest="config_override_path",
+        default=[],
+        help="Override configuration parameters via a YAML file. "
+        "The existing configuration will be patched with the provided values. "
+        "Note: this argument allows multiple overrides separated by space, in this case the "
+        "resulting configuration will be the merge of all the provided files, in the order they are provided."
+        "The same section can be overridden multiple times, in this case the last override will be used."
+        "Example: --override-file /path/to/your/config.yaml /path/to/your/other/config.yaml",
     )
     parser.add_argument(
         "--verbose", "-v", dest="verbose", default=False, action="store_true", help="Enable verbose logging."
