@@ -4,6 +4,8 @@ from queue import Queue
 import resotolib.proc
 from time import time
 from concurrent import futures
+from threading import Lock
+from resotoworker.exceptions import DuplicateMessageError
 from resotolib.baseplugin import BaseCollectorPlugin, BasePostCollectPlugin
 from resotolib.baseresources import GraphRoot
 from resotolib.core.actions import CoreFeedback
@@ -25,6 +27,8 @@ class Collector:
         self._send_to_resotocore = send_to_resotocore
         self._config = config
         self.core_messages = core_messages
+        self.processing = set()
+        self.processing_lock = Lock()
 
     def collect_and_send(
         self,
@@ -119,11 +123,22 @@ class Collector:
                 sanitize(graph)
                 return graph
 
-        collected = collect(collectors)
+        processing_id = f"{task_id}:{step_name}"
+        try:
+            with self.processing_lock:
+                if processing_id in self.processing:
+                    raise DuplicateMessageError(f"Already processing {processing_id} - ignoring message")
+                self.processing.add(processing_id)
 
-        if collected:
-            collected = post_collect(collected, post_collectors)
-            self._send_to_resotocore(collected, task_id)
+            collected = collect(collectors)
+
+            if collected:
+                collected = post_collect(collected, post_collectors)
+                self._send_to_resotocore(collected, task_id)
+        finally:
+            with self.processing_lock:
+                if processing_id in self.processing:
+                    self.processing.remove(processing_id)
 
 
 def run_post_collect_plugin(
