@@ -208,6 +208,8 @@ class CoreActions(threading.Thread):
         if self.message_processor is not None and callable(self.message_processor):
             try:
                 result = self.message_processor(message)
+                if result is None:
+                    return
                 if self.wait_for_ws():
                     log.debug(f"Sending reply {result}")
                     self.ws.send(json.dumps(result))

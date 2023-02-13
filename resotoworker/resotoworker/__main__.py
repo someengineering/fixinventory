@@ -37,6 +37,7 @@ from resotoworker.config import add_config
 from resotoworker.pluginloader import PluginLoader
 from resotoworker.resotocore import Resotocore
 from resotoworker.tag import core_tag_tasks_processor
+from resotoworker.exceptions import DuplicateMessageError
 
 # This will be used in main() and shutdown()
 shutdown_event = threading.Event()
@@ -245,6 +246,9 @@ def core_actions_processor(
                     log.info(f"Cleanup ran for {run_time} seconds")
             else:
                 raise ValueError(f"Unknown message type {message_type}")
+        except DuplicateMessageError as e:
+            log.warning(e)
+            return None
         except Exception as e:
             msg = f"Failed to {message_type}: {e}"
             data["error"] = msg

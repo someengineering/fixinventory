@@ -5,6 +5,7 @@ import resotolib.proc
 from time import time
 from concurrent import futures
 from threading import Lock
+from resotoworker.exceptions import DuplicateMessageError
 from resotolib.baseplugin import BaseCollectorPlugin, BasePostCollectPlugin
 from resotolib.baseresources import GraphRoot
 from resotolib.core.actions import CoreFeedback
@@ -126,8 +127,7 @@ class Collector:
         try:
             with self.processing_lock:
                 if processing_id in self.processing:
-                    log.error(f"Already processing {processing_id} - skipping")
-                    return
+                    raise DuplicateMessageError(f"Already processing {processing_id} - ignoring message")
                 self.processing.add(processing_id)
 
             collected = collect(collectors)
