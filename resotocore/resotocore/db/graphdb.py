@@ -1244,8 +1244,6 @@ class EventGraphDB(GraphDB):
     async def search_list(
         self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None, **kwargs: Any
     ) -> AsyncCursorContext:
-        counters, context = query.query.analytics()
-        await self.event_sender.core_event(CoreEvent.Query, context, **counters)
         return await self.real.search_list(query, with_count, timeout, **kwargs)
 
     async def search_history(
@@ -1265,18 +1263,12 @@ class EventGraphDB(GraphDB):
     async def search_graph_gen(
         self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None
     ) -> AsyncCursorContext:
-        counters, context = query.query.analytics()
-        await self.event_sender.core_event(CoreEvent.Query, context, **counters)
         return await self.real.search_graph_gen(query, with_count, timeout)
 
     async def search_aggregation(self, query: QueryModel) -> AsyncCursorContext:
-        counters, context = query.query.analytics()
-        await self.event_sender.core_event(CoreEvent.Query, context, **counters)
         return await self.real.search_aggregation(query)
 
     async def search_graph(self, query: QueryModel) -> MultiDiGraph:
-        counters, context = query.query.analytics()
-        await self.event_sender.core_event(CoreEvent.Query, context, **counters)
         return await self.real.search_graph(query)
 
     async def explain(self, query: QueryModel, with_edges: bool = False) -> EstimatedSearchCost:
