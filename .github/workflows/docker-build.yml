@@ -311,6 +311,14 @@ jobs:
         run: |
           cp resotocore/resotocore/static/api-doc.yaml resoto.com/openapi/resotocore-edge.yml
 
+      - name: Update AWS policy JSON
+        shell: bash
+        working-directory: ./resoto.com/aws/edge
+        run: |
+          wget -qO ResotoOrgList.json https://cdn.some.engineering/resoto/aws/edge/ResotoOrgList.json
+          wget -qO ResotoCollect.json https://cdn.some.engineering/resoto/aws/edge/ResotoCollect.json
+          wget -qO ResotoMutate.json https://cdn.some.engineering/resoto/aws/edge/ResotoMutate.json
+
       - name: Modify resotocore API YAML
         uses: mikefarah/yq@master
         with:
@@ -333,10 +341,10 @@ jobs:
           commit-message: "feat(docs): update edge documentation"
           title: "feat(docs): update edge documentation"
           body: |
-            Updates `edge` Resoto Core API documentation to reflect changes in [`${{ github.sha }}`](https://github.com/someengineering/resoto/commit/${{ github.sha }}).
+            Updates `edge` documentation to reflect changes in [`${{ github.sha }}`](https://github.com/someengineering/resoto/commit/${{ github.sha }}).
           labels: |
             🤖 bot
-          branch: api-docs # stable branch name so any additional commits to main update the existing PR instead of creating a new one
+          branch: edge # stable branch name so any additional commits to main update the existing PR instead of creating a new one
           delete-branch: true
           token: ${{ secrets.SOME_CI_PAT }}
           committer: C.K. <98986935+some-ci@users.noreply.github.com>
@@ -435,6 +443,15 @@ jobs:
         run: |
           cp resotocore/resotocore/static/api-doc.yaml resoto.com/openapi/resotocore-${{steps.release.outputs.docsVersion}}.yml
           echo $(jq '.["${{steps.release.outputs.docsVersion}}"].version="${{ steps.release.outputs.tag }}" | .["${{steps.release.outputs.docsVersion}}"].link="${{ steps.release_notes.outputs.link }}"' resoto.com/latestRelease.json) > resoto.com/latestRelease.json
+
+      - name: Update AWS policy JSON
+        if: steps.release.outputs.prerelease == 'false'
+        shell: bash
+        working-directory: ./resoto.com/aws/${{steps.release.outputs.docsVersion}}
+        run: |
+          wget -qO ResotoOrgList.json https://cdn.some.engineering/resoto/aws/${{ steps.release.outputs.tag }}/ResotoOrgList.json
+          wget -qO ResotoCollect.json https://cdn.some.engineering/resoto/aws/${{ steps.release.outputs.tag }}/ResotoCollect.json
+          wget -qO ResotoMutate.json https://cdn.some.engineering/resoto/aws/${{ steps.release.outputs.tag }}/ResotoMutate.json
 
       - name: Modify resotocore API YAML
         if: steps.release.outputs.prerelease == 'false'
