@@ -397,12 +397,12 @@ jobs:
         continue-on-error: true # Versioned doc may already exist
         working-directory: ./resoto.com
         run: |
-          yarn run docusaurus docs:version "${{steps.release.outputs.docsVersion}}"
+          yarn run docusaurus docs:version "${{ steps.release.outputs.docsVersion }}"
 
       - name: Generate versioned Docker Compose YAML
         shell: bash
         run: |
-          sed -i 's/edge/${{steps.release.outputs.tag}}/g' docker-compose.yaml
+          sed -i 's/edge/${{ steps.release.outputs.tag }}/g' docker-compose.yaml
 
       - name: Generate release notes
         if: steps.release.outputs.prerelease == 'false'
@@ -433,7 +433,7 @@ jobs:
         shell: bash
         run: |
           PSK= RESOTOCORE_ANALYTICS_OPT_OUT=true docker-compose up -d
-          cd resoto.com/versioned_docs/version-${{steps.release.outputs.docsVersion}}/reference/data-models
+          cd resoto.com/versioned_docs/version-${{ steps.release.outputs.docsVersion }}/reference/data-models
           find . -mindepth 2 -type d -name img -prune -exec rm -rf {} \;
           python3 ${{ github.workspace }}/resoto.com/tools/export_model_images.py
 
@@ -441,13 +441,13 @@ jobs:
         if: steps.release.outputs.prerelease == 'false'
         shell: bash
         run: |
-          cp resotocore/resotocore/static/api-doc.yaml resoto.com/openapi/resotocore-${{steps.release.outputs.docsVersion}}.yml
-          echo $(jq '.["${{steps.release.outputs.docsVersion}}"].version="${{ steps.release.outputs.tag }}" | .["${{steps.release.outputs.docsVersion}}"].link="${{ steps.release_notes.outputs.link }}"' resoto.com/latestRelease.json) > resoto.com/latestRelease.json
+          cp resotocore/resotocore/static/api-doc.yaml resoto.com/openapi/resotocore-${{ steps.release.outputs.docsVersion }}.yml
+          echo $(jq '.["${{ steps.release.outputs.docsVersion }}"].version="${{ steps.release.outputs.tag }}" | .["${{ steps.release.outputs.docsVersion }}"].link="${{ steps.release_notes.outputs.link }}"' resoto.com/latestRelease.json) > resoto.com/latestRelease.json
 
       - name: Update AWS policy JSON
         if: steps.release.outputs.prerelease == 'false'
         shell: bash
-        working-directory: ./resoto.com/aws/${{steps.release.outputs.docsVersion}}
+        working-directory: ./resoto.com/aws/${{ steps.release.outputs.docsVersion }}
         run: |
           wget -qO ResotoOrgList.json https://cdn.some.engineering/resoto/aws/${{ steps.release.outputs.tag }}/ResotoOrgList.json
           wget -qO ResotoCollect.json https://cdn.some.engineering/resoto/aws/${{ steps.release.outputs.tag }}/ResotoCollect.json
@@ -457,7 +457,7 @@ jobs:
         if: steps.release.outputs.prerelease == 'false'
         uses: mikefarah/yq@master
         with:
-          cmd: yq e -i '.servers[0].url = "https://{host}:{port}" | .servers[0].variables.host.default="localhost" | .servers[0].variables.port.default="8900" | del(.servers[0].description)' resoto.com/openapi/resotocore-${{steps.release.outputs.docsVersion}}.yml
+          cmd: yq e -i '.servers[0].url = "https://{host}:{port}" | .servers[0].variables.host.default="localhost" | .servers[0].variables.port.default="8900" | del(.servers[0].description)' resoto.com/openapi/resotocore-${{ steps.release.outputs.docsVersion }}.yml
 
       - name: Regenerate API docs & format with Prettier
         if: steps.release.outputs.prerelease == 'false'
@@ -479,7 +479,7 @@ jobs:
           body: |
             Adds automatically generated release notes for [`${{ steps.release.outputs.tag }}`](https://github.com/someengineering/resoto/releases/tag/${{ steps.release.outputs.tag }}).
 
-            Also updates `${{steps.release.outputs.docsVersion}}` docs.
+            Also updates `${{ steps.release.outputs.docsVersion }}` docs.
           labels: |
             🤖 bot
           branch: ${{ steps.release.outputs.tag }}
@@ -502,7 +502,7 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          prerelease: ${{steps.release.outputs.prerelease}}
+          prerelease: ${{ steps.release.outputs.prerelease }}
           bodyFile: release_body.txt
           artifacts: docker-compose.yaml
 
