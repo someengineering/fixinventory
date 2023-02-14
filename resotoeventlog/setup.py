@@ -20,7 +20,7 @@ setup_requirements = ["pytest-runner"]
 
 setup(
     name="resotoeventlog",
-    version="3.2.0",
+    version="3.2.1",
     description="Event log aggregator for resoto.",
     python_requires=">=3.5",
     classifiers=["Programming Language :: Python :: 3"],
