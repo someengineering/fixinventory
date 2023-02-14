@@ -1,9 +1,11 @@
+from typing import ClassVar
+
 from attrs import define, field
-from typing import ClassVar, Dict, Union, List
+
 from resotolib.durations import parse_duration
+from resotolib.types import Json
 
-
-default_config = {
+default_config: Json = {
     "default": {"expiration": "24h"},
     "kinds": [
         "aws_ec2_instance",
@@ -38,7 +40,7 @@ class TagValidatorConfig:
         default=False,
         metadata={"description": "Dry run"},
     )
-    config: Dict[str, Union[Dict, List]] = field(
+    config: Json = field(
         factory=lambda: default_config,
         metadata={
             "description": (
