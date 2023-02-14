@@ -1,31 +1,30 @@
 from copy import deepcopy
+
 from resotolib.baseplugin import BaseActionPlugin
-from resotolib.durations import duration_str
-from resotolib.logger import log
-from resotolib.core.search import CoreGraph
-from resotolib.core.model_export import node_from_dict
 from resotolib.config import Config
+from resotolib.core.model_export import node_from_dict
+from resotolib.core.search import CoreGraph
+from resotolib.json import value_in_path
+from resotolib.logger import log
+from resotolib.types import Json
 from .config import CleanupUntaggedConfig
-from typing import Dict
 
 
 class CleanupUntaggedPlugin(BaseActionPlugin):
     action = "cleanup_plan"
 
     def bootstrap(self) -> bool:
-        return Config.plugin_cleanup_untagged.enabled
+        return Config.plugin_cleanup_untagged.enabled is True
 
-    def do_action(self, data: Dict) -> None:
-        log.debug("Cleanup Untagged called")
-        cg = CoreGraph(tls_data=self.tls_data)
-        config = deepcopy(Config.plugin_cleanup_untagged.config)
-
-        tags_part = 'not(has_key(tags, ["' + '", "'.join(config["tags"]) + '"]))'
-        kinds_part = 'is(["' + '", "'.join(config["kinds"]) + '"])'
+    @staticmethod
+    def create_command(cfg: Json) -> str:
+        tags_part = 'not(has_key(tags, ["' + '", "'.join(cfg["tags"]) + '"]))'
+        kinds_part = 'is(["' + '", "'.join(cfg["kinds"]) + '"])'
         account_parts = []
-        for cloud_id, account in config["accounts"].items():
+        default_age: str = value_in_path(cfg, ["default", "age"]) or "2h"
+        for cloud_id, account in cfg["accounts"].items():
             for account_id, account_data in account.items():
-                age = duration_str(account_data.get("age"), down_to_unit="min")
+                age = account_data.get("age", default_age)
                 account_part = (
                     f'(/ancestors.cloud.id == "{cloud_id}" and '
                     f'/ancestors.account.id == "{account_id}" and '
@@ -34,9 +33,16 @@ class CleanupUntaggedPlugin(BaseActionPlugin):
                 account_parts.append(account_part)
         accounts_part = "(" + " or ".join(account_parts) + ")"
         exclusion_part = "/metadata.protected == false and /metadata.phantom == false and /metadata.cleaned == false"
-        required_tags = ", ".join(config["tags"])
+        required_tags = ", ".join(cfg["tags"])
         reason = f"Missing one or more of required tags {required_tags}" " and age more than threshold"
-        command = f'query {exclusion_part} and {kinds_part} and {tags_part} and {accounts_part} | clean "{reason}"'
+        return f'search {exclusion_part} and {kinds_part} and {tags_part} and {accounts_part} | clean "{reason}"'
+
+    def do_action(self, data: Json) -> None:
+        log.debug("Cleanup Untagged called")
+        cg = CoreGraph(tls_data=self.tls_data)
+        cfg: Json = deepcopy(Config.plugin_cleanup_untagged.config)
+        command = self.create_command(cfg)
+        required_tags = ", ".join(cfg.get("tags", {}))
         for node_data in cg.execute(command):
             node = node_from_dict(node_data)
             log.debug(
