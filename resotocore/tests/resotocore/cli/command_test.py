@@ -705,6 +705,17 @@ async def test_configs_command(cli: CLI, tmp_directory: str) -> None:
     # show the entry - should be the same as the created one
     show_updated_result = await cli.execute_cli_command("configs show test_config", stream.list)
     assert show_updated_result[0][0] == update_doc
+    # write a env var substitution to the config
+    env_var_update = "foo: $(FOO)\n"
+    with open(config_file, "w") as file:
+        file.write(env_var_update)
+    ctx = CLIContext(uploaded_files={"config.yaml": config_file})
+    update_result = await cli.execute_cli_command(f"configs update test_config {config_file}", stream.list, ctx)
+    # provide the env var
+    os.environ["FOO"] = "bar"
+    # check the configs: the env var should stay here and not be resolved when the user views the config
+    show_updated_result = await cli.execute_cli_command("configs show test_config", stream.list)
+    assert show_updated_result[0][0] == env_var_update
 
 
 @pytest.mark.asyncio
