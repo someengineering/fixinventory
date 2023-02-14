@@ -10,7 +10,7 @@ def read(file_name: str) -> str:
 
 setup(
     name="resoto-plugin-cleanup-expired",
-    version="3.2.1",
+    version="3.2.2",
     description="Resoto Expired Resource Cleanup Plugin",
     license="Apache 2.0",
     packages=find_packages(),
