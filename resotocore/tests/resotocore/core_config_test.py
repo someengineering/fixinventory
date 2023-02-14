@@ -100,26 +100,33 @@ def test_config_override(config_json: Json) -> None:
     with TemporaryDirectory() as tmp:
         # config with env var override
         hosts_conf = Path(tmp, "foobar.yml")
-        hosts_conf.write_text("""
+        hosts_conf.write_text(
+            """
 api:
     web_hosts: ["$(WEB_HOST)"]
-        """, encoding="utf-8")
+        """,
+            encoding="utf-8",
+        )
 
         # config that overrides the default config and containes an env var which can't be resolved
         other_conf = Path(tmp, "config.yml")
-        other_conf.write_text("""
+        other_conf.write_text(
+            """
 api:
     web_port: 1337
     web_path: "$(DO_NOT_REPLACE_ME)"
-        """)
+        """
+        )
 
         os.environ["WEB_HOST"] = "1.2.3.4"
 
         # parse this configuration
-        parsed = parse_config(parse_args([
-            "--analytics-opt-out",
-            "--override-path", str(hosts_conf.absolute()), str(other_conf.absolute())
-        ]), cfg)
+        parsed = parse_config(
+            parse_args(
+                ["--analytics-opt-out", "--override-path", str(hosts_conf.absolute()), str(other_conf.absolute())]
+            ),
+            cfg,
+        )
         assert parsed.api.web_hosts == ["1.2.3.4"]
         assert parsed.api.web_port == 1337
         assert parsed.api.web_path == "$(DO_NOT_REPLACE_ME)"
