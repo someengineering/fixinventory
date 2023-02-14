@@ -55,7 +55,6 @@ def test_invalid() -> None:
     ei = TestInstance(id="i-1", cloud=cloud, account=account_eng, region=region)
     wr = TestInstance(id="i-1", cloud=cloud, account=account_sales, region=region, tags={"expiration": "smthg"})
     assert plugin.invalid_expiration(cfg, graph, ok, "24h") is None  # expiration is ok
+    assert plugin.invalid_expiration(cfg, graph, ei, "24h") is None  # no expiration tag
     assert plugin.invalid_expiration(cfg, graph, si, "24h") == "12h"  # expiration is too long
-    assert plugin.invalid_expiration(cfg, graph, si, "24h") == "12h"  # expiration is too long
-    assert plugin.invalid_expiration(cfg, graph, ei, "24h") == "24h"  # no expiration tag
     assert plugin.invalid_expiration(cfg, graph, wr, "24h") == "12h"  # expiration can not be parsed

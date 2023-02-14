@@ -36,6 +36,9 @@ class TagValidatorPlugin(BaseActionPlugin):
 
         max_expiration = parse_duration(max_expiration_str)
         node_expiration_str = node.tags.get("expiration")
+        # If the node has no expiration tag - it is fine
+        if node_expiration_str is None:
+            return None
         try:
             node_expiration = parse_duration(node_expiration_str)  # type: ignore
         except Exception:
