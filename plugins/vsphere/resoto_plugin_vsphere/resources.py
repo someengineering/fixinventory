@@ -46,19 +46,19 @@ class VSphereInstance(BaseInstance, VSphereResource):
 
     def delete(self, graph: Graph) -> bool:
         if self._vm() is None:
-            log.error(f"could not find vm name {self.name} with id {self.id}")
+            log.error(f"Could not find vm name {self.name} with id {self.id}")
 
         log.debug(f"Deleting resource {self.id} in account {self.account(graph).id} region {self.region(graph).id}")
 
         if self._vm().runtime.powerState == "poweredOn":
             task = self._vm().PowerOffVM_Task()
             self._vsphere_client().wait_for_tasks([task])
-            log.debug(f"task finished - state: {task.info.state}")
+            log.debug(f"Task finished - state: {task.info.state}")
 
         log.info(f"Destroying VM {self.id} with name {self.name}")
         task = self._vm().Destroy_Task()
         self._vsphere_client().wait_for_tasks([task])
-        log.debug(f"task finished - state: {task.info.state}")
+        log.debug(f"Task finished - state: {task.info.state}")
         return True
 
     def update_tag(self, key, value) -> bool:
