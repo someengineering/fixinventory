@@ -4,6 +4,8 @@ from queue import Queue
 import resotolib.proc
 from time import time
 from concurrent import futures
+from threading import Lock
+from resotoworker.exceptions import DuplicateMessageError
 from resotolib.baseplugin import BaseCollectorPlugin, BasePostCollectPlugin
 from resotolib.baseresources import GraphRoot
 from resotolib.core.actions import CoreFeedback
@@ -11,7 +13,7 @@ from resotolib.graph import Graph, sanitize
 from resotolib.logger import log, setup_logger
 from resotolib.args import ArgumentParser
 from argparse import Namespace
-from typing import List, Optional, Callable, Type, Dict, Any
+from typing import List, Optional, Callable, Type, Dict, Any, Set
 from resotolib.config import Config, RunningConfig
 from resotolib.types import Json
 
@@ -25,6 +27,8 @@ class Collector:
         self._send_to_resotocore = send_to_resotocore
         self._config = config
         self.core_messages = core_messages
+        self.processing: Set[str] = set()
+        self.processing_lock = Lock()
 
     def collect_and_send(
         self,
@@ -119,11 +123,22 @@ class Collector:
                 sanitize(graph)
                 return graph
 
-        collected = collect(collectors)
+        processing_id = f"{task_id}:{step_name}"
+        try:
+            with self.processing_lock:
+                if processing_id in self.processing:
+                    raise DuplicateMessageError(f"Already processing {processing_id} - ignoring message")
+                self.processing.add(processing_id)
 
-        if collected:
-            collected = post_collect(collected, post_collectors)
-            self._send_to_resotocore(collected, task_id)
+            collected = collect(collectors)
+
+            if collected:
+                collected = post_collect(collected, post_collectors)
+                self._send_to_resotocore(collected, task_id)
+        finally:
+            with self.processing_lock:
+                if processing_id in self.processing:
+                    self.processing.remove(processing_id)
 
 
 def run_post_collect_plugin(
@@ -148,8 +163,9 @@ def run_post_collect_plugin(
         start_time = time()
         post_collector.post_collect(graph)
         elapsed = time() - start_time
-        if not graph.is_dag_per_edge_type():
-            log.error(f"Graph of plugin {post_collector.name} is not acyclic - ignoring plugin results")
+        if (cycle := graph.find_cycle()) is not None:
+            desc = ", ".join, [f"{key.edge_type}: {key.src.kdname}-->{key.dst.kdname}" for key in cycle]
+            log.error(f"Graph of plugin {post_collector.name} is not acyclic - ignoring plugin results. Cycle {desc}")
             return None
         log.info(f"Collector of plugin {post_collector.name} finished in {elapsed:.4f}s")
         return graph
@@ -188,8 +204,9 @@ def collect_plugin_graph(
             if not collector.finished:
                 log.error(f"Plugin {collector.cloud} did not finish collection" " - ignoring plugin results")
                 return None
-            if not collector.graph.is_dag_per_edge_type():
-                log.error(f"Graph of plugin {collector.cloud} is not acyclic" " - ignoring plugin results")
+            if (cycle := collector.graph.find_cycle()) is not None:
+                desc = ", ".join, [f"{key.edge_type}: {key.src.kdname}-->{key.dst.kdname}" for key in cycle]
+                log.error(f"Graph of plugin {collector.cloud} is not acyclic - ignoring plugin results. Cycle {desc}")
                 return None
             log.info(f"Collector of plugin {collector.cloud} finished in {elapsed:.4f}s")
             return collector.graph

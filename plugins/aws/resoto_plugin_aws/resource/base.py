@@ -7,7 +7,7 @@ from concurrent.futures import Executor, Future
 from datetime import datetime, timezone
 from functools import lru_cache
 from threading import Lock
-from typing import ClassVar, Dict, Optional, List, Type, Any, TypeVar, Callable
+from typing import ClassVar, Dict, Optional, List, Type, Any, TypeVar, Callable, Iterator
 
 from attr import evolve, field
 from attrs import define
@@ -28,7 +28,7 @@ from resotolib.baseresources import (
 )
 from resotolib.config import Config, current_config
 from resotolib.core.actions import CoreFeedback
-from resotolib.graph import Graph, EdgeKey, ByNodeId, BySearchCriteria
+from resotolib.graph import Graph, EdgeKey, ByNodeId, BySearchCriteria, NodeSelector
 from resotolib.json import to_json as to_js, from_json as from_js
 from resotolib.json_bender import Bender, bend
 from resotolib.types import Json
@@ -414,11 +414,26 @@ class GraphBuilder:
                 return n  # type: ignore
         return None
 
-    def add_node(self, node: AwsResourceType, source: Optional[Json] = None) -> AwsResourceType:
+    def nodes(self, clazz: Optional[Type[AwsResourceType]] = None, **node: Any) -> Iterator[AwsResourceType]:
+        for n in self.graph:
+            is_clazz = isinstance(n, clazz) if clazz else True
+            if is_clazz and all(getattr(n, k, None) == v for k, v in node.items()):
+                yield n
+
+    def add_node(
+        self, node: AwsResourceType, source: Optional[Json] = None, region: Optional[AwsRegion] = None
+    ) -> AwsResourceType:
+        """
+        Add a node to the graph.
+        :param node: the node to add.
+        :param source: the source json data.
+        :param region: only define the region in case it is different from the region of the graph builder.
+        :return: the added node
+        """
         log.debug(f"{self.name}: add node {node}")
         node._cloud = self.cloud
         node._account = self.account
-        node._region = self.region
+        node._region = region or self.region
         self.graph.add_node(node, source=source or {})
         return node
 
@@ -434,8 +449,8 @@ class GraphBuilder:
     def add_deferred_edge(
         self, from_node: BaseResource, edge_type: EdgeType, to_node: str, reverse: bool = False
     ) -> None:
-        node1 = ByNodeId(from_node.chksum)
-        node2 = BySearchCriteria(to_node)
+        node1: NodeSelector = ByNodeId(from_node.chksum)
+        node2: NodeSelector = BySearchCriteria(to_node)
         start, end = (node2, node1) if reverse else (node1, node2)
         self.graph.add_deferred_edge(start, end, edge_type)
 
@@ -470,9 +485,9 @@ class GraphBuilder:
             return None  # instance type not found
 
         price = AwsPricingPrice.instance_type_price(self.client.for_region(region.id), instance_type, region.safe_name)
-        result = evolve(it, region=self.region, ondemand_cost=price.on_demand_price_usd if price else None)
+        result = evolve(it, region=region, ondemand_cost=price.on_demand_price_usd if price else None)
         # add this instance type to the graph
-        self.add_node(result)
+        self.add_node(result, region=region)
         self.add_edge(region, node=result)
         return result
 

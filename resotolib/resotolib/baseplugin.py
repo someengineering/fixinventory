@@ -16,6 +16,7 @@ from resotolib.core.actions import CoreActions
 from resotolib.core.ca import TLSData
 from resotolib.graph import Graph
 from resotolib.logger import log
+from resotolib.types import Json
 
 # from multiprocessing import Process
 
@@ -87,7 +88,7 @@ class BasePlugin(ABC, Thread):
 
 class BaseActionPlugin(ABC, Thread):
     plugin_type = PluginType.ACTION
-    action = NotImplemented  # Name of the action this plugin implements
+    action: str = NotImplemented  # Name of the action this plugin implements
 
     def __init__(self, tls_data: Optional[TLSData] = None) -> None:
         super().__init__()
@@ -104,11 +105,11 @@ class BaseActionPlugin(ABC, Thread):
         """Perform an action"""
         pass
 
-    def action_processor(self, message: Dict) -> None:
+    def action_processor(self, message: Dict) -> Optional[Json]:
         """Process incoming action messages"""
         if not isinstance(message, dict):
             log.error(f"Invalid message: {message}")
-            return
+            return None
         kind = message.get("kind")
         message_type = message.get("message_type")
         data = message.get("data")

@@ -20,7 +20,19 @@ from resotolib.utils import utc_str, log_runtime
 
 log = logging.getLogger("resoto.plugins.aws")
 
-RetryableErrors = ("RequestLimitExceeded", "Throttling", "TooManyRequestsException")
+RetryableErrors = {
+    "EC2ThrottledException",
+    "LimitExceededException",
+    "RequestLimitExceeded",
+    "RequestThrottled",
+    "RequestThrottledException",
+    "RequestTimeout",
+    "RequestTimeoutException",
+    "ThrottledException",
+    "Throttling",
+    "ThrottlingException",
+    "TooManyRequestsException",
+}
 T = TypeVar("T")
 
 
@@ -232,6 +244,7 @@ class AwsClient:
             code = e.response["Error"]["Code"] or "Unknown Code"
             if code in expected_errors:
                 log.debug(f"Expected error: {code}")
+                return None
             else:
                 raise
 

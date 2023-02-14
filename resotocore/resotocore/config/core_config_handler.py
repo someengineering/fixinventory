@@ -17,8 +17,9 @@ from resotocore.core_config import (
     ResotoCoreCommandsConfigId,
     ResotoCoreCommandsRoot,
     CustomCommandsConfig,
-    migrate_config,
+    migrate_core_config,
     config_model as core_config_model,
+    migrate_command_config,
 )
 from resotocore.dependencies import empty_config
 from resotocore.ids import SubscriberId, WorkerId
@@ -133,7 +134,7 @@ class CoreConfigHandler:
             existing = await self.config_handler.get_config(ResotoCoreConfigId)
             empty = empty_config().json()
             updated = deep_merge(empty, existing.config) if existing else empty
-            updated = migrate_config(updated)
+            updated = migrate_core_config(updated)
             if existing is None or updated != existing.config:
                 await self.config_handler.put_config(ConfigEntity(ResotoCoreConfigId, updated), validate=False)
                 log.info("Default resoto config updated.")
@@ -144,11 +145,17 @@ class CoreConfigHandler:
         # note: this configuration is only created one time and never updated
         try:
             existing_commands = await self.config_handler.get_config(ResotoCoreCommandsConfigId)
+            to_update: Optional[Json] = None
             if existing_commands is None:
+                to_update = CustomCommandsConfig().json()
+            else:
+                to_update = migrate_command_config(existing_commands.config)
+            if to_update is not None:
                 await self.config_handler.put_config(
-                    ConfigEntity(ResotoCoreCommandsConfigId, CustomCommandsConfig().json()), validate=False
+                    ConfigEntity(ResotoCoreCommandsConfigId, to_update), validate=False
                 )
                 log.info("Default resoto commands config updated.")
+
         except Exception as ex:
             log.error(f"Could not update resoto command configuration: {ex}", exc_info=ex)
 

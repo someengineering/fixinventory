@@ -39,7 +39,7 @@ class PostDevelopCommand(develop):
 
 setup(
     name="resotocore",
-    version="3.1.1",
+    version="3.2.1",
     description="Keeps all the things.",
     python_requires=">=3.5",
     classifiers=["Programming Language :: Python :: 3"],

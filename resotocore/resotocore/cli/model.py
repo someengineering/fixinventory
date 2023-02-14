@@ -405,7 +405,10 @@ class AliasTemplate:
         indent = "            "
         arg_info = f"\n{indent}".join(param_info(arg) for arg in sorted(self.parameters, key=attrgetter("name")))
         minimal = ", ".join(f'{p.name}="{p.example_value()}"' for p in self.parameters if p.default is None)
-        desc = f"\n{indent}{self.description}\n" if self.description else ""
+        desc = ""
+        if self.description:
+            for line in self.description.splitlines():
+                desc += f"\n{indent}{line}"
         return dedent(
             f"""
             {self.name}: {self.info}

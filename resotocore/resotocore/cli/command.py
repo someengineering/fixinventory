@@ -3833,7 +3833,8 @@ class HttpCommand(CLICommand):
                     status_code = await perform_request(elem)
                     results[status_code] += 1
             summary = ", ".join(f"{count} requests with status {status}" for status, count in results.items())
-            yield f"{summary} sent."
+            if results:
+                yield f"{summary} sent."
 
         return iterate_stream
 

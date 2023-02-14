@@ -5,7 +5,7 @@ from functools import lru_cache
 from typing import TypeVar, Union, Any, Callable, AsyncIterator, NoReturn, Optional, Awaitable, Tuple, List
 
 from aiostream.core import Stream
-from parsy import Parser, regex
+from parsy import Parser, regex, string
 
 from resotolib.durations import parse_duration, DurationRe
 from resotolib.parse_util import (
@@ -15,11 +15,12 @@ from resotolib.parse_util import (
     json_value_dp,
     space_dp,
     double_quote_dp,
-    double_quoted_string_part_or_esc_dp,
-    single_quoted_string_part_or_esc_dp,
     single_quote_dp,
     any_non_white_space_string,
     comma_p,
+    double_quoted_string_part_dp,
+    backslash_dp,
+    single_quoted_string_part_dp,
 )
 from resotocore.model.graph_access import Section
 from resotocore.types import JsonElement
@@ -39,6 +40,24 @@ def key_value_parser() -> Parser:
     yield equals_dp
     value = yield json_value_dp
     return key, value
+
+
+# for the cli part: unicode and special characters are translated. escaped \\ \' \" are preserved
+string_esc_dp = backslash_dp >> (
+    backslash_dp.result(r"\\")
+    | string("'").result(r"\'")
+    | string('"').result(r"\"")
+    | string("b").result("\b")
+    | string("f").result("\f")
+    | string("n").result("\n")
+    | string("r").result("\r")
+    | string("t").result("\t")
+    | regex(r"u[0-9a-fA-F]{4}").map(lambda s: chr(int(s[1:], 16)))
+)
+
+
+double_quoted_string_part_or_esc_dp = (double_quoted_string_part_dp | string_esc_dp | backslash_dp).many().concat()
+single_quoted_string_part_or_esc_dp = (single_quoted_string_part_dp | string_esc_dp | backslash_dp).many().concat()
 
 
 # name=value test=true -> {name: value, test: true}
@@ -70,8 +89,8 @@ args_parts_parser = (
 ).sep_by(space_dp, min=1)
 
 
-def strip_quotes(string: str) -> str:
-    res = string.strip()
+def strip_quotes(maybe_quoted: str) -> str:
+    res = maybe_quoted.strip()
     if res:
         first = res[0]
         if first in "'\"":

@@ -1,4 +1,4 @@
-import json
+import json  # noqa: F401
 import re
 from textwrap import dedent
 from typing import List, Set, Optional, Tuple, Union, Dict
@@ -280,6 +280,8 @@ def create_test_response(service: str, function: str) -> JsonElement:
             return {f"{num}": sample(value_type) for num in range(3)}
         elif isinstance(shape, StructureShape):
             return {name: sample(shape) for name, shape in shape.members.items()}
+        elif shape.type_name == "double":
+            return 1.234
         elif shape.type_name == "integer":
             return 123
         elif shape.type_name == "boolean":
@@ -745,6 +747,12 @@ models: Dict[str, List[AwsResotoModel]] = {
         #     prefix="Lambda",
         # )
     ],
+    "logs": [
+        # AwsResotoModel("describe-log-groups", "logGroups", "LogGroup", prefix="Cloudwatch", prop_prefix="group_"),
+        # AwsResotoModel(
+        #     "describe-metric-filters", "metricFilters", "MetricFilter", prefix="Cloudwatch", prop_prefix="filter_"
+        # ),
+    ],
     "iam": [
         # AwsResotoModel(
         #     "list-server-certificates",
@@ -831,6 +839,7 @@ models: Dict[str, List[AwsResotoModel]] = {
     ],
     "rds": [
         # AwsResotoModel("describe-db-instances", "Instances", "DBInstance", prefix="Rds", prop_prefix="rds_")
+        # AwsResotoModel("describe-db-clusters", "Clusters", "DBCluster", prefix="Rds", prop_prefix="rds_")
     ],
     "route53": [
         # AwsResotoModel("list_hosted_zones", "HostedZones", "HostedZone", prefix="Route53", prop_prefix="zone_"),
@@ -984,9 +993,10 @@ models: Dict[str, List[AwsResotoModel]] = {
 
 if __name__ == "__main__":
     """print some test data"""
-    # print(json.dumps(create_test_response("ec2", "describe-flow-logs"), indent=2))
+    # print(json.dumps(create_test_response("logs", "describe-log-groups"), indent=2))
 
     """print the class models"""
-    print(default_imports())
+    # print(default_imports())
     for model in all_models():
+        # pass
         print(model.to_class())

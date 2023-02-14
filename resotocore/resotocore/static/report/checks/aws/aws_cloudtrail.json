@@ -6,7 +6,10 @@
             "name": "logging_in_all_regions_enabled",
             "title": "Ensure CloudTrail is enabled and set up for logging in all regions",
             "result_kind": "aws_region",
-            "categories": ["security", "compliance"],
+            "categories": [
+                "security",
+                "compliance"
+            ],
             "risk": "AWS CloudTrail is a web service that records AWS API calls for your account and delivers log files to you. The recorded information includes the identity of the API caller; the time of the API call; the source IP address of the API caller; the request parameters; and the response elements returned by the AWS service.",
             "severity": "high",
             "detect": {
@@ -21,7 +24,10 @@
             "name": "log_file_validation_enabled",
             "title": "Ensure CloudTrail log file validation is enabled",
             "result_kind": "aws_cloud_trail",
-            "categories": ["security", "compliance"],
+            "categories": [
+                "security",
+                "compliance"
+            ],
             "risk": "Enabling log file validation will provide additional integrity checking of CloudTrail logs.",
             "severity": "medium",
             "detect": {
@@ -36,7 +42,10 @@
             "name": "logs_s3_bucket_is_not_publicly_accessible",
             "title": "Ensure the S3 bucket CloudTrail logs is not publicly accessible",
             "result_kind": "aws_cloud_trail",
-            "categories": ["security", "compliance"],
+            "categories": [
+                "security",
+                "compliance"
+            ],
             "risk": "Allowing public access to CloudTrail log content may aid an adversary in identifying weaknesses in the affected accounts use or configuration.",
             "severity": "critical",
             "detect": {
@@ -51,7 +60,10 @@
             "name": "no_logging_enabled",
             "title": "Ensure CloudTrail has logging enabled",
             "result_kind": "aws_cloud_trail",
-            "categories": ["security", "compliance"],
+            "categories": [
+                "security",
+                "compliance"
+            ],
             "risk": "Sending CloudTrail logs to CloudWatch Logs will facilitate real-time and historic activity logging based on user; API; resource; and IP address; and provides opportunity to establish alarms and notifications for anomalous or sensitivity account activity.",
             "severity": "low",
             "detect": {
@@ -66,7 +78,10 @@
             "name": "no_recent_log_event",
             "title": "Ensure CloudTrail has log events in the configured duration",
             "result_kind": "aws_cloud_trail",
-            "categories": ["security", "compliance"],
+            "categories": [
+                "security",
+                "compliance"
+            ],
             "risk": "Sending CloudTrail logs to CloudWatch Logs will facilitate real-time and historic activity logging based on user; API; resource; and IP address; and provides opportunity to establish alarms and notifications for anomalous or sensitivity account activity.",
             "severity": "low",
             "detect": {
@@ -84,7 +99,10 @@
             "name": "s3_bucket_logging_enabled",
             "title": "Ensure S3 bucket access logging is enabled on the CloudTrail S3 bucket",
             "result_kind": "aws_cloud_trail",
-            "categories": ["security", "compliance"],
+            "categories": [
+                "security",
+                "compliance"
+            ],
             "risk": "Server access logs can assist you in security and access audits; help you learn about your customer base; and understand your Amazon S3 bill.",
             "severity": "medium",
             "detect": {
@@ -99,7 +117,10 @@
             "name": "uses_encryption_at_rest",
             "title": "Ensure CloudTrail logs are encrypted at rest using KMS CMKs",
             "result_kind": "aws_cloud_trail",
-            "categories": ["security", "compliance"],
+            "categories": [
+                "security",
+                "compliance"
+            ],
             "risk": "By default; the log files delivered by CloudTrail to your bucket are encrypted by Amazon server-side encryption with Amazon S3-managed encryption keys (SSE-S3). To provide a security layer that is directly manageable; you can instead use server-side encryption with AWS KMS–managed keys (SSE-KMS) for your CloudTrail log files.",
             "severity": "medium",
             "detect": {
@@ -114,7 +135,10 @@
             "name": "s3_data_events_write_enabled",
             "title": "Check all regions and make sure S3 buckets have Object-level logging for write events is enabled in CloudTrail.",
             "result_kind": "aws_region",
-            "categories": ["security", "compliance"],
+            "categories": [
+                "security",
+                "compliance"
+            ],
             "risk": "If logs are not enabled, monitoring of service use and threat analysis is not possible.",
             "severity": "low",
             "detect": {
@@ -129,7 +153,10 @@
             "name": "s3_data_events_read_enabled",
             "title": "Check all regions and make sure S3 buckets have Object-level logging for read events is enabled in CloudTrail.",
             "result_kind": "aws_region",
-            "categories": ["security", "compliance"],
+            "categories": [
+                "security",
+                "compliance"
+            ],
             "risk": "If logs are not enabled, monitoring of service use and threat analysis is not possible.",
             "severity": "low",
             "detect": {
@@ -138,6 +165,312 @@
             "remediation": {
                 "text": "Enable logs. Create an S3 lifecycle policy. Define use cases, metrics and automated responses where applicable.",
                 "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/enable-cloudtrail-logging-for-s3.html"
+            }
+        },
+        {
+            "name": "log_metric_filters_unauthorized_api_calls",
+            "title": "Ensure a log metric filter and alarm exist for unauthorized API calls.",
+            "result_kind": "aws_cloud_trail",
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Monitoring unauthorized API calls will help reveal application errors and may reduce time to detect malicious activity.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_cloud_trail) and trail_is_multi_region_trail=true and trail_status.is_logging=true with(empty, --> is(aws_cloudwatch_log_group) with(any, --> is(aws_cloudwatch_metric_filter) and filter_pattern~\"\\$\\.errorCode\\s*=\\s*\\\"\\*UnauthorizedOperation\\\".+\\$\\.errorCode\\s*=\\s*\\\"AccessDenied\\*\\\".+\\$\\.sourceIPAddress\\s*!=\\s*\\\"delivery.logs.amazonaws.com\\\".+\\$\\.eventName\\s*!=\\s*\\\"HeadBucket\\\"\"))"
+            },
+            "remediation": {
+                "text": "It is recommended that a metric filter and alarm be established for unauthorized requests.",
+                "url": "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudwatch-alarms-for-cloudtrail.html"
+            }
+        },
+        {
+            "name": "log_metric_filters_sign_in_without_mfa",
+            "title": "Ensure a log metric filter and alarm exist for Management Console sign-in without MFA.",
+            "result_kind": "aws_cloud_trail",
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Monitoring unauthorized API calls will help reveal application errors and may reduce time to detect malicious activity.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_cloud_trail) and trail_is_multi_region_trail=true and trail_status.is_logging=true with(empty, --> is(aws_cloudwatch_log_group) with(any, --> is(aws_cloudwatch_metric_filter) and filter_pattern~\"\\(\\s*\\$\\.eventName\\s*=\\s*\\\"ConsoleLogin\\\"\\)\\s+&&\\s+\\(\\s*\\$.additionalEventData\\.MFAUsed\\s*!=\\s*\\\"Yes\\\"\"))\n"
+            },
+            "remediation": {
+                "text": "It is recommended that a metric filter and alarm be established for unauthorized requests.",
+                "url": "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudwatch-alarms-for-cloudtrail.html"
+            }
+        },
+        {
+            "name": "log_metric_filters_console_login_no_mfa",
+            "title": "Ensure a log metric filter and alarm exist for Management Console sign-in without MFA.",
+            "result_kind": "aws_cloud_trail",
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Monitoring unauthorized API calls will help reveal application errors and may reduce time to detect malicious activity.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_cloud_trail) and trail_is_multi_region_trail=true and trail_status.is_logging=true with(empty, --> is(aws_cloudwatch_log_group) with(any, --> is(aws_cloudwatch_metric_filter) and filter_pattern~\"\\(\\s*\\$\\.eventName\\s*=\\s*\\\"ConsoleLogin\\\"\\)\\s+&&\\s+\\(\\s*\\$.additionalEventData\\.MFAUsed\\s*!=\\s*\\\"Yes\\\"\"))\n"
+            },
+            "remediation": {
+                "text": "It is recommended that a metric filter and alarm be established for unauthorized requests.",
+                "url": "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudwatch-alarms-for-cloudtrail.html"
+            }
+        },
+        {
+            "name": "log_metric_filters_root_account_usage",
+            "title": "Ensure a log metric filter and alarm exist for usage of root account.",
+            "result_kind": "aws_cloud_trail",
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Monitoring unauthorized API calls will help reveal application errors and may reduce time to detect malicious activity.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_cloud_trail) and trail_is_multi_region_trail=true and trail_status.is_logging=true with(empty, --> is(aws_cloudwatch_log_group) with(any, --> is(aws_cloudwatch_metric_filter) and filter_pattern~\"\\s*\\$\\.userIdentity\\.type\\s*=\\s*\\\"Root\\\".+\\$\\.userIdentity\\.invokedBy NOT EXISTS.+\\$\\.eventType\\s*!=\\s*\\\"AwsServiceEvent\\\"\"))"
+            },
+            "remediation": {
+                "text": "It is recommended that a metric filter and alarm be established for unauthorized requests.",
+                "url": "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudwatch-alarms-for-cloudtrail.html"
+            }
+        },
+        {
+            "name": "log_metric_filters_iam_policy_changes",
+            "title": "Ensure a log metric filter and alarm exist for IAM policy changes.",
+            "result_kind": "aws_cloud_trail",
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Monitoring unauthorized API calls will help reveal application errors and may reduce time to detect malicious activity.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_cloud_trail) and trail_is_multi_region_trail=true and trail_status.is_logging=true with(empty, --> is(aws_cloudwatch_log_group) with(any, --> is(aws_cloudwatch_metric_filter) and filter_pattern~\"\\s*\\$\\.eventName\\s*=\\s*DeleteGroupPolicy.+\\$\\.eventName\\s*=\\s*DeleteRolePolicy.+\\$\\.eventName\\s*=\\s*DeleteUserPolicy.+\\$\\.eventName\\s*=\\s*PutGroupPolicy.+\\$\\.eventName\\s*=\\s*PutRolePolicy.+\\$\\.eventName\\s*=\\s*PutUserPolicy.+\\$\\.eventName\\s*=\\s*CreatePolicy.+\\$\\.eventName\\s*=\\s*DeletePolicy.+\\$\\.eventName\\s*=\\s*CreatePolicyVersion.+\\$\\.eventName\\s*=\\s*DeletePolicyVersion.+\\$\\.eventName\\s*=\\s*AttachRolePolicy.+\\$\\.eventName\\s*=\\s*DetachRolePolicy.+\\$\\.eventName\\s*=\\s*AttachUserPolicy.+\\$\\.eventName\\s*=\\s*DetachUserPolicy.+\\$\\.eventName\\s*=\\s*AttachGroupPolicy.+\\$\\.eventName\\s*=\\s*DetachGroupPolicy\\\"))\\s*\\$\\.userIdentity\\.type\\s*=\\s*\\\"Root\\\".+\\$\\.userIdentity\\.invokedBy NOT EXISTS.+\\$\\.eventType\\s*!=\\s*\\\"AwsServiceEvent\\\"\"))\n"
+            },
+            "remediation": {
+                "text": "It is recommended that a metric filter and alarm be established for unauthorized requests.",
+                "url": "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudwatch-alarms-for-cloudtrail.html"
+            }
+        },
+        {
+            "name": "log_metric_filters_cloud_trail_configuration_changes",
+            "title": "Ensure a log metric filter and alarm exist for CloudTrail configuration changes.",
+            "result_kind": "aws_cloud_trail",
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Monitoring unauthorized API calls will help reveal application errors and may reduce time to detect malicious activity.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_cloud_trail) and trail_is_multi_region_trail=true and trail_status.is_logging=true with(empty, --> is(aws_cloudwatch_log_group) with(any, --> is(aws_cloudwatch_metric_filter) and filter_pattern~\"\\s*\\$\\.eventName\\s*=\\s*CreateTrail.+\\$\\.eventName\\s*=\\s*UpdateTrail.+\\$\\.eventName\\s*=\\s*DeleteTrail.+\\$\\.eventName\\s*=\\s*StartLogging.+\\$\\.eventName\\s*=\\s*StopLogging\"))"
+            },
+            "remediation": {
+                "text": "It is recommended that a metric filter and alarm be established for unauthorized requests.",
+                "url": "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudwatch-alarms-for-cloudtrail.html"
+            }
+        },
+        {
+            "name": "log_metric_filters_authentication_failures",
+            "title": "Ensure a log metric filter and alarm exist for AWS Management Console authentication failures.",
+            "result_kind": "aws_cloud_trail",
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Monitoring unauthorized API calls will help reveal application errors and may reduce time to detect malicious activity.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_cloud_trail) and trail_is_multi_region_trail=true and trail_status.is_logging=true with(empty, --> is(aws_cloudwatch_log_group) with(any, --> is(aws_cloudwatch_metric_filter) and filter_pattern~\"\\s*\\$\\.eventName\\s*=\\s*ConsoleLogin.+\\$\\.errorMessage\\s*=\\s*\\\"Failed authentication\\\"))\\s*\\$\\.eventName\\s*=\\s*CreateTrail.+\\$\\.eventName\\s*=\\s*UpdateTrail.+\\$\\.eventName\\s*=\\s*DeleteTrail.+\\$\\.eventName\\s*=\\s*StartLogging.+\\$\\.eventName\\s*=\\s*StopLogging\"))"
+            },
+            "remediation": {
+                "text": "It is recommended that a metric filter and alarm be established for unauthorized requests.",
+                "url": "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudwatch-alarms-for-cloudtrail.html"
+            }
+        },
+        {
+            "name": "log_metric_filters_kms_key_deletion",
+            "title": "Ensure a log metric filter and alarm exist for disabling or scheduled deletion of customer created KMS CMKs.",
+            "result_kind": "aws_cloud_trail",
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Monitoring unauthorized API calls will help reveal application errors and may reduce time to detect malicious activity.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_cloud_trail) and trail_is_multi_region_trail=true and trail_status.is_logging=true with(empty, --> is(aws_cloudwatch_log_group) with(any, --> is(aws_cloudwatch_metric_filter) and filter_pattern~\"\\s*\\$\\.eventSource\\s*=\\s*kms.amazonaws.com.+\\$\\.eventName\\s*=\\s*DisableKey.+\\$\\.eventName\\s*=\\s*ScheduleKeyDeletion\"))"
+            },
+            "remediation": {
+                "text": "It is recommended that a metric filter and alarm be established for unauthorized requests.",
+                "url": "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudwatch-alarms-for-cloudtrail.html"
+            }
+        },
+        {
+            "name": "log_metric_filters_s3_bucket_policy_changes",
+            "title": "Ensure a log metric filter and alarm exist for S3 bucket policy changes.",
+            "result_kind": "aws_cloud_trail",
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Monitoring unauthorized API calls will help reveal application errors and may reduce time to detect malicious activity.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_cloud_trail) and trail_is_multi_region_trail=true and trail_status.is_logging=true with(empty, --> is(aws_cloudwatch_log_group) with(any, --> is(aws_cloudwatch_metric_filter) and filter_pattern~\"\\s*\\$\\.eventSource\\s*=\\s*s3.amazonaws.com.+\\$\\.eventName\\s*=\\s*PutBucketAcl.+\\$\\.eventName\\s*=\\s*PutBucketPolicy.+\\$\\.eventName\\s*=\\s*PutBucketCors.+\\$\\.eventName\\s*=\\s*PutBucketLifecycle.+\\$\\.eventName\\s*=\\s*PutBucketReplication.+\\$\\.eventName\\s*=\\s*DeleteBucketPolicy.+\\$\\.eventName\\s*=\\s*DeleteBucketCors.+\\$\\.eventName\\s*=\\s*DeleteBucketLifecycle.+\\$\\.eventName\\s*=\\s*DeleteBucketReplication\"))"
+            },
+            "remediation": {
+                "text": "It is recommended that a metric filter and alarm be established for unauthorized requests.",
+                "url": "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudwatch-alarms-for-cloudtrail.html"
+            }
+        },
+        {
+            "name": "log_metric_filters_config_configuration_changes",
+            "title": "Ensure a log metric filter and alarm exist for AWS Config configuration changes.",
+            "result_kind": "aws_cloud_trail",
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Monitoring unauthorized API calls will help reveal application errors and may reduce time to detect malicious activity.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_cloud_trail) and trail_is_multi_region_trail=true and trail_status.is_logging=true with(empty, --> is(aws_cloudwatch_log_group) with(any, --> is(aws_cloudwatch_metric_filter) and filter_pattern~\"\\s*\\$\\.eventSource\\s*=\\s*config.amazonaws.com.+\\$\\.eventName\\s*=\\s*StopConfigurationRecorder.+\\$\\.eventName\\s*=\\s*DeleteDeliveryChannel.+\\$\\.eventName\\s*=\\s*PutDeliveryChannel.+\\$\\.eventName\\s*=\\s*PutConfigurationRecorder\"))"
+            },
+            "remediation": {
+                "text": "It is recommended that a metric filter and alarm be established for unauthorized requests.",
+                "url": "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudwatch-alarms-for-cloudtrail.html"
+            }
+        },
+        {
+            "name": "log_metric_filters_security_group_changes",
+            "title": "Ensure a log metric filter and alarm exist for security group changes.",
+            "result_kind": "aws_cloud_trail",
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Monitoring unauthorized API calls will help reveal application errors and may reduce time to detect malicious activity.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_cloud_trail) and trail_is_multi_region_trail=true and trail_status.is_logging=true with(empty, --> is(aws_cloudwatch_log_group) with(any, --> is(aws_cloudwatch_metric_filter) and filter_pattern~\"\\s*\\$\\.eventName\\s*=\\s*AuthorizeSecurityGroupIngress.+\\$\\.eventName\\s*=\\s*AuthorizeSecurityGroupEgress.+\\$\\.eventName\\s*=\\s*RevokeSecurityGroupIngress.+\\$\\.eventName\\s*=\\s*RevokeSecurityGroupEgress.+\\$\\.eventName\\s*=\\s*CreateSecurityGroup.+\\$\\.eventName\\s*=\\s*DeleteSecurityGroup\"))"
+            },
+            "remediation": {
+                "text": "It is recommended that a metric filter and alarm be established for unauthorized requests.",
+                "url": "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudwatch-alarms-for-cloudtrail.html"
+            }
+        },
+        {
+            "name": "log_metric_filters_network_acl_changes",
+            "title": "Ensure a log metric filter and alarm exist for changes to Network Access Control Lists (NACL).",
+            "result_kind": "aws_cloud_trail",
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Monitoring unauthorized API calls will help reveal application errors and may reduce time to detect malicious activity.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_cloud_trail) and trail_is_multi_region_trail=true and trail_status.is_logging=true with(empty, --> is(aws_cloudwatch_log_group) with(any, --> is(aws_cloudwatch_metric_filter) and filter_pattern~\"\\s*\\$\\.eventName\\s*=\\s*CreateNetworkAcl.+\\$\\.eventName\\s*=\\s*CreateNetworkAclEntry.+\\$\\.eventName\\s*=\\s*DeleteNetworkAcl.+\\$\\.eventName\\s*=\\s*DeleteNetworkAclEntry.+\\$\\.eventName\\s*=\\s*ReplaceNetworkAclEntry.+\\$\\.eventName\\s*=\\s*ReplaceNetworkAclAssociation\"))"
+            },
+            "remediation": {
+                "text": "It is recommended that a metric filter and alarm be established for unauthorized requests.",
+                "url": "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudwatch-alarms-for-cloudtrail.html"
+            }
+        },
+        {
+            "name": "log_metric_filters_network_gateway_changes",
+            "title": "Ensure a log metric filter and alarm exist for changes to network gateways.",
+            "result_kind": "aws_cloud_trail",
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Monitoring unauthorized API calls will help reveal application errors and may reduce time to detect malicious activity.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_cloud_trail) and trail_is_multi_region_trail=true and trail_status.is_logging=true with(empty, --> is(aws_cloudwatch_log_group) with(any, --> is(aws_cloudwatch_metric_filter) and filter_pattern~\"\\s*\\$\\.eventName\\s*=\\s*CreateCustomerGateway.+\\$\\.eventName\\s*=\\s*DeleteCustomerGateway.+\\$\\.eventName\\s*=\\s*AttachInternetGateway.+\\$\\.eventName\\s*=\\s*CreateInternetGateway.+\\$\\.eventName\\s*=\\s*DeleteInternetGateway.+\\$\\.eventName\\s*=\\s*DetachInternetGateway\"))"
+            },
+            "remediation": {
+                "text": "It is recommended that a metric filter and alarm be established for unauthorized requests.",
+                "url": "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudwatch-alarms-for-cloudtrail.html"
+            }
+        },
+        {
+            "name": "log_metric_filters_route_table_changes",
+            "title": "Ensure a log metric filter and alarm exist for route table changes",
+            "result_kind": "aws_cloud_trail",
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Monitoring unauthorized API calls will help reveal application errors and may reduce time to detect malicious activity.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_cloud_trail) and trail_is_multi_region_trail=true and trail_status.is_logging=true with(empty, --> is(aws_cloudwatch_log_group) with(any, --> is(aws_cloudwatch_metric_filter) and filter_pattern~\"\\s*\\$\\.eventName\\s*=\\s*CreateRoute.+\\$\\.eventName\\s*=\\s*CreateRouteTable.+\\$\\.eventName\\s*=\\s*ReplaceRoute.+\\$\\.eventName\\s*=\\s*ReplaceRouteTableAssociation.+\\$\\.eventName\\s*=\\s*DeleteRouteTable.+\\$\\.eventName\\s*=\\s*DeleteRoute.+\\$\\.eventName\\s*=\\s*DisassociateRouteTable\"))"
+            },
+            "remediation": {
+                "text": "It is recommended that a metric filter and alarm be established for unauthorized requests.",
+                "url": "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudwatch-alarms-for-cloudtrail.html"
+            }
+        },
+        {
+            "name": "log_metric_filters_vpc_changes",
+            "title": "Ensure a log metric filter and alarm exist for VPC changes.",
+            "result_kind": "aws_cloud_trail",
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Monitoring unauthorized API calls will help reveal application errors and may reduce time to detect malicious activity.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_cloud_trail) and trail_is_multi_region_trail=true and trail_status.is_logging=true with(empty, --> is(aws_cloudwatch_log_group) with(any, --> is(aws_cloudwatch_metric_filter) and filter_pattern~\"\\s*\\$\\.eventName\\s*=\\s*CreateVpc.+\\$\\.eventName\\s*=\\s*DeleteVpc.+\\$\\.eventName\\s*=\\s*ModifyVpcAttribute.+\\$\\.eventName\\s*=\\s*AcceptVpcPeeringConnection.+\\$\\.eventName\\s*=\\s*CreateVpcPeeringConnection.+\\$\\.eventName\\s*=\\s*DeleteVpcPeeringConnection.+\\$\\.eventName\\s*=\\s*RejectVpcPeeringConnection.+\\$\\.eventName\\s*=\\s*AttachClassicLinkVpc.+\\$\\.eventName\\s*=\\s*DetachClassicLinkVpc.+\\$\\.eventName\\s*=\\s*DisableVpcClassicLink.+\\$\\.eventName\\s*=\\s*EnableVpcClassicLink\"))\n"
+            },
+            "remediation": {
+                "text": "It is recommended that a metric filter and alarm be established for unauthorized requests.",
+                "url": "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudwatch-alarms-for-cloudtrail.html"
+            }
+        },
+        {
+            "name": "log_metric_filters_aws_org_changes",
+            "title": "Ensure a log metric filter and alarm exist for AWS Organizations changes.",
+            "result_kind": "aws_cloud_trail",
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Monitoring unauthorized API calls will help reveal application errors and may reduce time to detect malicious activity.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_cloud_trail) and trail_is_multi_region_trail=true and trail_status.is_logging=true with(empty, --> is(aws_cloudwatch_log_group) with(any, --> is(aws_cloudwatch_metric_filter) and filter_pattern~\"\\s*\\$\\.eventSource\\s*=\\s*organizations.amazonaws.com.+\\$\\.eventName\\s*=\\s*\\\"AcceptHandshake\\\".+\\$\\.eventName\\s*=\\s*\\\"AttachPolicy\\\".+\\$\\.eventName\\s*=\\s*\\\"CreateAccount\\\".+\\$\\.eventName\\s*=\\s*\\\"CreateOrganizationalUnit\\\".+\\$\\.eventName\\s*=\\s*\\\"CreatePolicy\\\".+\\$\\.eventName\\s*=\\s*\\\"DeclineHandshake\\\".+\\$\\.eventName\\s*=\\s*\\\"DeleteOrganization\\\".+\\$\\.eventName\\s*=\\s*\\\"DeleteOrganizationalUnit\\\".+\\$\\.eventName\\s*=\\s*\\\"DeletePolicy\\\".+\\$\\.eventName\\s*=\\s*\\\"DetachPolicy\\\".+\\$\\.eventName\\s*=\\s*\\\"DisablePolicyType\\\".+\\$\\.eventName\\s*=\\s*\\\"EnablePolicyType\\\".+\\$\\.eventName\\s*=\\s*\\\"InviteAccountToOrganization\\\".+\\$\\.eventName\\s*=\\s*\\\"LeaveOrganization\\\".+\\$\\.eventName\\s*=\\s*\\\"MoveAccount\\\".+\\$\\.eventName\\s*=\\s*\\\"RemoveAccountFromOrganization\\\".+\\$\\.eventName\\s*=\\s*\\\"UpdatePolicy\\\".+\\$\\.eventName\\s*=\\s*\\\"UpdateOrganizationalUnit\\\"\"))"
+            },
+            "remediation": {
+                "text": "It is recommended that a metric filter and alarm be established for unauthorized requests.",
+                "url": "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudwatch-alarms-for-cloudtrail.html"
+            }
+        },
+        {
+            "name": "security_hub_enabled",
+            "title": "Check if Security Hub is enabled and its standard subscriptions.",
+            "result_kind": "aws_cloud_trail",
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "AWS Security Hub gives you a comprehensive view of your security alerts and security posture across your AWS accounts.",
+            "severity": "medium",
+            "detect": {
+                "manual": "Check if Security Hub is enabled in all regions you operate via: aws securityhub get-enabled-standards"
+            },
+            "remediation": {
+                "text": "Security Hub is Regional. When you enable or disable a security standard, it is enabled or disabled only in the current Region or in the Region that you specify.",
+                "url": "https://docs.aws.amazon.com/securityhub/latest/userguide/securityhub-standards-enable-disable.html"
             }
         }
     ]

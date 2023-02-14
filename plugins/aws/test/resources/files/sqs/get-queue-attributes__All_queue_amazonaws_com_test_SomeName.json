@@ -1,14 +1,14 @@
 {
     "Attributes":
         {
-            "QueueArn": "arn:aws:sqs:eu-central-1:882347060974:SomeName",
+            "QueueArn": "arn:aws:sqs:eu-central-1:test:SomeName",
             "ApproximateNumberOfMessages": "0",
             "ApproximateNumberOfMessagesNotVisible": "0",
             "ApproximateNumberOfMessagesDelayed": "0",
             "CreatedTimestamp": "1659601278",
             "LastModifiedTimestamp": "1659601278",
-            "Policy": "{\"Version\":\"2008-10-17\",\"Id\":\"__default_policy_ID\",\"Statement\":[{\"Sid\":\"__owner_statement\",\"Effect\":\"Allow\",\"Principal\":{\"AWS\":\"arn:aws:iam::882347060974:root\"},\"Action\":\"SQS:*\",\"Resource\":\"arn:aws:sqs:eu-central-1:882347060974:DeleteMeQueue\"}]}",
-            "RedrivePolicy": "{ \"deadLetterTargetArn\": \"arn:aws:sqs:eu-central-1:882347060974:SomeName\", \"maxReceiveCount\": 42 }",
+            "Policy": "{\"Version\":\"2008-10-17\",\"Id\":\"__default_policy_ID\",\"Statement\":[{\"Sid\":\"__owner_statement\",\"Effect\":\"Allow\",\"Principal\":{\"AWS\":\"arn:aws:iam::test:root\"},\"Action\":\"SQS:*\",\"Resource\":\"arn:aws:sqs:eu-central-1:test:DeleteMeQueue\"}]}",
+            "RedrivePolicy": "{ \"deadLetterTargetArn\": \"arn:aws:sqs:eu-central-1:test:SomeName\", \"maxReceiveCount\": 42 }",
             "FifoQueue": "true",
             "ContentBasedDeduplication": "false",
             "KmsMasterKeyId": "SomeKeyId",

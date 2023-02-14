@@ -1,0 +1,19 @@
+{
+    "metricFilters": [
+        {
+            "filterName": "filter for error",
+            "filterPattern": "ERROR",
+            "metricTransformations": [
+                {
+                    "metricName": "foo",
+                    "metricNamespace": "delete",
+                    "metricValue": "123",
+                    "defaultValue": 123.0,
+                    "unit": "Kilobytes/Second"
+                }
+            ],
+            "creationTime": 1675676405516,
+            "logGroupName": "/aws/lambda/lg1"
+        }
+    ]
+}

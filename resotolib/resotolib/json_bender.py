@@ -11,6 +11,7 @@ from jsons import snakecase
 
 from resotolib.types import Json, JsonElement
 from resotolib.units import parse
+from resotolib.utils import utc_str
 
 log = logging.getLogger("resoto." + __name__)
 
@@ -251,22 +252,22 @@ class BinaryOperator(Bender):
 
 class Add(BinaryOperator):
     def op(self, v1: Any, v2: Any) -> Any:
-        return v1 + v2
+        return v1 + v2 if v1 is not None and v2 is not None else None
 
 
 class Sub(BinaryOperator):
     def op(self, v1: Any, v2: Any) -> Any:
-        return v1 - v2
+        return v1 - v2 if v1 is not None and v2 is not None else None
 
 
 class Mul(BinaryOperator):
     def op(self, v1: Any, v2: Any) -> Any:
-        return v1 * v2
+        return v1 * v2 if v1 is not None and v2 is not None else None
 
 
 class Div(BinaryOperator):
     def op(self, v1: Any, v2: Any) -> Any:
-        return float(v1) / float(v2)
+        return float(v1) / float(v2) if v1 is not None and v2 is not None else None
 
 
 class Eq(BinaryOperator):
@@ -525,6 +526,11 @@ class CPUCoresToNumber(Bender):
 class EmptyToNoneBender(Bender):
     def execute(self, source: Any) -> Any:
         return None if source in (None, "", [], {}) else source
+
+
+class SecondsFromEpochToDatetime(Bender):
+    def execute(self, source: int) -> str:
+        return utc_str(datetime.utcfromtimestamp(source))
 
 
 EmptyToNone = EmptyToNoneBender()

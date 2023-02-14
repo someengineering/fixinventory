@@ -1,9 +1,9 @@
 # Only list production dependencies. Everything else can be added to requirements-test.txt and requirements-dev.txt.
 
-aiohttp-swagger3==0.7.2
-aiohttp[speedups]==3.8.3
+aiohttp-swagger3==0.7.4
+aiohttp[speedups]==3.8.4
 aiostream==0.4.5
-resotolib==3.1.1
+resotolib==3.2.1
 
-setuptools==67.0.0
+setuptools==67.2.0
 jsons~=1.6.2

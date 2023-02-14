@@ -2,6 +2,7 @@ from copy import deepcopy
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import os
+from attr import evolve
 from pytest import fixture
 
 from resotocore import core_config
@@ -12,10 +13,14 @@ from resotocore.core_config import (
     config_model,
     EditableConfig,
     WorkflowConfig,
-    migrate_config,
+    migrate_core_config,
+    migrate_command_config,
+    CustomCommandsConfig,
+    alias_templates,
+    ResotoCoreCommandsRoot,
 )
 from resotocore.dependencies import parse_args
-from resotocore.model.typed_model import to_js
+from resotocore.model.typed_model import to_js, from_js
 from resotocore.types import Json
 from resotocore.util import value_in_path
 
@@ -153,15 +158,30 @@ def test_in_docker() -> None:
 
 
 def test_migration() -> None:
-    cfg1 = migrate_config(dict(resotocore=dict(runtime=dict(analytics_opt_out=True))))
+    cfg1 = migrate_core_config(dict(resotocore=dict(runtime=dict(analytics_opt_out=True))))
     assert value_in_path(cfg1, "resotocore.runtime.usage_metrics") is False
     assert value_in_path(cfg1, "resotocore.runtime.analytics_opt_out") is None
-    cfg2 = migrate_config(dict(resotocore=dict(runtime=dict(usage_metrics=True))))
+    cfg2 = migrate_core_config(dict(resotocore=dict(runtime=dict(usage_metrics=True))))
     assert value_in_path(cfg2, "resotocore.runtime.usage_metrics") is True
     assert value_in_path(cfg1, "resotocore.runtime.analytics_opt_out") is None
-    cfg3 = migrate_config(dict(resotocore=dict(runtime=dict(analytics_opt_out=True, usage_metrics=True))))
+    cfg3 = migrate_core_config(dict(resotocore=dict(runtime=dict(analytics_opt_out=True, usage_metrics=True))))
     assert value_in_path(cfg3, "resotocore.runtime.usage_metrics") is True
     assert value_in_path(cfg1, "resotocore.runtime.analytics_opt_out") is None
+
+
+def test_migrate_commands() -> None:
+    # default configuration does not need migration
+    assert migrate_command_config(CustomCommandsConfig().json()) is None
+    # an empty configuration is migrated to the default configuration
+    assert migrate_command_config(CustomCommandsConfig(commands=[]).json()) == CustomCommandsConfig().json()
+    # an existing configuration is not destroyed
+    example = evolve(alias_templates()[0], name="my-test-cmd")
+    custom = CustomCommandsConfig(commands=[example])
+    migrated_json: Json = migrate_command_config(custom.json())  # type: ignore
+    assert migrated_json != custom.json()
+    migrated = from_js(migrated_json.get(ResotoCoreCommandsRoot), CustomCommandsConfig)
+    assert any(cmd == example for cmd in migrated.commands)
+    assert len(migrated.commands) == len(alias_templates()) + 1
 
 
 @fixture

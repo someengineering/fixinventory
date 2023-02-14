@@ -862,7 +862,7 @@ async def test_slack_alias(cli: CLI, echo_http_server: Tuple[int, List[Tuple[Req
         "blocks": [
             {"type": "header", "text": {"type": "plain_text", "text": "test"}},
             {"type": "section", "text": {"type": "mrkdwn", "text": "test message"}},
-            {"type": "section", "fields": [{"type": "mrkdwn", "text": "*bla*\nyes or no"} for _ in range(0, 25)]},
+            {"type": "section", "fields": [{"type": "mrkdwn", "text": "*bla*: yes or no"} for _ in range(0, 25)]},
             {"type": "context", "elements": [{"type": "mrkdwn", "text": "Message created by Resoto"}]},
         ],
     }
@@ -886,6 +886,44 @@ async def test_jira_alias(cli: CLI, echo_http_server: Tuple[int, List[Tuple[Requ
             "description": "test message\n\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\n... (results truncated)\n\nIssue created by Resoto",
             "reporter": {"id": "test"},
             "labels": ["created-by-resoto"],
+        }
+    }
+
+
+@pytest.mark.asyncio
+async def test_pagerduty_alias(cli: CLI, echo_http_server: Tuple[int, List[Tuple[Request, Json]]]) -> None:
+    port, requests = echo_http_server
+    result = await cli.execute_cli_command(
+        f'search is(bla) | pagerduty webhook_url="http://localhost:{port}/success" summary=test routing_key=123 dedup_key=234',
+        stream.list,
+    )
+    assert result == [["1 requests with status 200 sent."]]
+    assert len(requests) == 1
+    response = requests[0][1]
+    # override timestamp
+    assert response["payload"]["timestamp"] is not None
+    response["payload"]["timestamp"] = "2023-02-10T15:03:33Z"
+    assert requests[0][1] == {
+        "payload": {
+            "summary": "test",
+            "timestamp": "2023-02-10T15:03:33Z",
+            "source": "Resoto",
+            "severity": "warning",
+            "component": "Resoto",
+            "custom_details": {"account___region_": 100},
+            "routing_key": "123",
+            "dedup_key": "234",
+            "images": [
+                {
+                    "src": "https://cdn.some.engineering/assets/resoto-logos/resoto-logo.svg",
+                    "href": "https://resoto.com/",
+                    "alt": "Resoto Home Page",
+                }
+            ],
+            "links": [],
+            "event_action": "trigger",
+            "client": "Resoto Service",
+            "client_url": "https://resoto.com",
         }
     }
 

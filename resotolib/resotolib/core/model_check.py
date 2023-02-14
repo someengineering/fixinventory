@@ -81,9 +81,18 @@ def check_overlap_for(models: List[Json]) -> None:
             if check_kind := classes.get(kind):
                 add_path(prop_path, pkinds, check_kind)
 
+    # Walk all models and add all properties to the all_paths dict.
     for _, clazz in classes.items():
         if clazz.aggregate_root and not clazz.ignore():
             add_path([], [], clazz)
+
+    # Check that all successor kinds exist
+    for model in models:
+        if succ_dict := model.get("successor_kinds"):
+            for kinds in succ_dict.values():
+                for kind in kinds:
+                    if kind not in all_fqns:
+                        raise AttributeError(f"Successor kind {kind} does not exist")
 
 
 def check_overlap(*base: Type[BaseResource]) -> None:
