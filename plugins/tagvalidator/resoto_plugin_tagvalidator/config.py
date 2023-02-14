@@ -2,7 +2,7 @@ from typing import ClassVar
 
 from attrs import define, field
 
-from resotolib.durations import parse_duration
+from resotolib.json import value_in_path
 from resotolib.types import Json
 
 default_config: Json = {
@@ -64,21 +64,14 @@ class TagValidatorConfig:
         if not isinstance(config["accounts"], dict) or len(config["accounts"]) == 0:
             raise ValueError("Error in 'accounts' section")
 
-        default_expiration = config.get("default", {}).get("expiration")
-        if default_expiration is not None:
-            default_expiration = parse_duration(default_expiration)
-
+        maybe_default_expiration = value_in_path(config, ["default", "expiration"])
         for cloud_id, account in config["accounts"].items():
             for account_id, account_data in account.items():
                 if "name" not in account_data:
                     raise ValueError(f"Missing 'name' for account '{cloud_id}/{account_id}")
-                if "expiration" in account_data:
-                    account_data["expiration"] = parse_duration(account_data["expiration"])
-                else:
-                    if default_expiration is None:
-                        raise ValueError(
-                            f"Missing 'expiration' for account '{cloud_id}/{account_id}'"
-                            "and no default expiration defined"
-                        )
-                    account_data["expiration"] = default_expiration
+                if account_data.get("expiration") is None and maybe_default_expiration is None:
+                    raise ValueError(
+                        f"Missing 'expiration' for account '{cloud_id}/{account_id}'"
+                        "and no default expiration defined"
+                    )
         return True
