@@ -505,8 +505,10 @@ def parse_config(args: Namespace, core_config: Json, command_templates: Optional
             return [replace_env_vars(v) for v in elem]
         elif isinstance(elem, str):
             str_value = elem
-            while match := re.search(r"\$\((\w+)\)", str_value):
-                str_value = str_value.replace(match.group(0), os.environ.get(match.group(1), ""))
+            for match in re.finditer(r"\$\((\w+)\)", elem):
+                if env_var_found := os.environ.get(match.group(1)):
+                    str_value = str_value.replace(match.group(0), env_var_found)
+
             return str_value
         else:
             return elem
