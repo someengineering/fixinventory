@@ -1,7 +1,7 @@
 from copy import deepcopy
 from pathlib import Path
 from tempfile import TemporaryDirectory
-
+import os
 from pytest import fixture
 
 from resotocore import core_config
@@ -85,6 +85,39 @@ def test_validate() -> None:
     assert EditableConfig(workflows={"foo": WorkflowConfig("bla")}).validate() == {
         "workflows": [{"foo": [{"schedule": ["Invalid cron expression: Wrong number of fields; got 1, expected 5"]}]}]
     }
+
+
+def test_config_override(config_json: Json) -> None:
+    # config_json is a valid parsable config
+    cfg = deepcopy(config_json)
+
+    # create a temp file with a custom config
+    with TemporaryDirectory() as tmp:
+        # config with env var override
+        hosts_conf = Path(tmp, "foobar.yml")
+        hosts_conf.write_text("""
+api:
+    web_hosts: ["$(WEB_HOST)"]
+        """, encoding="utf-8")
+
+        # config that overrides the default config and containes an env var which can't be resolved
+        other_conf = Path(tmp, "config.yml")
+        other_conf.write_text("""
+api:
+    web_port: 1337
+    web_path: "$(DO_NOT_REPLACE_ME)"
+        """)
+
+        os.environ["WEB_HOST"] = "1.2.3.4"
+
+        # parse this configuration
+        parsed = parse_config(parse_args([
+            "--analytics-opt-out",
+            "--override-path", str(hosts_conf.absolute()), str(other_conf.absolute())
+        ]), cfg)
+        assert parsed.api.web_hosts == ["1.2.3.4"]
+        assert parsed.api.web_port == 1337
+        assert parsed.api.web_path == "$(DO_NOT_REPLACE_ME)"
 
 
 def test_model() -> None:
