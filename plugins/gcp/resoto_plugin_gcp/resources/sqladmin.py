@@ -1,5 +1,5 @@
-from typing import ClassVar, Dict, Optional, List
-
+from typing import Any, ClassVar, Dict, Optional, List, Type
+import logging
 from attr import define, field
 from resoto_plugin_aws.resource.base import GraphBuilder
 
@@ -9,6 +9,8 @@ from resoto_plugin_gcp.resources.compute import GcpSslCertificate
 from resotolib.baseresources import ModelReference
 from resotolib.json_bender import Bender, S, Bend, ForallBend
 from resotolib.types import Json
+
+log = logging.getLogger("resoto.plugins.gcp")
 
 
 @define(eq=False, slots=False)
@@ -70,6 +72,11 @@ class GcpSqlBackupRun(GcpResource):
     run_type: Optional[str] = field(default=None)
     run_window_start_time: Optional[str] = field(default=None)
 
+    @classmethod
+    def collect_resources(cls: Type[GcpResource], builder: GraphBuilder, **kwargs: Any) -> List[GcpResource]:
+        # this step happens in GcpSqlDatabaseInstance.post_process()
+        pass
+
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.run_instance:
             builder.add_edge(self, reverse=True, clazz=GcpSqlDatabaseInstance, name=self.run_instance)
@@ -122,6 +129,15 @@ class GcpSqlDatabase(GcpResource):
     database_instance: Optional[str] = field(default=None)
     database_project: Optional[str] = field(default=None)
     database_sqlserver_database_details: Optional[GcpSqlSqlServerDatabaseDetails] = field(default=None)
+
+    @classmethod
+    def collect_resources(cls: Type[GcpResource], builder: GraphBuilder, **kwargs: Any) -> List[GcpResource]:
+        # this step happens in GcpSqlDatabaseInstance.post_process()
+        pass
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if self.database_instance:
+            builder.add_edge(self, reverse=True, clazz=GcpSqlDatabaseInstance, name=self.database_instance)
 
 
 @define(eq=False, slots=False)
@@ -620,6 +636,18 @@ class GcpSqlDatabaseInstance(GcpResource):
             if cert.self_link:
                 builder.add_edge(self, reverse=True, clazz=GcpSslCertificate, link=cert.self_link)
 
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        for cls in [GcpSqlBackupRun, GcpSqlDatabase, GcpSqlUser]:
+            if spec := cls.api_spec:
+                try:
+                    # not sure about self.id
+                    items = graph_builder.client.list(spec, instance=self.name, project=self.instance_project)
+                    return cls.collect(items, graph_builder)
+                except Exception as e:
+                    msg = f"Error while collecting {cls.__name__}: {e}"
+                    graph_builder.core_feedback.info(msg, log)
+                    raise
+
 
 @define(eq=False, slots=False)
 class GcpSqlOperationErrors:
@@ -881,9 +909,18 @@ class GcpSqlUser(GcpResource):
     user_sqlserver_user_details: Optional[GcpSqlSqlServerUserDetails] = field(default=None)
     user_type: Optional[str] = field(default=None)
 
+    @classmethod
+    def collect_resources(cls: Type[GcpResource], builder: GraphBuilder, **kwargs: Any) -> List[GcpResource]:
+        # this step happens in GcpSqlDatabaseInstance.post_process()
+        pass
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if self.user_instance:
+            builder.add_edge(self, reverse=True, clazz=GcpSqlDatabaseInstance)
+
 
 # TODO: GcpSqlBackupRun for every instance
 # TODO: GcpSqlDatabase for every instance
 # TODO: GcpSqlUser for every instance
 # TODO: GcpSqlOperation of every instance
-resources = [GcpSqlFlag, GcpSqlDatabaseInstance]
+resources = [GcpSqlBackupRun, GcpSqlDatabase, GcpSqlUser, GcpSqlFlag, GcpSqlDatabaseInstance]

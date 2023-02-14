@@ -7,10 +7,15 @@ def test_gcp_sql_flag(random_builder: GraphBuilder) -> None:
     roundtrip(GcpSqlFlag, random_builder)
 
 
+
 def test_gcp_sql_database_instance(random_builder: GraphBuilder) -> None:
     db = roundtrip(GcpSqlDatabaseInstance, random_builder)
     connect_resource(random_builder, db, GcpSslCertificate, selfLink=db.instance_server_ca_cert.self_link)
     assert len(random_builder.edges_of(GcpSslCertificate, GcpSqlDatabaseInstance)) == 1
+    assert len(random_builder.edges_of(GcpSqlDatabaseInstance, GcpSqlBackupRun)) == 1
+    # assert len(random_builder.resources_of(GcpSqlBackupRun)) == 1
+    # assert len(random_builder.resources_of(GcpSqlDatabase)) == 1
+    # assert len(random_builder.resources_of(GcpSqlUser)) == 1
 
 
 def test_gcp_sql_operation(random_builder: GraphBuilder) -> None:
