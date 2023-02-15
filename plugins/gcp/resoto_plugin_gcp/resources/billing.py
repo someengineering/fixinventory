@@ -12,6 +12,9 @@ from resotolib.types import Json
 @define(eq=False, slots=False)
 class GcpBillingAccount(GcpResource):
     kind: ClassVar[str] = "gcp_billing_account"
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {"default": ["gcp_project_billing_info"]},
+    }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="cloudbilling",
         version="v1",
@@ -35,9 +38,6 @@ class GcpBillingAccount(GcpResource):
         "account_master_billing_account": S("masterBillingAccount"),
         "account_open": S("open"),
     }
-    reference_kinds: ClassVar[ModelReference] = {
-        "successors": {"default": ["gcp_project_billing_info"]},
-    }
 
     account_display_name: Optional[str] = field(default=None)
     account_master_billing_account: Optional[str] = field(default=None)
@@ -46,6 +46,16 @@ class GcpBillingAccount(GcpResource):
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         for info in GcpProjectBillingInfo.collect_resources(graph_builder, name=self.name):
             graph_builder.add_edge(self, node=info)
+        # for cls in [GcpSqlBackupRun, GcpSqlDatabase, GcpSqlUser]:
+        #     if spec := cls.api_spec:
+        #         try:
+        #             # not sure about self.id
+        #             items = graph_builder.client.list(spec, instance=self.name, project=self.instance_project)
+        #             cls.collect(items, graph_builder)
+        #         except Exception as e:
+        #             msg = f"Error while collecting {cls.__name__}: {e}"
+        #             graph_builder.core_feedback.info(msg, log)
+        #             raise
 
 
 @define(eq=False, slots=False)
@@ -56,6 +66,7 @@ class GcpProjectBillingInfo(GcpResource):
         version="v1",
         accessors=["billingAccounts", "projects"],
         action="list",
+        # TODO: custom collection, name = name of the billing account associated
         request_parameter={"name": "{name}"},
         request_parameter_in={"name"},
         response_path="projectBillingInfo",
@@ -78,10 +89,17 @@ class GcpProjectBillingInfo(GcpResource):
     info_billing_enabled: Optional[bool] = field(default=None)
     info_project_id: Optional[str] = field(default=None)
 
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if self.info_billing_account_name:
+            builder.add_edge(self, reverse=True, clazz=GcpBillingAccount, name=self.info_billing_account_name)
+
 
 @define(eq=False, slots=False)
 class GcpService(GcpResource):
     kind: ClassVar[str] = "gcp_service"
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {"default": ["gcp_sku"]},
+    }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="cloudbilling",
         version="v1",
@@ -105,9 +123,7 @@ class GcpService(GcpResource):
         "service_display_name": S("displayName"),
         "service_service_id": S("serviceId"),
     }
-    reference_kinds: ClassVar[ModelReference] = {
-        "successors": {"default": ["gcp_sku"]},
-    }
+
     service_business_entity_name: Optional[str] = field(default=None)
     service_display_name: Optional[str] = field(default=None)
     service_service_id: Optional[str] = field(default=None)
