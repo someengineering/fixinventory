@@ -3,12 +3,11 @@ import os
 import sys
 import threading
 import cherrypy  # type: ignore
-import re
 import time
 from functools import partial
 from queue import Queue
 from signal import SIGTERM
-from typing import List, Dict, Type, Optional, Any, cast
+from typing import List, Dict, Type, Optional, Any
 
 import requests
 
@@ -16,7 +15,6 @@ import resotolib.proc
 from resotolib.args import ArgumentParser
 from resotolib.baseplugin import BaseActionPlugin, BasePostCollectPlugin, BaseCollectorPlugin, PluginType
 from resotolib.config import Config
-from resotolib.types import JsonElement
 from resotolib.core import add_args as core_add_args, resotocore, wait_for_resotocore
 from resotolib.core.actions import CoreActions, CoreFeedback
 from resotolib.core.ca import TLSData
