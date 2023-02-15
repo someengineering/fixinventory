@@ -905,8 +905,4 @@ class GcpSqlUser(GcpResource):
             builder.add_edge(self, reverse=True, clazz=GcpSqlDatabaseInstance)
 
 
-# TODO: GcpSqlBackupRun for every instance
-# TODO: GcpSqlDatabase for every instance
-# TODO: GcpSqlUser for every instance
-# TODO: GcpSqlOperation of every instance
-resources = [GcpSqlFlag, GcpSqlDatabaseInstance]
+resources = [GcpSqlFlag, GcpSqlDatabaseInstance, GcpSqlOperation]
