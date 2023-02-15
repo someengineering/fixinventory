@@ -12,6 +12,9 @@ from resotolib.types import Json
 @define(eq=False, slots=False)
 class GcpBillingAccount(GcpResource):
     kind: ClassVar[str] = "gcp_billing_account"
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {"default": ["gcp_project_billing_info"]},
+    }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="cloudbilling",
         version="v1",
@@ -34,9 +37,6 @@ class GcpBillingAccount(GcpResource):
         "account_display_name": S("displayName"),
         "account_master_billing_account": S("masterBillingAccount"),
         "account_open": S("open"),
-    }
-    reference_kinds: ClassVar[ModelReference] = {
-        "successors": {"default": ["gcp_project_billing_info"]},
     }
 
     account_display_name: Optional[str] = field(default=None)
@@ -82,6 +82,9 @@ class GcpProjectBillingInfo(GcpResource):
 @define(eq=False, slots=False)
 class GcpService(GcpResource):
     kind: ClassVar[str] = "gcp_service"
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {"default": ["gcp_sku"]},
+    }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="cloudbilling",
         version="v1",
@@ -103,14 +106,12 @@ class GcpService(GcpResource):
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
         "service_business_entity_name": S("businessEntityName"),
         "service_display_name": S("displayName"),
-        "service_service_id": S("serviceId"),
+        "service_id": S("serviceId"),
     }
-    reference_kinds: ClassVar[ModelReference] = {
-        "successors": {"default": ["gcp_sku"]},
-    }
+
     service_business_entity_name: Optional[str] = field(default=None)
     service_display_name: Optional[str] = field(default=None)
-    service_service_id: Optional[str] = field(default=None)
+    service_id: Optional[str] = field(default=None)
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         for sku in GcpSku.collect_resources(graph_builder, parent=self.id):
