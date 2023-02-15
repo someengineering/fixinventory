@@ -85,8 +85,10 @@ def random_json(schemas: Dict[str, Schema], response_schema: Schema, parameter: 
                 return type_name
             elif name == RegionProp:
                 return random_choice(random_regions).id
-            elif prop_schema.get("type") == "string" and (
-                matching_parameter := [v for k, v in parameter.items() if k in name]
+            elif (
+                not Overrides  # only if no override is defined explicitly
+                and prop_schema.get("type") == "string"  # only if the property is a string
+                and (matching_parameter := [v for k, v in parameter.items() if k in name])  # has a matching name
             ):
                 # if a request parameter is name=value and the name is included in the property name
                 # use the parameter value as the property value
