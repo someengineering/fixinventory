@@ -103,7 +103,7 @@ def test_config_override(config_json: Json) -> None:
         hosts_conf.write_text(
             """
 api:
-    web_hosts: ["$(WEB_HOST)"]
+    web_hosts: ["1.2.3.4"]
         """,
             encoding="utf-8",
         )
@@ -113,12 +113,12 @@ api:
         other_conf.write_text(
             """
 api:
-    web_port: 1337
+    web_port: $(WEB_PORT)
     web_path: "$(DO_NOT_REPLACE_ME)"
         """
         )
 
-        os.environ["WEB_HOST"] = "1.2.3.4"
+        os.environ["WEB_PORT"] = "1337"
 
         # parse this configuration
         parsed = parse_config(

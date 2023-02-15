@@ -15,7 +15,8 @@ from resotolib.core.config import (
     update_config_model,
 )
 from resotolib.core.events import CoreEvents
-from typing import Dict, Any, List, Optional, Type, Callable
+from resotolib.utils import replace_env_vars
+from typing import Dict, Any, List, Optional, Type, Callable, cast
 from attrs import fields
 
 from resotolib.types import Json
@@ -117,8 +118,7 @@ class Config(metaclass=MetaConfig):
         with self._config_lock:
             try:
                 config, new_config_revision = get_config(self.config_name, self.resotocore_uri, verify=self.verify)
-                for hook in self._config_load_hooks:
-                    config = hook(config)
+                config = cast(Json, replace_env_vars(config))
                 if len(config) == 0:
                     if self._initial_load:
                         raise ConfigNotFoundError("Empty config returned - loading defaults")
@@ -145,10 +145,6 @@ class Config(metaclass=MetaConfig):
             if not self._ce.is_alive():
                 log.debug("Starting config event listener")
                 self._ce.start()
-
-    def add_config_load_hook(self, hook: Callable[[Json], Json]) -> None:
-        """Add a hook to be called after the config is loaded."""
-        self._config_load_hooks.append(hook)
 
     @staticmethod
     def read_config(config: Json) -> Dict[str, Any]:

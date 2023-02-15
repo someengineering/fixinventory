@@ -95,27 +95,6 @@ def main() -> None:
         tls_data=tls_data,
     )
 
-    # replaces all values wrapped in $() with the environmental valiable
-    def replace_env_vars(elem: JsonElement) -> JsonElement:
-        if isinstance(elem, dict):
-            return {k: replace_env_vars(v) for k, v in elem.items()}
-        elif isinstance(elem, list):
-            return [replace_env_vars(v) for v in elem]
-        elif isinstance(elem, str):
-            str_value = elem
-            for match in re.finditer(r"\$\((\w+)\)", elem):
-                if env_var_found := os.environ.get(match.group(1)):
-                    str_value = str_value.replace(match.group(0), env_var_found)
-
-            return str_value
-        else:
-            return elem
-
-    def config_load_hook(config: Json) -> Json:
-        return cast(Json, replace_env_vars(config))
-
-    config.add_config_load_hook(config_load_hook)
-
     add_config(config)
     plugin_loader.add_plugin_config(config)
     config.load_config()

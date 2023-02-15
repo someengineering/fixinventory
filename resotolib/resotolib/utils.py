@@ -17,7 +17,7 @@ from functools import wraps, cached_property
 from pprint import pformat
 from tarfile import TarFile, TarInfo
 from typing import Dict, List, Tuple, Optional, NoReturn, Any
-from resotolib.types import DecoratedFn
+from resotolib.types import DecoratedFn, JsonElement
 
 import pkg_resources
 import requests
@@ -514,3 +514,19 @@ class NoExitArgumentParser(ArgumentParser):
     def exit(self, status: int = 0, message: Optional[str] = None) -> NoReturn:
         msg = message if message else "unknown"
         raise AttributeError(f"Could not parse arguments: {msg}")
+
+
+def replace_env_vars(elem: JsonElement) -> JsonElement:
+    if isinstance(elem, dict):
+        return {k: replace_env_vars(v) for k, v in elem.items()}
+    elif isinstance(elem, list):
+        return [replace_env_vars(v) for v in elem]
+    elif isinstance(elem, str):
+        str_value = elem
+        for match in re.finditer(r"\$\((\w+)\)", elem):
+            if env_var_found := os.environ.get(match.group(1)):
+                str_value = str_value.replace(match.group(0), env_var_found)
+
+        return str_value
+    else:
+        return elem

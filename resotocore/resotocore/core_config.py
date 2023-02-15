@@ -20,6 +20,7 @@ from resotocore.types import Json, JsonElement
 from resotocore.util import set_value_in_path, value_in_path, del_value_in_path
 from resotocore.validator import Validator, schema_name
 from resotolib.core.model_export import dataclasses_to_resotocore_model
+from resotolib.utils import replace_env_vars
 
 log = logging.getLogger(__name__)
 
@@ -640,22 +641,6 @@ def parse_config(args: Namespace, core_config: Json, command_templates: Optional
             raw_yaml = yaml.safe_load(f)
             merged = merge_configs(all_file_overrides, raw_yaml)
             all_file_overrides = merged
-
-    # replaces all values wrapped in $() with the environmental valiable
-    def replace_env_vars(elem: JsonElement) -> JsonElement:
-        if isinstance(elem, dict):
-            return {k: replace_env_vars(v) for k, v in elem.items()}
-        elif isinstance(elem, list):
-            return [replace_env_vars(v) for v in elem]
-        elif isinstance(elem, str):
-            str_value = elem
-            for match in re.finditer(r"\$\((\w+)\)", elem):
-                if env_var_found := os.environ.get(match.group(1)):
-                    str_value = str_value.replace(match.group(0), env_var_found)
-
-            return str_value
-        else:
-            return elem
 
     # set the relevant value in the json config model
     migrated = migrate_core_config(core_config)
