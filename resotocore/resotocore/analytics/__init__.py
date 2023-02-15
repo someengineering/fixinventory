@@ -30,7 +30,6 @@ class CoreEvent:
     BatchUpdateAborted = "graphdb.batch-update-aborted"
     GraphDBWiped = "graphdb.wiped"
     CLICommand = "cli.command"
-    Query = "graphdb.query"
     HistoryQuery = "graphdb.query.history"
     ModelInfo = "model.info"
     SubscriberInfo = "subscriber.info"

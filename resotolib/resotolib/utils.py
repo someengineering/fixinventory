@@ -13,10 +13,10 @@ try:
 except ImportError:
     from backports.zoneinfo import ZoneInfo
 from tzlocal import get_localzone_name
-from functools import wraps
+from functools import wraps, cached_property
 from pprint import pformat
 from tarfile import TarFile, TarInfo
-from typing import Dict, List, Tuple, Optional, NoReturn
+from typing import Dict, List, Tuple, Optional, NoReturn, Any
 from resotolib.types import DecoratedFn
 
 import pkg_resources
@@ -102,6 +102,19 @@ def chunks(items: List, n: int) -> List:
     for s in range(0, len(items), n):
         e = s + n
         yield items[s:e]
+
+
+def unset_cached_properties(obj: Any) -> None:
+    """
+    Reset all cached properties of an object.
+    Successive calls to the property will recompute the value.
+    :param obj: the object with cached properties.
+    """
+    cls = obj.__class__
+    for a in dir(obj):
+        attr_a = getattr(cls, a, cls)
+        if isinstance(attr_a, cached_property):
+            obj.__dict__.pop(attr_a.attrname, None)
 
 
 def split_esc(s, delim):

@@ -1,6 +1,6 @@
 from datetime import datetime
 
-import resotolib.logger
+from resotolib.logger import log
 from resotolib.config import Config
 from resotolib.baseplugin import BaseCollectorPlugin
 from resotolib.baseresources import BaseResource, InstanceStatus
@@ -12,23 +12,12 @@ from typing import Dict
 
 from pyVmomi import vim
 
-log = resotolib.logger.getLogger("resoto." + __name__)
-
 
 class VSphereCollectorPlugin(BaseCollectorPlugin):
     cloud = "vsphere"
 
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        if Config.vsphere.host:
-            self.vsphere_client = get_vsphere_client()
-
     def get_cluster(self) -> VSphereCluster:
-        """
-        use --vsphere-host as the clustername
-        """
-        if Config.vsphere.host:
-            return VSphereCluster(Config.vsphere.host, {})
+        return VSphereCluster(id=Config.vsphere.host)
 
     def get_keymap_from_vmlist(self, list_vm) -> VSphereCluster:
         """
@@ -55,7 +44,7 @@ class VSphereCollectorPlugin(BaseCollectorPlugin):
         """
         loop over VMs and add them as VSphereInstance to parent
         """
-        content = self.vsphere_client.client.RetrieveContent()
+        content = get_vsphere_client().client.RetrieveContent()
 
         container = content.rootFolder  # starting point to look into
         view_type = [vim.VirtualMachine]  # object types to look for
@@ -78,11 +67,14 @@ class VSphereCollectorPlugin(BaseCollectorPlugin):
         for list_vm in vms:
             try:
                 tags = self.get_custom_attributes(list_vm, keys)
-                # get TS and create clean datetime
-                ctime = datetime.fromtimestamp(list_vm.config.createDate.timestamp())
+
+                try:
+                    ctime = datetime.fromtimestamp(list_vm.config.createDate.timestamp())
+                except AttributeError:
+                    ctime = None
 
                 vm = VSphereInstance(
-                    list_vm._moId,
+                    id=list_vm._moId,
                     name=str(list_vm.name),
                     instance_cores=int(list_vm.config.hardware.numCPU),
                     instance_memory=int(list_vm.config.hardware.memoryMB / 1024),
@@ -103,7 +95,7 @@ class VSphereCollectorPlugin(BaseCollectorPlugin):
             return
 
         cluster = self.get_cluster()
-        dc1 = VSphereDataCenter("dc1", tags={})
+        dc1 = VSphereDataCenter(id="dc1")
 
         self.graph.add_resource(self.graph.root, cluster)
         self.graph.add_resource(cluster, dc1)

@@ -1,6 +1,9 @@
+from typing import ClassVar
+
 from attrs import define, field
-from typing import ClassVar, Dict, Union, List
-from resotolib.durations import parse_duration
+
+from resotolib.json import value_in_path
+from resotolib.types import Json
 
 default_config = {
     "default": {"age": "2h"},
@@ -41,7 +44,7 @@ class CleanupUntaggedConfig:
         default=False,
         metadata={"description": "Enable plugin?", "restart_required": True},
     )
-    config: Dict[str, Union[Dict, List]] = field(
+    config: Json = field(
         factory=lambda: default_config,
         metadata={
             "description": (
@@ -68,20 +71,15 @@ class CleanupUntaggedConfig:
         if not isinstance(config["accounts"], dict) or len(config["accounts"]) == 0:
             raise ValueError("Error in 'accounts' section")
 
-        default_age = config.get("default", {}).get("age")
-        if default_age is not None:
-            default_age = parse_duration(default_age)
-
+        maybe_default_age = value_in_path(config, ["default", "age"])
         for cloud_id, account in config["accounts"].items():
             for account_id, account_data in account.items():
                 if "name" not in account_data:
                     raise ValueError(f"Missing 'name' for account '{cloud_id}/{account_id}")
                 if "age" in account_data:
-                    account_data["age"] = parse_duration(account_data["age"])
+                    account_data["age"] = account_data.get("age")
+                elif maybe_default_age is None:
+                    raise ValueError(f"Missing 'age' for account '{cloud_id}/{account_id}' and no default age defined'")
                 else:
-                    if default_age is None:
-                        raise ValueError(
-                            f"Missing 'age' for account '{cloud_id}/{account_id}' and no default age defined'"
-                        )
-                    account_data["age"] = default_age
+                    account_data["age"] = maybe_default_age
         return True
