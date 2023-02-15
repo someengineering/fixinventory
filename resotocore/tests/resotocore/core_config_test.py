@@ -131,6 +131,12 @@ api:
         assert parsed.api.web_port == 1337
         assert parsed.api.web_path == "$(DO_NOT_REPLACE_ME)"
 
+        assert parsed.overrides == {"api": {
+            "web_hosts": ["1.2.3.4"],
+            "web_port": "$(WEB_PORT)",
+            "web_path": "$(DO_NOT_REPLACE_ME)"
+        }}
+
 
 def test_model() -> None:
     model = config_model()

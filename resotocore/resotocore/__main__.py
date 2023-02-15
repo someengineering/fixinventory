@@ -138,6 +138,7 @@ def with_config(
         worker_task_queue,
         message_bus,
         event_sender,
+        config,
     )
     log_ship = event_stream(config, cert_handler.client_context)
     cli_deps = CLIDependencies(

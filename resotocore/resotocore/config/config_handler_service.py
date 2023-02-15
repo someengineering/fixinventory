@@ -14,7 +14,8 @@ from resotocore.types import Json
 from resotocore.util import uuid_str, deep_merge, first
 from resotocore.worker_task_queue import WorkerTaskQueue, WorkerTask, WorkerTaskName
 from resotocore.ids import TaskId, ConfigId
-
+from resotocore.core_config import CoreConfig
+import re
 
 class ConfigHandlerService(ConfigHandler):
     def __init__(
@@ -25,6 +26,7 @@ class ConfigHandlerService(ConfigHandler):
         task_queue: WorkerTaskQueue,
         message_bus: MessageBus,
         event_sender: AnalyticsEventSender,
+        core_config: CoreConfig
     ) -> None:
         self.cfg_db = cfg_db
         self.validation_db = validation_db
@@ -32,6 +34,7 @@ class ConfigHandlerService(ConfigHandler):
         self.task_queue = task_queue
         self.message_bus = message_bus
         self.event_sender = event_sender
+        self.core_config = core_config
 
     async def coerce_and_check_model(self, cfg_id: ConfigId, config: Json, validate: bool = True) -> Json:
         model = await self.get_configs_model()
@@ -130,6 +133,16 @@ class ConfigHandlerService(ConfigHandler):
             model = await self.get_configs_model()
 
             yaml_str = ""
+
+            if self.core_config.overrides:
+                yaml_str += "# Manual config override enabled on resotocore. The following config will override:\n"
+                for key, value in self.core_config.overrides.items():
+                    override_yml = yaml.dump({key: value}, sort_keys=False, allow_unicode=True)
+                    override_yml = override_yml.rstrip()
+                    override_yml = re.sub(r"^", "# ", override_yml, flags=re.MULTILINE)
+                    yaml_str += override_yml
+                yaml_str += "\n\n"
+
             for num, (key, value) in enumerate(config.config.items()):
                 maybe_kind = model.get(key)
                 if isinstance(maybe_kind, ComplexKind):

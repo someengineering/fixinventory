@@ -103,6 +103,7 @@ def default_config() -> CoreConfig:
         custom_commands=CustomCommandsConfig(),
         args=parse_args(["--analytics-opt-out"]),
         run=RunConfig(),
+        overrides=None
     )
 
 

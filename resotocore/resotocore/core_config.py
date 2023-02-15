@@ -542,6 +542,7 @@ class CoreConfig(ConfigObject):
     custom_commands: CustomCommandsConfig
     args: Namespace
     run: RunConfig
+    overrides: Optional[Json]
 
     @property
     def editable(self) -> "EditableConfig":
@@ -634,12 +635,12 @@ def parse_config(args: Namespace, core_config: Json, command_templates: Optional
             return update
 
     # json with all merged overrides
-    all_file_overrides: Json = {}
+    all_file_overrides: Optional[Json] = None
     # merge all provided overrides into a single object, preferring the values from the last override
     for path in args.config_override_path:
         with path.open() as f:
             raw_yaml = yaml.safe_load(f)
-            merged = merge_configs(all_file_overrides, raw_yaml)
+            merged = merge_configs(all_file_overrides or {}, raw_yaml)
             all_file_overrides = merged
 
     # set the relevant value in the json config model
@@ -650,7 +651,8 @@ def parse_config(args: Namespace, core_config: Json, command_templates: Optional
             adjusted = set_value_in_path(value, path, adjusted)
 
     # merge the file overrides into the adjusted config
-    adjusted = merge_configs(adjusted, all_file_overrides)
+    if all_file_overrides:
+        adjusted = merge_configs(adjusted, all_file_overrides)
 
     # replace all env vars
     adjusted = replace_env_vars(adjusted)
@@ -690,6 +692,7 @@ def parse_config(args: Namespace, core_config: Json, command_templates: Optional
         runtime=ed.runtime,
         workflows=ed.workflows,
         run=RunConfig(),  # overridden for each run
+        overrides=all_file_overrides
     )
 
 
