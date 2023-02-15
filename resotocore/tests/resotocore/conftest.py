@@ -8,7 +8,8 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import AsyncGenerator, Iterator, Dict, Any, Generator
 from typing import List, Optional
-from typing import Tuple, AsyncIterator
+from typing import Tuple, AsyncIterator, cast
+from types import SimpleNamespace
 
 from aiohttp import ClientSession
 from aiohttp.hdrs import METH_ANY
@@ -418,7 +419,8 @@ def config_handler(task_queue: WorkerTaskQueue, worker: Any, message_bus: Messag
     validation_db = InMemoryDb(ConfigValidation, lambda c: c.id)
     model_db = InMemoryDb(Kind, lambda c: c.fqn)  # type: ignore
     event_sender = InMemoryEventSender()
-    return ConfigHandlerService(cfg_db, validation_db, model_db, task_queue, message_bus, event_sender)
+    core_config =  cast(CoreConfig, SimpleNamespace(overrides=None))
+    return ConfigHandlerService(cfg_db, validation_db, model_db, task_queue, message_bus, event_sender, core_config)
 
 
 @fixture
