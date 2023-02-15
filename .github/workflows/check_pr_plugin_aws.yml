@@ -10,13 +10,13 @@ on:
       - main
   pull_request:
     paths:
-      - 'resotolib/**'
-      - 'plugins/aws/**'
-      - '.github/**'
+      - "resotolib/**"
+      - "plugins/aws/**"
+      - ".github/**"
 
 jobs:
   aws:
-    name: "aws"
+    name: "aws" # Do not rename without updating workflow defined in publish.yml
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -25,8 +25,8 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v2
         with:
-          python-version: '3.10'
-          architecture: 'x64'
+          python-version: "3.10"
+          architecture: "x64"
 
       - name: Restore dependency cache
         uses: actions/cache@v3
