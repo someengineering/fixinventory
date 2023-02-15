@@ -1,7 +1,7 @@
 import asyncio
 from datetime import timedelta
 from typing import Optional, AsyncIterator, List
-
+import attrs
 import yaml
 
 from resotocore.analytics import AnalyticsEventSender, CoreEvent
@@ -14,8 +14,9 @@ from resotocore.types import Json
 from resotocore.util import uuid_str, deep_merge, first
 from resotocore.worker_task_queue import WorkerTaskQueue, WorkerTask, WorkerTaskName
 from resotocore.ids import TaskId, ConfigId
-from resotocore.core_config import CoreConfig
+from resotocore.core_config import CoreConfig, merge_configs
 import re
+
 
 class ConfigHandlerService(ConfigHandler):
     def __init__(
@@ -73,7 +74,12 @@ class ConfigHandlerService(ConfigHandler):
         return self.cfg_db.keys()
 
     async def get_config(self, cfg_id: ConfigId) -> Optional[ConfigEntity]:
-        return await self.cfg_db.get(cfg_id)
+        conf = await self.cfg_db.get(cfg_id)
+        if conf and self.core_config.overrides:
+            new_config = merge_configs(conf.config, self.core_config.overrides)
+            new_ce = attrs.evolve(conf, config=new_config)
+            return new_ce
+        return conf
 
     async def put_config(self, cfg: ConfigEntity, *, validate: bool = True, dry_run: bool = False) -> ConfigEntity:
         coerced = await self.coerce_and_check_model(cfg.id, cfg.config, validate)

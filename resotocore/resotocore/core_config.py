@@ -603,6 +603,16 @@ schema_registry.add(
 )
 
 
+# takes the existing json object and merges an update into it, preferring the values from the update
+# if the same key is present in both objects. Lists are not merged, but overwritten.
+# Creates a new object and does not modify the existing json.
+def merge_configs(existing: Json, update: Json) -> Json:
+    if isinstance(existing, dict) and isinstance(update, dict):
+        return {**existing, **{k: merge_configs(existing.get(k, {}), v) for k, v in update.items()}}
+    else:
+        return update
+
+
 def parse_config(args: Namespace, core_config: Json, command_templates: Optional[Json] = None) -> CoreConfig:
     db = DatabaseConfig(
         server=args.graphdb_server,
@@ -625,14 +635,7 @@ def parse_config(args: Namespace, core_config: Json, command_templates: Optional
     for key, value in args.config_override:
         set_from_cmd_line[ResotoCoreRootRE.sub("", key, 1)] = value
 
-    # takes the existing json object and merges an update into it, preferring the values from the update
-    # if the same key is present in both objects. Lists are not merged, but overwritten.
-    # Creates a new object and does not modify the existing json.
-    def merge_configs(existing: Json, update: Json) -> Json:
-        if isinstance(existing, dict) and isinstance(update, dict):
-            return {**existing, **{k: merge_configs(existing.get(k, {}), v) for k, v in update.items()}}
-        else:
-            return update
+
 
     # json with all merged overrides for all components such as resotocore, resotoworker, etc.
     all_config_overrides: Optional[Json] = None
