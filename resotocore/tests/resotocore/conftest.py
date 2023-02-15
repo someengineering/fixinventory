@@ -419,7 +419,7 @@ def config_handler(task_queue: WorkerTaskQueue, worker: Any, message_bus: Messag
     validation_db = InMemoryDb(ConfigValidation, lambda c: c.id)
     model_db = InMemoryDb(Kind, lambda c: c.fqn)  # type: ignore
     event_sender = InMemoryEventSender()
-    core_config =  cast(CoreConfig, SimpleNamespace(overrides=None))
+    core_config = cast(CoreConfig, SimpleNamespace(overrides=None))
     return ConfigHandlerService(cfg_db, validation_db, model_db, task_queue, message_bus, event_sender, core_config)
 
 
