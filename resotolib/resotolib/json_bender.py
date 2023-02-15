@@ -25,7 +25,7 @@ class Bender(ABC):
     def __call__(self, source: Any) -> Any:
         return self.raw_execute(source).value
 
-    def raw_execute(self, source: Any) -> Any:
+    def raw_execute(self, source: Any) -> Transport:
         transport = Transport.from_source(source)
         return Transport(self.execute(transport.value), transport.context)
 
@@ -151,7 +151,7 @@ class OrElse(Bender):
         self.source_bender = source_bender
         self.else_bender = else_bender
 
-    def raw_execute(self, source: Any) -> Any:
+    def raw_execute(self, source: Any) -> Transport:
         first = self.source_bender.raw_execute(source)
         if first.value is not None:
             return first
@@ -188,9 +188,9 @@ class Compose(Bender):
         self._first = first
         self._second = second
 
-    def raw_execute(self, source: Any) -> Any:
+    def raw_execute(self, source: Any) -> Transport:
         first = self._first.raw_execute(source)
-        return self._second.raw_execute(first) if first is not None else None
+        return self._second.raw_execute(first) if first.value is not None else first
 
 
 class UnaryOperator(Bender):
@@ -210,7 +210,7 @@ class UnaryOperator(Bender):
     def op(self, v: Any) -> Any:
         raise NotImplementedError()
 
-    def raw_execute(self, source: Any) -> Any:
+    def raw_execute(self, source: Any) -> Transport:
         source = Transport.from_source(source)
         val = self.op(self.bender(source))
         return Transport(val, source.context)
@@ -244,7 +244,7 @@ class BinaryOperator(Bender):
     def op(self, v1: Any, v2: Any) -> Any:
         raise NotImplementedError()
 
-    def raw_execute(self, source: Any) -> Any:
+    def raw_execute(self, source: Any) -> Transport:
         source = Transport.from_source(source)
         val = self.op(self._bender1(source), self._bender2(source))
         return Transport(val, source.context)
@@ -291,7 +291,7 @@ class Or(BinaryOperator):
 
 
 class Context(Bender):
-    def raw_execute(self, source: Any) -> Any:
+    def raw_execute(self, source: Any) -> Transport:
         transport = Transport.from_source(source)
         return Transport(transport.context, transport.context)
 
@@ -456,7 +456,7 @@ class ForallBend(Forall):
         self._mapping = mapping
         self._context = context
 
-    def raw_execute(self, source: Any) -> Any:
+    def raw_execute(self, source: Any) -> Transport:
         transport = Transport.from_source(source)
         context = self._context or transport.context
         # ListOp.execute assumes the func is saved on self._func
