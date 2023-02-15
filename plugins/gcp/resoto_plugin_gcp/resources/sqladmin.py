@@ -632,7 +632,6 @@ class GcpSqlDatabaseInstance(GcpResource):
         for cls in [GcpSqlBackupRun, GcpSqlDatabase, GcpSqlUser]:
             if spec := cls.api_spec:
                 try:
-                    # not sure about self.id
                     items = graph_builder.client.list(spec, instance=self.name, project=self.instance_project)
                     cls.collect(items, graph_builder)
                 except Exception as e:
