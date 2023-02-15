@@ -11,7 +11,7 @@
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	// This can be used to network with other containers or the host.
-	"forwardPorts": [8529, 18900],
+	"forwardPorts": [8529, 8900],
 
 	// Use 'postCreateCommand' to run commands after the container is created.
 	"postCreateCommand": "bash -ic .devcontainer/postCreate.sh",
