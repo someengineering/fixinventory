@@ -1,8 +1,9 @@
-from typing import Any, ClassVar, Dict, Optional, List, Type
 import logging
-from attr import define, field
-from resoto_plugin_aws.resource.base import GraphBuilder
+from typing import ClassVar, Dict, Optional, List
 
+from attr import define, field
+
+from resoto_plugin_gcp.resources.base import GraphBuilder
 from resoto_plugin_gcp.gcp_client import GcpApiSpec
 from resoto_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus
 from resoto_plugin_gcp.resources.compute import GcpSslCertificate
@@ -23,6 +24,7 @@ class GcpSqlOperationError:
 
 @define(eq=False, slots=False)
 class GcpSqlBackupRun(GcpResource):
+    # collected via GcpSqlDatabaseInstance
     kind: ClassVar[str] = "gcp_sql_backup_run"
     reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_database_instance"]}}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
@@ -72,11 +74,6 @@ class GcpSqlBackupRun(GcpResource):
     run_type: Optional[str] = field(default=None)
     run_window_start_time: Optional[str] = field(default=None)
 
-    @classmethod
-    def collect_resources(cls: Type[GcpResource], builder: GraphBuilder, **kwargs: Any) -> List[GcpResource]:
-        # this step happens in GcpSqlDatabaseInstance.post_process()
-        pass
-
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.run_instance:
             builder.add_edge(self, reverse=True, clazz=GcpSqlDatabaseInstance, name=self.run_instance)
@@ -95,6 +92,7 @@ class GcpSqlSqlServerDatabaseDetails:
 
 @define(eq=False, slots=False)
 class GcpSqlDatabase(GcpResource):
+    # collected via GcpSqlDatabaseInstance
     kind: ClassVar[str] = "gcp_sql_database"
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="sqladmin",
@@ -129,11 +127,6 @@ class GcpSqlDatabase(GcpResource):
     database_instance: Optional[str] = field(default=None)
     database_project: Optional[str] = field(default=None)
     database_sqlserver_database_details: Optional[GcpSqlSqlServerDatabaseDetails] = field(default=None)
-
-    @classmethod
-    def collect_resources(cls: Type[GcpResource], builder: GraphBuilder, **kwargs: Any) -> List[GcpResource]:
-        # this step happens in GcpSqlDatabaseInstance.post_process()
-        pass
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.database_instance:
@@ -642,7 +635,7 @@ class GcpSqlDatabaseInstance(GcpResource):
                 try:
                     # not sure about self.id
                     items = graph_builder.client.list(spec, instance=self.name, project=self.instance_project)
-                    return cls.collect(items, graph_builder)
+                    cls.collect(items, graph_builder)
                 except Exception as e:
                     msg = f"Error while collecting {cls.__name__}: {e}"
                     graph_builder.core_feedback.info(msg, log)
@@ -868,6 +861,7 @@ class GcpSqlSqlServerUserDetails:
 
 @define(eq=False, slots=False)
 class GcpSqlUser(GcpResource):
+    # collected via GcpSqlDatabaseInstance
     kind: ClassVar[str] = "gcp_sql_user"
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="sqladmin",
@@ -909,11 +903,6 @@ class GcpSqlUser(GcpResource):
     user_sqlserver_user_details: Optional[GcpSqlSqlServerUserDetails] = field(default=None)
     user_type: Optional[str] = field(default=None)
 
-    @classmethod
-    def collect_resources(cls: Type[GcpResource], builder: GraphBuilder, **kwargs: Any) -> List[GcpResource]:
-        # this step happens in GcpSqlDatabaseInstance.post_process()
-        pass
-
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.user_instance:
             builder.add_edge(self, reverse=True, clazz=GcpSqlDatabaseInstance)
@@ -923,4 +912,4 @@ class GcpSqlUser(GcpResource):
 # TODO: GcpSqlDatabase for every instance
 # TODO: GcpSqlUser for every instance
 # TODO: GcpSqlOperation of every instance
-resources = [GcpSqlBackupRun, GcpSqlDatabase, GcpSqlUser, GcpSqlFlag, GcpSqlDatabaseInstance]
+resources = [GcpSqlFlag, GcpSqlDatabaseInstance]
