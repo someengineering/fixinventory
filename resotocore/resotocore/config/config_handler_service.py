@@ -135,7 +135,8 @@ class ConfigHandlerService(ConfigHandler):
             yaml_str = ""
 
             if self.core_config.overrides:
-                yaml_str += "# Manual config override enabled on resotocore. The following config will override:\n"
+                yaml_str += ("# The config was manually overridden."
+                             "Configured values will be replaced with the following config:\n")
                 for key, value in self.core_config.overrides.items():
                     override_yml = yaml.dump({key: value}, sort_keys=False, allow_unicode=True)
                     override_yml = override_yml.rstrip()

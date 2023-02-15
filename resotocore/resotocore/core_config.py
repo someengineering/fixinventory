@@ -634,14 +634,14 @@ def parse_config(args: Namespace, core_config: Json, command_templates: Optional
         else:
             return update
 
-    # json with all merged overrides
-    all_file_overrides: Optional[Json] = None
+    # json with all merged overrides for all components such as resotocore, resotoworker, etc.
+    all_config_overrides: Optional[Json] = None
     # merge all provided overrides into a single object, preferring the values from the last override
     for path in args.config_override_path:
         with path.open() as f:
             raw_yaml = yaml.safe_load(f)
-            merged = merge_configs(all_file_overrides or {}, raw_yaml)
-            all_file_overrides = merged
+            merged = merge_configs(all_config_overrides or {}, raw_yaml)
+            all_config_overrides = merged
 
     # set the relevant value in the json config model
     migrated = migrate_core_config(core_config)
@@ -651,8 +651,10 @@ def parse_config(args: Namespace, core_config: Json, command_templates: Optional
             adjusted = set_value_in_path(value, path, adjusted)
 
     # merge the file overrides into the adjusted config
-    if all_file_overrides:
-        adjusted = merge_configs(adjusted, all_file_overrides)
+    if all_config_overrides:
+        # here we only care about the resotocore overrides
+        core_overrides = all_config_overrides.get("resotocore", {})
+        adjusted = merge_configs(adjusted, core_overrides)
 
     # replace all env vars
     adjusted = replace_env_vars(adjusted)
@@ -692,7 +694,7 @@ def parse_config(args: Namespace, core_config: Json, command_templates: Optional
         runtime=ed.runtime,
         workflows=ed.workflows,
         run=RunConfig(),  # overridden for each run
-        overrides=all_file_overrides
+        overrides=all_config_overrides,
     )
 
 
