@@ -3,7 +3,6 @@ from typing import ClassVar, Dict, Optional, List
 
 from attr import define, field
 
-from resoto_plugin_gcp.resources.base import GraphBuilder
 from resoto_plugin_gcp.gcp_client import GcpApiSpec
 from resoto_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus, GraphBuilder
 from resoto_plugin_gcp.resources.compute import GcpSslCertificate
