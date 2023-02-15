@@ -635,8 +635,6 @@ def parse_config(args: Namespace, core_config: Json, command_templates: Optional
     for key, value in args.config_override:
         set_from_cmd_line[ResotoCoreRootRE.sub("", key, 1)] = value
 
-
-
     # json with all merged overrides for all components such as resotocore, resotoworker, etc.
     all_config_overrides: Optional[Json] = None
     # merge all provided overrides into a single object, preferring the values from the last override

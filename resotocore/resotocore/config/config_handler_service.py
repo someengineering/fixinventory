@@ -27,7 +27,7 @@ class ConfigHandlerService(ConfigHandler):
         task_queue: WorkerTaskQueue,
         message_bus: MessageBus,
         event_sender: AnalyticsEventSender,
-        core_config: CoreConfig
+        core_config: CoreConfig,
     ) -> None:
         self.cfg_db = cfg_db
         self.validation_db = validation_db
@@ -141,8 +141,10 @@ class ConfigHandlerService(ConfigHandler):
             yaml_str = ""
 
             if self.core_config.overrides:
-                yaml_str += ("# The config was manually overridden."
-                             "Configured values will be replaced with the following config:\n")
+                yaml_str += (
+                    "# The config was manually overridden."
+                    "Configured values will be replaced with the following config:\n"
+                )
                 for key, value in self.core_config.overrides.items():
                     override_yml = yaml.dump({key: value}, sort_keys=False, allow_unicode=True)
                     override_yml = override_yml.rstrip()
