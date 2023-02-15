@@ -12,8 +12,8 @@ def test_gcp_sql_database_instance(random_builder: GraphBuilder) -> None:
     assert len(random_builder.edges_of(GcpSslCertificate, GcpSqlDatabaseInstance)) == 1
     assert len(random_builder.resources_of(GcpSqlBackupRun)) > 0
     assert len(random_builder.edges_of(GcpSqlDatabaseInstance, GcpSqlBackupRun)) > 0
-    # assert len(random_builder.resources_of(GcpSqlDatabase)) == 1
-    # assert len(random_builder.resources_of(GcpSqlUser)) == 1
+    assert len(random_builder.resources_of(GcpSqlDatabase)) > 0
+    assert len(random_builder.resources_of(GcpSqlUser)) > 0
 
 
 def test_gcp_sql_operation(random_builder: GraphBuilder) -> None:
