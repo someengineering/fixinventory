@@ -885,7 +885,6 @@ class GcpSqlUser(GcpResource):
         "user_etag": S("etag"),
         "user_host": S("host"),
         "user_instance": S("instance"),
-        "user_password": S("password"),
         "user_password_policy": S("passwordPolicy", default={}) >> Bend(GcpSqlUserPasswordValidationPolicy.mapping),
         "user_project": S("project"),
         "user_sqlserver_user_details": S("sqlserverUserDetails", default={})
@@ -896,7 +895,6 @@ class GcpSqlUser(GcpResource):
     user_etag: Optional[str] = field(default=None)
     user_host: Optional[str] = field(default=None)
     user_instance: Optional[str] = field(default=None)
-    user_password: Optional[str] = field(default=None)
     user_password_policy: Optional[GcpSqlUserPasswordValidationPolicy] = field(default=None)
     user_project: Optional[str] = field(default=None)
     user_sqlserver_user_details: Optional[GcpSqlSqlServerUserDetails] = field(default=None)
