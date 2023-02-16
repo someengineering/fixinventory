@@ -631,13 +631,9 @@ class GcpSqlDatabaseInstance(GcpResource):
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         for cls in [GcpSqlBackupRun, GcpSqlDatabase, GcpSqlUser]:
             if spec := cls.api_spec:
-                try:
-                    items = graph_builder.client.list(spec, instance=self.name, project=self.instance_project)
-                    cls.collect(items, graph_builder)
-                except Exception as e:
-                    msg = f"Error while collecting {cls.__name__}: {e}"
-                    graph_builder.core_feedback.info(msg, log)
-                    raise
+                items = graph_builder.client.list(spec, instance=self.name, project=self.instance_project)
+                cls.collect(items, graph_builder)
+
 
 
 @define(eq=False, slots=False)
