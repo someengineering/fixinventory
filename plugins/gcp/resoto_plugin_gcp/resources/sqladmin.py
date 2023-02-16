@@ -635,7 +635,6 @@ class GcpSqlDatabaseInstance(GcpResource):
                 cls.collect(items, graph_builder)
 
 
-
 @define(eq=False, slots=False)
 class GcpSqlOperationErrors:
     kind: ClassVar[str] = "gcp_sql_operation_errors"
