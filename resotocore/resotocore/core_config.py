@@ -603,7 +603,7 @@ schema_registry.add(
 )
 
 
-# Takes the existing json object and merges an update into it, using the given merge strategy. 
+# Takes the existing json object and merges an update into it, using the given merge strategy.
 # Takes the update value by default, recursively merges dictionaries.
 # Creates a new object and does not modify the existing json.
 def merge_configs(
