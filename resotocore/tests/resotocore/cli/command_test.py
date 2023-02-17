@@ -883,7 +883,7 @@ async def test_jira_alias(cli: CLI, echo_http_server: Tuple[int, List[Tuple[Requ
 async def test_pagerduty_alias(cli: CLI, echo_http_server: Tuple[int, List[Tuple[Request, Json]]]) -> None:
     port, requests = echo_http_server
     result = await cli.execute_cli_command(
-        f'search is(bla) | pagerduty webhook_url="http://localhost:{port}/success" summary=test routing_key=123 dedup_key=234',
+        f'search is(bla) | head 1 | pagerduty webhook_url="http://localhost:{port}/success" summary=test routing_key=123 dedup_key=234',
         stream.list,
     )
     assert result == [["1 requests with status 200 sent."]]
@@ -899,21 +899,23 @@ async def test_pagerduty_alias(cli: CLI, echo_http_server: Tuple[int, List[Tuple
             "source": "Resoto",
             "severity": "warning",
             "component": "Resoto",
-            "custom_details": {"account___region_": 100},
-            "routing_key": "123",
-            "dedup_key": "234",
-            "images": [
-                {
-                    "src": "https://cdn.some.engineering/assets/resoto-logos/resoto-logo.svg",
-                    "href": "https://resoto.com/",
-                    "alt": "Resoto Home Page",
-                }
+            "custom_details": [
+                {"cloud": None, "account": None, "region": None, "name": "yes or no", "kind": "bla"},
             ],
-            "links": [],
-            "event_action": "trigger",
-            "client": "Resoto Service",
-            "client_url": "https://resoto.com",
-        }
+        },
+        "routing_key": "123",
+        "dedup_key": "234",
+        "images": [
+            {
+                "src": "https://cdn.some.engineering/assets/resoto-illustrations/small/resoto-alert.png",
+                "href": "https://resoto.com/",
+                "alt": "Resoto Home Page",
+            }
+        ],
+        "links": [],
+        "event_action": "trigger",
+        "client": "Resoto Service",
+        "client_url": "https://resoto.com",
     }
 
 
