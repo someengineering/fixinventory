@@ -160,8 +160,8 @@ class ConfigHandlerService(ConfigHandler):
                     }
                 else:
 
-                    def mkstr(input) -> str:
-                        return f'[{", ".join(input)}]' if isinstance(input, list) else input
+                    def mkstr(val) -> str:
+                        return f'[{", ".join(val)}]' if isinstance(val, list) else val
 
                     if existing is None:
                         return f"{mkstr(update)} - new value"
