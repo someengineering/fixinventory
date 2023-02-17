@@ -10,7 +10,7 @@ def read(file_name: str) -> str:
 
 setup(
     name="resoto-plugin-dockerhub",
-    version="3.2.2",
+    version="3.2.3",
     description="Resoto Docker Hub Collector Plugin",
     license="Apache 2.0",
     packages=find_packages(),
