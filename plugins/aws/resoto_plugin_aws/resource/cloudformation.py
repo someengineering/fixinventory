@@ -168,6 +168,10 @@ class AwsCloudFormationStack(AwsResource, BaseStack):
         return True
 
     @classmethod
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
+        return [cls.api_spec, AwsApiSpec("cloudformation", "list-stacks")]
+
+    @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return [AwsApiSpec("cloudformation", "update-stack"), AwsApiSpec("cloudformation", "delete-stack")]
 
