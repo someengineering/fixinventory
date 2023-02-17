@@ -1,6 +1,7 @@
 from resotolib.graph import Graph
 import resotolib.logger
 from resotolib.baseresources import (
+    BaseResource,
     BaseAccount,
     BaseRegion,
     BaseInstance,
@@ -69,4 +70,22 @@ class VSphereInstance(BaseInstance, VSphereResource):
     def delete_tag(self, key) -> bool:
         log.debug(f"Deleting tag {key} on resource {self.id}")
         self._vm().setCustomValue(key, "")
+        return True
+
+@define(eq=False, slots=False)
+class VSphereTemplate(BaseResource, VSphereResource):
+    kind: ClassVar[str] = "vsphere_template"
+
+    def _template(self):
+        return self._vsphere_client().get_object([vim.VirtualMachine], self.name)
+
+    def delete(self, graph: Graph) -> bool:
+        if self._template() is None:
+            log.error(f"Could not find vm name {self.name} with id {self.id}")
+
+        log.debug(f"Deleting resource {self.id} in account {self.account(graph).id} region {self.region(graph).id}")        
+        log.info(f"Destroying Template {self.id} with name {self.name}")
+        task = self._template().Destroy_Task()
+        self._vsphere_client().wait_for_tasks([task])
+        log.debug(f"Task finished - state: {task.info.state}")
         return True

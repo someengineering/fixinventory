@@ -6,7 +6,7 @@ from resotolib.baseplugin import BaseCollectorPlugin
 from resotolib.baseresources import BaseResource, InstanceStatus
 
 from .vsphere_client import get_vsphere_client
-from .resources import VSphereCluster, VSphereInstance, VSphereDataCenter
+from .resources import VSphereCluster, VSphereInstance, VSphereDataCenter, VSphereTemplate
 from .config import VSphereConfig
 from typing import Dict
 
@@ -73,15 +73,22 @@ class VSphereCollectorPlugin(BaseCollectorPlugin):
                 except AttributeError:
                     ctime = None
 
-                vm = VSphereInstance(
-                    id=list_vm._moId,
-                    name=str(list_vm.name),
-                    instance_cores=int(list_vm.config.hardware.numCPU),
-                    instance_memory=int(list_vm.config.hardware.memoryMB / 1024),
-                    tags=tags,
-                    ctime=ctime,
-                    instance_status=instance_status_map.get(list_vm.guest.guestState, InstanceStatus.UNKNOWN),
-                )
+                if list_vm.config.template:
+                    vm = VSphereTemplate(
+                        id=list_vm._moId,
+                        name=str(list_vm.name),
+                        ctime=ctime
+                    )
+                else: 
+                    vm = VSphereInstance(
+                        id=list_vm._moId,
+                        name=str(list_vm.name),
+                        instance_cores=int(list_vm.config.hardware.numCPU),
+                        instance_memory=int(list_vm.config.hardware.memoryMB / 1024),
+                        tags=tags,
+                        ctime=ctime,
+                        instance_status=instance_status_map.get(list_vm.guest.guestState, InstanceStatus.UNKNOWN),
+                    )
             except Exception:
                 log.exception(f"Error while collecting {list_vm}")
             else:
