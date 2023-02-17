@@ -4,6 +4,7 @@ from resotolib.baseresources import (
     BaseResource,
     BaseAccount,
     BaseRegion,
+    BaseZone,
     BaseInstance,
 )
 from attrs import define
@@ -15,8 +16,8 @@ log = resotolib.logger.getLogger("resoto." + __name__)
 
 
 @define(eq=False, slots=False)
-class VSphereCluster(BaseAccount):
-    kind: ClassVar[str] = "vsphere_cluster"
+class VSphereHost(BaseAccount):
+    kind: ClassVar[str] = "vsphere_host"
 
     def delete(self, graph: Graph) -> bool:
         return NotImplemented
@@ -29,6 +30,33 @@ class VSphereDataCenter(BaseRegion):
     def delete(self, graph: Graph) -> bool:
         return NotImplemented
 
+
+@define(eq=False, slots=False)
+class VSphereCluster(BaseZone):
+    kind: ClassVar[str] = "vsphere_cluster"
+
+    def delete(self, graph: Graph) -> bool:
+        return NotImplemented
+
+
+define(eq=False, slots=False)
+class VSphereESXiHost(BaseResource):
+    kind: ClassVar[str] = "vsphere_esxi_host"
+
+    def delete(self, graph: Graph) -> bool:
+        return NotImplemented
+
+class VSphereDataStore(BaseResource):
+    kind: ClassVar[str] = "vsphere_datastore"
+
+    def delete(self, graph: Graph) -> bool:
+        return NotImplemented
+
+class VSphereDataStoreCluster(BaseResource):
+    kind: ClassVar[str] = "vsphere_datastore_cluster"
+
+    def delete(self, graph: Graph) -> bool:
+        return NotImplemented
 
 @define(eq=False, slots=False)
 class VSphereResource:
