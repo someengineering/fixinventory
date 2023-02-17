@@ -341,8 +341,7 @@ def alias_templates() -> List[AliasTemplateConfig]:
             info="Create an alert in pagerduty from a search.",
             description=(
                 "Perform a search and send the result to pagerduty.\n\n"
-                "No resource specific data will be sent to pagerduty. "
-                "The resources are aggregated by account and region with the count of matching resources.\n"
+                "A call to this command will only send the first 100 occurrences to the incident, the rest is dropped. "
                 "The `summary` should explain why this alert is triggered, so that the user can take action.\n"
                 "The `dedup_key` is used to identify an alert uniquely. "
                 "You can fire the same alert multiple times by using the same dedup_key.\n\n"
@@ -351,24 +350,27 @@ def alias_templates() -> List[AliasTemplateConfig]:
             ),
             template=(
                 # aggregate the result by account and region - flat the results, since pagerduty only allows flat data
-                'aggregate "account_{/ancestors.account.reported.id}__region_{/ancestors.region.reported.id}" as name :'
-                "sum(1) as count | chunk 100 | head 1 | "
-                "jq --no-rewrite 'map({(.group.name // \"none\"): .count}) | add | {details: .}'"
+                "head 100 | jq --no-rewrite {"
+                "cloud: .ancestors.cloud.reported.name, "
+                "account: .ancestors.account.reported.name, "
+                "region: .ancestors.region.reported.name, "
+                "name: .reported.name, "
+                "kind: .reported.kind} | chunk 100 "
                 "| jq --no-rewrite '{payload: "
                 '{summary: "{{summary}}", '
                 'timestamp: "@utc@", '
                 'source:"{{source}}", '
                 'severity: "{{severity}}", '
                 'component: "{{component}}", '
-                "custom_details: .details, "
+                "custom_details: .}, "
                 'routing_key: "{{routing_key}}", '
                 'dedup_key: "{{dedup_key}}", '
-                'images:[{src: "https://cdn.some.engineering/assets/resoto-logos/resoto-logo.svg", href: '
-                '"https://resoto.com/", alt: "Resoto Home Page"}], '
+                'images:[{src: "https://cdn.some.engineering/assets/resoto-illustrations/small/resoto-alert.png", href:'
+                ' "https://resoto.com/", alt: "Resoto Home Page"}], '
                 "links:[], "
                 'event_action: "{{event_action}}", '
                 'client: "Resoto Service", '
-                'client_url: "https://resoto.com"}}\''
+                'client_url: "https://resoto.com"}\''
                 # send the event to pagerduty
                 ' | http {{webhook_url}} "Content-Type:application/json"'
             ),
