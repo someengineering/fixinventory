@@ -11,7 +11,7 @@ from googleapiclient import discovery
 
 from resoto_plugin_gcp.gcp_client import RegionProp, GcpApiSpec, GcpClient
 from resoto_plugin_gcp.resources.base import GcpZone, GcpRegion, GcpResource, GcpResourceType, GraphBuilder
-from resotolib.json import set_value_in_path
+from resotolib.json import set_value_in_path, value_in_path
 from resotolib.types import JsonElement, Json
 from resotolib.utils import utc_str
 
@@ -64,12 +64,19 @@ PredefinedResults = {
 # dictionary keys under .items (used for aggregated list zone result) -> return zone ids
 PredefinedDictKeys = {".items": [a.id for a in random_zones]}
 
+# type_name -> property_name -> parameter_name
+Overrides: Dict[str, Dict[str, str]] = {}
 
-def random_json(schemas: Dict[str, Schema], response_schema: Schema) -> JsonElement:
+
+def random_json(schemas: Dict[str, Schema], response_schema: Schema, parameter: Json) -> JsonElement:
     def value_for(schema: Schema, level: int, path: str) -> JsonElement:
         def prop_value(type_name: str, name: str, prop_schema: Schema) -> JsonElement:
+            if (override_name := value_in_path(Overrides, [type_name, name])) and (
+                override := parameter.get(override_name)
+            ):
+                return override
             # create "referencable" ids
-            if name == "id" and prop_schema["type"] == "string":
+            elif name == "id" and prop_schema.get("type") == "string":
                 IDCounter[type_name] += 1
                 return f"{type_name}-{IDCounter[type_name]}"
             elif name == "creationTimestamp":
@@ -78,6 +85,16 @@ def random_json(schemas: Dict[str, Schema], response_schema: Schema) -> JsonElem
                 return type_name
             elif name == RegionProp:
                 return random_choice(random_regions).id
+            elif (
+                not Overrides  # only if no override is defined explicitly
+                and prop_schema.get("type") == "string"  # only if the property is a string
+                and (matching_parameter := [v for k, v in parameter.items() if k in name])  # has a matching name
+            ):
+                # if a request parameter is name=value and the name is included in the property name
+                # use the parameter value as the property value
+                # idea: request instance=foo, will use foo as value for all properties with name containing "instance"
+                # note: this is a best effort approach to get more meaningful objects
+                return matching_parameter[0]
             else:
                 return value_for(prop_schema, level + 1, f"{path}.{name}")
 
@@ -138,7 +155,7 @@ class RandomDataClient:
         response_kind_name = method["response"]["$ref"]
         response_kind = self.schemas[response_kind_name]
         path_full = ".".join(p for p, _, _ in self.path)
-        return PredefinedResults.get(f"{self.service}.{path_full}", random_json(self.schemas, response_kind))
+        return PredefinedResults.get(f"{self.service}.{path_full}", random_json(self.schemas, response_kind, kwargs))
 
     def __getattr__(self, name: Any) -> Any:
         def add_path(*args, **kwargs) -> Any:
@@ -181,9 +198,26 @@ def json_roundtrip(resource_clazz: Type[GcpResourceType], builder: GraphBuilder)
         assert js_repr == again_js, f"Left: {js_repr}\nRight: {again_js}"
 
 
-def roundtrip(resource_clazz: Type[GcpResourceType], builder: GraphBuilder) -> GcpResourceType:
+def roundtrip(
+    resource_clazz: Type[GcpResourceType], builder: GraphBuilder, **overrides: Dict[str, str]
+) -> GcpResourceType:
+    """
+    Roundtrip test.
+    :param resource_clazz: the resource class to collect
+    :param builder: the graph_builder to use
+    :param overrides: specific json overrides to specify from request parameters.
+                      Example: BackupRun= {"name": "instance"}
+                      Will get the request parameter instance and use it as name foe all BackupRun resources.
+    :return: the first created resource of the given type
+    """
+    global Overrides
+    Overrides = overrides or {}
     resource_clazz.collect_resources(builder)
     json_roundtrip(resource_clazz, builder)
+    # connect all nodes
+    for node, data in builder.graph.nodes(data=True):
+        node.connect_in_graph(builder, data.get("source") or {})
+    Overrides = {}
     return builder.resources_of(resource_clazz)[0]
 
 
