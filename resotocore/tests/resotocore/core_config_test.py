@@ -176,7 +176,7 @@ def test_merge_values() -> None:
 
     def wrap_in_class(a: Any, b: Any) -> Any:
         return OverriddenValue(a, b)
-    
+
     assert merge_configs({"a": "foo", "b": {"c": "c_val"}}, {"a": "bar", "b": "foo"}, merge_strategy=wrap_in_class) == {
         "a": OverriddenValue("foo", "bar"),
         "b": OverriddenValue({"c": "c_val"}, "foo"),
