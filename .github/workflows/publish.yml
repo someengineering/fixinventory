@@ -161,7 +161,7 @@ jobs:
           file="${dir}/index.md"
           python3 tools/release_notes.py ${prev_release} ${{ steps.release.outputs.tag }} > $file
           link="/news/$(date +'%Y/%m/%d')/${{ steps.release.outputs.tag }}"
-          echo $(jq '.["${{ steps.release.outputs.docsVersion }}"].version="${{ steps.release.outputs.tag }}" | .["${{ steps.release.outputs.docsVersion }}"].link="$link"' resoto.com/latestRelease.json) > resoto.com/latestRelease.json
+          echo $(jq '.["${{ steps.release.outputs.docsVersion }}"].version="${{ steps.release.outputs.tag }}" | .["${{ steps.release.outputs.docsVersion }}"].link="'"$link"'"' resoto.com/latestRelease.json) > resoto.com/latestRelease.json
           echo "tag=${{ steps.release.outputs.tag }}" >> $GITHUB_OUTPUT
           echo "file=$file" >> $GITHUB_OUTPUT
           echo "link=$link" >> $GITHUB_OUTPUT
