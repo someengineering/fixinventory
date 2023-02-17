@@ -24,7 +24,7 @@ from resotolib.parse_util import make_parser, pipe_p, semicolon_p
 from resotolib.utils import get_local_tzinfo
 from resotocore import version
 from resotocore.analytics import CoreEvent
-from resotocore.cli import cmd_with_args_parser, key_values_parser, T, Sink
+from resotocore.cli import cmd_with_args_parser, key_values_parser, T, Sink, args_values_parser
 from resotocore.cli.command import (
     SearchPart,
     PredecessorsPart,
@@ -459,7 +459,9 @@ class CLI:
                     props[p.name] = p.default
                 # only parse properties, if there are any declared
                 if alias.parameters:
-                    props.update(key_values_parser.parse(alias_cmd.args or ""))
+                    args = (alias_cmd.args or "").strip()
+                    parser = args_values_parser if args.startswith("--") else key_values_parser
+                    props.update(parser.parse(args))
                 undefined = [k for k, v in props.items() if k != "args" and v is None]
                 if undefined:
                     raise AttributeError(f"Alias {alias_cmd.cmd} missing attributes: {', '.join(undefined)}")
