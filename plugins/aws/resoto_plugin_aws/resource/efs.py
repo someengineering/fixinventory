@@ -7,8 +7,8 @@ from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsApiSpec, GraphBuilder, AwsResource
 from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resoto_plugin_aws.utils import ToDict
-from resotolib.baseresources import BaseVolume, ModelReference
-from resotolib.json_bender import Bender, S, MapValue, F, Bend
+from resotolib.baseresources import ModelReference, BaseNetworkShare
+from resotolib.json_bender import Bender, S, F, Bend
 from resotolib.types import Json
 
 
@@ -63,7 +63,7 @@ class AwsEfsMountTarget(AwsResource):
 
 
 @define(eq=False, slots=False)
-class AwsEfsFileSystem(EfsTaggable, AwsResource, BaseVolume):
+class AwsEfsFileSystem(EfsTaggable, AwsResource, BaseNetworkShare):
     kind: ClassVar[str] = "aws_efs_file_system"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         "efs", "describe-file-systems", "FileSystems", override_iam_permission="elasticfilesystem:DescribeFileSystems"
@@ -76,24 +76,14 @@ class AwsEfsFileSystem(EfsTaggable, AwsResource, BaseVolume):
         "owner_id": S("OwnerId"),
         "creation_token": S("CreationToken"),
         "arn": S("FileSystemArn"),
-        "volume_status": S("LifeCycleState")
-        >> MapValue(
-            {
-                "creating": "busy",
-                "available": "available",
-                "updating": "busy",
-                "deleting": "busy",
-                "deleted": "deleted",
-                "error": "error",
-            },
-            default="unknown",
-        ),
-        "number_of_mount_targets": S("NumberOfMountTargets"),
-        "volume_size": S("SizeInBytes", "Value") >> F(lambda x: math.ceil(x / 1024**3)),
-        "performance_mode": S("PerformanceMode"),
-        "volume_encrypted": S("Encrypted"),
-        "throughput_mode": S("ThroughputMode"),
+        "share_status": S("LifeCycleState"),
+        "share_size": S("SizeInBytes", "Value") >> F(lambda x: math.ceil(x / 1024**3)),
+        "share_encrypted": S("Encrypted"),
+        "share_throughput": S("ProvisionedThroughputInMibps") >> F(lambda x: x * 1024**2),
         "provisioned_throughput_in_mibps": S("ProvisionedThroughputInMibps"),
+        "number_of_mount_targets": S("NumberOfMountTargets"),
+        "performance_mode": S("PerformanceMode"),
+        "throughput_mode": S("ThroughputMode"),
         "availability_zone_name": S("AvailabilityZoneName"),
     }
     reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["aws_kms_key"]}}
