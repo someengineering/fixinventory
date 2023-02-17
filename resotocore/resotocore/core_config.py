@@ -188,6 +188,12 @@ class AliasTemplateConfig(ConfigObject):
         factory=list, metadata=dict(description="All template parameters.")
     )
     description: Optional[str] = field(metadata=dict(description="A longer description of the command."), default=None)
+    allowed_in_source_position: Optional[bool] = field(
+        metadata=dict(
+            description="true if this alias can be executed directly, false if it expects input from another command."
+        ),
+        default=False,
+    )
 
 
 def alias_templates() -> List[AliasTemplateConfig]:
@@ -224,6 +230,7 @@ def alias_templates() -> List[AliasTemplateConfig]:
                 AliasTemplateParameterConfig("title", "Alert title"),
                 AliasTemplateParameterConfig("webhook", "Discord webhook URL"),
             ],
+            allowed_in_source_position=False,
         ),
         AliasTemplateConfig(
             name="slack",
@@ -261,6 +268,7 @@ def alias_templates() -> List[AliasTemplateConfig]:
                 AliasTemplateParameterConfig("title", "Alert title"),
                 AliasTemplateParameterConfig("webhook", "Slack webhook URL"),
             ],
+            allowed_in_source_position=False,
         ),
         AliasTemplateConfig(
             name="jira",
@@ -301,6 +309,7 @@ def alias_templates() -> List[AliasTemplateConfig]:
                 AliasTemplateParameterConfig("project_id", "Jira project ID"),
                 AliasTemplateParameterConfig("reporter_id", "Jira reporter user ID"),
             ],
+            allowed_in_source_position=False,
         ),
         AliasTemplateConfig(
             name="alertmanager",
@@ -335,6 +344,7 @@ def alias_templates() -> List[AliasTemplateConfig]:
                 AliasTemplateParameterConfig("duration", "The duration of this alert in alertmanager.", "3h"),
                 AliasTemplateParameterConfig("alertmanager_url", "The complete url to alertmanager."),
             ],
+            allowed_in_source_position=False,
         ),
         AliasTemplateConfig(
             name="pagerduty",
@@ -411,6 +421,7 @@ def alias_templates() -> List[AliasTemplateConfig]:
                     "https://events.pagerduty.com/v2/enqueue",
                 ),
             ],
+            allowed_in_source_position=False,
         ),
     ]
 

@@ -785,7 +785,7 @@ async def core_metadata(
 
         known_props = {p for v in aggregate_roots.values() for prop in v.properties or [] for p in path(prop)}
         info = await client.cli_info()
-        cmds = [jsons.load(cmd, CommandInfo) for cmd in info.get("commands", [])]
+        cmds = [jsons.load(cmd, CommandInfo) for cmd in (info.get("commands", []) + info.get("alias_templates", []))]
         return cmds, sorted(aggregate_roots.keys()), sorted(known_props)
     except Exception as ex:
         log.warning(

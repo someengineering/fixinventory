@@ -21,6 +21,8 @@ from resotolib.parse_util import (
     double_quoted_string_part_dp,
     backslash_dp,
     single_quoted_string_part_dp,
+    dash_dp,
+    equals_p,
 )
 from resotocore.model.graph_access import Section
 from resotocore.types import JsonElement
@@ -40,6 +42,18 @@ def key_value_parser() -> Parser:
     yield equals_dp
     value = yield json_value_dp
     return key, value
+
+
+@make_parser
+def arg_with_value_parser() -> Parser:
+    # parses --foo bla as (foo, bla) and --foo=bla as (foo, bla)
+    # translates - to _ in the key --foo-test bla -> (foo_test, bla)
+    yield dash_dp
+    yield dash_dp
+    key = yield literal_dp
+    yield equals_p | space_dp.at_least(1)
+    value = yield json_value_dp
+    return key.replace("-", "_"), value
 
 
 # for the cli part: unicode and special characters are translated. escaped \\ \' \" are preserved
@@ -62,6 +76,7 @@ single_quoted_string_part_or_esc_dp = (single_quoted_string_part_dp | string_esc
 
 # name=value test=true -> {name: value, test: true}
 key_values_parser: Parser = key_value_parser.sep_by(comma_p | space_dp).map(dict)
+args_values_parser: Parser = arg_with_value_parser.sep_by(space_dp).map(dict)
 # anything that is not: | " ' ; \
 cmd_token = regex("[^|\"';\\\\]+")
 # single and double-quoted string are maintained with quotes: "foo"->"foo", 'foo'->'foo'

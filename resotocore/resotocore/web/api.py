@@ -849,7 +849,13 @@ class Api:
             }
 
         def alias_json(cmd: AliasTemplate) -> Json:
-            return {"name": cmd.name, "info": cmd.info, "help": cmd.help()}
+            return {
+                "name": cmd.name,
+                "info": cmd.info,
+                "help": cmd.help(),
+                "args": to_js(cmd.args_info(), force_dict=True),
+                "source": cmd.allowed_in_source_position,
+            }
 
         commands = [cmd_json(cmd) for cmd in self.cli.direct_commands.values() if not isinstance(cmd, InternalPart)]
         replacements = self.cli.replacements()
