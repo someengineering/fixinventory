@@ -472,13 +472,17 @@ class CredentialReportLine:
         return [by_index(idx) for idx in range(1, 3)]
 
     def value_of(self, k: str, fn: Optional[Callable[[str], Any]] = None) -> Any:
-        v = self.line.get(k)
-        return None if v is None or v in self.undefined else (fn(v) if fn else v)
+        try:
+            v = self.line.get(k)
+            return None if v is None or v in self.undefined else (fn(v) if fn else v)
+        except Exception:
+            return None
 
     def password_enabled(self) -> bool:
         return self.value_of("password_enabled") == "true"  # type: ignore
 
     def password_last_used(self) -> Optional[datetime]:
+        # can also have a value of "no_information" or "N/A" or similar
         return self.value_of("password_last_used", parse_utc)  # type: ignore
 
     def password_last_changed(self) -> Optional[datetime]:
