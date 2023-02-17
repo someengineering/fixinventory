@@ -36,7 +36,7 @@ def test_alias_template() -> None:
         """
         foo: does foes
         ```shell
-        foo a=<value>, b=<value>
+        foo --a <value> --b <value>
         ```
 
         ## Parameters
@@ -51,7 +51,7 @@ def test_alias_template() -> None:
         ## Example
         ```shell
         # Executing this alias template
-        > foo a="test_a"
+        > foo --a "test_a"
         # Will expand to this command
         > test_a | bv
         ```

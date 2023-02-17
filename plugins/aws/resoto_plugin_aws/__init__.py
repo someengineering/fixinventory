@@ -122,13 +122,13 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
         name="aws",
         info="Execute aws commands on AWS resources",
         args_description={
+            "service": "Defines the AWS service, like ec2, s3, iam, etc.",
+            "operation": "Defines the operation to execute.",
+            "operation_args": "Defines the arguments for the operation. The parameters depend on the operation.",
             "--account": "[Optional] The AWS account identifier.",
             "--role": "[Optional] The AWS role.",
             "--profile": "[Optional] The AWS profile to use.",
             "--region": "[Optional] The AWS region.",
-            "service": "Defines the AWS service, like ec2, s3, iam, etc.",
-            "operation": "Defines the operation to execute.",
-            "operation_args": "Defines the arguments for the operation. The parameters depend on the operation.",
         },
         description="Execute an operation on an AWS resource.\n"
         "For a list of services with respective operations see "
@@ -138,7 +138,8 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
         "There are two modes of operation:\n"
         "1. Use a search and then pipe the result of the search into the `aws` command. "
         "Every resource matched by the search will invoke this command. "
-        "You can use templating parameter to define the exact invocation arguments.\n"
+        "You can use templating parameter to define the exact invocation arguments. "
+        "Account, region, profile and role is defined by the resource if not defined explicitly.\n"
         "2. Call the `aws` command directly without passing any resource to interact "
         "with AWS using the credentials defined via configuration.\n\n"
         "## Examples\n\n"
