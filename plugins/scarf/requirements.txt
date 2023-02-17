@@ -1,2 +1,2 @@
-resotolib==3.2.2
+resotolib==3.2.3
 requests>=2.28
