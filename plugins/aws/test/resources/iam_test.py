@@ -23,10 +23,11 @@ def test_credentials_report() -> None:
         user,arn,user_creation_time,password_enabled,password_last_used,password_last_changed,password_next_rotation,mfa_active,access_key_1_active,access_key_1_last_rotated,access_key_1_last_used_date,access_key_1_last_used_region,access_key_1_last_used_service,access_key_2_active,access_key_2_last_rotated,access_key_2_last_used_date,access_key_2_last_used_region,access_key_2_last_used_service,cert_1_active,cert_1_last_rotated,cert_2_active,cert_2_last_rotated
         a,arn:aws:iam::test:user/a,2021-05-06T08:23:17+00:00,true,2021-12-08T09:34:46+00:00,2021-05-06T08:30:03+00:00,N/A,true,true,2021-05-06T08:23:18+00:00,2023-01-25T10:11:00+00:00,us-east-1,iam,false,N/A,N/A,N/A,N/A,false,N/A,false,N/A
         b,arn:aws:iam::test:user/b,2022-05-06T08:23:17+00:00,false,2022-12-08T09:34:46+00:00,2022-05-06T08:30:03+00:00,N/A,false,false,2022-05-06T08:23:18+00:00,2023-01-25T10:11:00+00:00,eu-central-1,s3,true,2023-01-25T10:11:00+00:00,2023-01-25T10:11:00+00:00,eu-central-3,iam,false,N/A,false,N/A
+        c,arn:aws:iam::test:user/c,2022-05-06T08:23:17+00:00,false,no_information,2022-05-06T08:30:03+00:00,N/A,false,false,2022-05-06T08:23:18+00:00,2023-01-25T10:11:00+00:00,eu-central-1,s3,true,2023-01-25T10:11:00+00:00,2023-01-25T10:11:00+00:00,eu-central-3,iam,false,N/A,false,N/A
         """
     ).strip()
     lines = CredentialReportLine.from_str(csv)
-    assert len(lines) == 2
+    assert len(lines) == 3
     assert lines["a"].password_enabled() is True
     assert lines["a"].password_last_used() == datetime(2021, 12, 8, 9, 34, 46, tzinfo=timezone.utc)
     assert [a.access_key_last_used.service_name for a in lines["a"].access_keys() if a.access_key_last_used] == ["iam"]
