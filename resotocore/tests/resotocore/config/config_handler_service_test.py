@@ -52,7 +52,7 @@ async def test_config(config_handler: ConfigHandler) -> None:
 
     # patch the config
     assert await config_handler.patch_config(ConfigEntity(config_id, {"rest": False})) == ConfigEntity(
-        config_id, {"test": True, "rest": False}, config_without_overrides={"test": True, "rest": False}
+        config_id, {"test": True, "rest": False}
     )
 
     # list all configs

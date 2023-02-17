@@ -76,10 +76,7 @@ class ConfigHandlerService(ConfigHandler):
     def list_config_ids(self) -> AsyncIterator[ConfigId]:
         return self.cfg_db.keys()
 
-    async def get_config(
-        self,
-        cfg_id: ConfigId,
-    ) -> Optional[ConfigEntity]:
+    async def get_config(self, cfg_id: ConfigId, include_raw: bool = False) -> Optional[ConfigEntity]:
         conf = await self.cfg_db.get(cfg_id)
         if conf is None:
             return None
@@ -88,7 +85,10 @@ class ConfigHandlerService(ConfigHandler):
             merge_configs(conf.config, self.core_config.overrides) if self.core_config.overrides else conf.config
         )
         new_ce = attrs.evolve(
-            conf, config=updated_conf, config_without_overrides=conf.config, overrides=self.core_config.overrides
+            conf,
+            config=updated_conf,
+            config_without_overrides=conf.config if include_raw else None,
+            overrides=self.core_config.overrides,
         )
         return new_ce
 
@@ -145,7 +145,7 @@ class ConfigHandlerService(ConfigHandler):
         return updated
 
     async def config_yaml(self, cfg_id: ConfigId, revision: bool = False) -> Optional[str]:
-        config = await self.get_config(cfg_id)
+        config = await self.get_config(cfg_id, include_raw=True)
         if config:
             model = await self.get_configs_model()
 

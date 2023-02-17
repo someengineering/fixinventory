@@ -99,7 +99,7 @@ class ConfigHandler(ABC):
         pass
 
     @abstractmethod
-    async def get_config(self, cfg_id: ConfigId) -> Optional[ConfigEntity]:
+    async def get_config(self, cfg_id: ConfigId, include_raw: bool = False) -> Optional[ConfigEntity]:
         pass
 
     @abstractmethod
