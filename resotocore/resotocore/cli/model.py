@@ -381,6 +381,10 @@ class AliasTemplateParameter:
     def example_value(self) -> JsonElement:
         return self.default if self.default else f"test_{self.name}"
 
+    @property
+    def arg_name(self) -> str:
+        return "--" + self.name.replace("_", "-")
+
 
 # pylint: disable=not-an-iterable
 @define(order=True, hash=True, frozen=True)
@@ -401,7 +405,7 @@ class AliasTemplate:
         args_desc = [ArgInfo(name, expects_value=True, help_text=desc) for name, desc in self.args_description.items()]
         param = [
             ArgInfo(
-                "--" + p.name,
+                p.arg_name,
                 expects_value=True,
                 help_text=f"[{'required' if p.default is None else 'optional'}] {p.description}",
             )
@@ -410,7 +414,7 @@ class AliasTemplate:
         return args_desc + param
 
     def help_with_params(self) -> str:
-        args = " ".join(f"--{arg.name} <value>" for arg in self.parameters)
+        args = " ".join(f"{arg.arg_name} <value>" for arg in self.parameters)
 
         def param_info(p: AliasTemplateParameter) -> str:
             default = f" [default: {p.default}]" if p.default else ""
@@ -418,7 +422,7 @@ class AliasTemplate:
 
         indent = "            "
         arg_info = f"\n{indent}".join(param_info(arg) for arg in sorted(self.parameters, key=attrgetter("name")))
-        minimal = " ".join(f'--{p.name} "{p.example_value()}"' for p in self.parameters if p.default is None)
+        minimal = " ".join(f'{p.arg_name} "{p.example_value()}"' for p in self.parameters if p.default is None)
         desc = ""
         if self.description:
             for line in self.description.splitlines():

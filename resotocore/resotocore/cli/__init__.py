@@ -47,12 +47,13 @@ def key_value_parser() -> Parser:
 @make_parser
 def arg_with_value_parser() -> Parser:
     # parses --foo bla as (foo, bla) and --foo=bla as (foo, bla)
+    # translates - to _ in the key --foo-test bla -> (foo_test, bla)
     yield dash_dp
     yield dash_dp
     key = yield literal_dp
     yield equals_p | space_dp.at_least(1)
     value = yield json_value_dp
-    return key, value
+    return key.replace("-", "_"), value
 
 
 # for the cli part: unicode and special characters are translated. escaped \\ \' \" are preserved
