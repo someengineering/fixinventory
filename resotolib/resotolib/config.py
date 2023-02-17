@@ -1,5 +1,6 @@
 import jsons
 import threading
+import os
 
 from resotolib.json import from_json
 from resotolib.logger import log
@@ -78,7 +79,6 @@ class Config(metaclass=MetaConfig):
             message_processor=self.on_config_event,
             tls_data=tls_data,
         )
-        self._config_load_hooks: List[Callable[[Json], Json]] = []
 
     def __getattr__(self, name):
         if name in self.running_config.data:
@@ -118,7 +118,7 @@ class Config(metaclass=MetaConfig):
         with self._config_lock:
             try:
                 config, new_config_revision = get_config(self.config_name, self.resotocore_uri, verify=self.verify)
-                config = cast(Json, replace_env_vars(config))
+                config = cast(Json, replace_env_vars(config, os.environ))
                 if len(config) == 0:
                     if self._initial_load:
                         raise ConfigNotFoundError("Empty config returned - loading defaults")

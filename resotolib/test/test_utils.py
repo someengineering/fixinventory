@@ -10,7 +10,7 @@ except ImportError:
     from backports.zoneinfo import ZoneInfo
 from tempfile import TemporaryDirectory
 from resotolib.lock import RWLock
-from resotolib.utils import ordinal, sha256sum, rrdata_as_dict, get_local_tzinfo, utc_str
+from resotolib.utils import ordinal, sha256sum, rrdata_as_dict, get_local_tzinfo, utc_str, replace_env_vars
 from resotolib.baseresources import BaseResource
 from attrs import define
 from typing import ClassVar
@@ -305,3 +305,15 @@ def test_utc_str():
     assert utc_str(dt.replace(tzinfo=ZoneInfo("GMT"))) == "2020-08-03T18:00:00Z"
     assert utc_str(dt.replace(tzinfo=ZoneInfo("US/Eastern"))) == "2020-08-03T22:00:00Z"
     assert utc_str(dt.replace(tzinfo=ZoneInfo("US/Pacific"))) == "2020-08-04T01:00:00Z"
+
+
+def test_replace_env_vars():
+    json = {
+        "foo": "foo $(BAR) $(BAR) $(BAZ)",
+        "bar-$(BAR)": ["$(BAR)", "$(BAZ)"],
+    }
+    env = {"BAR": "bar"}
+    assert replace_env_vars(json, env) == {
+        "foo": "foo bar bar $(BAZ)",
+        "bar-$(BAR)": ["bar", "$(BAZ)"],
+    }

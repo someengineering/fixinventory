@@ -7,7 +7,7 @@ from contextlib import suppress
 from copy import deepcopy
 from datetime import timedelta
 from pathlib import Path
-from typing import Optional, List, ClassVar, Dict, Union, cast
+from typing import Optional, List, ClassVar, Dict, Union, cast, Callable, Any
 
 from arango.database import StandardDatabase
 from attrs import define, field
@@ -603,14 +603,30 @@ schema_registry.add(
 )
 
 
-# takes the existing json object and merges an update into it, preferring the values from the update
-# if the same key is present in both objects. Lists are not merged, but overwritten.
+# Takes the existing json object and merges an update into it, using the given merge strategy. 
+# Takes the update value by default, recursively merges dictionaries.
 # Creates a new object and does not modify the existing json.
-def merge_configs(existing: Json, update: Json) -> Json:
+def merge_configs(
+    existing: JsonElement,
+    update: JsonElement,
+    merge_strategy: Callable[[JsonElement, JsonElement], Any] = lambda existing_val, update_val: update_val,
+) -> JsonElement:
     if isinstance(existing, dict) and isinstance(update, dict):
-        return {**existing, **{k: merge_configs(existing.get(k, {}), v) for k, v in update.items()}}
+        output = deepcopy(existing)
+        for update_key, update_value in update.items():
+            existing_value = existing.get(update_key)
+            if isinstance(update_value, dict) and isinstance(existing_value, dict):
+                output[update_key] = merge_strategy(
+                    existing_value, merge_configs(existing_value, update_value, merge_strategy)
+                )
+            else:
+                output[update_key] = merge_strategy(existing_value, deepcopy(update_value))
+
     else:
-        return update
+        output = deepcopy(existing)
+        return merge_strategy(output, deepcopy(update))
+
+    return output
 
 
 def parse_config(args: Namespace, core_config: Json, command_templates: Optional[Json] = None) -> CoreConfig:
@@ -658,7 +674,7 @@ def parse_config(args: Namespace, core_config: Json, command_templates: Optional
         adjusted = merge_configs(adjusted, core_overrides)
 
     # replace all env vars
-    adjusted = replace_env_vars(adjusted)
+    adjusted = replace_env_vars(adjusted, os.environ)
 
     # coerce the resulting json to the config model
     try:

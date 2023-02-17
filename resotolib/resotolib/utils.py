@@ -16,7 +16,7 @@ from tzlocal import get_localzone_name
 from functools import wraps, cached_property
 from pprint import pformat
 from tarfile import TarFile, TarInfo
-from typing import Dict, List, Tuple, Optional, NoReturn, Any
+from typing import Dict, List, Tuple, Optional, NoReturn, Any, Mapping
 from resotolib.types import DecoratedFn, JsonElement
 
 import pkg_resources
@@ -516,15 +516,15 @@ class NoExitArgumentParser(ArgumentParser):
         raise AttributeError(f"Could not parse arguments: {msg}")
 
 
-def replace_env_vars(elem: JsonElement) -> JsonElement:
+def replace_env_vars(elem: JsonElement, environment: Mapping[str, str]) -> JsonElement:
     if isinstance(elem, dict):
-        return {k: replace_env_vars(v) for k, v in elem.items()}
+        return {k: replace_env_vars(v, environment) for k, v in elem.items()}
     elif isinstance(elem, list):
-        return [replace_env_vars(v) for v in elem]
+        return [replace_env_vars(v, environment) for v in elem]
     elif isinstance(elem, str):
         str_value = elem
         for match in re.finditer(r"\$\((\w+)\)", elem):
-            if env_var_found := os.environ.get(match.group(1)):
+            if env_var_found := environment.get(match.group(1)):
                 str_value = str_value.replace(match.group(0), env_var_found)
 
         return str_value

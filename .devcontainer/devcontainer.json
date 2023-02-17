@@ -28,7 +28,18 @@
 		"vscode": {
 			"extensions": [
 				"mhutchie.git-graph"
-			]
+			],
+			"settings": {
+				"python.formatting.blackArgs": [
+					"--line-length",
+					"120",
+					"--target-version",
+					"py39"
+				],
+				"python.formatting.provider": "black",
+				"python.linting.enabled": true
+
+			}
 		}
 	}
 

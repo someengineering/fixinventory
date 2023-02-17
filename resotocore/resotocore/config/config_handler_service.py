@@ -15,6 +15,9 @@ from resotocore.util import uuid_str, deep_merge, first
 from resotocore.worker_task_queue import WorkerTaskQueue, WorkerTask, WorkerTaskName
 from resotocore.ids import TaskId, ConfigId
 from resotocore.core_config import CoreConfig, merge_configs
+
+from resotocore.types import JsonElement
+
 import re
 
 
@@ -73,13 +76,21 @@ class ConfigHandlerService(ConfigHandler):
     def list_config_ids(self) -> AsyncIterator[ConfigId]:
         return self.cfg_db.keys()
 
-    async def get_config(self, cfg_id: ConfigId) -> Optional[ConfigEntity]:
+    async def get_config(
+        self,
+        cfg_id: ConfigId,
+    ) -> Optional[ConfigEntity]:
         conf = await self.cfg_db.get(cfg_id)
-        if conf and self.core_config.overrides:
-            new_config = merge_configs(conf.config, self.core_config.overrides)
-            new_ce = attrs.evolve(conf, config=new_config)
-            return new_ce
-        return conf
+        if conf is None:
+            return None
+
+        updated_conf = (
+            merge_configs(conf.config, self.core_config.overrides) if self.core_config.overrides else conf.config
+        )
+        new_ce = attrs.evolve(
+            conf, config=updated_conf, config_without_overrides=conf.config, overrides=self.core_config.overrides
+        )
+        return new_ce
 
     async def put_config(self, cfg: ConfigEntity, *, validate: bool = True, dry_run: bool = False) -> ConfigEntity:
         coerced = await self.coerce_and_check_model(cfg.id, cfg.config, validate)
@@ -138,18 +149,40 @@ class ConfigHandlerService(ConfigHandler):
         if config:
             model = await self.get_configs_model()
 
+            # returns the overridden config with comments about the changes
+            def overridden_parts(existing: JsonElement, update: JsonElement) -> JsonElement:
+                if isinstance(update, dict):
+                    return {
+                        key: overridden_parts(
+                            existing.get(key) if isinstance(existing, dict) else existing, update[key]
+                        )
+                        for key in update.keys()
+                    }
+                else:
+
+                    def mkstr(input) -> str:
+                        return f'[{", ".join(input)}]' if isinstance(input, list) else input
+
+                    if existing is None:
+                        return f"{mkstr(update)} - new value"
+
+                    return f"{mkstr(update)} - previously was {mkstr(existing)}"
+
             yaml_str = ""
 
-            if self.core_config.overrides:
+            if config.overrides:
                 yaml_str += (
-                    "# The config was manually overridden."
+                    "# The config was manually overridden. "
                     "Configured values will be replaced with the following config:\n"
                 )
-                for key, value in self.core_config.overrides.items():
-                    override_yml = yaml.dump({key: value}, sort_keys=False, allow_unicode=True)
-                    override_yml = override_yml.rstrip()
-                    override_yml = re.sub(r"^", "# ", override_yml, flags=re.MULTILINE)
-                    yaml_str += override_yml
+                override_yml = yaml.dump(
+                    overridden_parts(config.config_without_overrides or {}, config.overrides),
+                    sort_keys=False,
+                    allow_unicode=True,
+                )
+                override_yml = override_yml.rstrip()
+                override_yml = re.sub(r"^", "# ", override_yml, flags=re.MULTILINE)
+                yaml_str += override_yml
                 yaml_str += "\n\n"
 
             for num, (key, value) in enumerate(config.config.items()):

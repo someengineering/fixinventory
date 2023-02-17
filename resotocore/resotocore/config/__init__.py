@@ -17,6 +17,8 @@ class ConfigEntity:
     id: ConfigId
     config: Json
     revision: Optional[str] = None
+    overrides: Optional[Json] = None
+    config_without_overrides: Optional[Json] = None
 
     def analytics(self) -> Dict[str, Any]:
         analytics: Dict[str, Any] = {"config_id": self.id}
