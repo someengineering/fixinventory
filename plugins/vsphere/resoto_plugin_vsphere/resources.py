@@ -46,12 +46,14 @@ class VSphereESXiHost(BaseResource):
     def delete(self, graph: Graph) -> bool:
         return NotImplemented
 
+
 @define(eq=False, slots=False)
 class VSphereDataStore(BaseResource):
     kind: ClassVar[str] = "vsphere_datastore"
 
     def delete(self, graph: Graph) -> bool:
         return NotImplemented
+
 
 @define(eq=False, slots=False)
 class VSphereDataStoreCluster(BaseResource):
@@ -60,12 +62,14 @@ class VSphereDataStoreCluster(BaseResource):
     def delete(self, graph: Graph) -> bool:
         return NotImplemented
 
+
 @define(eq=False, slots=False)
 class VSphereResourcePool(BaseResource):
     kind: ClassVar[str] = "vsphere_resource_pool"
 
     def delete(self, graph: Graph) -> bool:
         return NotImplemented
+
 
 @define(eq=False, slots=False)
 class VSphereResource:
@@ -109,6 +113,7 @@ class VSphereInstance(BaseInstance, VSphereResource):
         self._vm().setCustomValue(key, "")
         return True
 
+
 @define(eq=False, slots=False)
 class VSphereTemplate(BaseResource, VSphereResource):
     kind: ClassVar[str] = "vsphere_template"
@@ -120,7 +125,7 @@ class VSphereTemplate(BaseResource, VSphereResource):
         if self._template() is None:
             log.error(f"Could not find vm name {self.name} with id {self.id}")
 
-        log.debug(f"Deleting resource {self.id} in account {self.account(graph).id} region {self.region(graph).id}")        
+        log.debug(f"Deleting resource {self.id} in account {self.account(graph).id} region {self.region(graph).id}")
         log.info(f"Destroying Template {self.id} with name {self.name}")
         task = self._template().Destroy_Task()
         self._vsphere_client().wait_for_tasks([task])

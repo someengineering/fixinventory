@@ -6,7 +6,17 @@ from resotolib.baseplugin import BaseCollectorPlugin
 from resotolib.baseresources import BaseResource, InstanceStatus
 
 from .vsphere_client import get_vsphere_client
-from .resources import VSphereCluster, VSphereInstance, VSphereDataCenter, VSphereTemplate, VSphereHost, VSphereESXiHost, VSphereDataStore, VSphereDataStoreCluster, VSphereResourcePool
+from .resources import (
+    VSphereCluster,
+    VSphereInstance,
+    VSphereDataCenter,
+    VSphereTemplate,
+    VSphereHost,
+    VSphereESXiHost,
+    VSphereDataStore,
+    VSphereDataStoreCluster,
+    VSphereResourcePool,
+)
 from .config import VSphereConfig
 from typing import Dict
 
@@ -40,7 +50,7 @@ class VSphereCollectorPlugin(BaseCollectorPlugin):
             attr[str(keymap[value.key])] = str(value.value)
 
         return attr
-    
+
     def resource_pool(self, resourcepool, predecessor):
         rpObj = VSphereResourcePool(id=resourcepool._moId, name=resourcepool.name)
         self.graph.add_resource(predecessor, rpObj)
@@ -87,12 +97,8 @@ class VSphereCollectorPlugin(BaseCollectorPlugin):
                     ctime = None
 
                 if list_vm.config.template:
-                    vm = VSphereTemplate(
-                        id=list_vm._moId,
-                        name=str(list_vm.name),
-                        ctime=ctime
-                    )
-                else: 
+                    vm = VSphereTemplate(id=list_vm._moId, name=str(list_vm.name), ctime=ctime)
+                else:
                     vm = VSphereInstance(
                         id=list_vm._moId,
                         name=str(list_vm.name),
@@ -109,7 +115,6 @@ class VSphereCollectorPlugin(BaseCollectorPlugin):
                 self.instances_dict[vm.id] = vm
                 self.graph.add_node(vm)
 
-
     def collect(self) -> None:
         log.debug("plugin: collecting vsphere resources")
 
@@ -125,8 +130,7 @@ class VSphereCollectorPlugin(BaseCollectorPlugin):
         self.graph.add_resource(self.graph.root, host)
 
         content = get_vsphere_client().client.RetrieveContent()
-        datacenters = [entity for entity in content.rootFolder.childEntity
-                                if hasattr(entity, 'vmFolder')]
+        datacenters = [entity for entity in content.rootFolder.childEntity if hasattr(entity, "vmFolder")]
         dcs = []
         # datacenter are root folder objects
         for dc in datacenters:
@@ -166,9 +170,8 @@ class VSphereCollectorPlugin(BaseCollectorPlugin):
                                 vmObj = self.instances_dict[vm._moId]
                                 self.graph.add_edge(dsObj, vmObj)
 
-
                 # get hosts from a cluster
-                for host in cluster.host:#
+                for host in cluster.host:  #
                     log.debug(f"Found host - {host._moId} - {host.name}")
                     hostObj = VSphereESXiHost(id=host._moId, name=host.name)
                     self.graph.add_resource(clusterObj, hostObj)
@@ -176,12 +179,13 @@ class VSphereCollectorPlugin(BaseCollectorPlugin):
                     for vm in host.vm:
                         if vm._moId in self.instances_dict:
                             vmObj = self.instances_dict[vm._moId]
-                            log.debug(f"lookup vm - {vm._moId} - {vmObj.name} and assign to host {host._moId} - {host.name}")
+                            log.debug(
+                                f"lookup vm - {vm._moId} - {vmObj.name} and assign to host {host._moId} - {host.name}"
+                            )
                             self.graph.add_edge(hostObj, vmObj)
                         else:
                             log.warning(f"host {host._moId} - {host.name} reports {vm._moId} but instance not found")
-                        
-                
+
     @staticmethod
     def add_config(config: Config) -> None:
         config.add_config(VSphereConfig)
