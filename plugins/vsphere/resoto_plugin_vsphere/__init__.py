@@ -6,7 +6,7 @@ from resotolib.baseplugin import BaseCollectorPlugin
 from resotolib.baseresources import BaseResource, InstanceStatus
 
 from .vsphere_client import get_vsphere_client
-from .resources import VSphereCluster, VSphereInstance, VSphereDataCenter, VSphereTemplate, VSphereHost, VSphereESXiHost, VSphereDataStore, VSphereDataStoreCluster
+from .resources import VSphereCluster, VSphereInstance, VSphereDataCenter, VSphereTemplate, VSphereHost, VSphereESXiHost, VSphereDataStore, VSphereDataStoreCluster, VSphereResourcePool
 from .config import VSphereConfig
 from typing import Dict
 
@@ -15,6 +15,7 @@ from pyVmomi import vim
 
 class VSphereCollectorPlugin(BaseCollectorPlugin):
     cloud = "vsphere"
+    instances_dict = {}
 
     def get_host(self) -> VSphereHost:
         return VSphereHost(id=Config.vsphere.host)
@@ -39,12 +40,22 @@ class VSphereCollectorPlugin(BaseCollectorPlugin):
             attr[str(keymap[value.key])] = str(value.value)
 
         return attr
+    
+    def resource_pool(self, resourcepool, predecessor):
+        rpObj = VSphereResourcePool(id=resourcepool._moId, name=resourcepool.name)
+        self.graph.add_resource(predecessor, rpObj)
+        log.debug(f"Found ResourcePool - {resourcepool._moId} - {resourcepool.name}")
+        for vm in resourcepool.vm:
+            self.graph.add_edge(rpObj, self.instances_dict[vm._moId])
 
-    def get_instances(self) -> Dict:
+        for successorPool in resourcepool.resourcePool:
+            log.debug(f"Found nested ResourcePool - {successorPool._moId} - {successorPool.name}")
+            self.resource_pool(successorPool, rpObj)
+
+    def get_instances(self) -> None:
         """
         loop over VMs and add them as VSphereInstance to parent
         """
-        instancedict = {}
 
         content = get_vsphere_client().client.RetrieveContent()
 
@@ -95,9 +106,9 @@ class VSphereCollectorPlugin(BaseCollectorPlugin):
                 log.exception(f"Error while collecting {list_vm}")
             else:
                 log.debug(f"found {vm.id} - {vm}")
-                instancedict[vm.id] = vm
+                self.instances_dict[vm.id] = vm
+                self.graph.add_node(vm)
 
-        return instancedict
 
     def collect(self) -> None:
         log.debug("plugin: collecting vsphere resources")
@@ -108,8 +119,8 @@ class VSphereCollectorPlugin(BaseCollectorPlugin):
 
         host = self.get_host()
 
-        instances_dict = self.get_instances()
-        log.debug(f"found {len(instances_dict)} instances and templates")
+        self.get_instances()
+        log.debug(f"found {len(self.instances_dict)} instances and templates")
 
         self.graph.add_resource(self.graph.root, host)
 
@@ -123,14 +134,25 @@ class VSphereCollectorPlugin(BaseCollectorPlugin):
             dcObj = VSphereDataCenter(id=dc._moId, name=dc.name)
             self.graph.add_resource(host, dcObj)
 
+            # get clusters in datacenter
+            for cluster in dc.hostFolder.childEntity:
+                log.debug(f"Found cluster - {cluster._moId} - {cluster.name}")
+                clusterObj = VSphereCluster(id=cluster._moId, name=cluster.name)
+                self.graph.add_resource(dcObj, clusterObj)
+                try:
+                    rpool = cluster.resourcePool
+                    self.resource_pool(rpool, clusterObj)
+                except Exception:
+                    log.warning(f"Resourcepool error for cluster {cluster._moId} {cluster.name}")
+
             for datastore in dc.datastoreFolder.childEntity:
                 if datastore._wsdlName == "Datastore":
                     log.debug(f"Found Datastore - {datastore._moId} - {datastore.name}")
                     dsObj = VSphereDataStore(id=datastore._moId, name=datastore.name)
                     self.graph.add_resource(dcObj, dsObj)
                     for vm in datastore.vm:
-                        vmObj = instances_dict[vm._moId]
-                        self.graph.add_resource(dsObj, vmObj)
+                        vmObj = self.instances_dict[vm._moId]
+                        self.graph.add_edge(dsObj, vmObj)
                 elif datastore._wsdlName == "StoragePod":
                     log.debug(f"Found DatastoreCluster - {datastore._moId} - {datastore.name}")
                     dsc = VSphereDataStoreCluster(id=datastore._moId, name=datastore.name)
@@ -141,16 +163,10 @@ class VSphereCollectorPlugin(BaseCollectorPlugin):
                             dsObj = VSphereDataStore(id=store._moId, name=store.name)
                             self.graph.add_resource(dcObj, dsObj)
                             for vm in store.vm:
-                                vmObj = instances_dict[vm._moId]
-                                self.graph.add_resource(dsObj, vmObj)
-                        
-            # get clusters in datacenter
-            for cluster in dc.hostFolder.childEntity:
-                log.debug(f"Found cluster - {cluster._moId} - {cluster.name}")
-                clusterObj = VSphereCluster(id=cluster._moId, name=cluster.name)
-                self.graph.add_resource(dcObj, clusterObj)
+                                vmObj = self.instances_dict[vm._moId]
+                                self.graph.add_edge(dsObj, vmObj)
 
-                # get data stores 
+
                 # get hosts from a cluster
                 for host in cluster.host:#
                     log.debug(f"Found host - {host._moId} - {host.name}")
@@ -158,10 +174,10 @@ class VSphereCollectorPlugin(BaseCollectorPlugin):
                     self.graph.add_resource(clusterObj, hostObj)
                     # get vms for each host and read from the vm list
                     for vm in host.vm:
-                        if vm._moId in instances_dict:
-                            vmObj = instances_dict[vm._moId]
+                        if vm._moId in self.instances_dict:
+                            vmObj = self.instances_dict[vm._moId]
                             log.debug(f"lookup vm - {vm._moId} - {vmObj.name} and assign to host {host._moId} - {host.name}")
-                            self.graph.add_resource(hostObj, vmObj)
+                            self.graph.add_edge(hostObj, vmObj)
                         else:
                             log.warning(f"host {host._moId} - {host.name} reports {vm._moId} but instance not found")
                         

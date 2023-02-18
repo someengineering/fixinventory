@@ -39,21 +39,30 @@ class VSphereCluster(BaseZone):
         return NotImplemented
 
 
-define(eq=False, slots=False)
+@define(eq=False, slots=False)
 class VSphereESXiHost(BaseResource):
     kind: ClassVar[str] = "vsphere_esxi_host"
 
     def delete(self, graph: Graph) -> bool:
         return NotImplemented
 
+@define(eq=False, slots=False)
 class VSphereDataStore(BaseResource):
     kind: ClassVar[str] = "vsphere_datastore"
 
     def delete(self, graph: Graph) -> bool:
         return NotImplemented
 
+@define(eq=False, slots=False)
 class VSphereDataStoreCluster(BaseResource):
     kind: ClassVar[str] = "vsphere_datastore_cluster"
+
+    def delete(self, graph: Graph) -> bool:
+        return NotImplemented
+
+@define(eq=False, slots=False)
+class VSphereResourcePool(BaseResource):
+    kind: ClassVar[str] = "vsphere_resource_pool"
 
     def delete(self, graph: Graph) -> bool:
         return NotImplemented
