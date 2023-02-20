@@ -7,7 +7,7 @@ from contextlib import suppress
 from copy import deepcopy
 from datetime import timedelta
 from pathlib import Path
-from typing import Optional, List, ClassVar, Dict, Union, cast, Callable, Any
+from typing import Optional, List, ClassVar, Dict, Union, cast, Callable
 
 from arango.database import StandardDatabase
 from attrs import define, field
@@ -609,7 +609,7 @@ schema_registry.add(
 def merge_configs(
     existing: JsonElement,
     update: JsonElement,
-    merge_strategy: Callable[[JsonElement, JsonElement], Any] = lambda existing_val, update_val: update_val,
+    merge_strategy: Callable[[JsonElement, JsonElement], JsonElement] = lambda existing_val, update_val: update_val,
 ) -> JsonElement:
     if isinstance(existing, dict) and isinstance(update, dict):
         output = deepcopy(existing)
@@ -623,8 +623,7 @@ def merge_configs(
                 output[update_key] = merge_strategy(existing_value, deepcopy(update_value))
 
     else:
-        output = deepcopy(existing)
-        return merge_strategy(output, deepcopy(update))
+        return merge_strategy(existing, deepcopy(update))
 
     return output
 
@@ -657,7 +656,7 @@ def parse_config(args: Namespace, core_config: Json, command_templates: Optional
     for path in args.config_override_path:
         with path.open() as f:
             raw_yaml = yaml.safe_load(f)
-            merged = merge_configs(all_config_overrides or {}, raw_yaml)
+            merged = cast(Json, merge_configs(all_config_overrides or {}, raw_yaml))
             all_config_overrides = merged
 
     # set the relevant value in the json config model

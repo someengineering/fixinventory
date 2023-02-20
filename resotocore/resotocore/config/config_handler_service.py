@@ -1,6 +1,6 @@
 import asyncio
 from datetime import timedelta
-from typing import Optional, AsyncIterator, List
+from typing import Optional, AsyncIterator, List, Any
 import attrs
 import yaml
 
@@ -160,8 +160,8 @@ class ConfigHandlerService(ConfigHandler):
                     }
                 else:
 
-                    def mkstr(val) -> str:
-                        return f'[{", ".join(val)}]' if isinstance(val, list) else val
+                    def mkstr(val: Any) -> str:
+                        return f'[{", ".join(val)}]' if isinstance(val, list) else str(val)
 
                     if existing is None:
                         return f"{mkstr(update)} - new value"

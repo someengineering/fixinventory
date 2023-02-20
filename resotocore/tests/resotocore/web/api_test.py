@@ -57,6 +57,7 @@ async def core_client(
                 "--no-tls",
                 "--override",
                 f"resotocore.api.web_port={port}",
+                "resotocore.api.web_hosts=0.0.0.0",
             ],
         ),
     )
