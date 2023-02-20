@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from abc import ABC, abstractmethod
 from enum import Enum
+from functools import reduce
 from typing import List, Optional, Dict, ClassVar
 
 from attr import define, field
@@ -105,12 +106,17 @@ class Benchmark(CheckCollection):
 @define
 class CheckResult:
     check: ReportCheck
-    number_of_resources_failing: int
+    number_of_resources_failing_by_account: Dict[str, int]
     node_id: str = field(init=False, default=uuid_str())
+
+    @property
+    def number_of_resources_failing(self) -> int:
+        return reduce(lambda a, b: a + b, self.number_of_resources_failing_by_account.values(), 0)
 
     def to_node(self) -> Json:
         reported = to_js(self.check)
         reported["number_of_resources_failing"] = self.number_of_resources_failing
+        reported["number_of_resources_failing_by_account"] = self.number_of_resources_failing_by_account
         return dict(id=self.node_id, kind="report_check_result", type="node", reported=reported)
 
 

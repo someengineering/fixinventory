@@ -730,6 +730,12 @@ class AggregateVariable:
         with_as = f" as {self.as_name}" if self.as_name else ""
         return f"{self.name}{with_as}"
 
+    def all_names(self) -> List[str]:
+        if isinstance(self.name, AggregateVariableCombined):
+            return [avn.name for avn in self.name.parts if isinstance(avn, AggregateVariableName)]
+        else:
+            return [self.name.name]
+
     def get_as_name(self) -> str:
         def from_name() -> str:
             return self.name.name.rsplit(".", 1)[-1] if isinstance(self.name, AggregateVariableName) else str(self.name)
@@ -740,10 +746,7 @@ class AggregateVariable:
         return evolve(self, name=self.name.change_variable(fn))
 
     def property_paths(self) -> Set[str]:
-        if isinstance(self.name, AggregateVariableName):
-            return {self.name.name}
-        else:
-            return {name.name for name in self.name.parts if isinstance(name, AggregateVariableName)}
+        return set(self.all_names())
 
 
 @define(order=True, hash=True, frozen=True)

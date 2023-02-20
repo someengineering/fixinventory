@@ -11,7 +11,7 @@ from resotocore.config import ConfigEntity, ConfigHandler
 from resotocore.db.model import QueryModel
 from resotocore.ids import ConfigId
 from resotocore.model.model import Model
-from resotocore.query.model import Aggregate, AggregateFunction, Query, P
+from resotocore.query.model import Aggregate, AggregateFunction, Query, P, AggregateVariable, AggregateVariableName
 from resotocore.report import (
     Inspector,
     ReportCheck,
@@ -33,6 +33,8 @@ from resotocore.types import Json
 from resotocore.web.service import Service
 
 log = logging.getLogger(__name__)
+
+CountByAccount = Dict[str, int]
 
 
 def benchmark_id(name: str) -> ConfigId:
@@ -145,14 +147,8 @@ class InspectorService(Inspector, Service):
         check_by_id = {c.id: c for c in perform_checks}
         result = await self.__perform_checks(graph, perform_checks, context)
 
-        def check_result(cid: str) -> CheckResult:
-            check = check_by_id[cid]
-            num_failing = result.get(cid)
-            num_failing = 0 if num_failing is None else num_failing
-            return CheckResult(check, num_failing)
-
         def to_result(cc: CheckCollection) -> CheckCollectionResult:
-            check_results = [check_result(c) for c in cc.checks or []]
+            check_results = [CheckResult(check_by_id[cid], result.get(cid, {})) for cid in cc.checks or []]
             children = [to_result(c) for c in cc.children or []]
             return CheckCollectionResult(
                 cc.title, cc.description, documentation=cc.documentation, checks=check_results, children=children
@@ -169,14 +165,16 @@ class InspectorService(Inspector, Service):
             children=top.children,
         )
 
-    async def __perform_checks(self, graph: str, checks: List[ReportCheck], context: CheckContext) -> Dict[str, int]:
+    async def __perform_checks(
+        self, graph: str, checks: List[ReportCheck], context: CheckContext
+    ) -> Dict[str, CountByAccount]:
         # load model
         model = await self.model_handler.load_model()
         # load configuration
         cfg_entity = await self.config_handler.get_config(ResotoReportValues)
         cfg = cfg_entity.config if cfg_entity else {}
 
-        async def perform_single(check: ReportCheck) -> Tuple[str, int]:
+        async def perform_single(check: ReportCheck) -> Tuple[str, CountByAccount]:
             return check.id, await self.__perform_check(graph, model, check, cfg, context)
 
         async with stream.map(
@@ -186,32 +184,38 @@ class InspectorService(Inspector, Service):
 
     async def __perform_check(
         self, graph: str, model: Model, inspection: ReportCheck, config: Json, context: CheckContext
-    ) -> int:
+    ) -> CountByAccount:
         # final environment: defaults are coming from the check and are eventually overriden in the config
         env = inspection.environment(config)
 
-        async def perform_search(search: str) -> int:
+        async def perform_search(search: str) -> CountByAccount:
             # parse query
             query = await self.template_expander.parse_query(search, on_section="reported", **env)
             # filter only relevant accounts if provided
             if context.accounts:
                 query = Query.by(P.single("ancestors.account.reported.id").is_in(context.accounts)).combine(query)
             # add aggregation to only query for count
-            query = evolve(query, aggregate=Aggregate([], [AggregateFunction("sum", 1, [], "count")]))
+            ag_var = AggregateVariable(AggregateVariableName("ancestors.account.reported.id"), "account_id")
+            ag_fn = AggregateFunction("sum", 1, [], "count")
+            query = evolve(query, aggregate=Aggregate([ag_var], [ag_fn]))
+            account_result: CountByAccount = {}
             async with await self.db_access.get_graph_db(graph).search_aggregation(QueryModel(query, model)) as ctx:
                 async for result in ctx:
-                    return result["count"] or 0  # we expect exactly one result. count==null is considered 0
-            return -1  # we should never reach this point, if we do, we mark the check as failing
+                    account_result[result["group"]["account_id"]] = result["count"] or 0
+            return account_result
 
-        async def perform_cmd(cmd: str) -> int:
+        async def perform_cmd(cmd: str) -> CountByAccount:
             # filter only relevant accounts if provided
             if context.accounts:
                 account_list = ",".join(f'"{a}"' for a in context.accounts)
                 cmd = f"search /ancestors.account.reported.id in [{account_list}] | " + cmd
-            # adjust command to only count the number of lines
-            result = await self.cli.execute_cli_command(f"{cmd} | count", stream.list, CLIContext(env=env))
-            # TODO: add args to count to get the raw numbers
-            return int(result[0][0].rsplit(" ", 1)[-1])
+            # aggregate by account
+            aggregate = "aggregate /ancestors.account.reported.id as account_id: sum(1) as count"
+            cli_result = await self.cli.execute_cli_command(f"{cmd} | {aggregate}", stream.list, CLIContext(env=env))
+            account_result: CountByAccount = {}
+            for result in cli_result[0]:
+                account_result[result["group"]["account_id"]] = result["count"] or 0
+            return account_result
 
         if resoto_search := inspection.detect.get("resoto"):
             return await perform_search(resoto_search)
@@ -219,7 +223,7 @@ class InspectorService(Inspector, Service):
             return await perform_cmd(resoto_cmd)
         elif inspection.detect.get("manual"):
             # let's assume the manual check is successful
-            return 0
+            return {}
         else:
             raise ValueError(f"Invalid inspection {inspection.id}: no resoto or resoto_cmd defined")
 
