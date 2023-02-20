@@ -2,6 +2,7 @@ from pytest import fixture
 
 from resotocore.cli.cli import CLI
 from resotocore.config import ConfigEntity
+from resotocore.ids import ConfigId
 from resotocore.report import BenchmarkConfigRoot, CheckConfigRoot
 from resotocore.report.inspector_service import InspectorService, check_id, benchmark_id
 from resotocore.report.report_config import (
@@ -67,6 +68,7 @@ def benchmark() -> Json:
             framework="test",
             version="1.0",
             checks=["test_test_search", "test_test_cmd"],
+            clouds=["test"],
         )
     )
 
@@ -129,4 +131,7 @@ async def test_predefined_benchmarks(inspector_service: InspectorService) -> Non
     benchmarks = BenchmarkConfig.from_files()
     assert len(benchmarks) > 0
     for name, check in benchmarks.items():
-        assert (await inspector_service.validate_benchmark_config({BenchmarkConfigRoot: check})) is None
+        config = {BenchmarkConfigRoot: check}
+        assert (await inspector_service.validate_benchmark_config(config)) is None
+        benchmark = BenchmarkConfig.from_config(ConfigEntity(ConfigId("test"), config))
+        assert benchmark.clouds == ["aws"]

@@ -121,6 +121,13 @@ class BenchmarkConfig(CheckCollectionConfig):
     id: str = field(metadata={"description": "Unique ID of the benchmark."})
     framework: str = field(metadata={"description": "Framework the benchmark is based on."})
     version: str = field(metadata={"description": "Version of the benchmark."})
+    clouds: Optional[List[str]] = field(
+        default=None,
+        metadata={
+            "description": "List of applicable cloud providers. "
+            "If the benchmark is not cloud specific, the value would be null."
+        },
+    )
 
     @staticmethod
     def from_files() -> Dict[str, Json]:

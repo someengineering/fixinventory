@@ -99,6 +99,7 @@ class Benchmark(CheckCollection):
     id: str
     framework: str
     version: str
+    clouds: Optional[List[str]] = None
 
 
 @define
