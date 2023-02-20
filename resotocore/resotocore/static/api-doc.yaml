@@ -2345,6 +2345,16 @@ paths:
             type: string
           example: "resoto"
           required: true
+        - name: accounts
+          description: |
+            Comma separated list of account ids to include in the benchmark.
+            If no value is given, all accounts are included.
+          in: query
+          schema:
+            type: string
+          required: false
+          explode: false
+          example: 123456789012,123456789013
       responses:
         "200":
           description: "The checks result."
@@ -2394,6 +2404,16 @@ paths:
           schema:
             type: string
           example: "aws_ec2_instance"
+        - name: accounts
+          description: |
+            Comma separated list of account ids to include in the benchmark.
+            If no value is given, all accounts are included.
+          in: query
+          schema:
+            type: string
+          required: false
+          explode: false
+          example: 123456789012,123456789013
       responses:
         "200":
           description: "The checks result."

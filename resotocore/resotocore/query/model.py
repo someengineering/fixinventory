@@ -214,6 +214,10 @@ class Term(abc.ABC):
             return self
         elif isinstance(other, AllTerm):
             return other
+        elif isinstance(self, MergeTerm):
+            return self.or_merge_term(other)
+        elif isinstance(other, MergeTerm):
+            return other.or_merge_term(self)
         else:
             return CombinedTerm(self, "or", other)
 
@@ -222,6 +226,10 @@ class Term(abc.ABC):
             return other
         elif isinstance(other, AllTerm):
             return self
+        elif isinstance(self, MergeTerm):
+            return self.and_merge_term(other)
+        elif isinstance(other, MergeTerm):
+            return other.and_merge_term(self)
         else:
             return CombinedTerm(self, "and", other)
 
@@ -450,6 +458,26 @@ class MergeTerm(Term):
     pre_filter: Term
     merge: List[MergeQuery]
     post_filter: Optional[Term] = None
+
+    def or_merge_term(self, other: Term) -> Term:
+        if isinstance(other, MergeTerm):
+            return MergeTerm(
+                pre_filter=self.pre_filter.or_term(other.pre_filter),
+                merge=self.merge + other.merge,
+                post_filter=combine_optional(self.post_filter, other.post_filter, lambda x, y: x.or_term(y)),
+            )
+        else:
+            return evolve(self, pre_filter=self.pre_filter.or_term(other))
+
+    def and_merge_term(self, other: Term) -> Term:
+        if isinstance(other, MergeTerm):
+            return MergeTerm(
+                pre_filter=self.pre_filter.and_term(other.pre_filter),
+                merge=self.merge + other.merge,
+                post_filter=combine_optional(self.post_filter, other.post_filter, lambda x, y: x.and_term(y)),
+            )
+        else:
+            return evolve(self, pre_filter=self.pre_filter.and_term(other))
 
     def __str__(self) -> str:
         merge = ", ".join(str(q) for q in self.merge)

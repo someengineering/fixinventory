@@ -448,13 +448,17 @@ class Api:
         service = request.query.get("service")
         category = request.query.get("category")
         kind = request.query.get("kind")
-        result = await self.inspector.perform_checks(graph, provider, service, category, kind)
+        acc = request.query.get("accounts")
+        accounts = [a.strip() for a in acc.split(",")] if acc else None
+        result = await self.inspector.perform_checks(graph, provider, service, category, kind, accounts)
         return await single_result(request, to_js(result))
 
     async def perform_benchmark(self, request: Request) -> StreamResponse:
         benchmark = request.match_info["benchmark"]
         graph = request.match_info["graph_id"]
-        result = await self.inspector.perform_benchmark(benchmark, graph)
+        acc = request.query.get("accounts")
+        accounts = [a.strip() for a in acc.split(",")] if acc else None
+        result = await self.inspector.perform_benchmark(benchmark, graph, accounts)
         result_graph = result.to_graph()
         async with stream.iterate(result_graph).stream() as streamer:
             await self.stream_response_from_gen(request, streamer, len(result_graph))

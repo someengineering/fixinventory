@@ -111,6 +111,24 @@ def test_combine() -> None:
     with pytest.raises(AttributeError):
         # can not combine 2 with statements
         parse_query("is(foo) with(empty, -default->)").combine(parse_query("is(bla) with(empty, -default->)"))
+    # combining merge term queries needs special handling
+    sq1 = parse_query("age > 23h").on_section()
+    mq1 = parse_query("is(foo) {bla: --> is(bla)} bla.test=2").on_section()
+    mq2 = parse_query("name==test {foo: --> is(foo)} foo.test=3").on_section()
+    assert str(mq1.combine(mq2)) == (
+        '(is("foo") and name == "test") '
+        '{bla: all -default-> is("bla"), foo: all -default-> is("foo")} '
+        "(bla.test == 2 and foo.test == 3)"
+    )
+    assert str(mq2.combine(mq1)) == (
+        '(name == "test" and is("foo")) '
+        '{foo: all -default-> is("foo"), bla: all -default-> is("bla")} '
+        "(foo.test == 3 and bla.test == 2)"
+    )
+    assert str(mq1.combine(sq1)) == '(is("foo") and age > "23h") {bla: all -default-> is("bla")} bla.test == 2'
+    assert str(sq1.combine(mq1)) == '(is("foo") and age > "23h") {bla: all -default-> is("bla")} bla.test == 2'
+    assert str(mq2.combine(sq1)) == '(name == "test" and age > "23h") {foo: all -default-> is("foo")} foo.test == 3'
+    assert str(sq1.combine(mq2)) == '(name == "test" and age > "23h") {foo: all -default-> is("foo")} foo.test == 3'
 
 
 def test_on_section() -> None:
@@ -264,3 +282,33 @@ def test_context_predicates() -> None:
     query: Query = parse_query("a.b[*].{ a=2 and b[1].bla=3 and c.d[*].{ e=4 and f=5 } }")
     expected = ["a.b[*].a", "a.b[*].b[1].bla", "a.b[*].c.d[*].e", "a.b[*].c.d[*].f"]
     assert [str(a.name) for a in query.visible_predicates] == expected
+
+
+def test_merge_term_combination() -> None:
+    sq1 = parse_query("age > 23h").on_section().parts[0].term
+    mq1 = parse_query("is(foo) {bla: --> is(bla)} bla.test=2").on_section().parts[0].term
+    mq2 = parse_query("name==test {foo: --> is(foo)} foo.test=3").on_section().parts[0].term
+    assert (
+        str(mq1 | mq2) == '(is("foo") or name == "test") '
+        '{bla: all -default-> is("bla"), foo: all -default-> is("foo")} '
+        "(bla.test == 2 or foo.test == 3)"
+    )
+    assert (
+        str(mq2 | mq1) == '(name == "test" or is("foo")) '
+        '{foo: all -default-> is("foo"), bla: all -default-> is("bla")} '
+        "(foo.test == 3 or bla.test == 2)"
+    )
+    assert (
+        str(mq1 & mq2) == '(is("foo") and name == "test") '
+        '{bla: all -default-> is("bla"), foo: all -default-> is("foo")} '
+        "(bla.test == 2 and foo.test == 3)"
+    )
+    assert (
+        str(mq2 & mq1) == '(name == "test" and is("foo")) '
+        '{foo: all -default-> is("foo"), bla: all -default-> is("bla")} '
+        "(foo.test == 3 and bla.test == 2)"
+    )
+    assert str(mq1 | sq1) == '(is("foo") or age > "23h") {bla: all -default-> is("bla")} bla.test == 2'
+    assert str(sq1 | mq1) == '(is("foo") or age > "23h") {bla: all -default-> is("bla")} bla.test == 2'
+    assert str(mq1 & sq1) == '(is("foo") and age > "23h") {bla: all -default-> is("bla")} bla.test == 2'
+    assert str(sq1 & mq1) == '(is("foo") and age > "23h") {bla: all -default-> is("bla")} bla.test == 2'

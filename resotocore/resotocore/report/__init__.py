@@ -193,12 +193,15 @@ class Inspector(ABC):
         """
 
     @abstractmethod
-    async def perform_benchmark(self, benchmark_name: str, graph: str) -> BenchmarkResult:
+    async def perform_benchmark(
+        self, benchmark_name: str, graph: str, accounts: Optional[List[str]] = None
+    ) -> BenchmarkResult:
         """
         Perform a benchmark by given name on the content of a graph with given name.
 
         :param benchmark_name: the name of the benchmark to perform (e.g. aws_cis_1_5_0)
         :param graph: the name of the graph to perform the benchmark on (e.g. resoto)
+        :param accounts: the list of accounts to perform the benchmark on. If not given, all accounts are used.
         :return: the result of the benchmark
         """
 
@@ -210,6 +213,7 @@ class Inspector(ABC):
         service: Optional[str] = None,
         category: Optional[str] = None,
         kind: Optional[str] = None,
+        accounts: Optional[List[str]] = None,
     ) -> BenchmarkResult:
         """
         Perform a benchmark by selecting all checks matching the given criteria.
@@ -219,6 +223,7 @@ class Inspector(ABC):
         :param service: the service inside the provider (e.g. ec2, lambda, ...)
         :param category: the category of the check (e.g. security, compliance, cost ...)
         :param kind: the resulting kind of the check (e.g. aws_ec2_instance, kubernetes_pod, ...)
+        :param accounts: the list of accounts to perform the benchmark on. If not given, all accounts are used.
         :return: the result of this benchmark
         """
 
