@@ -137,35 +137,14 @@ class InspectorService(Inspector, Service):
         def check_result(cid: str) -> CheckResult:
             check = check_by_id[cid]
             num_failing = result.get(cid)
-            num_failing = -1 if num_failing is None else num_failing
-            return CheckResult(check, num_failing == 0, max(0, num_failing))
+            num_failing = 0 if num_failing is None else num_failing
+            return CheckResult(check, num_failing)
 
         def to_result(cc: CheckCollection) -> CheckCollectionResult:
             check_results = [check_result(c) for c in cc.checks or []]
             children = [to_result(c) for c in cc.children or []]
-            resources_failing = 0
-            checks_failing = 0
-            checks_passing = 0
-            for cr in check_results:
-                resources_failing += cr.number_of_resources_failing
-                if cr.passed:
-                    checks_passing += 1
-                else:
-                    checks_failing += 1
-            for cd in children:
-                resources_failing += cd.resources_failing
-                checks_failing += cd.checks_failing
-                checks_passing += cd.checks_passing
             return CheckCollectionResult(
-                cc.title,
-                cc.description,
-                documentation=cc.documentation,
-                checks=check_results,
-                children=children,
-                passed=checks_failing == 0,
-                resources_failing=resources_failing,
-                checks_failing=checks_failing,
-                checks_passing=checks_passing,
+                cc.title, cc.description, documentation=cc.documentation, checks=check_results, children=children
             )
 
         top = to_result(benchmark)
@@ -177,10 +156,6 @@ class InspectorService(Inspector, Service):
             documentation=benchmark.documentation,
             checks=top.checks,
             children=top.children,
-            passed=top.passed,
-            resources_failing=top.resources_failing,
-            checks_failing=top.checks_failing,
-            checks_passing=top.checks_passing,
         )
 
     async def __perform_checks(

@@ -104,13 +104,11 @@ class Benchmark(CheckCollection):
 @define
 class CheckResult:
     check: ReportCheck
-    passed: bool
     number_of_resources_failing: int
     node_id: str = field(init=False, default=uuid_str())
 
     def to_node(self) -> Json:
         reported = to_js(self.check)
-        reported["passed"] = self.passed
         reported["number_of_resources_failing"] = self.number_of_resources_failing
         return dict(id=self.node_id, kind="report_check_result", type="node", reported=reported)
 
@@ -122,10 +120,6 @@ class CheckCollectionResult:
     documentation: Optional[str] = field(default=None, kw_only=True)
     checks: List[CheckResult] = field(factory=list, kw_only=True)
     children: List[CheckCollectionResult] = field(factory=list, kw_only=True)
-    passed: bool = field(default=False, kw_only=True)
-    resources_failing: int = field(default=0, kw_only=True)
-    checks_passing: int = field(default=0, kw_only=True)
-    checks_failing: int = field(default=0, kw_only=True)
     node_id: str = field(init=False, default=uuid_str())
 
     def to_node(self) -> Json:
@@ -137,10 +131,6 @@ class CheckCollectionResult:
                 title=self.title,
                 description=self.description,
                 documentation=self.documentation,
-                passed=self.passed,
-                number_of_resources_failing=self.resources_failing,
-                checks_passing=self.checks_passing,
-                checks_failing=self.checks_failing,
             ),
         )
 

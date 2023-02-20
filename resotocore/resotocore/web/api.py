@@ -455,9 +455,9 @@ class Api:
         benchmark = request.match_info["benchmark"]
         graph = request.match_info["graph_id"]
         result = await self.inspector.perform_benchmark(benchmark, graph)
-        count = result.checks_passing + result.checks_failing
-        async with stream.iterate(result.to_graph()).stream() as streamer:
-            await self.stream_response_from_gen(request, streamer, count)
+        result_graph = result.to_graph()
+        async with stream.iterate(result_graph).stream() as streamer:
+            await self.stream_response_from_gen(request, streamer, len(result_graph))
         return await single_result(request, to_js(result))
 
     async def inspection_checks(self, request: Request) -> StreamResponse:

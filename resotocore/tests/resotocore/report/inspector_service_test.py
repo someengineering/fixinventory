@@ -102,12 +102,8 @@ async def test_list_inspect_checks(inspector_service: InspectorService) -> None:
 async def test_perform_benchmark(inspector_service_with_test_benchmark: InspectorService) -> None:
     inspector = inspector_service_with_test_benchmark
     result = await inspector.perform_benchmark("test", inspector.cli.cli_env["graph"])
-    assert result.passed is False
-    assert result.resources_failing == 22
     assert result.checks[0].number_of_resources_failing == 11
-    assert result.checks[0].passed is False
     assert result.checks[1].number_of_resources_failing == 11
-    assert result.checks[1].passed is False
 
 
 async def test_benchmark_node_result(inspector_service_with_test_benchmark: InspectorService) -> None:
