@@ -18,7 +18,6 @@ from resotocore.core_config import (
     CustomCommandsConfig,
     alias_templates,
     ResotoCoreCommandsRoot,
-    merge_configs,
 )
 from resotocore.dependencies import parse_args
 from resotocore.model.typed_model import to_js, from_js
@@ -140,47 +139,6 @@ resotocore:
                 "api": {"web_hosts": ["11.12.13.14"], "web_port": "$(WEB_PORT)", "web_path": "$(DO_NOT_REPLACE_ME)"}
             }
         }
-
-
-def test_merge_values() -> None:
-    a = {"a": {"foo": {"first": "first", "last": "laaaast"}}, "b": {"bar": 123}, "c": [6, 7]}
-    b = {"a": {"foo": {"last": "last"}}, "b": {"baz": 456}, "c": [8, 9]}
-    assert merge_configs(a, b) == {
-        "a": {"foo": {"first": "first", "last": "last"}},
-        "b": {"bar": 123, "baz": 456},
-        "c": [8, 9],
-    }
-
-    def concat_lists(a: Any, b: Any) -> Any:
-        if isinstance(a, list) and isinstance(b, list):
-            return a + b
-        return b
-
-    assert merge_configs([1], [2], merge_strategy=concat_lists) == [1, 2]
-
-    def add_comments(a: Any, b: Any) -> Any:
-        if isinstance(a, (str, int)):
-            return f"{a} replaced by {b}"
-        return b
-
-    assert merge_configs({"a": "foo", "b": "baz"}, {"a": "bar", "c": "c_val"}, merge_strategy=add_comments) == {
-        "a": "foo replaced by bar",
-        "b": "baz",
-        "c": "c_val",
-    }
-
-    @frozen
-    class OverriddenValue:
-        existing: Any
-        override: Any
-
-    def wrap_in_class(a: Any, b: Any) -> Any:
-        return OverriddenValue(a, b)
-
-    assert merge_configs({"a": "foo", "b": {"c": "c_val"}}, {"a": "bar", "b": "foo"}, merge_strategy=wrap_in_class) == {
-        "a": OverriddenValue("foo", "bar"),
-        "b": OverriddenValue({"c": "c_val"}, "foo"),
-    }
 
 
 def test_model() -> None:

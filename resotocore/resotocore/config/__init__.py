@@ -17,8 +17,6 @@ class ConfigEntity:
     id: ConfigId
     config: Json
     revision: Optional[str] = None
-    overrides: Optional[Json] = None
-    config_without_overrides: Optional[Json] = None
 
     def analytics(self) -> Dict[str, Any]:
         analytics: Dict[str, Any] = {"config_id": self.id}
@@ -99,7 +97,7 @@ class ConfigHandler(ABC):
         pass
 
     @abstractmethod
-    async def get_config(self, cfg_id: ConfigId, include_raw: bool = False) -> Optional[ConfigEntity]:
+    async def get_config(self, cfg_id: ConfigId, apply_overrides: bool = True) -> Optional[ConfigEntity]:
         pass
 
     @abstractmethod

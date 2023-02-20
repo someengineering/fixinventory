@@ -7,7 +7,7 @@ from contextlib import suppress
 from copy import deepcopy
 from datetime import timedelta
 from pathlib import Path
-from typing import Optional, List, ClassVar, Dict, Union, cast, Callable
+from typing import Optional, List, ClassVar, Dict, Union, cast
 
 from arango.database import StandardDatabase
 from attrs import define, field
@@ -17,7 +17,7 @@ from resotocore.ids import ConfigId
 from resotocore.model.model import Kind, Model, ComplexKind
 from resotocore.model.typed_model import from_js, to_js
 from resotocore.types import Json, JsonElement
-from resotocore.util import set_value_in_path, value_in_path, del_value_in_path
+from resotocore.util import set_value_in_path, value_in_path, del_value_in_path, merge_json_elements
 from resotocore.validator import Validator, schema_name
 from resotolib.core.model_export import dataclasses_to_resotocore_model
 from resotolib.utils import replace_env_vars
@@ -603,31 +603,6 @@ schema_registry.add(
 )
 
 
-# Takes the existing json object and merges an update into it, using the given merge strategy.
-# Takes the update value by default, recursively merges dictionaries.
-# Creates a new object and does not modify the existing json.
-def merge_configs(
-    existing: JsonElement,
-    update: JsonElement,
-    merge_strategy: Callable[[JsonElement, JsonElement], JsonElement] = lambda existing_val, update_val: update_val,
-) -> JsonElement:
-    if isinstance(existing, dict) and isinstance(update, dict):
-        output = deepcopy(existing)
-        for update_key, update_value in update.items():
-            existing_value = existing.get(update_key)
-            if isinstance(update_value, dict) and isinstance(existing_value, dict):
-                output[update_key] = merge_strategy(
-                    existing_value, merge_configs(existing_value, update_value, merge_strategy)
-                )
-            else:
-                output[update_key] = merge_strategy(existing_value, deepcopy(update_value))
-
-    else:
-        return merge_strategy(existing, deepcopy(update))
-
-    return output
-
-
 def parse_config(args: Namespace, core_config: Json, command_templates: Optional[Json] = None) -> CoreConfig:
     db = DatabaseConfig(
         server=args.graphdb_server,
@@ -656,7 +631,7 @@ def parse_config(args: Namespace, core_config: Json, command_templates: Optional
     for path in args.config_override_path:
         with path.open() as f:
             raw_yaml = yaml.safe_load(f)
-            merged = cast(Json, merge_configs(all_config_overrides or {}, raw_yaml))
+            merged = cast(Json, merge_json_elements(all_config_overrides or {}, raw_yaml))
             all_config_overrides = merged
 
     # set the relevant value in the json config model
@@ -670,7 +645,7 @@ def parse_config(args: Namespace, core_config: Json, command_templates: Optional
     if all_config_overrides:
         # here we only care about the resotocore overrides
         core_overrides = all_config_overrides.get("resotocore", {})
-        adjusted = merge_configs(adjusted, core_overrides)
+        adjusted = merge_json_elements(adjusted, core_overrides)
 
     # replace all env vars
     adjusted = replace_env_vars(adjusted, os.environ)

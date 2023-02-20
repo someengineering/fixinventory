@@ -11,10 +11,10 @@ from resotocore.db.modeldb import ModelDb
 from resotocore.message_bus import MessageBus, CoreMessage
 from resotocore.model.model import Model, Kind, ComplexKind
 from resotocore.types import Json
-from resotocore.util import uuid_str, deep_merge, first
+from resotocore.util import uuid_str, deep_merge, first, merge_json_elements
 from resotocore.worker_task_queue import WorkerTaskQueue, WorkerTask, WorkerTaskName
 from resotocore.ids import TaskId, ConfigId
-from resotocore.core_config import CoreConfig, merge_configs
+from resotocore.core_config import CoreConfig
 
 from resotocore.types import JsonElement
 
@@ -76,19 +76,19 @@ class ConfigHandlerService(ConfigHandler):
     def list_config_ids(self) -> AsyncIterator[ConfigId]:
         return self.cfg_db.keys()
 
-    async def get_config(self, cfg_id: ConfigId, include_raw: bool = False) -> Optional[ConfigEntity]:
+    async def get_config(self, cfg_id: ConfigId, apply_overrides: bool = True) -> Optional[ConfigEntity]:
         conf = await self.cfg_db.get(cfg_id)
         if conf is None:
             return None
 
         updated_conf = (
-            merge_configs(conf.config, self.core_config.overrides) if self.core_config.overrides else conf.config
+            merge_json_elements(conf.config, self.core_config.overrides)
+            if self.core_config.overrides and apply_overrides
+            else conf.config
         )
         new_ce = attrs.evolve(
             conf,
             config=updated_conf,
-            config_without_overrides=conf.config if include_raw else None,
-            overrides=self.core_config.overrides,
         )
         return new_ce
 
@@ -145,7 +145,7 @@ class ConfigHandlerService(ConfigHandler):
         return updated
 
     async def config_yaml(self, cfg_id: ConfigId, revision: bool = False) -> Optional[str]:
-        config = await self.get_config(cfg_id, include_raw=True)
+        config = await self.get_config(cfg_id, apply_overrides=False)
         if config:
             model = await self.get_configs_model()
 
@@ -170,13 +170,13 @@ class ConfigHandlerService(ConfigHandler):
 
             yaml_str = ""
 
-            if config.overrides:
+            if self.core_config.overrides:
                 yaml_str += (
                     "# The config was manually overridden. "
                     "Configured values will be replaced with the following config:\n"
                 )
                 override_yml = yaml.dump(
-                    overridden_parts(config.config_without_overrides or {}, config.overrides),
+                    overridden_parts(config.config, self.core_config.overrides),
                     sort_keys=False,
                     allow_unicode=True,
                 )
