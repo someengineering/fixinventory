@@ -187,15 +187,19 @@ class InspectorService(Inspector, Service):
     ) -> CountByAccount:
         # final environment: defaults are coming from the check and are eventually overriden in the config
         env = inspection.environment(config)
+        account_id_prop = "ancestors.account.reported.id"
+        # if the result kind is an account, we need to use the id directly instead of walking the graph
+        if (result_kind := model.get(inspection.result_kind)) and "account" in result_kind.kind_hierarchy():
+            account_id_prop = "reported.id"
 
         async def perform_search(search: str) -> CountByAccount:
             # parse query
             query = await self.template_expander.parse_query(search, on_section="reported", **env)
             # filter only relevant accounts if provided
             if context.accounts:
-                query = Query.by(P.single("ancestors.account.reported.id").is_in(context.accounts)).combine(query)
+                query = Query.by(P.single(account_id_prop).is_in(context.accounts)).combine(query)
             # add aggregation to only query for count
-            ag_var = AggregateVariable(AggregateVariableName("ancestors.account.reported.id"), "account_id")
+            ag_var = AggregateVariable(AggregateVariableName(account_id_prop), "account_id")
             ag_fn = AggregateFunction("sum", 1, [], "count")
             query = evolve(query, aggregate=Aggregate([ag_var], [ag_fn]))
             account_result: CountByAccount = {}
@@ -208,9 +212,9 @@ class InspectorService(Inspector, Service):
             # filter only relevant accounts if provided
             if context.accounts:
                 account_list = ",".join(f'"{a}"' for a in context.accounts)
-                cmd = f"search /ancestors.account.reported.id in [{account_list}] | " + cmd
+                cmd = f"search /{account_id_prop} in [{account_list}] | " + cmd
             # aggregate by account
-            aggregate = "aggregate /ancestors.account.reported.id as account_id: sum(1) as count"
+            aggregate = f"aggregate /{account_id_prop} as account_id: sum(1) as count"
             cli_result = await self.cli.execute_cli_command(f"{cmd} | {aggregate}", stream.list, CLIContext(env=env))
             account_result: CountByAccount = {}
             for result in cli_result[0]:
