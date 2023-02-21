@@ -4,7 +4,7 @@ import logging
 from abc import ABC, abstractmethod
 from enum import Enum
 from functools import reduce
-from typing import List, Optional, Dict, ClassVar
+from typing import List, Optional, Dict, ClassVar, AsyncIterator
 
 from attr import define, field
 
@@ -233,6 +233,12 @@ class Inspector(ABC):
         :param accounts: the list of accounts to perform the benchmark on. If not given, all accounts are used.
         :return: the result of this benchmark
         """
+
+    @abstractmethod
+    async def list_failing_resources(
+        self, graph: str, check_uid: str, account_ids: Optional[List[str]] = None
+    ) -> AsyncIterator[Json]:
+        pass
 
     @abstractmethod
     async def validate_benchmark_config(self, json: Json) -> Optional[Json]:

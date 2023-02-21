@@ -135,3 +135,16 @@ async def test_predefined_benchmarks(inspector_service: InspectorService) -> Non
         assert (await inspector_service.validate_benchmark_config(config)) is None
         benchmark = BenchmarkConfig.from_config(ConfigEntity(ConfigId("test"), config))
         assert benchmark.clouds == ["aws"]
+
+
+async def test_list_failing(inspector_service_with_test_benchmark: InspectorService) -> None:
+    inspector = inspector_service_with_test_benchmark
+    graph = inspector.cli.cli_env["graph"]
+    search_res = [r async for r in await inspector.list_failing_resources(graph, "test_test_search")]
+    assert len(search_res) == 11
+    cmd_res = [r async for r in await inspector.list_failing_resources(graph, "test_test_cmd")]
+    assert len(cmd_res) == 11
+    search_res_account = [r async for r in await inspector.list_failing_resources(graph, "test_test_search", ["n/a"])]
+    assert len(search_res_account) == 0
+    cmd_res_account = [r async for r in await inspector.list_failing_resources(graph, "test_test_cmd", ["n/a"])]
+    assert len(cmd_res_account) == 0

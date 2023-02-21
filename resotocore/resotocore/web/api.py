@@ -219,6 +219,7 @@ class Api:
                 # report checks
                 web.get(prefix + "/report/checks", self.inspection_checks),
                 web.get(prefix + "/report/checks/graph/{graph_id}", self.perform_benchmark_on_checks),
+                web.get(prefix + "/report/check/{check_id}/graph/{graph_id}", self.inspection_results),
                 web.get(prefix + "/report/benchmark/{benchmark}/graph/{graph_id}", self.perform_benchmark),
                 # CLI
                 web.post(prefix + "/cli/evaluate", self.evaluate),
@@ -471,6 +472,14 @@ class Api:
         kind = request.query.get("kind")
         inspections = await self.inspector.list_checks(provider, service, category, kind)
         return await single_result(request, to_js(inspections))
+
+    async def inspection_results(self, request: Request) -> StreamResponse:
+        graph = request.match_info["graph_id"]
+        check_id = request.match_info["check_id"]
+        acc = request.query.get("accounts")
+        accounts = [a.strip() for a in acc.split(",")] if acc else None
+        inspections = await self.inspector.list_failing_resources(graph, check_id, accounts)
+        return await self.stream_response_from_gen(request, inspections)
 
     async def redirect_to_api_doc(self, request: Request) -> StreamResponse:
         raise web.HTTPFound("api-doc")
