@@ -191,12 +191,12 @@ def parse_args(args: Optional[List[str]] = None) -> Namespace:
         type=Path,
         dest="config_override_path",
         default=[],
-        help="Override configuration parameters via a YAML file. "
+        help="Override configuration parameters via a YAML file or directory with YAML files. "
         "The existing configuration will be patched with the provided values. "
         "Note: this argument allows multiple overrides separated by space, in this case the "
         "resulting configuration will be the merge of all the provided files, in the order they are provided."
         "The same section can be overridden multiple times, in this case the last override will be used."
-        "Example: --override-path /path/to/your/config.yaml /path/to/your/other/config.yaml",
+        "Example: --override-path /path/to/config/dir/ /path/to/your/config.yaml",
     )
     parser.add_argument(
         "--verbose", "-v", dest="verbose", default=False, action="store_true", help="Enable verbose logging."

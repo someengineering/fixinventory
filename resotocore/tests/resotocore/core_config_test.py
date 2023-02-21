@@ -100,8 +100,8 @@ def test_config_override(config_json: Json) -> None:
     # create a temp file with a custom config
     with TemporaryDirectory() as tmp:
         # config with env var override
-        hosts_conf = Path(tmp, "foobar.yml")
-        hosts_conf.write_text(
+        resotocore_1_conf = Path(tmp, "resotocore.yml")
+        resotocore_1_conf.write_text(
             """
 resotocore:
     api:
@@ -111,8 +111,8 @@ resotocore:
         )
 
         # config that overrides the default config and containes an env var which can't be resolved
-        other_conf = Path(tmp, "config.yml")
-        other_conf.write_text(
+        resotocore_2_conf = Path(tmp, "resotocore-1.yml")
+        resotocore_2_conf.write_text(
             """
 resotocore:
     api:
@@ -121,12 +121,20 @@ resotocore:
         """
         )
 
+        resotoworker_conf = Path(tmp, "resotoworker.yml")
+        resotoworker_conf.write_text(
+            """
+resotoworker:
+  collector: ['digitalocean', '$(OTHER_COLLECTOR)']
+            """
+        )
+
         os.environ["WEB_PORT"] = "1337"
 
         # parse this configuration
         parsed = parse_config(
             parse_args(
-                ["--analytics-opt-out", "--override-path", str(hosts_conf.absolute()), str(other_conf.absolute())]
+                ["--analytics-opt-out", "--override-path", str(tmp)]
             ),
             cfg,
         )
@@ -137,6 +145,9 @@ resotocore:
         assert parsed.overrides == {
             "resotocore": {
                 "api": {"web_hosts": ["11.12.13.14"], "web_port": "$(WEB_PORT)", "web_path": "$(DO_NOT_REPLACE_ME)"}
+            },
+            "resotoworker": {
+                "collector": ['digitalocean', '$(OTHER_COLLECTOR)']
             }
         }
 

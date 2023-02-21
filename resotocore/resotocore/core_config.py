@@ -625,14 +625,29 @@ def parse_config(args: Namespace, core_config: Json, command_templates: Optional
     for key, value in args.config_override:
         set_from_cmd_line[ResotoCoreRootRE.sub("", key, 1)] = value
 
+    # all config files that will be used
+    config_files: List[Path] = []
+    # collect them all
+    for path in args.config_override_path:
+        path = cast(Path, path)
+        if path.is_dir():
+            config_files.extend(
+                [file for file in path.iterdir() if file.is_file() and file.suffix in (".yml", ".yaml")]
+            )
+        else:
+            config_files.append(path)
+
     # json with all merged overrides for all components such as resotocore, resotoworker, etc.
     all_config_overrides: Optional[Json] = None
     # merge all provided overrides into a single object, preferring the values from the last override
-    for path in args.config_override_path:
-        with path.open() as f:
-            raw_yaml = yaml.safe_load(f)
-            merged = cast(Json, merge_json_elements(all_config_overrides or {}, raw_yaml))
-            all_config_overrides = merged
+    for config_file in config_files:
+        with config_file.open() as f:
+            try:
+                raw_yaml = yaml.safe_load(f)
+                merged = cast(Json, merge_json_elements(all_config_overrides or {}, raw_yaml))
+                all_config_overrides = merged
+            except Exception as e:
+                log.warn(f"Can't read the config override {config_file}, skipping. Reason: {e}")
 
     # set the relevant value in the json config model
     migrated = migrate_core_config(core_config)
