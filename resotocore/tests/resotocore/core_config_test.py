@@ -133,9 +133,7 @@ resotoworker:
 
         # parse this configuration
         parsed = parse_config(
-            parse_args(
-                ["--analytics-opt-out", "--override-path", str(tmp)]
-            ),
+            parse_args(["--analytics-opt-out", "--override-path", str(tmp)]),
             cfg,
         )
         assert parsed.api.web_hosts == ["11.12.13.14"]
@@ -146,9 +144,7 @@ resotoworker:
             "resotocore": {
                 "api": {"web_hosts": ["11.12.13.14"], "web_port": "$(WEB_PORT)", "web_path": "$(DO_NOT_REPLACE_ME)"}
             },
-            "resotoworker": {
-                "collector": ['digitalocean', '$(OTHER_COLLECTOR)']
-            }
+            "resotoworker": {"collector": ["digitalocean", "$(OTHER_COLLECTOR)"]},
         }
 
 

@@ -516,6 +516,17 @@ class NoExitArgumentParser(ArgumentParser):
         raise AttributeError(f"Could not parse arguments: {msg}")
 
 
+env_var_substitution_pattern = re.compile(r"\$\((\w+)\)")
+
+
+def is_env_var_string(obj: Any) -> bool:
+    is_string = isinstance(obj, str)
+    if not is_string:
+        return False
+    has_env_var = re.search(env_var_substitution_pattern, obj) is not None
+    return has_env_var
+
+
 def replace_env_vars(elem: JsonElement, environment: Mapping[str, str]) -> JsonElement:
     if isinstance(elem, dict):
         return {k: replace_env_vars(v, environment) for k, v in elem.items()}
@@ -523,7 +534,7 @@ def replace_env_vars(elem: JsonElement, environment: Mapping[str, str]) -> JsonE
         return [replace_env_vars(v, environment) for v in elem]
     elif isinstance(elem, str):
         str_value = elem
-        for match in re.finditer(r"\$\((\w+)\)", elem):
+        for match in re.finditer(env_var_substitution_pattern, elem):
             if env_var_found := environment.get(match.group(1)):
                 str_value = str_value.replace(match.group(0), env_var_found)
 

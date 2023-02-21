@@ -18,6 +18,7 @@ from parsy import regex, string, Parser
 from resotolib.core.model_check import check_overlap_for
 from resotolib.durations import duration_parser, DurationRe
 from resotolib.parse_util import make_parser, variable_dp_backtick, dot_dp
+from resotolib.utils import is_env_var_string
 from resotocore.model.transform_kind_convert import converters
 from resotocore.model.typed_model import from_js, to_js
 from resotocore.types import Json, JsonElement, ValidationResult, ValidationFn, EdgeType
@@ -394,6 +395,8 @@ class StringKind(SimpleKind):
     def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
         if obj is None:
             return None
+        elif is_env_var_string(obj):
+            return None
         elif isinstance(obj, str):
             return self.valid_fn(obj)
         coerced = self.coerce_if_required(obj, **kwargs)
@@ -454,6 +457,8 @@ class NumberKind(SimpleKind):
     def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
         if obj is None:
             return None
+        elif is_env_var_string(obj):
+            return None
         elif isinstance(obj, (int, float)):
             return self.valid_fn(obj)
         coerced = self.coerce_if_required(obj, **kwargs)
@@ -493,6 +498,8 @@ class BooleanKind(SimpleKind):
     def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
         if obj is True or obj is False or obj is None:
             return None
+        elif is_env_var_string(obj):
+            return None
         coerced = self.coerce_if_required(obj, **kwargs)
         if coerced is not None:
             return coerced
@@ -522,6 +529,8 @@ class DurationKind(SimpleKind):
             raise AttributeError(f"Wrong format for duration: {v}. Examples: 1yr, 3mo, 3d4h3min1s, 3days and 2hours")
 
     def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
+        if is_env_var_string(obj):
+            return None
         return self.valid_fn(obj)
 
     def coerce_if_required(self, value: Any, **kwargs: bool) -> Optional[str]:
@@ -556,6 +565,8 @@ class DateTimeKind(SimpleKind):
         return None if DateTimeKind.DateTimeRe.fullmatch(obj) else parse_datetime()
 
     def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
+        if is_env_var_string(obj):
+            return None
         return self.valid_fn(obj)
 
     def coerce_if_required(self, value: JsonElement, **kwargs: bool) -> Optional[str]:
@@ -608,6 +619,8 @@ class DateKind(SimpleKind):
         return None if DateKind.DateRe.fullmatch(obj) else date.fromisoformat(obj)
 
     def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
+        if is_env_var_string(obj):
+            return None
         return self.valid_fn(obj)
 
     def coerce_if_required(self, value: JsonElement, **kwargs: bool) -> Optional[str]:
@@ -978,6 +991,8 @@ class ComplexKind(Kind):
                 return result.rstrip()
             elif isinstance(e, list):
                 return "[]"
+            elif is_env_var_string(e):
+                return str(e)
             elif isinstance(e, str):
                 return safe_string(e, "'")
             elif e is None:

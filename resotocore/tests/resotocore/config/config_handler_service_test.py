@@ -1,5 +1,6 @@
 from textwrap import dedent
 from typing import List
+import os
 
 import pytest
 from pytest import fixture
@@ -30,6 +31,12 @@ def config_model() -> List[Kind]:
             [],
             [
                 Property("some_number", "int32", required=True, description="Some number.\nAnd some description."),
+                Property(
+                    "some_number_env_var",
+                    "int32",
+                    required=False,
+                    description="Some env var substitution.\nAnd some description.",
+                ),
                 Property("some_string", "string", required=True, description="Some string.\nAnd some description."),
                 Property("some_sub", "sub_section", required=True, description="Some sub.\nAnd some description."),
             ],
@@ -194,13 +201,22 @@ async def test_config_validation(config_handler: ConfigHandler, config_model: Li
 @pytest.mark.asyncio
 async def test_config_yaml(config_handler: ConfigHandler, config_model: List[Kind]) -> None:
     await config_handler.update_configs_model(config_model)
-    config = {"some_number": 32, "some_string": "test", "some_sub": {"num": 32}}
+    config = {
+        "some_number": 32,
+        "some_number_env_var": "$(SOME_NUMBER)",
+        "some_string": "test",
+        "some_sub": {"num": 32},
+    }
+    os.environ["SOME_NUMBER"] = "42"
     expect_comment = dedent(
         """
         section:
           # Some number.
           # And some description.
           some_number: 32
+          # Some env var substitution.
+          # And some description.
+          some_number_env_var: $(SOME_NUMBER)
           # Some string.
           # And some description.
           some_string: 'test'
@@ -211,10 +227,12 @@ async def test_config_yaml(config_handler: ConfigHandler, config_model: List[Kin
             num: 32
         """
     ).strip()
+    # no attached model -> '32' is not coerced into 32
     expect_no_comment = dedent(
         """
         another_section:
           some_number: 32
+          some_number_env_var: $(SOME_NUMBER)
           some_string: test
           some_sub:
             num: 32
@@ -223,11 +241,23 @@ async def test_config_yaml(config_handler: ConfigHandler, config_model: List[Kin
     # config has section with attached model
     test_config_id = ConfigId("test")
     await config_handler.put_config(ConfigEntity(test_config_id, {"section": config}))
-    assert expect_comment in (await config_handler.config_yaml(test_config_id) or "")
+    config_yaml = await config_handler.config_yaml(test_config_id) or ""
+    assert expect_comment in config_yaml
     # different section with no attached model
     nomodel_config_id = ConfigId("no_model")
     await config_handler.put_config(ConfigEntity(nomodel_config_id, {"another_section": config}))
     assert expect_no_comment in (await config_handler.config_yaml(nomodel_config_id) or "")
+
+    expect_json = {
+        "some_number": 32,
+        "some_number_env_var": 42,
+        "some_string": "test",
+        "some_sub": {"num": 32},
+    }
+    # get config returns the lates version
+    stored_ce = await config_handler.get_config(test_config_id)
+    stored_config = stored_ce.config.get("section") if stored_ce else None
+    assert expect_json == stored_config
 
 
 @pytest.mark.asyncio

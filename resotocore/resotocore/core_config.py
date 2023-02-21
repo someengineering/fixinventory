@@ -17,7 +17,7 @@ from resotocore.ids import ConfigId
 from resotocore.model.model import Kind, Model, ComplexKind
 from resotocore.model.typed_model import from_js, to_js
 from resotocore.types import Json, JsonElement
-from resotocore.util import set_value_in_path, value_in_path, del_value_in_path, merge_json_elements
+from resotocore.util import set_value_in_path, value_in_path, del_value_in_path, deep_merge
 from resotocore.validator import Validator, schema_name
 from resotolib.core.model_export import dataclasses_to_resotocore_model
 from resotolib.utils import replace_env_vars
@@ -644,7 +644,7 @@ def parse_config(args: Namespace, core_config: Json, command_templates: Optional
         with config_file.open() as f:
             try:
                 raw_yaml = yaml.safe_load(f)
-                merged = cast(Json, merge_json_elements(all_config_overrides or {}, raw_yaml))
+                merged = deep_merge(all_config_overrides or {}, raw_yaml)
                 all_config_overrides = merged
             except Exception as e:
                 log.warn(f"Can't read the config override {config_file}, skipping. Reason: {e}")
@@ -660,7 +660,7 @@ def parse_config(args: Namespace, core_config: Json, command_templates: Optional
     if all_config_overrides:
         # here we only care about the resotocore overrides
         core_overrides = all_config_overrides.get("resotocore", {})
-        adjusted = merge_json_elements(adjusted, core_overrides)
+        adjusted = deep_merge(adjusted, core_overrides)
 
     # replace all env vars
     adjusted = replace_env_vars(adjusted, os.environ)

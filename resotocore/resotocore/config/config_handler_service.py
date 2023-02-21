@@ -1,8 +1,10 @@
 import asyncio
+
 from datetime import timedelta
 from typing import Optional, AsyncIterator, List, Any
 import attrs
 import yaml
+import os
 
 from resotocore.analytics import AnalyticsEventSender, CoreEvent
 from resotocore.config import ConfigHandler, ConfigEntity, ConfigValidation
@@ -11,12 +13,13 @@ from resotocore.db.modeldb import ModelDb
 from resotocore.message_bus import MessageBus, CoreMessage
 from resotocore.model.model import Model, Kind, ComplexKind
 from resotocore.types import Json
-from resotocore.util import uuid_str, deep_merge, first, merge_json_elements
+from resotocore.util import uuid_str, deep_merge, first
 from resotocore.worker_task_queue import WorkerTaskQueue, WorkerTask, WorkerTaskName
 from resotocore.ids import TaskId, ConfigId
 from resotocore.core_config import CoreConfig
-
 from resotocore.types import JsonElement
+
+from resotolib.utils import replace_env_vars
 
 import re
 
@@ -76,16 +79,29 @@ class ConfigHandlerService(ConfigHandler):
     def list_config_ids(self) -> AsyncIterator[ConfigId]:
         return self.cfg_db.keys()
 
-    async def get_config(self, cfg_id: ConfigId, apply_overrides: bool = True) -> Optional[ConfigEntity]:
+    async def get_config(
+        self, cfg_id: ConfigId, apply_overrides: bool = True, resolve_env_vars: bool = True
+    ) -> Optional[ConfigEntity]:
         conf = await self.cfg_db.get(cfg_id)
         if conf is None:
             return None
 
+        # apply overrides if they exist and we do not opt out
+        # we do not want to apply overrides if the config is to be shown during editing
         updated_conf = (
-            merge_json_elements(conf.config, self.core_config.overrides)
+            deep_merge(conf.config, self.core_config.overrides)
             if self.core_config.overrides and apply_overrides
             else conf.config
         )
+
+        # reslove env vars
+        # we do not want to resolve env vars if the config is to be shown to the user when editing,
+        # otherwise sensitive data might be exposed
+        if resolve_env_vars:
+            resolved_conf = {k: replace_env_vars(v, os.environ) for k, v in updated_conf.items()}
+            coerced_conf = await self.coerce_and_check_model(cfg_id, resolved_conf)
+            updated_conf = coerced_conf
+
         new_ce = attrs.evolve(
             conf,
             config=updated_conf,
@@ -145,7 +161,7 @@ class ConfigHandlerService(ConfigHandler):
         return updated
 
     async def config_yaml(self, cfg_id: ConfigId, revision: bool = False) -> Optional[str]:
-        config = await self.get_config(cfg_id, apply_overrides=False)
+        config = await self.get_config(cfg_id, apply_overrides=False, resolve_env_vars=False)
         if config:
             model = await self.get_configs_model()
 
