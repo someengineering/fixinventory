@@ -647,7 +647,7 @@ def parse_config(args: Namespace, core_config: Json, command_templates: Optional
                 merged = deep_merge(all_config_overrides or {}, raw_yaml)
                 all_config_overrides = merged
             except Exception as e:
-                log.warn(f"Can't read the config override {config_file}, skipping. Reason: {e}")
+                log.warning(f"Can't read the config override {config_file}, skipping. Reason: {e}")
 
     # set the relevant value in the json config model
     migrated = migrate_core_config(core_config)
