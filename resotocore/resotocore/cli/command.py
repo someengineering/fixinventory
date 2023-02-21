@@ -118,7 +118,6 @@ from resotocore.query.model import (
     AggregateVariableName,
     AggregateVariableCombined,
     Aggregate,
-    variable_to_absolute,
 )
 from resotocore.query.query_parser import parse_query, aggregate_parameter_parser
 from resotocore.query.template_expander import tpl_props_p
@@ -738,9 +737,8 @@ class DescendantsPart(SearchCLIPart):
 @define(slots=True)
 class _AggregateIntermediateResult:
     group_count: int = 0
-    fn_values: Dict[str, tuple[Optional[int], int]] = field(
-        factory=lambda: defaultdict(lambda: (None, 0))
-    )  # name -> (value, count)
+    # function_result_name -> (value, count)
+    fn_values: Dict[str, tuple[Optional[int], int]] = field(factory=lambda: defaultdict(lambda: (None, 0)))
 
 
 class AggregateCommand(SearchCLIPart):
@@ -815,9 +813,18 @@ class AggregateCommand(SearchCLIPart):
         return [ArgInfo(expects_value=True, value_hint="aggregate", help_text="aggregation specification")]
 
     @staticmethod
-    async def count_in(
+    async def aggregate_in(
         content: Stream, group_props: Optional[List[str]] = None, fn_props: Optional[List[AggregateFunction]] = None
     ) -> Dict[tuple[Any, ...], _AggregateIntermediateResult]:
+        """
+        Aggregate the number of elements in the stream, grouped by the provided group properties and
+        aggregated by the given aggregate functions.
+
+        :param content: the stream to aggregate
+        :param group_props: the properties to group by
+        :param fn_props: the aggregate functions to apply
+        :return: A dictionary with the group properties as key and the aggregate result as value
+        """
         counter: Dict[tuple[Any, ...], _AggregateIntermediateResult] = defaultdict(_AggregateIntermediateResult)
         empty_tuple = ()
 
@@ -844,7 +851,7 @@ class AggregateCommand(SearchCLIPart):
             value = fn.name if isinstance(fn.name, int) else value_at(o, fn.name)
             name = fn.as_name or str(fn.name)
             ex_fn_val, ex_fn_count = r.fn_values[name]
-            if fn.function in ("sum", "avg"):
+            if fn.function in ("sum", "avg", "count"):
                 r.fn_values[name] = (combine_optional(ex_fn_val, value, lambda a, b: a + b), ex_fn_count + 1)
             elif fn.function == "min":
                 if ex_fn_val is None or ex_fn_val > value:
@@ -866,19 +873,17 @@ class AggregateCommand(SearchCLIPart):
         return counter
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
-        aggregate = Aggregate(*aggregate_parameter_parser.parse(arg)).change_variable(
-            partial(variable_to_absolute, None)
-        )
-        ag_vars = aggregate.group_by
-        ag_functions = aggregate.group_func
-        var_names: List[str] = [n for gv in ag_vars for n in gv.all_names()]
-        fn_by_name = {fn.as_name or str(fn.name): fn for fn in ag_functions}
+        # read aggregate and interpret all variables in the same section as the rest of the command
+        aggregate = Aggregate(*aggregate_parameter_parser.parse(arg)).change_variable(ctx.variable_in_section)
+        var_names: List[str] = [n for gv in aggregate.group_by for n in gv.all_names()]
+        # lookup the function by result name
+        fn_by_name = {fn.as_name or str(fn.name): fn.function for fn in aggregate.group_func}
 
         def group(keys: tuple[Any, ...]) -> Json:
             lookup = dict(zip(var_names or [], keys))
 
             result = {}
-            for av in ag_vars:
+            for av in aggregate.group_by:
                 if isinstance(av.name, AggregateVariableCombined):
                     value = ""
                     for p in av.name.parts:
@@ -894,11 +899,10 @@ class AggregateCommand(SearchCLIPart):
 
         async def aggregate_data(content: Stream) -> AsyncIterator[JsonElement]:
             async with content.stream() as in_stream:
-                for key, value in (await self.count_in(in_stream, var_names, ag_functions)).items():
+                for key, value in (await self.aggregate_in(in_stream, var_names, aggregate.group_func)).items():
                     entry: Json = {"group": group(key)}
                     for fn_name, (fn_val, fn_count) in value.fn_values.items():
-                        fn = fn_by_name[fn_name]
-                        if fn.function == "avg" and fn_val is not None and fn_count > 0:
+                        if fn_by_name.get(fn_name) == "avg" and fn_val is not None and fn_count > 0:
                             fn_val = fn_val / fn_count  # type: ignore
                         entry[fn_name] = fn_val
                     yield entry

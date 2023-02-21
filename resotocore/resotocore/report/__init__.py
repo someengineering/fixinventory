@@ -116,7 +116,8 @@ class CheckResult:
     def to_node(self) -> Json:
         reported = to_js(self.check)
         reported["number_of_resources_failing"] = self.number_of_resources_failing
-        reported["number_of_resources_failing_by_account"] = self.number_of_resources_failing_by_account
+        if self.number_of_resources_failing_by_account:
+            reported["number_of_resources_failing_by_account"] = self.number_of_resources_failing_by_account
         return dict(id=self.node_id, kind="report_check_result", type="node", reported=reported)
 
 

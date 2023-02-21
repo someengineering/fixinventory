@@ -210,25 +210,25 @@ class Term(abc.ABC):
             raise AttributeError(f"Don't know how to combine with {op}")
 
     def or_term(self, other: Term) -> Term:
-        if isinstance(self, AllTerm):
+        if isinstance(self, AllTerm):  # all or x == all
             return self
-        elif isinstance(other, AllTerm):
+        elif isinstance(other, AllTerm):  # x or all == all
             return other
-        elif isinstance(self, MergeTerm):
+        elif isinstance(self, MergeTerm):  # combining a merge term needs special handling
             return self.or_merge_term(other)
-        elif isinstance(other, MergeTerm):
+        elif isinstance(other, MergeTerm):  # combining a merge term needs special handling
             return other.or_merge_term(self)
         else:
             return CombinedTerm(self, "or", other)
 
     def and_term(self, other: Term) -> Term:
-        if isinstance(self, AllTerm):
+        if isinstance(self, AllTerm):  # all and x == x
             return other
-        elif isinstance(other, AllTerm):
+        elif isinstance(other, AllTerm):  # x and all == x
             return self
-        elif isinstance(self, MergeTerm):
+        elif isinstance(self, MergeTerm):  # combining a merge term needs special handling
             return self.and_merge_term(other)
-        elif isinstance(other, MergeTerm):
+        elif isinstance(other, MergeTerm):  # combining a merge term needs special handling
             return other.and_merge_term(self)
         else:
             return CombinedTerm(self, "and", other)
