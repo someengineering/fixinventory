@@ -510,9 +510,11 @@ class RuntimeConfig(ConfigObject):
     usage_metrics: bool = field(
         default=True,
         metadata={
-            "description": "Help us improving Resoto by collecting usage metrics.\n"
-            "See https://resoto.com/docs/reference/telemetry for more information.\n"
-            "This data is anonymous. No personally identifiable information is captured or stored."
+            "description": "Usage metrics provide information like errors and bugs, "
+            "which we rely on to improve Resoto with every release.\n"
+            "All metrics are anonymous. "
+            "See https://resoto.com/docs/edge/reference/telemetry for more information.\n"
+            "Please help us by leaving this setting turned on."
         },
     )
 
