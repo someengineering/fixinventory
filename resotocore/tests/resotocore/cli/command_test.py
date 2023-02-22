@@ -892,6 +892,7 @@ async def test_pagerduty_alias(cli: CLI, echo_http_server: Tuple[int, List[Tuple
     # override timestamp
     assert response["payload"]["timestamp"] is not None
     response["payload"]["timestamp"] = "2023-02-10T15:03:33Z"
+    print(requests[0][1])
     assert requests[0][1] == {
         "payload": {
             "summary": "test",
@@ -899,9 +900,9 @@ async def test_pagerduty_alias(cli: CLI, echo_http_server: Tuple[int, List[Tuple
             "source": "Resoto",
             "severity": "warning",
             "component": "Resoto",
-            "custom_details": [
-                {"cloud": None, "account": None, "region": None, "name": "yes or no", "kind": "bla"},
-            ],
+            "custom_details": {
+                "no-cloud": {"no-account": {"no-region": {"0_0": {"id": None, "name": "yes or no", "kind": "bla"}}}}
+            },
         },
         "routing_key": "123",
         "dedup_key": "234",
