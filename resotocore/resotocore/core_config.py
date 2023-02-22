@@ -359,13 +359,15 @@ def alias_templates() -> List[AliasTemplateConfig]:
                 "This way you do not need to provide it every time you execute the command."
             ),
             template=(
-                # aggregate the result by account and region - flat the results, since pagerduty only allows flat data
-                "head 100 | jq --no-rewrite {"
-                "cloud: .ancestors.cloud.reported.name, "
-                "account: .ancestors.account.reported.name, "
-                "region: .ancestors.region.reported.name, "
-                "name: .reported.name, "
-                "kind: .reported.kind} | chunk 100 "
+                # aggregate the result by cloud -> account -> region -> resource
+                # resulting structure looks like this:
+                # {"aws": {"account1": {"region1": {"id1": {"id": "xxx", "name": "yyy", "kind": "zzz" }}}}}
+                # note: Pagerduty is able to render JSON objects in their webUI, but not arrays.
+                "head 100 | chunk 100 | jq --no-rewrite '"
+                '[group_by(.ancestors.cloud.reported.name) | .[] | {(.[0].ancestors.cloud.reported.name // "no-cloud"): '  # noqa: E501
+                '[group_by(.ancestors.account.reported.name) | .[] | {(.[0].ancestors.account.reported.name // "no-account"): '  # noqa: E501
+                '[group_by(.ancestors.region.reported.name) | .[] | {(.[0].ancestors.region.reported.name // "no-region"): '  # noqa: E501
+                "[.[] | {(.id): {id: .reported.id, name: .reported.name, kind: .reported.kind}}] | add }] | add }] | add }] | add'"  # noqa: E501
                 "| jq --no-rewrite '{payload: "
                 '{summary: "{{summary}}", '
                 'timestamp: "@utc@", '
