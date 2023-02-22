@@ -883,7 +883,7 @@ async def test_jira_alias(cli: CLI, echo_http_server: Tuple[int, List[Tuple[Requ
 async def test_pagerduty_alias(cli: CLI, echo_http_server: Tuple[int, List[Tuple[Request, Json]]]) -> None:
     port, requests = echo_http_server
     result = await cli.execute_cli_command(
-        f'search is(bla) | head 1 | pagerduty --webhook-url "http://localhost:{port}/success" --summary test --routing-key 123 --dedup-key 234',
+        f'search id(0_0) | pagerduty --webhook-url "http://localhost:{port}/success" --summary test --routing-key 123 --dedup-key 234',
         stream.list,
     )
     assert result == [["1 requests with status 200 sent."]]
