@@ -953,13 +953,29 @@ class ComplexKind(Kind):
         else:
             return None
 
-    def create_yaml(self, elem: JsonElement, initial_level: int = 0) -> str:
+    def create_yaml(self, elem: JsonElement, initial_level: int = 0, overrides: Optional[Json] = None) -> str:
         def safe_string(s: str, default_style: Optional[str] = None) -> str:
             return remove_suffix(
                 yaml.dump(s, allow_unicode=True, width=sys.maxsize, default_style=default_style), "\n...\n"
             ).strip()
 
-        def walk_element(e: JsonElement, kind: Kind, indent: int, cr_on_object: bool = True) -> str:
+        def override_note(overrides: Optional[Json], prop_name: str) -> Optional[str]:
+            if overrides:
+                override = overrides.get(prop_name)
+                # leaf node of the override tree
+                if isinstance(override, (str, list, int, float, bool)):
+                    note = (
+                        "Warning: the current value is being ignored because there "
+                        "is an active override in place. "
+                        f"The override value is: {override}"
+                    )
+                    return note
+
+            return None
+
+        def walk_element(
+            e: JsonElement, kind: Kind, indent: int, cr_on_object: bool = True, overrides: Optional[Json] = None
+        ) -> str:
             if isinstance(e, dict):
                 result = "\n" if cr_on_object else ""
                 prepend = "  " * indent
@@ -971,9 +987,23 @@ class ComplexKind(Kind):
                         if maybe_prop:
                             description = maybe_prop[0].description
                             sub = maybe_prop[1]
+                            # if we're in a complex kind, add the override note
+                            if note := override_note(overrides, maybe_prop[0].name):
+                                description = f"{description}\n{note}" if description else note
                     elif isinstance(kind, DictionaryKind):
                         sub = kind.value_kind
-                    str_value = walk_element(value, sub, indent + 1)
+                        # if we're in a dict, add the override note
+                        if note := override_note(overrides, prop):
+                            description = f"{description}\n{note}" if description else note
+
+                    override_child = None
+                    # check if there are overrides to be passed down the tree
+                    if overrides:
+                        override_child = overrides.get(prop) or {}
+                        if not isinstance(override_child, dict):
+                            # overrides can't be traversed further
+                            override_child = None
+                    str_value = walk_element(value, sub, indent + 1, overrides=override_child)
                     if description:
                         for line in description.splitlines():
                             result += f"{prepend}# {line}\n"
@@ -1004,7 +1034,7 @@ class ComplexKind(Kind):
             else:
                 return str(e)
 
-        return walk_element(elem, self, initial_level)
+        return walk_element(elem, self, initial_level, overrides=overrides)
 
     @staticmethod
     def resolve_properties(

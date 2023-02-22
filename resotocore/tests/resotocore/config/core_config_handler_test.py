@@ -38,9 +38,9 @@ async def test_exit_on_updated_config(
 ) -> None:
     try:
         await core_config_handler.start()
-        await asyncio.sleep(1)
+        await asyncio.sleep(0.1)
         await message_bus.emit_event(CoreMessage.ConfigUpdated, {"id": ResotoCoreConfigId})
-        await asyncio.sleep(1)
+        await asyncio.sleep(0.1)
         assert len(core_config_handler_exits) == 1
     finally:
         await core_config_handler.stop()
@@ -81,7 +81,7 @@ async def test_detect_usage_metrics_turned_off(
     await config_handler.patch_config(
         ConfigEntity(ResotoCoreConfigId, {ResotoCoreRoot: {"runtime": {"usage_metrics": False}}})
     )
-    await asyncio.sleep(1)
+    await asyncio.sleep(0.1)
     events: List[AnalyticsEvent] = core_config_handler_started.event_sender.events  # type: ignore # in-memory sender
     assert len(events) == 1
     assert events[0].kind == CoreEvent.UsageMetricsTurnedOff

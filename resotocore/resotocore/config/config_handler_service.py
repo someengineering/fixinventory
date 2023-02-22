@@ -21,8 +21,6 @@ from resotocore.types import JsonElement
 
 from resotolib.utils import replace_env_vars
 
-import re
-
 
 class ConfigHandlerService(ConfigHandler):
     def __init__(
@@ -172,39 +170,26 @@ class ConfigHandlerService(ConfigHandler):
                         key: overridden_parts(
                             existing.get(key) if isinstance(existing, dict) else existing, update[key]
                         )
-                        for key in update.keys()
+                        for key in set(update.keys())
                     }
                 else:
 
                     def mkstr(val: Any) -> str:
-                        return f'[{", ".join(val)}]' if isinstance(val, list) else str(val)
+                        if isinstance(val, list):
+                            return f'[{", ".join(val)}]'
+                        return str(val)
 
-                    if existing is None:
-                        return f"{mkstr(update)} - new value"
-
-                    return f"{mkstr(update)} - previously was {mkstr(existing)}"
+                    return mkstr(update)
 
             yaml_str = ""
 
-            if self.core_config.overrides:
-                yaml_str += (
-                    "# The config was manually overridden. "
-                    "Configured values will be replaced with the following config:\n"
-                )
-                override_yml = yaml.dump(
-                    overridden_parts(config.config, self.core_config.overrides),
-                    sort_keys=False,
-                    allow_unicode=True,
-                )
-                override_yml = override_yml.rstrip()
-                override_yml = re.sub(r"^", "# ", override_yml, flags=re.MULTILINE)
-                yaml_str += override_yml
-                yaml_str += "\n\n"
+            overrides = overridden_parts(config.config, self.core_config.overrides)
+            overrides_json = overrides if isinstance(overrides, dict) else {}
 
             for num, (key, value) in enumerate(config.config.items()):
                 maybe_kind = model.get(key)
                 if isinstance(maybe_kind, ComplexKind):
-                    part = maybe_kind.create_yaml(value, initial_level=1)
+                    part = maybe_kind.create_yaml(value, initial_level=1, overrides=overrides_json.get(key) or {})
                     if num > 0:
                         yaml_str += "\n"
                     yaml_str += key + ":" + part

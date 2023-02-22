@@ -1,5 +1,5 @@
 from textwrap import dedent
-from typing import List
+from typing import List, cast
 import os
 
 import pytest
@@ -254,10 +254,35 @@ async def test_config_yaml(config_handler: ConfigHandler, config_model: List[Kin
         "some_string": "test",
         "some_sub": {"num": 32},
     }
-    # get config returns the lates version
+    # get config returns the latest version
     stored_ce = await config_handler.get_config(test_config_id)
     stored_config = stored_ce.config.get("section") if stored_ce else None
     assert expect_json == stored_config
+
+    override = {"section": {"some_number": 1337}}
+    expect_override_comment = dedent(
+        """
+        section:
+          # Some number.
+          # And some description.
+          # Warning: the current value is being ignored because there is an active override in place. The override value is: 1337
+          some_number: 32
+          # Some env var substitution.
+          # And some description.
+          some_number_env_var: $(SOME_NUMBER)
+          # Some string.
+          # And some description.
+          some_string: 'test'
+          # Some sub.
+          # And some description.
+          some_sub:
+            # Some arbitrary number.
+            num: 32
+        """
+    ).strip()
+    cast(ConfigHandlerService, config_handler).core_config.overrides = override
+    config_with_override_yaml = await config_handler.config_yaml(test_config_id) or ""
+    assert expect_override_comment in config_with_override_yaml
 
 
 @pytest.mark.asyncio
