@@ -892,7 +892,6 @@ async def test_pagerduty_alias(cli: CLI, echo_http_server: Tuple[int, List[Tuple
     # override timestamp
     assert response["payload"]["timestamp"] is not None
     response["payload"]["timestamp"] = "2023-02-10T15:03:33Z"
-    print(requests[0][1])
     assert requests[0][1] == {
         "payload": {
             "summary": "test",
