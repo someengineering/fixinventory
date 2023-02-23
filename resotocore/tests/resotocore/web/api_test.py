@@ -50,10 +50,12 @@ async def core_client(
     config_path = Path(config_dir.name) / "config.yaml"
 
     with config_path.open("w") as override_config:
-        override_config.write("""
+        override_config.write(
+            """
 l1:
     l2: 42
-        """)
+        """
+        )
 
     process = Process(
         target=run,
@@ -71,7 +73,8 @@ l1:
                 "--override",
                 f"resotocore.api.web_port={port}",
                 "resotocore.api.web_hosts=0.0.0.0",
-                "--override-path", str(config_path),
+                "--override-path",
+                str(config_path),
             ],
         ),
     )
@@ -353,8 +356,8 @@ async def test_config(core_client: ApiClient, foo_kinds: List[rc.Kind]) -> None:
     assert await core_client.patch_config(cfg_id, {"b": 2}) == {"a": 1, "b": 2}
     assert await core_client.patch_config(cfg_id, {"c": 3}) == {"a": 1, "b": 2, "c": 3}
 
-    # get config
-    assert await core_client.config(cfg_id) == {"a": 1, "b": 2, "c": 3}
+    # get config, l1 is there because of the active override
+    assert await core_client.config(cfg_id) == {"a": 1, "b": 2, "c": 3, "l1": {"l2": 42}}
 
     # list configs
     assert [conf async for conf in core_client.configs()] == [cfg_id]
@@ -363,14 +366,6 @@ async def test_config(core_client: ApiClient, foo_kinds: List[rc.Kind]) -> None:
     await core_client.delete_config(cfg_id)
     assert [conf async for conf in core_client.configs()] == []
 
-
-@pytest.mark.asyncio
-async def test_config_with_overrides(core_client: ApiClient, foo_kinds: List[rc.Kind]) -> None:
-    # make sure we have a clean slate
-    async for config in core_client.configs():
-        await core_client.delete_config(config)
-
-    # put config
     cfg_id = "override_test"
 
     # set a simple state, the override should not be applied since
