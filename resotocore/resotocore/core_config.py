@@ -7,7 +7,7 @@ from contextlib import suppress
 from copy import deepcopy
 from datetime import timedelta
 from pathlib import Path
-from typing import Optional, List, ClassVar, Dict, Union, cast
+from typing import Optional, List, ClassVar, Dict, Union, cast, Any
 
 from arango.database import StandardDatabase
 from attrs import define, field
@@ -542,7 +542,7 @@ class CoreConfig(ConfigObject):
     custom_commands: CustomCommandsConfig
     args: Namespace
     run: RunConfig
-    overrides: Optional[Json]
+    overrides: Dict[ConfigId, Json]
 
     @property
     def editable(self) -> "EditableConfig":
@@ -638,16 +638,24 @@ def parse_config(args: Namespace, core_config: Json, command_templates: Optional
             config_files.append(path)
 
     # json with all merged overrides for all components such as resotocore, resotoworker, etc.
-    all_config_overrides: Optional[Json] = None
+    overrides_json: Json = {}
     # merge all provided overrides into a single object, preferring the values from the last override
     for config_file in config_files:
         with config_file.open() as f:
             try:
                 raw_yaml = yaml.safe_load(f)
-                merged = deep_merge(all_config_overrides or {}, raw_yaml)
-                all_config_overrides = merged
+                merged = deep_merge(overrides_json, raw_yaml)
+                overrides_json = merged
             except Exception as e:
                 log.warning(f"Can't read the config override {config_file}, skipping. Reason: {e}")
+
+    def is_dict(config_id: str, obj: Any) -> bool:
+        if not isinstance(obj, dict):
+            log.warning(f"Config override with id {config_id} contains invalid data, skipping.")
+            return False
+        return True
+
+    all_config_overrides: Dict[ConfigId, Json] = {ConfigId(k): v for k, v in overrides_json.items() if is_dict(k, v)}
 
     # set the relevant value in the json config model
     migrated = migrate_core_config(core_config)
@@ -656,11 +664,11 @@ def parse_config(args: Namespace, core_config: Json, command_templates: Optional
         if value is not None:
             adjusted = set_value_in_path(value, path, adjusted)
 
+    # here we only care about the resotocore overrides
+    core_config_overrides = all_config_overrides.get(ResotoCoreConfigId, {}).get("resotocore")
     # merge the file overrides into the adjusted config
-    if all_config_overrides:
-        # here we only care about the resotocore overrides
-        core_overrides = all_config_overrides.get("resotocore", {})
-        adjusted = deep_merge(adjusted, core_overrides)
+    if core_config_overrides:
+        adjusted = deep_merge(adjusted, core_config_overrides)
 
     # replace all env vars
     adjusted = replace_env_vars(adjusted, os.environ)

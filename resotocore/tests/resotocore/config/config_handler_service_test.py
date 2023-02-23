@@ -1,5 +1,5 @@
 from textwrap import dedent
-from typing import List, cast
+from typing import List, cast, Dict
 import os
 
 import pytest
@@ -13,6 +13,7 @@ from resotocore.message_bus import CoreMessage, Event, Message
 from tests.resotocore.message_bus_test import wait_for_message
 from resotocore.model.model import Kind, ComplexKind, Property
 from resotocore.model.typed_model import to_js, from_js
+from resotocore.types import Json
 
 
 @fixture
@@ -246,7 +247,8 @@ async def test_config_yaml(config_handler: ConfigHandler, config_model: List[Kin
     # different section with no attached model
     nomodel_config_id = ConfigId("no_model")
     await config_handler.put_config(ConfigEntity(nomodel_config_id, {"another_section": config}))
-    assert expect_no_comment in (await config_handler.config_yaml(nomodel_config_id) or "")
+    nomodel_config_yaml = await config_handler.config_yaml(nomodel_config_id) or ""
+    assert expect_no_comment in nomodel_config_yaml
 
     expect_json = {
         "some_number": 32,
@@ -280,7 +282,9 @@ async def test_config_yaml(config_handler: ConfigHandler, config_model: List[Kin
             num: 32
         """
     ).strip()
-    cast(ConfigHandlerService, config_handler).core_config.overrides = override
+    cast(ConfigHandlerService, config_handler).core_config.overrides = cast(
+        Dict[ConfigId, Json], {test_config_id: override}
+    )
     config_with_override_yaml = await config_handler.config_yaml(test_config_id) or ""
     assert expect_override_comment in config_with_override_yaml
 

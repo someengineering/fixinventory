@@ -196,7 +196,14 @@ def parse_args(args: Optional[List[str]] = None) -> Namespace:
         "Note: this argument allows multiple overrides separated by space, in this case the "
         "resulting configuration will be the merge of all the provided files, in the order they are provided."
         "The same section can be overridden multiple times, in this case the last override will be used."
-        "Example: --override-path /path/to/config/dir/ /path/to/your/config.yaml",
+        "Example: --override-path /path/to/config/dir/ /path/to/your/config.yaml"
+        "Be sure to specify the correct config id in the yaml, e.g. override for resotoworker would looke like:\n"
+        """
+resoto.worker:
+    resotoworker:
+        ...
+    aws:
+        ...""",
     )
     parser.add_argument(
         "--verbose", "-v", dest="verbose", default=False, action="store_true", help="Enable verbose logging."

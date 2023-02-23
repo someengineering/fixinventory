@@ -86,11 +86,9 @@ class ConfigHandlerService(ConfigHandler):
 
         # apply overrides if they exist and we do not opt out
         # we do not want to apply overrides if the config is to be shown during editing
-        updated_conf = (
-            deep_merge(conf.config, self.core_config.overrides)
-            if self.core_config.overrides and apply_overrides
-            else conf.config
-        )
+        overrides = self.core_config.overrides.get(cfg_id)
+
+        updated_conf = deep_merge(conf.config, overrides) if overrides and apply_overrides else conf.config
 
         # reslove env vars
         # we do not want to resolve env vars if the config is to be shown to the user when editing,
@@ -183,7 +181,7 @@ class ConfigHandlerService(ConfigHandler):
 
             yaml_str = ""
 
-            overrides = overridden_parts(config.config, self.core_config.overrides)
+            overrides = overridden_parts(config.config, self.core_config.overrides.get(cfg_id) or {})
             overrides_json = overrides if isinstance(overrides, dict) else {}
 
             for num, (key, value) in enumerate(config.config.items()):

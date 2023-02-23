@@ -23,7 +23,6 @@ from resotocore.dependencies import parse_args
 from resotocore.model.typed_model import to_js, from_js
 from resotocore.types import Json
 from resotocore.util import value_in_path
-from typing import Any
 
 
 def test_parse_empty(default_config: CoreConfig) -> None:
@@ -103,9 +102,10 @@ def test_config_override(config_json: Json) -> None:
         resotocore_1_conf = Path(tmp, "resotocore.yml")
         resotocore_1_conf.write_text(
             """
-resotocore:
-    api:
-        web_hosts: ["11.12.13.14"]
+resoto.core:
+    resotocore:
+        api:
+            web_hosts: ["11.12.13.14"]
         """,
             encoding="utf-8",
         )
@@ -114,18 +114,20 @@ resotocore:
         resotocore_2_conf = Path(tmp, "resotocore-1.yml")
         resotocore_2_conf.write_text(
             """
-resotocore:
-    api:
-        web_port: $(WEB_PORT)
-        web_path: "$(DO_NOT_REPLACE_ME)"
+resoto.core:
+    resotocore:
+        api:
+            web_port: $(WEB_PORT)
+            web_path: "$(DO_NOT_REPLACE_ME)"
         """
         )
 
         resotoworker_conf = Path(tmp, "resotoworker.yml")
         resotoworker_conf.write_text(
             """
-resotoworker:
-  collector: ['digitalocean', '$(OTHER_COLLECTOR)']
+resoto.worker:
+    resotoworker:
+        collector: ['digitalocean', '$(OTHER_COLLECTOR)']
             """
         )
 
@@ -141,10 +143,14 @@ resotoworker:
         assert parsed.api.web_path == "$(DO_NOT_REPLACE_ME)"
 
         assert parsed.overrides == {
-            "resotocore": {
-                "api": {"web_hosts": ["11.12.13.14"], "web_port": "$(WEB_PORT)", "web_path": "$(DO_NOT_REPLACE_ME)"}
+            "resoto.core": {
+                "resotocore": {
+                    "api": {"web_hosts": ["11.12.13.14"], "web_port": "$(WEB_PORT)", "web_path": "$(DO_NOT_REPLACE_ME)"}
+                },
             },
-            "resotoworker": {"collector": ["digitalocean", "$(OTHER_COLLECTOR)"]},
+            "resoto.worker": {
+                "resotoworker": {"collector": ["digitalocean", "$(OTHER_COLLECTOR)"]},
+            },
         }
 
 

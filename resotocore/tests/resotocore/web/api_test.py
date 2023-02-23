@@ -52,8 +52,9 @@ async def core_client(
     with config_path.open("w") as override_config:
         override_config.write(
             """
-l1:
-    l2: 42
+test_override_conifg_id:
+    l1:
+        l2: 42
         """
         )
 
@@ -356,8 +357,8 @@ async def test_config(core_client: ApiClient, foo_kinds: List[rc.Kind]) -> None:
     assert await core_client.patch_config(cfg_id, {"b": 2}) == {"a": 1, "b": 2}
     assert await core_client.patch_config(cfg_id, {"c": 3}) == {"a": 1, "b": 2, "c": 3}
 
-    # get config, l1 is there because of the active override
-    assert await core_client.config(cfg_id) == {"a": 1, "b": 2, "c": 3, "l1": {"l2": 42}}
+    # get config
+    assert await core_client.config(cfg_id) == {"a": 1, "b": 2, "c": 3}
 
     # list configs
     assert [conf async for conf in core_client.configs()] == [cfg_id]
@@ -366,21 +367,23 @@ async def test_config(core_client: ApiClient, foo_kinds: List[rc.Kind]) -> None:
     await core_client.delete_config(cfg_id)
     assert [conf async for conf in core_client.configs()] == []
 
-    cfg_id = "override_test"
+    cfg_override_id = "test_override_conifg_id"
 
     # set a simple state, the override should not be applied since
     # we want to get a DB value only
-    put_result = await core_client.put_config(cfg_id, {"l1": {"l2": 1}})
+    put_result = await core_client.put_config(cfg_override_id, {"l1": {"l2": 1}})
     assert put_result == {"l1": {"l2": 1}}
 
     # get config, override should be applied
-    with_overrides = await core_client.config(cfg_id)
+    with_overrides = await core_client.config(cfg_override_id)
     assert with_overrides == {"l1": {"l2": 42}}
 
     # get config with overrides in different section
-    resp = await core_client._get(f"/config/{cfg_id}", params={"merge_overrides": "false"})
+    resp = await core_client._get(f"/config/{cfg_override_id}", params={"merge_overrides": "false"})
     json = await resp.json()
     assert json == {
         "config": {"l1": {"l2": 1}},
-        "overrides": {"l1": {"l2": 42}},
+        "overrides": {
+            "test_override_conifg_id": {"l1": {"l2": 42}},
+        },
     }
