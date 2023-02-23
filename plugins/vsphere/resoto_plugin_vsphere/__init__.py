@@ -3,7 +3,7 @@ from datetime import datetime
 from resotolib.logger import log
 from resotolib.config import Config
 from resotolib.baseplugin import BaseCollectorPlugin
-from resotolib.baseresources import BaseResource, InstanceStatus
+from resotolib.baseresources import InstanceStatus
 
 from .vsphere_client import get_vsphere_client
 from .resources import (
@@ -131,7 +131,6 @@ class VSphereCollectorPlugin(BaseCollectorPlugin):
 
         content = get_vsphere_client().client.RetrieveContent()
         datacenters = [entity for entity in content.rootFolder.childEntity if hasattr(entity, "vmFolder")]
-        dcs = []
         # datacenter are root folder objects
         for dc in datacenters:
             log.debug(f"Found datacenter - {dc._moId} - {dc.name}")
