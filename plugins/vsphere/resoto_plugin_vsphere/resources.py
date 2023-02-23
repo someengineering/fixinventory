@@ -118,6 +118,9 @@ class VSphereInstance(BaseInstance, VSphereResource):
 class VSphereTemplate(BaseResource, VSphereResource):
     kind: ClassVar[str] = "vsphere_template"
 
+    def _get_default_resource_pool(self) -> vim.ResourcePool:
+        return self._vsphere_client().get_object([vim.ResourcePool], "Resources")
+
     def _template(self):
         return self._vsphere_client().get_object([vim.VirtualMachine], self.name)
 
@@ -126,8 +129,25 @@ class VSphereTemplate(BaseResource, VSphereResource):
             log.error(f"Could not find vm name {self.name} with id {self.id}")
 
         log.debug(f"Deleting resource {self.id} in account {self.account(graph).id} region {self.region(graph).id}")
+        
+        log.debug(f"Mark template {self.id} as vm")
+        try:
+            self._template().MarkAsVirtualMachine(host=None, pool=self._get_default_resource_pool())
+        except vim.fault.NotFound:
+            log.warning(f"Template {self.name} ({self.id}) not found - expecting we're done")
+            return True
+        except Exception as e:
+            log.exception(f"Unexpected error: {e}")
+            return False
+
         log.info(f"Destroying Template {self.id} with name {self.name}")
         task = self._template().Destroy_Task()
         self._vsphere_client().wait_for_tasks([task])
         log.debug(f"Task finished - state: {task.info.state}")
         return True
+
+    def update_tag(self, key, value) -> bool:
+        return NotImplemented
+
+    def delete_tag(self, key) -> bool:
+        return NotImplemented
