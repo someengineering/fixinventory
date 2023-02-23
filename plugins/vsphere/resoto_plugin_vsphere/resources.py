@@ -129,7 +129,7 @@ class VSphereTemplate(BaseResource, VSphereResource):
             log.error(f"Could not find vm name {self.name} with id {self.id}")
 
         log.debug(f"Deleting resource {self.id} in account {self.account(graph).id} region {self.region(graph).id}")
-        
+
         log.debug(f"Mark template {self.id} as vm")
         try:
             self._template().MarkAsVirtualMachine(host=None, pool=self._get_default_resource_pool())
