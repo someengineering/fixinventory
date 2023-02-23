@@ -2,6 +2,9 @@ from asyncio import sleep
 from contextlib import suppress
 from multiprocessing import Process
 from typing import AsyncIterator, List
+from pathlib import Path
+import tempfile
+
 
 import pytest
 from _pytest.fixtures import fixture
@@ -42,6 +45,16 @@ async def core_client(
     await db_access.model_db.wipe()
     await db_access.model_db.update_many(foo_kinds)
 
+    config_dir = tempfile.TemporaryDirectory()
+
+    config_path = Path(config_dir.name) / "config.yaml"
+
+    with config_path.open("w") as override_config:
+        override_config.write("""
+l1:
+    l2: 42
+        """)
+
     process = Process(
         target=run,
         args=(
@@ -58,6 +71,7 @@ async def core_client(
                 "--override",
                 f"resotocore.api.web_port={port}",
                 "resotocore.api.web_hosts=0.0.0.0",
+                "--override-path", str(config_path),
             ],
         ),
     )
@@ -81,6 +95,7 @@ async def core_client(
         process.kill()
         process.join()
     process.close()
+    config_dir.cleanup()
 
 
 g = "graphtest"
@@ -347,3 +362,30 @@ async def test_config(core_client: ApiClient, foo_kinds: List[rc.Kind]) -> None:
     # delete config
     await core_client.delete_config(cfg_id)
     assert [conf async for conf in core_client.configs()] == []
+
+
+@pytest.mark.asyncio
+async def test_config_with_overrides(core_client: ApiClient, foo_kinds: List[rc.Kind]) -> None:
+    # make sure we have a clean slate
+    async for config in core_client.configs():
+        await core_client.delete_config(config)
+
+    # put config
+    cfg_id = "override_test"
+
+    # set a simple state, the override should not be applied since
+    # we want to get a DB value only
+    put_result = await core_client.put_config(cfg_id, {"l1": {"l2": 1}})
+    assert put_result == {"l1": {"l2": 1}}
+
+    # get config, override should be applied
+    with_overrides = await core_client.config(cfg_id)
+    assert with_overrides == {"l1": {"l2": 42}}
+
+    # get config with overrides in different section
+    resp = await core_client._get(f"/config/{cfg_id}", params={"merge_overrides": "false"})
+    json = await resp.json()
+    assert json == {
+        "config": {"l1": {"l2": 1}},
+        "overrides": {"l1": {"l2": 42}},
+    }

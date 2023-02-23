@@ -308,12 +308,29 @@ class Api:
             yml = await self.config_handler.config_yaml(config_id)
             return web.Response(body=yml.encode("utf-8"), content_type="application/yaml") if yml else not_found
         else:
+            # if we don't want to merge overrides in place, send them separately
+            if request.query.get("merge_overrides", "true").lower() == "false":
+                return await self.get_config_with_overrides(request)
+
             config = await self.config_handler.get_config(config_id)
             if config:
                 headers = {"Resoto-Config-Revision": config.revision}
                 return await single_result(request, config.config, headers)
             else:
                 return not_found
+
+    async def get_config_with_overrides(self, request: Request) -> StreamResponse:
+        config_id = ConfigId(request.match_info["config_id"])
+        config = await self.config_handler.get_config(config_id, apply_overrides=False, resolve_env_vars=False)
+        if config:
+            headers = {"Resoto-Config-Revision": config.revision}
+            payload = {
+                "config": config.config,
+                "overrides": self.config.overrides,
+            }
+            return await single_result(request, payload, headers)
+        else:
+            return HTTPNotFound(text="No config with this id")
 
     async def put_config(self, request: Request) -> StreamResponse:
         config_id = ConfigId(request.match_info["config_id"])
