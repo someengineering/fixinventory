@@ -5,3 +5,4 @@ pytest-runner==6.0.0
 pytest-asyncio==0.20.3
 hypothesis==6.68.1
 resotoclient==1.2.1
+watchfiles==0.18.1

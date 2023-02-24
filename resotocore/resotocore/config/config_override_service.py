@@ -1,6 +1,5 @@
 from typing import List, Optional, Callable, Dict, Any, Awaitable
 from pathlib import Path
-from watchfiles import awatch
 import yaml
 import logging
 import asyncio
@@ -8,26 +7,30 @@ from resotocore.types import Json
 from resotocore.ids import ConfigId
 from resotocore.util import deep_merge
 from resotocore.config import ConfigOverride
+from deepdiff import DeepDiff
+import aiofiles.os as aos
 
 log = logging.getLogger("config_override_service")
 
 
 class ConfigOverrideService(ConfigOverride):
-    def __init__(self, override_paths: List[Path]):
+    def __init__(self, override_paths: List[Path], sleep_time: float = 3.0):
         self.override_paths = override_paths
+        self.sleep_time = sleep_time
         self.overrides: Dict[ConfigId, Json] = {}
         self.stop_watcher = asyncio.Event()
         self.override_change_hooks: List[Callable[[Dict[ConfigId, Json]], Awaitable[Any]]] = []
         self.watcher_task: Optional[asyncio.Task[Any]] = None
-
-        self._load_overrides()
+        self.overrides = self._load_overrides()
+        self.mtime_hash: int = 0
 
     def add_override_change_hook(self, hook: Callable[[Dict[ConfigId, Json]], Awaitable[Any]]) -> None:
         self.override_change_hooks.append(hook)
 
-    def _load_overrides(self) -> None:
+    # no async here because pagacache will keep this in memory anyway
+    def _load_overrides(self, silent: bool = False) -> Dict[ConfigId, Json]:
         if not self.override_paths:
-            return
+            return {}
 
         # all config files that will be used
         config_files: List[Path] = []
@@ -55,7 +58,8 @@ class ConfigOverrideService(ConfigOverride):
 
         def is_dict(config_id: str, obj: Any) -> bool:
             if not isinstance(obj, dict):
-                log.warning(f"Config override with id {config_id} contains invalid data, skipping.")
+                if not silent:
+                    log.warning(f"Config override with id {config_id} contains invalid data, skipping.")
                 return False
             return True
 
@@ -65,10 +69,11 @@ class ConfigOverrideService(ConfigOverride):
         }
 
         if all_config_overrides is None:
-            log.info("No config overrides found")
-            return
+            if not silent:
+                log.warning("No config overrides found.")
+            return {}
 
-        self.overrides = all_config_overrides
+        return all_config_overrides
 
     def get_override(self, config_id: ConfigId) -> Optional[Json]:
         return self.overrides.get(config_id)
@@ -78,17 +83,43 @@ class ConfigOverrideService(ConfigOverride):
 
     def watch_for_changes(self) -> None:
         async def watcher() -> None:
-            try:
+            while not self.stop_watcher.is_set():
+                # all config files that needs to be checked for changes
+                config_files: List[Path] = []
+                # do a flatmap on directories
                 for path in self.override_paths:
-                    async for _ in awatch(path, stop_event=self.stop_watcher):
-                        self._load_overrides()
-                        for hook in self.override_change_hooks:
-                            await hook(self.overrides or {})
-            except RuntimeError as err:
-                # a bug in watchfiles causes an 'Already borrowed' error from Rust when exiting:
-                # https://github.com/samuelcolvin/watchfiles/issues/200
-                if str(err).strip() != "Already borrowed":
-                    raise
+                    if await aos.path.isdir(path):
+                        config_files.extend(
+                            [
+                                Path(entry.path)
+                                for entry in await aos.scandir(path)  # scandir avoids extra syscalls
+                                if entry.is_file() and Path(entry.path).suffix in (".yml", ".yaml")
+                            ]
+                        )
+                    else:
+                        config_files.append(path)
+
+                # a quick optimization to avoid reading the files if none has been changed
+                mtime_hash = 0
+                config_files = sorted(config_files)
+                for file in config_files:
+                    mtime_hash = hash((mtime_hash, (await aos.stat(file)).st_mtime))
+
+                if mtime_hash == self.mtime_hash:
+                    await asyncio.sleep(self.sleep_time)
+                    continue
+                self.mtime_hash = mtime_hash
+
+                # fine to block here since it happens once in a lifetime
+                overrides = self._load_overrides(silent=True)
+                diff = DeepDiff(self.overrides, overrides, ignore_order=True)
+
+                if diff:
+                    self.overrides = overrides
+                    for hook in self.override_change_hooks:
+                        await hook(self.overrides)
+
+                await asyncio.sleep(self.sleep_time)
 
         # watcher is already running
         if self.watcher_task:

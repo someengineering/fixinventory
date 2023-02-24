@@ -79,7 +79,7 @@ bar:
             encoding="utf-8",
         )
 
-        override_service = ConfigOverrideService([Path(tmp)])
+        override_service = ConfigOverrideService([Path(tmp)], sleep_time=0.05)
         override_service.watch_for_changes()
         await asyncio.sleep(0.25)  # wait for the watcher to start
 
