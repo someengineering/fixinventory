@@ -210,18 +210,26 @@ class Term(abc.ABC):
             raise AttributeError(f"Don't know how to combine with {op}")
 
     def or_term(self, other: Term) -> Term:
-        if isinstance(self, AllTerm):
+        if isinstance(self, AllTerm):  # all or x == all
             return self
-        elif isinstance(other, AllTerm):
+        elif isinstance(other, AllTerm):  # x or all == all
             return other
+        elif isinstance(self, MergeTerm):  # combining a merge term needs special handling
+            return self.or_merge_term(other)
+        elif isinstance(other, MergeTerm):  # combining a merge term needs special handling
+            return other.or_merge_term(self)
         else:
             return CombinedTerm(self, "or", other)
 
     def and_term(self, other: Term) -> Term:
-        if isinstance(self, AllTerm):
+        if isinstance(self, AllTerm):  # all and x == x
             return other
-        elif isinstance(other, AllTerm):
+        elif isinstance(other, AllTerm):  # x and all == x
             return self
+        elif isinstance(self, MergeTerm):  # combining a merge term needs special handling
+            return self.and_merge_term(other)
+        elif isinstance(other, MergeTerm):  # combining a merge term needs special handling
+            return other.and_merge_term(self)
         else:
             return CombinedTerm(self, "and", other)
 
@@ -450,6 +458,26 @@ class MergeTerm(Term):
     pre_filter: Term
     merge: List[MergeQuery]
     post_filter: Optional[Term] = None
+
+    def or_merge_term(self, other: Term) -> Term:
+        if isinstance(other, MergeTerm):
+            return MergeTerm(
+                pre_filter=self.pre_filter.or_term(other.pre_filter),
+                merge=self.merge + other.merge,
+                post_filter=combine_optional(self.post_filter, other.post_filter, lambda x, y: x.or_term(y)),
+            )
+        else:
+            return evolve(self, pre_filter=self.pre_filter.or_term(other))
+
+    def and_merge_term(self, other: Term) -> Term:
+        if isinstance(other, MergeTerm):
+            return MergeTerm(
+                pre_filter=self.pre_filter.and_term(other.pre_filter),
+                merge=self.merge + other.merge,
+                post_filter=combine_optional(self.post_filter, other.post_filter, lambda x, y: x.and_term(y)),
+            )
+        else:
+            return evolve(self, pre_filter=self.pre_filter.and_term(other))
 
     def __str__(self) -> str:
         merge = ", ".join(str(q) for q in self.merge)
@@ -702,6 +730,12 @@ class AggregateVariable:
         with_as = f" as {self.as_name}" if self.as_name else ""
         return f"{self.name}{with_as}"
 
+    def all_names(self) -> List[str]:
+        if isinstance(self.name, AggregateVariableCombined):
+            return [avn.name for avn in self.name.parts if isinstance(avn, AggregateVariableName)]
+        else:
+            return [self.name.name]
+
     def get_as_name(self) -> str:
         def from_name() -> str:
             return self.name.name.rsplit(".", 1)[-1] if isinstance(self.name, AggregateVariableName) else str(self.name)
@@ -712,10 +746,7 @@ class AggregateVariable:
         return evolve(self, name=self.name.change_variable(fn))
 
     def property_paths(self) -> Set[str]:
-        if isinstance(self.name, AggregateVariableName):
-            return {self.name.name}
-        else:
-            return {name.name for name in self.name.parts if isinstance(name, AggregateVariableName)}
+        return set(self.all_names())
 
 
 @define(order=True, hash=True, frozen=True)

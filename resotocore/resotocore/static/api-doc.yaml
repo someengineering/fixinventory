@@ -2345,6 +2345,16 @@ paths:
             type: string
           example: "resoto"
           required: true
+        - name: accounts
+          description: |
+            Comma separated list of account ids to include in the benchmark.
+            If no value is given, all accounts are included.
+          in: query
+          schema:
+            type: string
+          required: false
+          explode: false
+          example: 123456789012,123456789013
       responses:
         "200":
           description: "The checks result."
@@ -2355,6 +2365,50 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Graph"
+
+  /report/check/{check_id}/graph/{graph_id}:
+    get:
+      summary: "List all resources that match a given check."
+      description: >
+        Perform the check identified by the given check identifier on the graph with provided identifier.
+        It is possible to filter the list further by providing a list of account ids.
+      tags:
+        - report
+      parameters:
+        - name: graph_id
+          in: path
+          description: "The ID of the graph to check."
+          schema:
+            type: string
+          example: "resoto"
+          required: true
+        - name: check_id
+          in: path
+          description: "The ID of the check to perform."
+          schema:
+            type: string
+          example: "aws_ec2_snapshot_encrypted"
+          required: true
+        - name: accounts
+          in: query
+          description: "Only show resources in one of the provided accounts."
+          schema:
+            type: string
+          explode: false
+          example: 123456789012,123456789013
+      responses:
+        "200":
+          description: "The checks result."
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: "#/components/schemas/Node"
+            application/ndjson:
+              schema:
+                items:
+                  $ref: "#/components/schemas/Node"
+
 
   /report/checks/graph/{graph_id}:
     get:
@@ -2394,6 +2448,16 @@ paths:
           schema:
             type: string
           example: "aws_ec2_instance"
+        - name: accounts
+          description: |
+            Comma separated list of account ids to include in the benchmark.
+            If no value is given, all accounts are included.
+          in: query
+          schema:
+            type: string
+          required: false
+          explode: false
+          example: 123456789012,123456789013
       responses:
         "200":
           description: "The checks result."
@@ -2735,9 +2799,12 @@ components:
           description: "The kind of this node."
       example:
         {
-          "kind": "test.person",
-          "name": "Batman",
-          "city": "Gotham"
+          "id": "123456",
+          "reported": {
+            "kind": "test.person",
+            "name": "Batman",
+            "city": "Gotham"
+          }
         }
     NodeInGraph:
       type: object

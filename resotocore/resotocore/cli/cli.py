@@ -31,7 +31,7 @@ from resotocore.cli.command import (
     SuccessorsPart,
     AncestorsPart,
     DescendantsPart,
-    AggregatePart,
+    AggregateCommand,
     CountCommand,
     HeadCommand,
     TailCommand,
@@ -354,7 +354,7 @@ class CLI:
             elif isinstance(part, DescendantsPart):
                 origin, edge = PredecessorsPart.parse_args(arg, ctx)
                 query = query.traverse_out(origin, Navigation.Max, edge)
-            elif isinstance(part, AggregatePart):
+            elif isinstance(part, AggregateCommand):
                 group_vars, group_function_vars = aggregate_parameter_parser.parse(arg)
                 query = evolve(query, aggregate=Aggregate(group_vars, group_function_vars))
             elif isinstance(part, CountCommand):

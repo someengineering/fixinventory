@@ -3,7 +3,8 @@ from __future__ import annotations
 import logging
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import List, Optional, Dict, ClassVar
+from functools import reduce
+from typing import List, Optional, Dict, ClassVar, AsyncIterator
 
 from attr import define, field
 
@@ -99,19 +100,24 @@ class Benchmark(CheckCollection):
     id: str
     framework: str
     version: str
+    clouds: Optional[List[str]] = None
 
 
 @define
 class CheckResult:
     check: ReportCheck
-    passed: bool
-    number_of_resources_failing: int
+    number_of_resources_failing_by_account: Dict[str, int]
     node_id: str = field(init=False, default=uuid_str())
+
+    @property
+    def number_of_resources_failing(self) -> int:
+        return reduce(lambda a, b: a + b, self.number_of_resources_failing_by_account.values(), 0)
 
     def to_node(self) -> Json:
         reported = to_js(self.check)
-        reported["passed"] = self.passed
         reported["number_of_resources_failing"] = self.number_of_resources_failing
+        if self.number_of_resources_failing_by_account:
+            reported["number_of_resources_failing_by_account"] = self.number_of_resources_failing_by_account
         return dict(id=self.node_id, kind="report_check_result", type="node", reported=reported)
 
 
@@ -122,10 +128,6 @@ class CheckCollectionResult:
     documentation: Optional[str] = field(default=None, kw_only=True)
     checks: List[CheckResult] = field(factory=list, kw_only=True)
     children: List[CheckCollectionResult] = field(factory=list, kw_only=True)
-    passed: bool = field(default=False, kw_only=True)
-    resources_failing: int = field(default=0, kw_only=True)
-    checks_passing: int = field(default=0, kw_only=True)
-    checks_failing: int = field(default=0, kw_only=True)
     node_id: str = field(init=False, default=uuid_str())
 
     def to_node(self) -> Json:
@@ -137,10 +139,6 @@ class CheckCollectionResult:
                 title=self.title,
                 description=self.description,
                 documentation=self.documentation,
-                passed=self.passed,
-                number_of_resources_failing=self.resources_failing,
-                checks_passing=self.checks_passing,
-                checks_failing=self.checks_failing,
             ),
         )
 
@@ -202,12 +200,15 @@ class Inspector(ABC):
         """
 
     @abstractmethod
-    async def perform_benchmark(self, benchmark_name: str, graph: str) -> BenchmarkResult:
+    async def perform_benchmark(
+        self, benchmark_name: str, graph: str, accounts: Optional[List[str]] = None
+    ) -> BenchmarkResult:
         """
         Perform a benchmark by given name on the content of a graph with given name.
 
         :param benchmark_name: the name of the benchmark to perform (e.g. aws_cis_1_5_0)
         :param graph: the name of the graph to perform the benchmark on (e.g. resoto)
+        :param accounts: the list of accounts to perform the benchmark on. If not given, all accounts are used.
         :return: the result of the benchmark
         """
 
@@ -219,6 +220,7 @@ class Inspector(ABC):
         service: Optional[str] = None,
         category: Optional[str] = None,
         kind: Optional[str] = None,
+        accounts: Optional[List[str]] = None,
     ) -> BenchmarkResult:
         """
         Perform a benchmark by selecting all checks matching the given criteria.
@@ -228,8 +230,15 @@ class Inspector(ABC):
         :param service: the service inside the provider (e.g. ec2, lambda, ...)
         :param category: the category of the check (e.g. security, compliance, cost ...)
         :param kind: the resulting kind of the check (e.g. aws_ec2_instance, kubernetes_pod, ...)
+        :param accounts: the list of accounts to perform the benchmark on. If not given, all accounts are used.
         :return: the result of this benchmark
         """
+
+    @abstractmethod
+    async def list_failing_resources(
+        self, graph: str, check_uid: str, account_ids: Optional[List[str]] = None
+    ) -> AsyncIterator[Json]:
+        pass
 
     @abstractmethod
     async def validate_benchmark_config(self, json: Json) -> Optional[Json]:

@@ -2,6 +2,7 @@ from pytest import fixture
 
 from resotocore.cli.cli import CLI
 from resotocore.config import ConfigEntity
+from resotocore.ids import ConfigId
 from resotocore.report import BenchmarkConfigRoot, CheckConfigRoot
 from resotocore.report.inspector_service import InspectorService, check_id, benchmark_id
 from resotocore.report.report_config import (
@@ -67,6 +68,7 @@ def benchmark() -> Json:
             framework="test",
             version="1.0",
             checks=["test_test_search", "test_test_cmd"],
+            clouds=["test"],
         )
     )
 
@@ -102,12 +104,8 @@ async def test_list_inspect_checks(inspector_service: InspectorService) -> None:
 async def test_perform_benchmark(inspector_service_with_test_benchmark: InspectorService) -> None:
     inspector = inspector_service_with_test_benchmark
     result = await inspector.perform_benchmark("test", inspector.cli.cli_env["graph"])
-    assert result.passed is False
-    assert result.resources_failing == 22
     assert result.checks[0].number_of_resources_failing == 11
-    assert result.checks[0].passed is False
     assert result.checks[1].number_of_resources_failing == 11
-    assert result.checks[1].passed is False
 
 
 async def test_benchmark_node_result(inspector_service_with_test_benchmark: InspectorService) -> None:
@@ -133,4 +131,20 @@ async def test_predefined_benchmarks(inspector_service: InspectorService) -> Non
     benchmarks = BenchmarkConfig.from_files()
     assert len(benchmarks) > 0
     for name, check in benchmarks.items():
-        assert (await inspector_service.validate_benchmark_config({BenchmarkConfigRoot: check})) is None
+        config = {BenchmarkConfigRoot: check}
+        assert (await inspector_service.validate_benchmark_config(config)) is None
+        benchmark = BenchmarkConfig.from_config(ConfigEntity(ConfigId("test"), config))
+        assert benchmark.clouds == ["aws"]
+
+
+async def test_list_failing(inspector_service_with_test_benchmark: InspectorService) -> None:
+    inspector = inspector_service_with_test_benchmark
+    graph = inspector.cli.cli_env["graph"]
+    search_res = [r async for r in await inspector.list_failing_resources(graph, "test_test_search")]
+    assert len(search_res) == 11
+    cmd_res = [r async for r in await inspector.list_failing_resources(graph, "test_test_cmd")]
+    assert len(cmd_res) == 11
+    search_res_account = [r async for r in await inspector.list_failing_resources(graph, "test_test_search", ["n/a"])]
+    assert len(search_res_account) == 0
+    cmd_res_account = [r async for r in await inspector.list_failing_resources(graph, "test_test_cmd", ["n/a"])]
+    assert len(cmd_res_account) == 0

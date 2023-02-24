@@ -1,17 +1,18 @@
 import asyncio
 import logging
-from typing import Optional, List, Dict, Tuple, Callable
+from typing import Optional, List, Dict, Tuple, Callable, AsyncIterator
 
 from aiostream import stream
-from attr import evolve
+from attr import evolve, define
 
 from resotocore.cli.cli import CLI
 from resotocore.cli.model import CLIContext
 from resotocore.config import ConfigEntity, ConfigHandler
 from resotocore.db.model import QueryModel
+from resotocore.error import NotFoundError
 from resotocore.ids import ConfigId
 from resotocore.model.model import Model
-from resotocore.query.model import Aggregate, AggregateFunction
+from resotocore.query.model import Aggregate, AggregateFunction, Query, P, AggregateVariable, AggregateVariableName
 from resotocore.report import (
     Inspector,
     ReportCheck,
@@ -34,6 +35,8 @@ from resotocore.web.service import Service
 
 log = logging.getLogger(__name__)
 
+CountByAccount = Dict[str, int]
+
 
 def benchmark_id(name: str) -> ConfigId:
     return ConfigId(BenchmarkConfigPrefix + name)
@@ -41,6 +44,12 @@ def benchmark_id(name: str) -> ConfigId:
 
 def check_id(name: str) -> ConfigId:
     return ConfigId(CheckConfigPrefix + name)
+
+
+@define
+class CheckContext:
+    accounts: Optional[List[str]] = None
+    parallel_checks: int = 10
 
 
 class InspectorService(Inspector, Service):
@@ -85,12 +94,15 @@ class InspectorService(Inspector, Service):
 
         return await self.filter_checks(inspection_matches)
 
-    async def perform_benchmark(self, benchmark_name: str, graph: str) -> BenchmarkResult:
+    async def perform_benchmark(
+        self, benchmark_name: str, graph: str, accounts: Optional[List[str]] = None
+    ) -> BenchmarkResult:
         cfg = await self.config_handler.get_config(benchmark_id(benchmark_name))
         if cfg is None or BenchmarkConfigRoot not in cfg.config:
             raise ValueError(f"Unknown benchmark: {benchmark_name}")
         benchmark = BenchmarkConfig.from_config(cfg)
-        return await self.__perform_benchmark(benchmark, graph)
+        context = CheckContext(accounts=accounts)
+        return await self.__perform_benchmark(benchmark, graph, context)
 
     async def perform_checks(
         self,
@@ -99,6 +111,7 @@ class InspectorService(Inspector, Service):
         service: Optional[str] = None,
         category: Optional[str] = None,
         kind: Optional[str] = None,
+        accounts: Optional[List[str]] = None,
     ) -> BenchmarkResult:
         checks = await self.list_checks(provider, service, category, kind)
         provider_name = f"{provider}_" if provider else ""
@@ -116,7 +129,8 @@ class InspectorService(Inspector, Service):
             checks=[c.id for c in checks],
             children=[],
         )
-        return await self.__perform_benchmark(benchmark, graph)
+        context = CheckContext(accounts=accounts)
+        return await self.__perform_benchmark(benchmark, graph, context)
 
     async def filter_checks(self, report_filter: Optional[Callable[[ReportCheck], bool]] = None) -> List[ReportCheck]:
         cfg_ids = [i async for i in self.config_handler.list_config_ids() if i.startswith(CheckConfigPrefix)]
@@ -129,43 +143,65 @@ class InspectorService(Inspector, Service):
         ]
         # fmt: on
 
-    async def __perform_benchmark(self, benchmark: Benchmark, graph: str) -> BenchmarkResult:
+    async def list_failing_resources(
+        self, graph: str, check_uid: str, account_ids: Optional[List[str]] = None
+    ) -> AsyncIterator[Json]:
+        context = CheckContext(accounts=account_ids)
+        return await self.__list_failing_resources(graph, check_uid, context)
+
+    async def __list_failing_resources(self, graph: str, check_uid: str, context: CheckContext) -> AsyncIterator[Json]:
+        checks = await self.list_checks(check_ids=[check_uid])
+        if not checks:
+            raise NotFoundError(f"Check {check_uid} not found")
+        inspection = checks[0]
+        # load model
+        model = await self.model_handler.load_model()
+        # load configuration
+        cfg_entity = await self.config_handler.get_config(ResotoReportValues)
+        cfg = cfg_entity.config if cfg_entity else {}
+        # final environment: defaults are coming from the check and are eventually overriden in the config
+        env = inspection.environment(cfg)
+        account_id_prop = "ancestors.account.reported.id"
+        # if the result kind is an account, we need to use the id directly instead of walking the graph
+        if (result_kind := model.get(inspection.result_kind)) and "account" in result_kind.kind_hierarchy():
+            account_id_prop = "reported.id"
+
+        async def perform_search(search: str) -> AsyncIterator[Json]:
+            # parse query
+            query = await self.template_expander.parse_query(search, on_section="reported", **env)
+            # filter only relevant accounts if provided
+            if context.accounts:
+                query = Query.by(P.single(account_id_prop).is_in(context.accounts)).combine(query)
+            async with await self.db_access.get_graph_db(graph).search_list(QueryModel(query, model)) as ctx:
+                async for result in ctx:
+                    yield result
+
+        async def perform_cmd(cmd: str) -> AsyncIterator[Json]:
+            # filter only relevant accounts if provided
+            if context.accounts:
+                account_list = ",".join(f'"{a}"' for a in context.accounts)
+                cmd = f"search /{account_id_prop} in [{account_list}] | " + cmd
+            cli_result = await self.cli.execute_cli_command(cmd, stream.list, CLIContext(env=env))
+            for result in cli_result[0]:
+                yield result
+
+        if resoto_search := inspection.detect.get("resoto"):
+            return perform_search(resoto_search)
+        elif resoto_cmd := inspection.detect.get("resoto_cmd"):
+            return perform_cmd(resoto_cmd)
+        else:
+            return stream.empty()  # type: ignore
+
+    async def __perform_benchmark(self, benchmark: Benchmark, graph: str, context: CheckContext) -> BenchmarkResult:
         perform_checks = await self.list_checks(check_ids=benchmark.nested_checks())
         check_by_id = {c.id: c for c in perform_checks}
-        result = await self.__perform_checks(graph, perform_checks)
-
-        def check_result(cid: str) -> CheckResult:
-            check = check_by_id[cid]
-            num_failing = result.get(cid)
-            num_failing = -1 if num_failing is None else num_failing
-            return CheckResult(check, num_failing == 0, max(0, num_failing))
+        result = await self.__perform_checks(graph, perform_checks, context)
 
         def to_result(cc: CheckCollection) -> CheckCollectionResult:
-            check_results = [check_result(c) for c in cc.checks or []]
+            check_results = [CheckResult(check_by_id[cid], result.get(cid, {})) for cid in cc.checks or []]
             children = [to_result(c) for c in cc.children or []]
-            resources_failing = 0
-            checks_failing = 0
-            checks_passing = 0
-            for cr in check_results:
-                resources_failing += cr.number_of_resources_failing
-                if cr.passed:
-                    checks_passing += 1
-                else:
-                    checks_failing += 1
-            for cd in children:
-                resources_failing += cd.resources_failing
-                checks_failing += cd.checks_failing
-                checks_passing += cd.checks_passing
             return CheckCollectionResult(
-                cc.title,
-                cc.description,
-                documentation=cc.documentation,
-                checks=check_results,
-                children=children,
-                passed=checks_failing == 0,
-                resources_failing=resources_failing,
-                checks_failing=checks_failing,
-                checks_passing=checks_passing,
+                cc.title, cc.description, documentation=cc.documentation, checks=check_results, children=children
             )
 
         top = to_result(benchmark)
@@ -177,48 +213,63 @@ class InspectorService(Inspector, Service):
             documentation=benchmark.documentation,
             checks=top.checks,
             children=top.children,
-            passed=top.passed,
-            resources_failing=top.resources_failing,
-            checks_failing=top.checks_failing,
-            checks_passing=top.checks_passing,
         )
 
     async def __perform_checks(
-        self, graph: str, checks: List[ReportCheck], parallel_checks: int = 10
-    ) -> Dict[str, int]:
+        self, graph: str, checks: List[ReportCheck], context: CheckContext
+    ) -> Dict[str, CountByAccount]:
         # load model
         model = await self.model_handler.load_model()
         # load configuration
         cfg_entity = await self.config_handler.get_config(ResotoReportValues)
         cfg = cfg_entity.config if cfg_entity else {}
 
-        async def perform_single(check: ReportCheck) -> Tuple[str, int]:
-            return check.id, await self.__perform_check(graph, model, check, cfg)
+        async def perform_single(check: ReportCheck) -> Tuple[str, CountByAccount]:
+            return check.id, await self.__perform_check(graph, model, check, cfg, context)
 
         async with stream.map(
-            stream.iterate(checks), perform_single, ordered=False, task_limit=parallel_checks
+            stream.iterate(checks), perform_single, ordered=False, task_limit=context.parallel_checks
         ).stream() as streamer:
             return {key: value async for key, value in streamer}
 
-    async def __perform_check(self, graph: str, model: Model, inspection: ReportCheck, config: Json) -> int:
+    async def __perform_check(
+        self, graph: str, model: Model, inspection: ReportCheck, config: Json, context: CheckContext
+    ) -> CountByAccount:
         # final environment: defaults are coming from the check and are eventually overriden in the config
         env = inspection.environment(config)
+        account_id_prop = "ancestors.account.reported.id"
+        # if the result kind is an account, we need to use the id directly instead of walking the graph
+        if (result_kind := model.get(inspection.result_kind)) and "account" in result_kind.kind_hierarchy():
+            account_id_prop = "reported.id"
 
-        async def perform_search(search: str) -> int:
+        async def perform_search(search: str) -> CountByAccount:
             # parse query
             query = await self.template_expander.parse_query(search, on_section="reported", **env)
+            # filter only relevant accounts if provided
+            if context.accounts:
+                query = Query.by(P.single(account_id_prop).is_in(context.accounts)).combine(query)
             # add aggregation to only query for count
-            query = evolve(query, aggregate=Aggregate([], [AggregateFunction("sum", 1, [], "count")]))
+            ag_var = AggregateVariable(AggregateVariableName(account_id_prop), "account_id")
+            ag_fn = AggregateFunction("sum", 1, [], "count")
+            query = evolve(query, aggregate=Aggregate([ag_var], [ag_fn]))
+            account_result: CountByAccount = {}
             async with await self.db_access.get_graph_db(graph).search_aggregation(QueryModel(query, model)) as ctx:
                 async for result in ctx:
-                    return result["count"] or 0  # we expect exactly one result. count==null is considered 0
-            return -1  # we should never reach this point, if we do, we mark the check as failing
+                    account_result[result["group"]["account_id"]] = result["count"] or 0
+            return account_result
 
-        async def perform_cmd(cmd: str) -> int:
-            # adjust command to only count the number of lines
-            result = await self.cli.execute_cli_command(f"{cmd} | count", stream.list, CLIContext(env=env))
-            # TODO: add args to count to get the raw numbers
-            return int(result[0][0].rsplit(" ", 1)[-1])
+        async def perform_cmd(cmd: str) -> CountByAccount:
+            # filter only relevant accounts if provided
+            if context.accounts:
+                account_list = ",".join(f'"{a}"' for a in context.accounts)
+                cmd = f"search /{account_id_prop} in [{account_list}] | " + cmd
+            # aggregate by account
+            aggregate = f"aggregate /{account_id_prop} as account_id: sum(1) as count"
+            cli_result = await self.cli.execute_cli_command(f"{cmd} | {aggregate}", stream.list, CLIContext(env=env))
+            account_result: CountByAccount = {}
+            for result in cli_result[0]:
+                account_result[result["group"]["account_id"]] = result["count"] or 0
+            return account_result
 
         if resoto_search := inspection.detect.get("resoto"):
             return await perform_search(resoto_search)
@@ -226,7 +277,7 @@ class InspectorService(Inspector, Service):
             return await perform_cmd(resoto_cmd)
         elif inspection.detect.get("manual"):
             # let's assume the manual check is successful
-            return 0
+            return {}
         else:
             raise ValueError(f"Invalid inspection {inspection.id}: no resoto or resoto_cmd defined")
 

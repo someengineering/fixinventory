@@ -18,7 +18,7 @@ from pytest import fixture
 from resotocore import version
 from resotocore.cli import is_node
 from resotocore.cli.cli import CLI
-from resotocore.cli.command import HttpCommand, JqCommand, WorkerCustomCommand
+from resotocore.cli.command import HttpCommand, JqCommand, WorkerCustomCommand, AggregateCommand
 from resotocore.cli.model import CLIDependencies, CLIContext
 from resotocore.cli.tip_of_the_day import generic_tips
 from resotocore.console_renderer import ConsoleRenderer, ConsoleColorSystem
@@ -990,3 +990,32 @@ async def test_history(cli: CLI, filled_graph_db: ArangoGraphDB) -> None:
     assert await history_count(f"history is(foo)") == 11
     # combine all selectors
     assert await history_count(f"history --after 5m --before {five_min_later} --change node_created is(foo)") == 11
+
+
+@pytest.mark.asyncio
+async def test_aggregate(cli_deps: CLIDependencies) -> None:
+    in_stream = stream.iterate(
+        [{"a": 1, "b": 1, "c": 1}, {"a": 2, "b": 1, "c": 1}, {"a": 3, "b": 2, "c": 1}, {"a": 4, "b": 2, "c": 1}]
+    )
+
+    async def aggregate(agg_str: str) -> List[Json]:
+        res = AggregateCommand(cli_deps).parse(agg_str)
+        flow = await res.flow(in_stream)
+        return [s async for s in flow]
+
+    assert await aggregate("b as bla, c, r.d.f.name: sum(1) as count, min(a) as min, max(a) as max") == [
+        {"group": {"bla": 1, "c": 1, "r.d.f.name": None}, "count": 2, "min": 1, "max": 2},
+        {"group": {"bla": 2, "c": 1, "r.d.f.name": None}, "count": 2, "min": 3, "max": 4},
+    ]
+    assert await aggregate("b as nb, c as nc: avg(a) as a, avg(b) as b, avg(c) as c") == [
+        {"group": {"nb": 1, "nc": 1}, "a": 1.5, "b": 1, "c": 1},
+        {"group": {"nb": 2, "nc": 1}, "a": 3.5, "b": 2, "c": 1},
+    ]
+    assert await aggregate("b: sum(1) as count") == [
+        {"group": {"b": 1}, "count": 2},
+        {"group": {"b": 2}, "count": 2},
+    ]
+    assert await aggregate('"{b}_{c}_{does_not_exist}" as name: sum(1) as count') == [
+        {"group": {"name": "1_1_null"}, "count": 2},
+        {"group": {"name": "2_1_null"}, "count": 2},
+    ]
