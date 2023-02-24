@@ -18,7 +18,7 @@ class ConfigOverrideService(ConfigOverride):
         self.overrides: Dict[ConfigId, Json] = {}
         self.stop_watcher = asyncio.Event()
         self.override_change_hooks: List[Callable[[Dict[ConfigId, Json]], Awaitable[Any]]] = []
-        self.watcher_task: Optional[asyncio.Task] = None
+        self.watcher_task: Optional[asyncio.Task[Any]] = None
 
         self._load_overrides()
 
