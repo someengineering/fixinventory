@@ -6,6 +6,7 @@ import attrs
 import yaml
 import os
 from deepdiff import DeepDiff
+import hashlib
 
 from resotocore.analytics import AnalyticsEventSender, CoreEvent
 from resotocore.config import ConfigHandler, ConfigEntity, ConfigValidation, ConfigOverride
@@ -233,7 +234,6 @@ class ConfigHandlerService(ConfigHandler):
     async def init_override_watch(self) -> None:
         async def on_override_change(new_overrides: Dict[ConfigId, Json]) -> None:
             def updated_revision(conf: Json, override: Json) -> str:
-                import hashlib
 
                 m = hashlib.sha1(usedforsecurity=False)
                 m.update(yaml.dump(conf).encode("utf-8"))
