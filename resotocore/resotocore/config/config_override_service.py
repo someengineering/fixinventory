@@ -1,12 +1,12 @@
 from typing import List, Optional, Callable, Dict, Any, Awaitable
 from pathlib import Path
 from watchfiles import awatch
-from resotocore.types import Json
-from resotocore.ids import ConfigId
 import yaml
-from resotocore.util import deep_merge
 import logging
 import asyncio
+from resotocore.types import Json
+from resotocore.ids import ConfigId
+from resotocore.util import deep_merge
 from resotocore.config import ConfigOverride
 
 log = logging.getLogger("config_override_service")

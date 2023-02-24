@@ -14,12 +14,11 @@ from resotocore.db.configdb import ConfigEntityDb, ConfigValidationEntityDb
 from resotocore.db.modeldb import ModelDb
 from resotocore.message_bus import MessageBus, CoreMessage
 from resotocore.model.model import Model, Kind, ComplexKind
-from resotocore.types import Json
+from resotocore.types import Json, JsonElement
 from resotocore.util import uuid_str, deep_merge, first
 from resotocore.worker_task_queue import WorkerTaskQueue, WorkerTask, WorkerTaskName
 from resotocore.ids import TaskId, ConfigId
 from resotocore.core_config import CoreConfig
-from resotocore.types import JsonElement
 
 from resotolib.utils import replace_env_vars
 
