@@ -234,7 +234,6 @@ class ConfigHandlerService(ConfigHandler):
     async def init_override_watch(self) -> None:
         async def on_override_change(new_overrides: Dict[ConfigId, Json]) -> None:
             def updated_revision(conf: Json, override: Json) -> str:
-
                 m = hashlib.sha1(usedforsecurity=False)
                 m.update(yaml.dump(conf).encode("utf-8"))
                 m.update(yaml.dump(override).encode("utf-8"))
