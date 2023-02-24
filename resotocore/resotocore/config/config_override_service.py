@@ -47,7 +47,8 @@ class ConfigOverrideService(ConfigOverride):
             with config_file.open() as f:
                 try:
                     raw_yaml = yaml.safe_load(f)
-                    merged = deep_merge(overrides_json, raw_yaml)
+                    with_config_id = {config_file.stem: raw_yaml}
+                    merged = deep_merge(overrides_json, with_config_id)
                     overrides_json = merged
                 except Exception as e:
                     log.warning(f"Can't read the config override {config_file}, skipping. Reason: {e}")
@@ -77,11 +78,17 @@ class ConfigOverrideService(ConfigOverride):
 
     def watch_for_changes(self) -> None:
         async def watcher() -> None:
-            for path in self.override_paths:
-                async for _ in awatch(path, stop_event=self.stop_watcher):
-                    self._load_overrides()
-                    for hook in self.override_change_hooks:
-                        await hook(self.overrides or {})
+            try:
+                for path in self.override_paths:
+                    async for _ in awatch(path, stop_event=self.stop_watcher):
+                        self._load_overrides()
+                        for hook in self.override_change_hooks:
+                            await hook(self.overrides or {})
+            except RuntimeError as err:
+                # a bug in watchfiles causes an 'Already borrowed' error from Rust when exiting:
+                # https://github.com/samuelcolvin/watchfiles/issues/200
+                if str(err).strip() != "Already borrowed":
+                    raise
 
         # watcher is already running
         if self.watcher_task:

@@ -47,14 +47,13 @@ async def core_client(
 
     config_dir = tempfile.TemporaryDirectory()
 
-    config_path = Path(config_dir.name) / "config.yaml"
+    config_path = Path(config_dir.name) / "test_override_conifg_id.yaml"
 
     with config_path.open("w") as override_config:
         override_config.write(
             """
-test_override_conifg_id:
-    l1:
-        l2: 42
+l1:
+    l2: 42
         """
         )
 

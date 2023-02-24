@@ -13,35 +13,23 @@ def test_get_overrides() -> None:
     # create a temp file with a custom config
     with TemporaryDirectory() as tmp:
         # config with env var override
-        resotocore_1_conf = Path(tmp, "resotocore.yml")
+        resotocore_1_conf = Path(tmp, "resoto.core.yml")
         resotocore_1_conf.write_text(
             """
-resoto.core:
-    resotocore:
-        api:
-            web_hosts: ["11.12.13.14"]
+resotocore:
+    api:
+        web_hosts: ["11.12.13.14"]
+        web_port: $(WEB_PORT)
+        web_path: "$(DO_NOT_REPLACE_ME)"
         """,
             encoding="utf-8",
         )
 
-        # config that overrides the default config and containes an env var which can't be resolved
-        resotocore_2_conf = Path(tmp, "resotocore-1.yml")
-        resotocore_2_conf.write_text(
-            """
-resoto.core:
-    resotocore:
-        api:
-            web_port: $(WEB_PORT)
-            web_path: "$(DO_NOT_REPLACE_ME)"
-        """
-        )
-
-        resotoworker_conf = Path(tmp, "resotoworker.yml")
+        resotoworker_conf = Path(tmp, "resoto.worker.yml")
         resotoworker_conf.write_text(
             """
-resoto.worker:
-    resotoworker:
-        collector: ['digitalocean', '$(OTHER_COLLECTOR)']
+resotoworker:
+    collector: ['digitalocean', '$(OTHER_COLLECTOR)']
             """
         )
 
@@ -85,7 +73,7 @@ async def test_hooks() -> None:
         foo_conf = Path(tmp, "foo.yml")
         foo_conf.write_text(
             """
-foo.config_id:
+bar:
     foo: 42
         """,
             encoding="utf-8",
@@ -107,11 +95,11 @@ foo.config_id:
 
         foo_conf.write_text(
             """
-foo.config_id:
+bar:
     foo: 1337
         """,
             encoding="utf-8",
         )
 
         await asyncio.sleep(0.25)  # wait for the watcher to update the config
-        assert override_update == {"foo.config_id": {"foo": 1337}}
+        assert override_update == {"foo": {"bar": {"foo": 1337}}}
