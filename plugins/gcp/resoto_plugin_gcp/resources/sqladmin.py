@@ -1,3 +1,4 @@
+import logging
 from typing import ClassVar, Dict, Optional, List
 
 from attr import define, field
@@ -8,6 +9,8 @@ from resoto_plugin_gcp.resources.compute import GcpSslCertificate
 from resotolib.baseresources import ModelReference
 from resotolib.json_bender import Bender, S, Bend, ForallBend
 from resotolib.types import Json
+
+log = logging.getLogger("resoto.plugins.gcp")
 
 
 @define(eq=False, slots=False)
@@ -20,6 +23,7 @@ class GcpSqlOperationError:
 
 @define(eq=False, slots=False)
 class GcpSqlBackupRun(GcpResource):
+    # collected via GcpSqlDatabaseInstance
     kind: ClassVar[str] = "gcp_sql_backup_run"
     reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_database_instance"]}}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
@@ -87,6 +91,7 @@ class GcpSqlSqlServerDatabaseDetails:
 
 @define(eq=False, slots=False)
 class GcpSqlDatabase(GcpResource):
+    # collected via GcpSqlDatabaseInstance
     kind: ClassVar[str] = "gcp_sql_database"
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="sqladmin",
@@ -121,6 +126,10 @@ class GcpSqlDatabase(GcpResource):
     database_instance: Optional[str] = field(default=None)
     database_project: Optional[str] = field(default=None)
     database_sqlserver_database_details: Optional[GcpSqlSqlServerDatabaseDetails] = field(default=None)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if self.database_instance:
+            builder.add_edge(self, reverse=True, clazz=GcpSqlDatabaseInstance, name=self.database_instance)
 
 
 @define(eq=False, slots=False)
@@ -619,6 +628,12 @@ class GcpSqlDatabaseInstance(GcpResource):
             if cert.self_link:
                 builder.add_edge(self, reverse=True, clazz=GcpSslCertificate, link=cert.self_link)
 
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        for cls in [GcpSqlBackupRun, GcpSqlDatabase, GcpSqlUser]:
+            if spec := cls.api_spec:
+                items = graph_builder.client.list(spec, instance=self.name, project=self.instance_project)
+                cls.collect(items, graph_builder)
+
 
 @define(eq=False, slots=False)
 class GcpSqlOperationErrors:
@@ -839,6 +854,7 @@ class GcpSqlSqlServerUserDetails:
 
 @define(eq=False, slots=False)
 class GcpSqlUser(GcpResource):
+    # collected via GcpSqlDatabaseInstance
     kind: ClassVar[str] = "gcp_sql_user"
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="sqladmin",
@@ -863,7 +879,6 @@ class GcpSqlUser(GcpResource):
         "user_etag": S("etag"),
         "user_host": S("host"),
         "user_instance": S("instance"),
-        "user_password": S("password"),
         "user_password_policy": S("passwordPolicy", default={}) >> Bend(GcpSqlUserPasswordValidationPolicy.mapping),
         "user_project": S("project"),
         "user_sqlserver_user_details": S("sqlserverUserDetails", default={})
@@ -874,15 +889,14 @@ class GcpSqlUser(GcpResource):
     user_etag: Optional[str] = field(default=None)
     user_host: Optional[str] = field(default=None)
     user_instance: Optional[str] = field(default=None)
-    user_password: Optional[str] = field(default=None)
     user_password_policy: Optional[GcpSqlUserPasswordValidationPolicy] = field(default=None)
     user_project: Optional[str] = field(default=None)
     user_sqlserver_user_details: Optional[GcpSqlSqlServerUserDetails] = field(default=None)
     user_type: Optional[str] = field(default=None)
 
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if self.user_instance:
+            builder.add_edge(self, reverse=True, clazz=GcpSqlDatabaseInstance)
 
-# TODO: GcpSqlBackupRun for every instance
-# TODO: GcpSqlDatabase for every instance
-# TODO: GcpSqlUser for every instance
-# TODO: GcpSqlOperation of every instance
-resources = [GcpSqlFlag, GcpSqlDatabaseInstance]
+
+resources = [GcpSqlFlag, GcpSqlDatabaseInstance, GcpSqlOperation]

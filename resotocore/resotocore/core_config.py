@@ -189,6 +189,12 @@ class AliasTemplateConfig(ConfigObject):
         factory=list, metadata=dict(description="All template parameters.")
     )
     description: Optional[str] = field(metadata=dict(description="A longer description of the command."), default=None)
+    allowed_in_source_position: Optional[bool] = field(
+        metadata=dict(
+            description="true if this alias can be executed directly, false if it expects input from another command."
+        ),
+        default=False,
+    )
 
 
 def alias_templates() -> List[AliasTemplateConfig]:
@@ -225,6 +231,7 @@ def alias_templates() -> List[AliasTemplateConfig]:
                 AliasTemplateParameterConfig("title", "Alert title"),
                 AliasTemplateParameterConfig("webhook", "Discord webhook URL"),
             ],
+            allowed_in_source_position=False,
         ),
         AliasTemplateConfig(
             name="slack",
@@ -262,6 +269,7 @@ def alias_templates() -> List[AliasTemplateConfig]:
                 AliasTemplateParameterConfig("title", "Alert title"),
                 AliasTemplateParameterConfig("webhook", "Slack webhook URL"),
             ],
+            allowed_in_source_position=False,
         ),
         AliasTemplateConfig(
             name="jira",
@@ -302,6 +310,7 @@ def alias_templates() -> List[AliasTemplateConfig]:
                 AliasTemplateParameterConfig("project_id", "Jira project ID"),
                 AliasTemplateParameterConfig("reporter_id", "Jira reporter user ID"),
             ],
+            allowed_in_source_position=False,
         ),
         AliasTemplateConfig(
             name="alertmanager",
@@ -336,14 +345,14 @@ def alias_templates() -> List[AliasTemplateConfig]:
                 AliasTemplateParameterConfig("duration", "The duration of this alert in alertmanager.", "3h"),
                 AliasTemplateParameterConfig("alertmanager_url", "The complete url to alertmanager."),
             ],
+            allowed_in_source_position=False,
         ),
         AliasTemplateConfig(
             name="pagerduty",
             info="Create an alert in pagerduty from a search.",
             description=(
                 "Perform a search and send the result to pagerduty.\n\n"
-                "No resource specific data will be sent to pagerduty. "
-                "The resources are aggregated by account and region with the count of matching resources.\n"
+                "A call to this command will only send the first 100 occurrences to the incident, the rest is dropped. "
                 "The `summary` should explain why this alert is triggered, so that the user can take action.\n"
                 "The `dedup_key` is used to identify an alert uniquely. "
                 "You can fire the same alert multiple times by using the same dedup_key.\n\n"
@@ -351,25 +360,30 @@ def alias_templates() -> List[AliasTemplateConfig]:
                 "This way you do not need to provide it every time you execute the command."
             ),
             template=(
-                # aggregate the result by account and region - flat the results, since pagerduty only allows flat data
-                'aggregate "account_{/ancestors.account.reported.id}__region_{/ancestors.region.reported.id}" as name :'
-                "sum(1) as count | chunk 100 | head 1 | "
-                "jq --no-rewrite 'map({(.group.name // \"none\"): .count}) | add | {details: .}'"
+                # aggregate the result by cloud -> account -> region -> resource
+                # resulting structure looks like this:
+                # {"aws": {"account1": {"region1": {"id1": {"id": "xxx", "name": "yyy", "kind": "zzz" }}}}}
+                # note: Pagerduty is able to render JSON objects in their webUI, but not arrays.
+                "head 100 | chunk 100 | jq --no-rewrite '"
+                '[group_by(.ancestors.cloud.reported.name) | .[] | {(.[0].ancestors.cloud.reported.name // "no-cloud"): '  # noqa: E501
+                '[group_by(.ancestors.account.reported.name) | .[] | {(.[0].ancestors.account.reported.name // "no-account"): '  # noqa: E501
+                '[group_by(.ancestors.region.reported.name) | .[] | {(.[0].ancestors.region.reported.name // "no-region"): '  # noqa: E501
+                "[.[] | {(.id): {id: .reported.id, name: .reported.name, kind: .reported.kind}}] | add }] | add }] | add }] | add'"  # noqa: E501
                 "| jq --no-rewrite '{payload: "
                 '{summary: "{{summary}}", '
                 'timestamp: "@utc@", '
                 'source:"{{source}}", '
                 'severity: "{{severity}}", '
                 'component: "{{component}}", '
-                "custom_details: .details, "
+                "custom_details: .}, "
                 'routing_key: "{{routing_key}}", '
                 'dedup_key: "{{dedup_key}}", '
-                'images:[{src: "https://cdn.some.engineering/assets/resoto-logos/resoto-logo.svg", href: '
-                '"https://resoto.com/", alt: "Resoto Home Page"}], '
+                'images:[{src: "https://cdn.some.engineering/assets/resoto-illustrations/small/resoto-alert.png", href:'
+                ' "https://resoto.com/", alt: "Resoto Home Page"}], '
                 "links:[], "
                 'event_action: "{{event_action}}", '
                 'client: "Resoto Service", '
-                'client_url: "https://resoto.com"}}\''
+                'client_url: "https://resoto.com"}\''
                 # send the event to pagerduty
                 ' | http {{webhook_url}} "Content-Type:application/json"'
             ),
@@ -410,6 +424,7 @@ def alias_templates() -> List[AliasTemplateConfig]:
                     "https://events.pagerduty.com/v2/enqueue",
                 ),
             ],
+            allowed_in_source_position=False,
         ),
     ]
 
@@ -498,9 +513,11 @@ class RuntimeConfig(ConfigObject):
     usage_metrics: bool = field(
         default=True,
         metadata={
-            "description": "Help us improving Resoto by collecting usage metrics.\n"
-            "See https://resoto.com/docs/reference/telemetry for more information.\n"
-            "This data is anonymous. No personally identifiable information is captured or stored."
+            "description": "Usage metrics provide information like errors and bugs, "
+            "which we rely on to improve Resoto with every release.\n"
+            "All metrics are anonymous. "
+            "See https://resoto.com/docs/edge/reference/telemetry for more information.\n"
+            "Please help us by leaving this setting turned on."
         },
     )
 

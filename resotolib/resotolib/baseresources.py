@@ -745,6 +745,17 @@ jsons.set_serializer(serialize_enum, VolumeStatus)
 
 
 @define(eq=False, slots=False)
+class BaseNetworkShare(BaseResource, ABC):
+    kind: ClassVar[str] = "network_share"
+    share_size: int = 0
+    share_type: str = ""
+    share_status: Optional[str] = None
+    share_iops: Optional[int] = None
+    share_throughput: Optional[float] = None  # bytes per second
+    share_encrypted: Optional[bool] = None
+
+
+@define(eq=False, slots=False)
 class BaseVolume(BaseResource):
     kind: ClassVar[str] = "volume"
     volume_size: int = 0

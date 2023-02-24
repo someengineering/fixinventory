@@ -827,7 +827,7 @@ async def test_http_command(cli: CLI, echo_http_server: Tuple[int, List[Tuple[Re
 async def test_discord_alias(cli: CLI, echo_http_server: Tuple[int, List[Tuple[Request, Json]]]) -> None:
     port, requests = echo_http_server
     result = await cli.execute_cli_command(
-        f'search is(bla) | discord webhook="http://localhost:{port}/success" title=test message="test message"',
+        f'search is(bla) | discord --webhook "http://localhost:{port}/success" --title test --message "test message"',
         stream.list,
     )
     # 100 times bla, discord allows 25 fields -> 4 requests
@@ -851,7 +851,7 @@ async def test_discord_alias(cli: CLI, echo_http_server: Tuple[int, List[Tuple[R
 async def test_slack_alias(cli: CLI, echo_http_server: Tuple[int, List[Tuple[Request, Json]]]) -> None:
     port, requests = echo_http_server
     result = await cli.execute_cli_command(
-        f'search is(bla) | slack webhook="http://localhost:{port}/success" title=test message="test message"',
+        f'search is(bla) | slack --webhook "http://localhost:{port}/success" --title test --message "test message"',
         stream.list,
     )
     # 100 times bla, discord allows 25 fields -> 4 requests
@@ -872,7 +872,7 @@ async def test_slack_alias(cli: CLI, echo_http_server: Tuple[int, List[Tuple[Req
 async def test_jira_alias(cli: CLI, echo_http_server: Tuple[int, List[Tuple[Request, Json]]]) -> None:
     port, requests = echo_http_server
     result = await cli.execute_cli_command(
-        f'search is(bla) | jira url="http://localhost:{port}/success" title=test message="test message" username=test token=test project_id=10000 reporter_id=test',
+        f'search is(bla) | jira --url "http://localhost:{port}/success" --title test --message "test message" --username test --token test --project_id 10000 --reporter_id test',
         stream.list,
     )
     assert result == [["1 requests with status 200 sent."]]
@@ -894,7 +894,7 @@ async def test_jira_alias(cli: CLI, echo_http_server: Tuple[int, List[Tuple[Requ
 async def test_pagerduty_alias(cli: CLI, echo_http_server: Tuple[int, List[Tuple[Request, Json]]]) -> None:
     port, requests = echo_http_server
     result = await cli.execute_cli_command(
-        f'search is(bla) | pagerduty webhook_url="http://localhost:{port}/success" summary=test routing_key=123 dedup_key=234',
+        f'search id(0_0) | pagerduty --webhook-url "http://localhost:{port}/success" --summary test --routing-key 123 --dedup-key 234',
         stream.list,
     )
     assert result == [["1 requests with status 200 sent."]]
@@ -910,21 +910,23 @@ async def test_pagerduty_alias(cli: CLI, echo_http_server: Tuple[int, List[Tuple
             "source": "Resoto",
             "severity": "warning",
             "component": "Resoto",
-            "custom_details": {"account___region_": 100},
-            "routing_key": "123",
-            "dedup_key": "234",
-            "images": [
-                {
-                    "src": "https://cdn.some.engineering/assets/resoto-logos/resoto-logo.svg",
-                    "href": "https://resoto.com/",
-                    "alt": "Resoto Home Page",
-                }
-            ],
-            "links": [],
-            "event_action": "trigger",
-            "client": "Resoto Service",
-            "client_url": "https://resoto.com",
-        }
+            "custom_details": {
+                "no-cloud": {"no-account": {"no-region": {"0_0": {"id": None, "name": "yes or no", "kind": "bla"}}}}
+            },
+        },
+        "routing_key": "123",
+        "dedup_key": "234",
+        "images": [
+            {
+                "src": "https://cdn.some.engineering/assets/resoto-illustrations/small/resoto-alert.png",
+                "href": "https://resoto.com/",
+                "alt": "Resoto Home Page",
+            }
+        ],
+        "links": [],
+        "event_action": "trigger",
+        "client": "Resoto Service",
+        "client_url": "https://resoto.com",
     }
 
 

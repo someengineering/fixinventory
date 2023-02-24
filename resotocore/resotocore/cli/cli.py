@@ -24,7 +24,7 @@ from resotolib.parse_util import make_parser, pipe_p, semicolon_p
 from resotolib.utils import get_local_tzinfo
 from resotocore import version
 from resotocore.analytics import CoreEvent
-from resotocore.cli import cmd_with_args_parser, key_values_parser, T, Sink
+from resotocore.cli import cmd_with_args_parser, key_values_parser, T, Sink, args_values_parser
 from resotocore.cli.command import (
     SearchPart,
     PredecessorsPart,
@@ -59,6 +59,7 @@ from resotocore.cli.model import (
     AliasTemplate,
     ArgsInfo,
     ArgInfo,
+    AliasTemplateParameter,
 )
 from resotocore.console_renderer import ConsoleRenderer
 from resotocore.error import CLIParseError
@@ -453,16 +454,23 @@ class CLI:
         def expand_aliases(line: ParsedCommands) -> ParsedCommands:
             def expand_alias(alias_cmd: ParsedCommand) -> List[ParsedCommand]:
                 alias: AliasTemplate = self.alias_templates[alias_cmd.cmd]
+                available: Dict[str, AliasTemplateParameter] = {p.name: p for p in alias.parameters}
                 props: Dict[str, JsonElement] = self.replacements(**{**self.cli_env, **context.env})  # type: ignore
                 props["args"] = alias_cmd.args
                 for p in alias.parameters:
                     props[p.name] = p.default
                 # only parse properties, if there are any declared
                 if alias.parameters:
-                    props.update(key_values_parser.parse(alias_cmd.args or ""))
-                undefined = [k for k, v in props.items() if k != "args" and v is None]
+                    args = (alias_cmd.args or "").strip()
+                    parser = args_values_parser if args.startswith("--") else key_values_parser
+                    props.update(parser.parse(args))
+                undefined = [
+                    available[k].arg_name for k, v in props.items() if k != "args" and v is None and k in available
+                ]
                 if undefined:
-                    raise AttributeError(f"Alias {alias_cmd.cmd} missing attributes: {', '.join(undefined)}")
+                    raise AttributeError(
+                        f"Alias {alias_cmd.cmd} not enough parameters provided. Missing: {', '.join(undefined)}"
+                    )
                 rendered = alias.render(props)
                 log.debug(f"The rendered alias template is: {rendered}")
                 return single_commands.parse(rendered)  # type: ignore
