@@ -3,6 +3,5 @@ pytest==7.2.1
 pytest-cov==4.0.0
 pytest-runner==6.0.0
 pytest-asyncio==0.20.3
-deepdiff==6.2.3
 hypothesis==6.68.1
 resotoclient==1.2.1

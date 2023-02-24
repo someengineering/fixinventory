@@ -130,6 +130,7 @@ class Api:
         cli: CLI,
         query_parser: QueryParser,
         config: CoreConfig,
+        get_override: Callable[[ConfigId], Optional[Json]],
     ):
         self.db = db
         self.model_handler = model_handler
@@ -144,6 +145,8 @@ class Api:
         self.cli = cli
         self.query_parser = query_parser
         self.config = config
+        self.get_override = get_override
+
         self.app = web.Application(
             client_max_size=config.api.max_request_size or 1024**2,
             # note on order: the middleware is passed in the order provided.
@@ -324,10 +327,7 @@ class Api:
         config = await self.config_handler.get_config(config_id, apply_overrides=False, resolve_env_vars=False)
         if config:
             headers = {"Resoto-Config-Revision": config.revision}
-            payload = {
-                "config": config.config,
-                "overrides": self.config.overrides,
-            }
+            payload = {"config": config.config, "overrides": self.get_override(config_id)}
             return await single_result(request, payload, headers)
         else:
             return HTTPNotFound(text="No config with this id")

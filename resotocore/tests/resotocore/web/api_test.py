@@ -383,7 +383,5 @@ async def test_config(core_client: ApiClient, foo_kinds: List[rc.Kind]) -> None:
     json = await resp.json()
     assert json == {
         "config": {"l1": {"l2": 1}},
-        "overrides": {
-            "test_override_conifg_id": {"l1": {"l2": 42}},
-        },
+        "overrides": {"l1": {"l2": 42}},
     }

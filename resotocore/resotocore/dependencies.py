@@ -228,7 +228,7 @@ resoto.worker:
 
 
 def empty_config(args: Optional[List[str]] = None) -> CoreConfig:
-    return parse_config(parse_args(args or []), {})
+    return parse_config(parse_args(args or []), {}, lambda: None)
 
 
 # Note: this method should be called from every started process as early as possible

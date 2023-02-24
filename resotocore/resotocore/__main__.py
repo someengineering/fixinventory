@@ -26,6 +26,7 @@ from resotocore.cli.cli import CLI
 from resotocore.cli.command import alias_names, all_commands
 from resotocore.cli.model import CLIDependencies
 from resotocore.config.config_handler_service import ConfigHandlerService
+from resotocore.config.config_override_service import ConfigOverrideService
 from resotocore.config.core_config_handler import CoreConfigHandler
 from resotocore.core_config import (
     config_from_db,
@@ -34,6 +35,7 @@ from resotocore.core_config import (
     inside_docker,
     inside_kubernetes,
     helm_installation,
+    ResotoCoreConfigId,
 )
 from resotocore.db import SystemData
 from resotocore.db.db_access import DbAccess
@@ -107,18 +109,24 @@ def run_process(args: Namespace) -> None:
             warnings.simplefilter("ignore", HTTPWarning)
             # wait here for an initial connection to the database before we continue. blocking!
             created, system_data, sdb = DbAccess.connect(args, timedelta(seconds=120), verify=False)
-            config = config_from_db(args, sdb)
+            config_override_service = ConfigOverrideService(args.config_override_path)
+            config = config_from_db(args, sdb, lambda: config_override_service.get_override(ResotoCoreConfigId))
             cert_handler = CertificateHandler.lookup(config, sdb, temp)
             verify: Union[bool, str] = False if args.graphdb_no_ssl_verify else str(cert_handler.ca_bundle)
             config = evolve(config, run=RunConfig(temp, verify))
         # in case of tls: connect again with the correct certificate settings
         use_tls = args.graphdb_server.startswith("https://")
         db_client = DbAccess.connect(args, timedelta(seconds=30), verify=verify)[2] if use_tls else sdb
-        with_config(created, system_data, db_client, cert_handler, config)
+        with_config(created, system_data, db_client, cert_handler, config, config_override_service)
 
 
 def with_config(
-    created: bool, system_data: SystemData, sdb: StandardDatabase, cert_handler: CertificateHandler, config: CoreConfig
+    created: bool,
+    system_data: SystemData,
+    sdb: StandardDatabase,
+    cert_handler: CertificateHandler,
+    config: CoreConfig,
+    config_override_service: ConfigOverrideService,
 ) -> None:
     reconfigure_logging(config)  # based on the config, logging might have changed
     # only lg the editable config - to not log any passwords
@@ -139,6 +147,7 @@ def with_config(
         message_bus,
         event_sender,
         config,
+        config_override_service,
     )
     log_ship = event_stream(config, cert_handler.client_context)
     cli_deps = CLIDependencies(
@@ -178,6 +187,7 @@ def with_config(
         cli,
         template_expander,
         config,
+        config_override_service.get_override,
     )
     event_emitter = emit_recurrent_events(
         event_sender, model, subscriptions, worker_task_queue, message_bus, timedelta(hours=1), timedelta(hours=1)
@@ -196,6 +206,8 @@ def with_config(
         await inspector.start()
         await task_handler.start()
         await core_config_handler.start()
+        config_override_service.watch_for_changes()
+        await config_handler.init_override_watch()
         await merge_outer_edges_handler.start()
         await cert_handler.start()
         await log_ship.start()
@@ -232,6 +244,7 @@ def with_config(
         await api.stop()
         await log_ship.stop()
         await cert_handler.stop()
+        config_override_service.stop()
         await core_config_handler.stop()
         await merge_outer_edges_handler.stop()
         await task_handler.stop()

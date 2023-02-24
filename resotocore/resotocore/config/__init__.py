@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from attrs import define
-from typing import Any, Dict, Optional, AsyncIterator, List, cast
+from typing import Any, Dict, Optional, AsyncIterator, List, cast, Callable, Awaitable
 
 from jsons import set_deserializer, set_serializer
 
@@ -136,6 +136,28 @@ class ConfigHandler(ABC):
 
     @abstractmethod
     async def config_yaml(self, cfg_id: ConfigId, revision: bool = False) -> Optional[str]:
+        pass
+
+
+class ConfigOverride(ABC):
+    @abstractmethod
+    def add_override_change_hook(self, hook: Callable[[Dict[ConfigId, Json]], Awaitable[Any]]) -> None:
+        pass
+
+    @abstractmethod
+    def get_override(self, config_id: ConfigId) -> Optional[Json]:
+        pass
+
+    @abstractmethod
+    def get_all_overrides(self) -> Dict[ConfigId, Json]:
+        pass
+
+    @abstractmethod
+    def watch_for_changes(self) -> None:
+        pass
+
+    @abstractmethod
+    def stop(self) -> None:
         pass
 
 

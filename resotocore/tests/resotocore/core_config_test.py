@@ -18,6 +18,7 @@ from resotocore.core_config import (
     CustomCommandsConfig,
     alias_templates,
     ResotoCoreCommandsRoot,
+    ResotoCoreConfigId,
 )
 from resotocore.dependencies import parse_args
 from resotocore.model.typed_model import to_js, from_js
@@ -26,7 +27,7 @@ from resotocore.util import value_in_path
 
 
 def test_parse_empty(default_config: CoreConfig) -> None:
-    result = parse_config(parse_args(["--analytics-opt-out"]), {})
+    result = parse_config(parse_args(["--analytics-opt-out"]), {}, lambda: None)
     assert result == default_config
 
 
@@ -43,7 +44,7 @@ def test_parse_broken(config_json: Json) -> None:
     del cfg["resotocore"]["api"]["web_port"]
 
     # parse this configuration
-    parsed = parse_config(parse_args(["--analytics-opt-out"]), cfg)
+    parsed = parse_config(parse_args(["--analytics-opt-out"]), cfg, lambda: None)
     parsed_json = to_js(parsed.editable, strip_attr="kind")
 
     # web_hosts and web_port were not available and are reverted to the default values
@@ -60,13 +61,13 @@ def test_parse_broken(config_json: Json) -> None:
 
 
 def test_read_config(config_json: Json) -> None:
-    parsed = parse_config(parse_args(["--analytics-opt-out"]), config_json)
+    parsed = parse_config(parse_args(["--analytics-opt-out"]), config_json, lambda: None)
     assert parsed.json() == config_json
 
 
 def test_override_via_cmd_line(default_config: CoreConfig) -> None:
     config = {"runtime": {"debug": False}}
-    parsed = parse_config(parse_args(["--debug"]), config)
+    parsed = parse_config(parse_args(["--debug"]), config, lambda: None)
     assert parsed.runtime.debug == True
 
 
@@ -96,62 +97,25 @@ def test_config_override(config_json: Json) -> None:
     # config_json is a valid parsable config
     cfg = deepcopy(config_json)
 
-    # create a temp file with a custom config
-    with TemporaryDirectory() as tmp:
-        # config with env var override
-        resotocore_1_conf = Path(tmp, "resotocore.yml")
-        resotocore_1_conf.write_text(
-            """
-resoto.core:
-    resotocore:
-        api:
-            web_hosts: ["11.12.13.14"]
-        """,
-            encoding="utf-8",
-        )
-
-        # config that overrides the default config and containes an env var which can't be resolved
-        resotocore_2_conf = Path(tmp, "resotocore-1.yml")
-        resotocore_2_conf.write_text(
-            """
-resoto.core:
-    resotocore:
-        api:
-            web_port: $(WEB_PORT)
-            web_path: "$(DO_NOT_REPLACE_ME)"
-        """
-        )
-
-        resotoworker_conf = Path(tmp, "resotoworker.yml")
-        resotoworker_conf.write_text(
-            """
-resoto.worker:
-    resotoworker:
-        collector: ['digitalocean', '$(OTHER_COLLECTOR)']
-            """
-        )
-
-        os.environ["WEB_PORT"] = "1337"
-
-        # parse this configuration
-        parsed = parse_config(
-            parse_args(["--analytics-opt-out", "--override-path", str(tmp)]),
-            cfg,
-        )
-        assert parsed.api.web_hosts == ["11.12.13.14"]
-        assert parsed.api.web_port == 1337
-        assert parsed.api.web_path == "$(DO_NOT_REPLACE_ME)"
-
-        assert parsed.overrides == {
-            "resoto.core": {
-                "resotocore": {
-                    "api": {"web_hosts": ["11.12.13.14"], "web_port": "$(WEB_PORT)", "web_path": "$(DO_NOT_REPLACE_ME)"}
-                },
-            },
-            "resoto.worker": {
-                "resotoworker": {"collector": ["digitalocean", "$(OTHER_COLLECTOR)"]},
-            },
+    overrides = {
+        "resoto.core": {
+            "resotocore": {
+                "api": {"web_hosts": ["11.12.13.14"], "web_port": "$(WEB_PORT)", "web_path": "$(DO_NOT_REPLACE_ME)"}
+            }
         }
+    }
+
+    os.environ["WEB_PORT"] = "1337"
+
+    # parse this configuration
+    parsed = parse_config(
+        parse_args(["--analytics-opt-out"]),
+        cfg,
+        lambda: overrides.get(ResotoCoreConfigId),
+    )
+    assert parsed.api.web_hosts == ["11.12.13.14"]
+    assert parsed.api.web_port == 1337
+    assert parsed.api.web_path == "$(DO_NOT_REPLACE_ME)"
 
 
 def test_model() -> None:

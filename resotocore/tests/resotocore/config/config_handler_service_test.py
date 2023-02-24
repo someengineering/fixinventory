@@ -6,7 +6,7 @@ import pytest
 from pytest import fixture
 
 from resotocore.analytics import InMemoryEventSender
-from resotocore.config import ConfigHandler, ConfigEntity, ConfigValidation
+from resotocore.config import ConfigHandler, ConfigEntity, ConfigValidation, ConfigOverride
 from resotocore.config.config_handler_service import ConfigHandlerService
 from resotocore.ids import ConfigId
 from resotocore.message_bus import CoreMessage, Event, Message
@@ -14,6 +14,7 @@ from tests.resotocore.message_bus_test import wait_for_message
 from resotocore.model.model import Kind, ComplexKind, Property
 from resotocore.model.typed_model import to_js, from_js
 from resotocore.types import Json
+from types import SimpleNamespace
 
 
 @fixture
@@ -282,8 +283,8 @@ async def test_config_yaml(config_handler: ConfigHandler, config_model: List[Kin
             num: 32
         """
     ).strip()
-    cast(ConfigHandlerService, config_handler).core_config.overrides = cast(
-        Dict[ConfigId, Json], {test_config_id: override}
+    cast(ConfigHandlerService, config_handler).override_service = cast(
+        ConfigOverride, SimpleNamespace(get_override=lambda id: override)
     )
     config_with_override_yaml = await config_handler.config_yaml(test_config_id) or ""
     assert expect_override_comment in config_with_override_yaml

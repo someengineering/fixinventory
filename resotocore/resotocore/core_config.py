@@ -1,13 +1,12 @@
 import logging
 import os
 import re
-import yaml
 from argparse import Namespace
 from contextlib import suppress
 from copy import deepcopy
 from datetime import timedelta
 from pathlib import Path
-from typing import Optional, List, ClassVar, Dict, Union, cast, Any
+from typing import Optional, List, ClassVar, Dict, Union, cast, Callable
 
 from arango.database import StandardDatabase
 from attrs import define, field
@@ -542,7 +541,6 @@ class CoreConfig(ConfigObject):
     custom_commands: CustomCommandsConfig
     args: Namespace
     run: RunConfig
-    overrides: Dict[ConfigId, Json]
 
     @property
     def editable(self) -> "EditableConfig":
@@ -603,7 +601,12 @@ schema_registry.add(
 )
 
 
-def parse_config(args: Namespace, core_config: Json, command_templates: Optional[Json] = None) -> CoreConfig:
+def parse_config(
+    args: Namespace,
+    core_config: Json,
+    get_core_overrides: Callable[[], Optional[Json]],
+    command_templates: Optional[Json] = None,
+) -> CoreConfig:
     db = DatabaseConfig(
         server=args.graphdb_server,
         database=args.graphdb_database,
@@ -625,38 +628,6 @@ def parse_config(args: Namespace, core_config: Json, command_templates: Optional
     for key, value in args.config_override:
         set_from_cmd_line[ResotoCoreRootRE.sub("", key, 1)] = value
 
-    # all config files that will be used
-    config_files: List[Path] = []
-    # collect them all
-    for path in args.config_override_path:
-        path = cast(Path, path)
-        if path.is_dir():
-            config_files.extend(
-                [file for file in path.iterdir() if file.is_file() and file.suffix in (".yml", ".yaml")]
-            )
-        else:
-            config_files.append(path)
-
-    # json with all merged overrides for all components such as resotocore, resotoworker, etc.
-    overrides_json: Json = {}
-    # merge all provided overrides into a single object, preferring the values from the last override
-    for config_file in config_files:
-        with config_file.open() as f:
-            try:
-                raw_yaml = yaml.safe_load(f)
-                merged = deep_merge(overrides_json, raw_yaml)
-                overrides_json = merged
-            except Exception as e:
-                log.warning(f"Can't read the config override {config_file}, skipping. Reason: {e}")
-
-    def is_dict(config_id: str, obj: Any) -> bool:
-        if not isinstance(obj, dict):
-            log.warning(f"Config override with id {config_id} contains invalid data, skipping.")
-            return False
-        return True
-
-    all_config_overrides: Dict[ConfigId, Json] = {ConfigId(k): v for k, v in overrides_json.items() if is_dict(k, v)}
-
     # set the relevant value in the json config model
     migrated = migrate_core_config(core_config)
     adjusted = migrated.get(ResotoCoreRoot) or {}
@@ -665,7 +636,7 @@ def parse_config(args: Namespace, core_config: Json, command_templates: Optional
             adjusted = set_value_in_path(value, path, adjusted)
 
     # here we only care about the resotocore overrides
-    core_config_overrides = all_config_overrides.get(ResotoCoreConfigId, {}).get("resotocore")
+    core_config_overrides = (get_core_overrides() or {}).get("resotocore")
     # merge the file overrides into the adjusted config
     if core_config_overrides:
         adjusted = deep_merge(adjusted, core_config_overrides)
@@ -708,7 +679,6 @@ def parse_config(args: Namespace, core_config: Json, command_templates: Optional
         runtime=ed.runtime,
         workflows=ed.workflows,
         run=RunConfig(),  # overridden for each run
-        overrides=all_config_overrides,
     )
 
 
@@ -743,11 +713,16 @@ def migrate_command_config(cmd_config: Json) -> Optional[Json]:
     return config.json() if adjusted else None
 
 
-def config_from_db(args: Namespace, db: StandardDatabase, collection_name: str = "configs") -> CoreConfig:
+def config_from_db(
+    args: Namespace,
+    db: StandardDatabase,
+    get_core_overrides: Callable[[], Optional[Json]],
+    collection_name: str = "configs",
+) -> CoreConfig:
     if configs := db.collection(collection_name) if db.has_collection(collection_name) else None:
         if config_entity := cast(Optional[Json], configs.get(ResotoCoreConfigId)):
             if config := config_entity.get("config"):
                 command_config_entity = cast(Optional[Json], configs.get(ResotoCoreCommandsConfigId))
                 command_config = command_config_entity.get("config") if command_config_entity else None
-                return parse_config(args, config, command_config)
-    return parse_config(args, {})
+                return parse_config(args, config, get_core_overrides, command_config)
+    return parse_config(args, {}, get_core_overrides)

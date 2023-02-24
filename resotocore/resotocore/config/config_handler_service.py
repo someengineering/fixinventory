@@ -1,13 +1,14 @@
 import asyncio
 
 from datetime import timedelta
-from typing import Optional, AsyncIterator, List, Any
+from typing import Optional, AsyncIterator, List, Dict, Any
 import attrs
 import yaml
 import os
+from deepdiff import DeepDiff
 
 from resotocore.analytics import AnalyticsEventSender, CoreEvent
-from resotocore.config import ConfigHandler, ConfigEntity, ConfigValidation
+from resotocore.config import ConfigHandler, ConfigEntity, ConfigValidation, ConfigOverride
 from resotocore.db.configdb import ConfigEntityDb, ConfigValidationEntityDb
 from resotocore.db.modeldb import ModelDb
 from resotocore.message_bus import MessageBus, CoreMessage
@@ -32,6 +33,7 @@ class ConfigHandlerService(ConfigHandler):
         message_bus: MessageBus,
         event_sender: AnalyticsEventSender,
         core_config: CoreConfig,
+        override_service: ConfigOverride,
     ) -> None:
         self.cfg_db = cfg_db
         self.validation_db = validation_db
@@ -40,6 +42,8 @@ class ConfigHandlerService(ConfigHandler):
         self.message_bus = message_bus
         self.event_sender = event_sender
         self.core_config = core_config
+        self.override_service = override_service
+        self.old_overrides: Dict[ConfigId, Json] = self.override_service.get_all_overrides()
 
     async def coerce_and_check_model(self, cfg_id: ConfigId, config: Json, validate: bool = True) -> Json:
         model = await self.get_configs_model()
@@ -86,8 +90,7 @@ class ConfigHandlerService(ConfigHandler):
 
         # apply overrides if they exist and we do not opt out
         # we do not want to apply overrides if the config is to be shown during editing
-        overrides = self.core_config.overrides.get(cfg_id)
-
+        overrides = self.override_service.get_override(cfg_id)
         updated_conf = deep_merge(conf.config, overrides) if overrides and apply_overrides else conf.config
 
         # reslove env vars
@@ -181,7 +184,7 @@ class ConfigHandlerService(ConfigHandler):
 
             yaml_str = ""
 
-            overrides = overridden_parts(config.config, self.core_config.overrides.get(cfg_id) or {})
+            overrides = overridden_parts(config.config, self.override_service.get_override(cfg_id) or {})
             overrides_json = overrides if isinstance(overrides, dict) else {}
 
             for num, (key, value) in enumerate(config.config.items()):
@@ -226,3 +229,31 @@ class ConfigHandlerService(ConfigHandler):
         # this future will throw an exception.
         # Do not handle it here and let the error bubble up.
         await future
+
+    async def init_override_watch(self) -> None:
+        async def on_override_change(new_overrides: Dict[ConfigId, Json]) -> None:
+            def updated_revision(conf: Json, override: Json) -> str:
+                import hashlib
+
+                m = hashlib.sha1(usedforsecurity=False)
+                m.update(yaml.dump(conf).encode("utf-8"))
+                m.update(yaml.dump(override).encode("utf-8"))
+                return m.hexdigest()
+
+            diff = DeepDiff(self.old_overrides, new_overrides, ignore_order=True)
+            if diff:
+                affected_configs = diff.affected_root_keys
+
+                for config_id in affected_configs:
+                    # the new and updated version, since the override is already applied
+                    config = await self.get_config(config_id)
+                    if config:
+                        new_revision = updated_revision(config.config, new_overrides.get(config_id) or {})
+                        await self.message_bus.emit_event(
+                            CoreMessage.ConfigUpdated, dict(id=config.id, revision=new_revision)
+                        )
+                        await self.event_sender.core_event(CoreEvent.SystemConfigurationChanged, config.analytics())
+
+                self.old_overrides = new_overrides
+
+        self.override_service.add_override_change_hook(on_override_change)
