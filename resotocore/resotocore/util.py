@@ -13,6 +13,7 @@ from collections import defaultdict
 from collections.abc import Iterable
 from contextlib import suppress
 from datetime import timedelta, datetime, timezone
+from copy import deepcopy
 from typing import (
     Any,
     Callable,
@@ -253,6 +254,32 @@ def deep_merge(left: Json, right: Json) -> Json:
             return left_value
 
     return {k: merge(k) for k in set(left.keys()).union(right.keys())}
+
+
+def merge_json_elements(
+    existing: JsonElement,
+    update: JsonElement,
+    merge_strategy: Callable[[JsonElement, JsonElement], JsonElement] = lambda existing_val, update_val: update_val,
+) -> JsonElement:
+    """
+    Merges two JsonElements accorting to merge strategy.
+    By default recursively traverses Dicts and prefers the new value
+    """
+    if isinstance(existing, dict) and isinstance(update, dict):
+        output = deepcopy(existing)
+        for update_key, update_value in update.items():
+            existing_value = existing.get(update_key)
+            if isinstance(update_value, dict) and isinstance(existing_value, dict):
+                output[update_key] = merge_strategy(
+                    existing_value, merge_json_elements(existing_value, update_value, merge_strategy)
+                )
+            else:
+                output[update_key] = merge_strategy(existing_value, deepcopy(update_value))
+
+    else:
+        return merge_strategy(existing, deepcopy(update))
+
+    return output
 
 
 def set_value_in_path(element: JsonElement, path_or_name: Union[List[str], str], js: Optional[Json] = None) -> Json:

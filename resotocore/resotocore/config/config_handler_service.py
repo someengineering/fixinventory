@@ -1,7 +1,7 @@
 import asyncio
 
 from datetime import timedelta
-from typing import Optional, AsyncIterator, List, Dict, Any
+from typing import Optional, AsyncIterator, List, Dict, Any, cast
 import attrs
 import yaml
 import os
@@ -15,7 +15,7 @@ from resotocore.db.modeldb import ModelDb
 from resotocore.message_bus import MessageBus, CoreMessage
 from resotocore.model.model import Model, Kind, ComplexKind
 from resotocore.types import Json, JsonElement
-from resotocore.util import uuid_str, deep_merge, first
+from resotocore.util import uuid_str, deep_merge, merge_json_elements, first
 from resotocore.worker_task_queue import WorkerTaskQueue, WorkerTask, WorkerTaskName
 from resotocore.ids import TaskId, ConfigId
 from resotocore.core_config import CoreConfig
@@ -106,7 +106,9 @@ class ConfigHandlerService(ConfigHandler):
         # apply overrides if they exist and we do not opt out
         # we do not want to apply overrides if the config is to be shown during editing
         overrides = self.override_service.get_override(cfg_id)
-        updated_conf = deep_merge(conf.config, overrides) if overrides and apply_overrides else conf.config
+        updated_conf = cast(
+            Json, merge_json_elements(conf.config, overrides) if overrides and apply_overrides else conf.config
+        )
 
         # reslove env vars
         # we do not want to resolve env vars if the config is to be shown to the user when editing,

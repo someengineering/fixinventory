@@ -16,7 +16,7 @@ from resotocore.ids import ConfigId
 from resotocore.model.model import Kind, Model, ComplexKind
 from resotocore.model.typed_model import from_js, to_js
 from resotocore.types import Json, JsonElement
-from resotocore.util import set_value_in_path, value_in_path, del_value_in_path, deep_merge
+from resotocore.util import set_value_in_path, value_in_path, del_value_in_path, merge_json_elements
 from resotocore.validator import Validator, schema_name
 from resotolib.core.model_export import dataclasses_to_resotocore_model
 from resotolib.utils import replace_env_vars, is_env_var_string
@@ -671,7 +671,7 @@ def parse_config(
     core_config_overrides = (get_core_overrides() or {}).get(ResotoCoreRoot)
     # merge the file overrides into the adjusted config
     if core_config_overrides:
-        adjusted = deep_merge(adjusted, core_config_overrides)
+        adjusted = merge_json_elements(adjusted, core_config_overrides)
 
     try:
         # replacing the env vars and exploding if there is no value

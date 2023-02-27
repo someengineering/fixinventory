@@ -1,11 +1,11 @@
-from typing import List, Optional, Callable, Dict, Any, Awaitable
+from typing import List, Optional, Callable, Dict, Any, Awaitable, cast
 from pathlib import Path
 import yaml
 import logging
 import asyncio
 from resotocore.types import Json
 from resotocore.ids import ConfigId
-from resotocore.util import deep_merge
+from resotocore.util import merge_json_elements
 from resotocore.config import ConfigOverride
 from deepdiff import DeepDiff
 import aiofiles.os as aos
@@ -51,8 +51,8 @@ class ConfigOverrideService(ConfigOverride):
                 try:
                     raw_yaml = yaml.safe_load(f)
                     with_config_id = {config_file.stem: raw_yaml}
-                    merged = deep_merge(overrides_json, with_config_id)
-                    overrides_json = merged
+                    merged = merge_json_elements(overrides_json, with_config_id)
+                    overrides_json = cast(Json, merged)
                 except Exception as e:
                     log.warning(f"Can't read the config override {config_file}, skipping. Reason: {e}")
 
