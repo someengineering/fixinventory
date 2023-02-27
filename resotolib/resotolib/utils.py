@@ -527,16 +527,21 @@ def is_env_var_string(obj: Any) -> bool:
     return has_env_var
 
 
-def replace_env_vars(elem: JsonElement, environment: Mapping[str, str]) -> JsonElement:
+def replace_env_vars(elem: JsonElement, environment: Mapping[str, str], ignore_missing=True) -> JsonElement:
     if isinstance(elem, dict):
-        return {k: replace_env_vars(v, environment) for k, v in elem.items()}
+        return {k: replace_env_vars(v, environment, ignore_missing) for k, v in elem.items()}
     elif isinstance(elem, list):
-        return [replace_env_vars(v, environment) for v in elem]
+        return [replace_env_vars(v, environment, ignore_missing) for v in elem]
     elif isinstance(elem, str):
         str_value = elem
         for match in re.finditer(env_var_substitution_pattern, elem):
-            if env_var_found := environment.get(match.group(1)):
+            env_var_name = match.group(1)
+            if env_var_found := environment.get(env_var_name):
                 str_value = str_value.replace(match.group(0), env_var_found)
+            elif ignore_missing:
+                pass
+            else:
+                raise ValueError(f"Env var not found: {env_var_name}")
 
         return str_value
     else:

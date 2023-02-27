@@ -19,7 +19,7 @@ from resotocore.types import Json, JsonElement
 from resotocore.util import set_value_in_path, value_in_path, del_value_in_path, deep_merge
 from resotocore.validator import Validator, schema_name
 from resotolib.core.model_export import dataclasses_to_resotocore_model
-from resotolib.utils import replace_env_vars
+from resotolib.utils import replace_env_vars, is_env_var_string
 
 log = logging.getLogger(__name__)
 
@@ -82,10 +82,25 @@ def default_hosts() -> List[str]:
     return ["0.0.0.0"] if inside_docker() else ["localhost"]
 
 
+def strip_env_vars_paths(config: JsonElement) -> JsonElement:
+    """
+    Recursively strips all values that contain an env var string
+    """
+    if isinstance(config, dict):
+        return {k: strip_env_vars_paths(v) for k, v in config.items() if not is_env_var_string(v)}
+    elif isinstance(config, list):
+        return [strip_env_vars_paths(v) for v in config if not is_env_var_string(v)]
+    else:
+        return config
+
+
 def validate_config(config: Json, clazz: type) -> Optional[Json]:
     schema = schema_name(clazz)
     v = Validator(schema=schema, allow_unknown=True)
-    result = v.validate(config, normalize=False)
+    # cerberus is too inflexible to allow us to validate the config without resolving the env vars
+    # so we have to strip strings with the env vars before validating
+    without_env_vars = strip_env_vars_paths(config)
+    result = v.validate(without_env_vars, normalize=False)
     return None if result else v.errors
 
 
@@ -658,19 +673,20 @@ def parse_config(
     if core_config_overrides:
         adjusted = deep_merge(adjusted, core_config_overrides)
 
-    # replace all env vars
-    adjusted = replace_env_vars(adjusted, os.environ)
-
-    # coerce the resulting json to the config model
     try:
-        model = Model.from_kinds(from_js(config_model(), List[Kind]))
-        root = model.get(ResotoCoreRoot)
-        if isinstance(root, ComplexKind):
-            adjusted = root.coerce(adjusted)
-    except Exception as e:
-        log.warning(f"Can not adjust configuration: {e}", exc_info=e)
+        # replacing the env vars and exploding if there is no value
+        adjusted = replace_env_vars(adjusted, os.environ, ignore_missing=False)
 
-    try:
+        # coerce the resulting json to the config model
+        try:
+            model = Model.from_kinds(from_js(config_model(), List[Kind]))
+            root = model.get(ResotoCoreRoot)
+            if isinstance(root, ComplexKind):
+                adjusted = root.coerce(adjusted)
+        except Exception as e:
+            log.warning(f"Can not adjust configuration: {e}", exc_info=e)
+
+        # replace all env vars
         ed = from_js(adjusted, EditableConfig)
     except Exception as e:
         # only here as last resort - should never be required

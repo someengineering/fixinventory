@@ -118,7 +118,7 @@ class Config(metaclass=MetaConfig):
         with self._config_lock:
             try:
                 config, new_config_revision = get_config(self.config_name, self.resotocore_uri, verify=self.verify)
-                config = cast(Json, replace_env_vars(config, os.environ))
+                config = cast(Json, replace_env_vars(config, os.environ, ignore_missing=False))
                 if len(config) == 0:
                     if self._initial_load:
                         raise ConfigNotFoundError("Empty config returned - loading defaults")

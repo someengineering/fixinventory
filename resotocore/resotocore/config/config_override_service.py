@@ -27,7 +27,7 @@ class ConfigOverrideService(ConfigOverride):
     def add_override_change_hook(self, hook: Callable[[Dict[ConfigId, Json]], Awaitable[Any]]) -> None:
         self.override_change_hooks.append(hook)
 
-    # no async here because pagacache will keep this in memory anyway
+    # no async here because page cache will keep this in memory anyway
     def _load_overrides(self, silent: bool = False) -> Dict[ConfigId, Json]:
         if not self.override_paths:
             return {}

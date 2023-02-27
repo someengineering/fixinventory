@@ -230,7 +230,7 @@ class ConfigHandlerService(ConfigHandler):
         # Do not handle it here and let the error bubble up.
         await future
 
-    async def init_override_watch(self) -> None:
+    async def start(self) -> None:
         async def on_override_change(new_overrides: Dict[ConfigId, Json]) -> None:
             def updated_revision(conf: Json, override: Json) -> str:
                 m = hashlib.sha1(usedforsecurity=False)

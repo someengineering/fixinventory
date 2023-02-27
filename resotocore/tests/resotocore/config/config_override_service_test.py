@@ -20,7 +20,6 @@ resotocore:
     api:
         web_hosts: ["11.12.13.14"]
         web_port: $(WEB_PORT)
-        web_path: "$(DO_NOT_REPLACE_ME)"
         """,
             encoding="utf-8",
         )
@@ -42,7 +41,6 @@ resotoworker:
                 "api": {
                     "web_hosts": ["11.12.13.14"],
                     "web_port": "$(WEB_PORT)",
-                    "web_path": "$(DO_NOT_REPLACE_ME)",
                 }
             }
         }
@@ -57,7 +55,6 @@ resotoworker:
                     "api": {
                         "web_hosts": ["11.12.13.14"],
                         "web_port": "$(WEB_PORT)",
-                        "web_path": "$(DO_NOT_REPLACE_ME)",
                     }
                 }
             },

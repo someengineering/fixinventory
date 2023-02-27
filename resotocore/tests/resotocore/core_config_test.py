@@ -97,13 +97,7 @@ def test_config_override(config_json: Json) -> None:
     # config_json is a valid parsable config
     cfg = deepcopy(config_json)
 
-    overrides = {
-        "resoto.core": {
-            "resotocore": {
-                "api": {"web_hosts": ["11.12.13.14"], "web_port": "$(WEB_PORT)", "web_path": "$(DO_NOT_REPLACE_ME)"}
-            }
-        }
-    }
+    overrides = {"resoto.core": {"resotocore": {"api": {"web_hosts": ["11.12.13.14"], "web_port": "$(WEB_PORT)"}}}}
 
     os.environ["WEB_PORT"] = "1337"
 
@@ -115,7 +109,6 @@ def test_config_override(config_json: Json) -> None:
     )
     assert parsed.api.web_hosts == ["11.12.13.14"]
     assert parsed.api.web_port == 1337
-    assert parsed.api.web_path == "$(DO_NOT_REPLACE_ME)"
 
 
 def test_model() -> None:

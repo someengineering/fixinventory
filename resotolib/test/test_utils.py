@@ -14,6 +14,7 @@ from resotolib.utils import ordinal, sha256sum, rrdata_as_dict, get_local_tzinfo
 from resotolib.baseresources import BaseResource
 from attrs import define
 from typing import ClassVar
+import pytest
 
 
 class Writer(threading.Thread):
@@ -317,3 +318,5 @@ def test_replace_env_vars():
         "foo": "foo bar bar $(BAZ)",
         "bar-$(BAR)": ["bar", "$(BAZ)"],
     }
+    with pytest.raises(ValueError):
+        replace_env_vars(json, {"BAZ": "baz"}, ignore_missing=False)
