@@ -23,7 +23,26 @@ org_list_policy = {
 }
 
 
-def get_policies(org_list: bool = True, collect: bool = True, mutate: bool = True) -> list:
+pricing_list_policy = {
+    "PolicyName": "ResotoPricingList",
+    "PolicyDocument": {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Resource": "*",
+                "Action": [
+                    "pricing:DescribeServices",
+                    "pricing:GetAttributeValues",
+                    "pricing:GetProducts",
+                ],
+            }
+        ],
+    },
+}
+
+
+def get_policies(org_list: bool = True, collect: bool = True, mutate: bool = True, pricing_list: bool = False) -> list:
     def iam_statement(name: str, apis: list[AwsApiSpec]) -> tuple[set[str], str]:
         permissions = {api.iam_permission() for api in apis}
         statement = {
@@ -38,6 +57,8 @@ def get_policies(org_list: bool = True, collect: bool = True, mutate: bool = Tru
     policies = []
     if org_list:
         policies.append(org_list_policy)
+    if pricing_list:
+        policies.append(pricing_list_policy)
     if collect:
         collect_policy = iam_statement("ResotoCollect", called_collect_apis())
         policies.append(collect_policy)
@@ -58,7 +79,7 @@ def get_cf_template() -> str:
 
     indent_by = len(template[-1]) - len(template[-1].lstrip())
 
-    policies = safe_dump(get_policies(collect=False), sort_keys=False)
+    policies = safe_dump(get_policies(collect=False, pricing_list=True), sort_keys=False)
     policies = "\n".join(" " * indent_by + line for line in policies.splitlines())
 
     return "".join(template) + policies + "\n"
