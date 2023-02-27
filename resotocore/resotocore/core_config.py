@@ -668,7 +668,7 @@ def parse_config(
             adjusted = set_value_in_path(value, path, adjusted)
 
     # here we only care about the resotocore overrides
-    core_config_overrides = (get_core_overrides() or {}).get("resotocore")
+    core_config_overrides = (get_core_overrides() or {}).get(ResotoCoreRoot)
     # merge the file overrides into the adjusted config
     if core_config_overrides:
         adjusted = deep_merge(adjusted, core_config_overrides)

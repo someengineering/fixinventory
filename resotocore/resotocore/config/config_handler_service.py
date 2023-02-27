@@ -78,6 +78,21 @@ class ConfigHandlerService(ConfigHandler):
         # If we come here, everything is fine
         return final_config
 
+    async def coerce_config(self, config: Json) -> Json:
+        model = await self.get_configs_model()
+
+        final_config = {}
+        for key, value in config.items():
+            if key in model:
+                value_kind = model[key]
+                coerced = value_kind.coerce(value)
+                sorted = value_kind.sort_json(coerced) if isinstance(coerced, dict) else coerced
+                final_config[key] = sorted
+            else:
+                final_config[key] = value
+        # If we come here, everything is fine
+        return final_config
+
     def list_config_ids(self) -> AsyncIterator[ConfigId]:
         return self.cfg_db.keys()
 
@@ -98,7 +113,7 @@ class ConfigHandlerService(ConfigHandler):
         # otherwise sensitive data might be exposed
         if resolve_env_vars:
             resolved_conf = {k: replace_env_vars(v, os.environ) for k, v in updated_conf.items()}
-            coerced_conf = await self.coerce_and_check_model(cfg_id, resolved_conf)
+            coerced_conf = await self.coerce_config(resolved_conf)
             updated_conf = coerced_conf
 
         new_ce = attrs.evolve(
