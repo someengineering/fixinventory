@@ -86,8 +86,8 @@ class ConfigHandlerService(ConfigHandler):
             if key in model:
                 value_kind = model[key]
                 coerced = value_kind.coerce(value)
-                sorted = value_kind.sort_json(coerced) if isinstance(coerced, dict) else coerced
-                final_config[key] = sorted
+                sorted_conf = value_kind.sort_json(coerced) if isinstance(coerced, dict) else coerced
+                final_config[key] = sorted_conf
             else:
                 final_config[key] = value
         # If we come here, everything is fine
