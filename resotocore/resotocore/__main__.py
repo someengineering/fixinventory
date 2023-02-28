@@ -27,7 +27,7 @@ from resotocore.cli.cli import CLI
 from resotocore.cli.command import alias_names, all_commands
 from resotocore.cli.model import CLIDependencies
 from resotocore.config.config_handler_service import ConfigHandlerService
-from resotocore.config.config_override_service import ConfigOverrideService, get_configs_model
+from resotocore.config.config_override_service import ConfigOverrideService, model_from_db
 from resotocore.config.core_config_handler import CoreConfigHandler
 from resotocore.core_config import (
     config_from_db,
@@ -124,7 +124,7 @@ def run_process(args: Namespace) -> None:
                 await model_database.update_many(kinds)
                 # initialize the config override service
                 config_override_service = ConfigOverrideService(
-                    args.config_override_path, partial(get_configs_model, model_database)
+                    args.config_override_path, partial(model_from_db, model_database)
                 )
                 await config_override_service.load()
                 return config_override_service
@@ -162,9 +162,7 @@ def with_config(
     model = ModelHandlerDB(db.get_model_db(), config.runtime.plantuml_server)
     template_expander = DBTemplateExpander(db.template_entity_db)
     # a "real" config override service, unlike the one used for core config
-    config_override_service = ConfigOverrideService(
-        config_overrides_paths, partial(get_configs_model, db.configs_model_db)
-    )
+    config_override_service = ConfigOverrideService(config_overrides_paths, partial(model_from_db, db.configs_model_db))
     config_handler = ConfigHandlerService(
         db.config_entity_db,
         db.config_validation_entity_db,

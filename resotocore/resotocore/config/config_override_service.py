@@ -16,7 +16,7 @@ import aiofiles
 log = logging.getLogger("config_override_service")
 
 
-async def get_configs_model(model_db: ModelDb) -> Model:
+async def model_from_db(model_db: ModelDb) -> Model:
     kinds = [kind async for kind in model_db.all()]
     return Model.from_kinds(list(kinds))
 
