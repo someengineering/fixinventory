@@ -1,3 +1,4 @@
+import resotolib.logger
 from datetime import datetime
 from typing import ClassVar, Dict, Optional, List, Tuple
 
@@ -6,7 +7,9 @@ from attr import define, field
 from resoto_plugin_gcp.gcp_client import GcpApiSpec
 from resoto_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus, GraphBuilder
 from resotolib.baseresources import (
+    BaseInstanceType,
     BaseVolumeType,
+    EdgeType,
     ModelReference,
     BaseVolume,
     VolumeStatus,
@@ -15,6 +18,8 @@ from resotolib.baseresources import (
 )
 from resotolib.json_bender import Bender, S, Bend, ForallBend, MapDict, MapValue, F
 from resotolib.types import Json
+
+log = resotolib.logger.getLogger("resoto." + __name__)
 
 
 def health_checks() -> Tuple[GcpResource, ...]:
@@ -1006,6 +1011,7 @@ class GcpFirewallPolicyRule:
     target_service_accounts: Optional[List[str]] = field(default=None)
 
 
+# TODO Firewall Policies are on org level, parentId is org id or folder id
 @define(eq=False, slots=False)
 class GcpFirewallPolicy(GcpResource):
     kind: ClassVar[str] = "gcp_firewall_policy"
@@ -1015,8 +1021,8 @@ class GcpFirewallPolicy(GcpResource):
         version="v1",
         accessors=["firewallPolicies"],
         action="list",
-        request_parameter={},
-        request_parameter_in=set(),
+        request_parameter={"parentId": "{parentId}"},
+        request_parameter_in=set("parentId"),
         response_path="items",
         response_regional_sub_path=None,
     )
@@ -2713,10 +2719,43 @@ class GcpInstance(GcpResource, BaseInstance):
     instance_start_restricted: Optional[bool] = field(default=None)
     instance_status_message: Optional[str] = field(default=None)
     instance_tags: Optional[GcpTags] = field(default=None)
+    instance_type: Optional[str] = None
+    instance_cores: float = 0.0
+    instance_memory: float = 0.0
+    _machine_type_link: Optional[str] = field(default=None, alias="_machine_type_link")
+    _machine_type: Optional[BaseInstanceType] = field(default=None, alias="_machine_type")
+
+    def init_machine_type(self) -> None:
+        # TODO for this to work, _machine_type needs to be mapped to MachineTypeObject during collection
+        if isinstance(self._machine_type, BaseInstanceType):
+            self.instance_cores = self._machine_type.instance_cores
+            self.instance_memory = self._machine_type.instance_memory
+            self.instance_type = self._machine_type.name
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        # TODO: load custom machine types
-        pass
+        self.init_machine_type()
+        if "custom" in source["machineType"]:
+            if self.instance_status == InstanceStatus.TERMINATED:
+                self._cleaned = True
+            log.debug(f"Fetching custom instance type for {self.rtdname}")
+            machine_type = GcpMachineType(
+                id=source["machineType"].split("/")[-1],
+                tags={},
+                # TODO figure out how this works?!
+                # _zone=self.zone(graph),
+                # _account=self.account(graph),
+                link=source["machineType"],
+            )
+            machine_type.instance_cores = float(id.split("-")[-2])
+            mem = int(id.split("-")[-1])
+            machine_type.instance_memory = float(mem / 1024)
+            graph_builder.add_node(machine_type, source["machineType"])
+            graph_builder.add_edge(self, clazz=GcpMachineType, link=source["machineType"])
+            # self.post_process_machine_type(machine_type, graph)
+            self._machine_type = machine_type
+            self.init_machine_type()
+        self._machine_type = None
+        self._machine_type_link = None
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
@@ -3195,7 +3234,7 @@ class GcpAccelerators:
 
 
 @define(eq=False, slots=False)
-class GcpMachineType(GcpResource):
+class GcpMachineType(GcpResource, BaseInstanceType):
     kind: ClassVar[str] = "gcp_machine_type"
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
@@ -3233,6 +3272,8 @@ class GcpMachineType(GcpResource):
     type_maximum_persistent_disks_size_gb: Optional[str] = field(default=None)
     type_memory_mb: Optional[int] = field(default=None)
     type_scratch_disks: Optional[List[int]] = field(default=None)
+
+    # TODO post process
 
 
 @define(eq=False, slots=False)
