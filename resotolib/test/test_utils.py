@@ -10,7 +10,15 @@ except ImportError:
     from backports.zoneinfo import ZoneInfo
 from tempfile import TemporaryDirectory
 from resotolib.lock import RWLock
-from resotolib.utils import ordinal, sha256sum, rrdata_as_dict, get_local_tzinfo, utc_str, replace_env_vars
+from resotolib.utils import (
+    ordinal,
+    sha256sum,
+    rrdata_as_dict,
+    get_local_tzinfo,
+    utc_str,
+    replace_env_vars,
+    EnvVarSubstitutionError,
+)
 from resotolib.baseresources import BaseResource
 from attrs import define
 from typing import ClassVar
@@ -310,13 +318,23 @@ def test_utc_str():
 
 def test_replace_env_vars():
     json = {
-        "foo": "foo $(BAR) $(BAR) $(BAZ)",
+        "foo": {
+            "foo": "$(BAR) $(BAR)",
+            "bar": ["$(BAZ)"],
+        },
         "bar-$(BAR)": ["$(BAR)", "$(BAZ)"],
     }
     env = {"BAR": "bar"}
     assert replace_env_vars(json, env) == {
-        "foo": "foo bar bar $(BAZ)",
+        "foo": {
+            "foo": "bar bar",
+            "bar": ["$(BAZ)"],
+        },
         "bar-$(BAR)": ["bar", "$(BAZ)"],
     }
-    with pytest.raises(ValueError):
-        replace_env_vars(json, {"BAZ": "baz"}, ignore_missing=False)
+
+    with pytest.raises(EnvVarSubstitutionError) as excinfo:
+        replace_env_vars(json, env, ignore_missing=False)
+
+    assert excinfo.value.env_var_name == "BAZ"
+    assert excinfo.value.config_path == ["foo", "bar", 0]

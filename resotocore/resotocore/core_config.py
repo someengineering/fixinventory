@@ -1,6 +1,7 @@
 import logging
 import os
 import re
+import sys
 from argparse import Namespace
 from contextlib import suppress
 from copy import deepcopy
@@ -19,7 +20,7 @@ from resotocore.types import Json, JsonElement
 from resotocore.util import set_value_in_path, value_in_path, del_value_in_path, merge_json_elements
 from resotocore.validator import Validator, schema_name
 from resotolib.core.model_export import dataclasses_to_resotocore_model
-from resotolib.utils import replace_env_vars, is_env_var_string
+from resotolib.utils import replace_env_vars, is_env_var_string, EnvVarSubstitutionError
 
 log = logging.getLogger(__name__)
 
@@ -674,18 +675,35 @@ def parse_config(
         adjusted = merge_json_elements(adjusted, core_config_overrides)
 
     try:
-        # replacing the env vars and exploding if there is no value
+        # replacing the env vars and exploding if there is no value provided
         adjusted = replace_env_vars(adjusted, os.environ, ignore_missing=False)
+    except EnvVarSubstitutionError as e:
+        conf_path = ""
 
-        # coerce the resulting json to the config model
-        try:
-            model = Model.from_kinds(from_js(config_model(), List[Kind]))
-            root = model.get(ResotoCoreRoot)
-            if isinstance(root, ComplexKind):
-                adjusted = root.coerce(adjusted)
-        except Exception as e:
-            log.warning(f"Can not adjust configuration: {e}", exc_info=e)
+        for idx, part in enumerate(e.config_path):
+            if idx == 0:
+                conf_path += str(part)
+            else:
+                conf_path += f"[{part}]" if isinstance(part, int) else f".{part}"
+        message = "\n"
+        message += "resotocore stopped.\n"
+        message += f"The environment variable `{e.env_var_name}` is not defined in configuration at path {conf_path}\n"
+        message += f"Please set the environment variable `{e.env_var_name}` or adjust the configuration.\n"
+        message += "You can also use the --override option to override the config value.\n"
 
+        print(message)
+        sys.exit(1)
+
+    # coerce the resulting json to the config model
+    try:
+        model = Model.from_kinds(from_js(config_model(), List[Kind]))
+        root = model.get(ResotoCoreRoot)
+        if isinstance(root, ComplexKind):
+            adjusted = root.coerce(adjusted)
+    except Exception as e:
+        log.warning(f"Can not adjust configuration: {e}", exc_info=e)
+
+    try:
         # replace all env vars
         ed = from_js(adjusted, EditableConfig)
     except Exception as e:

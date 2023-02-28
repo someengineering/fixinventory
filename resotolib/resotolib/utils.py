@@ -16,7 +16,7 @@ from tzlocal import get_localzone_name
 from functools import wraps, cached_property
 from pprint import pformat
 from tarfile import TarFile, TarInfo
-from typing import Dict, List, Tuple, Optional, NoReturn, Any, Mapping
+from typing import Dict, List, Tuple, Optional, NoReturn, Any, Mapping, Union
 from resotolib.types import DecoratedFn, JsonElement
 
 import pkg_resources
@@ -527,22 +527,43 @@ def is_env_var_string(obj: Any) -> bool:
     return has_env_var
 
 
-def replace_env_vars(elem: JsonElement, environment: Mapping[str, str], ignore_missing=True) -> JsonElement:
-    if isinstance(elem, dict):
-        return {k: replace_env_vars(v, environment, ignore_missing) for k, v in elem.items()}
-    elif isinstance(elem, list):
-        return [replace_env_vars(v, environment, ignore_missing) for v in elem]
-    elif isinstance(elem, str):
-        str_value = elem
-        for match in re.finditer(env_var_substitution_pattern, elem):
-            env_var_name = match.group(1)
-            if env_var_found := environment.get(env_var_name):
-                str_value = str_value.replace(match.group(0), env_var_found)
-            elif ignore_missing:
-                pass
-            else:
-                raise ValueError(f"Env var not found: {env_var_name}")
+class EnvVarSubstitutionError(Exception):
+    """Raised when an environment variable substitution fails."""
 
-        return str_value
-    else:
-        return elem
+    def __init__(self, env_var_name: str, config_path: List[Union[str, int]]):
+        self.env_var_name = env_var_name
+        self.config_path = config_path
+        path_to_env = ""
+        for path_elem in config_path:
+            path_to_env += f".{path_elem}" if isinstance(path_elem, str) else f"[{path_elem}]"
+        super().__init__(f"Could not find environment variable {env_var_name}. Config path: {path_to_env}")
+
+
+def replace_env_vars(elem: JsonElement, environment: Mapping[str, str], ignore_missing: bool = True) -> JsonElement:
+
+    def replace_env_vars_helper(
+        elem: JsonElement, environment: Mapping[str, str], ignore_missing: bool, path: List[Union[str, int]]
+    ) -> JsonElement:
+        if isinstance(elem, dict):
+            return {k: replace_env_vars_helper(v, environment, ignore_missing, path + [k]) for k, v in elem.items()}
+        elif isinstance(elem, list):
+            return [replace_env_vars_helper(v, environment, ignore_missing, path + [i]) for i, v, in enumerate(elem)]
+        elif isinstance(elem, str):
+            str_value = elem
+            for match in re.finditer(env_var_substitution_pattern, elem):
+                env_var_name = match.group(1)
+                if env_var_found := environment.get(env_var_name):
+                    str_value = str_value.replace(match.group(0), env_var_found)
+                elif ignore_missing:
+                    pass
+                else:
+                    path_to_env = ""
+                    for path_elem in path:
+                        path_to_env += f".{path_elem}" if isinstance(path_elem, str) else f"[{path_elem}]"
+                    raise EnvVarSubstitutionError(env_var_name, path)
+
+            return str_value
+        else:
+            return elem
+
+    return replace_env_vars_helper(elem, environment, ignore_missing, [])

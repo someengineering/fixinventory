@@ -27,7 +27,8 @@
 	"customizations": {
 		"vscode": {
 			"extensions": [
-				"mhutchie.git-graph"
+				"mhutchie.git-graph",
+				"github.copilot"
 			],
 			"settings": {
 				"python.formatting.blackArgs": [
