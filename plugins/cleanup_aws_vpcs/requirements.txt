@@ -1,2 +1,2 @@
-resotolib==3.2.3
-resoto-plugin-aws==3.2.3
+resotolib==3.2.4
+resoto-plugin-aws==3.2.4

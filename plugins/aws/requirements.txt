@@ -1,4 +1,4 @@
-resotolib==3.2.3
+resotolib==3.2.4
 retrying==1.3.4
 boto3==1.26.61
 botocore==1.29.61
