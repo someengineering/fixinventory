@@ -540,7 +540,6 @@ class EnvVarSubstitutionError(Exception):
 
 
 def replace_env_vars(elem: JsonElement, environment: Mapping[str, str], ignore_missing: bool = True) -> JsonElement:
-
     def replace_env_vars_helper(
         elem: JsonElement, environment: Mapping[str, str], ignore_missing: bool, path: List[Union[str, int]]
     ) -> JsonElement:
