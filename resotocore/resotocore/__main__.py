@@ -269,7 +269,7 @@ def with_config(
         await api.stop()
         await log_ship.stop()
         await cert_handler.stop()
-        config_override_service.stop()
+        await config_override_service.stop()
         await core_config_handler.stop()
         await merge_outer_edges_handler.stop()
         await task_handler.stop()

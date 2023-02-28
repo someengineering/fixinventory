@@ -3,9 +3,10 @@ from pathlib import Path
 import yaml
 import logging
 import asyncio
+from datetime import timedelta
 from resotocore.types import Json
 from resotocore.ids import ConfigId
-from resotocore.util import merge_json_elements
+from resotocore.util import merge_json_elements, Periodic
 from resotocore.config import ConfigOverride
 from resotocore.db.modeldb import ModelDb
 from resotocore.model.model import Model
@@ -26,13 +27,14 @@ class ConfigOverrideService(ConfigOverride):
         self, override_paths: List[Path], get_configs_model: Callable[[], Awaitable[Model]], sleep_time: float = 3.0
     ):
         self.override_paths = override_paths
-        self.sleep_time = sleep_time
         self._get_configs_model = get_configs_model
 
         self.overrides: Dict[ConfigId, Json] = {}
         self.stop_watcher = asyncio.Event()
         self.override_change_hooks: List[Callable[[Dict[ConfigId, Json]], Awaitable[Any]]] = []
-        self.watcher_task: Optional[asyncio.Task[Any]] = None
+        self.watcher: Periodic = Periodic(
+            "config_overrides_watcher", self.check_config_changes, timedelta(seconds=sleep_time)
+        )
         self.mtime_hash: int = 0
 
     async def load(self) -> None:
@@ -114,56 +116,42 @@ class ConfigOverrideService(ConfigOverride):
     def get_all_overrides(self) -> Dict[ConfigId, Json]:
         return self.overrides
 
-    async def start(self) -> None:
-        watcher_started = asyncio.Event()
+    async def check_config_changes(self) -> None:
+        # all config files that needs to be checked for changes
+        config_files: List[Path] = []
+        # do a flatmap on directories
+        for path in self.override_paths:
+            if await aos.path.isdir(path):
+                config_files.extend(
+                    [
+                        Path(entry.path)
+                        for entry in await aos.scandir(path)  # scandir avoids extra syscalls
+                        if entry.is_file() and Path(entry.path).suffix in (".yml", ".yaml")
+                    ]
+                )
+            else:
+                config_files.append(path)
 
-        async def watcher() -> None:
-            while not self.stop_watcher.is_set():
-                watcher_started.set()
-                # all config files that needs to be checked for changes
-                config_files: List[Path] = []
-                # do a flatmap on directories
-                for path in self.override_paths:
-                    if await aos.path.isdir(path):
-                        config_files.extend(
-                            [
-                                Path(entry.path)
-                                for entry in await aos.scandir(path)  # scandir avoids extra syscalls
-                                if entry.is_file() and Path(entry.path).suffix in (".yml", ".yaml")
-                            ]
-                        )
-                    else:
-                        config_files.append(path)
+        # a quick optimization to avoid reading the files if none has been changed
+        mtime_hash = 0
+        config_files = sorted(config_files)
+        for file in config_files:
+            mtime_hash = hash((mtime_hash, (await aos.stat(file)).st_mtime))
 
-                # a quick optimization to avoid reading the files if none has been changed
-                mtime_hash = 0
-                config_files = sorted(config_files)
-                for file in config_files:
-                    mtime_hash = hash((mtime_hash, (await aos.stat(file)).st_mtime))
-
-                if mtime_hash == self.mtime_hash:
-                    await asyncio.sleep(self.sleep_time)
-                    continue
-                self.mtime_hash = mtime_hash
-
-                overrides = await self._get_overrides(silent=True)
-                diff = DeepDiff(self.overrides, overrides, ignore_order=True)
-
-                if diff:
-                    self.overrides = overrides
-                    for hook in self.override_change_hooks:
-                        await hook(self.overrides)
-
-                await asyncio.sleep(self.sleep_time)
-
-        # watcher is already running
-        if self.watcher_task:
+        if mtime_hash == self.mtime_hash:
             return
+        self.mtime_hash = mtime_hash
 
-        self.stop_watcher.clear()
-        self.watcher_task = asyncio.create_task(watcher())
-        await watcher_started.wait()
+        overrides = await self._get_overrides(silent=True)
+        diff = DeepDiff(self.overrides, overrides, ignore_order=True)
 
-    def stop(self) -> None:
-        self.stop_watcher.set()
-        self.watcher_task = None
+        if diff:
+            self.overrides = overrides
+            for hook in self.override_change_hooks:
+                await hook(self.overrides)
+
+    async def start(self) -> None:
+        await self.watcher.start()
+
+    async def stop(self) -> None:
+        await self.watcher.stop()
