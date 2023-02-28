@@ -179,7 +179,7 @@ class Shell:
                 raise ValueError(f"Found not expected response type: {type(response)} for content type {content_type}")
 
             filename, filepath = await store_file(response, ArgumentParser.args.download_directory)
-            self.stdout(f"Received a file {filename}, which is stored to {filepath}.")
+            self.stdout(f"Received a file {filename}, which is stored to {filepath}")
         # Multipart: handle each part separately
         elif content_type.startswith("multipart"):
             # Received a multipart response: parse the parts
