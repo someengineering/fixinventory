@@ -232,7 +232,7 @@ def with_config(
         await inspector.start()
         await task_handler.start()
         await config_override_service.load()
-        config_override_service.watch_for_changes()
+        await config_override_service.start()
         await config_handler.start()
         await core_config_handler.start()
         await merge_outer_edges_handler.start()

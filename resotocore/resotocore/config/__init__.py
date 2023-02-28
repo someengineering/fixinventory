@@ -153,7 +153,7 @@ class ConfigOverride(ABC):
         pass
 
     @abstractmethod
-    def watch_for_changes(self) -> None:
+    async def start(self) -> None:
         pass
 
     @abstractmethod

@@ -114,9 +114,12 @@ class ConfigOverrideService(ConfigOverride):
     def get_all_overrides(self) -> Dict[ConfigId, Json]:
         return self.overrides
 
-    def watch_for_changes(self) -> None:
+    async def start(self) -> None:
+        watcher_started = asyncio.Event()
+
         async def watcher() -> None:
             while not self.stop_watcher.is_set():
+                watcher_started.set()
                 # all config files that needs to be checked for changes
                 config_files: List[Path] = []
                 # do a flatmap on directories
@@ -159,6 +162,7 @@ class ConfigOverrideService(ConfigOverride):
 
         self.stop_watcher.clear()
         self.watcher_task = asyncio.create_task(watcher())
+        await watcher_started.wait()
 
     def stop(self) -> None:
         self.stop_watcher.set()

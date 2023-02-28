@@ -87,8 +87,7 @@ bar:
 
         override_service = ConfigOverrideService([Path(tmp)], get_configs_model, sleep_time=0.05)
         await override_service.load()
-        override_service.watch_for_changes()
-        await asyncio.sleep(0.25)  # wait for the watcher to start
+        await override_service.start()
 
         override_update: Optional[Json] = None
 
