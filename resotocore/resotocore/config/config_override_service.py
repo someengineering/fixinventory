@@ -7,29 +7,56 @@ from resotocore.types import Json
 from resotocore.ids import ConfigId
 from resotocore.util import merge_json_elements
 from resotocore.config import ConfigOverride
-from resotocore.async_extensions import run_async
+from resotocore.db.modeldb import ModelDb
+from resotocore.model.model import Model
 from deepdiff import DeepDiff
 import aiofiles.os as aos
+import aiofiles
 
 log = logging.getLogger("config_override_service")
 
 
+async def get_configs_model(model_db: ModelDb) -> Model:
+    kinds = [kind async for kind in model_db.all()]
+    return Model.from_kinds(list(kinds))
+
+
 class ConfigOverrideService(ConfigOverride):
-    def __init__(self, override_paths: List[Path], sleep_time: float = 3.0):
+    def __init__(
+        self, override_paths: List[Path], get_configs_model: Callable[[], Awaitable[Model]], sleep_time: float = 3.0
+    ):
         self.override_paths = override_paths
         self.sleep_time = sleep_time
+        self._get_configs_model = get_configs_model
+
         self.overrides: Dict[ConfigId, Json] = {}
         self.stop_watcher = asyncio.Event()
         self.override_change_hooks: List[Callable[[Dict[ConfigId, Json]], Awaitable[Any]]] = []
         self.watcher_task: Optional[asyncio.Task[Any]] = None
-        self.overrides = self._load_overrides()
         self.mtime_hash: int = 0
+
+    async def load(self) -> None:
+        self.overrides = await self._get_overrides()
 
     def add_override_change_hook(self, hook: Callable[[Dict[ConfigId, Json]], Awaitable[Any]]) -> None:
         self.override_change_hooks.append(hook)
 
-    # no async here because page cache will keep this in memory anyway
-    def _load_overrides(self, silent: bool = False) -> Dict[ConfigId, Json]:
+    def coerce_and_validate(self, config: Json, model: Model) -> Json:
+        final_config = {}
+        for key, value in config.items():
+            if key in model:
+                try:
+                    value_kind = model[key]
+                    coerced = value_kind.check_valid(value, normalize=False)
+                    final_config[key] = value_kind.sort_json(coerced or value)
+                except Exception as ex:
+                    raise AttributeError(f"Error validating section {key}: {ex}") from ex
+            else:
+                final_config[key] = value
+
+        return final_config
+
+    async def _get_overrides(self, silent: bool = False) -> Dict[ConfigId, Json]:
         if not self.override_paths:
             return {}
 
@@ -46,16 +73,21 @@ class ConfigOverrideService(ConfigOverride):
 
         # json with all merged overrides for all components such as resotocore, resotoworker, etc.
         overrides_json: Json = {}
+
+        model = await self._get_configs_model()
+
         # merge all provided overrides into a single object, preferring the values from the last override
         for config_file in config_files:
-            with config_file.open() as f:
+            async with aiofiles.open(config_file) as f:
                 try:
-                    raw_yaml = yaml.safe_load(f)
-                    with_config_id = {config_file.stem: raw_yaml}
+                    content = await f.read()
+                    raw_yaml = yaml.safe_load(content)
+                    validated = self.coerce_and_validate(raw_yaml, model)
+                    with_config_id = {config_file.stem: validated}
                     merged = merge_json_elements(overrides_json, with_config_id)
                     overrides_json = cast(Json, merged)
                 except Exception as e:
-                    log.warning(f"Can't read the config override {config_file}, skipping. Reason: {e}")
+                    log.warning(f"Can't load the config override {config_file}, skipping. Reason: {e}")
 
         def is_dict(config_id: str, obj: Any) -> bool:
             if not isinstance(obj, dict):
@@ -111,7 +143,7 @@ class ConfigOverrideService(ConfigOverride):
                     continue
                 self.mtime_hash = mtime_hash
 
-                overrides = await run_async(lambda: self._load_overrides(silent=True))
+                overrides = await self._get_overrides(silent=True)
                 diff = DeepDiff(self.overrides, overrides, ignore_order=True)
 
                 if diff:

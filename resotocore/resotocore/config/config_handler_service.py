@@ -43,7 +43,7 @@ class ConfigHandlerService(ConfigHandler):
         self.event_sender = event_sender
         self.core_config = core_config
         self.override_service = override_service
-        self.old_overrides: Dict[ConfigId, Json] = self.override_service.get_all_overrides()
+        self.old_overrides: Dict[ConfigId, Json] = {}
 
     async def coerce_and_check_model(self, cfg_id: ConfigId, config: Json, validate: bool = True) -> Json:
         model = await self.get_configs_model()
@@ -251,7 +251,7 @@ class ConfigHandlerService(ConfigHandler):
                 return m.hexdigest()
 
             diff = DeepDiff(self.old_overrides, new_overrides, ignore_order=True)
-            if diff:
+            if diff.affected_root_keys:
                 affected_configs = diff.affected_root_keys
 
                 for config_id in affected_configs:
@@ -266,4 +266,5 @@ class ConfigHandlerService(ConfigHandler):
 
                 self.old_overrides = new_overrides
 
+        self.old_overrides = self.override_service.get_all_overrides()
         self.override_service.add_override_change_hook(on_override_change)

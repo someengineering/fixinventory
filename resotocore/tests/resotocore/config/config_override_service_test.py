@@ -7,9 +7,11 @@ import pytest
 from typing import Optional, Any
 from resotocore.types import Json
 import asyncio
+from resotocore.model.model import Model, ComplexKind, Property
 
 
-def test_get_overrides() -> None:
+@pytest.mark.asyncio
+async def test_get_overrides() -> None:
     # create a temp file with a custom config
     with TemporaryDirectory() as tmp:
         # config with env var override
@@ -34,7 +36,11 @@ resotoworker:
 
         os.environ["WEB_PORT"] = "1337"
 
-        override_service = ConfigOverrideService([Path(tmp)])
+        async def get_configs_model() -> Model:
+            return Model.empty()
+
+        override_service = ConfigOverrideService([Path(tmp)], get_configs_model)
+        await override_service.load()
 
         assert override_service.get_override(ConfigId("resoto.core")) == {
             "resotocore": {
@@ -76,7 +82,11 @@ bar:
             encoding="utf-8",
         )
 
-        override_service = ConfigOverrideService([Path(tmp)], sleep_time=0.05)
+        async def get_configs_model() -> Model:
+            return Model.empty()
+
+        override_service = ConfigOverrideService([Path(tmp)], get_configs_model, sleep_time=0.05)
+        await override_service.load()
         override_service.watch_for_changes()
         await asyncio.sleep(0.25)  # wait for the watcher to start
 
@@ -100,3 +110,47 @@ bar:
 
         await asyncio.sleep(0.25)  # wait for the watcher to update the config
         assert override_update == {"foo": {"bar": {"foo": 1337}}}
+
+
+@pytest.mark.asyncio
+async def test_validation() -> None:
+    # create a temp file with a custom config
+    with TemporaryDirectory() as tmp:
+        # config with env var override
+        resotocore_1_conf = Path(tmp, "resoto.core.yml")
+        resotocore_1_conf.write_text(
+            """
+foo:
+    bar: 42
+    kind: foo""",
+            encoding="utf-8",
+        )
+
+        foo = ComplexKind("foo", [], [Property("bar", "int32"), Property("kind", "string")])
+
+        async def get_configs_model() -> Model:
+            return Model.from_kinds([foo])
+
+        override_service = ConfigOverrideService([Path(tmp)], get_configs_model)
+        await override_service.load()
+
+        assert override_service.get_override(ConfigId("resoto.core")) == {
+            "foo": {
+                "bar": 42,
+                "kind": "foo",
+            }
+        }
+
+        resotocore_1_conf.write_text(
+            """
+foo:
+    bar: bar
+    kind: foo""",
+            encoding="utf-8",
+        )
+
+        override_service = ConfigOverrideService([Path(tmp)], get_configs_model)
+        await override_service.load()
+
+        # invalid config should be ignored
+        assert override_service.get_override(ConfigId("resoto.core")) is None
