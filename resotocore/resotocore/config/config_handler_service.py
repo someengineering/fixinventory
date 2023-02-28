@@ -90,7 +90,6 @@ class ConfigHandlerService(ConfigHandler):
                 final_config[key] = sorted_conf
             else:
                 final_config[key] = value
-        # If we come here, everything is fine
         return final_config
 
     def list_config_ids(self) -> AsyncIterator[ConfigId]:
@@ -118,11 +117,7 @@ class ConfigHandlerService(ConfigHandler):
             coerced_conf = await self.coerce_config(resolved_conf)
             updated_conf = coerced_conf
 
-        new_ce = attrs.evolve(
-            conf,
-            config=updated_conf,
-        )
-        return new_ce
+        return attrs.evolve(conf, config=updated_conf)
 
     async def put_config(self, cfg: ConfigEntity, *, validate: bool = True, dry_run: bool = False) -> ConfigEntity:
         coerced = await self.coerce_and_check_model(cfg.id, cfg.config, validate)

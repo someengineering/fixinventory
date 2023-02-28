@@ -83,19 +83,18 @@ def default_hosts() -> List[str]:
     return ["0.0.0.0"] if inside_docker() else ["localhost"]
 
 
-def strip_env_vars_paths(config: JsonElement) -> JsonElement:
-    """
-    Recursively strips all values that contain an env var string
-    """
-    if isinstance(config, dict):
-        return {k: strip_env_vars_paths(v) for k, v in config.items() if not is_env_var_string(v)}
-    elif isinstance(config, list):
-        return [strip_env_vars_paths(v) for v in config if not is_env_var_string(v)]
-    else:
-        return config
-
-
 def validate_config(config: Json, clazz: type) -> Optional[Json]:
+    def strip_env_vars_paths(config: JsonElement) -> JsonElement:
+        """
+        Recursively strips all values that contain an env var string
+        """
+        if isinstance(config, dict):
+            return {k: strip_env_vars_paths(v) for k, v in config.items() if not is_env_var_string(v)}
+        elif isinstance(config, list):
+            return [strip_env_vars_paths(v) for v in config if not is_env_var_string(v)]
+        else:
+            return config
+
     schema = schema_name(clazz)
     v = Validator(schema=schema, allow_unknown=True)
     # cerberus is too inflexible to allow us to validate the config without resolving the env vars

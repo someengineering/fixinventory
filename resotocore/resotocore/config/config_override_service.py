@@ -7,6 +7,7 @@ from resotocore.types import Json
 from resotocore.ids import ConfigId
 from resotocore.util import merge_json_elements
 from resotocore.config import ConfigOverride
+from resotocore.async_extensions import run_async
 from deepdiff import DeepDiff
 import aiofiles.os as aos
 
@@ -110,8 +111,7 @@ class ConfigOverrideService(ConfigOverride):
                     continue
                 self.mtime_hash = mtime_hash
 
-                # fine to block here since it happens once in a lifetime
-                overrides = self._load_overrides(silent=True)
+                overrides = await run_async(lambda: self._load_overrides(silent=True))
                 diff = DeepDiff(self.overrides, overrides, ignore_order=True)
 
                 if diff:
