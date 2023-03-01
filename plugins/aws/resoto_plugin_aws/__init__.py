@@ -99,7 +99,7 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
         #     pool_executor = futures.ProcessPoolExecutor
         # else:
         #     pool_executor = futures.ThreadPoolExecutor  # type: ignore
-        pool_executor = futures.ThreadPoolExecutor  # type: ignore
+        pool_executor = futures.ThreadPoolExecutor
         if Config.aws.fork_process:
             collect_method = collect_in_process
         else:
@@ -595,12 +595,12 @@ def collect_account(
     return aac.graph
 
 
-def collect_account_proxy(*args, queue: multiprocessing.Queue, **kwargs) -> None:
+def collect_account_proxy(*args, queue: multiprocessing.Queue, **kwargs) -> None:  # type: ignore
     resotolib.proc.initializer()
     queue.put(collect_account(*args, **kwargs))
 
 
-def collect_in_process(*args, **kwargs) -> Optional[Graph]:
+def collect_in_process(*args, **kwargs) -> Optional[Graph]:  # type: ignore
     ctx = multiprocessing.get_context("spawn")
     queue = ctx.Queue()
     kwargs.update({"queue": queue})
@@ -608,4 +608,4 @@ def collect_in_process(*args, **kwargs) -> Optional[Graph]:
     process.start()
     graph = queue.get()
     process.join()
-    return graph
+    return graph  # type: ignore
