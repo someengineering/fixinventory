@@ -47,7 +47,7 @@ async def core_client(
 
     config_dir = tempfile.TemporaryDirectory()
     # todo: do not restart after the config override was loaded for the very first time and uncomment this part
- 
+
     config_path = Path(config_dir.name) / "test_override_conifg_id.yaml"
 
     with config_path.open("w") as override_config:
