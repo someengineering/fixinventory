@@ -1,4 +1,6 @@
 import logging
+from threading import Lock
+
 from attrs import define, field
 from datetime import datetime
 from typing import ClassVar, Optional, Dict, Type, List, Any, Union, Tuple
@@ -28,19 +30,23 @@ class GraphBuilder:
     def __init__(self, graph: Graph):
         self.graph = graph
         self.name = getattr(graph.root, "name", "unknown")
+        self.graph_nodes_access = Lock()
+        self.graph_edges_access = Lock()
 
     def node(self, clazz: Optional[Type[KubernetesResource]] = None, **node: Any) -> Optional[KubernetesResource]:
         if isinstance(nd := node.get("node"), KubernetesResource):
             return nd
-        for n in self.graph:
-            is_clazz = isinstance(n, clazz) if clazz else True
-            if is_clazz and all(getattr(n, k, None) == v for k, v in node.items()):
-                return n  # type: ignore
+        with self.graph_nodes_access:
+            for n in self.graph:
+                is_clazz = isinstance(n, clazz) if clazz else True
+                if is_clazz and all(getattr(n, k, None) == v for k, v in node.items()):
+                    return n  # type: ignore
         return None
 
     def add_node(self, node: KubernetesResource, **kwargs: Any) -> None:
         log.debug(f"{self.name}: add node {node}")
-        self.graph.add_node(node, **kwargs)
+        with self.graph_nodes_access:
+            self.graph.add_node(node, **kwargs)
 
     def add_edge(
         self, from_node: KubernetesResource, edge_type: EdgeType, reverse: bool = False, **to_node: Any
@@ -49,7 +55,8 @@ class GraphBuilder:
         if to_n:
             start, end = (to_n, from_node) if reverse else (from_node, to_n)
             log.debug(f"{self.name}: add edge: {start} -> {end}")
-            self.graph.add_edge(start, end, edge_type=edge_type)
+            with self.graph_edges_access:
+                self.graph.add_edge(start, end, edge_type=edge_type)
 
     def add_edges_from_selector(
         self,
@@ -58,11 +65,13 @@ class GraphBuilder:
         selector: Dict[str, str],
         clazz: Optional[Union[type, Tuple[type, ...]]] = None,
     ) -> None:
-        for to_n in self.graph:
-            is_clazz = isinstance(to_n, clazz) if clazz else True
-            if is_clazz and to_n != from_node and selector.items() <= to_n.labels.items():
-                log.debug(f"{self.name}: add edge from selector: {from_node} -> {to_n}")
-                self.graph.add_edge(from_node, to_n, edge_type=edge_type)
+        with self.graph_nodes_access:
+            for to_n in self.graph:
+                is_clazz = isinstance(to_n, clazz) if clazz else True
+                if is_clazz and to_n != from_node and selector.items() <= to_n.labels.items():
+                    log.debug(f"{self.name}: add edge from selector: {from_node} -> {to_n}")
+                    with self.graph_edges_access:
+                        self.graph.add_edge(from_node, to_n, edge_type=edge_type)
 
     def connect_volumes(self, from_node: KubernetesResource, volumes: List[Json]) -> None:
         for volume in volumes:
