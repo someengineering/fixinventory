@@ -59,6 +59,16 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
 
     @metrics_collect.time()  # type: ignore
     def collect(self) -> None:
+        try:
+            self.collect_aws()
+        except Exception as ex:
+            if self.core_feedback:
+                self.core_feedback.error(f"Unhandled exception in AWS Plugin: {ex}", log)
+            else:
+                log.error(f"No CoreFeedback available! Unhandled exception in AWS Plugin: {ex}")
+            raise
+
+    def collect_aws(self) -> None:
         log.debug("plugin: AWS collecting resources")
         assert self.core_feedback, "core_feedback is not set"
         cloud = Cloud(id=self.cloud, name="AWS")
