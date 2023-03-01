@@ -153,3 +153,66 @@ foo:
 
         # invalid config should be ignored
         assert override_service.get_override(ConfigId("resoto.core")) is None
+
+
+@pytest.mark.asyncio
+async def test_load_json() -> None:
+    # create a temp file with a custom config
+    with TemporaryDirectory() as tmp:
+        # config with env var override
+        resotocore_1_conf = Path(tmp, "resoto.core.json")
+        resotocore_1_conf.write_text(
+            """
+{
+    "resotocore": {
+        "api": {
+            "web_hosts": ["11.12.13.14"],
+            "web_port": "$(WEB_PORT)"
+        }
+    }
+}""",
+            encoding="utf-8",
+        )
+
+        resotoworker_conf = Path(tmp, "resoto.worker.json")
+        resotoworker_conf.write_text(
+            """
+{
+    "resotoworker": {
+        "collector": ["digitalocean", "$(OTHER_COLLECTOR)"]
+    }
+}"""
+        )
+
+        os.environ["WEB_PORT"] = "1337"
+
+        async def get_configs_model() -> Model:
+            return Model.empty()
+
+        override_service = ConfigOverrideService([Path(tmp)], get_configs_model)
+        await override_service.load()
+
+        assert override_service.get_override(ConfigId("resoto.core")) == {
+            "resotocore": {
+                "api": {
+                    "web_hosts": ["11.12.13.14"],
+                    "web_port": "$(WEB_PORT)",
+                }
+            }
+        }
+
+        assert override_service.get_override(ConfigId("resoto.worker")) == {
+            "resotoworker": {"collector": ["digitalocean", "$(OTHER_COLLECTOR)"]}
+        }
+
+        assert override_service.get_all_overrides() == {
+            "resoto.core": {
+                "resotocore": {
+                    "api": {
+                        "web_hosts": ["11.12.13.14"],
+                        "web_port": "$(WEB_PORT)",
+                    }
+                }
+            },
+            "resoto.worker": {"resotoworker": {"collector": ["digitalocean", "$(OTHER_COLLECTOR)"]}},
+        }

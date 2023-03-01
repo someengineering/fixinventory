@@ -13,6 +13,7 @@ from resotocore.model.model import Model
 from deepdiff import DeepDiff
 import aiofiles.os as aos
 import aiofiles
+import jsons
 
 log = logging.getLogger("config_override_service")
 
@@ -68,7 +69,7 @@ class ConfigOverrideService(ConfigOverride):
         for path in self.override_paths:
             if path.is_dir():
                 config_files.extend(
-                    [file for file in path.iterdir() if file.is_file() and file.suffix in (".yml", ".yaml")]
+                    [file for file in path.iterdir() if file.is_file() and file.suffix in (".yml", ".yaml", ".json")]
                 )
             else:
                 config_files.append(path)
@@ -82,8 +83,12 @@ class ConfigOverrideService(ConfigOverride):
         for config_file in config_files:
             async with aiofiles.open(config_file) as f:
                 try:
+
+                    def is_yaml(path: Path) -> bool:
+                        return path.suffix in (".yml", ".yaml")
+
                     content = await f.read()
-                    raw_yaml = yaml.safe_load(content)
+                    raw_yaml = yaml.safe_load(content) if is_yaml(config_file) else jsons.loads(content, Json)
                     validated = self.coerce_and_validate(raw_yaml, model)
                     with_config_id = {config_file.stem: validated}
                     merged = merge_json_elements(overrides_json, with_config_id)
