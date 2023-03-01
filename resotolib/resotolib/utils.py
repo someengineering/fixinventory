@@ -528,45 +528,51 @@ def is_env_var_string(obj: Any) -> bool:
     return has_env_var
 
 
-class EnvVarSubstitutionError(Exception):
-    """Raised when an environment variable substitution fails."""
-
-    def __init__(self, env_var_name: str, config_path: List[Union[str, int]]):
-        self.env_var_name = env_var_name
-        self.config_path = config_path
-        path_to_env = ""
-        for path_elem in config_path:
-            path_to_env += f".{path_elem}" if isinstance(path_elem, str) else f"[{path_elem}]"
-        super().__init__(f"Could not find environment variable {env_var_name}. Config path: {path_to_env}")
-
-
-def replace_env_vars(elem: JsonElement, environment: Mapping[str, str], ignore_missing: bool = True) -> JsonElement:
+def replace_env_vars(elem: JsonElement, environment: Mapping[str, str], keep_unresolved: bool = True) -> JsonElement:
     def replace_env_vars_helper(
-        elem: JsonElement, environment: Mapping[str, str], ignore_missing: bool, path: List[Union[str, int]]
+        elem: JsonElement, environment: Mapping[str, str], keep_unresolved: bool, path: List[Union[str, int]]
     ) -> JsonElement:
         if isinstance(elem, dict):
-            return {k: replace_env_vars_helper(v, environment, ignore_missing, path + [k]) for k, v in elem.items()}
+            replaced = {
+                k: replace_env_vars_helper(v, environment, keep_unresolved, path + [k]) for k, v in elem.items()
+            }
+            without_unresolved = {k: v for k, v in replaced.items() if v is not None}
+            return without_unresolved
         elif isinstance(elem, list):
-            return [replace_env_vars_helper(v, environment, ignore_missing, path + [i]) for i, v, in enumerate(elem)]
+            replaced = [
+                replace_env_vars_helper(v, environment, keep_unresolved, path + [i]) for i, v, in enumerate(elem)
+            ]
+            without_unresolved = [v for v in replaced if v is not None]
+            return without_unresolved
         elif isinstance(elem, str):
             str_value = elem
             for match in re.finditer(env_var_substitution_pattern, elem):
                 env_var_name = match.group(1)
                 if env_var_found := environment.get(env_var_name):
                     str_value = str_value.replace(match.group(0), env_var_found)
-                elif ignore_missing:
+                elif keep_unresolved:
                     pass
                 else:
-                    path_to_env = ""
-                    for path_elem in path:
-                        path_to_env += f".{path_elem}" if isinstance(path_elem, str) else f"[{path_elem}]"
-                    raise EnvVarSubstitutionError(env_var_name, path)
+                    conf_path = ""
+
+                    for idx, part in enumerate(path):
+                        if idx == 0:
+                            conf_path += str(part)
+                        else:
+                            conf_path += f"[{part}]" if isinstance(part, int) else f".{part}"
+                    message = f"The environment variable `{env_var_name}` is not defined "
+                    message += "in configuration at path {conf_path}. "
+                    message += f"Please set the environment variable `{env_var_name}` or adjust the configuration. "
+                    message += "You can also use the --override option to override the config value."
+                    log.warn(f"Environment variable substitution failed: {message}")
+
+                    return None
 
             return str_value
         else:
             return elem
 
-    return replace_env_vars_helper(elem, environment, ignore_missing, [])
+    return replace_env_vars_helper(elem, environment, keep_unresolved, [])
 
 
 def merge_json_elements(

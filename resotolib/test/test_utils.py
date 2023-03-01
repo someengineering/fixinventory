@@ -17,7 +17,6 @@ from resotolib.utils import (
     get_local_tzinfo,
     utc_str,
     replace_env_vars,
-    EnvVarSubstitutionError,
     merge_json_elements,
 )
 from resotolib.baseresources import BaseResource
@@ -334,11 +333,13 @@ def test_replace_env_vars():
         "bar-$(BAR)": ["bar", "$(BAZ)"],
     }
 
-    with pytest.raises(EnvVarSubstitutionError) as excinfo:
-        replace_env_vars(json, env, ignore_missing=False)
-
-    assert excinfo.value.env_var_name == "BAZ"
-    assert excinfo.value.config_path == ["foo", "bar", 0]
+    assert replace_env_vars(json, env, keep_unresolved=False) == {
+        "foo": {
+            "foo": "bar bar",
+            "bar": [],
+        },
+        "bar-$(BAR)": ["bar"],
+    }
 
 
 def test_merge_json_elements():

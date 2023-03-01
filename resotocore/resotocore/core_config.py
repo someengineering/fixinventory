@@ -20,7 +20,7 @@ from resotocore.types import Json, JsonElement
 from resotocore.util import set_value_in_path, value_in_path, del_value_in_path
 from resotocore.validator import Validator, schema_name
 from resotolib.core.model_export import dataclasses_to_resotocore_model
-from resotolib.utils import replace_env_vars, is_env_var_string, EnvVarSubstitutionError, merge_json_elements
+from resotolib.utils import replace_env_vars, is_env_var_string, merge_json_elements
 
 log = logging.getLogger(__name__)
 
@@ -673,25 +673,8 @@ def parse_config(
     if core_config_overrides:
         adjusted = merge_json_elements(adjusted, core_config_overrides)
 
-    try:
-        # replacing the env vars and exploding if there is no value provided
-        adjusted = replace_env_vars(adjusted, os.environ, ignore_missing=False)
-    except EnvVarSubstitutionError as e:
-        conf_path = ""
-
-        for idx, part in enumerate(e.config_path):
-            if idx == 0:
-                conf_path += str(part)
-            else:
-                conf_path += f"[{part}]" if isinstance(part, int) else f".{part}"
-        message = "\n"
-        message += "resotocore stopped.\n"
-        message += f"The environment variable `{e.env_var_name}` is not defined in configuration at path {conf_path}\n"
-        message += f"Please set the environment variable `{e.env_var_name}` or adjust the configuration.\n"
-        message += "You can also use the --override option to override the config value.\n"
-
-        print(message)
-        sys.exit(1)
+    # replacing the env vars and removing them in case they are not resolved
+    adjusted = replace_env_vars(adjusted, os.environ, keep_unresolved=False)
 
     # coerce the resulting json to the config model
     try:

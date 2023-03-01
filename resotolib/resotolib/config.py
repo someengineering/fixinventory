@@ -212,7 +212,7 @@ class Config(metaclass=MetaConfig):
         if not config:
             return False
         # resolve missing env_vars from the environment
-        resolved_conf = {k: replace_env_vars(v, os.environ) for k, v in config.items()}
+        resolved_conf = {k: replace_env_vars(v, os.environ, keep_unresolved=False) for k, v in config.items()}
 
         running_config.data = Config.read_config(resolved_conf)
 
