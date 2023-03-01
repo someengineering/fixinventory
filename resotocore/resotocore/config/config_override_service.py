@@ -10,10 +10,10 @@ from resotocore.model.typed_model import from_js
 from resotocore.types import Json
 from resotocore.ids import ConfigId
 from resotocore.util import Periodic
-from resotolib.utils import merge_json_elements
 from resotocore.config import ConfigOverride
 from resotocore.db.modeldb import ModelDb
 from resotocore.model.model import Model, Kind
+from resotolib.utils import merge_json_elements
 from deepdiff import DeepDiff
 import aiofiles.os as aos
 import aiofiles
