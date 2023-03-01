@@ -71,8 +71,10 @@ class ConfigOverrideService(ConfigOverride):
                 config_files.extend(
                     [file for file in path.iterdir() if file.is_file() and file.suffix in (".yml", ".yaml", ".json")]
                 )
-            else:
+            elif path.suffix in (".yml", ".yaml", ".json"):
                 config_files.append(path)
+            else:
+                log.warning(f"Config override path {path} is neither a directory nor a yaml/json file, skipping.")
 
         # json with all merged overrides for all components such as resotocore, resotoworker, etc.
         overrides_json: Json = {}
