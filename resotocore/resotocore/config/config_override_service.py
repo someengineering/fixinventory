@@ -172,9 +172,9 @@ async def override_config_for_startup(override_path: List[Path]) -> ConfigOverri
     Minimal version that is used only for bootstrapping the core
     """
 
-    async def model_direct() -> Model:
+    async def core_config_model() -> Model:
         return Model.from_kinds(from_js(config_model(), List[Kind]))
 
-    config_override_service = ConfigOverrideService(override_path, model_direct)
+    config_override_service = ConfigOverrideService(override_path, core_config_model)
     await config_override_service.load()
     return config_override_service
