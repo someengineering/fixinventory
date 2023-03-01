@@ -1,7 +1,6 @@
 import logging
 import os
 import re
-import sys
 from argparse import Namespace
 from contextlib import suppress
 from copy import deepcopy

@@ -309,6 +309,10 @@ class Kind(ABC):
             return []
 
 
+def in_config_update_context(kwargs: Dict[str, bool]) -> bool:
+    return kwargs.get("config_context", False)
+
+
 simple_kind_to_type: Dict[str, Type[Union[str, int, float, bool]]] = {
     "string": str,
     "int32": int,
@@ -395,7 +399,7 @@ class StringKind(SimpleKind):
     def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
         if obj is None:
             return None
-        elif is_env_var_string(obj):
+        elif is_env_var_string(obj) and in_config_update_context(kwargs):
             return None
         elif isinstance(obj, str):
             return self.valid_fn(obj)
@@ -457,7 +461,7 @@ class NumberKind(SimpleKind):
     def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
         if obj is None:
             return None
-        elif is_env_var_string(obj):
+        elif is_env_var_string(obj) and in_config_update_context(kwargs):
             return None
         elif isinstance(obj, (int, float)):
             return self.valid_fn(obj)
@@ -498,7 +502,7 @@ class BooleanKind(SimpleKind):
     def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
         if obj is True or obj is False or obj is None:
             return None
-        elif is_env_var_string(obj):
+        elif is_env_var_string(obj) and in_config_update_context(kwargs):
             return None
         coerced = self.coerce_if_required(obj, **kwargs)
         if coerced is not None:
@@ -529,7 +533,7 @@ class DurationKind(SimpleKind):
             raise AttributeError(f"Wrong format for duration: {v}. Examples: 1yr, 3mo, 3d4h3min1s, 3days and 2hours")
 
     def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
-        if is_env_var_string(obj):
+        if is_env_var_string(obj) and in_config_update_context(kwargs):
             return None
         return self.valid_fn(obj)
 
@@ -565,7 +569,7 @@ class DateTimeKind(SimpleKind):
         return None if DateTimeKind.DateTimeRe.fullmatch(obj) else parse_datetime()
 
     def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
-        if is_env_var_string(obj):
+        if is_env_var_string(obj) and in_config_update_context(kwargs):
             return None
         return self.valid_fn(obj)
 
@@ -619,7 +623,7 @@ class DateKind(SimpleKind):
         return None if DateKind.DateRe.fullmatch(obj) else date.fromisoformat(obj)
 
     def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
-        if is_env_var_string(obj):
+        if is_env_var_string(obj) and in_config_update_context(kwargs):
             return None
         return self.valid_fn(obj)
 
@@ -769,9 +773,9 @@ class DictionaryKind(Kind):
             for prop, value in (coerced or obj).items():
                 part = "key"
                 try:
-                    self.key_kind.check_valid(prop)
+                    self.key_kind.check_valid(prop, **kwargs)
                     part = "value"
-                    self.value_kind.check_valid(value)
+                    self.value_kind.check_valid(value, **kwargs)
                 except Exception as at:
                     raise AttributeError(f"{part} of {self.fqn} is not valid: {at}") from at
             return coerced

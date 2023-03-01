@@ -55,7 +55,7 @@ class ConfigHandlerService(ConfigHandler):
                 if key in model:
                     try:
                         value_kind = model[key]
-                        coerced = value_kind.check_valid(value, normalize=False)
+                        coerced = value_kind.check_valid(value, normalize=False, config_context=True)
                         final_config[key] = value_kind.sort_json(coerced or value)
                     except Exception as ex:
                         raise AttributeError(f"Error validating section {key}: {ex}") from ex

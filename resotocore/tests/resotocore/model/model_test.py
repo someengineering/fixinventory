@@ -91,6 +91,7 @@ def test_string() -> None:
     b = StringKind("string", enum={"foo", "bla", "bar"})
     assert b.check_valid("foo") is None
     assert expect_error(b, "baz").startswith(">baz< should be one of")
+    assert b.check_valid("$(ENV_VAR)", config_context=True) is None
 
 
 def test_number() -> None:
@@ -122,6 +123,8 @@ def test_boolean() -> None:
     assert a.check_valid("true") is True
     assert a.check_valid("false") is False
     assert a.check_valid("FALSE") is False
+    assert a.check_valid("$(ENV_VAR)", config_context=True) is None
+    assert expect_error(a, "$(ENV_VAR)").startswith("Expected type boolean but got")
     assert expect_error(a, "test").startswith("Expected type boolean but got")
 
 
