@@ -1,4 +1,4 @@
-resotolib==3.2.4
+resotolib==3.2.5
 tenacity==8.1.0
 CherryPy==18.8.0
 setuptools>=65.5.1 # not directly required, pinned by Snyk to avoid a vulnerability
