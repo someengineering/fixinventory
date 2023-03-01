@@ -186,10 +186,9 @@ class CoreConfigHandler:
 
     async def start(self) -> None:
         await self.__update_model()
-        # start the worker before asking for validation requests
-        self.config_validator = asyncio.create_task(self.__validate_config())
         await self.__update_config()
         self.config_updated_listener = asyncio.create_task(self.__handle_events())
+        self.config_validator = asyncio.create_task(self.__validate_config())
 
     async def stop(self) -> None:
         # wait for the spawned task to complete

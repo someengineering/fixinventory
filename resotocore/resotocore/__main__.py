@@ -209,7 +209,6 @@ def with_config(
         await cli.start()
         await inspector.start()
         await task_handler.start()
-        await config_override_service.load()
         await config_override_service.start()
         await config_handler.start()
         await core_config_handler.start()

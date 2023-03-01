@@ -161,6 +161,7 @@ class ConfigOverrideService(ConfigOverride):
                 await hook(self.overrides)
 
     async def start(self) -> None:
+        await self.load()
         await self.watcher.start()
 
     async def stop(self) -> None:
