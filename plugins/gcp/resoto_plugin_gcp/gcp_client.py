@@ -56,6 +56,10 @@ class GcpClient:
         self.region = region
         self.core_feedback = core_feedback
 
+    def get(self, **kwargs) -> Json:
+        # TODO needs actual implementation, see aws client
+        return {}
+
     def list(self, api_spec: GcpApiSpec, **kwargs) -> List[Json]:
         # todo add caching
         client = _discovery_function(
