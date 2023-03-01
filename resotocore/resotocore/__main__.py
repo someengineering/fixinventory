@@ -110,8 +110,12 @@ def run_process(args: Namespace) -> None:
             warnings.simplefilter("ignore", HTTPWarning)
             # wait here for an initial connection to the database before we continue. blocking!
             created, system_data, sdb = DbAccess.connect(args, timedelta(seconds=120), verify=False)
+            # save the current loop from destruction by asyncio.run
+            existing_loop = asyncio.events.get_event_loop()
             # only to be used for CoreConfig creation
             core_config_override_service = asyncio.run(override_config_for_startup(args.config_override_path))
+            # restore the loop back
+            asyncio.events.set_event_loop(existing_loop)
             config = config_from_db(args, sdb, lambda: core_config_override_service.get_override(ResotoCoreConfigId))
             cert_handler = CertificateHandler.lookup(config, sdb, temp)
             verify: Union[bool, str] = False if args.graphdb_no_ssl_verify else str(cert_handler.ca_bundle)

@@ -379,9 +379,12 @@ async def test_config(core_client: ApiClient, foo_kinds: List[rc.Kind]) -> None:
     assert with_overrides == {"l1": {"l2": 42}}
 
     # get config with overrides in different section
-    resp = await core_client._get(f"/config/{cfg_override_id}", params={"separate_overrides": "true"})
+    resp = await core_client._get(
+        f"/config/{cfg_override_id}", params={"separate_overrides": "true", "include_raw_config": "true"}
+    )
     json = await resp.json()
     assert json == {
         "config": {"l1": {"l2": 1}},
         "overrides": {"l1": {"l2": 42}},
+        "raw_config": {"l1": {"l2": 1}},
     }
