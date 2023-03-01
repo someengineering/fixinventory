@@ -92,17 +92,23 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
 
         max_workers = len(accounts) if len(accounts) < Config.aws.account_pool_size else Config.aws.account_pool_size
         pool_args = {"max_workers": max_workers}
+        # TODO: revert this when memory leak in AWS collector is fixed
+        # if Config.aws.fork_process:
+        #     pool_args["mp_context"] = multiprocessing.get_context("spawn")
+        #     pool_args["initializer"] = resotolib.proc.initializer
+        #     pool_executor = futures.ProcessPoolExecutor
+        # else:
+        #     pool_executor = futures.ThreadPoolExecutor  # type: ignore
+        pool_executor = futures.ThreadPoolExecutor
         if Config.aws.fork_process:
-            pool_args["mp_context"] = multiprocessing.get_context("spawn")
-            pool_args["initializer"] = resotolib.proc.initializer
-            pool_executor = futures.ProcessPoolExecutor
+            collect_method = collect_in_process
         else:
-            pool_executor = futures.ThreadPoolExecutor  # type: ignore
+            collect_method = collect_account
 
         with pool_executor(**pool_args) as executor:
             wait_for = [
                 executor.submit(
-                    collect_account,
+                    collect_method,
                     account,
                     self.regions(profile=account.profile),
                     ArgumentParser.args,
@@ -587,3 +593,19 @@ def collect_account(
         return None
 
     return aac.graph
+
+
+def collect_account_proxy(*args, queue: multiprocessing.Queue, **kwargs) -> None:  # type: ignore
+    resotolib.proc.initializer()
+    queue.put(collect_account(*args, **kwargs))
+
+
+def collect_in_process(*args, **kwargs) -> Optional[Graph]:  # type: ignore
+    ctx = multiprocessing.get_context("spawn")
+    queue = ctx.Queue()
+    kwargs["queue"] = queue
+    process = ctx.Process(target=collect_account_proxy, args=args, kwargs=kwargs)
+    process.start()
+    graph = queue.get()
+    process.join()
+    return graph  # type: ignore

@@ -109,7 +109,7 @@ class AwsConfig:
     )
     scrape_org: bool = field(default=False, metadata={"description": "Scrape the entire AWS organization"})
     fork_process: bool = field(
-        default=False,
+        default=True,
         metadata={
             "description": "Fork collector process instead of using threads. "
             "Recommended if you want to scrape many accounts in parallel."
@@ -133,7 +133,7 @@ class AwsConfig:
         default=4, metadata={"description": "Number of regions to scrape in parallel per account."}
     )
     shared_pool_size: int = field(
-        default=32,
+        default=20,
         metadata={"description": "Number of shared threads available per account."},
     )
     region_resources_pool_size: int = field(
