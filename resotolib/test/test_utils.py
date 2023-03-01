@@ -18,6 +18,7 @@ from resotolib.utils import (
     utc_str,
     replace_env_vars,
     EnvVarSubstitutionError,
+    merge_json_elements,
 )
 from resotolib.baseresources import BaseResource
 from attrs import define
@@ -338,3 +339,14 @@ def test_replace_env_vars():
 
     assert excinfo.value.env_var_name == "BAZ"
     assert excinfo.value.config_path == ["foo", "bar", 0]
+
+
+def test_merge_json_elements():
+    a = {"a": {"foo": {"first": "first", "last": "laaaast"}}, "b": {"bar": 123}, "c": [6, 7]}
+    b = {"a": {"foo": {"last": "last"}}, "b": {"baz": 456}, "c": [8, 9]}
+
+    assert merge_json_elements(a, b) == {
+        "a": {"foo": {"first": "first", "last": "last"}},
+        "b": {"bar": 123, "baz": 456},
+        "c": [8, 9],
+    }

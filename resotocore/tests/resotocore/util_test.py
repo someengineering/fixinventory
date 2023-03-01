@@ -17,7 +17,6 @@ from resotocore.util import (
     rnd_str,
     del_value_in_path,
     deep_merge,
-    merge_json_elements,
     partition_by,
 )
 
@@ -127,12 +126,6 @@ def test_deep_merge() -> None:
     a = {"a": {"foo": {"first": "first", "last": "laaaast"}}, "b": {"bar": 123}, "c": [6, 7]}
     b = {"a": {"foo": {"last": "last"}}, "b": {"baz": 456}, "c": [8, 9]}
     assert deep_merge(a, b) == {
-        "a": {"foo": {"first": "first", "last": "last"}},
-        "b": {"bar": 123, "baz": 456},
-        "c": [8, 9],
-    }
-
-    assert merge_json_elements(a, b) == {
         "a": {"foo": {"first": "first", "last": "last"}},
         "b": {"bar": 123, "baz": 456},
         "c": [8, 9],

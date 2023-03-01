@@ -7,6 +7,7 @@ import string
 import time
 from argparse import ArgumentParser
 from datetime import date, datetime, timezone, timedelta
+from copy import deepcopy
 
 try:
     from zoneinfo import ZoneInfo
@@ -16,7 +17,7 @@ from tzlocal import get_localzone_name
 from functools import wraps, cached_property
 from pprint import pformat
 from tarfile import TarFile, TarInfo
-from typing import Dict, List, Tuple, Optional, NoReturn, Any, Mapping, Union
+from typing import Dict, List, Tuple, Optional, NoReturn, Any, Mapping, Union, Callable
 from resotolib.types import DecoratedFn, JsonElement
 
 import pkg_resources
@@ -566,3 +567,29 @@ def replace_env_vars(elem: JsonElement, environment: Mapping[str, str], ignore_m
             return elem
 
     return replace_env_vars_helper(elem, environment, ignore_missing, [])
+
+
+def merge_json_elements(
+    existing: JsonElement,
+    update: JsonElement,
+    merge_strategy: Callable[[JsonElement, JsonElement], JsonElement] = lambda existing_val, update_val: update_val,
+) -> JsonElement:
+    """
+    Merges two JsonElements accorting to merge strategy.
+    By default recursively traverses Dicts and prefers the new value
+    """
+    if isinstance(existing, dict) and isinstance(update, dict):
+        output = deepcopy(existing)
+        for update_key, update_value in update.items():
+            existing_value = existing.get(update_key)
+            if isinstance(update_value, dict) and isinstance(existing_value, dict):
+                output[update_key] = merge_strategy(
+                    existing_value, merge_json_elements(existing_value, update_value, merge_strategy)
+                )
+            else:
+                output[update_key] = merge_strategy(existing_value, deepcopy(update_value))
+
+    else:
+        return merge_strategy(existing, deepcopy(update))
+
+    return output

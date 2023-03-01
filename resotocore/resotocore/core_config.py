@@ -17,10 +17,10 @@ from resotocore.ids import ConfigId
 from resotocore.model.model import Kind, Model, ComplexKind
 from resotocore.model.typed_model import from_js, to_js
 from resotocore.types import Json, JsonElement
-from resotocore.util import set_value_in_path, value_in_path, del_value_in_path, merge_json_elements
+from resotocore.util import set_value_in_path, value_in_path, del_value_in_path
 from resotocore.validator import Validator, schema_name
 from resotolib.core.model_export import dataclasses_to_resotocore_model
-from resotolib.utils import replace_env_vars, is_env_var_string, EnvVarSubstitutionError
+from resotolib.utils import replace_env_vars, is_env_var_string, EnvVarSubstitutionError, merge_json_elements
 
 log = logging.getLogger(__name__)
 

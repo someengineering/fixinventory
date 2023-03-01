@@ -16,7 +16,7 @@ from resotolib.core.config import (
     update_config_model,
 )
 from resotolib.core.events import CoreEvents
-from resotolib.utils import replace_env_vars
+from resotolib.utils import replace_env_vars, merge_json_elements
 from typing import Dict, Any, List, Optional, Type, Callable, cast
 from attrs import fields
 
@@ -116,9 +116,23 @@ class Config(metaclass=MetaConfig):
         if len(Config.running_config.classes) == 0:
             raise RuntimeError("No config added")
         with self._config_lock:
+            config = {}
+
+            ############################################################
+            # Load the config from the core, populate it with defaults
+            # and send it back to resotocore
+            ############################################################
             try:
-                config, new_config_revision = get_config(self.config_name, self.resotocore_uri, verify=self.verify)
-                config = cast(Json, replace_env_vars(config, os.environ, ignore_missing=False))
+                # We need two configs here: one with env_vars resolved and overrides applied
+                # and one with the raw config as it was stored in the database
+                config_response, new_config_revision = get_config(
+                    self.config_name, self.resotocore_uri, verify=self.verify
+                )
+                # config with env_vars resolved and overrides applied
+                config = config_response["config"]
+                # raw config as it was stored in the database, to be sent to the core
+                raw_config = config_response["raw_config"]
+
                 if len(config) == 0:
                     if self._initial_load:
                         raise ConfigNotFoundError("Empty config returned - loading defaults")
@@ -129,17 +143,32 @@ class Config(metaclass=MetaConfig):
             else:
                 log.info(f"Loaded config {self.config_name} revision {new_config_revision}")
                 new_config = Config.read_config(config)
+                # test if the config has changed using the most latest version
+                # with overrides applied and env_vars resolved
                 if reload and self.restart_required(new_config):
                     restart()
-                Config.running_config.data = new_config
+                # load the raw config to update the config model in resotocore
+                # we don't want overrides and resolved env_vars to be sent to the core here
+                # read_as_json is used to avoid problems with unresolved env_vars
+                Config.running_config.data = Config.read_config(raw_config, read_as_json=True)
                 Config.running_config.revision = new_config_revision
             self.init_default_config()
             if self._initial_load:
                 # Try to store the generated config. Handle failure gracefully.
                 try:
+                    # Send the raw_config + default values to resotocore
                     self.save_config()
                 except RuntimeError as e:
                     log.error(f"Failed to save config: {e}")
+
+            ############################################################
+            # Once the core got the raw config, use the config with
+            # overrides applied and env_vars resolved
+            ############################################################
+
+            if self.apply_path_overrides_resolve_env_vars(Config.running_config, config):
+                # overrides were applied, init the defaults again
+                self.init_default_config()
             self.override_config(Config.running_config)
             self._initial_load = False
             if not self._ce.is_alive():
@@ -147,14 +176,14 @@ class Config(metaclass=MetaConfig):
                 self._ce.start()
 
     @staticmethod
-    def read_config(config: Json) -> Dict[str, Any]:
+    def read_config(config: Json, read_as_json: bool = False) -> Dict[str, Any]:
         new_config = {}
         for config_id, config_data in config.items():
             if config_data is None:
                 config_data = {}
             if config_id in Config.running_config.classes:
                 log.debug(f"Loading config section {config_id}")
-                clazz: Type[Any] = Config.running_config.classes.get(config_id, Any)
+                clazz: Type[Any] = Config.running_config.classes.get(config_id, Any) if not read_as_json else Any
                 # use the from_json class from config, if available
                 if loader := getattr(clazz, "from_json", None):
                     new_config[config_id] = loader(config_data)
@@ -176,6 +205,18 @@ class Config(metaclass=MetaConfig):
                             log.info(f"Changed config {config_id}.{field.name} requires restart")
                             return True
         return False
+
+    @staticmethod
+    def apply_path_overrides_resolve_env_vars(running_config: RunningConfig, config: Json) -> bool:
+        # there was no config received from resotocore, keep defaults
+        if not config:
+            return False
+        # resolve missing env_vars from the environment
+        resolved_conf = {k: replace_env_vars(v, os.environ) for k, v in config.items()}
+
+        running_config.data = Config.read_config(resolved_conf)
+
+        return True
 
     @staticmethod
     def override_config(running_config: RunningConfig) -> None:

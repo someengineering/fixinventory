@@ -9,7 +9,8 @@ from resotocore.core_config import config_model
 from resotocore.model.typed_model import from_js
 from resotocore.types import Json
 from resotocore.ids import ConfigId
-from resotocore.util import merge_json_elements, Periodic
+from resotocore.util import Periodic
+from resotolib.utils import merge_json_elements
 from resotocore.config import ConfigOverride
 from resotocore.db.modeldb import ModelDb
 from resotocore.model.model import Model, Kind

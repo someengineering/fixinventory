@@ -15,10 +15,11 @@ from resotocore.db.modeldb import ModelDb
 from resotocore.message_bus import MessageBus, CoreMessage
 from resotocore.model.model import Model, Kind, ComplexKind
 from resotocore.types import Json, JsonElement
-from resotocore.util import uuid_str, deep_merge, merge_json_elements, first
+from resotocore.util import uuid_str, deep_merge, first
 from resotocore.worker_task_queue import WorkerTaskQueue, WorkerTask, WorkerTaskName
 from resotocore.ids import TaskId, ConfigId
 from resotocore.core_config import CoreConfig
+from resotolib.utils import merge_json_elements
 
 from resotolib.utils import replace_env_vars
 
