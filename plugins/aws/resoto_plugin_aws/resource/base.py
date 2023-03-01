@@ -436,7 +436,7 @@ class GraphBuilder:
         :param region: only define the region in case it is different from the region of the graph builder.
         :return: the added node
         """
-        log.debug(f"{self.name}: add node {node}")
+        log.debug(f"Added node {node.kdname}")
         node._cloud = self.cloud
         node._account = self.account
         node._region = region or self.region
@@ -450,7 +450,6 @@ class GraphBuilder:
         to_n = self.node(**to_node)
         if isinstance(from_node, AwsResource) and isinstance(to_n, AwsResource):
             start, end = (to_n, from_node) if reverse else (from_node, to_n)
-            log.debug(f"{self.name}: add edge: {start} -> {end} [{edge_type}]")
             with self.graph_edges_access:
                 self.graph.add_edge(start, end, edge_type=edge_type)
 

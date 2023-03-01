@@ -92,7 +92,7 @@ class Graph(networkx.MultiDiGraph):
             self.add_node(self.root, label=self.root.name, **get_resource_attributes(self.root))
         self.deferred_edges: List[Tuple[NodeSelector, NodeSelector, EdgeType]] = []
 
-    def merge(self, graph: Graph):
+    def merge(self, graph: Graph, skip_deferred_edges: bool = False):
         """Merge another graph into ourselves
 
         If the other graph has a graph.root an edge will be created between
@@ -110,7 +110,8 @@ class Graph(networkx.MultiDiGraph):
             self.deferred_edges.extend(graph.deferred_edges)
         finally:
             self._log_edge_creation = True
-        self.resolve_deferred_connections()
+        if not skip_deferred_edges:
+            self.resolve_deferred_connections()
 
     def add_resource(
         self,
