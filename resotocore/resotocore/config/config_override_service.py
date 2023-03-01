@@ -4,12 +4,15 @@ import yaml
 import logging
 import asyncio
 from datetime import timedelta
+
+from resotocore.core_config import config_model
+from resotocore.model.typed_model import from_js
 from resotocore.types import Json
 from resotocore.ids import ConfigId
 from resotocore.util import merge_json_elements, Periodic
 from resotocore.config import ConfigOverride
 from resotocore.db.modeldb import ModelDb
-from resotocore.model.model import Model
+from resotocore.model.model import Model, Kind
 from deepdiff import DeepDiff
 import aiofiles.os as aos
 import aiofiles
@@ -162,3 +165,16 @@ class ConfigOverrideService(ConfigOverride):
 
     async def stop(self) -> None:
         await self.watcher.stop()
+
+
+async def override_config_for_startup(override_path: List[Path]) -> ConfigOverride:
+    """
+    Minimal version that is used only for bootstrapping the core
+    """
+
+    async def model_direct() -> Model:
+        return Model.from_kinds(from_js(config_model(), List[Kind]))
+
+    config_override_service = ConfigOverrideService(override_path, model_direct)
+    await config_override_service.load()
+    return config_override_service

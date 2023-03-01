@@ -8,10 +8,10 @@ from argparse import Namespace
 from asyncio import Queue
 from contextlib import suppress
 from datetime import timedelta
+from functools import partial
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import AsyncIterator, List, Union
-from functools import partial
 
 from aiohttp.web_app import Application
 from arango.database import StandardDatabase
@@ -27,7 +27,7 @@ from resotocore.cli.cli import CLI
 from resotocore.cli.command import alias_names, all_commands
 from resotocore.cli.model import CLIDependencies
 from resotocore.config.config_handler_service import ConfigHandlerService
-from resotocore.config.config_override_service import ConfigOverrideService, model_from_db
+from resotocore.config.config_override_service import ConfigOverrideService, model_from_db, override_config_for_startup
 from resotocore.config.core_config_handler import CoreConfigHandler
 from resotocore.core_config import (
     config_from_db,
@@ -37,20 +37,16 @@ from resotocore.core_config import (
     inside_kubernetes,
     helm_installation,
     ResotoCoreConfigId,
-    config_model as core_config_model,
 )
 from resotocore.db import SystemData
 from resotocore.db.db_access import DbAccess
-from resotocore.db.modeldb import model_db
-from resotocore.db.async_arangodb import AsyncArangoDB
 from resotocore.dependencies import db_access, setup_process, parse_args, system_info, reconfigure_logging, event_stream
 from resotocore.error import RestartService
-from resotocore.report.inspector_service import InspectorService
 from resotocore.message_bus import MessageBus
-from resotocore.model.model import Kind
 from resotocore.model.model_handler import ModelHandlerDB
-from resotocore.model.typed_model import to_json, class_fqn, from_js
+from resotocore.model.typed_model import to_json, class_fqn
 from resotocore.query.template_expander import DBTemplateExpander
+from resotocore.report.inspector_service import InspectorService
 from resotocore.task.scheduler import Scheduler
 from resotocore.task.subscribers import SubscriptionHandler
 from resotocore.task.task_handler import TaskHandlerService
@@ -114,24 +110,8 @@ def run_process(args: Namespace) -> None:
             warnings.simplefilter("ignore", HTTPWarning)
             # wait here for an initial connection to the database before we continue. blocking!
             created, system_data, sdb = DbAccess.connect(args, timedelta(seconds=120), verify=False)
-
-            # create a tiny version of config override service that can validate the core config
-            async def init_core_config_override() -> ConfigOverrideService:
-                model_name = "model"
-                kinds = from_js(core_config_model(), List[Kind])
-                model_database = model_db(AsyncArangoDB(sdb), model_name)
-                await model_database.create_update_schema()
-                await model_database.update_many(kinds)
-                # initialize the config override service
-                config_override_service = ConfigOverrideService(
-                    args.config_override_path, partial(model_from_db, model_database)
-                )
-                await config_override_service.load()
-                return config_override_service
-
             # only to be used for CoreConfig creation
-            core_config_override_service = asyncio.run(init_core_config_override())
-
+            core_config_override_service = asyncio.run(override_config_for_startup(args.config_override_path))
             config = config_from_db(args, sdb, lambda: core_config_override_service.get_override(ResotoCoreConfigId))
             cert_handler = CertificateHandler.lookup(config, sdb, temp)
             verify: Union[bool, str] = False if args.graphdb_no_ssl_verify else str(cert_handler.ca_bundle)
