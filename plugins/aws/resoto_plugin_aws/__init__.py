@@ -603,7 +603,7 @@ def collect_account_proxy(*args, queue: multiprocessing.Queue, **kwargs) -> None
 def collect_in_process(*args, **kwargs) -> Optional[Graph]:  # type: ignore
     ctx = multiprocessing.get_context("spawn")
     queue = ctx.Queue()
-    kwargs.update({"queue": queue})
+    kwargs["queue"] = queue
     process = ctx.Process(target=collect_account_proxy, args=args, kwargs=kwargs)
     process.start()
     graph = queue.get()
