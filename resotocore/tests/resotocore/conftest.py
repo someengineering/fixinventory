@@ -321,8 +321,11 @@ def expander() -> InMemoryTemplateExpander:
 
 
 @fixture
-def task_queue() -> WorkerTaskQueue:
-    return WorkerTaskQueue()
+async def task_queue() -> AsyncIterator[WorkerTaskQueue]:
+    wtq = WorkerTaskQueue()
+    await wtq.start()
+    yield wtq
+    await wtq.stop()
 
 
 @fixture

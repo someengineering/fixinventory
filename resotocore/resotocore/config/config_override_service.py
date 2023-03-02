@@ -2,7 +2,6 @@ from typing import List, Optional, Callable, Dict, Any, Awaitable, cast
 from pathlib import Path
 import yaml
 import logging
-import asyncio
 from datetime import timedelta
 
 from resotocore.core_config import config_model
