@@ -1,6 +1,6 @@
 import resotolib.logger
 from datetime import datetime
-from typing import ClassVar, Dict, Optional, List, Tuple
+from typing import ClassVar, Dict, Optional, List, Tuple, Type
 
 from attr import define, field
 
@@ -2649,7 +2649,7 @@ class GcpInstance(GcpResource, BaseInstance):
         "instance_last_start_timestamp": S("lastStartTimestamp"),
         "instance_last_stop_timestamp": S("lastStopTimestamp"),
         "instance_last_suspended_timestamp": S("lastSuspendedTimestamp"),
-        # "instance_machine_type": S("machineType"),
+        "instance_machine_type": S("machineType"),
         "instance_metadata": S("metadata", default={}) >> Bend(GcpMetadata.mapping),
         "instance_min_cpu_platform": S("minCpuPlatform"),
         "instance_network_interfaces": S("networkInterfaces", default=[]) >> ForallBend(GcpNetworkInterface.mapping),
@@ -2720,49 +2720,45 @@ class GcpInstance(GcpResource, BaseInstance):
     instance_status_message: Optional[str] = field(default=None)
     instance_tags: Optional[GcpTags] = field(default=None)
 
-    def set_machine_type(self, machine_type_link_ish: str, graph_builder: GraphBuilder) -> None:
-        def find_existing_machine_type() -> Optional[GcpMachineType]:
-            if not machine_type_link_ish.startswith("https://"):
-                machine_type_link_ish = (
-                    f"https://www.googleapis.com/compute/v1/projects/{graph_builder.project.id}/{machine_type_link_ish}"
-                )
-            return graph_builder.node(clazz=GcpMachineType, link=machine_type_link_ish)
-
-        # TODO: Maybe as class method on GcpMachineType?
-        def create_adhoc_machine_type() -> GcpMachineType:
-            log.debug(f"Creating ad-hoc machine type for {self.rtdname}")
-            zone = machine_type_link_ish.split("/")[-3]
-            name = machine_type_link_ish.split("/")[-1]
-            result = graph_builder.client.get(
-                gcp_service="compute",
-                action="get",
-                resource="machineType",
-                project=graph_builder.project,
-                zone=zone,
-                machineType=name,
-            )
-            return GcpMachineType.from_api(result)
-
-        machine_type = find_existing_machine_type() or create_adhoc_machine_type()
-        self.instance_cores = machine_type.instance_cores
-        self.instance_memory = machine_type.instance_memory
-        self.instance_type = machine_type.name
-
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         if self.instance_status == InstanceStatus.TERMINATED:
             self._cleaned = True
-        self.set_machine_type(source["machineType"], graph_builder)
+
+    def connect_machine_type(self, machine_type_link_ish: str, builder: GraphBuilder) -> None:
+        def find_existing_machine_type() -> Optional[GcpMachineType]:
+            if not machine_type_link_ish.startswith("https://"):
+                machine_type_link_ish = (
+                    f"https://www.googleapis.com/compute/v1/projects/{builder.project.id}/{machine_type_link_ish}"
+                )
+            return builder.node(clazz=GcpMachineType, link=machine_type_link_ish)
+
+        machine_type = find_existing_machine_type()
+        self.instance_cores = machine_type.instance_cores
+        self.instance_memory = machine_type.instance_memory
+        self.instance_type = machine_type.name
+        builder.add_edge(from_node=self, reverse=True, node=machine_type)
+
+    @classmethod
+    def collect(cls: Type[GcpResource], raw: List[Json], builder: GraphBuilder) -> List[GcpResource]:
+        # Additional behavior: iterate over list of collected GcpInstances and for each:
+        # - extract machineType if custom
+        # - then create GcpMachineType object for each unique custom machine type
+        # - add the new objects to the graph
+        result = super().collect(cls, raw, builder)
+        custom_machine_types = list(
+            set([instance.instance_machine_type for instance in result if "custom" in instance.instance_machine_type])
+        )
+        for machine_type in custom_machine_types:
+            zone = machine_type.split("/")[-3]
+            name = machine_type.split("/")[-1]
+            GcpMachineType.collect_individual(builder.client, builder.project, zone, name)
+
+        return result
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
-        builder.add_edge(
-            from_node=self,
-            reverse=True,
-            clazz=GcpMachineType,
-            name=self.instance_type,
-            _zone=self._zone,
-            _account=self._account,
-        )
+        self.connect_machine_type(source["machineType"], builder)
+
         for nic in self.instance_network_interfaces or []:
             builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=GcpNetwork, link=nic.network)
             builder.dependant_node(
@@ -3274,6 +3270,19 @@ class GcpMachineType(GcpResource, BaseInstanceType):
     type_maximum_persistent_disks: Optional[int] = field(default=None)
     type_maximum_persistent_disks_size_gb: Optional[str] = field(default=None)
     type_scratch_disks: Optional[List[int]] = field(default=None)
+
+    @classmethod
+    def collect_individual(builder: GraphBuilder, zone: str, name: str) -> None:
+        result = builder.client.get(
+            gcp_service="compute",
+            action="get",
+            resource="machineType",
+            project=builder.project,
+            zone=zone,
+            machineType=name,
+        )
+        machine_type_obj = GcpMachineType.from_api(result)
+        builder.add_node(machine_type_obj, result)
 
     # TODO post process
 
