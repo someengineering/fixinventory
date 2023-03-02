@@ -123,7 +123,7 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
                 if not isinstance(account_graph, Graph):
                     log.debug(f"Skipping account graph of invalid type {type(account_graph)}")
                     continue
-                self.graph.merge(account_graph)
+                self.graph.merge(account_graph, skip_deferred_edges=True)
 
     def regions(self, profile: Optional[str] = None) -> List[str]:
         if len(self.__regions) == 0:
