@@ -3254,26 +3254,25 @@ class GcpMachineType(GcpResource, BaseInstanceType):
         "tags": S("labels", default={}),
         "name": S("name"),
         "ctime": S("creationTimestamp"),
+        "instance_type": S("name"),
+        "instance_cores": S("guestCpus") >> F(lambda x: {float(x)}),
+        "instance_memory": S("memoryMb") >> F(lambda x: {float(x) / 1024}),
         "description": S("description"),
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
         "type_accelerators": S("accelerators", default=[]) >> ForallBend(GcpAccelerators.mapping),
-        "type_guest_cpus": S("guestCpus"),
         "type_image_space_gb": S("imageSpaceGb"),
         "type_is_shared_cpu": S("isSharedCpu"),
         "type_maximum_persistent_disks": S("maximumPersistentDisks"),
         "type_maximum_persistent_disks_size_gb": S("maximumPersistentDisksSizeGb"),
-        "type_memory_mb": S("memoryMb"),
         "type_scratch_disks": S("scratchDisks", default=[]) >> ForallBend(S("diskGb")),
     }
     type_accelerators: Optional[List[GcpAccelerators]] = field(default=None)
-    type_guest_cpus: Optional[int] = field(default=None)
     type_image_space_gb: Optional[int] = field(default=None)
     type_is_shared_cpu: Optional[bool] = field(default=None)
     type_maximum_persistent_disks: Optional[int] = field(default=None)
     type_maximum_persistent_disks_size_gb: Optional[str] = field(default=None)
-    type_memory_mb: Optional[int] = field(default=None)
     type_scratch_disks: Optional[List[int]] = field(default=None)
 
     # TODO post process
