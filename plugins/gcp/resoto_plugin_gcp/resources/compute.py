@@ -2730,10 +2730,11 @@ class GcpInstance(GcpResource, BaseInstance):
                 f"https://www.googleapis.com/compute/v1/projects/{builder.project.id}/{machine_type_link_ish}"
             )
         machine_type = builder.node(clazz=GcpMachineType, link=machine_type_link_ish)
-        self.instance_cores = machine_type.instance_cores
-        self.instance_memory = machine_type.instance_memory
-        self.instance_type = machine_type.name
-        builder.add_edge(from_node=self, reverse=True, node=machine_type)
+        if machine_type:
+            self.instance_cores = machine_type.instance_cores
+            self.instance_memory = machine_type.instance_memory
+            self.instance_type = machine_type.name
+            builder.add_edge(from_node=self, reverse=True, node=machine_type)
 
     @classmethod
     def collect(cls: Type[GcpResource], raw: List[Json], builder: GraphBuilder) -> List[GcpResource]:
