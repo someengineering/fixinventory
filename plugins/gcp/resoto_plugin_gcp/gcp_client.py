@@ -56,9 +56,18 @@ class GcpClient:
         self.region = region
         self.core_feedback = core_feedback
 
-    def get(self, **kwargs) -> Json:
-        # TODO needs actual implementation, see aws client
-        return {}
+    def get(self, api_spec: GcpApiSpec, **kwargs) -> Json:
+        client = _discovery_function(
+            api_spec.service, api_spec.version, credentials=self.credentials, cache=MemoryCache()
+        )
+        executor = client
+        for accessor in api_spec.accessors:
+            executor = getattr(executor, accessor)()
+        params_map = {**{"project": self.project_id, "region": self.region}, **kwargs}
+        params = {k: v.format_map(params_map) for k, v in api_spec.request_parameter.items()}
+        request = getattr(executor, api_spec.action)(**params)
+        result: Json = request.execute()
+        return result
 
     def list(self, api_spec: GcpApiSpec, **kwargs) -> List[Json]:
         # todo add caching

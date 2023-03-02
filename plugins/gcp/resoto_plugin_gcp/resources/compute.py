@@ -9,7 +9,6 @@ from resoto_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus, 
 from resotolib.baseresources import (
     BaseInstanceType,
     BaseVolumeType,
-    EdgeType,
     ModelReference,
     BaseVolume,
     VolumeStatus,
@@ -1021,8 +1020,8 @@ class GcpFirewallPolicy(GcpResource):
         version="v1",
         accessors=["firewallPolicies"],
         action="list",
-        request_parameter={"parentId": "{parentId}"},
-        request_parameter_in=set("parentId"),
+        request_parameter={},
+        request_parameter_in=set(),
         response_path="items",
         response_regional_sub_path=None,
     )
@@ -2700,6 +2699,7 @@ class GcpInstance(GcpResource, BaseInstance):
     instance_last_start_timestamp: Optional[datetime] = field(default=None)
     instance_last_stop_timestamp: Optional[datetime] = field(default=None)
     instance_last_suspended_timestamp: Optional[datetime] = field(default=None)
+    instance_machine_type: Optional[str] = field(default=None)
     instance_metadata: Optional[GcpMetadata] = field(default=None)
     instance_min_cpu_platform: Optional[str] = field(default=None)
     instance_network_interfaces: Optional[List[GcpNetworkInterface]] = field(default=None)
@@ -2725,14 +2725,11 @@ class GcpInstance(GcpResource, BaseInstance):
             self._cleaned = True
 
     def connect_machine_type(self, machine_type_link_ish: str, builder: GraphBuilder) -> None:
-        def find_existing_machine_type() -> Optional[GcpMachineType]:
-            if not machine_type_link_ish.startswith("https://"):
-                machine_type_link_ish = (
-                    f"https://www.googleapis.com/compute/v1/projects/{builder.project.id}/{machine_type_link_ish}"
-                )
-            return builder.node(clazz=GcpMachineType, link=machine_type_link_ish)
-
-        machine_type = find_existing_machine_type()
+        if not machine_type_link_ish.startswith("https://"):
+            machine_type_link_ish = (
+                f"https://www.googleapis.com/compute/v1/projects/{builder.project.id}/{machine_type_link_ish}"
+            )
+        machine_type = builder.node(clazz=GcpMachineType, link=machine_type_link_ish)
         self.instance_cores = machine_type.instance_cores
         self.instance_memory = machine_type.instance_memory
         self.instance_type = machine_type.name
@@ -2744,20 +2741,20 @@ class GcpInstance(GcpResource, BaseInstance):
         # - extract machineType if custom
         # - then create GcpMachineType object for each unique custom machine type
         # - add the new objects to the graph
-        result = super().collect(cls, raw, builder)
+        result = super().collect(raw, builder)
         custom_machine_types = list(
             set([instance.instance_machine_type for instance in result if "custom" in instance.instance_machine_type])
         )
         for machine_type in custom_machine_types:
             zone = machine_type.split("/")[-3]
             name = machine_type.split("/")[-1]
-            GcpMachineType.collect_individual(builder.client, builder.project, zone, name)
+            GcpMachineType.collect_individual(builder, zone, name)
 
         return result
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
-        self.connect_machine_type(source["machineType"], builder)
+        self.connect_machine_type(self.instance_machine_type, builder)
 
         for nic in self.instance_network_interfaces or []:
             builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=GcpNetwork, link=nic.network)
@@ -3251,8 +3248,8 @@ class GcpMachineType(GcpResource, BaseInstanceType):
         "name": S("name"),
         "ctime": S("creationTimestamp"),
         "instance_type": S("name"),
-        "instance_cores": S("guestCpus") >> F(lambda x: {float(x)}),
-        "instance_memory": S("memoryMb") >> F(lambda x: {float(x) / 1024}),
+        "instance_cores": S("guestCpus") >> F(lambda x: float(x)),
+        "instance_memory": S("memoryMb") >> F(lambda x: float(x) / 1024),
         "description": S("description"),
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
@@ -3272,12 +3269,18 @@ class GcpMachineType(GcpResource, BaseInstanceType):
     type_scratch_disks: Optional[List[int]] = field(default=None)
 
     @classmethod
-    def collect_individual(builder: GraphBuilder, zone: str, name: str) -> None:
-        result = builder.client.get(
-            gcp_service="compute",
+    def collect_individual(cls: Type[GcpResource], builder: GraphBuilder, zone: str, name: str) -> None:
+        api_spec: GcpApiSpec = GcpApiSpec(
+            service="compute",
+            version="v1",
+            accessors=["machineTypes"],
             action="get",
-            resource="machineType",
-            project=builder.project,
+            response_path="",
+            request_parameter={"project": "{project}", "zone": "{zone}", "machineType": "{machineType}"},
+            request_parameter_in={"project", "zone", "machineType"},
+        )
+        result = builder.client.get(
+            api_spec,
             zone=zone,
             machineType=name,
         )
