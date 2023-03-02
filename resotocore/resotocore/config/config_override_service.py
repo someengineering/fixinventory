@@ -35,7 +35,6 @@ class ConfigOverrideService(ConfigOverride):
         self._get_configs_model = get_configs_model
 
         self.overrides: Dict[ConfigId, Json] = {}
-        self.stop_watcher = asyncio.Event()
         self.override_change_hooks: List[Callable[[Dict[ConfigId, Json]], Awaitable[Any]]] = []
         self.watcher: Periodic = Periodic(
             "config_overrides_watcher", self.check_config_changes, timedelta(seconds=sleep_time)

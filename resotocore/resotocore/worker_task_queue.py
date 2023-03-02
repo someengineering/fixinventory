@@ -91,12 +91,13 @@ class WorkerTaskQueue:
         self.work_count: Dict[str, int] = defaultdict(lambda: 0)
         self.outstanding_tasks: Dict[str, WorkerTaskInProgress] = {}
         self.unassigned_tasks: Dict[str, WorkerTaskOnHold] = {}
-        self.lock = asyncio.Lock()  # note: this lock is not reentrant!
+        self.lock: Optional[asyncio.Lock] = None
         self.outdated_checker: Periodic = Periodic(
             "check_outdated_tasks", self.check_outdated_unassigned_tasks, timedelta(seconds=5)
         )
 
     async def start(self) -> None:
+        self.lock = asyncio.Lock()  # note: this lock is not reentrant!
         await self.outdated_checker.start()
 
     async def stop(self) -> None:
@@ -109,6 +110,7 @@ class WorkerTaskQueue:
         queue: Queue[WorkerTask] = Queue(queue_size)
         subscriptions = [WorkerTaskSubscription(worker_id, td, queue) for td in task_descriptions]
 
+        assert self.lock is not None, "Call start() first!"
         if len(task_descriptions) == 0:
             raise AttributeError("Need at least one task description to attach!")
         try:
@@ -131,16 +133,20 @@ class WorkerTaskQueue:
                 await self.__retry_tasks(open_tasks)
 
     async def add_task(self, task: WorkerTask, retry_count: int = 0) -> None:
+        assert self.lock is not None, "Call start() first!"
         async with self.lock:
             await self.__add_task(task, retry_count)
 
     async def acknowledge_task(
         self, worker_id: WorkerId, task_id: TaskId, result: Optional[JsonElement] = None
     ) -> None:
+        assert self.lock is not None, "Call start() first!"
         async with self.lock:
             await self.__acknowledge_task(worker_id, task_id, result)
 
     async def error_task(self, worker_id: WorkerId, task_id: TaskId, message: str) -> None:
+        assert self.lock is not None, "Call start() first!"
+
         async with self.lock:
             await self.__error_task(worker_id, task_id, message)
 
@@ -148,6 +154,7 @@ class WorkerTaskQueue:
         now = utc()
         outstanding = [ip for ip in self.outstanding_tasks.values() if ip.deadline < now]
         not_started_outdated = [ns for ns in self.unassigned_tasks.values() if ns.deadline < now]
+        assert self.lock is not None, "Call start() first!"
         async with self.lock:
             await self.__retry_tasks(outstanding)
             for ns in not_started_outdated:
