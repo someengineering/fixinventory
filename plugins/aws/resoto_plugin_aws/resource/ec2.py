@@ -1243,7 +1243,7 @@ class AwsEc2ElasticIp(EC2Taggable, AwsResource, BaseIPAddress):
         "successors": {"delete": ["aws_ec2_instance", "aws_ec2_network_interface"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("NetworkInterfaceId").or_else(S("PublicIp")),
+        "id": S("PublicIp"),
         "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("InstanceId").or_else(S("Tags", default=[]) >> TagsValue("Name")).or_else(S("NetworkInterfaceId")),
         "ip_address": S("PublicIp") or S("PrivateIpAddress"),
