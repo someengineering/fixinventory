@@ -138,9 +138,10 @@ class AwsClient:
             raise AttributeError(f"Unsupported type: {type(node)}")
 
     def service_model(self, aws_service: str) -> ServiceModel:
-        session = self.config.sessions().session(self.account_id, self.role, self.profile)
-        client = session.client(aws_service, region_name=self.region)
-        return client.meta.service_model
+        client = self.config.sessions().client(self.account_id, self.role, self.profile, aws_service, self.region)
+        model = client.meta.service_model
+        client.close()
+        return model
 
     def with_resource(self, aws_service: str, fn: Callable[[Any], T]) -> Optional[T]:
         """
@@ -151,8 +152,7 @@ class AwsClient:
         :param fn: loan pattern: the function is handed the resource and the result is returned.
         :return: the result of the function.
         """
-        session = self.config.sessions().session(self.account_id, self.role, self.profile)
-        resource = session.resource(aws_service, region_name=self.region)
+        resource = self.config.sessions().resource(self.account_id, self.role, self.profile, aws_service, self.region)
         try:
             return fn(resource)
         except ClientError as e:
@@ -175,30 +175,34 @@ class AwsClient:
         py_action = action.replace("-", "_")
         # adaptive mode allows automated client-side throttling
         config = Config(retries={"max_attempts": max_attempts, "mode": "adaptive"})
-        session = self.config.sessions().session(self.account_id, self.role, self.profile)
-        client = session.client(aws_service, region_name=self.region, config=config)
-        if client.can_paginate(py_action):
-            paginator = client.get_paginator(py_action)
-            result: List[Json] = []
-            for page in paginator.paginate(**kwargs):
-                log.debug2(f"[Aws] Get next page for service={aws_service} action={action}{arg_info}")  # type: ignore
-                next_page: Json = self.__to_json(page)  # type: ignore
-                if result_name is None:
-                    # the whole object is appended
-                    result.append(next_page)
-                else:
-                    child = value_in_path(next_page, result_name)
-                    if isinstance(child, list):
-                        result.extend(child)
-                    elif child is not None:
-                        result.append(child)
-            log.debug(f"[Aws] called service={aws_service} action={action}{arg_info}: {len(result)} results.")
-            return result
-        else:
-            result = getattr(client, py_action)(**kwargs)
-            single: Json = self.__to_json(result)  # type: ignore
-            log.debug(f"[Aws] called service={aws_service} action={action}{arg_info}: single result")
-            return value_in_path(single, result_name) if result_name else single
+        client = self.config.sessions().client(
+            self.account_id, self.role, self.profile, aws_service, self.region, config
+        )
+        try:
+            if client.can_paginate(py_action):
+                paginator = client.get_paginator(py_action)
+                result: List[Json] = []
+                for page in paginator.paginate(**kwargs):
+                    log.debug2(f"[Aws] Next page for service={aws_service} action={action}{arg_info}")  # type: ignore
+                    next_page: Json = self.__to_json(page)  # type: ignore
+                    if result_name is None:
+                        # the whole object is appended
+                        result.append(next_page)
+                    else:
+                        child = value_in_path(next_page, result_name)
+                        if isinstance(child, list):
+                            result.extend(child)
+                        elif child is not None:
+                            result.append(child)
+                log.debug(f"[Aws] called service={aws_service} action={action}{arg_info}: {len(result)} results.")
+                return result
+            else:
+                result = getattr(client, py_action)(**kwargs)
+                single: Json = self.__to_json(result)  # type: ignore
+                log.debug(f"[Aws] called service={aws_service} action={action}{arg_info}: single result")
+                return value_in_path(single, result_name) if result_name else single
+        finally:
+            client.close()
 
     @retry(  # type: ignore
         stop_max_attempt_number=10,

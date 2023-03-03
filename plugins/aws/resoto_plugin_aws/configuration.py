@@ -8,6 +8,8 @@ from typing import List, ClassVar, Optional, Type, Any, Dict
 
 from attrs import define, field, fields_dict
 from boto3.session import Session as BotoSession
+from botocore.client import BaseClient
+from botocore.config import Config as BotoConfig
 
 from resotolib.durations import parse_duration
 from resotolib.json import from_json as from_js
@@ -26,10 +28,11 @@ class AwsSessionHolder:
     # Only here to override in tests
     session_class_factory: Type[BotoSession] = BotoSession
     kind: ClassVar[str] = "aws_session_holder"
+    session_lock: threading.Lock = threading.Lock()
 
     # noinspection PyUnusedLocal
     @lru_cache(maxsize=128)
-    def __direct_session(self, profile: Optional[str], thread_id: Any) -> BotoSession:
+    def __direct_session(self, profile: Optional[str]) -> BotoSession:
         if profile:
             return self.session_class_factory(profile_name=profile)
         else:
@@ -38,10 +41,8 @@ class AwsSessionHolder:
             )
 
     # noinspection PyUnusedLocal
-    @lru_cache(maxsize=512)
-    def __sts_session(
-        self, aws_account: str, aws_role: str, profile: Optional[str], thread_id: Any, cache_key: int
-    ) -> BotoSession:
+    @lru_cache(maxsize=128)
+    def __sts_session(self, aws_account: str, aws_role: str, profile: Optional[str], cache_key: int) -> BotoSession:
         role = self.role if self.role_override else aws_role
         role_arn = f"arn:aws:iam::{aws_account}:role/{role}"
         if profile:
@@ -64,19 +65,50 @@ class AwsSessionHolder:
             aws_session_token=credentials["SessionToken"],
         )
 
-    def session(
+    def _session(
         self, aws_account: str, aws_role: Optional[str] = None, aws_profile: Optional[str] = None
     ) -> BotoSession:
-        # sessions should not be shared across threads
-        # https://boto3.amazonaws.com/v1/documentation/api/1.14.31/guide/session.html#multithreading-or-multiprocessing-with-sessions
-        thread_id = threading.current_thread().ident
+        """
+        Note: the session is not thread safe - caller needs to synchronize access.
+        Consider using the client() and resource() methods instead.
+        """
         if aws_role is None:
-            return self.__direct_session(aws_profile, thread_id)
+            return self.__direct_session(aws_profile)
         else:
             # Use sts to create a temporary token for the given account and role
             # Sts session is at least valid for 900 seconds (default 1 hour)
             # let's renew the session after 10 minutes
-            return self.__sts_session(aws_account, aws_role, aws_profile, thread_id, int(time.time() / 600))
+            return self.__sts_session(aws_account, aws_role, aws_profile, int(time.time() / 600))
+
+    def client(
+        self,
+        aws_account: str,
+        aws_role: Optional[str],
+        aws_profile: Optional[str],
+        aws_service: str,
+        region_name: Optional[str] = None,
+        config: Optional[BotoConfig] = None,
+    ) -> BaseClient:
+        with self.session_lock:
+            session = self._session(aws_account, aws_role, aws_profile)
+            return session.client(aws_service, region_name=region_name, config=config)
+
+    def resource(
+        self,
+        aws_account: str,
+        aws_role: Optional[str],
+        aws_profile: Optional[str],
+        aws_service: str,
+        region_name: Optional[str] = None,
+        config: Optional[BotoConfig] = None,
+    ) -> Any:
+        with self.session_lock:
+            session = self._session(aws_account, aws_role, aws_profile)
+            return session.resource(aws_service, region_name=region_name, config=config)
+
+    def purge_caches(self) -> None:
+        self.__direct_session.cache_clear()
+        self.__sts_session.cache_clear()
 
 
 @define(slots=False)

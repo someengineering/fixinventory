@@ -70,6 +70,7 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
 
     def collect_aws(self) -> None:
         log.debug("plugin: AWS collecting resources")
+        aws_config: AwsConfig = Config.aws
         assert self.core_feedback, "core_feedback is not set"
         cloud = Cloud(id=self.cloud, name="AWS")
 
@@ -90,7 +91,7 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
             log.debug(f"Found {account.rtdname}{add_str}")
         self.core_feedback.progress(progress)
 
-        max_workers = len(accounts) if len(accounts) < Config.aws.account_pool_size else Config.aws.account_pool_size
+        max_workers = len(accounts) if len(accounts) < aws_config.account_pool_size else aws_config.account_pool_size
         pool_args = {"max_workers": max_workers}
         # TODO: revert this when memory leak in AWS collector is fixed
         # if Config.aws.fork_process:
@@ -100,12 +101,12 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
         # else:
         #     pool_executor = futures.ThreadPoolExecutor  # type: ignore
         pool_executor = futures.ThreadPoolExecutor
-        if Config.aws.fork_process:
+        if aws_config.fork_process:
             collect_method = collect_in_process
         else:
             collect_method = collect_account
 
-        with pool_executor(**pool_args) as executor:
+        with pool_executor(**pool_args) as executor:  # type: ignore
             wait_for = [
                 executor.submit(
                     collect_method,
@@ -124,6 +125,9 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
                     log.debug(f"Skipping account graph of invalid type {type(account_graph)}")
                     continue
                 self.graph.merge(account_graph, skip_deferred_edges=True)
+
+        # collect done, purge all session caches
+        aws_config.sessions().purge_caches()
 
     def regions(self, profile: Optional[str] = None) -> List[str]:
         if len(self.__regions) == 0:
