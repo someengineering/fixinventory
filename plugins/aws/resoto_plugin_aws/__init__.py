@@ -106,7 +106,7 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
         else:
             collect_method = collect_account
 
-        with pool_executor(**pool_args) as executor:
+        with pool_executor(**pool_args) as executor:  # type: ignore
             wait_for = [
                 executor.submit(
                     collect_method,
