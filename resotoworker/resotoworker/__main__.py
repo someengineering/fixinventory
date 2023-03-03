@@ -92,6 +92,7 @@ def main() -> None:
         resotocore_uri=resotocore.http_uri,
         tls_data=tls_data,
     )
+
     add_config(config)
     plugin_loader.add_plugin_config(config)
     config.load_config()

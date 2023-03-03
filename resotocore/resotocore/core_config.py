@@ -6,7 +6,7 @@ from contextlib import suppress
 from copy import deepcopy
 from datetime import timedelta
 from pathlib import Path
-from typing import Optional, List, ClassVar, Dict, Union, cast
+from typing import Optional, List, ClassVar, Dict, Union, cast, Callable
 
 from arango.database import StandardDatabase
 from attrs import define, field
@@ -19,6 +19,7 @@ from resotocore.types import Json, JsonElement
 from resotocore.util import set_value_in_path, value_in_path, del_value_in_path
 from resotocore.validator import Validator, schema_name
 from resotolib.core.model_export import dataclasses_to_resotocore_model
+from resotolib.utils import replace_env_vars, is_env_var_string, merge_json_elements
 
 log = logging.getLogger(__name__)
 
@@ -82,9 +83,23 @@ def default_hosts() -> List[str]:
 
 
 def validate_config(config: Json, clazz: type) -> Optional[Json]:
+    def strip_env_vars_paths(config: JsonElement) -> JsonElement:
+        """
+        Recursively strips all values that contain an env var string
+        """
+        if isinstance(config, dict):
+            return {k: strip_env_vars_paths(v) for k, v in config.items() if not is_env_var_string(v)}
+        elif isinstance(config, list):
+            return [strip_env_vars_paths(v) for v in config if not is_env_var_string(v)]
+        else:
+            return config
+
     schema = schema_name(clazz)
     v = Validator(schema=schema, allow_unknown=True)
-    result = v.validate(config, normalize=False)
+    # cerberus is too inflexible to allow us to validate the config without resolving the env vars
+    # so we have to strip strings with the env vars before validating
+    without_env_vars = strip_env_vars_paths(config)
+    result = v.validate(without_env_vars, normalize=False)
     return None if result else v.errors
 
 
@@ -617,7 +632,12 @@ schema_registry.add(
 )
 
 
-def parse_config(args: Namespace, core_config: Json, command_templates: Optional[Json] = None) -> CoreConfig:
+def parse_config(
+    args: Namespace,
+    core_config: Json,
+    get_core_overrides: Callable[[], Optional[Json]],
+    command_templates: Optional[Json] = None,
+) -> CoreConfig:
     db = DatabaseConfig(
         server=args.graphdb_server,
         database=args.graphdb_database,
@@ -646,6 +666,15 @@ def parse_config(args: Namespace, core_config: Json, command_templates: Optional
         if value is not None:
             adjusted = set_value_in_path(value, path, adjusted)
 
+    # here we only care about the resotocore overrides
+    core_config_overrides = (get_core_overrides() or {}).get(ResotoCoreRoot)
+    # merge the file overrides into the adjusted config
+    if core_config_overrides:
+        adjusted = merge_json_elements(adjusted, core_config_overrides)
+
+    # replacing the env vars and removing them in case they are not resolved
+    adjusted = replace_env_vars(adjusted, os.environ, keep_unresolved=False)
+
     # coerce the resulting json to the config model
     try:
         model = Model.from_kinds(from_js(config_model(), List[Kind]))
@@ -656,6 +685,7 @@ def parse_config(args: Namespace, core_config: Json, command_templates: Optional
         log.warning(f"Can not adjust configuration: {e}", exc_info=e)
 
     try:
+        # replace all env vars
         ed = from_js(adjusted, EditableConfig)
     except Exception as e:
         # only here as last resort - should never be required
@@ -715,11 +745,16 @@ def migrate_command_config(cmd_config: Json) -> Optional[Json]:
     return config.json() if adjusted else None
 
 
-def config_from_db(args: Namespace, db: StandardDatabase, collection_name: str = "configs") -> CoreConfig:
+def config_from_db(
+    args: Namespace,
+    db: StandardDatabase,
+    get_core_overrides: Callable[[], Optional[Json]],
+    collection_name: str = "configs",
+) -> CoreConfig:
     if configs := db.collection(collection_name) if db.has_collection(collection_name) else None:
         if config_entity := cast(Optional[Json], configs.get(ResotoCoreConfigId)):
             if config := config_entity.get("config"):
                 command_config_entity = cast(Optional[Json], configs.get(ResotoCoreCommandsConfigId))
                 command_config = command_config_entity.get("config") if command_config_entity else None
-                return parse_config(args, config, command_config)
-    return parse_config(args, {})
+                return parse_config(args, config, get_core_overrides, command_config)
+    return parse_config(args, {}, get_core_overrides)

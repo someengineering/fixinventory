@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  resoto:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+
+    container_name: "devcontainer-resoto-${USER}"
+
+    volumes:
+      - ../..:/workspaces:cached
+
+    # Overrides default command so things don't shut down after the process ends.
+    command: sleep infinity
+
+    # Runs app on the same network as the database container, allows "forwardPorts" in devcontainer.json function.
+    network_mode: service:arangodb
+
+    # Use "forwardPorts" in **devcontainer.json** to forward an app port locally.
+    # (Adding the "ports" property to this file will not forward from the container.)
+
+  arangodb:
+    image: arangodb:3.10.3
+    restart: unless-stopped
+    # Uncomment the lines below in case you want to keep arangodb data in a separate volume
+    # volumes:
+    #   - arangodb-data:/var/lib/arangodb3
+    #   - arangodb-apps-data:/var/lib/arangodb3-apps
+    # No login required, we're in a devcontainer after all
+    environment:
+      ARANGO_NO_AUTH: 1
+
+    container_name: "devcontainer-arangodb-${USER}"
+
+    # Use "forwardPorts" in **devcontainer.json** to forward an app port locally.
+    # (Adding the "ports" property to this file will not forward from the container.)
+
+# Uncomment this in case you want to keep arangodb data in a separate volume
+# volumes:
+#   arangodb-data:
+#   arangodb-apps-data:
