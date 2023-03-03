@@ -8,6 +8,7 @@ from argparse import Namespace
 from asyncio import Queue
 from contextlib import suppress
 from datetime import timedelta
+from functools import partial
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import AsyncIterator, List, Union
@@ -26,6 +27,7 @@ from resotocore.cli.cli import CLI
 from resotocore.cli.command import alias_names, all_commands
 from resotocore.cli.model import CLIDependencies
 from resotocore.config.config_handler_service import ConfigHandlerService
+from resotocore.config.config_override_service import ConfigOverrideService, model_from_db, override_config_for_startup
 from resotocore.config.core_config_handler import CoreConfigHandler
 from resotocore.core_config import (
     config_from_db,
@@ -34,16 +36,17 @@ from resotocore.core_config import (
     inside_docker,
     inside_kubernetes,
     helm_installation,
+    ResotoCoreConfigId,
 )
 from resotocore.db import SystemData
 from resotocore.db.db_access import DbAccess
 from resotocore.dependencies import db_access, setup_process, parse_args, system_info, reconfigure_logging, event_stream
 from resotocore.error import RestartService
-from resotocore.report.inspector_service import InspectorService
 from resotocore.message_bus import MessageBus
 from resotocore.model.model_handler import ModelHandlerDB
 from resotocore.model.typed_model import to_json, class_fqn
 from resotocore.query.template_expander import DBTemplateExpander
+from resotocore.report.inspector_service import InspectorService
 from resotocore.task.scheduler import Scheduler
 from resotocore.task.subscribers import SubscriptionHandler
 from resotocore.task.task_handler import TaskHandlerService
@@ -107,18 +110,25 @@ def run_process(args: Namespace) -> None:
             warnings.simplefilter("ignore", HTTPWarning)
             # wait here for an initial connection to the database before we continue. blocking!
             created, system_data, sdb = DbAccess.connect(args, timedelta(seconds=120), verify=False)
-            config = config_from_db(args, sdb)
+            # only to be used for CoreConfig creation
+            core_config_override_service = asyncio.run(override_config_for_startup(args.config_override_path))
+            config = config_from_db(args, sdb, lambda: core_config_override_service.get_override(ResotoCoreConfigId))
             cert_handler = CertificateHandler.lookup(config, sdb, temp)
             verify: Union[bool, str] = False if args.graphdb_no_ssl_verify else str(cert_handler.ca_bundle)
             config = evolve(config, run=RunConfig(temp, verify))
         # in case of tls: connect again with the correct certificate settings
         use_tls = args.graphdb_server.startswith("https://")
         db_client = DbAccess.connect(args, timedelta(seconds=30), verify=verify)[2] if use_tls else sdb
-        with_config(created, system_data, db_client, cert_handler, config)
+        with_config(created, system_data, db_client, cert_handler, config, args.config_override_path)
 
 
 def with_config(
-    created: bool, system_data: SystemData, sdb: StandardDatabase, cert_handler: CertificateHandler, config: CoreConfig
+    created: bool,
+    system_data: SystemData,
+    sdb: StandardDatabase,
+    cert_handler: CertificateHandler,
+    config: CoreConfig,
+    config_overrides_paths: List[Path],
 ) -> None:
     reconfigure_logging(config)  # based on the config, logging might have changed
     # only lg the editable config - to not log any passwords
@@ -131,6 +141,8 @@ def with_config(
     worker_task_queue = WorkerTaskQueue()
     model = ModelHandlerDB(db.get_model_db(), config.runtime.plantuml_server)
     template_expander = DBTemplateExpander(db.template_entity_db)
+    # a "real" config override service, unlike the one used for core config
+    config_override_service = ConfigOverrideService(config_overrides_paths, partial(model_from_db, db.configs_model_db))
     config_handler = ConfigHandlerService(
         db.config_entity_db,
         db.config_validation_entity_db,
@@ -138,6 +150,8 @@ def with_config(
         worker_task_queue,
         message_bus,
         event_sender,
+        config,
+        config_override_service,
     )
     log_ship = event_stream(config, cert_handler.client_context)
     cli_deps = CLIDependencies(
@@ -177,6 +191,7 @@ def with_config(
         cli,
         template_expander,
         config,
+        config_override_service.get_override,
     )
     event_emitter = emit_recurrent_events(
         event_sender, model, subscriptions, worker_task_queue, message_bus, timedelta(hours=1), timedelta(hours=1)
@@ -194,6 +209,8 @@ def with_config(
         await cli.start()
         await inspector.start()
         await task_handler.start()
+        await config_override_service.start()
+        await config_handler.start()
         await core_config_handler.start()
         await merge_outer_edges_handler.start()
         await cert_handler.start()
@@ -231,6 +248,7 @@ def with_config(
         await api.stop()
         await log_ship.stop()
         await cert_handler.stop()
+        await config_override_service.stop()
         await core_config_handler.stop()
         await merge_outer_edges_handler.stop()
         await task_handler.stop()

@@ -1,0 +1,49 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/postgres
+{
+	"name": "Resoto & ArangoDB",
+	"dockerComposeFile": "docker-compose.yml",
+	"service": "resoto",
+	"workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+
+	// Features to add to the dev container. More info: https://containers.dev/features.
+	// "features": {},
+
+	// Use 'forwardPorts' to make a list of ports inside the container available locally.
+	// This can be used to network with other containers or the host.
+	"forwardPorts": [
+		8529, // ArangoDB
+		8900  // Resoto
+	],
+
+	// Use 'postCreateCommand' to run commands after the container is created.
+	"postCreateCommand": "bash -ic .devcontainer/postCreate.sh",
+
+	"containerEnv": {
+		"RESOTOCORE_ANALYTICS_OPT_OUT": "True"
+	},
+
+	// Configure tool-specific properties.
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"mhutchie.git-graph",
+				"github.copilot"
+			],
+			"settings": {
+				"python.formatting.blackArgs": [
+					"--line-length",
+					"120",
+					"--target-version",
+					"py39"
+				],
+				"python.formatting.provider": "black",
+				"python.linting.enabled": true
+
+			}
+		}
+	}
+
+	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+	// "remoteUser": "root"
+}

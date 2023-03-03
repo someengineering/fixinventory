@@ -130,6 +130,7 @@ class Api:
         cli: CLI,
         query_parser: QueryParser,
         config: CoreConfig,
+        get_override: Callable[[ConfigId], Optional[Json]],
     ):
         self.db = db
         self.model_handler = model_handler
@@ -144,6 +145,8 @@ class Api:
         self.cli = cli
         self.query_parser = query_parser
         self.config = config
+        self.get_override = get_override
+
         self.app = web.Application(
             client_max_size=config.api.max_request_size or 1024**2,
             # note on order: the middleware is passed in the order provided.
@@ -309,10 +312,42 @@ class Api:
             yml = await self.config_handler.config_yaml(config_id)
             return web.Response(body=yml.encode("utf-8"), content_type="application/yaml") if yml else not_found
         else:
-            config = await self.config_handler.get_config(config_id)
+
+            def get_query_param_bool(name: str, default: bool) -> bool:
+                return request.query.get(name, "true" if default else "false").lower() == "true"
+
+            # do we want the config with overrides/env_vars applied in-place or in a separate object?
+            separate_overrides = get_query_param_bool("separate_overrides", default=False)
+
+            if separate_overrides:
+                # if we want separate overrides, we don't apply overrides to the existing config
+                # and don't substitute the env vars by default. E.g. UI asks us for the config
+                apply_overrides = get_query_param_bool("apply_overrides", default=False)
+                resolve_env_vars = get_query_param_bool("resolve_env_vars", default=False)
+                # attach the "raw" config version that was stored in the database
+                include_raw_config = get_query_param_bool("include_raw_config", default=True)
+            else:
+                # if we request a single object with overrides applied,
+                # we apply overrides and resolve env vars by default
+                apply_overrides = get_query_param_bool("apply_overrides", default=True)
+                resolve_env_vars = get_query_param_bool("resolve_env_vars", default=True)
+                # ignored in case of a single config object requested
+                include_raw_config = False
+
+            config = await self.config_handler.get_config(config_id, apply_overrides, resolve_env_vars)
             if config:
                 headers = {"Resoto-Config-Revision": config.revision}
-                return await single_result(request, config.config, headers)
+                if separate_overrides:
+                    payload = {"config": config.config, "overrides": self.get_override(config_id)}
+                    if include_raw_config:
+                        raw_conifig = await self.config_handler.get_config(
+                            config_id, apply_overrides=False, resolve_env_vars=False
+                        )
+                        payload["raw_config"] = raw_conifig.config if raw_conifig else None
+                else:
+                    payload = config.config
+
+                return await single_result(request, payload, headers)
             else:
                 return not_found
 

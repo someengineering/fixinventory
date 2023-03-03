@@ -18,6 +18,7 @@ from parsy import regex, string, Parser
 from resotolib.core.model_check import check_overlap_for
 from resotolib.durations import duration_parser, DurationRe
 from resotolib.parse_util import make_parser, variable_dp_backtick, dot_dp
+from resotolib.utils import is_env_var_string
 from resotocore.model.transform_kind_convert import converters
 from resotocore.model.typed_model import from_js, to_js
 from resotocore.types import Json, JsonElement, ValidationResult, ValidationFn, EdgeType
@@ -308,6 +309,10 @@ class Kind(ABC):
             return []
 
 
+def should_skip_env_var_str(obj: Any, kwargs: Dict[str, bool]) -> bool:
+    return kwargs.get("config_context", False) and is_env_var_string(obj)
+
+
 simple_kind_to_type: Dict[str, Type[Union[str, int, float, bool]]] = {
     "string": str,
     "int32": int,
@@ -394,6 +399,8 @@ class StringKind(SimpleKind):
     def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
         if obj is None:
             return None
+        elif should_skip_env_var_str(obj, kwargs):
+            return None
         elif isinstance(obj, str):
             return self.valid_fn(obj)
         coerced = self.coerce_if_required(obj, **kwargs)
@@ -454,6 +461,8 @@ class NumberKind(SimpleKind):
     def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
         if obj is None:
             return None
+        elif should_skip_env_var_str(obj, kwargs):
+            return None
         elif isinstance(obj, (int, float)):
             return self.valid_fn(obj)
         coerced = self.coerce_if_required(obj, **kwargs)
@@ -493,6 +502,8 @@ class BooleanKind(SimpleKind):
     def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
         if obj is True or obj is False or obj is None:
             return None
+        elif should_skip_env_var_str(obj, kwargs):
+            return None
         coerced = self.coerce_if_required(obj, **kwargs)
         if coerced is not None:
             return coerced
@@ -522,6 +533,8 @@ class DurationKind(SimpleKind):
             raise AttributeError(f"Wrong format for duration: {v}. Examples: 1yr, 3mo, 3d4h3min1s, 3days and 2hours")
 
     def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
+        if should_skip_env_var_str(obj, kwargs):
+            return None
         return self.valid_fn(obj)
 
     def coerce_if_required(self, value: Any, **kwargs: bool) -> Optional[str]:
@@ -556,6 +569,8 @@ class DateTimeKind(SimpleKind):
         return None if DateTimeKind.DateTimeRe.fullmatch(obj) else parse_datetime()
 
     def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
+        if should_skip_env_var_str(obj, kwargs):
+            return None
         return self.valid_fn(obj)
 
     def coerce_if_required(self, value: JsonElement, **kwargs: bool) -> Optional[str]:
@@ -608,6 +623,8 @@ class DateKind(SimpleKind):
         return None if DateKind.DateRe.fullmatch(obj) else date.fromisoformat(obj)
 
     def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
+        if should_skip_env_var_str(obj, kwargs):
+            return None
         return self.valid_fn(obj)
 
     def coerce_if_required(self, value: JsonElement, **kwargs: bool) -> Optional[str]:
@@ -756,9 +773,9 @@ class DictionaryKind(Kind):
             for prop, value in (coerced or obj).items():
                 part = "key"
                 try:
-                    self.key_kind.check_valid(prop)
+                    self.key_kind.check_valid(prop, **kwargs)
                     part = "value"
-                    self.value_kind.check_valid(value)
+                    self.value_kind.check_valid(value, **kwargs)
                 except Exception as at:
                     raise AttributeError(f"{part} of {self.fqn} is not valid: {at}") from at
             return coerced
@@ -940,13 +957,29 @@ class ComplexKind(Kind):
         else:
             return None
 
-    def create_yaml(self, elem: JsonElement, initial_level: int = 0) -> str:
+    def create_yaml(self, elem: JsonElement, initial_level: int = 0, overrides: Optional[Json] = None) -> str:
         def safe_string(s: str, default_style: Optional[str] = None) -> str:
             return remove_suffix(
                 yaml.dump(s, allow_unicode=True, width=sys.maxsize, default_style=default_style), "\n...\n"
             ).strip()
 
-        def walk_element(e: JsonElement, kind: Kind, indent: int, cr_on_object: bool = True) -> str:
+        def override_note(overrides: Optional[Json], prop_name: str) -> Optional[str]:
+            if overrides:
+                override = overrides.get(prop_name)
+                # leaf node of the override tree
+                if isinstance(override, (str, list, int, float, bool)):
+                    note = (
+                        "Warning: the current value is being ignored because there "
+                        "is an active override in place. "
+                        f"The override value is: {override}"
+                    )
+                    return note
+
+            return None
+
+        def walk_element(
+            e: JsonElement, kind: Kind, indent: int, cr_on_object: bool = True, overrides: Optional[Json] = None
+        ) -> str:
             if isinstance(e, dict):
                 result = "\n" if cr_on_object else ""
                 prepend = "  " * indent
@@ -958,9 +991,23 @@ class ComplexKind(Kind):
                         if maybe_prop:
                             description = maybe_prop[0].description
                             sub = maybe_prop[1]
+                            # if we're in a complex kind, add the override note
+                            if note := override_note(overrides, maybe_prop[0].name):
+                                description = f"{description}\n{note}" if description else note
                     elif isinstance(kind, DictionaryKind):
                         sub = kind.value_kind
-                    str_value = walk_element(value, sub, indent + 1)
+                        # if we're in a dict, add the override note
+                        if note := override_note(overrides, prop):
+                            description = f"{description}\n{note}" if description else note
+
+                    override_child = None
+                    # check if there are overrides to be passed down the tree
+                    if overrides:
+                        override_child = overrides.get(prop) or {}
+                        if not isinstance(override_child, dict):
+                            # overrides can't be traversed further
+                            override_child = None
+                    str_value = walk_element(value, sub, indent + 1, overrides=override_child)
                     if description:
                         for line in description.splitlines():
                             result += f"{prepend}# {line}\n"
@@ -978,6 +1025,8 @@ class ComplexKind(Kind):
                 return result.rstrip()
             elif isinstance(e, list):
                 return "[]"
+            elif is_env_var_string(e):
+                return str(e)
             elif isinstance(e, str):
                 return safe_string(e, "'")
             elif e is None:
@@ -989,7 +1038,7 @@ class ComplexKind(Kind):
             else:
                 return str(e)
 
-        return walk_element(elem, self, initial_level)
+        return walk_element(elem, self, initial_level, overrides=overrides)
 
     @staticmethod
     def resolve_properties(

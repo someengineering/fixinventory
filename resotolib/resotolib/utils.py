@@ -7,6 +7,7 @@ import string
 import time
 from argparse import ArgumentParser
 from datetime import date, datetime, timezone, timedelta
+from copy import deepcopy
 
 try:
     from zoneinfo import ZoneInfo
@@ -16,8 +17,8 @@ from tzlocal import get_localzone_name
 from functools import wraps, cached_property
 from pprint import pformat
 from tarfile import TarFile, TarInfo
-from typing import Dict, List, Tuple, Optional, NoReturn, Any
-from resotolib.types import DecoratedFn
+from typing import Dict, List, Tuple, Optional, NoReturn, Any, Mapping, Union, Callable
+from resotolib.types import DecoratedFn, JsonElement
 
 import pkg_resources
 import requests
@@ -514,3 +515,87 @@ class NoExitArgumentParser(ArgumentParser):
     def exit(self, status: int = 0, message: Optional[str] = None) -> NoReturn:
         msg = message if message else "unknown"
         raise AttributeError(f"Could not parse arguments: {msg}")
+
+
+env_var_substitution_pattern = re.compile(r"\$\((\w+)\)")
+
+
+def is_env_var_string(obj: Any) -> bool:
+    is_string = isinstance(obj, str)
+    if not is_string:
+        return False
+    has_env_var = re.search(env_var_substitution_pattern, obj) is not None
+    return has_env_var
+
+
+def replace_env_vars(elem: JsonElement, environment: Mapping[str, str], keep_unresolved: bool = True) -> JsonElement:
+    def replace_env_vars_helper(
+        elem: JsonElement, environment: Mapping[str, str], keep_unresolved: bool, path: List[Union[str, int]]
+    ) -> JsonElement:
+        if isinstance(elem, dict):
+            replaced = {
+                k: replace_env_vars_helper(v, environment, keep_unresolved, path + [k]) for k, v in elem.items()
+            }
+            without_unresolved = {k: v for k, v in replaced.items() if v is not None}
+            return without_unresolved
+        elif isinstance(elem, list):
+            replaced = [
+                replace_env_vars_helper(v, environment, keep_unresolved, path + [i]) for i, v, in enumerate(elem)
+            ]
+            without_unresolved = [v for v in replaced if v is not None]
+            return without_unresolved
+        elif isinstance(elem, str):
+            str_value = elem
+            for match in re.finditer(env_var_substitution_pattern, elem):
+                env_var_name = match.group(1)
+                if env_var_found := environment.get(env_var_name):
+                    str_value = str_value.replace(match.group(0), env_var_found)
+                elif keep_unresolved:
+                    pass
+                else:
+                    conf_path = ""
+
+                    for idx, part in enumerate(path):
+                        if idx == 0:
+                            conf_path += str(part)
+                        else:
+                            conf_path += f"[{part}]" if isinstance(part, int) else f".{part}"
+                    message = f"The environment variable `{env_var_name}` is not defined "
+                    message += "in configuration at path {conf_path}. "
+                    message += f"Please set the environment variable `{env_var_name}` or adjust the configuration. "
+                    message += "You can also use the --override option to override the config value."
+                    log.warn(f"Environment variable substitution failed: {message}")
+
+                    return None
+
+            return str_value
+        else:
+            return elem
+
+    return replace_env_vars_helper(elem, environment, keep_unresolved, [])
+
+
+def merge_json_elements(
+    existing: JsonElement,
+    update: JsonElement,
+    merge_strategy: Callable[[JsonElement, JsonElement], JsonElement] = lambda existing_val, update_val: update_val,
+) -> JsonElement:
+    """
+    Merges two JsonElements accorting to merge strategy.
+    By default recursively traverses Dicts and prefers the new value
+    """
+    if isinstance(existing, dict) and isinstance(update, dict):
+        output = deepcopy(existing)
+        for update_key, update_value in update.items():
+            existing_value = existing.get(update_key)
+            if isinstance(update_value, dict) and isinstance(existing_value, dict):
+                output[update_key] = merge_strategy(
+                    existing_value, merge_json_elements(existing_value, update_value, merge_strategy)
+                )
+            else:
+                output[update_key] = merge_strategy(existing_value, deepcopy(update_value))
+
+    else:
+        return merge_strategy(existing, deepcopy(update))
+
+    return output
