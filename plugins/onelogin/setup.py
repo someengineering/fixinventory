@@ -10,7 +10,7 @@ def read(file_name: str) -> str:
 
 setup(
     name="resoto-plugin-onelogin",
-    version="3.2.5",
+    version="3.2.6",
     description="Resoto OneLogin Plugin",
     license="Apache 2.0",
     packages=find_packages(),
