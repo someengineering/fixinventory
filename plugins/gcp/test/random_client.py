@@ -65,13 +65,18 @@ PredefinedResults = {
 PredefinedDictKeys = {".items": [a.id for a in random_zones]}
 
 # type_name -> property_name -> parameter_name
+FixtureReplies: Dict[str, Dict[str, callable]] = {}
+
+# type_name -> property_name -> parameter_name
 Overrides: Dict[str, Dict[str, str]] = {}
 
 
 def random_json(schemas: Dict[str, Schema], response_schema: Schema, parameter: Json) -> JsonElement:
     def value_for(schema: Schema, level: int, path: str) -> JsonElement:
         def prop_value(type_name: str, name: str, prop_schema: Schema) -> JsonElement:
-            if (override_name := value_in_path(Overrides, [type_name, name])) and (
+            if fixture_reply := value_in_path(FixtureReplies, [type_name, name]):
+                return fixture_reply()
+            elif (override_name := value_in_path(Overrides, [type_name, name])) and (
                 override := parameter.get(override_name)
             ):
                 return override
@@ -207,7 +212,7 @@ def roundtrip(
     :param builder: the graph_builder to use
     :param overrides: specific json overrides to specify from request parameters.
                       Example: BackupRun= {"name": "instance"}
-                      Will get the request parameter instance and use it as name foe all BackupRun resources.
+                      Will get the request parameter instance and use it as name for all BackupRun resources.
     :return: the first created resource of the given type
     """
     global Overrides
@@ -251,3 +256,18 @@ def connect_resource(
     node_data = builder.graph.nodes(data=True)[source]
     source.connect_in_graph(builder, node_data["source"])
     return node
+
+
+class FixturedClient:
+    def __init__(self, random_builder: GraphBuilder, fixtures: Dict[str, Dict[str, callable]]):
+        self.fixtures = fixtures
+        self.random_builder = random_builder
+
+    def __enter__(self):
+        global FixtureReplies
+        FixtureReplies = self.fixtures or {}
+        return self.random_builder
+
+    def __exit__(self, *args):
+        global FixtureReplies
+        FixtureReplies = None

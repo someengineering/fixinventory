@@ -2736,6 +2736,16 @@ class GcpInstance(GcpResource, BaseInstance):
             self.instance_type = machine_type.name
             builder.add_edge(from_node=self, reverse=True, node=machine_type)
 
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        super().connect_in_graph(builder, source)
+        self.connect_machine_type(self.instance_machine_type, builder)
+
+        for nic in self.instance_network_interfaces or []:
+            builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=GcpNetwork, link=nic.network)
+            builder.dependant_node(
+                self, reverse=True, delete_same_as_default=True, clazz=GcpSubnetwork, link=nic.subnetwork
+            )
+
     @classmethod
     def collect(cls: Type[GcpResource], raw: List[Json], builder: GraphBuilder) -> List[GcpResource]:
         # Additional behavior: iterate over list of collected GcpInstances and for each:
@@ -2752,16 +2762,6 @@ class GcpInstance(GcpResource, BaseInstance):
             GcpMachineType.collect_individual(builder, zone, name)
 
         return result
-
-    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        super().connect_in_graph(builder, source)
-        self.connect_machine_type(self.instance_machine_type, builder)
-
-        for nic in self.instance_network_interfaces or []:
-            builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=GcpNetwork, link=nic.network)
-            builder.dependant_node(
-                self, reverse=True, delete_same_as_default=True, clazz=GcpSubnetwork, link=nic.subnetwork
-            )
 
 
 @define(eq=False, slots=False)
