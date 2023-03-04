@@ -138,7 +138,7 @@ def build_graph(cls: Type[AwsResourceType], region_name: Optional[str] = None) -
     config = AwsConfig()
     config.sessions().session_class_factory = BotoFileBasedSession
     client = AwsClient(config, "123456789012", role="role", region=(region_name or "us-east-1"))
-    queue = ExecutorQueue(DummyExecutor(), "test")
+    queue = ExecutorQueue(DummyExecutor(), tasks_per_key=1, name="test")
     region_name = region_name or "eu-central-1"
     region = AwsRegion(id=region_name, name=region_name)
     feedback = CoreFeedback("test", "test", "collect", Queue())

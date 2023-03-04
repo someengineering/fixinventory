@@ -1,29 +1,59 @@
 from concurrent.futures import ThreadPoolExecutor
-from typing import Sequence, Tuple, List, Optional
+from typing import Sequence, Tuple, List, Optional, Callable
+
+from more_itertools import flatten
 
 from resoto_plugin_aws.resource.base import ExecutorQueue, AwsRegion, GraphBuilder
 from resoto_plugin_aws.resource.ec2 import AwsEc2InstanceType
 from test import account_collector, builder, aws_client, aws_config, no_feedback  # noqa: F401
 
 
-def check_executor_queue(work: Sequence[int], fail_on_first_exception: bool) -> Tuple[List[int], Optional[Exception]]:
+def check_executor_work(
+    work: List[Tuple[str, int]],
+    workers: int,
+    tasks_per_key: int,
+    fail_on_first_exception: bool,
+    check_in_progress: Optional[Callable[[set[int]], None]] = None,
+) -> Tuple[List[int], Optional[Exception]]:
     work_done = []
+    in_progress = set()
 
     def do_work(num: int) -> None:
-        if num == 5:
+        in_progress.add(num)
+        if check_in_progress:
+            check_in_progress(in_progress)
+        in_progress.remove(num)
+        if num % 100 == 5:
             raise Exception(f"Abort {num}")
         work_done.append(num)
 
-    with ThreadPoolExecutor(max_workers=1) as executor:
-        queue = ExecutorQueue(executor, "test", fail_on_first_exception=fail_on_first_exception)
-        for idx in work:
-            queue.submit_work(do_work, idx)
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        queue = ExecutorQueue(executor, tasks_per_key, "test", fail_on_first_exception_in_group=fail_on_first_exception)
+        for key, idx in work:
+            queue.submit_work(key, do_work, idx)
 
         try:
             queue.wait_for_submitted_work()
             return work_done, None
         except Exception as ex:
             return work_done, ex
+
+
+def check_executor_queue(work: Sequence[int], fail_on_first_exception: bool) -> Tuple[List[int], Optional[Exception]]:
+    return check_executor_work([("same_key", i) for i in work], 1, 1, fail_on_first_exception)
+
+
+def test_parallel_work() -> None:
+    def assert_one_per_key(in_progress: set[int]) -> None:
+        assert len([a for a in in_progress if a < 100]) <= 2
+        assert len([a for a in in_progress if a > 100]) <= 2
+
+    # create work with 2 keys: w1(<100) and w2(>100)
+    work = flatten([[("w1", i), ("w2", i + 100)] for i in range(10)])
+    # test with 4 worker threads and max 2 tasks per key
+    work_done, ex = check_executor_work(list(work), 4, 2, False, assert_one_per_key)
+    assert ex is not None
+    assert set(work_done) == {0, 1, 2, 3, 100, 101, 102, 103, 104, 4, 106, 6, 107, 7, 108, 8, 9, 109}
 
 
 def test_success_queue() -> None:

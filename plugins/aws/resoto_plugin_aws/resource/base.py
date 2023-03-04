@@ -6,7 +6,7 @@ from abc import ABC
 from concurrent.futures import Executor, Future
 from datetime import datetime, timezone
 from functools import lru_cache
-from threading import Lock
+from threading import Lock, Semaphore
 from typing import ClassVar, Dict, Optional, List, Type, Any, TypeVar, Callable, Iterator
 
 from attr import evolve, field
@@ -326,49 +326,81 @@ class CancelOnFirstError(Exception):
 
 @define
 class ExecutorQueue:
-    executor: Executor
-    name: str
-    fail_on_first_exception: bool = False
-    futures: List[Future[Any]] = field(factory=list)
-    _lock: Lock = Lock()
-    _exception: Optional[Exception] = None
+    """
+    Use an underlying executor to perform work in parallel, but limit the number of tasks per key.
+    If fail_on_first_exception_in_group is True, then the first exception in a group
+    will not execute any more tasks in the same group.
+    """
 
-    def submit_work(self, fn: Callable[..., T], *args: Any, **kwargs: Any) -> Future[T]:
-        def do_work() -> T:
+    executor: Executor
+    tasks_per_key: int
+    name: str
+    fail_on_first_exception_in_group: bool = False
+    _futures: List[Future[Any]] = field(factory=list)
+    _futures_lock: Lock = Lock()
+    _exceptions: Dict[Any, Exception] = field(factory=dict)
+    _semaphores_lock: Lock = Lock()
+    _semaphores: Dict[Any, Semaphore] = field(factory=dict)
+
+    def semaphore(self, key: Any) -> Semaphore:
+        with self._semaphores_lock:
+            if sp := self._semaphores.get(key):
+                return sp
+            else:
+                sp = Semaphore(self.tasks_per_key)
+                self._semaphores[key] = sp
+                return sp
+
+    def submit_work(self, key: Any, fn: Callable[..., T], *args: Any, **kwargs: Any) -> Future[T]:
+        sm = self.semaphore(key)
+
+        def only_start_when_no_error() -> T:
             # in case of exception let's fail fast and do not execute the function
-            if self._exception is None:
+            if self._exceptions.get(key) is None:
                 try:
-                    return fn(*args, **kwargs)
+                    result = fn(*args, **kwargs)
+                    return result
                 except Exception as e:
                     # only store the first exception if we should fail on first future
-                    if self._exception is None:
-                        self._exception = e
+                    if self._exceptions.get(key) is None:
+                        self._exceptions[key] = e
                     raise e
             else:
                 raise CancelOnFirstError(
                     "Exception happened in another thread. Do not start work."
-                ) from self._exception
+                ) from self._exceptions[key]
 
-        future = (
-            self.executor.submit(do_work) if self.fail_on_first_exception else self.executor.submit(fn, *args, **kwargs)
-        )
+        def execute() -> T:
+            try:
+                if self.fail_on_first_exception_in_group:
+                    return only_start_when_no_error()
+                else:
+                    return fn(*args, **kwargs)
+            finally:
+                # Make sure to release the semaphore always!
+                sm.release()
 
-        with self._lock:
-            self.futures.append(future)
+        # Acquire semaphore before submitting the work. This will block the current thread!
+        sm.acquire()  # released in execute
+        # The semaphore will be released when the future is done
+        future = self.executor.submit(execute)
+
+        with self._futures_lock:
+            self._futures.append(future)
         return future
 
     def wait_for_submitted_work(self) -> None:
         # wait until all futures are complete
-        with self._lock:
-            to_wait = self.futures
-            self.futures = []
+        with self._futures_lock:
+            to_wait = self._futures
+            self._futures = []
         for future in concurrent.futures.as_completed(to_wait):
             try:
                 future.result()
             except CancelOnFirstError:
                 pass
             except Exception as ex:
-                log.exception(f"Unhandled exception in account {self.name}: {ex}")
+                log.exception(f"Unhandled exception in {self.name}: {ex}")
                 raise
 
 
@@ -401,9 +433,10 @@ class GraphBuilder:
     def submit_work(self, fn: Callable[..., None], *args: Any, **kwargs: Any) -> Future[Any]:
         """
         Use this method for work that can be done in parallel.
-        Example: fetching tags of a resource.
+        Note: the executor pool is shared between all regions and only allows the configured number of tasks per key.
+              The region id is used as key.
         """
-        return self.executor.submit_work(fn, *args, **kwargs)
+        return self.executor.submit_work(self.region.id, fn, *args, **kwargs)
 
     @property
     def config(self) -> AwsConfig:
