@@ -1,7 +1,7 @@
 import json
 import os
 import re
-from concurrent.futures import Executor, Future
+from concurrent.futures import ThreadPoolExecutor
 from queue import Queue
 from typing import Type, Any, Callable, Set, Tuple, Optional
 
@@ -22,14 +22,6 @@ from resoto_plugin_aws.resource.base import (
 from resotolib.baseresources import Cloud
 from resotolib.core.actions import CoreFeedback
 from resotolib.graph import Graph
-
-
-class DummyExecutor(Executor):
-    def submit(self, fn: Callable[..., Any], *args: Any, **kwargs: Any) -> Future[Any]:  # type: ignore
-        result = fn(*args, **kwargs)
-        f: Future[Any] = Future()
-        f.set_result(result)
-        return f
 
 
 class BotoDummyStsClient:
@@ -135,18 +127,19 @@ def all_props_set(obj: AwsResourceType, ignore_props: Set[str]) -> None:
 
 
 def build_graph(cls: Type[AwsResourceType], region_name: Optional[str] = None) -> GraphBuilder:
-    config = AwsConfig()
-    config.sessions().session_class_factory = BotoFileBasedSession
-    client = AwsClient(config, "123456789012", role="role", region=(region_name or "us-east-1"))
-    queue = ExecutorQueue(DummyExecutor(), tasks_per_key=1, name="test")
-    region_name = region_name or "eu-central-1"
-    region = AwsRegion(id=region_name, name=region_name)
-    feedback = CoreFeedback("test", "test", "collect", Queue())
-    account = AwsAccount(id="test", mfa_devices=12, mfa_devices_in_use=12)
-    builder = GraphBuilder(Graph(), Cloud(id="test"), account, region, client, queue, feedback)
-    cls.collect_resources(builder)
-    builder.executor.wait_for_submitted_work()
-    return builder
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        config = AwsConfig()
+        config.sessions().session_class_factory = BotoFileBasedSession
+        client = AwsClient(config, "123456789012", role="role", region=(region_name or "us-east-1"))
+        queue = ExecutorQueue(executor, tasks_per_key=1, name="test")
+        region_name = region_name or "eu-central-1"
+        region = AwsRegion(id=region_name, name=region_name)
+        feedback = CoreFeedback("test", "test", "collect", Queue())
+        account = AwsAccount(id="test", mfa_devices=12, mfa_devices_in_use=12)
+        builder = GraphBuilder(Graph(), Cloud(id="test"), account, region, client, queue, feedback)
+        cls.collect_resources(builder)
+        builder.executor.wait_for_submitted_work()
+        return builder
 
 
 def check_single_node(node: AwsResource) -> None:
