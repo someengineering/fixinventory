@@ -1,4 +1,3 @@
-import resotolib.logger
 from datetime import datetime
 from typing import ClassVar, Dict, Optional, List, Tuple, Type
 
@@ -17,8 +16,6 @@ from resotolib.baseresources import (
 )
 from resotolib.json_bender import Bender, S, Bend, ForallBend, MapDict, MapValue, F
 from resotolib.types import Json
-
-log = logging.getLogger("resoto.plugins.gcp")
 
 
 def health_checks() -> Tuple[GcpResource, ...]:
