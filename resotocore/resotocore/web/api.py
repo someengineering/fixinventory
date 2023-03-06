@@ -325,7 +325,7 @@ class Api:
                 apply_overrides = get_query_param_bool("apply_overrides", default=False)
                 resolve_env_vars = get_query_param_bool("resolve_env_vars", default=False)
                 # attach the "raw" config version that was stored in the database
-                include_raw_config = get_query_param_bool("include_raw_config", default=True)
+                include_raw_config = get_query_param_bool("include_raw_config", default=False)
             else:
                 # if we request a single object with overrides applied,
                 # we apply overrides and resolve env vars by default
