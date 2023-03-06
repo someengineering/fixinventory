@@ -20,12 +20,14 @@ from resotolib.json import value_in_path
 from resotolib.json_bender import S, Bend, Bender, ForallBend, bend
 from resotolib.types import Json
 
+service_name = "sagemaker"
+
 
 class SagemakerTaggable:
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         if isinstance(self, AwsResource):
             client.call(
-                aws_service="sagemaker",
+                aws_service=service_name,
                 action="add-tags",
                 result_name=None,
                 ResourceArn=self.arn,
@@ -37,7 +39,7 @@ class SagemakerTaggable:
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
         if isinstance(self, AwsResource):
             client.call(
-                aws_service="sagemaker",
+                aws_service=service_name,
                 action="delete-tags",
                 result_name=None,
                 ResourceArn=self.arn,
@@ -49,7 +51,7 @@ class SagemakerTaggable:
     @staticmethod
     def add_tags(resource: AwsResource, builder: GraphBuilder) -> None:
         tags = builder.client.list(
-            "sagemaker",
+            service_name,
             "list-tags",
             "Tags",
             ResourceArn=resource.arn,
@@ -60,8 +62,8 @@ class SagemakerTaggable:
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return [
-            AwsApiSpec("sagemaker", "add-tags"),
-            AwsApiSpec("sagemaker", "delete-tags"),
+            AwsApiSpec(service_name, "add-tags"),
+            AwsApiSpec(service_name, "delete-tags"),
         ]
 
 
@@ -83,7 +85,7 @@ class AwsSagemakerNotebook(SagemakerTaggable, AwsResource):
             "default": ["aws_kms_key", "aws_ec2_network_interface"],
         },
     }
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-notebook-instances", "NotebookInstances")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-notebook-instances", "NotebookInstances")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("NotebookInstanceName"),
         "name": S("NotebookInstanceName"),
@@ -124,20 +126,20 @@ class AwsSagemakerNotebook(SagemakerTaggable, AwsResource):
     def called_collect_apis(cls) -> List[AwsApiSpec]:
         return [
             cls.api_spec,
-            AwsApiSpec("sagemaker", "describe-notebook-instance"),
-            AwsApiSpec("sagemaker", "list-tags"),
+            AwsApiSpec(service_name, "describe-notebook-instance"),
+            AwsApiSpec(service_name, "list-tags"),
         ]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for notebook in json:
             notebook_description = builder.client.get(
-                "sagemaker", "describe-notebook-instance", None, NotebookInstanceName=notebook["NotebookInstanceName"]
+                service_name, "describe-notebook-instance", None, NotebookInstanceName=notebook["NotebookInstanceName"]
             )
             if notebook_description:
                 notebook_instance = AwsSagemakerNotebook.from_api(notebook_description)
                 builder.add_node(notebook_instance, notebook_description)
-                builder.submit_work(SagemakerTaggable.add_tags, notebook_instance, builder)
+                builder.submit_work(service_name, SagemakerTaggable.add_tags, notebook_instance, builder)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if subnet := value_in_path(source, "SubnetId"):
@@ -158,7 +160,7 @@ class AwsSagemakerNotebook(SagemakerTaggable, AwsResource):
             builder.add_edge(self, reverse=True, clazz=AwsSagemakerCodeRepository, name=repo)
 
     def pre_delete_resource(self, client: AwsClient, graph: Graph) -> bool:
-        client.call("sagemaker", "stop-notebook-instance", result_name=None, NotebookInstanceName=self.name)
+        client.call(service_name, "stop-notebook-instance", result_name=None, NotebookInstanceName=self.name)
         return True
 
     def delete_resource(self, client: AwsClient) -> bool:
@@ -174,7 +176,7 @@ class AwsSagemakerNotebook(SagemakerTaggable, AwsResource):
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return super().called_mutator_apis() + [AwsApiSpec("sagemaker", "delete-notebook-instance")]
+        return super().called_mutator_apis() + [AwsApiSpec(service_name, "delete-notebook-instance")]
 
 
 @define(eq=False, slots=False)
@@ -585,7 +587,7 @@ class AwsSagemakerAlgorithm(AwsResource):
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_iam_role"], "delete": ["aws_iam_role"]}
     }
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-algorithms", "AlgorithmSummaryList")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-algorithms", "AlgorithmSummaryList")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("AlgorithmName"),
         "name": S("AlgorithmName"),
@@ -613,13 +615,13 @@ class AwsSagemakerAlgorithm(AwsResource):
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
-        return [cls.api_spec, AwsApiSpec("sagemaker", "describe-algorithm")]
+        return [cls.api_spec, AwsApiSpec(service_name, "describe-algorithm")]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for algorithm in json:
             algorithm_description = builder.client.get(
-                "sagemaker", "describe-algorithm", None, AlgorithmName=algorithm["AlgorithmName"]
+                service_name, "describe-algorithm", None, AlgorithmName=algorithm["AlgorithmName"]
             )
             if algorithm_description:
                 algorithm_instance = AwsSagemakerAlgorithm.from_api(algorithm_description)
@@ -639,7 +641,7 @@ class AwsSagemakerAlgorithm(AwsResource):
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return super().called_mutator_apis() + [AwsApiSpec("sagemaker", "delete-algorithm")]
+        return super().called_mutator_apis() + [AwsApiSpec(service_name, "delete-algorithm")]
 
 
 @define(eq=False, slots=False)
@@ -699,7 +701,7 @@ class AwsSagemakerModel(SagemakerTaggable, AwsResource):
         },
         "successors": {"default": ["aws_s3_bucket"]},
     }
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-models", "Models")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-models", "Models")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("ModelName"),
         "name": S("ModelName"),
@@ -719,16 +721,16 @@ class AwsSagemakerModel(SagemakerTaggable, AwsResource):
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
-        return [cls.api_spec, AwsApiSpec("sagemaker", "describe-model"), AwsApiSpec("sagemaker", "list-tags")]
+        return [cls.api_spec, AwsApiSpec(service_name, "describe-model"), AwsApiSpec(service_name, "list-tags")]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for model in json:
-            model_description = builder.client.get("sagemaker", "describe-model", None, ModelName=model["ModelName"])
+            model_description = builder.client.get(service_name, "describe-model", None, ModelName=model["ModelName"])
             if model_description:
                 model_instance = AwsSagemakerModel.from_api(model_description)
                 builder.add_node(model_instance, model_description)
-                builder.submit_work(SagemakerTaggable.add_tags, model_instance, builder)
+                builder.submit_work(service_name, SagemakerTaggable.add_tags, model_instance, builder)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         model_data_buckets = [container.model_data_url for container in self.model_containers]
@@ -753,7 +755,7 @@ class AwsSagemakerModel(SagemakerTaggable, AwsResource):
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return super().called_mutator_apis() + [AwsApiSpec("sagemaker", "delete-model")]
+        return super().called_mutator_apis() + [AwsApiSpec(service_name, "delete-model")]
 
 
 @define(eq=False, slots=False)
@@ -780,7 +782,7 @@ class AwsSagemakerApp(AwsResource):
         },
         "successors": {"default": ["aws_sagemaker_image"], "delete": ["aws_sagemaker_user_profile"]},
     }
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-apps", "Apps")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-apps", "Apps")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("AppName"),
         "name": S("AppName"),
@@ -821,7 +823,7 @@ class AwsSagemakerApp(AwsResource):
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
-        return [cls.api_spec, AwsApiSpec("sagemaker", "describe-app")]
+        return [cls.api_spec, AwsApiSpec(service_name, "describe-app")]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
@@ -829,7 +831,7 @@ class AwsSagemakerApp(AwsResource):
         for app in json:
             if app["UserProfileName"]:
                 app_description = builder.client.get(
-                    "sagemaker",
+                    service_name,
                     "describe-app",
                     None,
                     UserProfileName=app["UserProfileName"],
@@ -839,7 +841,7 @@ class AwsSagemakerApp(AwsResource):
                 )
             elif app["SpaceName"]:
                 app_description = builder.client.get(
-                    "sagemaker",
+                    service_name,
                     "describe-app",
                     None,
                     SpaceName=app["SpaceName"],
@@ -875,7 +877,7 @@ class AwsSagemakerApp(AwsResource):
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return super().called_mutator_apis() + [AwsApiSpec("sagemaker", "delete-app")]
+        return super().called_mutator_apis() + [AwsApiSpec(service_name, "delete-app")]
 
 
 @define(eq=False, slots=False)
@@ -1067,7 +1069,7 @@ class AwsSagemakerDomain(AwsResource):
         },
         "successors": {"default": ["aws_s3_bucket", "aws_sagemaker_image", "aws_kms_key"]},
     }
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-domains", "Domains")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-domains", "Domains")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("DomainId"),
         "name": S("DomainName"),
@@ -1110,13 +1112,13 @@ class AwsSagemakerDomain(AwsResource):
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
-        return [cls.api_spec, AwsApiSpec("sagemaker", "describe-domain")]
+        return [cls.api_spec, AwsApiSpec(service_name, "describe-domain")]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for domain in json:
             domain_description = builder.client.get(
-                "sagemaker",
+                service_name,
                 "describe-domain",
                 None,
                 DomainId=domain["DomainId"],
@@ -1229,7 +1231,7 @@ class AwsSagemakerDomain(AwsResource):
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return super().called_mutator_apis() + [AwsApiSpec("sagemaker", "delete-domain")]
+        return super().called_mutator_apis() + [AwsApiSpec(service_name, "delete-domain")]
 
 
 @define(eq=False, slots=False)
@@ -1243,7 +1245,7 @@ class AwsSagemakerExperimentSource:
 @define(eq=False, slots=False)
 class AwsSagemakerExperiment(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_experiment"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-experiments", "ExperimentSummaries")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-experiments", "ExperimentSummaries")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("ExperimentName"),
         "name": S("ExperimentName"),
@@ -1264,7 +1266,7 @@ class AwsSagemakerExperiment(AwsResource):
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return super().called_mutator_apis() + [AwsApiSpec("sagemaker", "delete-experiment")]
+        return super().called_mutator_apis() + [AwsApiSpec(service_name, "delete-experiment")]
 
 
 @define(eq=False, slots=False)
@@ -1313,7 +1315,7 @@ class AwsSagemakerTrial(AwsResource):
             ],
         }
     }
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-trials", "TrialSummaries")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-trials", "TrialSummaries")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("TrialName"),
         "name": S("TrialName"),
@@ -1336,13 +1338,13 @@ class AwsSagemakerTrial(AwsResource):
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
-        return [cls.api_spec, AwsApiSpec("sagemaker", "describe-trial")]
+        return [cls.api_spec, AwsApiSpec(service_name, "describe-trial")]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for trial in json:
             trial_description = builder.client.get(
-                "sagemaker",
+                service_name,
                 "describe-trial",
                 None,
                 TrialName=trial["TrialName"],
@@ -1375,13 +1377,13 @@ class AwsSagemakerTrial(AwsResource):
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return super().called_mutator_apis() + [AwsApiSpec("sagemaker", "delete-trial")]
+        return super().called_mutator_apis() + [AwsApiSpec(service_name, "delete-trial")]
 
 
 @define(eq=False, slots=False)
 class AwsSagemakerProject(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_project"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-projects", "ProjectSummaryList")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-projects", "ProjectSummaryList")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("ProjectId"),
         "name": S("ProjectName"),
@@ -1400,7 +1402,7 @@ class AwsSagemakerProject(AwsResource):
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return super().called_mutator_apis() + [AwsApiSpec("sagemaker", "delete-project")]
+        return super().called_mutator_apis() + [AwsApiSpec(service_name, "delete-project")]
 
 
 @define(eq=False, slots=False)
@@ -1418,7 +1420,7 @@ class AwsSagemakerGitConfig:
 @define(eq=False, slots=False)
 class AwsSagemakerCodeRepository(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_code_repository"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-code-repositories", "CodeRepositorySummaryList")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-code-repositories", "CodeRepositorySummaryList")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("CodeRepositoryName"),
         "name": S("CodeRepositoryName"),
@@ -1442,7 +1444,7 @@ class AwsSagemakerCodeRepository(AwsResource):
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return super().called_mutator_apis() + [AwsApiSpec("sagemaker", "delete-code-repository")]
+        return super().called_mutator_apis() + [AwsApiSpec(service_name, "delete-code-repository")]
 
 
 @define(eq=False, slots=False)
@@ -1758,7 +1760,7 @@ class AwsSagemakerEndpoint(SagemakerTaggable, AwsResource):
             "default": ["aws_kms_key", "aws_s3_bucket", "aws_cloudwatch_alarm", "aws_sns_topic"],
         },
     }
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-endpoints", "Endpoints")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-endpoints", "Endpoints")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("EndpointName"),
         "name": S("EndpointName"),
@@ -1789,18 +1791,18 @@ class AwsSagemakerEndpoint(SagemakerTaggable, AwsResource):
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
-        return [cls.api_spec, AwsApiSpec("sagemaker", "describe-endpoint"), AwsApiSpec("sagemaker", "list-tags")]
+        return [cls.api_spec, AwsApiSpec(service_name, "describe-endpoint"), AwsApiSpec(service_name, "list-tags")]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for endpoint in json:
             endpoint_description = builder.client.get(
-                "sagemaker", "describe-endpoint", None, EndpointName=endpoint["EndpointName"]
+                service_name, "describe-endpoint", None, EndpointName=endpoint["EndpointName"]
             )
             if endpoint_description:
                 endpoint_instance = AwsSagemakerEndpoint.from_api(endpoint_description)
                 builder.add_node(endpoint_instance, endpoint_description)
-                builder.submit_work(SagemakerTaggable.add_tags, endpoint_instance, builder)
+                builder.submit_work(service_name, SagemakerTaggable.add_tags, endpoint_instance, builder)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if dcc := self.endpoint_data_capture_config:
@@ -1832,7 +1834,7 @@ class AwsSagemakerEndpoint(SagemakerTaggable, AwsResource):
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return super().called_mutator_apis() + [AwsApiSpec("sagemaker", "delete-endpoint")]
+        return super().called_mutator_apis() + [AwsApiSpec(service_name, "delete-endpoint")]
 
 
 @define(eq=False, slots=False)
@@ -1844,7 +1846,7 @@ class AwsSagemakerImage(AwsResource):
             "delete": ["aws_iam_role"],
         }
     }
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-images", "Images")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-images", "Images")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("ImageName"),
         "name": S("ImageName"),
@@ -1863,12 +1865,12 @@ class AwsSagemakerImage(AwsResource):
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
-        return [cls.api_spec, AwsApiSpec("sagemaker", "describe-image")]
+        return [cls.api_spec, AwsApiSpec(service_name, "describe-image")]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for image in json:
-            image_description = builder.client.get("sagemaker", "describe-image", None, ImageName=image["ImageName"])
+            image_description = builder.client.get(service_name, "describe-image", None, ImageName=image["ImageName"])
             if image_description:
                 image_instance = AwsSagemakerImage.from_api(image_description)
                 builder.add_node(image_instance, image_description)
@@ -1883,7 +1885,7 @@ class AwsSagemakerImage(AwsResource):
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return super().called_mutator_apis() + [AwsApiSpec("sagemaker", "delete-image")]
+        return super().called_mutator_apis() + [AwsApiSpec(service_name, "delete-image")]
 
 
 @define(eq=False, slots=False)
@@ -1918,7 +1920,7 @@ class AwsSagemakerArtifact(AwsResource):
             ],
         }
     }
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-artifacts", "ArtifactSummaries")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-artifacts", "ArtifactSummaries")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("ArtifactName"),
         "name": S("ArtifactName"),
@@ -1943,13 +1945,13 @@ class AwsSagemakerArtifact(AwsResource):
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
-        return [cls.api_spec, AwsApiSpec("sagemaker", "describe-artifact")]
+        return [cls.api_spec, AwsApiSpec(service_name, "describe-artifact")]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for artifact in json:
             artifact_description = builder.client.get(
-                "sagemaker", "describe-artifact", None, ArtifactArn=artifact["ArtifactArn"]
+                service_name, "describe-artifact", None, ArtifactArn=artifact["ArtifactArn"]
             )
             if artifact_description:
                 artifact_instance = AwsSagemakerArtifact.from_api(artifact_description)
@@ -1977,7 +1979,7 @@ class AwsSagemakerArtifact(AwsResource):
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return super().called_mutator_apis() + [AwsApiSpec("sagemaker", "delete-artifact")]
+        return super().called_mutator_apis() + [AwsApiSpec(service_name, "delete-artifact")]
 
 
 @define(eq=False, slots=False)
@@ -1987,7 +1989,7 @@ class AwsSagemakerUserProfile(AwsResource):
         "predecessors": {"default": ["aws_sagemaker_domain"]},
         "successors": {"delete": ["aws_sagemaker_domain"]},
     }
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-user-profiles", "UserProfiles")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-user-profiles", "UserProfiles")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("UserProfileName"),
         "name": S("UserProfileName"),
@@ -2015,7 +2017,7 @@ class AwsSagemakerUserProfile(AwsResource):
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return super().called_mutator_apis() + [AwsApiSpec("sagemaker", "delete-user-profile")]
+        return super().called_mutator_apis() + [AwsApiSpec(service_name, "delete-user-profile")]
 
 
 @define(eq=False, slots=False)
@@ -2027,7 +2029,7 @@ class AwsSagemakerPipeline(AwsResource):
             "delete": ["aws_iam_role"],
         }
     }
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-pipelines", "PipelineSummaries")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-pipelines", "PipelineSummaries")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("PipelineName"),
         "name": S("PipelineName"),
@@ -2053,13 +2055,13 @@ class AwsSagemakerPipeline(AwsResource):
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
-        return [cls.api_spec, AwsApiSpec("sagemaker", "describe-pipeline")]
+        return [cls.api_spec, AwsApiSpec(service_name, "describe-pipeline")]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for pipeline in json:
             pipeline_description = builder.client.get(
-                "sagemaker", "describe-pipeline", None, PipelineName=pipeline["PipelineName"]
+                service_name, "describe-pipeline", None, PipelineName=pipeline["PipelineName"]
             )
             if pipeline_description:
                 pipeline_instance = AwsSagemakerPipeline.from_api(pipeline_description)
@@ -2087,7 +2089,7 @@ class AwsSagemakerPipeline(AwsResource):
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return super().called_mutator_apis() + [AwsApiSpec("sagemaker", "delete-pipeline")]
+        return super().called_mutator_apis() + [AwsApiSpec(service_name, "delete-pipeline")]
 
 
 @define(eq=False, slots=False)
@@ -2130,7 +2132,7 @@ class AwsSagemakerWorkteam(SagemakerTaggable, AwsResource):
         }
     }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
-        "sagemaker", "list-workteams", "Workteams", expected_errors=["UnknownOperationException"]
+        service_name, "list-workteams", "Workteams", expected_errors=["UnknownOperationException"]
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("WorkteamName"),
@@ -2155,14 +2157,14 @@ class AwsSagemakerWorkteam(SagemakerTaggable, AwsResource):
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
-        return [cls.api_spec, AwsApiSpec("sagemaker", "list-tags")]
+        return [cls.api_spec, AwsApiSpec(service_name, "list-tags")]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for workteam in json:
             workteam_instance = AwsSagemakerWorkteam.from_api(workteam)
             builder.add_node(workteam_instance, workteam)
-            builder.submit_work(SagemakerTaggable.add_tags, workteam_instance, builder)
+            builder.submit_work(service_name, SagemakerTaggable.add_tags, workteam_instance, builder)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for member in self.workteam_member_definitions:
@@ -2182,7 +2184,7 @@ class AwsSagemakerWorkteam(SagemakerTaggable, AwsResource):
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return super().called_mutator_apis() + [AwsApiSpec("sagemaker", "delete-workteam")]
+        return super().called_mutator_apis() + [AwsApiSpec(service_name, "delete-workteam")]
 
 
 ## Jobs
@@ -2431,7 +2433,7 @@ class AwsSagemakerAutoMLJob(AwsSagemakerJob):
         },
     }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
-        "sagemaker", "list-auto-ml-jobs", "AutoMLJobSummaries", expected_errors=["UnknownOperationException"]
+        service_name, "list-auto-ml-jobs", "AutoMLJobSummaries", expected_errors=["UnknownOperationException"]
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("AutoMLJobName"),
@@ -2477,13 +2479,13 @@ class AwsSagemakerAutoMLJob(AwsSagemakerJob):
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
-        return [cls.api_spec, AwsApiSpec("sagemaker", "describe-auto-ml-job")]
+        return [cls.api_spec, AwsApiSpec(service_name, "describe-auto-ml-job")]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for job in json:
             job_description = builder.client.get(
-                "sagemaker", "describe-auto-ml-job", None, AutoMLJobName=job["AutoMLJobName"]
+                service_name, "describe-auto-ml-job", None, AutoMLJobName=job["AutoMLJobName"]
             )
             if job_description:
                 job_instance = AwsSagemakerAutoMLJob.from_api(job_description)
@@ -2601,7 +2603,7 @@ class AwsSagemakerCompilationJob(AwsSagemakerJob):
             ]
         },
     }
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-compilation-jobs", "CompilationJobSummaries")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-compilation-jobs", "CompilationJobSummaries")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("CompilationJobName"),
         "name": S("CompilationJobName"),
@@ -2636,13 +2638,13 @@ class AwsSagemakerCompilationJob(AwsSagemakerJob):
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
-        return [cls.api_spec, AwsApiSpec("sagemaker", "describe-compilation-job")]
+        return [cls.api_spec, AwsApiSpec(service_name, "describe-compilation-job")]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for job in json:
             job_description = builder.client.get(
-                "sagemaker", "describe-compilation-job", None, CompilationJobName=job["CompilationJobName"]
+                service_name, "describe-compilation-job", None, CompilationJobName=job["CompilationJobName"]
             )
             if job_description:
                 job_instance = AwsSagemakerCompilationJob.from_api(job_description)
@@ -2718,7 +2720,7 @@ class AwsSagemakerEdgePackagingJob(AwsSagemakerJob):
         },
     }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
-        "sagemaker",
+        service_name,
         "list-edge-packaging-jobs",
         "EdgePackagingJobSummaries",
         expected_errors=["UnknownOperationException"],
@@ -2752,13 +2754,13 @@ class AwsSagemakerEdgePackagingJob(AwsSagemakerJob):
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
-        return [cls.api_spec, AwsApiSpec("sagemaker", "describe-edge-packaging-job")]
+        return [cls.api_spec, AwsApiSpec(service_name, "describe-edge-packaging-job")]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for job in json:
             job_description = builder.client.get(
-                "sagemaker", "describe-edge-packaging-job", None, EdgePackagingJobName=job["EdgePackagingJobName"]
+                service_name, "describe-edge-packaging-job", None, EdgePackagingJobName=job["EdgePackagingJobName"]
             )
             if job_description:
                 job_instance = AwsSagemakerEdgePackagingJob.from_api(job_description)
@@ -3066,7 +3068,7 @@ class AwsSagemakerHyperParameterTuningJob(SagemakerTaggable, AwsSagemakerJob):
         "successors": {"default": ["aws_s3_bucket", "aws_kms_key", "aws_sagemaker_training_job"]},
     }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
-        "sagemaker", "list-hyper-parameter-tuning-jobs", "HyperParameterTuningJobSummaries"
+        service_name, "list-hyper-parameter-tuning-jobs", "HyperParameterTuningJobSummaries"
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("HyperParameterTuningJobName"),
@@ -3124,15 +3126,15 @@ class AwsSagemakerHyperParameterTuningJob(SagemakerTaggable, AwsSagemakerJob):
     def called_collect_apis(cls) -> List[AwsApiSpec]:
         return [
             cls.api_spec,
-            AwsApiSpec("sagemaker", "describe-hyper-parameter-tuning-job"),
-            AwsApiSpec("sagemaker", "list-tags"),
+            AwsApiSpec(service_name, "describe-hyper-parameter-tuning-job"),
+            AwsApiSpec(service_name, "list-tags"),
         ]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for job in json:
             job_description = builder.client.get(
-                "sagemaker",
+                service_name,
                 "describe-hyper-parameter-tuning-job",
                 None,
                 HyperParameterTuningJobName=job["HyperParameterTuningJobName"],
@@ -3140,7 +3142,7 @@ class AwsSagemakerHyperParameterTuningJob(SagemakerTaggable, AwsSagemakerJob):
             if job_description:
                 job_instance = AwsSagemakerHyperParameterTuningJob.from_api(job_description)
                 builder.add_node(job_instance, job_description)
-                builder.submit_work(SagemakerTaggable.add_tags, job_instance, builder)
+                builder.submit_work(service_name, SagemakerTaggable.add_tags, job_instance, builder)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         job_definitions = []
@@ -3425,7 +3427,7 @@ class AwsSagemakerInferenceRecommendationsJob(AwsSagemakerJob):
         },
     }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
-        "sagemaker",
+        service_name,
         "list-inference-recommendations-jobs",
         "InferenceRecommendationsJobs",
         expected_errors=["UnknownOperationException"],
@@ -3466,13 +3468,13 @@ class AwsSagemakerInferenceRecommendationsJob(AwsSagemakerJob):
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
-        return [cls.api_spec, AwsApiSpec("sagemaker", "describe-inference-recommendations-job")]
+        return [cls.api_spec, AwsApiSpec(service_name, "describe-inference-recommendations-job")]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for job in json:
             job_description = builder.client.get(
-                "sagemaker",
+                service_name,
                 "describe-inference-recommendations-job",
                 None,
                 JobName=job["JobName"],
@@ -3698,7 +3700,7 @@ class AwsSagemakerLabelingJob(SagemakerTaggable, AwsSagemakerJob):
         "successors": {"default": ["aws_s3_bucket", "aws_kms_key", "aws_sns_topic", "aws_lambda_function"]},
     }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
-        "sagemaker", "list-labeling-jobs", "LabelingJobSummaryList", expected_errors=["UnknownOperationException"]
+        service_name, "list-labeling-jobs", "LabelingJobSummaryList", expected_errors=["UnknownOperationException"]
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("LabelingJobName"),
@@ -3739,13 +3741,13 @@ class AwsSagemakerLabelingJob(SagemakerTaggable, AwsSagemakerJob):
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
-        return [cls.api_spec, AwsApiSpec("sagemaker", "describe-labeling-job"), AwsApiSpec("sagemaker", "list-tags")]
+        return [cls.api_spec, AwsApiSpec(service_name, "describe-labeling-job"), AwsApiSpec(service_name, "list-tags")]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for job in json:
             job_description = builder.client.get(
-                "sagemaker",
+                service_name,
                 "describe-labeling-job",
                 None,
                 LabelingJobName=job["LabelingJobName"],
@@ -4017,7 +4019,7 @@ class AwsSagemakerProcessingJob(AwsSagemakerJob):
         },
         "successors": {"default": ["aws_s3_bucket", "aws_kms_key", "aws_sagemaker_training_job"]},
     }
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-processing-jobs", "ProcessingJobSummaries")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-processing-jobs", "ProcessingJobSummaries")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("ProcessingJobName"),
         "name": S("ProcessingJobName"),
@@ -4063,13 +4065,13 @@ class AwsSagemakerProcessingJob(AwsSagemakerJob):
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
-        return [cls.api_spec, AwsApiSpec("sagemaker", "describe-processing-job")]
+        return [cls.api_spec, AwsApiSpec(service_name, "describe-processing-job")]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for job in json:
             job_description = builder.client.get(
-                "sagemaker",
+                service_name,
                 "describe-processing-job",
                 None,
                 ProcessingJobName=job["ProcessingJobName"],
@@ -4340,7 +4342,7 @@ class AwsSagemakerTrainingJob(SagemakerTaggable, AwsSagemakerJob):
         },
         "successors": {"default": ["aws_s3_bucket", "aws_kms_key", "aws_sagemaker_algorithm"]},
     }
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-training-jobs", "TrainingJobSummaries")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-training-jobs", "TrainingJobSummaries")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("TrainingJobName"),
         "name": S("TrainingJobName"),
@@ -4431,13 +4433,13 @@ class AwsSagemakerTrainingJob(SagemakerTaggable, AwsSagemakerJob):
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
-        return [cls.api_spec, AwsApiSpec("sagemaker", "describe-training-job"), AwsApiSpec("sagemaker", "list-tags")]
+        return [cls.api_spec, AwsApiSpec(service_name, "describe-training-job"), AwsApiSpec(service_name, "list-tags")]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for job in json:
             job_description = builder.client.get(
-                "sagemaker",
+                service_name,
                 "describe-training-job",
                 None,
                 TrainingJobName=job["TrainingJobName"],
@@ -4445,7 +4447,7 @@ class AwsSagemakerTrainingJob(SagemakerTaggable, AwsSagemakerJob):
             if job_description:
                 job_instance = AwsSagemakerTrainingJob.from_api(job_description)
                 builder.add_node(job_instance, job_description)
-                builder.submit_work(SagemakerTaggable.add_tags, job_instance, builder)
+                builder.submit_work(service_name, SagemakerTaggable.add_tags, job_instance, builder)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.training_job_labeling_job_arn:
@@ -4561,7 +4563,7 @@ class AwsSagemakerTransformJob(SagemakerTaggable, AwsSagemakerJob):
             "default": ["aws_s3_bucket", "aws_kms_key"],
         },
     }
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sagemaker", "list-transform-jobs", "TransformJobSummaries")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-transform-jobs", "TransformJobSummaries")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("TransformJobName"),
         "name": S("TransformJobName"),
@@ -4607,13 +4609,13 @@ class AwsSagemakerTransformJob(SagemakerTaggable, AwsSagemakerJob):
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
-        return [cls.api_spec, AwsApiSpec("sagemaker", "describe-transform-job"), AwsApiSpec("sagemaker", "list-tags")]
+        return [cls.api_spec, AwsApiSpec(service_name, "describe-transform-job"), AwsApiSpec(service_name, "list-tags")]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for job in json:
             job_description = builder.client.get(
-                "sagemaker",
+                service_name,
                 "describe-transform-job",
                 None,
                 TransformJobName=job["TransformJobName"],
@@ -4621,7 +4623,7 @@ class AwsSagemakerTransformJob(SagemakerTaggable, AwsSagemakerJob):
             if job_description:
                 job_instance = AwsSagemakerTransformJob.from_api(job_description)
                 builder.add_node(job_instance, job_description)
-                builder.submit_work(SagemakerTaggable.add_tags, job_instance, builder)
+                builder.submit_work(service_name, SagemakerTaggable.add_tags, job_instance, builder)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.transform_job_model_name:

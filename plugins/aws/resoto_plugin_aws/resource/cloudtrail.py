@@ -16,6 +16,8 @@ from resotolib.baseresources import ModelReference, EdgeType
 from resotolib.json import from_json
 from resotolib.json_bender import Bender, S, bend, ForallBend, EmptyToNone, F
 
+service_name = "cloudtrail"
+
 
 @define(eq=False, slots=False)
 class AwsCloudTrailAdvancedFieldSelector:
@@ -94,7 +96,7 @@ class AwsCloudTrailStatus:
 @define(eq=False, slots=False)
 class AwsCloudTrail(AwsResource):
     kind: ClassVar[str] = "aws_cloud_trail"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudtrail", "list-trails", "Trails")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-trails", "Trails")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Name"),
         "name": S("Name"),
@@ -139,18 +141,18 @@ class AwsCloudTrail(AwsResource):
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
         return [
-            AwsApiSpec("cloudtrail", "list-trails"),
-            AwsApiSpec("cloudtrail", "get-trail"),
-            AwsApiSpec("cloudtrail", "get-trail-status"),
-            AwsApiSpec("cloudtrail", "list-tags"),
-            AwsApiSpec("cloudtrail", "get-event-selectors"),
-            AwsApiSpec("cloudtrail", "get-insight-selectors"),
+            AwsApiSpec(service_name, "list-trails"),
+            AwsApiSpec(service_name, "get-trail"),
+            AwsApiSpec(service_name, "get-trail-status"),
+            AwsApiSpec(service_name, "list-tags"),
+            AwsApiSpec(service_name, "get-event-selectors"),
+            AwsApiSpec(service_name, "get-insight-selectors"),
         ]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def collect_trail(trail_arn: str) -> None:
-            if trail_raw := builder.client.get("cloudtrail", "get-trail", "Trail", Name=trail_arn):
+            if trail_raw := builder.client.get(service_name, "get-trail", "Trail", Name=trail_arn):
                 instance = AwsCloudTrail.from_api(trail_raw)
                 builder.add_node(instance, js)
                 collect_status(instance)
@@ -163,7 +165,7 @@ class AwsCloudTrail(AwsResource):
         def collect_event_selectors(trail: AwsCloudTrail) -> None:
             trail.trail_event_selectors = []
             for item in builder.client.list(
-                "cloudtrail", "get-event-selectors", "AdvancedEventSelectors", TrailName=trail.arn
+                service_name, "get-event-selectors", "AdvancedEventSelectors", TrailName=trail.arn
             ):
                 mapped = bend(AwsCloudTrailEventSelector.mapping, item)
                 trail.trail_event_selectors.append(from_json(mapped, AwsCloudTrailEventSelector))
@@ -171,7 +173,7 @@ class AwsCloudTrail(AwsResource):
         def collect_insight_selectors(trail: AwsCloudTrail) -> None:
             trail.trail_insight_selectors = []
             for item in builder.client.list(
-                "cloudtrail",
+                service_name,
                 "get-insight-selectors",
                 "InsightSelectors",
                 TrailName=trail.arn,
@@ -180,7 +182,7 @@ class AwsCloudTrail(AwsResource):
                 trail.trail_insight_selectors.append(item["InsightType"])
 
         def collect_status(trail: AwsCloudTrail) -> None:
-            status_raw = builder.client.get("cloudtrail", "get-trail-status", Name=trail.arn)
+            status_raw = builder.client.get(service_name, "get-trail-status", Name=trail.arn)
             mapped = bend(AwsCloudTrailStatus.mapping, status_raw)
             status = from_json(mapped, AwsCloudTrailStatus)
             trail.trail_status = status
@@ -189,7 +191,7 @@ class AwsCloudTrail(AwsResource):
 
         def collect_tags(trail: AwsCloudTrail) -> None:
             for tr in builder.client.list(
-                "cloudtrail",
+                service_name,
                 "list-tags",
                 "ResourceTagList",
                 ResourceIdList=[trail.arn],
@@ -202,7 +204,7 @@ class AwsCloudTrail(AwsResource):
             # list trails will return multi account trails in all regions
             if js["HomeRegion"] == builder.region.name and builder.account.id in arn:
                 # only collect trails in the current account and current region
-                builder.submit_work(collect_trail, arn)
+                builder.submit_work(service_name, collect_trail, arn)
             else:
                 # add a deferred edge to the trails in another account or region
                 builder.add_deferred_edge(
@@ -222,23 +224,23 @@ class AwsCloudTrail(AwsResource):
             builder.add_edge(self, clazz=AwsIamRole, arn=log_role)
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
-        client.call("cloudtrail", "add-tags", ResourceId=self.arn, TagsList=[{"Key": key, "Value": value}])
+        client.call(service_name, "add-tags", ResourceId=self.arn, TagsList=[{"Key": key, "Value": value}])
         return True
 
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
-        client.call("cloudtrail", "remove-tags", ResourceId=self.arn, TagsList=[{"Key": key}])
+        client.call(service_name, "remove-tags", ResourceId=self.arn, TagsList=[{"Key": key}])
         return True
 
     def delete_resource(self, client: AwsClient) -> bool:
-        client.call("cloudtrail", "delete-trail", Name=self.arn)
+        client.call(service_name, "delete-trail", Name=self.arn)
         return True
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return [
-            AwsApiSpec("cloudtrail", "add-tags"),
-            AwsApiSpec("cloudtrail", "remove-tags"),
-            AwsApiSpec("cloudtrail", "delete-trail"),
+            AwsApiSpec(service_name, "add-tags"),
+            AwsApiSpec(service_name, "remove-tags"),
+            AwsApiSpec(service_name, "delete-trail"),
         ]
 
 

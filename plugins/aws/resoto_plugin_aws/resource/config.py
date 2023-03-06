@@ -11,6 +11,8 @@ from resotolib.json import from_json
 from resotolib.json_bender import Bender, S, Bend, bend
 from resotolib.types import Json
 
+service_name = "config"
+
 
 @define(eq=False, slots=False)
 class AwsConfigRecorderStatus:
@@ -49,7 +51,9 @@ class AwsConfigRecordingGroup:
 @define(eq=False, slots=False)
 class AwsConfigRecorder(AwsResource):
     kind: ClassVar[str] = "aws_config_recorder"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("config", "describe-configuration-recorders", "ConfigurationRecorders")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
+        service_name, "describe-configuration-recorders", "ConfigurationRecorders"
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name"),
         "tags": S("Tags", default=[]) >> ToDict(),
@@ -65,7 +69,7 @@ class AwsConfigRecorder(AwsResource):
         # get all statuses
         statuses: Dict[str, AwsConfigRecorderStatus] = {}
         for r in builder.client.list(
-            "config", "describe-configuration-recorder-status", "ConfigurationRecordersStatus"
+            service_name, "describe-configuration-recorder-status", "ConfigurationRecordersStatus"
         ):
             statuses[r["name"]] = from_json(bend(AwsConfigRecorderStatus.mapping, r), AwsConfigRecorderStatus)
 
@@ -77,17 +81,17 @@ class AwsConfigRecorder(AwsResource):
             builder.add_node(instance, js)
 
     def delete_resource(self, client: AwsClient) -> bool:
-        client.call("config", "delete-configuration-recorder", self.name)
+        client.call(service_name, "delete-configuration-recorder", self.name)
         return True
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
-        return [cls.api_spec, AwsApiSpec("config", "describe-configuration-recorder-status")]
+        return [cls.api_spec, AwsApiSpec(service_name, "describe-configuration-recorder-status")]
 
     # this resource does not allow tags
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return [AwsApiSpec("config", "delete-configuration-recorder")]
+        return [AwsApiSpec(service_name, "delete-configuration-recorder")]
 
 
 resources: List[Type[AwsResource]] = [AwsConfigRecorder]

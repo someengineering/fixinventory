@@ -10,13 +10,15 @@ from resotolib.baseresources import ModelReference
 from resotolib.json_bender import S, Bend, Bender, ForallBend, bend
 from resotolib.types import Json
 
+service_name = "dynamodb"
+
 
 # noinspection PyUnresolvedReferences
 class DynamoDbTaggable:
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         if isinstance(self, AwsResource):
             client.call(
-                aws_service="dynamodb",
+                aws_service=service_name,
                 action="tag-resource",
                 result_name=None,
                 ResourceArn=self.arn,
@@ -28,7 +30,7 @@ class DynamoDbTaggable:
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
         if isinstance(self, AwsResource):
             client.call(
-                aws_service="dynamodb",
+                aws_service=service_name,
                 action="untag-resource",
                 result_name=None,
                 ResourceArn=self.arn,
@@ -39,7 +41,7 @@ class DynamoDbTaggable:
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return [AwsApiSpec("dynamodb", "tag-resource"), AwsApiSpec("dynamodb", "untag-resource")]
+        return [AwsApiSpec(service_name, "tag-resource"), AwsApiSpec(service_name, "untag-resource")]
 
 
 @define(eq=False, slots=False)
@@ -247,7 +249,7 @@ class AwsDynamoDbArchivalSummary:
 @define(eq=False, slots=False)
 class AwsDynamoDbTable(DynamoDbTaggable, AwsResource):
     kind: ClassVar[str] = "aws_dynamo_db_table"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("dynamodb", "list-tables", "TableNames")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-tables", "TableNames")
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["aws_kinesis_stream", "aws_kms_key"]},
         "predecessors": {"delete": ["aws_kinesis_stream", "aws_kms_key"]},
@@ -302,19 +304,23 @@ class AwsDynamoDbTable(DynamoDbTaggable, AwsResource):
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
-        return [cls.api_spec, AwsApiSpec("dynamodb", "describe-table"), AwsApiSpec("dynamodb", "list-tags-of-resource")]
+        return [
+            cls.api_spec,
+            AwsApiSpec(service_name, "describe-table"),
+            AwsApiSpec(service_name, "list-tags-of-resource"),
+        ]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_instance(table: str) -> None:
-            table_description = builder.client.get("dynamodb", "describe-table", "Table", TableName=table)
+            table_description = builder.client.get(service_name, "describe-table", "Table", TableName=table)
             if table_description is not None:
                 instance = cls.from_api(table_description)
                 builder.add_node(instance, table_description)
-                builder.submit_work(add_tags, instance)
+                builder.submit_work(service_name, add_tags, instance)
 
         def add_tags(table: AwsDynamoDbTable) -> None:
-            tags = builder.client.list("dynamodb", "list-tags-of-resource", "Tags", ResourceArn=table.arn)
+            tags = builder.client.list(service_name, "list-tags-of-resource", "Tags", ResourceArn=table.arn)
             if tags:
                 table.tags = bend(ToDict(), tags)
 
@@ -349,13 +355,13 @@ class AwsDynamoDbTable(DynamoDbTaggable, AwsResource):
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return super().called_mutator_apis() + [AwsApiSpec("dynamodb", "delete-table")]
+        return super().called_mutator_apis() + [AwsApiSpec(service_name, "delete-table")]
 
 
 @define(eq=False, slots=False)
 class AwsDynamoDbGlobalTable(DynamoDbTaggable, AwsResource):
     kind: ClassVar[str] = "aws_dynamo_db_global_table"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("dynamodb", "list-global-tables", "GlobalTables")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-global-tables", "GlobalTables")
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["aws_kms_key"]},
         "predecessors": {"delete": ["aws_kms_key"]},
@@ -377,23 +383,26 @@ class AwsDynamoDbGlobalTable(DynamoDbTaggable, AwsResource):
     def called_collect_apis(cls) -> List[AwsApiSpec]:
         return [
             cls.api_spec,
-            AwsApiSpec("dynamodb", "describe-global-table"),
-            AwsApiSpec("dynamodb", "list-tags-of-resource"),
+            AwsApiSpec(service_name, "describe-global-table"),
+            AwsApiSpec(service_name, "list-tags-of-resource"),
         ]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_instance(table: Dict[str, str]) -> None:
             table_description = builder.client.get(
-                "dynamodb", "describe-global-table", "GlobalTableDescription", GlobalTableName=table["GlobalTableName"]
+                service_name,
+                "describe-global-table",
+                "GlobalTableDescription",
+                GlobalTableName=table["GlobalTableName"],
             )
             if table_description:
                 instance = cls.from_api(table_description)
                 builder.add_node(instance, table_description)
-                builder.submit_work(add_tags, instance)
+                builder.submit_work(service_name, add_tags, instance)
 
         def add_tags(table: AwsDynamoDbGlobalTable) -> None:
-            tags = builder.client.list("dynamodb", "list-tags-of-resource", "Tags", ResourceArn=table.arn)
+            tags = builder.client.list(service_name, "list-tags-of-resource", "Tags", ResourceArn=table.arn)
             if tags:
                 table.tags = bend(ToDict(), tags)
 
@@ -416,7 +425,7 @@ class AwsDynamoDbGlobalTable(DynamoDbTaggable, AwsResource):
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return super().called_mutator_apis() + [AwsApiSpec("dynamodb", "delete-table")]
+        return super().called_mutator_apis() + [AwsApiSpec(service_name, "delete-table")]
 
 
 global_resources: List[Type[AwsResource]] = [AwsDynamoDbGlobalTable]

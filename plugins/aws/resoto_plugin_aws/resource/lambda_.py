@@ -17,6 +17,8 @@ from resotolib.json import from_json
 from resotolib.json_bender import Bender, S, Bend, ForallBend, F, bend
 from resotolib.types import Json
 
+service_name = "lambda"
+
 
 @define(eq=False, slots=False)
 class AwsLambdaPolicyStatement:
@@ -165,7 +167,7 @@ class AwsLambdaFunctionUrlConfig:
 @define(eq=False, slots=False)
 class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
     kind: ClassVar[str] = "aws_lambda_function"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("lambda", "list-functions", "Functions")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-functions", "Functions")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": [
@@ -251,21 +253,21 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
     def called_collect_apis(cls) -> List[AwsApiSpec]:
         return [
             cls.api_spec,
-            AwsApiSpec("lambda", "get-function-url-config"),
-            AwsApiSpec("lambda", "get-policy"),
-            AwsApiSpec("lambda", "list-tags"),
+            AwsApiSpec(service_name, "get-function-url-config"),
+            AwsApiSpec(service_name, "get-policy"),
+            AwsApiSpec(service_name, "list-tags"),
         ]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_tags(function: AwsLambdaFunction) -> None:
-            tags = builder.client.get("lambda", "list-tags", "Tags", Resource=function.arn)
+            tags = builder.client.get(service_name, "list-tags", "Tags", Resource=function.arn)
             if tags:
                 function.tags = tags
 
         def get_policy(function: AwsLambdaFunction) -> None:
             if policy := builder.client.get(
-                "lambda",
+                service_name,
                 "get-policy",
                 expected_errors=["ResourceNotFoundException"],  # policy is optional
                 FunctionName=function.name,
@@ -301,7 +303,7 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
 
         def get_url_config(function: AwsLambdaFunction) -> None:
             if config := builder.client.get(
-                "lambda",
+                service_name,
                 "get-function-url-config",
                 result_name=None,
                 expected_errors=["ResourceNotFoundException"],
@@ -314,9 +316,9 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
         for js in json:
             instance = cls.from_api(js)
             builder.add_node(instance, js)
-            builder.submit_work(add_tags, instance)
-            builder.submit_work(get_policy, instance)
-            builder.submit_work(get_url_config, instance)
+            builder.submit_work(service_name, add_tags, instance)
+            builder.submit_work(service_name, get_policy, instance)
+            builder.submit_work(service_name, get_url_config, instance)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if vpc_config := source.get("VpcConfig"):
@@ -366,9 +368,9 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return [
-            AwsApiSpec("lambda", "tag-resource"),
-            AwsApiSpec("lambda", "untag-resource"),
-            AwsApiSpec("lambda", "delete-function"),
+            AwsApiSpec(service_name, "tag-resource"),
+            AwsApiSpec(service_name, "untag-resource"),
+            AwsApiSpec(service_name, "delete-function"),
         ]
 
 

@@ -48,7 +48,6 @@ from resotolib.proc import set_thread_name
 
 log = logging.getLogger("resoto.plugins.aws")
 
-
 global_resources: List[Type[AwsResource]] = (
     cloudfront.resources
     + dynamodb.global_resources
@@ -144,11 +143,13 @@ class AwsAccountCollector:
         ) as executor:
             # The shared executor is used to spread work for the whole account.
             # Note: only tasks_per_key threads are running max for each region.
-            shared_queue = ExecutorQueue(executor, tasks_per_key=2, name=self.account.safe_name)
+            shared_queue = ExecutorQueue(
+                executor, tasks_per_key=self.config.shared_pool_parallelism, name=self.account.safe_name
+            )
             global_builder = GraphBuilder(
                 self.graph, self.cloud, self.account, self.global_region, self.client, shared_queue, self.core_feedback
             )
-            global_builder.submit_work(self.update_account)
+            global_builder.submit_work("iam", self.update_account)
             global_builder.add_node(self.global_region)
 
             # mark open progress for all regions
@@ -164,7 +165,7 @@ class AwsAccountCollector:
                 if self.config.should_collect(resource.kind):
                     resource.collect_resources(global_builder)
                     log.info(f"[Aws:{self.account.id}:global] finished collecting: {resource.kind}")
-            shared_queue.wait_for_submitted_work()
+            # we wait for the shared queue after all regions are collected
             global_builder.core_feedback.progress_done(self.global_region.safe_name, 1, 1)
             self.error_accumulator.report_region(global_builder.core_feedback, self.global_region.id)
 

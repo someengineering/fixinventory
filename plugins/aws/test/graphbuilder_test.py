@@ -25,7 +25,7 @@ def test_executor(builder: GraphBuilder) -> None:
         result.append(key)
 
     for idx in range(0, 100):
-        builder.submit_work(do_something, idx)
+        builder.submit_work("test", do_something, idx)
 
     builder.executor.wait_for_submitted_work()
     assert result == list(range(0, 100))

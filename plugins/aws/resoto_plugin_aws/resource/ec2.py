@@ -37,6 +37,8 @@ from resotolib.types import Json
 # region InstanceType
 from resotolib.utils import utc
 
+service_name = "ec2"
+
 
 # noinspection PyUnresolvedReferences
 class EC2Taggable:
@@ -70,7 +72,7 @@ class EC2Taggable:
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return [AwsApiSpec("ec2", "create-tags"), AwsApiSpec("ec2", "delete-tags")]
+        return [AwsApiSpec(service_name, "create-tags"), AwsApiSpec(service_name, "delete-tags")]
 
 
 @define(eq=False, slots=False)
@@ -283,7 +285,7 @@ class AwsEc2InferenceAcceleratorInfo:
 @define(eq=False, slots=False)
 class AwsEc2InstanceType(AwsResource, BaseInstanceType):
     kind: ClassVar[str] = "aws_ec2_instance_type"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-instance-types", "InstanceTypes")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-instance-types", "InstanceTypes")
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": ["aws_ec2_instance"],
@@ -395,7 +397,7 @@ VolumeStatusMapping = {
 @define(eq=False, slots=False)
 class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
     kind: ClassVar[str] = "aws_ec2_volume"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-volumes", "Volumes")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-volumes", "Volumes")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_ec2_volume_type", "aws_ec2_instance"], "delete": ["aws_kms_key"]},
         "successors": {"default": ["aws_kms_key"], "delete": ["aws_ec2_instance"]},
@@ -496,7 +498,7 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return super().called_mutator_apis() + [AwsApiSpec("ec2", "delete-volume")]
+        return super().called_mutator_apis() + [AwsApiSpec(service_name, "delete-volume")]
 
 
 # endregion
@@ -507,7 +509,9 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
 @define(eq=False, slots=False)
 class AwsEc2Snapshot(EC2Taggable, AwsResource, BaseSnapshot):
     kind: ClassVar[str] = "aws_ec2_snapshot"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-snapshots", "Snapshots", dict(OwnerIds=["self"]))
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
+        service_name, "describe-snapshots", "Snapshots", dict(OwnerIds=["self"])
+    )
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_ec2_volume"], "delete": ["aws_kms_key"]},
         "successors": {"default": ["aws_kms_key"]},
@@ -557,7 +561,7 @@ class AwsEc2Snapshot(EC2Taggable, AwsResource, BaseSnapshot):
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return super().called_mutator_apis() + [AwsApiSpec("ec2", "delete-snapshot")]
+        return super().called_mutator_apis() + [AwsApiSpec(service_name, "delete-snapshot")]
 
 
 # endregion
@@ -568,7 +572,7 @@ class AwsEc2Snapshot(EC2Taggable, AwsResource, BaseSnapshot):
 @define(eq=False, slots=False)
 class AwsEc2KeyPair(EC2Taggable, AwsResource):
     kind: ClassVar[str] = "aws_ec2_keypair"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-key-pairs", "KeyPairs")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-key-pairs", "KeyPairs")
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [],
@@ -599,7 +603,7 @@ class AwsEc2KeyPair(EC2Taggable, AwsResource):
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return super().called_mutator_apis() + [AwsApiSpec("ec2", "delete-key-pair")]
+        return super().called_mutator_apis() + [AwsApiSpec(service_name, "delete-key-pair")]
 
 
 # endregion
@@ -897,7 +901,7 @@ InstanceStatusMapping = {
 @define(eq=False, slots=False)
 class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
     kind: ClassVar[str] = "aws_ec2_instance"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-instances", "Reservations")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-instances", "Reservations")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_vpc"], "delete": ["aws_ec2_keypair", "aws_vpc"]},
         "successors": {"default": ["aws_ec2_keypair"]},
@@ -1064,7 +1068,7 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return super().called_mutator_apis() + [AwsApiSpec("ec2", "terminate-instances")]
+        return super().called_mutator_apis() + [AwsApiSpec(service_name, "terminate-instances")]
 
 
 # endregion
@@ -1083,7 +1087,7 @@ class AwsEc2RecurringCharge:
 @define(eq=False, slots=False)
 class AwsEc2ReservedInstances(EC2Taggable, AwsResource):
     kind: ClassVar[str] = "aws_ec2_reserved_instances"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-reserved-instances", "ReservedInstances")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-reserved-instances", "ReservedInstances")
     reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["aws_ec2_instance_type"]}}
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("ReservedInstancesId"),
@@ -1192,7 +1196,7 @@ class AwsEc2NetworkAclEntry:
 @define(eq=False, slots=False)
 class AwsEc2NetworkAcl(EC2Taggable, AwsResource):
     kind: ClassVar[str] = "aws_ec2_network_acl"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-network-acls", "NetworkAcls")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-network-acls", "NetworkAcls")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_vpc"], "delete": ["aws_vpc", "aws_ec2_subnet"]},
         "successors": {"default": ["aws_ec2_subnet"]},
@@ -1226,7 +1230,7 @@ class AwsEc2NetworkAcl(EC2Taggable, AwsResource):
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return super().called_mutator_apis() + [AwsApiSpec("ec2", "delete-network-acl")]
+        return super().called_mutator_apis() + [AwsApiSpec(service_name, "delete-network-acl")]
 
 
 # endregion
@@ -1237,7 +1241,7 @@ class AwsEc2NetworkAcl(EC2Taggable, AwsResource):
 @define(eq=False, slots=False)
 class AwsEc2ElasticIp(EC2Taggable, AwsResource, BaseIPAddress):
     kind: ClassVar[str] = "aws_ec2_elastic_ip"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-addresses", "Addresses")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-addresses", "Addresses")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_ec2_instance", "aws_ec2_network_interface"]},
         "successors": {"delete": ["aws_ec2_instance", "aws_ec2_network_interface"]},
@@ -1302,8 +1306,8 @@ class AwsEc2ElasticIp(EC2Taggable, AwsResource, BaseIPAddress):
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return super().called_mutator_apis() + [
-            AwsApiSpec("ec2", "disassociate-address"),
-            AwsApiSpec("ec2", "release-address"),
+            AwsApiSpec(service_name, "disassociate-address"),
+            AwsApiSpec(service_name, "release-address"),
         ]
 
 
@@ -1380,7 +1384,7 @@ class AwsEc2Tag:
 @define(eq=False, slots=False)
 class AwsEc2NetworkInterface(EC2Taggable, AwsResource, BaseNetworkInterface):
     kind: ClassVar[str] = "aws_ec2_network_interface"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-network-interfaces", "NetworkInterfaces")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-network-interfaces", "NetworkInterfaces")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["aws_vpc", "aws_ec2_subnet", "aws_ec2_instance", "aws_ec2_security_group"],
@@ -1461,7 +1465,7 @@ class AwsEc2NetworkInterface(EC2Taggable, AwsResource, BaseNetworkInterface):
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return super().called_mutator_apis() + [AwsApiSpec("ec2", "delete-network-interface")]
+        return super().called_mutator_apis() + [AwsApiSpec(service_name, "delete-network-interface")]
 
 
 # endregion
@@ -1510,7 +1514,7 @@ class AwsEc2VpcCidrBlockAssociation:
 @define(eq=False, slots=False)
 class AwsEc2Vpc(EC2Taggable, AwsResource, BaseNetwork):
     kind: ClassVar[str] = "aws_vpc"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-vpcs", "Vpcs")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-vpcs", "Vpcs")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("VpcId"),
         "tags": S("Tags", default=[]) >> ToDict(),
@@ -1544,7 +1548,7 @@ class AwsEc2Vpc(EC2Taggable, AwsResource, BaseNetwork):
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return super().called_mutator_apis() + [AwsApiSpec("ec2", "delete-vpc")]
+        return super().called_mutator_apis() + [AwsApiSpec(service_name, "delete-vpc")]
 
 
 # endregion
@@ -1596,7 +1600,9 @@ class AwsEc2VpcPeeringConnectionStateReason:
 @define(eq=False, slots=False)
 class AwsEc2VpcPeeringConnection(EC2Taggable, AwsResource, BasePeeringConnection):
     kind: ClassVar[str] = "aws_vpc_peering_connection"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-vpc-peering-connections", "VpcPeeringConnections")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
+        service_name, "describe-vpc-peering-connections", "VpcPeeringConnections"
+    )
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_vpc"], "delete": ["aws_vpc"]},
     }
@@ -1632,7 +1638,7 @@ class AwsEc2VpcPeeringConnection(EC2Taggable, AwsResource, BasePeeringConnection
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return super().called_mutator_apis() + [
-            AwsApiSpec("ec2", "delete-vpc-peering-connection"),
+            AwsApiSpec(service_name, "delete-vpc-peering-connection"),
         ]
 
 
@@ -1660,7 +1666,7 @@ class AwsEc2LastError:
 @define(eq=False, slots=False)
 class AwsEc2VpcEndpoint(EC2Taggable, AwsResource, BaseEndpoint):
     kind: ClassVar[str] = "aws_vpc_endpoint"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-vpc-endpoints", "VpcEndpoints")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-vpc-endpoints", "VpcEndpoints")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["aws_vpc", "aws_ec2_route_table", "aws_ec2_subnet", "aws_ec2_security_group"],
@@ -1736,7 +1742,7 @@ class AwsEc2VpcEndpoint(EC2Taggable, AwsResource, BaseEndpoint):
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return super().called_mutator_apis() + [AwsApiSpec("ec2", "delete-vpc-endpoints")]
+        return super().called_mutator_apis() + [AwsApiSpec(service_name, "delete-vpc-endpoints")]
 
 
 # endregion
@@ -1780,7 +1786,7 @@ class AwsEc2PrivateDnsNameOptionsOnLaunch:
 @define(eq=False, slots=False)
 class AwsEc2Subnet(EC2Taggable, AwsResource, BaseSubnet):
     kind: ClassVar[str] = "aws_ec2_subnet"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-subnets", "Subnets")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-subnets", "Subnets")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_vpc"], "delete": ["aws_vpc"]},
     }
@@ -1841,7 +1847,7 @@ class AwsEc2Subnet(EC2Taggable, AwsResource, BaseSubnet):
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return super().called_mutator_apis() + [AwsApiSpec("ec2", "delete-subnet")]
+        return super().called_mutator_apis() + [AwsApiSpec(service_name, "delete-subnet")]
 
 
 # endregion
@@ -1917,7 +1923,7 @@ class AwsEc2IpPermission:
 @define(eq=False, slots=False)
 class AwsEc2SecurityGroup(EC2Taggable, AwsResource, BaseSecurityGroup):
     kind: ClassVar[str] = "aws_ec2_security_group"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-security-groups", "SecurityGroups")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-security-groups", "SecurityGroups")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_vpc"], "delete": ["aws_vpc"]},
     }
@@ -1995,9 +2001,9 @@ class AwsEc2SecurityGroup(EC2Taggable, AwsResource, BaseSecurityGroup):
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return super().called_mutator_apis() + [
-            AwsApiSpec("ec2", "revoke-security-group-ingress"),
-            AwsApiSpec("ec2", "revoke-security-group-egress"),
-            AwsApiSpec("ec2", "delete-security-group"),
+            AwsApiSpec(service_name, "revoke-security-group-ingress"),
+            AwsApiSpec(service_name, "revoke-security-group-egress"),
+            AwsApiSpec(service_name, "delete-security-group"),
         ]
 
 
@@ -2040,7 +2046,7 @@ class AwsEc2ProvisionedBandwidth:
 @define(eq=False, slots=False)
 class AwsEc2NatGateway(EC2Taggable, AwsResource, BaseGateway):
     kind: ClassVar[str] = "aws_ec2_nat_gateway"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-nat-gateways", "NatGateways")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-nat-gateways", "NatGateways")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"delete": ["aws_ec2_network_interface", "aws_vpc", "aws_ec2_subnet"]},
         "successors": {"default": ["aws_vpc", "aws_ec2_subnet", "aws_ec2_network_interface"]},
@@ -2084,7 +2090,7 @@ class AwsEc2NatGateway(EC2Taggable, AwsResource, BaseGateway):
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return super().called_mutator_apis() + [AwsApiSpec("ec2", "delete-nat-gateway")]
+        return super().called_mutator_apis() + [AwsApiSpec(service_name, "delete-nat-gateway")]
 
 
 # endregion
@@ -2102,7 +2108,7 @@ class AwsEc2InternetGatewayAttachment:
 @define(eq=False, slots=False)
 class AwsEc2InternetGateway(EC2Taggable, AwsResource, BaseGateway):
     kind: ClassVar[str] = "aws_ec2_internet_gateway"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-internet-gateways", "InternetGateways")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-internet-gateways", "InternetGateways")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_vpc"], "delete": ["aws_vpc"]},
     }
@@ -2148,8 +2154,8 @@ class AwsEc2InternetGateway(EC2Taggable, AwsResource, BaseGateway):
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return super().called_mutator_apis() + [
-            AwsApiSpec("ec2", "detach-internet-gateway"),
-            AwsApiSpec("ec2", "delete-internet-gateway"),
+            AwsApiSpec(service_name, "detach-internet-gateway"),
+            AwsApiSpec(service_name, "delete-internet-gateway"),
         ]
 
 
@@ -2226,7 +2232,7 @@ class AwsEc2Route:
 @define(eq=False, slots=False)
 class AwsEc2RouteTable(EC2Taggable, AwsResource, BaseRoutingTable):
     kind: ClassVar[str] = "aws_ec2_route_table"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-route-tables", "RouteTables")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-route-tables", "RouteTables")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_vpc"], "delete": ["aws_vpc"]},
     }
@@ -2277,8 +2283,8 @@ class AwsEc2RouteTable(EC2Taggable, AwsResource, BaseRoutingTable):
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return super().called_mutator_apis() + [
-            AwsApiSpec("ec2", "disassociate-route-table"),
-            AwsApiSpec("ec2", "delete-route-table"),
+            AwsApiSpec(service_name, "disassociate-route-table"),
+            AwsApiSpec(service_name, "delete-route-table"),
         ]
 
 
@@ -2340,7 +2346,7 @@ class AwsEc2HostInstance:
 @define(eq=False, slots=False)
 class AwsEc2Host(EC2Taggable, AwsResource):
     kind: ClassVar[str] = "aws_ec2_host"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-hosts", "Hosts")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-hosts", "Hosts")
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["aws_ec2_instance"], "delete": ["aws_ec2_instance"]}
     }
@@ -2402,7 +2408,7 @@ class AwsEc2Host(EC2Taggable, AwsResource):
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return super().called_mutator_apis() + [AwsApiSpec("ec2", "release-hosts")]
+        return super().called_mutator_apis() + [AwsApiSpec(service_name, "release-hosts")]
 
 
 @define(eq=False, slots=False)
@@ -2426,7 +2432,7 @@ class AwsEc2DestinationOption:
 @define(eq=False, slots=False)
 class AwsEc2FlowLog(EC2Taggable, AwsResource):
     kind: ClassVar[str] = "aws_ec2_flow_log"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-flow-logs", "FlowLogs")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-flow-logs", "FlowLogs")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("FlowLogId"),
         "name": (S("Tags", default=[]) >> TagsValue("Name")).or_else(S("FlowLogId")),
@@ -2473,7 +2479,7 @@ class AwsEc2FlowLog(EC2Taggable, AwsResource):
         # TODO: add link to cloudwatch log group with given name
 
     def delete_resource(self, client: AwsClient) -> bool:
-        client.call("ec2", "delete-flow-logs", FlowLogIds=[self.id])
+        client.call(service_name, "delete-flow-logs", FlowLogIds=[self.id])
         return True
 
 

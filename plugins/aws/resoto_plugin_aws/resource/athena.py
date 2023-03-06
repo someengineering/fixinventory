@@ -12,6 +12,8 @@ from resotolib.baseresources import ModelReference
 from resotolib.json_bender import Bender, S, Bend, bend
 from resotolib.types import Json
 
+service_name = "athena"
+
 
 @define(eq=False, slots=False)
 class AwsAthenaEncryptionConfiguration:
@@ -67,7 +69,7 @@ class AwsAthenaWorkGroupConfiguration:
 @define(eq=False, slots=False)
 class AwsAthenaWorkGroup(AwsResource):
     kind: ClassVar[str] = "aws_athena_work_group"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("athena", "list-work-groups", "WorkGroups")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-work-groups", "WorkGroups")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Name"),
         "ctime": S("CreationTime"),
@@ -87,21 +89,25 @@ class AwsAthenaWorkGroup(AwsResource):
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
-        return [cls.api_spec, AwsApiSpec("athena", "get-work-group"), AwsApiSpec("athena", "list-tags-for-resource")]
+        return [
+            cls.api_spec,
+            AwsApiSpec(service_name, "get-work-group"),
+            AwsApiSpec(service_name, "list-tags-for-resource"),
+        ]
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return [
-            AwsApiSpec("athena", "tag-resource"),
-            AwsApiSpec("athena", "untag-resource"),
-            AwsApiSpec("athena", "delete-work-group"),
+            AwsApiSpec(service_name, "tag-resource"),
+            AwsApiSpec(service_name, "untag-resource"),
+            AwsApiSpec(service_name, "delete-work-group"),
         ]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def fetch_workgroup(name: str) -> Optional[AwsAthenaWorkGroup]:
             result = builder.client.get(
-                aws_service="athena", action="get-work-group", result_name="WorkGroup", WorkGroup=name
+                aws_service=service_name, action="get-work-group", result_name="WorkGroup", WorkGroup=name
             )
             if result is None:
                 return None
@@ -116,7 +122,7 @@ class AwsAthenaWorkGroup(AwsResource):
 
         def add_tags(data_catalog: AwsAthenaWorkGroup) -> None:
             tags = builder.client.list(
-                "athena",
+                service_name,
                 "list-tags-for-resource",
                 "Tags",
                 ResourceARN=data_catalog.arn,
@@ -129,7 +135,7 @@ class AwsAthenaWorkGroup(AwsResource):
                 wg = fetch_workgroup(name)
                 if wg is not None:
                     builder.add_node(wg)
-                    builder.submit_work(add_tags, wg)
+                    builder.submit_work(service_name, add_tags, wg)
 
     # noinspection PyUnboundLocalVariable
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
@@ -177,7 +183,7 @@ class AwsAthenaWorkGroup(AwsResource):
 @define(eq=False, slots=False)
 class AwsAthenaDataCatalog(AwsResource):
     kind: ClassVar[str] = "aws_athena_data_catalog"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("athena", "list-data-catalogs", "DataCatalogsSummary")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-data-catalogs", "DataCatalogsSummary")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Name"),
         "name": S("Name"),
@@ -191,21 +197,25 @@ class AwsAthenaDataCatalog(AwsResource):
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
-        return [cls.api_spec, AwsApiSpec("athena", "get-data-catalog"), AwsApiSpec("athena", "list-tags-for-resource")]
+        return [
+            cls.api_spec,
+            AwsApiSpec(service_name, "get-data-catalog"),
+            AwsApiSpec(service_name, "list-tags-for-resource"),
+        ]
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return [
-            AwsApiSpec("athena", "tag-resource"),
-            AwsApiSpec("athena", "untag-resource"),
-            AwsApiSpec("athena", "delete-data-catalog"),
+            AwsApiSpec(service_name, "tag-resource"),
+            AwsApiSpec(service_name, "untag-resource"),
+            AwsApiSpec(service_name, "delete-data-catalog"),
         ]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def fetch_data_catalog(data_catalog_name: str) -> Optional[AwsAthenaDataCatalog]:
             result = builder.client.get(
-                aws_service="athena",
+                aws_service=service_name,
                 action="get-data-catalog",
                 result_name="DataCatalog",
                 Name=data_catalog_name,
@@ -218,7 +228,7 @@ class AwsAthenaDataCatalog(AwsResource):
 
         def add_tags(data_catalog: AwsAthenaDataCatalog) -> None:
             tags = builder.client.list(
-                "athena",
+                service_name,
                 "list-tags-for-resource",
                 None,
                 ResourceARN=data_catalog.arn,
@@ -232,7 +242,7 @@ class AwsAthenaDataCatalog(AwsResource):
                 catalog = fetch_data_catalog(name)
                 if catalog is not None:
                     builder.add_node(catalog)
-                    builder.submit_work(add_tags, catalog)
+                    builder.submit_work(service_name, add_tags, catalog)
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(
@@ -255,7 +265,7 @@ class AwsAthenaDataCatalog(AwsResource):
         return True
 
     def delete_resource(self, client: AwsClient) -> bool:
-        client.call(aws_service="athena", action="delete-data-catalog", result_name=None, Name=self.name)
+        client.call(aws_service=service_name, action="delete-data-catalog", result_name=None, Name=self.name)
         return True
 
 

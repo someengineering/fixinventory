@@ -17,6 +17,8 @@ from resotolib.json_bender import F, Bender, S, Bend, ForallBend, bend
 from resotolib.types import Json
 from resotolib.utils import rrdata_as_dict
 
+service_name = "route53"
+
 
 @define(eq=False, slots=False)
 class AwsRoute53ZoneConfig:
@@ -37,7 +39,7 @@ class AwsRoute53LinkedService:
 @define(eq=False, slots=False)
 class AwsRoute53Zone(AwsResource, BaseDNSZone):
     kind: ClassVar[str] = "aws_route53_zone"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("route53", "list-hosted-zones", "HostedZones")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-hosted-zones", "HostedZones")
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": ["aws_route53_resource_record_set"],
@@ -61,15 +63,15 @@ class AwsRoute53Zone(AwsResource, BaseDNSZone):
     def called_collect_apis(cls) -> List[AwsApiSpec]:
         return [
             cls.api_spec,
-            AwsApiSpec("route53", "list-resource-record-sets"),
-            AwsApiSpec("route53", "list-tags-for-resource"),
+            AwsApiSpec(service_name, "list-resource-record-sets"),
+            AwsApiSpec(service_name, "list-tags-for-resource"),
         ]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_tags(zone: AwsRoute53Zone) -> None:
             tags = builder.client.get(
-                "route53",
+                service_name,
                 "list-tags-for-resource",
                 result_name="ResourceTagSet",
                 ResourceType="hostedzone",
@@ -81,9 +83,9 @@ class AwsRoute53Zone(AwsResource, BaseDNSZone):
         for js in json:
             zone: AwsRoute53Zone = cast(AwsRoute53Zone, cls.from_api(js))
             builder.add_node(zone, js)
-            builder.submit_work(add_tags, zone)
+            builder.submit_work(service_name, add_tags, zone)
             for rs_js in builder.client.list(
-                "route53", "list-resource-record-sets", "ResourceRecordSets", HostedZoneId=zone.id
+                service_name, "list-resource-record-sets", "ResourceRecordSets", HostedZoneId=zone.id
             ):
                 record_set = AwsRoute53ResourceRecordSet.from_api(rs_js)
                 builder.add_node(record_set, rs_js)
@@ -103,7 +105,7 @@ class AwsRoute53Zone(AwsResource, BaseDNSZone):
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(
-            aws_service="route53",
+            aws_service=service_name,
             action="change-tags-for-resource",
             result_name=None,
             ResourceType="hostedzone",
@@ -114,7 +116,7 @@ class AwsRoute53Zone(AwsResource, BaseDNSZone):
 
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
         client.call(
-            aws_service="route53",
+            aws_service=service_name,
             action="change-tags-for-resource",
             result_name=None,
             ResourceType="hostedzone",
@@ -124,14 +126,16 @@ class AwsRoute53Zone(AwsResource, BaseDNSZone):
         return True
 
     def delete_resource(self, client: AwsClient) -> bool:
-        client.call(aws_service="route53", action="delete-hosted-zone", result_name=None, Id=self.id.rsplit("/", 1)[-1])
+        client.call(
+            aws_service=service_name, action="delete-hosted-zone", result_name=None, Id=self.id.rsplit("/", 1)[-1]
+        )
         return True
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return [
-            AwsApiSpec("route53", "change-tags-for-resource"),
-            AwsApiSpec("route53", "delete-hosted-zone"),
+            AwsApiSpec(service_name, "change-tags-for-resource"),
+            AwsApiSpec(service_name, "delete-hosted-zone"),
         ]
 
 

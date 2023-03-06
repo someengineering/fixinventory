@@ -14,6 +14,8 @@ from resotolib.json import from_json
 from resotolib.json_bender import Bender, S, Bend, bend
 from resotolib.types import Json
 
+service_name = "apigateway"
+
 
 class ApiGatewayTaggable:
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
@@ -47,10 +49,10 @@ class ApiGatewayTaggable:
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return [
-            AwsApiSpec("apigateway", "tag-resource", override_iam_permission="apigateway:PATCH"),
-            AwsApiSpec("apigateway", "tag-resource", override_iam_permission="apigateway:POST"),
-            AwsApiSpec("apigateway", "tag-resource", override_iam_permission="apigateway:PUT"),
-            AwsApiSpec("apigateway", "untag-resource", override_iam_permission="apigateway:DELETE"),
+            AwsApiSpec(service_name, "tag-resource", override_iam_permission="apigateway:PATCH"),
+            AwsApiSpec(service_name, "tag-resource", override_iam_permission="apigateway:POST"),
+            AwsApiSpec(service_name, "tag-resource", override_iam_permission="apigateway:PUT"),
+            AwsApiSpec(service_name, "untag-resource", override_iam_permission="apigateway:DELETE"),
         ]
 
 
@@ -180,7 +182,7 @@ class AwsApiGatewayResource(AwsResource):
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
-            aws_service="apigateway",
+            aws_service=service_name,
             action="delete-resource",
             result_name=None,
             restApiId=self.api_link,
@@ -190,7 +192,7 @@ class AwsApiGatewayResource(AwsResource):
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return [AwsApiSpec("apigateway", "delete-resource", override_iam_permission="apigateway:DELETE")]
+        return [AwsApiSpec(service_name, "delete-resource", override_iam_permission="apigateway:DELETE")]
 
 
 @define(eq=False, slots=False)
@@ -240,7 +242,7 @@ class AwsApiGatewayAuthorizer(AwsResource):
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
-            aws_service="apigateway",
+            aws_service=service_name,
             action="delete-authorizer",
             result_name=None,
             restApiId=self.api_link,
@@ -250,7 +252,7 @@ class AwsApiGatewayAuthorizer(AwsResource):
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return [AwsApiSpec("apigateway", "delete-authorizer", override_iam_permission="apigateway:DELETE")]
+        return [AwsApiSpec(service_name, "delete-authorizer", override_iam_permission="apigateway:DELETE")]
 
 
 @define(eq=False, slots=False)
@@ -309,7 +311,7 @@ class AwsApiGatewayStage(ApiGatewayTaggable, AwsResource):
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
-            aws_service="apigateway",
+            aws_service=service_name,
             action="delete-stage",
             result_name=None,
             restApiId=self.api_link,
@@ -320,7 +322,7 @@ class AwsApiGatewayStage(ApiGatewayTaggable, AwsResource):
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return super().called_mutator_apis() + [
-            AwsApiSpec("apigateway", "delete-stage", override_iam_permission="apigateway:DELETE")
+            AwsApiSpec(service_name, "delete-stage", override_iam_permission="apigateway:DELETE")
         ]
 
 
@@ -343,7 +345,7 @@ class AwsApiGatewayDeployment(AwsResource):
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
-            aws_service="apigateway",
+            aws_service=service_name,
             action="delete-deployment",
             result_name=None,
             restApiId=self.api_link,
@@ -354,7 +356,7 @@ class AwsApiGatewayDeployment(AwsResource):
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return super().called_mutator_apis() + [
-            AwsApiSpec("apigateway", "delete-deployment", override_iam_permission="apigateway:DELETE")
+            AwsApiSpec(service_name, "delete-deployment", override_iam_permission="apigateway:DELETE")
         ]
 
 
@@ -373,7 +375,7 @@ class AwsApiGatewayEndpointConfiguration:
 class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
     kind: ClassVar[str] = "aws_api_gateway_rest_api"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
-        "apigateway", "get-rest-apis", "items", override_iam_permission="apigateway:GET"
+        service_name, "get-rest-apis", "items", override_iam_permission="apigateway:GET"
     )
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
@@ -415,16 +417,16 @@ class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
     def called_collect_apis(cls) -> List[AwsApiSpec]:
         return [
             cls.api_spec,
-            AwsApiSpec("apigateway", "get-deployments", override_iam_permission="apigateway:GET"),
-            AwsApiSpec("apigateway", "get-stages", override_iam_permission="apigateway:GET"),
-            AwsApiSpec("apigateway", "get-authorizers", override_iam_permission="apigateway:GET"),
-            AwsApiSpec("apigateway", "get-resources", override_iam_permission="apigateway:GET"),
+            AwsApiSpec(service_name, "get-deployments", override_iam_permission="apigateway:GET"),
+            AwsApiSpec(service_name, "get-stages", override_iam_permission="apigateway:GET"),
+            AwsApiSpec(service_name, "get-authorizers", override_iam_permission="apigateway:GET"),
+            AwsApiSpec(service_name, "get-resources", override_iam_permission="apigateway:GET"),
         ]
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return super().called_mutator_apis() + [
-            AwsApiSpec("apigateway", "delete-rest-api", override_iam_permission="apigateway:DELETE")
+            AwsApiSpec(service_name, "delete-rest-api", override_iam_permission="apigateway:DELETE")
         ]
 
     @classmethod
@@ -437,7 +439,7 @@ class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
                 resource=f"/restapis/{api_instance.id}",
             )
             builder.add_node(api_instance, js)
-            for deployment in builder.client.list("apigateway", "get-deployments", "items", restApiId=api_instance.id):
+            for deployment in builder.client.list(service_name, "get-deployments", "items", restApiId=api_instance.id):
                 deploy_instance = AwsApiGatewayDeployment.from_api(deployment)
                 deploy_instance.set_arn(
                     builder=builder,
@@ -448,7 +450,7 @@ class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
                 builder.add_node(deploy_instance, deployment)
                 builder.add_edge(api_instance, EdgeType.default, node=deploy_instance)
                 for stage in builder.client.list(
-                    "apigateway", "get-stages", "item", restApiId=api_instance.id, deploymentId=deploy_instance.id
+                    service_name, "get-stages", "item", restApiId=api_instance.id, deploymentId=deploy_instance.id
                 ):
                     stage["syntheticId"] = f'{api_instance.id}_{stage["stageName"]}'  # create unique id
                     stage_instance = AwsApiGatewayStage.from_api(stage)
@@ -456,12 +458,12 @@ class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
                     builder.add_node(stage_instance, stage)
                     # reference kinds for this edge are maintained in AwsApiGatewayDeployment.reference_kinds
                     builder.add_edge(deploy_instance, EdgeType.default, node=stage_instance)
-            for authorizer in builder.client.list("apigateway", "get-authorizers", "items", restApiId=api_instance.id):
+            for authorizer in builder.client.list(service_name, "get-authorizers", "items", restApiId=api_instance.id):
                 auth_instance = AwsApiGatewayAuthorizer.from_api(authorizer)
                 auth_instance.api_link = api_instance.id
                 builder.add_node(auth_instance, authorizer)
                 builder.add_edge(api_instance, EdgeType.default, node=auth_instance)
-            for resource in builder.client.list("apigateway", "get-resources", "items", restApiId=api_instance.id):
+            for resource in builder.client.list(service_name, "get-resources", "items", restApiId=api_instance.id):
                 resource_instance = AwsApiGatewayResource.from_api(resource)
                 resource_instance.api_link = api_instance.id
                 if resource_instance.resource_methods:
@@ -508,7 +510,7 @@ class AwsApiGatewayMutualTlsAuthentication:
 class AwsApiGatewayDomainName(ApiGatewayTaggable, AwsResource):
     kind: ClassVar[str] = "aws_api_gateway_domain_name"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
-        "apigateway", "get-domain-names", "items", override_iam_permission="apigateway:GET"
+        service_name, "get-domain-names", "items", override_iam_permission="apigateway:GET"
     )
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"delete": ["aws_route53_zone"]},

@@ -8,6 +8,8 @@ from resoto_plugin_aws.utils import ToDict
 from resotolib.json_bender import Bend, Bender, S, ForallBend, bend
 from resotolib.types import Json
 
+service_name = "kms"
+
 
 @define(eq=False, slots=False)
 class AwsKmsMultiRegionPrimaryKey:
@@ -41,7 +43,7 @@ class AwsKmsMultiRegionConfig:
 @define(eq=False, slots=False)
 class AwsKmsKey(AwsResource, BaseAccessKey):
     kind: ClassVar[str] = "aws_kms_key"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("kms", "list-keys", "Keys")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-keys", "Keys")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("KeyId"),
         "name": S("KeyId"),
@@ -92,28 +94,34 @@ class AwsKmsKey(AwsResource, BaseAccessKey):
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
-        return [cls.api_spec, AwsApiSpec("kms", "describe-key"), AwsApiSpec("kms", "list-resource-tags")]
+        return [cls.api_spec, AwsApiSpec(service_name, "describe-key"), AwsApiSpec(service_name, "list-resource-tags")]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_instance(key: Dict[str, str]) -> None:
-            key_metadata = builder.client.get("kms", "describe-key", result_name="KeyMetadata", KeyId=key["KeyId"])
+            key_metadata = builder.client.get(
+                service_name, "describe-key", result_name="KeyMetadata", KeyId=key["KeyId"]
+            )
             if key_metadata is not None:
                 instance = AwsKmsKey.from_api(key_metadata)
                 builder.add_node(instance)
-                builder.submit_work(add_tags, instance)
+                builder.submit_work(service_name, add_tags, instance)
                 if instance.kms_key_manager == "CUSTOMER" and instance.access_key_status == "Enabled":
-                    builder.submit_work(add_rotation_status, instance)
+                    builder.submit_work(service_name, add_rotation_status, instance)
 
         def add_rotation_status(key: AwsKmsKey) -> None:
             with suppress(Exception):
                 key.kms_key_rotation_enabled = builder.client.get(  # type: ignore
-                    "kms", "get-key-rotation-status", result_name="KeyRotationEnabled", KeyId=key.id
+                    service_name, "get-key-rotation-status", result_name="KeyRotationEnabled", KeyId=key.id
                 )
 
         def add_tags(key: AwsKmsKey) -> None:
             tags = builder.client.list(
-                "kms", "list-resource-tags", result_name="Tags", expected_errors=["AccessDeniedException"], KeyId=key.id
+                service_name,
+                "list-resource-tags",
+                result_name="Tags",
+                expected_errors=["AccessDeniedException"],
+                KeyId=key.id,
             )
             if tags:
                 key.tags = bend(ToDict(key="TagKey", value="TagValue"), tags)
@@ -123,7 +131,7 @@ class AwsKmsKey(AwsResource, BaseAccessKey):
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(
-            aws_service="kms",
+            aws_service=service_name,
             action="tag-resource",
             result_name=None,
             KeyId=self.id,
@@ -132,13 +140,13 @@ class AwsKmsKey(AwsResource, BaseAccessKey):
         return True
 
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
-        client.call(aws_service="kms", action="untag-resource", result_name=None, KeyId=self.id, TagKeys=[key])
+        client.call(aws_service=service_name, action="untag-resource", result_name=None, KeyId=self.id, TagKeys=[key])
         return True
 
     def delete_resource(self, client: AwsClient) -> bool:
         if self.access_key_status == "Disabled":
             client.call(
-                aws_service="kms",
+                aws_service=service_name,
                 action="schedule-key-deletion",
                 result_name=None,
                 KeyId=self.id,
@@ -149,7 +157,7 @@ class AwsKmsKey(AwsResource, BaseAccessKey):
             return True
 
         client.call(
-            aws_service="kms",
+            aws_service=service_name,
             action="disable-key",
             result_name=None,
             KeyId=self.id,
@@ -160,10 +168,10 @@ class AwsKmsKey(AwsResource, BaseAccessKey):
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return [
-            AwsApiSpec("kms", "tag-resource"),
-            AwsApiSpec("kms", "untag-resource"),
-            AwsApiSpec("kms", "schedule-key-deletion"),
-            AwsApiSpec("kms", "disable-key"),
+            AwsApiSpec(service_name, "tag-resource"),
+            AwsApiSpec(service_name, "untag-resource"),
+            AwsApiSpec(service_name, "schedule-key-deletion"),
+            AwsApiSpec(service_name, "disable-key"),
         ]
 
     @staticmethod

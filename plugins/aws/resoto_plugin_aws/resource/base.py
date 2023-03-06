@@ -476,13 +476,13 @@ class GraphBuilder:
         self.graph_nodes_access = graph_nodes_access or Lock()
         self.graph_edges_access = graph_edges_access or Lock()
 
-    def submit_work(self, fn: Callable[..., T], *args: Any, **kwargs: Any) -> Future[T]:
+    def submit_work(self, service: str, fn: Callable[..., T], *args: Any, **kwargs: Any) -> Future[T]:
         """
         Use this method for work that can be done in parallel.
         Note: the executor pool is shared between all regions and only allows the configured number of tasks per key.
-              The region id is used as key.
+              Key: RegionId:Service in the same region and the same service start only the configured number of tasks
         """
-        return self.executor.submit_work(self.region.id, fn, *args, **kwargs)
+        return self.executor.submit_work(self.region.id + ":" + service, fn, *args, **kwargs)
 
     @property
     def config(self) -> AwsConfig:

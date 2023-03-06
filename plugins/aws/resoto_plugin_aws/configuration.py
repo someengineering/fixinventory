@@ -168,6 +168,9 @@ class AwsConfig:
         default=20,
         metadata={"description": "Number of shared threads available per account."},
     )
+    shared_pool_parallelism: int = field(
+        default=2, metadata={"description": "Number of threads to run in parallel per region and service."}
+    )
     region_resources_pool_size: int = field(
         default=2, metadata={"description": "Number of resource types to collect in parallel per single region."}
     )

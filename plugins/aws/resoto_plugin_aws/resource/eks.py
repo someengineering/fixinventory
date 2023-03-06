@@ -11,6 +11,8 @@ from resotolib.json_bender import Bender, S, Bend, ForallBend
 from resotolib.types import Json
 from resoto_plugin_aws.aws_client import AwsClient
 
+service_name = "eks"
+
 
 # noinspection PyUnresolvedReferences
 class EKSTaggable:
@@ -44,7 +46,7 @@ class EKSTaggable:
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return [AwsApiSpec("eks", "tag-resource"), AwsApiSpec("eks", "untag-resource")]
+        return [AwsApiSpec(service_name, "tag-resource"), AwsApiSpec(service_name, "untag-resource")]
 
 
 @define(eq=False, slots=False)
@@ -197,7 +199,7 @@ class AwsEksNodegroup(EKSTaggable, AwsResource):
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
-            aws_service="eks",
+            aws_service=service_name,
             action="delete-nodegroup",
             result_name=None,
             clusterName=self.cluster_name,
@@ -207,7 +209,7 @@ class AwsEksNodegroup(EKSTaggable, AwsResource):
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return super().called_mutator_apis() + [AwsApiSpec("eks", "delete-nodegroup")]
+        return super().called_mutator_apis() + [AwsApiSpec(service_name, "delete-nodegroup")]
 
 
 @define(eq=False, slots=False)
@@ -299,7 +301,7 @@ class AwsEksConnectorConfig:
 @define(eq=False, slots=False)
 class AwsEksCluster(EKSTaggable, AwsResource):
     kind: ClassVar[str] = "aws_eks_cluster"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("eks", "list-clusters", "clusters")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-clusters", "clusters")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["aws_iam_role"],
@@ -345,21 +347,21 @@ class AwsEksCluster(EKSTaggable, AwsResource):
     def called_collect_apis(cls) -> List[AwsApiSpec]:
         return [
             cls.api_spec,
-            AwsApiSpec("eks", "describe-cluster"),
-            AwsApiSpec("eks", "list-nodegroups"),
-            AwsApiSpec("eks", "describe-nodegroup"),
+            AwsApiSpec(service_name, "describe-cluster"),
+            AwsApiSpec(service_name, "list-nodegroups"),
+            AwsApiSpec(service_name, "describe-nodegroup"),
         ]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for name in cast(List[str], json):
-            cluster_json = builder.client.get("eks", "describe-cluster", "cluster", name=name)
+            cluster_json = builder.client.get(service_name, "describe-cluster", "cluster", name=name)
             if cluster_json is not None:
                 cluster = AwsEksCluster.from_api(cluster_json)
                 builder.add_node(cluster, cluster_json)
-                for ng_name in builder.client.list("eks", "list-nodegroups", "nodegroups", clusterName=name):
+                for ng_name in builder.client.list(service_name, "list-nodegroups", "nodegroups", clusterName=name):
                     ng_json = builder.client.get(
-                        "eks", "describe-nodegroup", "nodegroup", clusterName=name, nodegroupName=ng_name
+                        service_name, "describe-nodegroup", "nodegroup", clusterName=name, nodegroupName=ng_name
                     )
                     if ng_json is not None:
                         ng = AwsEksNodegroup.from_api(ng_json)
@@ -376,7 +378,7 @@ class AwsEksCluster(EKSTaggable, AwsResource):
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return super().called_mutator_apis() + [AwsApiSpec("eks", "delete-cluster")]
+        return super().called_mutator_apis() + [AwsApiSpec(service_name, "delete-cluster")]
 
 
 resources: List[Type[AwsResource]] = [AwsEksNodegroup, AwsEksCluster]

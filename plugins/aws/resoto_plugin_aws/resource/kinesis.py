@@ -11,6 +11,8 @@ from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.utils import ToDict
 from typing import Type
 
+service_name = "kinesis"
+
 
 @define(eq=False, slots=False)
 class AwsKinesisHashKeyRange:
@@ -67,7 +69,7 @@ class AwsKinesisStream(AwsResource):
         },
         "successors": {"default": ["aws_kms_key"]},
     }
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("kinesis", "list-streams", "StreamNames")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-streams", "StreamNames")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("StreamName"),
         "tags": S("Tags", default=[]) >> ToDict(),
@@ -98,7 +100,11 @@ class AwsKinesisStream(AwsResource):
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
-        return [cls.api_spec, AwsApiSpec("kinesis", "describe-stream"), AwsApiSpec("kinesis", "list-tags-for-stream")]
+        return [
+            cls.api_spec,
+            AwsApiSpec(service_name, "describe-stream"),
+            AwsApiSpec(service_name, "list-tags-for-stream"),
+        ]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
@@ -110,7 +116,7 @@ class AwsKinesisStream(AwsResource):
         for stream_name in json:
             # this call is paginated and will return a list
             stream_descriptions = builder.client.list(
-                aws_service="kinesis",
+                aws_service=service_name,
                 action="describe-stream",
                 result_name="StreamDescription",
                 StreamName=stream_name,
@@ -118,7 +124,7 @@ class AwsKinesisStream(AwsResource):
             if len(stream_descriptions) == 1:
                 stream = AwsKinesisStream.from_api(stream_descriptions[0])
                 builder.add_node(stream)
-                builder.submit_work(add_tags, stream)
+                builder.submit_work(service_name, add_tags, stream)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.kinesis_key_id:
@@ -156,9 +162,9 @@ class AwsKinesisStream(AwsResource):
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return [
-            AwsApiSpec("kinesis", "add-tags-to-stream"),
-            AwsApiSpec("kinesis", "remove-tags-from-stream"),
-            AwsApiSpec("kinesis", "delete-stream"),
+            AwsApiSpec(service_name, "add-tags-to-stream"),
+            AwsApiSpec(service_name, "remove-tags-from-stream"),
+            AwsApiSpec(service_name, "delete-stream"),
         ]
 
 
