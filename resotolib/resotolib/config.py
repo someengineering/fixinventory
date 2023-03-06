@@ -130,6 +130,7 @@ class Config(metaclass=MetaConfig):
                 )
                 # config with env_vars resolved and overrides applied
                 config = config_response["config"]
+                config = {k: replace_env_vars(v, os.environ, keep_unresolved=False) for k, v in config.items()}
                 # raw config as it was stored in the database, to be sent to the core
                 raw_config = config_response["raw_config"]
 
