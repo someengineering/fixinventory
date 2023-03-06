@@ -30,3 +30,13 @@ def test_session() -> None:
     # direct session
     assert config.sessions()._session("1234", aws_role=None) == config.sessions()._session("1234", aws_role=None)
     # no test for sts session, since this requires sts setup
+
+
+def test_shared_tasks_per_key() -> None:
+    config = AwsConfig(
+        "test", "test", "test", shared_pool_parallelism=20, shared_pool_parallelism_overrides={"test": 3}
+    )
+    tpk = config.shared_tasks_per_key(["eu-central-1"])
+    assert tpk("eu-central-1:foo") == 20  # default
+    assert tpk("eu-central-1:sagemaker") == 2  # predefined
+    assert tpk("eu-central-1:test") == 3  # defined in config

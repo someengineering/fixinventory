@@ -352,7 +352,7 @@ class ExecutorQueue:
     """
 
     executor: Executor
-    tasks_per_key: int
+    tasks_per_key: Callable[[str], int]
     name: str
     fail_on_first_exception_in_group: bool = False
     _tasks_lock: Lock = Lock()
@@ -387,7 +387,7 @@ class ExecutorQueue:
             # Clear the queue, so we don't execute them
             tasks.clear()
 
-        if in_progress < self.tasks_per_key and tasks:
+        if in_progress < self.tasks_per_key(key) and tasks:
             task = tasks.pop()
             self._in_progress[key] += 1
             self.__perform_task(task)

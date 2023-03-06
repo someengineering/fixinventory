@@ -143,9 +143,8 @@ class AwsAccountCollector:
         ) as executor:
             # The shared executor is used to spread work for the whole account.
             # Note: only tasks_per_key threads are running max for each region.
-            shared_queue = ExecutorQueue(
-                executor, tasks_per_key=self.config.shared_pool_parallelism, name=self.account.safe_name
-            )
+            tpk = self.config.shared_tasks_per_key([r.id for r in self.regions])
+            shared_queue = ExecutorQueue(executor, tasks_per_key=tpk, name=self.account.safe_name)
             global_builder = GraphBuilder(
                 self.graph, self.cloud, self.account, self.global_region, self.client, shared_queue, self.core_feedback
             )
@@ -224,7 +223,7 @@ class AwsAccountCollector:
             with ThreadPoolExecutor(thread_name_prefix=regional_thread_name, max_workers=rip) as executor:
                 # In case an exception is thrown for any resource, we should give up as quick as possible.
                 queue = ExecutorQueue(
-                    executor, tasks_per_key=rip, name=region.safe_name, fail_on_first_exception_in_group=True
+                    executor, tasks_per_key=lambda _: rip, name=region.safe_name, fail_on_first_exception_in_group=True
                 )
                 regional_builder.add_node(region)
                 for res in regional_resources:

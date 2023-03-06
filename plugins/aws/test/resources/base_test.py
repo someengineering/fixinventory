@@ -28,7 +28,9 @@ def check_executor_work(
         work_done.append(num)
 
     with ThreadPoolExecutor(max_workers=workers) as executor:
-        queue = ExecutorQueue(executor, tasks_per_key, "test", fail_on_first_exception_in_group=fail_on_first_exception)
+        queue = ExecutorQueue(
+            executor, lambda _: tasks_per_key, "test", fail_on_first_exception_in_group=fail_on_first_exception
+        )
         for key, idx in work:
             queue.submit_work(key, do_work, idx)
 

@@ -29,7 +29,7 @@ def aws_client(aws_config: AwsConfig) -> AwsClient:
 @fixture
 def builder(aws_client: AwsClient, no_feedback: CoreFeedback) -> Iterator[GraphBuilder]:
     with ThreadPoolExecutor(1) as executor:
-        queue = ExecutorQueue(executor, 1, "dummy")
+        queue = ExecutorQueue(executor, lambda _: 1, "dummy")
         yield GraphBuilder(
             Graph(), Cloud(id="aws"), AwsAccount(id="test"), AwsRegion(id="us-east-1"), aws_client, queue, no_feedback
         )

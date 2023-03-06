@@ -4,7 +4,7 @@ import time
 import uuid
 from datetime import timedelta
 from functools import lru_cache
-from typing import List, ClassVar, Optional, Type, Any, Dict
+from typing import List, ClassVar, Optional, Type, Any, Dict, Callable
 
 from attrs import define, field, fields_dict
 from boto3.session import Session as BotoSession
@@ -13,8 +13,8 @@ from botocore.config import Config as BotoConfig
 
 from resotolib.durations import parse_duration
 from resotolib.json import from_json as from_js
-from resotolib.types import Json
 from resotolib.proc import num_default_threads
+from resotolib.types import Json
 
 log = logging.getLogger("resoto.plugins.aws")
 
@@ -169,7 +169,10 @@ class AwsConfig:
         metadata={"description": "Number of shared threads available per account."},
     )
     shared_pool_parallelism: int = field(
-        default=2, metadata={"description": "Number of threads to run in parallel per region and service."}
+        default=20, metadata={"description": "Number of threads to run in parallel per region and service."}
+    )
+    shared_pool_parallelism_overrides: Dict[str, int] = field(
+        factory=dict, metadata={"description": "Overrides for parallelism per service. E.g. ec2: 4"}
     )
     region_resources_pool_size: int = field(
         default=2, metadata={"description": "Number of resource types to collect in parallel per single region."}
@@ -221,6 +224,17 @@ class AwsConfig:
         if self.no_collect:
             return name not in self.no_collect
         return True
+
+    def shared_tasks_per_key(self, regions: List[str]) -> Callable[[str], int]:
+        defined = {"sagemaker": 2} | (self.shared_pool_parallelism_overrides or {})
+        tpk = {region + ":" + service: num for region in regions for service, num in defined.items()}
+
+        def shared_tasks_per_key(key: str) -> int:
+            value = tpk.get(key) or self.shared_pool_parallelism
+            # make sure that tasks_per_key is at least 1 and not more than shared_pool_parallelism
+            return max(min(value, self.shared_pool_parallelism), 1)
+
+        return shared_tasks_per_key
 
     _lock: threading.RLock = field(factory=threading.RLock)
     _holder: Optional[AwsSessionHolder] = field(default=None)
