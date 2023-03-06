@@ -64,7 +64,7 @@ PredefinedResults = {
 # dictionary keys under .items (used for aggregated list zone result) -> return zone ids
 PredefinedDictKeys = {".items": [a.id for a in random_zones]}
 
-# type_name -> property_name -> parameter_name
+# type_name -> property_name -> callable that returns fixed value
 FixtureReplies: Dict[str, Dict[str, callable]] = {}
 
 # type_name -> property_name -> parameter_name
@@ -259,6 +259,15 @@ def connect_resource(
 
 
 class FixturedClient:
+    """
+    Forces the `RandomDataClient` to return fixed value(s) for specified field(s) instead of random values.
+    Example:
+    ```
+        fixtures = {"Instance": {"machineType": lambda: "n2-standard-64"}}
+        with FixturedClient(random_builder, fixtures):
+            GcpInstance.collect_resources(random_builder)
+    ```
+    """
     def __init__(self, random_builder: GraphBuilder, fixtures: Dict[str, Dict[str, callable]]):
         self.fixtures = fixtures
         self.random_builder = random_builder
