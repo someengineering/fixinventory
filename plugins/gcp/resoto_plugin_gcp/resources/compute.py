@@ -18,7 +18,7 @@ from resotolib.baseresources import (
 from resotolib.json_bender import Bender, S, Bend, ForallBend, MapDict, MapValue, F
 from resotolib.types import Json
 
-log = resotolib.logger.getLogger("resoto." + __name__)
+log = logging.getLogger("resoto.plugins.gcp")
 
 
 def health_checks() -> Tuple[GcpResource, ...]:
