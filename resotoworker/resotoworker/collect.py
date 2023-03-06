@@ -76,11 +76,11 @@ class Collector:
                     for collector in collectors
                 ]
                 for future in futures.as_completed(wait_for):
-                    cluster_graph = future.result()
-                    if not isinstance(cluster_graph, Graph):
-                        log.error(f"Skipping invalid cluster_graph {type(cluster_graph)}")
+                    collector_graph = future.result()
+                    if not isinstance(collector_graph, Graph):
+                        log.error(f"Skipping invalid collector graph {type(collector_graph)}")
                         continue
-                    graph.merge(cluster_graph)
+                    graph.merge(collector_graph)
             sanitize(graph)
             return graph
 

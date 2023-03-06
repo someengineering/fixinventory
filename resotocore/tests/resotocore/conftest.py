@@ -8,7 +8,8 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import AsyncGenerator, Iterator, Dict, Any, Generator
 from typing import List, Optional
-from typing import Tuple, AsyncIterator
+from typing import Tuple, AsyncIterator, cast
+from types import SimpleNamespace
 
 from aiohttp import ClientSession
 from aiohttp.hdrs import METH_ANY
@@ -26,7 +27,7 @@ from resotocore.cli.command import (
     all_commands,
 )
 from resotocore.cli.model import CLIDependencies
-from resotocore.config import ConfigHandler, ConfigEntity, ConfigValidation
+from resotocore.config import ConfigHandler, ConfigEntity, ConfigValidation, ConfigOverride
 from resotocore.config.config_handler_service import ConfigHandlerService
 from resotocore.config.core_config_handler import CoreConfigHandler
 from resotocore.core_config import (
@@ -320,8 +321,11 @@ def expander() -> InMemoryTemplateExpander:
 
 
 @fixture
-def task_queue() -> WorkerTaskQueue:
-    return WorkerTaskQueue()
+async def task_queue() -> AsyncIterator[WorkerTaskQueue]:
+    wtq = WorkerTaskQueue()
+    await wtq.start()
+    yield wtq
+    await wtq.stop()
 
 
 @fixture
@@ -417,7 +421,11 @@ def config_handler(task_queue: WorkerTaskQueue, worker: Any, message_bus: Messag
     validation_db = InMemoryDb(ConfigValidation, lambda c: c.id)
     model_db = InMemoryDb(Kind, lambda c: c.fqn)  # type: ignore
     event_sender = InMemoryEventSender()
-    return ConfigHandlerService(cfg_db, validation_db, model_db, task_queue, message_bus, event_sender)
+    core_config = cast(CoreConfig, SimpleNamespace())
+    override_service = cast(ConfigOverride, SimpleNamespace(get_override=lambda id: {}, get_all_overrides=lambda: {}))
+    return ConfigHandlerService(
+        cfg_db, validation_db, model_db, task_queue, message_bus, event_sender, core_config, override_service
+    )
 
 
 @fixture

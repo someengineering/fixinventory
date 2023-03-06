@@ -1,19 +1,27 @@
 import asyncio
-from datetime import timedelta
-from typing import Optional, AsyncIterator, List
 
+from datetime import timedelta
+from typing import Optional, AsyncIterator, List, Dict, Any, cast
+import attrs
 import yaml
+import os
+from deepdiff import DeepDiff
+import hashlib
 
 from resotocore.analytics import AnalyticsEventSender, CoreEvent
-from resotocore.config import ConfigHandler, ConfigEntity, ConfigValidation
+from resotocore.config import ConfigHandler, ConfigEntity, ConfigValidation, ConfigOverride
 from resotocore.db.configdb import ConfigEntityDb, ConfigValidationEntityDb
 from resotocore.db.modeldb import ModelDb
 from resotocore.message_bus import MessageBus, CoreMessage
 from resotocore.model.model import Model, Kind, ComplexKind
-from resotocore.types import Json
+from resotocore.types import Json, JsonElement
 from resotocore.util import uuid_str, deep_merge, first
 from resotocore.worker_task_queue import WorkerTaskQueue, WorkerTask, WorkerTaskName
 from resotocore.ids import TaskId, ConfigId
+from resotocore.core_config import CoreConfig
+from resotolib.utils import merge_json_elements
+
+from resotolib.utils import replace_env_vars
 
 
 class ConfigHandlerService(ConfigHandler):
@@ -25,6 +33,8 @@ class ConfigHandlerService(ConfigHandler):
         task_queue: WorkerTaskQueue,
         message_bus: MessageBus,
         event_sender: AnalyticsEventSender,
+        core_config: CoreConfig,
+        override_service: ConfigOverride,
     ) -> None:
         self.cfg_db = cfg_db
         self.validation_db = validation_db
@@ -32,6 +42,9 @@ class ConfigHandlerService(ConfigHandler):
         self.task_queue = task_queue
         self.message_bus = message_bus
         self.event_sender = event_sender
+        self.core_config = core_config
+        self.override_service = override_service
+        self.old_overrides: Dict[ConfigId, Json] = {}
 
     async def coerce_and_check_model(self, cfg_id: ConfigId, config: Json, validate: bool = True) -> Json:
         model = await self.get_configs_model()
@@ -42,7 +55,7 @@ class ConfigHandlerService(ConfigHandler):
                 if key in model:
                     try:
                         value_kind = model[key]
-                        coerced = value_kind.check_valid(value, normalize=False)
+                        coerced = value_kind.check_valid(value, normalize=False, config_context=True)
                         final_config[key] = value_kind.sort_json(coerced or value)
                     except Exception as ex:
                         raise AttributeError(f"Error validating section {key}: {ex}") from ex
@@ -66,11 +79,46 @@ class ConfigHandlerService(ConfigHandler):
         # If we come here, everything is fine
         return final_config
 
+    async def coerce_config(self, config: Json) -> Json:
+        model = await self.get_configs_model()
+
+        final_config = {}
+        for key, value in config.items():
+            if key in model:
+                value_kind = model[key]
+                coerced = value_kind.coerce(value)
+                sorted_conf = value_kind.sort_json(coerced) if isinstance(coerced, dict) else coerced
+                final_config[key] = sorted_conf
+            else:
+                final_config[key] = value
+        return final_config
+
     def list_config_ids(self) -> AsyncIterator[ConfigId]:
         return self.cfg_db.keys()
 
-    async def get_config(self, cfg_id: ConfigId) -> Optional[ConfigEntity]:
-        return await self.cfg_db.get(cfg_id)
+    async def get_config(
+        self, cfg_id: ConfigId, apply_overrides: bool = True, resolve_env_vars: bool = True
+    ) -> Optional[ConfigEntity]:
+        conf = await self.cfg_db.get(cfg_id)
+        if conf is None:
+            return None
+
+        # apply overrides if they exist and we do not opt out
+        # we do not want to apply overrides if the config is to be shown during editing
+        overrides = self.override_service.get_override(cfg_id)
+        updated_conf = cast(
+            Json, merge_json_elements(conf.config, overrides) if overrides and apply_overrides else conf.config
+        )
+
+        # reslove env vars
+        # we do not want to resolve env vars if the config is to be shown to the user when editing,
+        # otherwise sensitive data might be exposed
+        if resolve_env_vars:
+            resolved_conf = {k: replace_env_vars(v, os.environ) for k, v in updated_conf.items()}
+            coerced_conf = await self.coerce_config(resolved_conf)
+            updated_conf = coerced_conf
+
+        return attrs.evolve(conf, config=updated_conf)
 
     async def put_config(self, cfg: ConfigEntity, *, validate: bool = True, dry_run: bool = False) -> ConfigEntity:
         coerced = await self.coerce_and_check_model(cfg.id, cfg.config, validate)
@@ -125,15 +173,37 @@ class ConfigHandlerService(ConfigHandler):
         return updated
 
     async def config_yaml(self, cfg_id: ConfigId, revision: bool = False) -> Optional[str]:
-        config = await self.get_config(cfg_id)
+        config = await self.get_config(cfg_id, apply_overrides=False, resolve_env_vars=False)
         if config:
             model = await self.get_configs_model()
 
+            # returns the overridden config with comments about the changes
+            def overridden_parts(existing: JsonElement, update: JsonElement) -> JsonElement:
+                if isinstance(update, dict):
+                    return {
+                        key: overridden_parts(
+                            existing.get(key) if isinstance(existing, dict) else existing, update[key]
+                        )
+                        for key in set(update.keys())
+                    }
+                else:
+
+                    def mkstr(val: Any) -> str:
+                        if isinstance(val, list):
+                            return f'[{", ".join(val)}]'
+                        return str(val)
+
+                    return mkstr(update)
+
             yaml_str = ""
+
+            overrides = overridden_parts(config.config, self.override_service.get_override(cfg_id) or {})
+            overrides_json = overrides if isinstance(overrides, dict) else {}
+
             for num, (key, value) in enumerate(config.config.items()):
                 maybe_kind = model.get(key)
                 if isinstance(maybe_kind, ComplexKind):
-                    part = maybe_kind.create_yaml(value, initial_level=1)
+                    part = maybe_kind.create_yaml(value, initial_level=1, overrides=overrides_json.get(key) or {})
                     if num > 0:
                         yaml_str += "\n"
                     yaml_str += key + ":" + part
@@ -172,3 +242,30 @@ class ConfigHandlerService(ConfigHandler):
         # this future will throw an exception.
         # Do not handle it here and let the error bubble up.
         await future
+
+    async def start(self) -> None:
+        async def on_override_change(new_overrides: Dict[ConfigId, Json]) -> None:
+            def updated_revision(conf: Json, override: Json) -> str:
+                m = hashlib.sha1(usedforsecurity=False)
+                m.update(yaml.dump(conf).encode("utf-8"))
+                m.update(yaml.dump(override).encode("utf-8"))
+                return m.hexdigest()
+
+            diff = DeepDiff(self.old_overrides, new_overrides, ignore_order=True)
+            if diff.affected_root_keys:
+                affected_configs = diff.affected_root_keys
+
+                for config_id in affected_configs:
+                    # the new and updated version, since the override is already applied
+                    config = await self.get_config(config_id)
+                    if config:
+                        new_revision = updated_revision(config.config, new_overrides.get(config_id) or {})
+                        await self.message_bus.emit_event(
+                            CoreMessage.ConfigUpdated, dict(id=config.id, revision=new_revision)
+                        )
+                        await self.event_sender.core_event(CoreEvent.SystemConfigurationChanged, config.analytics())
+
+                self.old_overrides = new_overrides
+
+        self.old_overrides = self.override_service.get_all_overrides()
+        self.override_service.add_override_change_hook(on_override_change)

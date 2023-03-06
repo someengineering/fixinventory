@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from threading import Lock
 from typing import List, ClassVar, Optional, TypeVar, Type, Any, Dict
 
 from attr import define, field
@@ -27,6 +28,8 @@ class GraphBuilder:
         credentials: Credentials,
         core_feedback: CoreFeedback,
         region: Optional[GcpRegion] = None,
+        graph_nodes_access: Optional[Lock] = None,
+        graph_edges_access: Optional[Lock] = None,
     ) -> None:
         self.graph = graph
         self.cloud = cloud
@@ -40,6 +43,8 @@ class GraphBuilder:
         self.region_by_name: Dict[str, GcpRegion] = {}
         self.region_by_zone_name: Dict[str, GcpRegion] = {}
         self.zone_by_name: Dict[str, GcpRegion] = {}
+        self.graph_nodes_access = graph_nodes_access or Lock()
+        self.graph_edges_access = graph_edges_access or Lock()
 
     def prepare_region_zone_lookup(self) -> None:
         regions = self.resources_of(GcpRegion)
@@ -51,10 +56,11 @@ class GraphBuilder:
     def node(self, clazz: Optional[Type[GcpResourceType]] = None, **node: Any) -> Optional[GcpResourceType]:
         if isinstance(nd := node.get("node"), GcpResource):
             return nd  # type: ignore
-        for n in self.graph:
-            is_clazz = isinstance(n, clazz) if clazz else True
-            if is_clazz and all(getattr(n, k, None) == v for k, v in node.items()):
-                return n  # type: ignore
+        with self.graph_nodes_access:
+            for n in self.graph:
+                is_clazz = isinstance(n, clazz) if clazz else True
+                if is_clazz and all(getattr(n, k, None) == v for k, v in node.items()):
+                    return n  # type: ignore
         return None
 
     def add_node(self, node: GcpResourceType, source: Optional[Json] = None) -> Optional[GcpResourceType]:
@@ -84,7 +90,8 @@ class GraphBuilder:
             # TODO: check this list!
             # log.error(f"Neither zone nor region is set for node {source}, add to project.")
             self.add_edge(node, node=self.project)
-        self.graph.add_node(node, source=source or {})
+        with self.graph_nodes_access:
+            self.graph.add_node(node, source=source or {})
         return node
 
     def add_edge(
@@ -94,7 +101,8 @@ class GraphBuilder:
         if isinstance(from_node, GcpResource) and isinstance(to_n, GcpResource):
             start, end = (to_n, from_node) if reverse else (from_node, to_n)
             log.debug(f"{self.name}: add edge: {start} -> {end} [{edge_type}]")
-            self.graph.add_edge(start, end, edge_type=edge_type)
+            with self.graph_edges_access:
+                self.graph.add_edge(start, end, edge_type=edge_type)
 
     def dependant_node(
         self, from_node: BaseResource, reverse: bool = False, delete_same_as_default: bool = False, **to_node: Any
@@ -103,26 +111,38 @@ class GraphBuilder:
         if isinstance(from_node, GcpResource) and isinstance(to_n, GcpResource):
             start, end = (to_n, from_node) if reverse else (from_node, to_n)
             log.debug(f"{self.name}: add edge: {start} -> {end} [default]")
-            self.graph.add_edge(start, end, edge_type=EdgeType.default)
-            if delete_same_as_default:
-                start, end = end, start
-            log.debug(f"{self.name}: add edge: {end} -> {start} [delete]")
-            self.graph.add_edge(end, start, edge_type=EdgeType.delete)
+            with self.graph_edges_access:
+                self.graph.add_edge(start, end, edge_type=EdgeType.default)
+                if delete_same_as_default:
+                    start, end = end, start
+                log.debug(f"{self.name}: add edge: {end} -> {start} [delete]")
+                self.graph.add_edge(end, start, edge_type=EdgeType.delete)
 
     def resources_of(self, resource_type: Type[GcpResourceType]) -> List[GcpResourceType]:
-        return [n for n in self.graph.nodes if isinstance(n, resource_type)]
+        with self.graph_nodes_access:
+            return [n for n in self.graph.nodes if isinstance(n, resource_type)]
 
     def edges_of(
         self, from_type: Type[GcpResource], to_type: Type[GcpResource], edge_type: EdgeType = EdgeType.default
     ) -> List[EdgeKey]:
-        return [
-            key
-            for (from_node, to_node, key) in self.graph.edges
-            if isinstance(from_node, from_type) and isinstance(to_node, to_type) and key.edge_type == edge_type
-        ]
+        with self.graph_edges_access:
+            return [
+                key
+                for (from_node, to_node, key) in self.graph.edges
+                if isinstance(from_node, from_type) and isinstance(to_node, to_type) and key.edge_type == edge_type
+            ]
 
     def for_region(self, region: GcpRegion) -> GraphBuilder:
-        return GraphBuilder(self.graph, self.cloud, self.project, self.client.credentials, self.core_feedback, region)
+        return GraphBuilder(
+            self.graph,
+            self.cloud,
+            self.project,
+            self.client.credentials,
+            self.core_feedback,
+            region,
+            self.graph_nodes_access,
+            self.graph_edges_access,
+        )
 
 
 @define(eq=False, slots=False)

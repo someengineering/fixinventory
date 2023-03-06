@@ -26,11 +26,14 @@
             "type": "python",
             "request": "launch",
             "program": "./resotocore/resotocore/__main__.py",
-            "args": ["--psk", "changeme"],
+            "args": [
+                "--psk", "changeme",
+                "-o", "resotocore.api.web_hosts=0.0.0.0",
+            ],
             "console": "integratedTerminal",
             "justMyCode": false,
             "env": {
-                "RESOTOCORE_ANALYTICS_OPT_OUT": "True"
+                "RESOTOCORE_ANALYTICS_OPT_OUT": "True",
             },
             "autoReload": {
                 "enable": true
@@ -41,14 +44,17 @@
             "type": "python",
             "request": "launch",
             "program": "./resotoworker/resotoworker/__main__.py",
-            "args": ["--psk", "changeme"],
+            "args": [
+                "--psk", "changeme",
+                "--resotocore-uri", "https://localhost:8900",
+            ],
             "console": "integratedTerminal",
             "justMyCode": false,
             "env": {
-                "RESOTOCORE_ANALYTICS_OPT_OUT": "True"
+                "RESOTOCORE_ANALYTICS_OPT_OUT": "True",
             },
             "autoReload": {
-                "enable": true
+                "enable": false
             }
         },
         {
@@ -56,7 +62,10 @@
             "type": "python",
             "request": "launch",
             "program": "./resotoshell/resotoshell/__main__.py",
-            "args": ["--psk", "changeme"],
+            "args": [
+                "--psk", "changeme",
+                "--resotocore-uri", "https://localhost:8900",
+            ],
             "console": "integratedTerminal",
             "justMyCode": false,
             "env": {

@@ -42,7 +42,20 @@ def get_config(
     resotocore_uri, psk, headers = default_args(resotocore_uri, psk)
 
     log.debug(f"Getting config {config_id}")
-    r = requests.get(f"{resotocore_uri}/config/{config_id}", headers=headers, verify=verify)
+
+    params = {
+        "separate_overrides": "true",  # we don not to have a single config with everything merged into it
+        "apply_overrides": "true",  # apply the overrides to the config
+        "resolve_env_vars": "true",  # and resolve any environment variables
+        "include_raw_config": "true",  # also include the db version of the config
+    }
+
+    r = requests.get(
+        f"{resotocore_uri}/config/{config_id}",
+        headers=headers,
+        verify=verify,
+        params=params,
+    )
     if r.status_code == 200:
         revision = r.headers.get("Resoto-Config-Revision", "unknown")
         return r.json(), revision

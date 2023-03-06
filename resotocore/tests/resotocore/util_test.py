@@ -4,6 +4,8 @@ import shutil
 import pytest
 from aiostream import stream
 from copy import deepcopy
+from dataclasses import dataclass
+from typing import Any
 
 from resotocore.util import (
     AccessJson,
@@ -120,3 +122,11 @@ def test_deep_merge() -> None:
     l = {"a": {"b": 1, "d": 2}, "d": 2, "e": 4}
     r = {"a": {"c": 1, "d": 3}, "d": 1}
     assert deep_merge(l, r) == {"a": {"b": 1, "c": 1, "d": 3}, "d": 1, "e": 4}
+
+    a = {"a": {"foo": {"first": "first", "last": "laaaast"}}, "b": {"bar": 123}, "c": [6, 7]}
+    b = {"a": {"foo": {"last": "last"}}, "b": {"baz": 456}, "c": [8, 9]}
+    assert deep_merge(a, b) == {
+        "a": {"foo": {"first": "first", "last": "last"}},
+        "b": {"bar": 123, "baz": 456},
+        "c": [8, 9],
+    }

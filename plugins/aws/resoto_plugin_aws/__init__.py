@@ -59,7 +59,18 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
 
     @metrics_collect.time()  # type: ignore
     def collect(self) -> None:
+        try:
+            self.collect_aws()
+        except Exception as ex:
+            if self.core_feedback:
+                self.core_feedback.error(f"Unhandled exception in AWS Plugin: {ex}", log)
+            else:
+                log.error(f"No CoreFeedback available! Unhandled exception in AWS Plugin: {ex}")
+            raise
+
+    def collect_aws(self) -> None:
         log.debug("plugin: AWS collecting resources")
+        aws_config: AwsConfig = Config.aws
         assert self.core_feedback, "core_feedback is not set"
         cloud = Cloud(id=self.cloud, name="AWS")
 
@@ -80,19 +91,25 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
             log.debug(f"Found {account.rtdname}{add_str}")
         self.core_feedback.progress(progress)
 
-        max_workers = len(accounts) if len(accounts) < Config.aws.account_pool_size else Config.aws.account_pool_size
+        max_workers = len(accounts) if len(accounts) < aws_config.account_pool_size else aws_config.account_pool_size
         pool_args = {"max_workers": max_workers}
-        if Config.aws.fork_process:
-            pool_args["mp_context"] = multiprocessing.get_context("spawn")
-            pool_args["initializer"] = resotolib.proc.initializer
-            pool_executor = futures.ProcessPoolExecutor
+        # TODO: revert this when memory leak in AWS collector is fixed
+        # if Config.aws.fork_process:
+        #     pool_args["mp_context"] = multiprocessing.get_context("spawn")
+        #     pool_args["initializer"] = resotolib.proc.initializer
+        #     pool_executor = futures.ProcessPoolExecutor
+        # else:
+        #     pool_executor = futures.ThreadPoolExecutor  # type: ignore
+        pool_executor = futures.ThreadPoolExecutor
+        if aws_config.fork_process:
+            collect_method = collect_in_process
         else:
-            pool_executor = futures.ThreadPoolExecutor  # type: ignore
+            collect_method = collect_account
 
-        with pool_executor(**pool_args) as executor:
+        with pool_executor(**pool_args) as executor:  # type: ignore
             wait_for = [
                 executor.submit(
-                    collect_account,
+                    collect_method,
                     account,
                     self.regions(profile=account.profile),
                     ArgumentParser.args,
@@ -107,7 +124,10 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
                 if not isinstance(account_graph, Graph):
                     log.debug(f"Skipping account graph of invalid type {type(account_graph)}")
                     continue
-                self.graph.merge(account_graph)
+                self.graph.merge(account_graph, skip_deferred_edges=True)
+
+        # collect done, purge all session caches
+        aws_config.sessions().purge_caches()
 
     def regions(self, profile: Optional[str] = None) -> List[str]:
         if len(self.__regions) == 0:
@@ -577,3 +597,19 @@ def collect_account(
         return None
 
     return aac.graph
+
+
+def collect_account_proxy(*args, queue: multiprocessing.Queue, **kwargs) -> None:  # type: ignore
+    resotolib.proc.initializer()
+    queue.put(collect_account(*args, **kwargs))
+
+
+def collect_in_process(*args, **kwargs) -> Optional[Graph]:  # type: ignore
+    ctx = multiprocessing.get_context("spawn")
+    queue = ctx.Queue()
+    kwargs["queue"] = queue
+    process = ctx.Process(target=collect_account_proxy, args=args, kwargs=kwargs)
+    process.start()
+    graph = queue.get()
+    process.join()
+    return graph  # type: ignore
