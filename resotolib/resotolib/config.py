@@ -20,7 +20,7 @@ from resotolib.utils import replace_env_vars, merge_json_elements
 from typing import Dict, Any, List, Optional, Type, Callable, cast
 from attrs import fields
 
-from resotolib.types import Json
+from resotolib.types import Json, JsonElement
 
 
 class RunningConfig:
@@ -156,8 +156,17 @@ class Config(metaclass=MetaConfig):
             # init the default config for merging the raw config into it
             self.init_default_config()
             default_config_dict = self.dict()
+
+            def drop_deleted_props(existing: JsonElement, update: JsonElement) -> JsonElement:
+                if existing is None:
+                    return None
+                return update
+
             # merge the raw config into the default config
-            raw_with_new_defaults = cast(Json, merge_json_elements(default_config_dict, raw_config_json))
+            raw_with_new_defaults = cast(
+                Json,
+                merge_json_elements(default_config_dict, raw_config_json, merge_strategy=drop_deleted_props),
+            )
             # update the global config object with the merged config
             Config.running_config.data = raw_with_new_defaults
             # if the raw_config was not empty, we need to set the revision too

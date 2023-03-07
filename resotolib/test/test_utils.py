@@ -351,3 +351,24 @@ def test_merge_json_elements():
         "b": {"bar": 123, "baz": 456},
         "c": [8, 9],
     }
+
+    update = {
+        "a": {
+            "aa": 1,
+            "ab": 2,
+        },
+        "b": {
+            "ba": 3,
+            "bb": {
+                "bba": 4,
+            },
+        },
+    }
+    default = {"b": {"ba": 42}, "c": 2}
+
+    def merge_fn(existing, update):
+        if existing is None:
+            return None
+        return update
+
+    assert merge_json_elements(default, update, merge_fn) == {"b": {"ba": 3}, "c": 2}
