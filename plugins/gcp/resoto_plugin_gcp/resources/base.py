@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import concurrent
 import logging
+from concurrent.futures import Executor, Future
 from threading import Lock
-from typing import List, ClassVar, Optional, TypeVar, Type, Any, Dict
+from typing import Callable, List, ClassVar, Optional, TypeVar, Type, Any, Dict
 
 from attr import define, field
 from google.auth.credentials import Credentials
@@ -19,6 +21,61 @@ from resotolib.types import Json
 log = logging.getLogger("resoto.plugins.gcp")
 
 
+T = TypeVar("T")
+
+
+class CancelOnFirstError(Exception):
+    pass
+
+
+@define
+class ExecutorQueue:
+    executor: Executor
+    name: str
+    fail_on_first_exception: bool = False
+    futures: List[Future[Any]] = field(factory=list)
+    _lock: Lock = Lock()
+    _exception: Optional[Exception] = None
+
+    def submit_work(self, fn: Callable[..., T], *args: Any, **kwargs: Any) -> Future[T]:
+        def do_work() -> T:
+            # in case of exception let's fail fast and do not execute the function
+            if self._exception is None:
+                try:
+                    return fn(*args, **kwargs)
+                except Exception as e:
+                    # only store the first exception if we should fail on first future
+                    if self._exception is None:
+                        self._exception = e
+                    raise e
+            else:
+                raise CancelOnFirstError(
+                    "Exception happened in another thread. Do not start work."
+                ) from self._exception
+
+        future = (
+            self.executor.submit(do_work) if self.fail_on_first_exception else self.executor.submit(fn, *args, **kwargs)
+        )
+
+        with self._lock:
+            self.futures.append(future)
+        return future
+
+    def wait_for_submitted_work(self) -> None:
+        # wait until all futures are complete
+        with self._lock:
+            to_wait = self.futures
+            self.futures = []
+        for future in concurrent.futures.as_completed(to_wait):
+            try:
+                future.result()
+            except CancelOnFirstError:
+                pass
+            except Exception as ex:
+                log.exception(f"Unhandled exception in project {self.name}: {ex}")
+                raise
+
+
 class GraphBuilder:
     def __init__(
         self,
@@ -26,6 +83,7 @@ class GraphBuilder:
         cloud: Cloud,
         project: GcpProject,
         credentials: Credentials,
+        executor: ExecutorQueue,
         core_feedback: CoreFeedback,
         region: Optional[GcpRegion] = None,
         graph_nodes_access: Optional[Lock] = None,
@@ -38,6 +96,7 @@ class GraphBuilder:
         self.client = GcpClient(
             credentials, project_id=project.id, region=region.name if region else None, core_feedback=core_feedback
         )
+        self.executor = executor
         self.name = f"GCP:{project.name}"
         self.core_feedback = core_feedback
         self.region_by_name: Dict[str, GcpRegion] = {}
@@ -45,6 +104,13 @@ class GraphBuilder:
         self.zone_by_name: Dict[str, GcpRegion] = {}
         self.graph_nodes_access = graph_nodes_access or Lock()
         self.graph_edges_access = graph_edges_access or Lock()
+
+    def submit_work(self, fn: Callable[..., None], *args: Any, **kwargs: Any) -> Future[Any]:
+        """
+        Use this method for work that can be done in parallel.
+        Example: fetching tags of a resource.
+        """
+        return self.executor.submit_work(fn, *args, **kwargs)
 
     def prepare_region_zone_lookup(self) -> None:
         regions = self.resources_of(GcpRegion)
@@ -138,6 +204,7 @@ class GraphBuilder:
             self.cloud,
             self.project,
             self.client.credentials,
+            self.executor,
             self.core_feedback,
             region,
             self.graph_nodes_access,
@@ -191,7 +258,7 @@ class GcpResource(BaseResource):
     @classmethod
     def collect_resources(cls: Type[GcpResource], builder: GraphBuilder, **kwargs: Any) -> List[GcpResource]:
         # Default behavior: in case the class has an ApiSpec, call the api and call collect.
-        log.debug(f"Collecting {cls.__name__}")
+        log.info(f"[Gcp:{builder.project.id}] Collecting {cls.__name__}")
         if spec := cls.api_spec:
             items = builder.client.list(spec, **kwargs)
             return cls.collect(items, builder)

@@ -268,6 +268,7 @@ class FixturedClient:
             GcpInstance.collect_resources(random_builder)
     ```
     """
+
     def __init__(self, random_builder: GraphBuilder, fixtures: Dict[str, Dict[str, callable]]):
         self.fixtures = fixtures
         self.random_builder = random_builder

@@ -2756,7 +2756,7 @@ class GcpInstance(GcpResource, BaseInstance):
         for machine_type in custom_machine_types:
             # example: https://www.googleapis.com/compute/v1/projects/vpc-host-nonprod-320811/zones/us-east1-b/machineTypes/e2-custom-medium-1024
             zone, _, name = machine_type.split("/")[-3:]
-            GcpMachineType.collect_individual(builder, zone, name)
+            builder.submit_work(GcpMachineType.collect_individual, builder, zone, name)
 
         return result
 
