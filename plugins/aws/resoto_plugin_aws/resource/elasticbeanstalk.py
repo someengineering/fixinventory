@@ -12,6 +12,8 @@ from resotolib.json_bender import Bender, S, Bend, ForallBend, bend
 from resotolib.types import Json
 from resotolib.json import from_json
 
+service_name = "elasticbeanstalk"
+
 
 @define(eq=False, slots=False)
 class AwsBeanstalkMaxCountRule:
@@ -65,7 +67,7 @@ class AwsBeanstalkApplicationResourceLifecycleConfig:
 @define(eq=False, slots=False)
 class AwsBeanstalkApplication(AwsResource):
     kind: ClassVar[str] = "aws_beanstalk_application"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("elasticbeanstalk", "describe-applications", "Applications")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-applications", "Applications")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("ApplicationName"),
         "name": S("ApplicationName"),
@@ -91,7 +93,7 @@ class AwsBeanstalkApplication(AwsResource):
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_tags(app: AwsBeanstalkApplication) -> None:
             tags = builder.client.list(
-                "elasticbeanstalk",
+                service_name,
                 "list-tags-for-resource",
                 "ResourceTags",
                 ResourceArn=app.arn,
@@ -103,7 +105,7 @@ class AwsBeanstalkApplication(AwsResource):
         for js in json:
             instance = cls.from_api(js)
             builder.add_node(instance, js)
-            builder.submit_work(add_tags, instance)
+            builder.submit_work(service_name, add_tags, instance)
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(
@@ -134,8 +136,8 @@ class AwsBeanstalkApplication(AwsResource):
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return [
-            AwsApiSpec("elasticbeanstalk", "update-tags-for-resource"),
-            AwsApiSpec("elasticbeanstalk", "delete-application"),
+            AwsApiSpec(service_name, "update-tags-for-resource"),
+            AwsApiSpec(service_name, "delete-application"),
         ]
 
 
@@ -212,7 +214,7 @@ class AwsBeanstalkEnvironmentResourcesDescription:
 @define(eq=False, slots=False)
 class AwsBeanstalkEnvironment(AwsResource):
     kind: ClassVar[str] = "aws_beanstalk_environment"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("elasticbeanstalk", "describe-environments", "Environments")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-environments", "Environments")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["aws_beanstalk_application"],
@@ -275,7 +277,7 @@ class AwsBeanstalkEnvironment(AwsResource):
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_tags(env: AwsBeanstalkEnvironment) -> None:
             tags = builder.client.list(
-                "elasticbeanstalk",
+                service_name,
                 "list-tags-for-resource",
                 "ResourceTags",
                 ResourceArn=env.arn,
@@ -286,7 +288,7 @@ class AwsBeanstalkEnvironment(AwsResource):
 
         def add_resources(env: AwsBeanstalkEnvironment) -> None:
             resources_description = builder.client.get(
-                "elasticbeanstalk",
+                service_name,
                 "describe-environment-resources",
                 "EnvironmentResources",
                 EnvironmentId=env.id,
@@ -301,8 +303,8 @@ class AwsBeanstalkEnvironment(AwsResource):
         for js in json:
             instance = cls.from_api(js)
             builder.add_node(instance, js)
-            builder.submit_work(add_tags, instance)
-            builder.submit_work(add_resources, instance)
+            builder.submit_work(service_name, add_tags, instance)
+            builder.submit_work(service_name, add_resources, instance)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         builder.dependant_node(
@@ -383,8 +385,8 @@ class AwsBeanstalkEnvironment(AwsResource):
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return [
-            AwsApiSpec("elasticbeanstalk", "update-tags-for-resource"),
-            AwsApiSpec("elasticbeanstalk", "terminate-environment"),
+            AwsApiSpec(service_name, "update-tags-for-resource"),
+            AwsApiSpec(service_name, "terminate-environment"),
         ]
 
 

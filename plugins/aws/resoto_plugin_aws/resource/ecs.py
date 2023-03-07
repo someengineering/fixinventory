@@ -19,12 +19,14 @@ from resotolib.types import Json
 from resotolib.utils import chunks
 from resoto_plugin_aws.utils import TagsValue, ToDict
 
+service_name = "ecs"
+
 
 class EcsTaggable:
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         if isinstance(self, AwsResource):
             client.call(
-                aws_service="ecs",
+                aws_service=service_name,
                 action="tag-resource",
                 result_name=None,
                 resourceArn=self.arn,
@@ -36,7 +38,7 @@ class EcsTaggable:
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
         if isinstance(self, AwsResource):
             client.call(
-                aws_service="ecs",
+                aws_service=service_name,
                 action="untag-resource",
                 result_name=None,
                 resourceArn=self.arn,
@@ -47,7 +49,7 @@ class EcsTaggable:
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return [AwsApiSpec("ecs", "tag-resource"), AwsApiSpec("ecs", "untag-resource")]
+        return [AwsApiSpec(service_name, "tag-resource"), AwsApiSpec(service_name, "untag-resource")]
 
 
 @define(eq=False, slots=False)
@@ -121,16 +123,16 @@ class AwsEcsCapacityProvider(EcsTaggable, AwsResource):
         return True
 
     def delete_resource(self, client: AwsClient) -> bool:
-        client.call("ecs", "delete-capacity-provider", None, capacityProvider=self.safe_name)
+        client.call(service_name, "delete-capacity-provider", None, capacityProvider=self.safe_name)
         return True
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return super().called_mutator_apis() + [
-            AwsApiSpec("ecs", "update-service"),
-            AwsApiSpec("ecs", "put-cluster-capacity-providers"),
-            AwsApiSpec("ecs", "delete-capacity-provider"),
-            AwsApiSpec("ecs", "put-cluster-capacity-providers"),
+            AwsApiSpec(service_name, "update-service"),
+            AwsApiSpec(service_name, "put-cluster-capacity-providers"),
+            AwsApiSpec(service_name, "delete-capacity-provider"),
+            AwsApiSpec(service_name, "put-cluster-capacity-providers"),
         ]
 
 
@@ -436,13 +438,13 @@ class AwsEcsTask(EcsTaggable, AwsResource):
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
-            aws_service="ecs", action="stop-task", result_name=None, cluster=self.task_cluster_arn, task=self.arn
+            aws_service=service_name, action="stop-task", result_name=None, cluster=self.task_cluster_arn, task=self.arn
         )
         return True
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return super().called_mutator_apis() + [AwsApiSpec("ecs", "stop-task")]
+        return super().called_mutator_apis() + [AwsApiSpec(service_name, "stop-task")]
 
 
 @define(eq=False, slots=False)
@@ -820,7 +822,7 @@ class AwsEcsProxyConfiguration:
 @define(eq=False, slots=False)
 class AwsEcsTaskDefinition(EcsTaggable, AwsResource):
     kind: ClassVar[str] = "aws_ecs_task_definition"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ecs", "list-task-definitions", "taskDefinitionArns")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-task-definitions", "taskDefinitionArns")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_iam_role"], "delete": ["aws_iam_role"]},
     }
@@ -881,14 +883,14 @@ class AwsEcsTaskDefinition(EcsTaggable, AwsResource):
     def called_collect_apis(cls) -> List[AwsApiSpec]:
         return [
             cls.api_spec,
-            AwsApiSpec("ecs", "describe-task-definition"),
+            AwsApiSpec(service_name, "describe-task-definition"),
         ]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for task_def_arn in json:
             response = builder.client.get(
-                "ecs",
+                service_name,
                 "describe-task-definition",
                 None,
                 taskDefinition=task_def_arn,
@@ -913,7 +915,7 @@ class AwsEcsTaskDefinition(EcsTaggable, AwsResource):
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
-            aws_service="ecs",
+            aws_service=service_name,
             action="deregister-task-definition",
             result_name=None,
             taskDefinition=f"{self.family}:{self.revision}",
@@ -922,7 +924,7 @@ class AwsEcsTaskDefinition(EcsTaggable, AwsResource):
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return super().called_mutator_apis() + [AwsApiSpec("ecs", "deregister-task-definition")]
+        return super().called_mutator_apis() + [AwsApiSpec(service_name, "deregister-task-definition")]
 
 
 @define(eq=False, slots=False)
@@ -1304,7 +1306,7 @@ class AwsEcsService(EcsTaggable, AwsResource):
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
-            aws_service="ecs",
+            aws_service=service_name,
             action="delete-service",
             result_name=None,
             cluster=self.cluster_arn,
@@ -1318,7 +1320,7 @@ class AwsEcsService(EcsTaggable, AwsResource):
         try:
             strategy.remove(next(item for item in strategy if item.capacity_provider == capacity_provider_name))
             client.call(
-                "ecs",
+                service_name,
                 "update-service",
                 None,
                 cluster=self.cluster_arn,
@@ -1333,8 +1335,8 @@ class AwsEcsService(EcsTaggable, AwsResource):
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return super().called_mutator_apis() + [
-            AwsApiSpec("ecs", "update-service"),
-            AwsApiSpec("ecs", "delete-service"),
+            AwsApiSpec(service_name, "update-service"),
+            AwsApiSpec(service_name, "delete-service"),
         ]
 
 
@@ -1452,12 +1454,14 @@ class AwsEcsContainerInstance(EcsTaggable, AwsResource):
             )
 
     def delete_resource(self, client: AwsClient) -> bool:
-        client.call("ecs", "deregister-container-instance", None, cluster=self.cluster_link, containerInstance=self.arn)
+        client.call(
+            service_name, "deregister-container-instance", None, cluster=self.cluster_link, containerInstance=self.arn
+        )
         return True
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return super().called_mutator_apis() + [AwsApiSpec("ecs", "deregister-container-instance")]
+        return super().called_mutator_apis() + [AwsApiSpec(service_name, "deregister-container-instance")]
 
 
 @define(eq=False, slots=False)
@@ -1511,7 +1515,7 @@ class AwsEcsClusterSetting:
 @define(eq=False, slots=False)
 class AwsEcsCluster(EcsTaggable, AwsResource):
     kind: ClassVar[str] = "aws_ecs_cluster"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ecs", "list-clusters", "clusterArns")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-clusters", "clusterArns")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"delete": ["aws_kms_key", "aws_s3_bucket"]},
         "successors": {
@@ -1561,21 +1565,21 @@ class AwsEcsCluster(EcsTaggable, AwsResource):
     def called_collect_apis(cls) -> List[AwsApiSpec]:
         return [
             cls.api_spec,
-            AwsApiSpec("ecs", "describe-clusters"),
-            AwsApiSpec("ecs", "list-container-instances"),
-            AwsApiSpec("ecs", "describe-container-instances"),
-            AwsApiSpec("ecs", "list-services"),
-            AwsApiSpec("ecs", "describe-services"),
-            AwsApiSpec("ecs", "list-tasks"),
-            AwsApiSpec("ecs", "describe-tasks"),
-            AwsApiSpec("ecs", "describe-capacity-providers"),
+            AwsApiSpec(service_name, "describe-clusters"),
+            AwsApiSpec(service_name, "list-container-instances"),
+            AwsApiSpec(service_name, "describe-container-instances"),
+            AwsApiSpec(service_name, "list-services"),
+            AwsApiSpec(service_name, "describe-services"),
+            AwsApiSpec(service_name, "list-tasks"),
+            AwsApiSpec(service_name, "describe-tasks"),
+            AwsApiSpec(service_name, "describe-capacity-providers"),
         ]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for cluster_arn in json:
             cluster = builder.client.list(
-                "ecs",
+                service_name,
                 "describe-clusters",
                 "clusters",
                 clusters=[cluster_arn],
@@ -1585,11 +1589,11 @@ class AwsEcsCluster(EcsTaggable, AwsResource):
             builder.add_node(cluster_instance, cluster_arn)
 
             container_arns = builder.client.list(
-                "ecs", "list-container-instances", "containerInstanceArns", cluster=cluster_arn
+                service_name, "list-container-instances", "containerInstanceArns", cluster=cluster_arn
             )
             for chunk in chunks(container_arns, 100):
                 containers = builder.client.list(
-                    "ecs",
+                    service_name,
                     "describe-container-instances",
                     "containerInstances",
                     cluster=cluster_arn,
@@ -1602,10 +1606,10 @@ class AwsEcsCluster(EcsTaggable, AwsResource):
                     builder.add_node(container_instance, container)
                     builder.add_edge(cluster_instance, edge_type=EdgeType.default, node=container_instance)
 
-            service_arns = builder.client.list("ecs", "list-services", "serviceArns", cluster=cluster_arn)
+            service_arns = builder.client.list(service_name, "list-services", "serviceArns", cluster=cluster_arn)
             for chunk in chunks(service_arns, 10):
                 services = builder.client.list(
-                    "ecs",
+                    service_name,
                     "describe-services",
                     "services",
                     cluster=cluster_arn,
@@ -1617,10 +1621,10 @@ class AwsEcsCluster(EcsTaggable, AwsResource):
                     builder.add_node(service_instance, service)
                     builder.add_edge(cluster_instance, edge_type=EdgeType.default, node=service_instance)
 
-            task_arns = builder.client.list("ecs", "list-tasks", "taskArns", cluster=cluster_arn)
+            task_arns = builder.client.list(service_name, "list-tasks", "taskArns", cluster=cluster_arn)
             for chunk in chunks(task_arns, 100):
                 tasks = builder.client.list(
-                    "ecs",
+                    service_name,
                     "describe-tasks",
                     "tasks",
                     cluster=cluster_arn,
@@ -1635,7 +1639,11 @@ class AwsEcsCluster(EcsTaggable, AwsResource):
             provider_names = cluster_instance.cluster_capacity_providers
             for chunk in chunks(provider_names, 100):
                 providers = builder.client.list(
-                    "ecs", "describe-capacity-providers", "capacityProviders", capacityProviders=chunk, include=["TAGS"]
+                    service_name,
+                    "describe-capacity-providers",
+                    "capacityProviders",
+                    capacityProviders=chunk,
+                    include=["TAGS"],
                 )
                 for provider in providers:
                     provider_instance = AwsEcsCapacityProvider.from_api(provider)
@@ -1661,7 +1669,7 @@ class AwsEcsCluster(EcsTaggable, AwsResource):
             strategy.remove(next(item for item in strategy if item.capacity_provider == capacity_provider_name))
             self.cluster_capacity_providers.remove(capacity_provider_name)
             client.call(
-                "ecs",
+                service_name,
                 "put-cluster-capacity-providers",
                 None,
                 cluster=self.arn,
@@ -1674,7 +1682,7 @@ class AwsEcsCluster(EcsTaggable, AwsResource):
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return super().called_mutator_apis() + [AwsApiSpec("ecs", "delete-cluster")]
+        return super().called_mutator_apis() + [AwsApiSpec(service_name, "delete-cluster")]
 
 
 resources: List[Type[AwsResource]] = [

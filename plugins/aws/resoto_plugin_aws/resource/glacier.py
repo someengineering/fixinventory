@@ -10,6 +10,8 @@ from resotolib.baseresources import EdgeType, ModelReference
 from resotolib.json_bender import S, Bend, Bender, ForallBend
 from resotolib.types import Json
 
+service_name = "glacier"
+
 
 @define(eq=False, slots=False)
 class AwsGlacierInventoryRetrievalParameters:
@@ -162,7 +164,7 @@ class AwsGlacierJob(AwsResource):
 @define(eq=False, slots=False)
 class AwsGlacierVault(AwsResource):
     kind: ClassVar[str] = "aws_glacier_vault"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("glacier", "list-vaults", "VaultList")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-vaults", "VaultList")
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": ["aws_glacier_job"],
@@ -192,41 +194,49 @@ class AwsGlacierVault(AwsResource):
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_tags(vault: AwsGlacierVault) -> None:
-            tags = builder.client.get("glacier", "list-tags-for-vault", "Tags", vaultName=vault.name)
+            tags = builder.client.get(service_name, "list-tags-for-vault", "Tags", vaultName=vault.name)
             if tags:
                 vault.tags = tags
 
         for vault in json:
             vault_instance = cls.from_api(vault)
             builder.add_node(vault_instance, vault)
-            builder.submit_work(add_tags, vault_instance)
-            for job in builder.client.list("glacier", "list-jobs", "JobList", vaultName=vault_instance.name):
+            builder.submit_work(service_name, add_tags, vault_instance)
+            for job in builder.client.list(service_name, "list-jobs", "JobList", vaultName=vault_instance.name):
                 job_instance = AwsGlacierJob.from_api(job)
                 builder.add_node(job_instance, job)
                 builder.add_edge(vault_instance, EdgeType.default, node=job_instance)
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(
-            aws_service="glacier", action="add-tags-to-vault", result_name=None, vaultName=self.name, Tags={key: value}
+            aws_service=service_name,
+            action="add-tags-to-vault",
+            result_name=None,
+            vaultName=self.name,
+            Tags={key: value},
         )
         return True
 
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
         client.call(
-            aws_service="glacier", action="remove-tags-from-vault", result_name=None, vaultName=self.name, TagKeys=[key]
+            aws_service=service_name,
+            action="remove-tags-from-vault",
+            result_name=None,
+            vaultName=self.name,
+            TagKeys=[key],
         )
         return True
 
     def delete_resource(self, client: AwsClient) -> bool:
-        client.call(aws_service="glacier", action="delete-vault", result_name=None, vaultName=self.name)
+        client.call(aws_service=service_name, action="delete-vault", result_name=None, vaultName=self.name)
         return True
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return [
-            AwsApiSpec("glacier", "add-tags-to-vault"),
-            AwsApiSpec("glacier", "remove-tags-from-vault"),
-            AwsApiSpec("glacier", "delete-vault"),
+            AwsApiSpec(service_name, "add-tags-to-vault"),
+            AwsApiSpec(service_name, "remove-tags-from-vault"),
+            AwsApiSpec(service_name, "delete-vault"),
         ]
 
 

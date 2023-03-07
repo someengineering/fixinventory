@@ -48,7 +48,6 @@ from resotolib.proc import set_thread_name
 
 log = logging.getLogger("resoto.plugins.aws")
 
-
 global_resources: List[Type[AwsResource]] = (
     cloudfront.resources
     + dynamodb.global_resources
@@ -142,14 +141,14 @@ class AwsAccountCollector:
         with ThreadPoolExecutor(
             thread_name_prefix=f"aws_{self.account.id}", max_workers=self.config.shared_pool_size
         ) as executor:
-            # The shared executor is used to parallelize the collection of resources "as fast as possible"
-            # It should only be used in scenarios, where it is safe to do so.
-            # This executor is shared between all regions.
-            shared_queue = ExecutorQueue(executor, self.account.safe_name)
-            shared_queue.submit_work(self.update_account)
+            # The shared executor is used to spread work for the whole account.
+            # Note: only tasks_per_key threads are running max for each region.
+            tpk = self.config.shared_tasks_per_key([r.id for r in self.regions])
+            shared_queue = ExecutorQueue(executor, tasks_per_key=tpk, name=self.account.safe_name)
             global_builder = GraphBuilder(
                 self.graph, self.cloud, self.account, self.global_region, self.client, shared_queue, self.core_feedback
             )
+            global_builder.submit_work("iam", self.update_account)
             global_builder.add_node(self.global_region)
 
             # mark open progress for all regions
@@ -164,7 +163,8 @@ class AwsAccountCollector:
             for resource in global_resources:
                 if self.config.should_collect(resource.kind):
                     resource.collect_resources(global_builder)
-            shared_queue.wait_for_submitted_work()
+                    log.info(f"[Aws:{self.account.id}:global] finished collecting: {resource.kind}")
+            # we wait for the shared queue after all regions are collected
             global_builder.core_feedback.progress_done(self.global_region.safe_name, 1, 1)
             self.error_accumulator.report_region(global_builder.core_feedback, self.global_region.id)
 
@@ -219,15 +219,16 @@ class AwsAccountCollector:
         try:
             regional_thread_name = f"aws_{self.account.id}_{region.id}"
             set_thread_name(regional_thread_name)
-            with ThreadPoolExecutor(
-                thread_name_prefix=regional_thread_name, max_workers=self.config.region_resources_pool_size
-            ) as executor:
+            rip = self.config.region_resources_pool_size
+            with ThreadPoolExecutor(thread_name_prefix=regional_thread_name, max_workers=rip) as executor:
                 # In case an exception is thrown for any resource, we should give up as quick as possible.
-                queue = ExecutorQueue(executor, region.safe_name, fail_on_first_exception=True)
+                queue = ExecutorQueue(
+                    executor, tasks_per_key=lambda _: rip, name=region.safe_name, fail_on_first_exception_in_group=True
+                )
                 regional_builder.add_node(region)
                 for res in regional_resources:
                     if self.config.should_collect(res.kind):
-                        queue.submit_work(collect_resource, res, regional_builder)
+                        queue.submit_work(region.id, collect_resource, res, regional_builder)
                 queue.wait_for_submitted_work()
                 regional_builder.core_feedback.progress_done(region.safe_name, 1, 1)
                 self.error_accumulator.report_region(regional_builder.core_feedback, region.id)

@@ -11,11 +11,13 @@ from resotolib.baseresources import ModelReference, BaseNetworkShare
 from resotolib.json_bender import Bender, S, F, Bend
 from resotolib.types import Json
 
+service_name = "efs"
+
 
 class EfsTaggable:
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(
-            aws_service="efs",
+            aws_service=service_name,
             action="tag-resource",
             result_name=None,
             resourceId=self.id,  # type: ignore
@@ -25,7 +27,7 @@ class EfsTaggable:
 
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
         client.call(
-            aws_service="efs",
+            aws_service=service_name,
             action="untag-resource",
             result_name=None,
             resourceId=self.id,  # type: ignore
@@ -36,8 +38,8 @@ class EfsTaggable:
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return [
-            AwsApiSpec("efs", "tag-resource", override_iam_permission="elasticfilesystem:TagResource"),
-            AwsApiSpec("efs", "untag-resource", override_iam_permission="elasticfilesystem:UntagResource"),
+            AwsApiSpec(service_name, "tag-resource", override_iam_permission="elasticfilesystem:TagResource"),
+            AwsApiSpec(service_name, "untag-resource", override_iam_permission="elasticfilesystem:UntagResource"),
         ]
 
 
@@ -66,7 +68,10 @@ class AwsEfsMountTarget(AwsResource):
 class AwsEfsFileSystem(EfsTaggable, AwsResource, BaseNetworkShare):
     kind: ClassVar[str] = "aws_efs_file_system"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
-        "efs", "describe-file-systems", "FileSystems", override_iam_permission="elasticfilesystem:DescribeFileSystems"
+        service_name,
+        "describe-file-systems",
+        "FileSystems",
+        override_iam_permission="elasticfilesystem:DescribeFileSystems",
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("FileSystemId"),
@@ -100,14 +105,16 @@ class AwsEfsFileSystem(EfsTaggable, AwsResource, BaseNetworkShare):
         return [
             cls.api_spec,
             AwsApiSpec(
-                "efs", "describe-mount-targets", override_iam_permission="elasticfilesystem:DescribeMountTargets"
+                service_name, "describe-mount-targets", override_iam_permission="elasticfilesystem:DescribeMountTargets"
             ),
         ]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def collect_mount_points(fs: AwsEfsFileSystem) -> None:
-            for mt_raw in builder.client.list("efs", "describe-mount-targets", "MountTargets", FileSystemId=fs.id):
+            for mt_raw in builder.client.list(
+                service_name, "describe-mount-targets", "MountTargets", FileSystemId=fs.id
+            ):
                 mt = AwsEfsMountTarget.from_api(mt_raw)
                 builder.add_node(mt, mt_raw)
                 builder.add_edge(fs, node=mt)
@@ -115,19 +122,19 @@ class AwsEfsFileSystem(EfsTaggable, AwsResource, BaseNetworkShare):
         for js in json:
             instance = cls.from_api(js)
             builder.add_node(instance, js)
-            builder.submit_work(collect_mount_points, instance)
+            builder.submit_work(service_name, collect_mount_points, instance)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if kms_key_id := source.get("KmsKeyId"):
             builder.dependant_node(from_node=self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(kms_key_id))
 
     def delete_resource(self, client: AwsClient) -> bool:
-        client.call("efs", "delete-file-system", FileSystemId=self.id)
+        client.call(service_name, "delete-file-system", FileSystemId=self.id)
         return True
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return [AwsApiSpec("efs", "delete-file-system")]
+        return [AwsApiSpec(service_name, "delete-file-system")]
 
 
 @define(eq=False, slots=False)
@@ -171,7 +178,7 @@ class AwsEfsRootDirectory:
 class AwsEfsAccessPoint(AwsResource, EfsTaggable):
     kind: ClassVar[str] = "aws_efs_access_point"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
-        "efs",
+        service_name,
         "describe-access-points",
         "AccessPoints",
         override_iam_permission="elasticfilesystem:DescribeAccessPoints",

@@ -25,6 +25,8 @@ from resotolib.json_bender import Bender, S, Bend, AsDate, Sort, bend, ForallBen
 from resotolib.types import Json
 from resotolib.utils import parse_utc, utc
 
+service_name = "iam"
+
 
 def iam_update_tag(resource: AwsResource, client: AwsClient, action: str, key: str, value: str, **kwargs: Any) -> bool:
     if spec := resource.api_spec:
@@ -147,7 +149,7 @@ class AwsIamRole(AwsResource):
                 log_msg = f"Detaching {successor.rtdname}"
                 self.log(log_msg)
                 client.call(
-                    aws_service="iam",
+                    aws_service=service_name,
                     action="detach-role-policy",
                     result_name=None,
                     PolicyArn=successor.arn,
@@ -158,7 +160,7 @@ class AwsIamRole(AwsResource):
             log_msg = f"Deleting inline policy {role_policy}"
             self.log(log_msg)
             client.call(
-                aws_service="iam",
+                aws_service=service_name,
                 action="delete-role-policy",
                 result_name=None,
                 PolicyName=role_policy.policy_name,
@@ -168,24 +170,26 @@ class AwsIamRole(AwsResource):
         return True
 
     def delete_resource(self, client: AwsClient) -> bool:
-        client.call(aws_service="iam", action="delete-role", result_name=None, RoleName=self.name)
+        client.call(aws_service=service_name, action="delete-role", result_name=None, RoleName=self.name)
         return True
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return [
-            AwsApiSpec("iam", "tag-role"),
-            AwsApiSpec("iam", "untag-role"),
-            AwsApiSpec("iam", "detach-role-policy"),
-            AwsApiSpec("iam", "delete-role-policy"),
-            AwsApiSpec("iam", "delete-role"),
+            AwsApiSpec(service_name, "tag-role"),
+            AwsApiSpec(service_name, "untag-role"),
+            AwsApiSpec(service_name, "detach-role-policy"),
+            AwsApiSpec(service_name, "delete-role-policy"),
+            AwsApiSpec(service_name, "delete-role"),
         ]
 
 
 @define(eq=False, slots=False)
 class AwsIamServerCertificate(AwsResource, BaseCertificate):
     kind: ClassVar[str] = "aws_iam_server_certificate"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("iam", "list-server-certificates", "ServerCertificateMetadataList")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
+        service_name, "list-server-certificates", "ServerCertificateMetadataList"
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("ServerCertificateId"),
         "arn": S("Arn"),
@@ -228,9 +232,9 @@ class AwsIamServerCertificate(AwsResource, BaseCertificate):
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return [
-            AwsApiSpec("iam", "tag-server-certificate"),
-            AwsApiSpec("iam", "untag-server-certificate"),
-            AwsApiSpec("iam", "delete-server-certificate"),
+            AwsApiSpec(service_name, "tag-server-certificate"),
+            AwsApiSpec(service_name, "untag-server-certificate"),
+            AwsApiSpec(service_name, "delete-server-certificate"),
         ]
 
 
@@ -306,7 +310,7 @@ class AwsIamPolicy(AwsResource, BasePolicy):
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
-            aws_service="iam",
+            aws_service=service_name,
             action="delete-policy",
             result_name=None,
             PolicyArn=self.arn,
@@ -316,9 +320,9 @@ class AwsIamPolicy(AwsResource, BasePolicy):
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return [
-            AwsApiSpec("iam", "tag-policy"),
-            AwsApiSpec("iam", "untag-policy"),
-            AwsApiSpec("iam", "delete-policy"),
+            AwsApiSpec(service_name, "tag-policy"),
+            AwsApiSpec(service_name, "untag-policy"),
+            AwsApiSpec(service_name, "delete-policy"),
         ]
 
 
@@ -351,7 +355,7 @@ class AwsIamGroup(AwsResource, BaseGroup):
                 log_msg = f"Detaching {successor.rtdname}"
                 self.log(log_msg)
                 client.call(
-                    aws_service="iam",
+                    aws_service=service_name,
                     action="detach-group-policy",
                     result_name=None,
                     GroupName=self.name,
@@ -362,7 +366,7 @@ class AwsIamGroup(AwsResource, BaseGroup):
             log_msg = f"Deleting inline policy {group_policy}"
             self.log(log_msg)
             client.call(
-                aws_service="iam",
+                aws_service=service_name,
                 action="delete-group-policy",
                 result_name=None,
                 GroupName=self.name,
@@ -373,7 +377,7 @@ class AwsIamGroup(AwsResource, BaseGroup):
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
-            aws_service="iam",
+            aws_service=service_name,
             action="delete-group",
             result_name=None,
             GroupName=self.name,
@@ -383,9 +387,9 @@ class AwsIamGroup(AwsResource, BaseGroup):
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return [
-            AwsApiSpec("iam", "detach-group-policy"),
-            AwsApiSpec("iam", "delete-group-policy"),
-            AwsApiSpec("iam", "delete-group"),
+            AwsApiSpec(service_name, "detach-group-policy"),
+            AwsApiSpec(service_name, "delete-group-policy"),
+            AwsApiSpec(service_name, "delete-group"),
         ]
 
 
@@ -500,7 +504,7 @@ class CredentialReportLine:
         # wait for the report to be done
         while (
             # in case of access denied, res will be None
-            (res := builder.client.get("iam", "generate-credential-report"))
+            (res := builder.client.get(service_name, "generate-credential-report"))
             # res is defined, but the report is not ready yet
             and res.get("State") != "COMPLETE"
             # give up after 5 minutes
@@ -509,7 +513,7 @@ class CredentialReportLine:
             time.sleep(1)
         # fetch the report
         if res and res.get("State") == "COMPLETE":
-            report = builder.client.get("iam", "get-credential-report", expected_errors=["ReportNotPresent"])
+            report = builder.client.get(service_name, "get-credential-report", expected_errors=["ReportNotPresent"])
             return CredentialReportLine.from_str(report["Content"]) if report else {}
         else:
             return {}
@@ -547,7 +551,7 @@ class AwsRootUser(AwsResource, BaseUser):
 @define(eq=False, slots=False)
 class AwsIamUser(AwsResource, BaseUser):
     kind: ClassVar[str] = "aws_iam_user"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("iam", "get-account-authorization-details")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "get-account-authorization-details")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_iam_group"]},
         "successors": {"default": ["aws_iam_policy"], "delete": ["aws_iam_policy"]},
@@ -576,16 +580,16 @@ class AwsIamUser(AwsResource, BaseUser):
     def called_collect_apis(cls) -> List[AwsApiSpec]:
         return [
             cls.api_spec,
-            AwsApiSpec("iam", "list-access-keys"),
-            AwsApiSpec("iam", "get-access-key-last-used"),
-            AwsApiSpec("iam", "generate-credential-report"),
-            AwsApiSpec("iam", "get-credential-report"),
+            AwsApiSpec(service_name, "list-access-keys"),
+            AwsApiSpec(service_name, "get-access-key-last-used"),
+            AwsApiSpec(service_name, "generate-credential-report"),
+            AwsApiSpec(service_name, "get-credential-report"),
         ]
 
     @classmethod
     def collect_resources(cls: Type[AwsResource], builder: GraphBuilder) -> None:
         # start generation of the credentials resport and pick it up later
-        builder.client.get("iam", "generate-credential-report")
+        builder.client.get(service_name, "generate-credential-report")
         # let super handle the rest (this will take some time for the report to be done)
         super().collect_resources(builder)  # type: ignore # mypy bug: https://github.com/python/mypy/issues/12885
 
@@ -623,7 +627,7 @@ class AwsIamUser(AwsResource, BaseUser):
                     line_keys = line.access_keys()
                 # add all iam access keys for this user
                 for idx, ak in enumerate(
-                    builder.client.list("iam", "list-access-keys", "AccessKeyMetadata", UserName=user.name)
+                    builder.client.list(service_name, "list-access-keys", "AccessKeyMetadata", UserName=user.name)
                 ):
                     key = AwsIamAccessKey.from_api(ak)
                     if line and idx < len(line_keys):
@@ -632,7 +636,7 @@ class AwsIamUser(AwsResource, BaseUser):
                     builder.dependant_node(user, node=key)
 
         def add_virtual_mfa_devices() -> None:
-            for vjs in builder.client.list("iam", "list-virtual-mfa-devices", "VirtualMFADevices"):
+            for vjs in builder.client.list(service_name, "list-virtual-mfa-devices", "VirtualMFADevices"):
                 if arn := value_in_path(vjs, "User.Arn"):
                     if isinstance(usr := builder.node(arn=arn), (AwsIamUser, AwsRootUser)):
                         mapped = bend(AwsIamVirtualMfaDevice.mapping, vjs)
@@ -642,7 +646,7 @@ class AwsIamUser(AwsResource, BaseUser):
                         usr.user_virtual_mfa_devices.append(node)
 
         if builder.account.mfa_devices is not None and builder.account.mfa_devices > 0:
-            builder.submit_work(add_virtual_mfa_devices)
+            builder.submit_work(service_name, add_virtual_mfa_devices)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for p in bend(S("AttachedManagedPolicies", default=[]), source):
@@ -663,7 +667,7 @@ class AwsIamUser(AwsResource, BaseUser):
                 log_msg = f"Detaching {successor.rtdname}"
                 self.log(log_msg)
                 client.call(
-                    aws_service="iam",
+                    aws_service=service_name,
                     action="detach-user-policy",
                     result_name=None,
                     UserName=self.name,
@@ -674,7 +678,7 @@ class AwsIamUser(AwsResource, BaseUser):
             log_msg = f"Deleting inline policy {user_policy}"
             self.log(log_msg)
             client.call(
-                aws_service="iam",
+                aws_service=service_name,
                 action="delete-user-policy",
                 result_name=None,
                 UserName=self.name,
@@ -684,24 +688,24 @@ class AwsIamUser(AwsResource, BaseUser):
         return True
 
     def delete_resource(self, client: AwsClient) -> bool:
-        client.call(aws_service="iam", action="delete-user", result_name=None, UserName=self.name)
+        client.call(aws_service=service_name, action="delete-user", result_name=None, UserName=self.name)
         return True
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return [
-            AwsApiSpec("iam", "tag-user"),
-            AwsApiSpec("iam", "untag-user"),
-            AwsApiSpec("iam", "detach-user-policy"),
-            AwsApiSpec("iam", "delete-user-policy"),
-            AwsApiSpec("iam", "delete-user"),
+            AwsApiSpec(service_name, "tag-user"),
+            AwsApiSpec(service_name, "untag-user"),
+            AwsApiSpec(service_name, "detach-user-policy"),
+            AwsApiSpec(service_name, "delete-user-policy"),
+            AwsApiSpec(service_name, "delete-user"),
         ]
 
 
 @define(eq=False, slots=False)
 class AwsIamInstanceProfile(AwsResource, BaseInstanceProfile):
     kind: ClassVar[str] = "aws_iam_instance_profile"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("iam", "list-instance-profiles", "InstanceProfiles")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-instance-profiles", "InstanceProfiles")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("InstanceProfileId"),
         "name": S("InstanceProfileName"),
@@ -732,7 +736,7 @@ class AwsIamInstanceProfile(AwsResource, BaseInstanceProfile):
                 log_msg = f"Detaching {predecessor.rtdname}"
                 self.log(log_msg)
                 client.call(
-                    aws_service="iam",
+                    aws_service=service_name,
                     action="remove-role-from-instance-profile",
                     result_name=None,
                     RoleName=predecessor.name,
@@ -742,17 +746,17 @@ class AwsIamInstanceProfile(AwsResource, BaseInstanceProfile):
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
-            aws_service="iam", action="delete-instance-profile", result_name=None, InstanceProfileName=self.name
+            aws_service=service_name, action="delete-instance-profile", result_name=None, InstanceProfileName=self.name
         )
         return True
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return [
-            AwsApiSpec("iam", "tag-instance-profile"),
-            AwsApiSpec("iam", "untag-instance-profile"),
-            AwsApiSpec("iam", "remove-role-from-instance-profile"),
-            AwsApiSpec("iam", "delete-instance-profile"),
+            AwsApiSpec(service_name, "tag-instance-profile"),
+            AwsApiSpec(service_name, "untag-instance-profile"),
+            AwsApiSpec(service_name, "remove-role-from-instance-profile"),
+            AwsApiSpec(service_name, "delete-instance-profile"),
         ]
 
 

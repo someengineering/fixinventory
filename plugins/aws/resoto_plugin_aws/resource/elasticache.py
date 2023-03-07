@@ -14,13 +14,15 @@ from datetime import datetime
 from resotolib.types import Json
 from resoto_plugin_aws.resource.ec2 import AwsEc2SecurityGroup
 
+service_name = "elasticache"
+
 
 # noinspection PyUnresolvedReferences
 class ElastiCacheTaggable:
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         if isinstance(self, AwsResource):
             client.call(
-                aws_service="elasticache",
+                aws_service=service_name,
                 action="add-tags-to-resource",
                 result_name=None,
                 ResourceName=self.arn,
@@ -32,7 +34,7 @@ class ElastiCacheTaggable:
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
         if isinstance(self, AwsResource):
             client.call(
-                aws_service="elasticache",
+                aws_service=service_name,
                 action="remove-tags-from-resource",
                 result_name=None,
                 ResourceName=self.arn,
@@ -44,8 +46,8 @@ class ElastiCacheTaggable:
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return [
-            AwsApiSpec("elasticache", "add-tags-to-resource"),
-            AwsApiSpec("elasticache", "remove-tags-from-resource"),
+            AwsApiSpec(service_name, "add-tags-to-resource"),
+            AwsApiSpec(service_name, "remove-tags-from-resource"),
         ]
 
 
@@ -195,7 +197,7 @@ class AwsElastiCacheCacheCluster(ElastiCacheTaggable, AwsResource):
         },
         "successors": {"default": ["aws_sns_topic"]},
     }
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("elasticache", "describe-cache-clusters", "CacheClusters")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-cache-clusters", "CacheClusters")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("CacheClusterId"),
         "tags": S("Tags", default=[]) >> ToDict(),
@@ -275,7 +277,7 @@ class AwsElastiCacheCacheCluster(ElastiCacheTaggable, AwsResource):
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return super().called_mutator_apis() + [AwsApiSpec("elasticache", "delete-cache-cluster")]
+        return super().called_mutator_apis() + [AwsApiSpec(service_name, "delete-cache-cluster")]
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
@@ -293,7 +295,7 @@ class AwsElastiCacheCacheCluster(ElastiCacheTaggable, AwsResource):
         for js in json:
             instance = cls.from_api(js)
             builder.add_node(instance, js)
-            builder.submit_work(add_tags, instance)
+            builder.submit_work(service_name, add_tags, instance)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         # TODO add edge to outpost when applicable
@@ -396,7 +398,7 @@ class AwsElastiCacheNodeGroup:
 @define(eq=False, slots=False)
 class AwsElastiCacheReplicationGroup(ElastiCacheTaggable, AwsResource):
     kind: ClassVar[str] = "aws_elasticache_replication_group"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("elasticache", "describe-replication-groups", "ReplicationGroups")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-replication-groups", "ReplicationGroups")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"delete": ["aws_elasticache_cache_cluster", "aws_kms_key"]},
         "successors": {"default": ["aws_elasticache_cache_cluster", "aws_kms_key"]},
@@ -481,7 +483,7 @@ class AwsElastiCacheReplicationGroup(ElastiCacheTaggable, AwsResource):
         for js in json:
             instance = cls.from_api(js)
             builder.add_node(instance, js)
-            builder.submit_work(add_tags, instance)
+            builder.submit_work(service_name, add_tags, instance)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for cluster_name in self.replication_group_member_clusters:
@@ -505,7 +507,7 @@ class AwsElastiCacheReplicationGroup(ElastiCacheTaggable, AwsResource):
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return super().called_mutator_apis() + [AwsApiSpec("elasticache", "delete-replication-group")]
+        return super().called_mutator_apis() + [AwsApiSpec(service_name, "delete-replication-group")]
 
 
 resources: List[Type[AwsResource]] = [AwsElastiCacheReplicationGroup, AwsElastiCacheCacheCluster]

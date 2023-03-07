@@ -12,6 +12,7 @@ from resotolib.types import Json
 from resoto_plugin_aws.aws_client import AwsClient
 
 log = logging.getLogger("resoto.plugins.aws")
+service_name = "service-quotas"
 
 
 @define(eq=False, slots=False)
@@ -84,15 +85,13 @@ class AwsServiceQuota(AwsResource, BaseQuota):
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
         return [
-            AwsApiSpec(
-                "service-quotas", "list-service-quotas", override_iam_permission="servicequotas:ListServiceQuotas"
-            )
+            AwsApiSpec(service_name, "list-service-quotas", override_iam_permission="servicequotas:ListServiceQuotas")
         ]
 
     @classmethod
     def collect_service(cls, service_code: str, matchers: List["QuotaMatcher"], builder: GraphBuilder) -> None:
         log.debug(f"Collecting Service quotas for {service_code} in region {builder.region.name}")
-        for js in builder.client.list("service-quotas", "list-service-quotas", "Quotas", ServiceCode=service_code):
+        for js in builder.client.list(service_name, "list-service-quotas", "Quotas", ServiceCode=service_code):
             quota = AwsServiceQuota.from_api(js)
             for matcher in matchers:
                 if matcher.match(quota):
@@ -127,7 +126,7 @@ class AwsServiceQuota(AwsResource, BaseQuota):
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(
-            aws_service="service-quotas",
+            aws_service=service_name,
             action="tag-resource",
             result_name=None,
             ResourceARN=self.arn,
@@ -137,7 +136,7 @@ class AwsServiceQuota(AwsResource, BaseQuota):
 
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
         client.call(
-            aws_service="service-quotas",
+            aws_service=service_name,
             action="untag-resource",
             result_name=None,
             ResourceARN=self.arn,
@@ -148,8 +147,8 @@ class AwsServiceQuota(AwsResource, BaseQuota):
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return [
-            AwsApiSpec("service-quotas", "tag-resource", override_iam_permission="servicequotas:TagResource"),
-            AwsApiSpec("service-quotas", "untag-resource", override_iam_permission="servicequotas:UntagResource"),
+            AwsApiSpec(service_name, "tag-resource", override_iam_permission="servicequotas:TagResource"),
+            AwsApiSpec(service_name, "untag-resource", override_iam_permission="servicequotas:UntagResource"),
         ]
 
 

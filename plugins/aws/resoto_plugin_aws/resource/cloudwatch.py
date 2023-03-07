@@ -14,12 +14,14 @@ from resotolib.json_bender import S, Bend, Bender, ForallBend, bend, F, SecondsF
 from resotolib.types import Json
 from resotolib.utils import chunks
 
+service_name = "cloudwatch"
+
 
 # noinspection PyUnresolvedReferences
 class CloudwatchTaggable:
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(
-            aws_service="cloudwatch",
+            aws_service=service_name,
             action="tag-resource",
             result_name=None,
             ResourceARN=self.arn,  # type: ignore
@@ -29,7 +31,7 @@ class CloudwatchTaggable:
 
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
         client.call(
-            aws_service="cloudwatch",
+            aws_service=service_name,
             action="untag-resource",
             result_name=None,
             ResourceARN=self.arn,  # type: ignore
@@ -39,7 +41,7 @@ class CloudwatchTaggable:
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return [AwsApiSpec("cloudwatch", "tag-resource"), AwsApiSpec("cloudwatch", "untag-resource")]
+        return [AwsApiSpec(service_name, "tag-resource"), AwsApiSpec(service_name, "untag-resource")]
 
 
 # noinspection PyUnresolvedReferences
@@ -139,7 +141,7 @@ class AwsCloudwatchMetricDataQuery:
 @define(eq=False, slots=False)
 class AwsCloudwatchAlarm(CloudwatchTaggable, AwsResource):
     kind: ClassVar[str] = "aws_cloudwatch_alarm"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudwatch", "describe-alarms", "MetricAlarms")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-alarms", "MetricAlarms")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_ec2_instance"], "delete": ["aws_ec2_instance"]},
     }
@@ -202,14 +204,14 @@ class AwsCloudwatchAlarm(CloudwatchTaggable, AwsResource):
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_tags(alarm: AwsCloudwatchAlarm) -> None:
-            tags = builder.client.list("cloudwatch", "list-tags-for-resource", "Tags", ResourceARN=alarm.arn)
+            tags = builder.client.list(service_name, "list-tags-for-resource", "Tags", ResourceARN=alarm.arn)
             if tags:
                 alarm.tags = bend(ToDict(), tags)
 
         for js in json:
             instance = cls.from_api(js)
             builder.add_node(instance, js)
-            builder.submit_work(add_tags, instance)
+            builder.submit_work(service_name, add_tags, instance)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
@@ -224,7 +226,7 @@ class AwsCloudwatchAlarm(CloudwatchTaggable, AwsResource):
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return super().called_mutator_apis() + [AwsApiSpec("cloudwatch", "delete-alarms")]
+        return super().called_mutator_apis() + [AwsApiSpec(service_name, "delete-alarms")]
 
 
 @define(eq=False, slots=False)
@@ -386,7 +388,7 @@ class AwsCloudwatchMetricData:
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
-        return [AwsApiSpec("cloudwatch", "get-metric-data")]
+        return [AwsApiSpec(service_name, "get-metric-data")]
 
     @staticmethod
     def query_for(
@@ -401,7 +403,7 @@ class AwsCloudwatchMetricData:
         # the api only allows for up to 500 metrics at once
         for chunk in chunks(queries, 499):
             part = client.list(
-                "cloudwatch",
+                service_name,
                 "get-metric-data",
                 "MetricDataResults",
                 MetricDataQueries=[a.to_json() for a in chunk],

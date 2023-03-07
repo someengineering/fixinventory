@@ -11,6 +11,8 @@ from resotolib.json_bender import F, Bender, S, AsInt, AsBool, Bend, ParseJson
 from resotolib.types import Json
 from resotolib.utils import utc_str
 
+service_name = "sqs"
+
 
 @define(eq=False, slots=False)
 class AwsSqsRedrivePolicy:
@@ -26,7 +28,7 @@ class AwsSqsRedrivePolicy:
 @define(eq=False, slots=False)
 class AwsSqsQueue(AwsResource):
     kind: ClassVar[str] = "aws_sqs_queue"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sqs", "list-queues", "QueueUrls")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-queues", "QueueUrls")
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["aws_kms_key"]},
         "predecessors": {"delete": ["aws_kms_key"]},
@@ -79,23 +81,27 @@ class AwsSqsQueue(AwsResource):
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
-        return [cls.api_spec, AwsApiSpec("sqs", "get-queue-attributes"), AwsApiSpec("sqs", "list-queue-tags")]
+        return [
+            cls.api_spec,
+            AwsApiSpec(service_name, "get-queue-attributes"),
+            AwsApiSpec(service_name, "list-queue-tags"),
+        ]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_instance(queue_url: str) -> None:
             queue_attributes = builder.client.get(
-                "sqs", "get-queue-attributes", "Attributes", QueueUrl=queue_url, AttributeNames=["All"]
+                service_name, "get-queue-attributes", "Attributes", QueueUrl=queue_url, AttributeNames=["All"]
             )
             if queue_attributes is not None:
                 queue_attributes["QueueUrl"] = queue_url
                 queue_attributes["QueueName"] = queue_url.rsplit("/", 1)[-1]
                 instance = cls.from_api(queue_attributes)
                 builder.add_node(instance)
-                builder.submit_work(add_tags, instance)
+                builder.submit_work(service_name, add_tags, instance)
 
         def add_tags(queue: AwsSqsQueue) -> None:
-            tags = builder.client.get("sqs", "list-queue-tags", result_name="Tags", QueueUrl=queue.sqs_queue_url)
+            tags = builder.client.get(service_name, "list-queue-tags", result_name="Tags", QueueUrl=queue.sqs_queue_url)
             if tags:
                 queue.tags = tags
 
@@ -113,26 +119,30 @@ class AwsSqsQueue(AwsResource):
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(
-            aws_service="sqs", action="tag-queue", result_name=None, QueueUrl=self.sqs_queue_url, Tags={key: value}
+            aws_service=service_name,
+            action="tag-queue",
+            result_name=None,
+            QueueUrl=self.sqs_queue_url,
+            Tags={key: value},
         )
         return True
 
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
         client.call(
-            aws_service="sqs", action="untag-queue", result_name=None, QueueUrl=self.sqs_queue_url, TagKeys=[key]
+            aws_service=service_name, action="untag-queue", result_name=None, QueueUrl=self.sqs_queue_url, TagKeys=[key]
         )
         return True
 
     def delete_resource(self, client: AwsClient) -> bool:
-        client.call(aws_service="sqs", action="delete-queue", result_name=None, QueueUrl=self.sqs_queue_url)
+        client.call(aws_service=service_name, action="delete-queue", result_name=None, QueueUrl=self.sqs_queue_url)
         return True
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return [
-            AwsApiSpec("sqs", "tag-queue"),
-            AwsApiSpec("sqs", "untag-queue"),
-            AwsApiSpec("sqs", "delete-queue"),
+            AwsApiSpec(service_name, "tag-queue"),
+            AwsApiSpec(service_name, "untag-queue"),
+            AwsApiSpec(service_name, "delete-queue"),
         ]
 
 
