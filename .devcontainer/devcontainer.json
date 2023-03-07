@@ -5,24 +5,19 @@
 	"dockerComposeFile": "docker-compose.yml",
 	"service": "resoto",
 	"workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
-
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},
-
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	// This can be used to network with other containers or the host.
 	"forwardPorts": [
 		8529, // ArangoDB
-		8900  // Resoto
+		8900 // Resoto
 	],
-
 	// Use 'postCreateCommand' to run commands after the container is created.
 	"postCreateCommand": "bash -ic .devcontainer/postCreate.sh",
-
 	"containerEnv": {
 		"RESOTOCORE_ANALYTICS_OPT_OUT": "True"
 	},
-
 	// Configure tool-specific properties.
 	"customizations": {
 		"vscode": {
@@ -31,19 +26,43 @@
 				"github.copilot"
 			],
 			"settings": {
+				// formatting
+				"editor.formatOnSave": true,
+				"editor.formatOnSaveMode": "file",
+				// black
+				"python.formatting.provider": "black",
 				"python.formatting.blackArgs": [
 					"--line-length",
 					"120",
 					"--target-version",
 					"py39"
 				],
-				"python.formatting.provider": "black",
-				"python.linting.enabled": true
-
+				// linting
+				"python.linting.enabled": true,
+				// flake8
+				"python.linting.flake8Enabled": true,
+				"python.linting.flake8Args": [
+					"--max-line-length",
+					"120",
+					"--exclude=.git,.tox,__pycache__,.idea,.pytest_cache,docs",
+					"--ignore=N818,W503,E203"
+				],
+				// pylint
+				"python.linting.pylintEnabled": true,
+				// paths to python utils
+				"python.defaultInterpreterPath": "/usr/local/bin/python",
+				"python.formatting.autopep8Path": "/usr/local/py-utils/bin/autopep8",
+				"python.formatting.blackPath": "/usr/local/py-utils/bin/black",
+				"python.formatting.yapfPath": "/usr/local/py-utils/bin/yapf",
+				"python.linting.banditPath": "/usr/local/py-utils/bin/bandit",
+				"python.linting.flake8Path": "/usr/local/py-utils/bin/flake8",
+				"python.linting.mypyPath": "/usr/local/py-utils/bin/mypy",
+				"python.linting.pycodestylePath": "/usr/local/py-utils/bin/pycodestyle",
+				"python.linting.pydocstylePath": "/usr/local/py-utils/bin/pydocstyle",
+				"python.linting.pylintPath": "/usr/local/py-utils/bin/pylint"
 			}
 		}
 	}
-
 	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
 	// "remoteUser": "root"
 }
