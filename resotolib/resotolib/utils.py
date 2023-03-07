@@ -593,7 +593,9 @@ def merge_json_elements(
                     existing_value, merge_json_elements(existing_value, update_value, merge_strategy)
                 )
             else:
-                output[update_key] = merge_strategy(existing_value, deepcopy(update_value))
+                merge_result = merge_strategy(existing_value, deepcopy(update_value))
+                if merge_result is not None:
+                    output[update_key] = merge_result
 
     else:
         return merge_strategy(existing, deepcopy(update))
