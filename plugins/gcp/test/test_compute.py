@@ -1,5 +1,5 @@
 from resoto_plugin_gcp.resources.compute import *
-from .random_client import roundtrip, connect_resource
+from .random_client import roundtrip, connect_resource, FixturedClient
 
 
 def test_gcp_accelerator_type(random_builder: GraphBuilder) -> None:
@@ -103,7 +103,32 @@ def test_gcp_instance_template(random_builder: GraphBuilder) -> None:
 
 
 def test_gcp_instance(random_builder: GraphBuilder) -> None:
-    roundtrip(GcpInstance, random_builder)
+    gcp_instance = roundtrip(GcpInstance, random_builder)
+    connect_resource(random_builder, gcp_instance, GcpMachineType, selfLink=gcp_instance.instance_machine_type)
+    assert len(random_builder.edges_of(GcpMachineType, GcpInstance)) == 1
+
+
+def test_gcp_instance_custom_machine_type(random_builder: GraphBuilder) -> None:
+    CUSTOM_MACHINE_TYPE_PART = "/zones/us-east1-b/machineTypes/e2-custom-medium-1024"
+    CUSTOM_MACHINE_TYPE_FULL = (
+        f"https://www.googleapis.com/compute/v1/projects/{random_builder.project.id}/{CUSTOM_MACHINE_TYPE_PART}"
+    )
+    fixture_replies = {
+        "Instance": {"machineType": lambda: CUSTOM_MACHINE_TYPE_PART},
+        "MachineType": {"selfLink": lambda: CUSTOM_MACHINE_TYPE_FULL},
+    }
+    assert len(random_builder.resources_of(GcpMachineType)) == 0
+
+    with FixturedClient(random_builder, fixture_replies) as random_builder:
+        res = GcpInstance.collect_resources(random_builder)
+        for node, data in random_builder.graph.nodes(data=True):
+            node.connect_in_graph(random_builder, data.get("source") or {})
+        first_instance = res[0]
+
+    assert len(random_builder.resources_of(GcpMachineType)) == 1
+    only_machine_type = random_builder.resources_of(GcpMachineType)[0]
+    assert first_instance.instance_cores == only_machine_type.instance_cores
+    assert first_instance.instance_memory == only_machine_type.instance_memory
 
 
 def test_gcp_interconnect_attachment(random_builder: GraphBuilder) -> None:

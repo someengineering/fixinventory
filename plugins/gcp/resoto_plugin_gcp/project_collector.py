@@ -1,10 +1,11 @@
+from concurrent.futures import ThreadPoolExecutor
 import logging
 from queue import Queue
 from typing import Type, List
 
 from resoto_plugin_gcp import GcpConfig, Credentials
 from resoto_plugin_gcp.resources import compute, container, billing, sqladmin
-from resoto_plugin_gcp.resources.base import GcpResource, GcpProject, GraphBuilder, GcpRegion, GcpZone
+from resoto_plugin_gcp.resources.base import GcpResource, GcpProject, ExecutorQueue, GraphBuilder, GcpRegion, GcpZone
 from resotolib.baseresources import Cloud
 from resotolib.core.actions import CoreFeedback
 from resotolib.graph import Graph
@@ -25,34 +26,43 @@ class GcpProjectCollector:
         self.credentials = Credentials.get(self.project.id)
 
     def collect(self) -> None:
-        self.core_feedback.progress_done(self.project.dname, 0, 1, context=[self.cloud.id])
+        with ThreadPoolExecutor(
+            thread_name_prefix=f"gcp_{self.project.id}", max_workers=self.config.project_pool_size
+        ) as executor:
+            # The shared executor is used to parallelize the collection of resources "as fast as possible"
+            # It should only be used in scenarios, where it is safe to do so.
+            # This executor is shared between all regions.
+            shared_queue = ExecutorQueue(executor, self.project.safe_name)
+            global_builder = GraphBuilder(
+                self.graph, self.cloud, self.project, self.credentials, shared_queue, self.core_feedback
+            )
 
-        # fetch available regions and zones
-        global_builder = GraphBuilder(self.graph, self.cloud, self.project, self.credentials, self.core_feedback)
-        GcpRegion.collect_resources(global_builder)
-        global_builder.prepare_region_zone_lookup()
-        GcpZone.collect_resources(global_builder)
-        global_builder.prepare_region_zone_lookup()
+            # fetch available regions and zones
+            self.core_feedback.progress_done(self.project.dname, 0, 1, context=[self.cloud.id])
+            log.info(f"[Gcp:{self.project.id}] Collecting project wide resources.")
+            GcpRegion.collect_resources(global_builder)
+            global_builder.prepare_region_zone_lookup()
+            GcpZone.collect_resources(global_builder)
+            global_builder.prepare_region_zone_lookup()
 
-        # fetch all project level resources
-        for resource_class in all_resources:
-            if resource_class.api_spec and resource_class.api_spec.is_project_level:
-                log.info(f"Collecting {resource_class.__name__} for project {self.project.id}")
-                resource_class.collect_resources(global_builder)
+            # fetch all project level resources
+            for resource_class in all_resources:
+                if resource_class.api_spec and resource_class.api_spec.is_project_level:
+                    global_builder.submit_work(resource_class.collect_resources, global_builder)
 
-        # fetch all region level resources
-        for region in global_builder.resources_of(GcpRegion):
-            self.collect_region(region, global_builder.for_region(region))
-            pass
+            # fetch all region level resources
+            for region in global_builder.resources_of(GcpRegion):
+                global_builder.submit_work(self.collect_region, region, global_builder.for_region(region))
 
-        # connect nodes
-        for node, data in list(self.graph.nodes(data=True)):
-            if isinstance(node, GcpResource):
-                node.connect_in_graph(global_builder, data.get("source", {}))
+            global_builder.executor.wait_for_submitted_work()
+            # connect nodes
+            for node, data in list(self.graph.nodes(data=True)):
+                if isinstance(node, GcpResource):
+                    node.connect_in_graph(global_builder, data.get("source", {}))
 
-        self.core_feedback.progress_done(self.project.dname, 1, 1, context=[self.cloud.id])
+            self.core_feedback.progress_done(self.project.dname, 1, 1, context=[self.cloud.id])
 
-        log.info(f"[GCP:{self.project.id}] Collecting resources done.")
+            log.info(f"[GCP:{self.project.id}] Collecting resources done.")
 
     def collect_region(self, region: GcpRegion, regional_builder: GraphBuilder) -> None:
         # fetch all project level resources
@@ -67,9 +77,11 @@ if __name__ == "__main__":
     from google.oauth2.service_account import Credentials as OauthCredentials
 
     cloud = Cloud(id="Gcp", name="Gcp")
-    project = GcpProject(id="inbound-axon-320811", name="inbound-axon-320811")
+    project = GcpProject(id="vpc-host-nonprod-320811", name="vpc-host-nonprod-320811")
     feedback = CoreFeedback("test", "test", "test", Queue())
-    Credentials._credentials[project.id] = OauthCredentials.from_service_account_file("/Users/matthias/.gcp/test.json")
+    Credentials._credentials[project.id] = OauthCredentials.from_service_account_file(
+        "/Users/anja/.gcp/vpc_host_nonprod.json"
+    )
     Credentials._initialized = True
     collector = GcpProjectCollector(GcpConfig(), cloud, project, feedback)
     collector.collect()

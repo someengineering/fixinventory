@@ -1,11 +1,12 @@
 from datetime import datetime
-from typing import ClassVar, Dict, Optional, List, Tuple
+from typing import ClassVar, Dict, Optional, List, Tuple, Type
 
 from attr import define, field
 
 from resoto_plugin_gcp.gcp_client import GcpApiSpec
 from resoto_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus, GraphBuilder
 from resotolib.baseresources import (
+    BaseInstanceType,
     BaseVolumeType,
     ModelReference,
     BaseVolume,
@@ -1006,6 +1007,7 @@ class GcpFirewallPolicyRule:
     target_service_accounts: Optional[List[str]] = field(default=None)
 
 
+# TODO Firewall Policies are on org level, parentId is org id or folder id
 @define(eq=False, slots=False)
 class GcpFirewallPolicy(GcpResource):
     kind: ClassVar[str] = "gcp_firewall_policy"
@@ -2643,7 +2645,7 @@ class GcpInstance(GcpResource, BaseInstance):
         "instance_last_start_timestamp": S("lastStartTimestamp"),
         "instance_last_stop_timestamp": S("lastStopTimestamp"),
         "instance_last_suspended_timestamp": S("lastSuspendedTimestamp"),
-        # "instance_machine_type": S("machineType"),
+        "instance_machine_type": S("machineType"),
         "instance_metadata": S("metadata", default={}) >> Bend(GcpMetadata.mapping),
         "instance_min_cpu_platform": S("minCpuPlatform"),
         "instance_network_interfaces": S("networkInterfaces", default=[]) >> ForallBend(GcpNetworkInterface.mapping),
@@ -2694,6 +2696,7 @@ class GcpInstance(GcpResource, BaseInstance):
     instance_last_start_timestamp: Optional[datetime] = field(default=None)
     instance_last_stop_timestamp: Optional[datetime] = field(default=None)
     instance_last_suspended_timestamp: Optional[datetime] = field(default=None)
+    instance_machine_type: Optional[str] = field(default=None)
     instance_metadata: Optional[GcpMetadata] = field(default=None)
     instance_min_cpu_platform: Optional[str] = field(default=None)
     instance_network_interfaces: Optional[List[GcpNetworkInterface]] = field(default=None)
@@ -2715,17 +2718,48 @@ class GcpInstance(GcpResource, BaseInstance):
     instance_tags: Optional[GcpTags] = field(default=None)
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        # TODO: load custom machine types
-        pass
+        if self.instance_status == InstanceStatus.TERMINATED:
+            self._cleaned = True
+
+    def connect_machine_type(self, machine_type_link_ish: str, builder: GraphBuilder) -> None:
+        if not machine_type_link_ish.startswith("https://"):
+            machine_type_link_ish = (
+                f"https://www.googleapis.com/compute/v1/projects/{builder.project.id}/{machine_type_link_ish}"
+            )
+        machine_type = builder.node(clazz=GcpMachineType, link=machine_type_link_ish)
+        if machine_type:
+            self.instance_cores = machine_type.instance_cores
+            self.instance_memory = machine_type.instance_memory
+            self.instance_type = machine_type.name
+            builder.add_edge(from_node=self, reverse=True, node=machine_type)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
-        builder.add_edge(from_node=self, reverse=True, clazz=GcpMachineType, link=source["machineType"])
+        self.connect_machine_type(self.instance_machine_type, builder)
+
         for nic in self.instance_network_interfaces or []:
             builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=GcpNetwork, link=nic.network)
             builder.dependant_node(
                 self, reverse=True, delete_same_as_default=True, clazz=GcpSubnetwork, link=nic.subnetwork
             )
+
+    @classmethod
+    def collect(cls: Type[GcpResource], raw: List[Json], builder: GraphBuilder) -> List[GcpResource]:
+        # Additional behavior: iterate over list of collected GcpInstances and for each:
+        # - extract machineType if custom
+        # - then create GcpMachineType object for each unique custom machine type
+        # - add the new objects to the graph
+        result = super().collect(raw, builder)
+        custom_machine_types = list(
+            set([instance.instance_machine_type for instance in result if "custom" in instance.instance_machine_type])
+        )
+        for machine_type in custom_machine_types:
+            # example:
+            # https://www.googleapis.com/compute/v1/projects/proj/zones/us-east1-b/machineTypes/e2-custom-medium-1024
+            zone, _, name = machine_type.split("/")[-3:]
+            builder.submit_work(GcpMachineType.collect_individual, builder, zone, name)
+
+        return result
 
 
 @define(eq=False, slots=False)
@@ -3195,7 +3229,7 @@ class GcpAccelerators:
 
 
 @define(eq=False, slots=False)
-class GcpMachineType(GcpResource):
+class GcpMachineType(GcpResource, BaseInstanceType):
     kind: ClassVar[str] = "gcp_machine_type"
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
@@ -3212,27 +3246,47 @@ class GcpMachineType(GcpResource):
         "tags": S("labels", default={}),
         "name": S("name"),
         "ctime": S("creationTimestamp"),
+        "instance_type": S("name"),
+        "instance_cores": S("guestCpus") >> F(lambda x: float(x)),
+        "instance_memory": S("memoryMb") >> F(lambda x: float(x) / 1024),
         "description": S("description"),
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
         "type_accelerators": S("accelerators", default=[]) >> ForallBend(GcpAccelerators.mapping),
-        "type_guest_cpus": S("guestCpus"),
         "type_image_space_gb": S("imageSpaceGb"),
         "type_is_shared_cpu": S("isSharedCpu"),
         "type_maximum_persistent_disks": S("maximumPersistentDisks"),
         "type_maximum_persistent_disks_size_gb": S("maximumPersistentDisksSizeGb"),
-        "type_memory_mb": S("memoryMb"),
         "type_scratch_disks": S("scratchDisks", default=[]) >> ForallBend(S("diskGb")),
     }
     type_accelerators: Optional[List[GcpAccelerators]] = field(default=None)
-    type_guest_cpus: Optional[int] = field(default=None)
     type_image_space_gb: Optional[int] = field(default=None)
     type_is_shared_cpu: Optional[bool] = field(default=None)
     type_maximum_persistent_disks: Optional[int] = field(default=None)
     type_maximum_persistent_disks_size_gb: Optional[str] = field(default=None)
-    type_memory_mb: Optional[int] = field(default=None)
     type_scratch_disks: Optional[List[int]] = field(default=None)
+
+    @classmethod
+    def collect_individual(cls: Type[GcpResource], builder: GraphBuilder, zone: str, name: str) -> None:
+        api_spec: GcpApiSpec = GcpApiSpec(
+            service="compute",
+            version="v1",
+            accessors=["machineTypes"],
+            action="get",
+            response_path="",
+            request_parameter={"project": "{project}", "zone": "{zone}", "machineType": "{machineType}"},
+            request_parameter_in={"project", "zone", "machineType"},
+        )
+        result = builder.client.get(
+            api_spec,
+            zone=zone,
+            machineType=name,
+        )
+        machine_type_obj = GcpMachineType.from_api(result)
+        builder.add_node(machine_type_obj, result)
+
+    # TODO post process
 
 
 @define(eq=False, slots=False)
