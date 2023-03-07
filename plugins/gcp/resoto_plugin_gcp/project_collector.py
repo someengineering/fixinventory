@@ -27,14 +27,16 @@ class GcpProjectCollector:
         self.credentials = Credentials.get(self.project.id)
 
     def collect(self) -> None:
-          with ThreadPoolExecutor(
+        with ThreadPoolExecutor(
             thread_name_prefix=f"gcp_{self.project.id}", max_workers=self.config.project_pool_size
         ) as executor:
             # The shared executor is used to parallelize the collection of resources "as fast as possible"
             # It should only be used in scenarios, where it is safe to do so.
             # This executor is shared between all regions.
             shared_queue = ExecutorQueue(executor, self.project.safe_name)
-            global_builder = GraphBuilder(self.graph, self.cloud, self.project, self.credentials, shared_queue, self.core_feedback)
+            global_builder = GraphBuilder(
+                self.graph, self.cloud, self.project, self.credentials, shared_queue, self.core_feedback
+            )
 
             # fetch available regions and zones
             self.core_feedback.progress_done(self.project.dname, 0, 1, context=[self.cloud.id])
@@ -47,10 +49,7 @@ class GcpProjectCollector:
             # fetch all project level resources
             for resource_class in all_resources:
                 if resource_class.api_spec and resource_class.api_spec.is_project_level:
-                    global_builder.submit_work(
-                        resource_class.collect_resources,
-                        global_builder
-                    )
+                    global_builder.submit_work(resource_class.collect_resources, global_builder)
 
             # fetch all region level resources
             for region in global_builder.resources_of(GcpRegion):
@@ -81,7 +80,9 @@ if __name__ == "__main__":
     cloud = Cloud(id="Gcp", name="Gcp")
     project = GcpProject(id="vpc-host-nonprod-320811", name="vpc-host-nonprod-320811")
     feedback = CoreFeedback("test", "test", "test", Queue())
-    Credentials._credentials[project.id] = OauthCredentials.from_service_account_file("/Users/anja/.gcp/vpc_host_nonprod.json")
+    Credentials._credentials[project.id] = OauthCredentials.from_service_account_file(
+        "/Users/anja/.gcp/vpc_host_nonprod.json"
+    )
     Credentials._initialized = True
     collector = GcpProjectCollector(GcpConfig(), cloud, project, feedback)
     collector.collect()
