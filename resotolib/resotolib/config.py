@@ -116,7 +116,10 @@ class Config(metaclass=MetaConfig):
         if len(Config.running_config.classes) == 0:
             raise RuntimeError("No config added")
         with self._config_lock:
-            config = {}
+            config_json = {}
+            raw_config_json = {}
+            new_config = None
+            new_config_revision = None
 
             ############################################################
             # Load the config from the core, populate it with defaults
@@ -129,12 +132,14 @@ class Config(metaclass=MetaConfig):
                     self.config_name, self.resotocore_uri, verify=self.verify
                 )
                 # config with env_vars resolved and overrides applied
-                config = config_response["config"]
-                config = {k: replace_env_vars(v, os.environ, keep_unresolved=False) for k, v in config.items()}
+                config_json = config_response["config"]
+                config_json = {
+                    k: replace_env_vars(v, os.environ, keep_unresolved=False) for k, v in config_json.items()
+                }
                 # raw config as it was stored in the database, to be sent to the core
-                raw_config = config_response["raw_config"]
+                raw_config_json = config_response["raw_config"]
 
-                if len(config) == 0:
+                if len(config_json) == 0:
                     if self._initial_load:
                         raise ConfigNotFoundError("Empty config returned - loading defaults")
                     else:
@@ -143,17 +148,23 @@ class Config(metaclass=MetaConfig):
                 pass
             else:
                 log.info(f"Loaded config {self.config_name} revision {new_config_revision}")
-                new_config = Config.read_config(config)
+                new_config = Config.read_config(config_json)
                 # test if the config has changed using the most latest version
                 # with overrides applied and env_vars resolved
                 if reload and self.restart_required(new_config):
                     restart()
-                # load the raw config to update the config model in resotocore
-                # we don't want overrides and resolved env_vars to be sent to the core here
-                # read_as_json is used to avoid problems with unresolved env_vars
-                Config.running_config.data = Config.read_config(raw_config, read_as_json=True)
-                Config.running_config.revision = new_config_revision
+            # init the default config for merging the raw config into it
             self.init_default_config()
+            default_config_dict = self.dict()
+            # merge the raw config into the default config
+            raw_with_new_defaults = cast(Json, merge_json_elements(default_config_dict, raw_config_json))
+            # update the global config object with the merged config
+            Config.running_config.data = raw_with_new_defaults
+            # if the raw_config was not empty, we need to set the revision too
+            if new_config_revision:
+                Config.running_config.revision = new_config_revision
+
+            # now we're ready to send the raw config plus the new defaults to the core
             if self._initial_load:
                 # Try to store the generated config. Handle failure gracefully.
                 try:
@@ -166,10 +177,9 @@ class Config(metaclass=MetaConfig):
             # Once the core got the raw config, use the config with
             # overrides applied and env_vars resolved
             ############################################################
-
-            if self.apply_path_overrides_resolve_env_vars(Config.running_config, config):
-                # overrides were applied, init the defaults again
-                self.init_default_config()
+            # merge the config with overrides and env_vars into the default config
+            config_with_defaults = cast(Json, merge_json_elements(default_config_dict, config_json))
+            self.apply_path_overrides_resolve_env_vars(Config.running_config, config_with_defaults)
             self.override_config(Config.running_config)
             self._initial_load = False
             if not self._ce.is_alive():
