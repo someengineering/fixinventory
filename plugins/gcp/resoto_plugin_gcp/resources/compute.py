@@ -2754,7 +2754,8 @@ class GcpInstance(GcpResource, BaseInstance):
             set([instance.instance_machine_type for instance in result if "custom" in instance.instance_machine_type])
         )
         for machine_type in custom_machine_types:
-            # example: https://www.googleapis.com/compute/v1/projects/vpc-host-nonprod-320811/zones/us-east1-b/machineTypes/e2-custom-medium-1024
+            # example:
+            # https://www.googleapis.com/compute/v1/projects/proj/zones/us-east1-b/machineTypes/e2-custom-medium-1024
             zone, _, name = machine_type.split("/")[-3:]
             builder.submit_work(GcpMachineType.collect_individual, builder, zone, name)
 

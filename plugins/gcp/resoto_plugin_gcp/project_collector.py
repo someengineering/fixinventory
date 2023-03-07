@@ -8,7 +8,6 @@ from resoto_plugin_gcp.resources import compute, container, billing, sqladmin
 from resoto_plugin_gcp.resources.base import GcpResource, GcpProject, ExecutorQueue, GraphBuilder, GcpRegion, GcpZone
 from resotolib.baseresources import Cloud
 from resotolib.core.actions import CoreFeedback
-from resotolib.core.progress import ProgressDone, ProgressTree
 from resotolib.graph import Graph
 
 log = logging.getLogger("resoto.plugins.gcp")
