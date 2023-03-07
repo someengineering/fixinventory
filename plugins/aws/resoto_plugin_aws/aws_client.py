@@ -37,10 +37,9 @@ T = TypeVar("T")
 
 
 def is_retryable_exception(e: Exception) -> bool:
-    if isinstance(e, ClientError):
-        if e.response["Error"]["Code"] in RetryableErrors:
-            log.debug("AWS API request limit exceeded or throttling, retrying with exponential backoff")
-            return True
+    if isinstance(e, ClientError) and e.response["Error"]["Code"] in RetryableErrors:
+        log.debug("AWS API request limit exceeded or throttling, retrying with exponential backoff")
+        return True
     return False
 
 
@@ -205,12 +204,11 @@ class AwsClient:
             client.close()
 
     @retry(  # type: ignore
-        stop_max_attempt_number=10,
-        wait_exponential_multiplier=3000,
-        wait_exponential_max=300000,
+        stop_max_attempt_number=10,  # 10 attempts: 1000 max 60000: max wait time is 5 minutes
+        wait_exponential_multiplier=1000,
+        wait_exponential_max=60000,
         retry_on_exception=is_retryable_exception,
     )
-    @log_runtime
     def get_with_retry(
         self,
         aws_service: str,
