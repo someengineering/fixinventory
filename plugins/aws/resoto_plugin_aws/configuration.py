@@ -168,15 +168,15 @@ class AwsConfig:
     resource_pool_tasks_per_service_default: int = field(
         default=20,
         metadata={
-            "description": "Number of tasks to run in parallel per service and region.\n"
-            "Note that the number of executed tasks is limited by resource_pool_size.\n"
+            "description": "Number of collector threads to run in parallel per service and region.\n"
+            "Note that the total number of collector threads is limited by resource_pool_size.\n"
             "A value greater than the resource_pool_size does not have any effect."
         },
     )
     resource_pool_tasks_per_service: Dict[str, int] = field(
-        factory=dict,
+        factory=lambda: {"sagemaker": 6, "elb": 6},
         metadata={
-            "description": "Define the number of tasks allowed for any service.\n"
+            "description": "Define the number of collector threads allowed for an individual service.\n"
             "If the service is not defined here, the default value is used.\n"
             'Example: {"ec2": 10, "rds": 5}'
         },
@@ -231,8 +231,7 @@ class AwsConfig:
 
     def shared_tasks_per_key(self, regions: List[str]) -> Callable[[str], int]:
         # some services have known lower limits, the predefined limits can be overridden
-        predefined = {"sagemaker": 6, "elb": 6}
-        defined = predefined | (self.resource_pool_tasks_per_service or {})
+        defined = self.resource_pool_tasks_per_service or {}
         tpk = {region + ":" + service: num for region in regions for service, num in defined.items()}
 
         def shared_tasks_per_key(key: str) -> int:
