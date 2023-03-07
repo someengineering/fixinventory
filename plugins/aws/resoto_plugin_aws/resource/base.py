@@ -32,6 +32,7 @@ from resotolib.core.actions import CoreFeedback
 from resotolib.graph import Graph, EdgeKey, ByNodeId, BySearchCriteria, NodeSelector
 from resotolib.json import to_json as to_js, from_json as from_js
 from resotolib.json_bender import Bender, bend
+from resotolib.proc import set_thread_name
 from resotolib.types import Json
 
 log = logging.getLogger("resoto.plugins.aws")
@@ -325,6 +326,26 @@ class CancelOnFirstError(Exception):
     pass
 
 
+class GatherFutures:
+    def __init__(self, futures: List[Future[Any]]) -> None:
+        self._futures = futures
+        self._lock = Lock()
+        self._to_wait = len(futures)
+        self._when_done: Future[None] = Future()
+        for future in futures:
+            future.add_done_callback(self._on_future_done)
+
+    def _on_future_done(self, _: Future[Any]) -> None:
+        with self._lock:
+            self._to_wait -= 1
+            if self._to_wait == 0:
+                self._when_done.set_result(None)
+
+    @staticmethod
+    def all(futures: List[Future[Any]]) -> Future[None]:
+        return GatherFutures(futures)._when_done
+
+
 @define
 class ExecutorQueueTask:
     key: Any
@@ -482,7 +503,12 @@ class GraphBuilder:
         Note: the executor pool is shared between all regions and only allows the configured number of tasks per key.
               Key: RegionId:Service in the same region and the same service start only the configured number of tasks
         """
-        return self.executor.submit_work(self.region.id + ":" + service, fn, *args, **kwargs)
+
+        def fn_wrapper() -> T:
+            set_thread_name(f"aws_{self.account.id}_{self.region.id}_{service}")
+            return fn(*args, **kwargs)
+
+        return self.executor.submit_work(self.region.id + ":" + service, fn_wrapper)
 
     @property
     def config(self) -> AwsConfig:

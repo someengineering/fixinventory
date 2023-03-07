@@ -160,7 +160,7 @@ class AwsS3Bucket(AwsResource, BaseBucket):
                     "get-bucket-encryption",
                     "ServerSideEncryptionConfiguration.Rules",
                     Bucket=bck.name,
-                    expected_errors=["ServerSideEncryptionConfigurationNotFoundError"],
+                    expected_errors=["ServerSideEncryptionConfigurationNotFoundError", "NoSuchBucket"],
                 ):
                     mapped = bend(AwsS3ServerSideEncryptionRule.mapping, raw)
                     bck.bucket_encryption_rules.append(from_json(mapped, AwsS3ServerSideEncryptionRule))
@@ -172,13 +172,15 @@ class AwsS3Bucket(AwsResource, BaseBucket):
                     "get-bucket-policy",
                     "Policy",
                     Bucket=bck.name,
-                    expected_errors=["NoSuchBucketPolicy"],
+                    expected_errors=["NoSuchBucketPolicy", "NoSuchBucket"],
                 ):
                     bck.bucket_policy = json_loads(raw_policy)  # type: ignore # this is a string
 
         def add_bucket_versioning(bck: AwsS3Bucket) -> None:
             with suppress(Exception):
-                if raw_versioning := builder.client.get(service_name, "get-bucket-versioning", None, Bucket=bck.name):
+                if raw_versioning := builder.client.get(
+                    service_name, "get-bucket-versioning", None, Bucket=bck.name, expected_errors=["NoSuchBucket"]
+                ):
                     bck.bucket_versioning = raw_versioning.get("Status") == "Enabled"
                     bck.bucket_mfa_delete = raw_versioning.get("MFADelete") == "Enabled"
                 else:
@@ -192,7 +194,7 @@ class AwsS3Bucket(AwsResource, BaseBucket):
                     "get-public-access-block",
                     "PublicAccessBlockConfiguration",
                     Bucket=bck.name,
-                    expected_errors=["NoSuchPublicAccessBlockConfiguration"],
+                    expected_errors=["NoSuchPublicAccessBlockConfiguration", "NoSuchBucket"],
                 ):
                     mapped = bend(AwsS3PublicAccessBlockConfiguration.mapping, raw_access)
                     bck.bucket_public_access_block_configuration = from_json(
@@ -250,7 +252,7 @@ class AwsS3Bucket(AwsResource, BaseBucket):
             aws_service=service_name,
             action="get-bucket-tagging",
             result_name="TagSet",
-            expected_errors=["NoSuchTagSet"],
+            expected_errors=["NoSuchTagSet", "NoSuchBucket"],
             Bucket=self.name,
         )
         return tags_as_dict(tag_list)  # type: ignore

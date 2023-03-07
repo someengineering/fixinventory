@@ -317,7 +317,13 @@ class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for js in json:
             lb = AwsAlb.from_api(js)
-            tags = builder.client.list(service_name, "describe-tags", "TagDescriptions", ResourceArns=[lb.arn])
+            tags = builder.client.list(
+                service_name,
+                "describe-tags",
+                "TagDescriptions",
+                ResourceArns=[lb.arn],
+                expected_errors=["LoadBalancerNotFound"],
+            )
             if tags:
                 lb.tags = bend(S("Tags", default=[]) >> ToDict(), tags[0])
             for listener in builder.client.list(

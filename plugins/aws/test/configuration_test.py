@@ -20,7 +20,6 @@ def test_default_config() -> None:
     assert Config.aws.assume_current is False
     assert Config.aws.do_not_scrape_current is False
     assert Config.aws.account_pool_size == num_default_threads()
-    assert Config.aws.region_pool_size == 4
     assert len(Config.aws.collect) == 0
     assert len(Config.aws.no_collect) == 0
 
@@ -34,7 +33,7 @@ def test_session() -> None:
 
 def test_shared_tasks_per_key() -> None:
     config = AwsConfig(
-        "test", "test", "test", shared_pool_parallelism=20, shared_pool_parallelism_overrides={"test": 3}
+        "test", "test", "test", resource_pool_tasks_per_service_default=20, resource_pool_tasks_per_service={"test": 3}
     )
     tpk = config.shared_tasks_per_key(["eu-central-1"])
     assert tpk("eu-central-1:foo") == 20  # default
