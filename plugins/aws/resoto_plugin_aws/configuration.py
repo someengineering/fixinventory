@@ -226,7 +226,8 @@ class AwsConfig:
         return True
 
     def shared_tasks_per_key(self, regions: List[str]) -> Callable[[str], int]:
-        predefined = {"sagemaker": 2}
+        # some services have known lower limits, the predefined limits can be overridden
+        predefined = {"sagemaker": 2, "elb": 2}
         defined = predefined | (self.shared_pool_parallelism_overrides or {})
         tpk = {region + ":" + service: num for region in regions for service, num in defined.items()}
 
