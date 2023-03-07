@@ -161,21 +161,25 @@ class AwsConfig:
             "Note: increasing this number will result in increased cpu and memory usage."
         },
     )
-    region_pool_size: int = field(
-        default=4, metadata={"description": "Number of regions to scrape in parallel per account."}
-    )
-    shared_pool_size: int = field(
-        default=20,
+    resource_pool_size: int = field(
+        default=64,
         metadata={"description": "Number of shared threads available per account."},
     )
-    shared_pool_parallelism: int = field(
-        default=20, metadata={"description": "Number of threads to run in parallel per region and service."}
+    resource_pool_tasks_per_service_default: int = field(
+        default=20,
+        metadata={
+            "description": "Number of collector threads to run in parallel per service and region.\n"
+            "Note that the total number of collector threads is limited by resource_pool_size.\n"
+            "A value greater than the resource_pool_size does not have any effect."
+        },
     )
-    shared_pool_parallelism_overrides: Dict[str, int] = field(
-        factory=dict, metadata={"description": "Overrides for parallelism per service. E.g. ec2: 4"}
-    )
-    region_resources_pool_size: int = field(
-        default=2, metadata={"description": "Number of resource types to collect in parallel per single region."}
+    resource_pool_tasks_per_service: Dict[str, int] = field(
+        factory=lambda: {"sagemaker": 6, "elb": 6},
+        metadata={
+            "description": "Define the number of collector threads allowed for an individual service.\n"
+            "If the service is not defined here, the default value is used.\n"
+            'Example: {"ec2": 10, "rds": 5}'
+        },
     )
     collect: List[str] = field(
         factory=list,
@@ -227,14 +231,13 @@ class AwsConfig:
 
     def shared_tasks_per_key(self, regions: List[str]) -> Callable[[str], int]:
         # some services have known lower limits, the predefined limits can be overridden
-        predefined = {"sagemaker": 2, "elb": 2}
-        defined = predefined | (self.shared_pool_parallelism_overrides or {})
+        defined = self.resource_pool_tasks_per_service or {}
         tpk = {region + ":" + service: num for region in regions for service, num in defined.items()}
 
         def shared_tasks_per_key(key: str) -> int:
-            value = tpk.get(key) or self.shared_pool_parallelism
+            value = tpk.get(key) or self.resource_pool_tasks_per_service_default
             # make sure that tasks_per_key is at least 1 and not more than shared_pool_parallelism
-            return max(min(value, self.shared_pool_parallelism), 1)
+            return max(min(value, self.resource_pool_tasks_per_service_default), 1)
 
         return shared_tasks_per_key
 

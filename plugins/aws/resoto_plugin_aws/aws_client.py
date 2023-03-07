@@ -309,10 +309,9 @@ class AwsClient:
                 f" is not authorized! Giving up: {e}"
             )
             accumulate("UnauthorizedOperation", "Call to AWS API is not authorized!")
-            raise e  # not allowed to collect in account/region
         elif code in RetryableErrors:
-            log.error(f"Call to {aws_service} action {action} has been retried too many times. Giving up: {e}")
-            accumulate("TooManyRetries", "Call has been retried too often.")
+            log.warning(f"Call to {aws_service} action {action} failed and will be retried eventually. Error: {e}")
+            accumulate("FailedAndRetried", f"Retryable call has failed: {code}.")
             raise e  # already have been retried, give up here
         else:
             log.error(

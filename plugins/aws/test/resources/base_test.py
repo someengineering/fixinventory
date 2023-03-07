@@ -1,9 +1,10 @@
-from concurrent.futures import ThreadPoolExecutor
-from typing import Sequence, Tuple, List, Optional, Callable
+from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor, Future
+from typing import Sequence, Tuple, List, Optional, Callable, Any
 
 from more_itertools import flatten
 
-from resoto_plugin_aws.resource.base import ExecutorQueue, AwsRegion, GraphBuilder
+from resoto_plugin_aws.resource.base import ExecutorQueue, AwsRegion, GraphBuilder, GatherFutures
 from resoto_plugin_aws.resource.ec2 import AwsEc2InstanceType
 from test import account_collector, builder, aws_client, aws_config, no_feedback  # noqa: F401
 
@@ -92,3 +93,23 @@ def test_instance_type_handling(builder: GraphBuilder) -> None:
     assert it2.region() == region2
     assert it1 is not it2
     assert it1.chksum != it2.chksum
+
+
+def test_future_gatherer() -> None:
+    def do_work(num: int) -> int:
+        # sleep(0.1)
+        return num
+
+    groups = []
+
+    def check_done(f: Future[Any]) -> None:
+        groups.append(f)
+
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        work = defaultdict(list)
+        for i in range(100):
+            work[i % 10].append(executor.submit(do_work, i))
+
+        for group in work.values():
+            GatherFutures.all(group).add_done_callback(check_done)
+    assert len(groups) == 10

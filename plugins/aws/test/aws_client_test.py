@@ -1,6 +1,5 @@
 from typing import Tuple
 
-import pytest
 from botocore.exceptions import ClientError
 
 from resoto_plugin_aws.aws_client import AwsClient, ErrorAccumulator, is_retryable_exception
@@ -37,9 +36,7 @@ def test_error_handling() -> None:
 
     unauthorized_client, accu_unauthorized = with_error("UnauthorizedOperation", "Err!")
     # this error is raised for the operation
-    with pytest.raises(ClientError) as ex:
-        unauthorized_client.list("ec2", "foo", None)
-    assert str(ex.value) == "An error occurred (UnauthorizedOperation) when calling the foo operation: Err!"
+    unauthorized_client.list("ec2", "foo", None)
     assert len(accu_unauthorized.regional_errors) == 1
     # we can silent this error by passing the expected error code
     assert unauthorized_client.list("ec2", "foo", None, ["UnauthorizedOperation"]) == []

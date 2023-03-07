@@ -209,7 +209,13 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_tags(elb: AwsElb) -> None:
-            tags = builder.client.list(service_name, "describe-tags", "TagDescriptions", LoadBalancerNames=[elb.name])
+            tags = builder.client.list(
+                service_name,
+                "describe-tags",
+                "TagDescriptions",
+                LoadBalancerNames=[elb.name],
+                expected_errors=["LoadBalancerNotFound"],
+            )
             if tags:
                 elb.tags = bend(S("Tags", default=[]) >> ToDict(), tags[0])
 
