@@ -3,7 +3,7 @@ import string
 import sys
 from collections import defaultdict
 from datetime import datetime
-from typing import Any, Dict, Type, Callable
+from typing import Any, Dict, Type, Callable, Optional
 from typing import Tuple, List
 
 from google.auth.credentials import AnonymousCredentials
@@ -46,7 +46,7 @@ def random_ipv4() -> str:
     return ".".join(str(random_int(0, 255)) for _ in range(4))
 
 
-def random_choice(choices: list) -> Any:
+def random_choice(choices: list[Any]) -> Any:
     return random.choice(choices)
 
 
@@ -54,7 +54,7 @@ def random_datetime() -> str:
     return utc_str(datetime.fromtimestamp(random_int(1400000000, 1600000000)))
 
 
-IDCounter = defaultdict(int)
+IDCounter: Dict[str, int] = defaultdict(int)
 
 # random client: will not return any regions or zones
 PredefinedResults = {
@@ -65,7 +65,7 @@ PredefinedResults = {
 PredefinedDictKeys = {".items": [a.id for a in random_zones]}
 
 # type_name -> property_name -> callable that returns fixed value
-FixtureReplies: Dict[str, Dict[str, callable]] = {}
+FixtureReplies: Dict[str, Dict[str, Callable[[], JsonElement]]] = {}
 
 # type_name -> property_name -> parameter_name
 Overrides: Dict[str, Dict[str, str]] = {}
@@ -73,15 +73,17 @@ Overrides: Dict[str, Dict[str, str]] = {}
 
 def random_json(schemas: Dict[str, Schema], response_schema: Schema, parameter: Json) -> JsonElement:
     def value_for(schema: Schema, level: int, path: str) -> JsonElement:
-        def prop_value(type_name: str, name: str, prop_schema: Schema) -> JsonElement:
-            if fixture_reply := value_in_path(FixtureReplies, [type_name, name]):
-                return fixture_reply()
-            elif (override_name := value_in_path(Overrides, [type_name, name])) and (
-                override := parameter.get(override_name)
+        def prop_value(type_name: Optional[str], name: str, prop_schema: Schema) -> JsonElement:
+            if type_name and (fixture_reply := value_in_path(FixtureReplies, [type_name, name])):
+                return fixture_reply()  # type: ignore
+            elif (
+                type_name
+                and (override_name := value_in_path(Overrides, [type_name, name]))
+                and (override := parameter.get(override_name))
             ):
-                return override
+                return override  # type: ignore
             # create "referencable" ids
-            elif name == "id" and prop_schema.get("type") == "string":
+            elif type_name and name == "id" and prop_schema.get("type") == "string":
                 IDCounter[type_name] += 1
                 return f"{type_name}-{IDCounter[type_name]}"
             elif name == "creationTimestamp":
@@ -89,7 +91,7 @@ def random_json(schemas: Dict[str, Schema], response_schema: Schema, parameter: 
             elif name == "kind":
                 return type_name
             elif name == RegionProp:
-                return random_choice(random_regions).id
+                return random_choice(random_regions).id  # type: ignore
             elif (
                 not Overrides  # only if no override is defined explicitly
                 and prop_schema.get("type") == "string"  # only if the property is a string
@@ -99,7 +101,7 @@ def random_json(schemas: Dict[str, Schema], response_schema: Schema, parameter: 
                 # use the parameter value as the property value
                 # idea: request instance=foo, will use foo as value for all properties with name containing "instance"
                 # note: this is a best effort approach to get more meaningful objects
-                return matching_parameter[0]
+                return matching_parameter[0]  # type: ignore
             else:
                 return value_for(prop_schema, level + 1, f"{path}.{name}")
 
@@ -116,7 +118,7 @@ def random_json(schemas: Dict[str, Schema], response_schema: Schema, parameter: 
                 count = random_int(1, 3)
                 return [value_for(schema["items"], level + 1, f"{path}[]") for _ in range(count)]
             elif schema["type"] == "string" and "enum" in schema:
-                return random_choice(schema["enum"])
+                return random_choice(schema["enum"])  # type: ignore
             elif schema["type"] == "string" and "in RFC3339 text format" in schema.get("description", ""):
                 return random_datetime()
             elif schema["type"] == "string" and "URL" in schema.get("description", ""):
@@ -132,7 +134,7 @@ def random_json(schemas: Dict[str, Schema], response_schema: Schema, parameter: 
             elif schema["type"] == "integer":
                 return random_int()
             elif schema["type"] == "boolean":
-                return random_choice([True, False])
+                return random_choice([True, False])  # type: ignore
             elif schema["type"] == "any":
                 return {random_string(): random_string(), random_string(): random_int()}
         if "$ref" in schema:
@@ -148,7 +150,7 @@ class RandomDataClient:
         self.version = version
         self.root = root
         self.schemas = root["schemas"]
-        self.path = []
+        self.path: List[Any] = []
         self.next_pages = random_int(0, 1)
 
     def execute(self) -> JsonElement:
@@ -163,7 +165,7 @@ class RandomDataClient:
         return PredefinedResults.get(f"{self.service}.{path_full}", random_json(self.schemas, response_kind, kwargs))
 
     def __getattr__(self, name: Any) -> Any:
-        def add_path(*args, **kwargs) -> Any:
+        def add_path(*args: Any, **kwargs: Any) -> Any:
             if name.endswith("_next") and self.next_pages > 0:
                 # simulate paging
                 self.next_pages -= 1
@@ -182,7 +184,7 @@ class RandomDataClient:
         return add_path
 
 
-def build_random_data_client(service: str, version: str, *args, **kwargs) -> RandomDataClient:
+def build_random_data_client(service: str, version: str, *args: Any, **kwargs: Any) -> RandomDataClient:
     """
     This is the random data client discovery function (replaces discovery.build in tests).
     """
@@ -269,15 +271,15 @@ class FixturedClient:
     ```
     """
 
-    def __init__(self, random_builder: GraphBuilder, fixtures: Dict[str, Dict[str, callable]]):
+    def __init__(self, random_builder: GraphBuilder, fixtures: Dict[str, Dict[str, Callable[[], Any]]]):
         self.fixtures = fixtures
         self.random_builder = random_builder
 
-    def __enter__(self):
+    def __enter__(self) -> GraphBuilder:
         global FixtureReplies
         FixtureReplies = self.fixtures or {}
         return self.random_builder
 
-    def __exit__(self, *args):
+    def __exit__(self, *args: Any) -> None:
         global FixtureReplies
-        FixtureReplies = None
+        FixtureReplies = {}

@@ -1,5 +1,6 @@
 from resoto_plugin_gcp.resources.compute import *
 from .random_client import roundtrip, connect_resource, FixturedClient
+from resoto_plugin_gcp.resources.base import GraphBuilder
 
 
 def test_gcp_accelerator_type(random_builder: GraphBuilder) -> None:
@@ -8,7 +9,7 @@ def test_gcp_accelerator_type(random_builder: GraphBuilder) -> None:
 
 def test_gcp_address(random_builder: GraphBuilder) -> None:
     address = roundtrip(GcpAddress, random_builder)
-    connect_resource(random_builder, address, GcpSubnetwork, selfLink=address.address_subnetwork)
+    connect_resource(random_builder, address, GcpSubnetwork, selfLink=address.subnetwork)
     assert len(random_builder.edges_of(GcpSubnetwork, GcpAddress)) == 1
 
 
@@ -24,11 +25,13 @@ def test_gcp_backend_bucket(random_builder: GraphBuilder) -> None:
 
 def test_gcp_backend_service(random_builder: GraphBuilder) -> None:
     service = roundtrip(GcpBackendService, random_builder)
-    connect_resource(random_builder, service, GcpHealthCheck, selfLink=service.service_health_checks[0])
+    assert service.health_checks
+    assert service.backends
+    connect_resource(random_builder, service, GcpHealthCheck, selfLink=service.health_checks[0])
     assert len(random_builder.edges_of(GcpBackendService, GcpHealthCheck)) == 1
-    connect_resource(random_builder, service, GcpInstanceGroup, selfLink=service.service_backends[0].group)
+    connect_resource(random_builder, service, GcpInstanceGroup, selfLink=service.backends[0].group)
     assert len(random_builder.edges_of(GcpBackendService, GcpInstanceGroup)) == 1
-    connect_resource(random_builder, service, GcpNetwork, selfLink=service.service_network)
+    connect_resource(random_builder, service, GcpNetwork, selfLink=service.network)
     assert len(random_builder.edges_of(GcpNetwork, GcpBackendService)) == 1
 
 
@@ -48,13 +51,15 @@ def test_gcp_external_vpn_gateway(random_builder: GraphBuilder) -> None:
 
 def test_gcp_firewall_policy(random_builder: GraphBuilder) -> None:
     policy = roundtrip(GcpFirewallPolicy, random_builder)
-    connect_resource(random_builder, policy, GcpNetwork, selfLink=policy.policy_rules[0].target_resources[0])
+    assert policy.rules
+    assert policy.rules[0].target_resources
+    connect_resource(random_builder, policy, GcpNetwork, selfLink=policy.rules[0].target_resources[0])
     assert len(random_builder.edges_of(GcpFirewallPolicy, GcpNetwork)) == 1
 
 
 def test_gcp_firewall(random_builder: GraphBuilder) -> None:
     firewall = roundtrip(GcpFirewall, random_builder)
-    connect_resource(random_builder, firewall, GcpNetwork, selfLink=firewall.firewall_network)
+    connect_resource(random_builder, firewall, GcpNetwork, selfLink=firewall.network)
     assert len(random_builder.edges_of(GcpFirewall, GcpNetwork)) == 1
 
 
@@ -104,7 +109,7 @@ def test_gcp_instance_template(random_builder: GraphBuilder) -> None:
 
 def test_gcp_instance(random_builder: GraphBuilder) -> None:
     gcp_instance = roundtrip(GcpInstance, random_builder)
-    connect_resource(random_builder, gcp_instance, GcpMachineType, selfLink=gcp_instance.instance_machine_type)
+    connect_resource(random_builder, gcp_instance, GcpMachineType, selfLink=gcp_instance.machine_type)
     assert len(random_builder.edges_of(GcpMachineType, GcpInstance)) == 1
 
 
@@ -120,10 +125,10 @@ def test_gcp_instance_custom_machine_type(random_builder: GraphBuilder) -> None:
     assert len(random_builder.resources_of(GcpMachineType)) == 0
 
     with FixturedClient(random_builder, fixture_replies) as random_builder:
-        res = GcpInstance.collect_resources(random_builder)
+        res: List[GcpInstance] = GcpInstance.collect_resources(random_builder)  # type: ignore
         for node, data in random_builder.graph.nodes(data=True):
             node.connect_in_graph(random_builder, data.get("source") or {})
-        first_instance = res[0]
+        first_instance: GcpInstance = res[0]
 
     assert len(random_builder.resources_of(GcpMachineType)) == 1
     only_machine_type = random_builder.resources_of(GcpMachineType)[0]

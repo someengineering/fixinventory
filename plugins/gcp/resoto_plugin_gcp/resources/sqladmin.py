@@ -1,5 +1,5 @@
 import logging
-from typing import ClassVar, Dict, Optional, List
+from typing import ClassVar, Dict, Optional, List, Type
 
 from attr import define, field
 
@@ -45,37 +45,37 @@ class GcpSqlBackupRun(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "run_backup_kind": S("backupKind"),
-        "run_disk_encryption_configuration": S("diskEncryptionConfiguration", "kmsKeyName"),
-        "run_disk_encryption_status": S("diskEncryptionStatus", "kmsKeyVersionName"),
-        "run_end_time": S("endTime"),
-        "run_enqueued_time": S("enqueuedTime"),
-        "run_error": S("error", default={}) >> Bend(GcpSqlOperationError.mapping),
-        "run_instance": S("instance"),
-        "run_location": S("location"),
-        "run_start_time": S("startTime"),
-        "run_status": S("status"),
-        "run_time_zone": S("timeZone"),
-        "run_type": S("type"),
-        "run_window_start_time": S("windowStartTime"),
+        "backup_kind": S("backupKind"),
+        "disk_encryption_configuration": S("diskEncryptionConfiguration", "kmsKeyName"),
+        "disk_encryption_status": S("diskEncryptionStatus", "kmsKeyVersionName"),
+        "end_time": S("endTime"),
+        "enqueued_time": S("enqueuedTime"),
+        "error": S("error", default={}) >> Bend(GcpSqlOperationError.mapping),
+        "instance": S("instance"),
+        "location": S("location"),
+        "start_time": S("startTime"),
+        "status": S("status"),
+        "time_zone": S("timeZone"),
+        "type": S("type"),
+        "window_start_time": S("windowStartTime"),
     }
-    run_backup_kind: Optional[str] = field(default=None)
-    run_disk_encryption_configuration: Optional[str] = field(default=None)
-    run_disk_encryption_status: Optional[str] = field(default=None)
-    run_end_time: Optional[str] = field(default=None)
-    run_enqueued_time: Optional[str] = field(default=None)
-    run_error: Optional[GcpSqlOperationError] = field(default=None)
-    run_instance: Optional[str] = field(default=None)
-    run_location: Optional[str] = field(default=None)
-    run_start_time: Optional[str] = field(default=None)
-    run_status: Optional[str] = field(default=None)
-    run_time_zone: Optional[str] = field(default=None)
-    run_type: Optional[str] = field(default=None)
-    run_window_start_time: Optional[str] = field(default=None)
+    backup_kind: Optional[str] = field(default=None)
+    disk_encryption_configuration: Optional[str] = field(default=None)
+    disk_encryption_status: Optional[str] = field(default=None)
+    end_time: Optional[str] = field(default=None)
+    enqueued_time: Optional[str] = field(default=None)
+    error: Optional[GcpSqlOperationError] = field(default=None)
+    instance: Optional[str] = field(default=None)
+    location: Optional[str] = field(default=None)
+    start_time: Optional[str] = field(default=None)
+    status: Optional[str] = field(default=None)
+    time_zone: Optional[str] = field(default=None)
+    type: Optional[str] = field(default=None)
+    window_start_time: Optional[str] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if self.run_instance:
-            builder.add_edge(self, reverse=True, clazz=GcpSqlDatabaseInstance, name=self.run_instance)
+        if self.instance:
+            builder.add_edge(self, reverse=True, clazz=GcpSqlDatabaseInstance, name=self.instance)
 
 
 @define(eq=False, slots=False)
@@ -112,24 +112,24 @@ class GcpSqlDatabase(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "database_charset": S("charset"),
-        "database_collation": S("collation"),
-        "database_etag": S("etag"),
-        "database_instance": S("instance"),
-        "database_project": S("project"),
-        "database_sqlserver_database_details": S("sqlserverDatabaseDetails", default={})
+        "charset": S("charset"),
+        "collation": S("collation"),
+        "etag": S("etag"),
+        "instance": S("instance"),
+        "project": S("project"),
+        "sqlserver_database_details": S("sqlserverDatabaseDetails", default={})
         >> Bend(GcpSqlSqlServerDatabaseDetails.mapping),
     }
-    database_charset: Optional[str] = field(default=None)
-    database_collation: Optional[str] = field(default=None)
-    database_etag: Optional[str] = field(default=None)
-    database_instance: Optional[str] = field(default=None)
-    database_project: Optional[str] = field(default=None)
-    database_sqlserver_database_details: Optional[GcpSqlSqlServerDatabaseDetails] = field(default=None)
+    charset: Optional[str] = field(default=None)
+    collation: Optional[str] = field(default=None)
+    etag: Optional[str] = field(default=None)
+    instance: Optional[str] = field(default=None)
+    project: Optional[str] = field(default=None)
+    sqlserver_database_details: Optional[GcpSqlSqlServerDatabaseDetails] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if self.database_instance:
-            builder.add_edge(self, reverse=True, clazz=GcpSqlDatabaseInstance, name=self.database_instance)
+        if self.instance:
+            builder.add_edge(self, reverse=True, clazz=GcpSqlDatabaseInstance, name=self.instance)
 
 
 @define(eq=False, slots=False)
@@ -154,23 +154,23 @@ class GcpSqlFlag(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "flag_allowed_int_values": S("allowedIntValues", default=[]),
-        "flag_allowed_string_values": S("allowedStringValues", default=[]),
-        "flag_applies_to": S("appliesTo", default=[]),
-        "flag_in_beta": S("inBeta"),
-        "flag_max_value": S("maxValue"),
-        "flag_min_value": S("minValue"),
-        "flag_requires_restart": S("requiresRestart"),
-        "flag_type": S("type"),
+        "allowed_int_values": S("allowedIntValues", default=[]),
+        "allowed_string_values": S("allowedStringValues", default=[]),
+        "applies_to": S("appliesTo", default=[]),
+        "in_beta": S("inBeta"),
+        "max_value": S("maxValue"),
+        "min_value": S("minValue"),
+        "requires_restart": S("requiresRestart"),
+        "type": S("type"),
     }
-    flag_allowed_int_values: Optional[List[str]] = field(default=None)
-    flag_allowed_string_values: Optional[List[str]] = field(default=None)
-    flag_applies_to: Optional[List[str]] = field(default=None)
-    flag_in_beta: Optional[bool] = field(default=None)
-    flag_max_value: Optional[str] = field(default=None)
-    flag_min_value: Optional[str] = field(default=None)
-    flag_requires_restart: Optional[bool] = field(default=None)
-    flag_type: Optional[str] = field(default=None)
+    allowed_int_values: Optional[List[str]] = field(default=None)
+    allowed_string_values: Optional[List[str]] = field(default=None)
+    applies_to: Optional[List[str]] = field(default=None)
+    in_beta: Optional[bool] = field(default=None)
+    max_value: Optional[str] = field(default=None)
+    min_value: Optional[str] = field(default=None)
+    requires_restart: Optional[bool] = field(default=None)
+    type: Optional[str] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -555,83 +555,83 @@ class GcpSqlDatabaseInstance(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "instance_available_maintenance_versions": S("availableMaintenanceVersions", default=[]),
-        "instance_backend_type": S("backendType"),
-        "instance_connection_name": S("connectionName"),
-        "instance_create_time": S("createTime"),
-        "instance_current_disk_size": S("currentDiskSize"),
-        "instance_database_installed_version": S("databaseInstalledVersion"),
-        "instance_database_version": S("databaseVersion"),
-        "instance_disk_encryption_configuration": S("diskEncryptionConfiguration", "kmsKeyName"),
-        "instance_disk_encryption_status": S("diskEncryptionStatus", "kmsKeyVersionName"),
-        "instance_etag": S("etag"),
-        "instance_failover_replica": S("failoverReplica", default={}) >> Bend(GcpSqlFailoverreplica.mapping),
-        "instance_gce_zone": S("gceZone"),
-        "instance_instance_type": S("instanceType"),
-        "instance_ip_addresses": S("ipAddresses", default=[]) >> ForallBend(GcpSqlIpMapping.mapping),
-        "instance_ipv6_address": S("ipv6Address"),
-        "instance_maintenance_version": S("maintenanceVersion"),
-        "instance_master_instance_name": S("masterInstanceName"),
-        "instance_max_disk_size": S("maxDiskSize"),
-        "instance_on_premises_configuration": S("onPremisesConfiguration", default={})
+        "available_maintenance_versions": S("availableMaintenanceVersions", default=[]),
+        "backend_type": S("backendType"),
+        "connection_name": S("connectionName"),
+        "create_time": S("createTime"),
+        "current_disk_size": S("currentDiskSize"),
+        "database_installed_version": S("databaseInstalledVersion"),
+        "database_version": S("databaseVersion"),
+        "disk_encryption_configuration": S("diskEncryptionConfiguration", "kmsKeyName"),
+        "disk_encryption_status": S("diskEncryptionStatus", "kmsKeyVersionName"),
+        "etag": S("etag"),
+        "failover_replica": S("failoverReplica", default={}) >> Bend(GcpSqlFailoverreplica.mapping),
+        "gce_zone": S("gceZone"),
+        "instance_type": S("instanceType"),
+        "ip_addresses": S("ipAddresses", default=[]) >> ForallBend(GcpSqlIpMapping.mapping),
+        "ipv6_address": S("ipv6Address"),
+        "maintenance_version": S("maintenanceVersion"),
+        "master_instance_name": S("masterInstanceName"),
+        "max_disk_size": S("maxDiskSize"),
+        "on_premises_configuration": S("onPremisesConfiguration", default={})
         >> Bend(GcpSqlOnPremisesConfiguration.mapping),
-        "instance_out_of_disk_report": S("outOfDiskReport", default={}) >> Bend(GcpSqlSqlOutOfDiskReport.mapping),
-        "instance_project": S("project"),
-        "instance_replica_configuration": S("replicaConfiguration", default={})
-        >> Bend(GcpSqlReplicaConfiguration.mapping),
-        "instance_replica_names": S("replicaNames", default=[]),
-        "instance_satisfies_pzs": S("satisfiesPzs"),
-        "instance_scheduled_maintenance": S("scheduledMaintenance", default={})
-        >> Bend(GcpSqlSqlScheduledMaintenance.mapping),
-        "instance_secondary_gce_zone": S("secondaryGceZone"),
-        "instance_server_ca_cert": S("serverCaCert", default={}) >> Bend(GcpSqlSslCert.mapping),
-        "instance_service_account_email_address": S("serviceAccountEmailAddress"),
-        "instance_settings": S("settings", default={}) >> Bend(GcpSqlSettings.mapping),
-        "instance_state": S("state"),
-        "instance_suspension_reason": S("suspensionReason", default=[]),
+        "out_of_disk_report": S("outOfDiskReport", default={}) >> Bend(GcpSqlSqlOutOfDiskReport.mapping),
+        "project": S("project"),
+        "replica_configuration": S("replicaConfiguration", default={}) >> Bend(GcpSqlReplicaConfiguration.mapping),
+        "replica_names": S("replicaNames", default=[]),
+        "root_password": S("rootPassword"),
+        "satisfies_pzs": S("satisfiesPzs"),
+        "scheduled_maintenance": S("scheduledMaintenance", default={}) >> Bend(GcpSqlSqlScheduledMaintenance.mapping),
+        "secondary_gce_zone": S("secondaryGceZone"),
+        "server_ca_cert": S("serverCaCert", default={}) >> Bend(GcpSqlSslCert.mapping),
+        "service_account_email_address": S("serviceAccountEmailAddress"),
+        "settings": S("settings", default={}) >> Bend(GcpSqlSettings.mapping),
+        "state": S("state"),
+        "suspension_reason": S("suspensionReason", default=[]),
     }
-    instance_available_maintenance_versions: Optional[List[str]] = field(default=None)
-    instance_backend_type: Optional[str] = field(default=None)
-    instance_connection_name: Optional[str] = field(default=None)
-    instance_create_time: Optional[str] = field(default=None)
-    instance_current_disk_size: Optional[str] = field(default=None)
-    instance_database_installed_version: Optional[str] = field(default=None)
-    instance_database_version: Optional[str] = field(default=None)
-    instance_disk_encryption_configuration: Optional[str] = field(default=None)
-    instance_disk_encryption_status: Optional[str] = field(default=None)
-    instance_etag: Optional[str] = field(default=None)
-    instance_failover_replica: Optional[GcpSqlFailoverreplica] = field(default=None)
-    instance_gce_zone: Optional[str] = field(default=None)
-    instance_instance_type: Optional[str] = field(default=None)
-    instance_ip_addresses: Optional[List[GcpSqlIpMapping]] = field(default=None)
-    instance_ipv6_address: Optional[str] = field(default=None)
-    instance_maintenance_version: Optional[str] = field(default=None)
-    instance_master_instance_name: Optional[str] = field(default=None)
-    instance_max_disk_size: Optional[str] = field(default=None)
-    instance_on_premises_configuration: Optional[GcpSqlOnPremisesConfiguration] = field(default=None)
-    instance_out_of_disk_report: Optional[GcpSqlSqlOutOfDiskReport] = field(default=None)
-    instance_project: Optional[str] = field(default=None)
-    instance_replica_configuration: Optional[GcpSqlReplicaConfiguration] = field(default=None)
-    instance_replica_names: Optional[List[str]] = field(default=None)
-    instance_root_password: Optional[str] = field(default=None)
-    instance_satisfies_pzs: Optional[bool] = field(default=None)
-    instance_scheduled_maintenance: Optional[GcpSqlSqlScheduledMaintenance] = field(default=None)
-    instance_secondary_gce_zone: Optional[str] = field(default=None)
-    instance_server_ca_cert: Optional[GcpSqlSslCert] = field(default=None)
-    instance_service_account_email_address: Optional[str] = field(default=None)
-    instance_settings: Optional[GcpSqlSettings] = field(default=None)
-    instance_state: Optional[str] = field(default=None)
-    instance_suspension_reason: Optional[List[str]] = field(default=None)
+    available_maintenance_versions: Optional[List[str]] = field(default=None)
+    backend_type: Optional[str] = field(default=None)
+    connection_name: Optional[str] = field(default=None)
+    create_time: Optional[str] = field(default=None)
+    current_disk_size: Optional[str] = field(default=None)
+    database_installed_version: Optional[str] = field(default=None)
+    database_version: Optional[str] = field(default=None)
+    disk_encryption_configuration: Optional[str] = field(default=None)
+    disk_encryption_status: Optional[str] = field(default=None)
+    etag: Optional[str] = field(default=None)
+    failover_replica: Optional[GcpSqlFailoverreplica] = field(default=None)
+    gce_zone: Optional[str] = field(default=None)
+    instance_type: Optional[str] = field(default=None)
+    ip_addresses: Optional[List[GcpSqlIpMapping]] = field(default=None)
+    ipv6_address: Optional[str] = field(default=None)
+    maintenance_version: Optional[str] = field(default=None)
+    master_instance_name: Optional[str] = field(default=None)
+    max_disk_size: Optional[str] = field(default=None)
+    on_premises_configuration: Optional[GcpSqlOnPremisesConfiguration] = field(default=None)
+    out_of_disk_report: Optional[GcpSqlSqlOutOfDiskReport] = field(default=None)
+    project: Optional[str] = field(default=None)
+    replica_configuration: Optional[GcpSqlReplicaConfiguration] = field(default=None)
+    replica_names: Optional[List[str]] = field(default=None)
+    root_password: Optional[str] = field(default=None)
+    satisfies_pzs: Optional[bool] = field(default=None)
+    scheduled_maintenance: Optional[GcpSqlSqlScheduledMaintenance] = field(default=None)
+    secondary_gce_zone: Optional[str] = field(default=None)
+    server_ca_cert: Optional[GcpSqlSslCert] = field(default=None)
+    service_account_email_address: Optional[str] = field(default=None)
+    settings: Optional[GcpSqlSettings] = field(default=None)
+    state: Optional[str] = field(default=None)
+    suspension_reason: Optional[List[str]] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if cert := self.instance_server_ca_cert:
+        if cert := self.server_ca_cert:
             if cert.self_link:
                 builder.add_edge(self, reverse=True, clazz=GcpSslCertificate, link=cert.self_link)
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        for cls in [GcpSqlBackupRun, GcpSqlDatabase, GcpSqlUser]:
+        classes: List[Type[GcpResource]] = [GcpSqlBackupRun, GcpSqlDatabase, GcpSqlUser]
+        for cls in classes:
             if spec := cls.api_spec:
-                items = graph_builder.client.list(spec, instance=self.name, project=self.instance_project)
+                items = graph_builder.client.list(spec, instance=self.name, project=self.project)
                 cls.collect(items, graph_builder)
 
 
@@ -783,37 +783,37 @@ class GcpSqlOperation(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "operation_backup_context": S("backupContext", "backupId"),
-        "operation_end_time": S("endTime"),
-        "operation_error": S("error", default={}) >> Bend(GcpSqlOperationErrors.mapping),
-        "operation_export_context": S("exportContext", default={}) >> Bend(GcpSqlExportContext.mapping),
-        "operation_import_context": S("importContext", default={}) >> Bend(GcpSqlImportContext.mapping),
-        "operation_insert_time": S("insertTime"),
-        "operation_operation_type": S("operationType"),
-        "operation_start_time": S("startTime"),
-        "operation_status": S("status"),
-        "operation_target_id": S("targetId"),
-        "operation_target_link": S("targetLink"),
-        "operation_target_project": S("targetProject"),
-        "operation_user": S("user"),
+        "backup_context": S("backupContext", "backupId"),
+        "end_time": S("endTime"),
+        "error": S("error", default={}) >> Bend(GcpSqlOperationErrors.mapping),
+        "export_context": S("exportContext", default={}) >> Bend(GcpSqlExportContext.mapping),
+        "import_context": S("importContext", default={}) >> Bend(GcpSqlImportContext.mapping),
+        "insert_time": S("insertTime"),
+        "operation_type": S("operationType"),
+        "start_time": S("startTime"),
+        "status": S("status"),
+        "target_id": S("targetId"),
+        "target_link": S("targetLink"),
+        "target_project": S("targetProject"),
+        "user": S("user"),
     }
-    operation_backup_context: Optional[str] = field(default=None)
-    operation_end_time: Optional[str] = field(default=None)
-    operation_error: Optional[GcpSqlOperationErrors] = field(default=None)
-    operation_export_context: Optional[GcpSqlExportContext] = field(default=None)
-    operation_import_context: Optional[GcpSqlImportContext] = field(default=None)
-    operation_insert_time: Optional[str] = field(default=None)
-    operation_operation_type: Optional[str] = field(default=None)
-    operation_start_time: Optional[str] = field(default=None)
-    operation_status: Optional[str] = field(default=None)
-    operation_target_id: Optional[str] = field(default=None)
-    operation_target_link: Optional[str] = field(default=None)
-    operation_target_project: Optional[str] = field(default=None)
-    operation_user: Optional[str] = field(default=None)
+    backup_context: Optional[str] = field(default=None)
+    end_time: Optional[str] = field(default=None)
+    error: Optional[GcpSqlOperationErrors] = field(default=None)
+    export_context: Optional[GcpSqlExportContext] = field(default=None)
+    import_context: Optional[GcpSqlImportContext] = field(default=None)
+    insert_time: Optional[str] = field(default=None)
+    operation_type: Optional[str] = field(default=None)
+    start_time: Optional[str] = field(default=None)
+    status: Optional[str] = field(default=None)
+    target_id: Optional[str] = field(default=None)
+    target_link: Optional[str] = field(default=None)
+    target_project: Optional[str] = field(default=None)
+    user: Optional[str] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if self.operation_target_id:
-            builder.add_edge(self, reverse=True, clazz=GcpSqlDatabaseInstance, name=self.operation_target_id)
+        if self.target_id:
+            builder.add_edge(self, reverse=True, clazz=GcpSqlDatabaseInstance, name=self.target_id)
 
 
 @define(eq=False, slots=False)
@@ -875,27 +875,28 @@ class GcpSqlUser(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "user_dual_password_type": S("dualPasswordType"),
-        "user_etag": S("etag"),
-        "user_host": S("host"),
-        "user_instance": S("instance"),
-        "user_password_policy": S("passwordPolicy", default={}) >> Bend(GcpSqlUserPasswordValidationPolicy.mapping),
-        "user_project": S("project"),
-        "user_sqlserver_user_details": S("sqlserverUserDetails", default={})
-        >> Bend(GcpSqlSqlServerUserDetails.mapping),
-        "user_type": S("type"),
+        "dual_password_type": S("dualPasswordType"),
+        "etag": S("etag"),
+        "host": S("host"),
+        "instance": S("instance"),
+        "password": S("password"),
+        "password_policy": S("passwordPolicy", default={}) >> Bend(GcpSqlUserPasswordValidationPolicy.mapping),
+        "project": S("project"),
+        "sqlserver_user_details": S("sqlserverUserDetails", default={}) >> Bend(GcpSqlSqlServerUserDetails.mapping),
+        "type": S("type"),
     }
-    user_dual_password_type: Optional[str] = field(default=None)
-    user_etag: Optional[str] = field(default=None)
-    user_host: Optional[str] = field(default=None)
-    user_instance: Optional[str] = field(default=None)
-    user_password_policy: Optional[GcpSqlUserPasswordValidationPolicy] = field(default=None)
-    user_project: Optional[str] = field(default=None)
-    user_sqlserver_user_details: Optional[GcpSqlSqlServerUserDetails] = field(default=None)
-    user_type: Optional[str] = field(default=None)
+    dual_password_type: Optional[str] = field(default=None)
+    etag: Optional[str] = field(default=None)
+    host: Optional[str] = field(default=None)
+    instance: Optional[str] = field(default=None)
+    password: Optional[str] = field(default=None)
+    password_policy: Optional[GcpSqlUserPasswordValidationPolicy] = field(default=None)
+    project: Optional[str] = field(default=None)
+    sqlserver_user_details: Optional[GcpSqlSqlServerUserDetails] = field(default=None)
+    type: Optional[str] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if self.user_instance:
+        if self.instance:
             builder.add_edge(self, reverse=True, clazz=GcpSqlDatabaseInstance)
 
 

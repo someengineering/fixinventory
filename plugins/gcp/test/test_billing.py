@@ -1,5 +1,6 @@
 from .random_client import roundtrip, json_roundtrip
 from resoto_plugin_gcp.resources.billing import *
+from resoto_plugin_gcp.resources.base import GraphBuilder
 
 
 def test_gcp_billing_account(random_builder: GraphBuilder) -> None:

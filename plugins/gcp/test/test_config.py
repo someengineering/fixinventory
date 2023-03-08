@@ -3,7 +3,7 @@ from resotolib.config import Config
 from resoto_plugin_gcp import GCPCollectorPlugin
 
 
-def test_args():
+def test_args() -> None:
     config = Config("dummy", "dummy")
     GCPCollectorPlugin.add_config(config)
     Config.init_default_config()
