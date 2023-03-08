@@ -5,6 +5,7 @@ from typing import Optional, List, Dict, Tuple, Callable, AsyncIterator
 from aiostream import stream
 from attr import evolve, define
 
+from resotocore.analytics import CoreEvent
 from resotocore.cli.cli import CLI
 from resotocore.cli.model import CLIContext
 from resotocore.config import ConfigEntity, ConfigHandler
@@ -59,6 +60,7 @@ class InspectorService(Inspector, Service):
         self.cli = cli
         self.template_expander = cli.dependencies.template_expander
         self.model_handler = cli.dependencies.model_handler
+        self.event_sender = cli.dependencies.event_sender
 
     async def start(self) -> None:
         # TODO: we need a migration path for checks added in existing configs
@@ -196,6 +198,7 @@ class InspectorService(Inspector, Service):
         perform_checks = await self.list_checks(check_ids=benchmark.nested_checks())
         check_by_id = {c.id: c for c in perform_checks}
         result = await self.__perform_checks(graph, perform_checks, context)
+        await self.event_sender.core_event(CoreEvent.BenchmarkPerformed, {"benchmark": benchmark.id})
 
         def to_result(cc: CheckCollection) -> CheckCollectionResult:
             check_results = [CheckResult(check_by_id[cid], result.get(cid, {})) for cid in cc.checks or []]
