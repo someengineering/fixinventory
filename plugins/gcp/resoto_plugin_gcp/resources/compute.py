@@ -336,9 +336,9 @@ class GcpBackendBucket(GcpResource):
         response_regional_sub_path=None,
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id").or_else(S("name")).or_else(S("selfLink")),
+        "id": S("id").or_else(S("bucketName")).or_else(S("selfLink")),
         "tags": S("labels", default={}),
-        "name": S("name"),
+        "name": S("bucketName"),
         "ctime": S("creationTimestamp"),
         "description": S("description"),
         "link": S("selfLink"),
