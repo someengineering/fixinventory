@@ -48,13 +48,15 @@ class ConfigHandlerService(ConfigHandler):
 
     async def coerce_and_check_model(self, cfg_id: ConfigId, config: Json, validate: bool = True) -> Json:
         model = await self.get_configs_model()
+        # filter config roots to match top level entries in config
+        config_roots = {kind.fqn: kind for kind in model.complex_kinds() if kind.aggregate_root}
 
         final_config = {}
         if validate:
             for key, value in config.items():
-                if key in model:
+                if key in config_roots:
                     try:
-                        value_kind = model[key]
+                        value_kind = config_roots[key]
                         coerced = value_kind.check_valid(value, normalize=False, config_context=True)
                         final_config[key] = value_kind.sort_json(coerced or value)
                     except Exception as ex:
