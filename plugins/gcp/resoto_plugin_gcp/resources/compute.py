@@ -2949,11 +2949,11 @@ class GcpInterconnectOutageNotification:
     }
     affected_circuits: Optional[List[str]] = field(default=None)
     description: Optional[str] = field(default=None)
-    end_time: Optional[str] = field(default=None)
+    end_time: Optional[datetime] = field(default=None)
     issue_type: Optional[str] = field(default=None)
     name: Optional[str] = field(default=None)
     source: Optional[str] = field(default=None)
-    start_time: Optional[str] = field(default=None)
+    start_time: Optional[datetime] = field(default=None)
     state: Optional[str] = field(default=None)
 
 
@@ -3423,7 +3423,7 @@ class GcpNodeGroupMaintenanceWindow:
         "start_time": S("startTime"),
     }
     maintenance_duration: Optional[GcpDuration] = field(default=None)
-    start_time: Optional[str] = field(default=None)
+    start_time: Optional[datetime] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -4248,7 +4248,7 @@ class GcpSslCertificate(GcpResource):
         "type": S("type"),
     }
     certificate: Optional[str] = field(default=None)
-    expire_time: Optional[str] = field(default=None)
+    expire_time: Optional[datetime] = field(default=None)
     managed: Optional[GcpSslCertificateManagedSslCertificate] = field(default=None)
     private_key: Optional[str] = field(default=None)
     self_managed: Optional[GcpSslCertificateSelfManagedSslCertificate] = field(default=None)
@@ -4826,8 +4826,8 @@ class GcpResourcePolicyInstanceSchedulePolicy:
         "vm_start_schedule": S("vmStartSchedule", "schedule"),
         "vm_stop_schedule": S("vmStopSchedule", "schedule"),
     }
-    expiration_time: Optional[str] = field(default=None)
-    start_time: Optional[str] = field(default=None)
+    expiration_time: Optional[datetime] = field(default=None)
+    start_time: Optional[datetime] = field(default=None)
     time_zone: Optional[str] = field(default=None)
     vm_start_schedule: Optional[str] = field(default=None)
     vm_stop_schedule: Optional[str] = field(default=None)
@@ -4840,8 +4840,8 @@ class GcpResourcePolicyResourceStatusInstanceSchedulePolicyStatus:
         "last_run_start_time": S("lastRunStartTime"),
         "next_run_start_time": S("nextRunStartTime"),
     }
-    last_run_start_time: Optional[str] = field(default=None)
-    next_run_start_time: Optional[str] = field(default=None)
+    last_run_start_time: Optional[datetime] = field(default=None)
+    next_run_start_time: Optional[datetime] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -4877,7 +4877,7 @@ class GcpResourcePolicyDailyCycle:
     }
     days_in_cycle: Optional[int] = field(default=None)
     duration: Optional[str] = field(default=None)
-    start_time: Optional[str] = field(default=None)
+    start_time: Optional[datetime] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -4890,7 +4890,7 @@ class GcpResourcePolicyHourlyCycle:
     }
     duration: Optional[str] = field(default=None)
     hours_in_cycle: Optional[int] = field(default=None)
-    start_time: Optional[str] = field(default=None)
+    start_time: Optional[datetime] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -4899,7 +4899,7 @@ class GcpResourcePolicyWeeklyCycleDayOfWeek:
     mapping: ClassVar[Dict[str, Bender]] = {"day": S("day"), "duration": S("duration"), "start_time": S("startTime")}
     day: Optional[str] = field(default=None)
     duration: Optional[str] = field(default=None)
-    start_time: Optional[str] = field(default=None)
+    start_time: Optional[datetime] = field(default=None)
 
 
 @define(eq=False, slots=False)

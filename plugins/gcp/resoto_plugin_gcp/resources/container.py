@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import ClassVar, Dict, Optional, List
 
 from attr import define, field
@@ -59,7 +60,7 @@ class GcpContainerAutoUpgradeOptions:
         "auto_upgrade_start_time": S("autoUpgradeStartTime"),
         "description": S("description"),
     }
-    auto_upgrade_start_time: Optional[str] = field(default=None)
+    auto_upgrade_start_time: Optional[datetime] = field(default=None)
     description: Optional[str] = field(default=None)
 
 
@@ -273,7 +274,7 @@ class GcpContainerDailyMaintenanceWindow:
     kind: ClassVar[str] = "gcp_container_daily_maintenance_window"
     mapping: ClassVar[Dict[str, Bender]] = {"duration": S("duration"), "start_time": S("startTime")}
     duration: Optional[str] = field(default=None)
-    start_time: Optional[str] = field(default=None)
+    start_time: Optional[datetime] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -284,9 +285,9 @@ class GcpContainerTimeWindow:
         "maintenance_exclusion_options": S("maintenanceExclusionOptions", "scope"),
         "start_time": S("startTime"),
     }
-    end_time: Optional[str] = field(default=None)
+    end_time: Optional[datetime] = field(default=None)
     maintenance_exclusion_options: Optional[str] = field(default=None)
-    start_time: Optional[str] = field(default=None)
+    start_time: Optional[datetime] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -652,7 +653,7 @@ class GcpContainerBlueGreenInfo:
         "phase": S("phase"),
     }
     blue_instance_group_urls: Optional[List[str]] = field(default=None)
-    blue_pool_deletion_start_time: Optional[str] = field(default=None)
+    blue_pool_deletion_start_time: Optional[datetime] = field(default=None)
     green_instance_group_urls: Optional[List[str]] = field(default=None)
     green_pool_version: Optional[str] = field(default=None)
     phase: Optional[str] = field(default=None)
@@ -862,7 +863,7 @@ class GcpContainerCluster(GcpResource):
     conditions: Optional[List[GcpContainerStatusCondition]] = field(default=None)
     confidential_nodes: Optional[bool] = field(default=None)
     cost_management_config: Optional[bool] = field(default=None)
-    create_time: Optional[str] = field(default=None)
+    create_time: Optional[datetime] = field(default=None)
     current_master_version: Optional[str] = field(default=None)
     current_node_count: Optional[int] = field(default=None)
     current_node_version: Optional[str] = field(default=None)
@@ -872,7 +873,7 @@ class GcpContainerCluster(GcpResource):
     enable_tpu: Optional[bool] = field(default=None)
     endpoint: Optional[str] = field(default=None)
     etag: Optional[str] = field(default=None)
-    expire_time: Optional[str] = field(default=None)
+    expire_time: Optional[datetime] = field(default=None)
     identity_service_config: Optional[bool] = field(default=None)
     initial_cluster_version: Optional[str] = field(default=None)
     initial_node_count: Optional[int] = field(default=None)
@@ -991,13 +992,13 @@ class GcpContainerOperation(GcpResource):
     }
     cluster_conditions: Optional[List[GcpContainerStatusCondition]] = field(default=None)
     detail: Optional[str] = field(default=None)
-    end_time: Optional[str] = field(default=None)
+    end_time: Optional[datetime] = field(default=None)
     error: Optional[GcpContainerStatus] = field(default=None)
     location: Optional[str] = field(default=None)
     nodepool_conditions: Optional[List[GcpContainerStatusCondition]] = field(default=None)
     operation_type: Optional[str] = field(default=None)
     progress: Optional[GcpContainerOperationProgress] = field(default=None)
-    start_time: Optional[str] = field(default=None)
+    start_time: Optional[datetime] = field(default=None)
     status: Optional[str] = field(default=None)
     status_message: Optional[str] = field(default=None)
     target_link: Optional[str] = field(default=None)

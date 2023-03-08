@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import ClassVar, Dict, Optional, List
 
 from attr import define, field
@@ -211,7 +212,7 @@ class GcpPricingInfo:
     }
     aggregation_info: Optional[GcpAggregationInfo] = field(default=None)
     currency_conversion_rate: Optional[float] = field(default=None)
-    effective_time: Optional[str] = field(default=None)
+    effective_time: Optional[datetime] = field(default=None)
     pricing_expression: Optional[GcpPricingExpression] = field(default=None)
     summary: Optional[str] = field(default=None)
 

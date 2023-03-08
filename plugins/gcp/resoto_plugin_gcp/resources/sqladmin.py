@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime
 from typing import ClassVar, Dict, Optional, List, Type
 
 from attr import define, field
@@ -62,16 +63,16 @@ class GcpSqlBackupRun(GcpResource):
     backup_kind: Optional[str] = field(default=None)
     disk_encryption_configuration: Optional[str] = field(default=None)
     disk_encryption_status: Optional[str] = field(default=None)
-    end_time: Optional[str] = field(default=None)
-    enqueued_time: Optional[str] = field(default=None)
+    end_time: Optional[datetime] = field(default=None)
+    enqueued_time: Optional[datetime] = field(default=None)
     error: Optional[GcpSqlOperationError] = field(default=None)
     instance: Optional[str] = field(default=None)
     location: Optional[str] = field(default=None)
-    start_time: Optional[str] = field(default=None)
+    start_time: Optional[datetime] = field(default=None)
     status: Optional[str] = field(default=None)
     time_zone: Optional[str] = field(default=None)
     type: Optional[str] = field(default=None)
-    window_start_time: Optional[str] = field(default=None)
+    window_start_time: Optional[datetime] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.instance:
@@ -287,8 +288,8 @@ class GcpSqlSqlScheduledMaintenance:
     }
     can_defer: Optional[bool] = field(default=None)
     can_reschedule: Optional[bool] = field(default=None)
-    schedule_deadline_time: Optional[str] = field(default=None)
-    start_time: Optional[str] = field(default=None)
+    schedule_deadline_time: Optional[datetime] = field(default=None)
+    start_time: Optional[datetime] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -307,8 +308,8 @@ class GcpSqlSslCert:
     cert: Optional[str] = field(default=None)
     cert_serial_number: Optional[str] = field(default=None)
     common_name: Optional[str] = field(default=None)
-    create_time: Optional[str] = field(default=None)
-    expiration_time: Optional[str] = field(default=None)
+    create_time: Optional[datetime] = field(default=None)
+    expiration_time: Optional[datetime] = field(default=None)
     instance: Optional[str] = field(default=None)
     self_link: Optional[str] = field(default=None)
     sha1_fingerprint: Optional[str] = field(default=None)
@@ -345,7 +346,7 @@ class GcpSqlBackupConfiguration:
     location: Optional[str] = field(default=None)
     point_in_time_recovery_enabled: Optional[bool] = field(default=None)
     replication_log_archiving_enabled: Optional[bool] = field(default=None)
-    start_time: Optional[str] = field(default=None)
+    start_time: Optional[datetime] = field(default=None)
     transaction_log_retention_days: Optional[int] = field(default=None)
 
 
@@ -391,7 +392,7 @@ class GcpSqlAclEntry:
         "name": S("name"),
         "value": S("value"),
     }
-    expiration_time: Optional[str] = field(default=None)
+    expiration_time: Optional[datetime] = field(default=None)
     name: Optional[str] = field(default=None)
     value: Optional[str] = field(default=None)
 
@@ -550,7 +551,7 @@ class GcpSqlDatabaseInstance(GcpResource):
         "id": S("id").or_else(S("name")).or_else(S("selfLink")),
         "tags": S("labels", default={}),
         "name": S("name"),
-        "ctime": S("creationTimestamp"),
+        "ctime": S("createTime"),
         "description": S("description"),
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
@@ -592,7 +593,7 @@ class GcpSqlDatabaseInstance(GcpResource):
     available_maintenance_versions: Optional[List[str]] = field(default=None)
     backend_type: Optional[str] = field(default=None)
     connection_name: Optional[str] = field(default=None)
-    create_time: Optional[str] = field(default=None)
+    create_time: Optional[datetime] = field(default=None)
     current_disk_size: Optional[str] = field(default=None)
     database_installed_version: Optional[str] = field(default=None)
     database_version: Optional[str] = field(default=None)
@@ -798,13 +799,13 @@ class GcpSqlOperation(GcpResource):
         "user": S("user"),
     }
     backup_context: Optional[str] = field(default=None)
-    end_time: Optional[str] = field(default=None)
+    end_time: Optional[datetime] = field(default=None)
     error: Optional[GcpSqlOperationErrors] = field(default=None)
     export_context: Optional[GcpSqlExportContext] = field(default=None)
     import_context: Optional[GcpSqlImportContext] = field(default=None)
-    insert_time: Optional[str] = field(default=None)
+    insert_time: Optional[datetime] = field(default=None)
     operation_type: Optional[str] = field(default=None)
-    start_time: Optional[str] = field(default=None)
+    start_time: Optional[datetime] = field(default=None)
     status: Optional[str] = field(default=None)
     target_id: Optional[str] = field(default=None)
     target_link: Optional[str] = field(default=None)
@@ -824,7 +825,7 @@ class GcpSqlPasswordStatus:
         "password_expiration_time": S("passwordExpirationTime"),
     }
     locked: Optional[bool] = field(default=None)
-    password_expiration_time: Optional[str] = field(default=None)
+    password_expiration_time: Optional[datetime] = field(default=None)
 
 
 @define(eq=False, slots=False)

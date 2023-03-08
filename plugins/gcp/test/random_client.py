@@ -74,6 +74,7 @@ Overrides: Dict[str, Dict[str, str]] = {}
 def random_json(schemas: Dict[str, Schema], response_schema: Schema, parameter: Json) -> JsonElement:
     def value_for(schema: Schema, level: int, path: str) -> JsonElement:
         def prop_value(type_name: Optional[str], name: str, prop_schema: Schema) -> JsonElement:
+            # noinspection PyUnboundLocalVariable
             if type_name and (fixture_reply := value_in_path(FixtureReplies, [type_name, name])):
                 return fixture_reply()  # type: ignore
             elif (
@@ -86,7 +87,7 @@ def random_json(schemas: Dict[str, Schema], response_schema: Schema, parameter: 
             elif type_name and name == "id" and prop_schema.get("type") == "string":
                 IDCounter[type_name] += 1
                 return f"{type_name}-{IDCounter[type_name]}"
-            elif name == "creationTimestamp":
+            elif name == "creationTimestamp" or name.endswith("Time"):
                 return random_datetime()
             elif name == "kind":
                 return type_name
