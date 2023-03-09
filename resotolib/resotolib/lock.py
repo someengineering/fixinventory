@@ -27,7 +27,7 @@ class RWLock:
     and is licensed under the MIT license.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.__read_switch = _LightSwitch()
         self.__write_switch = _LightSwitch()
         self.__no_readers = threading.Lock()
@@ -37,46 +37,46 @@ class RWLock:
         cases (see [2] for a discussion)"""
 
         class _ReadAccess:
-            def __init__(self, rwlock: RWLock):
+            def __init__(self, rwlock: RWLock) -> None:
                 self.rwlock = rwlock
 
-            def __enter__(self):
+            def __enter__(self) -> RWLock:
                 self.rwlock.reader_acquire()
                 return self.rwlock
 
-            def __exit__(self, typ, value, tb):
+            def __exit__(self, typ, value, tb) -> None:
                 self.rwlock.reader_release()
 
         self.read_access = _ReadAccess(self)
 
         class _WriteAccess:
-            def __init__(self, rwlock: RWLock):
+            def __init__(self, rwlock: RWLock) -> None:
                 self.rwlock = rwlock
 
-            def __enter__(self):
+            def __enter__(self) -> RWLock:
                 self.rwlock.writer_acquire()
                 return self.rwlock
 
-            def __exit__(self, typ, value, tb):
+            def __exit__(self, typ, value, tb) -> None:
                 self.rwlock.writer_release()
 
         self.write_access = _WriteAccess(self)
 
-    def reader_acquire(self):
+    def reader_acquire(self) -> None:
         self.__readers_queue.acquire()
         self.__no_readers.acquire()
         self.__read_switch.acquire(self.__no_writers)
         self.__no_readers.release()
         self.__readers_queue.release()
 
-    def reader_release(self):
+    def reader_release(self) -> None:
         self.__read_switch.release(self.__no_writers)
 
-    def writer_acquire(self):
+    def writer_acquire(self) -> None:
         self.__write_switch.acquire(self.__no_readers)
         self.__no_writers.acquire()
 
-    def writer_release(self):
+    def writer_release(self) -> None:
         self.__no_writers.release()
         self.__write_switch.release(self.__no_readers)
 
@@ -85,18 +85,18 @@ class _LightSwitch:
     """An auxiliary "light switch"-like object. The first thread turns on the
     "switch", the last one turns it off (see [1, sec. 4.2.2] for details)."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.__counter = 0
         self.__mutex = threading.Lock()
 
-    def acquire(self, lock):
+    def acquire(self, lock) -> None:
         self.__mutex.acquire()
         self.__counter += 1
         if self.__counter == 1:
             lock.acquire()
         self.__mutex.release()
 
-    def release(self, lock):
+    def release(self, lock) -> None:
         self.__mutex.acquire()
         self.__counter -= 1
         if self.__counter == 0:

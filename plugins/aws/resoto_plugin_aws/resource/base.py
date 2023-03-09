@@ -32,6 +32,7 @@ from resotolib.core.actions import CoreFeedback
 from resotolib.graph import Graph, EdgeKey, ByNodeId, BySearchCriteria, NodeSelector
 from resotolib.json import to_json as to_js, from_json as from_js
 from resotolib.json_bender import Bender, bend
+from resotolib.lock import RWLock
 from resotolib.proc import set_thread_name
 from resotolib.types import Json
 
@@ -482,8 +483,8 @@ class GraphBuilder:
         executor: ExecutorQueue,
         core_feedback: CoreFeedback,
         global_instance_types: Optional[Dict[str, Any]] = None,
-        graph_nodes_access: Optional[Lock] = None,
-        graph_edges_access: Optional[Lock] = None,
+        graph_nodes_access: Optional[RWLock] = None,
+        graph_edges_access: Optional[RWLock] = None,
     ) -> None:
         self.graph = graph
         self.cloud = cloud
@@ -494,8 +495,8 @@ class GraphBuilder:
         self.name = f"AWS:{account.name}:{region.name}"
         self.global_instance_types: Dict[str, Any] = global_instance_types if global_instance_types is not None else {}
         self.core_feedback = core_feedback
-        self.graph_nodes_access = graph_nodes_access or Lock()
-        self.graph_edges_access = graph_edges_access or Lock()
+        self.graph_nodes_access = graph_nodes_access or RWLock()
+        self.graph_edges_access = graph_edges_access or RWLock()
 
     def submit_work(self, service: str, fn: Callable[..., T], *args: Any, **kwargs: Any) -> Future[T]:
         """
@@ -517,7 +518,7 @@ class GraphBuilder:
     def node(self, clazz: Optional[Type[AwsResourceType]] = None, **node: Any) -> Optional[AwsResourceType]:
         if isinstance(nd := node.get("node"), AwsResource):
             return nd  # type: ignore
-        with self.graph_nodes_access:
+        with self.graph_nodes_access.read_access:
             for n in self.graph:
                 is_clazz = isinstance(n, clazz) if clazz else True
                 if is_clazz and all(getattr(n, k, None) == v for k, v in node.items()):
@@ -525,7 +526,7 @@ class GraphBuilder:
         return None
 
     def nodes(self, clazz: Optional[Type[AwsResourceType]] = None, **node: Any) -> Iterator[AwsResourceType]:
-        with self.graph_nodes_access:
+        with self.graph_nodes_access.read_access:
             for n in self.graph:
                 is_clazz = isinstance(n, clazz) if clazz else True
                 if is_clazz and all(getattr(n, k, None) == v for k, v in node.items()):
@@ -545,7 +546,7 @@ class GraphBuilder:
         node._cloud = self.cloud
         node._account = self.account
         node._region = region or self.region
-        with self.graph_nodes_access:
+        with self.graph_nodes_access.write_access:
             self.graph.add_node(node, source=source or {})
         return node
 
@@ -555,7 +556,7 @@ class GraphBuilder:
         to_n = self.node(**to_node)
         if isinstance(from_node, AwsResource) and isinstance(to_n, AwsResource):
             start, end = (to_n, from_node) if reverse else (from_node, to_n)
-            with self.graph_edges_access:
+            with self.graph_edges_access.write_access:
                 self.graph.add_edge(start, end, edge_type=edge_type)
 
     def add_deferred_edge(
@@ -573,7 +574,7 @@ class GraphBuilder:
         if isinstance(from_node, AwsResource) and isinstance(to_n, AwsResource):
             start, end = (to_n, from_node) if reverse else (from_node, to_n)
             log.debug(f"{self.name}: add edge: {start} -> {end} [default]")
-            with self.graph_edges_access:
+            with self.graph_edges_access.write_access:
                 self.graph.add_edge(start, end, edge_type=EdgeType.default)
                 if delete_same_as_default:
                     start, end = end, start
@@ -581,13 +582,13 @@ class GraphBuilder:
                 self.graph.add_edge(end, start, edge_type=EdgeType.delete)
 
     def resources_of(self, resource_type: Type[AwsResourceType]) -> List[AwsResourceType]:
-        with self.graph_nodes_access:
+        with self.graph_nodes_access.read_access:
             return [n for n in self.graph.nodes if isinstance(n, resource_type)]
 
     def edges_of(
         self, from_type: Type[AwsResource], to_type: Type[AwsResource], edge_type: EdgeType = EdgeType.default
     ) -> List[EdgeKey]:
-        with self.graph_edges_access:
+        with self.graph_edges_access.read_access:
             return [
                 key
                 for (from_node, to_node, key) in self.graph.edges
