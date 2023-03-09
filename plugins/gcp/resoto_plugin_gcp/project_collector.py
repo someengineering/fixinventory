@@ -1,6 +1,7 @@
 from concurrent.futures import ThreadPoolExecutor
 import logging
 from queue import Queue
+import time
 from typing import Type, List
 
 from resoto_plugin_gcp import GcpConfig, Credentials
@@ -11,8 +12,8 @@ from resotolib.core.actions import CoreFeedback
 from resotolib.graph import Graph
 
 log = logging.getLogger("resoto.plugins.gcp")
-all_resources: List[Type[GcpResource]] = (
-    sqladmin.resources + container.resources + compute.resources + billing.resources
+all_resources: List[Type[GcpResource]] = (billing.resources + compute.resources
+    # sqladmin.resources + container.resources + compute.resources + billing.resources
 )
 
 
@@ -85,5 +86,8 @@ if __name__ == "__main__":
     Credentials._initialized = True
     collector = GcpProjectCollector(GcpConfig(), cloud, project, feedback)
     collector.collect()
-    for nd in collector.graph.nodes:
-        print(nd)
+    # for nd in collector.graph.nodes:
+    #     print(nd)
+    print(len(list(collector.graph.search("kind", "gcp_service"))))
+    print(len(list(collector.graph.search("kind", "gcp_sku"))))
+    pass

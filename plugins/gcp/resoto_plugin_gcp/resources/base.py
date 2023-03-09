@@ -258,7 +258,7 @@ class GcpResource(BaseResource):
     @classmethod
     def collect_resources(cls: Type[GcpResource], builder: GraphBuilder, **kwargs: Any) -> List[GcpResource]:
         # Default behavior: in case the class has an ApiSpec, call the api and call collect.
-        log.info(f"[Gcp:{builder.project.id}] Collecting {cls.__name__}")
+        log.info(f"[Gcp:{builder.project.id}] Collecting {cls.__name__} with ({kwargs})")
         if spec := cls.api_spec:
             items = builder.client.list(spec, **kwargs)
             return cls.collect(items, builder)

@@ -1,13 +1,16 @@
 from datetime import datetime
+import logging
 from typing import ClassVar, Dict, Optional, List, Tuple, Type
 
 from attr import define, field
 
 from resoto_plugin_gcp.gcp_client import GcpApiSpec
 from resoto_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus, GraphBuilder
+from resoto_plugin_gcp.resources.billing import GcpSku
 from resotolib.baseresources import (
     BaseInstanceType,
     BaseVolumeType,
+    EdgeType,
     ModelReference,
     BaseVolume,
     VolumeStatus,
@@ -17,6 +20,7 @@ from resotolib.baseresources import (
 from resotolib.json_bender import Bender, S, Bend, ForallBend, MapDict, MapValue, F
 from resotolib.types import Json
 
+log = logging.getLogger("resoto.plugins.gcp")
 
 def health_checks() -> Tuple[GcpResource, ...]:
     return (GcpHealthCheck, GcpHttpsHealthCheck, GcpHttpHealthCheck)
@@ -3286,8 +3290,89 @@ class GcpMachineType(GcpResource, BaseInstanceType):
         machine_type_obj = GcpMachineType.from_api(result)
         builder.add_node(machine_type_obj, result)
 
-    # TODO post process
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        """Adds edges from machine type to SKUs and determines ondemand pricing
+            TODO: Implement GPU types
+        """
 
+        # log.debug((f"Looking up pricing for {self.rtdname}" f" in {self.location(graph).rtdname}"))
+        skus = []
+        for sku in builder.resources_of(GcpSku):
+            if not (sku.sku_category.resource_family == "Compute"
+                    and sku.sku_category.usage_type == "OnDemand"):
+                continue
+            if sku.sku_category.resource_group not in (
+                "G1Small",
+                "F1Micro",
+                "N1Standard", #?
+                "CPU",
+                "RAM",
+            ):
+                continue
+            if ("custom" not in self.name and "Custom" in sku.name) or (
+                "custom" in self.name and "Custom" not in sku.name
+            ):
+                continue
+            if builder.region.name not in sku.sku_geo_taxonomy.regions:
+                continue
+            if self.name == "g1-small" and sku.sku_category.resource_group != "G1Small":
+                continue
+            if self.name == "f1-micro" and sku.sku_category.resource_group != "F1Micro":
+                continue
+            if (self.name.startswith("n2d-") and not sku.name.startswith("N2D AMD ")) or (
+                not self.name.startswith("n2d-") and sku.name.startswith("N2D AMD ")
+            ):
+                continue
+            if (self.name.startswith("n2-") and not sku.name.startswith("N2 ")) or (
+                not self.name.startswith("n2-") and sku.name.startswith("N2 ")
+            ):
+                continue
+            if (self.name.startswith("m1-") and not sku.name.startswith("Memory-optimized ")) or (
+                not self.name.startswith("m1-") and sku.name.startswith("Memory-optimized ")
+            ):
+                continue
+            if (self.name.startswith("c2-") and not sku.name.startswith("Compute optimized ")) or (
+                not self.name.startswith("c2-") and sku.name.startswith("Compute optimized ")
+            ):
+                continue
+            if self.name.startswith("n1-") and sku.sku_category.resource_group != "N1Standard":
+                continue
+            if "custom" not in self.name:
+                if (self.name.startswith("e2-") and not sku.name.startswith("E2 ")) or (
+                    not self.name.startswith("e2-") and sku.name.startswith("E2 ")
+                ):
+                    continue
+            skus.append(sku)
+
+        if len(skus) == 1 and self.name in ("g1-small", "f1-micro"):
+            builder.add_edge(self, reverse=True, node=skus[0])
+            self.ondemand_cost = skus[0].usage_unit_nanos / 1000000000
+            return
+
+        if len(skus) == 2 or (len(skus) == 3 and "custom" in self.name):
+            ondemand_cost = 0
+            cores = self.instance_cores
+            ram = self.instance_memory
+            extended_memory_pricing: bool = False
+            if "custom" in self.name:
+                extended_memory_pricing = ram / cores > 8
+
+            for sku in skus:
+                if "Core" in sku.name:
+                    ondemand_cost += sku.usage_unit_nanos * cores
+                elif "Ram" in sku.name:
+                    if (extended_memory_pricing and "Extended" not in sku.name) or (
+                        not extended_memory_pricing and "Extended" in sku.name
+                    ):
+                        continue
+                    ondemand_cost += sku.usage_unit_nanos * ram
+                builder.add_edge(self, reverse=True, node=sku)
+
+            if ondemand_cost > 0:
+                self.ondemand_cost = ondemand_cost / 1000000000
+            return
+
+        log.debug(f"Unable to determine SKU(s) for {self.rtdname}: {[sku.dname for sku in skus]}")
 
 @define(eq=False, slots=False)
 class GcpNetworkEdgeSecurityService(GcpResource):

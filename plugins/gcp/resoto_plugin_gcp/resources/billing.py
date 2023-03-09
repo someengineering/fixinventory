@@ -1,4 +1,4 @@
-from typing import ClassVar, Dict, Optional, List
+from typing import ClassVar, Dict, Optional, List, Type
 
 from attr import define, field
 
@@ -113,9 +113,24 @@ class GcpService(GcpResource):
     service_display_name: Optional[str] = field(default=None)
     service_id: Optional[str] = field(default=None)
 
-    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        for sku in GcpSku.collect_resources(graph_builder, parent=self.id):
-            graph_builder.add_edge(self, node=sku)
+    @classmethod
+    def collect(cls: Type[GcpResource], raw: List[Json], builder: GraphBuilder) -> List[GcpResource]:
+        # Additional behavior: iterate over list of collected GcpService and for each:
+        # - collect related GcpSku
+        result = super().collect(raw, builder)
+        SERVICES_COLLECT_LIST = [
+            "services/6F81-5844-456A" # Compute Engine
+            ]
+        service_ids = [service.id for service in result if service.id in SERVICES_COLLECT_LIST]
+        for service_id in service_ids:
+            builder.submit_work(GcpSku.collect_resources, builder, parent=service_id)
+
+        return result
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        for sku in builder.resources_of(GcpSku):
+            if sku.name.startswith(self.id):
+                builder.add_edge(self, node=sku)
 
 
 @define(eq=False, slots=False)
@@ -249,6 +264,22 @@ class GcpSku(GcpResource):
     sku_pricing_info: List[GcpPricingInfo] = field(factory=list)
     sku_service_provider_name: Optional[str] = field(default=None)
     sku_service_regions: List[str] = field(factory=list)
+    usage_unit_nanos: Optional[int] = field(default=None)
+
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        self.usage_unit_nanos = -1
+        if len(self.sku_pricing_info) > 0:
+            tiered_rates = self.sku_pricing_info[0].pricing_expression.tiered_rates
+            cost = -1
+            if len(tiered_rates) == 1:
+                cost = tiered_rates[0].unit_price.nanos
+            else:
+                for tiered_rate in tiered_rates:
+                    if tiered_rate.start_usage_amount > 0:
+                        cost = tiered_rate.unit_price.nanos
+                        break
+            if cost > -1:
+                self.usage_unit_nanos = cost
 
 
 resources = [GcpBillingAccount, GcpService]
