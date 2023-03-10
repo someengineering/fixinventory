@@ -65,7 +65,7 @@ class InspectorService(Inspector, Service):
     async def start(self) -> None:
         # TODO: we need a migration path for checks added in existing configs
         config_ids = {i async for i in self.config_handler.list_config_ids()}
-        overwrite = False  # only here to simplify development. True until we reach a stable version.
+        overwrite = True  # only here to simplify development. True until we reach a stable version.
         # we renamed this config in 3.2.6 - old installations still might have it
         # this line can be removed in a future version
         await self.config_handler.delete_config(ConfigId("resoto.report.benchmark.aws_cis_1.5"))
