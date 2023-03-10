@@ -7,14 +7,14 @@
             "title": "Check if API Gateway has configured authorizers.",
             "result_kind": "aws_api_gateway_rest_api",
             "categories": ["security", "compliance"],
-            "risk": "If no authorizer is enabled anyone can use the service.",
+            "risk": "If no authorizer is defined, anyone can use the service.",
             "severity": "medium",
             "url": "https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-use-lambda-authorizer.html",
             "detect": {
                 "resoto": "is(aws_api_gateway_rest_api) with(empty, --> is(aws_api_gateway_authorizer))"
             },
             "remediation": {
-                "text": "Implement Amazon Cognito or a Lambda function to control access to your API.",
+                "text": "Add a Cognito pool or attach a Lambda function to control access to your API.",
                 "url": "https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-use-lambda-authorizer.html"
             },
             "related": [],
@@ -25,7 +25,7 @@
             "title": "Check if API Gateway has client certificate enabled to access your backend endpoint.",
             "result_kind": "aws_api_gateway_stage",
             "categories": ["security", "compliance"],
-            "risk": "Possible man in the middle attacks and other similar risks.",
+            "risk": "Man in the middle attacks are possible and other similar risks.",
             "severity": "medium",
             "url": "https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-mutual-tls.html",
             "detect": {

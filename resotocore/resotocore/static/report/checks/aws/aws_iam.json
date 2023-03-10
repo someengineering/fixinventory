@@ -58,7 +58,7 @@
                 "resoto": "is(aws_root_user) with(any, --> is(access_key))"
             },
             "remediation": {
-                "text": "Use the credential report to  that the user and ensure the access_key_1_active and access_key_2_active fields are set to FALSE.",
+                "text": "Use the credential report to ensure the access_key_1_active and access_key_2_active fields are set to FALSE. If the access keys are still active, delete them using the IAM console.",
                 "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_getting-report.html"
             }
         },
