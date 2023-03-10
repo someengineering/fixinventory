@@ -516,7 +516,8 @@ class CLI:
         # send analytics
         await send_analytics(command_lines, raw_parsed)
         # decide, if placeholders should be replaced
-        keep_raw = not replace_place_holder or JobsCommand.is_jobs_update(command_lines[0].commands[0])
+        first_command = command_lines[0].commands[0] if command_lines and command_lines[0].commands else None
+        keep_raw = not replace_place_holder or (first_command and JobsCommand.is_jobs_update(first_command))
         command_lines = command_lines if keep_raw else [replace_placeholders(cmd_line) for cmd_line in command_lines]
         res = [await parse_line(cmd_line) for cmd_line in command_lines]
         return res
