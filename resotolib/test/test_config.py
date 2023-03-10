@@ -3,7 +3,7 @@ from distutils.command.config import config
 from functools import lru_cache
 import pytest
 from attrs import define, field
-from typing import ClassVar, Dict
+from typing import ClassVar, Dict, Any
 from resotolib.config import Config, ConfigNotFoundError
 from resotolib.args import get_arg_parser, ArgumentParser
 from resotolib.core import add_args as core_add_args
@@ -38,6 +38,37 @@ def test_config():
         Config.does_not_exist.foo = "bar"
     with pytest.raises(ConfigNotFoundError):
         cfg.does_not_exist.foo = "bar"
+
+
+def test_config_drop_deleted_entries():
+    arg_parser = get_arg_parser()
+    core_add_args(arg_parser)
+    arg_parser.parse_known_args()
+    cfg = Config("test")
+    cfg.add_config(ConfigTest)
+
+    config_from_the_core = {
+        "configtest": {
+            "testvar1": "1",
+            "testvar2": 2,
+            "testvar42": 42,
+            "testvar3": {
+                "myint": 42,
+            },
+        }
+    }
+
+    assert cfg.with_default_config(config_from_the_core) == {
+        "configtest": {
+            "testvar1": "1",
+            "testvar2": 2,
+            "testvar3": {
+                "mydict": {"foo": "bar", "abc": {"def": "ghi"}},
+                "myint": 42,
+                "mystr": "Hello",
+            },
+        }
+    }
 
 
 def test_config_lru_cache():
@@ -105,7 +136,7 @@ class NestedConfigTest:
     kind: ClassVar[str] = "nested_config_test"
     myint: int = field(default=0, metadata={"description": "My Int"})
     mystr: str = field(default="Hello", metadata={"description": "My String"})
-    mydict: Dict[str, str] = field(factory=lambda: {"foo": "bar", "abc": {"def": "ghi"}})
+    mydict: Dict[str, Any] = field(factory=lambda: {"foo": "bar", "abc": {"def": "ghi"}})
 
 
 @define

@@ -16,11 +16,11 @@ from resotolib.core.config import (
     update_config_model,
 )
 from resotolib.core.events import CoreEvents
-from resotolib.utils import replace_env_vars, merge_json_elements
-from typing import Dict, Any, List, Optional, Type, Callable, cast
+from resotolib.utils import replace_env_vars, merge_json_elements, drop_deleted_attributes
+from typing import Dict, Any, List, Optional, Type, cast
 from attrs import fields
 
-from resotolib.types import Json, JsonElement
+from resotolib.types import Json
 
 
 class RunningConfig:
@@ -148,27 +148,16 @@ class Config(metaclass=MetaConfig):
                 pass
             else:
                 log.info(f"Loaded config {self.config_name} revision {new_config_revision}")
-                new_config = Config.read_config(config_json)
+                new_config = Config.read_config(
+                    config_json, reason="loading new config to check if restart is required"
+                )
                 # test if the config has changed using the most latest version
                 # with overrides applied and env_vars resolved
                 if reload and self.restart_required(new_config):
                     restart()
-            # init the default config for merging the raw config into it
-            self.init_default_config()
-            default_config_dict = self.dict()
 
-            def drop_deleted_props(existing: JsonElement, update: JsonElement) -> JsonElement:
-                if existing is None:
-                    return None
-                return update
-
-            # merge the raw config into the default config
-            raw_with_new_defaults = cast(
-                Json,
-                merge_json_elements(default_config_dict, raw_config_json, merge_strategy=drop_deleted_props),
-            )
-            # update the global config object with the merged config
-            Config.running_config.data = raw_with_new_defaults
+            # update the global config object with the confif from the core
+            Config.running_config.data = self.with_default_config(raw_config_json)
             # if the raw_config was not empty, we need to set the revision too
             if new_config_revision:
                 Config.running_config.revision = new_config_revision
@@ -187,6 +176,9 @@ class Config(metaclass=MetaConfig):
             # overrides applied and env_vars resolved
             ############################################################
             # merge the config with overrides and env_vars into the default config
+            self.init_default_config()
+            default_config_dict = self.dict()
+
             config_with_defaults = cast(Json, merge_json_elements(default_config_dict, config_json))
             self.apply_path_overrides_resolve_env_vars(Config.running_config, config_with_defaults)
             self.override_config(Config.running_config)
@@ -195,14 +187,52 @@ class Config(metaclass=MetaConfig):
                 log.debug("Starting config event listener")
                 self._ce.start()
 
+    def with_default_config(self, raw_config_json: Json) -> Json:
+        """
+        Merges the raw config from the core with the default config and clean up deleted entries.
+        """
+
+        # init the default config for merging the raw config into it
+        self.init_default_config()
+        default_config_dict = self.dict()
+
+        # default config that is updated by the raw config from the core
+        raw_with_new_defaults = cast(
+            Json,
+            merge_json_elements(default_config_dict, raw_config_json),
+        )
+
+        # we also resolve the env var to construct a attrs class and not explode
+        raw_with_resolved_env_vars = {
+            k: replace_env_vars(v, os.environ, keep_unresolved=False) for k, v in raw_with_new_defaults.items()
+        }
+
+        # json with resolved env vars, defaults and dropped deleted attributes
+        # this is the config that we will use to cleanup the raw_with_new_defaults
+        reference_config_json = cast(
+            Json,
+            jsons.dump(
+                Config.read_config(
+                    raw_with_resolved_env_vars, reason="making reference config for cleanup"
+                ),  # attrs class with dropped deleted attributes
+                strip_attr="kind",
+                strip_properties=True,
+                strip_privates=True,
+            ),
+        )
+
+        result = cast(Json, drop_deleted_attributes(raw_with_new_defaults, reference_config_json))
+        return result
+
     @staticmethod
-    def read_config(config: Json, read_as_json: bool = False) -> Dict[str, Any]:
+    def read_config(config: Json, read_as_json: bool = False, reason: Optional[str] = None) -> Dict[str, Any]:
         new_config = {}
         for config_id, config_data in config.items():
             if config_data is None:
                 config_data = {}
             if config_id in Config.running_config.classes:
-                log.debug(f"Loading config section {config_id}")
+                message = f" reason: {reason}" if reason else ""
+                log.debug(f"Loading config section {config_id}" + message)
                 clazz: Type[Any] = Config.running_config.classes.get(config_id, Any) if not read_as_json else Any
                 # use the from_json class from config, if available
                 if loader := getattr(clazz, "from_json", None):
@@ -234,7 +264,7 @@ class Config(metaclass=MetaConfig):
         # resolve missing env_vars from the environment
         resolved_conf = {k: replace_env_vars(v, os.environ, keep_unresolved=False) for k, v in config.items()}
 
-        running_config.data = Config.read_config(resolved_conf)
+        running_config.data = Config.read_config(resolved_conf, reason="resolving env_vars on the final config")
 
         return True
 
