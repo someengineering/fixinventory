@@ -1,0 +1,110 @@
+{
+    "provider": "aws",
+    "service": "s3",
+    "checks": [
+        {
+            "name": "bucket_default_encryption",
+            "title": "Check if S3 buckets have default encryption (SSE) enabled or use a bucket policy to enforce it.",
+            "result_kind": "aws_s3_bucket",
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Amazon S3 default encryption provides a way to set the default encryption behavior for an S3 bucket. This will ensure data-at-rest is encrypted.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_s3_bucket) and not bucket_encryption_rules[*].sse_algorithm!=null"
+            },
+            "remediation": {
+                "action": {
+                    "aws_cli": "aws s3api put-bucket-encryption --bucket {{name}} --server-side-encryption-configuration '{'Rules': [{'ApplyServerSideEncryptionByDefault': {'SSEAlgorithm': 'AES256'}}]}'"
+                },
+                "text": "Ensure that S3 buckets has encryption at rest enabled.",
+                "url": "https://aws.amazon.com/blogs/security/how-to-prevent-uploads-of-unencrypted-objects-to-amazon-s3/"
+            },
+            "internal_notes": ""
+        },
+        {
+            "name": "bucket_no_mfa_delete",
+            "title": "Check if S3 bucket MFA Delete is not enabled.",
+            "result_kind": "aws_s3_bucket",
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Your security credentials are compromised or unauthorized access is granted.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_s3_bucket) and bucket_mfa_delete=false"
+            },
+            "remediation": {
+                "action": {
+                    "aws_cli": "aws s3api put-bucket-versioning --bucket {{name}} --versioning-configuration MFADelete=Enabled --mfa 'arn:aws:iam::00000000:mfa/root-account-mfa-device 123456'"
+                },
+                "text": "Adding MFA delete to an S3 bucket, requires additional authentication when you change the version state of your bucket or you delete and object version adding another layer of security in the event your security credentials are compromised or unauthorized access is granted.",
+                "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/MultiFactorAuthenticationDelete.html"
+            },
+            "internal_notes": ""
+        },
+        {
+            "name": "bucket_secure_transport_policy",
+            "title": "Check if S3 buckets have secure transport policy.",
+            "result_kind": "aws_s3_bucket",
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "If HTTPS is not enforced on the bucket policy, communication between clients and S3 buckets can use unencrypted HTTP. As a result, sensitive information could be transmitted in clear text over the network or internet.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_s3_bucket) and not bucket_policy.Statement[*].{Effect=Deny and (Action=s3:PutObject or Action=\"s3:*\" or Action=\"*\") and Condition.Bool.`aws:SecureTransport`== \"false\" }"
+            },
+            "remediation": {
+                "text": "Ensure that S3 buckets has encryption in transit enabled.",
+                "url": "https://aws.amazon.com/premiumsupport/knowledge-center/s3-bucket-policy-for-config-rule/"
+            },
+            "internal_notes": ""
+        },
+        {
+            "name": "macie_is_enabled",
+            "title": "Check if Amazon Macie is enabled.",
+            "result_kind": "aws_s3_bucket",
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Amazon Macie is a fully managed data security and data privacy service that uses machine learning and pattern matching to help you discover, monitor and protect your sensitive data in AWS.",
+            "severity": "medium",
+            "detect": {
+                "manual": "Check if Amazon Macie is enabled."
+            },
+            "remediation": {
+                "text": "Enable Amazon Macie and create appropriate jobs to discover sensitive data.",
+                "url": "https://aws.amazon.com/macie/getting-started/"
+            },
+            "internal_notes": ""
+        },
+        {
+            "name": "account_level_public_access_blocks",
+            "title": "Check S3 Account Level Public Access Block.",
+            "result_kind": "aws_s3_bucket",
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Public access policies may be applied to sensitive data buckets.",
+            "severity": "high",
+            "detect": {
+                "resoto": "is(aws_s3_bucket) {account_setting: <-[0:]- is(aws_account) --> is(aws_s3_account_settings)} (bucket_public_access_block_configuration.block_public_acls==false and account_setting.reported.bucket_public_access_block_configuration.block_public_acls==false) or (bucket_public_access_block_configuration.ignore_public_acls==false and account_setting.reported.bucket_public_access_block_configuration.ignore_public_acls==false) or (bucket_public_access_block_configuration.block_public_policy==false and account_setting.reported.bucket_public_access_block_configuration.block_public_policy==false) or (bucket_public_access_block_configuration.restrict_public_buckets==false and account_setting.reported.bucket_public_access_block_configuration.restrict_public_buckets==false)"
+            },
+            "remediation": {
+                "action": {
+                    "aws_cli": "aws s3control put-public-access-block --public-access-block-configuration BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true --account-id {{account_id}}"
+                },
+                "text": "You can enable Public Access Block at the account level to prevent the exposure of your data stored in S3.",
+                "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-control-block-public-access.html"
+            },
+            "internal_notes": ""
+        }
+    ]
+}
