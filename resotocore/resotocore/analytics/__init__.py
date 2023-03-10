@@ -39,6 +39,7 @@ class CoreEvent:
     ClientError = "error.client"
     ServerError = "error.server"
     UsageMetricsTurnedOff = "usage-metrics.turned-off"
+    BenchmarkPerformed = "report.benchmark"
 
 
 @define(frozen=True)
