@@ -594,7 +594,8 @@ def merge_json_elements(
                 )
             else:
                 merge_result = merge_strategy(existing_value, deepcopy(update_value))
-                output[update_key] = merge_result
+                if merge_result is not None:
+                    output[update_key] = merge_result
 
     else:
         return merge_strategy(existing, deepcopy(update))
@@ -616,7 +617,8 @@ def drop_deleted_attributes(to_be_cleaned: JsonElement, reference: JsonElement) 
     if isinstance(to_be_cleaned, list):
         reference = cast(List[JsonElement], reference)  # ensured by the assert above
 
-        # reference can only be smaller than to_be_cleaned if it contained env_var_strings and they failed to be resolved
+        # reference can only be smaller than to_be_cleaned if it contained env_var_strings
+        # and they failed to be resolved
         # in that case we can use to_be_cleaned as reference
         if len(to_be_cleaned) > len(reference):
             new_reference = to_be_cleaned
