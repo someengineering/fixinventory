@@ -242,10 +242,10 @@ class BaseResource(ABC):
             for le in self.__log
         ]
 
-    def update_tag(self, key, value) -> bool:
+    def update_tag(self, key: str, value: str) -> bool:
         raise NotImplementedError
 
-    def delete_tag(self, key) -> bool:
+    def delete_tag(self, key: str) -> bool:
         raise NotImplementedError
 
     @cached_property

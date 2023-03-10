@@ -56,7 +56,7 @@ class GcpClient:
         self.region = region
         self.core_feedback = core_feedback
 
-    def get(self, api_spec: GcpApiSpec, **kwargs) -> Json:
+    def get(self, api_spec: GcpApiSpec, **kwargs: Any) -> Json:
         client = _discovery_function(
             api_spec.service, api_spec.version, credentials=self.credentials, cache=MemoryCache()
         )
@@ -69,7 +69,7 @@ class GcpClient:
         result: Json = request.execute()
         return result
 
-    def list(self, api_spec: GcpApiSpec, **kwargs) -> List[Json]:
+    def list(self, api_spec: GcpApiSpec, **kwargs: Any) -> List[Json]:
         # todo add caching
         client = _discovery_function(
             api_spec.service, api_spec.version, credentials=self.credentials, cache=MemoryCache()
@@ -84,10 +84,10 @@ class GcpClient:
         def next_responses(request: Any) -> None:
             response = request.execute()
             page = value_in_path(response, api_spec.response_path)
-            if api_spec.is_zone_specific and isinstance(page, dict):
+            if (sub_path := api_spec.response_regional_sub_path) is not None and isinstance(page, dict):
                 for zone_marker, zone_response in page.items():
                     zone = zone_marker.split("/")[-1]
-                    for item in value_in_path(zone_response, api_spec.response_regional_sub_path) or []:
+                    for item in value_in_path(zone_response, sub_path) or []:
                         # store the zone as part of the item
                         item[InternalZoneProp] = zone
                         result.append(item)

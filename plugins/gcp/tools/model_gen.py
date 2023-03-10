@@ -324,6 +324,8 @@ class GcpResotoModel:
     api_info: Optional[GcpApiInfo] = None  # the api info to use for the resource
 
     def class_model(self, shapes: Dict[str, Shape], visited: Set[str]) -> List[GcpModel]:
+        # Toggle flag if the resource class properties should be prefixed or not
+        prop_prefix = self.prop_prefix if False else None
         return clazz_model(
             shapes,
             shapes[self.result_shape],
@@ -331,7 +333,7 @@ class GcpResotoModel:
             aggregate_root=True,
             clazz_name=self.name,
             base_class=self.base,
-            prop_prefix=self.prop_prefix,
+            prop_prefix=prop_prefix,
             prefix=self.prefix,
             api_info=self.api_info,
         )
@@ -497,7 +499,7 @@ apis = [
     # (service, version, prefix, list_of_ignore_resources)
     # ("compute", "v1", "", []),
     # ("container", "v1", "Container", ["UsableSubnetwork"]),
-    ("sqladmin", "v1", "Sql", ["Tier"]),
+    # ("sqladmin", "v1", "Sql", ["Tier"]),
     # ("cloudbilling", "v1", "", []),
 ]
 

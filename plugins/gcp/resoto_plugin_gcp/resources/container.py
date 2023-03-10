@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import ClassVar, Dict, Optional, List
 
 from attr import define, field
@@ -59,7 +60,7 @@ class GcpContainerAutoUpgradeOptions:
         "auto_upgrade_start_time": S("autoUpgradeStartTime"),
         "description": S("description"),
     }
-    auto_upgrade_start_time: Optional[str] = field(default=None)
+    auto_upgrade_start_time: Optional[datetime] = field(default=None)
     description: Optional[str] = field(default=None)
 
 
@@ -273,7 +274,7 @@ class GcpContainerDailyMaintenanceWindow:
     kind: ClassVar[str] = "gcp_container_daily_maintenance_window"
     mapping: ClassVar[Dict[str, Bender]] = {"duration": S("duration"), "start_time": S("startTime")}
     duration: Optional[str] = field(default=None)
-    start_time: Optional[str] = field(default=None)
+    start_time: Optional[datetime] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -284,9 +285,9 @@ class GcpContainerTimeWindow:
         "maintenance_exclusion_options": S("maintenanceExclusionOptions", "scope"),
         "start_time": S("startTime"),
     }
-    end_time: Optional[str] = field(default=None)
+    end_time: Optional[datetime] = field(default=None)
     maintenance_exclusion_options: Optional[str] = field(default=None)
-    start_time: Optional[str] = field(default=None)
+    start_time: Optional[datetime] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -652,7 +653,7 @@ class GcpContainerBlueGreenInfo:
         "phase": S("phase"),
     }
     blue_instance_group_urls: Optional[List[str]] = field(default=None)
-    blue_pool_deletion_start_time: Optional[str] = field(default=None)
+    blue_pool_deletion_start_time: Optional[datetime] = field(default=None)
     green_instance_group_urls: Optional[List[str]] = field(default=None)
     green_pool_version: Optional[str] = field(default=None)
     phase: Optional[str] = field(default=None)
@@ -791,130 +792,125 @@ class GcpContainerCluster(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "cluster_addons_config": S("addonsConfig", default={}) >> Bend(GcpContainerAddonsConfig.mapping),
-        "cluster_authenticator_groups_config": S("authenticatorGroupsConfig", default={})
+        "addons_config": S("addonsConfig", default={}) >> Bend(GcpContainerAddonsConfig.mapping),
+        "authenticator_groups_config": S("authenticatorGroupsConfig", default={})
         >> Bend(GcpContainerAuthenticatorGroupsConfig.mapping),
-        "cluster_autopilot": S("autopilot", "enabled"),
-        "cluster_autoscaling": S("autoscaling", default={}) >> Bend(GcpContainerClusterAutoscaling.mapping),
-        "cluster_binary_authorization": S("binaryAuthorization", default={})
-        >> Bend(GcpContainerBinaryAuthorization.mapping),
-        "cluster_cluster_ipv4_cidr": S("clusterIpv4Cidr"),
-        "cluster_conditions": S("conditions", default=[]) >> ForallBend(GcpContainerStatusCondition.mapping),
-        "cluster_confidential_nodes": S("confidentialNodes", "enabled"),
-        "cluster_cost_management_config": S("costManagementConfig", "enabled"),
-        "cluster_create_time": S("createTime"),
-        "cluster_current_master_version": S("currentMasterVersion"),
-        "cluster_current_node_count": S("currentNodeCount"),
-        "cluster_current_node_version": S("currentNodeVersion"),
-        "cluster_database_encryption": S("databaseEncryption", default={})
-        >> Bend(GcpContainerDatabaseEncryption.mapping),
-        "cluster_default_max_pods_constraint": S("defaultMaxPodsConstraint", "maxPodsPerNode"),
-        "cluster_enable_kubernetes_alpha": S("enableKubernetesAlpha"),
-        "cluster_enable_tpu": S("enableTpu"),
-        "cluster_endpoint": S("endpoint"),
-        "cluster_expire_time": S("expireTime"),
-        "cluster_identity_service_config": S("identityServiceConfig", "enabled"),
-        "cluster_initial_cluster_version": S("initialClusterVersion"),
-        "cluster_initial_node_count": S("initialNodeCount"),
-        "cluster_instance_group_urls": S("instanceGroupUrls", default=[]),
-        "cluster_ip_allocation_policy": S("ipAllocationPolicy", default={})
-        >> Bend(GcpContainerIPAllocationPolicy.mapping),
-        "cluster_legacy_abac": S("legacyAbac", "enabled"),
-        "cluster_location": S("location"),
-        "cluster_locations": S("locations", default=[]),
-        "cluster_logging_config": S("loggingConfig", default={}) >> Bend(GcpContainerLoggingConfig.mapping),
-        "cluster_logging_service": S("loggingService"),
-        "cluster_maintenance_policy": S("maintenancePolicy", default={}) >> Bend(GcpContainerMaintenancePolicy.mapping),
-        "cluster_master_auth": S("masterAuth", default={}) >> Bend(GcpContainerMasterAuth.mapping),
-        "cluster_master_authorized_networks_config": S("masterAuthorizedNetworksConfig", default={})
+        "autopilot": S("autopilot", "enabled"),
+        "autoscaling": S("autoscaling", default={}) >> Bend(GcpContainerClusterAutoscaling.mapping),
+        "binary_authorization": S("binaryAuthorization", default={}) >> Bend(GcpContainerBinaryAuthorization.mapping),
+        "cluster_ipv4_cidr": S("clusterIpv4Cidr"),
+        "conditions": S("conditions", default=[]) >> ForallBend(GcpContainerStatusCondition.mapping),
+        "confidential_nodes": S("confidentialNodes", "enabled"),
+        "cost_management_config": S("costManagementConfig", "enabled"),
+        "create_time": S("createTime"),
+        "current_master_version": S("currentMasterVersion"),
+        "current_node_count": S("currentNodeCount"),
+        "current_node_version": S("currentNodeVersion"),
+        "database_encryption": S("databaseEncryption", default={}) >> Bend(GcpContainerDatabaseEncryption.mapping),
+        "default_max_pods_constraint": S("defaultMaxPodsConstraint", "maxPodsPerNode"),
+        "enable_kubernetes_alpha": S("enableKubernetesAlpha"),
+        "enable_tpu": S("enableTpu"),
+        "endpoint": S("endpoint"),
+        "etag": S("etag"),
+        "expire_time": S("expireTime"),
+        "identity_service_config": S("identityServiceConfig", "enabled"),
+        "initial_cluster_version": S("initialClusterVersion"),
+        "initial_node_count": S("initialNodeCount"),
+        "instance_group_urls": S("instanceGroupUrls", default=[]),
+        "ip_allocation_policy": S("ipAllocationPolicy", default={}) >> Bend(GcpContainerIPAllocationPolicy.mapping),
+        "legacy_abac": S("legacyAbac", "enabled"),
+        "location": S("location"),
+        "locations": S("locations", default=[]),
+        "logging_config": S("loggingConfig", default={}) >> Bend(GcpContainerLoggingConfig.mapping),
+        "logging_service": S("loggingService"),
+        "maintenance_policy": S("maintenancePolicy", default={}) >> Bend(GcpContainerMaintenancePolicy.mapping),
+        "master_auth": S("masterAuth", default={}) >> Bend(GcpContainerMasterAuth.mapping),
+        "master_authorized_networks_config": S("masterAuthorizedNetworksConfig", default={})
         >> Bend(GcpContainerMasterAuthorizedNetworksConfig.mapping),
-        "cluster_mesh_certificates": S("meshCertificates", "enableCertificates"),
-        "cluster_monitoring_config": S("monitoringConfig", default={}) >> Bend(GcpContainerMonitoringConfig.mapping),
-        "cluster_monitoring_service": S("monitoringService"),
-        "cluster_network": S("network"),
-        "cluster_network_config": S("networkConfig", default={}) >> Bend(GcpContainerNetworkConfig.mapping),
-        "cluster_network_policy": S("networkPolicy", default={}) >> Bend(GcpContainerNetworkPolicy.mapping),
-        "cluster_node_config": S("nodeConfig", default={}) >> Bend(GcpContainerNodeConfig.mapping),
-        "cluster_node_ipv4_cidr_size": S("nodeIpv4CidrSize"),
-        "cluster_node_pool_auto_config": S("nodePoolAutoConfig", default={})
-        >> Bend(GcpContainerNodePoolAutoConfig.mapping),
-        "cluster_node_pool_defaults": S("nodePoolDefaults", default={}) >> Bend(GcpContainerNodePoolDefaults.mapping),
-        "cluster_node_pools": S("nodePools", default=[]) >> ForallBend(GcpContainerNodePool.mapping),
-        "cluster_notification_config": S("notificationConfig", default={})
-        >> Bend(GcpContainerNotificationConfig.mapping),
-        "cluster_private_cluster_config": S("privateClusterConfig", default={})
+        "mesh_certificates": S("meshCertificates", "enableCertificates"),
+        "monitoring_config": S("monitoringConfig", default={}) >> Bend(GcpContainerMonitoringConfig.mapping),
+        "monitoring_service": S("monitoringService"),
+        "network": S("network"),
+        "network_config": S("networkConfig", default={}) >> Bend(GcpContainerNetworkConfig.mapping),
+        "network_policy": S("networkPolicy", default={}) >> Bend(GcpContainerNetworkPolicy.mapping),
+        "node_config": S("nodeConfig", default={}) >> Bend(GcpContainerNodeConfig.mapping),
+        "node_ipv4_cidr_size": S("nodeIpv4CidrSize"),
+        "node_pool_auto_config": S("nodePoolAutoConfig", default={}) >> Bend(GcpContainerNodePoolAutoConfig.mapping),
+        "node_pool_defaults": S("nodePoolDefaults", default={}) >> Bend(GcpContainerNodePoolDefaults.mapping),
+        "node_pools": S("nodePools", default=[]) >> ForallBend(GcpContainerNodePool.mapping),
+        "notification_config": S("notificationConfig", default={}) >> Bend(GcpContainerNotificationConfig.mapping),
+        "private_cluster_config": S("privateClusterConfig", default={})
         >> Bend(GcpContainerPrivateClusterConfig.mapping),
-        "cluster_release_channel": S("releaseChannel", "channel"),
-        "cluster_resource_labels": S("resourceLabels"),
-        "cluster_resource_usage_export_config": S("resourceUsageExportConfig", default={})
+        "release_channel": S("releaseChannel", "channel"),
+        "resource_labels": S("resourceLabels"),
+        "resource_usage_export_config": S("resourceUsageExportConfig", default={})
         >> Bend(GcpContainerResourceUsageExportConfig.mapping),
-        "cluster_services_ipv4_cidr": S("servicesIpv4Cidr"),
-        "cluster_shielded_nodes": S("shieldedNodes", "enabled"),
-        "cluster_status": S("status"),
-        "cluster_status_message": S("statusMessage"),
-        "cluster_subnetwork": S("subnetwork"),
-        "cluster_tpu_ipv4_cidr_block": S("tpuIpv4CidrBlock"),
-        "cluster_vertical_pod_autoscaling": S("verticalPodAutoscaling", "enabled"),
-        "cluster_workload_identity_config": S("workloadIdentityConfig", "workloadPool"),
+        "services_ipv4_cidr": S("servicesIpv4Cidr"),
+        "shielded_nodes": S("shieldedNodes", "enabled"),
+        "status": S("status"),
+        "status_message": S("statusMessage"),
+        "subnetwork": S("subnetwork"),
+        "tpu_ipv4_cidr_block": S("tpuIpv4CidrBlock"),
+        "vertical_pod_autoscaling": S("verticalPodAutoscaling", "enabled"),
+        "workload_identity_config": S("workloadIdentityConfig", "workloadPool"),
     }
-    cluster_addons_config: Optional[GcpContainerAddonsConfig] = field(default=None)
-    cluster_authenticator_groups_config: Optional[GcpContainerAuthenticatorGroupsConfig] = field(default=None)
-    cluster_autopilot: Optional[bool] = field(default=None)
-    cluster_autoscaling: Optional[GcpContainerClusterAutoscaling] = field(default=None)
-    cluster_binary_authorization: Optional[GcpContainerBinaryAuthorization] = field(default=None)
-    cluster_cluster_ipv4_cidr: Optional[str] = field(default=None)
-    cluster_conditions: Optional[List[GcpContainerStatusCondition]] = field(default=None)
-    cluster_confidential_nodes: Optional[bool] = field(default=None)
-    cluster_cost_management_config: Optional[bool] = field(default=None)
-    cluster_create_time: Optional[str] = field(default=None)
-    cluster_current_master_version: Optional[str] = field(default=None)
-    cluster_current_node_count: Optional[int] = field(default=None)
-    cluster_current_node_version: Optional[str] = field(default=None)
-    cluster_database_encryption: Optional[GcpContainerDatabaseEncryption] = field(default=None)
-    cluster_default_max_pods_constraint: Optional[str] = field(default=None)
-    cluster_enable_kubernetes_alpha: Optional[bool] = field(default=None)
-    cluster_enable_tpu: Optional[bool] = field(default=None)
-    cluster_endpoint: Optional[str] = field(default=None)
-    cluster_expire_time: Optional[str] = field(default=None)
-    cluster_identity_service_config: Optional[bool] = field(default=None)
-    cluster_initial_cluster_version: Optional[str] = field(default=None)
-    cluster_initial_node_count: Optional[int] = field(default=None)
-    cluster_instance_group_urls: Optional[List[str]] = field(default=None)
-    cluster_ip_allocation_policy: Optional[GcpContainerIPAllocationPolicy] = field(default=None)
-    cluster_legacy_abac: Optional[bool] = field(default=None)
-    cluster_location: Optional[str] = field(default=None)
-    cluster_locations: Optional[List[str]] = field(default=None)
-    cluster_logging_config: Optional[GcpContainerLoggingConfig] = field(default=None)
-    cluster_logging_service: Optional[str] = field(default=None)
-    cluster_maintenance_policy: Optional[GcpContainerMaintenancePolicy] = field(default=None)
-    cluster_master_auth: Optional[GcpContainerMasterAuth] = field(default=None)
-    cluster_master_authorized_networks_config: Optional[GcpContainerMasterAuthorizedNetworksConfig] = field(
-        default=None
-    )
-    cluster_mesh_certificates: Optional[bool] = field(default=None)
-    cluster_monitoring_config: Optional[GcpContainerMonitoringConfig] = field(default=None)
-    cluster_monitoring_service: Optional[str] = field(default=None)
-    cluster_network: Optional[str] = field(default=None)
-    cluster_network_config: Optional[GcpContainerNetworkConfig] = field(default=None)
-    cluster_network_policy: Optional[GcpContainerNetworkPolicy] = field(default=None)
-    cluster_node_config: Optional[GcpContainerNodeConfig] = field(default=None)
-    cluster_node_ipv4_cidr_size: Optional[int] = field(default=None)
-    cluster_node_pool_auto_config: Optional[GcpContainerNodePoolAutoConfig] = field(default=None)
-    cluster_node_pool_defaults: Optional[GcpContainerNodePoolDefaults] = field(default=None)
-    cluster_node_pools: Optional[List[GcpContainerNodePool]] = field(default=None)
-    cluster_notification_config: Optional[GcpContainerNotificationConfig] = field(default=None)
-    cluster_private_cluster_config: Optional[GcpContainerPrivateClusterConfig] = field(default=None)
-    cluster_release_channel: Optional[str] = field(default=None)
-    cluster_resource_labels: Optional[Dict[str, str]] = field(default=None)
-    cluster_resource_usage_export_config: Optional[GcpContainerResourceUsageExportConfig] = field(default=None)
-    cluster_services_ipv4_cidr: Optional[str] = field(default=None)
-    cluster_shielded_nodes: Optional[bool] = field(default=None)
-    cluster_status: Optional[str] = field(default=None)
-    cluster_status_message: Optional[str] = field(default=None)
-    cluster_subnetwork: Optional[str] = field(default=None)
-    cluster_tpu_ipv4_cidr_block: Optional[str] = field(default=None)
-    cluster_vertical_pod_autoscaling: Optional[bool] = field(default=None)
-    cluster_workload_identity_config: Optional[str] = field(default=None)
+    addons_config: Optional[GcpContainerAddonsConfig] = field(default=None)
+    authenticator_groups_config: Optional[GcpContainerAuthenticatorGroupsConfig] = field(default=None)
+    autopilot: Optional[bool] = field(default=None)
+    autoscaling: Optional[GcpContainerClusterAutoscaling] = field(default=None)
+    binary_authorization: Optional[GcpContainerBinaryAuthorization] = field(default=None)
+    cluster_ipv4_cidr: Optional[str] = field(default=None)
+    conditions: Optional[List[GcpContainerStatusCondition]] = field(default=None)
+    confidential_nodes: Optional[bool] = field(default=None)
+    cost_management_config: Optional[bool] = field(default=None)
+    create_time: Optional[datetime] = field(default=None)
+    current_master_version: Optional[str] = field(default=None)
+    current_node_count: Optional[int] = field(default=None)
+    current_node_version: Optional[str] = field(default=None)
+    database_encryption: Optional[GcpContainerDatabaseEncryption] = field(default=None)
+    default_max_pods_constraint: Optional[str] = field(default=None)
+    enable_kubernetes_alpha: Optional[bool] = field(default=None)
+    enable_tpu: Optional[bool] = field(default=None)
+    endpoint: Optional[str] = field(default=None)
+    etag: Optional[str] = field(default=None)
+    expire_time: Optional[datetime] = field(default=None)
+    identity_service_config: Optional[bool] = field(default=None)
+    initial_cluster_version: Optional[str] = field(default=None)
+    initial_node_count: Optional[int] = field(default=None)
+    instance_group_urls: Optional[List[str]] = field(default=None)
+    ip_allocation_policy: Optional[GcpContainerIPAllocationPolicy] = field(default=None)
+    legacy_abac: Optional[bool] = field(default=None)
+    location: Optional[str] = field(default=None)
+    locations: Optional[List[str]] = field(default=None)
+    logging_config: Optional[GcpContainerLoggingConfig] = field(default=None)
+    logging_service: Optional[str] = field(default=None)
+    maintenance_policy: Optional[GcpContainerMaintenancePolicy] = field(default=None)
+    master_auth: Optional[GcpContainerMasterAuth] = field(default=None)
+    master_authorized_networks_config: Optional[GcpContainerMasterAuthorizedNetworksConfig] = field(default=None)
+    mesh_certificates: Optional[bool] = field(default=None)
+    monitoring_config: Optional[GcpContainerMonitoringConfig] = field(default=None)
+    monitoring_service: Optional[str] = field(default=None)
+    network: Optional[str] = field(default=None)
+    network_config: Optional[GcpContainerNetworkConfig] = field(default=None)
+    network_policy: Optional[GcpContainerNetworkPolicy] = field(default=None)
+    node_config: Optional[GcpContainerNodeConfig] = field(default=None)
+    node_ipv4_cidr_size: Optional[int] = field(default=None)
+    node_pool_auto_config: Optional[GcpContainerNodePoolAutoConfig] = field(default=None)
+    node_pool_defaults: Optional[GcpContainerNodePoolDefaults] = field(default=None)
+    node_pools: Optional[List[GcpContainerNodePool]] = field(default=None)
+    notification_config: Optional[GcpContainerNotificationConfig] = field(default=None)
+    private_cluster_config: Optional[GcpContainerPrivateClusterConfig] = field(default=None)
+    release_channel: Optional[str] = field(default=None)
+    resource_labels: Optional[Dict[str, str]] = field(default=None)
+    resource_usage_export_config: Optional[GcpContainerResourceUsageExportConfig] = field(default=None)
+    services_ipv4_cidr: Optional[str] = field(default=None)
+    shielded_nodes: Optional[bool] = field(default=None)
+    status: Optional[str] = field(default=None)
+    status_message: Optional[str] = field(default=None)
+    subnetwork: Optional[str] = field(default=None)
+    tpu_ipv4_cidr_block: Optional[str] = field(default=None)
+    vertical_pod_autoscaling: Optional[bool] = field(default=None)
+    workload_identity_config: Optional[str] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -981,37 +977,35 @@ class GcpContainerOperation(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "operation_cluster_conditions": S("clusterConditions", default=[])
-        >> ForallBend(GcpContainerStatusCondition.mapping),
-        "operation_detail": S("detail"),
-        "operation_end_time": S("endTime"),
-        "operation_error": S("error", default={}) >> Bend(GcpContainerStatus.mapping),
-        "operation_location": S("location"),
-        "operation_nodepool_conditions": S("nodepoolConditions", default=[])
-        >> ForallBend(GcpContainerStatusCondition.mapping),
-        "operation_operation_type": S("operationType"),
-        "operation_progress": S("progress", default={}) >> Bend(GcpContainerOperationProgress.mapping),
-        "operation_start_time": S("startTime"),
-        "operation_status": S("status"),
-        "operation_status_message": S("statusMessage"),
-        "operation_target_link": S("targetLink"),
+        "cluster_conditions": S("clusterConditions", default=[]) >> ForallBend(GcpContainerStatusCondition.mapping),
+        "detail": S("detail"),
+        "end_time": S("endTime"),
+        "error": S("error", default={}) >> Bend(GcpContainerStatus.mapping),
+        "location": S("location"),
+        "nodepool_conditions": S("nodepoolConditions", default=[]) >> ForallBend(GcpContainerStatusCondition.mapping),
+        "operation_type": S("operationType"),
+        "progress": S("progress", default={}) >> Bend(GcpContainerOperationProgress.mapping),
+        "start_time": S("startTime"),
+        "status": S("status"),
+        "status_message": S("statusMessage"),
+        "target_link": S("targetLink"),
     }
-    operation_cluster_conditions: Optional[List[GcpContainerStatusCondition]] = field(default=None)
-    operation_detail: Optional[str] = field(default=None)
-    operation_end_time: Optional[str] = field(default=None)
-    operation_error: Optional[GcpContainerStatus] = field(default=None)
-    operation_location: Optional[str] = field(default=None)
-    operation_nodepool_conditions: Optional[List[GcpContainerStatusCondition]] = field(default=None)
-    operation_operation_type: Optional[str] = field(default=None)
-    operation_progress: Optional[GcpContainerOperationProgress] = field(default=None)
-    operation_start_time: Optional[str] = field(default=None)
-    operation_status: Optional[str] = field(default=None)
-    operation_status_message: Optional[str] = field(default=None)
-    operation_target_link: Optional[str] = field(default=None)
+    cluster_conditions: Optional[List[GcpContainerStatusCondition]] = field(default=None)
+    detail: Optional[str] = field(default=None)
+    end_time: Optional[datetime] = field(default=None)
+    error: Optional[GcpContainerStatus] = field(default=None)
+    location: Optional[str] = field(default=None)
+    nodepool_conditions: Optional[List[GcpContainerStatusCondition]] = field(default=None)
+    operation_type: Optional[str] = field(default=None)
+    progress: Optional[GcpContainerOperationProgress] = field(default=None)
+    start_time: Optional[datetime] = field(default=None)
+    status: Optional[str] = field(default=None)
+    status_message: Optional[str] = field(default=None)
+    target_link: Optional[str] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if self.operation_target_link:
-            builder.add_edge(self, reverse=True, clazz=GcpContainerCluster, link=self.operation_target_link)
+        if self.target_link:
+            builder.add_edge(self, reverse=True, clazz=GcpContainerCluster, link=self.target_link)
 
 
 resources = [GcpContainerCluster, GcpContainerOperation]
