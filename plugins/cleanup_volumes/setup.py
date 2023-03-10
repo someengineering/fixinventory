@@ -10,7 +10,7 @@ def read(file_name: str) -> str:
 
 setup(
     name="resoto-plugin-cleanup-volumes",
-    version="3.2.6",
+    version="3.2.7",
     description="Volume Cleaner Plugin",
     license="Apache 2.0",
     packages=find_packages(),
