@@ -3313,7 +3313,7 @@ class GcpMachineType(GcpResource, BaseInstanceType):
                 "custom" in self.name and "Custom" not in sku.name
             ):
                 continue
-            if builder.region.name not in sku.sku_geo_taxonomy.regions:
+            if self._region.name not in sku.sku_geo_taxonomy.regions:
                 continue
             if self.name == "g1-small" and sku.sku_category.resource_group != "G1Small":
                 continue

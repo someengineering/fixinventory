@@ -55,7 +55,7 @@ class GcpProjectCollector:
             for region in global_builder.resources_of(GcpRegion):
                 global_builder.submit_work(self.collect_region, region, global_builder.for_region(region))
 
-            global_builder.executor.wait_for_submitted_work()
+            global_builder.executor.wait_for_all_submitted_work()
             # connect nodes
             for node, data in list(self.graph.nodes(data=True)):
                 if isinstance(node, GcpResource):
@@ -66,7 +66,7 @@ class GcpProjectCollector:
             log.info(f"[GCP:{self.project.id}] Collecting resources done.")
 
     def collect_region(self, region: GcpRegion, regional_builder: GraphBuilder) -> None:
-        # fetch all project level resources
+        # fetch all region level resources
         for resource_class in all_resources:
             if resource_class.api_spec and not resource_class.api_spec.is_project_level:
                 log.info(f"Collecting {resource_class.__name__} for project {self.project.id} in region {region.id}")

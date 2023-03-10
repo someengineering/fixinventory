@@ -75,6 +75,12 @@ class ExecutorQueue:
                 log.exception(f"Unhandled exception in project {self.name}: {ex}")
                 raise
 
+    def wait_for_all_submitted_work(self) -> None:
+        # Wait until all submitted work and their potential "children" work
+        # is done
+        while not len(self.futures) == 0:
+            self.wait_for_submitted_work()
+
 
 class GraphBuilder:
     def __init__(
