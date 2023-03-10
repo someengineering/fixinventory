@@ -604,7 +604,7 @@ def merge_json_elements(
 
 
 def drop_deleted_attributes(to_be_cleaned: JsonElement, reference: JsonElement) -> JsonElement:
-    """Removes all attributes from to_be_cleaned that are not present in reference."""
+    """Removes all attributes from the to_be_cleaned json that are not present in the reference json."""
 
     # if we see a primitive type, return immediately
     if not isinstance(to_be_cleaned, (list, dict)):
@@ -617,9 +617,8 @@ def drop_deleted_attributes(to_be_cleaned: JsonElement, reference: JsonElement) 
     if isinstance(to_be_cleaned, list):
         reference = cast(List[JsonElement], reference)  # ensured by the assert above
 
-        # reference can only be smaller than to_be_cleaned if it contained env_var_strings
-        # and they failed to be resolved
-        # in that case we can use to_be_cleaned as reference
+        # the reference can only be smaller than to_be_cleaned if it contained env_var_strings
+        # and they failed to be resolved. in that case we can use to_be_cleaned as a reference
         if len(to_be_cleaned) > len(reference):
             new_reference = to_be_cleaned
         else:
