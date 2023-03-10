@@ -17,7 +17,7 @@ from tzlocal import get_localzone_name
 from functools import wraps, cached_property
 from pprint import pformat
 from tarfile import TarFile, TarInfo
-from typing import Dict, List, Tuple, Optional, NoReturn, Any, Mapping, Union, Callable
+from typing import Dict, List, Tuple, Optional, NoReturn, Any, Mapping, Union, Callable, cast
 from resotolib.types import DecoratedFn, JsonElement
 
 import pkg_resources
@@ -564,7 +564,7 @@ def replace_env_vars(elem: JsonElement, environment: Mapping[str, str], keep_unr
                     message += "in configuration at path {conf_path}. "
                     message += f"Please set the environment variable `{env_var_name}` or adjust the configuration. "
                     message += "You can also use the --override option to override the config value."
-                    log.warn(f"Environment variable substitution failed: {message}")
+                    log.warning(f"Environment variable substitution failed: {message}")
 
                     return None
 
@@ -594,10 +594,41 @@ def merge_json_elements(
                 )
             else:
                 merge_result = merge_strategy(existing_value, deepcopy(update_value))
-                if merge_result is not None:
-                    output[update_key] = merge_result
+                output[update_key] = merge_result
 
     else:
         return merge_strategy(existing, deepcopy(update))
 
     return output
+
+
+def drop_deleted_attributes(to_be_cleaned: JsonElement, reference: JsonElement) -> JsonElement:
+    """Removes all attributes from to_be_cleaned that are not present in reference."""
+
+    # if we see a primitive type, return immediately
+    if not isinstance(to_be_cleaned, (list, dict)):
+        return to_be_cleaned
+
+    # should never throw an error if the implementation is correct
+    assert isinstance(to_be_cleaned, type(reference))
+
+    # found a list, try to traverse it
+    if isinstance(to_be_cleaned, list):
+        reference = cast(List[JsonElement], reference)  # ensured by the assert above
+
+        # reference can only be smaller than to_be_cleaned if it contained env_var_strings and they failed to be resolved
+        # in that case we can use to_be_cleaned as reference
+        if len(to_be_cleaned) > len(reference):
+            new_reference = to_be_cleaned
+        else:
+            new_reference = reference
+
+        return [drop_deleted_attributes(tbc, ref) for tbc, ref in zip(to_be_cleaned, new_reference)]
+
+    if isinstance(to_be_cleaned, dict):
+        reference = cast(Dict[str, JsonElement], reference)
+
+        return {k: drop_deleted_attributes(v, reference[k]) for k, v in to_be_cleaned.items() if k in reference}
+
+    # should never happen if mypy is happy
+    raise ValueError(f"Unexpected type {type(to_be_cleaned)}")

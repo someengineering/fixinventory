@@ -16,11 +16,11 @@ from resotolib.core.config import (
     update_config_model,
 )
 from resotolib.core.events import CoreEvents
-from resotolib.utils import replace_env_vars, merge_json_elements
-from typing import Dict, Any, List, Optional, Type, Callable, cast
+from resotolib.utils import replace_env_vars, merge_json_elements, drop_deleted_attributes
+from typing import Dict, Any, List, Optional, Type, cast
 from attrs import fields
 
-from resotolib.types import Json, JsonElement
+from resotolib.types import Json
 
 
 class RunningConfig:
@@ -157,18 +157,35 @@ class Config(metaclass=MetaConfig):
             self.init_default_config()
             default_config_dict = self.dict()
 
-            def drop_deleted_props(existing: JsonElement, update: JsonElement) -> JsonElement:
-                if existing is None:
-                    return None
-                return update
-
-            # merge the raw config into the default config
+            # default config that is updated by the raw config from the core
             raw_with_new_defaults = cast(
                 Json,
-                merge_json_elements(default_config_dict, raw_config_json, merge_strategy=drop_deleted_props),
+                merge_json_elements(default_config_dict, raw_config_json),
             )
+
+            # we also resolve the env var to construct a attrs class and not explode
+            raw_with_resolved_env_vars = {
+                k: replace_env_vars(v, os.environ, keep_unresolved=False) for k, v in raw_with_new_defaults.items()
+            }
+
+            # json with resolved env vars, defaults and dropped deleted attributes
+            # this is the config that we will use to cleanup the raw_with_new_defaults
+            reference_config_json = cast(
+                Json,
+                jsons.dump(
+                    Config.read_config(raw_with_resolved_env_vars),  # attrs class with dropped deleted attributes
+                    strip_attr="kind",
+                    strip_properties=True,
+                    strip_privates=True,
+                ),
+            )
+
+            without_undefined_attributes = cast(
+                Json, drop_deleted_attributes(raw_with_new_defaults, reference_config_json)
+            )
+
             # update the global config object with the merged config
-            Config.running_config.data = raw_with_new_defaults
+            Config.running_config.data = without_undefined_attributes
             # if the raw_config was not empty, we need to set the revision too
             if new_config_revision:
                 Config.running_config.revision = new_config_revision
