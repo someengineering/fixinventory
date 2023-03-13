@@ -1,4 +1,4 @@
-.PHONY: clean clean-test clean-pyc clean-build docs help
+.PHONY: clean clean-test clean-pyc clean-build docs help test
 .DEFAULT_GOAL := help
 .SILENT: clean clean-build clean-pyc clean-test
 
@@ -32,7 +32,7 @@ lint: ## static code analysis
 	flake8 resoto_plugin_k8s
 	mypy --python-version 3.9 --strict resoto_plugin_k8s test
 
-tests: ## run tests quickly with the default Python
+test: ## run tests quickly with the default Python
 	pytest
 
 test-all: ## run tests on every Python version with tox
