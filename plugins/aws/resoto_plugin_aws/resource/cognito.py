@@ -9,6 +9,8 @@ from resotolib.baseresources import BaseUser, EdgeType, ModelReference
 from resotolib.json_bender import S, Bend, Bender, ForallBend
 from resotolib.types import Json
 
+service_name = "cognito-idp"
+
 
 @define(eq=False, slots=False)
 class AwsCognitoGroup(AwsResource):
@@ -34,7 +36,7 @@ class AwsCognitoGroup(AwsResource):
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return [AwsApiSpec("cognito-idp", "delete-group")]
+        return [AwsApiSpec(service_name, "delete-group")]
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.role_arn:
@@ -42,7 +44,7 @@ class AwsCognitoGroup(AwsResource):
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
-            aws_service="cognito-idp", action="delete-group", result_name=None, GroupName=self.name, UserPoolId=self.id
+            aws_service=service_name, action="delete-group", result_name=None, GroupName=self.name, UserPoolId=self.id
         )
         return True
 
@@ -139,7 +141,7 @@ class AwsCognitoLambdaConfigType:
 class AwsCognitoUserPool(AwsResource):
     kind: ClassVar[str] = "aws_cognito_user_pool"
     # this call requires the MaxResult parameter, 60 is the maximum valid input
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cognito-idp", "list-user-pools", "UserPools", {"MaxResults": 60})
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-user-pools", "UserPools", {"MaxResults": 60})
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["aws_cognito_user", "aws_cognito_group", "aws_lambda_function", "aws_kms_key"]},
         "predecessors": {"delete": ["aws_lambda_function", "aws_kms_key"]},
@@ -159,23 +161,23 @@ class AwsCognitoUserPool(AwsResource):
     def called_collect_apis(cls) -> List[AwsApiSpec]:
         return [
             cls.api_spec,
-            AwsApiSpec("cognito-idp", "list-tags-for-resource"),
-            AwsApiSpec("cognito-idp", "list-users"),
-            AwsApiSpec("cognito-idp", "list-groups"),
+            AwsApiSpec(service_name, "list-tags-for-resource"),
+            AwsApiSpec(service_name, "list-users"),
+            AwsApiSpec(service_name, "list-groups"),
         ]
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return [
-            AwsApiSpec("cognito-idp", "tag-resource"),
-            AwsApiSpec("cognito-idp", "untag-resource"),
-            AwsApiSpec("cognito-idp", "delete-user-pool"),
+            AwsApiSpec(service_name, "tag-resource"),
+            AwsApiSpec(service_name, "untag-resource"),
+            AwsApiSpec(service_name, "delete-user-pool"),
         ]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_tags(pool: AwsCognitoUserPool) -> None:
-            tags = builder.client.get("cognito-idp", "list-tags-for-resource", "Tags", ResourceArn=pool.arn)
+            tags = builder.client.get(service_name, "list-tags-for-resource", "Tags", ResourceArn=pool.arn)
             if tags:
                 pool.tags = tags
 
@@ -183,12 +185,12 @@ class AwsCognitoUserPool(AwsResource):
             pool_instance = cls.from_api(pool)
             pool_instance.set_arn(builder=builder, resource=f"userpool/{pool_instance.id}")
             builder.add_node(pool_instance, pool)
-            builder.submit_work(add_tags, pool_instance)
-            for user in builder.client.list("cognito-idp", "list-users", "Users", UserPoolId=pool_instance.id):
+            builder.submit_work(service_name, add_tags, pool_instance)
+            for user in builder.client.list(service_name, "list-users", "Users", UserPoolId=pool_instance.id):
                 user_instance = AwsCognitoUser.from_api(user)
                 builder.add_node(user_instance, user)
                 builder.add_edge(from_node=pool_instance, edge_type=EdgeType.default, node=user_instance)
-            for group in builder.client.list("cognito-idp", "list-groups", "Groups", UserPoolId=pool_instance.id):
+            for group in builder.client.list(service_name, "list-groups", "Groups", UserPoolId=pool_instance.id):
                 group_instance = AwsCognitoGroup.from_api(group)
                 builder.add_node(group_instance, group)
                 builder.add_edge(from_node=pool_instance, edge_type=EdgeType.default, node=group_instance)
@@ -216,18 +218,18 @@ class AwsCognitoUserPool(AwsResource):
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(
-            aws_service="cognito-idp", action="tag-resource", result_name=None, ResourceArn=self.arn, Tags={key: value}
+            aws_service=service_name, action="tag-resource", result_name=None, ResourceArn=self.arn, Tags={key: value}
         )
         return True
 
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
         client.call(
-            aws_service="cognito-idp", action="untag-resource", result_name=None, ResourceArn=self.arn, TagKeys=[key]
+            aws_service=service_name, action="untag-resource", result_name=None, ResourceArn=self.arn, TagKeys=[key]
         )
         return True
 
     def delete_resource(self, client: AwsClient) -> bool:
-        client.call(aws_service="cognito-idp", action="delete-user-pool", result_name=None, UserPoolId=self.id)
+        client.call(aws_service=service_name, action="delete-user-pool", result_name=None, UserPoolId=self.id)
         return True
 
 

@@ -1,4 +1,5 @@
 import json
+import sys
 from datetime import datetime, timedelta
 from textwrap import dedent
 from typing import Type, Any, Union, cast, List
@@ -442,7 +443,7 @@ def test_markup() -> None:
 
 def test_yaml(person_model: Model) -> None:
     person_kind: ComplexKind = person_model["Person"]  # type: ignore
-    address = {"zip": "134", "city": "gotham", "number": 123, "float": 1.2345}
+    address = {"zip": "134", "city": "gotham\nmanor house", "number": 123, "float": 1.2345}
     person = {
         "name": "batman",
         "address": address,
@@ -460,7 +461,9 @@ def test_yaml(person_model: Model) -> None:
           zip: '134'
           # The name of the city.
           # And another line.
-          city: 'gotham'
+          city: |-
+            gotham
+            manor house
           number: 123
           float: 1.2345
         # The list of addresses.
@@ -469,14 +472,18 @@ def test_yaml(person_model: Model) -> None:
             zip: '134'
             # The name of the city.
             # And another line.
-            city: 'gotham'
+            city: |-
+              gotham
+              manor house
             number: 123
             float: 1.2345
           - # The zip code.
             zip: '134'
             # The name of the city.
             # And another line.
-            city: 'gotham'
+            city: |-
+              gotham
+              manor house
             number: 123
             float: 1.2345
         # Other addresses.
@@ -486,7 +493,9 @@ def test_yaml(person_model: Model) -> None:
             zip: '134'
             # The name of the city.
             # And another line.
-            city: 'gotham'
+            city: |-
+              gotham
+              manor house
             number: 123
             float: 1.2345
           work:
@@ -494,7 +503,9 @@ def test_yaml(person_model: Model) -> None:
             zip: '134'
             # The name of the city.
             # And another line.
-            city: 'gotham'
+            city: |-
+              gotham
+              manor house
             number: 123
             float: 1.2345
         simple:

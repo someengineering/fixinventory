@@ -10,6 +10,8 @@ from resotolib.json_bender import Bender, S, Bend, bend, ForallBend, K
 from resotolib.types import Json
 from resoto_plugin_aws.aws_client import AwsClient
 
+service_name = "elb"
+
 
 # noinspection PyUnresolvedReferences
 class ElbTaggable:
@@ -44,8 +46,8 @@ class ElbTaggable:
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return [
-            AwsApiSpec("elb", "add-tags", override_iam_permission="elasticloadbalancing:AddTags"),
-            AwsApiSpec("elb", "remove-tags", override_iam_permission="elasticloadbalancing:RemoveTags"),
+            AwsApiSpec(service_name, "add-tags", override_iam_permission="elasticloadbalancing:AddTags"),
+            AwsApiSpec(service_name, "remove-tags", override_iam_permission="elasticloadbalancing:RemoveTags"),
         ]
 
 
@@ -151,7 +153,7 @@ class AwsElbSourceSecurityGroup:
 class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
     kind: ClassVar[str] = "aws_elb"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
-        "elb",
+        service_name,
         "describe-load-balancers",
         "LoadBalancerDescriptions",
         override_iam_permission="elasticloadbalancing:DescribeLoadBalancers",
@@ -207,14 +209,20 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_tags(elb: AwsElb) -> None:
-            tags = builder.client.list("elb", "describe-tags", "TagDescriptions", LoadBalancerNames=[elb.name])
+            tags = builder.client.list(
+                service_name,
+                "describe-tags",
+                "TagDescriptions",
+                LoadBalancerNames=[elb.name],
+                expected_errors=["LoadBalancerNotFound"],
+            )
             if tags:
                 elb.tags = bend(S("Tags", default=[]) >> ToDict(), tags[0])
 
         for js in json:
             instance = cls.from_api(js)
             builder.add_node(instance, js)
-            builder.submit_work(add_tags, instance)
+            builder.submit_work(service_name, add_tags, instance)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
@@ -240,7 +248,7 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return super().called_mutator_apis() + [
             AwsApiSpec(
-                "elb", "delete-load-balancer", override_iam_permission="elasticloadbalancing:DeleteLoadBalancer"
+                service_name, "delete-load-balancer", override_iam_permission="elasticloadbalancing:DeleteLoadBalancer"
             ),
         ]
 

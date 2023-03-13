@@ -20,7 +20,6 @@ def test_default_config() -> None:
     assert Config.aws.assume_current is False
     assert Config.aws.do_not_scrape_current is False
     assert Config.aws.account_pool_size == num_default_threads()
-    assert Config.aws.region_pool_size == 4
     assert len(Config.aws.collect) == 0
     assert len(Config.aws.no_collect) == 0
 
@@ -30,3 +29,14 @@ def test_session() -> None:
     # direct session
     assert config.sessions()._session("1234", aws_role=None) == config.sessions()._session("1234", aws_role=None)
     # no test for sts session, since this requires sts setup
+
+
+def test_shared_tasks_per_key() -> None:
+    config = AwsConfig(
+        "test", "test", "test", resource_pool_tasks_per_service_default=20, resource_pool_tasks_per_service={"test": 3}
+    )
+    config.resource_pool_tasks_per_service["sagemaker"] = 6  # predefined
+    tpk = config.shared_tasks_per_key(["eu-central-1"])
+    assert tpk("eu-central-1:foo") == 20  # default
+    assert tpk("eu-central-1:sagemaker") == 6  # predefined
+    assert tpk("eu-central-1:test") == 3  # defined in config

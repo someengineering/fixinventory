@@ -1,12 +1,13 @@
 from concurrent.futures import Executor, Future
 from queue import Queue
-from typing import Any, Callable
+from typing import Any, Callable, Iterator
 
 from google.auth.credentials import AnonymousCredentials
 from googleapiclient import discovery
 from pytest import fixture
 
-from resoto_plugin_gcp import gcp_client, GcpConfig
+from resoto_plugin_gcp import gcp_client
+from resoto_plugin_gcp.config import GcpConfig
 from resoto_plugin_gcp.resources.base import ExecutorQueue, GraphBuilder, GcpProject
 from resotolib.baseresources import Cloud
 from resotolib.config import Config
@@ -24,7 +25,7 @@ class DummyExecutor(Executor):
 
 
 @fixture
-def random_builder() -> GraphBuilder:
+def random_builder() -> Iterator[GraphBuilder]:
     # Initialise config
     Config.add_config(GcpConfig)
     Config.init_default_config()

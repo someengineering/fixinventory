@@ -122,10 +122,6 @@ class Shell:
             if "/" in filename:
                 raise ValueError(f"Invalid filename: {filename}")
             filepath = os.path.join(directory, filename)
-            i = 0
-            while os.path.exists(filepath):
-                i += 1
-                filepath = os.path.join(directory, f"{filename}-{i}")
             with open(filepath, "wb+") as fh:
                 if isinstance(response, HttpResponse):
                     content = await response.payload_bytes()

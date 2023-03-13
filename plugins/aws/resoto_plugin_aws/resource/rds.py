@@ -13,6 +13,8 @@ from resotolib.types import Json
 from resotolib.utils import utc
 from resoto_plugin_aws.aws_client import AwsClient
 
+service_name = "rds"
+
 
 # noinspection PyUnresolvedReferences
 class RdsTaggable:
@@ -46,7 +48,7 @@ class RdsTaggable:
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return [AwsApiSpec("rds", "add-tags-to-resource"), AwsApiSpec("rds", "remove-tags-from-resource")]
+        return [AwsApiSpec(service_name, "add-tags-to-resource"), AwsApiSpec(service_name, "remove-tags-from-resource")]
 
 
 @define(eq=False, slots=False)
@@ -250,7 +252,7 @@ class AwsRdsTag:
 @define(eq=False, slots=False)
 class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
     kind: ClassVar[str] = "aws_rds_instance"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("rds", "describe-db-instances", "DBInstances")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-db-instances", "DBInstances")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["aws_vpc", "aws_ec2_security_group", "aws_ec2_subnet"],
@@ -409,7 +411,7 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_tags(rds: AwsRdsInstance) -> None:
-            tags = builder.client.list("rds", "list-tags-for-resource", "TagList", ResourceName=rds.arn)
+            tags = builder.client.list(service_name, "list-tags-for-resource", "TagList", ResourceName=rds.arn)
             if tags:
                 rds.tags = bend(ToDict(), tags)
 
@@ -447,7 +449,7 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
             instance = AwsRdsInstance.from_api(js)
             instances.append(instance)
             builder.add_node(instance, js)
-            builder.submit_work(add_tags, instance)
+            builder.submit_work(service_name, add_tags, instance)
         update_atime_mtime()
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
@@ -490,7 +492,7 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return super().called_mutator_apis() + [AwsApiSpec("rds", "delete-db-instance")]
+        return super().called_mutator_apis() + [AwsApiSpec(service_name, "delete-db-instance")]
 
 
 @define(eq=False, slots=False)
@@ -586,7 +588,7 @@ class AwsRdsMasterUserSecret:
 @define(eq=False, slots=False)
 class AwsRdsCluster(RdsTaggable, AwsResource, BaseDatabase):
     kind: ClassVar[str] = "aws_rds_cluster"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("rds", "describe-db-clusters", "DBClusters")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-db-clusters", "DBClusters")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("DBClusterIdentifier"),
         "tags": S("TagList", default=[]) >> ToDict(),
@@ -761,7 +763,7 @@ class AwsRdsCluster(RdsTaggable, AwsResource, BaseDatabase):
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return super().called_mutator_apis() + [AwsApiSpec("rds", "delete-db-cluster")]
+        return super().called_mutator_apis() + [AwsApiSpec(service_name, "delete-db-cluster")]
 
 
 resources: List[Type[AwsResource]] = [AwsRdsCluster, AwsRdsInstance]

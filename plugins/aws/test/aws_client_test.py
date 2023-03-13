@@ -1,9 +1,8 @@
 from typing import Tuple
 
-import pytest
 from botocore.exceptions import ClientError
 
-from resoto_plugin_aws.aws_client import AwsClient, ErrorAccumulator
+from resoto_plugin_aws.aws_client import AwsClient, ErrorAccumulator, is_retryable_exception
 from resoto_plugin_aws.configuration import AwsConfig
 from test.resources import BotoFileBasedSession, BotoErrorSession
 
@@ -37,9 +36,7 @@ def test_error_handling() -> None:
 
     unauthorized_client, accu_unauthorized = with_error("UnauthorizedOperation", "Err!")
     # this error is raised for the operation
-    with pytest.raises(ClientError) as ex:
-        unauthorized_client.list("ec2", "foo", None)
-    assert str(ex.value) == "An error occurred (UnauthorizedOperation) when calling the foo operation: Err!"
+    unauthorized_client.list("ec2", "foo", None)
     assert len(accu_unauthorized.regional_errors) == 1
     # we can silent this error by passing the expected error code
     assert unauthorized_client.list("ec2", "foo", None, ["UnauthorizedOperation"]) == []
@@ -65,3 +62,13 @@ def test_error_handling() -> None:
     assert some_error_client.list("ec2", "foo", None, ["some_error"]) == []
     assert some_error_client.get("ec2", "foo", None, ["some_error"]) is None
     assert len(queue_some_error.regional_errors) == 1
+
+
+def test_is_retryable() -> None:
+    def check_code(code: str, expected: bool) -> None:
+        assert is_retryable_exception(ClientError({"Error": {"Code": code, "Message": "eff"}}, "foo")) is expected
+
+    check_code("ThrottlingException", True)
+    check_code("RequestLimitExceeded", True)
+    check_code("AccessDenied", False)
+    check_code("UnauthorizedOperation", False)

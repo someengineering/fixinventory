@@ -85,7 +85,7 @@
             "risk": "Sending CloudTrail logs to CloudWatch Logs will facilitate real-time and historic activity logging based on user; API; resource; and IP address; and provides opportunity to establish alarms and notifications for anomalous or sensitivity account activity.",
             "severity": "low",
             "detect": {
-                "resoto": "is(aws_cloud_trail) and trail_status.is_logging==true and trail_status.latest_delivery_attempt_succeeded>{{last_log_event_threshold.ago}}"
+                "resoto": "is(aws_cloud_trail) and trail_status.is_logging==true and trail_status.latest_delivery_attempt_succeeded<{{last_log_event_threshold.ago}}"
             },
             "default_values": {
                 "last_log_event_threshold": "1d"
@@ -142,7 +142,7 @@
             "risk": "If logs are not enabled, monitoring of service use and threat analysis is not possible.",
             "severity": "low",
             "detect": {
-                "resoto": "is(aws_region) with(empty, --> is(aws_cloud_trail) and trail_has_custom_event_selectors=true and trail_event_selectors[*].field_selectors.eventCategory.equals[*]=Data and trail_event_selectors[*].field_selectors.`resources\n.type`.equals[*]=AWS::S3::Object and trail_event_selectors[*].field_selectors.readOnly.equals[*]!=\"false\")"
+                "resoto": "is(aws_region) with(empty, --> is(aws_cloud_trail) and trail_has_custom_event_selectors=true and trail_event_selectors[*].field_selectors.eventCategory.equals[*]=Data and trail_event_selectors[*].field_selectors.`resources.type`.equals[*]=AWS::S3::Object and trail_event_selectors[*].field_selectors.readOnly.equals[*]!=\"false\")"
             },
             "remediation": {
                 "text": "Enable logs. Create an S3 lifecycle policy. Define use cases, metrics and automated responses where applicable.",
@@ -160,7 +160,7 @@
             "risk": "If logs are not enabled, monitoring of service use and threat analysis is not possible.",
             "severity": "low",
             "detect": {
-                "resoto": "is(aws_region) with(empty, --> is(aws_cloud_trail) and trail_has_custom_event_selectors=true and trail_event_selectors[*].field_selectors.eventCategory.equals[*]=Data and trail_event_selectors[*].field_selectors.`resources\n.type`.equals[*]=AWS::S3::Object and trail_event_selectors[*].field_selectors.readOnly.equals[*]!=\"true\")"
+                "resoto": "is(aws_region) with(empty, --> is(aws_cloud_trail) and trail_has_custom_event_selectors=true and trail_event_selectors[*].field_selectors.eventCategory.equals[*]=Data and trail_event_selectors[*].field_selectors.`resources.type`.equals[*]=AWS::S3::Object and trail_event_selectors[*].field_selectors.readOnly.equals[*]!=\"true\")"
             },
             "remediation": {
                 "text": "Enable logs. Create an S3 lifecycle policy. Define use cases, metrics and automated responses where applicable.",
@@ -181,7 +181,7 @@
                 "resoto": "is(aws_cloud_trail) and trail_is_multi_region_trail=true and trail_status.is_logging=true with(empty, --> is(aws_cloudwatch_log_group) with(any, --> is(aws_cloudwatch_metric_filter) and filter_pattern~\"\\$\\.errorCode\\s*=\\s*\\\"\\*UnauthorizedOperation\\\".+\\$\\.errorCode\\s*=\\s*\\\"AccessDenied\\*\\\".+\\$\\.sourceIPAddress\\s*!=\\s*\\\"delivery.logs.amazonaws.com\\\".+\\$\\.eventName\\s*!=\\s*\\\"HeadBucket\\\"\"))"
             },
             "remediation": {
-                "text": "It is recommended that a metric filter and alarm be established for unauthorized requests.",
+                "text": "It is recommended that a metric filter and alarm be established for Unauthorized API Calls.",
                 "url": "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudwatch-alarms-for-cloudtrail.html"
             }
         },
@@ -196,10 +196,10 @@
             "risk": "Monitoring unauthorized API calls will help reveal application errors and may reduce time to detect malicious activity.",
             "severity": "medium",
             "detect": {
-                "resoto": "is(aws_cloud_trail) and trail_is_multi_region_trail=true and trail_status.is_logging=true with(empty, --> is(aws_cloudwatch_log_group) with(any, --> is(aws_cloudwatch_metric_filter) and filter_pattern~\"\\(\\s*\\$\\.eventName\\s*=\\s*\\\"ConsoleLogin\\\"\\)\\s+&&\\s+\\(\\s*\\$.additionalEventData\\.MFAUsed\\s*!=\\s*\\\"Yes\\\"\"))\n"
+                "resoto": "is(aws_cloud_trail) and trail_is_multi_region_trail=true and trail_status.is_logging=true with(empty, --> is(aws_cloudwatch_log_group) with(any, --> is(aws_cloudwatch_metric_filter) and filter_pattern~\"\\(\\s*\\$\\.eventName\\s*=\\s*\\\"ConsoleLogin\\\"\\)\\s+&&\\s+\\(\\s*\\$.additionalEventData\\.MFAUsed\\s*!=\\s*\\\"Yes\\\"\"))"
             },
             "remediation": {
-                "text": "It is recommended that a metric filter and alarm be established for unauthorized requests.",
+                "text": "It is recommended that a metric filter and alarm be established for Console sign-ins without MFA.",
                 "url": "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudwatch-alarms-for-cloudtrail.html"
             }
         },
@@ -214,10 +214,10 @@
             "risk": "Monitoring unauthorized API calls will help reveal application errors and may reduce time to detect malicious activity.",
             "severity": "medium",
             "detect": {
-                "resoto": "is(aws_cloud_trail) and trail_is_multi_region_trail=true and trail_status.is_logging=true with(empty, --> is(aws_cloudwatch_log_group) with(any, --> is(aws_cloudwatch_metric_filter) and filter_pattern~\"\\(\\s*\\$\\.eventName\\s*=\\s*\\\"ConsoleLogin\\\"\\)\\s+&&\\s+\\(\\s*\\$.additionalEventData\\.MFAUsed\\s*!=\\s*\\\"Yes\\\"\"))\n"
+                "resoto": "is(aws_cloud_trail) and trail_is_multi_region_trail=true and trail_status.is_logging=true with(empty, --> is(aws_cloudwatch_log_group) with(any, --> is(aws_cloudwatch_metric_filter) and filter_pattern~\"\\(\\s*\\$\\.eventName\\s*=\\s*\\\"ConsoleLogin\\\"\\)\\s+&&\\s+\\(\\s*\\$.additionalEventData\\.MFAUsed\\s*!=\\s*\\\"Yes\\\"\"))"
             },
             "remediation": {
-                "text": "It is recommended that a metric filter and alarm be established for unauthorized requests.",
+                "text": "It is recommended that a metric filter and alarm be established for Management Console sign-ins without MFA.",
                 "url": "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudwatch-alarms-for-cloudtrail.html"
             }
         },
@@ -235,7 +235,7 @@
                 "resoto": "is(aws_cloud_trail) and trail_is_multi_region_trail=true and trail_status.is_logging=true with(empty, --> is(aws_cloudwatch_log_group) with(any, --> is(aws_cloudwatch_metric_filter) and filter_pattern~\"\\s*\\$\\.userIdentity\\.type\\s*=\\s*\\\"Root\\\".+\\$\\.userIdentity\\.invokedBy NOT EXISTS.+\\$\\.eventType\\s*!=\\s*\\\"AwsServiceEvent\\\"\"))"
             },
             "remediation": {
-                "text": "It is recommended that a metric filter and alarm be established for unauthorized requests.",
+                "text": "It is recommended that a metric filter and alarm be established for usage of root account.",
                 "url": "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudwatch-alarms-for-cloudtrail.html"
             }
         },
@@ -250,10 +250,10 @@
             "risk": "Monitoring unauthorized API calls will help reveal application errors and may reduce time to detect malicious activity.",
             "severity": "medium",
             "detect": {
-                "resoto": "is(aws_cloud_trail) and trail_is_multi_region_trail=true and trail_status.is_logging=true with(empty, --> is(aws_cloudwatch_log_group) with(any, --> is(aws_cloudwatch_metric_filter) and filter_pattern~\"\\s*\\$\\.eventName\\s*=\\s*DeleteGroupPolicy.+\\$\\.eventName\\s*=\\s*DeleteRolePolicy.+\\$\\.eventName\\s*=\\s*DeleteUserPolicy.+\\$\\.eventName\\s*=\\s*PutGroupPolicy.+\\$\\.eventName\\s*=\\s*PutRolePolicy.+\\$\\.eventName\\s*=\\s*PutUserPolicy.+\\$\\.eventName\\s*=\\s*CreatePolicy.+\\$\\.eventName\\s*=\\s*DeletePolicy.+\\$\\.eventName\\s*=\\s*CreatePolicyVersion.+\\$\\.eventName\\s*=\\s*DeletePolicyVersion.+\\$\\.eventName\\s*=\\s*AttachRolePolicy.+\\$\\.eventName\\s*=\\s*DetachRolePolicy.+\\$\\.eventName\\s*=\\s*AttachUserPolicy.+\\$\\.eventName\\s*=\\s*DetachUserPolicy.+\\$\\.eventName\\s*=\\s*AttachGroupPolicy.+\\$\\.eventName\\s*=\\s*DetachGroupPolicy\\\"))\\s*\\$\\.userIdentity\\.type\\s*=\\s*\\\"Root\\\".+\\$\\.userIdentity\\.invokedBy NOT EXISTS.+\\$\\.eventType\\s*!=\\s*\\\"AwsServiceEvent\\\"\"))\n"
+                "resoto": "is(aws_cloud_trail) and trail_is_multi_region_trail=true and trail_status.is_logging=true with(empty, --> is(aws_cloudwatch_log_group) with(any, --> is(aws_cloudwatch_metric_filter) and filter_pattern~\"\\s*\\$\\.eventName\\s*=\\s*DeleteGroupPolicy.+\\$\\.eventName\\s*=\\s*DeleteRolePolicy.+\\$\\.eventName\\s*=\\s*DeleteUserPolicy.+\\$\\.eventName\\s*=\\s*PutGroupPolicy.+\\$\\.eventName\\s*=\\s*PutRolePolicy.+\\$\\.eventName\\s*=\\s*PutUserPolicy.+\\$\\.eventName\\s*=\\s*CreatePolicy.+\\$\\.eventName\\s*=\\s*DeletePolicy.+\\$\\.eventName\\s*=\\s*CreatePolicyVersion.+\\$\\.eventName\\s*=\\s*DeletePolicyVersion.+\\$\\.eventName\\s*=\\s*AttachRolePolicy.+\\$\\.eventName\\s*=\\s*DetachRolePolicy.+\\$\\.eventName\\s*=\\s*AttachUserPolicy.+\\$\\.eventName\\s*=\\s*DetachUserPolicy.+\\$\\.eventName\\s*=\\s*AttachGroupPolicy.+\\$\\.eventName\\s*=\\s*DetachGroupPolicy\\\"))\\s*\\$\\.userIdentity\\.type\\s*=\\s*\\\"Root\\\".+\\$\\.userIdentity\\.invokedBy NOT EXISTS.+\\$\\.eventType\\s*!=\\s*\\\"AwsServiceEvent\\\"\"))"
             },
             "remediation": {
-                "text": "It is recommended that a metric filter and alarm be established for unauthorized requests.",
+                "text": "It is recommended that a metric filter and alarm be established for IAM policy changes.",
                 "url": "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudwatch-alarms-for-cloudtrail.html"
             }
         },
@@ -271,7 +271,7 @@
                 "resoto": "is(aws_cloud_trail) and trail_is_multi_region_trail=true and trail_status.is_logging=true with(empty, --> is(aws_cloudwatch_log_group) with(any, --> is(aws_cloudwatch_metric_filter) and filter_pattern~\"\\s*\\$\\.eventName\\s*=\\s*CreateTrail.+\\$\\.eventName\\s*=\\s*UpdateTrail.+\\$\\.eventName\\s*=\\s*DeleteTrail.+\\$\\.eventName\\s*=\\s*StartLogging.+\\$\\.eventName\\s*=\\s*StopLogging\"))"
             },
             "remediation": {
-                "text": "It is recommended that a metric filter and alarm be established for unauthorized requests.",
+                "text": "It is recommended that a metric filter and alarm be established for cloudtrail configuration changes.",
                 "url": "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudwatch-alarms-for-cloudtrail.html"
             }
         },
@@ -289,7 +289,7 @@
                 "resoto": "is(aws_cloud_trail) and trail_is_multi_region_trail=true and trail_status.is_logging=true with(empty, --> is(aws_cloudwatch_log_group) with(any, --> is(aws_cloudwatch_metric_filter) and filter_pattern~\"\\s*\\$\\.eventName\\s*=\\s*ConsoleLogin.+\\$\\.errorMessage\\s*=\\s*\\\"Failed authentication\\\"))\\s*\\$\\.eventName\\s*=\\s*CreateTrail.+\\$\\.eventName\\s*=\\s*UpdateTrail.+\\$\\.eventName\\s*=\\s*DeleteTrail.+\\$\\.eventName\\s*=\\s*StartLogging.+\\$\\.eventName\\s*=\\s*StopLogging\"))"
             },
             "remediation": {
-                "text": "It is recommended that a metric filter and alarm be established for unauthorized requests.",
+                "text": "It is recommended that a metric filter and alarm be established for AWS Management Console authentication failures.",
                 "url": "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudwatch-alarms-for-cloudtrail.html"
             }
         },
@@ -307,7 +307,7 @@
                 "resoto": "is(aws_cloud_trail) and trail_is_multi_region_trail=true and trail_status.is_logging=true with(empty, --> is(aws_cloudwatch_log_group) with(any, --> is(aws_cloudwatch_metric_filter) and filter_pattern~\"\\s*\\$\\.eventSource\\s*=\\s*kms.amazonaws.com.+\\$\\.eventName\\s*=\\s*DisableKey.+\\$\\.eventName\\s*=\\s*ScheduleKeyDeletion\"))"
             },
             "remediation": {
-                "text": "It is recommended that a metric filter and alarm be established for unauthorized requests.",
+                "text": "It is recommended that a metric filter and alarm be established for disabling or scheduled deletion of customer created KMS CMKs.",
                 "url": "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudwatch-alarms-for-cloudtrail.html"
             }
         },
@@ -325,7 +325,7 @@
                 "resoto": "is(aws_cloud_trail) and trail_is_multi_region_trail=true and trail_status.is_logging=true with(empty, --> is(aws_cloudwatch_log_group) with(any, --> is(aws_cloudwatch_metric_filter) and filter_pattern~\"\\s*\\$\\.eventSource\\s*=\\s*s3.amazonaws.com.+\\$\\.eventName\\s*=\\s*PutBucketAcl.+\\$\\.eventName\\s*=\\s*PutBucketPolicy.+\\$\\.eventName\\s*=\\s*PutBucketCors.+\\$\\.eventName\\s*=\\s*PutBucketLifecycle.+\\$\\.eventName\\s*=\\s*PutBucketReplication.+\\$\\.eventName\\s*=\\s*DeleteBucketPolicy.+\\$\\.eventName\\s*=\\s*DeleteBucketCors.+\\$\\.eventName\\s*=\\s*DeleteBucketLifecycle.+\\$\\.eventName\\s*=\\s*DeleteBucketReplication\"))"
             },
             "remediation": {
-                "text": "It is recommended that a metric filter and alarm be established for unauthorized requests.",
+                "text": "It is recommended that a metric filter and alarm be established for S3 bucket policy changes.",
                 "url": "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudwatch-alarms-for-cloudtrail.html"
             }
         },
@@ -343,7 +343,7 @@
                 "resoto": "is(aws_cloud_trail) and trail_is_multi_region_trail=true and trail_status.is_logging=true with(empty, --> is(aws_cloudwatch_log_group) with(any, --> is(aws_cloudwatch_metric_filter) and filter_pattern~\"\\s*\\$\\.eventSource\\s*=\\s*config.amazonaws.com.+\\$\\.eventName\\s*=\\s*StopConfigurationRecorder.+\\$\\.eventName\\s*=\\s*DeleteDeliveryChannel.+\\$\\.eventName\\s*=\\s*PutDeliveryChannel.+\\$\\.eventName\\s*=\\s*PutConfigurationRecorder\"))"
             },
             "remediation": {
-                "text": "It is recommended that a metric filter and alarm be established for unauthorized requests.",
+                "text": "It is recommended that a metric filter and alarm be established for AWS Config configuration changes.",
                 "url": "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudwatch-alarms-for-cloudtrail.html"
             }
         },
@@ -361,7 +361,7 @@
                 "resoto": "is(aws_cloud_trail) and trail_is_multi_region_trail=true and trail_status.is_logging=true with(empty, --> is(aws_cloudwatch_log_group) with(any, --> is(aws_cloudwatch_metric_filter) and filter_pattern~\"\\s*\\$\\.eventName\\s*=\\s*AuthorizeSecurityGroupIngress.+\\$\\.eventName\\s*=\\s*AuthorizeSecurityGroupEgress.+\\$\\.eventName\\s*=\\s*RevokeSecurityGroupIngress.+\\$\\.eventName\\s*=\\s*RevokeSecurityGroupEgress.+\\$\\.eventName\\s*=\\s*CreateSecurityGroup.+\\$\\.eventName\\s*=\\s*DeleteSecurityGroup\"))"
             },
             "remediation": {
-                "text": "It is recommended that a metric filter and alarm be established for unauthorized requests.",
+                "text": "It is recommended that a metric filter and alarm be established for security group changes.",
                 "url": "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudwatch-alarms-for-cloudtrail.html"
             }
         },
@@ -379,7 +379,7 @@
                 "resoto": "is(aws_cloud_trail) and trail_is_multi_region_trail=true and trail_status.is_logging=true with(empty, --> is(aws_cloudwatch_log_group) with(any, --> is(aws_cloudwatch_metric_filter) and filter_pattern~\"\\s*\\$\\.eventName\\s*=\\s*CreateNetworkAcl.+\\$\\.eventName\\s*=\\s*CreateNetworkAclEntry.+\\$\\.eventName\\s*=\\s*DeleteNetworkAcl.+\\$\\.eventName\\s*=\\s*DeleteNetworkAclEntry.+\\$\\.eventName\\s*=\\s*ReplaceNetworkAclEntry.+\\$\\.eventName\\s*=\\s*ReplaceNetworkAclAssociation\"))"
             },
             "remediation": {
-                "text": "It is recommended that a metric filter and alarm be established for unauthorized requests.",
+                "text": "It is recommended that a metric filter and alarm be established for network ACL changes.",
                 "url": "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudwatch-alarms-for-cloudtrail.html"
             }
         },
@@ -397,7 +397,7 @@
                 "resoto": "is(aws_cloud_trail) and trail_is_multi_region_trail=true and trail_status.is_logging=true with(empty, --> is(aws_cloudwatch_log_group) with(any, --> is(aws_cloudwatch_metric_filter) and filter_pattern~\"\\s*\\$\\.eventName\\s*=\\s*CreateCustomerGateway.+\\$\\.eventName\\s*=\\s*DeleteCustomerGateway.+\\$\\.eventName\\s*=\\s*AttachInternetGateway.+\\$\\.eventName\\s*=\\s*CreateInternetGateway.+\\$\\.eventName\\s*=\\s*DeleteInternetGateway.+\\$\\.eventName\\s*=\\s*DetachInternetGateway\"))"
             },
             "remediation": {
-                "text": "It is recommended that a metric filter and alarm be established for unauthorized requests.",
+                "text": "It is recommended that a metric filter and alarm be established for network gateway changes.",
                 "url": "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudwatch-alarms-for-cloudtrail.html"
             }
         },
@@ -415,7 +415,7 @@
                 "resoto": "is(aws_cloud_trail) and trail_is_multi_region_trail=true and trail_status.is_logging=true with(empty, --> is(aws_cloudwatch_log_group) with(any, --> is(aws_cloudwatch_metric_filter) and filter_pattern~\"\\s*\\$\\.eventName\\s*=\\s*CreateRoute.+\\$\\.eventName\\s*=\\s*CreateRouteTable.+\\$\\.eventName\\s*=\\s*ReplaceRoute.+\\$\\.eventName\\s*=\\s*ReplaceRouteTableAssociation.+\\$\\.eventName\\s*=\\s*DeleteRouteTable.+\\$\\.eventName\\s*=\\s*DeleteRoute.+\\$\\.eventName\\s*=\\s*DisassociateRouteTable\"))"
             },
             "remediation": {
-                "text": "It is recommended that a metric filter and alarm be established for unauthorized requests.",
+                "text": "It is recommended that a metric filter and alarm be established for route table changes.",
                 "url": "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudwatch-alarms-for-cloudtrail.html"
             }
         },
@@ -430,10 +430,10 @@
             "risk": "Monitoring unauthorized API calls will help reveal application errors and may reduce time to detect malicious activity.",
             "severity": "medium",
             "detect": {
-                "resoto": "is(aws_cloud_trail) and trail_is_multi_region_trail=true and trail_status.is_logging=true with(empty, --> is(aws_cloudwatch_log_group) with(any, --> is(aws_cloudwatch_metric_filter) and filter_pattern~\"\\s*\\$\\.eventName\\s*=\\s*CreateVpc.+\\$\\.eventName\\s*=\\s*DeleteVpc.+\\$\\.eventName\\s*=\\s*ModifyVpcAttribute.+\\$\\.eventName\\s*=\\s*AcceptVpcPeeringConnection.+\\$\\.eventName\\s*=\\s*CreateVpcPeeringConnection.+\\$\\.eventName\\s*=\\s*DeleteVpcPeeringConnection.+\\$\\.eventName\\s*=\\s*RejectVpcPeeringConnection.+\\$\\.eventName\\s*=\\s*AttachClassicLinkVpc.+\\$\\.eventName\\s*=\\s*DetachClassicLinkVpc.+\\$\\.eventName\\s*=\\s*DisableVpcClassicLink.+\\$\\.eventName\\s*=\\s*EnableVpcClassicLink\"))\n"
+                "resoto": "is(aws_cloud_trail) and trail_is_multi_region_trail=true and trail_status.is_logging=true with(empty, --> is(aws_cloudwatch_log_group) with(any, --> is(aws_cloudwatch_metric_filter) and filter_pattern~\"\\s*\\$\\.eventName\\s*=\\s*CreateVpc.+\\$\\.eventName\\s*=\\s*DeleteVpc.+\\$\\.eventName\\s*=\\s*ModifyVpcAttribute.+\\$\\.eventName\\s*=\\s*AcceptVpcPeeringConnection.+\\$\\.eventName\\s*=\\s*CreateVpcPeeringConnection.+\\$\\.eventName\\s*=\\s*DeleteVpcPeeringConnection.+\\$\\.eventName\\s*=\\s*RejectVpcPeeringConnection.+\\$\\.eventName\\s*=\\s*AttachClassicLinkVpc.+\\$\\.eventName\\s*=\\s*DetachClassicLinkVpc.+\\$\\.eventName\\s*=\\s*DisableVpcClassicLink.+\\$\\.eventName\\s*=\\s*EnableVpcClassicLink\"))"
             },
             "remediation": {
-                "text": "It is recommended that a metric filter and alarm be established for unauthorized requests.",
+                "text": "It is recommended that a metric filter and alarm be established for VPC changes.",
                 "url": "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudwatch-alarms-for-cloudtrail.html"
             }
         },
@@ -451,7 +451,7 @@
                 "resoto": "is(aws_cloud_trail) and trail_is_multi_region_trail=true and trail_status.is_logging=true with(empty, --> is(aws_cloudwatch_log_group) with(any, --> is(aws_cloudwatch_metric_filter) and filter_pattern~\"\\s*\\$\\.eventSource\\s*=\\s*organizations.amazonaws.com.+\\$\\.eventName\\s*=\\s*\\\"AcceptHandshake\\\".+\\$\\.eventName\\s*=\\s*\\\"AttachPolicy\\\".+\\$\\.eventName\\s*=\\s*\\\"CreateAccount\\\".+\\$\\.eventName\\s*=\\s*\\\"CreateOrganizationalUnit\\\".+\\$\\.eventName\\s*=\\s*\\\"CreatePolicy\\\".+\\$\\.eventName\\s*=\\s*\\\"DeclineHandshake\\\".+\\$\\.eventName\\s*=\\s*\\\"DeleteOrganization\\\".+\\$\\.eventName\\s*=\\s*\\\"DeleteOrganizationalUnit\\\".+\\$\\.eventName\\s*=\\s*\\\"DeletePolicy\\\".+\\$\\.eventName\\s*=\\s*\\\"DetachPolicy\\\".+\\$\\.eventName\\s*=\\s*\\\"DisablePolicyType\\\".+\\$\\.eventName\\s*=\\s*\\\"EnablePolicyType\\\".+\\$\\.eventName\\s*=\\s*\\\"InviteAccountToOrganization\\\".+\\$\\.eventName\\s*=\\s*\\\"LeaveOrganization\\\".+\\$\\.eventName\\s*=\\s*\\\"MoveAccount\\\".+\\$\\.eventName\\s*=\\s*\\\"RemoveAccountFromOrganization\\\".+\\$\\.eventName\\s*=\\s*\\\"UpdatePolicy\\\".+\\$\\.eventName\\s*=\\s*\\\"UpdateOrganizationalUnit\\\"\"))"
             },
             "remediation": {
-                "text": "It is recommended that a metric filter and alarm be established for unauthorized requests.",
+                "text": "Create a metric filter and alarm for AWS organization changes.",
                 "url": "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudwatch-alarms-for-cloudtrail.html"
             }
         },

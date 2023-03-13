@@ -10,6 +10,8 @@ from resotolib.json_bender import Bender, S, Bend, ForallBend
 from resotolib.types import Json
 from resoto_plugin_aws.aws_client import AwsClient
 
+service_name = "autoscaling"
+
 
 @define(eq=False, slots=False)
 class AwsAutoScalingLaunchTemplateSpecification:
@@ -203,7 +205,7 @@ class AwsAutoScalingWarmPoolConfiguration:
 @define(eq=False, slots=False)
 class AwsAutoScalingGroup(AwsResource, BaseAutoScalingGroup):
     kind: ClassVar[str] = "aws_autoscaling_group"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("autoscaling", "describe-auto-scaling-groups", "AutoScalingGroups")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-auto-scaling-groups", "AutoScalingGroups")
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["aws_ec2_instance"]},
         "predecessors": {"delete": ["aws_ec2_instance"]},
@@ -281,7 +283,7 @@ class AwsAutoScalingGroup(AwsResource, BaseAutoScalingGroup):
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(
-            aws_service="autoscaling",
+            aws_service=service_name,
             action="create-or-update-tags",
             result_name=None,
             Tags=[
@@ -298,7 +300,7 @@ class AwsAutoScalingGroup(AwsResource, BaseAutoScalingGroup):
 
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
         client.call(
-            aws_service="autoscaling",
+            aws_service=service_name,
             action="delete-tags",
             result_name=None,
             Tags=[
@@ -324,9 +326,9 @@ class AwsAutoScalingGroup(AwsResource, BaseAutoScalingGroup):
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return [
-            AwsApiSpec("autoscaling", "create-or-update-tags"),
-            AwsApiSpec("autoscaling", "delete-tags"),
-            AwsApiSpec("autoscaling", "delete-auto-scaling-group"),
+            AwsApiSpec(service_name, "create-or-update-tags"),
+            AwsApiSpec(service_name, "delete-tags"),
+            AwsApiSpec(service_name, "delete-auto-scaling-group"),
         ]
 
 

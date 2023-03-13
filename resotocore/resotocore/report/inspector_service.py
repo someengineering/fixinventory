@@ -5,6 +5,7 @@ from typing import Optional, List, Dict, Tuple, Callable, AsyncIterator
 from aiostream import stream
 from attr import evolve, define
 
+from resotocore.analytics import CoreEvent
 from resotocore.cli.cli import CLI
 from resotocore.cli.model import CLIContext
 from resotocore.config import ConfigEntity, ConfigHandler
@@ -59,11 +60,15 @@ class InspectorService(Inspector, Service):
         self.cli = cli
         self.template_expander = cli.dependencies.template_expander
         self.model_handler = cli.dependencies.model_handler
+        self.event_sender = cli.dependencies.event_sender
 
     async def start(self) -> None:
         # TODO: we need a migration path for checks added in existing configs
         config_ids = {i async for i in self.config_handler.list_config_ids()}
         overwrite = True  # only here to simplify development. True until we reach a stable version.
+        # we renamed this config in 3.2.6 - old installations still might have it
+        # this line can be removed in a future version
+        await self.config_handler.delete_config(ConfigId("resoto.report.benchmark.aws_cis_1.5"))
         for name, js in BenchmarkConfig.from_files().items():
             if overwrite or benchmark_id(name) not in config_ids:
                 cid = benchmark_id(name)
@@ -196,6 +201,7 @@ class InspectorService(Inspector, Service):
         perform_checks = await self.list_checks(check_ids=benchmark.nested_checks())
         check_by_id = {c.id: c for c in perform_checks}
         result = await self.__perform_checks(graph, perform_checks, context)
+        await self.event_sender.core_event(CoreEvent.BenchmarkPerformed, {"benchmark": benchmark.id})
 
         def to_result(cc: CheckCollection) -> CheckCollectionResult:
             check_results = [CheckResult(check_by_id[cid], result.get(cid, {})) for cid in cc.checks or []]

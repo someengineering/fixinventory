@@ -14,6 +14,8 @@ from resotolib.types import Json
 from resoto_plugin_aws.resource.ec2 import AwsEc2Vpc, AwsEc2SecurityGroup, AwsEc2Subnet
 from resoto_plugin_aws.resource.iam import AwsIamRole
 
+service_name = "redshift"
+
 
 @define(eq=False, slots=False)
 class AwsRedshiftNetworkInterface:
@@ -289,7 +291,7 @@ class AwsRedshiftReservedNodeExchangeStatus:
 @define(eq=False, slots=False)
 class AwsRedshiftCluster(AwsResource):
     kind: ClassVar[str] = "aws_redshift_cluster"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("redshift", "describe-clusters", "Clusters")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-clusters", "Clusters")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["aws_vpc", "aws_ec2_security_group", "aws_iam_role", "aws_ec2_subnet"],
@@ -487,9 +489,9 @@ class AwsRedshiftCluster(AwsResource):
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return [
-            AwsApiSpec("redshift", "create-tags"),
-            AwsApiSpec("redshift", "delete-tags"),
-            AwsApiSpec("redshift", "delete-cluster"),
+            AwsApiSpec(service_name, "create-tags"),
+            AwsApiSpec(service_name, "delete-tags"),
+            AwsApiSpec(service_name, "delete-cluster"),
         ]
 
 

@@ -22,8 +22,8 @@ from resotolib.types import Json
 log = logging.getLogger("resoto.plugins.gcp")
 
 
-def health_checks() -> Tuple[GcpResource, ...]:
-    return (GcpHealthCheck, GcpHttpsHealthCheck, GcpHttpHealthCheck)
+def health_check_types() -> Tuple[Type[GcpResource], ...]:
+    return GcpHealthCheck, GcpHttpsHealthCheck, GcpHttpHealthCheck
 
 
 @define(eq=False, slots=False)
@@ -81,33 +81,33 @@ class GcpAddress(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "address_address": S("address"),
-        "address_address_type": S("addressType"),
-        "address_ip_version": S("ipVersion"),
-        "address_ipv6_endpoint_type": S("ipv6EndpointType"),
-        "address_network": S("network"),
-        "address_network_tier": S("networkTier"),
-        "address_prefix_length": S("prefixLength"),
-        "address_purpose": S("purpose"),
-        "address_status": S("status"),
-        "address_subnetwork": S("subnetwork"),
-        "address_users": S("users", default=[]),
+        "address": S("address"),
+        "address_type": S("addressType"),
+        "ip_version": S("ipVersion"),
+        "ipv6_endpoint_type": S("ipv6EndpointType"),
+        "network": S("network"),
+        "network_tier": S("networkTier"),
+        "prefix_length": S("prefixLength"),
+        "purpose": S("purpose"),
+        "status": S("status"),
+        "subnetwork": S("subnetwork"),
+        "users": S("users", default=[]),
     }
-    address_address: Optional[str] = field(default=None)
-    address_address_type: Optional[str] = field(default=None)
-    address_ip_version: Optional[str] = field(default=None)
-    address_ipv6_endpoint_type: Optional[str] = field(default=None)
-    address_network: Optional[str] = field(default=None)
-    address_network_tier: Optional[str] = field(default=None)
-    address_prefix_length: Optional[int] = field(default=None)
-    address_purpose: Optional[str] = field(default=None)
-    address_status: Optional[str] = field(default=None)
-    address_subnetwork: Optional[str] = field(default=None)
-    address_users: Optional[List[str]] = field(default=None)
+    address: Optional[str] = field(default=None)
+    address_type: Optional[str] = field(default=None)
+    ip_version: Optional[str] = field(default=None)
+    ipv6_endpoint_type: Optional[str] = field(default=None)
+    network: Optional[str] = field(default=None)
+    network_tier: Optional[str] = field(default=None)
+    prefix_length: Optional[int] = field(default=None)
+    purpose: Optional[str] = field(default=None)
+    status: Optional[str] = field(default=None)
+    subnetwork: Optional[str] = field(default=None)
+    users: Optional[List[str]] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if self.address_subnetwork:
-            builder.dependant_node(self, reverse=True, clazz=GcpSubnetwork, link=self.address_subnetwork)
+        if self.subnetwork:
+            builder.dependant_node(self, reverse=True, clazz=GcpSubnetwork, link=self.subnetwork)
 
 
 @define(eq=False, slots=False)
@@ -340,27 +340,27 @@ class GcpBackendBucket(GcpResource):
         response_regional_sub_path=None,
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id").or_else(S("name")).or_else(S("selfLink")),
+        "id": S("id").or_else(S("bucketName")).or_else(S("selfLink")),
         "tags": S("labels", default={}),
-        "name": S("name"),
+        "name": S("bucketName"),
         "ctime": S("creationTimestamp"),
         "description": S("description"),
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "bucket_bucket_name": S("bucketName"),
-        "bucket_cdn_policy": S("cdnPolicy", default={}) >> Bend(GcpBackendBucketCdnPolicy.mapping),
-        "bucket_compression_mode": S("compressionMode"),
-        "bucket_custom_response_headers": S("customResponseHeaders", default=[]),
-        "bucket_edge_security_policy": S("edgeSecurityPolicy"),
-        "bucket_enable_cdn": S("enableCdn"),
+        "bucket_name": S("bucketName"),
+        "cdn_policy": S("cdnPolicy", default={}) >> Bend(GcpBackendBucketCdnPolicy.mapping),
+        "compression_mode": S("compressionMode"),
+        "custom_response_headers": S("customResponseHeaders", default=[]),
+        "edge_security_policy": S("edgeSecurityPolicy"),
+        "enable_cdn": S("enableCdn"),
     }
-    bucket_bucket_name: Optional[str] = field(default=None)
-    bucket_cdn_policy: Optional[GcpBackendBucketCdnPolicy] = field(default=None)
-    bucket_compression_mode: Optional[str] = field(default=None)
-    bucket_custom_response_headers: Optional[List[str]] = field(default=None)
-    bucket_edge_security_policy: Optional[str] = field(default=None)
-    bucket_enable_cdn: Optional[bool] = field(default=None)
+    bucket_name: Optional[str] = field(default=None)
+    cdn_policy: Optional[GcpBackendBucketCdnPolicy] = field(default=None)
+    compression_mode: Optional[str] = field(default=None)
+    custom_response_headers: Optional[List[str]] = field(default=None)
+    edge_security_policy: Optional[str] = field(default=None)
+    enable_cdn: Optional[bool] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -661,85 +661,82 @@ class GcpBackendService(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "service_affinity_cookie_ttl_sec": S("affinityCookieTtlSec"),
-        "service_backends": S("backends", default=[]) >> ForallBend(GcpBackend.mapping),
-        "service_cdn_policy": S("cdnPolicy", default={}) >> Bend(GcpBackendServiceCdnPolicy.mapping),
-        "service_circuit_breakers": S("circuitBreakers", default={}) >> Bend(GcpCircuitBreakers.mapping),
-        "service_compression_mode": S("compressionMode"),
-        "service_connection_draining": S("connectionDraining", "drainingTimeoutSec"),
-        "service_connection_tracking_policy": S("connectionTrackingPolicy", default={})
+        "affinity_cookie_ttl_sec": S("affinityCookieTtlSec"),
+        "backends": S("backends", default=[]) >> ForallBend(GcpBackend.mapping),
+        "cdn_policy": S("cdnPolicy", default={}) >> Bend(GcpBackendServiceCdnPolicy.mapping),
+        "circuit_breakers": S("circuitBreakers", default={}) >> Bend(GcpCircuitBreakers.mapping),
+        "compression_mode": S("compressionMode"),
+        "connection_draining": S("connectionDraining", "drainingTimeoutSec"),
+        "connection_tracking_policy": S("connectionTrackingPolicy", default={})
         >> Bend(GcpBackendServiceConnectionTrackingPolicy.mapping),
-        "service_consistent_hash": S("consistentHash", default={})
-        >> Bend(GcpConsistentHashLoadBalancerSettings.mapping),
-        "service_custom_request_headers": S("customRequestHeaders", default=[]),
-        "service_custom_response_headers": S("customResponseHeaders", default=[]),
-        "service_edge_security_policy": S("edgeSecurityPolicy"),
-        "service_enable_cdn": S("enableCDN"),
-        "service_failover_policy": S("failoverPolicy", default={}) >> Bend(GcpBackendServiceFailoverPolicy.mapping),
-        "service_fingerprint": S("fingerprint"),
-        "service_health_checks": S("healthChecks", default=[]),
-        "service_iap": S("iap", default={}) >> Bend(GcpBackendServiceIAP.mapping),
-        "service_load_balancing_scheme": S("loadBalancingScheme"),
-        "service_locality_lb_policies": S("localityLbPolicies", default=[])
+        "consistent_hash": S("consistentHash", default={}) >> Bend(GcpConsistentHashLoadBalancerSettings.mapping),
+        "custom_request_headers": S("customRequestHeaders", default=[]),
+        "custom_response_headers": S("customResponseHeaders", default=[]),
+        "edge_security_policy": S("edgeSecurityPolicy"),
+        "enable_cdn": S("enableCDN"),
+        "failover_policy": S("failoverPolicy", default={}) >> Bend(GcpBackendServiceFailoverPolicy.mapping),
+        "fingerprint": S("fingerprint"),
+        "health_checks": S("healthChecks", default=[]),
+        "iap": S("iap", default={}) >> Bend(GcpBackendServiceIAP.mapping),
+        "load_balancing_scheme": S("loadBalancingScheme"),
+        "locality_lb_policies": S("localityLbPolicies", default=[])
         >> ForallBend(GcpBackendServiceLocalityLoadBalancingPolicyConfig.mapping),
-        "service_locality_lb_policy": S("localityLbPolicy"),
-        "service_log_config": S("logConfig", default={}) >> Bend(GcpBackendServiceLogConfig.mapping),
-        "service_max_stream_duration": S("maxStreamDuration", default={}) >> Bend(GcpDuration.mapping),
-        "service_network": S("network"),
-        "service_outlier_detection": S("outlierDetection", default={}) >> Bend(GcpOutlierDetection.mapping),
-        "service_port": S("port"),
-        "service_port_name": S("portName"),
-        "service_protocol": S("protocol"),
-        "service_security_policy": S("securityPolicy"),
-        "service_security_settings": S("securitySettings", default={}) >> Bend(GcpSecuritySettings.mapping),
-        "service_service_bindings": S("serviceBindings", default=[]),
-        "service_session_affinity": S("sessionAffinity"),
-        "service_subsetting": S("subsetting", "policy"),
-        "service_timeout_sec": S("timeoutSec"),
+        "locality_lb_policy": S("localityLbPolicy"),
+        "log_config": S("logConfig", default={}) >> Bend(GcpBackendServiceLogConfig.mapping),
+        "max_stream_duration": S("maxStreamDuration", default={}) >> Bend(GcpDuration.mapping),
+        "network": S("network"),
+        "outlier_detection": S("outlierDetection", default={}) >> Bend(GcpOutlierDetection.mapping),
+        "port": S("port"),
+        "port_name": S("portName"),
+        "protocol": S("protocol"),
+        "security_policy": S("securityPolicy"),
+        "security_settings": S("securitySettings", default={}) >> Bend(GcpSecuritySettings.mapping),
+        "service_bindings": S("serviceBindings", default=[]),
+        "session_affinity": S("sessionAffinity"),
+        "subsetting": S("subsetting", "policy"),
+        "timeout_sec": S("timeoutSec"),
     }
-    service_affinity_cookie_ttl_sec: Optional[int] = field(default=None)
-    service_backends: Optional[List[GcpBackend]] = field(default=None)
-    service_cdn_policy: Optional[GcpBackendServiceCdnPolicy] = field(default=None)
-    service_circuit_breakers: Optional[GcpCircuitBreakers] = field(default=None)
-    service_compression_mode: Optional[str] = field(default=None)
-    service_connection_draining: Optional[int] = field(default=None)
-    service_connection_tracking_policy: Optional[GcpBackendServiceConnectionTrackingPolicy] = field(default=None)
-    service_consistent_hash: Optional[GcpConsistentHashLoadBalancerSettings] = field(default=None)
-    service_custom_request_headers: Optional[List[str]] = field(default=None)
-    service_custom_response_headers: Optional[List[str]] = field(default=None)
-    service_edge_security_policy: Optional[str] = field(default=None)
-    service_enable_cdn: Optional[bool] = field(default=None)
-    service_failover_policy: Optional[GcpBackendServiceFailoverPolicy] = field(default=None)
-    service_fingerprint: Optional[str] = field(default=None)
-    service_health_checks: Optional[List[str]] = field(default=None)
-    service_iap: Optional[GcpBackendServiceIAP] = field(default=None)
-    service_load_balancing_scheme: Optional[str] = field(default=None)
-    service_locality_lb_policies: Optional[List[GcpBackendServiceLocalityLoadBalancingPolicyConfig]] = field(
-        default=None
-    )
-    service_locality_lb_policy: Optional[str] = field(default=None)
-    service_log_config: Optional[GcpBackendServiceLogConfig] = field(default=None)
-    service_max_stream_duration: Optional[GcpDuration] = field(default=None)
-    service_network: Optional[str] = field(default=None)
-    service_outlier_detection: Optional[GcpOutlierDetection] = field(default=None)
-    service_port: Optional[int] = field(default=None)
-    service_port_name: Optional[str] = field(default=None)
-    service_protocol: Optional[str] = field(default=None)
-    service_security_policy: Optional[str] = field(default=None)
-    service_security_settings: Optional[GcpSecuritySettings] = field(default=None)
-    service_service_bindings: Optional[List[str]] = field(default=None)
-    service_session_affinity: Optional[str] = field(default=None)
-    service_subsetting: Optional[str] = field(default=None)
-    service_timeout_sec: Optional[int] = field(default=None)
+    affinity_cookie_ttl_sec: Optional[int] = field(default=None)
+    backends: Optional[List[GcpBackend]] = field(default=None)
+    cdn_policy: Optional[GcpBackendServiceCdnPolicy] = field(default=None)
+    circuit_breakers: Optional[GcpCircuitBreakers] = field(default=None)
+    compression_mode: Optional[str] = field(default=None)
+    connection_draining: Optional[int] = field(default=None)
+    connection_tracking_policy: Optional[GcpBackendServiceConnectionTrackingPolicy] = field(default=None)
+    consistent_hash: Optional[GcpConsistentHashLoadBalancerSettings] = field(default=None)
+    custom_request_headers: Optional[List[str]] = field(default=None)
+    custom_response_headers: Optional[List[str]] = field(default=None)
+    edge_security_policy: Optional[str] = field(default=None)
+    enable_cdn: Optional[bool] = field(default=None)
+    failover_policy: Optional[GcpBackendServiceFailoverPolicy] = field(default=None)
+    fingerprint: Optional[str] = field(default=None)
+    health_checks: Optional[List[str]] = field(default=None)
+    iap: Optional[GcpBackendServiceIAP] = field(default=None)
+    load_balancing_scheme: Optional[str] = field(default=None)
+    locality_lb_policies: Optional[List[GcpBackendServiceLocalityLoadBalancingPolicyConfig]] = field(default=None)
+    locality_lb_policy: Optional[str] = field(default=None)
+    log_config: Optional[GcpBackendServiceLogConfig] = field(default=None)
+    max_stream_duration: Optional[GcpDuration] = field(default=None)
+    network: Optional[str] = field(default=None)
+    outlier_detection: Optional[GcpOutlierDetection] = field(default=None)
+    port: Optional[int] = field(default=None)
+    port_name: Optional[str] = field(default=None)
+    protocol: Optional[str] = field(default=None)
+    security_policy: Optional[str] = field(default=None)
+    security_settings: Optional[GcpSecuritySettings] = field(default=None)
+    service_bindings: Optional[List[str]] = field(default=None)
+    session_affinity: Optional[str] = field(default=None)
+    subsetting: Optional[str] = field(default=None)
+    timeout_sec: Optional[int] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        for check in self.service_health_checks:
-            builder.dependant_node(self, clazz=health_checks(), link=check)
-        for backend in self.service_backends:
+        for check in self.health_checks or []:
+            builder.dependant_node(self, clazz=health_check_types(), link=check)
+        for backend in self.backends or []:
             if backend.group:
                 builder.dependant_node(self, link=backend.group)
-        if self.service_network:
-            builder.add_edge(self, reverse=True, clazz=GcpNetwork, link=self.service_network)
+        if self.network:
+            builder.add_edge(self, reverse=True, clazz=GcpNetwork, link=self.network)
 
 
 @define(eq=False, slots=False)
@@ -764,11 +761,11 @@ class GcpDiskType(GcpResource, BaseVolumeType):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "type_default_disk_size_gb": S("defaultDiskSizeGb"),
-        "type_valid_disk_size": S("validDiskSize"),
+        "default_disk_size_gb": S("defaultDiskSizeGb"),
+        "valid_disk_size": S("validDiskSize"),
     }
-    type_default_disk_size_gb: Optional[str] = field(default=None)
-    type_valid_disk_size: Optional[str] = field(default=None)
+    default_disk_size_gb: Optional[str] = field(default=None)
+    valid_disk_size: Optional[str] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -821,31 +818,36 @@ class GcpDisk(GcpResource, BaseVolume):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "disk_architecture": S("architecture"),
-        "disk_disk_encryption_key": S("diskEncryptionKey", default={}) >> Bend(GcpCustomerEncryptionKey.mapping),
-        "disk_guest_os_features": S("guestOsFeatures", default=[]) >> ForallBend(S("type")),
-        "disk_last_attach_timestamp": S("lastAttachTimestamp"),
-        "disk_last_detach_timestamp": S("lastDetachTimestamp"),
-        "disk_license_codes": S("licenseCodes", default=[]),
-        "disk_licenses": S("licenses", default=[]),
-        "disk_location_hint": S("locationHint"),
-        "disk_options": S("options"),
-        "disk_params": S("params", default={}) >> Bend(GcpDiskParams.mapping),
-        "disk_physical_block_size_bytes": S("physicalBlockSizeBytes"),
-        "disk_replica_zones": S("replicaZones", default=[]),
-        "disk_resource_policies": S("resourcePolicies", default=[]),
-        "disk_satisfies_pzs": S("satisfiesPzs"),
-        "disk_source_disk": S("sourceDisk"),
-        "disk_source_disk_id": S("sourceDiskId"),
-        "disk_source_image": S("sourceImage"),
-        "disk_source_image_encryption_key": S("sourceImageEncryptionKey", default={})
+        "architecture": S("architecture"),
+        "disk_encryption_key": S("diskEncryptionKey", default={}) >> Bend(GcpCustomerEncryptionKey.mapping),
+        "guest_os_features": S("guestOsFeatures", default=[]) >> ForallBend(S("type")),
+        "last_attach_timestamp": S("lastAttachTimestamp"),
+        "last_detach_timestamp": S("lastDetachTimestamp"),
+        "license_codes": S("licenseCodes", default=[]),
+        "licenses": S("licenses", default=[]),
+        "location_hint": S("locationHint"),
+        "options": S("options"),
+        "params": S("params", default={}) >> Bend(GcpDiskParams.mapping),
+        "physical_block_size_bytes": S("physicalBlockSizeBytes"),
+        "provisioned_iops": S("provisionedIops"),
+        "replica_zones": S("replicaZones", default=[]),
+        "resource_policies": S("resourcePolicies", default=[]),
+        "satisfies_pzs": S("satisfiesPzs"),
+        "size_gb": S("sizeGb"),
+        "source_disk": S("sourceDisk"),
+        "source_disk_id": S("sourceDiskId"),
+        "source_image": S("sourceImage"),
+        "source_image_encryption_key": S("sourceImageEncryptionKey", default={})
         >> Bend(GcpCustomerEncryptionKey.mapping),
-        "disk_source_image_id": S("sourceImageId"),
-        "disk_source_snapshot": S("sourceSnapshot"),
-        "disk_source_snapshot_encryption_key": S("sourceSnapshotEncryptionKey", default={})
+        "source_image_id": S("sourceImageId"),
+        "source_snapshot": S("sourceSnapshot"),
+        "source_snapshot_encryption_key": S("sourceSnapshotEncryptionKey", default={})
         >> Bend(GcpCustomerEncryptionKey.mapping),
-        "disk_source_snapshot_id": S("sourceSnapshotId"),
-        "disk_source_storage_object": S("sourceStorageObject"),
+        "source_snapshot_id": S("sourceSnapshotId"),
+        "source_storage_object": S("sourceStorageObject"),
+        "status": S("status"),
+        "type": S("type"),
+        "users": S("users", default=[]),
         "volume_status": S("status")
         >> MapValue(
             {
@@ -864,29 +866,34 @@ class GcpDisk(GcpResource, BaseVolume):
         "volume_encrypted": S("diskEncryptionKey") >> F(lambda x: x is not None),
     }
 
-    disk_architecture: Optional[str] = field(default=None)
-    disk_disk_encryption_key: Optional[GcpCustomerEncryptionKey] = field(default=None)
-    disk_guest_os_features: Optional[List[str]] = field(default=None)
-    disk_last_attach_timestamp: Optional[datetime] = field(default=None)
-    disk_last_detach_timestamp: Optional[datetime] = field(default=None)
-    disk_license_codes: Optional[List[str]] = field(default=None)
-    disk_licenses: Optional[List[str]] = field(default=None)
-    disk_location_hint: Optional[str] = field(default=None)
-    disk_options: Optional[str] = field(default=None)
-    disk_params: Optional[GcpDiskParams] = field(default=None)
-    disk_physical_block_size_bytes: Optional[str] = field(default=None)
-    disk_replica_zones: Optional[List[str]] = field(default=None)
-    disk_resource_policies: Optional[List[str]] = field(default=None)
-    disk_satisfies_pzs: Optional[bool] = field(default=None)
-    disk_source_disk: Optional[str] = field(default=None)
-    disk_source_disk_id: Optional[str] = field(default=None)
-    disk_source_image: Optional[str] = field(default=None)
-    disk_source_image_encryption_key: Optional[GcpCustomerEncryptionKey] = field(default=None)
-    disk_source_image_id: Optional[str] = field(default=None)
-    disk_source_snapshot: Optional[str] = field(default=None)
-    disk_source_snapshot_encryption_key: Optional[GcpCustomerEncryptionKey] = field(default=None)
-    disk_source_snapshot_id: Optional[str] = field(default=None)
-    disk_source_storage_object: Optional[str] = field(default=None)
+    architecture: Optional[str] = field(default=None)
+    disk_encryption_key: Optional[GcpCustomerEncryptionKey] = field(default=None)
+    guest_os_features: Optional[List[str]] = field(default=None)
+    last_attach_timestamp: Optional[datetime] = field(default=None)
+    last_detach_timestamp: Optional[datetime] = field(default=None)
+    license_codes: Optional[List[str]] = field(default=None)
+    licenses: Optional[List[str]] = field(default=None)
+    location_hint: Optional[str] = field(default=None)
+    options: Optional[str] = field(default=None)
+    params: Optional[GcpDiskParams] = field(default=None)
+    physical_block_size_bytes: Optional[str] = field(default=None)
+    provisioned_iops: Optional[str] = field(default=None)
+    replica_zones: Optional[List[str]] = field(default=None)
+    resource_policies: Optional[List[str]] = field(default=None)
+    satisfies_pzs: Optional[bool] = field(default=None)
+    size_gb: Optional[str] = field(default=None)
+    source_disk: Optional[str] = field(default=None)
+    source_disk_id: Optional[str] = field(default=None)
+    source_image: Optional[str] = field(default=None)
+    source_image_encryption_key: Optional[GcpCustomerEncryptionKey] = field(default=None)
+    source_image_id: Optional[str] = field(default=None)
+    source_snapshot: Optional[str] = field(default=None)
+    source_snapshot_encryption_key: Optional[GcpCustomerEncryptionKey] = field(default=None)
+    source_snapshot_id: Optional[str] = field(default=None)
+    source_storage_object: Optional[str] = field(default=None)
+    status: Optional[str] = field(default=None)
+    type: Optional[str] = field(default=None)
+    users: Optional[List[str]] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for user in source.get("users", []):
@@ -924,11 +931,11 @@ class GcpExternalVpnGateway(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "gateway_interfaces": S("interfaces", default=[]) >> ForallBend(GcpExternalVpnGatewayInterface.mapping),
-        "gateway_redundancy_type": S("redundancyType"),
+        "interfaces": S("interfaces", default=[]) >> ForallBend(GcpExternalVpnGatewayInterface.mapping),
+        "redundancy_type": S("redundancyType"),
     }
-    gateway_interfaces: Optional[List[GcpExternalVpnGatewayInterface]] = field(default=None)
-    gateway_redundancy_type: Optional[str] = field(default=None)
+    interfaces: Optional[List[GcpExternalVpnGatewayInterface]] = field(default=None)
+    redundancy_type: Optional[str] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -1035,27 +1042,27 @@ class GcpFirewallPolicy(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "policy_associations": S("associations", default=[]) >> ForallBend(GcpFirewallPolicyAssociation.mapping),
-        "policy_display_name": S("displayName"),
-        "policy_fingerprint": S("fingerprint"),
-        "policy_parent": S("parent"),
-        "policy_rule_tuple_count": S("ruleTupleCount"),
-        "policy_rules": S("rules", default=[]) >> ForallBend(GcpFirewallPolicyRule.mapping),
-        "policy_self_link_with_id": S("selfLinkWithId"),
-        "policy_short_name": S("shortName"),
+        "associations": S("associations", default=[]) >> ForallBend(GcpFirewallPolicyAssociation.mapping),
+        "display_name": S("displayName"),
+        "fingerprint": S("fingerprint"),
+        "parent": S("parent"),
+        "rule_tuple_count": S("ruleTupleCount"),
+        "rules": S("rules", default=[]) >> ForallBend(GcpFirewallPolicyRule.mapping),
+        "self_link_with_id": S("selfLinkWithId"),
+        "short_name": S("shortName"),
     }
-    policy_associations: Optional[List[GcpFirewallPolicyAssociation]] = field(default=None)
-    policy_display_name: Optional[str] = field(default=None)
-    policy_fingerprint: Optional[str] = field(default=None)
-    policy_parent: Optional[str] = field(default=None)
-    policy_rule_tuple_count: Optional[int] = field(default=None)
-    policy_rules: Optional[List[GcpFirewallPolicyRule]] = field(default=None)
-    policy_self_link_with_id: Optional[str] = field(default=None)
-    policy_short_name: Optional[str] = field(default=None)
+    associations: Optional[List[GcpFirewallPolicyAssociation]] = field(default=None)
+    display_name: Optional[str] = field(default=None)
+    fingerprint: Optional[str] = field(default=None)
+    parent: Optional[str] = field(default=None)
+    rule_tuple_count: Optional[int] = field(default=None)
+    rules: Optional[List[GcpFirewallPolicyRule]] = field(default=None)
+    self_link_with_id: Optional[str] = field(default=None)
+    short_name: Optional[str] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        for rule in self.policy_rules:
-            for resource in rule.target_resources:
+        for rule in self.rules or []:
+            for resource in rule.target_resources or []:
                 builder.add_edge(self, clazz=GcpNetwork, link=resource)
 
 
@@ -1106,37 +1113,37 @@ class GcpFirewall(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "firewall_allowed": S("allowed", default=[]) >> ForallBend(GcpAllowed.mapping),
-        "firewall_denied": S("denied", default=[]) >> ForallBend(GcpDenied.mapping),
-        "firewall_destination_ranges": S("destinationRanges", default=[]),
-        "firewall_direction": S("direction"),
-        "firewall_disabled": S("disabled"),
-        "firewall_log_config": S("logConfig", default={}) >> Bend(GcpFirewallLogConfig.mapping),
-        "firewall_network": S("network"),
-        "firewall_priority": S("priority"),
-        "firewall_source_ranges": S("sourceRanges", default=[]),
-        "firewall_source_service_accounts": S("sourceServiceAccounts", default=[]),
-        "firewall_source_tags": S("sourceTags", default=[]),
-        "firewall_target_service_accounts": S("targetServiceAccounts", default=[]),
-        "firewall_target_tags": S("targetTags", default=[]),
+        "allowed": S("allowed", default=[]) >> ForallBend(GcpAllowed.mapping),
+        "denied": S("denied", default=[]) >> ForallBend(GcpDenied.mapping),
+        "destination_ranges": S("destinationRanges", default=[]),
+        "direction": S("direction"),
+        "disabled": S("disabled"),
+        "log_config": S("logConfig", default={}) >> Bend(GcpFirewallLogConfig.mapping),
+        "network": S("network"),
+        "priority": S("priority"),
+        "source_ranges": S("sourceRanges", default=[]),
+        "source_service_accounts": S("sourceServiceAccounts", default=[]),
+        "source_tags": S("sourceTags", default=[]),
+        "target_service_accounts": S("targetServiceAccounts", default=[]),
+        "target_tags": S("targetTags", default=[]),
     }
-    firewall_allowed: Optional[List[GcpAllowed]] = field(default=None)
-    firewall_denied: Optional[List[GcpDenied]] = field(default=None)
-    firewall_destination_ranges: Optional[List[str]] = field(default=None)
-    firewall_direction: Optional[str] = field(default=None)
-    firewall_disabled: Optional[bool] = field(default=None)
-    firewall_log_config: Optional[GcpFirewallLogConfig] = field(default=None)
-    firewall_network: Optional[str] = field(default=None)
-    firewall_priority: Optional[int] = field(default=None)
-    firewall_source_ranges: Optional[List[str]] = field(default=None)
-    firewall_source_service_accounts: Optional[List[str]] = field(default=None)
-    firewall_source_tags: Optional[List[str]] = field(default=None)
-    firewall_target_service_accounts: Optional[List[str]] = field(default=None)
-    firewall_target_tags: Optional[List[str]] = field(default=None)
+    allowed: Optional[List[GcpAllowed]] = field(default=None)
+    denied: Optional[List[GcpDenied]] = field(default=None)
+    destination_ranges: Optional[List[str]] = field(default=None)
+    direction: Optional[str] = field(default=None)
+    disabled: Optional[bool] = field(default=None)
+    log_config: Optional[GcpFirewallLogConfig] = field(default=None)
+    network: Optional[str] = field(default=None)
+    priority: Optional[int] = field(default=None)
+    source_ranges: Optional[List[str]] = field(default=None)
+    source_service_accounts: Optional[List[str]] = field(default=None)
+    source_tags: Optional[List[str]] = field(default=None)
+    target_service_accounts: Optional[List[str]] = field(default=None)
+    target_tags: Optional[List[str]] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if self.firewall_network:
-            builder.add_edge(self, clazz=GcpNetwork, link=self.firewall_network)
+        if self.network:
+            builder.add_edge(self, clazz=GcpNetwork, link=self.network)
 
 
 @define(eq=False, slots=False)
@@ -1208,59 +1215,57 @@ class GcpForwardingRule(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "rule_ip_address": S("IPAddress"),
-        "rule_ip_protocol": S("IPProtocol"),
-        "rule_all_ports": S("allPorts"),
-        "rule_allow_global_access": S("allowGlobalAccess"),
-        "rule_backend_service": S("backendService"),
-        "rule_fingerprint": S("fingerprint"),
-        "rule_ip_version": S("ipVersion"),
-        "rule_is_mirroring_collector": S("isMirroringCollector"),
-        "rule_load_balancing_scheme": S("loadBalancingScheme"),
-        "rule_metadata_filters": S("metadataFilters", default=[]) >> ForallBend(GcpMetadataFilter.mapping),
-        "rule_network": S("network"),
-        "rule_network_tier": S("networkTier"),
-        "rule_no_automate_dns_zone": S("noAutomateDnsZone"),
-        "rule_port_range": S("portRange"),
-        "rule_ports": S("ports", default=[]),
-        "rule_psc_connection_id": S("pscConnectionId"),
-        "rule_psc_connection_status": S("pscConnectionStatus"),
-        "rule_service_directory_registrations": S("serviceDirectoryRegistrations", default=[])
+        "ip_address": S("IPAddress"),
+        "ip_protocol": S("IPProtocol"),
+        "all_ports": S("allPorts"),
+        "allow_global_access": S("allowGlobalAccess"),
+        "backend_service": S("backendService"),
+        "fingerprint": S("fingerprint"),
+        "ip_version": S("ipVersion"),
+        "is_mirroring_collector": S("isMirroringCollector"),
+        "load_balancing_scheme": S("loadBalancingScheme"),
+        "metadata_filters": S("metadataFilters", default=[]) >> ForallBend(GcpMetadataFilter.mapping),
+        "network": S("network"),
+        "network_tier": S("networkTier"),
+        "no_automate_dns_zone": S("noAutomateDnsZone"),
+        "port_range": S("portRange"),
+        "ports": S("ports", default=[]),
+        "psc_connection_id": S("pscConnectionId"),
+        "psc_connection_status": S("pscConnectionStatus"),
+        "service_directory_registrations": S("serviceDirectoryRegistrations", default=[])
         >> ForallBend(GcpForwardingRuleServiceDirectoryRegistration.mapping),
-        "rule_service_label": S("serviceLabel"),
-        "rule_service_name": S("serviceName"),
-        "rule_subnetwork": S("subnetwork"),
-        "rule_target": S("target"),
+        "service_label": S("serviceLabel"),
+        "service_name": S("serviceName"),
+        "subnetwork": S("subnetwork"),
+        "target": S("target"),
     }
-    rule_ip_address: Optional[str] = field(default=None)
-    rule_ip_protocol: Optional[str] = field(default=None)
-    rule_all_ports: Optional[bool] = field(default=None)
-    rule_allow_global_access: Optional[bool] = field(default=None)
-    rule_backend_service: Optional[str] = field(default=None)
-    rule_fingerprint: Optional[str] = field(default=None)
-    rule_ip_version: Optional[str] = field(default=None)
-    rule_is_mirroring_collector: Optional[bool] = field(default=None)
-    rule_load_balancing_scheme: Optional[str] = field(default=None)
-    rule_metadata_filters: Optional[List[GcpMetadataFilter]] = field(default=None)
-    rule_network: Optional[str] = field(default=None)
-    rule_network_tier: Optional[str] = field(default=None)
-    rule_no_automate_dns_zone: Optional[bool] = field(default=None)
-    rule_port_range: Optional[str] = field(default=None)
-    rule_ports: Optional[List[str]] = field(default=None)
-    rule_psc_connection_id: Optional[str] = field(default=None)
-    rule_psc_connection_status: Optional[str] = field(default=None)
-    rule_service_directory_registrations: Optional[List[GcpForwardingRuleServiceDirectoryRegistration]] = field(
-        default=None
-    )
-    rule_service_label: Optional[str] = field(default=None)
-    rule_service_name: Optional[str] = field(default=None)
-    rule_subnetwork: Optional[str] = field(default=None)
-    rule_target: Optional[str] = field(default=None)
+    ip_address: Optional[str] = field(default=None)
+    ip_protocol: Optional[str] = field(default=None)
+    all_ports: Optional[bool] = field(default=None)
+    allow_global_access: Optional[bool] = field(default=None)
+    backend_service: Optional[str] = field(default=None)
+    fingerprint: Optional[str] = field(default=None)
+    ip_version: Optional[str] = field(default=None)
+    is_mirroring_collector: Optional[bool] = field(default=None)
+    load_balancing_scheme: Optional[str] = field(default=None)
+    metadata_filters: Optional[List[GcpMetadataFilter]] = field(default=None)
+    network: Optional[str] = field(default=None)
+    network_tier: Optional[str] = field(default=None)
+    no_automate_dns_zone: Optional[bool] = field(default=None)
+    port_range: Optional[str] = field(default=None)
+    ports: Optional[List[str]] = field(default=None)
+    psc_connection_id: Optional[str] = field(default=None)
+    psc_connection_status: Optional[str] = field(default=None)
+    service_directory_registrations: Optional[List[GcpForwardingRuleServiceDirectoryRegistration]] = field(default=None)
+    service_label: Optional[str] = field(default=None)
+    service_name: Optional[str] = field(default=None)
+    subnetwork: Optional[str] = field(default=None)
+    target: Optional[str] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if self.rule_network:
-            builder.add_edge(self, reverse=True, clazz=GcpNetwork, link=self.rule_network)
-        if self.rule_target:
+        if self.network:
+            builder.add_edge(self, reverse=True, clazz=GcpNetwork, link=self.network)
+        if self.target:
             target_classes = (
                 GcpTargetVpnGateway,
                 GcpTargetTcpProxy,
@@ -1270,7 +1275,7 @@ class GcpForwardingRule(GcpResource):
                 GcpTargetHttpsProxy,
                 GcpTargetPool,
             )
-            builder.add_edge(self, clazz=target_classes, link=self.rule_target)
+            builder.add_edge(self, clazz=target_classes, link=self.target)
 
 
 @define(eq=False, slots=False)
@@ -1337,38 +1342,36 @@ class GcpNetworkEndpointGroup(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "group_annotations": S("annotations"),
-        "group_app_engine": S("appEngine", default={}) >> Bend(GcpNetworkEndpointGroupAppEngine.mapping),
-        "group_cloud_function": S("cloudFunction", default={}) >> Bend(GcpNetworkEndpointGroupCloudFunction.mapping),
-        "group_cloud_run": S("cloudRun", default={}) >> Bend(GcpNetworkEndpointGroupCloudRun.mapping),
-        "group_default_port": S("defaultPort"),
-        "group_network": S("network"),
-        "group_network_endpoint_type": S("networkEndpointType"),
-        "group_psc_data": S("pscData", default={}) >> Bend(GcpNetworkEndpointGroupPscData.mapping),
-        "group_psc_target_service": S("pscTargetService"),
-        "group_size": S("size"),
-        "group_subnetwork": S("subnetwork"),
+        "annotations": S("annotations"),
+        "app_engine": S("appEngine", default={}) >> Bend(GcpNetworkEndpointGroupAppEngine.mapping),
+        "cloud_function": S("cloudFunction", default={}) >> Bend(GcpNetworkEndpointGroupCloudFunction.mapping),
+        "cloud_run": S("cloudRun", default={}) >> Bend(GcpNetworkEndpointGroupCloudRun.mapping),
+        "default_port": S("defaultPort"),
+        "network": S("network"),
+        "network_endpoint_type": S("networkEndpointType"),
+        "psc_data": S("pscData", default={}) >> Bend(GcpNetworkEndpointGroupPscData.mapping),
+        "psc_target_service": S("pscTargetService"),
+        "size": S("size"),
+        "subnetwork": S("subnetwork"),
     }
-    group_annotations: Optional[Dict[str, str]] = field(default=None)
-    group_app_engine: Optional[GcpNetworkEndpointGroupAppEngine] = field(default=None)
-    group_cloud_function: Optional[GcpNetworkEndpointGroupCloudFunction] = field(default=None)
-    group_cloud_run: Optional[GcpNetworkEndpointGroupCloudRun] = field(default=None)
-    group_default_port: Optional[int] = field(default=None)
-    group_network: Optional[str] = field(default=None)
-    group_network_endpoint_type: Optional[str] = field(default=None)
-    group_psc_data: Optional[GcpNetworkEndpointGroupPscData] = field(default=None)
-    group_psc_target_service: Optional[str] = field(default=None)
-    group_size: Optional[int] = field(default=None)
-    group_subnetwork: Optional[str] = field(default=None)
+    annotations: Optional[Dict[str, str]] = field(default=None)
+    app_engine: Optional[GcpNetworkEndpointGroupAppEngine] = field(default=None)
+    cloud_function: Optional[GcpNetworkEndpointGroupCloudFunction] = field(default=None)
+    cloud_run: Optional[GcpNetworkEndpointGroupCloudRun] = field(default=None)
+    default_port: Optional[int] = field(default=None)
+    network: Optional[str] = field(default=None)
+    network_endpoint_type: Optional[str] = field(default=None)
+    psc_data: Optional[GcpNetworkEndpointGroupPscData] = field(default=None)
+    psc_target_service: Optional[str] = field(default=None)
+    size: Optional[int] = field(default=None)
+    subnetwork: Optional[str] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if self.group_network:
+        if self.network:
+            builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=GcpNetwork, link=self.network)
+        if self.subnetwork:
             builder.dependant_node(
-                self, reverse=True, delete_same_as_default=True, clazz=GcpNetwork, link=self.group_network
-            )
-        if self.group_subnetwork:
-            builder.dependant_node(
-                self, reverse=True, delete_same_as_default=True, clazz=GcpSubnetwork, link=self.group_subnetwork
+                self, reverse=True, delete_same_as_default=True, clazz=GcpSubnetwork, link=self.subnetwork
             )
 
 
@@ -1488,43 +1491,43 @@ class GcpOperation(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "operation_client_operation_id": S("clientOperationId"),
-        "operation_end_time": S("endTime"),
-        "operation_error": S("error", default={}) >> Bend(GcpError.mapping),
-        "operation_http_error_message": S("httpErrorMessage"),
-        "operation_http_error_status_code": S("httpErrorStatusCode"),
-        "operation_insert_time": S("insertTime"),
-        "operation_operation_group_id": S("operationGroupId"),
-        "operation_operation_type": S("operationType"),
-        "operation_progress": S("progress"),
-        "operation_start_time": S("startTime"),
-        "operation_status": S("status"),
-        "operation_status_message": S("statusMessage"),
-        "operation_target_id": S("targetId"),
-        "operation_target_link": S("targetLink"),
-        "operation_user": S("user"),
-        "operation_warnings": S("warnings", default=[]) >> ForallBend(GcpWarnings.mapping),
+        "client_operation_id": S("clientOperationId"),
+        "end_time": S("endTime"),
+        "error": S("error", default={}) >> Bend(GcpError.mapping),
+        "http_error_message": S("httpErrorMessage"),
+        "http_error_status_code": S("httpErrorStatusCode"),
+        "insert_time": S("insertTime"),
+        "operation_group_id": S("operationGroupId"),
+        "operation_type": S("operationType"),
+        "progress": S("progress"),
+        "start_time": S("startTime"),
+        "status": S("status"),
+        "status_message": S("statusMessage"),
+        "target_id": S("targetId"),
+        "target_link": S("targetLink"),
+        "user": S("user"),
+        "warnings": S("warnings", default=[]) >> ForallBend(GcpWarnings.mapping),
     }
-    operation_client_operation_id: Optional[str] = field(default=None)
-    operation_end_time: Optional[datetime] = field(default=None)
-    operation_error: Optional[GcpError] = field(default=None)
-    operation_http_error_message: Optional[str] = field(default=None)
-    operation_http_error_status_code: Optional[int] = field(default=None)
-    operation_insert_time: Optional[datetime] = field(default=None)
-    operation_operation_group_id: Optional[str] = field(default=None)
-    operation_operation_type: Optional[str] = field(default=None)
-    operation_progress: Optional[int] = field(default=None)
-    operation_start_time: Optional[datetime] = field(default=None)
-    operation_status: Optional[str] = field(default=None)
-    operation_status_message: Optional[str] = field(default=None)
-    operation_target_id: Optional[str] = field(default=None)
-    operation_target_link: Optional[str] = field(default=None)
-    operation_user: Optional[str] = field(default=None)
-    operation_warnings: Optional[List[GcpWarnings]] = field(default=None)
+    client_operation_id: Optional[str] = field(default=None)
+    end_time: Optional[datetime] = field(default=None)
+    error: Optional[GcpError] = field(default=None)
+    http_error_message: Optional[str] = field(default=None)
+    http_error_status_code: Optional[int] = field(default=None)
+    insert_time: Optional[datetime] = field(default=None)
+    operation_group_id: Optional[str] = field(default=None)
+    operation_type: Optional[str] = field(default=None)
+    progress: Optional[int] = field(default=None)
+    start_time: Optional[datetime] = field(default=None)
+    status: Optional[str] = field(default=None)
+    status_message: Optional[str] = field(default=None)
+    target_id: Optional[str] = field(default=None)
+    target_link: Optional[str] = field(default=None)
+    user: Optional[str] = field(default=None)
+    warnings: Optional[List[GcpWarnings]] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if self.operation_target_link:
-            builder.add_edge(self, clazz=GcpDisk, link=self.operation_target_link)
+        if self.target_link:
+            builder.add_edge(self, clazz=GcpDisk, link=self.target_link)
 
 
 @define(eq=False, slots=False)
@@ -1570,22 +1573,20 @@ class GcpPublicDelegatedPrefix(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "prefix_fingerprint": S("fingerprint"),
-        "prefix_ip_cidr_range": S("ipCidrRange"),
-        "prefix_is_live_migration": S("isLiveMigration"),
-        "prefix_parent_prefix": S("parentPrefix"),
-        "prefix_public_delegated_sub_prefixs": S("publicDelegatedSubPrefixs", default=[])
+        "fingerprint": S("fingerprint"),
+        "ip_cidr_range": S("ipCidrRange"),
+        "is_live_migration": S("isLiveMigration"),
+        "parent_prefix": S("parentPrefix"),
+        "public_delegated_sub_prefixs": S("publicDelegatedSubPrefixs", default=[])
         >> ForallBend(GcpPublicDelegatedPrefixPublicDelegatedSubPrefix.mapping),
-        "prefix_status": S("status"),
+        "status": S("status"),
     }
-    prefix_fingerprint: Optional[str] = field(default=None)
-    prefix_ip_cidr_range: Optional[str] = field(default=None)
-    prefix_is_live_migration: Optional[bool] = field(default=None)
-    prefix_parent_prefix: Optional[str] = field(default=None)
-    prefix_public_delegated_sub_prefixs: Optional[List[GcpPublicDelegatedPrefixPublicDelegatedSubPrefix]] = field(
-        default=None
-    )
-    prefix_status: Optional[str] = field(default=None)
+    fingerprint: Optional[str] = field(default=None)
+    ip_cidr_range: Optional[str] = field(default=None)
+    is_live_migration: Optional[bool] = field(default=None)
+    parent_prefix: Optional[str] = field(default=None)
+    public_delegated_sub_prefixs: Optional[List[GcpPublicDelegatedPrefixPublicDelegatedSubPrefix]] = field(default=None)
+    status: Optional[str] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -1726,31 +1727,31 @@ class GcpHealthCheck(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "check_check_interval_sec": S("checkIntervalSec"),
-        "check_grpc_health_check": S("grpcHealthCheck", default={}) >> Bend(GcpGRPCHealthCheck.mapping),
-        "check_healthy_threshold": S("healthyThreshold"),
-        "check_http2_health_check": S("http2HealthCheck", default={}) >> Bend(GcpHTTP2HealthCheck.mapping),
-        "check_http_health_check": S("httpHealthCheck", default={}) >> Bend(GcpHTTPHealthCheck.mapping),
-        "check_https_health_check": S("httpsHealthCheck", default={}) >> Bend(GcpHTTPSHealthCheck.mapping),
-        "check_log_config": S("logConfig", "enable"),
-        "check_ssl_health_check": S("sslHealthCheck", default={}) >> Bend(GcpSSLHealthCheck.mapping),
-        "check_tcp_health_check": S("tcpHealthCheck", default={}) >> Bend(GcpTCPHealthCheck.mapping),
-        "check_timeout_sec": S("timeoutSec"),
-        "check_type": S("type"),
-        "check_unhealthy_threshold": S("unhealthyThreshold"),
+        "check_interval_sec": S("checkIntervalSec"),
+        "grpc_health_check": S("grpcHealthCheck", default={}) >> Bend(GcpGRPCHealthCheck.mapping),
+        "healthy_threshold": S("healthyThreshold"),
+        "http2_health_check": S("http2HealthCheck", default={}) >> Bend(GcpHTTP2HealthCheck.mapping),
+        "http_health_check": S("httpHealthCheck", default={}) >> Bend(GcpHTTPHealthCheck.mapping),
+        "https_health_check": S("httpsHealthCheck", default={}) >> Bend(GcpHTTPSHealthCheck.mapping),
+        "log_config": S("logConfig", "enable"),
+        "ssl_health_check": S("sslHealthCheck", default={}) >> Bend(GcpSSLHealthCheck.mapping),
+        "tcp_health_check": S("tcpHealthCheck", default={}) >> Bend(GcpTCPHealthCheck.mapping),
+        "timeout_sec": S("timeoutSec"),
+        "type": S("type"),
+        "unhealthy_threshold": S("unhealthyThreshold"),
     }
-    check_check_interval_sec: Optional[int] = field(default=None)
-    check_grpc_health_check: Optional[GcpGRPCHealthCheck] = field(default=None)
-    check_healthy_threshold: Optional[int] = field(default=None)
-    check_http2_health_check: Optional[GcpHTTP2HealthCheck] = field(default=None)
-    check_http_health_check: Optional[GcpHTTPHealthCheck] = field(default=None)
-    check_https_health_check: Optional[GcpHTTPSHealthCheck] = field(default=None)
-    check_log_config: Optional[bool] = field(default=None)
-    check_ssl_health_check: Optional[GcpSSLHealthCheck] = field(default=None)
-    check_tcp_health_check: Optional[GcpTCPHealthCheck] = field(default=None)
-    check_timeout_sec: Optional[int] = field(default=None)
-    check_type: Optional[str] = field(default=None)
-    check_unhealthy_threshold: Optional[int] = field(default=None)
+    check_interval_sec: Optional[int] = field(default=None)
+    grpc_health_check: Optional[GcpGRPCHealthCheck] = field(default=None)
+    healthy_threshold: Optional[int] = field(default=None)
+    http2_health_check: Optional[GcpHTTP2HealthCheck] = field(default=None)
+    http_health_check: Optional[GcpHTTPHealthCheck] = field(default=None)
+    https_health_check: Optional[GcpHTTPSHealthCheck] = field(default=None)
+    log_config: Optional[bool] = field(default=None)
+    ssl_health_check: Optional[GcpSSLHealthCheck] = field(default=None)
+    tcp_health_check: Optional[GcpTCPHealthCheck] = field(default=None)
+    timeout_sec: Optional[int] = field(default=None)
+    type: Optional[str] = field(default=None)
+    unhealthy_threshold: Optional[int] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -1775,21 +1776,21 @@ class GcpHttpHealthCheck(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "check_check_interval_sec": S("checkIntervalSec"),
-        "check_healthy_threshold": S("healthyThreshold"),
-        "check_host": S("host"),
-        "check_port": S("port"),
-        "check_request_path": S("requestPath"),
-        "check_timeout_sec": S("timeoutSec"),
-        "check_unhealthy_threshold": S("unhealthyThreshold"),
+        "check_interval_sec": S("checkIntervalSec"),
+        "healthy_threshold": S("healthyThreshold"),
+        "host": S("host"),
+        "port": S("port"),
+        "request_path": S("requestPath"),
+        "timeout_sec": S("timeoutSec"),
+        "unhealthy_threshold": S("unhealthyThreshold"),
     }
-    check_check_interval_sec: Optional[int] = field(default=None)
-    check_healthy_threshold: Optional[int] = field(default=None)
-    check_host: Optional[str] = field(default=None)
-    check_port: Optional[int] = field(default=None)
-    check_request_path: Optional[str] = field(default=None)
-    check_timeout_sec: Optional[int] = field(default=None)
-    check_unhealthy_threshold: Optional[int] = field(default=None)
+    check_interval_sec: Optional[int] = field(default=None)
+    healthy_threshold: Optional[int] = field(default=None)
+    host: Optional[str] = field(default=None)
+    port: Optional[int] = field(default=None)
+    request_path: Optional[str] = field(default=None)
+    timeout_sec: Optional[int] = field(default=None)
+    unhealthy_threshold: Optional[int] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -1814,21 +1815,21 @@ class GcpHttpsHealthCheck(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "check_check_interval_sec": S("checkIntervalSec"),
-        "check_healthy_threshold": S("healthyThreshold"),
-        "check_host": S("host"),
-        "check_port": S("port"),
-        "check_request_path": S("requestPath"),
-        "check_timeout_sec": S("timeoutSec"),
-        "check_unhealthy_threshold": S("unhealthyThreshold"),
+        "check_interval_sec": S("checkIntervalSec"),
+        "healthy_threshold": S("healthyThreshold"),
+        "host": S("host"),
+        "port": S("port"),
+        "request_path": S("requestPath"),
+        "timeout_sec": S("timeoutSec"),
+        "unhealthy_threshold": S("unhealthyThreshold"),
     }
-    check_check_interval_sec: Optional[int] = field(default=None)
-    check_healthy_threshold: Optional[int] = field(default=None)
-    check_host: Optional[str] = field(default=None)
-    check_port: Optional[int] = field(default=None)
-    check_request_path: Optional[str] = field(default=None)
-    check_timeout_sec: Optional[int] = field(default=None)
-    check_unhealthy_threshold: Optional[int] = field(default=None)
+    check_interval_sec: Optional[int] = field(default=None)
+    healthy_threshold: Optional[int] = field(default=None)
+    host: Optional[str] = field(default=None)
+    port: Optional[int] = field(default=None)
+    request_path: Optional[str] = field(default=None)
+    timeout_sec: Optional[int] = field(default=None)
+    unhealthy_threshold: Optional[int] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -1891,61 +1892,61 @@ class GcpImage(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "image_architecture": S("architecture"),
-        "image_archive_size_bytes": S("archiveSizeBytes"),
-        "image_disk_size_gb": S("diskSizeGb"),
-        "image_family": S("family"),
-        "image_guest_os_features": S("guestOsFeatures", default=[]) >> ForallBend(S("type")),
-        "image_image_encryption_key": S("imageEncryptionKey", default={}) >> Bend(GcpCustomerEncryptionKey.mapping),
-        "image_license_codes": S("licenseCodes", default=[]),
-        "image_licenses": S("licenses", default=[]),
-        "image_raw_disk": S("rawDisk", default={}) >> Bend(GcpRawdisk.mapping),
-        "image_satisfies_pzs": S("satisfiesPzs"),
-        "image_shielded_instance_initial_state": S("shieldedInstanceInitialState", default={})
+        "architecture": S("architecture"),
+        "archive_size_bytes": S("archiveSizeBytes"),
+        "disk_size_gb": S("diskSizeGb"),
+        "family": S("family"),
+        "guest_os_features": S("guestOsFeatures", default=[]) >> ForallBend(S("type")),
+        "image_encryption_key": S("imageEncryptionKey", default={}) >> Bend(GcpCustomerEncryptionKey.mapping),
+        "license_codes": S("licenseCodes", default=[]),
+        "licenses": S("licenses", default=[]),
+        "raw_disk": S("rawDisk", default={}) >> Bend(GcpRawdisk.mapping),
+        "satisfies_pzs": S("satisfiesPzs"),
+        "shielded_instance_initial_state": S("shieldedInstanceInitialState", default={})
         >> Bend(GcpInitialStateConfig.mapping),
-        "image_source_disk": S("sourceDisk"),
-        "image_source_disk_encryption_key": S("sourceDiskEncryptionKey", default={})
+        "source_disk": S("sourceDisk"),
+        "source_disk_encryption_key": S("sourceDiskEncryptionKey", default={})
         >> Bend(GcpCustomerEncryptionKey.mapping),
-        "image_source_disk_id": S("sourceDiskId"),
-        "image_source_image": S("sourceImage"),
-        "image_source_image_encryption_key": S("sourceImageEncryptionKey", default={})
+        "source_disk_id": S("sourceDiskId"),
+        "source_image": S("sourceImage"),
+        "source_image_encryption_key": S("sourceImageEncryptionKey", default={})
         >> Bend(GcpCustomerEncryptionKey.mapping),
-        "image_source_image_id": S("sourceImageId"),
-        "image_source_snapshot": S("sourceSnapshot"),
-        "image_source_snapshot_encryption_key": S("sourceSnapshotEncryptionKey", default={})
+        "source_image_id": S("sourceImageId"),
+        "source_snapshot": S("sourceSnapshot"),
+        "source_snapshot_encryption_key": S("sourceSnapshotEncryptionKey", default={})
         >> Bend(GcpCustomerEncryptionKey.mapping),
-        "image_source_snapshot_id": S("sourceSnapshotId"),
-        "image_source_type": S("sourceType"),
-        "image_status": S("status"),
-        "image_storage_locations": S("storageLocations", default=[]),
+        "source_snapshot_id": S("sourceSnapshotId"),
+        "source_type": S("sourceType"),
+        "status": S("status"),
+        "storage_locations": S("storageLocations", default=[]),
     }
-    image_architecture: Optional[str] = field(default=None)
-    image_archive_size_bytes: Optional[str] = field(default=None)
-    image_disk_size_gb: Optional[str] = field(default=None)
-    image_family: Optional[str] = field(default=None)
-    image_guest_os_features: Optional[List[str]] = field(default=None)
-    image_image_encryption_key: Optional[GcpCustomerEncryptionKey] = field(default=None)
-    image_license_codes: Optional[List[str]] = field(default=None)
-    image_licenses: Optional[List[str]] = field(default=None)
-    image_raw_disk: Optional[GcpRawdisk] = field(default=None)
-    image_satisfies_pzs: Optional[bool] = field(default=None)
-    image_shielded_instance_initial_state: Optional[GcpInitialStateConfig] = field(default=None)
-    image_source_disk: Optional[str] = field(default=None)
-    image_source_disk_encryption_key: Optional[GcpCustomerEncryptionKey] = field(default=None)
-    image_source_disk_id: Optional[str] = field(default=None)
-    image_source_image: Optional[str] = field(default=None)
-    image_source_image_encryption_key: Optional[GcpCustomerEncryptionKey] = field(default=None)
-    image_source_image_id: Optional[str] = field(default=None)
-    image_source_snapshot: Optional[str] = field(default=None)
-    image_source_snapshot_encryption_key: Optional[GcpCustomerEncryptionKey] = field(default=None)
-    image_source_snapshot_id: Optional[str] = field(default=None)
-    image_source_type: Optional[str] = field(default=None)
-    image_status: Optional[str] = field(default=None)
-    image_storage_locations: Optional[List[str]] = field(default=None)
+    architecture: Optional[str] = field(default=None)
+    archive_size_bytes: Optional[str] = field(default=None)
+    disk_size_gb: Optional[str] = field(default=None)
+    family: Optional[str] = field(default=None)
+    guest_os_features: Optional[List[str]] = field(default=None)
+    image_encryption_key: Optional[GcpCustomerEncryptionKey] = field(default=None)
+    license_codes: Optional[List[str]] = field(default=None)
+    licenses: Optional[List[str]] = field(default=None)
+    raw_disk: Optional[GcpRawdisk] = field(default=None)
+    satisfies_pzs: Optional[bool] = field(default=None)
+    shielded_instance_initial_state: Optional[GcpInitialStateConfig] = field(default=None)
+    source_disk: Optional[str] = field(default=None)
+    source_disk_encryption_key: Optional[GcpCustomerEncryptionKey] = field(default=None)
+    source_disk_id: Optional[str] = field(default=None)
+    source_image: Optional[str] = field(default=None)
+    source_image_encryption_key: Optional[GcpCustomerEncryptionKey] = field(default=None)
+    source_image_id: Optional[str] = field(default=None)
+    source_snapshot: Optional[str] = field(default=None)
+    source_snapshot_encryption_key: Optional[GcpCustomerEncryptionKey] = field(default=None)
+    source_snapshot_id: Optional[str] = field(default=None)
+    source_type: Optional[str] = field(default=None)
+    status: Optional[str] = field(default=None)
+    storage_locations: Optional[List[str]] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if self.image_source_disk:
-            builder.add_edge(self, reverse=True, clazz=GcpDisk, link=self.image_source_disk)
+        if self.source_disk:
+            builder.add_edge(self, reverse=True, clazz=GcpDisk, link=self.source_disk)
 
 
 @define(eq=False, slots=False)
@@ -2122,50 +2123,51 @@ class GcpInstanceGroupManager(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "manager_auto_healing_policies": S("autoHealingPolicies", default=[])
+        "auto_healing_policies": S("autoHealingPolicies", default=[])
         >> ForallBend(GcpInstanceGroupManagerAutoHealingPolicy.mapping),
-        "manager_base_instance_name": S("baseInstanceName"),
-        "manager_current_actions": S("currentActions", default={})
-        >> Bend(GcpInstanceGroupManagerActionsSummary.mapping),
-        "manager_distribution_policy": S("distributionPolicy", default={}) >> Bend(GcpDistributionPolicy.mapping),
-        "manager_fingerprint": S("fingerprint"),
-        "manager_instance_group": S("instanceGroup"),
-        "manager_instance_template": S("instanceTemplate"),
-        "manager_named_ports": S("namedPorts", default=[]) >> ForallBend(GcpNamedPort.mapping),
-        "manager_stateful_policy": S("statefulPolicy", default={}) >> Bend(GcpStatefulPolicy.mapping),
-        "manager_status": S("status", default={}) >> Bend(GcpInstanceGroupManagerStatus.mapping),
-        "manager_target_pools": S("targetPools", default=[]),
-        "manager_target_size": S("targetSize"),
-        "manager_update_policy": S("updatePolicy", default={}) >> Bend(GcpInstanceGroupManagerUpdatePolicy.mapping),
-        "manager_versions": S("versions", default=[]) >> ForallBend(GcpInstanceGroupManagerVersion.mapping),
+        "base_instance_name": S("baseInstanceName"),
+        "current_actions": S("currentActions", default={}) >> Bend(GcpInstanceGroupManagerActionsSummary.mapping),
+        "distribution_policy": S("distributionPolicy", default={}) >> Bend(GcpDistributionPolicy.mapping),
+        "fingerprint": S("fingerprint"),
+        "instance_group": S("instanceGroup"),
+        "instance_template": S("instanceTemplate"),
+        "list_managed_instances_results": S("listManagedInstancesResults"),
+        "named_ports": S("namedPorts", default=[]) >> ForallBend(GcpNamedPort.mapping),
+        "stateful_policy": S("statefulPolicy", default={}) >> Bend(GcpStatefulPolicy.mapping),
+        "status": S("status", default={}) >> Bend(GcpInstanceGroupManagerStatus.mapping),
+        "target_pools": S("targetPools", default=[]),
+        "target_size": S("targetSize"),
+        "update_policy": S("updatePolicy", default={}) >> Bend(GcpInstanceGroupManagerUpdatePolicy.mapping),
+        "versions": S("versions", default=[]) >> ForallBend(GcpInstanceGroupManagerVersion.mapping),
     }
-    manager_auto_healing_policies: Optional[List[GcpInstanceGroupManagerAutoHealingPolicy]] = field(default=None)
-    manager_base_instance_name: Optional[str] = field(default=None)
-    manager_current_actions: Optional[GcpInstanceGroupManagerActionsSummary] = field(default=None)
-    manager_distribution_policy: Optional[GcpDistributionPolicy] = field(default=None)
-    manager_fingerprint: Optional[str] = field(default=None)
-    manager_instance_group: Optional[str] = field(default=None)
-    manager_instance_template: Optional[str] = field(default=None)
-    manager_named_ports: Optional[List[GcpNamedPort]] = field(default=None)
-    manager_stateful_policy: Optional[GcpStatefulPolicy] = field(default=None)
-    manager_status: Optional[GcpInstanceGroupManagerStatus] = field(default=None)
-    manager_target_pools: Optional[List[str]] = field(default=None)
-    manager_target_size: Optional[int] = field(default=None)
-    manager_update_policy: Optional[GcpInstanceGroupManagerUpdatePolicy] = field(default=None)
-    manager_versions: Optional[List[GcpInstanceGroupManagerVersion]] = field(default=None)
+    auto_healing_policies: Optional[List[GcpInstanceGroupManagerAutoHealingPolicy]] = field(default=None)
+    base_instance_name: Optional[str] = field(default=None)
+    current_actions: Optional[GcpInstanceGroupManagerActionsSummary] = field(default=None)
+    distribution_policy: Optional[GcpDistributionPolicy] = field(default=None)
+    fingerprint: Optional[str] = field(default=None)
+    instance_group: Optional[str] = field(default=None)
+    instance_template: Optional[str] = field(default=None)
+    list_managed_instances_results: Optional[str] = field(default=None)
+    named_ports: Optional[List[GcpNamedPort]] = field(default=None)
+    stateful_policy: Optional[GcpStatefulPolicy] = field(default=None)
+    status: Optional[GcpInstanceGroupManagerStatus] = field(default=None)
+    target_pools: Optional[List[str]] = field(default=None)
+    target_size: Optional[int] = field(default=None)
+    update_policy: Optional[GcpInstanceGroupManagerUpdatePolicy] = field(default=None)
+    versions: Optional[List[GcpInstanceGroupManagerVersion]] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if self.manager_instance_group:
+        if self.instance_group:
             builder.dependant_node(
                 self,
                 reverse=True,
                 delete_same_as_default=True,
                 clazz=GcpInstanceGroup,
-                link=self.manager_instance_group,
+                link=self.instance_group,
             )
-        if ahp := self.manager_auto_healing_policies:
+        if ahp := self.auto_healing_policies:
             for policy in ahp:
-                builder.dependant_node(self, clazz=health_checks(), link=policy.health_check)
+                builder.dependant_node(self, clazz=health_check_types(), link=policy.health_check)
 
 
 @define(eq=False, slots=False)
@@ -2193,26 +2195,24 @@ class GcpInstanceGroup(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "group_fingerprint": S("fingerprint"),
-        "group_named_ports": S("namedPorts", default=[]) >> ForallBend(GcpNamedPort.mapping),
-        "group_network": S("network"),
-        "group_size": S("size"),
-        "group_subnetwork": S("subnetwork"),
+        "fingerprint": S("fingerprint"),
+        "named_ports": S("namedPorts", default=[]) >> ForallBend(GcpNamedPort.mapping),
+        "network": S("network"),
+        "size": S("size"),
+        "subnetwork": S("subnetwork"),
     }
-    group_fingerprint: Optional[str] = field(default=None)
-    group_named_ports: Optional[List[GcpNamedPort]] = field(default=None)
-    group_network: Optional[str] = field(default=None)
-    group_size: Optional[int] = field(default=None)
-    group_subnetwork: Optional[str] = field(default=None)
+    fingerprint: Optional[str] = field(default=None)
+    named_ports: Optional[List[GcpNamedPort]] = field(default=None)
+    network: Optional[str] = field(default=None)
+    size: Optional[int] = field(default=None)
+    subnetwork: Optional[str] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if self.group_network:
+        if self.network:
+            builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=GcpNetwork, link=self.network)
+        if self.subnetwork:
             builder.dependant_node(
-                self, reverse=True, delete_same_as_default=True, clazz=GcpNetwork, link=self.group_network
-            )
-        if self.group_subnetwork:
-            builder.dependant_node(
-                self, reverse=True, delete_same_as_default=True, clazz=GcpSubnetwork, link=self.group_subnetwork
+                self, reverse=True, delete_same_as_default=True, clazz=GcpSubnetwork, link=self.subnetwork
             )
 
 
@@ -2584,17 +2584,16 @@ class GcpInstanceTemplate(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "template_properties": S("properties", default={}) >> Bend(GcpInstanceProperties.mapping),
-        "template_source_instance": S("sourceInstance"),
-        "template_source_instance_params": S("sourceInstanceParams", default={})
-        >> Bend(GcpSourceInstanceParams.mapping),
+        "properties": S("properties", default={}) >> Bend(GcpInstanceProperties.mapping),
+        "source_instance": S("sourceInstance"),
+        "source_instance_params": S("sourceInstanceParams", default={}) >> Bend(GcpSourceInstanceParams.mapping),
     }
-    template_properties: Optional[GcpInstanceProperties] = field(default=None)
-    template_source_instance: Optional[str] = field(default=None)
-    template_source_instance_params: Optional[GcpSourceInstanceParams] = field(default=None)
+    properties: Optional[GcpInstanceProperties] = field(default=None)
+    source_instance: Optional[str] = field(default=None)
+    source_instance_params: Optional[GcpSourceInstanceParams] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if p := self.template_properties:
+        if p := self.properties:
             if p.machine_type:
                 builder.add_edge(self, reverse=True, clazz=GcpMachineType, link=p.machine_type)
 
@@ -2634,41 +2633,42 @@ class GcpInstance(GcpResource, BaseInstance):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "instance_advanced_machine_features": S("advancedMachineFeatures", default={})
+        "advanced_machine_features": S("advancedMachineFeatures", default={})
         >> Bend(GcpAdvancedMachineFeatures.mapping),
-        "instance_can_ip_forward": S("canIpForward"),
-        "instance_confidential_instance_config": S("confidentialInstanceConfig", "enableConfidentialCompute"),
-        "instance_cpu_platform": S("cpuPlatform"),
-        "instance_deletion_protection": S("deletionProtection"),
-        "instance_disks": S("disks", default=[]) >> ForallBend(GcpAttachedDisk.mapping),
-        "instance_display_device": S("displayDevice", "enableDisplay"),
-        "instance_fingerprint": S("fingerprint"),
-        "instance_guest_accelerators": S("guestAccelerators", default=[]) >> ForallBend(GcpAcceleratorConfig.mapping),
-        "instance_hostname": S("hostname"),
-        "instance_key_revocation_action_type": S("keyRevocationActionType"),
-        "instance_last_start_timestamp": S("lastStartTimestamp"),
-        "instance_last_stop_timestamp": S("lastStopTimestamp"),
-        "instance_last_suspended_timestamp": S("lastSuspendedTimestamp"),
-        "instance_machine_type": S("machineType"),
-        "instance_metadata": S("metadata", default={}) >> Bend(GcpMetadata.mapping),
-        "instance_min_cpu_platform": S("minCpuPlatform"),
-        "instance_network_interfaces": S("networkInterfaces", default=[]) >> ForallBend(GcpNetworkInterface.mapping),
-        "instance_network_performance_config": S("networkPerformanceConfig", "totalEgressBandwidthTier"),
-        "instance_params": S("params", default={}) >> Bend(GcpInstanceParams.mapping),
-        "instance_private_ipv6_google_access": S("privateIpv6GoogleAccess"),
-        "instance_reservation_affinity": S("reservationAffinity", default={}) >> Bend(GcpReservationAffinity.mapping),
-        "instance_resource_policies": S("resourcePolicies", default=[]),
-        "instance_resource_status": S("resourceStatus", "physicalHost"),
-        "instance_satisfies_pzs": S("satisfiesPzs"),
-        "instance_scheduling": S("scheduling", default={}) >> Bend(GcpScheduling.mapping),
-        "instance_service_accounts": S("serviceAccounts", default=[]) >> ForallBend(GcpServiceAccount.mapping),
-        "instance_shielded_instance_config": S("shieldedInstanceConfig", default={})
-        >> Bend(GcpShieldedInstanceConfig.mapping),
-        "instance_shielded_instance_integrity_policy": S("shieldedInstanceIntegrityPolicy", "updateAutoLearnPolicy"),
-        "instance_source_machine_image": S("sourceMachineImage"),
-        "instance_source_machine_image_encryption_key": S("sourceMachineImageEncryptionKey", default={})
+        "can_ip_forward": S("canIpForward"),
+        "confidential_instance_config": S("confidentialInstanceConfig", "enableConfidentialCompute"),
+        "cpu_platform": S("cpuPlatform"),
+        "deletion_protection": S("deletionProtection"),
+        "disks": S("disks", default=[]) >> ForallBend(GcpAttachedDisk.mapping),
+        "display_device": S("displayDevice", "enableDisplay"),
+        "fingerprint": S("fingerprint"),
+        "guest_accelerators": S("guestAccelerators", default=[]) >> ForallBend(GcpAcceleratorConfig.mapping),
+        "hostname": S("hostname"),
+        "key_revocation_action_type": S("keyRevocationActionType"),
+        "last_start_timestamp": S("lastStartTimestamp"),
+        "last_stop_timestamp": S("lastStopTimestamp"),
+        "last_suspended_timestamp": S("lastSuspendedTimestamp"),
+        "machine_type": S("machineType"),
+        "metadata": S("metadata", default={}) >> Bend(GcpMetadata.mapping),
+        "min_cpu_platform": S("minCpuPlatform"),
+        "network_interfaces": S("networkInterfaces", default=[]) >> ForallBend(GcpNetworkInterface.mapping),
+        "network_performance_config": S("networkPerformanceConfig", "totalEgressBandwidthTier"),
+        "params": S("params", default={}) >> Bend(GcpInstanceParams.mapping),
+        "private_ipv6_google_access": S("privateIpv6GoogleAccess"),
+        "reservation_affinity": S("reservationAffinity", default={}) >> Bend(GcpReservationAffinity.mapping),
+        "resource_policies": S("resourcePolicies", default=[]),
+        "resource_status": S("resourceStatus", "physicalHost"),
+        "satisfies_pzs": S("satisfiesPzs"),
+        "scheduling": S("scheduling", default={}) >> Bend(GcpScheduling.mapping),
+        "service_accounts": S("serviceAccounts", default=[]) >> ForallBend(GcpServiceAccount.mapping),
+        "shielded_instance_config": S("shieldedInstanceConfig", default={}) >> Bend(GcpShieldedInstanceConfig.mapping),
+        "shielded_instance_integrity_policy": S("shieldedInstanceIntegrityPolicy", "updateAutoLearnPolicy"),
+        "source_machine_image": S("sourceMachineImage"),
+        "source_machine_image_encryption_key": S("sourceMachineImageEncryptionKey", default={})
         >> Bend(GcpCustomerEncryptionKey.mapping),
-        "instance_start_restricted": S("startRestricted"),
+        "start_restricted": S("startRestricted"),
+        "status": S("status"),
+        "status_message": S("statusMessage"),
         "instance_status": S("status")
         >> MapValue(
             {
@@ -2682,43 +2682,43 @@ class GcpInstance(GcpResource, BaseInstance):
                 "TERMINATED": InstanceStatus.TERMINATED.name,
             }
         ),
-        "instance_status_message": S("statusMessage"),
         "instance_tags": S("tags", default={}) >> Bend(GcpTags.mapping),
     }
 
-    instance_advanced_machine_features: Optional[GcpAdvancedMachineFeatures] = field(default=None)
-    instance_can_ip_forward: Optional[bool] = field(default=None)
-    instance_confidential_instance_config: Optional[bool] = field(default=None)
-    instance_cpu_platform: Optional[str] = field(default=None)
-    instance_deletion_protection: Optional[bool] = field(default=None)
-    instance_disks: Optional[List[GcpAttachedDisk]] = field(default=None)
-    instance_display_device: Optional[bool] = field(default=None)
-    instance_fingerprint: Optional[str] = field(default=None)
-    instance_guest_accelerators: Optional[List[GcpAcceleratorConfig]] = field(default=None)
-    instance_hostname: Optional[str] = field(default=None)
-    instance_key_revocation_action_type: Optional[str] = field(default=None)
-    instance_last_start_timestamp: Optional[datetime] = field(default=None)
-    instance_last_stop_timestamp: Optional[datetime] = field(default=None)
-    instance_last_suspended_timestamp: Optional[datetime] = field(default=None)
-    instance_machine_type: Optional[str] = field(default=None)
-    instance_metadata: Optional[GcpMetadata] = field(default=None)
-    instance_min_cpu_platform: Optional[str] = field(default=None)
-    instance_network_interfaces: Optional[List[GcpNetworkInterface]] = field(default=None)
-    instance_network_performance_config: Optional[str] = field(default=None)
-    instance_params: Optional[GcpInstanceParams] = field(default=None)
-    instance_private_ipv6_google_access: Optional[str] = field(default=None)
-    instance_reservation_affinity: Optional[GcpReservationAffinity] = field(default=None)
-    instance_resource_policies: Optional[List[str]] = field(default=None)
-    instance_resource_status: Optional[str] = field(default=None)
-    instance_satisfies_pzs: Optional[bool] = field(default=None)
-    instance_scheduling: Optional[GcpScheduling] = field(default=None)
-    instance_service_accounts: Optional[List[GcpServiceAccount]] = field(default=None)
-    instance_shielded_instance_config: Optional[GcpShieldedInstanceConfig] = field(default=None)
-    instance_shielded_instance_integrity_policy: Optional[bool] = field(default=None)
-    instance_source_machine_image: Optional[str] = field(default=None)
-    instance_source_machine_image_encryption_key: Optional[GcpCustomerEncryptionKey] = field(default=None)
-    instance_start_restricted: Optional[bool] = field(default=None)
-    instance_status_message: Optional[str] = field(default=None)
+    advanced_machine_features: Optional[GcpAdvancedMachineFeatures] = field(default=None)
+    can_ip_forward: Optional[bool] = field(default=None)
+    confidential_instance_config: Optional[bool] = field(default=None)
+    cpu_platform: Optional[str] = field(default=None)
+    deletion_protection: Optional[bool] = field(default=None)
+    disks: Optional[List[GcpAttachedDisk]] = field(default=None)
+    display_device: Optional[bool] = field(default=None)
+    fingerprint: Optional[str] = field(default=None)
+    guest_accelerators: Optional[List[GcpAcceleratorConfig]] = field(default=None)
+    hostname: Optional[str] = field(default=None)
+    key_revocation_action_type: Optional[str] = field(default=None)
+    last_start_timestamp: Optional[datetime] = field(default=None)
+    last_stop_timestamp: Optional[datetime] = field(default=None)
+    last_suspended_timestamp: Optional[datetime] = field(default=None)
+    machine_type: Optional[str] = field(default=None)
+    metadata: Optional[GcpMetadata] = field(default=None)
+    min_cpu_platform: Optional[str] = field(default=None)
+    network_interfaces: Optional[List[GcpNetworkInterface]] = field(default=None)
+    network_performance_config: Optional[str] = field(default=None)
+    params: Optional[GcpInstanceParams] = field(default=None)
+    private_ipv6_google_access: Optional[str] = field(default=None)
+    reservation_affinity: Optional[GcpReservationAffinity] = field(default=None)
+    resource_policies: Optional[List[str]] = field(default=None)
+    resource_status: Optional[str] = field(default=None)
+    satisfies_pzs: Optional[bool] = field(default=None)
+    scheduling: Optional[GcpScheduling] = field(default=None)
+    service_accounts: Optional[List[GcpServiceAccount]] = field(default=None)
+    shielded_instance_config: Optional[GcpShieldedInstanceConfig] = field(default=None)
+    shielded_instance_integrity_policy: Optional[bool] = field(default=None)
+    source_machine_image: Optional[str] = field(default=None)
+    source_machine_image_encryption_key: Optional[GcpCustomerEncryptionKey] = field(default=None)
+    start_restricted: Optional[bool] = field(default=None)
+    status: Optional[str] = field(default=None)
+    status_message: Optional[str] = field(default=None)
     instance_tags: Optional[GcpTags] = field(default=None)
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
@@ -2739,9 +2739,10 @@ class GcpInstance(GcpResource, BaseInstance):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
-        self.connect_machine_type(self.instance_machine_type, builder)
+        if self.machine_type:
+            self.connect_machine_type(self.machine_type, builder)
 
-        for nic in self.instance_network_interfaces or []:
+        for nic in self.network_interfaces or []:
             builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=GcpNetwork, link=nic.network)
             builder.dependant_node(
                 self, reverse=True, delete_same_as_default=True, clazz=GcpSubnetwork, link=nic.subnetwork
@@ -2753,9 +2754,15 @@ class GcpInstance(GcpResource, BaseInstance):
         # - extract machineType if custom
         # - then create GcpMachineType object for each unique custom machine type
         # - add the new objects to the graph
-        result = super().collect(raw, builder)
+        result: List[GcpInstance] = super().collect(raw, builder)  # type: ignore
         custom_machine_types = list(
-            set([instance.instance_machine_type for instance in result if "custom" in instance.instance_machine_type])
+            set(
+                [
+                    instance.machine_type
+                    for instance in result
+                    if instance.machine_type and "custom" in instance.machine_type
+                ]
+            )
         )
         for machine_type in custom_machine_types:
             # example:
@@ -2763,7 +2770,7 @@ class GcpInstance(GcpResource, BaseInstance):
             zone, _, name = machine_type.split("/")[-3:]
             builder.submit_work(GcpMachineType.collect_individual, builder, zone, name)
 
-        return result
+        return result  # type: ignore # list is not covariant
 
 
 @define(eq=False, slots=False)
@@ -2801,64 +2808,63 @@ class GcpInterconnectAttachment(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "attachment_admin_enabled": S("adminEnabled"),
-        "attachment_bandwidth": S("bandwidth"),
-        "attachment_candidate_ipv6_subnets": S("candidateIpv6Subnets", default=[]),
-        "attachment_candidate_subnets": S("candidateSubnets", default=[]),
-        "attachment_cloud_router_ip_address": S("cloudRouterIpAddress"),
-        "attachment_cloud_router_ipv6_address": S("cloudRouterIpv6Address"),
-        "attachment_cloud_router_ipv6_interface_id": S("cloudRouterIpv6InterfaceId"),
-        "attachment_customer_router_ip_address": S("customerRouterIpAddress"),
-        "attachment_customer_router_ipv6_address": S("customerRouterIpv6Address"),
-        "attachment_customer_router_ipv6_interface_id": S("customerRouterIpv6InterfaceId"),
-        "attachment_dataplane_version": S("dataplaneVersion"),
-        "attachment_edge_availability_domain": S("edgeAvailabilityDomain"),
-        "attachment_encryption": S("encryption"),
-        "attachment_google_reference_id": S("googleReferenceId"),
-        "attachment_interconnect": S("interconnect"),
-        "attachment_ipsec_internal_addresses": S("ipsecInternalAddresses", default=[]),
-        "attachment_mtu": S("mtu"),
-        "attachment_operational_status": S("operationalStatus"),
-        "attachment_pairing_key": S("pairingKey"),
-        "attachment_partner_asn": S("partnerAsn"),
-        "attachment_partner_metadata": S("partnerMetadata", default={})
-        >> Bend(GcpInterconnectAttachmentPartnerMetadata.mapping),
-        "attachment_private_interconnect_info": S("privateInterconnectInfo", "tag8021q"),
-        "attachment_router": S("router"),
-        "attachment_satisfies_pzs": S("satisfiesPzs"),
-        "attachment_stack_type": S("stackType"),
-        "attachment_state": S("state"),
-        "attachment_type": S("type"),
-        "attachment_vlan_tag8021q": S("vlanTag8021q"),
+        "admin_enabled": S("adminEnabled"),
+        "bandwidth": S("bandwidth"),
+        "candidate_ipv6_subnets": S("candidateIpv6Subnets", default=[]),
+        "candidate_subnets": S("candidateSubnets", default=[]),
+        "cloud_router_ip_address": S("cloudRouterIpAddress"),
+        "cloud_router_ipv6_address": S("cloudRouterIpv6Address"),
+        "cloud_router_ipv6_interface_id": S("cloudRouterIpv6InterfaceId"),
+        "customer_router_ip_address": S("customerRouterIpAddress"),
+        "customer_router_ipv6_address": S("customerRouterIpv6Address"),
+        "customer_router_ipv6_interface_id": S("customerRouterIpv6InterfaceId"),
+        "dataplane_version": S("dataplaneVersion"),
+        "edge_availability_domain": S("edgeAvailabilityDomain"),
+        "encryption": S("encryption"),
+        "google_reference_id": S("googleReferenceId"),
+        "interconnect": S("interconnect"),
+        "ipsec_internal_addresses": S("ipsecInternalAddresses", default=[]),
+        "mtu": S("mtu"),
+        "operational_status": S("operationalStatus"),
+        "pairing_key": S("pairingKey"),
+        "partner_asn": S("partnerAsn"),
+        "partner_metadata": S("partnerMetadata", default={}) >> Bend(GcpInterconnectAttachmentPartnerMetadata.mapping),
+        "private_interconnect_info": S("privateInterconnectInfo", "tag8021q"),
+        "router": S("router"),
+        "satisfies_pzs": S("satisfiesPzs"),
+        "stack_type": S("stackType"),
+        "state": S("state"),
+        "type": S("type"),
+        "vlan_tag8021q": S("vlanTag8021q"),
     }
-    attachment_admin_enabled: Optional[bool] = field(default=None)
-    attachment_bandwidth: Optional[str] = field(default=None)
-    attachment_candidate_ipv6_subnets: Optional[List[str]] = field(default=None)
-    attachment_candidate_subnets: Optional[List[str]] = field(default=None)
-    attachment_cloud_router_ip_address: Optional[str] = field(default=None)
-    attachment_cloud_router_ipv6_address: Optional[str] = field(default=None)
-    attachment_cloud_router_ipv6_interface_id: Optional[str] = field(default=None)
-    attachment_customer_router_ip_address: Optional[str] = field(default=None)
-    attachment_customer_router_ipv6_address: Optional[str] = field(default=None)
-    attachment_customer_router_ipv6_interface_id: Optional[str] = field(default=None)
-    attachment_dataplane_version: Optional[int] = field(default=None)
-    attachment_edge_availability_domain: Optional[str] = field(default=None)
-    attachment_encryption: Optional[str] = field(default=None)
-    attachment_google_reference_id: Optional[str] = field(default=None)
-    attachment_interconnect: Optional[str] = field(default=None)
-    attachment_ipsec_internal_addresses: Optional[List[str]] = field(default=None)
-    attachment_mtu: Optional[int] = field(default=None)
-    attachment_operational_status: Optional[str] = field(default=None)
-    attachment_pairing_key: Optional[str] = field(default=None)
-    attachment_partner_asn: Optional[str] = field(default=None)
-    attachment_partner_metadata: Optional[GcpInterconnectAttachmentPartnerMetadata] = field(default=None)
-    attachment_private_interconnect_info: Optional[int] = field(default=None)
-    attachment_router: Optional[str] = field(default=None)
-    attachment_satisfies_pzs: Optional[bool] = field(default=None)
-    attachment_stack_type: Optional[str] = field(default=None)
-    attachment_state: Optional[str] = field(default=None)
-    attachment_type: Optional[str] = field(default=None)
-    attachment_vlan_tag8021q: Optional[int] = field(default=None)
+    admin_enabled: Optional[bool] = field(default=None)
+    bandwidth: Optional[str] = field(default=None)
+    candidate_ipv6_subnets: Optional[List[str]] = field(default=None)
+    candidate_subnets: Optional[List[str]] = field(default=None)
+    cloud_router_ip_address: Optional[str] = field(default=None)
+    cloud_router_ipv6_address: Optional[str] = field(default=None)
+    cloud_router_ipv6_interface_id: Optional[str] = field(default=None)
+    customer_router_ip_address: Optional[str] = field(default=None)
+    customer_router_ipv6_address: Optional[str] = field(default=None)
+    customer_router_ipv6_interface_id: Optional[str] = field(default=None)
+    dataplane_version: Optional[int] = field(default=None)
+    edge_availability_domain: Optional[str] = field(default=None)
+    encryption: Optional[str] = field(default=None)
+    google_reference_id: Optional[str] = field(default=None)
+    interconnect: Optional[str] = field(default=None)
+    ipsec_internal_addresses: Optional[List[str]] = field(default=None)
+    mtu: Optional[int] = field(default=None)
+    operational_status: Optional[str] = field(default=None)
+    pairing_key: Optional[str] = field(default=None)
+    partner_asn: Optional[str] = field(default=None)
+    partner_metadata: Optional[GcpInterconnectAttachmentPartnerMetadata] = field(default=None)
+    private_interconnect_info: Optional[int] = field(default=None)
+    router: Optional[str] = field(default=None)
+    satisfies_pzs: Optional[bool] = field(default=None)
+    stack_type: Optional[str] = field(default=None)
+    state: Optional[str] = field(default=None)
+    type: Optional[str] = field(default=None)
+    vlan_tag8021q: Optional[int] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -2896,27 +2902,27 @@ class GcpInterconnectLocation(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "location_address": S("address"),
-        "location_availability_zone": S("availabilityZone"),
-        "location_city": S("city"),
-        "location_continent": S("continent"),
-        "location_facility_provider": S("facilityProvider"),
-        "location_facility_provider_facility_id": S("facilityProviderFacilityId"),
-        "location_peeringdb_facility_id": S("peeringdbFacilityId"),
-        "location_region_infos": S("regionInfos", default=[]) >> ForallBend(GcpInterconnectLocationRegionInfo.mapping),
-        "location_status": S("status"),
-        "location_supports_pzs": S("supportsPzs"),
+        "address": S("address"),
+        "availability_zone": S("availabilityZone"),
+        "city": S("city"),
+        "continent": S("continent"),
+        "facility_provider": S("facilityProvider"),
+        "facility_provider_facility_id": S("facilityProviderFacilityId"),
+        "peeringdb_facility_id": S("peeringdbFacilityId"),
+        "region_infos": S("regionInfos", default=[]) >> ForallBend(GcpInterconnectLocationRegionInfo.mapping),
+        "status": S("status"),
+        "supports_pzs": S("supportsPzs"),
     }
-    location_address: Optional[str] = field(default=None)
-    location_availability_zone: Optional[str] = field(default=None)
-    location_city: Optional[str] = field(default=None)
-    location_continent: Optional[str] = field(default=None)
-    location_facility_provider: Optional[str] = field(default=None)
-    location_facility_provider_facility_id: Optional[str] = field(default=None)
-    location_peeringdb_facility_id: Optional[str] = field(default=None)
-    location_region_infos: Optional[List[GcpInterconnectLocationRegionInfo]] = field(default=None)
-    location_status: Optional[str] = field(default=None)
-    location_supports_pzs: Optional[bool] = field(default=None)
+    address: Optional[str] = field(default=None)
+    availability_zone: Optional[str] = field(default=None)
+    city: Optional[str] = field(default=None)
+    continent: Optional[str] = field(default=None)
+    facility_provider: Optional[str] = field(default=None)
+    facility_provider_facility_id: Optional[str] = field(default=None)
+    peeringdb_facility_id: Optional[str] = field(default=None)
+    region_infos: Optional[List[GcpInterconnectLocationRegionInfo]] = field(default=None)
+    status: Optional[str] = field(default=None)
+    supports_pzs: Optional[bool] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -2947,11 +2953,11 @@ class GcpInterconnectOutageNotification:
     }
     affected_circuits: Optional[List[str]] = field(default=None)
     description: Optional[str] = field(default=None)
-    end_time: Optional[str] = field(default=None)
+    end_time: Optional[datetime] = field(default=None)
     issue_type: Optional[str] = field(default=None)
     name: Optional[str] = field(default=None)
     source: Optional[str] = field(default=None)
-    start_time: Optional[str] = field(default=None)
+    start_time: Optional[datetime] = field(default=None)
     state: Optional[str] = field(default=None)
 
 
@@ -2977,42 +2983,41 @@ class GcpInterconnect(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "interconnect_admin_enabled": S("adminEnabled"),
-        "interconnect_circuit_infos": S("circuitInfos", default=[]) >> ForallBend(GcpInterconnectCircuitInfo.mapping),
-        "interconnect_customer_name": S("customerName"),
-        "interconnect_expected_outages": S("expectedOutages", default=[])
-        >> ForallBend(GcpInterconnectOutageNotification.mapping),
-        "interconnect_google_ip_address": S("googleIpAddress"),
-        "interconnect_google_reference_id": S("googleReferenceId"),
-        "interconnect_interconnect_attachments": S("interconnectAttachments", default=[]),
-        "interconnect_interconnect_type": S("interconnectType"),
-        "interconnect_link_type": S("linkType"),
-        "interconnect_location": S("location"),
-        "interconnect_noc_contact_email": S("nocContactEmail"),
-        "interconnect_operational_status": S("operationalStatus"),
-        "interconnect_peer_ip_address": S("peerIpAddress"),
-        "interconnect_provisioned_link_count": S("provisionedLinkCount"),
-        "interconnect_requested_link_count": S("requestedLinkCount"),
-        "interconnect_satisfies_pzs": S("satisfiesPzs"),
-        "interconnect_state": S("state"),
+        "admin_enabled": S("adminEnabled"),
+        "circuit_infos": S("circuitInfos", default=[]) >> ForallBend(GcpInterconnectCircuitInfo.mapping),
+        "customer_name": S("customerName"),
+        "expected_outages": S("expectedOutages", default=[]) >> ForallBend(GcpInterconnectOutageNotification.mapping),
+        "google_ip_address": S("googleIpAddress"),
+        "google_reference_id": S("googleReferenceId"),
+        "interconnect_attachments": S("interconnectAttachments", default=[]),
+        "interconnect_type": S("interconnectType"),
+        "link_type": S("linkType"),
+        "location": S("location"),
+        "noc_contact_email": S("nocContactEmail"),
+        "operational_status": S("operationalStatus"),
+        "peer_ip_address": S("peerIpAddress"),
+        "provisioned_link_count": S("provisionedLinkCount"),
+        "requested_link_count": S("requestedLinkCount"),
+        "satisfies_pzs": S("satisfiesPzs"),
+        "state": S("state"),
     }
-    interconnect_admin_enabled: Optional[bool] = field(default=None)
-    interconnect_circuit_infos: Optional[List[GcpInterconnectCircuitInfo]] = field(default=None)
-    interconnect_customer_name: Optional[str] = field(default=None)
-    interconnect_expected_outages: Optional[List[GcpInterconnectOutageNotification]] = field(default=None)
-    interconnect_google_ip_address: Optional[str] = field(default=None)
-    interconnect_google_reference_id: Optional[str] = field(default=None)
-    interconnect_interconnect_attachments: Optional[List[str]] = field(default=None)
-    interconnect_interconnect_type: Optional[str] = field(default=None)
-    interconnect_link_type: Optional[str] = field(default=None)
-    interconnect_location: Optional[str] = field(default=None)
-    interconnect_noc_contact_email: Optional[str] = field(default=None)
-    interconnect_operational_status: Optional[str] = field(default=None)
-    interconnect_peer_ip_address: Optional[str] = field(default=None)
-    interconnect_provisioned_link_count: Optional[int] = field(default=None)
-    interconnect_requested_link_count: Optional[int] = field(default=None)
-    interconnect_satisfies_pzs: Optional[bool] = field(default=None)
-    interconnect_state: Optional[str] = field(default=None)
+    admin_enabled: Optional[bool] = field(default=None)
+    circuit_infos: Optional[List[GcpInterconnectCircuitInfo]] = field(default=None)
+    customer_name: Optional[str] = field(default=None)
+    expected_outages: Optional[List[GcpInterconnectOutageNotification]] = field(default=None)
+    google_ip_address: Optional[str] = field(default=None)
+    google_reference_id: Optional[str] = field(default=None)
+    interconnect_attachments: Optional[List[str]] = field(default=None)
+    interconnect_type: Optional[str] = field(default=None)
+    link_type: Optional[str] = field(default=None)
+    location: Optional[str] = field(default=None)
+    noc_contact_email: Optional[str] = field(default=None)
+    operational_status: Optional[str] = field(default=None)
+    peer_ip_address: Optional[str] = field(default=None)
+    provisioned_link_count: Optional[int] = field(default=None)
+    requested_link_count: Optional[int] = field(default=None)
+    satisfies_pzs: Optional[bool] = field(default=None)
+    state: Optional[str] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -3048,16 +3053,15 @@ class GcpLicense(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "license_charges_use_fee": S("chargesUseFee"),
-        "license_license_code": S("licenseCode"),
-        "license_resource_requirements": S("resourceRequirements", default={})
-        >> Bend(GcpLicenseResourceRequirements.mapping),
-        "license_transferable": S("transferable"),
+        "charges_use_fee": S("chargesUseFee"),
+        "license_code": S("licenseCode"),
+        "resource_requirements": S("resourceRequirements", default={}) >> Bend(GcpLicenseResourceRequirements.mapping),
+        "transferable": S("transferable"),
     }
-    license_charges_use_fee: Optional[bool] = field(default=None)
-    license_license_code: Optional[str] = field(default=None)
-    license_resource_requirements: Optional[GcpLicenseResourceRequirements] = field(default=None)
-    license_transferable: Optional[bool] = field(default=None)
+    charges_use_fee: Optional[bool] = field(default=None)
+    license_code: Optional[str] = field(default=None)
+    resource_requirements: Optional[GcpLicenseResourceRequirements] = field(default=None)
+    transferable: Optional[bool] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -3185,40 +3189,40 @@ class GcpMachineImage(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "image_guest_flush": S("guestFlush"),
-        "image_instance_properties": S("instanceProperties", default={}) >> Bend(GcpInstanceProperties.mapping),
-        "image_machine_image_encryption_key": S("machineImageEncryptionKey", default={})
+        "guest_flush": S("guestFlush"),
+        "instance_properties": S("instanceProperties", default={}) >> Bend(GcpInstanceProperties.mapping),
+        "machine_image_encryption_key": S("machineImageEncryptionKey", default={})
         >> Bend(GcpCustomerEncryptionKey.mapping),
-        "image_satisfies_pzs": S("satisfiesPzs"),
-        "image_saved_disks": S("savedDisks", default=[]) >> ForallBend(GcpSavedDisk.mapping),
-        "image_source_disk_encryption_keys": S("sourceDiskEncryptionKeys", default=[])
+        "satisfies_pzs": S("satisfiesPzs"),
+        "saved_disks": S("savedDisks", default=[]) >> ForallBend(GcpSavedDisk.mapping),
+        "source_disk_encryption_keys": S("sourceDiskEncryptionKeys", default=[])
         >> ForallBend(GcpSourceDiskEncryptionKey.mapping),
-        "image_source_instance": S("sourceInstance"),
-        "image_source_instance_properties": S("sourceInstanceProperties", default={})
+        "source_instance": S("sourceInstance"),
+        "source_instance_properties": S("sourceInstanceProperties", default={})
         >> Bend(GcpSourceInstanceProperties.mapping),
-        "image_status": S("status"),
-        "image_storage_locations": S("storageLocations", default=[]),
-        "image_total_storage_bytes": S("totalStorageBytes"),
+        "status": S("status"),
+        "storage_locations": S("storageLocations", default=[]),
+        "total_storage_bytes": S("totalStorageBytes"),
     }
-    image_guest_flush: Optional[bool] = field(default=None)
-    image_instance_properties: Optional[GcpInstanceProperties] = field(default=None)
-    image_machine_image_encryption_key: Optional[GcpCustomerEncryptionKey] = field(default=None)
-    image_satisfies_pzs: Optional[bool] = field(default=None)
-    image_saved_disks: Optional[List[GcpSavedDisk]] = field(default=None)
-    image_source_disk_encryption_keys: Optional[List[GcpSourceDiskEncryptionKey]] = field(default=None)
-    image_source_instance: Optional[str] = field(default=None)
-    image_source_instance_properties: Optional[GcpSourceInstanceProperties] = field(default=None)
-    image_status: Optional[str] = field(default=None)
-    image_storage_locations: Optional[List[str]] = field(default=None)
-    image_total_storage_bytes: Optional[str] = field(default=None)
+    guest_flush: Optional[bool] = field(default=None)
+    instance_properties: Optional[GcpInstanceProperties] = field(default=None)
+    machine_image_encryption_key: Optional[GcpCustomerEncryptionKey] = field(default=None)
+    satisfies_pzs: Optional[bool] = field(default=None)
+    saved_disks: Optional[List[GcpSavedDisk]] = field(default=None)
+    source_disk_encryption_keys: Optional[List[GcpSourceDiskEncryptionKey]] = field(default=None)
+    source_instance: Optional[str] = field(default=None)
+    source_instance_properties: Optional[GcpSourceInstanceProperties] = field(default=None)
+    status: Optional[str] = field(default=None)
+    storage_locations: Optional[List[str]] = field(default=None)
+    total_storage_bytes: Optional[str] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        for disk in self.image_saved_disks:
+        for disk in self.saved_disks or []:
             if disk.source_disk:
                 builder.add_edge(self, reverse=True, clazz=GcpDisk, link=disk.source_disk)
-        if p := self.image_instance_properties:
-            for disk in p.disks:
-                builder.add_edge(self, reverse=True, clazz=GcpDisk, link=disk.source)
+        if p := self.instance_properties:
+            for attached_disk in p.disks or []:
+                builder.add_edge(self, reverse=True, clazz=GcpDisk, link=attached_disk.source)
 
 
 @define(eq=False, slots=False)
@@ -3250,19 +3254,21 @@ class GcpMachineType(GcpResource, BaseInstanceType):
         "tags": S("labels", default={}),
         "name": S("name"),
         "ctime": S("creationTimestamp"),
-        "instance_type": S("name"),
-        "instance_cores": S("guestCpus") >> F(lambda x: float(x)),
-        "instance_memory": S("memoryMb") >> F(lambda x: float(x) / 1024),
         "description": S("description"),
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "type_accelerators": S("accelerators", default=[]) >> ForallBend(GcpAccelerators.mapping),
-        "type_image_space_gb": S("imageSpaceGb"),
-        "type_is_shared_cpu": S("isSharedCpu"),
-        "type_maximum_persistent_disks": S("maximumPersistentDisks"),
-        "type_maximum_persistent_disks_size_gb": S("maximumPersistentDisksSizeGb"),
-        "type_scratch_disks": S("scratchDisks", default=[]) >> ForallBend(S("diskGb")),
+        "accelerators": S("accelerators", default=[]) >> ForallBend(GcpAccelerators.mapping),
+        "guest_cpus": S("guestCpus"),
+        "image_space_gb": S("imageSpaceGb"),
+        "is_shared_cpu": S("isSharedCpu"),
+        "maximum_persistent_disks": S("maximumPersistentDisks"),
+        "maximum_persistent_disks_size_gb": S("maximumPersistentDisksSizeGb"),
+        "memory_mb": S("memoryMb"),
+        "scratch_disks": S("scratchDisks", default=[]) >> ForallBend(S("diskGb")),
+        "instance_type": S("name"),
+        "instance_cores": S("guestCpus") >> F(lambda x: float(x)),
+        "instance_memory": S("memoryMb") >> F(lambda x: float(x) / 1024),
     }
     type_accelerators: Optional[List[GcpAccelerators]] = field(default=None)
     type_image_space_gb: Optional[int] = field(default=None)
@@ -3458,31 +3464,31 @@ class GcpNetwork(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "network_i_pv4_range": S("IPv4Range"),
-        "network_auto_create_subnetworks": S("autoCreateSubnetworks"),
-        "network_enable_ula_internal_ipv6": S("enableUlaInternalIpv6"),
-        "network_firewall_policy": S("firewallPolicy"),
-        "network_gateway_i_pv4": S("gatewayIPv4"),
-        "network_internal_ipv6_range": S("internalIpv6Range"),
-        "network_mtu": S("mtu"),
-        "network_network_firewall_policy_enforcement_order": S("networkFirewallPolicyEnforcementOrder"),
-        "network_peerings": S("peerings", default=[]) >> ForallBend(GcpNetworkPeering.mapping),
-        "network_routing_config": S("routingConfig", "routingMode"),
-        "network_self_link_with_id": S("selfLinkWithId"),
-        "network_subnetworks": S("subnetworks", default=[]),
+        "ipv4_range": S("IPv4Range"),
+        "auto_create_subnetworks": S("autoCreateSubnetworks"),
+        "enable_ula_internal_ipv6": S("enableUlaInternalIpv6"),
+        "firewall_policy": S("firewallPolicy"),
+        "gateway_i_pv4": S("gatewayIPv4"),
+        "internal_ipv6_range": S("internalIpv6Range"),
+        "mtu": S("mtu"),
+        "network_firewall_policy_enforcement_order": S("networkFirewallPolicyEnforcementOrder"),
+        "peerings": S("peerings", default=[]) >> ForallBend(GcpNetworkPeering.mapping),
+        "routing_config": S("routingConfig", "routingMode"),
+        "self_link_with_id": S("selfLinkWithId"),
+        "subnetworks": S("subnetworks", default=[]),
     }
-    network_i_pv4_range: Optional[str] = field(default=None)
-    network_auto_create_subnetworks: Optional[bool] = field(default=None)
-    network_enable_ula_internal_ipv6: Optional[bool] = field(default=None)
-    network_firewall_policy: Optional[str] = field(default=None)
-    network_gateway_i_pv4: Optional[str] = field(default=None)
-    network_internal_ipv6_range: Optional[str] = field(default=None)
-    network_mtu: Optional[int] = field(default=None)
-    network_network_firewall_policy_enforcement_order: Optional[str] = field(default=None)
-    network_peerings: Optional[List[GcpNetworkPeering]] = field(default=None)
-    network_routing_config: Optional[str] = field(default=None)
-    network_self_link_with_id: Optional[str] = field(default=None)
-    network_subnetworks: Optional[List[str]] = field(default=None)
+    ipv4_range: Optional[str] = field(default=None)
+    auto_create_subnetworks: Optional[bool] = field(default=None)
+    enable_ula_internal_ipv6: Optional[bool] = field(default=None)
+    firewall_policy: Optional[str] = field(default=None)
+    gateway_i_pv4: Optional[str] = field(default=None)
+    internal_ipv6_range: Optional[str] = field(default=None)
+    mtu: Optional[int] = field(default=None)
+    network_firewall_policy_enforcement_order: Optional[str] = field(default=None)
+    peerings: Optional[List[GcpNetworkPeering]] = field(default=None)
+    routing_config: Optional[str] = field(default=None)
+    self_link_with_id: Optional[str] = field(default=None)
+    subnetworks: Optional[List[str]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -3502,7 +3508,7 @@ class GcpNodeGroupMaintenanceWindow:
         "start_time": S("startTime"),
     }
     maintenance_duration: Optional[GcpDuration] = field(default=None)
-    start_time: Optional[str] = field(default=None)
+    start_time: Optional[datetime] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -3546,29 +3552,29 @@ class GcpNodeGroup(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "group_autoscaling_policy": S("autoscalingPolicy", default={}) >> Bend(GcpNodeGroupAutoscalingPolicy.mapping),
-        "group_fingerprint": S("fingerprint"),
-        "group_location_hint": S("locationHint"),
-        "group_maintenance_policy": S("maintenancePolicy"),
-        "group_maintenance_window": S("maintenanceWindow", default={}) >> Bend(GcpNodeGroupMaintenanceWindow.mapping),
-        "group_node_template": S("nodeTemplate"),
-        "group_share_settings": S("shareSettings", default={}) >> Bend(GcpShareSettings.mapping),
-        "group_size": S("size"),
-        "group_status": S("status"),
+        "autoscaling_policy": S("autoscalingPolicy", default={}) >> Bend(GcpNodeGroupAutoscalingPolicy.mapping),
+        "fingerprint": S("fingerprint"),
+        "location_hint": S("locationHint"),
+        "maintenance_policy": S("maintenancePolicy"),
+        "maintenance_window": S("maintenanceWindow", default={}) >> Bend(GcpNodeGroupMaintenanceWindow.mapping),
+        "node_template": S("nodeTemplate"),
+        "share_settings": S("shareSettings", default={}) >> Bend(GcpShareSettings.mapping),
+        "size": S("size"),
+        "status": S("status"),
     }
-    group_autoscaling_policy: Optional[GcpNodeGroupAutoscalingPolicy] = field(default=None)
-    group_fingerprint: Optional[str] = field(default=None)
-    group_location_hint: Optional[str] = field(default=None)
-    group_maintenance_policy: Optional[str] = field(default=None)
-    group_maintenance_window: Optional[GcpNodeGroupMaintenanceWindow] = field(default=None)
-    group_node_template: Optional[str] = field(default=None)
-    group_share_settings: Optional[GcpShareSettings] = field(default=None)
-    group_size: Optional[int] = field(default=None)
-    group_status: Optional[str] = field(default=None)
+    autoscaling_policy: Optional[GcpNodeGroupAutoscalingPolicy] = field(default=None)
+    fingerprint: Optional[str] = field(default=None)
+    location_hint: Optional[str] = field(default=None)
+    maintenance_policy: Optional[str] = field(default=None)
+    maintenance_window: Optional[GcpNodeGroupMaintenanceWindow] = field(default=None)
+    node_template: Optional[str] = field(default=None)
+    share_settings: Optional[GcpShareSettings] = field(default=None)
+    size: Optional[int] = field(default=None)
+    status: Optional[str] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if self.group_node_template:
-            builder.add_edge(self, reverse=True, clazz=GcpNodeTemplate, link=self.group_node_template)
+        if self.node_template:
+            builder.add_edge(self, reverse=True, clazz=GcpNodeTemplate, link=self.node_template)
 
 
 @define(eq=False, slots=False)
@@ -3616,30 +3622,30 @@ class GcpNodeTemplate(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "template_accelerators": S("accelerators", default=[]) >> ForallBend(GcpAcceleratorConfig.mapping),
-        "template_cpu_overcommit_type": S("cpuOvercommitType"),
-        "template_disks": S("disks", default=[]) >> ForallBend(GcpLocalDisk.mapping),
-        "template_node_affinity_labels": S("nodeAffinityLabels"),
-        "template_node_type": S("nodeType"),
-        "template_node_type_flexibility": S("nodeTypeFlexibility", default={})
+        "accelerators": S("accelerators", default=[]) >> ForallBend(GcpAcceleratorConfig.mapping),
+        "cpu_overcommit_type": S("cpuOvercommitType"),
+        "disks": S("disks", default=[]) >> ForallBend(GcpLocalDisk.mapping),
+        "node_affinity_labels": S("nodeAffinityLabels"),
+        "node_type": S("nodeType"),
+        "node_type_flexibility": S("nodeTypeFlexibility", default={})
         >> Bend(GcpNodeTemplateNodeTypeFlexibility.mapping),
-        "template_server_binding": S("serverBinding", "type"),
-        "template_status": S("status"),
-        "template_status_message": S("statusMessage"),
+        "server_binding": S("serverBinding", "type"),
+        "status": S("status"),
+        "status_message": S("statusMessage"),
     }
-    template_accelerators: Optional[List[GcpAcceleratorConfig]] = field(default=None)
-    template_cpu_overcommit_type: Optional[str] = field(default=None)
-    template_disks: Optional[List[GcpLocalDisk]] = field(default=None)
-    template_node_affinity_labels: Optional[Dict[str, str]] = field(default=None)
-    template_node_type: Optional[str] = field(default=None)
-    template_node_type_flexibility: Optional[GcpNodeTemplateNodeTypeFlexibility] = field(default=None)
-    template_server_binding: Optional[str] = field(default=None)
-    template_status: Optional[str] = field(default=None)
-    template_status_message: Optional[str] = field(default=None)
+    accelerators: Optional[List[GcpAcceleratorConfig]] = field(default=None)
+    cpu_overcommit_type: Optional[str] = field(default=None)
+    disks: Optional[List[GcpLocalDisk]] = field(default=None)
+    node_affinity_labels: Optional[Dict[str, str]] = field(default=None)
+    node_type: Optional[str] = field(default=None)
+    node_type_flexibility: Optional[GcpNodeTemplateNodeTypeFlexibility] = field(default=None)
+    server_binding: Optional[str] = field(default=None)
+    status: Optional[str] = field(default=None)
+    status_message: Optional[str] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if self.template_disks:
-            for disk in self.template_disks:
+        if self.disks:
+            for disk in self.disks:
                 builder.add_edge(self, reverse=True, clazz=GcpDiskType, link=disk.disk_type)
 
 
@@ -3665,15 +3671,15 @@ class GcpNodeType(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "type_cpu_platform": S("cpuPlatform"),
-        "type_guest_cpus": S("guestCpus"),
-        "type_local_ssd_gb": S("localSsdGb"),
-        "type_memory_mb": S("memoryMb"),
+        "cpu_platform": S("cpuPlatform"),
+        "guest_cpus": S("guestCpus"),
+        "local_ssd_gb": S("localSsdGb"),
+        "memory_mb": S("memoryMb"),
     }
-    type_cpu_platform: Optional[str] = field(default=None)
-    type_guest_cpus: Optional[int] = field(default=None)
-    type_local_ssd_gb: Optional[int] = field(default=None)
-    type_memory_mb: Optional[int] = field(default=None)
+    cpu_platform: Optional[str] = field(default=None)
+    guest_cpus: Optional[int] = field(default=None)
+    local_ssd_gb: Optional[int] = field(default=None)
+    memory_mb: Optional[int] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -3759,26 +3765,26 @@ class GcpPacketMirroring(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "mirroring_collector_ilb": S("collectorIlb", default={}) >> Bend(GcpPacketMirroringForwardingRuleInfo.mapping),
-        "mirroring_enable": S("enable"),
-        "mirroring_filter": S("filter", default={}) >> Bend(GcpPacketMirroringFilter.mapping),
-        "mirroring_mirrored_resources": S("mirroredResources", default={})
+        "collector_ilb": S("collectorIlb", default={}) >> Bend(GcpPacketMirroringForwardingRuleInfo.mapping),
+        "enable": S("enable"),
+        "filter": S("filter", default={}) >> Bend(GcpPacketMirroringFilter.mapping),
+        "mirrored_resources": S("mirroredResources", default={})
         >> Bend(GcpPacketMirroringMirroredResourceInfo.mapping),
-        "mirroring_network": S("network", default={}) >> Bend(GcpPacketMirroringNetworkInfo.mapping),
-        "mirroring_priority": S("priority"),
+        "network": S("network", default={}) >> Bend(GcpPacketMirroringNetworkInfo.mapping),
+        "priority": S("priority"),
     }
-    mirroring_collector_ilb: Optional[GcpPacketMirroringForwardingRuleInfo] = field(default=None)
-    mirroring_enable: Optional[str] = field(default=None)
-    mirroring_filter: Optional[GcpPacketMirroringFilter] = field(default=None)
-    mirroring_mirrored_resources: Optional[GcpPacketMirroringMirroredResourceInfo] = field(default=None)
-    mirroring_network: Optional[GcpPacketMirroringNetworkInfo] = field(default=None)
-    mirroring_priority: Optional[int] = field(default=None)
+    collector_ilb: Optional[GcpPacketMirroringForwardingRuleInfo] = field(default=None)
+    enable: Optional[str] = field(default=None)
+    filter: Optional[GcpPacketMirroringFilter] = field(default=None)
+    mirrored_resources: Optional[GcpPacketMirroringMirroredResourceInfo] = field(default=None)
+    network: Optional[GcpPacketMirroringNetworkInfo] = field(default=None)
+    priority: Optional[int] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if mmr := self.mirroring_mirrored_resources:
-            for subnet in mmr.subnetworks:
+        if mmr := self.mirrored_resources:
+            for subnet in mmr.subnetworks or []:
                 builder.add_edge(self, reverse=True, clazz=GcpSubnetwork, link=subnet.url)
-            for instance in mmr.instances:
+            for instance in mmr.instances or []:
                 builder.add_edge(self, reverse=True, clazz=GcpInstance, link=instance.url)
 
 
@@ -3822,25 +3828,23 @@ class GcpPublicAdvertisedPrefix(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "prefix_dns_verification_ip": S("dnsVerificationIp"),
-        "prefix_fingerprint": S("fingerprint"),
-        "prefix_ip_cidr_range": S("ipCidrRange"),
-        "prefix_public_delegated_prefixs": S("publicDelegatedPrefixs", default=[])
+        "dns_verification_ip": S("dnsVerificationIp"),
+        "fingerprint": S("fingerprint"),
+        "ip_cidr_range": S("ipCidrRange"),
+        "public_delegated_prefixs": S("publicDelegatedPrefixs", default=[])
         >> ForallBend(GcpPublicAdvertisedPrefixPublicDelegatedPrefix.mapping),
-        "prefix_shared_secret": S("sharedSecret"),
-        "prefix_status": S("status"),
+        "shared_secret": S("sharedSecret"),
+        "status": S("status"),
     }
-    prefix_dns_verification_ip: Optional[str] = field(default=None)
-    prefix_fingerprint: Optional[str] = field(default=None)
-    prefix_ip_cidr_range: Optional[str] = field(default=None)
-    prefix_public_delegated_prefixs: Optional[List[GcpPublicAdvertisedPrefixPublicDelegatedPrefix]] = field(
-        default=None
-    )
-    prefix_shared_secret: Optional[str] = field(default=None)
-    prefix_status: Optional[str] = field(default=None)
+    dns_verification_ip: Optional[str] = field(default=None)
+    fingerprint: Optional[str] = field(default=None)
+    ip_cidr_range: Optional[str] = field(default=None)
+    public_delegated_prefixs: Optional[List[GcpPublicAdvertisedPrefixPublicDelegatedPrefix]] = field(default=None)
+    shared_secret: Optional[str] = field(default=None)
+    status: Optional[str] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if pdp := self.prefix_public_delegated_prefixs:
+        if pdp := self.public_delegated_prefixs:
             for prefix in pdp:
                 if prefix.name:
                     builder.add_edge(self, reverse=True, clazz=GcpPublicDelegatedPrefix, name=prefix.name)
@@ -3970,33 +3974,33 @@ class GcpCommitment(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "commitment_auto_renew": S("autoRenew"),
-        "commitment_category": S("category"),
-        "commitment_end_timestamp": S("endTimestamp"),
-        "commitment_license_resource": S("licenseResource", default={}) >> Bend(GcpLicenseResourceCommitment.mapping),
-        "commitment_merge_source_commitments": S("mergeSourceCommitments", default=[]),
-        "commitment_plan": S("plan"),
-        "commitment_reservations": S("reservations", default=[]) >> ForallBend(GcpReservation.mapping),
-        "commitment_resources": S("resources", default=[]) >> ForallBend(GcpResourceCommitment.mapping),
-        "commitment_split_source_commitment": S("splitSourceCommitment"),
-        "commitment_start_timestamp": S("startTimestamp"),
-        "commitment_status": S("status"),
-        "commitment_status_message": S("statusMessage"),
-        "commitment_type": S("type"),
+        "auto_renew": S("autoRenew"),
+        "category": S("category"),
+        "end_timestamp": S("endTimestamp"),
+        "license_resource": S("licenseResource", default={}) >> Bend(GcpLicenseResourceCommitment.mapping),
+        "merge_source_commitments": S("mergeSourceCommitments", default=[]),
+        "plan": S("plan"),
+        "reservations": S("reservations", default=[]) >> ForallBend(GcpReservation.mapping),
+        "resources": S("resources", default=[]) >> ForallBend(GcpResourceCommitment.mapping),
+        "split_source_commitment": S("splitSourceCommitment"),
+        "start_timestamp": S("startTimestamp"),
+        "status": S("status"),
+        "status_message": S("statusMessage"),
+        "type": S("type"),
     }
-    commitment_auto_renew: Optional[bool] = field(default=None)
-    commitment_category: Optional[str] = field(default=None)
-    commitment_end_timestamp: Optional[datetime] = field(default=None)
-    commitment_license_resource: Optional[GcpLicenseResourceCommitment] = field(default=None)
-    commitment_merge_source_commitments: Optional[List[str]] = field(default=None)
-    commitment_plan: Optional[str] = field(default=None)
-    commitment_reservations: Optional[List[GcpReservation]] = field(default=None)
-    commitment_resources: Optional[List[GcpResourceCommitment]] = field(default=None)
-    commitment_split_source_commitment: Optional[str] = field(default=None)
-    commitment_start_timestamp: Optional[datetime] = field(default=None)
-    commitment_status: Optional[str] = field(default=None)
-    commitment_status_message: Optional[str] = field(default=None)
-    commitment_type: Optional[str] = field(default=None)
+    auto_renew: Optional[bool] = field(default=None)
+    category: Optional[str] = field(default=None)
+    end_timestamp: Optional[datetime] = field(default=None)
+    license_resource: Optional[GcpLicenseResourceCommitment] = field(default=None)
+    merge_source_commitments: Optional[List[str]] = field(default=None)
+    plan: Optional[str] = field(default=None)
+    reservations: Optional[List[GcpReservation]] = field(default=None)
+    resources: Optional[List[GcpResourceCommitment]] = field(default=None)
+    split_source_commitment: Optional[str] = field(default=None)
+    start_timestamp: Optional[datetime] = field(default=None)
+    status: Optional[str] = field(default=None)
+    status_message: Optional[str] = field(default=None)
+    type: Optional[str] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -4021,17 +4025,17 @@ class GcpHealthCheckService(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "service_fingerprint": S("fingerprint"),
-        "service_health_checks": S("healthChecks", default=[]),
-        "service_health_status_aggregation_policy": S("healthStatusAggregationPolicy"),
-        "service_network_endpoint_groups": S("networkEndpointGroups", default=[]),
-        "service_notification_endpoints": S("notificationEndpoints", default=[]),
+        "fingerprint": S("fingerprint"),
+        "health_checks": S("healthChecks", default=[]),
+        "health_status_aggregation_policy": S("healthStatusAggregationPolicy"),
+        "network_endpoint_groups": S("networkEndpointGroups", default=[]),
+        "notification_endpoints": S("notificationEndpoints", default=[]),
     }
-    service_fingerprint: Optional[str] = field(default=None)
-    service_health_checks: Optional[List[str]] = field(default=None)
-    service_health_status_aggregation_policy: Optional[str] = field(default=None)
-    service_network_endpoint_groups: Optional[List[str]] = field(default=None)
-    service_notification_endpoints: Optional[List[str]] = field(default=None)
+    fingerprint: Optional[str] = field(default=None)
+    health_checks: Optional[List[str]] = field(default=None)
+    health_status_aggregation_policy: Optional[str] = field(default=None)
+    network_endpoint_groups: Optional[List[str]] = field(default=None)
+    notification_endpoints: Optional[List[str]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -4073,9 +4077,9 @@ class GcpNotificationEndpoint(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "endpoint_grpc_settings": S("grpcSettings", default={}) >> Bend(GcpNotificationEndpointGrpcSettings.mapping),
+        "grpc_settings": S("grpcSettings", default={}) >> Bend(GcpNotificationEndpointGrpcSettings.mapping),
     }
-    endpoint_grpc_settings: Optional[GcpNotificationEndpointGrpcSettings] = field(default=None)
+    grpc_settings: Optional[GcpNotificationEndpointGrpcSettings] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -4258,23 +4262,23 @@ class GcpSecurityPolicy(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "policy_adaptive_protection_config": S("adaptiveProtectionConfig", default={})
+        "adaptive_protection_config": S("adaptiveProtectionConfig", default={})
         >> Bend(GcpSecurityPolicyAdaptiveProtectionConfig.mapping),
-        "policy_advanced_options_config": S("advancedOptionsConfig", default={})
+        "advanced_options_config": S("advancedOptionsConfig", default={})
         >> Bend(GcpSecurityPolicyAdvancedOptionsConfig.mapping),
-        "policy_ddos_protection_config": S("ddosProtectionConfig", "ddosProtection"),
-        "policy_fingerprint": S("fingerprint"),
-        "policy_recaptcha_options_config": S("recaptchaOptionsConfig", "redirectSiteKey"),
-        "policy_rules": S("rules", default=[]) >> ForallBend(GcpSecurityPolicyRule.mapping),
-        "policy_type": S("type"),
+        "ddos_protection_config": S("ddosProtectionConfig", "ddosProtection"),
+        "fingerprint": S("fingerprint"),
+        "recaptcha_options_config": S("recaptchaOptionsConfig", "redirectSiteKey"),
+        "rules": S("rules", default=[]) >> ForallBend(GcpSecurityPolicyRule.mapping),
+        "type": S("type"),
     }
-    policy_adaptive_protection_config: Optional[GcpSecurityPolicyAdaptiveProtectionConfig] = field(default=None)
-    policy_advanced_options_config: Optional[GcpSecurityPolicyAdvancedOptionsConfig] = field(default=None)
-    policy_ddos_protection_config: Optional[str] = field(default=None)
-    policy_fingerprint: Optional[str] = field(default=None)
-    policy_recaptcha_options_config: Optional[str] = field(default=None)
-    policy_rules: Optional[List[GcpSecurityPolicyRule]] = field(default=None)
-    policy_type: Optional[str] = field(default=None)
+    adaptive_protection_config: Optional[GcpSecurityPolicyAdaptiveProtectionConfig] = field(default=None)
+    advanced_options_config: Optional[GcpSecurityPolicyAdvancedOptionsConfig] = field(default=None)
+    ddos_protection_config: Optional[str] = field(default=None)
+    fingerprint: Optional[str] = field(default=None)
+    recaptcha_options_config: Optional[str] = field(default=None)
+    rules: Optional[List[GcpSecurityPolicyRule]] = field(default=None)
+    type: Optional[str] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -4320,22 +4324,21 @@ class GcpSslCertificate(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "certificate_certificate": S("certificate"),
-        "certificate_expire_time": S("expireTime"),
-        "certificate_managed": S("managed", default={}) >> Bend(GcpSslCertificateManagedSslCertificate.mapping),
-        "certificate_private_key": S("privateKey"),
-        "certificate_self_managed": S("selfManaged", default={})
-        >> Bend(GcpSslCertificateSelfManagedSslCertificate.mapping),
-        "certificate_subject_alternative_names": S("subjectAlternativeNames", default=[]),
-        "certificate_type": S("type"),
+        "certificate": S("certificate"),
+        "expire_time": S("expireTime"),
+        "managed": S("managed", default={}) >> Bend(GcpSslCertificateManagedSslCertificate.mapping),
+        "private_key": S("privateKey"),
+        "self_managed": S("selfManaged", default={}) >> Bend(GcpSslCertificateSelfManagedSslCertificate.mapping),
+        "subject_alternative_names": S("subjectAlternativeNames", default=[]),
+        "type": S("type"),
     }
-    certificate_certificate: Optional[str] = field(default=None)
-    certificate_expire_time: Optional[str] = field(default=None)
-    certificate_managed: Optional[GcpSslCertificateManagedSslCertificate] = field(default=None)
-    certificate_private_key: Optional[str] = field(default=None)
-    certificate_self_managed: Optional[GcpSslCertificateSelfManagedSslCertificate] = field(default=None)
-    certificate_subject_alternative_names: Optional[List[str]] = field(default=None)
-    certificate_type: Optional[str] = field(default=None)
+    certificate: Optional[str] = field(default=None)
+    expire_time: Optional[datetime] = field(default=None)
+    managed: Optional[GcpSslCertificateManagedSslCertificate] = field(default=None)
+    private_key: Optional[str] = field(default=None)
+    self_managed: Optional[GcpSslCertificateSelfManagedSslCertificate] = field(default=None)
+    subject_alternative_names: Optional[List[str]] = field(default=None)
+    type: Optional[str] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -4360,19 +4363,19 @@ class GcpSslPolicy(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "policy_custom_features": S("customFeatures", default=[]),
-        "policy_enabled_features": S("enabledFeatures", default=[]),
-        "policy_fingerprint": S("fingerprint"),
-        "policy_min_tls_version": S("minTlsVersion"),
-        "policy_profile": S("profile"),
-        "policy_warnings": S("warnings", default=[]) >> ForallBend(GcpWarnings.mapping),
+        "custom_features": S("customFeatures", default=[]),
+        "enabled_features": S("enabledFeatures", default=[]),
+        "fingerprint": S("fingerprint"),
+        "min_tls_version": S("minTlsVersion"),
+        "profile": S("profile"),
+        "warnings": S("warnings", default=[]) >> ForallBend(GcpWarnings.mapping),
     }
-    policy_custom_features: Optional[List[str]] = field(default=None)
-    policy_enabled_features: Optional[List[str]] = field(default=None)
-    policy_fingerprint: Optional[str] = field(default=None)
-    policy_min_tls_version: Optional[str] = field(default=None)
-    policy_profile: Optional[str] = field(default=None)
-    policy_warnings: Optional[List[GcpWarnings]] = field(default=None)
+    custom_features: Optional[List[str]] = field(default=None)
+    enabled_features: Optional[List[str]] = field(default=None)
+    fingerprint: Optional[str] = field(default=None)
+    min_tls_version: Optional[str] = field(default=None)
+    profile: Optional[str] = field(default=None)
+    warnings: Optional[List[GcpWarnings]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -4401,17 +4404,17 @@ class GcpTargetHttpProxy(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "proxy_fingerprint": S("fingerprint"),
-        "proxy_proxy_bind": S("proxyBind"),
-        "proxy_url_map": S("urlMap"),
+        "fingerprint": S("fingerprint"),
+        "proxy_bind": S("proxyBind"),
+        "url_map": S("urlMap"),
     }
-    proxy_fingerprint: Optional[str] = field(default=None)
-    proxy_proxy_bind: Optional[bool] = field(default=None)
-    proxy_url_map: Optional[str] = field(default=None)
+    fingerprint: Optional[str] = field(default=None)
+    proxy_bind: Optional[bool] = field(default=None)
+    url_map: Optional[str] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if self.proxy_url_map:
-            builder.dependant_node(self, clazz=GcpUrlMap, link=self.proxy_url_map)
+        if self.url_map:
+            builder.dependant_node(self, clazz=GcpUrlMap, link=self.url_map)
 
 
 @define(eq=False, slots=False)
@@ -4440,34 +4443,34 @@ class GcpTargetHttpsProxy(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "proxy_authorization_policy": S("authorizationPolicy"),
-        "proxy_certificate_map": S("certificateMap"),
-        "proxy_fingerprint": S("fingerprint"),
-        "proxy_proxy_bind": S("proxyBind"),
-        "proxy_quic_override": S("quicOverride"),
-        "proxy_server_tls_policy": S("serverTlsPolicy"),
-        "proxy_ssl_certificates": S("sslCertificates", default=[]),
-        "proxy_ssl_policy": S("sslPolicy"),
-        "proxy_url_map": S("urlMap"),
+        "authorization_policy": S("authorizationPolicy"),
+        "certificate_map": S("certificateMap"),
+        "fingerprint": S("fingerprint"),
+        "proxy_bind": S("proxyBind"),
+        "quic_override": S("quicOverride"),
+        "server_tls_policy": S("serverTlsPolicy"),
+        "ssl_certificates": S("sslCertificates", default=[]),
+        "ssl_policy": S("sslPolicy"),
+        "url_map": S("urlMap"),
     }
-    proxy_authorization_policy: Optional[str] = field(default=None)
-    proxy_certificate_map: Optional[str] = field(default=None)
-    proxy_fingerprint: Optional[str] = field(default=None)
-    proxy_proxy_bind: Optional[bool] = field(default=None)
-    proxy_quic_override: Optional[str] = field(default=None)
-    proxy_server_tls_policy: Optional[str] = field(default=None)
-    proxy_ssl_certificates: Optional[List[str]] = field(default=None)
-    proxy_ssl_policy: Optional[str] = field(default=None)
-    proxy_url_map: Optional[str] = field(default=None)
+    authorization_policy: Optional[str] = field(default=None)
+    certificate_map: Optional[str] = field(default=None)
+    fingerprint: Optional[str] = field(default=None)
+    proxy_bind: Optional[bool] = field(default=None)
+    quic_override: Optional[str] = field(default=None)
+    server_tls_policy: Optional[str] = field(default=None)
+    ssl_certificates: Optional[List[str]] = field(default=None)
+    ssl_policy: Optional[str] = field(default=None)
+    url_map: Optional[str] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if self.proxy_ssl_certificates:
-            for cert in self.proxy_ssl_certificates:
+        if self.ssl_certificates:
+            for cert in self.ssl_certificates:
                 builder.add_edge(self, reverse=True, clazz=GcpSslCertificate, link=cert)
-        if self.proxy_ssl_policy:
-            builder.add_edge(self, reverse=True, clazz=GcpSslPolicy, link=self.proxy_ssl_policy)
-        if self.proxy_url_map:
-            builder.dependant_node(self, clazz=GcpUrlMap, link=self.proxy_url_map)
+        if self.ssl_policy:
+            builder.add_edge(self, reverse=True, clazz=GcpSslPolicy, link=self.ssl_policy)
+        if self.url_map:
+            builder.dependant_node(self, clazz=GcpUrlMap, link=self.url_map)
 
 
 @define(eq=False, slots=False)
@@ -4496,17 +4499,17 @@ class GcpTargetTcpProxy(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "proxy_proxy_bind": S("proxyBind"),
-        "proxy_proxy_header": S("proxyHeader"),
-        "proxy_service": S("service"),
+        "proxy_bind": S("proxyBind"),
+        "proxy_header": S("proxyHeader"),
+        "service": S("service"),
     }
-    proxy_proxy_bind: Optional[bool] = field(default=None)
-    proxy_proxy_header: Optional[str] = field(default=None)
-    proxy_service: Optional[str] = field(default=None)
+    proxy_bind: Optional[bool] = field(default=None)
+    proxy_header: Optional[str] = field(default=None)
+    service: Optional[str] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if self.proxy_service:
-            builder.dependant_node(self, clazz=GcpBackendService, link=self.proxy_service)
+        if self.service:
+            builder.dependant_node(self, clazz=GcpBackendService, link=self.service)
 
 
 @define(eq=False, slots=False)
@@ -4862,27 +4865,27 @@ class GcpUrlMap(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "map_default_route_action": S("defaultRouteAction", default={}) >> Bend(GcpHttpRouteAction.mapping),
-        "map_default_service": S("defaultService"),
-        "map_default_url_redirect": S("defaultUrlRedirect", default={}) >> Bend(GcpHttpRedirectAction.mapping),
-        "map_fingerprint": S("fingerprint"),
-        "map_header_action": S("headerAction", default={}) >> Bend(GcpHttpHeaderAction.mapping),
-        "map_host_rules": S("hostRules", default=[]) >> ForallBend(GcpHostRule.mapping),
-        "map_path_matchers": S("pathMatchers", default=[]) >> ForallBend(GcpPathMatcher.mapping),
+        "default_route_action": S("defaultRouteAction", default={}) >> Bend(GcpHttpRouteAction.mapping),
+        "default_service": S("defaultService"),
+        "default_url_redirect": S("defaultUrlRedirect", default={}) >> Bend(GcpHttpRedirectAction.mapping),
+        "fingerprint": S("fingerprint"),
+        "header_action": S("headerAction", default={}) >> Bend(GcpHttpHeaderAction.mapping),
+        "host_rules": S("hostRules", default=[]) >> ForallBend(GcpHostRule.mapping),
+        "path_matchers": S("pathMatchers", default=[]) >> ForallBend(GcpPathMatcher.mapping),
         "map_tests": S("tests", default=[]) >> ForallBend(GcpUrlMapTest.mapping),
     }
-    map_default_route_action: Optional[GcpHttpRouteAction] = field(default=None)
-    map_default_service: Optional[str] = field(default=None)
-    map_default_url_redirect: Optional[GcpHttpRedirectAction] = field(default=None)
-    map_fingerprint: Optional[str] = field(default=None)
-    map_header_action: Optional[GcpHttpHeaderAction] = field(default=None)
-    map_host_rules: Optional[List[GcpHostRule]] = field(default=None)
-    map_path_matchers: Optional[List[GcpPathMatcher]] = field(default=None)
+    default_route_action: Optional[GcpHttpRouteAction] = field(default=None)
+    default_service: Optional[str] = field(default=None)
+    default_url_redirect: Optional[GcpHttpRedirectAction] = field(default=None)
+    fingerprint: Optional[str] = field(default=None)
+    header_action: Optional[GcpHttpHeaderAction] = field(default=None)
+    host_rules: Optional[List[GcpHostRule]] = field(default=None)
+    path_matchers: Optional[List[GcpPathMatcher]] = field(default=None)
     map_tests: Optional[List[GcpUrlMapTest]] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if self.map_default_service:
-            builder.add_edge(self, clazz=GcpBackendService, link=self.map_default_service)
+        if self.default_service:
+            builder.add_edge(self, clazz=GcpBackendService, link=self.default_service)
 
 
 @define(eq=False, slots=False)
@@ -4908,8 +4911,8 @@ class GcpResourcePolicyInstanceSchedulePolicy:
         "vm_start_schedule": S("vmStartSchedule", "schedule"),
         "vm_stop_schedule": S("vmStopSchedule", "schedule"),
     }
-    expiration_time: Optional[str] = field(default=None)
-    start_time: Optional[str] = field(default=None)
+    expiration_time: Optional[datetime] = field(default=None)
+    start_time: Optional[datetime] = field(default=None)
     time_zone: Optional[str] = field(default=None)
     vm_start_schedule: Optional[str] = field(default=None)
     vm_stop_schedule: Optional[str] = field(default=None)
@@ -4922,8 +4925,8 @@ class GcpResourcePolicyResourceStatusInstanceSchedulePolicyStatus:
         "last_run_start_time": S("lastRunStartTime"),
         "next_run_start_time": S("nextRunStartTime"),
     }
-    last_run_start_time: Optional[str] = field(default=None)
-    next_run_start_time: Optional[str] = field(default=None)
+    last_run_start_time: Optional[datetime] = field(default=None)
+    next_run_start_time: Optional[datetime] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -4959,7 +4962,7 @@ class GcpResourcePolicyDailyCycle:
     }
     days_in_cycle: Optional[int] = field(default=None)
     duration: Optional[str] = field(default=None)
-    start_time: Optional[str] = field(default=None)
+    start_time: Optional[datetime] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -4972,7 +4975,7 @@ class GcpResourcePolicyHourlyCycle:
     }
     duration: Optional[str] = field(default=None)
     hours_in_cycle: Optional[int] = field(default=None)
-    start_time: Optional[str] = field(default=None)
+    start_time: Optional[datetime] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -4981,7 +4984,7 @@ class GcpResourcePolicyWeeklyCycleDayOfWeek:
     mapping: ClassVar[Dict[str, Bender]] = {"day": S("day"), "duration": S("duration"), "start_time": S("startTime")}
     day: Optional[str] = field(default=None)
     duration: Optional[str] = field(default=None)
-    start_time: Optional[str] = field(default=None)
+    start_time: Optional[datetime] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -5058,20 +5061,20 @@ class GcpResourcePolicy(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "policy_group_placement_policy": S("groupPlacementPolicy", default={})
+        "group_placement_policy": S("groupPlacementPolicy", default={})
         >> Bend(GcpResourcePolicyGroupPlacementPolicy.mapping),
-        "policy_instance_schedule_policy": S("instanceSchedulePolicy", default={})
+        "instance_schedule_policy": S("instanceSchedulePolicy", default={})
         >> Bend(GcpResourcePolicyInstanceSchedulePolicy.mapping),
-        "policy_resource_status": S("resourceStatus", default={}) >> Bend(GcpResourcePolicyResourceStatus.mapping),
-        "policy_snapshot_schedule_policy": S("snapshotSchedulePolicy", default={})
+        "resource_status": S("resourceStatus", default={}) >> Bend(GcpResourcePolicyResourceStatus.mapping),
+        "snapshot_schedule_policy": S("snapshotSchedulePolicy", default={})
         >> Bend(GcpResourcePolicySnapshotSchedulePolicy.mapping),
-        "policy_status": S("status"),
+        "status": S("status"),
     }
-    policy_group_placement_policy: Optional[GcpResourcePolicyGroupPlacementPolicy] = field(default=None)
-    policy_instance_schedule_policy: Optional[GcpResourcePolicyInstanceSchedulePolicy] = field(default=None)
-    policy_resource_status: Optional[GcpResourcePolicyResourceStatus] = field(default=None)
-    policy_snapshot_schedule_policy: Optional[GcpResourcePolicySnapshotSchedulePolicy] = field(default=None)
-    policy_status: Optional[str] = field(default=None)
+    group_placement_policy: Optional[GcpResourcePolicyGroupPlacementPolicy] = field(default=None)
+    instance_schedule_policy: Optional[GcpResourcePolicyInstanceSchedulePolicy] = field(default=None)
+    resource_status: Optional[GcpResourcePolicyResourceStatus] = field(default=None)
+    snapshot_schedule_policy: Optional[GcpResourcePolicySnapshotSchedulePolicy] = field(default=None)
+    status: Optional[str] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -5301,28 +5304,26 @@ class GcpRouter(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "router_bgp": S("bgp", default={}) >> Bend(GcpRouterBgp.mapping),
-        "router_bgp_peers": S("bgpPeers", default=[]) >> ForallBend(GcpRouterBgpPeer.mapping),
-        "router_encrypted_interconnect_router": S("encryptedInterconnectRouter"),
-        "router_interfaces": S("interfaces", default=[]) >> ForallBend(GcpRouterInterface.mapping),
-        "router_md5_authentication_keys": S("md5AuthenticationKeys", default=[])
+        "bgp": S("bgp", default={}) >> Bend(GcpRouterBgp.mapping),
+        "bgp_peers": S("bgpPeers", default=[]) >> ForallBend(GcpRouterBgpPeer.mapping),
+        "encrypted_interconnect_router": S("encryptedInterconnectRouter"),
+        "interfaces": S("interfaces", default=[]) >> ForallBend(GcpRouterInterface.mapping),
+        "md5_authentication_keys": S("md5AuthenticationKeys", default=[])
         >> ForallBend(GcpRouterMd5AuthenticationKey.mapping),
-        "router_nats": S("nats", default=[]) >> ForallBend(GcpRouterNat.mapping),
-        "router_network": S("network"),
+        "nats": S("nats", default=[]) >> ForallBend(GcpRouterNat.mapping),
+        "network": S("network"),
     }
-    router_bgp: Optional[GcpRouterBgp] = field(default=None)
-    router_bgp_peers: Optional[List[GcpRouterBgpPeer]] = field(default=None)
-    router_encrypted_interconnect_router: Optional[bool] = field(default=None)
-    router_interfaces: Optional[List[GcpRouterInterface]] = field(default=None)
-    router_md5_authentication_keys: Optional[List[GcpRouterMd5AuthenticationKey]] = field(default=None)
-    router_nats: Optional[List[GcpRouterNat]] = field(default=None)
-    router_network: Optional[str] = field(default=None)
+    bgp: Optional[GcpRouterBgp] = field(default=None)
+    bgp_peers: Optional[List[GcpRouterBgpPeer]] = field(default=None)
+    encrypted_interconnect_router: Optional[bool] = field(default=None)
+    interfaces: Optional[List[GcpRouterInterface]] = field(default=None)
+    md5_authentication_keys: Optional[List[GcpRouterMd5AuthenticationKey]] = field(default=None)
+    nats: Optional[List[GcpRouterNat]] = field(default=None)
+    network: Optional[str] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if self.router_network:
-            builder.dependant_node(
-                self, reverse=True, delete_same_as_default=True, clazz=GcpNetwork, link=self.router_network
-            )
+        if self.network:
+            builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=GcpNetwork, link=self.network)
 
 
 @define(eq=False, slots=False)
@@ -5361,43 +5362,41 @@ class GcpRoute(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "route_as_paths": S("asPaths", default=[]) >> ForallBend(GcpRouteAsPath.mapping),
-        "route_dest_range": S("destRange"),
-        "route_network": S("network"),
-        "route_next_hop_gateway": S("nextHopGateway"),
-        "route_next_hop_ilb": S("nextHopIlb"),
-        "route_next_hop_instance": S("nextHopInstance"),
-        "route_next_hop_ip": S("nextHopIp"),
-        "route_next_hop_network": S("nextHopNetwork"),
-        "route_next_hop_peering": S("nextHopPeering"),
-        "route_next_hop_vpn_tunnel": S("nextHopVpnTunnel"),
-        "route_priority": S("priority"),
-        "route_route_status": S("routeStatus"),
-        "route_route_type": S("routeType"),
+        "as_paths": S("asPaths", default=[]) >> ForallBend(GcpRouteAsPath.mapping),
+        "dest_range": S("destRange"),
+        "network": S("network"),
+        "next_hop_gateway": S("nextHopGateway"),
+        "next_hop_ilb": S("nextHopIlb"),
+        "next_hop_instance": S("nextHopInstance"),
+        "next_hop_ip": S("nextHopIp"),
+        "next_hop_network": S("nextHopNetwork"),
+        "next_hop_peering": S("nextHopPeering"),
+        "next_hop_vpn_tunnel": S("nextHopVpnTunnel"),
+        "priority": S("priority"),
+        "route_status": S("routeStatus"),
+        "route_type": S("routeType"),
         "route_tags": S("tags", default=[]),
-        "route_warnings": S("warnings", default=[]) >> ForallBend(GcpWarnings.mapping),
+        "warnings": S("warnings", default=[]) >> ForallBend(GcpWarnings.mapping),
     }
-    route_as_paths: Optional[List[GcpRouteAsPath]] = field(default=None)
-    route_dest_range: Optional[str] = field(default=None)
-    route_network: Optional[str] = field(default=None)
-    route_next_hop_gateway: Optional[str] = field(default=None)
-    route_next_hop_ilb: Optional[str] = field(default=None)
-    route_next_hop_instance: Optional[str] = field(default=None)
-    route_next_hop_ip: Optional[str] = field(default=None)
-    route_next_hop_network: Optional[str] = field(default=None)
-    route_next_hop_peering: Optional[str] = field(default=None)
-    route_next_hop_vpn_tunnel: Optional[str] = field(default=None)
-    route_priority: Optional[int] = field(default=None)
-    route_route_status: Optional[str] = field(default=None)
-    route_route_type: Optional[str] = field(default=None)
+    as_paths: Optional[List[GcpRouteAsPath]] = field(default=None)
+    dest_range: Optional[str] = field(default=None)
+    network: Optional[str] = field(default=None)
+    next_hop_gateway: Optional[str] = field(default=None)
+    next_hop_ilb: Optional[str] = field(default=None)
+    next_hop_instance: Optional[str] = field(default=None)
+    next_hop_ip: Optional[str] = field(default=None)
+    next_hop_network: Optional[str] = field(default=None)
+    next_hop_peering: Optional[str] = field(default=None)
+    next_hop_vpn_tunnel: Optional[str] = field(default=None)
+    priority: Optional[int] = field(default=None)
+    route_status: Optional[str] = field(default=None)
+    route_type: Optional[str] = field(default=None)
     route_tags: Optional[List[str]] = field(default=None)
-    route_warnings: Optional[List[GcpWarnings]] = field(default=None)
+    warnings: Optional[List[GcpWarnings]] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if self.route_network:
-            builder.dependant_node(
-                self, reverse=True, delete_same_as_default=True, clazz=GcpNetwork, link=self.route_network
-            )
+        if self.network:
+            builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=GcpNetwork, link=self.network)
 
 
 @define(eq=False, slots=False)
@@ -5455,37 +5454,37 @@ class GcpServiceAttachment(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "attachment_connected_endpoints": S("connectedEndpoints", default=[])
+        "connected_endpoints": S("connectedEndpoints", default=[])
         >> ForallBend(GcpServiceAttachmentConnectedEndpoint.mapping),
-        "attachment_connection_preference": S("connectionPreference"),
-        "attachment_consumer_accept_lists": S("consumerAcceptLists", default=[])
+        "connection_preference": S("connectionPreference"),
+        "consumer_accept_lists": S("consumerAcceptLists", default=[])
         >> ForallBend(GcpServiceAttachmentConsumerProjectLimit.mapping),
-        "attachment_consumer_reject_lists": S("consumerRejectLists", default=[]),
-        "attachment_domain_names": S("domainNames", default=[]),
-        "attachment_enable_proxy_protocol": S("enableProxyProtocol"),
-        "attachment_fingerprint": S("fingerprint"),
-        "attachment_nat_subnets": S("natSubnets", default=[]),
-        "attachment_producer_forwarding_rule": S("producerForwardingRule"),
-        "attachment_psc_service_attachment_id": S("pscServiceAttachmentId", default={}) >> Bend(GcpUint128.mapping),
-        "attachment_target_service": S("targetService"),
+        "consumer_reject_lists": S("consumerRejectLists", default=[]),
+        "domain_names": S("domainNames", default=[]),
+        "enable_proxy_protocol": S("enableProxyProtocol"),
+        "fingerprint": S("fingerprint"),
+        "nat_subnets": S("natSubnets", default=[]),
+        "producer_forwarding_rule": S("producerForwardingRule"),
+        "psc_service_attachment_id": S("pscServiceAttachmentId", default={}) >> Bend(GcpUint128.mapping),
+        "target_service": S("targetService"),
     }
-    attachment_connected_endpoints: Optional[List[GcpServiceAttachmentConnectedEndpoint]] = field(default=None)
-    attachment_connection_preference: Optional[str] = field(default=None)
-    attachment_consumer_accept_lists: Optional[List[GcpServiceAttachmentConsumerProjectLimit]] = field(default=None)
-    attachment_consumer_reject_lists: Optional[List[str]] = field(default=None)
-    attachment_domain_names: Optional[List[str]] = field(default=None)
-    attachment_enable_proxy_protocol: Optional[bool] = field(default=None)
-    attachment_fingerprint: Optional[str] = field(default=None)
-    attachment_nat_subnets: Optional[List[str]] = field(default=None)
-    attachment_producer_forwarding_rule: Optional[str] = field(default=None)
-    attachment_psc_service_attachment_id: Optional[GcpUint128] = field(default=None)
-    attachment_target_service: Optional[str] = field(default=None)
+    connected_endpoints: Optional[List[GcpServiceAttachmentConnectedEndpoint]] = field(default=None)
+    connection_preference: Optional[str] = field(default=None)
+    consumer_accept_lists: Optional[List[GcpServiceAttachmentConsumerProjectLimit]] = field(default=None)
+    consumer_reject_lists: Optional[List[str]] = field(default=None)
+    domain_names: Optional[List[str]] = field(default=None)
+    enable_proxy_protocol: Optional[bool] = field(default=None)
+    fingerprint: Optional[str] = field(default=None)
+    nat_subnets: Optional[List[str]] = field(default=None)
+    producer_forwarding_rule: Optional[str] = field(default=None)
+    psc_service_attachment_id: Optional[GcpUint128] = field(default=None)
+    target_service: Optional[str] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if self.attachment_target_service:
-            builder.add_edge(self, clazz=GcpBackendService, link=self.attachment_target_service)
-        if self.attachment_nat_subnets:
-            for subnet in self.attachment_nat_subnets:
+        if self.target_service:
+            builder.add_edge(self, clazz=GcpBackendService, link=self.target_service)
+        if self.nat_subnets:
+            for subnet in self.nat_subnets:
                 builder.add_edge(self, clazz=GcpSubnetwork, link=subnet)
 
 
@@ -5615,48 +5614,45 @@ class GcpSubnetwork(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "subnetwork_enable_flow_logs": S("enableFlowLogs"),
-        "subnetwork_external_ipv6_prefix": S("externalIpv6Prefix"),
-        "subnetwork_fingerprint": S("fingerprint"),
-        "subnetwork_gateway_address": S("gatewayAddress"),
-        "subnetwork_internal_ipv6_prefix": S("internalIpv6Prefix"),
-        "subnetwork_ip_cidr_range": S("ipCidrRange"),
-        "subnetwork_ipv6_access_type": S("ipv6AccessType"),
-        "subnetwork_ipv6_cidr_range": S("ipv6CidrRange"),
-        "subnetwork_log_config": S("logConfig", default={}) >> Bend(GcpSubnetworkLogConfig.mapping),
-        "subnetwork_network": S("network"),
-        "subnetwork_private_ip_google_access": S("privateIpGoogleAccess"),
-        "subnetwork_private_ipv6_google_access": S("privateIpv6GoogleAccess"),
-        "subnetwork_purpose": S("purpose"),
-        "subnetwork_role": S("role"),
-        "subnetwork_secondary_ip_ranges": S("secondaryIpRanges", default=[])
-        >> ForallBend(GcpSubnetworkSecondaryRange.mapping),
-        "subnetwork_stack_type": S("stackType"),
-        "subnetwork_state": S("state"),
+        "enable_flow_logs": S("enableFlowLogs"),
+        "external_ipv6_prefix": S("externalIpv6Prefix"),
+        "fingerprint": S("fingerprint"),
+        "gateway_address": S("gatewayAddress"),
+        "internal_ipv6_prefix": S("internalIpv6Prefix"),
+        "ip_cidr_range": S("ipCidrRange"),
+        "ipv6_access_type": S("ipv6AccessType"),
+        "ipv6_cidr_range": S("ipv6CidrRange"),
+        "log_config": S("logConfig", default={}) >> Bend(GcpSubnetworkLogConfig.mapping),
+        "network": S("network"),
+        "private_ip_google_access": S("privateIpGoogleAccess"),
+        "private_ipv6_google_access": S("privateIpv6GoogleAccess"),
+        "purpose": S("purpose"),
+        "role": S("role"),
+        "secondary_ip_ranges": S("secondaryIpRanges", default=[]) >> ForallBend(GcpSubnetworkSecondaryRange.mapping),
+        "stack_type": S("stackType"),
+        "state": S("state"),
     }
-    subnetwork_enable_flow_logs: Optional[bool] = field(default=None)
-    subnetwork_external_ipv6_prefix: Optional[str] = field(default=None)
-    subnetwork_fingerprint: Optional[str] = field(default=None)
-    subnetwork_gateway_address: Optional[str] = field(default=None)
-    subnetwork_internal_ipv6_prefix: Optional[str] = field(default=None)
-    subnetwork_ip_cidr_range: Optional[str] = field(default=None)
-    subnetwork_ipv6_access_type: Optional[str] = field(default=None)
-    subnetwork_ipv6_cidr_range: Optional[str] = field(default=None)
-    subnetwork_log_config: Optional[GcpSubnetworkLogConfig] = field(default=None)
-    subnetwork_network: Optional[str] = field(default=None)
-    subnetwork_private_ip_google_access: Optional[bool] = field(default=None)
-    subnetwork_private_ipv6_google_access: Optional[str] = field(default=None)
-    subnetwork_purpose: Optional[str] = field(default=None)
-    subnetwork_role: Optional[str] = field(default=None)
-    subnetwork_secondary_ip_ranges: Optional[List[GcpSubnetworkSecondaryRange]] = field(default=None)
-    subnetwork_stack_type: Optional[str] = field(default=None)
-    subnetwork_state: Optional[str] = field(default=None)
+    enable_flow_logs: Optional[bool] = field(default=None)
+    external_ipv6_prefix: Optional[str] = field(default=None)
+    fingerprint: Optional[str] = field(default=None)
+    gateway_address: Optional[str] = field(default=None)
+    internal_ipv6_prefix: Optional[str] = field(default=None)
+    ip_cidr_range: Optional[str] = field(default=None)
+    ipv6_access_type: Optional[str] = field(default=None)
+    ipv6_cidr_range: Optional[str] = field(default=None)
+    log_config: Optional[GcpSubnetworkLogConfig] = field(default=None)
+    network: Optional[str] = field(default=None)
+    private_ip_google_access: Optional[bool] = field(default=None)
+    private_ipv6_google_access: Optional[str] = field(default=None)
+    purpose: Optional[str] = field(default=None)
+    role: Optional[str] = field(default=None)
+    secondary_ip_ranges: Optional[List[GcpSubnetworkSecondaryRange]] = field(default=None)
+    stack_type: Optional[str] = field(default=None)
+    state: Optional[str] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if self.subnetwork_network:
-            builder.dependant_node(
-                self, reverse=True, delete_same_as_default=True, clazz=GcpNetwork, link=self.subnetwork_network
-            )
+        if self.network:
+            builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=GcpNetwork, link=self.network)
 
 
 @define(eq=False, slots=False)
@@ -5687,19 +5683,19 @@ class GcpTargetGrpcProxy(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "proxy_fingerprint": S("fingerprint"),
-        "proxy_self_link_with_id": S("selfLinkWithId"),
-        "proxy_url_map": S("urlMap"),
-        "proxy_validate_for_proxyless": S("validateForProxyless"),
+        "fingerprint": S("fingerprint"),
+        "self_link_with_id": S("selfLinkWithId"),
+        "url_map": S("urlMap"),
+        "validate_for_proxyless": S("validateForProxyless"),
     }
-    proxy_fingerprint: Optional[str] = field(default=None)
-    proxy_self_link_with_id: Optional[str] = field(default=None)
-    proxy_url_map: Optional[str] = field(default=None)
-    proxy_validate_for_proxyless: Optional[bool] = field(default=None)
+    fingerprint: Optional[str] = field(default=None)
+    self_link_with_id: Optional[str] = field(default=None)
+    url_map: Optional[str] = field(default=None)
+    validate_for_proxyless: Optional[bool] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if self.proxy_url_map:
-            builder.dependant_node(self, clazz=GcpUrlMap, link=self.proxy_url_map)
+        if self.url_map:
+            builder.dependant_node(self, clazz=GcpUrlMap, link=self.url_map)
 
 
 @define(eq=False, slots=False)
@@ -5728,19 +5724,19 @@ class GcpTargetInstance(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "instance_instance": S("instance"),
-        "instance_nat_policy": S("natPolicy"),
-        "instance_network": S("network"),
+        "instance": S("instance"),
+        "nat_policy": S("natPolicy"),
+        "network": S("network"),
     }
-    instance_instance: Optional[str] = field(default=None)
-    instance_nat_policy: Optional[str] = field(default=None)
-    instance_network: Optional[str] = field(default=None)
+    instance: Optional[str] = field(default=None)
+    nat_policy: Optional[str] = field(default=None)
+    network: Optional[str] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if self.instance_network:
-            builder.add_edge(self, reverse=True, clazz=GcpNetwork, link=self.instance_network)
-        if self.instance_instance:
-            builder.dependant_node(self, clazz=GcpInstance, link=self.instance_instance)
+        if self.network:
+            builder.add_edge(self, reverse=True, clazz=GcpNetwork, link=self.network)
+        if self.instance:
+            builder.dependant_node(self, clazz=GcpInstance, link=self.instance)
 
 
 @define(eq=False, slots=False)
@@ -5769,25 +5765,25 @@ class GcpTargetPool(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "pool_backup_pool": S("backupPool"),
-        "pool_failover_ratio": S("failoverRatio"),
-        "pool_health_checks": S("healthChecks", default=[]),
-        "pool_instances": S("instances", default=[]),
-        "pool_session_affinity": S("sessionAffinity"),
+        "backup_pool": S("backupPool"),
+        "failover_ratio": S("failoverRatio"),
+        "health_checks": S("healthChecks", default=[]),
+        "instances": S("instances", default=[]),
+        "session_affinity": S("sessionAffinity"),
     }
-    pool_backup_pool: Optional[str] = field(default=None)
-    pool_failover_ratio: Optional[float] = field(default=None)
-    pool_health_checks: Optional[List[str]] = field(default=None)
-    pool_instances: Optional[List[str]] = field(default=None)
-    pool_session_affinity: Optional[str] = field(default=None)
+    backup_pool: Optional[str] = field(default=None)
+    failover_ratio: Optional[float] = field(default=None)
+    health_checks: Optional[List[str]] = field(default=None)
+    instances: Optional[List[str]] = field(default=None)
+    session_affinity: Optional[str] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if self.pool_instances:
-            for instance in self.pool_instances:
+        if self.instances:
+            for instance in self.instances:
                 builder.dependant_node(self, clazz=GcpInstance, link=instance)
-        if self.pool_health_checks:
-            for check in self.pool_health_checks:
-                builder.dependant_node(self, clazz=health_checks(), reverse=True, link=check)
+        if self.health_checks:
+            for check in self.health_checks:
+                builder.dependant_node(self, clazz=health_check_types(), reverse=True, link=check)
 
 
 @define(eq=False, slots=False)
@@ -5816,24 +5812,24 @@ class GcpTargetSslProxy(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "proxy_certificate_map": S("certificateMap"),
-        "proxy_proxy_header": S("proxyHeader"),
-        "proxy_service": S("service"),
-        "proxy_ssl_certificates": S("sslCertificates", default=[]),
-        "proxy_ssl_policy": S("sslPolicy"),
+        "certificate_map": S("certificateMap"),
+        "proxy_header": S("proxyHeader"),
+        "service": S("service"),
+        "ssl_certificates": S("sslCertificates", default=[]),
+        "ssl_policy": S("sslPolicy"),
     }
-    proxy_certificate_map: Optional[str] = field(default=None)
-    proxy_proxy_header: Optional[str] = field(default=None)
-    proxy_service: Optional[str] = field(default=None)
-    proxy_ssl_certificates: Optional[List[str]] = field(default=None)
-    proxy_ssl_policy: Optional[str] = field(default=None)
+    certificate_map: Optional[str] = field(default=None)
+    proxy_header: Optional[str] = field(default=None)
+    service: Optional[str] = field(default=None)
+    ssl_certificates: Optional[List[str]] = field(default=None)
+    ssl_policy: Optional[str] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if self.proxy_ssl_certificates:
-            for cert in self.proxy_ssl_certificates:
+        if self.ssl_certificates:
+            for cert in self.ssl_certificates:
                 builder.dependant_node(self, link=cert)
-        if self.proxy_service:
-            builder.dependant_node(self, clazz=GcpBackendService, link=self.proxy_service)
+        if self.service:
+            builder.dependant_node(self, clazz=GcpBackendService, link=self.service)
 
 
 @define(eq=False, slots=False)
@@ -5862,24 +5858,22 @@ class GcpTargetVpnGateway(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "gateway_forwarding_rules": S("forwardingRules", default=[]),
-        "gateway_network": S("network"),
-        "gateway_status": S("status"),
-        "gateway_tunnels": S("tunnels", default=[]),
+        "forwarding_rules": S("forwardingRules", default=[]),
+        "network": S("network"),
+        "status": S("status"),
+        "tunnels": S("tunnels", default=[]),
     }
-    gateway_forwarding_rules: Optional[List[str]] = field(default=None)
-    gateway_network: Optional[str] = field(default=None)
-    gateway_status: Optional[str] = field(default=None)
-    gateway_tunnels: Optional[List[str]] = field(default=None)
+    forwarding_rules: Optional[List[str]] = field(default=None)
+    network: Optional[str] = field(default=None)
+    status: Optional[str] = field(default=None)
+    tunnels: Optional[List[str]] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if self.gateway_forwarding_rules:
-            for rule in self.gateway_forwarding_rules:
+        if self.forwarding_rules:
+            for rule in self.forwarding_rules:
                 builder.add_edge(self, clazz=GcpForwardingRule, link=rule)
-        if self.gateway_network:
-            builder.dependant_node(
-                self, reverse=True, delete_same_as_default=True, clazz=GcpNetwork, link=self.gateway_network
-            )
+        if self.network:
+            builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=GcpNetwork, link=self.network)
 
 
 @define(eq=False, slots=False)
@@ -5921,22 +5915,19 @@ class GcpVpnGateway(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "gateway_network": S("network"),
-        "gateway_stack_type": S("stackType"),
-        "gateway_vpn_interfaces": S("vpnInterfaces", default=[])
-        >> ForallBend(GcpVpnGatewayVpnGatewayInterface.mapping),
+        "network": S("network"),
+        "stack_type": S("stackType"),
+        "vpn_interfaces": S("vpnInterfaces", default=[]) >> ForallBend(GcpVpnGatewayVpnGatewayInterface.mapping),
     }
-    gateway_network: Optional[str] = field(default=None)
-    gateway_stack_type: Optional[str] = field(default=None)
-    gateway_vpn_interfaces: Optional[List[GcpVpnGatewayVpnGatewayInterface]] = field(default=None)
+    network: Optional[str] = field(default=None)
+    stack_type: Optional[str] = field(default=None)
+    vpn_interfaces: Optional[List[GcpVpnGatewayVpnGatewayInterface]] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if self.gateway_network:
-            builder.dependant_node(
-                self, reverse=True, delete_same_as_default=True, clazz=GcpNetwork, link=self.gateway_network
-            )
-        if self.gateway_vpn_interfaces:
-            for interface in self.gateway_vpn_interfaces:
+        if self.network:
+            builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=GcpNetwork, link=self.network)
+        if self.vpn_interfaces:
+            for interface in self.vpn_interfaces:
                 if interface.interconnect_attachment:
                     builder.add_edge(self, clazz=GcpInterconnectAttachment, link=interface.interconnect_attachment)
 
@@ -5969,47 +5960,47 @@ class GcpVpnTunnel(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "tunnel_detailed_status": S("detailedStatus"),
-        "tunnel_ike_version": S("ikeVersion"),
-        "tunnel_local_traffic_selector": S("localTrafficSelector", default=[]),
-        "tunnel_peer_external_gateway": S("peerExternalGateway"),
-        "tunnel_peer_external_gateway_interface": S("peerExternalGatewayInterface"),
-        "tunnel_peer_gcp_gateway": S("peerGcpGateway"),
-        "tunnel_peer_ip": S("peerIp"),
-        "tunnel_remote_traffic_selector": S("remoteTrafficSelector", default=[]),
-        "tunnel_router": S("router"),
-        "tunnel_shared_secret": S("sharedSecret"),
-        "tunnel_shared_secret_hash": S("sharedSecretHash"),
-        "tunnel_status": S("status"),
-        "tunnel_target_vpn_gateway": S("targetVpnGateway"),
-        "tunnel_vpn_gateway": S("vpnGateway"),
-        "tunnel_vpn_gateway_interface": S("vpnGatewayInterface"),
+        "detailed_status": S("detailedStatus"),
+        "ike_version": S("ikeVersion"),
+        "local_traffic_selector": S("localTrafficSelector", default=[]),
+        "peer_external_gateway": S("peerExternalGateway"),
+        "peer_external_gateway_interface": S("peerExternalGatewayInterface"),
+        "peer_gcp_gateway": S("peerGcpGateway"),
+        "peer_ip": S("peerIp"),
+        "remote_traffic_selector": S("remoteTrafficSelector", default=[]),
+        "router": S("router"),
+        "shared_secret": S("sharedSecret"),
+        "shared_secret_hash": S("sharedSecretHash"),
+        "status": S("status"),
+        "target_vpn_gateway": S("targetVpnGateway"),
+        "vpn_gateway": S("vpnGateway"),
+        "vpn_gateway_interface": S("vpnGatewayInterface"),
     }
-    tunnel_detailed_status: Optional[str] = field(default=None)
-    tunnel_ike_version: Optional[int] = field(default=None)
-    tunnel_local_traffic_selector: Optional[List[str]] = field(default=None)
-    tunnel_peer_external_gateway: Optional[str] = field(default=None)
-    tunnel_peer_external_gateway_interface: Optional[int] = field(default=None)
-    tunnel_peer_gcp_gateway: Optional[str] = field(default=None)
-    tunnel_peer_ip: Optional[str] = field(default=None)
-    tunnel_remote_traffic_selector: Optional[List[str]] = field(default=None)
-    tunnel_router: Optional[str] = field(default=None)
-    tunnel_shared_secret: Optional[str] = field(default=None)
-    tunnel_shared_secret_hash: Optional[str] = field(default=None)
-    tunnel_status: Optional[str] = field(default=None)
-    tunnel_target_vpn_gateway: Optional[str] = field(default=None)
-    tunnel_vpn_gateway: Optional[str] = field(default=None)
-    tunnel_vpn_gateway_interface: Optional[int] = field(default=None)
+    detailed_status: Optional[str] = field(default=None)
+    ike_version: Optional[int] = field(default=None)
+    local_traffic_selector: Optional[List[str]] = field(default=None)
+    peer_external_gateway: Optional[str] = field(default=None)
+    peer_external_gateway_interface: Optional[int] = field(default=None)
+    peer_gcp_gateway: Optional[str] = field(default=None)
+    peer_ip: Optional[str] = field(default=None)
+    remote_traffic_selector: Optional[List[str]] = field(default=None)
+    router: Optional[str] = field(default=None)
+    shared_secret: Optional[str] = field(default=None)
+    shared_secret_hash: Optional[str] = field(default=None)
+    status: Optional[str] = field(default=None)
+    target_vpn_gateway: Optional[str] = field(default=None)
+    vpn_gateway: Optional[str] = field(default=None)
+    vpn_gateway_interface: Optional[int] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if self.tunnel_target_vpn_gateway:
+        if self.target_vpn_gateway:
             builder.dependant_node(
-                self, delete_same_as_default=True, clazz=GcpTargetVpnGateway, link=self.tunnel_target_vpn_gateway
+                self, delete_same_as_default=True, clazz=GcpTargetVpnGateway, link=self.target_vpn_gateway
             )
-        if self.tunnel_vpn_gateway:
-            builder.dependant_node(self, delete_same_as_default=True, clazz=GcpVpnGateway, link=self.tunnel_vpn_gateway)
-        if self.tunnel_router:
-            builder.add_edge(self, link=self.tunnel_router)
+        if self.vpn_gateway:
+            builder.dependant_node(self, delete_same_as_default=True, clazz=GcpVpnGateway, link=self.vpn_gateway)
+        if self.router:
+            builder.add_edge(self, link=self.router)
 
 
 resources = [

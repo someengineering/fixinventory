@@ -12,6 +12,8 @@ from resotolib.graph import ByNodeId, BySearchCriteria
 from resotolib.json_bender import Bender, S, Bend, ForallBend, F
 from resotolib.types import Json
 
+service_name = "cloudformation"
+
 
 @define(eq=False, slots=False)
 class AwsCloudFormationRollbackTrigger:
@@ -61,7 +63,7 @@ class AwsCloudFormationStackDriftInformation:
 @define(eq=False, slots=False)
 class AwsCloudFormationStack(AwsResource, BaseStack):
     kind: ClassVar[str] = "aws_cloudformation_stack"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudformation", "describe-stacks", "Stacks")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-stacks", "Stacks")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("StackId"),
         "tags": S("Tags", default=[]) >> ToDict(),
@@ -123,7 +125,7 @@ class AwsCloudFormationStack(AwsResource, BaseStack):
 
         try:
             client.call(
-                aws_service="cloudformation",
+                aws_service=service_name,
                 action="update-stack",
                 result_name=None,
                 StackName=self.name,
@@ -169,11 +171,11 @@ class AwsCloudFormationStack(AwsResource, BaseStack):
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
-        return [cls.api_spec, AwsApiSpec("cloudformation", "list-stacks")]
+        return [cls.api_spec, AwsApiSpec(service_name, "list-stacks")]
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return [AwsApiSpec("cloudformation", "update-stack"), AwsApiSpec("cloudformation", "delete-stack")]
+        return [AwsApiSpec(service_name, "update-stack"), AwsApiSpec(service_name, "delete-stack")]
 
 
 @define(eq=False, slots=False)
@@ -190,7 +192,7 @@ class AwsCloudFormationAutoDeployment:
 @define(eq=False, slots=False)
 class AwsCloudFormationStackSet(AwsResource):
     kind: ClassVar[str] = "aws_cloudformation_stack_set"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudformation", "list-stack-sets", "Summaries", dict(Status="ACTIVE"))
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-stack-sets", "Summaries", dict(Status="ACTIVE"))
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("StackSetId"),
         "tags": S("Tags", default=[]) >> ToDict(),
@@ -216,7 +218,7 @@ class AwsCloudFormationStackSet(AwsResource):
     @classmethod
     def collect(cls, json: List[Json], builder: GraphBuilder) -> None:
         def stack_set_instances(ss: AwsCloudFormationStackSet) -> None:
-            for sij in builder.client.list("cloudformation", "list-stack-instances", "Summaries", StackSetName=ss.name):
+            for sij in builder.client.list(service_name, "list-stack-instances", "Summaries", StackSetName=ss.name):
                 sii = builder.add_node(AwsCloudFormationStackInstanceSummary.from_api(sij))
                 builder.add_edge(ss, node=sii)
                 builder.graph.add_deferred_edge(
@@ -227,7 +229,7 @@ class AwsCloudFormationStackSet(AwsResource):
         for js in json:
             stack_set = cls.from_api(js)
             builder.add_node(stack_set, js)
-            builder.submit_work(stack_set_instances, stack_set)
+            builder.submit_work(service_name, stack_set_instances, stack_set)
 
     def _modify_tag(self, client: AwsClient, key: str, value: Optional[str], mode: Literal["update", "delete"]) -> bool:
         tags = dict(self.tags)
@@ -244,7 +246,7 @@ class AwsCloudFormationStackSet(AwsResource):
 
         try:
             client.call(
-                aws_service="cloudformation",
+                aws_service=service_name,
                 action="update-stack-set",
                 result_name=None,
                 StackSetName=self.name,
@@ -280,11 +282,11 @@ class AwsCloudFormationStackSet(AwsResource):
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
-        return [cls.api_spec, AwsApiSpec("cloudformation", "list-stack-instances")]
+        return [cls.api_spec, AwsApiSpec(service_name, "list-stack-instances")]
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return [AwsApiSpec("cloudformation", "update-stack-set"), AwsApiSpec("cloudformation", "delete-stack-set")]
+        return [AwsApiSpec(service_name, "update-stack-set"), AwsApiSpec(service_name, "delete-stack-set")]
 
 
 def _stack_instance_id(stack: Json) -> str:

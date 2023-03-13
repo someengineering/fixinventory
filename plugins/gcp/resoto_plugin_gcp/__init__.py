@@ -1,19 +1,20 @@
 import multiprocessing
-
-from resotolib.core.actions import CoreFeedback
-from resotolib.logger import log, setup_logger
-import resotolib.proc
+from resotolib.args import Namespace
 from concurrent import futures
-from typing import Dict, Optional
-from resotolib.baseplugin import BaseCollectorPlugin
-from resotolib.graph import Graph
+from concurrent.futures import Executor
+from typing import Optional, Type, Dict, Any
+
+import resotolib.proc
 from resotolib.args import ArgumentParser
-from argparse import Namespace
+from resotolib.baseplugin import BaseCollectorPlugin
 from resotolib.config import Config, RunningConfig
-from .gcp_resources import GCPProject
-from .utils import Credentials
+from resotolib.core.actions import CoreFeedback
+from resotolib.graph import Graph
+from resotolib.logger import log, setup_logger
 from .collector import GCPProjectCollector
 from .config import GcpConfig
+from .gcp_resources import GCPProject
+from .utils import Credentials
 
 
 class GCPCollectorPlugin(BaseCollectorPlugin):
@@ -25,7 +26,7 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
 
     cloud = "gcp"
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.core_feedback: Optional[CoreFeedback] = None
 
@@ -55,7 +56,7 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
         if Config.gcp.fork_process:
             pool_args["mp_context"] = multiprocessing.get_context("spawn")
             pool_args["initializer"] = resotolib.proc.initializer
-            pool_executor = futures.ProcessPoolExecutor
+            pool_executor: Type[Executor] = futures.ProcessPoolExecutor
             collect_args = {
                 "args": ArgumentParser.args,
                 "running_config": Config.running_config,
@@ -71,7 +72,7 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
                     self.collect_project,
                     project_id,
                     self.core_feedback.with_context("gcp"),
-                    **collect_args,
+                    **collect_args,  # type: ignore
                 )
                 for project_id in credentials.keys()
             ]
@@ -86,10 +87,10 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
     def collect_project(
         project_id: str,
         core_feedback: CoreFeedback,
-        args: Namespace = None,
-        running_config: RunningConfig = None,
-        credentials=None,
-    ) -> Optional[Dict]:
+        args: Optional[Namespace] = None,
+        running_config: Optional[RunningConfig] = None,
+        credentials: Optional[Dict[str, Any]] = None,
+    ) -> Optional[Graph]:
         """Collects an individual project.
 
         Is being called in collect() and either run within a thread or a spawned
@@ -122,6 +123,7 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
             core_feedback.progress_done(project_id, 1, 1)
         except Exception as ex:
             core_feedback.with_context("gcp", project_id).error(f"Failed to collect project: {ex}", log)
+            return None
         else:
             return gpc.graph
 

@@ -11,6 +11,8 @@ from resotolib.json_bender import Bender, S, Bend, bend, ForallBend, K
 from resotolib.types import Json
 from resoto_plugin_aws.aws_client import AwsClient
 
+service_name = "elbv2"
+
 
 # noinspection PyUnresolvedReferences
 class ElbV2Taggable:
@@ -262,7 +264,7 @@ class AwsAlbListener:
 class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
     kind: ClassVar[str] = "aws_alb"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
-        "elbv2",
+        service_name,
         "describe-load-balancers",
         "LoadBalancers",
         override_iam_permission="elasticloadbalancing:DescribeLoadBalancers",
@@ -305,18 +307,28 @@ class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
     def called_collect_apis(cls) -> List[AwsApiSpec]:
         return [
             cls.api_spec,
-            AwsApiSpec("elbv2", "describe-listeners", override_iam_permission="elasticloadbalancing:DescribeListeners"),
-            AwsApiSpec("elbv2", "describe-tags", override_iam_permission="elasticloadbalancing:DescribeTags"),
+            AwsApiSpec(
+                service_name, "describe-listeners", override_iam_permission="elasticloadbalancing:DescribeListeners"
+            ),
+            AwsApiSpec(service_name, "describe-tags", override_iam_permission="elasticloadbalancing:DescribeTags"),
         ]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for js in json:
             lb = AwsAlb.from_api(js)
-            tags = builder.client.list("elbv2", "describe-tags", "TagDescriptions", ResourceArns=[lb.arn])
+            tags = builder.client.list(
+                service_name,
+                "describe-tags",
+                "TagDescriptions",
+                ResourceArns=[lb.arn],
+                expected_errors=["LoadBalancerNotFound"],
+            )
             if tags:
                 lb.tags = bend(S("Tags", default=[]) >> ToDict(), tags[0])
-            for listener in builder.client.list("elbv2", "describe-listeners", "Listeners", LoadBalancerArn=lb.arn):
+            for listener in builder.client.list(
+                service_name, "describe-listeners", "Listeners", LoadBalancerArn=lb.arn
+            ):
                 mapped = bend(AwsAlbListener.mapping, listener)
                 lb.alb_listener.append(from_json(mapped, AwsAlbListener))
             builder.add_node(lb, js)
@@ -339,7 +351,7 @@ class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return super().called_mutator_apis() + [
             AwsApiSpec(
-                "elbv2", "delete-load-balancer", override_iam_permission="elasticloadbalancing:DeleteLoadBalancer"
+                service_name, "delete-load-balancer", override_iam_permission="elasticloadbalancing:DeleteLoadBalancer"
             ),
         ]
 
@@ -378,7 +390,7 @@ class AwsAlbTargetHealth:
 class AwsAlbTargetHealthDescription:
     kind: ClassVar[str] = "aws_alb_target_health_description"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
-        "elbv2",
+        service_name,
         "describe-target-health",
         "TargetHealthDescriptions",
         override_iam_permission="elasticloadbalancing:DescribeTargetHealth",
@@ -397,7 +409,7 @@ class AwsAlbTargetHealthDescription:
 class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
     kind: ClassVar[str] = "aws_alb_target_group"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
-        "elbv2",
+        service_name,
         "describe-target-groups",
         "TargetGroups",
         override_iam_permission="elasticloadbalancing:DescribeTargetGroups",
@@ -447,20 +459,22 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
         return [
             cls.api_spec,
             AwsApiSpec(
-                "elbv2", "describe-target-health", override_iam_permission="elasticloadbalancing:DescribeTargetHealth"
+                service_name,
+                "describe-target-health",
+                override_iam_permission="elasticloadbalancing:DescribeTargetHealth",
             ),
-            AwsApiSpec("elbv2", "describe-tags", override_iam_permission="elasticloadbalancing:DescribeTags"),
+            AwsApiSpec(service_name, "describe-tags", override_iam_permission="elasticloadbalancing:DescribeTags"),
         ]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for js in json:
             tg = AwsAlbTargetGroup.from_api(js)
-            tags = builder.client.list("elbv2", "describe-tags", "TagDescriptions", ResourceArns=[tg.arn])
+            tags = builder.client.list(service_name, "describe-tags", "TagDescriptions", ResourceArns=[tg.arn])
             if tags:
                 tg.tags = bend(S("Tags", default=[]) >> ToDict(), tags[0])
             for health in builder.client.list(
-                "elbv2", "describe-target-health", "TargetHealthDescriptions", TargetGroupArn=tg.arn
+                service_name, "describe-target-health", "TargetHealthDescriptions", TargetGroupArn=tg.arn
             ):
                 mapped = bend(AwsAlbTargetHealthDescription.mapping, health)
                 tg.alb_target_health.append(from_json(mapped, AwsAlbTargetHealthDescription))
@@ -487,7 +501,7 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return super().called_mutator_apis() + [
             AwsApiSpec(
-                "elbv2", "delete-target-group", override_iam_permission="elasticloadbalancing:DeleteTargetGroup"
+                service_name, "delete-target-group", override_iam_permission="elasticloadbalancing:DeleteTargetGroup"
             ),
         ]
 

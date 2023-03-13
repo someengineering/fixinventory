@@ -9,11 +9,13 @@ from resotolib.baseresources import EdgeType, ModelReference
 from resotolib.json_bender import F, Bender, S, bend
 from resotolib.types import Json
 
+service_name = "sns"
+
 
 @define(eq=False, slots=False)
 class AwsSnsTopic(AwsResource):
     kind: ClassVar[str] = "aws_sns_topic"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sns", "list-topics", "Topics")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-topics", "Topics")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "delete": ["aws_kms_key"],
@@ -50,25 +52,27 @@ class AwsSnsTopic(AwsResource):
     def called_collect_apis(cls) -> List[AwsApiSpec]:
         return [
             cls.api_spec,
-            AwsApiSpec("sns", "get-topic-attributes"),
-            AwsApiSpec("sns", "list-tags-for-resource"),
+            AwsApiSpec(service_name, "get-topic-attributes"),
+            AwsApiSpec(service_name, "list-tags-for-resource"),
         ]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_tags(topic: AwsSnsTopic) -> None:
-            tags = builder.client.list("sns", "list-tags-for-resource", result_name="Tags", ResourceArn=topic.arn)
+            tags = builder.client.list(
+                service_name, "list-tags-for-resource", result_name="Tags", ResourceArn=topic.arn
+            )
             if tags:
                 topic.tags = bend(ToDict(), tags)
 
         for entry in json:
             topic = builder.client.get(
-                "sns", "get-topic-attributes", TopicArn=entry["TopicArn"], result_name="Attributes"
+                service_name, "get-topic-attributes", TopicArn=entry["TopicArn"], result_name="Attributes"
             )
             if topic:
                 topic_instance = cls.from_api(topic)
                 builder.add_node(topic_instance, topic)
-                builder.submit_work(add_tags, topic_instance)
+                builder.submit_work(service_name, add_tags, topic_instance)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.topic_kms_master_key_id:
@@ -80,7 +84,7 @@ class AwsSnsTopic(AwsResource):
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(
-            aws_service="sns",
+            aws_service=service_name,
             action="tag-resource",
             result_name=None,
             ResourceArn=self.arn,
@@ -89,26 +93,28 @@ class AwsSnsTopic(AwsResource):
         return True
 
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
-        client.call(aws_service="sns", action="untag-resource", result_name=None, ResourceArn=self.arn, TagKeys=[key])
+        client.call(
+            aws_service=service_name, action="untag-resource", result_name=None, ResourceArn=self.arn, TagKeys=[key]
+        )
         return True
 
     def delete_resource(self, client: AwsClient) -> bool:
-        client.call(aws_service="sns", action="delete-topic", result_name=None, TopicArn=self.arn)
+        client.call(aws_service=service_name, action="delete-topic", result_name=None, TopicArn=self.arn)
         return True
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return [
-            AwsApiSpec("sns", "tag-resource"),
-            AwsApiSpec("sns", "untag-resource"),
-            AwsApiSpec("sns", "delete-topic"),
+            AwsApiSpec(service_name, "tag-resource"),
+            AwsApiSpec(service_name, "untag-resource"),
+            AwsApiSpec(service_name, "delete-topic"),
         ]
 
 
 @define(eq=False, slots=False)
 class AwsSnsSubscription(AwsResource):
     kind: ClassVar[str] = "aws_sns_subscription"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("sns", "list-subscriptions", "Subscriptions")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-subscriptions", "Subscriptions")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_sns_topic", "aws_iam_role"], "delete": ["aws_iam_role"]},
     }
@@ -142,14 +148,14 @@ class AwsSnsSubscription(AwsResource):
     def called_collect_apis(cls) -> List[AwsApiSpec]:
         return [
             cls.api_spec,
-            AwsApiSpec("sns", "get-subscription-attributes"),
+            AwsApiSpec(service_name, "get-subscription-attributes"),
         ]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for entry in json:
             subscription = builder.client.get(
-                "sns",
+                service_name,
                 "get-subscription-attributes",
                 SubscriptionArn=entry["SubscriptionArn"],
                 result_name="Attributes",
@@ -173,12 +179,12 @@ class AwsSnsSubscription(AwsResource):
             )
 
     def delete_resource(self, client: AwsClient) -> bool:
-        client.call(aws_service="sns", action="unsubscribe", result_name=None, SubscriptionArn=self.arn)
+        client.call(aws_service=service_name, action="unsubscribe", result_name=None, SubscriptionArn=self.arn)
         return True
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return [AwsApiSpec("sns", "unsubscribe")]
+        return [AwsApiSpec(service_name, "unsubscribe")]
 
 
 @define(eq=False, slots=False)
@@ -195,19 +201,19 @@ class AwsSnsEndpoint(AwsResource):
     endpoint_token: Optional[str] = field(default=None)
 
     def delete_resource(self, client: AwsClient) -> bool:
-        client.call(aws_service="sns", action="delete-endpoint", result_name=None, EndpointArn=self.arn)
+        client.call(aws_service=service_name, action="delete-endpoint", result_name=None, EndpointArn=self.arn)
         return True
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return [AwsApiSpec("sns", "delete-endpoint")]
+        return [AwsApiSpec(service_name, "delete-endpoint")]
 
 
 @define(eq=False, slots=False)
 class AwsSnsPlatformApplication(AwsResource):
     kind: ClassVar[str] = "aws_sns_platform_application"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
-        "sns", "list-platform-applications", "PlatformApplications", expected_errors=["InvalidAction"]
+        service_name, "list-platform-applications", "PlatformApplications", expected_errors=["InvalidAction"]
     )
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
@@ -237,8 +243,8 @@ class AwsSnsPlatformApplication(AwsResource):
     def called_collect_apis(cls) -> List[AwsApiSpec]:
         return [
             cls.api_spec,
-            AwsApiSpec("sns", "get-platform-application-attributes"),
-            AwsApiSpec("sns", "list-endpoints-by-platform-application"),
+            AwsApiSpec(service_name, "get-platform-application-attributes"),
+            AwsApiSpec(service_name, "list-endpoints-by-platform-application"),
         ]
 
     @classmethod
@@ -246,7 +252,7 @@ class AwsSnsPlatformApplication(AwsResource):
         for entry in json:
             app_arn = entry["PlatformApplicationArn"]
             app = builder.client.get(
-                "sns",
+                service_name,
                 "get-platform-application-attributes",
                 PlatformApplicationArn=app_arn,
                 result_name="Attributes",
@@ -257,7 +263,7 @@ class AwsSnsPlatformApplication(AwsResource):
                 builder.add_node(app_instance, app)
 
                 endpoints = builder.client.list(
-                    "sns",
+                    service_name,
                     "list-endpoints-by-platform-application",
                     PlatformApplicationArn=app_arn,
                     result_name="Endpoints",
@@ -280,13 +286,16 @@ class AwsSnsPlatformApplication(AwsResource):
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
-            aws_service="sns", action="delete-platform-application", result_name=None, PlatformApplicationArn=self.arn
+            aws_service=service_name,
+            action="delete-platform-application",
+            result_name=None,
+            PlatformApplicationArn=self.arn,
         )
         return True
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return [AwsApiSpec("sns", "delete-platform-application")]
+        return [AwsApiSpec(service_name, "delete-platform-application")]
 
 
 resources: List[Type[AwsResource]] = [AwsSnsTopic, AwsSnsSubscription, AwsSnsPlatformApplication, AwsSnsEndpoint]

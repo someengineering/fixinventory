@@ -13,6 +13,8 @@ from resotolib.json import from_json, is_empty
 from resotolib.json_bender import Bender, S, bend, Bend, ForallBend
 from resotolib.types import Json
 
+service_name = "s3"
+
 
 @define(eq=False, slots=False)
 class AwsS3ServerSideEncryptionRule:
@@ -117,7 +119,7 @@ class AwsS3Logging:
 class AwsS3Bucket(AwsResource, BaseBucket):
     kind: ClassVar[str] = "aws_s3_bucket"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
-        "s3", "list-buckets", "Buckets", override_iam_permission="s3:ListAllMyBuckets"
+        service_name, "list-buckets", "Buckets", override_iam_permission="s3:ListAllMyBuckets"
     )
     mapping: ClassVar[Dict[str, Bender]] = {"id": S("Name"), "name": S("Name"), "ctime": S("CreationDate")}
     bucket_encryption_rules: Optional[List[AwsS3ServerSideEncryptionRule]] = field(default=None)
@@ -132,13 +134,15 @@ class AwsS3Bucket(AwsResource, BaseBucket):
     def called_collect_apis(cls) -> List[AwsApiSpec]:
         return [
             cls.api_spec,
-            AwsApiSpec("s3", "get-bucket-tagging"),
-            AwsApiSpec("s3", "get-bucket-encryption", override_iam_permission="s3:GetEncryptionConfiguration"),
-            AwsApiSpec("s3", "get-bucket-policy"),
-            AwsApiSpec("s3", "get-bucket-versioning"),
-            AwsApiSpec("s3", "get-public-access-block", override_iam_permission="s3:GetAccountPublicAccessBlock"),
-            AwsApiSpec("s3", "get-bucket-acl"),
-            AwsApiSpec("s3", "get-bucket-logging"),
+            AwsApiSpec(service_name, "get-bucket-tagging"),
+            AwsApiSpec(service_name, "get-bucket-encryption", override_iam_permission="s3:GetEncryptionConfiguration"),
+            AwsApiSpec(service_name, "get-bucket-policy"),
+            AwsApiSpec(service_name, "get-bucket-versioning"),
+            AwsApiSpec(
+                service_name, "get-public-access-block", override_iam_permission="s3:GetAccountPublicAccessBlock"
+            ),
+            AwsApiSpec(service_name, "get-bucket-acl"),
+            AwsApiSpec(service_name, "get-bucket-logging"),
         ]
 
     @classmethod
@@ -152,11 +156,11 @@ class AwsS3Bucket(AwsResource, BaseBucket):
             with suppress(Exception):
                 bck.bucket_encryption_rules = []
                 for raw in builder.client.list(
-                    "s3",
+                    service_name,
                     "get-bucket-encryption",
                     "ServerSideEncryptionConfiguration.Rules",
                     Bucket=bck.name,
-                    expected_errors=["ServerSideEncryptionConfigurationNotFoundError"],
+                    expected_errors=["ServerSideEncryptionConfigurationNotFoundError", "NoSuchBucket"],
                 ):
                     mapped = bend(AwsS3ServerSideEncryptionRule.mapping, raw)
                     bck.bucket_encryption_rules.append(from_json(mapped, AwsS3ServerSideEncryptionRule))
@@ -164,17 +168,19 @@ class AwsS3Bucket(AwsResource, BaseBucket):
         def add_bucket_policy(bck: AwsS3Bucket) -> None:
             with suppress(Exception):
                 if raw_policy := builder.client.get(
-                    "s3",
+                    service_name,
                     "get-bucket-policy",
                     "Policy",
                     Bucket=bck.name,
-                    expected_errors=["NoSuchBucketPolicy"],
+                    expected_errors=["NoSuchBucketPolicy", "NoSuchBucket"],
                 ):
                     bck.bucket_policy = json_loads(raw_policy)  # type: ignore # this is a string
 
         def add_bucket_versioning(bck: AwsS3Bucket) -> None:
             with suppress(Exception):
-                if raw_versioning := builder.client.get("s3", "get-bucket-versioning", None, Bucket=bck.name):
+                if raw_versioning := builder.client.get(
+                    service_name, "get-bucket-versioning", None, Bucket=bck.name, expected_errors=["NoSuchBucket"]
+                ):
                     bck.bucket_versioning = raw_versioning.get("Status") == "Enabled"
                     bck.bucket_mfa_delete = raw_versioning.get("MFADelete") == "Enabled"
                 else:
@@ -184,11 +190,11 @@ class AwsS3Bucket(AwsResource, BaseBucket):
         def add_public_access(bck: AwsS3Bucket) -> None:
             with suppress(Exception):
                 if raw_access := builder.client.get(
-                    "s3",
+                    service_name,
                     "get-public-access-block",
                     "PublicAccessBlockConfiguration",
                     Bucket=bck.name,
-                    expected_errors=["NoSuchPublicAccessBlockConfiguration"],
+                    expected_errors=["NoSuchPublicAccessBlockConfiguration", "NoSuchBucket"],
                 ):
                     mapped = bend(AwsS3PublicAccessBlockConfiguration.mapping, raw_access)
                     bck.bucket_public_access_block_configuration = from_json(
@@ -197,14 +203,20 @@ class AwsS3Bucket(AwsResource, BaseBucket):
 
         def add_acls(bck: AwsS3Bucket) -> None:
             with suppress(Exception):
-                if raw := builder.client.get("s3", "get-bucket-acl", Bucket=bck.name, expected_errors=["NoSuchBucket"]):
+                if raw := builder.client.get(
+                    service_name, "get-bucket-acl", Bucket=bck.name, expected_errors=["NoSuchBucket"]
+                ):
                     mapped = bend(AwsS3BucketAcl.mapping, raw)
                     bck.bucket_acl = from_json(mapped, AwsS3BucketAcl)
 
         def add_bucket_logging(bck: AwsS3Bucket) -> None:
             with suppress(Exception):
                 if raw := builder.client.get(
-                    "s3", "get-bucket-logging", "LoggingEnabled", Bucket=bck.name, expected_errors=["NoSuchBucket"]
+                    service_name,
+                    "get-bucket-logging",
+                    "LoggingEnabled",
+                    Bucket=bck.name,
+                    expected_errors=["NoSuchBucket"],
                 ):
                     mapped = bend(AwsS3Logging.mapping, raw)
                     # do not set, if no property is set
@@ -215,18 +227,18 @@ class AwsS3Bucket(AwsResource, BaseBucket):
             bucket = cls.from_api(js)
             bucket.set_arn(builder=builder, region="", account="", resource=bucket.safe_name)
             builder.add_node(bucket, js)
-            builder.submit_work(add_tags, bucket)
-            builder.submit_work(add_bucket_encryption, bucket)
-            builder.submit_work(add_bucket_policy, bucket)
-            builder.submit_work(add_bucket_versioning, bucket)
-            builder.submit_work(add_public_access, bucket)
-            builder.submit_work(add_acls, bucket)
-            builder.submit_work(add_bucket_logging, bucket)
+            builder.submit_work(service_name, add_tags, bucket)
+            builder.submit_work(service_name, add_bucket_encryption, bucket)
+            builder.submit_work(service_name, add_bucket_policy, bucket)
+            builder.submit_work(service_name, add_bucket_versioning, bucket)
+            builder.submit_work(service_name, add_public_access, bucket)
+            builder.submit_work(service_name, add_acls, bucket)
+            builder.submit_work(service_name, add_bucket_logging, bucket)
 
     def _set_tags(self, client: AwsClient, tags: Dict[str, str]) -> bool:
         tag_set = [{"Key": k, "Value": v} for k, v in tags.items()]
         client.call(
-            aws_service="s3",
+            aws_service=service_name,
             action="put-bucket-tagging",
             result_name=None,
             Bucket=self.name,
@@ -237,10 +249,10 @@ class AwsS3Bucket(AwsResource, BaseBucket):
     def _get_tags(self, client: AwsClient) -> Dict[str, str]:
         """Fetch the S3 buckets tags from the AWS API."""
         tag_list = client.list(
-            aws_service="s3",
+            aws_service=service_name,
             action="get-bucket-tagging",
             result_name="TagSet",
-            expected_errors=["NoSuchTagSet"],
+            expected_errors=["NoSuchTagSet", "NoSuchBucket"],
             Bucket=self.name,
         )
         return tags_as_dict(tag_list)  # type: ignore
@@ -265,14 +277,14 @@ class AwsS3Bucket(AwsResource, BaseBucket):
             bucket.delete()
             return True
 
-        return client.with_resource("s3", delete_bucket_content) or False
+        return client.with_resource(service_name, delete_bucket_content) or False
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return [
-            AwsApiSpec("s3", "put-bucket-tagging"),
-            AwsApiSpec("s3", "delete-object"),
-            AwsApiSpec("s3", "delete-bucket"),
+            AwsApiSpec(service_name, "put-bucket-tagging"),
+            AwsApiSpec(service_name, "delete-object"),
+            AwsApiSpec(service_name, "delete-bucket"),
         ]
 
     @staticmethod

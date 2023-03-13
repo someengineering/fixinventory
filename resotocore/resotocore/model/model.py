@@ -958,9 +958,11 @@ class ComplexKind(Kind):
             return None
 
     def create_yaml(self, elem: JsonElement, initial_level: int = 0, overrides: Optional[Json] = None) -> str:
-        def safe_string(s: str, default_style: Optional[str] = None) -> str:
+        def safe_string(s: str, indent: int, default_style: Optional[str] = None) -> str:
             return remove_suffix(
-                yaml.dump(s, allow_unicode=True, width=sys.maxsize, default_style=default_style), "\n...\n"
+                # 2 spaces per indent
+                yaml.dump(s, indent=indent * 2, allow_unicode=True, width=sys.maxsize, default_style=default_style),
+                "\n...\n",
             ).strip()
 
         def override_note(overrides: Optional[Json], prop_name: str) -> Optional[str]:
@@ -1012,7 +1014,7 @@ class ComplexKind(Kind):
                         for line in description.splitlines():
                             result += f"{prepend}# {line}\n"
                     maybe_space = "" if str_value.startswith("\n") else " "
-                    safe_prop = safe_string(prop)
+                    safe_prop = safe_string(prop, indent)
                     result += f"{prepend}{safe_prop}:{maybe_space}{str_value}\n"
                 return result.rstrip()
             elif isinstance(e, list) and e:
@@ -1028,7 +1030,8 @@ class ComplexKind(Kind):
             elif is_env_var_string(e):
                 return str(e)
             elif isinstance(e, str):
-                return safe_string(e, "'")
+                # if the string contains a newline, try a literal block, else a quoted string
+                return safe_string(e, indent, "|" if "\n" in e else "'")
             elif e is None:
                 return "null"
             elif e is True:

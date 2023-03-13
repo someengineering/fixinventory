@@ -107,7 +107,7 @@ class GraphBuilder:
         self.core_feedback = core_feedback
         self.region_by_name: Dict[str, GcpRegion] = {}
         self.region_by_zone_name: Dict[str, GcpRegion] = {}
-        self.zone_by_name: Dict[str, GcpRegion] = {}
+        self.zone_by_name: Dict[str, GcpZone] = {}
         self.graph_nodes_access = graph_nodes_access or Lock()
         self.graph_edges_access = graph_edges_access or Lock()
 
@@ -121,9 +121,9 @@ class GraphBuilder:
     def prepare_region_zone_lookup(self) -> None:
         regions = self.resources_of(GcpRegion)
         zns = self.resources_of(GcpZone)
-        self.region_by_name = {r.name: r for r in regions}
-        self.region_by_zone_name = {z.name: self.region_by_name[z.name.rsplit("-", 1)[0]] for z in zns}
-        self.zone_by_name = {z.name: z for z in zns}
+        self.region_by_name = {r.safe_name: r for r in regions}
+        self.region_by_zone_name = {z.safe_name: self.region_by_name[z.safe_name.rsplit("-", 1)[0]] for z in zns}
+        self.zone_by_name = {z.safe_name: z for z in zns}
 
     def node(self, clazz: Optional[Type[GcpResourceType]] = None, **node: Any) -> Optional[GcpResourceType]:
         if isinstance(nd := node.get("node"), GcpResource):
@@ -222,19 +222,20 @@ class GraphBuilder:
 class GcpResource(BaseResource):
     kind: ClassVar[str] = "gcp_resource"
     api_spec: ClassVar[Optional[GcpApiSpec]] = None
+    mapping: ClassVar[Dict[str, Bender]] = {}
 
     description: Optional[str] = None
     deprecation_status: Optional[GcpDeprecationStatus] = None
     link: Optional[str] = None
     label_fingerprint: Optional[str] = None
 
-    def delete(self, *_) -> bool:
+    def delete(self, graph: Graph) -> bool:
         return delete_resource(self)
 
-    def update_tag(self, key, value) -> bool:
+    def update_tag(self, key: str, value: str) -> bool:
         return update_label(self, key, value)
 
-    def delete_tag(self, key) -> bool:
+    def delete_tag(self, key: str) -> bool:
         return update_label(self, key, None)
 
     def adjust_from_api(self, graph_builder: GraphBuilder, source: Json) -> GcpResource:
@@ -268,6 +269,7 @@ class GcpResource(BaseResource):
         if spec := cls.api_spec:
             items = builder.client.list(spec, **kwargs)
             return cls.collect(items, builder)
+        return []
 
     @classmethod
     def collect(cls: Type[GcpResource], raw: List[Json], builder: GraphBuilder) -> List[GcpResource]:

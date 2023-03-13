@@ -18,6 +18,7 @@ from resotolib.utils import (
     utc_str,
     replace_env_vars,
     merge_json_elements,
+    drop_deleted_attributes,
 )
 from resotolib.baseresources import BaseResource
 from attrs import define
@@ -350,4 +351,62 @@ def test_merge_json_elements():
         "a": {"foo": {"first": "first", "last": "last"}},
         "b": {"bar": 123, "baz": 456},
         "c": [8, 9],
+    }
+
+    update = {
+        "a": {
+            "aa": 1,
+            "ab": 2,
+        },
+        "b": {
+            "ba": 3,
+            "bb": {
+                "bba": 4,
+            },
+        },
+    }
+    default = {"b": {"ba": 42}, "c": 2}
+
+    def merge_fn(existing, update):
+        if existing is None:
+            return None
+        return update
+
+    assert merge_json_elements(default, update, merge_fn) == {"b": {"ba": 3}, "c": 2}
+
+
+def test_drop_deleted_attributes():
+    to_be_cleaned = {
+        "foo": {
+            "foo": "foo bar",
+            "bar": ["bar"],
+            "baz": "baz",
+        },
+        "bar": ["bar", "baz"],
+        "baz": [1, 2, 3],
+        "foobar": {
+            "foo": "foo",
+        },
+    }
+
+    reference = {
+        "foo": {
+            "foo": "1234",
+            "bar": ["1234"],
+        },
+        "baz": [],
+        "foobar": {
+            "foo": "1234",
+        },
+    }
+
+    assert drop_deleted_attributes(to_be_cleaned, reference) == {
+        "foo": {
+            "foo": "foo bar",
+            "bar": ["bar"],
+        },
+        "baz": [1, 2, 3],
+        "foobar": {
+            "foo": "foo",
+        },
     }

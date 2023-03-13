@@ -34,14 +34,14 @@ class GcpBillingAccount(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "account_display_name": S("displayName"),
-        "account_master_billing_account": S("masterBillingAccount"),
-        "account_open": S("open"),
+        "display_name": S("displayName"),
+        "master_billing_account": S("masterBillingAccount"),
+        "open": S("open"),
     }
 
-    account_display_name: Optional[str] = field(default=None)
-    account_master_billing_account: Optional[str] = field(default=None)
-    account_open: Optional[bool] = field(default=None)
+    display_name: Optional[str] = field(default=None)
+    master_billing_account: Optional[str] = field(default=None)
+    open: Optional[bool] = field(default=None)
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         for info in GcpProjectBillingInfo.collect_resources(graph_builder, name=self.name):
@@ -70,13 +70,13 @@ class GcpProjectBillingInfo(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "info_billing_account_name": S("billingAccountName"),
-        "info_billing_enabled": S("billingEnabled"),
-        "info_project_id": S("projectId"),
+        "billing_account_name": S("billingAccountName"),
+        "billing_enabled": S("billingEnabled"),
+        "project_id": S("projectId"),
     }
-    info_billing_account_name: Optional[str] = field(default=None)
-    info_billing_enabled: Optional[bool] = field(default=None)
-    info_project_id: Optional[str] = field(default=None)
+    billing_account_name: Optional[str] = field(default=None)
+    billing_enabled: Optional[bool] = field(default=None)
+    project_id: Optional[str] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -96,7 +96,7 @@ class GcpService(GcpResource):
         response_regional_sub_path=None,
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("serviceId").or_else(S("name")).or_else(S("selfLink")),
+        "id": S("serviceId"),
         "tags": S("labels", default={}),
         "name": S("name"),
         "ctime": S("creationTimestamp"),
@@ -104,12 +104,12 @@ class GcpService(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "service_business_entity_name": S("businessEntityName"),
-        "service_display_name": S("displayName"),
+        "business_entity_name": S("businessEntityName"),
+        "display_name": S("displayName"),
     }
 
-    service_business_entity_name: Optional[str] = field(default=None)
-    service_display_name: Optional[str] = field(default=None)
+    business_entity_name: Optional[str] = field(default=None)
+    display_name: Optional[str] = field(default=None)
 
     @classmethod
     def collect(cls: Type[GcpResource], raw: List[Json], builder: GraphBuilder) -> List[GcpResource]:
@@ -224,7 +224,7 @@ class GcpPricingInfo:
     }
     aggregation_info: Optional[GcpAggregationInfo] = field(default=None)
     currency_conversion_rate: Optional[float] = field(default=None)
-    effective_time: Optional[str] = field(default=None)
+    effective_time: Optional[datetime] = field(default=None)
     pricing_expression: Optional[GcpPricingExpression] = field(default=None)
     summary: Optional[str] = field(default=None)
 
@@ -251,23 +251,24 @@ class GcpSku(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "sku_category": S("category", default={}) >> Bend(GcpCategory.mapping),
-        "sku_geo_taxonomy": S("geoTaxonomy", default={}) >> Bend(GcpGeoTaxonomy.mapping),
-        "sku_pricing_info": S("pricingInfo", default=[]) >> ForallBend(GcpPricingInfo.mapping),
-        "sku_service_provider_name": S("serviceProviderName"),
-        "sku_service_regions": S("serviceRegions", default=[]),
+        "category": S("category", default={}) >> Bend(GcpCategory.mapping),
+        "geo_taxonomy": S("geoTaxonomy", default={}) >> Bend(GcpGeoTaxonomy.mapping),
+        "pricing_info": S("pricingInfo", default=[]) >> ForallBend(GcpPricingInfo.mapping),
+        "service_provider_name": S("serviceProviderName"),
+        "service_regions": S("serviceRegions", default=[]),
+        "sku_id": S("skuId"),
     }
-    sku_category: Optional[GcpCategory] = field(default=None)
-    sku_geo_taxonomy: Optional[GcpGeoTaxonomy] = field(default=None)
-    sku_pricing_info: List[GcpPricingInfo] = field(factory=list)
-    sku_service_provider_name: Optional[str] = field(default=None)
-    sku_service_regions: List[str] = field(factory=list)
+    category: Optional[GcpCategory] = field(default=None)
+    geo_taxonomy: Optional[GcpGeoTaxonomy] = field(default=None)
+    pricing_info: List[GcpPricingInfo] = field(factory=list)
+    service_provider_name: Optional[str] = field(default=None)
+    service_regions: List[str] = field(factory=list)
     usage_unit_nanos: Optional[int] = field(default=None)
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         self.usage_unit_nanos = -1
-        if len(self.sku_pricing_info) > 0:
-            tiered_rates = self.sku_pricing_info[0].pricing_expression.tiered_rates
+        if len(self.pricing_info) > 0:
+            tiered_rates = self.pricing_info[0].pricing_expression.tiered_rates
             cost = -1
             if len(tiered_rates) == 1:
                 cost = tiered_rates[0].unit_price.nanos

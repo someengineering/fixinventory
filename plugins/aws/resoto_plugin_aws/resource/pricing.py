@@ -11,6 +11,8 @@ from resotolib.json import from_json
 from resotolib.json_bender import Bender, S, Bend, MapDict, F, ForallBend, bend
 from resotolib.types import Json
 
+service_name = "pricing"
+
 EBS_TO_PRICING_NAMES = {
     "standard": "Magnetic",
     "gp2": "General Purpose",
@@ -112,7 +114,7 @@ class AwsPricingPrice:
     ) -> "Optional[AwsPricingPrice]":
         # Prices are only available in us-east-1
         prices = client.global_region.list(
-            "pricing", "get-products", "PriceList", ServiceCode=service_code, Filters=search_filter, MaxResults=1
+            service_name, "get-products", "PriceList", ServiceCode=service_code, Filters=search_filter, MaxResults=1
         )
         return from_json(bend(cls.mapping, json.loads(prices[0])), AwsPricingPrice) if prices else None
 

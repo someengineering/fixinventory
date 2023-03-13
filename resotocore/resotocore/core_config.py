@@ -225,7 +225,7 @@ def alias_templates() -> List[AliasTemplateConfig]:
                 "We recommend to define the webhook URL as part of the command configuration. "
                 "This way you do not need to provide it every time you execute the command. "
                 "If you want to use a different webhook URL, you can provide it as a parameter, "
-                "or define different discord commands (e.g. discord-sre, discord-dev). "
+                "or define different discord commands (e.g. discord-sre, discord-dev)."
             ),
             template=(
                 # define the fields to show in the message
@@ -295,7 +295,7 @@ def alias_templates() -> List[AliasTemplateConfig]:
                 "Note that invoking this command will always create a new ticket since JIRA does not have any "
                 "deduplication functionality.\n\n"
                 "We recommend to define the URL, username and token as part of the command configuration. "
-                "This way you do not need to provide it every time you execute the command. "
+                "This way you do not need to provide it every time you execute the command."
             ),
             template=(
                 # defines the fields to show in the message
@@ -336,7 +336,7 @@ def alias_templates() -> List[AliasTemplateConfig]:
                 "The name of the alert is visible in alertmanager and used as deduplication key. "
                 "This way the same alert can be fired multiple times.\n\n"
                 "We recommend to define the URL as part of the command configuration. "
-                "This way you do not need to provide it every time you execute the command. "
+                "This way you do not need to provide it every time you execute the command."
             ),
             template=(
                 "aggregate sum(1) as count | "

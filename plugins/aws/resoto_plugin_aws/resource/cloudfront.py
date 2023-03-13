@@ -15,13 +15,14 @@ from resotolib.json_bender import S, Bend, Bender, ForallBend, bend
 from resotolib.types import Json
 
 log = logging.getLogger("resoto.plugins.aws")
+service_name = "cloudfront"
 
 
 class CloudFrontResource:
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:  # type: ignore
         def add_tags(res: AwsResource) -> None:
-            tags = builder.client.get("cloudfront", "list-tags-for-resource", "Tags", Resource=res.arn)
+            tags = builder.client.get(service_name, "list-tags-for-resource", "Tags", Resource=res.arn)
             if tags:
                 res.tags = bend(ToDict(), tags["Items"])
 
@@ -29,16 +30,16 @@ class CloudFrontResource:
             instance = cls.from_api(js)
             builder.add_node(instance, js)
             if instance.arn:
-                builder.submit_work(add_tags, instance)
+                builder.submit_work(service_name, add_tags, instance)
 
     @staticmethod
     def delete_cloudfront_resource(client: AwsClient, resource: str, id: str) -> bool:
-        description = client.get("cloudfront", f"get-{resource}", None, None, Id=id)
+        description = client.get(service_name, f"get-{resource}", None, None, Id=id)
         if description:
             etag = description.get("ETag", None)
             if etag:
                 client.call(
-                    aws_service="cloudfront",
+                    aws_service=service_name,
                     action=f"delete-{resource}",
                     result_name=None,
                     Id=id,
@@ -52,7 +53,7 @@ class CloudFrontTaggable:
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         if isinstance(self, AwsResource):
             client.call(
-                aws_service="cloudfront",
+                aws_service=service_name,
                 action="tag-resource",
                 result_name=None,
                 Resource=self.arn,
@@ -64,7 +65,7 @@ class CloudFrontTaggable:
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
         if isinstance(self, AwsResource):
             client.call(
-                aws_service="cloudfront",
+                aws_service=service_name,
                 action="untag-resource",
                 result_name=None,
                 Resource=self.arn,
@@ -76,8 +77,8 @@ class CloudFrontTaggable:
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return [
-            AwsApiSpec("cloudfront", "tag-resource"),
-            AwsApiSpec("cloudfront", "untag-resource"),
+            AwsApiSpec(service_name, "tag-resource"),
+            AwsApiSpec(service_name, "untag-resource"),
         ]
 
 
@@ -365,7 +366,7 @@ class AwsCloudFrontAliasICPRecordal:
 @define(eq=False, slots=False)
 class AwsCloudFrontDistribution(CloudFrontTaggable, CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_distribution"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudfront", "list-distributions", "DistributionList.Items")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-distributions", "DistributionList.Items")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"delete": ["aws_lambda_function"]},
         "successors": {
@@ -430,10 +431,10 @@ class AwsCloudFrontDistribution(CloudFrontTaggable, CloudFrontResource, AwsResou
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return super().called_mutator_apis() + [
-            AwsApiSpec("cloudfront", "get-distribution-config"),
-            AwsApiSpec("cloudfront", "update-distribution"),
-            AwsApiSpec("cloudfront", "get-distribution"),
-            AwsApiSpec("cloudfront", "delete-distribution"),
+            AwsApiSpec(service_name, "get-distribution-config"),
+            AwsApiSpec(service_name, "update-distribution"),
+            AwsApiSpec(service_name, "get-distribution"),
+            AwsApiSpec(service_name, "delete-distribution"),
         ]
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
@@ -484,13 +485,13 @@ class AwsCloudFrontDistribution(CloudFrontTaggable, CloudFrontResource, AwsResou
         # TODO edge to Web Acl when applicable (via self.distribution_web_acl_id)
 
     def pre_delete_resource(self, client: AwsClient, graph: Graph) -> bool:
-        dist_config = client.get("cloudfront", "get-distribution-config", None, None, Id=self.id)
+        dist_config = client.get(service_name, "get-distribution-config", None, None, Id=self.id)
         if dist_config:
             dist_config["DistributionConfig"]["Enabled"] = False
             dist_config["IfMatch"] = dist_config["ETag"]
             dist_config.pop("ETag")
             update = client.call(
-                "cloudfront",
+                service_name,
                 "update-distribution",
                 None,
                 None,
@@ -517,7 +518,7 @@ class AwsCloudFrontFunctionConfig:
 @define(eq=False, slots=False)
 class AwsCloudFrontFunction(CloudFrontTaggable, CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_function"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudfront", "list-functions", "FunctionList.Items")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-functions", "FunctionList.Items")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Name"),
         "arn": S("FunctionMetadata", "FunctionARN", default=None),
@@ -535,8 +536,8 @@ class AwsCloudFrontFunction(CloudFrontTaggable, CloudFrontResource, AwsResource)
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return super().called_mutator_apis() + [
-            AwsApiSpec("cloudfront", "describe-function"),
-            AwsApiSpec("cloudfront", "delete-function"),
+            AwsApiSpec(service_name, "describe-function"),
+            AwsApiSpec(service_name, "delete-function"),
         ]
 
     def delete_resource(self, client: AwsClient) -> bool:
@@ -560,7 +561,7 @@ class AwsCloudFrontFunction(CloudFrontTaggable, CloudFrontResource, AwsResource)
 @define(eq=False, slots=False)
 class AwsCloudFrontPublicKey(CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_public_key"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudfront", "list-public-keys", "PublicKeyList.Items")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-public-keys", "PublicKeyList.Items")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Id"),
         "name": S("Name"),
@@ -574,8 +575,8 @@ class AwsCloudFrontPublicKey(CloudFrontResource, AwsResource):
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return super().called_mutator_apis() + [
-            AwsApiSpec("cloudfront", "get-public-key"),
-            AwsApiSpec("cloudfront", "delete-public-key"),
+            AwsApiSpec(service_name, "get-public-key"),
+            AwsApiSpec(service_name, "delete-public-key"),
         ]
 
     def delete_resource(self, client: AwsClient) -> bool:
@@ -604,7 +605,7 @@ class AwsCloudFrontEndPoint:
 @define(eq=False, slots=False)
 class AwsCloudFrontRealtimeLogConfig(CloudFrontTaggable, CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_realtime_log_config"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudfront", "list-realtime-log-configs", "RealtimeLogConfigs.Items")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-realtime-log-configs", "RealtimeLogConfigs.Items")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Name"),
         "name": S("Name"),
@@ -619,7 +620,7 @@ class AwsCloudFrontRealtimeLogConfig(CloudFrontTaggable, CloudFrontResource, Aws
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return super().called_mutator_apis() + [AwsApiSpec("cloudfront", "delete-realtime-log-config")]
+        return super().called_mutator_apis() + [AwsApiSpec(service_name, "delete-realtime-log-config")]
 
     def delete_resource(self, client: AwsClient) -> bool:
         client.call(
@@ -772,7 +773,7 @@ class AwsCloudFrontResponseHeadersPolicyConfig:
 class AwsCloudFrontResponseHeadersPolicy(CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_response_headers_policy"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
-        "cloudfront", "list-response-headers-policies", "ResponseHeadersPolicyList.Items"
+        service_name, "list-response-headers-policies", "ResponseHeadersPolicyList.Items"
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("ResponseHeadersPolicy", "Id"),
@@ -788,8 +789,8 @@ class AwsCloudFrontResponseHeadersPolicy(CloudFrontResource, AwsResource):
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return super().called_mutator_apis() + [
-            AwsApiSpec("cloudfront", "get-response-headers-policy"),
-            AwsApiSpec("cloudfront", "delete-response-headers-policy"),
+            AwsApiSpec(service_name, "get-response-headers-policy"),
+            AwsApiSpec(service_name, "delete-response-headers-policy"),
         ]
 
     def delete_resource(self, client: AwsClient) -> bool:
@@ -811,7 +812,7 @@ class AwsCloudFrontS3Origin:
 class AwsCloudFrontStreamingDistribution(CloudFrontTaggable, CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_streaming_distribution"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
-        "cloudfront", "list-streaming-distributions", "StreamingDistributionList.Items"
+        service_name, "list-streaming-distributions", "StreamingDistributionList.Items"
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Id"),
@@ -841,7 +842,7 @@ class AwsCloudFrontStreamingDistribution(CloudFrontTaggable, CloudFrontResource,
 class AwsCloudFrontOriginAccessControl(CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_origin_access_control"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
-        "cloudfront", "list-origin-access-controls", "OriginAccessControlList.Items"
+        service_name, "list-origin-access-controls", "OriginAccessControlList.Items"
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Id"),
@@ -859,8 +860,8 @@ class AwsCloudFrontOriginAccessControl(CloudFrontResource, AwsResource):
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return super().called_mutator_apis() + [
-            AwsApiSpec("cloudfront", "get-origin-access-control"),
-            AwsApiSpec("cloudfront", "delete-origin-access-control"),
+            AwsApiSpec(service_name, "get-origin-access-control"),
+            AwsApiSpec(service_name, "delete-origin-access-control"),
         ]
 
     def delete_resource(self, client: AwsClient) -> bool:
@@ -942,7 +943,7 @@ class AwsCloudFrontCachePolicyConfig:
 @define(eq=False, slots=False)
 class AwsCloudFrontCachePolicy(CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_cache_policy"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudfront", "list-cache-policies", "CachePolicyList.Items")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-cache-policies", "CachePolicyList.Items")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("CachePolicy", "Id"),
         "name": S("CachePolicy", "CachePolicyConfig", "Name"),
@@ -954,8 +955,8 @@ class AwsCloudFrontCachePolicy(CloudFrontResource, AwsResource):
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return super().called_mutator_apis() + [
-            AwsApiSpec("cloudfront", "get-cache-policy"),
-            AwsApiSpec("cloudfront", "delete-cache-policy"),
+            AwsApiSpec(service_name, "get-cache-policy"),
+            AwsApiSpec(service_name, "delete-cache-policy"),
         ]
 
     def delete_resource(self, client: AwsClient) -> bool:
@@ -1011,7 +1012,7 @@ class AwsCloudFrontContentTypeProfileConfig:
 class AwsCloudFrontFieldLevelEncryptionConfig(CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_field_level_encryption_config"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
-        "cloudfront", "list-field-level-encryption-configs", "FieldLevelEncryptionList.Items"
+        service_name, "list-field-level-encryption-configs", "FieldLevelEncryptionList.Items"
     )
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["aws_cloudfront_field_level_encryption_profile"]}
@@ -1036,8 +1037,8 @@ class AwsCloudFrontFieldLevelEncryptionConfig(CloudFrontResource, AwsResource):
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return super().called_mutator_apis() + [
-            AwsApiSpec("cloudfront", "get-field-level-encryption-config"),
-            AwsApiSpec("cloudfront", "delete-field-level-encryption-config"),
+            AwsApiSpec(service_name, "get-field-level-encryption-config"),
+            AwsApiSpec(service_name, "delete-field-level-encryption-config"),
         ]
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
@@ -1073,7 +1074,7 @@ class AwsCloudFrontEncryptionEntity:
 class AwsCloudFrontFieldLevelEncryptionProfile(CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_field_level_encryption_profile"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
-        "cloudfront", "list-field-level-encryption-profiles", "FieldLevelEncryptionProfileList.Items"
+        service_name, "list-field-level-encryption-profiles", "FieldLevelEncryptionProfileList.Items"
     )
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["aws_cloudfront_public_key"]},
@@ -1092,8 +1093,8 @@ class AwsCloudFrontFieldLevelEncryptionProfile(CloudFrontResource, AwsResource):
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return super().called_mutator_apis() + [
-            AwsApiSpec("cloudfront", "get-field-level-encryption-profile"),
-            AwsApiSpec("cloudfront", "delete-field-level-encryption-profile"),
+            AwsApiSpec(service_name, "get-field-level-encryption-profile"),
+            AwsApiSpec(service_name, "delete-field-level-encryption-profile"),
         ]
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
