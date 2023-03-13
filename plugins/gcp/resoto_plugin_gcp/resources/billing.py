@@ -119,7 +119,12 @@ class GcpService(GcpResource):
         # - collect related GcpSku
         result = super().collect(raw, builder)
         SERVICES_COLLECT_LIST = [
-            "services/6F81-5844-456A" # Compute Engine
+            "services/6F81-5844-456A", # Compute Engine
+            "services/650B-3C82-34DB", # BigQuery BI Engine
+            "services/74B1-77CF-C302", # Discovery Engine API
+            "services/C079-64FE-9109", # VMware Engine
+            "services/CCD8-9BF1-090E", # Kubernetes Engine
+            "services/E19D-14A9-5725" # Cloud Machine Learning Engine
             ]
         service_ids = [service.id for service in result if service.id in SERVICES_COLLECT_LIST]
         for service_id in service_ids:
