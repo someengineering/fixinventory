@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import ClassVar, Dict, Optional, List, Type
 
 from attr import define, field
@@ -263,10 +264,9 @@ class GcpSku(GcpResource):
     pricing_info: List[GcpPricingInfo] = field(factory=list)
     service_provider_name: Optional[str] = field(default=None)
     service_regions: List[str] = field(factory=list)
-    usage_unit_nanos: Optional[int] = field(default=None)
+    usage_unit_nanos: int = field(default=-1)
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        self.usage_unit_nanos = -1
         if len(self.pricing_info) > 0:
             tiered_rates = self.pricing_info[0].pricing_expression.tiered_rates
             cost = -1
