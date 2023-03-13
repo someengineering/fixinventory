@@ -1136,7 +1136,7 @@ predefined_kinds = [
             # Resource tags might define expiration time. Translate durations to absolute times.
             Property("expires", "datetime", False, None, "datetime when the node expires."),
             # Account defines the time when the data was collected in the metadata section
-            Property("exported_at", "datetime", False, None, "datetime when the node expires."),
+            Property("exported_at", "datetime", False, None, "datetime when the account was exported."),
             Property("exported_age", "trafo.duration_to_datetime", False, SyntheticProperty(["exported_at"])),
         ],
     ),
