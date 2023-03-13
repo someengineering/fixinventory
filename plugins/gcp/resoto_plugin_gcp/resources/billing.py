@@ -116,7 +116,7 @@ class GcpService(GcpResource):
     def collect(cls: Type[GcpResource], raw: List[Json], builder: GraphBuilder) -> List[GcpResource]:
         # Additional behavior: iterate over list of collected GcpService and for each:
         # - collect related GcpSku
-        result = super().collect(raw, builder)
+        result: List[GcpResource] = super().collect(raw, builder)  # type: ignore
         SERVICES_COLLECT_LIST = [
             "services/6F81-5844-456A",  # Compute Engine
         ]
@@ -128,7 +128,7 @@ class GcpService(GcpResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for sku in builder.resources_of(GcpSku):
-            if sku.name.startswith(self.id):
+            if sku.name and sku.name.startswith(self.id):
                 builder.add_edge(self, node=sku)
 
 
@@ -268,15 +268,22 @@ class GcpSku(GcpResource):
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         if len(self.pricing_info) > 0:
-            tiered_rates = self.pricing_info[0].pricing_expression.tiered_rates
+            if not (pricing_expression := self.pricing_info[0].pricing_expression):
+                return
+
+            tiered_rates = pricing_expression.tiered_rates
             cost = -1
             if len(tiered_rates) == 1:
-                cost = tiered_rates[0].unit_price.nanos
+                if tiered_rates[0].unit_price and tiered_rates[0].unit_price.nanos:
+                    cost = tiered_rates[0].unit_price.nanos
+
             else:
                 for tiered_rate in tiered_rates:
-                    if tiered_rate.start_usage_amount > 0:
-                        cost = tiered_rate.unit_price.nanos
-                        break
+                    if sua := tiered_rate.start_usage_amount:
+                        if sua > 0:
+                            if tiered_rate.unit_price and tiered_rate.unit_price.nanos:
+                                cost = tiered_rate.unit_price.nanos
+                                break
             if cost > -1:
                 self.usage_unit_nanos = cost
 
