@@ -10,7 +10,6 @@ from resoto_plugin_gcp.resources.billing import GcpSku
 from resotolib.baseresources import (
     BaseInstanceType,
     BaseVolumeType,
-    EdgeType,
     ModelReference,
     BaseVolume,
     VolumeStatus,
@@ -21,6 +20,7 @@ from resotolib.json_bender import Bender, S, Bend, ForallBend, MapDict, MapValue
 from resotolib.types import Json
 
 log = logging.getLogger("resoto.plugins.gcp")
+
 
 def health_checks() -> Tuple[GcpResource, ...]:
     return (GcpHealthCheck, GcpHttpsHealthCheck, GcpHttpHealthCheck)
@@ -3292,19 +3292,18 @@ class GcpMachineType(GcpResource, BaseInstanceType):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         """Adds edges from machine type to SKUs and determines ondemand pricing
-            TODO: Implement GPU types
+        TODO: Implement GPU types
         """
 
         # log.debug((f"Looking up pricing for {self.rtdname}" f" in {self.location(graph).rtdname}"))
         skus = []
         for sku in builder.resources_of(GcpSku):
-            if not (sku.sku_category.resource_family == "Compute"
-                    and sku.sku_category.usage_type == "OnDemand"):
+            if not (sku.sku_category.resource_family == "Compute" and sku.sku_category.usage_type == "OnDemand"):
                 continue
             if sku.sku_category.resource_group not in (
                 "G1Small",
                 "F1Micro",
-                "N1Standard", #?
+                "N1Standard",  # ?
                 "CPU",
                 "RAM",
             ):
@@ -3373,6 +3372,7 @@ class GcpMachineType(GcpResource, BaseInstanceType):
             return
 
         log.debug(f"Unable to determine SKU(s) for {self.rtdname}: {[sku.dname for sku in skus]}")
+
 
 @define(eq=False, slots=False)
 class GcpNetworkEdgeSecurityService(GcpResource):

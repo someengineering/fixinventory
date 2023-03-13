@@ -96,7 +96,7 @@ class GcpService(GcpResource):
         response_regional_sub_path=None,
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id").or_else(S("name")).or_else(S("selfLink")),
+        "id": S("serviceId").or_else(S("name")).or_else(S("selfLink")),
         "tags": S("labels", default={}),
         "name": S("name"),
         "ctime": S("creationTimestamp"),
@@ -106,12 +106,10 @@ class GcpService(GcpResource):
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
         "service_business_entity_name": S("businessEntityName"),
         "service_display_name": S("displayName"),
-        "service_id": S("serviceId"),
     }
 
     service_business_entity_name: Optional[str] = field(default=None)
     service_display_name: Optional[str] = field(default=None)
-    service_id: Optional[str] = field(default=None)
 
     @classmethod
     def collect(cls: Type[GcpResource], raw: List[Json], builder: GraphBuilder) -> List[GcpResource]:
@@ -119,13 +117,8 @@ class GcpService(GcpResource):
         # - collect related GcpSku
         result = super().collect(raw, builder)
         SERVICES_COLLECT_LIST = [
-            "services/6F81-5844-456A", # Compute Engine
-            "services/650B-3C82-34DB", # BigQuery BI Engine
-            "services/74B1-77CF-C302", # Discovery Engine API
-            "services/C079-64FE-9109", # VMware Engine
-            "services/CCD8-9BF1-090E", # Kubernetes Engine
-            "services/E19D-14A9-5725" # Cloud Machine Learning Engine
-            ]
+            "services/6F81-5844-456A",  # Compute Engine
+        ]
         service_ids = [service.id for service in result if service.id in SERVICES_COLLECT_LIST]
         for service_id in service_ids:
             builder.submit_work(GcpSku.collect_resources, builder, parent=service_id)
