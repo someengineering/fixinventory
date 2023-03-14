@@ -54,7 +54,7 @@ class GcpProjectCollector:
             for region in global_builder.resources_of(GcpRegion):
                 global_builder.submit_work(self.collect_region, region, global_builder.for_region(region))
 
-            global_builder.executor.wait_for_all_submitted_work()
+            global_builder.executor.wait_for_submitted_work()
             # connect nodes
             for node, data in list(self.graph.nodes(data=True)):
                 if isinstance(node, GcpResource):
