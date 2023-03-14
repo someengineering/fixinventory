@@ -1,4 +1,5 @@
 from resoto_plugin_gcp.resources.compute import *
+from resoto_plugin_gcp.resources.billing import GcpService
 from .random_client import roundtrip, connect_resource, FixturedClient
 from resoto_plugin_gcp.resources.base import GraphBuilder
 
@@ -134,6 +135,32 @@ def test_gcp_instance_custom_machine_type(random_builder: GraphBuilder) -> None:
     only_machine_type = random_builder.resources_of(GcpMachineType)[0]
     assert first_instance.instance_cores == only_machine_type.instance_cores
     assert first_instance.instance_memory == only_machine_type.instance_memory
+
+
+def test_machine_type_ondemand_cost(random_builder: GraphBuilder) -> None:
+    SERVICE_ID = "services/6F81-5844-456A"
+    SERVICE_NAME = "Compute Engine"
+    MT_NAME = "n2d-test-custom"
+    SKU_DESC = "N2D AMD something Custom"
+    FAMILY = "Compute"
+    USAGE = "OnDemand"
+    GROUP = "CPU"
+    GEO_REGIONS = ["us-east1"]
+    fixture_replies = {
+        "Service": {"serviceId": lambda: SERVICE_ID, "displayName": lambda: SERVICE_NAME},
+        "Sku": {"name": lambda: SERVICE_ID, "description": lambda: SKU_DESC},
+        "Category": {"resourceFamily": lambda: FAMILY, "usageType": lambda: USAGE, "resourceGroup": lambda: GROUP},
+        "GeoTaxonomy": {"regions": lambda: GEO_REGIONS},
+        "MachineType": {"name": lambda: MT_NAME},
+    }
+    assert len(random_builder.resources_of(GcpMachineType)) == 0
+
+    with FixturedClient(random_builder, fixture_replies) as random_builder:
+        services: List[GcpService] = GcpService.collect_resources(random_builder)  # type: ignore
+        machine_types: List[GcpMachineType] = GcpMachineType.collect_resources(random_builder)  # type: ignore
+        for machine_type in machine_types:
+            machine_type.connect_in_graph(random_builder, {"Dummy": "Source"})
+            assert machine_type.ondemand_cost
 
 
 def test_gcp_interconnect_attachment(random_builder: GraphBuilder) -> None:

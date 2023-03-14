@@ -3296,6 +3296,26 @@ class GcpMachineType(GcpResource, BaseInstanceType):
         machine_type_obj = GcpMachineType.from_api(result)
         builder.add_node(machine_type_obj, result)
 
+    def _machine_type_matches_sku_description(self, sku_description: str) -> bool:
+        mappings = [
+            ("n2d-", "N2D AMD "),
+            ("n2-", "N2 "),
+            ("m1-", "Memory-optimized "),
+            ("c2-", "Compute optimized "),
+        ]
+        for mapping in mappings:
+            if (self.name.startswith(mapping[0]) and not sku_description.startswith(mapping[1])) or (
+                not self.name.startswith(mapping[0]) and sku_description.startswith(mapping[1])
+            ):
+                return False
+
+        if "custom" not in self.name:
+            if (self.name.startswith("e2-") and not sku_description.startswith("E2 ")) or (
+                not self.name.startswith("e2-") and sku_description.startswith("E2 ")
+            ):
+                return False
+        return True
+
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         """Adds edges from machine type to SKUs and determines ondemand pricing
         TODO: Implement GPU types
@@ -3304,7 +3324,7 @@ class GcpMachineType(GcpResource, BaseInstanceType):
         # log.debug((f"Looking up pricing for {self.rtdname}" f" in {self.location(graph).rtdname}"))
         skus = []
         for sku in builder.resources_of(GcpSku):
-            if not self.name or not self._region or not sku.name or not sku.category or not sku.geo_taxonomy:
+            if not self.name or not self._region or not sku.description or not sku.category or not sku.geo_taxonomy:
                 continue
 
             if not (sku.category.resource_family == "Compute" and sku.category.usage_type == "OnDemand"):
@@ -3317,8 +3337,8 @@ class GcpMachineType(GcpResource, BaseInstanceType):
                 "RAM",
             ):
                 continue
-            if ("custom" not in self.name and "Custom" in sku.name) or (
-                "custom" in self.name and "Custom" not in sku.name
+            if ("custom" not in self.name and "Custom" in sku.description) or (
+                "custom" in self.name and "Custom" not in sku.description
             ):
                 continue
             if self._region.name not in sku.geo_taxonomy.regions:
@@ -3327,59 +3347,41 @@ class GcpMachineType(GcpResource, BaseInstanceType):
                 continue
             if self.name == "f1-micro" and sku.category.resource_group != "F1Micro":
                 continue
-            if (self.name.startswith("n2d-") and not sku.name.startswith("N2D AMD ")) or (
-                not self.name.startswith("n2d-") and sku.name.startswith("N2D AMD ")
-            ):
-                continue
-            if (self.name.startswith("n2-") and not sku.name.startswith("N2 ")) or (
-                not self.name.startswith("n2-") and sku.name.startswith("N2 ")
-            ):
-                continue
-            if (self.name.startswith("m1-") and not sku.name.startswith("Memory-optimized ")) or (
-                not self.name.startswith("m1-") and sku.name.startswith("Memory-optimized ")
-            ):
-                continue
-            if (self.name.startswith("c2-") and not sku.name.startswith("Compute optimized ")) or (
-                not self.name.startswith("c2-") and sku.name.startswith("Compute optimized ")
-            ):
-                continue
+
             if self.name.startswith("n1-") and sku.category.resource_group != "N1Standard":
                 continue
-            if "custom" not in self.name:
-                if (self.name.startswith("e2-") and not sku.name.startswith("E2 ")) or (
-                    not self.name.startswith("e2-") and sku.name.startswith("E2 ")
-                ):
-                    continue
-            skus.append(sku)
 
-            if len(skus) == 1 and self.name in ("g1-small", "f1-micro"):
-                builder.add_edge(self, reverse=True, node=skus[0])
-                self.ondemand_cost = skus[0].usage_unit_nanos / 1000000000
-                return
+            if self._machine_type_matches_sku_description(sku.description):
+                skus.append(sku)
 
-            if len(skus) == 2 or (len(skus) == 3 and "custom" in self.name):
-                ondemand_cost = 0.0
-                cores = self.instance_cores
-                ram = self.instance_memory
-                extended_memory_pricing: bool = False
-                if "custom" in self.name:
-                    extended_memory_pricing = ram / cores > 8
+        if len(skus) == 1 and self.name in ("g1-small", "f1-micro"):
+            builder.add_edge(self, reverse=True, node=skus[0])
+            self.ondemand_cost = skus[0].usage_unit_nanos / 1000000000
+            return
 
-                for sku in skus:
-                    if sku.name:
-                        if "Core" in sku.name:
-                            ondemand_cost += sku.usage_unit_nanos * cores
-                        elif "Ram" in sku.name:
-                            if (extended_memory_pricing and "Extended" not in sku.name) or (
-                                not extended_memory_pricing and "Extended" in sku.name
-                            ):
-                                continue
-                            ondemand_cost += sku.usage_unit_nanos * ram
-                        builder.add_edge(self, reverse=True, node=sku)
+        if len(skus) == 2 or (len(skus) == 3 and "custom" in self.name):
+            ondemand_cost = 0.0
+            cores = self.instance_cores
+            ram = self.instance_memory
+            extended_memory_pricing: bool = False
+            if "custom" in self.name:
+                extended_memory_pricing = ram / cores > 8
 
-                if ondemand_cost > 0:
-                    self.ondemand_cost = ondemand_cost / 1000000000
-                return
+            for sku in skus:
+                if sku.description:
+                    if "Core" in sku.description:
+                        ondemand_cost += sku.usage_unit_nanos * cores
+                    elif "Ram" in sku.description:
+                        if (extended_memory_pricing and "Extended" not in sku.description) or (
+                            not extended_memory_pricing and "Extended" in sku.description
+                        ):
+                            continue
+                        ondemand_cost += sku.usage_unit_nanos * ram
+                    builder.add_edge(self, reverse=True, node=sku)
+
+            if ondemand_cost > 0:
+                self.ondemand_cost = ondemand_cost / 1000000000
+            return
 
         log.debug(f"Unable to determine SKU(s) for {self.rtdname}: {[sku.dname for sku in skus]}")
 
