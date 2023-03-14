@@ -76,7 +76,8 @@ disable=
     no-member,
     unsupported-binary-operation,
     too-many-branches,
-    use-dict-literal
+    use-dict-literal,
+    too-many-return-statements
 
 
 [REPORTS]
