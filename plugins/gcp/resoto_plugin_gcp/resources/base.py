@@ -78,8 +78,13 @@ class ExecutorQueue:
     def wait_for_all_submitted_work(self) -> None:
         # Wait until all submitted work and their potential "children" work
         # is done
-        while not len(self.futures) == 0:
+        with self._lock:
+            remaining = len(self.futures)
+
+        while not remaining == 0:
             self.wait_for_submitted_work()
+            with self._lock:
+                remaining = len(self.futures)
 
 
 class GraphBuilder:
