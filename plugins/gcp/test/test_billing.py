@@ -15,8 +15,9 @@ def test_gcp_service(random_builder: GraphBuilder) -> None:
 
 def test_gcp_service_and_sku(random_builder: GraphBuilder) -> None:
     SERVICE_ID = "services/6F81-5844-456A"
+    SERVICE_NAME = "Compute Engine"
     fixture_replies = {
-        "Service": {"serviceId": lambda: SERVICE_ID},
+        "Service": {"serviceId": lambda: SERVICE_ID, "displayName": lambda: SERVICE_NAME},
         "Sku": {"name": lambda: SERVICE_ID},
     }
     with FixturedClient(random_builder, fixture_replies) as random_builder:
