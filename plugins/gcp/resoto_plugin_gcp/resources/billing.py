@@ -99,18 +99,16 @@ class GcpService(GcpResource):
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("serviceId"),
         "tags": S("labels", default={}),
-        "name": S("name"),
+        "name": S("displayName"),
         "ctime": S("creationTimestamp"),
         "description": S("description"),
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
         "business_entity_name": S("businessEntityName"),
-        "display_name": S("displayName"),
     }
 
     business_entity_name: Optional[str] = field(default=None)
-    display_name: Optional[str] = field(default=None)
 
     @classmethod
     def collect(cls: Type[GcpResource], raw: List[Json], builder: GraphBuilder) -> List[GcpResource]:
@@ -118,9 +116,9 @@ class GcpService(GcpResource):
         # - collect related GcpSku
         result: List[GcpResource] = super().collect(raw, builder)  # type: ignore
         SERVICES_COLLECT_LIST = [
-            "services/6F81-5844-456A",  # Compute Engine
+            "Compute Engine",
         ]
-        service_ids = [service.id for service in result if service.id in SERVICES_COLLECT_LIST]
+        service_ids = [service.id for service in result if service.name in SERVICES_COLLECT_LIST]
         for service_id in service_ids:
             builder.submit_work(GcpSku.collect_resources, builder, parent=service_id)
 
