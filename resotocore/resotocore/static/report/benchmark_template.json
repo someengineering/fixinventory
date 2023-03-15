@@ -1,6 +1,7 @@
 {
     "title": "",
     "framework": "",
+    "clouds": ["aws"],
     "version": "",
     "description": "",
     "documentation": "can contain markdown",

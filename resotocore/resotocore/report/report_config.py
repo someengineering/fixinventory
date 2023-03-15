@@ -118,7 +118,6 @@ class CheckCollectionConfig:
 class BenchmarkConfig(CheckCollectionConfig):
     kind: ClassVar[str] = BenchmarkConfigRoot
 
-    id: str = field(metadata={"description": "Unique ID of the benchmark."})
     framework: str = field(metadata={"description": "Framework the benchmark is based on."})
     version: str = field(metadata={"description": "Version of the benchmark."})
     clouds: Optional[List[str]] = field(
@@ -138,7 +137,10 @@ class BenchmarkConfig(CheckCollectionConfig):
             for provider in (d.path for d in os.scandir(static_path) if d.is_dir()):
                 for path in (d.path for d in os.scandir(provider) if d.is_file() and d.name.endswith(".json")):
                     with open(path, "rt", encoding="utf-8") as f:
-                        result[basename(path).rsplit(".", maxsplit=1)[0]] = json.load(f)
+                        bid = basename(path).rsplit(".", maxsplit=1)[0]
+                        benchmark = json.load(f)
+                        benchmark["id"] = bid
+                        result[bid] = benchmark
         return result
 
     @staticmethod
