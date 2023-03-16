@@ -1312,8 +1312,12 @@ class Model:
         """
         cpl: Dict[str, ComplexKind] = {kind.fqn: kind for kind in self.complex_kinds()}
 
-        def all_props(kind: ComplexKind) -> List[Property]:
-            return [p for b in kind.bases for p in all_props(cpl[b])] + kind.properties
+        def all_props(kind: ComplexKind) -> Dict[str, Property]:
+            props_by_name = {}
+            for props in [all_props(cpl[fqn]) for fqn in kind.bases] + [{p.name: p for p in kind.properties}]:
+                for key, value in props.items():
+                    props_by_name[key] = value
+            return props_by_name
 
         def all_metadata(kind: ComplexKind) -> Dict[str, Any]:
             metadata = {}
@@ -1336,7 +1340,7 @@ class Model:
                     ComplexKind(
                         fqn=kind.fqn,
                         bases=kind.bases,
-                        properties=all_props(kind),
+                        properties=list(all_props(kind).values()),
                         allow_unknown_props=kind.allow_unknown_props,
                         successor_kinds=all_successor_kinds(kind),
                         aggregate_root=kind.aggregate_root,
