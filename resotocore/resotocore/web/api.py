@@ -67,7 +67,7 @@ from resotocore.ids import TaskId, ConfigId, NodeId, SubscriberId, WorkerId
 from resotocore.message_bus import MessageBus, Message, ActionDone, Action, ActionError, ActionInfo, ActionProgress
 from resotocore.model.db_updater import merge_graph_process
 from resotocore.model.graph_access import Section
-from resotocore.model.model import Kind
+from resotocore.model.model import Kind, Model
 from resotocore.model.model_handler import ModelHandler
 from resotocore.model.typed_model import to_json, from_js, to_js_str, to_js
 from resotocore.query import QueryParser
@@ -388,13 +388,10 @@ class Api:
         return await single_result(request, to_js(model)) if model else HTTPNotFound(text="No model for this config.")
 
     async def get_configs_model(self, request: Request) -> StreamResponse:
-        md = await self.config_handler.get_configs_model()
-        kinds: Iterable[Kind]
+        model = await self.config_handler.get_configs_model()
         if request.query.get("flat", "false") == "true":
-            kinds = md.flat_kinds()
-        else:
-            kinds = md.kinds.values()
-        return await single_result(request, to_js(kinds, strip_nulls=True))
+            model = Model.from_kinds(model.flat_kinds())
+        return await single_result(request, to_js(model, strip_nulls=True))
 
     async def update_configs_model(self, request: Request) -> StreamResponse:
         js = await self.json_from_request(request)
