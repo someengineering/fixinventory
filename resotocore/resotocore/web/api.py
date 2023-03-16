@@ -388,8 +388,13 @@ class Api:
         return await single_result(request, to_js(model)) if model else HTTPNotFound(text="No model for this config.")
 
     async def get_configs_model(self, request: Request) -> StreamResponse:
-        model = await self.config_handler.get_configs_model()
-        return await single_result(request, to_js(model))
+        md = await self.config_handler.get_configs_model()
+        kinds: Iterable[Kind]
+        if request.query.get("flat", "false") == "true":
+            kinds = md.flat_kinds()
+        else:
+            kinds = md.kinds.values()
+        return await single_result(request, to_js(kinds, strip_nulls=True))
 
     async def update_configs_model(self, request: Request) -> StreamResponse:
         js = await self.json_from_request(request)
