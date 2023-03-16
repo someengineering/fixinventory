@@ -1,7 +1,9 @@
+import json
+import os
 from resoto_plugin_gcp.resources.compute import *
-from resoto_plugin_gcp.resources.billing import GcpService
+from resoto_plugin_gcp.resources.billing import GcpSku
 from .random_client import roundtrip, connect_resource, FixturedClient
-from resoto_plugin_gcp.resources.base import GraphBuilder
+from resoto_plugin_gcp.resources.base import GraphBuilder, GcpRegion
 
 
 def test_gcp_accelerator_type(random_builder: GraphBuilder) -> None:
@@ -138,29 +140,29 @@ def test_gcp_instance_custom_machine_type(random_builder: GraphBuilder) -> None:
 
 
 def test_machine_type_ondemand_cost(random_builder: GraphBuilder) -> None:
-    SERVICE_ID = "services/6F81-5844-456A"
-    SERVICE_NAME = "Compute Engine"
-    MT_NAME = "n2d-test-custom"
-    SKU_DESC = "N2D AMD something Custom"
-    FAMILY = "Compute"
-    USAGE = "OnDemand"
-    GROUP = "CPU"
-    GEO_REGIONS = ["us-east1"]
-    fixture_replies = {
-        "Service": {"serviceId": lambda: SERVICE_ID, "displayName": lambda: SERVICE_NAME},
-        "Sku": {"name": lambda: SERVICE_ID, "description": lambda: SKU_DESC},
-        "Category": {"resourceFamily": lambda: FAMILY, "usageType": lambda: USAGE, "resourceGroup": lambda: GROUP},
-        "GeoTaxonomy": {"regions": lambda: GEO_REGIONS},
-        "MachineType": {"name": lambda: MT_NAME},
-    }
-    assert len(random_builder.resources_of(GcpMachineType)) == 0
+    # Cross-checking with pricing calculated on https://gcpinstances.doit-intl.com/
+    known_prices_linux_ondemand_hourly = [
+        ("n2d-standard-8", "us-east1", 0.33797),
+        ("f1-micro", "us-east1", 0.00760),
+        ("m1-ultramem-160", "us-east1", 25.17240),
+    ]
+    with open(os.path.dirname(__file__) + "/files/skus.json") as f:
+        GcpSku.collect(raw=json.load(f)["skus"], builder=random_builder)
 
-    with FixturedClient(random_builder, fixture_replies) as random_builder:
-        services: List[GcpService] = GcpService.collect_resources(random_builder)  # type: ignore
-        machine_types: List[GcpMachineType] = GcpMachineType.collect_resources(random_builder)  # type: ignore
-        for machine_type in machine_types:
+    with open(os.path.dirname(__file__) + "/files/machine_type.json") as f:
+        GcpMachineType.collect(raw=json.load(f)["items"]["machineTypes"], builder=random_builder)
+
+    regions = random_builder.resources_of(GcpRegion)
+    machine_types = random_builder.resources_of(GcpMachineType)
+
+    for price in known_prices_linux_ondemand_hourly:
+        region = next((obj for obj in regions if obj.id == price[1]), None)
+        machine_type = next((obj for obj in machine_types if obj.name == price[0]), None)
+        if machine_type:
+            machine_type._region = region
             machine_type.connect_in_graph(random_builder, {"Dummy": "Source"})
             assert machine_type.ondemand_cost
+            assert round(machine_type.ondemand_cost, 5) == price[2]
 
 
 def test_gcp_interconnect_attachment(random_builder: GraphBuilder) -> None:

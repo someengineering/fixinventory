@@ -3297,6 +3297,8 @@ class GcpMachineType(GcpResource, BaseInstanceType):
         builder.add_node(machine_type_obj, result)
 
     def _machine_type_matches_sku_description(self, sku_description: str) -> bool:
+        if not self.name:
+            return False
         mappings = [
             ("n2d-", "N2D AMD "),
             ("n2-", "N2 "),
@@ -3323,8 +3325,10 @@ class GcpMachineType(GcpResource, BaseInstanceType):
 
         # log.debug((f"Looking up pricing for {self.rtdname}" f" in {self.location(graph).rtdname}"))
         skus = []
+        if not self.name or not self._region:
+            return
         for sku in builder.resources_of(GcpSku):
-            if not self.name or not self._region or not sku.description or not sku.category or not sku.geo_taxonomy:
+            if not sku.description or not sku.category or not sku.geo_taxonomy:
                 continue
 
             if not (sku.category.resource_family == "Compute" and sku.category.usage_type == "OnDemand"):
@@ -3371,7 +3375,7 @@ class GcpMachineType(GcpResource, BaseInstanceType):
                 if sku.description:
                     if "Core" in sku.description:
                         ondemand_cost += sku.usage_unit_nanos * cores
-                    elif "Ram" in sku.description:
+                    elif "Ram" in sku.description or "RAM" in sku.description:
                         if (extended_memory_pricing and "Extended" not in sku.description) or (
                             not extended_memory_pricing and "Extended" in sku.description
                         ):

@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import ClassVar, Dict, Optional, List, Type
+from typing import ClassVar, Dict, Optional, List, Type, cast
 
 from attr import define, field
 
@@ -99,7 +99,8 @@ class GcpService(GcpResource):
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("serviceId"),
         "tags": S("labels", default={}),
-        "name": S("displayName"),
+        "name": S("name"),
+        "display_name": S("displayName"),
         "ctime": S("creationTimestamp"),
         "description": S("description"),
         "link": S("selfLink"),
@@ -109,6 +110,7 @@ class GcpService(GcpResource):
     }
 
     business_entity_name: Optional[str] = field(default=None)
+    display_name: Optional[str] = field(default=None)
 
     @classmethod
     def collect(cls: Type[GcpResource], raw: List[Json], builder: GraphBuilder) -> List[GcpResource]:
@@ -118,9 +120,11 @@ class GcpService(GcpResource):
         SERVICES_COLLECT_LIST = [
             "Compute Engine",
         ]
-        service_ids = [service.id for service in result if service.name in SERVICES_COLLECT_LIST]
-        for service_id in service_ids:
-            builder.submit_work(GcpSku.collect_resources, builder, parent=service_id)
+        service_names = [
+            service.name for service in cast(List[GcpService], result) if service.display_name in SERVICES_COLLECT_LIST
+        ]
+        for service_name in service_names:
+            builder.submit_work(GcpSku.collect_resources, builder, parent=service_name)
 
         return result
 

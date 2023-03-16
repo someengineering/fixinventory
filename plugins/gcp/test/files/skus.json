@@ -1,0 +1,255 @@
+{
+    "skus": [
+        {
+            "name": "services/6F81-5844-456A/skus/A03E-E620-7389",
+            "skuId": "A03E-E620-7389",
+            "description": "N2D AMD Instance Core running in Americas",
+            "category": {
+              "serviceDisplayName": "Compute Engine",
+              "resourceFamily": "Compute",
+              "resourceGroup": "CPU",
+              "usageType": "OnDemand"
+            },
+            "serviceRegions": [
+              "us-central1",
+              "us-east1",
+              "us-west1"
+            ],
+            "pricingInfo": [
+              {
+                "summary": "",
+                "pricingExpression": {
+                  "usageUnit": "h",
+                  "displayQuantity": 1,
+                  "tieredRates": [
+                    {
+                      "startUsageAmount": 0,
+                      "unitPrice": {
+                        "currencyCode": "USD",
+                        "units": "0",
+                        "nanos": 27502000
+                      }
+                    }
+                  ],
+                  "usageUnitDescription": "hour",
+                  "baseUnit": "s",
+                  "baseUnitDescription": "second",
+                  "baseUnitConversionFactor": 3600
+                },
+                "currencyConversionRate": 1,
+                "effectiveTime": "2023-03-16T07:10:51.797Z"
+              }
+            ],
+            "serviceProviderName": "Google",
+            "geoTaxonomy": {
+              "type": "MULTI_REGIONAL",
+              "regions": [
+                "us-central1",
+                "us-east1",
+                "us-west1"
+              ]
+            }
+          },
+          {
+            "name": "services/6F81-5844-456A/skus/5535-6D2D-4B50",
+            "skuId": "5535-6D2D-4B50",
+            "description": "N2D AMD Instance Ram running in Americas",
+            "category": {
+              "serviceDisplayName": "Compute Engine",
+              "resourceFamily": "Compute",
+              "resourceGroup": "RAM",
+              "usageType": "OnDemand"
+            },
+            "serviceRegions": [
+              "us-central1",
+              "us-east1",
+              "us-west1"
+            ],
+            "pricingInfo": [
+              {
+                "summary": "",
+                "pricingExpression": {
+                  "usageUnit": "GiBy.h",
+                  "displayQuantity": 1,
+                  "tieredRates": [
+                    {
+                      "startUsageAmount": 0,
+                      "unitPrice": {
+                        "currencyCode": "USD",
+                        "units": "0",
+                        "nanos": 3686000
+                      }
+                    }
+                  ],
+                  "usageUnitDescription": "gibibyte hour",
+                  "baseUnit": "By.s",
+                  "baseUnitDescription": "byte second",
+                  "baseUnitConversionFactor": 3865470566400
+                },
+                "currencyConversionRate": 1,
+                "effectiveTime": "2023-03-16T07:10:51.797Z"
+              }
+            ],
+            "serviceProviderName": "Google",
+            "geoTaxonomy": {
+              "type": "MULTI_REGIONAL",
+              "regions": [
+                "us-central1",
+                "us-east1",
+                "us-west1"
+              ]
+            }
+          },
+          {
+            "name": "services/6F81-5844-456A/skus/5CE5-087B-6C3C",
+            "skuId": "5CE5-087B-6C3C",
+            "description": "Micro Instance with burstable CPU running in Americas",
+            "category": {
+              "serviceDisplayName": "Compute Engine",
+              "resourceFamily": "Compute",
+              "resourceGroup": "F1Micro",
+              "usageType": "OnDemand"
+            },
+            "serviceRegions": [
+              "us-central1",
+              "us-east1",
+              "us-west1"
+            ],
+            "pricingInfo": [
+              {
+                "summary": "",
+                "pricingExpression": {
+                  "usageUnit": "h",
+                  "displayQuantity": 1,
+                  "tieredRates": [
+                    {
+                      "startUsageAmount": 0,
+                      "unitPrice": {
+                        "currencyCode": "USD",
+                        "units": "0",
+                        "nanos": 7600000
+                      }
+                    }
+                  ],
+                  "usageUnitDescription": "hour",
+                  "baseUnit": "s",
+                  "baseUnitDescription": "second",
+                  "baseUnitConversionFactor": 3600
+                },
+                "currencyConversionRate": 1,
+                "effectiveTime": "2023-03-16T07:10:51.797Z"
+              }
+            ],
+            "serviceProviderName": "Google",
+            "geoTaxonomy": {
+              "type": "MULTI_REGIONAL",
+              "regions": [
+                "us-central1",
+                "us-east1",
+                "us-west1"
+              ]
+            }
+          },
+          {
+            "name": "services/6F81-5844-456A/skus/56BE-7687-FE88",
+            "skuId": "56BE-7687-FE88",
+            "description": "Memory-optimized Sole Tenancy Instance Core running in Americas",
+            "category": {
+              "serviceDisplayName": "Compute Engine",
+              "resourceFamily": "Compute",
+              "resourceGroup": "CPU",
+              "usageType": "OnDemand"
+            },
+            "serviceRegions": [
+              "us-central1",
+              "us-east1",
+              "us-west1"
+            ],
+            "pricingInfo": [
+              {
+                "summary": "",
+                "pricingExpression": {
+                  "usageUnit": "h",
+                  "displayQuantity": 1,
+                  "tieredRates": [
+                    {
+                      "startUsageAmount": 0,
+                      "unitPrice": {
+                        "currencyCode": "USD",
+                        "units": "0",
+                        "nanos": 34800000
+                      }
+                    }
+                  ],
+                  "usageUnitDescription": "hour",
+                  "baseUnit": "s",
+                  "baseUnitDescription": "second",
+                  "baseUnitConversionFactor": 3600
+                },
+                "currencyConversionRate": 1,
+                "effectiveTime": "2023-03-16T07:10:51.797Z"
+              }
+            ],
+            "serviceProviderName": "Google",
+            "geoTaxonomy": {
+              "type": "MULTI_REGIONAL",
+              "regions": [
+                "us-central1",
+                "us-east1",
+                "us-west1"
+              ]
+            }
+          },
+          {
+            "name": "services/6F81-5844-456A/skus/682E-93BF-F222",
+            "skuId": "682E-93BF-F222",
+            "description": "Memory-optimized Sole Tenancy Instance RAM running in Americas",
+            "category": {
+              "serviceDisplayName": "Compute Engine",
+              "resourceFamily": "Compute",
+              "resourceGroup": "RAM",
+              "usageType": "OnDemand"
+            },
+            "serviceRegions": [
+              "us-central1",
+              "us-east1",
+              "us-west1"
+            ],
+            "pricingInfo": [
+              {
+                "summary": "",
+                "pricingExpression": {
+                  "usageUnit": "GiBy.h",
+                  "displayQuantity": 1,
+                  "tieredRates": [
+                    {
+                      "startUsageAmount": 0,
+                      "unitPrice": {
+                        "currencyCode": "USD",
+                        "units": "0",
+                        "nanos": 5100000
+                      }
+                    }
+                  ],
+                  "usageUnitDescription": "gibibyte hour",
+                  "baseUnit": "By.s",
+                  "baseUnitDescription": "byte second",
+                  "baseUnitConversionFactor": 3865470566400
+                },
+                "currencyConversionRate": 1,
+                "effectiveTime": "2023-03-16T07:10:51.797Z"
+              }
+            ],
+            "serviceProviderName": "Google",
+            "geoTaxonomy": {
+              "type": "MULTI_REGIONAL",
+              "regions": [
+                "us-central1",
+                "us-east1",
+                "us-west1"
+              ]
+            }
+          }
+    ],
+    "nextPageToken": "string"
+}

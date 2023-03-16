@@ -157,7 +157,7 @@ class GraphBuilder:
                 node._region = region
                 self.add_edge(node, node=region, reverse=True)
             else:
-                log.debug(f"Region {region_name} found for node: {node}. Skipping.")
+                log.debug(f"Region {region_name} not found for node: {node}. Skipping.")
                 return None
         elif self.region is not None:
             node._region = self.region

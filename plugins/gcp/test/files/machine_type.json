@@ -1,0 +1,54 @@
+{
+  "kind": "compute#machineTypeAggregatedList",
+  "id": "projects/vpc-host-nonprod-320811/aggregated/machineTypes",
+  "items": {
+      "machineTypes": [
+        {
+            "kind": "compute#machineType",
+            "id": "911008",
+            "creationTimestamp": "1969-12-31T16:00:00.000-08:00",
+            "name": "n2d-standard-8",
+            "description": "8 vCPUs 32 GB RAM",
+            "guestCpus": 8,
+            "memoryMb": 32768,
+            "imageSpaceGb": 0,
+            "maximumPersistentDisks": 128,
+            "maximumPersistentDisksSizeGb": "263168",
+            "zone": "us-east1-a",
+            "selfLink": "https://www.googleapis.com/compute/v1/projects/vpc-host-nonprod-320811/zones/us-east1-a/machineTypes/n2d-standard-8",
+            "isSharedCpu": false
+          },
+          {
+            "kind": "compute#machineType",
+            "id": "1000",
+            "creationTimestamp": "1969-12-31T16:00:00.000-08:00",
+            "name": "f1-micro",
+            "description": "1 vCPU (shared physical core) and 0.6 GB RAM",
+            "guestCpus": 1,
+            "memoryMb": 614,
+            "imageSpaceGb": 0,
+            "maximumPersistentDisks": 16,
+            "maximumPersistentDisksSizeGb": "3072",
+            "zone": "us-east1-a",
+            "selfLink": "https://www.googleapis.com/compute/v1/projects/vpc-host-nonprod-320811/zones/us-east1-a/machineTypes/f1-micro",
+            "isSharedCpu": true
+          },
+          {
+            "kind": "compute#machineType",
+            "id": "11160",
+            "creationTimestamp": "1969-12-31T16:00:00.000-08:00",
+            "name": "m1-ultramem-160",
+            "description": "160 vCPUs, 3844 GB RAM",
+            "guestCpus": 160,
+            "memoryMb": 3936256,
+            "imageSpaceGb": 0,
+            "maximumPersistentDisks": 128,
+            "maximumPersistentDisksSizeGb": "263168",
+            "zone": "us-east1-a",
+            "selfLink": "https://www.googleapis.com/compute/v1/projects/vpc-host-nonprod-320811/zones/us-east1-a/machineTypes/m1-ultramem-160",
+            "isSharedCpu": false
+          }
+      ]
+  },
+  "selfLink": "https://www.googleapis.com/compute/v1/projects/vpc-host-nonprod-320811/aggregated/machineTypes"
+}
