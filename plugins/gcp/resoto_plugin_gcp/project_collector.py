@@ -68,7 +68,9 @@ class GcpProjectCollector:
         # fetch all region level resources
         for resource_class in all_resources:
             if resource_class.api_spec and not resource_class.api_spec.is_project_level:
-                log.info(f"Collecting {resource_class.__name__} for project {self.project.id} in region {region.id}")
+                log.info(
+                    f"Collecting {resource_class.__name__} for project {self.project.id} in region {region.rtdname}"
+                )
                 resource_class.collect_resources(regional_builder)
 
 
