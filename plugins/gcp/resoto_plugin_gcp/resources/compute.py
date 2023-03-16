@@ -3304,6 +3304,13 @@ class GcpMachineType(GcpResource, BaseInstanceType):
             ("n2-", "N2 "),
             ("m1-", "Memory-optimized "),
             ("c2-", "Compute optimized "),
+            ("a2-", "A2 "),
+            ("c2d-", "C2D AMD "),
+            # ("m2-", )
+            ("c3-", "C3 "),
+            ("m3-", "M3 "),
+            ("t2a-", "T2A "),
+            ("t2d-", "T2D AMT"),
         ]
         for mapping in mappings:
             if (self.name.startswith(mapping[0]) and not sku_description.startswith(mapping[1])) or (

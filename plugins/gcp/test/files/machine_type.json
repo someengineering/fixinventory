@@ -47,6 +47,72 @@
             "zone": "us-east1-a",
             "selfLink": "https://www.googleapis.com/compute/v1/projects/vpc-host-nonprod-320811/zones/us-east1-a/machineTypes/m1-ultramem-160",
             "isSharedCpu": false
+          },
+          {
+            "kind": "compute#machineType",
+            "id": "1001096",
+            "creationTimestamp": "1969-12-31T16:00:00.000-08:00",
+            "name": "a2-megagpu-16g",
+            "description": "Accelerator Optimized: 16 NVIDIA Tesla A100 GPUs, 96 vCPUs, 1360GB RAM",
+            "guestCpus": 96,
+            "memoryMb": 1392640,
+            "imageSpaceGb": 0,
+            "maximumPersistentDisks": 128,
+            "maximumPersistentDisksSizeGb": "263168",
+            "zone": "us-east1-a",
+            "selfLink": "https://www.googleapis.com/compute/v1/projects/vpc-host-nonprod-320811/zones/us-east1-a/machineTypes/a2-megagpu-16g",
+            "isSharedCpu": false,
+            "accelerators": [
+              {
+                "guestAcceleratorType": "nvidia-tesla-a100",
+                "guestAcceleratorCount": 16
+              }
+            ]
+          },
+          {
+            "kind": "compute#machineType",
+            "id": "1110112",
+            "creationTimestamp": "1969-12-31T16:00:00.000-08:00",
+            "name": "c2d-highcpu-112",
+            "description": "112 vCPUs, 224 GB RAM",
+            "guestCpus": 112,
+            "memoryMb": 229376,
+            "imageSpaceGb": 0,
+            "maximumPersistentDisks": 128,
+            "maximumPersistentDisksSizeGb": "263168",
+            "zone": "europe-west3-c",
+            "selfLink": "https://www.googleapis.com/compute/v1/projects/vpc-host-nonprod-320811/zones/europe-west3-c/machineTypes/c2d-highcpu-112",
+            "isSharedCpu": false
+          },
+          {
+            "kind": "compute#machineType",
+            "id": "1400064",
+            "creationTimestamp": "1969-12-31T16:00:00.000-08:00",
+            "name": "m3-megamem-64",
+            "description": "64 vCPUs, 976 GB RAM",
+            "guestCpus": 64,
+            "memoryMb": 999424,
+            "imageSpaceGb": 0,
+            "maximumPersistentDisks": 128,
+            "maximumPersistentDisksSizeGb": "263168",
+            "zone": "europe-west3-a",
+            "selfLink": "https://www.googleapis.com/compute/v1/projects/vpc-host-nonprod-320811/zones/europe-west3-a/machineTypes/m3-megamem-64",
+            "isSharedCpu": false
+          },
+          {
+            "kind": "compute#machineType",
+            "id": "1210016",
+            "creationTimestamp": "1969-12-31T16:00:00.000-08:00",
+            "name": "t2d-standard-16",
+            "description": "16 vCPUs, 64 GB RAM",
+            "guestCpus": 16,
+            "memoryMb": 65536,
+            "imageSpaceGb": 0,
+            "maximumPersistentDisks": 128,
+            "maximumPersistentDisksSizeGb": "263168",
+            "zone": "europe-west3-c",
+            "selfLink": "https://www.googleapis.com/compute/v1/projects/vpc-host-nonprod-320811/zones/europe-west3-c/machineTypes/t2d-standard-16",
+            "isSharedCpu": false
           }
       ]
   },
