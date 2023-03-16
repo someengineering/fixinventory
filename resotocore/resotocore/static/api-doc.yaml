@@ -43,6 +43,13 @@ paths:
       summary: "Get the currently defined model."
       tags:
         - model
+      parameters:
+        - name: flat
+          description: "If true, the hierarchy of complex kinds is flattened, holding all properties and all merged metadata."
+          in: query
+          schema:
+              type: boolean
+              default: false
       responses:
         "200":
           description: "The list of all kinds."

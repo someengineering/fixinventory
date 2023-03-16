@@ -263,6 +263,7 @@ def person_model() -> Model:
             Property("tags", "dictionary[string, string]", description="Key/value pairs."),
             Property("mtime", "datetime", description="Modification time of this node."),
         ],
+        metadata={"icon": "icon.svg"},
     )
     address = ComplexKind(
         "Address",
@@ -271,6 +272,7 @@ def person_model() -> Model:
             Property("zip", "zip", description="The zip code."),
             Property("city", "string", required=True, description="The name of the city.\nAnd another line."),
         ],
+        metadata={"icon": "address.svg"},
     )
     person = ComplexKind(
         "Person",

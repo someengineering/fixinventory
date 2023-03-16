@@ -26,6 +26,7 @@ from typing import (
     Tuple,
     Callable,
     Awaitable,
+    Iterable,
 )
 
 import prometheus_client
@@ -675,7 +676,12 @@ class Api:
 
     async def get_model(self, request: Request) -> StreamResponse:
         md = await self.model_handler.load_model()
-        return await single_result(request, to_js(md.kinds.values(), strip_nulls=True))
+        kinds: Iterable[Kind]
+        if request.query.get("flat", "false") == "true":
+            kinds = md.flat_kinds()
+        else:
+            kinds = md.kinds.values()
+        return await single_result(request, to_js(kinds, strip_nulls=True))
 
     async def update_model(self, request: Request) -> StreamResponse:
         js = await self.json_from_request(request)
