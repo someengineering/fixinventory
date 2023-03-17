@@ -113,6 +113,21 @@
             "zone": "europe-west3-c",
             "selfLink": "https://www.googleapis.com/compute/v1/projects/vpc-host-nonprod-320811/zones/europe-west3-c/machineTypes/t2d-standard-16",
             "isSharedCpu": false
+          },
+          {
+            "kind": "compute#machineType",
+            "id": "804416",
+            "creationTimestamp": "1969-12-31T16:00:00.000-08:00",
+            "name": "m2-ultramem-416",
+            "description": "416 vCPUs, 11.50 TB RAM",
+            "guestCpus": 416,
+            "memoryMb": 12058624,
+            "imageSpaceGb": 0,
+            "maximumPersistentDisks": 128,
+            "maximumPersistentDisksSizeGb": "263168",
+            "zone": "us-east1-a",
+            "selfLink": "https://www.googleapis.com/compute/v1/projects/vpc-host-nonprod-320811/zones/us-east1-a/machineTypes/m2-ultramem-416",
+            "isSharedCpu": false
           }
       ]
   },

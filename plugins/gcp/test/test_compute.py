@@ -147,10 +147,9 @@ def test_machine_type_ondemand_cost(random_builder: GraphBuilder) -> None:
         ("m1-ultramem-160", "us-east1", 25.17240),
         ("a2-megagpu-16g", "us-east1", 8.79698),
         ("c2d-highcpu-112", "europe-west3", 5.40826),
-        # ("m2-ultramem-416", "europe-west3", 91.62097),
+        ("m2-ultramem-416", "us-east1", 74.5344),
         ("m3-megamem-64", "europe-west3", 9.28266),
-        # ("t2a-standard-4", "us-east1", 0.15400)
-        # ("t2d-standard-16", "europe-west3", 0.87083)
+        ("t2d-standard-16", "europe-west3", 0.87083)
         # TODO complete test cases (c3 missing)
     ]
     with open(os.path.dirname(__file__) + "/files/skus.json") as f:

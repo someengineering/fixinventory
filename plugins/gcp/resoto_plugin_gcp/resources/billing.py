@@ -266,7 +266,7 @@ class GcpSku(GcpResource):
     pricing_info: List[GcpPricingInfo] = field(factory=list)
     service_provider_name: Optional[str] = field(default=None)
     service_regions: List[str] = field(factory=list)
-    usage_unit_nanos: int = field(default=-1)
+    usage_unit_nanos: Optional[int] = field(default=None)
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         if len(self.pricing_info) > 0:

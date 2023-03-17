@@ -533,6 +533,98 @@
                 "europe-west3"
               ]
             }
+          },
+          {
+            "name": "services/6F81-5844-456A/skus/B260-618D-1521",
+            "skuId": "B260-618D-1521",
+            "description": "T2D AMD Instance Core running in Frankfurt",
+            "category": {
+              "serviceDisplayName": "Compute Engine",
+              "resourceFamily": "Compute",
+              "resourceGroup": "CPU",
+              "usageType": "OnDemand"
+            },
+            "serviceRegions": [
+              "europe-west3"
+            ],
+            "pricingInfo": [
+              {
+                "summary": "",
+                "pricingExpression": {
+                  "usageUnit": "h",
+                  "displayQuantity": 1,
+                  "tieredRates": [
+                    {
+                      "startUsageAmount": 0,
+                      "unitPrice": {
+                        "currencyCode": "USD",
+                        "units": "0",
+                        "nanos": 35435000
+                      }
+                    }
+                  ],
+                  "usageUnitDescription": "hour",
+                  "baseUnit": "s",
+                  "baseUnitDescription": "second",
+                  "baseUnitConversionFactor": 3600
+                },
+                "currencyConversionRate": 1,
+                "effectiveTime": "2023-03-16T20:55:50.022163Z"
+              }
+            ],
+            "serviceProviderName": "Google",
+            "geoTaxonomy": {
+              "type": "REGIONAL",
+              "regions": [
+                "europe-west3"
+              ]
+            }
+          },
+          {
+            "name": "services/6F81-5844-456A/skus/E639-283C-5F35",
+            "skuId": "E639-283C-5F35",
+            "description": "T2D AMD Instance Ram running in Frankfurt",
+            "category": {
+              "serviceDisplayName": "Compute Engine",
+              "resourceFamily": "Compute",
+              "resourceGroup": "RAM",
+              "usageType": "OnDemand"
+            },
+            "serviceRegions": [
+              "europe-west3"
+            ],
+            "pricingInfo": [
+              {
+                "summary": "",
+                "pricingExpression": {
+                  "usageUnit": "GiBy.h",
+                  "displayQuantity": 1,
+                  "tieredRates": [
+                    {
+                      "startUsageAmount": 0,
+                      "unitPrice": {
+                        "currencyCode": "USD",
+                        "units": "0",
+                        "nanos": 4748000
+                      }
+                    }
+                  ],
+                  "usageUnitDescription": "gibibyte hour",
+                  "baseUnit": "By.s",
+                  "baseUnitDescription": "byte second",
+                  "baseUnitConversionFactor": 3865470566400
+                },
+                "currencyConversionRate": 1,
+                "effectiveTime": "2023-03-16T20:55:50.022163Z"
+              }
+            ],
+            "serviceProviderName": "Google",
+            "geoTaxonomy": {
+              "type": "REGIONAL",
+              "regions": [
+                "europe-west3"
+              ]
+            }
           }
     ],
     "nextPageToken": "string"

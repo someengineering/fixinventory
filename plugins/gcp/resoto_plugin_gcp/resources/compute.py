@@ -3302,19 +3302,18 @@ class GcpMachineType(GcpResource, BaseInstanceType):
         mappings = [
             ("n2d-", "N2D AMD "),
             ("n2-", "N2 "),
-            ("m1-", "Memory-optimized "),
+            (("m1-", "m2-"), "Memory-optimized "),
             ("c2-", "Compute optimized "),
             ("a2-", "A2 "),
             ("c2d-", "C2D AMD "),
-            # ("m2-", )
             ("c3-", "C3 "),
             ("m3-", "M3 "),
             ("t2a-", "T2A "),
-            ("t2d-", "T2D AMT"),
+            ("t2d-", "T2D AMD "),
         ]
         for mapping in mappings:
-            if (self.name.startswith(mapping[0]) and not sku_description.startswith(mapping[1])) or (
-                not self.name.startswith(mapping[0]) and sku_description.startswith(mapping[1])
+            if (self.name.startswith(mapping[0]) and not sku_description.startswith(mapping[1])) or (  # type: ignore
+                not self.name.startswith(mapping[0]) and sku_description.startswith(mapping[1])  # type: ignore
             ):
                 return False
 
@@ -3365,7 +3364,7 @@ class GcpMachineType(GcpResource, BaseInstanceType):
             if self._machine_type_matches_sku_description(sku.description):
                 skus.append(sku)
 
-        if len(skus) == 1 and self.name in ("g1-small", "f1-micro"):
+        if len(skus) == 1 and self.name in ("g1-small", "f1-micro") and skus[0].usage_unit_nanos:
             builder.add_edge(self, reverse=True, node=skus[0])
             self.ondemand_cost = skus[0].usage_unit_nanos / 1000000000
             return
@@ -3379,7 +3378,7 @@ class GcpMachineType(GcpResource, BaseInstanceType):
                 extended_memory_pricing = ram / cores > 8
 
             for sku in skus:
-                if sku.description:
+                if sku.description and sku.usage_unit_nanos:
                     if "Core" in sku.description:
                         ondemand_cost += sku.usage_unit_nanos * cores
                     elif "Ram" in sku.description or "RAM" in sku.description:
