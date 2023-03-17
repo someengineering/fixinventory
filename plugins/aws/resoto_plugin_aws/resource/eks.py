@@ -7,6 +7,7 @@ from resoto_plugin_aws.resource.autoscaling import AwsAutoScalingGroup
 from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
 from resoto_plugin_aws.resource.iam import AwsIamRole
 from resotolib.baseresources import ModelReference
+from resotolib.graph import Graph
 from resotolib.json_bender import Bender, S, Bend, ForallBend
 from resotolib.types import Json
 from resoto_plugin_aws.aws_client import AwsClient
@@ -197,7 +198,7 @@ class AwsEksNodegroup(EKSTaggable, AwsResource):
             for rid in self.group_resources.auto_scaling_groups:
                 builder.dependant_node(self, clazz=AwsAutoScalingGroup, id=rid)
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
             aws_service=service_name,
             action="delete-nodegroup",
@@ -372,7 +373,7 @@ class AwsEksCluster(EKSTaggable, AwsResource):
             self, reverse=True, delete_same_as_default=True, clazz=AwsIamRole, arn=self.cluster_role_arn
         )
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(aws_service=self.api_spec.service, action="delete-cluster", result_name=None, name=self.name)
         return True
 

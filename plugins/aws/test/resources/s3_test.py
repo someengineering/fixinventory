@@ -1,3 +1,4 @@
+from resotolib.graph import Graph
 from test.resources import round_trip_for
 from types import SimpleNamespace
 from typing import cast, Any, Callable
@@ -58,4 +59,4 @@ def test_deletion() -> None:
         assert aws_service == "s3"
 
     client = cast(AwsClient, SimpleNamespace(with_resource=validate_delete_args))
-    bucket.delete_resource(client)
+    bucket.delete_resource(client, Graph())

@@ -2,6 +2,7 @@ from resoto_plugin_aws.resource.elasticache import (
     AwsElastiCacheReplicationGroup,
     AwsElastiCacheCacheCluster,
 )
+from resotolib.graph import Graph
 from test.resources import round_trip_for
 from typing import Any, cast
 from types import SimpleNamespace
@@ -49,7 +50,7 @@ def test_replication_group_deletion() -> None:
         assert kwargs["RetainPrimaryCluster"] is False
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
-    group.delete_resource(client)
+    group.delete_resource(client, Graph())
 
 
 def test_cluster_deletion() -> None:
@@ -60,4 +61,4 @@ def test_cluster_deletion() -> None:
         assert kwargs["CacheClusterId"] == cluster.id
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
-    cluster.delete_resource(client)
+    cluster.delete_resource(client, Graph())

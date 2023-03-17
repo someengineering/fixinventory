@@ -1,5 +1,6 @@
 from collections import defaultdict
 from resoto_plugin_aws.resource.glacier import AwsGlacierVault
+from resotolib.graph import Graph
 from test.resources import round_trip_for
 from typing import Any, Dict, cast
 from types import SimpleNamespace
@@ -44,4 +45,4 @@ def test_delete_vaults() -> None:
         assert kwargs["vaultName"] == vault.name
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
-    vault.delete_resource(client)
+    vault.delete_resource(client, Graph())

@@ -1,4 +1,5 @@
 from resoto_plugin_aws.resource.kinesis import AwsKinesisStream
+from resotolib.graph import Graph
 from test.resources import round_trip_for
 from typing import Any, cast
 from types import SimpleNamespace
@@ -39,4 +40,4 @@ def test_deletion() -> None:
         assert kwargs["StreamName"] == stream.name
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
-    stream.delete_resource(client)
+    stream.delete_resource(client, Graph())

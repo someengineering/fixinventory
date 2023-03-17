@@ -354,8 +354,6 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
     @staticmethod
     def cleanup(config: Config, resource: BaseResource, graph: Graph) -> bool:
         if isinstance(resource, AwsResource):
-            client = get_client(config, resource)
-
             if resource.phantom:
                 raise RuntimeError(f"Can't cleanup phantom resource {resource.rtdname}")
 
@@ -381,7 +379,7 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
             resource.log("Trying to clean up")
             log.debug(f"Trying to clean up {resource.rtdname}{log_suffix}")
             try:
-                if deleted := resource.delete_resource(client):
+                if deleted := resource.delete(graph):
                     resource._cleaned = True
                     resource.log("Successfully cleaned up")
                     log.info(f"Successfully cleaned up {resource.rtdname}{log_suffix}")

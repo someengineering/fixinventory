@@ -8,6 +8,7 @@ from resoto_plugin_aws.resource.kinesis import AwsKinesisStream
 from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resoto_plugin_aws.utils import ToDict
 from resotolib.baseresources import BaseDatabase, ModelReference
+from resotolib.graph import Graph
 from resotolib.json_bender import F, K, S, Bend, Bender, ForallBend, bend
 from resotolib.types import Json
 from resotolib.utils import utc
@@ -480,7 +481,7 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
         for key_reference in keys:
             builder.dependant_node(from_node=self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(key_reference))
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
             aws_service=self.api_spec.service,
             action="delete-db-instance",
@@ -751,7 +752,7 @@ class AwsRdsCluster(RdsTaggable, AwsResource, BaseDatabase):
         if kinesis := self.rds_activity_stream_kinesis_stream_name:
             builder.add_edge(self, clazz=AwsKinesisStream, name=kinesis)
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
             aws_service=self.api_spec.service,
             action="delete-db-cluster",

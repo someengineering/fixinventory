@@ -4,6 +4,7 @@ from types import SimpleNamespace
 
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.route53 import AwsRoute53Zone
+from resotolib.graph import Graph
 from test.resources import round_trip_for
 
 
@@ -46,4 +47,4 @@ def test_delete_zones() -> None:
         assert kwargs["Id"] == zone.id
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
-    zone.delete_resource(client)
+    zone.delete_resource(client, Graph())

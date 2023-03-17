@@ -503,7 +503,7 @@ class AwsCloudFrontDistribution(CloudFrontTaggable, CloudFrontResource, AwsResou
                 return True
         return False
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         return self.delete_cloudfront_resource(client, "distribution", self.id)
 
 
@@ -540,7 +540,7 @@ class AwsCloudFrontFunction(CloudFrontTaggable, CloudFrontResource, AwsResource)
             AwsApiSpec(service_name, "delete-function"),
         ]
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         description = client.get(
             self.api_spec.service, "describe-function", None, None, Name=self.name, Stage=self.function_stage
         )
@@ -579,7 +579,7 @@ class AwsCloudFrontPublicKey(CloudFrontResource, AwsResource):
             AwsApiSpec(service_name, "delete-public-key"),
         ]
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         return self.delete_cloudfront_resource(client, "public-key", self.id)
 
 
@@ -622,7 +622,7 @@ class AwsCloudFrontRealtimeLogConfig(CloudFrontTaggable, CloudFrontResource, Aws
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return super().called_mutator_apis() + [AwsApiSpec(service_name, "delete-realtime-log-config")]
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
             aws_service=self.api_spec.service, action="delete-realtime-log-config", result_name=None, Name=self.name
         )
@@ -793,7 +793,7 @@ class AwsCloudFrontResponseHeadersPolicy(CloudFrontResource, AwsResource):
             AwsApiSpec(service_name, "delete-response-headers-policy"),
         ]
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         return self.delete_cloudfront_resource(client, "response-headers-policy", self.id)
 
 
@@ -864,7 +864,7 @@ class AwsCloudFrontOriginAccessControl(CloudFrontResource, AwsResource):
             AwsApiSpec(service_name, "delete-origin-access-control"),
         ]
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         return self.delete_cloudfront_resource(client, "origin-access-control", self.id)
 
 
@@ -959,7 +959,7 @@ class AwsCloudFrontCachePolicy(CloudFrontResource, AwsResource):
             AwsApiSpec(service_name, "delete-cache-policy"),
         ]
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         return self.delete_cloudfront_resource(client, "cache-policy", self.id)
 
 
@@ -1053,7 +1053,7 @@ class AwsCloudFrontFieldLevelEncryptionConfig(CloudFrontResource, AwsResource):
                     id=entry.profile_id,
                 )
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         return self.delete_cloudfront_resource(client, "field-level-encryption-config", self.id)
 
 
@@ -1106,7 +1106,7 @@ class AwsCloudFrontFieldLevelEncryptionProfile(CloudFrontResource, AwsResource):
                     id=entry.public_key_id,
                 )
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         return self.delete_cloudfront_resource(client, "field-level-encryption-profile", self.id)
 
 

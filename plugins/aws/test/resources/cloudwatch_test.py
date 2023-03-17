@@ -1,6 +1,8 @@
 from datetime import timedelta, datetime, timezone
 from typing import cast, Any
 from types import SimpleNamespace
+
+from resotolib.graph import Graph
 from test.resources import round_trip_for
 
 from resoto_plugin_aws.aws_client import AwsClient
@@ -70,4 +72,4 @@ def test_deletion() -> None:
         assert kwargs["AlarmNames"] == [alarm.name]
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
-    alarm.delete_resource(client)
+    alarm.delete_resource(client, Graph())

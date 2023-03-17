@@ -10,6 +10,7 @@ from resoto_plugin_aws.resource.iam import AwsIamRole
 from resoto_plugin_aws.resource.route53 import AwsRoute53Zone
 
 from resotolib.baseresources import EdgeType, ModelReference
+from resotolib.graph import Graph
 from resotolib.json import from_json
 from resotolib.json_bender import Bender, S, Bend, bend
 from resotolib.types import Json
@@ -180,7 +181,7 @@ class AwsApiGatewayResource(AwsResource):
                     id=self.resource_methods[method].authorizer_id,
                 )
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
             aws_service=service_name,
             action="delete-resource",
@@ -240,7 +241,7 @@ class AwsApiGatewayAuthorizer(AwsResource):
         for user_pool in self.authorizer_provider_arns:
             builder.add_edge(self, edge_type=EdgeType.default, kind="aws_cognito_user_pool", arn=user_pool)
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
             aws_service=service_name,
             action="delete-authorizer",
@@ -309,7 +310,7 @@ class AwsApiGatewayStage(ApiGatewayTaggable, AwsResource):
 
     # TODO add edge to Web Acl when applicable (via stage_web_acl_arn)
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
             aws_service=service_name,
             action="delete-stage",
@@ -343,7 +344,7 @@ class AwsApiGatewayDeployment(AwsResource):
     deployment_api_summary: Optional[Dict[str, Dict[str, Dict[str, Union[str, bool]]]]] = field(default=None)
     api_link: Optional[str] = field(default=None)
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
             aws_service=service_name,
             action="delete-deployment",
@@ -483,7 +484,7 @@ class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
                     id=endpoint,
                 )
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
             aws_service=self.api_spec.service,
             action="delete-rest-api",

@@ -5,6 +5,7 @@ from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
 from resotolib.baseresources import BaseAccessKey
 from resoto_plugin_aws.utils import ToDict
+from resotolib.graph import Graph
 from resotolib.json_bender import Bend, Bender, S, ForallBend, bend
 from resotolib.types import Json
 
@@ -143,7 +144,7 @@ class AwsKmsKey(AwsResource, BaseAccessKey):
         client.call(aws_service=service_name, action="untag-resource", result_name=None, KeyId=self.id, TagKeys=[key])
         return True
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         if self.access_key_status == "Disabled":
             client.call(
                 aws_service=service_name,

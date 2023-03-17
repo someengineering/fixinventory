@@ -122,7 +122,7 @@ class AwsEcsCapacityProvider(EcsTaggable, AwsResource):
                 predecessor.disassociate_capacity_provider(client=client, capacity_provider_name=self.safe_name)
         return True
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(service_name, "delete-capacity-provider", None, capacityProvider=self.safe_name)
         return True
 
@@ -436,7 +436,7 @@ class AwsEcsTask(EcsTaggable, AwsResource):
                 self, edge_type=EdgeType.default, clazz=AwsEcsCapacityProvider, name=self.task_capacity_provider_name
             )
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
             aws_service=service_name, action="stop-task", result_name=None, cluster=self.task_cluster_arn, task=self.arn
         )
@@ -913,7 +913,7 @@ class AwsEcsTaskDefinition(EcsTaggable, AwsResource):
                 arn=role,
             )
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
             aws_service=service_name,
             action="deregister-task-definition",
@@ -1304,7 +1304,7 @@ class AwsEcsService(EcsTaggable, AwsResource):
         for provider in all_capacity_providers:
             builder.add_edge(self, edge_type=EdgeType.default, clazz=AwsEcsCapacityProvider, name=provider)
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
             aws_service=service_name,
             action="delete-service",
@@ -1453,7 +1453,7 @@ class AwsEcsContainerInstance(EcsTaggable, AwsResource):
                 id=self.ec2_instance_id,
             )
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
             service_name, "deregister-container-instance", None, cluster=self.cluster_link, containerInstance=self.arn
         )
@@ -1659,7 +1659,7 @@ class AwsEcsCluster(EcsTaggable, AwsResource):
                 if exc.log_configuration and exc.log_configuration.s3_bucket_name:
                     builder.add_edge(self, clazz=AwsS3Bucket, name=exc.log_configuration.s3_bucket_name)
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(aws_service=self.api_spec.service, action="delete-cluster", result_name=None, cluster=self.arn)
         return True
 

@@ -8,6 +8,7 @@ from resoto_plugin_aws.resource.base import AwsApiSpec, GraphBuilder, AwsResourc
 from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resoto_plugin_aws.utils import ToDict
 from resotolib.baseresources import ModelReference, BaseNetworkShare
+from resotolib.graph import Graph
 from resotolib.json_bender import Bender, S, F, Bend
 from resotolib.types import Json
 
@@ -128,13 +129,15 @@ class AwsEfsFileSystem(EfsTaggable, AwsResource, BaseNetworkShare):
         if kms_key_id := source.get("KmsKeyId"):
             builder.dependant_node(from_node=self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(kms_key_id))
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(service_name, "delete-file-system", FileSystemId=self.id)
         return True
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return [AwsApiSpec(service_name, "delete-file-system")]
+        return [
+            AwsApiSpec(service_name, "delete-file-system", override_iam_permission="elasticfilesystem:DeleteFileSystem")
+        ]
 
 
 @define(eq=False, slots=False)

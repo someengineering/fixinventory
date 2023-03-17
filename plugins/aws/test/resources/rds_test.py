@@ -1,3 +1,4 @@
+from resotolib.graph import Graph
 from test.resources import round_trip_for
 from types import SimpleNamespace
 from typing import cast, Any
@@ -44,4 +45,4 @@ def test_deletion() -> None:
         assert kwargs["SkipFinalSnapshot"] is True
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
-    instance.delete_resource(client)
+    instance.delete_resource(client, Graph())

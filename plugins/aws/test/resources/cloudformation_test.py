@@ -4,6 +4,7 @@ from resoto_plugin_aws.resource.cloudformation import (
     AwsCloudFormationStackInstanceSummary,
 )
 from resoto_plugin_aws.aws_client import AwsClient
+from resotolib.graph import Graph
 from test.resources import round_trip_for
 from typing import Any, cast
 from types import SimpleNamespace
@@ -67,7 +68,7 @@ def test_cloud_formation_stack_delete() -> None:
         assert kwargs["StackName"] == cf.name
 
     client = cast(AwsClient, SimpleNamespace(call=partial(validate_args)))
-    cf.delete_resource(client)
+    cf.delete_resource(client, Graph())
 
 
 def test_cloud_formation_stack_set_tagging() -> None:
@@ -105,4 +106,4 @@ def test_cloud_formation_stack_set_delete() -> None:
         assert kwargs["StackSetName"] == cf.name
 
     client = cast(AwsClient, SimpleNamespace(call=partial(validate_args)))
-    cf.delete_resource(client)
+    cf.delete_resource(client, Graph())
