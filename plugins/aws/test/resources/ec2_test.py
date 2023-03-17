@@ -22,6 +22,7 @@ from resoto_plugin_aws.resource.ec2 import (
     AwsEc2Host,
     AwsEc2FlowLog,
 )
+from resotolib.graph import Graph
 from test.resources import round_trip_for, build_graph, check_single_node
 
 
@@ -52,14 +53,14 @@ def test_delete_volumes() -> None:
         assert kwargs["VolumeId"] == volume.id
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
-    volume.delete_resource(client)
+    volume.delete_resource(client, Graph())
 
 
 def test_snapshots() -> None:
     round_trip_for(AwsEc2Snapshot)
 
 
-def test_delete_shapshot() -> None:
+def test_delete_snapshot() -> None:
     snapshot, _ = round_trip_for(AwsEc2Snapshot)
 
     def validate_delete_args(**kwargs: Any) -> None:
@@ -67,7 +68,7 @@ def test_delete_shapshot() -> None:
         assert kwargs["SnapshotId"] == snapshot.id
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
-    snapshot.delete_resource(client)
+    snapshot.delete_resource(client, Graph())
 
 
 def test_keypair() -> None:
@@ -82,7 +83,7 @@ def test_delete_keypair() -> None:
         assert kwargs["KeyPairId"] == keypair.id
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
-    keypair.delete_resource(client)
+    keypair.delete_resource(client, Graph())
 
 
 def test_instance() -> None:
@@ -98,7 +99,7 @@ def test_delete_instances() -> None:
         assert kwargs["DryRun"] is False
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
-    instance.delete_resource(client)
+    instance.delete_resource(client, Graph())
 
 
 def test_network_acl() -> None:
@@ -113,7 +114,7 @@ def test_delete_network_acl() -> None:
         assert kwargs["NetworkAclId"] == network_acl.id
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
-    network_acl.delete_resource(client)
+    network_acl.delete_resource(client, Graph())
 
 
 def test_elastic_ips() -> None:
@@ -131,7 +132,7 @@ def test_delete_elastic_ips() -> None:
             assert kwargs["AllocationId"] == elastic_ip.ip_allocation_id
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
-    elastic_ip.delete_resource(client)
+    elastic_ip.delete_resource(client, Graph())
 
 
 def test_network_interfaces() -> None:
@@ -151,7 +152,7 @@ def test_delete_network_interfaces() -> None:
         assert kwargs["NetworkInterfaceId"] == network_interface.id
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
-    network_interface.delete_resource(client)
+    network_interface.delete_resource(client, Graph())
 
 
 def test_vpcs() -> None:
@@ -166,7 +167,7 @@ def test_delete_vpcs() -> None:
         assert kwargs["VpcId"] == vpc.id
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
-    vpc.delete_resource(client)
+    vpc.delete_resource(client, Graph())
 
 
 def test_vpc_peering_connections() -> None:
@@ -181,7 +182,7 @@ def test_delete_vpc_peering_connections() -> None:
         assert kwargs["VpcPeeringConnectionId"] == vpc_peering_connection.id
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
-    vpc_peering_connection.delete_resource(client)
+    vpc_peering_connection.delete_resource(client, Graph())
 
 
 def test_vpc_endpoints() -> None:
@@ -196,7 +197,7 @@ def test_delete_vpc_endpoints() -> None:
         assert kwargs["VpcEndpointIds"] == [vpc_endpoint.id]
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
-    vpc_endpoint.delete_resource(client)
+    vpc_endpoint.delete_resource(client, Graph())
 
 
 def test_subnets() -> None:
@@ -211,7 +212,7 @@ def test_delete_subnets() -> None:
         assert kwargs["SubnetId"] == subnet.id
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
-    subnet.delete_resource(client)
+    subnet.delete_resource(client, Graph())
 
 
 def test_route_table() -> None:
@@ -226,7 +227,7 @@ def test_delete_route_table() -> None:
         assert kwargs["RouteTableId"] == route_table.id
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
-    route_table.delete_resource(client)
+    route_table.delete_resource(client, Graph())
 
 
 def test_security_groups() -> None:
@@ -244,7 +245,7 @@ def test_delete_security_groups() -> None:
             assert kwargs["GroupId"] == security_group.id
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
-    security_group.delete_resource(client)
+    security_group.delete_resource(client, Graph())
 
 
 def test_nat_gateways() -> None:
@@ -259,7 +260,7 @@ def test_delete_nat_gateways() -> None:
         assert kwargs["NatGatewayId"] == nat_gateway.id
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
-    nat_gateway.delete_resource(client)
+    nat_gateway.delete_resource(client, Graph())
 
 
 def test_internet_gateways() -> None:
@@ -274,7 +275,7 @@ def test_delete_internet_gateways() -> None:
         assert kwargs["InternetGatewayId"] == internet_gateway.id
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
-    internet_gateway.delete_resource(client)
+    internet_gateway.delete_resource(client, Graph())
 
 
 def test_dedicated_hosts() -> None:
@@ -289,7 +290,7 @@ def test_delete_dedicated_hosts() -> None:
         assert kwargs["HostIds"] == [host.id]
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
-    host.delete_resource(client)
+    host.delete_resource(client, Graph())
 
 
 def test_tagging() -> None:

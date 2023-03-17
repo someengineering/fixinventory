@@ -7,6 +7,7 @@ from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
 from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resotolib.baseresources import ModelReference
+from resotolib.graph import Graph
 from resotolib.json_bender import F, Bender, S, AsInt, AsBool, Bend, ParseJson
 from resotolib.types import Json
 from resotolib.utils import utc_str
@@ -133,7 +134,7 @@ class AwsSqsQueue(AwsResource):
         )
         return True
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(aws_service=service_name, action="delete-queue", result_name=None, QueueUrl=self.sqs_queue_url)
         return True
 

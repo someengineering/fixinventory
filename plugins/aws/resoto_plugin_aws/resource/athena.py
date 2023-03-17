@@ -9,6 +9,7 @@ from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resoto_plugin_aws.resource.s3 import AwsS3Bucket
 from resoto_plugin_aws.utils import ToDict
 from resotolib.baseresources import ModelReference
+from resotolib.graph import Graph
 from resotolib.json_bender import Bender, S, Bend, bend
 from resotolib.types import Json
 
@@ -169,7 +170,7 @@ class AwsAthenaWorkGroup(AwsResource):
         )
         return True
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
             aws_service=self.api_spec.service,
             action="delete-work-group",
@@ -264,7 +265,7 @@ class AwsAthenaDataCatalog(AwsResource):
         )
         return True
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(aws_service=service_name, action="delete-data-catalog", result_name=None, Name=self.name)
         return True
 

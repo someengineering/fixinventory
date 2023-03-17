@@ -6,6 +6,7 @@ from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilde
 from resoto_plugin_aws.resource.ec2 import AwsEc2Instance
 from resoto_plugin_aws.utils import ToDict
 from resotolib.baseresources import BaseAutoScalingGroup, ModelReference
+from resotolib.graph import Graph
 from resotolib.json_bender import Bender, S, Bend, ForallBend
 from resotolib.types import Json
 from resoto_plugin_aws.aws_client import AwsClient
@@ -313,7 +314,7 @@ class AwsAutoScalingGroup(AwsResource, BaseAutoScalingGroup):
         )
         return True
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
             aws_service=self.api_spec.service,
             action="delete-auto-scaling-group",

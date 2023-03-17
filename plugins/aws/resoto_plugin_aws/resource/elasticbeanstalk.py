@@ -8,6 +8,7 @@ from resoto_plugin_aws.resource.elbv2 import AwsAlb
 from resoto_plugin_aws.resource.sqs import AwsSqsQueue
 from resoto_plugin_aws.utils import ToDict
 from resotolib.baseresources import ModelReference
+from resotolib.graph import Graph
 from resotolib.json_bender import Bender, S, Bend, ForallBend, bend
 from resotolib.types import Json
 from resotolib.json import from_json
@@ -127,7 +128,7 @@ class AwsBeanstalkApplication(AwsResource):
         )
         return True
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
             aws_service=self.api_spec.service, action="delete-application", result_name=None, ApplicationName=self.name
         )
@@ -370,7 +371,7 @@ class AwsBeanstalkEnvironment(AwsResource):
         )
         return True
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         # If the environment is already terminated, we don't need to do anything
         if self.beanstalk_status == "Terminated":
             return True

@@ -37,6 +37,7 @@ from aiohttp.hdrs import METH_ANY
 from aiohttp.web import Request, StreamResponse, WebSocketResponse
 from aiohttp.web_exceptions import HTTPNotFound, HTTPNoContent, HTTPOk, HTTPNotAcceptable
 from aiohttp.web_fileresponse import FileResponse
+from aiohttp.web_response import json_response
 from aiohttp_swagger3 import SwaggerFile, SwaggerUiSettings
 from aiostream import stream
 from aiostream.core import Stream
@@ -67,6 +68,7 @@ from resotocore.ids import TaskId, ConfigId, NodeId, SubscriberId, WorkerId
 from resotocore.message_bus import MessageBus, Message, ActionDone, Action, ActionError, ActionInfo, ActionProgress
 from resotocore.model.db_updater import merge_graph_process
 from resotocore.model.graph_access import Section
+from resotocore.model.json_schema import json_schema
 from resotocore.model.model import Kind, Model
 from resotocore.model.model_handler import ModelHandler
 from resotocore.model.typed_model import to_json, from_js, to_js_str, to_js
@@ -678,6 +680,9 @@ class Api:
 
     async def get_model(self, request: Request) -> StreamResponse:
         md = await self.model_handler.load_model()
+        # default to internal model format, but allow to request json schema format
+        if request.headers.get("accept") == "application/schema+json":
+            return json_response(json_schema(md), content_type="application/schema+json")
         kinds: Iterable[Kind]
         if request.query.get("flat", "false") == "true":
             kinds = md.flat_kinds()

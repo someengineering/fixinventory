@@ -6,6 +6,7 @@ from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpe
 from resoto_plugin_aws.resource.ec2 import AwsEc2Subnet, AwsEc2SecurityGroup, AwsEc2Vpc, AwsEc2Instance
 from resoto_plugin_aws.utils import ToDict
 from resotolib.baseresources import BaseLoadBalancer, ModelReference
+from resotolib.graph import Graph
 from resotolib.json_bender import Bender, S, Bend, bend, ForallBend, K
 from resotolib.types import Json
 from resoto_plugin_aws.aws_client import AwsClient
@@ -235,7 +236,7 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
         for instance in self.backends:
             builder.dependant_node(self, clazz=AwsEc2Instance, id=instance)
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
             aws_service=self.api_spec.service,
             action="delete-load-balancer",

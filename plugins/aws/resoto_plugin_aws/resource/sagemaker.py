@@ -163,7 +163,7 @@ class AwsSagemakerNotebook(SagemakerTaggable, AwsResource):
         client.call(service_name, "stop-notebook-instance", result_name=None, NotebookInstanceName=self.name)
         return True
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         if self.notebook_instance_status == "Stopped":
             client.call(
                 aws_service=self.api_spec.service,
@@ -633,7 +633,7 @@ class AwsSagemakerAlgorithm(AwsResource):
                 self, reverse=True, delete_same_as_default=True, clazz=AwsIamRole, arn=validation_role
             )
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
             aws_service=self.api_spec.service, action="delete-algorithm", result_name=None, AlgorithmName=self.name
         )
@@ -749,7 +749,7 @@ class AwsSagemakerModel(SagemakerTaggable, AwsResource):
             for subnet in self.model_vpc_config.subnets:
                 builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsEc2Subnet, id=subnet)
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(aws_service=self.api_spec.service, action="delete-model", result_name=None, ModelName=self.name)
         return True
 
@@ -863,7 +863,7 @@ class AwsSagemakerApp(AwsResource):
         if user := self.app_user_profile_name:
             builder.dependant_node(self, reverse=True, clazz=AwsSagemakerUserProfile, name=user)
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
             aws_service=self.api_spec.service,
             action="delete-app",
@@ -1225,7 +1225,7 @@ class AwsSagemakerDomain(AwsResource):
                     if drs.sage_maker_image_arn:
                         builder.add_edge(self, clazz=AwsSagemakerImage, arn=drs.sage_maker_image_arn)
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(aws_service=self.api_spec.service, action="delete-domain", result_name=None, DomainId=self.id)
         return True
 
@@ -1258,7 +1258,7 @@ class AwsSagemakerExperiment(AwsResource):
     experiment_display_name: Optional[str] = field(default=None)
     experiment_source: Optional[AwsSagemakerExperimentSource] = field(default=None)
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
             aws_service=self.api_spec.service, action="delete-experiment", result_name=None, ExperimentName=self.name
         )
@@ -1371,7 +1371,7 @@ class AwsSagemakerTrial(AwsResource):
             if project_id := value_in_path(source, ["MetadataProperties", "ProjectId"]):
                 builder.add_edge(self, reverse=True, clazz=AwsSagemakerProject, id=project_id)
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(aws_service=self.api_spec.service, action="delete-trial", result_name=None, TrialName=self.name)
         return True
 
@@ -1396,7 +1396,7 @@ class AwsSagemakerProject(AwsResource):
     arn: Optional[str] = field(default=None)
     project_status: Optional[str] = field(default=None)
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(aws_service=self.api_spec.service, action="delete-project", result_name=None, ProjectName=self.name)
         return True
 
@@ -1433,7 +1433,7 @@ class AwsSagemakerCodeRepository(AwsResource):
     code_repository_git_config: Optional[AwsSagemakerGitConfig] = field(default=None)
     code_repository_url: Optional[str] = field(default=None)
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
             aws_service=self.api_spec.service,
             action="delete-code-repository",
@@ -1826,7 +1826,7 @@ class AwsSagemakerEndpoint(SagemakerTaggable, AwsResource):
                     if nc.error_topic:
                         builder.add_edge(self, clazz=AwsSnsTopic, arn=nc.error_topic)
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
             aws_service=self.api_spec.service, action="delete-endpoint", result_name=None, EndpointName=self.name
         )
@@ -1879,7 +1879,7 @@ class AwsSagemakerImage(AwsResource):
         if role := value_in_path(source, "RoleArn"):
             builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsIamRole, arn=role)
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(aws_service=self.api_spec.service, action="delete-image", result_name=None, ImageName=self.name)
         return True
 
@@ -1973,7 +1973,7 @@ class AwsSagemakerArtifact(AwsResource):
         if project_id := value_in_path(source, ["MetadataProperties", "ProjectId"]):
             builder.add_edge(self, reverse=True, clazz=AwsSagemakerProject, id=project_id)
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(aws_service=self.api_spec.service, action="delete-artifact", result_name=None, ArtifactArn=self.arn)
         return True
 
@@ -2005,7 +2005,7 @@ class AwsSagemakerUserProfile(AwsResource):
         if domain_id := value_in_path(source, "DomainId"):
             builder.dependant_node(self, reverse=True, clazz=AwsSagemakerDomain, id=domain_id)
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
             aws_service=self.api_spec.service,
             action="delete-user-profile",
@@ -2081,7 +2081,7 @@ class AwsSagemakerPipeline(AwsResource):
             if m.domain_id:
                 builder.add_edge(self, reverse=True, clazz=AwsSagemakerDomain, id=m.domain_id)
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
             aws_service=self.api_spec.service, action="delete-pipeline", result_name=None, PipelineName=self.name
         )
@@ -2176,7 +2176,7 @@ class AwsSagemakerWorkteam(SagemakerTaggable, AwsResource):
         if self.workteam_notification_configuration:
             builder.add_edge(self, clazz=AwsSnsTopic, arn=self.workteam_notification_configuration)
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
             aws_service=self.api_spec.service, action="delete-workteam", result_name=None, WorkteamName=self.name
         )

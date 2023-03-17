@@ -7,6 +7,7 @@ from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsApiSpec, GraphBuilder
 from resoto_plugin_aws.resource.base import AwsResource
 from resoto_plugin_aws.utils import ToDict
+from resotolib.graph import Graph
 from resotolib.json import from_json
 from resotolib.json_bender import Bender, S, Bend, bend
 from resotolib.types import Json
@@ -80,7 +81,7 @@ class AwsConfigRecorder(AwsResource):
                 instance.mtime = status.last_status_change_time
             builder.add_node(instance, js)
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(service_name, "delete-configuration-recorder", self.name)
         return True
 

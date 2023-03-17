@@ -5,6 +5,7 @@ from attrs import define, field
 from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
 from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resotolib.baseresources import ModelReference
+from resotolib.graph import Graph
 from resotolib.json_bender import Bender, S, Bend, ForallBend, K
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.utils import ToDict
@@ -476,7 +477,7 @@ class AwsRedshiftCluster(AwsResource):
         )
         return True
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
             aws_service=self.api_spec.service,
             action="delete-cluster",

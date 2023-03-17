@@ -6,6 +6,7 @@ from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilde
 from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resoto_plugin_aws.resource.sns import AwsSnsTopic
 from resotolib.baseresources import ModelReference
+from resotolib.graph import Graph
 from resotolib.json_bender import Bender, S, Bend, ForallBend, K, bend
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.utils import ToDict
@@ -269,7 +270,7 @@ class AwsElastiCacheCacheCluster(ElastiCacheTaggable, AwsResource):
     cluster_replication_group_log_delivery_enabled: Optional[bool] = field(default=None)
     cluster_log_delivery_configurations: List[AwsElastiCacheLogDeliveryConfiguration] = field(factory=list)
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
             aws_service=self.api_spec.service, action="delete-cache-cluster", result_name=None, CacheClusterId=self.id
         )
@@ -495,7 +496,7 @@ class AwsElastiCacheReplicationGroup(ElastiCacheTaggable, AwsResource):
         if self.replication_group_kms_key_id:
             builder.dependant_node(self, clazz=AwsKmsKey, id=self.replication_group_kms_key_id)
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
             aws_service=self.api_spec.service,
             action="delete-replication-group",

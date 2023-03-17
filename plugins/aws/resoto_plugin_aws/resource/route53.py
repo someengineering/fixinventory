@@ -13,6 +13,7 @@ from resotolib.baseresources import (
     BaseDNSRecordSet,
     ModelReference,
 )
+from resotolib.graph import Graph
 from resotolib.json_bender import F, Bender, S, Bend, ForallBend, bend
 from resotolib.types import Json
 from resotolib.utils import rrdata_as_dict
@@ -125,7 +126,7 @@ class AwsRoute53Zone(AwsResource, BaseDNSZone):
         )
         return True
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
             aws_service=service_name, action="delete-hosted-zone", result_name=None, Id=self.id.rsplit("/", 1)[-1]
         )

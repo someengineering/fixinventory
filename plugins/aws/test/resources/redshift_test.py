@@ -1,4 +1,5 @@
 from resoto_plugin_aws.resource.redshift import AwsRedshiftCluster
+from resotolib.graph import Graph
 from test.resources import round_trip_for
 from typing import Any, cast
 from types import SimpleNamespace
@@ -41,4 +42,4 @@ def test_deletion() -> None:
         assert kwargs["SkipFinalClusterSnapshot"] is True
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
-    cluster.delete_resource(client)
+    cluster.delete_resource(client, Graph())

@@ -1,4 +1,5 @@
 from resoto_plugin_aws.resource.lambda_ import AwsLambdaFunction, AwsLambdaPolicy
+from resotolib.graph import Graph
 from resotolib.json import from_json
 from test.resources import round_trip_for
 from typing import Any, cast
@@ -61,4 +62,4 @@ def test_deletion() -> None:
         assert kwargs["FunctionName"] == res.arn
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
-    res.delete_resource(client)
+    res.delete_resource(client, Graph())

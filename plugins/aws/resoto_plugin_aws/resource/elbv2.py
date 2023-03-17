@@ -6,6 +6,7 @@ from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpe
 from resoto_plugin_aws.resource.ec2 import AwsEc2Vpc, AwsEc2Subnet, AwsEc2Instance, AwsEc2SecurityGroup
 from resoto_plugin_aws.utils import ToDict
 from resotolib.baseresources import BaseLoadBalancer, ModelReference
+from resotolib.graph import Graph
 from resotolib.json import from_json
 from resotolib.json_bender import Bender, S, Bend, bend, ForallBend, K
 from resotolib.types import Json
@@ -341,7 +342,7 @@ class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
         for sn in self.alb_availability_zones:
             builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsEc2Subnet, id=sn.subnet_id)
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
             aws_service=self.api_spec.service, action="delete-load-balancer", result_name=None, LoadBalancerArn=self.arn
         )
@@ -491,7 +492,7 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
                         lb.backends.append(th.target.id)
                         builder.dependant_node(self, clazz=AwsEc2Instance, id=th.target.id)
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
             aws_service=self.api_spec.service, action="delete-target-group", result_name=None, TargetGroupArn=self.arn
         )

@@ -3,6 +3,7 @@ from types import SimpleNamespace
 from typing import Any, Dict, cast
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.sns import AwsSnsTopic, AwsSnsSubscription, AwsSnsPlatformApplication
+from resotolib.graph import Graph
 from test.resources import round_trip_for
 
 
@@ -40,7 +41,7 @@ def test_delete_topics() -> None:
         assert kwargs["TopicArn"] == topic.arn
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
-    topic.delete_resource(client)
+    topic.delete_resource(client, Graph())
 
 
 def test_subs() -> None:
@@ -58,7 +59,7 @@ def test_delete_subs() -> None:
         assert kwargs["SubscriptionArn"] == sub.arn
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
-    sub.delete_resource(client)
+    sub.delete_resource(client, Graph())
 
 
 def test_apps() -> None:
@@ -78,4 +79,4 @@ def test_delete_apps() -> None:
         assert kwargs["PlatformApplicationArn"] == app.arn
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
-    app.delete_resource(client)
+    app.delete_resource(client, Graph())
