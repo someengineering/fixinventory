@@ -735,7 +735,7 @@ class BaseInstance(BaseResource):
 @define(eq=False, slots=False)
 class BaseVolumeType(BaseType):
     kind: ClassVar[str] = "volume_type"
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "volume_type.svg", "group": "compute"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "volume_type.svg", "group": "storage"}
     volume_type: str = ""
     ondemand_cost: float = 0.0
 
@@ -771,7 +771,7 @@ class BaseNetworkShare(BaseResource, ABC):
 @define(eq=False, slots=False)
 class BaseVolume(BaseResource):
     kind: ClassVar[str] = "volume"
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "volume_type.svg", "group": "storage"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "volume.svg", "group": "storage"}
     volume_size: int = 0
     volume_type: str = ""
     volume_status: Optional[VolumeStatus] = None
