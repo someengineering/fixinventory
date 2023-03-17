@@ -3326,7 +3326,6 @@ class GcpMachineType(GcpResource, BaseInstanceType):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         """Adds edges from machine type to SKUs and determines ondemand pricing
-        TODO: Implement GPU types
         """
 
         # log.debug((f"Looking up pricing for {self.rtdname}" f" in {self.location(graph).rtdname}"))

@@ -61,27 +61,29 @@ class ExecutorQueue:
             self.futures.append(future)
         return future
 
-    def _wait_for_current_batch(self) -> None:
-        # wait until all futures are complete
-        with self._lock:
-            to_wait = self.futures
-            self.futures = []
-        for future in concurrent.futures.as_completed(to_wait):
-            try:
-                future.result()
-            except CancelOnFirstError:
-                pass
-            except Exception as ex:
-                log.exception(f"Unhandled exception in project {self.name}: {ex}")
-                raise
+
 
     def wait_for_submitted_work(self) -> None:
+        def _wait_for_current_batch(self) -> None:
+        # wait until all futures are complete
+            with self._lock:
+                to_wait = self.futures
+                self.futures = []
+            for future in concurrent.futures.as_completed(to_wait):
+                try:
+                    future.result()
+                except CancelOnFirstError:
+                    pass
+                except Exception as ex:
+                    log.exception(f"Unhandled exception in project {self.name}: {ex}")
+                    raise
+
         # Wait until all submitted work and their potential "children" work is done
         with self._lock:
             remaining = len(self.futures)
 
         while not remaining == 0:
-            self._wait_for_current_batch()
+            _wait_for_current_batch()
             with self._lock:
                 remaining = len(self.futures)
 
