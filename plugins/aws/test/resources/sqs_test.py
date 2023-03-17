@@ -2,6 +2,7 @@ from types import SimpleNamespace
 from typing import Any, cast
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.sqs import AwsSqsQueue
+from resotolib.graph import Graph
 from test.resources import round_trip_for
 
 
@@ -39,4 +40,4 @@ def test_delete_queues() -> None:
         assert kwargs["QueueUrl"] == queue.sqs_queue_url
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
-    queue.delete_resource(client)
+    queue.delete_resource(client, Graph())

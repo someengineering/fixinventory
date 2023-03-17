@@ -1,5 +1,7 @@
 from typing import cast, Any
 from types import SimpleNamespace
+
+from resotolib.graph import Graph
 from test.resources import round_trip_for
 
 from resoto_plugin_aws.aws_client import AwsClient
@@ -62,7 +64,7 @@ def test_function_deletion() -> None:
         return {"ETag": "123"}
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args, get=mock_get))
-    func.delete_resource(client)
+    func.delete_resource(client, Graph())
 
 
 def test_public_keys() -> None:
@@ -82,7 +84,7 @@ def test_public_key_deletion() -> None:
         return {"ETag": "123"}
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args, get=mock_get))
-    key.delete_resource(client)
+    key.delete_resource(client, Graph())
 
 
 def test_realtime_log_configs() -> None:
@@ -98,7 +100,7 @@ def test_realtime_log_config_deletion() -> None:
         assert kwargs["Name"] == conf.name
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
-    conf.delete_resource(client)
+    conf.delete_resource(client, Graph())
 
 
 def test_response_headers_policies() -> None:

@@ -8,7 +8,7 @@ from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
 from resoto_plugin_aws.utils import ToDict
 from resotolib.baseresources import BaseStack
-from resotolib.graph import ByNodeId, BySearchCriteria
+from resotolib.graph import ByNodeId, BySearchCriteria, Graph
 from resotolib.json_bender import Bender, S, Bend, ForallBend, F
 from resotolib.types import Json
 
@@ -165,7 +165,7 @@ class AwsCloudFormationStack(AwsResource, BaseStack):
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
         return self._modify_tag(client, key, None, "delete")
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(aws_service=self.api_spec.service, action="delete-stack", result_name=None, StackName=self.name)
         return True
 
@@ -271,7 +271,7 @@ class AwsCloudFormationStackSet(AwsResource):
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
         return self._modify_tag(client, key, None, "delete")
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
             aws_service=self.api_spec.service,
             action="delete-stack-set",

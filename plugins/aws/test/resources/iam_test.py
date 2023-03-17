@@ -14,6 +14,7 @@ from resoto_plugin_aws.resource.iam import (
     AwsIamInstanceProfile,
     CredentialReportLine,
 )
+from resotolib.graph import Graph
 from test.resources import round_trip_for
 
 
@@ -88,7 +89,7 @@ def test_server_certificate_deletion() -> None:
         assert kwargs["ServerCertificateName"] == res.name
 
     client = cast(AwsClient, SimpleNamespace(call=validate_update_args))
-    res.delete_resource(client)
+    res.delete_resource(client, Graph())
 
 
 def test_aws_iam_policy_deletion() -> None:
@@ -100,7 +101,7 @@ def test_aws_iam_policy_deletion() -> None:
         assert kwargs["PolicyArn"] == res.arn
 
     client = cast(AwsClient, SimpleNamespace(call=validate_update_args))
-    res.delete_resource(client)
+    res.delete_resource(client, Graph())
 
 
 def test_aws_iam_group_deletion() -> None:
@@ -112,7 +113,7 @@ def test_aws_iam_group_deletion() -> None:
         assert kwargs["GroupName"] == res.name
 
     client = cast(AwsClient, SimpleNamespace(call=validate_update_args))
-    res.delete_resource(client)
+    res.delete_resource(client, Graph())
 
 
 def test_aws_iam_role_deletion() -> None:
@@ -124,7 +125,7 @@ def test_aws_iam_role_deletion() -> None:
         assert kwargs["RoleName"] == res.name
 
     client = cast(AwsClient, SimpleNamespace(call=validate_update_args))
-    res.delete_resource(client)
+    res.delete_resource(client, Graph())
 
 
 def test_aws_iam_user_deletion() -> None:
@@ -136,7 +137,7 @@ def test_aws_iam_user_deletion() -> None:
         assert kwargs["UserName"] == res.name
 
     client = cast(AwsClient, SimpleNamespace(call=validate_update_args))
-    res.delete_resource(client)
+    res.delete_resource(client, Graph())
 
 
 def test_aws_iam_instance_profile_deletion() -> None:
@@ -147,7 +148,7 @@ def test_aws_iam_instance_profile_deletion() -> None:
         assert kwargs["InstanceProfileName"] == res.name
 
     client = cast(AwsClient, SimpleNamespace(call=validate_update_args))
-    res.delete_resource(client)
+    res.delete_resource(client, Graph())
 
 
 def test_tagging() -> None:

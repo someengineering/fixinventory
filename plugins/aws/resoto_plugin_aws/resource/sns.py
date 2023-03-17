@@ -6,6 +6,7 @@ from resoto_plugin_aws.resource.iam import AwsIamRole
 from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resoto_plugin_aws.utils import ToDict
 from resotolib.baseresources import EdgeType, ModelReference
+from resotolib.graph import Graph
 from resotolib.json_bender import F, Bender, S, bend
 from resotolib.types import Json
 
@@ -98,7 +99,7 @@ class AwsSnsTopic(AwsResource):
         )
         return True
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(aws_service=service_name, action="delete-topic", result_name=None, TopicArn=self.arn)
         return True
 
@@ -178,7 +179,7 @@ class AwsSnsSubscription(AwsResource):
                 self, reverse=True, delete_same_as_default=True, clazz=AwsIamRole, arn=self.subscription_role_arn
             )
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(aws_service=service_name, action="unsubscribe", result_name=None, SubscriptionArn=self.arn)
         return True
 
@@ -200,7 +201,7 @@ class AwsSnsEndpoint(AwsResource):
     endpoint_enabled: Optional[bool] = field(default=None)
     endpoint_token: Optional[str] = field(default=None)
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(aws_service=service_name, action="delete-endpoint", result_name=None, EndpointArn=self.arn)
         return True
 
@@ -284,7 +285,7 @@ class AwsSnsPlatformApplication(AwsResource):
         ]:
             builder.add_edge(self, edge_type=EdgeType.default, clazz=AwsSnsTopic, arn=topic)
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
             aws_service=service_name,
             action="delete-platform-application",

@@ -9,6 +9,7 @@ from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilde
 from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resoto_plugin_aws.utils import ToDict
 from resotolib.baseresources import ModelReference
+from resotolib.graph import Graph
 from resotolib.json import from_json
 from resotolib.json_bender import S, Bend, Bender, ForallBend, bend, F, SecondsFromEpochToDatetime
 from resotolib.types import Json
@@ -220,7 +221,7 @@ class AwsCloudwatchAlarm(CloudwatchTaggable, AwsResource):
                 self, reverse=True, delete_same_as_default=True, kind="aws_ec2_instance", id=dimension.value
             )
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(aws_service=self.api_spec.service, action="delete-alarms", result_name=None, AlarmNames=[self.name])
         return True
 
@@ -256,6 +257,14 @@ class AwsCloudwatchLogGroup(LogsTaggable, AwsResource):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if kms_key_id := source.get("kmsKeyId"):
             builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(kms_key_id))
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [AwsApiSpec(service_name, "delete-log-group")]
+
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
+        client.call(aws_service=self.api_spec.service, action="delete-log-group", logGroupName=self.name)
+        return True
 
 
 @define(eq=False, slots=False)
@@ -307,6 +316,21 @@ class AwsCloudwatchMetricFilter(AwsResource):
                 cloudwatch_metric_name=transformation.metric_name,
             ):
                 builder.add_edge(self, node=alarm)
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [AwsApiSpec(service_name, "delete-metric-filter")]
+
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
+        if log_group := graph.search_first_parent_class(self, AwsCloudwatchLogGroup):
+            client.call(
+                aws_service=self.api_spec.service,
+                action="delete-metric-filter",
+                logGroupName=log_group.name,
+                filterName=self.name,
+            )
+            return True
+        return False
 
 
 @define(hash=True, frozen=True)

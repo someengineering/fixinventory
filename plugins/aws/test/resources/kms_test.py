@@ -1,5 +1,7 @@
 from typing import cast, Any
 from types import SimpleNamespace
+
+from resotolib.graph import Graph
 from test.resources import round_trip_for
 
 from resoto_plugin_aws.aws_client import AwsClient
@@ -41,7 +43,7 @@ def test_disable_keys() -> None:
         assert kwargs["KeyId"] == key.id
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
-    key.delete_resource(client)
+    key.delete_resource(client, Graph())
 
 
 def test_delete_keys() -> None:
@@ -52,7 +54,7 @@ def test_delete_keys() -> None:
         assert kwargs["KeyId"] == key.id
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
-    key.delete_resource(client)
+    key.delete_resource(client, Graph())
 
 
 def test_normalise_keys() -> None:

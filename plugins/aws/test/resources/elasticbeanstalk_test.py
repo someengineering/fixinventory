@@ -2,6 +2,7 @@ from typing import Any, cast
 from types import SimpleNamespace
 from resoto_plugin_aws.resource.elasticbeanstalk import AwsBeanstalkApplication, AwsBeanstalkEnvironment
 from resoto_plugin_aws.aws_client import AwsClient
+from resotolib.graph import Graph
 from test.resources import round_trip_for
 
 
@@ -39,7 +40,7 @@ def test_delete_application() -> None:
         assert kwargs["ApplicationName"] == app.name
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
-    app.delete_resource(client)
+    app.delete_resource(client, Graph())
 
 
 def test_environments() -> None:
@@ -76,4 +77,4 @@ def test_delete_environment() -> None:
         assert kwargs["EnvironmentName"] == env.name
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
-    env.delete_resource(client)
+    env.delete_resource(client, Graph())

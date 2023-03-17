@@ -6,6 +6,7 @@ from resoto_plugin_aws.resource.iam import AwsIamRole
 from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resoto_plugin_aws.resource.lambda_ import AwsLambdaFunction
 from resotolib.baseresources import BaseUser, EdgeType, ModelReference
+from resotolib.graph import Graph
 from resotolib.json_bender import S, Bend, Bender, ForallBend
 from resotolib.types import Json
 
@@ -42,7 +43,7 @@ class AwsCognitoGroup(AwsResource):
         if self.role_arn:
             builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsIamRole, arn=self.role_arn)
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
             aws_service=service_name, action="delete-group", result_name=None, GroupName=self.name, UserPoolId=self.id
         )
@@ -228,7 +229,7 @@ class AwsCognitoUserPool(AwsResource):
         )
         return True
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(aws_service=service_name, action="delete-user-pool", result_name=None, UserPoolId=self.id)
         return True
 

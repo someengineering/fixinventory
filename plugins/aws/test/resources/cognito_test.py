@@ -2,6 +2,7 @@ from collections import defaultdict
 from types import SimpleNamespace
 from typing import Any, Dict, cast
 from resoto_plugin_aws.aws_client import AwsClient
+from resotolib.graph import Graph
 from test.resources import round_trip_for
 from resoto_plugin_aws.resource.cognito import AwsCognitoUserPool
 
@@ -46,4 +47,4 @@ def test_delete_pools() -> None:
         assert kwargs["UserPoolId"] == pool.id
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
-    pool.delete_resource(client)
+    pool.delete_resource(client, Graph())

@@ -7,6 +7,7 @@ from resoto_plugin_aws.resource.kinesis import AwsKinesisStream
 from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resoto_plugin_aws.utils import ToDict
 from resotolib.baseresources import ModelReference
+from resotolib.graph import Graph
 from resotolib.json_bender import S, Bend, Bender, ForallBend, bend
 from resotolib.types import Json
 
@@ -349,7 +350,7 @@ class AwsDynamoDbTable(DynamoDbTaggable, AwsResource):
                 arn=self.dynamodb_sse_description.kms_master_key_arn,
             )
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(aws_service=self.api_spec.service, action="delete-table", result_name=None, TableName=self.name)
         return True
 
@@ -419,7 +420,7 @@ class AwsDynamoDbGlobalTable(DynamoDbTaggable, AwsResource):
                         id=replica.kms_master_key_id,
                     )
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(aws_service=self.api_spec.service, action="delete-table", result_name=None, TableName=self.name)
         return True
 

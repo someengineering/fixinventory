@@ -1,4 +1,5 @@
 from resoto_plugin_aws.resource.elbv2 import AwsAlb, AwsAlbTargetGroup
+from resotolib.graph import Graph
 from test.resources import round_trip_for
 from typing import Any, cast
 from types import SimpleNamespace
@@ -19,7 +20,7 @@ def test_alb_deletion() -> None:
         assert kwargs["LoadBalancerArn"] == alb.arn
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
-    alb.delete_resource(client)
+    alb.delete_resource(client, Graph())
 
 
 def test_alb_target_group_deletion() -> None:
@@ -30,7 +31,7 @@ def test_alb_target_group_deletion() -> None:
         assert kwargs["TargetGroupArn"] == alb.arn
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
-    alb.delete_resource(client)
+    alb.delete_resource(client, Graph())
 
 
 def test_alb_target_groups() -> None:

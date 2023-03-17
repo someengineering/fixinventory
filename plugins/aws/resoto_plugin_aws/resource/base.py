@@ -89,7 +89,8 @@ class AwsResource(BaseResource, ABC):
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
         return False
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
+        log.info(f"Delete not implemented for {self.kind}.")
         return False
 
     # legacy interface
@@ -102,7 +103,7 @@ class AwsResource(BaseResource, ABC):
 
     # legacy interface
     def delete(self, graph: Graph) -> bool:
-        return self.delete_resource(get_client(current_config(), self))
+        return self.delete_resource(get_client(current_config(), self), graph)
 
     def to_json(self) -> Json:
         return to_js(

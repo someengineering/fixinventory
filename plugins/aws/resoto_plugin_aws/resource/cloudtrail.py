@@ -11,6 +11,7 @@ from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resoto_plugin_aws.resource.s3 import AwsS3Bucket
 from resoto_plugin_aws.resource.sns import AwsSnsTopic
 from resoto_plugin_aws.utils import ToDict
+from resotolib.graph import Graph
 from resotolib.types import Json
 from resotolib.baseresources import ModelReference, EdgeType
 from resotolib.json import from_json
@@ -231,7 +232,7 @@ class AwsCloudTrail(AwsResource):
         client.call(service_name, "remove-tags", ResourceId=self.arn, TagsList=[{"Key": key}])
         return True
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(service_name, "delete-trail", Name=self.arn)
         return True
 

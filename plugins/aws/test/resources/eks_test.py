@@ -1,4 +1,5 @@
 from resoto_plugin_aws.resource.eks import AwsEksCluster, AwsEksNodegroup
+from resotolib.graph import Graph
 from test.resources import round_trip_for
 from typing import Any, cast
 from types import SimpleNamespace
@@ -19,7 +20,7 @@ def test_cluster_deletion() -> None:
         assert kwargs["name"] == cluster.name
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
-    cluster.delete_resource(client)
+    cluster.delete_resource(client, Graph())
 
 
 def test_nodegroup_deletion() -> None:
@@ -32,7 +33,7 @@ def test_nodegroup_deletion() -> None:
         assert kwargs["clusterName"] == nodegroup.cluster_name
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
-    nodegroup.delete_resource(client)
+    nodegroup.delete_resource(client, Graph())
 
 
 def test_tagging() -> None:

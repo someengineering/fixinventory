@@ -13,6 +13,7 @@ from resotolib.baseresources import (
     BaseServerlessFunction,
     ModelReference,
 )
+from resotolib.graph import Graph
 from resotolib.json import from_json
 from resotolib.json_bender import Bender, S, Bend, ForallBend, F, bend
 from resotolib.types import Json
@@ -359,7 +360,7 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
         )
         return True
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
             aws_service=self.api_spec.service, action="delete-function", result_name=None, FunctionName=self.arn
         )

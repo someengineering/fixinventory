@@ -169,7 +169,7 @@ class AwsIamRole(AwsResource):
 
         return True
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(aws_service=service_name, action="delete-role", result_name=None, RoleName=self.name)
         return True
 
@@ -220,7 +220,7 @@ class AwsIamServerCertificate(AwsResource, BaseCertificate):
             ServerCertificateName=self.name,
         )
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
             aws_service=self.api_spec.service,
             action="delete-server-certificate",
@@ -308,7 +308,7 @@ class AwsIamPolicy(AwsResource, BasePolicy):
             PolicyArn=self.arn,
         )
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
             aws_service=service_name,
             action="delete-policy",
@@ -375,7 +375,7 @@ class AwsIamGroup(AwsResource, BaseGroup):
 
         return True
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
             aws_service=service_name,
             action="delete-group",
@@ -687,7 +687,7 @@ class AwsIamUser(AwsResource, BaseUser):
 
         return True
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(aws_service=service_name, action="delete-user", result_name=None, UserName=self.name)
         return True
 
@@ -744,7 +744,7 @@ class AwsIamInstanceProfile(AwsResource, BaseInstanceProfile):
                 )
         return True
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
             aws_service=service_name, action="delete-instance-profile", result_name=None, InstanceProfileName=self.name
         )

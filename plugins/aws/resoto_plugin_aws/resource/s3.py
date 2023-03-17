@@ -9,6 +9,7 @@ from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
 from resoto_plugin_aws.utils import tags_as_dict
 from resotolib.baseresources import BaseBucket, PhantomBaseResource, ModelReference
+from resotolib.graph import Graph
 from resotolib.json import from_json, is_empty
 from resotolib.json_bender import Bender, S, bend, Bend, ForallBend
 from resotolib.types import Json
@@ -270,7 +271,7 @@ class AwsS3Bucket(AwsResource, BaseBucket):
             raise KeyError(key)
         return self._set_tags(client, tags)
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         def delete_bucket_content(s3: Any) -> bool:
             bucket = s3.Bucket(self.name)
             bucket.objects.delete()

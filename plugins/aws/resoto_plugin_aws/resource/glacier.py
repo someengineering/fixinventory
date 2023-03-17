@@ -7,6 +7,7 @@ from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilde
 from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resoto_plugin_aws.resource.sns import AwsSnsTopic
 from resotolib.baseresources import EdgeType, ModelReference
+from resotolib.graph import Graph
 from resotolib.json_bender import S, Bend, Bender, ForallBend
 from resotolib.types import Json
 
@@ -227,7 +228,7 @@ class AwsGlacierVault(AwsResource):
         )
         return True
 
-    def delete_resource(self, client: AwsClient) -> bool:
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(aws_service=service_name, action="delete-vault", result_name=None, vaultName=self.name)
         return True
 

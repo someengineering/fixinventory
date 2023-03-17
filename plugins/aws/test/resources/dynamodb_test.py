@@ -1,3 +1,4 @@
+from resotolib.graph import Graph
 from test.resources import round_trip_for
 from types import SimpleNamespace
 from typing import cast, Any
@@ -43,7 +44,7 @@ def test_delete_tables() -> None:
         assert kwargs["TableName"] == table.name
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
-    table.delete_resource(client)
+    table.delete_resource(client, Graph())
 
 
 def test_global_tables() -> None:
@@ -83,4 +84,4 @@ def test_delete_global_tables() -> None:
         assert kwargs["TableName"] == table.name
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
-    table.delete_resource(client)
+    table.delete_resource(client, Graph())
