@@ -31,7 +31,7 @@ from resotolib.core.model_export import (
 )
 from resotolib.logger import log
 from resotolib.types import Json
-from resotolib.utils import get_resource_attributes, unset_cached_properties
+from resotolib.utils import get_resource_attributes, unset_cached_properties, utc_str
 
 
 @define
@@ -556,6 +556,11 @@ class GraphExportIterator:
                         node_dict["metadata"] = {}
                     node_dict["metadata"]["replace"] = True
                     self.found_replace_node = True
+                if isinstance(node, BaseAccount):
+                    log.debug(f"Setting export time on {node.rtdname}")
+                    if "metadata" not in node_dict or not isinstance(node_dict["metadata"], dict):
+                        node_dict["metadata"] = {}
+                    node_dict["metadata"]["exported_at"] = utc_str()
                 node_json = jsons.dumps(node_dict) + "\n"
                 self.tempfile.write(node_json.encode())
                 self.total_lines += 1
