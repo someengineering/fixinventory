@@ -3325,19 +3325,18 @@ class GcpMachineType(GcpResource, BaseInstanceType):
         return True
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        """Adds edges from machine type to SKUs and determines ondemand pricing
-        """
-
-        # log.debug((f"Looking up pricing for {self.rtdname}" f" in {self.location(graph).rtdname}"))
-        skus = []
-        if not self.name or not self._region:
+        """Adds edges from machine type to SKUs and determines ondemand pricing"""
+        if not self.name:
             return
-        for sku in builder.resources_of(GcpSku):
+
+        def filter(sku: GcpSku) -> bool:
+            if not self.name or not self._region:
+                return False
             if not sku.description or not sku.category or not sku.geo_taxonomy:
-                continue
+                return False
 
             if not (sku.category.resource_family == "Compute" and sku.category.usage_type == "OnDemand"):
-                continue
+                return False
             if sku.category.resource_group not in (
                 "G1Small",
                 "F1Micro",
@@ -3345,24 +3344,24 @@ class GcpMachineType(GcpResource, BaseInstanceType):
                 "CPU",
                 "RAM",
             ):
-                continue
+                return False
             if ("custom" not in self.name and "Custom" in sku.description) or (
                 "custom" in self.name and "Custom" not in sku.description
             ):
-                continue
+                return False
             if self._region.name not in sku.geo_taxonomy.regions:
-                continue
+                return False
             if self.name == "g1-small" and sku.category.resource_group != "G1Small":
-                continue
+                return False
             if self.name == "f1-micro" and sku.category.resource_group != "F1Micro":
-                continue
+                return False
 
             if self.name.startswith("n1-") and sku.category.resource_group != "N1Standard":
-                continue
+                return False
 
-            if self._machine_type_matches_sku_description(sku.description):
-                skus.append(sku)
+            return self._machine_type_matches_sku_description(sku.description)
 
+        skus = builder.nodes(GcpSku, filter=filter)
         if len(skus) == 1 and self.name in ("g1-small", "f1-micro") and skus[0].usage_unit_nanos:
             builder.add_edge(self, reverse=True, node=skus[0])
             self.ondemand_cost = skus[0].usage_unit_nanos / 1000000000

@@ -61,11 +61,9 @@ class ExecutorQueue:
             self.futures.append(future)
         return future
 
-
-
     def wait_for_submitted_work(self) -> None:
-        def _wait_for_current_batch(self) -> None:
-        # wait until all futures are complete
+        def _wait_for_current_batch() -> None:
+            # wait until all futures are complete
             with self._lock:
                 to_wait = self.futures
                 self.futures = []
@@ -131,15 +129,44 @@ class GraphBuilder:
         self.region_by_zone_name = {z.safe_name: self.region_by_name[z.safe_name.rsplit("-", 1)[0]] for z in zns}
         self.zone_by_name = {z.safe_name: z for z in zns}
 
-    def node(self, clazz: Optional[Type[GcpResourceType]] = None, **node: Any) -> Optional[GcpResourceType]:
+    def node(
+        self, clazz: Optional[Type[GcpResourceType]] = None, filter: Optional[Callable[[Any], bool]] = None, **node: Any
+    ) -> Optional[GcpResourceType]:
+        """
+        Returns first node on the graph that is of given `clazz` and/or conforms to the `filter` and/or matches attributes given in `**node`.
+        """
         if isinstance(nd := node.get("node"), GcpResource):
             return nd  # type: ignore
         with self.graph_nodes_access:
             for n in self.graph:
-                is_clazz = isinstance(n, clazz) if clazz else True
-                if is_clazz and all(getattr(n, k, None) == v for k, v in node.items()):
+                if clazz and not isinstance(n, clazz):
+                    continue
+                if filter:
+                    if filter(n):
+                        return n  # type: ignore
+                elif all(getattr(n, k, None) == v for k, v in node.items()):
                     return n  # type: ignore
         return None
+
+    def nodes(
+        self, clazz: Optional[Type[GcpResourceType]] = None, filter: Optional[Callable[[Any], bool]] = None, **node: Any
+    ) -> List[GcpResourceType]:
+        """
+        Returns list of all nodes on the graph that are of given `clazz` and/or conform to the `filter` and/or match attributes given in `**node`.
+        """
+        result: List[GcpResourceType] = []
+        if isinstance(nd := node.get("node"), GcpResource):
+            result.append(nd)  # type: ignore
+        with self.graph_nodes_access:
+            for n in self.graph:
+                if clazz and not isinstance(n, clazz):
+                    continue
+                if filter:
+                    if filter(n):
+                        result.append(n)
+                elif all(getattr(n, k, None) == v for k, v in node.items()):
+                    result.append(n)
+        return result
 
     def add_node(self, node: GcpResourceType, source: Optional[Json] = None) -> Optional[GcpResourceType]:
         log.debug(f"{self.name}: add node {node}")
@@ -173,14 +200,37 @@ class GraphBuilder:
         return node
 
     def add_edge(
-        self, from_node: BaseResource, edge_type: EdgeType = EdgeType.default, reverse: bool = False, **to_node: Any
+        self,
+        from_node: BaseResource,
+        edge_type: EdgeType = EdgeType.default,
+        reverse: bool = False,
+        filter: Optional[Callable[[Any], bool]] = None,
+        **to_node: Any,
     ) -> None:
-        to_n = self.node(**to_node)
+        """
+        Creates edge between `from_node` and another node using `GraphBuilder.node(filter, **to_node)`.
+        """
+        to_n = self.node(filter=filter, **to_node)
         if isinstance(from_node, GcpResource) and isinstance(to_n, GcpResource):
             start, end = (to_n, from_node) if reverse else (from_node, to_n)
             log.debug(f"{self.name}: add edge: {start} -> {end} [{edge_type}]")
             with self.graph_edges_access:
                 self.graph.add_edge(start, end, edge_type=edge_type)
+
+    def add_edges(
+        self,
+        from_node: BaseResource,
+        edge_type: EdgeType = EdgeType.default,
+        reverse: bool = False,
+        filter: Optional[Callable[[Any], bool]] = None,
+        **to_nodes: Any,
+    ) -> None:
+        """
+        Creates edges between `from_node` and all nodes found with `GraphBuilder.nodes(filter, **to_node)`.
+        """
+        node: Type[GcpResource]
+        for node in self.nodes(filter=filter, **to_nodes):
+            self.add_edge(from_node, edge_type, reverse, node=node)
 
     def dependant_node(
         self, from_node: BaseResource, reverse: bool = False, delete_same_as_default: bool = False, **to_node: Any

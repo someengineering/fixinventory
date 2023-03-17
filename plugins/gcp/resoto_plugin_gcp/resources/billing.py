@@ -129,9 +129,10 @@ class GcpService(GcpResource):
         return result
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        for sku in builder.resources_of(GcpSku):
-            if sku.name and sku.name.startswith(self.id):
-                builder.add_edge(self, node=sku)
+        def filter(node: GcpResource) -> bool:
+            return isinstance(node, GcpSku) and node.name is not None and node.name.startswith(self.id)
+
+        builder.add_edges(self, filter=filter)
 
 
 @define(eq=False, slots=False)
