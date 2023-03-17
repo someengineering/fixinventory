@@ -133,7 +133,9 @@ class GraphBuilder:
         self, clazz: Optional[Type[GcpResourceType]] = None, filter: Optional[Callable[[Any], bool]] = None, **node: Any
     ) -> Optional[GcpResourceType]:
         """
-        Returns first node on the graph that is of given `clazz` and/or conforms to the `filter` and/or matches attributes given in `**node`.
+        Returns first node on the graph that is of given `clazz`
+        and/or conforms to the `filter`
+        and/or matches attributes given in `**node`.
         """
         if isinstance(nd := node.get("node"), GcpResource):
             return nd  # type: ignore
@@ -152,7 +154,9 @@ class GraphBuilder:
         self, clazz: Optional[Type[GcpResourceType]] = None, filter: Optional[Callable[[Any], bool]] = None, **node: Any
     ) -> List[GcpResourceType]:
         """
-        Returns list of all nodes on the graph that are of given `clazz` and/or conform to the `filter` and/or match attributes given in `**node`.
+        Returns list of all nodes on the graph that are of given `clazz`
+        and/or conform to the `filter`
+        and/or match attributes given in `**node`.
         """
         result: List[GcpResourceType] = []
         if isinstance(nd := node.get("node"), GcpResource):
