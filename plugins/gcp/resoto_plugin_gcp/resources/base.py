@@ -135,7 +135,8 @@ class GraphBuilder:
         """
         Returns first node on the graph that is of given `clazz`
         and/or conforms to the `filter`
-        and/or matches attributes given in `**node`.
+        or matches attributes given in `**node`.
+        Combination of filter and **node is not supported.
         """
         if isinstance(nd := node.get("node"), GcpResource):
             return nd  # type: ignore
@@ -156,7 +157,8 @@ class GraphBuilder:
         """
         Returns list of all nodes on the graph that are of given `clazz`
         and/or conform to the `filter`
-        and/or match attributes given in `**node`.
+        or match attributes given in `**node`.
+        Combination of filter and **node is not supported.
         """
         result: List[GcpResourceType] = []
         if isinstance(nd := node.get("node"), GcpResource):
