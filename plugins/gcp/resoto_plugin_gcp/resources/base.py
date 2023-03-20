@@ -134,8 +134,7 @@ class GraphBuilder:
     ) -> Optional[GcpResourceType]:
         """
         Returns first node on the graph that is of given `clazz`
-        and/or conforms to the `filter`
-        or matches attributes given in `**node`.
+        and/or conforms to the `filter` or matches attributes given in `**node`.
         Combination of filter and **node is not supported.
         """
         if isinstance(nd := node.get("node"), GcpResource):
@@ -156,8 +155,7 @@ class GraphBuilder:
     ) -> List[GcpResourceType]:
         """
         Returns list of all nodes on the graph that are of given `clazz`
-        and/or conform to the `filter`
-        or match attributes given in `**node`.
+        and/or conform to the `filter` or match attributes given in `**node`.
         Combination of filter and **node is not supported.
         """
         result: List[GcpResourceType] = []
