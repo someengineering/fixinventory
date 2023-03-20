@@ -11,9 +11,7 @@ from resotolib.core.actions import CoreFeedback
 from resotolib.graph import Graph
 
 log = logging.getLogger("resoto.plugins.gcp")
-all_resources: List[Type[GcpResource]] = (
-    sqladmin.resources + container.resources + compute.resources + billing.resources
-)
+all_resources: List[Type[GcpResource]] = [compute.GcpMachineType]  # compute.resources + billing.resources
 
 
 class GcpProjectCollector:

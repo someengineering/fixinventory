@@ -3259,23 +3259,21 @@ class GcpMachineType(GcpResource, BaseInstanceType):
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
         "accelerators": S("accelerators", default=[]) >> ForallBend(GcpAccelerators.mapping),
-        "guest_cpus": S("guestCpus"),
         "image_space_gb": S("imageSpaceGb"),
         "is_shared_cpu": S("isSharedCpu"),
         "maximum_persistent_disks": S("maximumPersistentDisks"),
         "maximum_persistent_disks_size_gb": S("maximumPersistentDisksSizeGb"),
-        "memory_mb": S("memoryMb"),
         "scratch_disks": S("scratchDisks", default=[]) >> ForallBend(S("diskGb")),
         "instance_type": S("name"),
         "instance_cores": S("guestCpus") >> F(lambda x: float(x)),
         "instance_memory": S("memoryMb") >> F(lambda x: float(x) / 1024),
     }
-    type_accelerators: Optional[List[GcpAccelerators]] = field(default=None)
-    type_image_space_gb: Optional[int] = field(default=None)
-    type_is_shared_cpu: Optional[bool] = field(default=None)
-    type_maximum_persistent_disks: Optional[int] = field(default=None)
-    type_maximum_persistent_disks_size_gb: Optional[str] = field(default=None)
-    type_scratch_disks: Optional[List[int]] = field(default=None)
+    accelerators: Optional[List[GcpAccelerators]] = field(default=None)
+    image_space_gb: Optional[int] = field(default=None)
+    is_shared_cpu: Optional[bool] = field(default=None)
+    maximum_persistent_disks: Optional[int] = field(default=None)
+    maximum_persistent_disks_size_gb: Optional[str] = field(default=None)
+    scratch_disks: Optional[List[int]] = field(default=None)
 
     @classmethod
     def collect_individual(cls: Type[GcpResource], builder: GraphBuilder, zone: str, name: str) -> None:
