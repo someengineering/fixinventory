@@ -1,6 +1,9 @@
+import json
+import os
 from resoto_plugin_gcp.resources.compute import *
+from resoto_plugin_gcp.resources.billing import GcpSku
 from .random_client import roundtrip, connect_resource, FixturedClient
-from resoto_plugin_gcp.resources.base import GraphBuilder
+from resoto_plugin_gcp.resources.base import GraphBuilder, GcpRegion
 
 
 def test_gcp_accelerator_type(random_builder: GraphBuilder) -> None:
@@ -134,6 +137,38 @@ def test_gcp_instance_custom_machine_type(random_builder: GraphBuilder) -> None:
     only_machine_type = random_builder.resources_of(GcpMachineType)[0]
     assert first_instance.instance_cores == only_machine_type.instance_cores
     assert first_instance.instance_memory == only_machine_type.instance_memory
+
+
+def test_machine_type_ondemand_cost(random_builder: GraphBuilder) -> None:
+    # Cross-checking with pricing calculated on https://gcpinstances.doit-intl.com/
+    known_prices_linux_ondemand_hourly = [
+        ("n2d-standard-8", "us-east1", 0.33797),
+        ("f1-micro", "us-east1", 0.00760),
+        ("m1-ultramem-160", "us-east1", 25.17240),
+        ("a2-megagpu-16g", "us-east1", 8.79698),
+        ("c2d-highcpu-112", "europe-west3", 5.40826),
+        ("m2-ultramem-416", "us-east1", 74.5344),
+        ("m3-megamem-64", "europe-west3", 9.28266),
+        ("t2d-standard-16", "europe-west3", 0.87083)
+        # TODO complete test cases (c3 missing)
+    ]
+    with open(os.path.dirname(__file__) + "/files/skus.json") as f:
+        GcpSku.collect(raw=json.load(f)["skus"], builder=random_builder)
+
+    with open(os.path.dirname(__file__) + "/files/machine_type.json") as f:
+        GcpMachineType.collect(raw=json.load(f)["items"]["machineTypes"], builder=random_builder)
+
+    regions = random_builder.resources_of(GcpRegion)
+    machine_types = random_builder.resources_of(GcpMachineType)
+
+    for price in known_prices_linux_ondemand_hourly:
+        region = next((obj for obj in regions if obj.id == price[1]), None)
+        machine_type = next((obj for obj in machine_types if obj.name == price[0]), None)
+        assert machine_type
+        machine_type._region = region
+        machine_type.connect_in_graph(random_builder, {"Dummy": "Source"})
+        assert machine_type.ondemand_cost
+        assert round(machine_type.ondemand_cost, 5) == price[2]
 
 
 def test_gcp_interconnect_attachment(random_builder: GraphBuilder) -> None:

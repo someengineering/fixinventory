@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import ClassVar, Dict, Optional, List
+from typing import ClassVar, Dict, Optional, List, Type, cast
 
 from attr import define, field
 
@@ -100,23 +100,39 @@ class GcpService(GcpResource):
         "id": S("serviceId"),
         "tags": S("labels", default={}),
         "name": S("name"),
+        "display_name": S("displayName"),
         "ctime": S("creationTimestamp"),
         "description": S("description"),
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
         "business_entity_name": S("businessEntityName"),
-        "display_name": S("displayName"),
-        "service_id": S("serviceId"),
     }
 
     business_entity_name: Optional[str] = field(default=None)
     display_name: Optional[str] = field(default=None)
-    service_id: Optional[str] = field(default=None)
 
-    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        for sku in GcpSku.collect_resources(graph_builder, parent=self.id):
-            graph_builder.add_edge(self, node=sku)
+    @classmethod
+    def collect(cls: Type[GcpResource], raw: List[Json], builder: GraphBuilder) -> List[GcpResource]:
+        # Additional behavior: iterate over list of collected GcpService and for each:
+        # - collect related GcpSku
+        result: List[GcpResource] = super().collect(raw, builder)  # type: ignore
+        SERVICES_COLLECT_LIST = [
+            "Compute Engine",
+        ]
+        service_names = [
+            service.name for service in cast(List[GcpService], result) if service.display_name in SERVICES_COLLECT_LIST
+        ]
+        for service_name in service_names:
+            builder.submit_work(GcpSku.collect_resources, builder, parent=service_name)
+
+        return result
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        def filter(node: GcpResource) -> bool:
+            return isinstance(node, GcpSku) and node.name is not None and node.name.startswith(self.id)
+
+        builder.add_edges(self, filter=filter)
 
 
 @define(eq=False, slots=False)
@@ -248,10 +264,31 @@ class GcpSku(GcpResource):
     }
     category: Optional[GcpCategory] = field(default=None)
     geo_taxonomy: Optional[GcpGeoTaxonomy] = field(default=None)
-    pricing_info: Optional[List[GcpPricingInfo]] = field(default=None)
+    pricing_info: List[GcpPricingInfo] = field(factory=list)
     service_provider_name: Optional[str] = field(default=None)
-    service_regions: Optional[List[str]] = field(default=None)
-    sku_id: Optional[str] = field(default=None)
+    service_regions: List[str] = field(factory=list)
+    usage_unit_nanos: Optional[int] = field(default=None)
+
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        if len(self.pricing_info) > 0:
+            if not (pricing_expression := self.pricing_info[0].pricing_expression):
+                return
+
+            tiered_rates = pricing_expression.tiered_rates
+            cost = -1
+            if len(tiered_rates) == 1:
+                if tiered_rates[0].unit_price and tiered_rates[0].unit_price.nanos:
+                    cost = tiered_rates[0].unit_price.nanos
+
+            else:
+                for tiered_rate in tiered_rates:
+                    if sua := tiered_rate.start_usage_amount:
+                        if sua > 0:
+                            if tiered_rate.unit_price and tiered_rate.unit_price.nanos:
+                                cost = tiered_rate.unit_price.nanos
+                                break
+            if cost > -1:
+                self.usage_unit_nanos = cost
 
 
 resources = [GcpBillingAccount, GcpService]

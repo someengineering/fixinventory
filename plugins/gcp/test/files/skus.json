@@ -1,0 +1,631 @@
+{
+    "skus": [
+        {
+            "name": "services/6F81-5844-456A/skus/A03E-E620-7389",
+            "skuId": "A03E-E620-7389",
+            "description": "N2D AMD Instance Core running in Americas",
+            "category": {
+              "serviceDisplayName": "Compute Engine",
+              "resourceFamily": "Compute",
+              "resourceGroup": "CPU",
+              "usageType": "OnDemand"
+            },
+            "serviceRegions": [
+              "us-central1",
+              "us-east1",
+              "us-west1"
+            ],
+            "pricingInfo": [
+              {
+                "summary": "",
+                "pricingExpression": {
+                  "usageUnit": "h",
+                  "displayQuantity": 1,
+                  "tieredRates": [
+                    {
+                      "startUsageAmount": 0,
+                      "unitPrice": {
+                        "currencyCode": "USD",
+                        "units": "0",
+                        "nanos": 27502000
+                      }
+                    }
+                  ],
+                  "usageUnitDescription": "hour",
+                  "baseUnit": "s",
+                  "baseUnitDescription": "second",
+                  "baseUnitConversionFactor": 3600
+                },
+                "currencyConversionRate": 1,
+                "effectiveTime": "2023-03-16T07:10:51.797Z"
+              }
+            ],
+            "serviceProviderName": "Google",
+            "geoTaxonomy": {
+              "type": "MULTI_REGIONAL",
+              "regions": [
+                "us-central1",
+                "us-east1",
+                "us-west1"
+              ]
+            }
+          },
+          {
+            "name": "services/6F81-5844-456A/skus/5535-6D2D-4B50",
+            "skuId": "5535-6D2D-4B50",
+            "description": "N2D AMD Instance Ram running in Americas",
+            "category": {
+              "serviceDisplayName": "Compute Engine",
+              "resourceFamily": "Compute",
+              "resourceGroup": "RAM",
+              "usageType": "OnDemand"
+            },
+            "serviceRegions": [
+              "us-central1",
+              "us-east1",
+              "us-west1"
+            ],
+            "pricingInfo": [
+              {
+                "summary": "",
+                "pricingExpression": {
+                  "usageUnit": "GiBy.h",
+                  "displayQuantity": 1,
+                  "tieredRates": [
+                    {
+                      "startUsageAmount": 0,
+                      "unitPrice": {
+                        "currencyCode": "USD",
+                        "units": "0",
+                        "nanos": 3686000
+                      }
+                    }
+                  ],
+                  "usageUnitDescription": "gibibyte hour",
+                  "baseUnit": "By.s",
+                  "baseUnitDescription": "byte second",
+                  "baseUnitConversionFactor": 3865470566400
+                },
+                "currencyConversionRate": 1,
+                "effectiveTime": "2023-03-16T07:10:51.797Z"
+              }
+            ],
+            "serviceProviderName": "Google",
+            "geoTaxonomy": {
+              "type": "MULTI_REGIONAL",
+              "regions": [
+                "us-central1",
+                "us-east1",
+                "us-west1"
+              ]
+            }
+          },
+          {
+            "name": "services/6F81-5844-456A/skus/5CE5-087B-6C3C",
+            "skuId": "5CE5-087B-6C3C",
+            "description": "Micro Instance with burstable CPU running in Americas",
+            "category": {
+              "serviceDisplayName": "Compute Engine",
+              "resourceFamily": "Compute",
+              "resourceGroup": "F1Micro",
+              "usageType": "OnDemand"
+            },
+            "serviceRegions": [
+              "us-central1",
+              "us-east1",
+              "us-west1"
+            ],
+            "pricingInfo": [
+              {
+                "summary": "",
+                "pricingExpression": {
+                  "usageUnit": "h",
+                  "displayQuantity": 1,
+                  "tieredRates": [
+                    {
+                      "startUsageAmount": 0,
+                      "unitPrice": {
+                        "currencyCode": "USD",
+                        "units": "0",
+                        "nanos": 7600000
+                      }
+                    }
+                  ],
+                  "usageUnitDescription": "hour",
+                  "baseUnit": "s",
+                  "baseUnitDescription": "second",
+                  "baseUnitConversionFactor": 3600
+                },
+                "currencyConversionRate": 1,
+                "effectiveTime": "2023-03-16T07:10:51.797Z"
+              }
+            ],
+            "serviceProviderName": "Google",
+            "geoTaxonomy": {
+              "type": "MULTI_REGIONAL",
+              "regions": [
+                "us-central1",
+                "us-east1",
+                "us-west1"
+              ]
+            }
+          },
+          {
+            "name": "services/6F81-5844-456A/skus/56BE-7687-FE88",
+            "skuId": "56BE-7687-FE88",
+            "description": "Memory-optimized Sole Tenancy Instance Core running in Americas",
+            "category": {
+              "serviceDisplayName": "Compute Engine",
+              "resourceFamily": "Compute",
+              "resourceGroup": "CPU",
+              "usageType": "OnDemand"
+            },
+            "serviceRegions": [
+              "us-central1",
+              "us-east1",
+              "us-west1"
+            ],
+            "pricingInfo": [
+              {
+                "summary": "",
+                "pricingExpression": {
+                  "usageUnit": "h",
+                  "displayQuantity": 1,
+                  "tieredRates": [
+                    {
+                      "startUsageAmount": 0,
+                      "unitPrice": {
+                        "currencyCode": "USD",
+                        "units": "0",
+                        "nanos": 34800000
+                      }
+                    }
+                  ],
+                  "usageUnitDescription": "hour",
+                  "baseUnit": "s",
+                  "baseUnitDescription": "second",
+                  "baseUnitConversionFactor": 3600
+                },
+                "currencyConversionRate": 1,
+                "effectiveTime": "2023-03-16T07:10:51.797Z"
+              }
+            ],
+            "serviceProviderName": "Google",
+            "geoTaxonomy": {
+              "type": "MULTI_REGIONAL",
+              "regions": [
+                "us-central1",
+                "us-east1",
+                "us-west1"
+              ]
+            }
+          },
+          {
+            "name": "services/6F81-5844-456A/skus/682E-93BF-F222",
+            "skuId": "682E-93BF-F222",
+            "description": "Memory-optimized Sole Tenancy Instance RAM running in Americas",
+            "category": {
+              "serviceDisplayName": "Compute Engine",
+              "resourceFamily": "Compute",
+              "resourceGroup": "RAM",
+              "usageType": "OnDemand"
+            },
+            "serviceRegions": [
+              "us-central1",
+              "us-east1",
+              "us-west1"
+            ],
+            "pricingInfo": [
+              {
+                "summary": "",
+                "pricingExpression": {
+                  "usageUnit": "GiBy.h",
+                  "displayQuantity": 1,
+                  "tieredRates": [
+                    {
+                      "startUsageAmount": 0,
+                      "unitPrice": {
+                        "currencyCode": "USD",
+                        "units": "0",
+                        "nanos": 5100000
+                      }
+                    }
+                  ],
+                  "usageUnitDescription": "gibibyte hour",
+                  "baseUnit": "By.s",
+                  "baseUnitDescription": "byte second",
+                  "baseUnitConversionFactor": 3865470566400
+                },
+                "currencyConversionRate": 1,
+                "effectiveTime": "2023-03-16T07:10:51.797Z"
+              }
+            ],
+            "serviceProviderName": "Google",
+            "geoTaxonomy": {
+              "type": "MULTI_REGIONAL",
+              "regions": [
+                "us-central1",
+                "us-east1",
+                "us-west1"
+              ]
+            }
+          },
+          {
+            "name": "services/6F81-5844-456A/skus/2922-40C5-B19F",
+            "skuId": "2922-40C5-B19F",
+            "description": "A2 Instance Core running in Americas",
+            "category": {
+              "serviceDisplayName": "Compute Engine",
+              "resourceFamily": "Compute",
+              "resourceGroup": "CPU",
+              "usageType": "OnDemand"
+            },
+            "serviceRegions": [
+              "us-central1",
+              "us-east1",
+              "us-west1"
+            ],
+            "pricingInfo": [
+              {
+                "summary": "",
+                "pricingExpression": {
+                  "usageUnit": "h",
+                  "displayQuantity": 1,
+                  "tieredRates": [
+                    {
+                      "startUsageAmount": 0,
+                      "unitPrice": {
+                        "currencyCode": "USD",
+                        "units": "0",
+                        "nanos": 31611000
+                      }
+                    }
+                  ],
+                  "usageUnitDescription": "hour",
+                  "baseUnit": "s",
+                  "baseUnitDescription": "second",
+                  "baseUnitConversionFactor": 3600
+                },
+                "currencyConversionRate": 1,
+                "effectiveTime": "2023-03-15T07:13:04.768Z"
+              }
+            ],
+            "serviceProviderName": "Google",
+            "geoTaxonomy": {
+              "type": "MULTI_REGIONAL",
+              "regions": [
+                "us-central1",
+                "us-east1",
+                "us-west1"
+              ]
+            }
+          },
+          {
+            "name": "services/6F81-5844-456A/skus/2390-DCAF-DA38",
+            "skuId": "2390-DCAF-DA38",
+            "description": "A2 Instance Ram running in Americas",
+            "category": {
+              "serviceDisplayName": "Compute Engine",
+              "resourceFamily": "Compute",
+              "resourceGroup": "RAM",
+              "usageType": "OnDemand"
+            },
+            "serviceRegions": [
+              "us-central1",
+              "us-east1",
+              "us-west1"
+            ],
+            "pricingInfo": [
+              {
+                "summary": "",
+                "pricingExpression": {
+                  "usageUnit": "GiBy.h",
+                  "displayQuantity": 1,
+                  "tieredRates": [
+                    {
+                      "startUsageAmount": 0,
+                      "unitPrice": {
+                        "currencyCode": "USD",
+                        "units": "0",
+                        "nanos": 4237000
+                      }
+                    }
+                  ],
+                  "usageUnitDescription": "gibibyte hour",
+                  "baseUnit": "By.s",
+                  "baseUnitDescription": "byte second",
+                  "baseUnitConversionFactor": 3865470566400
+                },
+                "currencyConversionRate": 1,
+                "effectiveTime": "2023-03-15T07:13:04.768Z"
+              }
+            ],
+            "serviceProviderName": "Google",
+            "geoTaxonomy": {
+              "type": "MULTI_REGIONAL",
+              "regions": [
+                "us-central1",
+                "us-east1",
+                "us-west1"
+              ]
+            }
+          },
+          {
+            "name": "services/6F81-5844-456A/skus/40DE-6073-970E",
+            "skuId": "40DE-6073-970E",
+            "description": "C2D AMD Instance Ram running in Frankfurt",
+            "category": {
+              "serviceDisplayName": "Compute Engine",
+              "resourceFamily": "Compute",
+              "resourceGroup": "RAM",
+              "usageType": "OnDemand"
+            },
+            "serviceRegions": [
+              "europe-west3"
+            ],
+            "pricingInfo": [
+              {
+                "summary": "",
+                "pricingExpression": {
+                  "usageUnit": "GiBy.h",
+                  "displayQuantity": 1,
+                  "tieredRates": [
+                    {
+                      "startUsageAmount": 0,
+                      "unitPrice": {
+                        "currencyCode": "USD",
+                        "units": "0",
+                        "nanos": 5100000
+                      }
+                    }
+                  ],
+                  "usageUnitDescription": "gibibyte hour",
+                  "baseUnit": "By.s",
+                  "baseUnitDescription": "byte second",
+                  "baseUnitConversionFactor": 3865470566400
+                },
+                "currencyConversionRate": 1,
+                "effectiveTime": "2023-03-15T07:13:04.768Z"
+              }
+            ],
+            "serviceProviderName": "Google",
+            "geoTaxonomy": {
+              "type": "REGIONAL",
+              "regions": [
+                "europe-west3"
+              ]
+            }
+          },
+          {
+            "name": "services/6F81-5844-456A/skus/2898-B9EC-B5B3",
+            "skuId": "2898-B9EC-B5B3",
+            "description": "C2D AMD Instance Core running in Frankfurt",
+            "category": {
+              "serviceDisplayName": "Compute Engine",
+              "resourceFamily": "Compute",
+              "resourceGroup": "CPU",
+              "usageType": "OnDemand"
+            },
+            "serviceRegions": [
+              "europe-west3"
+            ],
+            "pricingInfo": [
+              {
+                "summary": "",
+                "pricingExpression": {
+                  "usageUnit": "h",
+                  "displayQuantity": 1,
+                  "tieredRates": [
+                    {
+                      "startUsageAmount": 0,
+                      "unitPrice": {
+                        "currencyCode": "USD",
+                        "units": "0",
+                        "nanos": 38088000
+                      }
+                    }
+                  ],
+                  "usageUnitDescription": "hour",
+                  "baseUnit": "s",
+                  "baseUnitDescription": "second",
+                  "baseUnitConversionFactor": 3600
+                },
+                "currencyConversionRate": 1,
+                "effectiveTime": "2023-03-15T07:13:04.768Z"
+              }
+            ],
+            "serviceProviderName": "Google",
+            "geoTaxonomy": {
+              "type": "REGIONAL",
+              "regions": [
+                "europe-west3"
+              ]
+            }
+          },
+          {
+            "name": "services/6F81-5844-456A/skus/470D-96E2-88F1",
+            "skuId": "470D-96E2-88F1",
+            "description": "M3 Memory-optimized Sole Tenancy Instance Core running in Frankfurt",
+            "category": {
+              "serviceDisplayName": "Compute Engine",
+              "resourceFamily": "Compute",
+              "resourceGroup": "CPU",
+              "usageType": "OnDemand"
+            },
+            "serviceRegions": [
+              "europe-west3"
+            ],
+            "pricingInfo": [
+              {
+                "summary": "",
+                "pricingExpression": {
+                  "usageUnit": "h",
+                  "displayQuantity": 1,
+                  "tieredRates": [
+                    {
+                      "startUsageAmount": 0,
+                      "unitPrice": {
+                        "currencyCode": "USD",
+                        "units": "0",
+                        "nanos": 44836320
+                      }
+                    }
+                  ],
+                  "usageUnitDescription": "hour",
+                  "baseUnit": "s",
+                  "baseUnitDescription": "second",
+                  "baseUnitConversionFactor": 3600
+                },
+                "currencyConversionRate": 1,
+                "effectiveTime": "2023-03-15T07:13:04.768Z"
+              }
+            ],
+            "serviceProviderName": "Google",
+            "geoTaxonomy": {
+              "type": "REGIONAL",
+              "regions": [
+                "europe-west3"
+              ]
+            }
+          },
+          {
+            "name": "services/6F81-5844-456A/skus/6E51-040E-D918",
+            "skuId": "6E51-040E-D918",
+            "description": "M3 Memory-optimized Sole Tenancy Instance Ram running in Frankfurt",
+            "category": {
+              "serviceDisplayName": "Compute Engine",
+              "resourceFamily": "Compute",
+              "resourceGroup": "RAM",
+              "usageType": "OnDemand"
+            },
+            "serviceRegions": [
+              "europe-west3"
+            ],
+            "pricingInfo": [
+              {
+                "summary": "",
+                "pricingExpression": {
+                  "usageUnit": "GiBy.h",
+                  "displayQuantity": 1,
+                  "tieredRates": [
+                    {
+                      "startUsageAmount": 0,
+                      "unitPrice": {
+                        "currencyCode": "USD",
+                        "units": "0",
+                        "nanos": 6570840
+                      }
+                    }
+                  ],
+                  "usageUnitDescription": "gibibyte hour",
+                  "baseUnit": "By.s",
+                  "baseUnitDescription": "byte second",
+                  "baseUnitConversionFactor": 3865470566400
+                },
+                "currencyConversionRate": 1,
+                "effectiveTime": "2023-03-16T07:10:51.797Z"
+              }
+            ],
+            "serviceProviderName": "Google",
+            "geoTaxonomy": {
+              "type": "REGIONAL",
+              "regions": [
+                "europe-west3"
+              ]
+            }
+          },
+          {
+            "name": "services/6F81-5844-456A/skus/B260-618D-1521",
+            "skuId": "B260-618D-1521",
+            "description": "T2D AMD Instance Core running in Frankfurt",
+            "category": {
+              "serviceDisplayName": "Compute Engine",
+              "resourceFamily": "Compute",
+              "resourceGroup": "CPU",
+              "usageType": "OnDemand"
+            },
+            "serviceRegions": [
+              "europe-west3"
+            ],
+            "pricingInfo": [
+              {
+                "summary": "",
+                "pricingExpression": {
+                  "usageUnit": "h",
+                  "displayQuantity": 1,
+                  "tieredRates": [
+                    {
+                      "startUsageAmount": 0,
+                      "unitPrice": {
+                        "currencyCode": "USD",
+                        "units": "0",
+                        "nanos": 35435000
+                      }
+                    }
+                  ],
+                  "usageUnitDescription": "hour",
+                  "baseUnit": "s",
+                  "baseUnitDescription": "second",
+                  "baseUnitConversionFactor": 3600
+                },
+                "currencyConversionRate": 1,
+                "effectiveTime": "2023-03-16T20:55:50.022163Z"
+              }
+            ],
+            "serviceProviderName": "Google",
+            "geoTaxonomy": {
+              "type": "REGIONAL",
+              "regions": [
+                "europe-west3"
+              ]
+            }
+          },
+          {
+            "name": "services/6F81-5844-456A/skus/E639-283C-5F35",
+            "skuId": "E639-283C-5F35",
+            "description": "T2D AMD Instance Ram running in Frankfurt",
+            "category": {
+              "serviceDisplayName": "Compute Engine",
+              "resourceFamily": "Compute",
+              "resourceGroup": "RAM",
+              "usageType": "OnDemand"
+            },
+            "serviceRegions": [
+              "europe-west3"
+            ],
+            "pricingInfo": [
+              {
+                "summary": "",
+                "pricingExpression": {
+                  "usageUnit": "GiBy.h",
+                  "displayQuantity": 1,
+                  "tieredRates": [
+                    {
+                      "startUsageAmount": 0,
+                      "unitPrice": {
+                        "currencyCode": "USD",
+                        "units": "0",
+                        "nanos": 4748000
+                      }
+                    }
+                  ],
+                  "usageUnitDescription": "gibibyte hour",
+                  "baseUnit": "By.s",
+                  "baseUnitDescription": "byte second",
+                  "baseUnitConversionFactor": 3865470566400
+                },
+                "currencyConversionRate": 1,
+                "effectiveTime": "2023-03-16T20:55:50.022163Z"
+              }
+            ],
+            "serviceProviderName": "Google",
+            "geoTaxonomy": {
+              "type": "REGIONAL",
+              "regions": [
+                "europe-west3"
+              ]
+            }
+          }
+    ],
+    "nextPageToken": "string"
+}

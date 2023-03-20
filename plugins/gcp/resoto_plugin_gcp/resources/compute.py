@@ -1,10 +1,12 @@
 from datetime import datetime
+import logging
 from typing import ClassVar, Dict, Optional, List, Tuple, Type
 
 from attr import define, field
 
 from resoto_plugin_gcp.gcp_client import GcpApiSpec
 from resoto_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus, GraphBuilder
+from resoto_plugin_gcp.resources.billing import GcpSku
 from resotolib.baseresources import (
     BaseInstanceType,
     BaseVolumeType,
@@ -16,6 +18,8 @@ from resotolib.baseresources import (
 )
 from resotolib.json_bender import Bender, S, Bend, ForallBend, MapDict, MapValue, F
 from resotolib.types import Json
+
+log = logging.getLogger("resoto.plugins.gcp")
 
 
 def health_check_types() -> Tuple[Type[GcpResource], ...]:
@@ -3255,23 +3259,21 @@ class GcpMachineType(GcpResource, BaseInstanceType):
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
         "accelerators": S("accelerators", default=[]) >> ForallBend(GcpAccelerators.mapping),
-        "guest_cpus": S("guestCpus"),
         "image_space_gb": S("imageSpaceGb"),
         "is_shared_cpu": S("isSharedCpu"),
         "maximum_persistent_disks": S("maximumPersistentDisks"),
         "maximum_persistent_disks_size_gb": S("maximumPersistentDisksSizeGb"),
-        "memory_mb": S("memoryMb"),
         "scratch_disks": S("scratchDisks", default=[]) >> ForallBend(S("diskGb")),
         "instance_type": S("name"),
         "instance_cores": S("guestCpus") >> F(lambda x: float(x)),
         "instance_memory": S("memoryMb") >> F(lambda x: float(x) / 1024),
     }
-    type_accelerators: Optional[List[GcpAccelerators]] = field(default=None)
-    type_image_space_gb: Optional[int] = field(default=None)
-    type_is_shared_cpu: Optional[bool] = field(default=None)
-    type_maximum_persistent_disks: Optional[int] = field(default=None)
-    type_maximum_persistent_disks_size_gb: Optional[str] = field(default=None)
-    type_scratch_disks: Optional[List[int]] = field(default=None)
+    accelerators: Optional[List[GcpAccelerators]] = field(default=None)
+    image_space_gb: Optional[int] = field(default=None)
+    is_shared_cpu: Optional[bool] = field(default=None)
+    maximum_persistent_disks: Optional[int] = field(default=None)
+    maximum_persistent_disks_size_gb: Optional[str] = field(default=None)
+    scratch_disks: Optional[List[int]] = field(default=None)
 
     @classmethod
     def collect_individual(cls: Type[GcpResource], builder: GraphBuilder, zone: str, name: str) -> None:
@@ -3292,7 +3294,102 @@ class GcpMachineType(GcpResource, BaseInstanceType):
         machine_type_obj = GcpMachineType.from_api(result)
         builder.add_node(machine_type_obj, result)
 
-    # TODO post process
+    def _machine_type_matches_sku_description(self, sku_description: str) -> bool:
+        if not self.name:
+            return False
+        mappings = [
+            ("n2d-", "N2D AMD "),
+            ("n2-", "N2 "),
+            (("m1-", "m2-"), "Memory-optimized "),
+            ("c2-", "Compute optimized "),
+            ("a2-", "A2 "),
+            ("c2d-", "C2D AMD "),
+            ("c3-", "C3 "),
+            ("m3-", "M3 "),
+            ("t2a-", "T2A "),
+            ("t2d-", "T2D AMD "),
+        ]
+        for mapping in mappings:
+            if (self.name.startswith(mapping[0]) and not sku_description.startswith(mapping[1])) or (  # type: ignore
+                not self.name.startswith(mapping[0]) and sku_description.startswith(mapping[1])  # type: ignore
+            ):
+                return False
+
+        if "custom" not in self.name:
+            if (self.name.startswith("e2-") and not sku_description.startswith("E2 ")) or (
+                not self.name.startswith("e2-") and sku_description.startswith("E2 ")
+            ):
+                return False
+        return True
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        """Adds edges from machine type to SKUs and determines ondemand pricing"""
+        if not self.name:
+            return
+
+        def filter(sku: GcpSku) -> bool:
+            if not self.name or not self._region:
+                return False
+            if not sku.description or not sku.category or not sku.geo_taxonomy:
+                return False
+
+            if not (sku.category.resource_family == "Compute" and sku.category.usage_type == "OnDemand"):
+                return False
+            if sku.category.resource_group not in (
+                "G1Small",
+                "F1Micro",
+                "N1Standard",  # ?
+                "CPU",
+                "RAM",
+            ):
+                return False
+            if ("custom" not in self.name and "Custom" in sku.description) or (
+                "custom" in self.name and "Custom" not in sku.description
+            ):
+                return False
+            if self._region.name not in sku.geo_taxonomy.regions:
+                return False
+            if self.name == "g1-small" and sku.category.resource_group != "G1Small":
+                return False
+            if self.name == "f1-micro" and sku.category.resource_group != "F1Micro":
+                return False
+
+            if self.name.startswith("n1-") and sku.category.resource_group != "N1Standard":
+                return False
+
+            return self._machine_type_matches_sku_description(sku.description)
+
+        skus = builder.nodes(GcpSku, filter=filter)
+        if len(skus) == 1 and self.name in ("g1-small", "f1-micro") and skus[0].usage_unit_nanos:
+            builder.add_edge(self, reverse=True, node=skus[0])
+            self.ondemand_cost = skus[0].usage_unit_nanos / 1000000000
+            return
+
+        if len(skus) == 2 or (len(skus) == 3 and "custom" in self.name):
+            ondemand_cost = 0.0
+            cores = self.instance_cores
+            ram = self.instance_memory
+            extended_memory_pricing: bool = False
+            if "custom" in self.name:
+                extended_memory_pricing = ram / cores > 8
+
+            for sku in skus:
+                if sku.description and sku.usage_unit_nanos:
+                    if "Core" in sku.description:
+                        ondemand_cost += sku.usage_unit_nanos * cores
+                    elif "Ram" in sku.description or "RAM" in sku.description:
+                        if (extended_memory_pricing and "Extended" not in sku.description) or (
+                            not extended_memory_pricing and "Extended" in sku.description
+                        ):
+                            continue
+                        ondemand_cost += sku.usage_unit_nanos * ram
+                    builder.add_edge(self, reverse=True, node=sku)
+
+            if ondemand_cost > 0:
+                self.ondemand_cost = ondemand_cost / 1000000000
+            return
+
+        log.debug(f"Unable to determine SKU(s) for {self.rtdname}: {[sku.dname for sku in skus]}")
 
 
 @define(eq=False, slots=False)

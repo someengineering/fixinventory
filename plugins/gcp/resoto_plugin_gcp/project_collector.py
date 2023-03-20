@@ -12,7 +12,7 @@ from resotolib.graph import Graph
 
 log = logging.getLogger("resoto.plugins.gcp")
 all_resources: List[Type[GcpResource]] = (
-    sqladmin.resources + container.resources + compute.resources + billing.resources
+    compute.resources + container.resources + billing.resources + sqladmin.resources
 )
 
 
@@ -65,10 +65,12 @@ class GcpProjectCollector:
             log.info(f"[GCP:{self.project.id}] Collecting resources done.")
 
     def collect_region(self, region: GcpRegion, regional_builder: GraphBuilder) -> None:
-        # fetch all project level resources
+        # fetch all region level resources
         for resource_class in all_resources:
             if resource_class.api_spec and not resource_class.api_spec.is_project_level:
-                log.info(f"Collecting {resource_class.__name__} for project {self.project.id} in region {region.id}")
+                log.info(
+                    f"Collecting {resource_class.__name__} for project {self.project.id} in region {region.rtdname}"
+                )
                 resource_class.collect_resources(regional_builder)
 
 

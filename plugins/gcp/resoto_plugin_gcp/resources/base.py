@@ -62,18 +62,28 @@ class ExecutorQueue:
         return future
 
     def wait_for_submitted_work(self) -> None:
-        # wait until all futures are complete
+        def _wait_for_current_batch() -> None:
+            # wait until all futures are complete
+            with self._lock:
+                to_wait = self.futures
+                self.futures = []
+            for future in concurrent.futures.as_completed(to_wait):
+                try:
+                    future.result()
+                except CancelOnFirstError:
+                    pass
+                except Exception as ex:
+                    log.exception(f"Unhandled exception in project {self.name}: {ex}")
+                    raise
+
+        # Wait until all submitted work and their potential "children" work is done
         with self._lock:
-            to_wait = self.futures
-            self.futures = []
-        for future in concurrent.futures.as_completed(to_wait):
-            try:
-                future.result()
-            except CancelOnFirstError:
-                pass
-            except Exception as ex:
-                log.exception(f"Unhandled exception in project {self.name}: {ex}")
-                raise
+            remaining = len(self.futures)
+
+        while not remaining == 0:
+            _wait_for_current_batch()
+            with self._lock:
+                remaining = len(self.futures)
 
 
 class GraphBuilder:
@@ -105,7 +115,7 @@ class GraphBuilder:
         self.graph_nodes_access = graph_nodes_access or Lock()
         self.graph_edges_access = graph_edges_access or Lock()
 
-    def submit_work(self, fn: Callable[..., None], *args: Any, **kwargs: Any) -> Future[Any]:
+    def submit_work(self, fn: Callable[..., T], *args: Any, **kwargs: Any) -> Future[T]:
         """
         Use this method for work that can be done in parallel.
         Example: fetching tags of a resource.
@@ -119,15 +129,40 @@ class GraphBuilder:
         self.region_by_zone_name = {z.safe_name: self.region_by_name[z.safe_name.rsplit("-", 1)[0]] for z in zns}
         self.zone_by_name = {z.safe_name: z for z in zns}
 
-    def node(self, clazz: Optional[Type[GcpResourceType]] = None, **node: Any) -> Optional[GcpResourceType]:
+    def node(
+        self, clazz: Optional[Type[GcpResourceType]] = None, filter: Optional[Callable[[Any], bool]] = None, **node: Any
+    ) -> Optional[GcpResourceType]:
+        """
+        Returns first node on the graph that is of given `clazz`
+        and/or conforms to the `filter` and matches attributes given in `**node`.
+        """
         if isinstance(nd := node.get("node"), GcpResource):
             return nd  # type: ignore
         with self.graph_nodes_access:
             for n in self.graph:
-                is_clazz = isinstance(n, clazz) if clazz else True
-                if is_clazz and all(getattr(n, k, None) == v for k, v in node.items()):
+                if clazz and not isinstance(n, clazz):
+                    continue
+                if (filter(n) if filter else True) and all(getattr(n, k, None) == v for k, v in node.items()):
                     return n  # type: ignore
         return None
+
+    def nodes(
+        self, clazz: Optional[Type[GcpResourceType]] = None, filter: Optional[Callable[[Any], bool]] = None, **node: Any
+    ) -> List[GcpResourceType]:
+        """
+        Returns list of all nodes on the graph that are of given `clazz`
+        and/or conform to the `filter` and match attributes given in `**node`.
+        """
+        result: List[GcpResourceType] = []
+        if isinstance(nd := node.get("node"), GcpResource):
+            result.append(nd)  # type: ignore
+        with self.graph_nodes_access:
+            for n in self.graph:
+                if clazz and not isinstance(n, clazz):
+                    continue
+                if (filter(n) if filter else True) and all(getattr(n, k, None) == v for k, v in node.items()):
+                    result.append(n)
+        return result
 
     def add_node(self, node: GcpResourceType, source: Optional[Json] = None) -> Optional[GcpResourceType]:
         log.debug(f"{self.name}: add node {node}")
@@ -147,7 +182,7 @@ class GraphBuilder:
                 node._region = region
                 self.add_edge(node, node=region, reverse=True)
             else:
-                log.debug(f"Region {region_name} found for node: {node}. Skipping.")
+                log.debug(f"Region {region_name} not found for node: {node}. Skipping.")
                 return None
         elif self.region is not None:
             node._region = self.region
@@ -161,14 +196,37 @@ class GraphBuilder:
         return node
 
     def add_edge(
-        self, from_node: BaseResource, edge_type: EdgeType = EdgeType.default, reverse: bool = False, **to_node: Any
+        self,
+        from_node: BaseResource,
+        edge_type: EdgeType = EdgeType.default,
+        reverse: bool = False,
+        filter: Optional[Callable[[Any], bool]] = None,
+        **to_node: Any,
     ) -> None:
-        to_n = self.node(**to_node)
+        """
+        Creates edge between `from_node` and another node using `GraphBuilder.node(filter, **to_node)`.
+        """
+        to_n = self.node(filter=filter, **to_node)
         if isinstance(from_node, GcpResource) and isinstance(to_n, GcpResource):
             start, end = (to_n, from_node) if reverse else (from_node, to_n)
             log.debug(f"{self.name}: add edge: {start} -> {end} [{edge_type}]")
             with self.graph_edges_access:
                 self.graph.add_edge(start, end, edge_type=edge_type)
+
+    def add_edges(
+        self,
+        from_node: BaseResource,
+        edge_type: EdgeType = EdgeType.default,
+        reverse: bool = False,
+        filter: Optional[Callable[[Any], bool]] = None,
+        **to_nodes: Any,
+    ) -> None:
+        """
+        Creates edges between `from_node` and all nodes found with `GraphBuilder.nodes(filter, **to_node)`.
+        """
+        node: Type[GcpResource]
+        for node in self.nodes(filter=filter, **to_nodes):
+            self.add_edge(from_node, edge_type, reverse, node=node)
 
     def dependant_node(
         self, from_node: BaseResource, reverse: bool = False, delete_same_as_default: bool = False, **to_node: Any
@@ -259,7 +317,7 @@ class GcpResource(BaseResource):
     @classmethod
     def collect_resources(cls: Type[GcpResource], builder: GraphBuilder, **kwargs: Any) -> List[GcpResource]:
         # Default behavior: in case the class has an ApiSpec, call the api and call collect.
-        log.info(f"[Gcp:{builder.project.id}] Collecting {cls.__name__}")
+        log.info(f"[Gcp:{builder.project.id}] Collecting {cls.__name__} with ({kwargs})")
         if spec := cls.api_spec:
             items = builder.client.list(spec, **kwargs)
             return cls.collect(items, builder)
