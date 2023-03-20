@@ -134,8 +134,7 @@ class GraphBuilder:
     ) -> Optional[GcpResourceType]:
         """
         Returns first node on the graph that is of given `clazz`
-        and/or conforms to the `filter` or matches attributes given in `**node`.
-        Combination of `filter` and `**node` is not supported.
+        and/or conforms to the `filter` and matches attributes given in `**node`.
         """
         if isinstance(nd := node.get("node"), GcpResource):
             return nd  # type: ignore
@@ -143,10 +142,7 @@ class GraphBuilder:
             for n in self.graph:
                 if clazz and not isinstance(n, clazz):
                     continue
-                if filter:
-                    if filter(n):
-                        return n  # type: ignore
-                elif all(getattr(n, k, None) == v for k, v in node.items()):
+                if (filter(n) if filter else True) and all(getattr(n, k, None) == v for k, v in node.items()):
                     return n  # type: ignore
         return None
 
@@ -155,8 +151,7 @@ class GraphBuilder:
     ) -> List[GcpResourceType]:
         """
         Returns list of all nodes on the graph that are of given `clazz`
-        and/or conform to the `filter` or match attributes given in `**node`.
-        Combination of `filter` and `**node` is not supported.
+        and/or conform to the `filter` and match attributes given in `**node`.
         """
         result: List[GcpResourceType] = []
         if isinstance(nd := node.get("node"), GcpResource):
@@ -165,10 +160,7 @@ class GraphBuilder:
             for n in self.graph:
                 if clazz and not isinstance(n, clazz):
                     continue
-                if filter:
-                    if filter(n):
-                        result.append(n)
-                elif all(getattr(n, k, None) == v for k, v in node.items()):
+                if (filter(n) if filter else True) and all(getattr(n, k, None) == v for k, v in node.items()):
                     result.append(n)
         return result
 

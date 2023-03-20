@@ -16,8 +16,14 @@ def test_node_by_filter(random_builder: GraphBuilder) -> None:
     def filter_2(node: GcpMachineType) -> bool:
         return node.name is not None and node.name.startswith("m2-ultramem")
 
+    def filter_3(node: GcpMachineType) -> bool:
+        return node.name is not None and node.name.startswith("m")
+
     assert random_builder.node(filter=filter_1)
     assert random_builder.node(clazz=GcpMachineType, filter=filter_2)
+    node_1 = random_builder.node(clazz=GcpMachineType, filter=filter_3)
+    node_2 = random_builder.node(clazz=GcpMachineType, filter=filter_3, instance_cores=416)
+    assert node_1 != node_2
 
 
 def test_nodes_by_filter(random_builder: GraphBuilder) -> None:
