@@ -31,9 +31,10 @@ class SubscriptionHandler(ABC):
         self.started_at = utc()
         self.cleaner = Periodic("subscription_cleaner", self.check_outdated_handler, timedelta(seconds=10))
         self.not_connected_since: Dict[str, datetime] = {}
-        self.lock = Lock()
+        self.lock: Optional[Lock] = None
 
     async def start(self) -> None:
+        self.lock = Lock()
         await self.__load_from_db()
         log.info(f"Loaded {len(self._subscribers_by_id)} subscribers for {len(self._subscribers_by_event)} events")
         await self.cleaner.start()
@@ -91,6 +92,7 @@ class SubscriptionHandler(ABC):
         return existing
 
     async def __load_from_db(self) -> None:
+        assert self.lock is not None
         async with self.lock:
             self._subscribers_by_id = {s.id: s async for s in self.db.all()}
             self._subscribers_by_event = self.update_subscriber_by_event(self._subscribers_by_id.values())
