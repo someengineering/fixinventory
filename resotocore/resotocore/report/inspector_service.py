@@ -80,6 +80,19 @@ class InspectorService(Inspector, Service):
                 log.info(f"Creating check collection config {cid}")
                 await self.config_handler.put_config(ConfigEntity(cid, {CheckConfigRoot: js}), validate=False)
 
+    async def list_benchmarks(self) -> List[Benchmark]:
+        return [
+            await self.__benchmark(i)
+            async for i in self.config_handler.list_config_ids()
+            if i.startswith(BenchmarkConfigPrefix)
+        ]
+
+    async def benchmark(self, name: str) -> Optional[Benchmark]:
+        try:
+            return await self.__benchmark(benchmark_id(name))
+        except ValueError:
+            return None
+
     async def list_checks(
         self,
         provider: Optional[str] = None,
@@ -102,10 +115,7 @@ class InspectorService(Inspector, Service):
     async def perform_benchmark(
         self, benchmark_name: str, graph: str, accounts: Optional[List[str]] = None
     ) -> BenchmarkResult:
-        cfg = await self.config_handler.get_config(benchmark_id(benchmark_name))
-        if cfg is None or BenchmarkConfigRoot not in cfg.config:
-            raise ValueError(f"Unknown benchmark: {benchmark_name}")
-        benchmark = BenchmarkConfig.from_config(cfg)
+        benchmark = await self.__benchmark(benchmark_id(benchmark_name))
         context = CheckContext(accounts=accounts)
         return await self.__perform_benchmark(benchmark, graph, context)
 
@@ -136,6 +146,12 @@ class InspectorService(Inspector, Service):
         )
         context = CheckContext(accounts=accounts)
         return await self.__perform_benchmark(benchmark, graph, context)
+
+    async def __benchmark(self, cfg_id: ConfigId) -> Benchmark:
+        cfg = await self.config_handler.get_config(cfg_id)
+        if cfg is None or BenchmarkConfigRoot not in cfg.config:
+            raise ValueError(f"Unknown benchmark: {cfg_id}")
+        return BenchmarkConfig.from_config(cfg)
 
     async def filter_checks(self, report_filter: Optional[Callable[[ReportCheck], bool]] = None) -> List[ReportCheck]:
         cfg_ids = [i async for i in self.config_handler.list_config_ids() if i.startswith(CheckConfigPrefix)]

@@ -106,6 +106,10 @@ class Benchmark(CheckCollection):
     version: str
     clouds: Optional[List[str]] = None
 
+    def to_node(self) -> Json:
+        reported = to_js(self)
+        return dict(id=self.id, kind="benchmark", type="node", reported=reported)
+
 
 @define
 class CheckResult:
@@ -181,6 +185,14 @@ class Inspector(ABC):
     Benchmarks and checks are maintained via the configuration registry.
     A complete graph can be checked against either a pre-defined benchmark or from a selected set of checks.
     """
+
+    @abstractmethod
+    async def list_benchmarks(self) -> List[Benchmark]:
+        pass
+
+    @abstractmethod
+    async def benchmark(self, name: str) -> Optional[Benchmark]:
+        pass
 
     @abstractmethod
     async def list_checks(

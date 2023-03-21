@@ -4652,13 +4652,12 @@ class ReportCommand(CLICommand):
         args = re.split("\\s+", arg.strip(), maxsplit=2) if arg else []
 
         async def list_benchmarks() -> AsyncIterator[str]:
-            async for cfg_id in self.dependencies.config_handler.list_config_ids():
-                if cfg_id.startswith("resoto.report.benchmark."):
-                    yield cfg_id.replace("resoto.report.benchmark.", "")
+            for benchmark in await self.dependencies.inspector.list_benchmarks():
+                yield benchmark.id
 
         async def list_checks() -> AsyncIterator[Json]:
             for check in await self.dependencies.inspector.list_checks():
-                yield check.to_node()
+                yield check.id
 
         async def run_check(check_id: str) -> AsyncIterator[Json]:
             check = await self.dependencies.inspector.perform_checks(check_id)
