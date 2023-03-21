@@ -21,7 +21,7 @@ class GithubCollectorPlugin(BaseCollectorPlugin):
 
     def collect(self) -> None:
         if self.github is None:
-            log.error("GitHub collector called but no --github-access-token provided")
+            log.error("GitHub collector called but no access token provided")
             return
 
         log.debug("plugin: collecting GitHub resources")
