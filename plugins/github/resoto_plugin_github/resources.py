@@ -1,6 +1,6 @@
 from datetime import datetime
 from attrs import define
-from typing import Optional, ClassVar, List, Dict, Any
+from typing import Optional, ClassVar, List, Dict, Any, Union
 from resotolib.graph import Graph
 from resotolib.logger import log
 from resotolib.baseresources import (
@@ -503,7 +503,7 @@ class GithubRepo(GithubResource, BaseResource):
         )
 
 
-def get_clones_traffic(repo: Repository):
+def get_clones_traffic(repo: Repository) -> Optional[Dict[str, Union[int, List[Clones]]]]:
     try:
         return repo.get_clones_traffic()
     except GithubException as e:
@@ -511,7 +511,7 @@ def get_clones_traffic(repo: Repository):
         return None
 
 
-def get_views_traffic(repo: Repository):
+def get_views_traffic(repo: Repository) -> Optional[Dict[str, Union[int, List[View]]]]:
     try:
         return repo.get_views_traffic()
     except GithubException as e:
@@ -519,7 +519,7 @@ def get_views_traffic(repo: Repository):
         return None
 
 
-def get_top_referrers(repo: Repository):
+def get_top_referrers(repo: Repository) -> List[Referrer]:
     try:
         return repo.get_top_referrers()
     except GithubException as e:
@@ -527,7 +527,7 @@ def get_top_referrers(repo: Repository):
         return []
 
 
-def get_top_paths(repo: Repository):
+def get_top_paths(repo: Repository) -> List[Path]:
     try:
         return repo.get_top_paths()
     except GithubException as e:
