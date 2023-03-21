@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from abc import ABC
+from asyncio import Lock
 from collections import defaultdict
 from datetime import timedelta, datetime
 from typing import Optional, Iterable, Dict, List
@@ -30,6 +31,7 @@ class SubscriptionHandler(ABC):
         self.started_at = utc()
         self.cleaner = Periodic("subscription_cleaner", self.check_outdated_handler, timedelta(seconds=10))
         self.not_connected_since: Dict[str, datetime] = {}
+        self.lock = Lock()
 
     async def start(self) -> None:
         await self.__load_from_db()
@@ -89,8 +91,9 @@ class SubscriptionHandler(ABC):
         return existing
 
     async def __load_from_db(self) -> None:
-        self._subscribers_by_id = {s.id: s async for s in self.db.all()}
-        self._subscribers_by_event = self.update_subscriber_by_event(self._subscribers_by_id.values())
+        async with self.lock:
+            self._subscribers_by_id = {s.id: s async for s in self.db.all()}
+            self._subscribers_by_event = self.update_subscriber_by_event(self._subscribers_by_id.values())
 
     def subscribers_by_event(self) -> Dict[str, List[Subscriber]]:
         return self._subscribers_by_event

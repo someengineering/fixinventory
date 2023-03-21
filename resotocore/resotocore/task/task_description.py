@@ -454,7 +454,12 @@ class PerformActionState(StepState):
     def __init__(self, perform: PerformAction, step: Step, instance: RunningTask):
         super().__init__(step, instance)
         self.perform = perform
-        self.wait_for: List[Subscriber] = self.instance.subscribers_by_event().get(perform.message_type, [])
+        self._wait_for: List[Subscriber] = self.instance.subscribers_by_event().get(perform.message_type, [])
+
+    @property
+    def wait_for(self) -> List[Subscriber]:
+        existing = {s.id for s in self.instance.subscribers_by_event().get(self.perform.message_type, [])}
+        return [s for s in self._wait_for if s.id in existing]
 
     def current_step_done(self) -> bool:
         """
@@ -467,8 +472,7 @@ class PerformActionState(StepState):
             for x in self.instance.received_messages
             if isinstance(x, (ActionDone, ActionError)) and x.step_name == self.step.name
         }
-        subscriber = self.wait_for
-        missing = {x.id for x in subscriber if x[msg_type].wait_for_completion} - in_step
+        missing = {x.id for x in self.wait_for if x[msg_type].wait_for_completion} - in_step
         return self.timed_out or (not self.instance.is_error and empty(missing))
 
     def timeout(self) -> timedelta:
@@ -477,7 +481,7 @@ class PerformActionState(StepState):
         """
         msg_type = self.perform.message_type
         max_timeout = self.step.timeout
-        for subscriber in self.instance.subscribers_by_event().get(msg_type, []):
+        for subscriber in self.wait_for:
             subscription = subscriber.subscriptions[msg_type]
             to = subscription.timeout
             # only extend the timeout, when the subscriber is blocking and has a longer timeout
@@ -493,16 +497,16 @@ class PerformActionState(StepState):
     def step_started(self) -> None:
         super().step_started()
         # refresh the list of subscribers when the step has started
-        self.wait_for = self.instance.subscribers_by_event().get(self.perform.message_type, [])
+        self._wait_for = self.instance.subscribers_by_event().get(self.perform.message_type, [])
 
     def export_state(self) -> Json:
-        return {"wait_for": [a.id for a in self.wait_for]}
+        return {"wait_for": [a.id for a in self._wait_for]}
 
     def import_state(self, js: Json) -> None:
         existing = {s.id: s for s in self.instance.subscribers_by_event().get(self.perform.message_type, [])}
         wait_for = js.get("wait_for", [])
         # filter all existing subscriber from the list of subscribers to wait_for
-        self.wait_for = list(filter(identity, (existing.get(sid) for sid in wait_for)))  # type: ignore
+        self._wait_for = list(filter(identity, (existing.get(sid) for sid in wait_for)))  # type: ignore
 
     def initial_progress(self, progress: ProgressTree) -> None:
         super().initial_progress(progress)

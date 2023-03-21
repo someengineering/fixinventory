@@ -1012,7 +1012,8 @@ async def test_aggregate(cli_deps: CLIDependencies) -> None:
     async def aggregate(agg_str: str) -> List[Json]:
         res = AggregateCommand(cli_deps).parse(agg_str)
         flow = await res.flow(in_stream)
-        return [s async for s in flow]
+        async with flow.stream() as streamer:
+            return [s async for s in streamer]
 
     assert await aggregate("b as bla, c, r.d.f.name: sum(1) as count, min(a) as min, max(a) as max") == [
         {"group": {"bla": 1, "c": 1, "r.d.f.name": None}, "count": 2, "min": 1, "max": 2},
