@@ -456,7 +456,6 @@ class PerformActionState(StepState):
         self.perform = perform
         self._wait_for: List[Subscriber] = self.instance.subscribers_by_event().get(perform.message_type, [])
 
-    @property
     def wait_for(self) -> List[Subscriber]:
         existing = {s.id for s in self.instance.subscribers_by_event().get(self.perform.message_type, [])}
         return [s for s in self._wait_for if s.id in existing]
@@ -472,7 +471,7 @@ class PerformActionState(StepState):
             for x in self.instance.received_messages
             if isinstance(x, (ActionDone, ActionError)) and x.step_name == self.step.name
         }
-        missing = {x.id for x in self.wait_for if x[msg_type].wait_for_completion} - in_step
+        missing = {x.id for x in self.wait_for() if x[msg_type].wait_for_completion} - in_step
         return self.timed_out or (not self.instance.is_error and empty(missing))
 
     def timeout(self) -> timedelta:
@@ -481,7 +480,7 @@ class PerformActionState(StepState):
         """
         msg_type = self.perform.message_type
         max_timeout = self.step.timeout
-        for subscriber in self.wait_for:
+        for subscriber in self.wait_for():
             subscription = subscriber.subscriptions[msg_type]
             to = subscription.timeout
             # only extend the timeout, when the subscriber is blocking and has a longer timeout
@@ -510,7 +509,7 @@ class PerformActionState(StepState):
 
     def initial_progress(self, progress: ProgressTree) -> None:
         super().initial_progress(progress)
-        if self.wait_for:
+        if self.wait_for():
             progress.add_progress(ProgressDone(self.step.name, 0, 1))
 
 
@@ -804,7 +803,7 @@ class RunningTask:
         state = self.current_state
         if isinstance(state, PerformActionState):
             message_type = state.perform.message_type
-            subscriptions = state.wait_for
+            subscriptions = state.wait_for()
             if subscriber in subscriptions and self.ack_for(message_type, subscriber) is None:
                 return Action(message_type, self.id, state.step.name)
         return None

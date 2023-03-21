@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from abc import ABC
 from asyncio import Lock
 from collections import defaultdict
 from datetime import timedelta, datetime
@@ -12,11 +11,12 @@ from resotocore.message_bus import MessageBus
 from resotocore.util import utc, Periodic
 from resotocore.task.model import Subscriber, Subscription
 from resotocore.ids import SubscriberId
+from resotocore.web.service import Service
 
 log = logging.getLogger(__name__)
 
 
-class SubscriptionHandler(ABC):
+class SubscriptionHandler(Service):
     """
     SubscriptionHandler maintains all subscriptions in memory and syncs its internal state with the underlying db.
     Only reason for persistence is recovery of all subscriptions after restart.

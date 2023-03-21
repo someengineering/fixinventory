@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import Any
+from typing import Any, AsyncIterator
 
 from deepdiff import DeepDiff
 from pytest import fixture, mark
@@ -20,10 +20,10 @@ def in_mem_db() -> SubscriberDb:
 
 
 @fixture
-async def handler(in_mem_db: SubscriberDb) -> SubscriptionHandler:
-    result = SubscriptionHandler(in_mem_db, MessageBus())
-    await result.add_subscription(SubscriberId("sub_1"), "test", True, timedelta(seconds=3))
-    return result
+async def handler(in_mem_db: SubscriberDb) -> AsyncIterator[SubscriptionHandler]:
+    async with SubscriptionHandler(in_mem_db, MessageBus()) as handler:
+        await handler.add_subscription(SubscriberId("sub_1"), "test", True, timedelta(seconds=3))
+        yield handler
 
 
 def test_json_marshalling_subscription() -> None:
