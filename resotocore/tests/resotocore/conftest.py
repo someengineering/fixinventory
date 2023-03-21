@@ -576,10 +576,10 @@ def workflow_instance(
 
 
 @fixture
-async def subscription_handler(message_bus: MessageBus) -> SubscriptionHandler:
+async def subscription_handler(message_bus: MessageBus) -> AsyncIterator[SubscriptionHandler]:
     in_mem = InMemoryDb(Subscriber, lambda x: x.id)
-    result = SubscriptionHandler(in_mem, message_bus)
-    return result
+    async with SubscriptionHandler(in_mem, message_bus) as handler:
+        yield handler
 
 
 @fixture
