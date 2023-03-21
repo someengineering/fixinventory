@@ -43,7 +43,7 @@ class GithubCollectorPlugin(BaseCollectorPlugin):
                 log.error(f"Invalid repo name: {repo_fullname}")
                 continue
             log.debug(f"Adding repo: {repo_fullname}")
-            org_or_user, repo = repo_fullname.split("/", 1)
+            org_or_user = repo_fullname.split("/")[0]
             src = self.graph.search_first_all({"kind": "github_org", "id": org_or_user})
             if src is None:
                 try:
