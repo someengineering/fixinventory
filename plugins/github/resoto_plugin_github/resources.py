@@ -1,8 +1,8 @@
 from datetime import datetime
-import resotolib.logger
 from attrs import define
 from typing import Optional, ClassVar, List, Dict, Any
 from resotolib.graph import Graph
+from resotolib.logger import log
 from resotolib.baseresources import (
     BaseAccount,
     BaseRegion,
@@ -17,9 +17,7 @@ from github.Clones import Clones
 from github.View import View
 from github.Referrer import Referrer
 from github.Path import Path
-
-
-log = resotolib.logger.getLogger("resoto." + __name__)
+from github.GithubException import GithubException
 
 
 @define(eq=False, slots=False)
@@ -258,7 +256,10 @@ class GithubRepoClonesTraffic:
     clones: Optional[List[GithubRepoClones]] = None
 
     @staticmethod
-    def new(clones_traffic: Dict[str, Any]):
+    def new(clones_traffic: Optional[Dict[str, Any]]):
+        if clones_traffic is None:
+            return None
+
         return GithubRepoClonesTraffic(
             count=clones_traffic.get("count"),
             uniques=clones_traffic.get("uniques"),
@@ -288,7 +289,10 @@ class GithubRepoViewsTraffic:
     views: Optional[List[GithubRepoView]] = None
 
     @staticmethod
-    def new(views_traffic: Dict[str, Any]):
+    def new(views_traffic: Optional[Dict[str, Any]]):
+        if views_traffic is None:
+            return None
+
         return GithubRepoViewsTraffic(
             count=views_traffic.get("count"),
             uniques=views_traffic.get("uniques"),
@@ -491,9 +495,41 @@ class GithubRepo(GithubResource, BaseResource):
             url=repo.url,
             watchers=repo.watchers,
             watchers_count=repo.watchers_count,
-            clones_traffic=GithubRepoClonesTraffic.new(repo.get_clones_traffic()),
-            views_traffic=GithubRepoViewsTraffic.new(repo.get_views_traffic()),
-            top_referrers=[GithubRepoTopReferrer.new(referrer) for referrer in repo.get_top_referrers()],
-            top_paths=[GithubRepoTopPath.new(path) for path in repo.get_top_paths()],
+            clones_traffic=GithubRepoClonesTraffic.new(get_clones_traffic(repo)),
+            views_traffic=GithubRepoViewsTraffic.new(get_views_traffic(repo)),
+            top_referrers=[GithubRepoTopReferrer.new(referrer) for referrer in get_top_referrers(repo)],
+            top_paths=[GithubRepoTopPath.new(path) for path in get_top_paths(repo)],
             contributors_count=len(list(repo.get_contributors())),
         )
+
+
+def get_clones_traffic(repo: Repository):
+    try:
+        return repo.get_clones_traffic()
+    except GithubException as e:
+        log.debug(f"Failed to get clones traffic for {repo.full_name}: {e}")
+        return None
+
+
+def get_views_traffic(repo: Repository):
+    try:
+        return repo.get_views_traffic()
+    except GithubException as e:
+        log.debug(f"Failed to get views traffic for {repo.full_name}: {e}")
+        return None
+
+
+def get_top_referrers(repo: Repository):
+    try:
+        return repo.get_top_referrers()
+    except GithubException as e:
+        log.debug(f"Failed to get top referrers for {repo.full_name}: {e}")
+        return []
+
+
+def get_top_paths(repo: Repository):
+    try:
+        return repo.get_top_paths()
+    except GithubException as e:
+        log.debug(f"Failed to get top paths for {repo.full_name}: {e}")
+        return []
