@@ -30,10 +30,12 @@ class GithubCollectorPlugin(BaseCollectorPlugin):
 
         for org in Config.github.organizations:
             o = GithubOrg.new(github.get_organization(org))
+            log.debug(f"Adding {o.kdname}")
             self.graph.add_resource(region, o)
 
         for user in Config.github.users:
             u = GithubUser.new(github.get_user(user))
+            log.debug(f"Adding {u.kdname}")
             self.graph.add_resource(region, u)
 
         for repo_fullname in Config.github.repos:
@@ -46,17 +48,20 @@ class GithubCollectorPlugin(BaseCollectorPlugin):
             if src is None:
                 try:
                     src = GithubOrg.new(github.get_organization(org_or_user))
+                    log.debug(f"Adding {src.kdname}")
                     self.graph.add_resource(region, src)
                 except UnknownObjectException:
                     src = self.graph.search_first_all({"kind": "github_user", "id": org_or_user})
                     if src is None:
                         try:
                             src = GithubUser.new(github.get_user(org_or_user))
+                            log.debug(f"Adding {src.kdname}")
                             self.graph.add_resource(region, src)
                         except UnknownObjectException:
                             log.error(f"Could not find an org or user for repo: {repo_fullname} - skipping")
                             continue
             r = GithubRepo.new(github.get_repo(repo_fullname))
+            log.debug(f"Adding {r.kdname}")
             self.graph.add_resource(src, r)
 
     @staticmethod
