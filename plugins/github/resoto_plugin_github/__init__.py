@@ -36,23 +36,27 @@ class GithubCollectorPlugin(BaseCollectorPlugin):
             u = GithubUser.new(github.get_user(user))
             self.graph.add_resource(region, u)
 
-        for repo in Config.github.repos:
-            if "/" not in repo:
-                log.error(f"Invalid repo name: {repo}")
+        for repo_fullname in Config.github.repos:
+            if "/" not in repo_fullname:
+                log.error(f"Invalid repo name: {repo_fullname}")
                 continue
-            log.debug(f"Adding repo: {repo}")
-            org_or_user, repo = repo.split("/", 1)
+            log.debug(f"Adding repo: {repo_fullname}")
+            org_or_user, repo = repo_fullname.split("/", 1)
             src = self.graph.search_first_all({"kind": "github_org", "id": org_or_user})
             if src is None:
                 try:
                     src = GithubOrg.new(github.get_organization(org_or_user))
                     self.graph.add_resource(region, src)
-                except UnknownObjectException as e:
+                except UnknownObjectException:
                     src = self.graph.search_first_all({"kind": "github_user", "id": org_or_user})
                     if src is None:
-                        src = GithubUser.new(github.get_user(org_or_user))
-                        self.graph.add_resource(region, src)
-            r = GithubRepo.new(github.get_repo(f"{org_or_user}/{repo}"))
+                        try:
+                            src = GithubUser.new(github.get_user(org_or_user))
+                            self.graph.add_resource(region, src)
+                        except UnknownObjectException:
+                            log.error(f"Could not find an org or user for repo: {repo_fullname} - skipping")
+                            continue
+            r = GithubRepo.new(github.get_repo(repo_fullname))
             self.graph.add_resource(src, r)
 
     @staticmethod
