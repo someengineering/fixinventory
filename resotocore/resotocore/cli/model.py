@@ -27,6 +27,7 @@ from resotocore.message_bus import MessageBus
 from resotocore.model.model_handler import ModelHandler
 from resotocore.query.model import Query, variable_to_absolute, PathRoot
 from resotocore.query.template_expander import TemplateExpander, render_template
+from resotocore.report import Inspector
 from resotocore.task import TaskHandler
 from resotocore.types import Json, JsonElement
 from resotocore.util import AccessJson, uuid_str
@@ -192,6 +193,10 @@ class CLIDependencies:
     @property
     def cert_handler(self) -> CertificateHandler:
         return self.lookup["cert_handler"]  # type:ignore
+
+    @property
+    def inspector(self) -> Inspector:
+        return self.lookup["inspector"]  # type:ignore
 
     @property
     def http_session(self) -> ClientSession:

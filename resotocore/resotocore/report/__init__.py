@@ -69,6 +69,10 @@ class ReportCheck:
     def environment(self, values: Json) -> Json:
         return {**self.default_values, **values} if self.default_values else values
 
+    def to_node(self) -> Json:
+        reported = to_js(self)
+        return dict(id=self.id, kind="report_check", type="node", reported=reported)
+
 
 @define
 class CheckCollection:

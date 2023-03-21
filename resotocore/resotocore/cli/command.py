@@ -4637,6 +4637,49 @@ class CertificateCommand(CLICommand):
             return CLISource.single(lambda: stream.just(self.rendered_help(ctx)))
 
 
+class ReportCommand(CLICommand):
+    @property
+    def name(self) -> str:
+        return "report"
+
+    def args_info(self) -> ArgsInfo:
+        pass
+
+    def info(self) -> str:
+        return "Generate reports."
+
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
+        args = re.split("\\s+", arg.strip(), maxsplit=2) if arg else []
+
+        async def list_benchmarks() -> AsyncIterator[str]:
+            async for cfg_id in self.dependencies.config_handler.list_config_ids():
+                if cfg_id.startswith("resoto.report.benchmark."):
+                    yield cfg_id.replace("resoto.report.benchmark.", "")
+
+        async def list_checks() -> AsyncIterator[Json]:
+            for check in await self.dependencies.inspector.list_checks():
+                yield check.to_node()
+
+        async def run_check(check_id: str) -> AsyncIterator[Json]:
+            check = await self.dependencies.inspector.perform_checks(check_id)
+            if check:
+                yield check.to_node()
+
+        async def show_help() -> AsyncIterator[str]:
+            yield f"Do not understand: {arg}\n\n" + self.rendered_help(ctx)
+
+        if len(args) == 2 and args[0] in ("benchmark", "benchmarks") and args[1] == "list":
+            return CLISource.with_count(list_benchmarks, 1, produces=MediaType.Json)
+        elif len(args) == 3 and args[0] in ("benchmark", "benchmarks") and args[1] == "run":
+            pass
+        elif len(args) == 2 and args[0] in ("check", "checks") and args[1] == "list":
+            return CLISource.with_count(list_checks, 1, produces=MediaType.Json)
+        elif len(args) == 3 and args[0] in ("check", "checks") and args[1] == "run":
+            pass
+        else:
+            return CLISource.single(show_help)
+
+
 def all_commands(d: CLIDependencies) -> List[CLICommand]:
     commands = [
         AggregateCommand(d, "search"),
@@ -4667,6 +4710,7 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         TemplatesCommand(d, "search", allowed_in_source_position=True),
         PredecessorsPart(d, "search"),
         ProtectCommand(d, "action"),
+        ReportCommand(d, "misc"),
         SearchPart(d, "search", allowed_in_source_position=True),
         SetDesiredCommand(d, "action"),
         SetMetadataCommand(d, "action"),
