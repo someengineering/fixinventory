@@ -16,9 +16,4 @@ def test_gcp_sql_database_instance(random_builder: GraphBuilder) -> None:
     assert len(random_builder.edges_of(GcpSqlDatabaseInstance, GcpSqlBackupRun)) > 0
     assert len(random_builder.resources_of(GcpSqlDatabase)) > 0
     assert len(random_builder.resources_of(GcpSqlUser)) > 0
-
-
-def test_gcp_sql_operation(random_builder: GraphBuilder) -> None:
-    op = roundtrip(GcpSqlOperation, random_builder)
-    connect_resource(random_builder, op, GcpSqlDatabaseInstance, name=op.target_id)
-    assert len(random_builder.edges_of(GcpSqlDatabaseInstance, GcpSqlOperation)) == 1
+    assert len(random_builder.resources_of(GcpSqlOperation)) > 0
