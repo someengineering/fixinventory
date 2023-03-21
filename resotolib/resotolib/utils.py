@@ -529,20 +529,27 @@ def is_env_var_string(obj: Any) -> bool:
 
 
 def replace_env_vars(elem: JsonElement, environment: Mapping[str, str], keep_unresolved: bool = True) -> JsonElement:
+    # a special marker to avoid removing nulls
+    class UnresolvedEnvVar:
+        pass
+
+    # no need to have many instances of this
+    Unresolved = UnresolvedEnvVar()
+
     def replace_env_vars_helper(
         elem: JsonElement, environment: Mapping[str, str], keep_unresolved: bool, path: List[Union[str, int]]
-    ) -> JsonElement:
+    ) -> Union[JsonElement, UnresolvedEnvVar]:
         if isinstance(elem, dict):
             replaced = {
                 k: replace_env_vars_helper(v, environment, keep_unresolved, path + [k]) for k, v in elem.items()
             }
-            without_unresolved = {k: v for k, v in replaced.items() if v is not None}
+            without_unresolved = {k: v for k, v in replaced.items() if v is not Unresolved}
             return without_unresolved
         elif isinstance(elem, list):
             replaced = [
                 replace_env_vars_helper(v, environment, keep_unresolved, path + [i]) for i, v, in enumerate(elem)
             ]
-            without_unresolved = [v for v in replaced if v is not None]
+            without_unresolved = [v for v in replaced if v is not Unresolved]
             return without_unresolved
         elif isinstance(elem, str):
             str_value = elem
@@ -566,13 +573,20 @@ def replace_env_vars(elem: JsonElement, environment: Mapping[str, str], keep_unr
                     message += "You can also use the --override option to override the config value."
                     log.warning(f"Environment variable substitution failed: {message}")
 
-                    return None
+                    return Unresolved
 
             return str_value
+        elif isinstance(elem, UnresolvedEnvVar):
+            # let's not leak that outside
+            return None
         else:
             return elem
 
-    return replace_env_vars_helper(elem, environment, keep_unresolved, [])
+    replaced = replace_env_vars_helper(elem, environment, keep_unresolved, [])
+    if isinstance(replaced, UnresolvedEnvVar):
+        return None
+    else:
+        return replaced
 
 
 def merge_json_elements(
