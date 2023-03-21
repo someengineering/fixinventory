@@ -629,7 +629,7 @@ class GcpSqlDatabaseInstance(GcpResource):
                 builder.add_edge(self, reverse=True, clazz=GcpSslCertificate, link=cert.self_link)
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        classes: List[Type[GcpResource]] = [GcpSqlBackupRun, GcpSqlDatabase, GcpSqlUser]
+        classes: List[Type[GcpResource]] = [GcpSqlBackupRun, GcpSqlDatabase, GcpSqlUser, GcpSqlOperation]
         for cls in classes:
             if spec := cls.api_spec:
                 items = graph_builder.client.list(spec, instance=self.name, project=self.project)
@@ -770,7 +770,7 @@ class GcpSqlOperation(GcpResource):
         version="v1",
         accessors=["operations"],
         action="list",
-        request_parameter={"project": "{project}"},
+        request_parameter={"instance": "{instance}", "project": "{project}"},
         request_parameter_in={"project"},
         response_path="items",
         response_regional_sub_path=None,
@@ -901,4 +901,4 @@ class GcpSqlUser(GcpResource):
             builder.add_edge(self, reverse=True, clazz=GcpSqlDatabaseInstance)
 
 
-resources = [GcpSqlFlag, GcpSqlDatabaseInstance, GcpSqlOperation]
+resources = [GcpSqlFlag, GcpSqlDatabaseInstance]
