@@ -5,6 +5,7 @@ import sys
 from subprocess import call
 from tempfile import TemporaryDirectory
 from typing import Dict, Union, Optional, Tuple
+from urllib import parse
 from urllib.parse import urlsplit
 
 import aiohttp
@@ -118,7 +119,7 @@ class Shell:
         async def store_file(response: Union[HttpResponse, aiohttp.BodyPartReader], directory: str) -> Tuple[str, str]:
             disposition = response.headers.get("Content-Disposition", "")
             match = re.findall('filename="([^"]+)"', disposition)
-            filename = match[0] if match else "out"
+            filename = parse.unquote(match[0]) if match else "out"
             if "/" in filename:
                 raise ValueError(f"Invalid filename: {filename}")
             filepath = os.path.join(directory, filename)
