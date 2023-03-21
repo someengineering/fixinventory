@@ -37,7 +37,7 @@ class GithubCollectorPlugin(BaseCollectorPlugin):
             self.graph.add_resource(region, u)
 
         for repo in Config.github.repos:
-            if not "/" in repo:
+            if "/" not in repo:
                 log.error(f"Invalid repo name: {repo}")
                 continue
             log.debug(f"Adding repo: {repo}")
