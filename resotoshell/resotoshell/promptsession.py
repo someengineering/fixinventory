@@ -1,6 +1,8 @@
 import pathlib
 import re
 from abc import ABC
+
+from attr import evolve
 from attrs import define, field
 from re import Pattern
 from math import floor
@@ -82,6 +84,7 @@ class CommandInfo:
     source: bool = True
     info: str = ""
     help: str = ""
+    is_alias: bool = False
 
 
 @define
@@ -615,12 +618,13 @@ class CommandLineCompleter(Completer):
     def __init__(self, commands: List[CommandInfo], completers: List[CommandCompleter]):
         self.commands = commands
         self.command_completers = {c.cmd.name: c for c in completers}
-        self.source_completer = FuzzyWordCompleter([c.name for c in commands if c.source])
-        self.flow_completer = FuzzyWordCompleter([c.name for c in commands if not c.source])
+        self.source_completer = FuzzyWordCompleter([c.name for c in commands if (c.source and not c.is_alias)])
+        self.flow_completer = FuzzyWordCompleter([c.name for c in commands if (not c.source and not c.is_alias)])
 
     def find_current_command(self, document: Document) -> Optional[Tuple[CommandCompleter, str]]:
-        parts = document.text_before_cursor.lstrip().split(maxsplit=1)
-        if parts and (command := self.command_completers.get(parts[0])) is not None:
+        text = document.text_before_cursor.lstrip()
+        parts = text.split(maxsplit=1)
+        if parts and (command := self.command_completers.get(parts[0])) is not None and len(text) > len(parts[0]):
             args = parts[1] if len(parts) == 2 else ""
             return command, args
         return None
@@ -786,6 +790,10 @@ async def core_metadata(
         known_props = {p for v in aggregate_roots.values() for prop in v.properties or [] for p in path(prop)}
         info = await client.cli_info()
         cmds = [jsons.load(cmd, CommandInfo) for cmd in (info.get("commands", []) + info.get("alias_templates", []))]
+        lookup = {cmd.name: cmd for cmd in cmds}
+        for alias, cmd in info.get("alias_names", {}).items():
+            if cmd in lookup and alias not in lookup:
+                cmds.append(evolve(lookup[cmd], name=alias, is_alias=True))
         return cmds, sorted(aggregate_roots.keys()), sorted(known_props)
     except Exception as ex:
         log.warning(
