@@ -10,7 +10,7 @@ def read(file_name: str) -> str:
 
 setup(
     name="resoto-plugin-random",
-    version="3.2.7",
+    version="3.3.0",
     description="Resoto Random Collector Plugin",
     license="Apache 2.0",
     packages=find_packages(),
