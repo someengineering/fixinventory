@@ -303,8 +303,8 @@ def format_value_for_export(value: Any) -> Any:
 
 
 def get_node_attributes(node: BaseResource) -> Dict:
-    if not isinstance(node, BaseResource) and not hasattr(node, "to_json"):
-        raise ValueError(f"Node {node} is not a BaseResource and has no to_json() method!")
+    if not hasattr(node, "to_json"):
+        raise ValueError(f"Node {node} has no to_json() method!")
     result = node.to_json()
     result["kind"] = node.kind
     return result
