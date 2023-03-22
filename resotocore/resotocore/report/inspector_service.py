@@ -95,6 +95,7 @@ class InspectorService(Inspector, Service):
 
     async def list_checks(
         self,
+        *,
         provider: Optional[str] = None,
         service: Optional[str] = None,
         category: Optional[str] = None,
@@ -113,7 +114,7 @@ class InspectorService(Inspector, Service):
         return await self.filter_checks(inspection_matches)
 
     async def perform_benchmark(
-        self, benchmark_name: str, graph: str, accounts: Optional[List[str]] = None
+        self, graph: str, benchmark_name: str, accounts: Optional[List[str]] = None
     ) -> BenchmarkResult:
         benchmark = await self.__benchmark(benchmark_id(benchmark_name))
         context = CheckContext(accounts=accounts)
@@ -122,18 +123,23 @@ class InspectorService(Inspector, Service):
     async def perform_checks(
         self,
         graph: str,
+        *,
         provider: Optional[str] = None,
         service: Optional[str] = None,
         category: Optional[str] = None,
         kind: Optional[str] = None,
+        check_ids: Optional[List[str]] = None,
         accounts: Optional[List[str]] = None,
     ) -> BenchmarkResult:
-        checks = await self.list_checks(provider, service, category, kind)
+        checks = await self.list_checks(
+            provider=provider, service=service, category=category, kind=kind, check_ids=check_ids
+        )
         provider_name = f"{provider}_" if provider else ""
         service_name = f"{service}_" if service else ""
         category_name = f"{category}_" if category else ""
         kind_name = f"{kind}_" if kind else ""
-        title = f"{provider_name}{service_name}{category_name}{kind_name}_benchmark"
+        check_id_name = f"{check_ids[0]}_" if check_ids else ""
+        title = f"{provider_name}{service_name}{category_name}{kind_name}{check_id_name}benchmark"
         benchmark = Benchmark(
             id=title,
             title=title,

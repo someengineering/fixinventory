@@ -488,7 +488,9 @@ class Api:
         kind = request.query.get("kind")
         acc = request.query.get("accounts")
         accounts = [a.strip() for a in acc.split(",")] if acc else None
-        result = await self.inspector.perform_checks(graph, provider, service, category, kind, accounts)
+        result = await self.inspector.perform_checks(
+            graph, provider=provider, service=service, category=category, kind=kind, accounts=accounts
+        )
         return await single_result(request, to_js(result))
 
     async def perform_benchmark(self, request: Request) -> StreamResponse:
@@ -496,7 +498,7 @@ class Api:
         graph = request.match_info["graph_id"]
         acc = request.query.get("accounts")
         accounts = [a.strip() for a in acc.split(",")] if acc else None
-        result = await self.inspector.perform_benchmark(benchmark, graph, accounts)
+        result = await self.inspector.perform_benchmark(graph, benchmark, accounts)
         result_graph = result.to_graph()
         async with stream.iterate(result_graph).stream() as streamer:
             await self.stream_response_from_gen(request, streamer, len(result_graph))
@@ -507,7 +509,7 @@ class Api:
         service = request.query.get("service")
         category = request.query.get("category")
         kind = request.query.get("kind")
-        inspections = await self.inspector.list_checks(provider, service, category, kind)
+        inspections = await self.inspector.list_checks(provider=provider, service=service, category=category, kind=kind)
         return await single_result(request, to_js(inspections))
 
     async def inspection_results(self, request: Request) -> StreamResponse:

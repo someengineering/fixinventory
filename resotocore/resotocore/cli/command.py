@@ -46,11 +46,6 @@ from aiostream.core import Stream
 from attrs import define, field
 from dateutil import parser as date_parser
 from parsy import Parser, string
-from rich.padding import Padding
-from rich.panel import Panel
-from rich.table import Table
-from rich.text import Text
-
 from resotocore import version
 from resotocore.async_extensions import run_async
 from resotocore.cli import (
@@ -121,6 +116,7 @@ from resotocore.query.model import (
 )
 from resotocore.query.query_parser import parse_query, aggregate_parameter_parser
 from resotocore.query.template_expander import tpl_props_p
+from resotocore.report import BenchmarkConfigPrefix
 from resotocore.task.task_description import Job, TimeTrigger, EventTrigger, ExecuteCommand, Workflow, RunningTask
 from resotocore.types import Json, JsonElement, EdgeType
 from resotocore.util import (
@@ -157,6 +153,10 @@ from resotolib.parse_util import (
 )
 from resotolib.utils import safe_members_in_tarfile, get_local_tzinfo
 from resotolib.x509 import write_cert_to_file, write_key_to_file
+from rich.padding import Padding
+from rich.panel import Panel
+from rich.table import Table
+from rich.text import Text
 
 log = logging.getLogger(__name__)
 
@@ -4643,7 +4643,8 @@ class ReportCommand(CLICommand):
         return "report"
 
     def args_info(self) -> ArgsInfo:
-        pass
+        # TODO: define me!
+        return []
 
     def info(self) -> str:
         return "Generate reports."
@@ -4655,26 +4656,44 @@ class ReportCommand(CLICommand):
             for benchmark in await self.dependencies.inspector.list_benchmarks():
                 yield benchmark.id
 
-        async def list_checks() -> AsyncIterator[Json]:
+        async def show_benchmark(bid: str) -> AsyncIterator[Optional[str]]:
+            yield await self.dependencies.config_handler.config_yaml(ConfigId(BenchmarkConfigPrefix + bid))
+
+        async def show_check(cid: str) -> AsyncIterator[Json]:
+            model = await self.dependencies.config_handler.get_configs_model()
+            kind = model.get("resoto_core_report_check")
+            for check in await self.dependencies.inspector.list_checks(check_ids=[cid]):
+                yield kind.create_yaml(to_js(check)) if isinstance(kind, ComplexKind) else yaml.safe_dump(to_js(check))
+
+        async def list_checks() -> AsyncIterator[str]:
             for check in await self.dependencies.inspector.list_checks():
                 yield check.id
 
+        async def run_benchmark(bid: str) -> AsyncIterator[Json]:
+            result = await self.dependencies.inspector.perform_benchmark(ctx.env["graph"], bid)
+            for node in result.to_graph():
+                yield node
+
         async def run_check(check_id: str) -> AsyncIterator[Json]:
-            check = await self.dependencies.inspector.perform_checks(check_id)
-            if check:
-                yield check.to_node()
+            result = await self.dependencies.inspector.perform_checks(ctx.env["graph"], check_ids=[check_id])
+            for node in result.to_graph():
+                yield node
 
         async def show_help() -> AsyncIterator[str]:
             yield f"Do not understand: {arg}\n\n" + self.rendered_help(ctx)
 
         if len(args) == 2 and args[0] in ("benchmark", "benchmarks") and args[1] == "list":
-            return CLISource.with_count(list_benchmarks, 1, produces=MediaType.Json)
+            return CLISource.with_count(list_benchmarks, 1)
+        elif len(args) == 3 and args[0] in ("benchmark", "benchmarks") and args[1] == "show":
+            return CLISource.with_count(partial(show_benchmark, args[2].strip()), 1)
         elif len(args) == 3 and args[0] in ("benchmark", "benchmarks") and args[1] == "run":
-            pass
+            return CLISource.with_count(partial(run_benchmark, args[2].strip()), 1)
         elif len(args) == 2 and args[0] in ("check", "checks") and args[1] == "list":
-            return CLISource.with_count(list_checks, 1, produces=MediaType.Json)
+            return CLISource.with_count(list_checks, 1)
+        elif len(args) == 3 and args[0] in ("check", "checks") and args[1] == "show":
+            return CLISource.with_count(partial(show_check, args[2].strip()), 1)
         elif len(args) == 3 and args[0] in ("check", "checks") and args[1] == "run":
-            pass
+            return CLISource.with_count(partial(run_check, args[2].strip()), 1)
         else:
             return CLISource.single(show_help)
 

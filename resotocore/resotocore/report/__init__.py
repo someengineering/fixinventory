@@ -123,6 +123,9 @@ class CheckResult:
 
     def to_node(self) -> Json:
         reported = to_js(self.check)
+        reported["kind"] = "report_check_result"
+        reported["id"] = self.check.id
+        reported["name"] = self.check.title
         reported["number_of_resources_failing"] = self.number_of_resources_failing
         if self.number_of_resources_failing_by_account:
             reported["number_of_resources_failing_by_account"] = self.number_of_resources_failing_by_account
@@ -144,6 +147,7 @@ class CheckCollectionResult:
             type="node",
             reported=dict(
                 kind="report_check_collection",
+                name=self.title,
                 title=self.title,
                 description=self.description,
                 documentation=self.documentation,
@@ -170,10 +174,10 @@ class BenchmarkResult(CheckCollectionResult):
             result.append(collection.to_node())
             for check in collection.checks:
                 result.append(check.to_node())
-                result.append({"from": collection.node_id, "to": check.node_id, "type": "edge"})
+                result.append({"from": collection.node_id, "to": check.node_id, "type": "edge", "edge_type": "default"})
             for child in collection.children:
                 visit_check_collection(child)
-                result.append({"from": collection.node_id, "to": child.node_id, "type": "edge"})
+                result.append({"from": collection.node_id, "to": child.node_id, "type": "edge", "edge_type": "default"})
 
         visit_check_collection(self)
         return result
@@ -197,6 +201,7 @@ class Inspector(ABC):
     @abstractmethod
     async def list_checks(
         self,
+        *,
         provider: Optional[str] = None,
         service: Optional[str] = None,
         category: Optional[str] = None,
@@ -217,7 +222,7 @@ class Inspector(ABC):
 
     @abstractmethod
     async def perform_benchmark(
-        self, benchmark_name: str, graph: str, accounts: Optional[List[str]] = None
+        self, graph: str, benchmark_name: str, accounts: Optional[List[str]] = None
     ) -> BenchmarkResult:
         """
         Perform a benchmark by given name on the content of a graph with given name.
@@ -232,10 +237,12 @@ class Inspector(ABC):
     async def perform_checks(
         self,
         graph: str,
+        *,
         provider: Optional[str] = None,
         service: Optional[str] = None,
         category: Optional[str] = None,
         kind: Optional[str] = None,
+        check_ids: Optional[List[str]] = None,
         accounts: Optional[List[str]] = None,
     ) -> BenchmarkResult:
         """
@@ -246,6 +253,7 @@ class Inspector(ABC):
         :param service: the service inside the provider (e.g. ec2, lambda, ...)
         :param category: the category of the check (e.g. security, compliance, cost ...)
         :param kind: the resulting kind of the check (e.g. aws_ec2_instance, kubernetes_pod, ...)
+        :param check_ids: the ids of the checks to perform.
         :param accounts: the list of accounts to perform the benchmark on. If not given, all accounts are used.
         :return: the result of this benchmark
         """
