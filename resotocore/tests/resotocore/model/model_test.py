@@ -1,5 +1,4 @@
 import json
-import sys
 from datetime import datetime, timedelta
 from textwrap import dedent
 from typing import Type, Any, Union, cast, List
@@ -375,6 +374,21 @@ def test_graph(person_model: Model) -> None:
     graph: DiGraph = person_model.graph()
     assert len(graph.nodes()) == 11
     assert len(graph.edges()) == 9
+
+
+def test_flatten(person_model: Model) -> None:
+    cpl = {m.fqn: m for m in person_model.complex_kinds()}
+    flat = {m.fqn: m for m in person_model.flat_kinds() if isinstance(m, ComplexKind)}
+    # base property is unchanged
+    assert len(flat["Base"].properties) == len(cpl["Base"].properties)
+    # address has all properties of base and address
+    assert len(flat["Address"].properties) == (len(cpl["Address"].properties) + len(cpl["Base"].properties))
+    # address overrides icon in metadata
+    assert flat["Address"].metadata["icon"] == "address.svg"
+    # person has all properties of base and address
+    assert len(flat["Person"].properties) == (len(cpl["Person"].properties) + len(cpl["Base"].properties))
+    # person inherits metadata from base
+    assert flat["Person"].metadata["icon"] == "icon.svg"
 
 
 def roundtrip(obj: Any, clazz: Type[object]) -> None:

@@ -235,6 +235,10 @@ def dataclasses_to_resotocore_model(
         ]
         root = any(sup == aggregate_root for sup in clazz.mro()) if aggregate_root else True
         kind = model_name(clazz)
+        metadata: Optional[Json] = None
+        if (m := getattr(clazz, "metadata", None)) and isinstance(m, dict):
+            metadata = m
+
         model.append(
             {
                 "fqn": kind,
@@ -243,6 +247,7 @@ def dataclasses_to_resotocore_model(
                 "allow_unknown_props": allow_unknown_props,
                 "successor_kinds": successors.get(kind, None),
                 "aggregate_root": root,
+                "metadata": metadata,
             }
         )
 

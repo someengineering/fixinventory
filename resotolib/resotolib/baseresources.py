@@ -7,7 +7,7 @@ import hashlib
 import weakref
 from resotolib.logger import log
 from enum import Enum
-from typing import Dict, Iterator, List, ClassVar, Optional, TypedDict
+from typing import Dict, Iterator, List, ClassVar, Optional, TypedDict, Any
 from resotolib.utils import make_valid_timestamp, utc_str
 from prometheus_client import Counter, Summary
 from attrs import define, field, resolve_types, Factory
@@ -129,6 +129,7 @@ class BaseResource(ABC):
     kind: ClassVar[str] = "resource"
     phantom: ClassVar[bool] = False
     reference_kinds: ClassVar[ModelReference] = {}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "misc"}
 
     id: str
     tags: Dict[str, Optional[str]] = Factory(dict)
@@ -607,6 +608,8 @@ class PhantomBaseResource(BaseResource):
 
 @define(eq=False, slots=False)
 class BaseQuota(PhantomBaseResource):
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "quota", "group": "control"}
+
     kind: ClassVar[str] = "quota"
     quota: Optional[float] = None
     usage: Optional[float] = None
@@ -630,12 +633,14 @@ class BaseQuota(PhantomBaseResource):
 @define(eq=False, slots=False)
 class BaseType(BaseQuota):
     kind: ClassVar[str] = "type"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "type", "group": "control"}
 
 
 @define(eq=False, slots=False)
 class BaseInstanceQuota(BaseQuota):
     kind: ClassVar[str] = "instance_quota"
     instance_type: Optional[str] = None
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "instance", "group": "compute"}
 
     def __attrs_post_init__(self) -> None:
         super().__attrs_post_init__()
@@ -646,6 +651,7 @@ class BaseInstanceQuota(BaseQuota):
 @define(eq=False, slots=False)
 class BaseInstanceType(BaseType):
     kind: ClassVar[str] = "instance_type"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "instance_type", "group": "compute"}
     instance_type: Optional[str] = None
     instance_cores: float = 0.0
     instance_memory: float = 0.0
@@ -665,6 +671,7 @@ class BaseInstanceType(BaseType):
 @define(eq=False, slots=False)
 class BaseCloud(BaseResource):
     kind: ClassVar[str] = "base_cloud"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "cloud", "group": "control"}
 
     def cloud(self, graph=None):
         return self
@@ -673,6 +680,7 @@ class BaseCloud(BaseResource):
 @define(eq=False, slots=False)
 class BaseAccount(BaseResource):
     kind: ClassVar[str] = "account"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "account", "group": "control"}
 
     def account(self, graph=None):
         return self
@@ -681,6 +689,7 @@ class BaseAccount(BaseResource):
 @define(eq=False, slots=False)
 class BaseRegion(BaseResource):
     kind: ClassVar[str] = "region"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "region", "group": "control"}
 
     def region(self, graph=None):
         return self
@@ -689,6 +698,7 @@ class BaseRegion(BaseResource):
 @define(eq=False, slots=False)
 class BaseZone(BaseResource):
     kind: ClassVar[str] = "zone"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "zone", "group": "control"}
 
     def zone(self, graph=None):
         return self
@@ -712,6 +722,7 @@ jsons.set_serializer(serialize_enum, InstanceStatus)
 @define(eq=False, slots=False)
 class BaseInstance(BaseResource):
     kind: ClassVar[str] = "instance"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "instance", "group": "compute"}
     instance_cores: float = 0.0
     instance_memory: float = 0.0
     instance_type: Optional[str] = ""
@@ -724,6 +735,7 @@ class BaseInstance(BaseResource):
 @define(eq=False, slots=False)
 class BaseVolumeType(BaseType):
     kind: ClassVar[str] = "volume_type"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "volume_type", "group": "storage"}
     volume_type: str = ""
     ondemand_cost: float = 0.0
 
@@ -747,6 +759,7 @@ jsons.set_serializer(serialize_enum, VolumeStatus)
 @define(eq=False, slots=False)
 class BaseNetworkShare(BaseResource, ABC):
     kind: ClassVar[str] = "network_share"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "network_share", "group": "storage"}
     share_size: int = 0
     share_type: str = ""
     share_status: Optional[str] = None
@@ -758,6 +771,7 @@ class BaseNetworkShare(BaseResource, ABC):
 @define(eq=False, slots=False)
 class BaseVolume(BaseResource):
     kind: ClassVar[str] = "volume"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "volume", "group": "storage"}
     volume_size: int = 0
     volume_type: str = ""
     volume_status: Optional[VolumeStatus] = None
@@ -773,6 +787,7 @@ class BaseVolume(BaseResource):
 @define(eq=False, slots=False)
 class BaseSnapshot(BaseResource):
     kind: ClassVar[str] = "snapshot"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "snapshot", "group": "storage"}
     snapshot_status: str = ""
     description: Optional[str] = None
     volume_id: Optional[str] = None
@@ -785,6 +800,7 @@ class BaseSnapshot(BaseResource):
 @define(eq=False, slots=False)
 class Cloud(BaseCloud):
     kind: ClassVar[str] = "cloud"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "cloud", "group": "control"}
 
     def delete(self, graph) -> bool:
         return False
@@ -793,6 +809,7 @@ class Cloud(BaseCloud):
 @define(eq=False, slots=False)
 class GraphRoot(PhantomBaseResource):
     kind: ClassVar[str] = "graph_root"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "graph_root", "group": "control"}
 
     def delete(self, graph) -> bool:
         return False
@@ -801,37 +818,44 @@ class GraphRoot(PhantomBaseResource):
 @define(eq=False, slots=False)
 class BaseBucket(BaseResource):
     kind: ClassVar[str] = "bucket"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "bucket", "group": "storage"}
 
 
 @define(eq=False, slots=False)
 class BaseServerlessFunction(BaseResource):
     kind: ClassVar[str] = "serverless_function"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "function", "group": "compute"}
 
 
 @define(eq=False, slots=False)
 class BaseKeyPair(BaseResource):
     kind: ClassVar[str] = "keypair"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "keypair", "group": "access_control"}
     fingerprint: str = ""
 
 
 @define(eq=False, slots=False)
 class BaseBucketQuota(BaseQuota):
     kind: ClassVar[str] = "bucket_quota"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "quota", "group": "storage"}
 
 
 @define(eq=False, slots=False)
 class BaseNetwork(BaseResource):
     kind: ClassVar[str] = "network"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "network", "group": "networking"}
 
 
 @define(eq=False, slots=False)
 class BaseNetworkQuota(BaseQuota):
     kind: ClassVar[str] = "network_quota"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "quota", "group": "networking"}
 
 
 @define(eq=False, slots=False)
 class BaseDatabase(BaseResource):
     kind: ClassVar[str] = "database"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     db_type: str = ""
     db_status: str = ""
     db_endpoint: Optional[str] = ""
@@ -846,6 +870,7 @@ class BaseDatabase(BaseResource):
 @define(eq=False, slots=False)
 class BaseLoadBalancer(BaseResource):
     kind: ClassVar[str] = "load_balancer"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "load_balancer", "group": "networking"}
     lb_type: str = ""
     public_ip_address: Optional[str] = None
     backends: List[str] = field(factory=list)
@@ -854,56 +879,67 @@ class BaseLoadBalancer(BaseResource):
 @define(eq=False, slots=False)
 class BaseLoadBalancerQuota(BaseQuota):
     kind: ClassVar[str] = "load_balancer_quota"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "quota", "group": "networking"}
 
 
 @define(eq=False, slots=False)
 class BaseSubnet(BaseResource):
     kind: ClassVar[str] = "subnet"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "subnet", "group": "networking"}
 
 
 @define(eq=False, slots=False)
 class BaseGateway(BaseResource):
     kind: ClassVar[str] = "gateway"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "gateway", "group": "networking"}
 
 
 @define(eq=False, slots=False)
 class BaseTunnel(BaseResource):
     kind: ClassVar[str] = "tunnel"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "tunnel", "group": "networking"}
 
 
 @define(eq=False, slots=False)
 class BaseGatewayQuota(BaseQuota):
     kind: ClassVar[str] = "gateway_quota"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "quota", "group": "networking"}
 
 
 @define(eq=False, slots=False)
 class BaseSecurityGroup(BaseResource):
     kind: ClassVar[str] = "security_group"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "security_group", "group": "networking"}
 
 
 @define(eq=False, slots=False)
 class BaseRoutingTable(BaseResource):
     kind: ClassVar[str] = "routing_table"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "routing_table", "group": "networking"}
 
 
 @define(eq=False, slots=False)
 class BaseNetworkAcl(BaseResource):
     kind: ClassVar[str] = "network_acl"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "acl", "group": "networking"}
 
 
 @define(eq=False, slots=False)
 class BasePeeringConnection(BaseResource):
     kind: ClassVar[str] = "peering_connection"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "connection", "group": "networking"}
 
 
 @define(eq=False, slots=False)
 class BaseEndpoint(BaseResource):
     kind: ClassVar[str] = "endpoint"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "endpoint", "group": "networking"}
 
 
 @define(eq=False, slots=False)
 class BaseNetworkInterface(BaseResource):
     kind: ClassVar[str] = "network_interface"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "network_interface", "group": "networking"}
     network_interface_status: str = ""
     network_interface_type: str = ""
     mac: str = ""
@@ -916,37 +952,44 @@ class BaseNetworkInterface(BaseResource):
 @define(eq=False, slots=False)
 class BaseUser(BaseResource):
     kind: ClassVar[str] = "user"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "user", "group": "access_control"}
 
 
 @define(eq=False, slots=False)
 class BaseGroup(BaseResource):
     kind: ClassVar[str] = "group"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "access_control"}
 
 
 @define(eq=False, slots=False)
 class BasePolicy(BaseResource):
     kind: ClassVar[str] = "policy"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "policy", "group": "access_control"}
 
 
 @define(eq=False, slots=False)
 class BaseRole(BaseResource):
     kind: ClassVar[str] = "role"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "role", "group": "access_control"}
 
 
 @define(eq=False, slots=False)
 class BaseInstanceProfile(BaseResource):
     kind: ClassVar[str] = "instance_profile"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "instance_profile", "group": "access_control"}
 
 
 @define(eq=False, slots=False)
 class BaseAccessKey(BaseResource):
     kind: ClassVar[str] = "access_key"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "key", "group": "access_control"}
     access_key_status: str = ""
 
 
 @define(eq=False, slots=False)
 class BaseCertificate(BaseResource):
     kind: ClassVar[str] = "certificate"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "certificate", "group": "access_control"}
     expires: Optional[datetime] = None
     dns_names: Optional[List[str]] = None
     sha1_fingerprint: Optional[str] = None
@@ -955,11 +998,13 @@ class BaseCertificate(BaseResource):
 @define(eq=False, slots=False)
 class BaseCertificateQuota(BaseQuota):
     kind: ClassVar[str] = "certificate_quota"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "quota", "group": "access_control"}
 
 
 @define(eq=False, slots=False)
 class BaseStack(BaseResource):
     kind: ClassVar[str] = "stack"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "stack", "group": "control"}
     stack_status: str = ""
     stack_status_reason: str = ""
     stack_parameters: Dict = field(factory=dict)
@@ -968,6 +1013,7 @@ class BaseStack(BaseResource):
 @define(eq=False, slots=False)
 class BaseAutoScalingGroup(BaseResource):
     kind: ClassVar[str] = "autoscaling_group"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "autoscaling_group", "group": "compute"}
     min_size: int = -1
     max_size: int = -1
 
@@ -975,6 +1021,7 @@ class BaseAutoScalingGroup(BaseResource):
 @define(eq=False, slots=False)
 class BaseIPAddress(BaseResource):
     kind: ClassVar[str] = "ip_address"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "network_address", "group": "networking"}
     ip_address: str = ""
     ip_address_family: str = ""
 
@@ -982,6 +1029,7 @@ class BaseIPAddress(BaseResource):
 @define(eq=False, slots=False)
 class BaseHealthCheck(BaseResource):
     kind: ClassVar[str] = "health_check"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "health_check", "group": "compute"}
     check_interval: int = -1
     healthy_threshold: int = -1
     unhealthy_threshold: int = -1
@@ -992,11 +1040,13 @@ class BaseHealthCheck(BaseResource):
 @define(eq=False, slots=False)
 class BaseDNSZone(BaseResource):
     kind: ClassVar[str] = "dns_zone"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "dns", "group": "networking"}
 
 
 @define(eq=False, slots=False)
 class BaseDNSRecordSet(BaseResource):
     kind: ClassVar[str] = "dns_record_set"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "dns", "group": "networking"}
 
     record_ttl: Optional[int] = None
     record_type: str = ""
@@ -1033,6 +1083,7 @@ class BaseDNSRecordSet(BaseResource):
 @define(eq=False, slots=False)
 class BaseDNSRecord(BaseResource):
     kind: ClassVar[str] = "dns_record"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "dns_record", "group": "networking"}
 
     record_ttl: int = -1
     record_type: str = ""

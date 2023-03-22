@@ -26,6 +26,7 @@ from typing import (
     Tuple,
     Callable,
     Awaitable,
+    Iterable,
 )
 
 import prometheus_client
@@ -68,7 +69,7 @@ from resotocore.message_bus import MessageBus, Message, ActionDone, Action, Acti
 from resotocore.model.db_updater import merge_graph_process
 from resotocore.model.graph_access import Section
 from resotocore.model.json_schema import json_schema
-from resotocore.model.model import Kind
+from resotocore.model.model import Kind, Model
 from resotocore.model.model_handler import ModelHandler
 from resotocore.model.typed_model import to_json, from_js, to_js_str, to_js
 from resotocore.query import QueryParser
@@ -390,7 +391,9 @@ class Api:
 
     async def get_configs_model(self, request: Request) -> StreamResponse:
         model = await self.config_handler.get_configs_model()
-        return await single_result(request, to_js(model))
+        if request.query.get("flat", "false") == "true":
+            model = Model.from_kinds(model.flat_kinds())
+        return await single_result(request, to_js(model, strip_nulls=True))
 
     async def update_configs_model(self, request: Request) -> StreamResponse:
         js = await self.json_from_request(request)
@@ -680,9 +683,12 @@ class Api:
         # default to internal model format, but allow to request json schema format
         if request.headers.get("accept") == "application/schema+json":
             return json_response(json_schema(md), content_type="application/schema+json")
+        kinds: Iterable[Kind]
+        if request.query.get("flat", "false") == "true":
+            kinds = md.flat_kinds()
         else:
-            result = to_js(md.kinds.values(), strip_nulls=True)
-            return await single_result(request, result)
+            kinds = md.kinds.values()
+        return await single_result(request, to_js(kinds, strip_nulls=True))
 
     async def update_model(self, request: Request) -> StreamResponse:
         js = await self.json_from_request(request)
