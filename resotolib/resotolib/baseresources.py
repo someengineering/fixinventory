@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from functools import wraps, cached_property
 from datetime import datetime, timezone, timedelta
@@ -7,8 +9,10 @@ import hashlib
 import weakref
 from resotolib.logger import log
 from enum import Enum
-from typing import Dict, Iterator, List, ClassVar, Optional, TypedDict, Any
+from typing import Dict, Iterator, List, ClassVar, Optional, TypedDict, Any, TypeVar, Type
 from resotolib.utils import make_valid_timestamp, utc_str
+from resotolib.json import from_json as _from_json, to_json as _to_json
+from resotolib.types import Json
 from prometheus_client import Counter, Summary
 from attrs import define, field, resolve_types, Factory
 import jsons
@@ -209,6 +213,42 @@ class BaseResource(ABC):
         return f"{self.kind} {self.dname}"
 
     rtdname = kdname
+
+    @classmethod
+    def from_json(cls: Type[BaseResourceType], json: Json) -> BaseResourceType:
+        return _from_json(json, cls)
+
+    def to_json(self) -> Json:
+        return _to_json(
+            self,
+            strip_attr=(
+                "_graph",
+                "age",
+                "api_spec",
+                "changes",
+                "chksum",
+                "clean",
+                "cleaned",
+                "dname",
+                "event_log",
+                "graph",
+                "kdname",
+                "kind",
+                "last_access",
+                "last_update",
+                "mapping",
+                "max_graph_depth",
+                "parent_resource",
+                "phantom",
+                "protected",
+                "reference_kinds",
+                "resource_type",
+                "rtdname",
+                "str_event_log",
+                "usage_percentage",
+                "uuid",
+            ),
+        )
 
     def log(self, msg: str, data=None, exception=None) -> None:
         now = datetime.utcnow().replace(tzinfo=timezone.utc)
@@ -582,6 +622,9 @@ class BaseResource(ABC):
 BaseResource.ctime = property(BaseResource._ctime_getter, BaseResource._ctime_setter)
 BaseResource.mtime = property(BaseResource._mtime_getter, BaseResource._mtime_setter)
 BaseResource.atime = property(BaseResource._atime_getter, BaseResource._atime_setter)
+
+
+BaseResourceType = TypeVar("BaseResourceType", bound=BaseResource)
 
 
 @define(eq=False, slots=False)

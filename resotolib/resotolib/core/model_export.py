@@ -303,48 +303,11 @@ def format_value_for_export(value: Any) -> Any:
 
 
 def get_node_attributes(node: BaseResource) -> Dict:
-    def to_json() -> Json:
-        return _to_json(
-            node,
-            strip_attr=(
-                "_graph",
-                "age",
-                "api_spec",
-                "changes",
-                "chksum",
-                "clean",
-                "cleaned",
-                "dname",
-                "event_log",
-                "graph",
-                "kdname",
-                "kind",
-                "last_access",
-                "last_update",
-                "mapping",
-                "max_graph_depth",
-                "parent_resource",
-                "phantom",
-                "protected",
-                "reference_kinds",
-                "resource_type",
-                "rtdname",
-                "str_event_log",
-                "usage_percentage",
-                "uuid",
-            ),
-        )
-
-    if hasattr(node, "to_json"):
-        result = node.to_json()
-        result["kind"] = node.kind
-        return result
-    elif attrs.has(node):
-        result = to_json()
-        result["kind"] = node.kind
-        return result
-    else:
-        raise ValueError(f"Node {node.rtdname} is neither a dataclass nor has a to_json method")
+    if not isinstance(node, BaseResource) and not hasattr(node, "to_json"):
+        raise ValueError(f"Node {node} is not a BaseResource and has no to_json() method!")
+    result = node.to_json()
+    result["kind"] = node.kind
+    return result
 
 
 def node_to_dict(node: BaseResource, changes_only: bool = False, include_revision: bool = False) -> Json:
