@@ -618,8 +618,8 @@ class CommandLineCompleter(Completer):
     def __init__(self, commands: List[CommandInfo], completers: List[CommandCompleter]):
         self.commands = commands
         self.command_completers = {c.cmd.name: c for c in completers}
-        self.source_completer = FuzzyWordCompleter([c.name for c in commands if c.source and not c.is_alias])
-        self.flow_completer = FuzzyWordCompleter([c.name for c in commands if not c.source and not c.is_alias])
+        self.source_completer = FuzzyWordCompleter([c.name for c in commands if (c.source and not c.is_alias)])
+        self.flow_completer = FuzzyWordCompleter([c.name for c in commands if (not c.source and not c.is_alias)])
 
     def find_current_command(self, document: Document) -> Optional[Tuple[CommandCompleter, str]]:
         text = document.text_before_cursor.lstrip()
