@@ -30,7 +30,6 @@ from resotolib.baseresources import (
 from resotolib.config import Config, current_config
 from resotolib.core.actions import CoreFeedback
 from resotolib.graph import Graph, EdgeKey, ByNodeId, BySearchCriteria, NodeSelector
-from resotolib.json import from_json as from_js
 from resotolib.json_bender import Bender, bend
 from resotolib.lock import RWLock
 from resotolib.proc import set_thread_name
@@ -128,10 +127,6 @@ class AwsResource(BaseResource, ABC):
         if "/" in arn:
             return arn.rsplit("/")[-1]
         return arn.rsplit(":")[-1]
-
-    @classmethod
-    def from_json(cls: Type[AwsResourceType], json: Json) -> AwsResourceType:
-        return from_js(json, cls)
 
     @classmethod
     def from_api(cls: Type[AwsResourceType], json: Json) -> AwsResourceType:
