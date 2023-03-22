@@ -17,6 +17,7 @@ from resotolib.baseresources import BaseResource
 from resotolib.durations import duration_str
 from resotolib.types import Json
 from resotolib.utils import type_str, str2timedelta, str2timezone, utc_str
+from resotolib.json import to_json as _to_json
 
 if sys.version_info >= (3, 10):
     from types import UnionType, NoneType
@@ -302,26 +303,11 @@ def format_value_for_export(value: Any) -> Any:
 
 
 def get_node_attributes(node: BaseResource) -> Dict:
-    def create_dict() -> Json:
-        attributes: Dict = {"kind": node.kind}
-        for field in attrs.fields(type(node)):
-            if field.name.startswith("_"):
-                continue
-            value = getattr(node, field.name, None)
-            if value is None:
-                continue
-            value = format_value_for_export(value)
-            attributes.update({field.name: value})
-        return attributes
-
-    if hasattr(node, "to_json"):
-        result = node.to_json()
-        result["kind"] = node.kind
-        return result
-    elif attrs.has(node):
-        return create_dict()
-    else:
-        raise ValueError(f"Node {node.rtdname} is neither a dataclass nor has a to_json method")
+    if not hasattr(node, "to_json"):
+        raise ValueError(f"Node {node} has no to_json() method!")
+    result = node.to_json()
+    result["kind"] = node.kind
+    return result
 
 
 def node_to_dict(node: BaseResource, changes_only: bool = False, include_revision: bool = False) -> Json:
