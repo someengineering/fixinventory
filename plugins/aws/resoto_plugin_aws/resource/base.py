@@ -30,7 +30,7 @@ from resotolib.baseresources import (
 from resotolib.config import Config, current_config
 from resotolib.core.actions import CoreFeedback
 from resotolib.graph import Graph, EdgeKey, ByNodeId, BySearchCriteria, NodeSelector
-from resotolib.json import to_json as to_js, from_json as from_js
+from resotolib.json import from_json as from_js
 from resotolib.json_bender import Bender, bend
 from resotolib.lock import RWLock
 from resotolib.proc import set_thread_name
@@ -104,44 +104,6 @@ class AwsResource(BaseResource, ABC):
     # legacy interface
     def delete(self, graph: Graph) -> bool:
         return self.delete_resource(get_client(current_config(), self), graph)
-
-    def to_json(self) -> Json:
-        return to_js(
-            self,
-            strip_attr=(
-                "mapping",
-                "phantom",
-                "reference_kinds",
-                "parent_resource",
-                "usage_percentage",
-                "dname",
-                "kdname",
-                "rtdname",
-                "changes",
-                "event_log",
-                "str_event_log",
-                "chksum",
-                "age",
-                "last_access",
-                "last_update",
-                "clean",
-                "cleaned",
-                "protected",
-                "_graph",
-                "graph",
-                "max_graph_depth",
-                "resource_type",
-                "age",
-                "last_access",
-                "last_update",
-                "clean",
-                "cleaned",
-                "protected",
-                "uuid",
-                "kind",
-                "api_spec",
-            ),
-        )
 
     def set_arn(
         self,

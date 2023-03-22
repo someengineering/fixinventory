@@ -17,6 +17,7 @@ from resotolib.baseresources import BaseResource
 from resotolib.durations import duration_str
 from resotolib.types import Json
 from resotolib.utils import type_str, str2timedelta, str2timezone, utc_str
+from resotolib.json import to_json as _to_json
 
 if sys.version_info >= (3, 10):
     from types import UnionType, NoneType
@@ -302,24 +303,46 @@ def format_value_for_export(value: Any) -> Any:
 
 
 def get_node_attributes(node: BaseResource) -> Dict:
-    def create_dict() -> Json:
-        attributes: Dict = {"kind": node.kind}
-        for field in attrs.fields(type(node)):
-            if field.name.startswith("_"):
-                continue
-            value = getattr(node, field.name, None)
-            if value is None:
-                continue
-            value = format_value_for_export(value)
-            attributes.update({field.name: value})
-        return attributes
+    def to_json() -> Json:
+        return _to_json(
+            node,
+            strip_attr=(
+                "_graph",
+                "age",
+                "api_spec",
+                "changes",
+                "chksum",
+                "clean",
+                "cleaned",
+                "dname",
+                "event_log",
+                "graph",
+                "kdname",
+                "kind",
+                "last_access",
+                "last_update",
+                "mapping",
+                "max_graph_depth",
+                "parent_resource",
+                "phantom",
+                "protected",
+                "reference_kinds",
+                "resource_type",
+                "rtdname",
+                "str_event_log",
+                "usage_percentage",
+                "uuid",
+            ),
+        )
 
     if hasattr(node, "to_json"):
         result = node.to_json()
         result["kind"] = node.kind
         return result
     elif attrs.has(node):
-        return create_dict()
+        result = to_json()
+        result["kind"] = node.kind
+        return result
     else:
         raise ValueError(f"Node {node.rtdname} is neither a dataclass nor has a to_json method")
 
