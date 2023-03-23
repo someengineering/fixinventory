@@ -4,6 +4,8 @@ import json
 import re
 import sys
 from abc import ABC, abstractmethod
+from functools import lru_cache
+
 from attrs import define
 from datetime import datetime, timezone, date
 from json import JSONDecodeError
@@ -1103,6 +1105,10 @@ date_kind = DateKind("date")
 datetime_kind = DateTimeKind("datetime")
 duration_kind = DurationKind("duration")
 
+# Define synthetic properties in the metadata section (not defined in the model)
+# The predefined_properties kind is used to define the properties there.
+synthetic_metadata_kinds = tuple(["exported_age"])
+
 predefined_kinds = [
     string_kind,
     int32_kind,
@@ -1236,6 +1242,14 @@ class Model:
             raise AttributeError(
                 f'No kind definition found for {js["kind"]}' if "kind" in js else f"No attribute kind found in {js}"
             ) from ex
+
+    @lru_cache
+    def predefined_synthetic_props(self, allowed: Tuple[str, ...]) -> List[ResolvedProperty]:
+        predefined = self.get("predefined_properties")
+        if isinstance(predefined, ComplexKind):
+            return [p for p in predefined.synthetic_props() if p.prop.name in allowed]
+        else:
+            return []
 
     def graph(self) -> MultiDiGraph:
         graph = MultiDiGraph()

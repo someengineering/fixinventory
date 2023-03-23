@@ -23,14 +23,14 @@ from resotocore.db.arango_query import fulltext_delimiter
 from resotocore.db.async_arangodb import AsyncArangoDB, AsyncArangoTransactionDB, AsyncArangoDBBase, AsyncCursorContext
 from resotocore.db.model import GraphUpdate, QueryModel
 from resotocore.error import InvalidBatchUpdate, ConflictingChangeInProgress, NoSuchChangeError, OptimisticLockingFailed
+from resotocore.ids import NodeId
 from resotocore.model.adjust_node import AdjustNode
 from resotocore.model.graph_access import GraphAccess, GraphBuilder, EdgeTypes, Section
-from resotocore.model.model import Model, ComplexKind, TransformKind
+from resotocore.model.model import Model, ComplexKind, TransformKind, ResolvedProperty, synthetic_metadata_kinds
 from resotocore.model.resolve_in_graph import NodePath, GraphResolver
 from resotocore.query.model import Query, FulltextTerm, MergeTerm, P
 from resotocore.types import JsonElement, EdgeType
 from resotocore.util import first, value_in_path_get, utc_str, uuid_str, value_in_path, json_hash, set_value_in_path
-from resotocore.ids import NodeId
 
 log = logging.getLogger(__name__)
 
@@ -483,21 +483,20 @@ class ArangoGraphDB(GraphDB):
     def document_to_instance_fn(
         model: Model, query: Optional[Query] = None, additional_root_props: Optional[List[str]] = None
     ) -> Callable[[Json], Json]:
+        synthetic_metadata = model.predefined_synthetic_props(synthetic_metadata_kinds)
+
         def props(doc: Json, result: Json, definition: Iterable[str]) -> None:
             for prop in definition:
                 if prop in doc and doc[prop]:
                     result[prop] = doc[prop]
 
-        def synth_props(doc: Json, result: Json) -> None:
-            reported_in = doc[Section.reported]
-            kind = model.get(reported_in)
-            if isinstance(kind, ComplexKind):
-                reported_out = result[Section.reported]
-                for synth in kind.synthetic_props():
+        def synth_props(doc: Json, result: Json, section: str, synthetic_properties: List[ResolvedProperty]) -> None:
+            if (section_in := doc.get(section)) and (section_out := result.get(section)):
+                for synth in synthetic_properties:
                     if isinstance(synth.kind, TransformKind) and synth.prop.synthetic:
-                        source_value = value_in_path(reported_in, synth.prop.synthetic.path)
+                        source_value = value_in_path(section_in, synth.prop.synthetic.path)
                         if source_value:
-                            reported_out[synth.prop.name] = synth.kind.transform(source_value)
+                            section_out[synth.prop.name] = synth.kind.transform(source_value)
 
         def render_prop(doc: Json, root_level: bool) -> Json:
             if Section.reported in doc or Section.desired in doc or Section.metadata in doc:
@@ -511,7 +510,10 @@ class ArangoGraphDB(GraphDB):
                     props(doc, result, Section.lookup_sections_ordered)
                     if additional_root_props:
                         props(doc, result, additional_root_props)
-                synth_props(doc, result)
+                kind = model.get(doc[Section.reported])
+                if isinstance(kind, ComplexKind):
+                    synth_props(doc, result, Section.reported, kind.synthetic_props())
+                    synth_props(doc, result, Section.metadata, synthetic_metadata)
                 return result
             else:
                 return doc
