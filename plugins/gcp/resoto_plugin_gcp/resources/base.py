@@ -168,32 +168,52 @@ class GraphBuilder:
         log.debug(f"{self.name}: add node {node}")
         node._cloud = self.cloud
         node._account = self.project
-        if source is not None and InternalZoneProp in source:
-            if zone := self.zone_by_name.get(source[InternalZoneProp]):
-                node._zone = zone
-                node._region = self.region_by_zone_name[source[InternalZoneProp]]
-                self.add_edge(node, node=zone, reverse=True)
-            else:
-                log.debug(f"Zone {source[InternalZoneProp]} not found for node: {node}. Skipping.")
-                return None
-        elif source is not None and RegionProp in source:
-            region_name = source[RegionProp].rsplit("/", 1)[-1]
-            if region := self.region_by_name.get(region_name):
-                node._region = region
-                self.add_edge(node, node=region, reverse=True)
-            else:
-                log.debug(f"Region {region_name} not found for node: {node}. Skipping.")
-                return None
-        elif self.region is not None:
-            node._region = self.region
-            self.add_edge(node, node=self.region, reverse=True)
-        else:
-            # TODO: check this list!
-            # log.error(f"Neither zone nor region is set for node {source}, add to project.")
-            self.add_edge(node, node=self.project, reverse=True)
+
+        self._standard_edges(node, source)
+
         with self.graph_nodes_access:
             self.graph.add_node(node, source=source or {})
         return node
+
+    def _standard_edges(self, node: GcpResourceType, source: Optional[Json] = None) -> None:
+        if isinstance(node, GcpRegion):
+            self.add_edge(node, node=self.project, reverse=True)
+            return
+        if node._zone:
+            self.add_edge(node, node=node._zone, reverse=True)
+            return
+        if node._region:
+            self.add_edge(node, node=node._region, reverse=True)
+            return
+
+        if source is not None:
+            if InternalZoneProp in source:
+                if zone := self.zone_by_name.get(source[InternalZoneProp]):
+                    node._zone = zone
+                    node._region = self.region_by_zone_name[source[InternalZoneProp]]
+                    self.add_edge(node, node=zone, reverse=True)
+                    return
+                else:
+                    log.debug(f"Zone {source[InternalZoneProp]} not found for node: {node}.")
+
+            if RegionProp in source:
+                region_name = source[RegionProp].rsplit("/", 1)[-1]
+                if region := self.region_by_name.get(region_name):
+                    node._region = region
+                    self.add_edge(node, node=region, reverse=True)
+                    return
+                else:
+                    log.debug(f"Region {region_name} not found for node: {node}.")
+
+        # Fallback to GraphBuilder region, i.e. regional collection
+        if self.region is not None:
+            node._region = self.region
+            self.add_edge(node, node=self.region, reverse=True)
+            return
+
+        # Fallback to project, i.e. for non-regional resources
+        self.add_edge(node, node=self.project, reverse=True)
+        return
 
     def add_edge(
         self,
@@ -425,8 +445,7 @@ class GcpRegion(GcpResource, BaseRegion):
         for quota_js in source.get("quotas", []):
             quota = GcpQuota.from_api(quota_js)
             quota._region = self
-            if inserted := graph_builder.add_node(quota, quota_js):
-                graph_builder.add_edge(self, node=inserted)
+            graph_builder.add_node(quota, quota_js)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)

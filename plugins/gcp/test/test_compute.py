@@ -137,6 +137,8 @@ def test_gcp_instance_custom_machine_type(random_builder: GraphBuilder) -> None:
     only_machine_type = random_builder.resources_of(GcpMachineType)[0]
     assert first_instance.instance_cores == only_machine_type.instance_cores
     assert first_instance.instance_memory == only_machine_type.instance_memory
+    assert only_machine_type._zone
+    assert only_machine_type._region
 
 
 def test_machine_type_ondemand_cost(random_builder: GraphBuilder) -> None:
