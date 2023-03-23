@@ -1,4 +1,4 @@
-import concurrent.futures
+from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from collections import namedtuple
 from resotolib.graph import GraphMergeKind
 from resotolib.config import Config
@@ -24,13 +24,13 @@ def get_default_collectors() -> List[str]:
         return PluginAutoEnabledResult(plugin.cloud, plugin.auto_enabled())
 
     try:
-        with concurrent.futures.ThreadPoolExecutor(max_workers=20, thread_name_prefix="AutoDiscovery") as executor:
+        with ThreadPoolExecutor(max_workers=20, thread_name_prefix="AutoDiscovery") as executor:
             return [
                 plugin_result.cloud
                 for plugin_result in executor.map(plugin_auto_enabled, _collector_plugins, timeout=10)
                 if plugin_result.auto_enabled
             ]
-    except concurrent.futures.TimeoutError:
+    except TimeoutError:
         log.error("Timeout while getting auto-enabled collectors")
     except Exception as e:
         log.error(f"Unhandled exception while getting auto-enabled collectors: {e}")
