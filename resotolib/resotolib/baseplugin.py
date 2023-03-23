@@ -215,6 +215,11 @@ class BaseCollectorPlugin(BasePlugin):
         pass
 
     @staticmethod
+    def auto_enabled() -> bool:
+        """Should this collector be enabled by default?"""
+        return False
+
+    @staticmethod
     def update_tag(config: Config, resource: BaseResource, key: str, value: str) -> bool:
         """Update the tag of a resource"""
         return resource.update_tag(key, value)

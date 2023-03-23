@@ -21,7 +21,7 @@ class PluginLoader:
         #   PluginType.PERSISTENT: [SlackNotificationPlugin, VolumeCleanupPlugin]
         # }
         self._plugins: Dict[PluginType, List[Union[Type[BasePlugin], Type[BaseActionPlugin]]]] = {}
-        self._initialized = False
+        self._initialized: bool = False
 
         if plugin_type is not None:
             log.debug(f"Only loading plugins of type {plugin_type}")
@@ -89,6 +89,9 @@ class PluginLoader:
         if plugin_type is not None:
             return self._plugins.get(plugin_type, [])  # type: ignore
         return [plugin for plugins in self._plugins.values() for plugin in plugins]
+
+    def all_collector_plugins(self) -> List[Type[BaseCollectorPlugin]]:
+        return cast(List[Type[BaseCollectorPlugin]], self.all_plugins(plugin_type=PluginType.COLLECTOR))
 
     def add_plugin_args(self, arg_parser: ArgumentParser) -> None:
         """Add args to the arg parser"""

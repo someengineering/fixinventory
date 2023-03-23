@@ -1,19 +1,29 @@
 from resotolib.graph import GraphMergeKind
 from resotolib.config import Config
 from resotolib.proc import num_default_threads
+from resotolib.baseplugin import BaseCollectorPlugin
 from attrs import define, field
-from typing import ClassVar, Optional, List
+from typing import ClassVar, Optional, List, Type
 
 
-def add_config(config: Config) -> None:
+_collector_plugins: List[Type[BaseCollectorPlugin]] = []
+
+
+def add_config(config: Config, collector_plugins: List[Type[BaseCollectorPlugin]]) -> None:
+    global _collector_plugins
+    _collector_plugins = collector_plugins
     config.add_config(ResotoWorkerConfig)
+
+
+def get_default_collectors() -> List[str]:
+    return [plugin.cloud for plugin in _collector_plugins if plugin.auto_enabled()]
 
 
 @define
 class ResotoWorkerConfig:
     kind: ClassVar[str] = "resotoworker"
     collector: List[str] = field(
-        factory=lambda: ["example"],
+        factory=get_default_collectors,
         metadata={"description": "List of collectors to run", "restart_required": True},
     )
     graph: str = field(
