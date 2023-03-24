@@ -2,10 +2,10 @@ from resotoworker.utils import write_files_to_home_dir, write_utf8_file
 from resotoworker.config import HomeDirectoryFile
 from tempfile import TemporaryDirectory
 from pathlib import Path
-from typing import Optional, List
+from typing import Optional, List, Any
 
 
-def test_write_utf8_file():
+def test_write_utf8_file() -> None:
     with TemporaryDirectory() as tmpdir:
         f = Path(tmpdir) / "test.txt"
 
@@ -15,22 +15,22 @@ def test_write_utf8_file():
 
 
 class InMemoryFile:
-    def __init__(self):
+    def __init__(self) -> None:
         self.file_path: Optional[Path] = None
         self.file_content: Optional[str] = None
 
-    def __enter__(self):
+    def __enter__(self) -> "InMemoryFile":
         return self
 
-    def __exit__(self, *args):
+    def __exit__(self, *args: Any) -> None:
         pass
 
-    def write_to_disk(self, path: Path, content: str):
+    def write_to_disk(self, path: Path, content: str) -> None:
         self.file_path = path
         self.file_content = content
 
 
-def test_write_file():
+def test_write_file() -> None:
     content = "hello world"
 
     def ecfs(path: str) -> List[HomeDirectoryFile]:

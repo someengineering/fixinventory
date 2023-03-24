@@ -16,9 +16,7 @@ def write_utf8_file(path: Path, content: str) -> None:
         return
 
 
-def write_files_to_home_dir(
-    files: List[HomeDirectoryFile], write_to_disk: Callable[[Path, str], None]
-) -> None:
+def write_files_to_home_dir(files: List[HomeDirectoryFile], write_to_disk: Callable[[Path, str], None]) -> None:
     """Write external configuration files to disk"""
     for file in files:
         path = Path(file.path)
