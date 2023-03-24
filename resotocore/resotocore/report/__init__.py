@@ -4,14 +4,14 @@ import logging
 from abc import ABC, abstractmethod
 from enum import Enum
 from functools import reduce
-from typing import List, Optional, Dict, ClassVar, AsyncIterator
+from typing import List, Optional, Dict, ClassVar, AsyncIterator, cast, Set
 
 from attr import define, field, evolve
 
 from resotocore.ids import ConfigId
 from resotocore.model.typed_model import to_js
 from resotocore.types import Json
-from resotocore.util import uuid_str
+from resotocore.util import uuid_str, if_set
 
 log = logging.getLogger(__name__)
 
@@ -118,7 +118,7 @@ class Benchmark(CheckCollection):
 class CheckResult:
     check: ReportCheck
     number_of_resources_failing_by_account: Dict[str, int]
-    node_id: str = field(init=False, default=uuid_str())
+    node_id: str = field(init=False, factory=uuid_str)
 
     @property
     def number_of_resources_failing(self) -> int:
@@ -128,14 +128,35 @@ class CheckResult:
         return self.number_of_resources_failing > 0
 
     def to_node(self) -> Json:
-        reported = to_js(self.check)
+        reported = to_js(self.check, strip_attr="kind")
         reported["kind"] = "report_check_result"
-        reported["id"] = self.check.id
         reported["name"] = self.check.title
         reported["number_of_resources_failing"] = self.number_of_resources_failing
         if self.number_of_resources_failing_by_account:
             reported["number_of_resources_failing_by_account"] = self.number_of_resources_failing_by_account
         return dict(id=self.node_id, kind="report_check_result", type="node", reported=reported)
+
+    @staticmethod
+    def from_node(js: Json) -> CheckResult:
+        reported = cast(Json, js["reported"])
+        return CheckResult(
+            check=ReportCheck(
+                id=reported["id"],
+                provider=reported["provider"],
+                service=reported["service"],
+                title=reported["title"],
+                result_kind=reported["result_kind"],
+                categories=reported["categories"],
+                severity=ReportSeverity(reported["severity"]),
+                risk=reported["risk"],
+                detect=reported["detect"],
+                remediation=Remediation(**reported["remediation"]),
+                default_values=reported.get("default_values"),
+                url=reported.get("url"),
+                related=reported.get("related", []),
+            ),
+            number_of_resources_failing_by_account=reported.get("number_of_resources_failing_by_account", {}),
+        )
 
 
 @define
@@ -145,7 +166,7 @@ class CheckCollectionResult:
     documentation: Optional[str] = field(default=None, kw_only=True)
     checks: List[CheckResult] = field(factory=list, kw_only=True)
     children: List[CheckCollectionResult] = field(factory=list, kw_only=True)
-    node_id: str = field(init=False, default=uuid_str())
+    node_id: str = field(init=False, factory=uuid_str)
 
     def to_node(self) -> Json:
         return dict(
@@ -160,35 +181,85 @@ class CheckCollectionResult:
             ),
         )
 
+    @staticmethod
+    def from_node(js: Json) -> CheckCollectionResult:
+        reported = cast(Json, js["reported"])
+        return CheckCollectionResult(
+            title=reported["title"],
+            description=reported["description"],
+            documentation=reported.get("documentation"),
+        )
+
     def is_empty(self) -> bool:
         return not self.checks and not self.children
 
     def has_failed(self) -> bool:
         return any(c.has_failed() for c in self.checks) or any(c.has_failed() for c in self.children)
 
-    def filter_result(self, filter_failed: bool) -> CheckCollectionResult:
+    def has_failed_for_account(self, account: str) -> bool:
+        return any(account in c.number_of_resources_failing_by_account for c in self.checks) or any(
+            c.has_failed_for_account(account) for c in self.children
+        )
+
+    def filter_result(
+        self, filter_failed: bool = False, failed_for_account: Optional[str] = None
+    ) -> CheckCollectionResult:
         return evolve(
             self,
-            checks=[c for c in self.checks if (c.has_failed() or not filter_failed)],
+            checks=[
+                c
+                for c in self.checks
+                if (not filter_failed or c.has_failed())
+                and (failed_for_account is None or failed_for_account in c.number_of_resources_failing_by_account)
+            ],
             children=[
-                c.filter_result(filter_failed)
+                c.filter_result(filter_failed, failed_for_account)
                 for c in self.children
-                if (c.has_failed() or not filter_failed) and (c.checks or c.children)
+                if (not filter_failed or c.has_failed())
+                and (c.checks or c.children)
+                and (failed_for_account is None or c.has_failed_for_account(failed_for_account))
             ],
         )
+
+    def check_results(self) -> List[CheckResult]:
+        return self.checks + [c for child in self.children for c in child.check_results()]
+
+    def failing_accounts(self) -> Set[str]:
+        return {account for result in self.check_results() for account in result.number_of_resources_failing_by_account}
 
 
 @define
 class BenchmarkResult(CheckCollectionResult):
     framework: str
     version: str
+    accounts: Optional[List[str]] = field(default=None)
+    only_failed: bool = field(default=False)
+    severity: Optional[ReportSeverity] = field(default=None)
 
     def to_node(self) -> Json:
         node = super().to_node()
-        node["reported"]["framework"] = self.framework
-        node["reported"]["version"] = self.version
-        node["reported"]["kind"] = "report_benchmark"
+        reported = node["reported"]
+        reported["framework"] = self.framework
+        reported["version"] = self.version
+        reported["kind"] = "report_benchmark"
+        reported["accounts"] = self.accounts
+        reported["only_failed"] = self.only_failed
+        reported["severity"] = if_set(self.severity, lambda s: s.value)
         return node
+
+    @staticmethod
+    def from_node(js: Json) -> BenchmarkResult:
+        reported = cast(Json, js["reported"])
+        return BenchmarkResult(
+            framework=reported["framework"],
+            version=reported["version"],
+            title=reported["title"],
+            description=reported["description"],
+            documentation=reported.get("documentation"),
+            accounts=reported["accounts"],
+            only_failed=reported["only_failed"],
+            severity=if_set(reported.get("severity"), ReportSeverity),
+        )
 
     def to_graph(self) -> List[Json]:
         result = []

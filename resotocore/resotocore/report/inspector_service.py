@@ -261,6 +261,9 @@ class InspectorService(Inspector, Service):
             documentation=benchmark.documentation,
             checks=top.checks,
             children=top.children,
+            accounts=context.accounts,
+            only_failed=context.only_failed,
+            severity=context.severity,
         )
 
     async def __perform_checks(

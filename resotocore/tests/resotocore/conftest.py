@@ -18,6 +18,7 @@ from aiohttp.web import Request, Response, Application, route
 from arango.client import ArangoClient
 from arango.database import StandardDatabase
 from pytest import fixture
+from rich.console import Console
 
 from resotocore.action_handlers.merge_outer_edge_handler import MergeOuterEdgesHandler
 from resotocore.analytics import AnalyticsEventSender, InMemoryEventSender, NoEventSender
@@ -30,6 +31,7 @@ from resotocore.cli.model import CLIDependencies
 from resotocore.config import ConfigHandler, ConfigEntity, ConfigValidation, ConfigOverride
 from resotocore.config.config_handler_service import ConfigHandlerService
 from resotocore.config.core_config_handler import CoreConfigHandler
+from resotocore.console_renderer import ConsoleRenderer, ConsoleColorSystem
 from resotocore.core_config import (
     GraphUpdateConfig,
     CoreConfig,
@@ -424,7 +426,7 @@ def config_handler(task_queue: WorkerTaskQueue, worker: Any, message_bus: Messag
     model_db = InMemoryDb(Kind, lambda c: c.fqn)  # type: ignore
     event_sender = InMemoryEventSender()
     core_config = cast(CoreConfig, SimpleNamespace())
-    override_service = cast(ConfigOverride, SimpleNamespace(get_override=lambda id: {}, get_all_overrides=lambda: {}))
+    override_service = cast(ConfigOverride, SimpleNamespace(get_override=lambda _: {}, get_all_overrides=lambda: {}))
     return ConfigHandlerService(
         cfg_db, validation_db, model_db, task_queue, message_bus, event_sender, core_config, override_service
     )
@@ -702,3 +704,9 @@ async def merge_handler(
     await handler.start()
     yield handler
     await handler.stop()
+
+
+@fixture
+def console_renderer() -> ConsoleRenderer:
+    tty_columns, tty_rows = shutil.get_terminal_size(fallback=(80, 25))
+    return ConsoleRenderer(tty_columns, tty_rows, ConsoleColorSystem.from_name(Console().color_system or "standard"))

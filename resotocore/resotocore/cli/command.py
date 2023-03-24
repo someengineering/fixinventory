@@ -118,6 +118,7 @@ from resotocore.query.model import (
 from resotocore.query.query_parser import parse_query, aggregate_parameter_parser
 from resotocore.query.template_expander import tpl_props_p
 from resotocore.report import BenchmarkConfigPrefix, ReportSeverity
+from resotocore.report.benchmark_renderer import respond_benchmark_result
 from resotocore.task.task_description import Job, TimeTrigger, EventTrigger, ExecuteCommand, Workflow, RunningTask
 from resotocore.types import Json, JsonElement, EdgeType
 from resotocore.util import (
@@ -2137,6 +2138,9 @@ class ProtectCommand(SetMetadataStateBase):
         return {"protected": True}
 
 
+ConvertFn = Callable[[AsyncIterator[JsonElement]], AsyncIterator[JsonElement]]
+
+
 class FormatCommand(CLICommand, OutputTransformer):
     """
     ```
@@ -2201,7 +2205,7 @@ class FormatCommand(CLICommand, OutputTransformer):
             ArgInfo(expects_value=True, help_text="format definition with {} placeholders", option_group="output"),
         ]
 
-    formats: Dict[str, Callable[[AsyncIterator[JsonElement]], AsyncIterator[JsonElement]]] = {
+    formats: Dict[str, ConvertFn] = {
         "ndjson": respond_ndjson,
         "json": partial(respond_json, indent=2),
         "text": respond_text,
@@ -2210,6 +2214,8 @@ class FormatCommand(CLICommand, OutputTransformer):
         "graphml": respond_graphml,
         "dot": respond_dot,
     }
+
+    render_all = {"benchmark_result": respond_benchmark_result}
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
         parser = NoExitArgumentParser()
@@ -2220,12 +2226,13 @@ class FormatCommand(CLICommand, OutputTransformer):
         parser.add_argument("--yaml", dest="yaml", action="store_true")
         parser.add_argument("--cytoscape", dest="cytoscape", action="store_true")
         parser.add_argument("--dot", dest="dot", action="store_true")
+        parser.add_argument("--benchmark-result", dest="benchmark_result", action="store_true")
         parsed, formatting_string = parser.parse_known_args(arg.split() if arg else [])
         format_to_use = {k for k, v in vars(parsed).items() if v is True}
 
-        async def render_format(format_name: str, iss: Stream) -> JsGen:
+        async def render_single(converter: ConvertFn, iss: Stream) -> JsGen:
             async with iss.stream() as streamer:
-                async for elem in self.formats[format_name](streamer):
+                async for elem in converter(streamer):
                     yield elem
 
         async def format_stream(in_stream: Stream) -> Stream:
@@ -2234,7 +2241,13 @@ class FormatCommand(CLICommand, OutputTransformer):
                     raise AttributeError(f'You can define only one format. Defined: {", ".join(format_to_use)}')
                 if len(formatting_string) > 0:
                     raise AttributeError("A format renderer can not be combined together with a format string!")
-                return render_format(next(iter(format_to_use)), in_stream)
+                use = next(iter(format_to_use))
+                if all_renderer := self.render_all.get(use):
+                    return all_renderer(in_stream, ctx)
+                elif single_renderer := self.formats.get(use):
+                    return render_single(single_renderer, in_stream)
+                else:
+                    raise ValueError(f"Unknown format: {use}")
             elif formatting_string:
                 return stream.map(in_stream, ctx.formatter(arg)) if arg else in_stream
             else:
