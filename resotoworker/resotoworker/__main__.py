@@ -34,6 +34,7 @@ from resotolib.web.metrics import WebApp
 from resotoworker.cleanup import cleanup
 from resotoworker.collect import Collector
 from resotoworker.config import add_config
+from resotoworker.utils import write_files_to_home_dir, write_utf8_file
 from resotoworker.pluginloader import PluginLoader
 from resotoworker.resotocore import Resotocore
 from resotoworker.tag import core_tag_tasks_processor
@@ -96,6 +97,8 @@ def main() -> None:
     add_config(config)
     plugin_loader.add_plugin_config(config)
     config.load_config()
+
+    write_files_to_home_dir(config.resotoworker.write_files_to_home_dir, write_utf8_file)
 
     def send_request(request: requests.Request) -> requests.Response:
         prepared = request.prepare()
