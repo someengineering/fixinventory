@@ -31,6 +31,7 @@ from resotocore.model.model import (
     DurationKind,
     SyntheticProperty,
     string_kind,
+    synthetic_metadata_kinds,
 )
 from resotocore.model.typed_model import to_json, from_js
 from resotocore.types import Json
@@ -453,6 +454,10 @@ def test_markup() -> None:
     result = ctx.render_console(md)
     assert len(result) > len(md)
     assert "• b1 test" in result
+
+
+def test_synthetic_predefined(person_model: Model) -> None:
+    assert len(person_model.predefined_synthetic_props(synthetic_metadata_kinds)) == len(synthetic_metadata_kinds)
 
 
 def test_yaml(person_model: Model) -> None:

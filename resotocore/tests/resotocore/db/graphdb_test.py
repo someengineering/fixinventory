@@ -575,6 +575,12 @@ async def test_events(event_graph_db: EventGraphDB, foo_model: Model, event_send
     assert merge_event.batch is False
 
 
+def test_render_metadata_section(foo_model: Model) -> None:
+    printer = ArangoGraphDB.document_to_instance_fn(foo_model)
+    out = printer({"_key": "1", "reported": {"kind": "foo"}, "metadata": {"exported_at": "2023-03-06T19:37:51Z"}})
+    assert "exported_age" in out["metadata"]  # exported_age is not part of the document, but should be added
+
+
 def to_json(obj: BaseResource) -> Json:
     return {"kind": obj.kind(), **to_js(obj)}
 
