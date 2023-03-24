@@ -76,7 +76,11 @@ class ResotoWorkerConfig:
     write_files_to_home_dir: List[HomeDirectoryFile] = field(
         factory=list,
         metadata={
-            "description": "Files that should be saved in the worker home directory",
+            "description": (
+                "All entries that are defined in this section are created as files on demand. "
+                "Use this option to define .aws/credentials, .kube/config file or other "
+                "credential files that should be passed to the worker as file."
+            ),
             "restart_required": True,
         },
     )
